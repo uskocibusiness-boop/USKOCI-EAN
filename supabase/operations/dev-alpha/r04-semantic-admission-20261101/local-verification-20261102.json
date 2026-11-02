@@ -44,7 +44,15 @@
     "Added lowercase/whitespace regression failed UNCONFIRMED vs CONFIRMED before readback normalization fix; passed afterward.",
     "R06 original finalizer exhausts lost-ACK retry despite same committed receipt; two driver/Edge regressions and SQL baseline failed before fix."
   ],
-  "file_sha256": {
+  "dev": "READ_ONLY: migration20261101174446 and old four R04 bodies, captured08:25:01UTC; worker readers captured08:30:37UTC; NO migration/Edge apply",
+  "ci_at_initial_recording": "new run not yet started; prior full41374792426SUCCESS / R0141374792443FAIL on6608730d; not inherited as proof for this source",
+  "limits_at_initial_recording": [
+    "No real prepare/Save/Auth/Android, paid provider or concurrent PG17 execution this round.",
+    "New LOCAL_ONLY SQL not part of frozen promotion; no closure certificate/readiness change.",
+    "No full durable first-plan completion or receipt arriving after terminal finalizer proof.",
+    "Deno unavailable locally; required existing full CI will typecheck Edge."
+  ],
+  "executed_worktree_sha256": {
     "supabase/operations/dev-alpha/r04-semantic-admission-20261101/package.test.mjs": "07fb1fc3f69829ed0a8e86e3248eb375e348305984d436b608bce0131c7e8fd2",
     "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-semantic-sync-local-only.sql": "80e65cdfd2c61e9f756e090e31f33cd9bb83b3a01a7a282e77df813306617ccc",
     "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-remote-semantic-activation-local-only.sql": "37724c282847b410b777da8a173a1aabbf3962d54f8224db357b0b2866374087",
@@ -53,12 +61,128 @@
     "supabase/proofs/ai/r06_postsave_receipt_finalization_candidate.sql": "849664b6bcdd1c0d8cadf23bfc5eba4f164228b9cbdf48284c67ddea5b75b83e",
     "supabase/proofs/ai/r06_postsave_receipt_finalization.test.mjs": "89bd3f66233d85694dd30d94da22c62ae95f781c140ba3c3e5e6aa2b8b1306f1"
   },
-  "dev": "READ_ONLY: migration20261101174446 and old four R04 bodies, captured08:25:01UTC; worker readers captured08:30:37UTC; NO migration/Edge apply",
-  "ci": "new run not yet started; prior full41374792426SUCCESS / R0141374792443FAIL on6608730d; not inherited as proof for this source",
-  "limits": [
-    "No real prepare/Save/Auth/Android, paid provider or concurrent PG17 execution this round.",
-    "New LOCAL_ONLY SQL not part of frozen promotion; no closure certificate/readiness change.",
-    "No full durable first-plan completion or receipt arriving after terminal finalizer proof.",
-    "Deno unavailable locally; required existing full CI will typecheck Edge."
-  ]
+  "git_blob_sha256": {
+    "supabase/operations/dev-alpha/r04-semantic-admission-20261101/package.test.mjs": "49218b36b51f5b83c1ee11f68961b0583b72f241555d8e8d2a63cd49d785e26a",
+    "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-semantic-sync-local-only.sql": "e5efe559502eac6bed4fd95f7103c8395630fe6aafb899915658288dda3ab618",
+    "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-remote-semantic-activation-local-only.sql": "37724c282847b410b777da8a173a1aabbf3962d54f8224db357b0b2866374087",
+    "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-semantic-readback-local-only.sql": "59e1094a072d0059fdc5136560f0ada1f435bf688ddecf2d66e2bbd86095efb7",
+    "supabase/functions/_shared/taxonomyPostSaveWorker.mjs": "1a787842735041cb754e0811fbbc83d4c78c39d7098758a1c4d03ae06607a584",
+    "supabase/proofs/ai/r06_postsave_receipt_finalization_candidate.sql": "849664b6bcdd1c0d8cadf23bfc5eba4f164228b9cbdf48284c67ddea5b75b83e",
+    "supabase/proofs/ai/r06_postsave_receipt_finalization.test.mjs": "89bd3f66233d85694dd30d94da22c62ae95f781c140ba3c3e5e6aa2b8b1306f1"
+  },
+  "hash_note": "Git blob hashes identify committed source; executed Windows worktree hashes may differ only by checkout line endings.",
+  "followup": {
+    "classification": "LOCAL_SOURCE_AND_ISOLATED_SQL_NOT_DEV_OR_NATIVE",
+    "first_source_sha": "d89f9aad2d176c9293a67c95943101659309e953",
+    "first_ci": {
+      "head": "a98321b1154c9e8217115153e178c8ecd08da47e",
+      "main": 41414604704,
+      "conclusion": "SUCCESS",
+      "jest_suites": 626,
+      "jest_tests": 14567,
+      "ai_pass": 1502,
+      "ai_todo": 1,
+      "r01": 41414604713,
+      "r01_conclusion": "FAILURE",
+      "strict": 8,
+      "owner_acl": 49,
+      "managed_net": 3
+    },
+    "r06_dev_read_only": {
+      "project_ref": "leqcwgzvjsxugfgzdmth",
+      "functions": [
+        {
+          "captured_at": "2026-11-02 08:53:26.861774+00",
+          "read_only": "on",
+          "last_migration": "20261101174446",
+          "signature": "rpc_taxonomy_finalize_reviewed_batch_service(uuid,uuid,text)",
+          "body_md5": "af9cd22b779037a8c9f7fad5c8543cfe",
+          "owner": "postgres",
+          "prosecdef": true,
+          "proconfig": [
+            "search_path=pg_catalog, private"
+          ],
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "anon_execute": false,
+          "authenticated_execute": false,
+          "service_execute": true
+        },
+        {
+          "captured_at": "2026-11-02 08:53:26.861774+00",
+          "read_only": "on",
+          "last_migration": "20261101174446",
+          "signature": "rpc_taxonomy_reconcile_reviewed_outbox_service(integer)",
+          "body_md5": "41747bdfdba0af1d941bf4fb91f1a887",
+          "owner": "postgres",
+          "prosecdef": true,
+          "proconfig": [
+            "search_path=pg_catalog, private"
+          ],
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "anon_execute": false,
+          "authenticated_execute": false,
+          "service_execute": true
+        }
+      ],
+      "mutations": false
+    },
+    "source_sha": "84176fc994ce8ae658ab3ff8aab54e820aa010bc",
+    "related_commit": "955da6795c2ab1464756b100f0f03464a392af9e",
+    "checks": [
+      {
+        "command": "node --test supabase/proofs/ai/r04_worker_semantic_save_chain.test.mjs supabase/operations/dev-alpha/r04-semantic-admission-20261101/package.test.mjs",
+        "result": "PASS",
+        "tests": 25,
+        "duration_ms": 22498.3851
+      },
+      {
+        "command": "node --test supabase/operations/dev-alpha/r04-semantic-admission-20261101/closure-postimage.test.mjs",
+        "result": "PASS",
+        "tests": 10,
+        "scope": "Before independent SQL test addition; additional exact new test then passed separately"
+      },
+      {
+        "command": "node --test --test-name-pattern='independent PostgreSQL JSONB and SHA-256' supabase/operations/dev-alpha/r04-semantic-admission-20261101/closure-postimage.test.mjs",
+        "result": "PASS",
+        "tests": 1
+      },
+      {
+        "reproduction_command": "node --test supabase/proofs/ai/r06_postsave_late_receipt_reconcile.test.mjs supabase/proofs/ai/r06_postsave_receipt_finalization.test.mjs supabase/proofs/ai/postsave_edge_transport.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs",
+        "command_exact": "UNRECOVERED: executing agent retained 20 new plus 57 linked PASS, not the literal original invocation order",
+        "result": "PASS",
+        "tests": 77
+      },
+      {
+        "command": "node supabase/operations/dev-alpha/r04-semantic-admission-20261101/build.mjs --check",
+        "result": "PASS",
+        "scope": "Corrected original four-function bundle; not the five additional worker candidates or R06 candidates"
+      },
+      {
+        "command": "python supabase/migrations/check_migration_integrity.py",
+        "result": "PASS",
+        "files": 193
+      },
+      {
+        "command": "node --test supabase/proofs/ai/r04_need_semantic_save_chain.test.mjs",
+        "result": "PASS",
+        "tests": 1,
+        "duration_ms": 2786.7194
+      }
+    ],
+    "reproductions": [
+      "Late committed Need/Worker receipts: original reconciler fails both regression scenarios; no provider retry in new actual driver path.",
+      "Independent closure postimage projection disproves old frozen expected hashes; old postflight would abort. Deterministic canonical-catalog derivation and separate PostgreSQL JSONB/sha256 projection agree, without certificate/readiness changes.",
+      "First cityless CREATE_CHILD/CREATE_NEW_BRANCH/EXTEND_MODE review was READY but canAccept=false and Save failed. New consent helper preserves source/digest and no capabilities until real batch/binding.",
+      "Calling handoff context preservation after Save's own writes caused WORKER_AI_NOT_EDITABLE; existing source guard retained, activation helper compares the owned source-bound projection directly."
+    ],
+    "limits": [
+      "New full CI pending for this source group.",
+      "Synthetic Auth/claims/background hints and selected fixture helpers, no paid Gemini/HTTP/RLS/PostGIS complete matching/Android proof.",
+      "Public application RPC reaches explicit calendar sentinel, not a completed application.",
+      "Previously saved REUSE handoff without current hint in a mixed novel plan stays conservatively rejected.",
+      "Actual Need prepare/decoder/Accept/Save/batch/binder/owned DRAFT readback proved in isolated SQL; no positive evaluation/publication, actual policy/Auth/hosted RLS or native proof.",
+      "No DEV mutation, Edge deployment, closure certification, APK, release or billing change."
+    ],
+    "need_proof_sha": "3c3b54b6131a051c27e0f40b891da6af95e35d1f"
+  }
 }

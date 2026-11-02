@@ -1,6 +1,6 @@
-# R04 semantic admission â€” reviewed single-word services, synonyms and execution modes
+# R04 semantic admission — reviewed single-word services, synonyms and execution modes
 
-**Status: PREPARED_NOT_APPLIED** on DEV `leqcwgzvjsxugfgzdmth` at source commit `94c8862c`. The subsequent strict TypeScript test fix is `639c97d6`. **Source/PGlite tests do not establish DEV or Android acceptance.** Do not run `promotion.sql` merely because this package exists.
+**Status: LOCAL_SOURCE_VERIFIED / NOT_APPLIED** on DEV `leqcwgzvjsxugfgzdmth`. Current corrections are `955da679` (closure derivation) and `84176fc9` (first cityless novel service consent). The original four-function promotion still excludes the five extra worker candidates and R06. **Source/PGlite tests do not establish DEV or Android acceptance.** Do not run `promotion.sql` merely because this package exists. The earlier `94c8862c` / `639c97d6` results below are historical.
 
 ## What changes and why
 
@@ -41,9 +41,15 @@ At `work/rev14-review-f17@6608730d`, two **additional LOCAL_ONLY (NOT APPLIED)**
 
 Runtime source `d89f9aad2d176c9293a67c95943101659309e953` adds three more LOCAL_ONLY replacements: `worker-semantic-sync-local-only.sql`, `worker-remote-semantic-activation-local-only.sql`, and `worker-semantic-readback-local-only.sql`. The actual saved-mode reader is `rpc_get_worker_execution_modes`; `rpc_read_worker_ai_taxonomy` remains unchanged. Existing bound semantic IDs survive unrelated skill additions and formatting-only label changes. Explicit removal still revokes; a stale binder replay does not regrant. New signed consent can regrant the same ID with the current mode set.
 
-The final **18/18 isolated tests PASS**, including captured live old-body failures and actual trigger/batch/binder/eligibility/public-reader execution with `skills text[]`. Review/Save/Auth and selected helper fixtures remain synthetic. See `local-verification-20261102.json` for source hashes, exact scope and related R06 receipt recovery checks. New Full CI is pending; earlier CI does not certify this source.
+The **18/18 isolated package tests PASS**, including captured live old-body failures and actual trigger/batch/binder/eligibility/public-reader execution with `skills text[]`. That harness prepares review/Save/Auth synthetically. Full [CI41414604704](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41414604704) is SUCCESS for this first source batch; R01 remains FAIL8/49/3. The later corrections below need their own CI. See `local-verification-20261102.json` for exact scope and related R06 checks.
 
-**All five extra worker SQL candidates remain outside the frozen FOUR-body promotion.** The previously open sync/durable eligibility/readback source defects are now locally fixed and tested, but not deployed. None of these standalone files may be applied directly to DEV/PROD. The next promotion must be derived and reviewed as one expanded compatible pre/postimage/ACL/closure/rollback package; the original four-body promotion alone is not the complete worker fix. New-category first cityless activation, real Auth Save, public submit/select, matching, and Android remain separate acceptance work.
+**All five extra worker SQL candidates remain outside the FOUR-body promotion.** None may be applied directly to DEV/PROD. The next promotion must be derived and reviewed as one expanded compatible pre/postimage/ACL/closure/rollback package; the four-body promotion alone is not the complete worker fix.
+
+The added `r04_worker_semantic_save_chain.test.mjs` executes actual prepare → current mobile decoder → Save/Activate → batch/binder → public readback. Its **7 cases + 18 package cases PASS** for existing IDs, new child/root, extension, two services, explicit physical handoff, replay and negative drift/owner/mode paths. New cityless activation gives consent, not capabilities: those remain absent and application readiness false until binding. Public submit reaches a declared calendar sentinel, not a completed application. Synthetic hints/claims and helper substitutes remain; real Auth, complete Need publication, matching and Android are unproven. A mixed novel plan with previously saved REUSE handoff absent from the current hint remains conservatively refused.
+
+The four-body package also had incorrect hardcoded post-closure digests. `955da679` replaces them with deterministic offline derivation from the captured exact DEV catalog and four replacement bodies. **11 closure tests PASS**, including an independent PostgreSQL JSONB/SHA-256 calculation. Only expected source/erasure postconditions changed; certificate/readiness/bindings did not. The old generated-file equality test could not detect this error. The regenerated package is still unapplied and not a closure certification.
+
+The connected Need proof (`3c3b54b6`, `r04_need_semantic_save_chain.test.mjs`, **1/1 PASS**) now executes actual prepare/decoder/Accept/draft-save/category trigger/batch/binder and owned RPC readback. It verifies stable review/category IDs and replay without manually inserting review/command/Need rows. Synthetic policy/claims/own-row RLS and NULL-only geography remain. Actual publication without an ALLOW decision is refused; positive evaluation/publication is still unproven.
 
 ## Controlled DEV verification order
 
