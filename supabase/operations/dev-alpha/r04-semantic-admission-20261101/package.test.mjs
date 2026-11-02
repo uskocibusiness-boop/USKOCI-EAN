@@ -1433,6 +1433,70 @@ test('scenario 8: negative handoff verification rejects invalid handoff or stale
   );
 });
 
+
+test('R04/R08 downstream: unregistered signed worker synonym fails old binder, succeeds with witnessed category ID, and rejects drift', async t => {
+  const db = await setup();
+  t.after(() => db.close());
+  await db.exec(ddl(postimages));
+  const reviewId = '11111111-2222-4333-8444-555555555560';
+  const requestKey = '22222222-3333-4444-8555-666666666660';
+  const profileId = '44444444-5555-4666-8777-888888888860';
+  const plan = { action:'REUSE_EXISTING', service:'Lektura', mode:'REMOTE',
+    categoryId:category, categoryLabel:'Lektura i korektura', categoryParentId:null,
+    catalogVersion:17, reason:'Human reviewed identical existing text-editing service' };
+  const envelope = {
+    canAccept:true, classificationState:'READY', classificationCatalogVersion:17,
+    classificationCatalogFingerprint:repeat('a',32), classificationCandidates:[plan],
+    profileId, profile:{skills:['Lektura']}, reviewedServiceModes:[{service:'Lektura',mode:'REMOTE'}],
+  };
+  await insertWorkerReview(db, reviewId, account, envelope, 'base123');
+  await db.query("INSERT INTO public.app_profiles(id,account_id,kind,profile_status,skills,updated_at) VALUES($1,$2,'WORKER','ACTIVE',$3::jsonb, now()-interval '1 minute')",
+    [profileId,account,JSON.stringify(['Lektura'])]);
+  await db.query("INSERT INTO private.worker_ai_saves(review_id,account_id,client_request_id,receipt,created_at) VALUES($1,$2,$3,jsonb_build_object('saved',true,'profileId',$4::text,'profileStatus','ACTIVE'),now())",
+    [reviewId,account,requestKey,profileId]);
+  const commit=(await db.query("SELECT public.rpc_taxonomy_commit_reviewed_batch_service($1,$2,'WORKER_CAPABILITY',$3,$4::jsonb) res",
+    [account,requestKey,reviewId,JSON.stringify([plan])])).rows[0].res;
+  assert.equal(commit.status,'COMMITTED');
+  assert.equal(commit.items[0].categoryId,category);
+  await db.query("SELECT set_config('test.jwt',$1,false)",[JSON.stringify({role:'service_role'})]);
+  const bind=()=>db.query('SELECT public.rpc_taxonomy_bind_reviewed_worker_service($1,$2,$3,$4) res',
+    [account,requestKey,reviewId,profileId]);
+  // This is the exact pre-fix regression; a green old binder is a test failure.
+  await assert.rejects(bind(),/WORKER_BINDER_CATEGORY_STALE/);
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_worker_capabilities')).rows[0].n,0);
+  // The live signature is retained. Only the fixture-specific skills jsonb
+  // comparison differs from live app_profiles.skills text[]; no semantic guard
+  // or owner/Save/receipt checks are weakened in the candidate itself.
+  const source=readFileSync(new URL('worker-semantic-binder-local-only.sql',import.meta.url),'utf8');
+  assert.match(source,/v_plan \? 'categoryParentId'/);
+  assert.match(source,/worker semantic|signed worker|signed review/i);
+  const liveSkillsClause='to_jsonb(v_profile.skills) IS DISTINCT FROM v_skills';
+  assert.equal(source.split(liveSkillsClause).length,2);
+  await db.exec(source.replace(liveSkillsClause,'v_profile.skills IS DISTINCT FROM v_skills'));
+  await db.query('UPDATE private.work_taxonomy_categories SET label=$1 WHERE id=$2',['Preimenovana usluga',category]);
+  await assert.rejects(bind(),/WORKER_BINDER_CATEGORY_STALE/);
+  await db.query('UPDATE private.work_taxonomy_categories SET label=$1,parent_id=$2 WHERE id=$3',
+    ['Lektura i korektura',craftCategory,category]);
+  await assert.rejects(bind(),/WORKER_BINDER_CATEGORY_STALE/);
+  await db.query('UPDATE private.work_taxonomy_categories SET parent_id=NULL WHERE id=$1',[category]);
+  const child='33333333-4444-4555-8666-777777777761';
+  await db.query("INSERT INTO private.work_taxonomy_categories(id,parent_id,label,canonical_key,state) VALUES ($1,$2,'Novi podlist','novi podlist','ESTABLISHED')",[child,category]);
+  await assert.rejects(bind(),/WORKER_BINDER_CATEGORY_STALE/);
+  await db.query('DELETE FROM private.work_taxonomy_categories WHERE id=$1',[child]);
+  const bound=(await bind()).rows[0].res;
+  assert.equal(bound.status,'BOUND_WORKER_SERVICES');
+  assert.equal(bound.serviceModeCount,1);
+  const caps=(await db.query('SELECT category_id,excluded,allow_related_offers FROM private.work_taxonomy_worker_capabilities WHERE worker_account_id=$1',[account])).rows;
+  assert.equal(caps.length,1);
+  assert.equal(caps[0].category_id,category);
+  assert.equal(caps[0].excluded,false);
+  assert.equal(caps[0].allow_related_offers,false);
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_aliases')).rows[0].n,0);
+  const again=(await bind()).rows[0].res;
+  assert.deepEqual(again,bound);
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_worker_bindings_v1')).rows[0].n,1);
+});
+
 function repeat(char, n) {
   return char.repeat(n);
 }
