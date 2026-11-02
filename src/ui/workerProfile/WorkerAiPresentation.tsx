@@ -178,10 +178,10 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         </View>;
       })}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
       {review.semanticReviewCandidates?.length ? <View testID="worker-semantic-review-proposals" style={s.services}>
-        <T accessibilityRole="header" variant="bodyStrong">Proverite predložene iste usluge</T>
+        <T accessibilityRole="header" variant="bodyStrong">Proverite predloge usluga</T>
         {review.semanticReviewCandidates.map(item=><View key={item.service+'|'+item.mode} style={s.service}>
           <T variant="bodyStrong">{item.service}</T>
-          <T variant="note" tone="muted">AI predlaže postojeću kategoriju: {item.categoryLabel} · {item.mode==='ON_SITE'?'Na lokaciji':'Na daljinu'}</T>
+          <T variant="note" tone="muted">Predložena usluga: {item.categoryLabel} · {item.mode==='ON_SITE'?'Na lokaciji':'Na daljinu'}</T>
           <T variant="note" tone="muted">{item.reason}</T>
         </View>)}
         <T accessibilityRole="alert" variant="note" tone="muted">Ovo je samo predlog, ne potvrđena sposobnost. Automatsko povezivanje čeka proveru značenja i načina rada; za ispravku se vratite u isti razgovor.</T>
@@ -191,10 +191,10 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
           {review.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED'
             ?'U istom razgovoru navedite koje usluge radite na lokaciji, na daljinu ili na oba načina. Automatsko povezivanje čeka potvrdu načina rada.'
             :review.classificationState==='CATALOG_UNAVAILABLE'
-              ?'Katalog usluga trenutno nije dostupan. Pokušajte ponovo da učitate pregled; automatsko povezivanje do tada čeka.'
+              ?'Provera usluga trenutno nije dostupna. Pokušajte ponovo da učitate pregled; automatsko povezivanje do tada čeka.'
               :review.classificationState==='STALE_CATALOG'
-                ?'Katalog usluga je promenjen. Učitajte novi pregled pre potvrde kategorija.'
-                :'Usluge ostaju u profilu, ali automatsko povezivanje zadataka čeka potvrdu kategorija.'}
+                ?'Podaci o uslugama su promenjeni. Učitajte novi pregled pre potvrde.'
+                :'Predložene usluge još nisu potvrđene za automatsko povezivanje sa zadacima.'}
         </T>:null}
     </ReviewGroup>
     <ReviewGroup part="area">

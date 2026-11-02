@@ -82,7 +82,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
     expect(form().props.openConversation).toEqual(expect.any(Function));
     expect(form().props.showConversationAction).toBe(false);
     expect(tree!.root.findAll(node => String(node.type) === 'V2Action' && node.props.label === 'Pregled za aktivaciju')).toHaveLength(1);
-    expect(action('Sačuvaj kao nacrt')).toBeUndefined(); expect(action('Proveri i aktiviraj profil')).toBeUndefined();
+    expect(action('Sačuvajte kao nacrt')).toBeUndefined(); expect(action('Proverite i aktivirajte profil')).toBeUndefined();
     await act(async () => action('Pregled za aktivaciju').props.onPress());
     expect(mockNavigate).toHaveBeenCalledWith({pathname:'/profil/razgovor',params:{activationRequest:expect.any(String)}}); expect(writeProfile).not.toHaveBeenCalled();
     mockNavigate.mockClear();
@@ -117,12 +117,12 @@ describe('PKG-005 progressive Worker onboarding', () => {
     await act(async () => form().props.change({ ...form().props.draft, biografija: 'Radim sa bratom' }));
     await act(async () => form().props.navigate('/profil/lokacija'));
     expect(mockNavigate).not.toHaveBeenCalled();
-    expect(footer().props.error).toBe('Sačuvaj unos pre otvaranja drugog podešavanja.');
+    expect(footer().props.error).toBe('Sačuvajte unos pre otvaranja drugog podešavanja.');
     await act(async () => form().props.navigate('/podrska'));
-    expect(footer().props.error).toBe('Sačuvaj unos pre nego što pišeš podršci.');
+    expect(footer().props.error).toBe('Sačuvajte unos pre nego što pišete podršci.');
     await act(async () => form().props.openConversation());
     expect(mockPush).not.toHaveBeenCalled();
-    expect(footer().props.error).toBe('Sačuvaj unos pre otvaranja razgovora.');
+    expect(footer().props.error).toBe('Sačuvajte unos pre otvaranja razgovora.');
   });
 
   // The approved draft of the product (8 Oct 2026, P3): a finished profile is read, a row of it opens the editor of ITS part, and the card has a face and a rating.

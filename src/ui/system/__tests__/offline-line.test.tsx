@@ -27,14 +27,14 @@ describe('what it says', () => {
   it('says the screen shows the last thing that was loaded, and offers the one word that reads again', async () => {
     const refresh = jest.fn();
     await render(<OfflineLine onRefresh={refresh} />);
-    expect(texts()).toEqual(['Nema veze. Prikazano je poslednje učitano.', 'Osveži']);
+    expect(texts()).toEqual(['Nema veze. Prikazano je poslednje učitano.', 'Osvežite']);
     await act(async () => tree.root.findByType(Press).props.onPress());
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it('says only "Nema veze." when there is nothing yet to show', async () => {
     await render(<OfflineLine hasLast={false} onRefresh={() => undefined} />);
-    expect(texts()).toEqual(['Nema veze.', 'Osveži']);
+    expect(texts()).toEqual(['Nema veze.', 'Osvežite']);
   });
 
   it('only tells, with no word to press, when the screen cannot read again', async () => {
@@ -51,7 +51,7 @@ describe('what it is', () => {
     expect(flat(line)).toMatchObject({ flexDirection: 'row', alignItems: 'center', minHeight: layout.touch });
     const word = tree.root.findByType(Press);
     expect(flat(word)).toMatchObject({ minWidth: layout.touch, minHeight: layout.touch });
-    expect(word.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Osveži' });
+    expect(word.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Osvežite' });
   });
 
   it('asks for balanced lines, so a sentence of two lines is not a long one and a lonely word', async () => {

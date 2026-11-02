@@ -122,7 +122,7 @@ it('a correction topic waits until editing is enabled, focuses once, and never c
   await act(async()=>tree.update(<AiConversationShell {...p} value="Još uvek moj unos" correction={correction}/>));
   expect(focus).toHaveBeenCalledTimes(1);expect(p.onChange).not.toHaveBeenCalled();expect(p.onSend).not.toHaveBeenCalled();
   expect(tree.root.findByProps({accessibilityLabel:'Poruka za asistenta'}).props.value).toBe('Još uvek moj unos');
-  await act(async()=>tree.root.findByProps({accessibilityLabel:'Zatvori temu izmene'}).props.onPress());
+  await act(async()=>tree.root.findByProps({accessibilityLabel:'Zatvorite temu izmene'}).props.onPress());
   expect(dismiss).toHaveBeenCalledTimes(1);
 });
 it('keeps the saved-action footer above the gesture area even when closing precedes keyboardDidHide', async () => {
@@ -276,15 +276,15 @@ it('draws a history note inside the message list after the message it followed, 
   p.threadNotes=[{key:'place',afterMessageId:'b',node:<View testID="place-note"/>}];
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
   const order=()=>tree.root.findByProps({testID:'ai-conversation-thread'}).findAll(node=>node.props.testID==='place-note'
-    ||(typeof node.props.accessibilityLabel==='string'&&/^(Ti|USKOČI): /.test(node.props.accessibilityLabel)))
+    ||(typeof node.props.accessibilityLabel==='string'&&/^(Vi|USKOČI): /.test(node.props.accessibilityLabel)))
     .map(node=>node.props.testID??node.props.accessibilityLabel);
-  expect(order()).toEqual(['USKOČI: Gde je mesto?','Ti: Bulevar oslobođenja 65','place-note','USKOČI: Kada ti treba?']);
+  expect(order()).toEqual(['USKOČI: Gde je mesto?','Vi: Bulevar oslobođenja 65','place-note','USKOČI: Kada ti treba?']);
   for(const region of ['ai-composer-footer','ai-pinned-card']) expect(tree.root.findAllByProps({testID:region}).flatMap(node=>node.findAllByProps({testID:'place-note'}))).toHaveLength(0);
   // A later message goes below it; an anchor that is no longer in the thread puts the note after the last message.
   await act(async()=>tree.update(<AiConversationShell {...p} messages={[...p.messages,{id:'d',fromAi:false,body:'Sutra.'}]}/>));
-  expect(order()).toEqual(['USKOČI: Gde je mesto?','Ti: Bulevar oslobođenja 65','place-note','USKOČI: Kada ti treba?','Ti: Sutra.']);
+  expect(order()).toEqual(['USKOČI: Gde je mesto?','Vi: Bulevar oslobođenja 65','place-note','USKOČI: Kada ti treba?','Vi: Sutra.']);
   await act(async()=>tree.update(<AiConversationShell {...p} threadNotes={[{key:'place',afterMessageId:'gone',node:<View testID="place-note"/>}]}/>));
-  expect(order()).toEqual(['USKOČI: Gde je mesto?','Ti: Bulevar oslobođenja 65','USKOČI: Kada ti treba?','place-note']);
+  expect(order()).toEqual(['USKOČI: Gde je mesto?','Vi: Bulevar oslobođenja 65','USKOČI: Kada ti treba?','place-note']);
   expect(p.onSend).not.toHaveBeenCalled();
 });
 it('offers a way in before the first word, and one tap puts it in the message',async()=>{
@@ -318,14 +318,14 @@ it('opens the owned conversation calmly and keeps Back and recovery distinct',as
   expect(tree.root.findByType(ScreenChrome).props.right).toBeUndefined();
   expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
   expect(tree.root.findAllByType('ActivityIndicator'as React.ElementType)).toHaveLength(0);
-  expect(tree.root.findAllByProps({label:'Otvori prethodni razgovor'})).toHaveLength(0);
+  expect(tree.root.findAllByProps({label:'Otvorite prethodni razgovor'})).toHaveLength(0);
   await act(async()=>tree.root.findByType(ScreenChrome).props.onBack());
   expect(back).toHaveBeenCalledTimes(1);
   await act(async()=>tree.update(<IntakeUnavailable loading={false} error="Razgovor nije učitan." back={back} recover={recover} retry={retry}/>));
   expect(tree.root.findAllByType(QuietReadState)).toHaveLength(0);
   expect(text()).toContain('Razgovor nije dostupan');
   expect(text()).toContain('Razgovor nije učitan.');
-  await act(async()=>tree.root.findByProps({label:'Otvori prethodni razgovor'}).props.onPress());
+  await act(async()=>tree.root.findByProps({label:'Otvorite prethodni razgovor'}).props.onPress());
   expect(recover).toHaveBeenCalledTimes(1);
   expect(retry).not.toHaveBeenCalled();
   await act(async()=>tree.update(<IntakeUnavailable loading error="" back={back} title="Razgovor o zadatku"/>));
@@ -708,8 +708,8 @@ it('shows the understood task and an explicit action to review before publishing
   expect(text()).toContain('Prenos ormara'); expect(text()).toContain('Novi Sad · Liman');
   expect(text()).toContain('3. okt · 17:00–19:00'); expect(text()).toContain('Treba 2 osobe'); expect(text()).toContain('4.000 RSD ukupno');
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
-  expect(tree.root.findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(1);
-  await act(async () => tree.root.findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
+  expect(tree.root.findAllByProps({ label: 'Pregledajte zadatak' })).toHaveLength(1);
+  await act(async () => tree.root.findByProps({ label: 'Pregledajte zadatak' }).props.onPress());
   expect(review).toHaveBeenCalledTimes(1);
 });
 
@@ -742,7 +742,7 @@ it.each([
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
   expect(text()).toContain(words); expect(text()).toContain('Još treba: Opis · Lokacija');
   const read = () => tree.root.findByProps({ testID: 'intake-draft-review' });
-  expect(read().props.accessibilityLabel).toBe('Pregledaj zadatak');
+  expect(read().props.accessibilityLabel).toBe('Pregledajte zadatak');
   expect(read().props.disabled).toBe(true); await act(async () => read().props.onPress());
   expect(review).not.toHaveBeenCalled();
   // The terms are a picture with ALL their words, wrapping when they must and never cut, whatever the size of the text or the card.
@@ -777,7 +777,7 @@ it('shows the small USKOČI mark once per consecutive group while retaining the 
   ];
   await act(async () => { tree = create(<AiConversationShell {...p} streamingText="Dopuna" />); });
   expect(tree.root.findAllByProps({ testID: 'ai-assistant-mark' })).toHaveLength(2);
-  for (const message of p.messages) expect(tree.root.findAllByProps({ accessibilityLabel: `${message.fromAi ? 'USKOČI' : 'Ti'}: ${message.body}` })).toHaveLength(1);
+  for (const message of p.messages) expect(tree.root.findAllByProps({ accessibilityLabel: `${message.fromAi ? 'USKOČI' : 'Vi'}: ${message.body}` })).toHaveLength(1);
   expect(tree.root.findByProps({ accessibilityLabel: 'USKOČI: Dopuna' }).props.accessibilityLiveRegion).toBe('none');
 });
 
@@ -857,7 +857,7 @@ describe('one composer with independent input, gesture and review choices', () =
     // explain where the retained text is, independently of the composition.
     expect(text()).toMatch(/Neposlata poruka.*tastaturi/);
     expect(tree.root.findByProps({ testID: 'ai-input-mode' }).props).toMatchObject({
-      accessibilityLabel: 'Pređi na tastaturu', accessibilityHint: 'Neposlata poruka je sačuvana.',
+      accessibilityLabel: 'Pređite na tastaturu', accessibilityHint: 'Neposlata poruka je sačuvana.',
     });
     await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
     expect(tree.root.findByProps({ accessibilityLabel: 'Poruka za asistenta' }).props.value).toBe('Moj nedovršeni opis');
@@ -868,7 +868,7 @@ describe('one composer with independent input, gesture and review choices', () =
     await act(async () => { tree = create(<AiConversationShell {...p} correction={{ token: 'change', target: 'task.price', title: 'Cena', hint: 'Reci novi budžet.', onDismiss: jest.fn() }} />,
       { createNodeMock: element => String(element.type) === 'TextInput' ? { focus } : null }); });
     expect(focus).not.toHaveBeenCalled();
-    expect(tree.root.findByProps({ testID: 'ai-input-mode' }).props.accessibilityLabel).toBe('Pređi na tastaturu');
+    expect(tree.root.findByProps({ testID: 'ai-input-mode' }).props.accessibilityLabel).toBe('Pređite na tastaturu');
     expect(p.onChange).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled();
   });
   it.each(['PERMISSION_PENDING', 'PREPARING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)('does not switch input, preview or gesture during %s, including before React receives the controller state', async phase => {
@@ -881,11 +881,11 @@ describe('one composer with independent input, gesture and review choices', () =
     }
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Poruka za asistenta' })).toHaveLength(0);
     expect(tree.root.findByProps({ testID: 'ai-voice-review' }).props.accessibilityState.checked).toBe(false);
-    expect(tree.root.findByProps({ testID: 'ai-voice-gesture' }).props.accessibilityLabel).toBe('Govori bez držanja');
+    expect(tree.root.findByProps({ testID: 'ai-voice-gesture' }).props.accessibilityLabel).toBe('Govorite bez držanja');
     await act(async () => tree.update(<AiConversationShell {...p} voice={voice({ controller: c as never, state: snapshot })} />));
     for (const testID of ['ai-input-mode', 'ai-voice-review', 'ai-voice-gesture']) {
       expect(tree.root.findByProps({ testID }).props.disabled).toBe(true);
-      expect(tree.root.findByProps({ testID }).props.accessibilityHint).toMatch(/govorni unos|Završi ili otkaži/);
+      expect(tree.root.findByProps({ testID }).props.accessibilityHint).toMatch(/govorni unos|Završite ili otkažite/);
     }
     expect(c.cancel).not.toHaveBeenCalled(); expect(c.release).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled();
   });
@@ -923,7 +923,7 @@ describe('one composer with independent input, gesture and review choices', () =
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
     await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
     await act(async () => tree.update(<AiConversationShell {...p} value="Sačuvana dopuna iz povratka" />));
-    expect(tree.root.findByProps({ testID: 'ai-input-mode' }).props.accessibilityLabel).toBe('Pređi na tastaturu');
+    expect(tree.root.findByProps({ testID: 'ai-input-mode' }).props.accessibilityLabel).toBe('Pređite na tastaturu');
     expect(tree.root.findByProps({ testID: 'ai-retained-draft' })).toBeDefined();
     expect(p.onSend).not.toHaveBeenCalled(); expect(p.onChange).not.toHaveBeenCalled();
   });
@@ -938,7 +938,7 @@ describe('one composer with independent input, gesture and review choices', () =
     await act(async () => tree.update(<AiConversationShell {...typed} />));
     expect(tree.root.findAllByProps({ testID: 'ai-voice-mode' })).toHaveLength(0);
     const send = tree.root.findByProps({ testID: 'ai-send' });
-    expect(send.props).toMatchObject({ accessibilityLabel: 'Pošalji poruku', disabled: false });
+    expect(send.props).toMatchObject({ accessibilityLabel: 'Pošaljite poruku', disabled: false });
     await act(async () => send.props.onPress());
     // The shell only asks: the screen's own send, with every guard it has, decides.
     expect(p.onSend).toHaveBeenCalledTimes(1);
@@ -964,7 +964,7 @@ describe('one composer with independent input, gesture and review choices', () =
     expect(text()).toContain('Stiže odgovor…');
     await act(async () => tree.update(<AiConversationShell {...p} canSend />));
     const retry = tree.root.findByProps({ testID: 'ai-send' });
-    expect(retry.props).toMatchObject({ accessibilityLabel: 'Pošalji ponovo', disabled: false });
+    expect(retry.props).toMatchObject({ accessibilityLabel: 'Pošaljite ponovo', disabled: false });
     await act(async () => retry.props.onPress());
     expect(p.onSend).toHaveBeenCalledTimes(1);
   });
@@ -1001,10 +1001,10 @@ describe('one composer with independent input, gesture and review choices', () =
       const p = props(); p.value = value; p.canSend = !!value; p.voice = voice();
       await act(async () => { tree = create(<AiConversationShell {...p} />); });
       if (value) await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
-      expect(tree.root.findAllByProps({ label: 'Govori bez držanja' })).toHaveLength(0);
+      expect(tree.root.findAllByProps({ label: 'Govorite bez držanja' })).toHaveLength(0);
       const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onResponderGrant === 'function')[0];
       await act(async () => { mic.props.onResponderGrant({ nativeEvent: { pageY: 200 } }); mic.props.onResponderRelease(); });
-      await act(async () => tree.root.findByProps({ label: 'Govori bez držanja' }).props.onPress());
+      await act(async () => tree.root.findByProps({ label: 'Govorite bez držanja' }).props.onPress());
       expect(tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onPress === 'function').length).toBeGreaterThan(0);
       expect(text()).not.toContain(HOLD_HINT);
       // Opening voice mode starts nothing: the one capture is the tap on the held microphone that brought the advice.
@@ -1021,7 +1021,7 @@ describe('one composer with independent input, gesture and review choices', () =
     await act(async () => mic.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
     expect(text()).toContain(HOLD_HINT);
     expect(p.voice!.controller.begin).not.toHaveBeenCalled();
-    await act(async () => tree.root.findByProps({ label: 'Govori bez držanja' }).props.onPress());
+    await act(async () => tree.root.findByProps({ label: 'Govorite bez držanja' }).props.onPress());
     expect(tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onPress === 'function').length).toBeGreaterThan(0);
     expect(p.onSend).not.toHaveBeenCalled(); expect(p.voice!.controller.begin).not.toHaveBeenCalled();
   });
@@ -1031,7 +1031,7 @@ describe('one composer with independent input, gesture and review choices', () =
     await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
     const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onResponderGrant === 'function')[0];
     await act(async () => { mic.props.onResponderGrant({ nativeEvent: { pageY: 200 } }); mic.props.onResponderRelease(); });
-    expect(tree.root.findAllByProps({ label: 'Govori bez držanja' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Govorite bez držanja' })).toHaveLength(0);
   });
   it('omits unsupported conversation tools', async () => {
     const p = props(); delete p.onOptions;

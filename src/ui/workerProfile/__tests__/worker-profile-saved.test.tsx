@@ -173,7 +173,7 @@ describe('what the saved profile shows', () => {
       'Kada', 'Mogu odmah', 'Nedeljni raspored']) expect(copy).toContain(part);
     expect(copy.join(' ')).not.toMatch(/Oprema|Bušilica|Kombi/);
     expect(copy.filter(text => text === 'Selidbe')).toHaveLength(1);
-    expect(copy).not.toContain('Tvoj radni profil'); expect(copy).not.toContain('Selidbe · Nošenje');
+    expect(copy).not.toContain('Pregledajte profil'); expect(copy).not.toContain('Selidbe · Nošenje');
     expect(action('Uredite kroz razgovor')).toBeTruthy();
     // 8 Oct 2026 (owner's phone): "Mogu odmah · dostupnost" said the same thing twice; the profile of the old design said it, and so did "samo informacija" and a row of notifications.
     expect(copy).not.toContain('Mogu odmah · dostupnost'); expect(copy.join(' ')).not.toMatch(/Izmeni razgovorom|Izmeni ručno|Obaveštenja o zadacima|Na šta utiče|samo informacija/);
@@ -183,7 +183,7 @@ describe('what the saved profile shows', () => {
 
   it('uses the account name as the identity heading without repeating the screen title', async () => {
     await show({ accountName: 'Milos' }, draft({ ime: 'Milos' }));
-    expect(all()).not.toContain('Tvoj radni profil'); expect(all().join(' ')).not.toMatch(/radnik|radnica/i);
+    expect(all()).not.toContain('Pregledajte profil'); expect(all().join(' ')).not.toMatch(/radnik|radnica/i);
     const title = tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header')[0];
     expect(textOf(title)).toBe('Milos');
   });
@@ -224,7 +224,7 @@ describe('what the saved profile shows', () => {
     // A list with nothing in it is "Dodaj", never a zero; with neither a name nor a kind of work the card is not drawn.
     expect(copy.filter(text => text === 'Nije navedeno')).toHaveLength(0); expect(copy.join(' ')).not.toMatch(/\b0\b/);
     expect(tree.root.findAllByProps({ testID: 'worker-profile-kit' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ testID: 'worker-profile-card' })).toHaveLength(0); expect(copy).not.toContain('Tvoj radni profil');
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-card' })).toHaveLength(0); expect(copy).not.toContain('Pregledajte profil');
     expect(copy).not.toContain('Pogledaj i uredi dostupnost'); expect(copy.join(' ')).not.toMatch(/undefined|null|NaN/);
   });
 
@@ -341,16 +341,16 @@ describe('one name', () => {
     const onUse = jest.fn();
     await show({ accountName: 'Milos', onUseAccountName: onUse }, draft({ ime: 'Pera peric' }));
     expect(all()).toContain('Na radnom profilu piše „Pera peric“.');
-    expect(action('Koristi „Milos“').props).toMatchObject({ kind: 'secondary', disabled: false, loading: false });
+    expect(action('Koristite „Milos“').props).toMatchObject({ kind: 'secondary', disabled: false, loading: false });
     // Name reconciliation remains secondary to the single conversation action.
     expect(action('Uredite kroz razgovor').props.style).toBe(brandAction);
     expect(tree.root.findAll(node => String(node.type) === 'Action' && node.props.style === brandAction)).toHaveLength(1);
-    await act(async () => { action('Koristi „Milos“').props.onPress(); }); expect(onUse).toHaveBeenCalledTimes(1);
+    await act(async () => { action('Koristite „Milos“').props.onPress(); }); expect(onUse).toHaveBeenCalledTimes(1);
   });
 
   it('spins its own button while the write runs, and waits while the screen is busy', async () => {
     await show({ accountName: 'Milos', onUseAccountName: jest.fn(), nameWorking: true, disabled: true }, draft({ ime: 'Pera peric' }));
-    expect(action('Koristi „Milos“').props).toMatchObject({ loading: true, disabled: true });
+    expect(action('Koristite „Milos“').props).toMatchObject({ loading: true, disabled: true });
   });
 
   it('says nothing about the name when the two agree, when there is no way to write it, or when one of them is missing', async () => {
@@ -398,7 +398,7 @@ describe('saved biography and suspended state', () => {
     const { navigate, openConversation } = await show({ readOnly: true, accountName: 'Milos', onUseAccountName: jest.fn(), availableNow: { value: true, onEdit } },
       draft({ alati: Array.from({ length: 5 }, (_, index) => `Alat ${index}`) }));
     expect(action('Uredite kroz razgovor')).toBeUndefined(); expect(press('Područje dolaska')).toBeUndefined();
-    expect(action('Koristi „Milos“').props.disabled).toBe(true);
+    expect(action('Koristite „Milos“').props.disabled).toBe(true);
     expect(press('Nedeljni raspored')).toBeUndefined(); expect(toggle()).toBeUndefined();
     expect(all().join(' ')).not.toContain('Alat 4');
     expect(onEdit).not.toHaveBeenCalled(); expect(navigate).not.toHaveBeenCalled(); expect(openConversation).not.toHaveBeenCalled();
@@ -407,5 +407,5 @@ describe('saved biography and suspended state', () => {
 
 it('does not hide a saved biography when the name and skills are missing', async () => {
   await show({}, draft({ ime: '', vestine: [], biografija: 'Moj opis iskustva.' }));
-  expect(all()).toContain('Moj opis iskustva.'); expect(all()).not.toContain('Tvoj radni profil');
+  expect(all()).toContain('Moj opis iskustva.'); expect(all()).not.toContain('Pregledajte profil');
 });

@@ -33,7 +33,7 @@ describe('recovery wording stays complete and actions keep distinct purposes', (
 
 describe('what each situation says', () => {
   it('failed says nothing was saved; unknown says it does not know, and why; neither promises what it cannot know', () => {
-    expect(OUTCOME.failed).toEqual({ title: 'Nije uspelo', copy: 'Ništa nije sačuvano.', action: 'Pokušaj ponovo' });
+    expect(OUTCOME.failed).toEqual({ title: 'Nije uspelo', copy: 'Ništa nije sačuvano.', action: 'Pokušajte ponovo' });
     expect(OUTCOME.uncertain.title).toBe('Ne znamo da li je uspelo');
     expect(OUTCOME.uncertain.copy).toBe('Odgovor nije stigao.');
     expect(OUTCOME.uncertain.copy).not.toMatch(/neće se|sigurno|garant/i);
@@ -49,7 +49,7 @@ describe('what each situation says', () => {
   });
 
   it('a read that did not arrive names the thing the screen passes in, already in the accusative', () => {
-    expect(cannotLoad('Dogovore')).toEqual({ title: 'Ne možemo da učitamo Dogovore', copy: 'Proveri vezu.', action: 'Pokušaj ponovo' });
+    expect(cannotLoad('Dogovore')).toEqual({ title: 'Ne možemo da učitamo Dogovore', copy: 'Proveri vezu.', action: 'Pokušajte ponovo' });
     expect(cannotLoad('zadatke').title).toBe('Ne možemo da učitamo zadatke');
   });
 

@@ -34,7 +34,7 @@ const PHASE_WORDS: Partial<Record<VoicePhase, string>> = {
   FINALIZING: 'Završavamo tekst…',
 };
 /** Shown when the microphone was only tapped: it listens while it is held. */
-export const HOLD_HINT = 'Drži mikrofon dok govoriš, pa pusti da pošalješ.';
+export const HOLD_HINT = 'Držite mikrofon dok govorite, pa pustite da pošaljete.';
 
 export function useVoiceScreenReader(): boolean {
   const [reader, setReader] = useState(false);
@@ -108,16 +108,16 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   };
   // A running capture is said and drawn in its own mode; before one starts, the mode is the screen reader's.
   const review = reviewing(p.state, reader || !!p.reviewFirst);
-  const label = listening ? explicit ? review ? 'Zaustavi i pregledaj tekst' : 'Zaustavi i pošalji'
-    : review ? 'Slušamo — pusti za pregled' : 'Slušamo — pusti da pošalješ'
-    : PHASE_WORDS[phase] ?? (explicit ? 'Pokreni govorni unos' : 'Drži da govoriš');
+  const label = listening ? explicit ? review ? 'Zaustavite i pregledajte tekst' : 'Zaustavite i pošaljite'
+    : review ? 'Slušamo — pustite za pregled' : 'Slušamo — pustite da pošaljete'
+    : PHASE_WORDS[phase] ?? (explicit ? 'Pokrenite govorni unos' : 'Držite da govorite');
   const waiting = phase === 'PERMISSION_PENDING' || phase === 'PREPARING' || phase === 'STARTING' || phase === 'FINALIZING';
   const cancel = () => { if (gesture.current) { gesture.current = null; tick('cancel'); p.controller.cancel('gesture'); } };
   return <MicTarget testID="voice-mic" accessible accessibilityRole="button" accessibilityLabel={label}
-    accessibilityHint={explicit ? review ? 'Zaustavljanje priprema tekst za pregled i izmenu. Poruku šalješ zasebnim dugmetom.'
-      : 'Dodirni da počneš, pa ponovo da pošalješ. Snimanje možeš da otkažeš.'
-      : review ? 'Drži tokom govora. Kad pustiš, tekst je spreman za pregled. Povuci prst naviše da otkažeš.'
-        : 'Drži tokom govora. Kad pustiš, poruka ide u razgovor. Povuci prst naviše da otkažeš.'}
+    accessibilityHint={explicit ? review ? 'Zaustavljanje priprema tekst za pregled i izmenu. Poruku šaljete zasebnim dugmetom.'
+      : 'Dodirnite da počnete, pa ponovo da pošaljete. Snimanje možete da otkažete.'
+      : review ? 'Držite tokom govora. Kada pustite, tekst je spreman za pregled. Povucite prst naviše da otkažete.'
+        : 'Držite tokom govora. Kada pustite, poruka ide u razgovor. Povucite prst naviše da otkažete.'}
     accessibilityState={{ disabled: blocked, busy: waiting }} disabled={blocked}
     // Switch Access and Voice Access click instead of holding: that click reaches only `onPress` (or this action), never
     // the press-in and press-out a hold is made of, so on its own it did nothing. In hold mode it shows the same advice
@@ -174,9 +174,9 @@ export function VoiceNotice(p: VoiceInput & { tapToTalk?: boolean; hint?: string
   if (active || state.phase === 'FINALIZING') {
     const words = [state.finalText, state.interimText].filter(Boolean).join(' ');
     const line = listening ? reader || p.tapToTalk
-      ? reviewing(state, reader) ? 'Slušam… Zaustavi, pregledaj tekst i izaberi Pošalji.' : 'Slušam… Dodirni mikrofon da pošalješ.'
-      : reviewing(state, reader) ? 'Slušam… Pusti za pregled, povuci nagore da odustaneš.'
-        : 'Slušam… Pusti da pošalješ, povuci nagore da odustaneš.'
+      ? reviewing(state, reader) ? 'Slušamo… Zaustavite, pregledajte tekst i izaberite Pošaljite.' : 'Slušamo… Dodirnite mikrofon da pošaljete.'
+      : reviewing(state, reader) ? 'Slušamo… Pustite za pregled, povucite nagore da odustanete.'
+        : 'Slušamo… Pustite da pošaljete, povucite nagore da odustanete.'
       : state.phase === 'FINALIZING' ? 'Prepoznajemo govor…' : PHASE_WORDS[state.phase] ?? '';
     return <View testID="voice-notice" style={s.notice}>
       {words ? <View style={s.heardBubble}>
@@ -185,7 +185,7 @@ export function VoiceNotice(p: VoiceInput & { tapToTalk?: boolean; hint?: string
       <View style={s.noticeRow}>
         {listening && state.audioLevel !== null ? <Levels level={state.audioLevel} /> : null}
         <T accessibilityLiveRegion="polite" variant="note" style={[s.noticeText, listening && s.noticeLive]}>{line}</T>
-        {active ? <V2Action tone="neutral" kind="quiet" compact label="Otkaži govor" onPress={() => p.controller.cancel('gesture')} /> : null}
+        {active ? <V2Action tone="neutral" kind="quiet" compact label="Otkažite govor" onPress={() => p.controller.cancel('gesture')} /> : null}
       </View>
     </View>;
   }
@@ -193,7 +193,7 @@ export function VoiceNotice(p: VoiceInput & { tapToTalk?: boolean; hint?: string
   const keep = state.fallbackText && state.phase === 'IDLE';
   if (state.error || keep) return <View testID="voice-notice" style={s.notice}>
     {state.error ? <T accessibilityLiveRegion="polite" variant="note" style={s.error}>{voiceErrorCopy(state.error, state.fallbackText)}</T> : null}
-    {keep ? <V2Action tone="neutral" kind="quiet" compact label="Uredi sačuvani tekst" style={s.start}
+    {keep ? <V2Action tone="neutral" kind="quiet" compact label="Uredite sačuvani tekst" style={s.start}
       onPress={() => p.controller.useFallback(p.onKeepText)} /> : null}
   </View>;
   if (!p.hint) return null;

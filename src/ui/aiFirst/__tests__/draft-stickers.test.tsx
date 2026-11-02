@@ -204,11 +204,11 @@ describe('the ready card and the card of a conversation that is over: each fact 
   it('has ONE green action when it is ready, with the review\'s own name, and no second quiet one beside it', async () => {
     await render(<Harness summary={FULL} ready />);
     expect(quietReview()).toHaveLength(0);
-    expect(actions().map(action => action.props.label)).toEqual(['Pregledaj zadatak']);
+    expect(actions().map(action => action.props.label)).toEqual(['Pregledajte zadatak']);
     await act(async () => tree.unmount());
     await act(async () => { tree = create(<DraftCard summary={FULL} stillNeeded={null} open busy={false} compact={false} canReview onReview={jest.fn()} note={null}
-      reviewAtEnd editing reviewLabel="Pregledaj izmene" />); });
-    expect(actions().map(action => action.props.label)).toEqual(['Pregledaj izmene']);
+      reviewAtEnd editing reviewLabel="Pregledajte izmene" />); });
+    expect(actions().map(action => action.props.label)).toEqual(['Pregledajte izmene']);
   });
 
   it('has a quiet way to the review while something is missing, as high as a finger, disabled until it is allowed', async () => {
@@ -216,7 +216,7 @@ describe('the ready card and the card of a conversation that is over: each fact 
     await act(async () => { tree = create(<DraftCard summary={FULL} stillNeeded="Opis" open busy={false} compact={false} canReview={false} onReview={review} note={null} />); });
     expect(actions()).toHaveLength(0); expect(text()).toContain('Još treba: Opis');
     const press = quietReview()[0];
-    expect(press.props).toMatchObject({ accessibilityLabel: 'Pregledaj zadatak', disabled: true });
+    expect(press.props).toMatchObject({ accessibilityLabel: 'Pregledajte zadatak', disabled: true });
     expect(StyleSheet.flatten(press.props.style).minHeight).toBeGreaterThanOrEqual(48);
     await act(async () => press.props.onPress()); expect(review).not.toHaveBeenCalled();
     await act(async () => tree.update(<DraftCard summary={FULL} stillNeeded="Opis" open busy={false} compact={false} canReview onReview={review} note={null} />));

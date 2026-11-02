@@ -31,7 +31,7 @@ type Attempt = { command: AzurirajProfilKomanda; expected: AzurirajProfilKomanda
 const isNameOnly = (command: AzurirajProfilKomanda) => command.zavrsi !== true && command.ime !== undefined
   && Object.keys(command).every(key => key === 'zavrsi' || key === 'ime');
 const failed = (): Ishod<Snapshot> => ({ ok: false, kod: 'PROFILE_UNCONFIRMED',
-  poruka: 'Čuvanje nije potvrđeno. Pogledaj sačuvani profil pre nego što pokušaš ponovo.' });
+  poruka: 'Čuvanje nije potvrđeno. Pogledajte sačuvani profil pre nego što pokušate ponovo.' });
 async function bounded<T>(request: () => Promise<T>, milliseconds: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try { return await Promise.race([request(), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('PROFILE_TIMEOUT')), milliseconds); })]); }
@@ -70,7 +70,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       const profile = await bounded(() => izvor.mojRadnikProfil(), 15_000);
       if (!owns()) return failed();
       return { ok: true, podatak: { profile, read: sequence } };
-    } catch { return { ok: false, kod: 'PROFILE_READ_FAILED', poruka: 'Profil nije učitan. Proveri vezu pa pokušaj ponovo.' }; }
+    } catch { return { ok: false, kod: 'PROFILE_READ_FAILED', poruka: 'Profil nije učitan. Proverite vezu pa pokušajte ponovo.' }; }
   }, [izvor, owns]);
   const editor = useOwnedEditor(read);
   const executionModes = useWorkerExecutionModes(editor.data?.profile?.id ?? null, editor.data?.read ?? 0);
@@ -98,7 +98,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       pendingRef.current = null; setPending(null); setValidation(null);
       setMessage(attempt.command.zavrsi ? 'Profil je aktivan i sačuvan.'
         : isNameOnly(attempt.command) ? 'Ime radnog profila je promenjeno.'
-          : attempt.profileId === null ? 'Profil je sačuvan. Nastavi sa podešavanjem.'
+          : attempt.profileId === null ? 'Profil je sačuvan. Nastavite sa podešavanjem.'
             : 'Izmene profila su sačuvane.');
     }
   }, [editor.data, transportBusy]);
@@ -154,7 +154,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (!enabled || !current() || latestStatus.current === 'SUSPENDED' || transportRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
     const built = pendingRef.current ? { command: pendingRef.current.command, expected: pendingRef.current.expected } : workerCommand(draftRef.current.value, draftRef.current.initial, activate, accountName);
     if (!built.command) {
-      setValidation(built.error ?? 'Proveri popunjena polja.');
+      setValidation(built.error ?? 'Proverite popunjena polja.');
       const value = draftRef.current.value;
       const target = value.newSkill.trim() ? 'skill' : value.newTool.trim() ? 'tool' : value.newVehicle.trim() ? 'vehicle' : null;
       if (target) setFocusRequest({ target, token: ++focusRequestSequence.current });
@@ -168,7 +168,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (!enabled || !current() || latestStatus.current === 'SUSPENDED' || transportRef.current || pendingRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
     const name = accountName?.trim();
     if (!name || draftRef.current.profileId === null) return;
-    if (JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) { setValidation('Sačuvaj unos pre promene imena.'); return; }
+    if (JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) { setValidation('Sačuvajte unos pre promene imena.'); return; }
     const command: AzurirajProfilKomanda = { zavrsi: false, ime: name };
     await commit({ command, expected: command, profileId: draftRef.current.profileId, afterRead: readSequence.current });
   };
@@ -185,7 +185,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)
       && !(path === '/podrska' && latestStatus.current === 'SUSPENDED')) {
       // Support is not a setting, so it has its own sentence (review of step 9, 2026-09-24).
-      setValidation(path === '/podrska' ? 'Sačuvaj unos pre nego što pišeš podršci.' : 'Sačuvaj unos pre otvaranja drugog podešavanja.'); return;
+      setValidation(path === '/podrska' ? 'Sačuvajte unos pre nego što pišete podršci.' : 'Sačuvajte unos pre otvaranja drugog podešavanja.'); return;
     }
     // Capture before blur replaces the private form with a short status. Its
     // native scroll clamp must not overwrite where this owner was reading.
@@ -238,14 +238,14 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     revision: draftGeneration.current, onBack: goBack });
   const pendingBack = () => {
     if (!transportRef.current && !pendingRef.current) return false;
-    setValidation('Prvo proveri ishod čuvanja. Tvoj unos je zadržan.'); return true;
+    setValidation('Prvo proverite ishod čuvanja. Vaš unos je zadržan.'); return true;
   };
   const back = () => { if (current() && !pendingBack()) leave.back(); };
   // A local unconfirmed command must stay owned until readback. Hardware Back follows the same boundary.
   useFocusEffect(useCallback(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (!transportRef.current && !pendingRef.current) return false;
-      setValidation('Prvo proveri ishod čuvanja. Tvoj unos je zadržan.'); return true;
+      setValidation('Prvo proverite ishod čuvanja. Vaš unos je zadržan.'); return true;
     });
     return () => subscription.remove();
   }, []));
@@ -260,30 +260,30 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   // `activates` marks the one branch that really offers activation; the status note says "ready" only then, never while
   // the primary still has to save a change first.
   const primary: { label: string; run: () => void; activates?: boolean } = (() => {
-    if (status === 'SUSPENDED') return { label: 'Proveri profil', run: refresh };
+    if (status === 'SUSPENDED') return { label: 'Proverite profil', run: refresh };
     if (status === 'ACTIVE') return localDirty
-      ? { label: 'Sačuvaj izmene', run: () => { void save(false); } }
+      ? { label: 'Sačuvajte izmene', run: () => { void save(false); } }
       : { label: 'Uredite kroz razgovor', run: () => openConversation() };
     if (firstSave) return localDirty
-      ? { label: 'Sačuvaj profil', run: () => { void save(false); } }
+      ? { label: 'Sačuvajte profil', run: () => { void save(false); } }
       : { label: 'Uredite kroz razgovor', run: () => openConversation() };
-    if (status !== 'DRAFT') return { label: 'Osveži radni profil', run: refresh };
+    if (status !== 'DRAFT') return { label: 'Osvežite radni profil', run: refresh };
     if (reading) return basicsReady && !!value && value.grad.trim().length >= 2
       ? { label: 'Pregled za aktivaciju', run: () => openConversation(undefined, true) }
-      : { label: 'Nastavi kroz razgovor', run: () => openConversation() };
-    if (localDirty) return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
-    if (!locationReady) return { label: 'Podesi područje rada', run: () => navigate('/profil/lokacija') };
+      : { label: 'Nastavite kroz razgovor', run: () => openConversation() };
+    if (localDirty) return { label: 'Sačuvajte izmene', run: () => { void save(false); } };
+    if (!locationReady) return { label: 'Podesite područje rada', run: () => navigate('/profil/lokacija') };
     // The name is not typed here: when it is missing, the primary leads to the one place it is written.
     if (!basicsReady) return profileName.length < 2
-      ? { label: 'Dodaj ime', run: () => navigate('/profil/podaci') }
-      : { label: 'Dopuni osnovne podatke', run: () => guide('skill', 'Pre aktivacije dodaj bar jednu veštinu.') };
-    return { label: 'Proveri i aktiviraj profil', run: () => { if (account.state !== 'loading') void save(true); }, activates: true };
+      ? { label: 'Dodajte ime', run: () => navigate('/profil/podaci') }
+      : { label: 'Dopunite osnovne podatke', run: () => guide('skill', 'Pre aktivacije dodajte bar jednu veštinu.') };
+    return { label: 'Proverite i aktivirajte profil', run: () => { if (account.state !== 'loading') void save(true); }, activates: true };
   })();
   // The AI entry preserves ownership and any unresolved legacy save.
   const openConversation = (part?: WorkerAiPart, activation = false) => {
     if (!enabled || !current() || transportRef.current || pendingRef.current || latestStatus.current === 'SUSPENDED') return;
     if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
-      setValidation('Sačuvaj unos pre otvaranja razgovora.'); return;
+      setValidation('Sačuvajte unos pre otvaranja razgovora.'); return;
     }
     if(activation){
       router.navigate({pathname:'/profil/razgovor',params:{activationRequest:noviUuidZahtevId()}});
@@ -305,13 +305,13 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     right={visible ? <HeaderInfo title="Na šta utiče radni profil" testID="worker-profile-info" info={workerProfileInfoLines(false)} /> : undefined}
     footer={visible && showFooter ? <WorkerProfileFooter message={message ?? (status === 'SUSPENDED' && localDirty ? 'Nesačuvani unos je zadržan. Izmene nisu dostupne dok traje suspenzija.' : null)} error={validation ?? editor.error}
     held={!!pending && !transportBusy}>
-    {pending && (editor.uncertain || editor.error || status === 'SUSPENDED') ? <V2Action label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
-      : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Sačuvaj ponovo' : primary.label}
+    {pending && (editor.uncertain || editor.error || status === 'SUSPENDED') ? <V2Action label="Pogledajte sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
+      : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Sačuvajte ponovo' : primary.label}
         disabled={!enabled || (!!primary.activates && !pending && account.state === 'loading')} loading={transportBusy} success={!!message}
         onPress={() => { if (pending) void save(false); else primary.run(); }}
         style={brandAction} />}
-    {!reading && !pending && status === 'DRAFT' && primary.label !== 'Sačuvaj izmene' ? <V2Action tone="neutral" label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
-    {pending && enabled ? <V2Action tone="neutral" label="Izmeni podatke" kind="quiet" onPress={editAfterRead} /> : null}
+    {!reading && !pending && status === 'DRAFT' && primary.label !== 'Sačuvajte izmene' ? <V2Action tone="neutral" label="Sačuvajte kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
+    {pending && enabled ? <V2Action tone="neutral" label="Izmenite podatke" kind="quiet" onPress={editAfterRead} /> : null}
   </WorkerProfileFooter> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
       : <View testID="worker-profile-reading" onLayout={resumeReading}><WorkerProfileForm draft={reading ? workerDraft(profile) : draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}

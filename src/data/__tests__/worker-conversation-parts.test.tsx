@@ -120,9 +120,9 @@ describe('the conversation (M1)', () => {
   });
   it('is titled "Moj radni profil", puts the latest question first, and offers the "+" for the parts', async () => {
     await render();
-    expect(shell().props.title).toBe('Moj radni profil'); expect(shell().props.questionFocus).toBe(true);
-    expect(shell().props.attach).toMatchObject({ label: 'Šta želiš da izmeniš?', disabled: false });
-    expect(shell().props.attach.hint).toBe('Izaberi temu i nastavi isti razgovor.');
+    expect(shell().props.title).toBe('Radni profil'); expect(shell().props.questionFocus).toBe(true);
+    expect(shell().props.attach).toMatchObject({ label: 'Šta želite da izmenite?', disabled: false });
+    expect(shell().props.attach.hint).toBe('Izaberite temu i nastavite isti razgovor.');
   });
 
   it('draws no "+" when the conversation cannot take anything more', async () => {
@@ -210,20 +210,20 @@ describe('the review (M2)', () => {
     expect(mockApi.save).not.toHaveBeenCalled();
     await act(async () => finishPrepare(ok({})));
     expect(review().props.review.activate).toBe(false);
-    expect(action('Sačuvaj profil')).toBeTruthy();
+    expect(action('Sačuvajte profil')).toBeTruthy();
 
     let finishSave!: (value: unknown) => void;
     mockApi.save.mockImplementationOnce(() => new Promise(resolve => { finishSave = resolve; }));
     const saved = { ...reviewed(0, false), status: 'COMPLETED', saved: { reviewId: reviewed().review.reviewId,
       conversationId: C, accountId: A, profileId: B, profileStatus: 'DRAFT', saved: true, authoritative: true } };
     mockApi.read.mockResolvedValue(ok(saved));
-    await act(async () => { action('Sačuvaj profil').props.onPress(); });
+    await act(async () => { action('Sačuvajte profil').props.onPress(); });
     expect(action('Čuvamo profil…').props.disabled).toBe(true);
     expect(tree.root.findByProps({ testID: 'worker-review-progress' }).props.children)
       .toContain('Čuvamo profil.');
     expect(mockApi.save).toHaveBeenCalledTimes(1);
     await act(async () => finishSave(ok({})));
-    expect(action('Otvori sačuvani profil')).toBeTruthy();
+    expect(action('Otvorite sačuvani profil')).toBeTruthy();
   });
   it.each(['PERMISSION_PENDING','PREPARING','STARTING','LISTENING','FINALIZING'])(
     'a retained review callback cannot interrupt speech during %s',async phase=>{
@@ -269,8 +269,8 @@ describe('the review (M2)', () => {
     await act(async () => shell().props.footerAction.props.onPress());
     mockApi.prepare.mockClear();
     expect(tree.root.findAllByProps({label:'Potvrdi način rada za sve usluge'})).toHaveLength(0);
-    expect(action('Učitaj novi pregled').props.disabled).toBe(false);
-    await click('Učitaj novi pregled');
+    expect(action('Učitajte novi pregled').props.disabled).toBe(false);
+    await click('Učitajte novi pregled');
     expect(mockApi.prepare).toHaveBeenCalledWith(C,0,false);
     expect(mockApi.send).not.toHaveBeenCalled(); expect(mockApi.save).not.toHaveBeenCalled();
     expect(mockApi.patch).not.toHaveBeenCalled();
@@ -298,8 +298,8 @@ describe('the review (M2)', () => {
   });
   it('is titled "Tvoj radni profil", with explicit save and one AI correction action', async () => {
     await render(); await openReview();
-    expect(frame().props.title).toBe('Tvoj radni profil');
-    expect(action('Sačuvaj i aktiviraj profil').props.style).toBe(brandAction);
+    expect(frame().props.title).toBe('Pregledajte profil');
+    expect(action('Sačuvajte i aktivirajte profil').props.style).toBe(brandAction);
     expect(review().props.onEdit).toBeInstanceOf(Function);
     expect(tree.root.findAllByProps({ label: 'Ručno uredi podatke' })).toHaveLength(0);
     expect(tree.root.findAllByType('Note' as never)).toHaveLength(1);
@@ -334,7 +334,7 @@ describe('the review (M2)', () => {
     expect(mockApi.prepare).toHaveBeenCalledTimes(1); expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, true);
     expect(mockApi.send.mock.invocationCallOrder[0]).toBeLessThan(mockApi.prepare.mock.invocationCallOrder[0]);
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(review().props.review.revision).toBe(1);
-    expect(frame().props.title).toBe('Tvoj radni profil');
+    expect(frame().props.title).toBe('Pregledajte profil');
   });
 
   it('opening the correction starts no calendar patch or provider request', async () => {
@@ -371,10 +371,10 @@ describe('the review (M2)', () => {
     await render(); await openReview();
     const saved = { ...reviewed(), status: 'COMPLETED', saved: { reviewId: '44444444-4444-4444-8444-444444444444', conversationId: C, accountId: A, profileId: B, profileStatus: 'ACTIVE', saved: true, authoritative: true } };
     mockApi.save.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(saved));
-    await click('Sačuvaj i aktiviraj profil');
+    await click('Sačuvajte i aktivirajte profil');
     expect(mockApi.save).toHaveBeenCalledTimes(1);
     expect(review().props.onEdit).toBeUndefined();
-    expect(action('Otvori sačuvani profil').props.style).toBe(brandAction);
+    expect(action('Otvorite sačuvani profil').props.style).toBe(brandAction);
     expect(tree.root.findAllByProps({ label: 'Nazad na razgovor' })).toHaveLength(0);
   });
 });
@@ -438,7 +438,7 @@ describe('one name: the review is made under the account\'s name', () => {
     await act(async () => tree.update(<Screen />));
     expect(review().props.editDisabled).toBe(true); expect(review().props.onAddName).toBeUndefined();
     mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.read.mockResolvedValue(ok(reviewed(1)));
-    await click('Učitaj novi pregled');
+    await click('Učitajte novi pregled');
     expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { displayName: 'Milos' }); expect(mockApi.prepare).toHaveBeenLastCalledWith(C, 1, true);
     expect(review().props.review.missingRequired).toEqual([]);
   });
@@ -458,7 +458,7 @@ describe('activation choice belongs to the conversation', () => {
   it('keeps an explicit draft choice on Back then review, without saving', async () => {
     await prepareFalse(); await act(async () => shell().props.footerAction.props.onPress());
     expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false);
-    expect(action('Sačuvaj profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
+    expect(action('Sačuvajte profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
   });
   it('keeps the draft choice after a conversation turn retires the review', async () => {
     await prepareFalse();
@@ -484,7 +484,7 @@ describe('activation choice belongs to the conversation', () => {
     });
     await render(); await act(async()=>shell().props.footerAction.props.onPress());
     expect(mockApi.prepare).toHaveBeenCalledWith(C,0,false);
-    expect(action('Sačuvaj profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
+    expect(action('Sačuvajte profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
   });
   it('activation entry preserves an unfinished draft and only prepares activation after an explicit review tap', async () => {
     await render(); await act(async()=>shell().props.onChange('Moj neposlati odgovor'));
@@ -516,8 +516,8 @@ describe('activation choice belongs to the conversation', () => {
     await act(async()=>shell().props.footerAction.props.onPress());
     mockApi.save.mockResolvedValue(ok({}));
     mockApi.read.mockResolvedValue(ok({...prepared,status:'COMPLETED',saved:{reviewId:prepared.review.reviewId,profileStatus:'ACTIVE'}}));
-    await click('Sačuvaj i aktiviraj profil');
+    await click('Sačuvajte i aktivirajte profil');
     expect(mockApi.open).toHaveBeenCalledTimes(1);
-    expect(action('Otvori sačuvani profil')).toBeTruthy();
+    expect(action('Otvorite sačuvani profil')).toBeTruthy();
   });
 });

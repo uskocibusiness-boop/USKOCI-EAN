@@ -23,7 +23,7 @@ export function NameDifference({ workName, accountName, disabled, working = fals
 }) {
   return <View testID="worker-name-difference" style={s.wrap}>
     <T variant="note" tone="muted">{`Na radnom profilu piše „${workName.trim()}“.`}</T>
-    <V2Action label={`Koristi „${accountName.trim()}“`} kind="secondary" compact disabled={disabled} loading={working} onPress={onUse} style={s.button} />
+    <V2Action label={`Koristite „${accountName.trim()}“`} kind="secondary" compact disabled={disabled} loading={working} onPress={onUse} style={s.button} />
   </View>;
 }
 

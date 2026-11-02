@@ -116,9 +116,9 @@ export function ReviewTodoList({ items, disabled, children }: { items: readonly 
 export function ReviewWaysOut({ onDelete, onEdit, disabled }: { onDelete?: () => void; onEdit?: () => void; disabled: boolean }) {
   if (!onDelete && !onEdit) return null;
   return <Section>
-    {onEdit ? <ListRow leading={<Glyph name="edit" size={24} />} title="Izmeni kroz razgovor" accessibilityLabel="Izmeni zadatak" disabled={disabled} last={!onDelete}
+    {onEdit ? <ListRow leading={<Glyph name="edit" size={24} />} title="Izmenite kroz razgovor" accessibilityLabel="Izmenite zadatak" disabled={disabled} last={!onDelete}
       onPress={() => onEdit()} /> : null}
-    {onDelete ? <ListRow leading={<Glyph name="trash" size={24} tone="danger" />} title="Obriši nacrt" accessibilityLabel="Obriši nacrt" tone="danger" disabled={disabled} last
+    {onDelete ? <ListRow leading={<Glyph name="trash" size={24} tone="danger" />} title="Obrišite nacrt" accessibilityLabel="Obrišite nacrt" tone="danger" disabled={disabled} last
       onPress={onDelete} /> : null}
   </Section>;
 }
@@ -148,7 +148,7 @@ export function ReviewFactRow({ label, value, system, edit, actionLabel, childre
   // A value the system chose says so under it, in the same quiet words, so it is not read as the owner's own.
   const shown = system ? <View><T variant="body">{value}</T><T variant="meta" tone="muted">Podrazumevana vrednost</T></View> : value;
   return <View ref={rowRef} collapsable={false}>
-    <KeyValueRow label={label} value={shown} action={edit ? { label: actionLabel ?? 'Izmeni', onPress: edit } : undefined} last={last} />
+    <KeyValueRow label={label} value={shown} action={edit ? { label: actionLabel ?? 'Izmenite', onPress: edit } : undefined} last={last} />
   </View>;
 }
 
@@ -160,8 +160,8 @@ export function ReviewFactRow({ label, value, system, edit, actionLabel, childre
 export function ReviewMoreFacts({ labels, open, disabled = false, onToggle, children }: { labels: readonly string[]; open: boolean;
   /** Not now: a correction is open elsewhere, so the row neither opens nor closes what is under it. */ disabled?: boolean; onToggle: () => void; children?: ReactNode }) {
   return <View>
-    <ListRow leading={<FactArt kind="document" size={32} />} tone="quiet" title="Dodaj još podataka" subtitle={labels.join(' · ')}
-      accessibilityLabel={`Dodaj još podataka: ${labels.join(', ')}`} expanded={open} disabled={disabled} last onPress={onToggle} />
+    <ListRow leading={<FactArt kind="document" size={32} />} tone="quiet" title="Dodajte još podataka" subtitle={labels.join(' · ')}
+      accessibilityLabel={`Dodajte još podataka: ${labels.join(', ')}`} expanded={open} disabled={disabled} last onPress={onToggle} />
     {open ? children : null}
   </View>;
 }

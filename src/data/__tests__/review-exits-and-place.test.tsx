@@ -120,8 +120,8 @@ const action = (label: string) => { const found = commands(label); if (found.len
 const absent = (label: string) => commands(label).length === 0;
 /** The two ways out at the end of the page, in the order they are drawn. */
 const waysOut = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType)
-  && ['Izmeni zadatak', 'Obriši nacrt'].includes(node.props?.accessibilityLabel)).map(node => node.props.accessibilityLabel as string);
-const publish = () => tree.root.findByProps({ accessibilityLabel: 'Objavi zadatak' }).props;
+  && ['Izmenite zadatak', 'Obrišite nacrt'].includes(node.props?.accessibilityLabel)).map(node => node.props.accessibilityLabel as string);
+const publish = () => tree.root.findByProps({ accessibilityLabel: 'Objavite zadatak' }).props;
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 /** The words between two headings of the review. */
 const between = (from: string, to: string) => { const copy = text(); return copy.slice(copy.indexOf(from), copy.indexOf(to, copy.indexOf(from) + 1)); };
@@ -171,7 +171,7 @@ describe('the place the owner confirmed is read from the confirmed point, not fr
     expect(priv).toContain(ADDRESS);
     // The short line is the first thing in the frame, before the long one; and the one sentence of privacy ends it.
     expect(priv.indexOf('Pavla Ivića 6, Novi Sad')).toBeLessThan(priv.indexOf(ADDRESS));
-    expect(priv).toContain('Vidiš samo ti. Tačna lokacija se deli tek uz tvoju dozvolu u Dogovoru.');
+    expect(priv).toContain('Vidite samo Vi. Tačna lokacija se deli tek uz Vašu dozvolu u Dogovoru.');
   });
 
   it('what the others read is what the published task says: the area and the city, with no street of the pin and no house number', async () => {
@@ -229,7 +229,7 @@ describe('the place the owner confirmed is read from the confirmed point, not fr
     expect(text()).not.toContain('Mesto:'); expect(text()).not.toContain('Tačka na mapi'); expect(text()).not.toContain('Tačna adresa');
     expect(text().split('Na daljinu').length - 1).toBe(1);
     expect(tree.root.findAllByType('LocationMapPreview' as React.ElementType)).toHaveLength(0);
-    for (const label of ['Proveri tačke na mapi', 'Potvrdi tačke na mapi', 'Izmeni, Mesto', 'Izmeni, Približno mesto', 'Izmeni, Tačna adresa']) expect(absent(label)).toBe(true);
+    for (const label of ['Proverite tačke na mapi', 'Potvrdite tačke na mapi', 'Izmeni, Mesto', 'Izmeni, Približno mesto', 'Izmeni, Tačna adresa']) expect(absent(label)).toBe(true);
   });
 });
 
@@ -238,18 +238,18 @@ describe('the ways out of a review that is not published yet', () => {
     mockPrepare.mockResolvedValue(ok(review({}, located(STATIONARY, [MANUAL_START]))));
     await render();
     // The foot holds what is decided (publish now, or keep it for later); the rarer way out is a row at the end of everything there is to change.
-    expect(labels()).toEqual(['Proveri tačke na mapi', 'Sačuvaj nacrt']);
-    expect(action('Sačuvaj nacrt').kind).toBe('quiet');
-    expect(waysOut()).toEqual(['Izmeni zadatak', 'Obriši nacrt']);
+    expect(labels()).toEqual(['Proverite tačke na mapi', 'Sačuvajte nacrt']);
+    expect(action('Sačuvajte nacrt').kind).toBe('quiet');
+    expect(waysOut()).toEqual(['Izmenite zadatak', 'Obrišite nacrt']);
     // The only green fill on the screen is the publish: the pencils are ink and a line drawing, never green.
-    expect(primaryPresses()).toEqual(['Objavi zadatak']); expect(primaryActions()).toEqual([]);
+    expect(primaryPresses()).toEqual(['Objavite zadatak']); expect(primaryActions()).toEqual([]);
     // They can be pressed on a review that is ready (the pencil is not a disabled thing, it is only drawn when it can be pressed), and each is at least a full touch target.
-    for (const label of ['Izmeni zadatak', 'Sačuvaj nacrt', 'Obriši nacrt']) expect(action(label).disabled).toBeFalsy();
+    for (const label of ['Izmenite zadatak', 'Sačuvajte nacrt', 'Obrišite nacrt']) expect(action(label).disabled).toBeFalsy();
   });
 
   it('a review that cannot be accepted yet still offers the edit and the deletion, but not the saving of a draft', async () => {
     mockPrepare.mockResolvedValue(ok(review({ canAccept: false, missingRequired: ['need.title'] }))); await render();
-    expect(waysOut()).toEqual(['Izmeni zadatak', 'Obriši nacrt']); expect(absent('Sačuvaj nacrt')).toBe(true);
+    expect(waysOut()).toEqual(['Izmenite zadatak', 'Obrišite nacrt']); expect(absent('Sačuvajte nacrt')).toBe(true);
     // The publish waits grey (with its reason), so there is no green fill at all, and still nothing else is green.
     expect(publish().disabled).toBe(true); expect(primaryPresses()).toEqual([]); expect(primaryActions()).toEqual([]);
   });
@@ -258,22 +258,22 @@ describe('the ways out of a review that is not published yet', () => {
     const bound = review({ draftId: NEED, draftRevision: 4, replacement: { version: 'TASK_REPLACEMENT_V1', sourceNeedId: OTHER, sourceRevision: 4, sourceFingerprint: 'e'.repeat(64), targetNeedId: NEED, targetBaseRevision: 0 } }, located(STATIONARY, [MANUAL_START])); mockPrepare.mockResolvedValue(ok(bound)); mockRead.mockResolvedValue(ok({ review: bound, command: null }));
     mockNeed.mockResolvedValue({ id: NEED, narucilacId: OWNER, revizija: 4, stanje: 'OBJAVLJENA' });
     await render();
-    expect(waysOut()).toEqual(['Izmeni zadatak']); expect(absent('Obriši nacrt')).toBe(true); expect(absent('Sačuvaj nacrt')).toBe(true);
-    expect(tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene' })).toBeDefined();
-    expect(primaryPresses()).toEqual(['Potvrdi izmene']);
+    expect(waysOut()).toEqual(['Izmenite zadatak']); expect(absent('Obrišite nacrt')).toBe(true); expect(absent('Sačuvajte nacrt')).toBe(true);
+    expect(tree.root.findByProps({ accessibilityLabel: 'Potvrdite izmene' })).toBeDefined();
+    expect(primaryPresses()).toEqual(['Potvrdite izmene']);
   });
 
   it.each(['ACCEPTED', 'EVALUATING', 'UNKNOWN_OUTCOME'] as const)('a stored %s command is left to its own recovery: no deletion here and no second "Izmeni zadatak"', async state => {
     mockLatest.mockResolvedValue(ok({ review: review(), command: command(state) })); await render();
-    expect(absent('Obriši nacrt')).toBe(true); expect(absent('Izmeni zadatak')).toBe(true);
+    expect(absent('Obrišite nacrt')).toBe(true); expect(absent('Izmenite zadatak')).toBe(true);
   });
 
   it('a held task keeps its single green "Izmeni zadatak" and offers no deletion beside it', async () => {
     const held = { ...command('EVALUATED'), evaluation: { kind: 'NOT_READY', needId: NEED, needRevision: 1, authoritativeDecision: false, code: 'EVALUATOR_UNAVAILABLE' } };
     mockLatest.mockResolvedValue(ok({ review: review(), command: held })); await render();
-    expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' })).toHaveLength(1);
-    expect(StyleSheet.flatten(action('Izmeni zadatak').style).backgroundColor).toBe(brandAction.backgroundColor);
-    expect(absent('Obriši nacrt')).toBe(true);
+    expect(tree.root.findAllByProps({ label: 'Izmenite zadatak' })).toHaveLength(1);
+    expect(StyleSheet.flatten(action('Izmenite zadatak').style).backgroundColor).toBe(brandAction.backgroundColor);
+    expect(absent('Obrišite nacrt')).toBe(true);
   });
 
   describe('"Izmeni zadatak" returns to the conversation, which keeps the draft', () => {
@@ -281,7 +281,7 @@ describe('the ways out of a review that is not published yet', () => {
       const handoff = rememberIntakeReviewReturn({ accountId: OWNER, accountRevision: 1 }, CONVERSATION, params)!;
       mockParams.intakeReturn = handoff.token;
       await render();
-      const edit = action('Izmeni zadatak').onPress;
+      const edit = action('Izmenite zadatak').onPress;
       await act(async () => { edit({ nativeEvent: { target: 1 } }); edit({ nativeEvent: { target: 1 } }); });
       expect(mockRouter.replace).toHaveBeenCalledTimes(1);
       expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: {...params, aiCorrection:expect.any(String)} });
@@ -292,7 +292,7 @@ describe('the ways out of a review that is not published yet', () => {
 
     it('opens the canonical conversation when the review was reached directly', async () => {
       await render();
-      await act(async () => action('Izmeni zadatak').onPress());
+      await act(async () => action('Izmenite zadatak').onPress());
       expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
     });
   });
@@ -300,46 +300,46 @@ describe('the ways out of a review that is not published yet', () => {
   describe('"Obriši nacrt" asks first, in the centred dialog, and sends nothing before the confirm', () => {
     it('names the draft, says what happens in one sentence, and offers the danger confirm and a quiet "Odustani"', async () => {
       await render();
-      await act(async () => action('Obriši nacrt').onPress());
+      await act(async () => action('Obrišite nacrt').onPress());
       expect(sheets()).toHaveLength(1);
-      expect(sheets()[0].props).toMatchObject({ title: 'Obrisati nacrt „Prenos ormara“?', confirmLabel: 'Obriši nacrt', tone: 'danger',
-        message: 'Zadatak se neće objaviti, a razgovor o njemu više ne možeš da nastaviš.' });
+      expect(sheets()[0].props).toMatchObject({ title: 'Obrisati nacrt „Prenos ormara“?', confirmLabel: 'Obrišite nacrt', tone: 'danger',
+        message: 'Zadatak se neće objaviti, a razgovor o njemu više ne možete da nastavite.' });
       // A short question is a centred dialog, never a bottom sheet; "Odustani" is the default quiet way out.
       expect(confirmFormOf(sheets()[0].props)).toBe('dialog');
       expect(sheets()[0].props.cancelLabel).toBeUndefined();
       expect(sheets()[0].findByProps({ testID: 'confirm-sheet-cancel' }).props.accessibilityLabel).toBe('Odustani');
-      expect(sheets()[0].findByProps({ testID: 'confirm-sheet-confirm' }).props.accessibilityLabel).toBe('Obriši nacrt');
+      expect(sheets()[0].findByProps({ testID: 'confirm-sheet-confirm' }).props.accessibilityLabel).toBe('Obrišite nacrt');
       expect(mockAbandon).not.toHaveBeenCalled(); expect(mockPoruka).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
     });
 
     it('"Odustani" sends nothing, closes the question and frees the screen', async () => {
       await render();
-      await act(async () => action('Obriši nacrt').onPress());
+      await act(async () => action('Obrišite nacrt').onPress());
       await inSheet('confirm-sheet-cancel');
       expect(sheets()).toHaveLength(0);
       expect(mockAbandon).not.toHaveBeenCalled(); expect(mockPoruka).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
-      for (const label of ['Izmeni zadatak', 'Sačuvaj nacrt', 'Obriši nacrt']) expect(action(label).disabled).toBeFalsy();
+      for (const label of ['Izmenite zadatak', 'Sačuvajte nacrt', 'Obrišite nacrt']) expect(action(label).disabled).toBeFalsy();
       // It can be asked again.
-      await act(async () => action('Obriši nacrt').onPress());
+      await act(async () => action('Obrišite nacrt').onPress());
       expect(sheets()).toHaveLength(1);
     });
 
     it('a title is kept short in the question, and a draft without one is asked about plainly', async () => {
       const long = 'Prenos ormara sa trećeg sprata zgrade bez lifta u staroj gradskoj jezgri, uz pomoć dve osobe';
       mockPrepare.mockResolvedValue(ok(review({ publicProjection: [fact('title', 'need.title', long)] }))); await render();
-      await act(async () => action('Obriši nacrt').onPress());
+      await act(async () => action('Obrišite nacrt').onPress());
       const title = sheets()[0].props.title as string;
       expect(title.startsWith('Obrisati nacrt „Prenos ormara sa trećeg sprata')).toBe(true); expect(title).toContain('…“?');
       expect(title.length).toBeLessThan(90);
       await act(async () => tree.unmount());
       mockPrepare.mockResolvedValue(ok(review({ publicProjection: [] }))); await render();
-      await act(async () => action('Obriši nacrt').onPress());
+      await act(async () => action('Obrišite nacrt').onPress());
       expect(sheets()[0].props.title).toBe('Obrisati nacrt?');
     });
 
     it('the confirm leaves the conversation through the one command the server has, says "Razgovor je napušten." with no "Vrati", and goes home', async () => {
       await render();
-      await act(async () => action('Obriši nacrt').onPress());
+      await act(async () => action('Obrišite nacrt').onPress());
       await inSheet('confirm-sheet-confirm');
       expect(mockAbandon).toHaveBeenCalledTimes(1); expect(mockAbandon).toHaveBeenCalledWith(CONVERSATION);
       // There is no way to undo it, so the bar offers none.
@@ -354,15 +354,15 @@ describe('the ways out of a review that is not published yet', () => {
     it('a refusal or a lost answer shows no success and does not leave: the screen asks to read the outcome again', async () => {
       mockAbandon.mockResolvedValue({ ok: false, kod: 'CONVERSATION_NOT_ABANDONABLE', poruka: 'Ovaj razgovor više ne može da se napusti. Proveri njegovo stanje.' });
       await render();
-      await act(async () => action('Obriši nacrt').onPress());
+      await act(async () => action('Obrišite nacrt').onPress());
       await inSheet('confirm-sheet-confirm');
       expect(mockAbandon).toHaveBeenCalledTimes(1);
       expect(mockPoruka).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
       expect(text()).toContain('Ovaj razgovor više ne može da se napusti.');
       // Nothing more is sent until the outcome is read: the pencil is not drawn, the row of the deletion waits grey, the saving of a draft gives way to the explicit read, and that is offered.
-      expect(absent('Izmeni zadatak')).toBe(true); expect(action('Obriši nacrt').disabled).toBe(true);
-      expect(absent('Sačuvaj nacrt')).toBe(true);
-      expect(action('Proveri').disabled).toBe(false);
+      expect(absent('Izmenite zadatak')).toBe(true); expect(action('Obrišite nacrt').disabled).toBe(true);
+      expect(absent('Sačuvajte nacrt')).toBe(true);
+      expect(action('Proverite').disabled).toBe(false);
     });
   });
 
@@ -370,50 +370,50 @@ describe('the ways out of a review that is not published yet', () => {
     const loseAnswer = async () => {
       mockAbandon.mockResolvedValue({ ok: false, kod: 'AI_CONVERSATION_ABANDON_UNCONFIRMED', poruka: 'Napuštanje nije potvrđeno.' });
       await render();
-      await act(async () => action('Obriši nacrt').onPress());
+      await act(async () => action('Obrišite nacrt').onPress());
       await inSheet('confirm-sheet-confirm');
       mockPrepare.mockClear(); mockLatest.mockClear(); mockRead.mockClear(); mockLocationRead.mockClear(); mockIntakeLifecycle.mockClear();
     };
     it('ABANDONED is confirmed without prepare, publication, another abandon or an invented task', async () => {
       await loseAnswer();
       mockIntakeLifecycle.mockResolvedValue({ id: CONVERSATION, status: 'ABANDONED', boundNeedId: null });
-      await act(async () => action('Proveri').onPress());
+      await act(async () => action('Proverite').onPress());
       expect(mockIntakeLifecycle).toHaveBeenCalledTimes(1); expect(mockIntakeLifecycle).toHaveBeenCalledWith(CONVERSATION);
       expect(text()).toContain('Razgovor je napušten.'); expect(text()).toContain('nisu trajno obrisani');
       expect(mockPrepare).not.toHaveBeenCalled(); expect(mockLatest).not.toHaveBeenCalled(); expect(mockRead).not.toHaveBeenCalled();
       expect(mockLocationRead).not.toHaveBeenCalled(); expect(mockNeed).not.toHaveBeenCalled();
       expect(mockAccept).not.toHaveBeenCalled(); expect(mockDraft).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
-      expect(mockAbandon).toHaveBeenCalledTimes(1); expect(absent('Obriši nacrt')).toBe(true);
+      expect(mockAbandon).toHaveBeenCalledTimes(1); expect(absent('Obrišite nacrt')).toBe(true);
       expect(mockRouter.replace).not.toHaveBeenCalled();
       await act(async () => action('Na početnu').onPress());
       expect(mockRouter.replace).toHaveBeenCalledWith('/');
     });
     it('OPEN is not success or a write replay; another removal needs another confirmation', async () => {
       await loseAnswer();
-      await act(async () => action('Proveri').onPress());
+      await act(async () => action('Proverite').onPress());
       expect(text()).not.toContain('Razgovor je napušten.'); expect(mockPoruka).not.toHaveBeenCalled();
       expect(mockRouter.replace).not.toHaveBeenCalled(); expect(mockAbandon).toHaveBeenCalledTimes(1);
-      expect(action('Obriši nacrt').disabled).toBeFalsy();
-      await act(async () => action('Obriši nacrt').onPress());
+      expect(action('Obrišite nacrt').disabled).toBeFalsy();
+      await act(async () => action('Obrišite nacrt').onPress());
       expect(sheets()).toHaveLength(1); expect(mockAbandon).toHaveBeenCalledTimes(1);
       await inSheet('confirm-sheet-cancel');
       expect(mockAbandon).toHaveBeenCalledTimes(1);
     });
     it('an unavailable or invalid lifecycle read remains uncertain and blocks writes until a later valid read', async () => {
       await loseAnswer(); mockIntakeLifecycle.mockRejectedValue(new Error('No authoritative row'));
-      await act(async () => action('Proveri').onPress());
+      await act(async () => action('Proverite').onPress());
       expect(text()).not.toContain('Razgovor je napušten.'); expect(mockPrepare).not.toHaveBeenCalled();
       expect(mockLatest).not.toHaveBeenCalled(); expect(mockAbandon).toHaveBeenCalledTimes(1);
-      expect(action('Proveri').disabled).toBe(false); expect(absent('Sačuvaj nacrt')).toBe(true);
+      expect(action('Proverite').disabled).toBe(false); expect(absent('Sačuvajte nacrt')).toBe(true);
       mockIntakeLifecycle.mockResolvedValue({ id: CONVERSATION, status: 'ABANDONED', boundNeedId: null });
-      await act(async () => action('Proveri').onPress());
+      await act(async () => action('Proverite').onPress());
       expect(text()).toContain('Razgovor je napušten.'); expect(mockPrepare).not.toHaveBeenCalled();
     });
     it('a completed bound conversation recovers its actual accepted command, not an abandon success', async () => {
       await loseAnswer();
       mockIntakeLifecycle.mockResolvedValue({ id: CONVERSATION, status: 'COMPLETED', boundNeedId: NEED });
       mockLatest.mockResolvedValue(ok({ review: review(), command: command('ACCEPTED') }));
-      await act(async () => action('Proveri').onPress());
+      await act(async () => action('Proverite').onPress());
       expect(mockLatest).toHaveBeenCalledWith(CONVERSATION); expect(mockPrepare).not.toHaveBeenCalled();
       expect(text()).not.toContain('Razgovor je napušten.'); expect(text()).toContain('Nacrt je sačuvan.');
       expect(mockPoruka).not.toHaveBeenCalled(); expect(mockAbandon).toHaveBeenCalledTimes(1);
@@ -422,7 +422,7 @@ describe('the ways out of a review that is not published yet', () => {
       'closed %s state with binding %s and no command cannot confirm abandonment or prepare again', async (status, boundNeedId) => {
       await loseAnswer();
       mockIntakeLifecycle.mockResolvedValue({ id: CONVERSATION, status, boundNeedId });
-      await act(async () => action('Proveri').onPress());
+      await act(async () => action('Proverite').onPress());
       expect(text()).not.toContain('Razgovor je napušten.'); expect(mockPrepare).not.toHaveBeenCalled();
       expect(mockPoruka).not.toHaveBeenCalled(); expect(mockAbandon).toHaveBeenCalledTimes(1);
     });
@@ -435,7 +435,7 @@ describe('the ways out of a review that is not published yet', () => {
     });
     it.each(['blur', 'A-B-A', 'route'] as const)('a late abandonment read cannot affect the screen after %s', async change => {
       await loseAnswer(); const held = deferred(); mockIntakeLifecycle.mockReturnValueOnce(held.promise);
-      await act(async () => action('Proveri').onPress());
+      await act(async () => action('Proverite').onPress());
       if (change === 'blur') await blur();
       else if (change === 'route') { mockParams = { conversationId: OTHER }; await update(); }
       else {
@@ -460,10 +460,10 @@ describe('the ways out of a review that is not published yet', () => {
       const held = deferred(); mockAccept.mockReturnValueOnce(held.promise);
       mockPrepare.mockResolvedValue(ok(review({}, located(STATIONARY, [MANUAL_START]))));
       await render();
-      const kept = { edit: action('Izmeni zadatak').onPress, save: action('Sačuvaj nacrt').onPress, remove: action('Obriši nacrt').onPress };
+      const kept = { edit: action('Izmenite zadatak').onPress, save: action('Sačuvajte nacrt').onPress, remove: action('Obrišite nacrt').onPress };
       await act(async () => { void publish().onPress(); });
-      expect(absent('Izmeni zadatak')).toBe(true);
-      for (const label of ['Sačuvaj nacrt', 'Obriši nacrt']) expect(action(label).disabled).toBe(true);
+      expect(absent('Izmenite zadatak')).toBe(true);
+      for (const label of ['Sačuvajte nacrt', 'Obrišite nacrt']) expect(action(label).disabled).toBe(true);
       await act(async () => { kept.edit(); kept.save(); kept.remove(); });
       expect(mockRouter.replace).not.toHaveBeenCalled(); expect(mockDraft).not.toHaveBeenCalled(); expect(sheets()).toHaveLength(0);
       expect(mockAbandon).not.toHaveBeenCalled(); expect(mockAccept).toHaveBeenCalledTimes(1);
@@ -473,13 +473,13 @@ describe('the ways out of a review that is not published yet', () => {
     it('while the deletion is in flight: nothing else can be sent, and a second confirm sends no second command', async () => {
       const held = deferred(); mockAbandon.mockReturnValueOnce(held.promise);
       await render();
-      const kept = { edit: action('Izmeni zadatak').onPress, remove: action('Obriši nacrt').onPress };
-      await act(async () => action('Obriši nacrt').onPress());
+      const kept = { edit: action('Izmenite zadatak').onPress, remove: action('Obrišite nacrt').onPress };
+      await act(async () => action('Obrišite nacrt').onPress());
       const confirm = sheets()[0].props.onConfirm as () => unknown;
       await inSheet('confirm-sheet-confirm');
       expect(mockAbandon).toHaveBeenCalledTimes(1);
-      expect(absent('Izmeni zadatak')).toBe(true);
-      for (const label of ['Sačuvaj nacrt', 'Obriši nacrt']) expect(action(label).disabled).toBe(true);
+      expect(absent('Izmenite zadatak')).toBe(true);
+      for (const label of ['Sačuvajte nacrt', 'Obrišite nacrt']) expect(action(label).disabled).toBe(true);
       expect(publish().disabled).toBe(true);
       await act(async () => { kept.edit(); kept.remove(); void confirm(); void publish().onPress(); });
       expect(mockAbandon).toHaveBeenCalledTimes(1); expect(mockRouter.replace).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
@@ -491,7 +491,7 @@ describe('the ways out of a review that is not published yet', () => {
 
     it.each(['blur', 'account switch', 'route'] as const)('an open question is taken away with its screen after %s, and a kept confirm sends nothing', async change => {
       await render();
-      await act(async () => action('Obriši nacrt').onPress());
+      await act(async () => action('Obrišite nacrt').onPress());
       const kept = sheets()[0].props.onConfirm as () => unknown;
       if (change === 'blur') await blur();
       else {
@@ -524,9 +524,9 @@ describe('a private draft reviewed for its first publication', () => {
   it('says it is a review before publishing: "Pregled pre objave" and "Objavi zadatak", never the words of an edit', async () => {
     await open();
     expect(mockNeed).toHaveBeenCalledWith(NEED);
-    expect(text()).toContain('Pregled pre objave'); expect(text()).not.toContain('Pregled izmena');
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(1);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdi izmene' })).toHaveLength(0);
+    expect(text()).toContain('Pregledajte zadatak'); expect(text()).not.toContain('Pregled izmena');
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavite zadatak' })).toHaveLength(1);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdite izmene' })).toHaveLength(0);
     // The button that can be pressed says what it does by its name: no sentence over it says what "Objavi zadatak" is (the owner, 8 Oct 2026).
     expect(text()).not.toContain('Objavljuješ ovu verziju zadatka.'); expect(text()).not.toContain('izmenjenu verziju');
     expect(publish().disabled).toBe(false);
@@ -538,39 +538,39 @@ describe('a private draft reviewed for its first publication', () => {
     mockNeed.mockImplementation(read);
     const shown = DRAFT_REVIEW(); mockPrepare.mockResolvedValue(ok(shown)); await render();
     expect(text()).toContain('Pregled izmena');
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdi izmene' })).toHaveLength(1);
-    expect(waysOut()).toEqual(['Izmeni zadatak']); expect(absent('Obriši nacrt')).toBe(true); expect(absent('Sačuvaj nacrt')).toBe(true);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdite izmene' })).toHaveLength(1);
+    expect(waysOut()).toEqual(['Izmenite zadatak']); expect(absent('Obrišite nacrt')).toBe(true); expect(absent('Sačuvajte nacrt')).toBe(true);
     expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
   });
 
   it('offers "Izmeni zadatak" (to the conversation) and, last, "Obriši nacrt", under ONE green action, and no "Sačuvaj nacrt": the draft already exists', async () => {
     await open();
-    expect(waysOut()).toEqual(['Izmeni zadatak', 'Obriši nacrt']); expect(absent('Sačuvaj nacrt')).toBe(true);
-    expect(primaryPresses()).toEqual(['Objavi zadatak']); expect(primaryActions()).toEqual([]);
-    await act(async () => action('Izmeni zadatak').onPress());
+    expect(waysOut()).toEqual(['Izmenite zadatak', 'Obrišite nacrt']); expect(absent('Sačuvajte nacrt')).toBe(true);
+    expect(primaryPresses()).toEqual(['Objavite zadatak']); expect(primaryActions()).toEqual([]);
+    await act(async () => action('Izmenite zadatak').onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
     expect(mockAbandon).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
   });
 
   it('"Obriši nacrt" asks in the centred dialog of the draft\'s own screen and sends nothing before the confirm; "Odustani" sends nothing at all', async () => {
     await open();
-    await act(async () => action('Obriši nacrt').onPress());
+    await act(async () => action('Obrišite nacrt').onPress());
     expect(sheets()).toHaveLength(1);
     expect(sheets()[0].props).toMatchObject({ title: 'Obriši nacrt?', confirmLabel: 'Obriši nacrt', tone: 'danger',
       message: 'Nacrt se briše zauvek i ne može da se vrati. Ako ima fotografije, prvo ih ukloni iz nacrta.' });
     expect(confirmFormOf(sheets()[0].props)).toBe('dialog');
     expect(sheets()[0].findByProps({ testID: 'confirm-sheet-cancel' }).props.accessibilityLabel).toBe('Odustani');
     // While the question is on, the rest waits: nothing is published or edited under it (the pencils are not drawn).
-    expect(publish().disabled).toBe(true); expect(absent('Izmeni zadatak')).toBe(true);
+    expect(publish().disabled).toBe(true); expect(absent('Izmenite zadatak')).toBe(true);
     expect(mockStored.setItem).not.toHaveBeenCalled(); expect(mockDelete).not.toHaveBeenCalled();
     await asked('confirm-sheet-cancel');
     expect(sheets()).toHaveLength(0); expect(mockStored.setItem).not.toHaveBeenCalled(); expect(mockDelete).not.toHaveBeenCalled();
-    expect(publish().disabled).toBe(false); expect(action('Obriši nacrt').disabled).toBe(false); expect(action('Izmeni zadatak').disabled).toBeFalsy();
+    expect(publish().disabled).toBe(false); expect(action('Obrišite nacrt').disabled).toBe(false); expect(action('Izmenite zadatak').disabled).toBeFalsy();
   });
 
   it('the confirm deletes THE DRAFT TASK through the lifecycle command (not the conversation), says so on the screen and leads to "Moji zadaci"', async () => {
     await open();
-    await act(async () => action('Obriši nacrt').onPress());
+    await act(async () => action('Obrišite nacrt').onPress());
     await asked('confirm-sheet-confirm');
     // Persisted first, then sent once, bound to the revision that was read.
     expect(mockStored.setItem).toHaveBeenCalledTimes(1);
@@ -579,7 +579,7 @@ describe('a private draft reviewed for its first publication', () => {
     expect(mockAbandon).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled(); expect(sheets()).toHaveLength(0);
     expect(text()).toContain('Nacrt je obrisan.');
     // The draft is gone: nothing else on this screen can be sent, and the one way on is the list of tasks.
-    expect(publish().disabled).toBe(true); expect(absent('Izmeni zadatak')).toBe(true); expect(action('Obriši nacrt').disabled).toBe(true);
+    expect(publish().disabled).toBe(true); expect(absent('Izmenite zadatak')).toBe(true); expect(action('Obrišite nacrt').disabled).toBe(true);
     await act(async () => action('Moji zadaci').onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith('/potrebe');
     expect(mockStored.removeItem).toHaveBeenCalled();
@@ -588,7 +588,7 @@ describe('a private draft reviewed for its first publication', () => {
   it('a refusal is said in plain words (the draft still has photos) and the screen is not left grey: "Učitaj aktuelni zadatak" reads it again', async () => {
     mockDelete.mockResolvedValue({ ok: false, kod: 'DRAFT_MEDIA_CLEANUP_REQUIRED', poruka: 'Ukloni fotografije iz nacrta pre brisanja.' });
     await open();
-    await act(async () => action('Obriši nacrt').onPress());
+    await act(async () => action('Obrišite nacrt').onPress());
     await asked('confirm-sheet-confirm');
     expect(mockDelete).toHaveBeenCalledTimes(1);
     expect(text()).toContain('Ukloni fotografije iz nacrta pre brisanja.');
@@ -596,13 +596,13 @@ describe('a private draft reviewed for its first publication', () => {
     const reads = mockPrepare.mock.calls.length;
     await act(async () => action('Učitaj aktuelni zadatak').onPress());
     expect(mockPrepare.mock.calls.length).toBeGreaterThan(reads);
-    expect(publish().disabled).toBe(false); expect(action('Obriši nacrt').disabled).toBe(false);
+    expect(publish().disabled).toBe(false); expect(action('Obrišite nacrt').disabled).toBe(false);
   });
 
   it('a press kept from before sends nothing while the deletion is in flight, and the question is taken away with its screen', async () => {
     const held = deferred(); mockDelete.mockReturnValueOnce(held.promise);
     await open();
-    const kept = { edit: action('Izmeni zadatak').onPress, remove: action('Obriši nacrt').onPress };
+    const kept = { edit: action('Izmenite zadatak').onPress, remove: action('Obrišite nacrt').onPress };
     await act(async () => kept.remove());
     await asked('confirm-sheet-confirm');
     expect(mockDelete).toHaveBeenCalledTimes(1);
@@ -644,9 +644,9 @@ describe('the way out of every blocker is a visible action', () => {
   it('a time that has passed says "Izmeni termin" and opens the time editor of that very row, in place', async () => {
     mockPrepare.mockResolvedValue(ok(PASSED())); await render();
     const row = rowOf('Početak termina je već prošao. Izmeni termin u pregledu, pa objavi.');
-    expect(row.props.accessibilityHint).toBe('Izmeni termin');
+    expect(row.props.accessibilityHint).toBe('Izmenite termin');
     expect(row.findAll(node => node.type === ('T' as React.ElementType)).map(node => node.props.children)).toEqual([
-      'Početak termina je već prošao. Izmeni termin u pregledu, pa objavi.', 'Izmeni termin']);
+      'Početak termina je već prošao. Izmeni termin u pregledu, pa objavi.', 'Izmenite termin']);
     // The grey publish still says why; the row is the way out, and it is open to the touch.
     expect(publish().disabled).toBe(true); expect(row.props.disabled).toBe(false);
     expect(tree.root.findAllByProps({ label: 'Početak: datum' })).toHaveLength(0);
@@ -659,9 +659,9 @@ describe('the way out of every blocker is a visible action', () => {
   it('names the word of each other row, and a row that goes to the conversation or to the place says so', async () => {
     mockPrepare.mockResolvedValue(ok(review({ missingRequired: ['need.title'], canAccept: false, safety: 'BLOCK' }))); await render();
     const words = (text: string) => rowOf(text).findAll(node => node.type === ('T' as React.ElementType)).map(node => node.props.children);
-    expect(words('Zadatak ne može da se objavi ovako. Izmeni ga u razgovoru.')).toEqual(['Zadatak ne može da se objavi ovako. Izmeni ga u razgovoru.', 'Izmeni u razgovoru']);
-    expect(words('Nedostaje: Naslov.')).toEqual(['Nedostaje: Naslov.', 'Dopuni u razgovoru']);
-    expect(words('Mesto na mapi nije potvrđeno.')).toEqual(['Mesto na mapi nije potvrđeno.', 'Potvrdi tačke na mapi']);
+    expect(words('Zadatak ne može da se objavi ovako. Izmenite ga u razgovoru.')).toEqual(['Zadatak ne može da se objavi ovako. Izmenite ga u razgovoru.', 'Izmenite u razgovoru']);
+    expect(words('Nedostaje: Naslov.')).toEqual(['Nedostaje: Naslov.', 'Dopunite u razgovoru']);
+    expect(words('Mesto na mapi nije potvrđeno.')).toEqual(['Mesto na mapi nije potvrđeno.', 'Potvrdite tačke na mapi']);
     await act(async () => rowOf('Nedostaje: Naslov.').props.onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
   });
@@ -671,7 +671,7 @@ describe('the way out of every blocker is a visible action', () => {
       fact('price', 'need.price_rsd', null)] })));
     await render();
     const row = rowOf('Unesi iznos ili izaberi prikupljanje ponuda.');
-    expect(row.findAll(node => node.type === ('T' as React.ElementType)).map(node => node.props.children).pop()).toBe('Unesi iznos');
+    expect(row.findAll(node => node.type === ('T' as React.ElementType)).map(node => node.props.children).pop()).toBe('Unesite iznos');
     await act(async () => row.props.onPress());
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Iznos u dinarima' })).toHaveLength(0);
     expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}});
@@ -684,7 +684,7 @@ describe('the way out of every blocker is a visible action', () => {
       fact('kind', 'need.schedule_kind', 'FIXED_WINDOW')] })));
     await render();
     const row = rowOf('Tačan termin mora imati početak; ako je kraj naveden, mora biti posle početka.');
-    expect(row.props.accessibilityHint).toBe('Dopuni u razgovoru');
+    expect(row.props.accessibilityHint).toBe('Dopunite u razgovoru');
     await act(async () => row.props.onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
   });

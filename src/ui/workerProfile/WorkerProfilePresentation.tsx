@@ -82,11 +82,11 @@ export function WorkerProfileStatus({ loading, error, retry, recoverCorrupt, con
   if (context === 'conversation') return loading
     ? <QuietReadState art="chat" title="Otvaramo razgovor" body="Pripremamo razgovor i proveravamo stanje nacrta." />
     : <StateView kind="error" art="chat" title="Razgovor nije dostupan" body={error ?? undefined}
-      primary={{ label: 'Ponovo učitaj razgovor', onPress: retry }}
-      quiet={recoverCorrupt ? {label:'Oporavi lokalni zapis',onPress:recoverCorrupt}:undefined} />;
+      primary={{ label: 'Ponovo učitajte razgovor', onPress: retry }}
+      quiet={recoverCorrupt ? {label:'Oporavite lokalni zapis',onPress:recoverCorrupt}:undefined} />;
   if (loading) return <QuietReadState art="person" title="Učitavamo radni profil…" body="Proveravamo sačuvane veštine i dostupnost." />;
   return <StateView kind="error" title="Radni profil nije dostupan" body={error ?? undefined}
-    primary={{ label: 'Ponovo učitaj profil', onPress: retry }} />;
+    primary={{ label: 'Ponovo učitajte profil', onPress: retry }} />;
 }
 
 /**
@@ -110,7 +110,7 @@ export function WorkerProfileFooter({ message, error, held = false, children }: 
     </View> : null}
     <View testID="worker-profile-actions" style={[s.answer, typing && s.footerAside]} accessibilityElementsHidden={typing}
       importantForAccessibility={typing ? 'no-hide-descendants' : 'auto'}>
-      {held ? <T variant="meta" tone="muted">Tvoj tekst nije izgubljen. Ispod je prikazano samo ono što je sačuvano.</T> : null}
+      {held ? <T variant="meta" tone="muted">Vaš tekst nije izgubljen. Ispod je prikazano samo ono što je sačuvano.</T> : null}
       {children}
     </View>
   </>;
@@ -140,14 +140,14 @@ function ActivationStatus({ status, checks, readyToActivate, disabled, navigate 
   // Moderation wording is one word in the whole app: "suspendovan" (owner, 2026-10-07).
   if (status === 'SUSPENDED') return <View style={[s.status, s.suspended]}>
     <T variant="bodyStrong" style={s.danger}>Profil je trenutno suspendovan</T>
-    <T variant="note" style={s.ink}>Dok traje suspenzija, zadaci ti se ne nude.</T>
-    <V2Action tone="neutral" label="Obrati se podršci" kind="quiet" compact disabled={disabled} onPress={() => navigate('/podrska')} style={s.start} />
+    <T variant="note" style={s.ink}>Dok traje suspenzija, zadaci Vam se ne nude.</T>
+    <V2Action tone="neutral" label="Obratite se podršci" kind="quiet" compact disabled={disabled} onPress={() => navigate('/podrska')} style={s.start} />
   </View>;
   const draft = status === 'DRAFT';
   return <View style={s.status}>
     <View style={s.titleLine}><View style={s.dot} />
       <T variant="bodyStrong" style={[s.grow, s.ink]}>{draft ? 'Radni profil je još nacrt' : 'Radni profil još nije podešen'}</T></View>
-    <T variant="note" tone="muted">{draft ? 'Dok je nacrt, zadaci ti se ne nude.' : 'Bez njega ne možeš da se prijaviš na zadatak.'}</T>
+    <T variant="note" tone="muted">{draft ? 'Dok je nacrt, zadaci Vam se ne nude.' : 'Bez njega ne možete da se prijavite na zadatak.'}</T>
     {checks ? <View style={s.checklist}>{CHECKS.map(([key, label]) => <View key={key} accessible
       accessibilityLabel={`${label}: ${checks[key] ? 'spremno' : 'nedostaje'}`} style={s.checkItem}>
       {checks[key] ? <FactArt kind="check" size={20} /> : <View style={s.emptyCheck} />}
@@ -183,9 +183,9 @@ export function WorkerProfileForm({ draft, disabled, status, navigate, openConve
 }) {
   if (introOnly || (!profileExists && status === null)) return <View testID="worker-profile-intro" style={s.setupIntro}>
     <ConversationArt size={96} />
-    <T variant="heading" accessibilityRole="header" style={s.ink}>Ispričaj čime se baviš</T>
-    <T variant="body" tone="muted">Koje zadatke želiš da preuzmeš, gde i kada ti odgovara.</T>
-    <T variant="note" tone="muted">Razgovor možeš da nastaviš kasnije. Profil aktiviraš tek kad pregledaš podatke.</T>
+    <T variant="heading" accessibilityRole="header" style={s.ink}>Ispričajte čime se bavite</T>
+    <T variant="body" tone="muted">Koje zadatke želite da preuzimate, gde i kada Vam odgovara.</T>
+    <T variant="note" tone="muted">Razgovor možete da nastavite kasnije. Profil aktivirate tek kada pregledate i potvrdite podatke.</T>
   </View>;
   return <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
     showConversationAction={showConversationAction}

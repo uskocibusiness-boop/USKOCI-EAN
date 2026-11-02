@@ -239,7 +239,7 @@ describe('classification recovery uses the existing conversation',()=>{
  it.each(['CATALOG_UNAVAILABLE','STALE_CATALOG'] as const)('%s explains catalog recovery without asking for modes',async classificationState=>{
   await act(async()=>{tree=create(<WorkerAiReviewDetails review={{...review(),classificationState}}/>);});
   const note=tree.root.findByProps({testID:'worker-classification-pending'}).props.children;
-  expect(note).toMatch(/Katalog usluga/);
+  expect(note).toContain(classificationState === 'STALE_CATALOG' ? 'Podaci o uslugama su promenjeni.' : 'Provera usluga trenutno nije dostupna.');
   expect(note).toMatch(/pregled/);
   expect(note).not.toMatch(/Izaberi|koje usluge radiš|Potvrdi za svaku/);
   expect(tree.root.findAllByProps({accessibilityRole:'radio'})).toHaveLength(0);

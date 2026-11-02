@@ -28,7 +28,7 @@ const render = async (onContinue: () => void, props: Partial<React.ComponentProp
 };
 const advance = async (ms: number) => { await act(async () => { jest.advanceTimersByTime(ms); }); };
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string'));
-const action = () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak' });
+const action = () => tree.root.findByProps({ accessibilityLabel: 'Otvorite zadatak' });
 // The success mark ticks through `system/haptics`, which holds two ticks closer than `sys.motion.tickGap` to one; each case here starts
 // with no past (and the one case that mounts the moment twice says so).
 beforeEach(() => { jest.useFakeTimers(); forgetTicks(); mockHaptic.mockClear(); });
@@ -37,7 +37,7 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); mockRed
 it('identifies the actual published task, confirms it once and offers one green way on', async () => {
   await render(jest.fn(), { taskTitle: 'Izrada 3D figurica' });
   // The owner, 8 Oct 2026: the grey line ("Prijave stižu ovde. Javićemo ti.") explained what the green action already is.
-  expect(texts()).toEqual(['Izrada 3D figurica', 'Objavljen', 'Otvori zadatak']);
+  expect(texts()).toEqual(['Izrada 3D figurica', 'Objavljen', 'Otvorite zadatak']);
   expect(texts().join(' ')).not.toMatch(/Prijave|Javićemo|zvonc/);
   const title = tree.root.findAllByType('T' as React.ElementType)[0];
   expect(title.props).toMatchObject({ variant: 'title', accessible: false });
@@ -52,7 +52,7 @@ it('identifies the actual published task, confirms it once and offers one green 
 
 it.each([undefined, null, '', '   '])('missing task title %s leaves one confirmation without a fabricated name', async taskTitle => {
   await render(jest.fn(), { taskTitle });
-  expect(texts()).toEqual(['Objavljen', 'Otvori zadatak']);
+  expect(texts()).toEqual(['Objavljen', 'Otvorite zadatak']);
   expect(tree.root.findByProps({ accessibilityLabel: 'Zadatak je objavljen.' }).props.accessibilityRole).toBe('header');
 });
 
@@ -145,6 +145,6 @@ it('a screen reader that is turned on while the moment is shown stops the timer'
 
 it('says "Izmene su objavljene." for a changed task when it is handed those words', async () => {
   await render(jest.fn(), { title: 'Izmene su objavljene.', taskTitle: 'Izrada 3D figurica' });
-  expect(texts()).toEqual(['Izrada 3D figurica', 'Izmene objavljene', 'Otvori zadatak']);
+  expect(texts()).toEqual(['Izrada 3D figurica', 'Izmene objavljene', 'Otvorite zadatak']);
   expect(tree.root.findByProps({ accessibilityLabel: 'Izrada 3D figurica. Izmene su objavljene.' })).toBeTruthy();
 });

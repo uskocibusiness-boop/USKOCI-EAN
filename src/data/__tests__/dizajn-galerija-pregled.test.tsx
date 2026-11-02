@@ -50,7 +50,7 @@ const open = async (scene: string) => {
   expect(row).toBeDefined();
   await act(async () => row.props.onPress());
 };
-const ACTIONS = ['Izmeni zadatak', 'Proveri tačke na mapi', 'Izmeni, Fotografije'];
+const ACTIONS = ['Izmenite zadatak', 'Proveri tačke na mapi', 'Izmeni, Fotografije'];
 const RETIRED_LOCATION_EDITORS = ['Izmeni, Mesto', 'Izmeni, Približno mesto', 'Izmeni, Tačna adresa', 'Dodaj mesto'];
 const press = async (label: string) => {
   const button = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
@@ -79,7 +79,7 @@ describe('a ready review presents facts, one AI correction entry and explicit ma
     expect(copy).toContain('Treba 2 osobe'); expect(copy).toContain('Naručilac'); expect(copy).not.toContain('Objavio');
     expect(copy).toContain('Miloš P.'); expect(copy).toContain('4,7');
     // The exact address is his alone, in its own frame, with the one sentence of privacy.
-    expect(copy).toContain('Tačna adresa'); expect(copy).toContain('Bulevar Evrope 24, Novi Sad'); expect(copy).toContain('Vidiš samo ti. Tačna lokacija se deli tek uz tvoju dozvolu u Dogovoru.');
+    expect(copy).toContain('Tačna adresa'); expect(copy).toContain('Bulevar Evrope 24, Novi Sad'); expect(copy).toContain('Vidite samo Vi. Tačna lokacija se deli tek uz Vašu dozvolu u Dogovoru.');
   });
 
   it('names supported corrections and gives publication the shared primary-action role', async () => {
@@ -88,7 +88,7 @@ describe('a ready review presents facts, one AI correction entry and explicit ma
     for (const pencil of ACTIONS) expect(named).toContain(pencil);
     for (const label of RETIRED_LOCATION_EDITORS) expect(named).not.toContain(label);
     expect(named.filter(label => label === 'Proveri tačke na mapi')).toHaveLength(1);
-    expect(named).toContain('Obriši nacrt'); expect(named).toContain('Objavi zadatak');
+    expect(named).toContain('Obrišite nacrt'); expect(named).toContain('Objavi zadatak');
     const publish = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Objavi zadatak');
     expect(publish).toHaveLength(1);
     expect(StyleSheet.flatten(publish[0].props.style)).toMatchObject({ backgroundColor: brandAction.backgroundColor, minHeight: brandAction.minHeight });
@@ -118,23 +118,23 @@ describe('what stands in the way, and the states in which nothing can be changed
 
   it('while publication runs semantic editors are absent and map/deletion actions are disabled', async () => {
     await open('Objavljuje se');
-    for (const label of ['Izmeni zadatak', 'Izmeni, Fotografije', ...RETIRED_LOCATION_EDITORS]) expect(labels()).not.toContain(label);
+    for (const label of ['Izmenite zadatak', 'Izmeni, Fotografije', ...RETIRED_LOCATION_EDITORS]) expect(labels()).not.toContain(label);
     expect(tree.root.findByProps({ accessibilityLabel: 'Proveri tačke na mapi' }).props.disabled).toBe(true);
-    expect(tree.root.findByProps({ accessibilityLabel: 'Obriši nacrt' }).props.disabled).toBe(true);
+    expect(tree.root.findByProps({ accessibilityLabel: 'Obrišite nacrt' }).props.disabled).toBe(true);
     expect(tree.root.findByProps({ accessibilityLabel: 'Objavi zadatak' }).props.accessibilityState).toEqual({ disabled: true, busy: true });
   });
 
   it('a stored command is read only: no pencil, no row of the deletion, no "Dodaj još podataka"', async () => {
     await open('Privatan nacrt');
     for (const pencil of ACTIONS) expect(labels()).not.toContain(pencil);
-    expect(labels()).not.toContain('Obriši nacrt'); expect(text()).not.toContain('Dodaj još podataka');
+    expect(labels()).not.toContain('Obrišite nacrt'); expect(text()).not.toContain('Dodajte još podataka');
     expect(text()).toContain('Sačuvano kao privatan nacrt.');
   });
 
   it('the changes of a task that exists are confirmed, not published, and there is no draft to delete', async () => {
     await open('Izmena objavljenog zadatka');
     expect(text()).toContain('Pregled izmena'); expect(labels()).toContain('Potvrdi izmene'); expect(labels()).not.toContain('Objavi zadatak');
-    expect(labels()).not.toContain('Obriši nacrt'); expect(labels()).toContain('Izmeni zadatak');
+    expect(labels()).not.toContain('Obrišite nacrt'); expect(labels()).toContain('Izmenite zadatak');
   });
 });
 
@@ -169,10 +169,10 @@ describe('the other shapes of a task', () => {
 
   it('keeps correction actions named at normal and large text', async () => {
     await open('Spremno za objavu');
-    expect(labels()).toContain('Izmeni zadatak'); expect(labels()).not.toContain('Izmeni, Naslov');
+    expect(labels()).toContain('Izmenite zadatak'); expect(labels()).not.toContain('Izmeni, Naslov');
     await act(async () => tree.unmount());
     await open('Veliki tekst');
-    expect(labels()).toContain('Izmeni zadatak'); expect(labels()).not.toContain('Izmeni, Naslov');
+    expect(labels()).toContain('Izmenite zadatak'); expect(labels()).not.toContain('Izmeni, Naslov');
   });
 });
 
@@ -191,9 +191,9 @@ describe('fact corrections demonstrate the AI topic handoff without pretending t
   it('the single AI edit action returns without changing the fixture', async () => {
     await open('Spremno za objavu');
     const original = text();
-    expect(tree.root.findAll(node=>String(node.type)==='Press'&&node.props.accessibilityLabel==='Izmeni zadatak')).toHaveLength(1);
+    expect(tree.root.findAll(node=>String(node.type)==='Press'&&node.props.accessibilityLabel==='Izmenite zadatak')).toHaveLength(1);
     for(const topic of ['Naslov','Cena','Termin','Broj ljudi','Opis','Alat']) expect(labels()).not.toContain(`Izmeni, ${topic}`);
-    await press('Izmeni zadatak');
+    await press('Izmenite zadatak');
     expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => node.props.children)).toContain('Zadatak');
     expectNoManualFactEditor();
     await press('Nazad na pregled');
@@ -224,9 +224,9 @@ describe('fact corrections demonstrate the AI topic handoff without pretending t
 
   it('omitted facts remain readable without per-fact editors', async () => {
     await open('Dodaj još podataka (otvoreno)');
-    expect(text()).toContain('Dodaj još podataka'); expect(text()).toContain('Veštine · Vozilo · Dozvole · Bitni uslovi');
+    expect(text()).toContain('Dodajte još podataka'); expect(text()).toContain('Veštine · Vozilo · Dozvole · Bitni uslovi');
     for(const topic of ['Veštine','Vozilo','Dozvole','Bitni uslovi']) expect(labels()).not.toContain(`Izmeni, ${topic}`);
-    expect(labels()).toContain('Izmeni zadatak');
+    expect(labels()).toContain('Izmenite zadatak');
     expect(text()).toMatch(/Prijave do 12\. okt( \d{4})? · 12:15 \(po vremenu u Srbiji\)/);
   });
 });
@@ -237,6 +237,6 @@ describe('loading and failure', () => {
     expect(text()).toContain('Pripremamo pregled…'); expect(labels()).not.toContain('Objavi zadatak');
     await act(async () => tree.unmount());
     await open('Greška (bez veze)');
-    expect(labels()).toContain('Pokušaj ponovo'); expect(labels()).not.toContain('Objavi zadatak');
+    expect(labels()).toContain('Pokušajte ponovo'); expect(labels()).not.toContain('Objavi zadatak');
   });
 });

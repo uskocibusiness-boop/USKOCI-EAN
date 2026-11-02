@@ -101,7 +101,7 @@ it('performs no upload when durable identity storage fails, including an explici
   mockSet.mockRejectedValue(new Error('unavailable')); await render();
   await choose();
   expect(mockUpload).not.toHaveBeenCalled();
-  await act(async () => action('Proveri').onPress());
+  await act(async () => action('Proverite').onPress());
   await act(async () => action('Pošalji ponovo').onPress());
   expect(mockUpload).not.toHaveBeenCalled();
 });
@@ -239,7 +239,7 @@ describe('round 6: the photo grid', () => {
   });
   it('draws each way out of an unconfirmed send at most once, with a tile of its own', async () => {
     mockGet.mockResolvedValue(REQUEST); await render(); await lay();
-    for (const label of ['Odustani od slanja', 'Proveri', 'Pošalji ponovo'])
+    for (const label of ['Odustani od slanja', 'Proverite', 'Pošalji ponovo'])
       expect(tree.root.findAllByProps({ label }).length).toBeLessThanOrEqual(1);
     expect(JSON.stringify(tree.toJSON())).toContain('Ne znamo da li je poslato');
     expect(footReason()).toBe('Proveri ili otkaži nepotvrđeno slanje.');
@@ -250,7 +250,7 @@ describe('round 6: the photo grid', () => {
     await choose();
     expect(mockUpload).toHaveBeenCalledTimes(1);
     expect(tree.root.findAllByProps({ label: 'Odustani od slanja' })).toHaveLength(1);
-    expect(tree.root.findAllByProps({ label: 'Proveri' })).toHaveLength(1);
+    expect(tree.root.findAllByProps({ label: 'Proverite' })).toHaveLength(1);
     mockCancel.mockResolvedValueOnce(ok({ accountId: OWNER, conversationId: CID, clientRequestId: REQUEST, previousState: null,
       assetId: null, selected: false, cancelled: true, authoritative: true }));
     await act(async () => action('Odustani od slanja').onPress());
@@ -260,7 +260,7 @@ describe('round 6: the photo grid', () => {
     await render();
     expect(JSON.stringify(tree.toJSON())).toContain('Još nema fotografija');
     expect(action(ADD).disabled).toBe(false);
-    expect(tree.root.findAllByProps({ label: 'Proveri' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Proverite' })).toHaveLength(0);
   });
 });
 
@@ -324,10 +324,10 @@ describe('2026-10-07: one sequence, the bounded check and the shared viewer', ()
       expect(spent - reads).toBeLessThanOrEqual(20);
       await act(async () => { jest.advanceTimersByTime(30000); });
       expect(mockReceipt.mock.calls.length).toBe(spent);
-      expect(tree.root.findAllByProps({ label: 'Proveri' })).toHaveLength(1);
+      expect(tree.root.findAllByProps({ label: 'Proverite' })).toHaveLength(1);
       // A hand check that finds it ready retires the identity and the check.
       mockReceipt.mockResolvedValue(ok(asset(ID(1), 'READY')));
-      await act(async () => action('Proveri').onPress());
+      await act(async () => action('Proverite').onPress());
       expect(mockRemoveJournal).toHaveBeenCalled(); expect(shown()).toContain('Fotografija je dodata privatnom nacrtu.');
     } finally { jest.useRealTimers(); }
   });

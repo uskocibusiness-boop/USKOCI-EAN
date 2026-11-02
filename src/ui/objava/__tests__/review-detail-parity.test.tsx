@@ -148,7 +148,7 @@ describe('what the review adds and what it leaves out', () => {
       expect(tree.root.findAllByProps({ accessibilityLabel: `Izmeni, ${labels[key]}` })).toHaveLength(0);
       expect(callbacks[key]).not.toHaveBeenCalled();
     }
-    expect(texts()).not.toContain('Izmeni');
+    expect(texts()).not.toContain('Izmenite');
     await act(async () => tree.update(<ReviewDetail need={need} parts={NO_PARTS} />));
     expect(tree.root.findAllByType(EditPencil)).toHaveLength(0);
   });

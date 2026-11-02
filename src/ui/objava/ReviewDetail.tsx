@@ -192,7 +192,7 @@ export function OwnerAddress({ frame, map, part }: { frame: AddressFrame; map?: 
       {map}
       <View style={s.privacyNotice}>
         <FactArt kind="info" size={14} />
-        <T variant="meta" tone="muted">Vidiš samo ti. Tačna lokacija se deli tek uz tvoju dozvolu u Dogovoru.</T>
+        <T variant="meta" tone="muted">Vidite samo Vi. Tačna lokacija se deli tek uz Vašu dozvolu u Dogovoru.</T>
       </View>
     </View>
   </Surface>;
@@ -229,7 +229,7 @@ export function ReviewGallery({ assetIds, pencil, picture }: { assetIds: readonl
 }
 
 /** A draft with no photos: the page of others draws none, so the owner is offered the way to add them, as a row of his own. */
-export function AddPhotos({ pencil, title = 'Dodaj fotografije' }: { pencil?: PartPencil; title?: string }) {
+export function AddPhotos({ pencil, title = 'Dodajte fotografije' }: { pencil?: PartPencil; title?: string }) {
   if (!pencil) return null;
   return <ListRow leading={<FactArt kind="photo" size={32} />} title={title} accessibilityLabel={pencil.label} last onPress={pencil.onPress} />;
 }

@@ -148,13 +148,13 @@ export function IntakeUnavailable({ loading, error, retry, back, recover, recove
   loading: boolean; error: string; retry?: () => void; back: () => void; recover?: () => void;
   recoverCorrupt?: () => void; overlay?: ReactNode; title?: string;
 }) {
-  const primary = recover ? { label: 'Otvori prethodni razgovor', onPress: recover } : retry ? { label: 'Pokušaj ponovo', onPress: retry } : undefined;
+  const primary = recover ? { label: 'Otvorite prethodni razgovor', onPress: recover } : retry ? { label: 'Pokušajte ponovo', onPress: retry } : undefined;
   return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
     <ScreenChrome variant="detail" tone="conversation" onBack={back} title={title} />
     <View style={s.unavailable}>
       {loading ? <QuietReadState art="chat" title="Otvaramo razgovor" body="Pripremamo razgovor i proveravamo stanje nacrta." />
         : <StateView kind="error" art="chat" title="Razgovor nije dostupan" body={error} primary={primary}
-          quiet={recoverCorrupt ? {label:'Oporavi lokalni zapis',onPress:recoverCorrupt}:undefined} />}
+          quiet={recoverCorrupt ? {label:'Oporavite lokalni zapis',onPress:recoverCorrupt}:undefined} />}
     </View>
     {overlay ?? null}
   </SafeAreaView>;
@@ -197,7 +197,7 @@ const stickerWords = (kind: DraftSticker, summary: Summary): string => kind === 
  * The interview keeps partial facts in its conversation; this card also supports read-only gallery scenes.
  * `appear` belongs to the conversation, so refreshes or moving the card cannot replay arrivals.
  */
-export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewDisabledReason, reviewLabel = 'Pregledaj zadatak',
+export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewDisabledReason, reviewLabel = 'Pregledajte zadatak',
   editing = false, hiddenMissing = false, reviewAtEnd = false, locationEditing = false, ended = false, hasUnsentText = false, appear }: {
   summary: Summary; stillNeeded: string | null; open: boolean; busy: boolean; compact: boolean; canReview: boolean;
   onReview: () => void; note: string | null;
@@ -422,10 +422,10 @@ export function IntakePresentation(props: Props) {
       setHiddenPlace(null);
       setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1, messageId: conversation.messages.at(-1)?.id }));
     } });
-  if (hasConversation) menu.push({ key: 'refresh', label: 'Osveži razgovor', icon: 'check', disabled: props.readbackDisabled || editingPlace, onPress: outsidePlace(props.onRefresh) });
+  if (hasConversation) menu.push({ key: 'refresh', label: 'Osvežite razgovor', icon: 'check', disabled: props.readbackDisabled || editingPlace, onPress: outsidePlace(props.onRefresh) });
   if (props.onNewTask) menu.push({ key: 'new', label: 'Novi zadatak', icon: 'tasks', disabled: props.newTaskDisabled, onPress: props.onNewTask });
   if (props.showAbandon) menu.push({ key: 'abandon', label: props.abandonLabel, icon: 'chat', destructive: true,
-    disabled: props.abandonDisabled, subtitle: 'Povratak čuva razgovor. Napušten razgovor više ne možeš da nastaviš.', onPress: props.onAbandon });
+    disabled: props.abandonDisabled, subtitle: 'Povratak čuva razgovor. Napušten razgovor više ne možete da nastavite.', onPress: props.onAbandon });
   const note = safetyCopy && conversation.safety !== 'BLOCK' ? safetyCopy : null;
   // The one way on from a conversation that is over, and it is on the screen (rule J15: a "···" is never the only road): the review while there is one
   // (green), otherwise a new task (quiet). The same "Novi zadatak" stays in the menu for the rare case.
@@ -441,7 +441,7 @@ export function IntakePresentation(props: Props) {
     setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1, messageId: lastReply?.id }));
   };
   const footerAction = canJumpToMap
-    ? <V2Action label="Prikaži mesto na mapi" kind="secondary" tone="neutral" onPress={jumpToMap} />
+    ? <V2Action label="Prikažite mesto na mapi" kind="secondary" tone="neutral" onPress={jumpToMap} />
     : completed && props.canReview
     ? <V2Action label={props.reviewLabel} style={brandAction} disabled={!reviewAllowed} onPress={outsidePlace(props.onReview)} />
     : ended && props.onNewTask
@@ -492,7 +492,7 @@ export function IntakePresentation(props: Props) {
     contextBeforeMessageId={contextBeforeMessageId}
     threadNotes={notes.length ? notes : undefined}
     value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
-    sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
+    sendBlockedReason={editingPlace ? 'Prvo potvrdite mesto ili zatvorite mapu.' : undefined}
     messages={messages} pending={pending} busy={busy} busyLabel={props.busyLabel} streamingText={props.streamingText}
     // The greeting is client-owned UI, not an LLM call or server-authored message.
     introMessage={messages.length===0 && !props.sentMessage ? taskInterviewOpening(!!conversation.review.boundNeedId) : undefined}
@@ -509,7 +509,7 @@ export function IntakePresentation(props: Props) {
     // the conversation then, as the first word or the held microphone does.
     attach={attach ? { label: PHOTO_WORDS.add, hint: 'Galerija ili kamera.',
       onPress: outsidePlace(() => { Keyboard.dismiss(); setPanel('photos'); }), disabled: photosOff }
-      : props.onPhotos ? { label: 'Fotografije zadatka', hint: 'Dodaj ili pregledaj fotografije zadatka.',
+      : props.onPhotos ? { label: 'Fotografije zadatka', hint: 'Dodajte ili pregledajte fotografije zadatka.',
         onPress: outsidePlace(props.onPhotos), disabled: props.photosDisabled || editingPlace } : undefined}
     // A clean interview shows one card only when structured facts are ready for review.
     // Assistant wording never grants readiness; photos and pin confirmation remain their own contextual lines.
@@ -520,7 +520,7 @@ export function IntakePresentation(props: Props) {
       hasUnsentText={open && !!value.trim() && !busy && !pending} appear={landed} />}
     actions={(!attach && photoAssets.length) || (safetyCopy && (!showSummary || conversation.safety === 'BLOCK')) ? <>
       {!attach && photoAssets.length ? <View testID="intake-photos" style={s.photos}>
-        {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"
+        {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledajte fotografije zadatka"
           disabled={props.photosDisabled || editingPlace} accessibilityState={{ disabled: !!props.photosDisabled || editingPlace }} onPress={outsidePlace(props.onPhotos)}
           style={s.photoHeader}>
           <T variant="bodyStrong">Fotografije zadatka</T><Glyph name="caret-right" tone="muted" />
@@ -551,17 +551,17 @@ export function IntakePresentation(props: Props) {
         }} />
     </Suspense>
       : showPlace && !placeComplete && pointAskHidden && addressReady
-        ? <V2Action tone={needsPoint ? 'brand' : 'neutral'} label="Pokaži mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
+        ? <V2Action tone={needsPoint ? 'brand' : 'neutral'} label="Prikažite mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
           onPress={() => { Keyboard.dismiss(); setHiddenPlace(null); }} /> : undefined}
     // A fragment is truthy even when every branch inside it is null, which drew an empty
     // panel in the thread. The slot is filled only when there is something to act on.
     status={!props.error && !statusCopy && !props.onCancelPending && !props.showReadback && !props.retainedLocationSpeech ? undefined : <>
       {props.statusTitle ? <T accessibilityRole="header" variant="bodyStrong">{props.statusTitle}</T> : null}
       {props.retainedLocationSpeech ? <View style={{ gap: sys.space.sm }}>
-        <T variant="note" tone="muted">Glasovna poruka je sačuvana. Možeš je ponovo poslati.</T>
+        <T variant="note" tone="muted">Glasovna poruka je sačuvana. Možete je ponovo poslati.</T>
         <T variant="note" selectable>{props.retainedLocationSpeech.text}</T>
-        <V2Action tone="neutral" kind="secondary" label="Vrati tekst u polje" disabled={!props.retainedLocationSpeech.canRestore}
-          reason={!props.retainedLocationSpeech.canRestore ? 'Prvo proveri prethodnu poruku; tek onda možeš da upišeš novu.' : null}
+        <V2Action tone="neutral" kind="secondary" label="Vratite tekst u polje" disabled={!props.retainedLocationSpeech.canRestore}
+          reason={!props.retainedLocationSpeech.canRestore ? 'Prvo proverite prethodnu poruku; tek onda možete da upišete novu.' : null}
           onPress={props.retainedLocationSpeech.onRestore} />
       </View> : null}
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
@@ -572,8 +572,8 @@ export function IntakePresentation(props: Props) {
       {props.showReadback ? <V2Action tone="neutral" label={OUTCOME_ACTION.check} accessibilityLabel={`${OUTCOME_ACTION.check} da li je poruka poslata`}
         disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
       {props.onCancelPending ? <>
-        <T variant="note" style={s.muted}>Ako odustaneš, odgovor asistenta neće promeniti zadatak. Ako je asistent već počeo da odgovara, poruka je ipak poslata.</T>
-        <V2Action tone="neutral" kind="quiet" label={props.cancelPendingDispatched ? 'Odustani od odgovora' : 'Otkaži slanje poruke'}
+        <T variant="note" style={s.muted}>Ako odustanete, odgovor asistenta neće promeniti zadatak. Ako je asistent već počeo da odgovara, poruka je ipak poslata.</T>
+        <V2Action tone="neutral" kind="quiet" label={props.cancelPendingDispatched ? 'Odustanite od odgovora' : 'Otkažite slanje poruke'}
           disabled={props.cancelPendingDisabled} onPress={props.onCancelPending} />
       </> : null}
     </>}>
