@@ -131,6 +131,7 @@ jobs:
         run: node --test --test-reporter=spec supabase/proofs/ai/r11b_blind_review_publication.test.mjs
       - name: AI intake and taxonomy contracts
         run: |
+          node --test --test-reporter=spec supabase/proofs/policy/publication_evaluator_edge.test.mjs
           node --test --test-reporter=spec supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
           node --test --test-reporter=spec supabase/proofs/dynamic_taxonomy/provider-shadow-validator.test.mjs
           node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --offline
