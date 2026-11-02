@@ -1,0 +1,44 @@
+{
+  "status": "DEV_APPLIED_NATIVE_READBACK_FIX_PENDING",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "migration": {
+    "version": "20261102141629",
+    "name": "r06_need_complete_turn_v1",
+    "promotion_sha256": "b234317b2aa2cd809d98ef3c96833bb7a21a1aa59c1b1f30159173bd71456641",
+    "preflight": "R06_COMPLETE_TURN_PREIMAGE_MATCH",
+    "postflight": "R06_COMPLETE_TURN_POSTIMAGE_MATCH"
+  },
+  "approval": "Owner Nastavi after explicit two-function plus Need Edge proposal, 2026-11-02",
+  "edge": {
+    "name": "uskoci-ai-interview",
+    "version": 160,
+    "source_commit": "7d72ba85d315a75d9441259847035fffafd4d9f0",
+    "exact_files_verified": 23,
+    "verify_jwt": false,
+    "own_auth_unchanged": true
+  },
+  "guardrails": {
+    "closure_unchanged": true,
+    "certificate_unchanged": true,
+    "source_ready": false,
+    "acl_rls_unchanged": true,
+    "production_changed": false
+  },
+  "native_probe": {
+    "apk_source": "7d72ba85",
+    "ordinary_turn_state": "SUCCEEDED",
+    "proposed_count": 13,
+    "assistant_message_proposed_fact_ids": 13,
+    "safety": "ALLOW",
+    "provider_retries": 0,
+    "publication": false,
+    "discovered_defect": "Conversation message decoder retained the old 12-ID cap; confirmed server write cannot be loaded on that APK."
+  },
+  "client_fix": {
+    "file": "src/data/aiNeedV2Production.ts",
+    "change": "Read message proposal IDs with the same registry-derived bound as the turn receipt; unique UUID and owner/shape/safety guards retained.",
+    "reproduction": "ai-conversation-status: 13 and 22 IDs fail before fix",
+    "validation": "248 focused Jest tests PASS; TypeScript PASS",
+    "native_acceptance": "PENDING_NEW_APK"
+  }
+}

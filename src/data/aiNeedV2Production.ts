@@ -304,7 +304,7 @@ function mapConversation(raw: unknown, conversationId: string, accountId: string
     const r = exact(row, ['id', 'account_id', 'conversation_id', 'role', 'body', 'safety', 'proposed_fact_ids', 'sequence_no']);
     if (!r || !uuid(r.id) || !sameId(r.account_id, accountId) || !sameId(r.conversation_id, conversationId)
       || !['USER', 'ASSISTANT'].some(role => role === r.role) || !boundedText(r.body, r.role === 'ASSISTANT' ? 1500 : 4000)
-      || !(r.safety === null || safety(r.safety)) || !uuidList(r.proposed_fact_ids, 12)
+      || !(r.safety === null || safety(r.safety)) || !uuidList(r.proposed_fact_ids, MAX_AI_NEED_FACT_V2_PROPOSALS)
       || typeof r.sequence_no !== 'number' || !Number.isSafeInteger(r.sequence_no) || r.sequence_no <= previous) return null;
     previous = r.sequence_no;
     if (r.role === 'ASSISTANT' && safety(r.safety)) latest = r.safety;

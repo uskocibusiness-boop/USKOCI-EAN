@@ -1,5 +1,5 @@
 import { aiNeedV2Production as client } from '../aiNeedV2Production';
-import { NEED_FACT_V2_DEFINITIONS, REQUIRED_NEED_FACT_V2_KEYS, type NeedFactV2Key } from '../../contracts/needFactsV2';
+import { MAX_AI_NEED_FACT_V2_PROPOSALS, NEED_FACT_V2_DEFINITIONS, REQUIRED_NEED_FACT_V2_KEYS, type NeedFactV2Key } from '../../contracts/needFactsV2';
 
 const ACCOUNT = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const C = '11111111-1111-4111-8111-111111111111';
@@ -112,6 +112,22 @@ describe('whole owned conversation projection', () => {
 });
 
 describe('complete ordered messages and assistant safety', () => {
+  const proposalIds = (count: number) => Array.from({ length: count }, (_, index) =>
+    `abcdef00-0000-4000-8000-${String(index).padStart(12, '0')}`);
+  it.each([0, 12, 13, MAX_AI_NEED_FACT_V2_PROPOSALS])('reopens a stored complete turn with %s proposal IDs without another AI call', async count => {
+    const ids = proposalIds(count);
+    mockMessages.mockResolvedValue({ ...ok([{ ...message(), proposed_fact_ids: ids }]), count: 1 });
+    const result = await client.loadConversation(C);
+    expect(result?.messages[0].proposedFactIds).toEqual(ids);
+    expect(mockRpc.mock.calls).toEqual([['rpc_ai_need_review_v2', { p_conversation_id: C }]]);
+  });
+  it.each([
+    { ids: proposalIds(MAX_AI_NEED_FACT_V2_PROPOSALS + 1) },
+    { ids: [...proposalIds(12), proposalIds(1)[0].toUpperCase()] },
+  ])('rejects oversized or case-insensitive duplicate proposal IDs', async ({ ids }) => {
+    mockMessages.mockResolvedValue({ ...ok([{ ...message(), proposed_fact_ids: ids }]), count: 1 });
+    await expect(client.loadConversation(C)).rejects.toThrow();
+  });
   it('keeps the last assistant safety over a later USER value', async () => {
     const rows = [{ ...message(), safety: 'BLOCK' }, { ...message(), id: FACT, role: 'USER', sequence_no: 2, safety: 'ALLOW' }];
     mockMessages.mockResolvedValue({ ...ok(rows), count: rows.length }); mockRpc.mockResolvedValue(ok({ ...review(), safety: 'BLOCK' }));
