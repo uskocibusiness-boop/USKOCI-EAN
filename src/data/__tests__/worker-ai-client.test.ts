@@ -172,7 +172,8 @@ it('accepts REUSE_EXISTING candidate with categoryLabel and categoryParentId met
  const signed = { ...base, classificationCandidates: [candidate] };
  const decoded = decodeWorkerAiReview(signed, OWNER, CONVERSATION);
  expect(decoded).not.toBeNull();
- expect(decoded?.classificationCandidates[0]).toMatchObject({
+ if (!decoded?.classificationCandidates) throw new Error('Signed READY review must include classification candidates');
+ expect(decoded.classificationCandidates[0]).toMatchObject({
    action: 'REUSE_EXISTING',
    categoryLabel: 'Prenos robe i tereta',
    categoryParentId: null
