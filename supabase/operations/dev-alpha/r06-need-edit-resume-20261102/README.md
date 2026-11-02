@@ -1,71 +1,68 @@
 # R06/R07 — resume the current owned Need edit
 
-PREPARED_NOT_APPLIED. Existing RPC and unchanged five-field mobile receipt.
-02 November continuation: the same candidate/function body is rebased ONLY to the observed closure
-schema/source after R07 migration20261102175412. No certificate/readiness or
-function dependency was changed. Fresh live SQL-role reproduction inside a
-rolled-back transaction opens two different conversations for the same task;
-neither trial conversation is persisted. All13 focused isolated checks pass.
-The re-derived promotion still requires fresh preflight and relevant full CI.
+APPLIED_DEV, migration `20261102182959` on `leqcwgzvjsxugfgzdmth`.
+Source `4b9755364a7f87dc93d456ff4d7fb56ee67092a5`; Full CI41498974039 SUCCESS.
+The generated manifest remains the immutable preparation artifact; actual
+execution is recorded in [the ledger receipt](../ledger/20261102_need_edit_resume.receipt.json).
 
-The first controlled apply after CI41495944402 rolled back at its postimage
-guard. Readback confirmed the original function MD5 and no new migration.
-The generator had hashed TWO final newlines, while pg_get_functiondef returns
-one; the executable DDL already trimmed the extra newline. The corrected exact
-postimage is 34c30e54765bccbfe7b3e58a949001d2. A new actual-PostgreSQL catalog
-regression fails before this correction and passes afterwards; all14 isolated
-checks pass. The function body, permissions and strict comparison are preserved.
-The 02 November native probe lost the ordinary route to a saved edit because
-every call to rpc_ai_open_need_edit_conversation_v2 inserted a new conversation.
-The original messages/facts remained on the server.
+The original RPC created a new conversation on every open. A live SQL-role
+reproduction opened two distinct IDs inside a rolled-back transaction. The
+candidate reuses an OPEN NEED_FACT_V2 edit for the same owner/task/current base.
+Completed, abandoned or consumed-review edits remain excluded. Real message
+activity outranks empty legacy copies. Existing content is not deleted.
+Owner, closure, status, stale base and first-Agreement boundaries remain.
 
-The candidate reuses an OPEN NEED_FACT_V2 edit for the same owner/task and
-current non-null base marker. A conversation with a consumed review command,
-completion or abandonment is excluded. Real message activity takes precedence
-over newer empty legacy duplicates. No old conversation or user content is
-deleted. Changed task state, owner, closure and first-Agreement locks remain.
-Stale edits remain available in history; a fresh edit uses the current base.
+The task row lock serializes openers. Conversation NOWAIT avoids inverse lock
+waiting with a turn/review. Only the existing function body changes: no table,
+index, signature, permission, provider call or readiness certificate changes.
+The unchanged five-field receipt supports existing clients.
 
-The existing task row lock serializes openers. Conversation locking uses
-NOWAIT so a simultaneous turn/review cannot cause an inverse lock wait or a
-silent new copy. A busy conversation must be retried after that operation.
-Multi-session contention still requires PostgreSQL/DEV acceptance; PGlite
-sequential tests do not prove concurrent transactions.
+## Source and package verification
 
-Only the existing function body changes. No table, index, signature, privilege,
-model call, UI flow, applied migration or certificate is replaced. The caller
-needs no new mobile build. Reusing an existing row explicitly checks account
-closure because the insertion trigger would otherwise not run.
-
-## Proof and promotion
-
-- Captured read-only DEV definition, attributes and dependencies:
-  ../../../proofs/ai/r06_need_edit_resume_preimage.json
-- Four recovery assertions fail against the original definition.
-- 12 isolated PostgreSQL tests plus the raw-candidate refusal test pass after the fix, including rollback/reapply,
-  closed/wrong account, stale base, completed/abandoned, consumed command,
+- Read-only definition/dependency capture: ../../../proofs/ai/r06_need_edit_resume_preimage.json.
+- Candidate and test: ../../../proofs/ai/r06_need_edit_resume_candidate.sql and r06_need_edit_resume.test.mjs.
+- Four recovery assertions fail against the original function; all14 focused
+  tests pass after correction, including catalog postimage, rollback/reapply,
+  closed/wrong account, stale base, completion/abandonment, consumed command,
   cancelled task, Agreement and legacy duplicate selection.
-- Existing actual mobile opener/owner screen contracts: 2 suites / 30 PASS.
-- Full CI41483609100 SUCCESS on 5d98952d: 626 mobile suites / 14584 tests; AI1599 PASS / 0FAIL / 1 existing TODO; TypeScript/Deno/SQL/PostGIS/integrity PASS.
-- Fresh read-only DEV preflight: R06_EDIT_RESUME_PREIMAGE_MATCH.
-- R0141483609292 FAILURE remains 8 strict / 49 effective / 3 managed-net.
-- DEV/native/concurrent-transaction acceptance remains separate and OPEN.
+- Related mobile checks:3 suites/209 PASS; TypeScript PASS.
+- Full41498974039:626 suites/14585 mobile PASS, AI1611 PASS/0FAIL/1 existing TODO;
+  SQL/PostGIS/Deno/migration integrity PASS. R0141498973974 remains8/49/3 FAIL.
 
-Run:
+After R07 migration20261102175412 the guard was rebased to the actual new
+schema/source hashes; candidate body and five dependencies were unchanged.
+The first apply after Full41495944402 rolled back at the exact postimage guard:
+the generator hashed two final newlines while pg_get_functiondef returns one.
+Original definition and absence of a new migration were verified afterwards.
+A real PostgreSQL catalog regression reproduced the generator error. The
+corrected postimage `34c30e54765bccbfe7b3e58a949001d2` preserves strict comparison.
+Fresh preflight and corrected apply/postflight all passed. Existing certificate,
+source_ready=false and NULL bindings remain unchanged.
+
+## DEV and Android acceptance
+
+Internal APK from4b975536 was signature/source/bundle checked and installed
+with `adb install -r` on the already authenticated API36 emulator. Ordinary
+owned-task edit/back/reopen and force-stop/cold-start/reopen retain the same
+single conversation and all20 facts; their digest is unchanged. The published
+task remains revision1. Native edit has zero messages, so populated-history
+preservation is an isolated-test result, not a native claim. No paid calls.
+
+Two real overlapping database/native probes were performed: an SQL-role opener
+holds the task lock while the actual Auth/native opener waits and then resumes
+the same edit; a conversation row lock causes safe refusal/no duplicate and
+refresh/reopen recovery. The holder transactions roll back. The latter exposes
+generic UNKNOWN copy, which remains a UI follow-up. This is not a concurrent
+paid AI-turn proof. An earlier MCP-only attempt did not establish overlap and
+is explicitly INCONCLUSIVE. Private screenshots stay in local artifacts.
+
+## Reproducibility and remaining boundary
 
     node --test supabase/proofs/ai/r06_need_edit_resume.test.mjs
-    node build.mjs --check
+    node supabase/operations/dev-alpha/r06-need-edit-resume-20261102/build.mjs --check
 
-The guarded package pins DEV context, exact function attributes and definition,
-five dependency definitions and the existing closure state. It allows only one
-function body delta. It deliberately requires source_ready=false and NULL
-bindings to remain unchanged, not to become ready. The inverse restores the
-original definition without deleting newly created conversations.
-
-Before a controlled promotion: relevant full CI, fresh preflight, current-schema
-lock/compatibility review and authorization for this exact DEV operation.
-Then promotion.sql, postflight.sql, ordinary Android open/back/restart/reopen
-with the same conversation/facts and no provider call; include a concurrent
-turn and competing opener before calling the recovery DONE.
-No public registration, production or store release is authorized by this package.
-
+The package pins context, exact function attributes/definition, five dependencies
+and closure state. The inverse restores the original body without deleting
+conversations. Future changes must account for this applied opener, including
+the pending full hourly package. No public registration, production/store
+release, R01/R10 waiver, durable first-plan or full R06 completion is implied.
