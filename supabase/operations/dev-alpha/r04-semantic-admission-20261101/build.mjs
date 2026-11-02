@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
+import {deriveClosurePostimage} from './closure-postimage.mjs';
 
 const root=new URL('./',import.meta.url),read=name=>readFileSync(new URL(name,root),'utf8');
 export const preimage=JSON.parse(read('preimage.json'));
@@ -58,11 +59,10 @@ export const closureQuery=`SELECT jsonb_build_object('source',private.closure_so
  'source_ready',private.retention_ai_source_ready(),'erasure_binding',private.closure_erasure_binding_v5(),
  'export_binding',private.data_export_policy_binding())`;
 
-export const postClosure={
- ...preimage.closure,
- source:'4a6a2f79f99939efe3088b1c1daee61acb7b7fe87caf6191d1741fa91788433f',
- erasure:'2a98426f53e0280ddbc8fc4937247a528d4432bfd34a86542b38923c0b0abfdb'
-};
+export const postClosure=deriveClosurePostimage({
+ evidence:JSON.parse(read('closure-postimage-offline-evidence-20261102.json')),
+ originals,postimages,preimageClosure:preimage.closure
+});
 
 const closureGuard=images=>{
  const target=(images===postimages)?postClosure:preimage.closure;
@@ -198,6 +198,8 @@ SELECT '${result}' result,false AS authenticated_positive_functional_acceptance;
   },
   preimage_sha256:hash(read('preimage.json')),
   builder_sha256:hash(read('build.mjs')),
+  closure_derivation_sha256:hash(read('closure-postimage.mjs')),
+  closure_capture_sha256:hash(read('closure-postimage-offline-evidence-20261102.json')),
   files:Object.fromEntries(Object.entries(outputs).map(([name,s])=>[name,hash(s)])),
   limitations:[
    'Project identity is the connector binding; the GUC is only an intent marker.',

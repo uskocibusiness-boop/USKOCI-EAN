@@ -1,0 +1,952 @@
+{
+  "kind": "R04_CLOSURE_OFFLINE_POSTIMAGE_DERIVATION",
+  "scope": "Read-only PostgreSQL catalog metadata. No DEV writes, credentials or business rows.",
+  "changed_function_preimages": [
+    {
+      "acl": null,
+      "oid": "29147",
+      "args": "",
+      "owner": "16388",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "result": "2279",
+      "strict": false,
+      "definer": true,
+      "body_md5": "3244c0fd784d722ece2e3ace8688bfe7",
+      "language": "13619",
+      "signature": "private.needs_sync_taxonomy_category_trigger_fn()",
+      "volatility": "v",
+      "definition_md5": "9ad25a58540c51ff7c84225481c69369"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "oid": "31025",
+      "args": "25 3802 3802 2950 2950",
+      "owner": "16388",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "result": "3802",
+      "strict": false,
+      "definer": false,
+      "body_md5": "f9318f476e32a8233fbb07ccf5d22aeb",
+      "language": "13619",
+      "signature": "private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)",
+      "volatility": "s",
+      "definition_md5": "e318d1e43e4a045f09be19138016ccd8"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "28782",
+      "args": "25",
+      "owner": "16388",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "result": "25",
+      "strict": false,
+      "definer": false,
+      "body_md5": "49db026affac1bdde145622f12f4b47f",
+      "language": "13619",
+      "signature": "private.taxonomy_risk_triage_v1(text)",
+      "volatility": "s",
+      "definition_md5": "d219247f7b98a5f1d69f70a6affc6082"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "29415",
+      "args": "2950 2950 25 2950 3802",
+      "owner": "16388",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "result": "3802",
+      "strict": false,
+      "definer": true,
+      "body_md5": "757a754bd2310d07eb0587e1f8279b2b",
+      "language": "13619",
+      "signature": "public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)",
+      "volatility": "v",
+      "definition_md5": "3cd05dc50ec8de32686c3e6e848d89a7"
+    }
+  ],
+  "digest_definitions": [
+    {
+      "acl": "{postgres=X/postgres}",
+      "oid": "24205",
+      "args": "",
+      "body": "\n select encode(extensions.digest(convert_to(jsonb_build_object(\n 'functions',(select jsonb_agg(jsonb_build_object('signature',p.oid::regprocedure::text,'source',md5(p.prosrc),'owner',p.proowner,'acl',p.proacl::text,'definer',p.prosecdef,'strict',p.proisstrict,'volatility',p.provolatile,'language',p.prolang,'config',p.proconfig,'args',p.proargtypes::text,'result',p.prorettype) order by p.oid::regprocedure::text)\n from pg_proc p where p.oid in(select to_regprocedure(x) from unnest('{\"private.capture_agreement_media_v5(uuid,integer,boolean)\",\"private.capture_case_media_v5(text,uuid,bigint,uuid,uuid,uuid,uuid)\",private.media_owner_protected_v5(uuid),private.media_evidence_key_v5(uuid),private.closure_blockers_v5(uuid),\"private.resolve_media_snapshot_v5(uuid,jsonb)\",private.support_auth_v5(uuid),private.support_operator_key_v5(),\"private.support_command_key_v5(uuid,uuid)\",\"private.support_safe_exit_v5(uuid,uuid)\",private.support_operator_revision_v5(uuid),private.support_immutable_v5(),private.support_case_guard_v5(),\"private.support_command_document_v5(uuid,uuid)\",\"public.rpc_support_read_command_v5(uuid,uuid)\",\"public.rpc_support_cancel_command_v5(uuid,uuid)\",\"private.support_reference_v5(uuid,jsonb)\",\"private.support_capture_media_v5(uuid,integer,jsonb)\",\"private.support_safety_case_v5(private.safety_reports,boolean)\",private.support_safety_capture_v5(),private.support_safety_closure_v5(),private.support_event_document_v5(private.support_events_v5),private.support_decision_document_v5(private.support_decisions_v5),\"private.support_allowed_actions_v5(private.support_cases_v5,uuid,integer)\",\"public.rpc_support_set_operator_service_v5(uuid,boolean,integer,uuid)\",\"public.rpc_support_submit_v5(uuid,uuid,text,uuid,integer,text)\",public.rpc_support_capabilities_v5(uuid),\"public.rpc_support_inbox_v5(uuid,text,text)\",\"public.rpc_support_detail_v5(uuid,uuid,text)\",\"public.rpc_support_mark_read_v5(uuid,uuid,text)\",\"public.rpc_support_find_context_v5(uuid,text,uuid)\",\"public.rpc_support_media_service_v5(uuid,uuid,uuid,uuid)\",public.rpc_closure_api_guard(),private.agreement_photo_key_v5(uuid),\"private.agreement_photo_context_v5(uuid,uuid,integer,boolean)\",private.agreement_photo_document_v5(private.agreement_photo_uploads_v5),private.agreement_photo_transfer_v5(private.agreement_photo_uploads_v5),private.agreement_photo_message_guard_v5(),private.agreement_photo_link_guard_v5(),private.agreement_photo_asset_guard_v5(),private.agreement_photo_storage_guard_v5(),\"public.rpc_agreement_photo_upload_service_v5(uuid,uuid,text,uuid,integer,uuid,jsonb)\",\"public.rpc_agreement_photo_read_service_v5(uuid,uuid,uuid,uuid,uuid)\",\"public.rpc_send_agreement_photo_message_v5(uuid,uuid,integer,text,text,uuid[])\",\"public.rpc_read_agreement_photo_messages_v5(uuid,uuid,uuid[])\",\"private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb)\",private.closure_redaction_relations_v5(),\"private.closure_erasure_media_protected_v5(uuid,text)\",private.closure_erasure_agreement_protected_v5(uuid),\"private.closure_erasure_scope_author_v5(uuid,integer)\",private.closure_erasure_exceptions_v5(uuid),private.closure_redaction_scope_v5(text),\"private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)\",private.closure_erasure_lock_v5(uuid),private.closure_erasure_hard_blockers_v5(uuid),private.closure_erasure_binding_v5(),private.closure_erasure_assert_current_v5(private.closure_executions_v5),private.closure_erasure_progress_v5(private.closure_executions_v5),private.closure_erasure_refresh_steps_v5(private.closure_executions_v5),private.closure_auth_dispatched_v5(uuid),\"private.closure_support_source_fence_v5(uuid,text,uuid)\",\"public.rpc_redact_account_closure_step_service(uuid,uuid,uuid,uuid)\",public.rpc_review_account_closure_execution(uuid),\"public.rpc_start_account_closure_execution(uuid,uuid,integer,uuid,text)\",\"public.rpc_claim_account_closure_action_service(uuid,uuid)\",\"public.rpc_dispatch_account_closure_action_service(uuid,uuid,uuid,uuid)\",\"public.rpc_complete_account_closure_action_service(uuid,uuid,uuid,uuid,text)\",\"public.rpc_finalize_account_closure_service(uuid,uuid)\",\"public.rpc_read_account_closure_execution(uuid,uuid)\",public.rpc_list_account_closure_work_service(integer),public.handle_uskoci_auth_user_updated(),private.closure_assert_current_v5(private.closure_executions_v5),private.closure_source_digest_v5(),private.closure_erasure_program_digest_v5(),private.agreement_voice_key_v1(uuid),\"private.agreement_voice_context_v1(uuid,uuid,integer,boolean)\",private.agreement_voice_document_v1(private.agreement_voice_uploads_v1),private.agreement_voice_transfer_v1(private.agreement_voice_uploads_v1),private.agreement_voice_message_guard_v1(),private.agreement_voice_link_guard_v1(),private.agreement_voice_asset_guard_v1(),private.agreement_voice_storage_guard_v1(),\"public.rpc_agreement_voice_upload_service_v1(uuid,uuid,text,uuid,integer,uuid,jsonb)\",\"public.rpc_agreement_voice_read_service_v1(uuid,uuid,uuid,uuid,uuid)\",\"public.rpc_send_agreement_voice_message_v1(uuid,uuid,integer,text,uuid)\",private.agreement_voice_surface_v1(),private.ai_location_context_valid(jsonb),\"private.ai_location_request_hash(uuid,text,jsonb)\",\"private.ai_location_review_matches(uuid,jsonb)\",\"private.ai_location_turn_document(uuid,uuid,uuid)\",\"private.ai_claim_need_turn_context_v1(uuid,uuid,uuid,text,jsonb)\",\"public.rpc_ai_claim_need_location_turn_v1_service(uuid,uuid,uuid,text,jsonb)\",\"public.rpc_ai_complete_need_location_turn_v1_service(uuid,uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)\",\"public.rpc_ai_read_need_location_turn_v1(uuid,uuid)\",\"public.rpc_ai_read_need_location_turn_v1_service(uuid,uuid,uuid)\",\"public.rpc_ai_claim_need_turn_v2_service(uuid,uuid,uuid,text)\",\"private.ai_need_turn_status(uuid,uuid,uuid)\",\"public.rpc_claim_push_transport(text)\",\"public.rpc_begin_push_send(uuid,uuid)\",\"public.rpc_complete_push_transport(uuid,uuid,text,text)\",\"private.push_session_valid(uuid,uuid)\",\"private.push_suppression(public.notification_deliveries)\",\"private.admit_push_single_target_v1(uuid,uuid,uuid,text,uuid,uuid,uuid,bigint,uuid,timestamptz,timestamptz)\",\"public.rpc_claim_push_single_target(uuid)\",\"public.rpc_claim_push_single_target_receipt(uuid)\",\"private.revoke_push_single_target_v1(uuid)\"}'::text[]) x)\n or p.oid in(select to_regprocedure(x) from unnest(ARRAY['private.closure_taxonomy_inventory_v1()','private.closure_taxonomy_semantic_keys_v1()','private.closure_taxonomy_reset_sections_v1()','private.closure_taxonomy_scope_v1(text)','private.closure_taxonomy_owner_immutable_v1()','private.closure_taxonomy_held_v1(text,jsonb,uuid)','private.closure_taxonomy_patch_v1(text,jsonb,uuid,uuid)','private.closure_taxonomy_try_owner_v1(uuid)','private.closure_taxonomy_profile_erasing_v1(uuid)','private.closure_taxonomy_snapshot_guard_v1()','private.closure_taxonomy_semantic_v1(jsonb)','private.closure_taxonomy_project_v1(text,jsonb,uuid)','private.closure_taxonomy_export_rows_v1(uuid)','private.closure_taxonomy_export_catalog_v1()','public.rpc_taxonomy_reconcile_reviewed_outbox_service(integer)','public.rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid)','public.rpc_taxonomy_approve_admission(uuid,text,text)','private.data_export_policy_binding()','private.closure_redaction_scope_v5(text)','public.rpc_taxonomy_capture_gemini_turn_hints_service(uuid,uuid,uuid,uuid,uuid,text,bigint,jsonb)','private.taxonomy_reconcile_pending_reviews_v1(integer)','private.taxonomy_signed_binding_requeue_v1()','private.data_export_dataset_catalog()','public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)','public.rpc_taxonomy_assign_worker_categories_service(uuid,uuid[])','private.closure_redaction_relations_v5()','private.taxonomy_pending_saved_event_v1()','public.rpc_taxonomy_bind_reviewed_need_service(uuid,uuid,uuid,uuid,integer)','private.data_export_projection_sha_v5()','public.rpc_set_worker_execution_modes(uuid,text[])','public.rpc_taxonomy_claim_reviewed_batches_service(integer)','private.sync_worker_skills_to_taxonomy_capabilities(uuid,text[])','public.rpc_taxonomy_prepare_admission_service(uuid,uuid,text,uuid,jsonb)','private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)','public.rpc_taxonomy_bind_ready_reviews_service(integer)','private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)','public.rpc_taxonomy_finalize_reviewed_batch_service(uuid,uuid,text)','public.rpc_taxonomy_commit_admission_service(uuid)','private.taxonomy_handoff_fit_v1(uuid,uuid)','private.taxonomy_handoff_display_v1(jsonb)','private.taxonomy_handoff_compatible_v1(jsonb,jsonb)','private.taxonomy_preserve_review_handoff_v1(jsonb,uuid,uuid)','private.taxonomy_handoff_valid_v1(jsonb)']::text[]) x)\n or p.oid in(select tgfoid from pg_trigger where not tgisinternal and tgrelid in(select unnest(private.closure_redaction_relations_v5())::regclass))),\n 'tables',(select jsonb_agg(jsonb_build_array(c.oid::regclass::text,c.relowner,c.relacl::text,c.relrowsecurity,c.relforcerowsecurity) order by c.oid::regclass::text)\n from pg_class c where c.relnamespace in('private'::regnamespace,'public'::regnamespace) and c.relkind in('r','p')),\n 'triggerState',(select jsonb_agg(jsonb_build_array(t.tgrelid::regclass::text,t.tgname,t.tgenabled) order by t.tgrelid::regclass::text,t.tgname)\n from pg_trigger t join pg_class c on c.oid=t.tgrelid where not t.tgisinternal\n and (c.relnamespace in('private'::regnamespace,'public'::regnamespace) or t.tgrelid='storage.objects'::regclass))\n )::text,'UTF8'),'sha256'),'hex')\n ",
+      "owner": "16388",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "result": "25",
+      "strict": false,
+      "definer": true,
+      "body_md5": "e6ec1acf0f08f19847b5e342f82f32b2",
+      "language": "14",
+      "signature": "private.closure_erasure_program_digest_v5()",
+      "volatility": "s",
+      "definition_md5": "e11cc0b1eb33e63d182247424e4027bd"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "oid": "23194",
+      "args": "",
+      "body": "\n select encode(extensions.digest(convert_to(private.closure_schema_digest_v5_139()||':'||private.closure_erasure_program_digest_v5()||':'||private.agreement_invalidation_surface_v1()||':'||private.agreement_voice_surface_v1()||':'||string_agg(signature||':'||md5(p.prosrc),E'\\n' order by signature),'UTF8'),'sha256'),'hex')\n from unnest(array['private.capture_agreement_media_v5(uuid,integer,boolean)','private.capture_case_media_v5(text,uuid,bigint,uuid,uuid,uuid,uuid)',\n 'private.media_owner_protected_v5(uuid)','private.media_evidence_key_v5(uuid)','private.closure_blockers_v5(uuid)','private.resolve_media_snapshot_v5(uuid,jsonb)',\n 'private.support_auth_v5(uuid)','private.support_operator_key_v5()','private.support_command_key_v5(uuid,uuid)',\n 'private.support_safe_exit_v5(uuid,uuid)','private.support_operator_revision_v5(uuid)','private.support_immutable_v5()',\n 'private.support_case_guard_v5()','private.support_command_document_v5(uuid,uuid)',\n 'public.rpc_support_read_command_v5(uuid,uuid)','public.rpc_support_cancel_command_v5(uuid,uuid)',\n 'private.support_reference_v5(uuid,jsonb)','private.support_capture_media_v5(uuid,integer,jsonb)',\n 'private.support_safety_case_v5(private.safety_reports,boolean)','private.support_safety_capture_v5()','private.support_safety_closure_v5()',\n 'private.support_event_document_v5(private.support_events_v5)','private.support_decision_document_v5(private.support_decisions_v5)',\n 'private.support_allowed_actions_v5(private.support_cases_v5,uuid,integer)',\n 'public.rpc_support_set_operator_service_v5(uuid,boolean,integer,uuid)','public.rpc_support_submit_v5(uuid,uuid,text,uuid,integer,text)',\n 'public.rpc_support_capabilities_v5(uuid)','public.rpc_support_inbox_v5(uuid,text,text)',\n 'public.rpc_support_detail_v5(uuid,uuid,text)','public.rpc_support_mark_read_v5(uuid,uuid,text)',\n 'public.rpc_support_find_context_v5(uuid,text,uuid)','public.rpc_support_media_service_v5(uuid,uuid,uuid,uuid)',\n 'public.rpc_closure_api_guard()',\n 'private.agreement_photo_key_v5(uuid)','private.agreement_photo_context_v5(uuid,uuid,integer,boolean)',\n 'private.agreement_photo_document_v5(private.agreement_photo_uploads_v5)','private.agreement_photo_transfer_v5(private.agreement_photo_uploads_v5)',\n 'private.agreement_photo_message_guard_v5()','private.agreement_photo_link_guard_v5()','private.agreement_photo_asset_guard_v5()','private.agreement_photo_storage_guard_v5()',\n 'public.rpc_agreement_photo_upload_service_v5(uuid,uuid,text,uuid,integer,uuid,jsonb)','public.rpc_agreement_photo_read_service_v5(uuid,uuid,uuid,uuid,uuid)',\n 'public.rpc_send_agreement_photo_message_v5(uuid,uuid,integer,text,text,uuid[])','public.rpc_read_agreement_photo_messages_v5(uuid,uuid,uuid[])','private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb)','private.closure_redaction_relations_v5()','private.closure_erasure_media_protected_v5(uuid,text)','private.closure_erasure_agreement_protected_v5(uuid)','private.closure_erasure_scope_author_v5(uuid,integer)','private.closure_erasure_exceptions_v5(uuid)','private.closure_redaction_scope_v5(text)','private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)','private.closure_erasure_lock_v5(uuid)','private.closure_erasure_hard_blockers_v5(uuid)','private.closure_erasure_binding_v5()','private.closure_erasure_assert_current_v5(private.closure_executions_v5)','private.closure_erasure_progress_v5(private.closure_executions_v5)','private.closure_erasure_refresh_steps_v5(private.closure_executions_v5)','private.closure_auth_dispatched_v5(uuid)','private.closure_support_source_fence_v5(uuid,text,uuid)','public.rpc_redact_account_closure_step_service(uuid,uuid,uuid,uuid)','public.rpc_review_account_closure_execution(uuid)','public.rpc_start_account_closure_execution(uuid,uuid,integer,uuid,text)','public.rpc_claim_account_closure_action_service(uuid,uuid)','public.rpc_dispatch_account_closure_action_service(uuid,uuid,uuid,uuid)','public.rpc_complete_account_closure_action_service(uuid,uuid,uuid,uuid,text)','public.rpc_finalize_account_closure_service(uuid,uuid)','public.rpc_read_account_closure_execution(uuid,uuid)','public.rpc_list_account_closure_work_service(integer)','public.handle_uskoci_auth_user_updated()','private.closure_assert_current_v5(private.closure_executions_v5)',\n 'public.rpc_agreement_invalidation_visible_v1(uuid)','private.agreement_message_invalidate_v1()',\n 'private.agreement_invalidation_cleanup_v1()','private.agreement_invalidation_surface_v1()','private.agreement_voice_key_v1(uuid)','private.agreement_voice_context_v1(uuid,uuid,integer,boolean)','private.agreement_voice_document_v1(private.agreement_voice_uploads_v1)','private.agreement_voice_transfer_v1(private.agreement_voice_uploads_v1)','private.agreement_voice_message_guard_v1()','private.agreement_voice_link_guard_v1()','private.agreement_voice_asset_guard_v1()','private.agreement_voice_storage_guard_v1()','public.rpc_agreement_voice_upload_service_v1(uuid,uuid,text,uuid,integer,uuid,jsonb)','public.rpc_agreement_voice_read_service_v1(uuid,uuid,uuid,uuid,uuid)','public.rpc_send_agreement_voice_message_v1(uuid,uuid,integer,text,uuid)','private.agreement_voice_surface_v1()','private.ai_location_context_valid(jsonb)','private.ai_location_request_hash(uuid,text,jsonb)','private.ai_location_review_matches(uuid,jsonb)','private.ai_location_turn_document(uuid,uuid,uuid)','private.ai_claim_need_turn_context_v1(uuid,uuid,uuid,text,jsonb)','public.rpc_ai_claim_need_location_turn_v1_service(uuid,uuid,uuid,text,jsonb)','public.rpc_ai_complete_need_location_turn_v1_service(uuid,uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)','public.rpc_ai_read_need_location_turn_v1(uuid,uuid)','public.rpc_ai_read_need_location_turn_v1_service(uuid,uuid,uuid)','public.rpc_ai_claim_need_turn_v2_service(uuid,uuid,uuid,text)','private.ai_need_turn_status(uuid,uuid,uuid)','public.rpc_claim_push_transport(text)','public.rpc_begin_push_send(uuid,uuid)','public.rpc_complete_push_transport(uuid,uuid,text,text)','private.push_session_valid(uuid,uuid)','private.push_suppression(public.notification_deliveries)','private.admit_push_single_target_v1(uuid,uuid,uuid,text,uuid,uuid,uuid,bigint,uuid,timestamptz,timestamptz)','public.rpc_claim_push_single_target(uuid)','public.rpc_claim_push_single_target_receipt(uuid)','private.revoke_push_single_target_v1(uuid)','private.closure_taxonomy_inventory_v1()','private.closure_taxonomy_semantic_keys_v1()','private.closure_taxonomy_reset_sections_v1()','private.closure_taxonomy_scope_v1(text)','private.closure_taxonomy_owner_immutable_v1()','private.closure_taxonomy_held_v1(text,jsonb,uuid)','private.closure_taxonomy_patch_v1(text,jsonb,uuid,uuid)','private.closure_taxonomy_try_owner_v1(uuid)','private.closure_taxonomy_profile_erasing_v1(uuid)','private.closure_taxonomy_snapshot_guard_v1()','private.closure_taxonomy_semantic_v1(jsonb)','private.closure_taxonomy_project_v1(text,jsonb,uuid)','private.closure_taxonomy_export_rows_v1(uuid)','private.closure_taxonomy_export_catalog_v1()','public.rpc_taxonomy_reconcile_reviewed_outbox_service(integer)','public.rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid)','public.rpc_taxonomy_approve_admission(uuid,text,text)','private.data_export_policy_binding()','public.rpc_taxonomy_capture_gemini_turn_hints_service(uuid,uuid,uuid,uuid,uuid,text,bigint,jsonb)','private.taxonomy_reconcile_pending_reviews_v1(integer)','private.taxonomy_signed_binding_requeue_v1()','private.data_export_dataset_catalog()','public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)','public.rpc_taxonomy_assign_worker_categories_service(uuid,uuid[])','private.taxonomy_pending_saved_event_v1()','public.rpc_taxonomy_bind_reviewed_need_service(uuid,uuid,uuid,uuid,integer)','private.data_export_projection_sha_v5()','public.rpc_set_worker_execution_modes(uuid,text[])','public.rpc_taxonomy_claim_reviewed_batches_service(integer)','private.sync_worker_skills_to_taxonomy_capabilities(uuid,text[])','public.rpc_taxonomy_prepare_admission_service(uuid,uuid,text,uuid,jsonb)','public.rpc_taxonomy_bind_ready_reviews_service(integer)','private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)','public.rpc_taxonomy_finalize_reviewed_batch_service(uuid,uuid,text)','public.rpc_taxonomy_commit_admission_service(uuid)','private.taxonomy_handoff_fit_v1(uuid,uuid)','private.taxonomy_handoff_display_v1(jsonb)','private.taxonomy_handoff_compatible_v1(jsonb,jsonb)','private.taxonomy_preserve_review_handoff_v1(jsonb,uuid,uuid)','private.taxonomy_handoff_valid_v1(jsonb)']) signature\n join pg_proc p on p.oid=to_regprocedure(signature) having count(*)=148\n",
+      "owner": "16388",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "result": "25",
+      "strict": false,
+      "definer": true,
+      "body_md5": "41e54d223122b58decd25cf66191470a",
+      "language": "14",
+      "signature": "private.closure_source_digest_v5()",
+      "volatility": "s",
+      "definition_md5": "3754d150d83b916422e184a50e5bd126"
+    }
+  ],
+  "capture": {
+    "actual": {
+      "source": "0c03679b287ed6d726b0b6845bedf54c1463d3fe0efcaf9cd8a947997e160b56",
+      "erasure": "5e121db0bd932accd4b007f80098db67ebc97e99f29e0b76f06378de0f9c4d96"
+    },
+    "read_only": "on",
+    "captured_at": "2026-11-02T08:45:08.58901+00:00",
+    "project_ref": "leqcwgzvjsxugfgzdmth",
+    "source_input": "df82c2cb19edfa86ee092fb6fdc97528b82a2482f05ae64c45939268346af84c:5e121db0bd932accd4b007f80098db67ebc97e99f29e0b76f06378de0f9c4d96:fef533a4f1d69f123b842e5673bc9d928d9ffe055d0b4b8d4e1e1ae43ce028c4:f44e5c0ee1b90929636a55ac813b2b6bfd4768f0e857d0bae13db24172a4373a:private.admit_push_single_target_v1(uuid,uuid,uuid,text,uuid,uuid,uuid,bigint,uuid,timestamptz,timestamptz):5c3ff77eae79eeaf043298fb91490577\nprivate.agreement_invalidation_cleanup_v1():763c4e3a9499053b3884dec5723feed9\nprivate.agreement_invalidation_surface_v1():a362fcc11419703eb07f07b4f82eebdb\nprivate.agreement_message_invalidate_v1():783b0c5322dfb1c1cbc0eec5df41c38f\nprivate.agreement_photo_asset_guard_v5():1bb97cc9bd31bcfa294eec0e45c5ad8b\nprivate.agreement_photo_context_v5(uuid,uuid,integer,boolean):ec19c697db73b6339813be3e8dceab6b\nprivate.agreement_photo_document_v5(private.agreement_photo_uploads_v5):396300dade527c8dde7a40c8843329fa\nprivate.agreement_photo_key_v5(uuid):79a7636a596c7251cf650a8d8520d0a6\nprivate.agreement_photo_link_guard_v5():c1024cfc1a2e344772e66eee57a0d7a9\nprivate.agreement_photo_message_guard_v5():c9b405c188294f0ac058bec193467091\nprivate.agreement_photo_storage_guard_v5():e37d214696d92e5f71294619fbaa562f\nprivate.agreement_photo_transfer_v5(private.agreement_photo_uploads_v5):7539982af9a8ba2e02489e1b98a4fe26\nprivate.agreement_voice_asset_guard_v1():7dac0b4c2cad1da11dcd30e1ea35509a\nprivate.agreement_voice_context_v1(uuid,uuid,integer,boolean):db79bbcb1557e698f96e1973f5f1114d\nprivate.agreement_voice_document_v1(private.agreement_voice_uploads_v1):e3d28dc212ec03b7686809307125a2b0\nprivate.agreement_voice_key_v1(uuid):7fc22c4fa37e737d09917f03c497b84c\nprivate.agreement_voice_link_guard_v1():70b7d13295f1a9407106d32a7c08fb15\nprivate.agreement_voice_message_guard_v1():f7945764ecc4176f519c6adc051036a4\nprivate.agreement_voice_storage_guard_v1():f3baf1ab27b347216cdede156ca3f42a\nprivate.agreement_voice_surface_v1():b697d12234198c95815257d7ce73f147\nprivate.agreement_voice_transfer_v1(private.agreement_voice_uploads_v1):90adbecaf2f168e5aa2813053ef4ee71\nprivate.ai_claim_need_turn_context_v1(uuid,uuid,uuid,text,jsonb):114bd0b4b9d6e60a0abb0d0d64e63c69\nprivate.ai_location_context_valid(jsonb):7eed48b787cfcc0dc0a832b824482de4\nprivate.ai_location_request_hash(uuid,text,jsonb):82f3e5fb66887cb90d67abcc042eac22\nprivate.ai_location_review_matches(uuid,jsonb):68bc25e798fc360c2eae0f1fd250c96c\nprivate.ai_location_turn_document(uuid,uuid,uuid):b6c73a1b905df8925ff476c26a163847\nprivate.ai_need_turn_status(uuid,uuid,uuid):42549927e66edf70cf67f5d82cef4530\nprivate.capture_agreement_media_v5(uuid,integer,boolean):5cc5405c2d0ac0504fbed19241c12273\nprivate.capture_case_media_v5(text,uuid,bigint,uuid,uuid,uuid,uuid):5561df0a54794b9d58244c2da15d6314\nprivate.closure_assert_current_v5(private.closure_executions_v5):3833e3df6eb404a5287d8a2d960dec1c\nprivate.closure_auth_dispatched_v5(uuid):9d3a38b3ec64fe4513bdc310e786b3ab\nprivate.closure_blockers_v5(uuid):cd0c2921bfd52ba2e96769b2a409b9db\nprivate.closure_erasure_agreement_protected_v5(uuid):ce750fc1bee5efa5888d511ddddbb28d\nprivate.closure_erasure_assert_current_v5(private.closure_executions_v5):be536bbccba9600ecc5c34f4a4d747de\nprivate.closure_erasure_binding_v5():d6d7e7f6f108fff45a4df5126949fa04\nprivate.closure_erasure_exceptions_v5(uuid):727910cbb39ab9413e12d99cf39c5116\nprivate.closure_erasure_hard_blockers_v5(uuid):f88717dbf53fd88a5b9d13b5b19f47d2\nprivate.closure_erasure_lock_v5(uuid):c00e30d3cbb284a2d3b1c7311185bb49\nprivate.closure_erasure_media_protected_v5(uuid,text):cd5202d783e16afc460cea8815a107fb\nprivate.closure_erasure_progress_v5(private.closure_executions_v5):245db717b1e8ce88339df354fe7afe45\nprivate.closure_erasure_refresh_steps_v5(private.closure_executions_v5):f228322985e8ae90bce17880d1ffd9c4\nprivate.closure_erasure_scope_author_v5(uuid,integer):429195be9326b701c6fee31955cd6766\nprivate.closure_redaction_allowed_v5(oid,text,jsonb,jsonb):7fabcc71502e065e638364fc3d58b761\nprivate.closure_redaction_patch_v5(text,jsonb,uuid,uuid):55ba7bf41ce39d9c914929270b916570\nprivate.closure_redaction_relations_v5():102e417ab6d52ab0eec421a8bda5c0c4\nprivate.closure_redaction_scope_v5(text):81dbe706544b14990da7fe2bebb6bbb2\nprivate.closure_support_source_fence_v5(uuid,text,uuid):3005d3bd63e98c24578cb4ecd26c8da0\nprivate.closure_taxonomy_export_catalog_v1():6753530b240ef747d5a18f9e74ce6fb0\nprivate.closure_taxonomy_export_rows_v1(uuid):2845351ac34bceeb346257dbc37a686c\nprivate.closure_taxonomy_held_v1(text,jsonb,uuid):6d9000e634489b43342297d73f6e8809\nprivate.closure_taxonomy_inventory_v1():3bf217135064c6e8c45275c4442355cd\nprivate.closure_taxonomy_owner_immutable_v1():2d19b7da71590595e0f939b25ba54b24\nprivate.closure_taxonomy_patch_v1(text,jsonb,uuid,uuid):5c88c60b705d2d99c61da935536ec137\nprivate.closure_taxonomy_profile_erasing_v1(uuid):83c2d4b7ea5302151a8b99cdc6446631\nprivate.closure_taxonomy_project_v1(text,jsonb,uuid):bf004f543c92940845b570d8860288cc\nprivate.closure_taxonomy_reset_sections_v1():dd0577a0f6a347da8f2c14cb6b912b3b\nprivate.closure_taxonomy_scope_v1(text):48a8c7d266e86586a457aa2d2fa51e45\nprivate.closure_taxonomy_semantic_keys_v1():079dfd89aec66efbf2513cf8cad4eda9\nprivate.closure_taxonomy_semantic_v1(jsonb):1d4c6fd6725c00cb2c65bccc091cecc9\nprivate.closure_taxonomy_snapshot_guard_v1():a69c3bf40e9fda37969ab522e0cbb92d\nprivate.closure_taxonomy_try_owner_v1(uuid):03122e7d8c68cce7cda9512a32c636cd\nprivate.data_export_dataset_catalog():e08e712c811ab2a093e48ca75a436c25\nprivate.data_export_policy_binding():21ae94d4425396da941359cd834913fb\nprivate.data_export_projection_sha_v5():ffd64be69db4663dcb3e2d07713176cd\nprivate.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone):c3bde16e2175c7ec33c1a171e0ad04a3\nprivate.media_evidence_key_v5(uuid):e5cba7665e684dab03a61cc6640e158c\nprivate.media_owner_protected_v5(uuid):116d1c6b2f1b965825afbebcbb2bbd89\nprivate.push_session_valid(uuid,uuid):3454eb7040f3dab3cb0c35b512b46859\nprivate.push_suppression(public.notification_deliveries):0e0277608bf40f3cccc3575a77b1c23d\nprivate.resolve_media_snapshot_v5(uuid,jsonb):1c9daa4e56d29403401079d6844dc2e4\nprivate.revoke_push_single_target_v1(uuid):97c59ee2c8b31173b7862c1620b4e523\nprivate.support_allowed_actions_v5(private.support_cases_v5,uuid,integer):5f3505bd6d1faed81ba9ca1e10c2673e\nprivate.support_auth_v5(uuid):66773994698c60b9fab919f2a9fda93a\nprivate.support_capture_media_v5(uuid,integer,jsonb):a77f48a8858b74358fb7d34fd044b0bf\nprivate.support_case_guard_v5():7ca15b3ed04bec9d9ee82feb65ec9f12\nprivate.support_command_document_v5(uuid,uuid):404d919547523bda6d2e1296751d32fe\nprivate.support_command_key_v5(uuid,uuid):371c8681b7fd1ffab124e14314f16a50\nprivate.support_decision_document_v5(private.support_decisions_v5):db2a7bf6582d715f44bea743f46e49a1\nprivate.support_event_document_v5(private.support_events_v5):612eb7d2d3488f6b0053d1b0075f2775\nprivate.support_immutable_v5():1b3f45b7f1fcc1bcde10717a1476cb7a\nprivate.support_operator_key_v5():8b66568a1ef0a6fc6da2ba0d42c3109e\nprivate.support_operator_revision_v5(uuid):7c39d64ddd9bad9abc9ae3ef46f27fb6\nprivate.support_reference_v5(uuid,jsonb):94ad410f355654cffccd9de1084571bb\nprivate.support_safe_exit_v5(uuid,uuid):de34282a8a9dfe3974248fa03e691493\nprivate.support_safety_capture_v5():4d241eccd22b648ad9d5c14f0b1cc903\nprivate.support_safety_case_v5(private.safety_reports,boolean):dfa1e697149fa569ffb6b621dffeb21f\nprivate.support_safety_closure_v5():f4dad2a2bab12c98c450555108306b8f\nprivate.sync_worker_skills_to_taxonomy_capabilities(uuid,text[]):8bfb57431cd6a6fcff2e1e80fe8b5fbc\nprivate.taxonomy_handoff_compatible_v1(jsonb,jsonb):590328ff1684c32d7d7948c122d47728\nprivate.taxonomy_handoff_display_v1(jsonb):0ec86390e9f1682f309ca64227ab445e\nprivate.taxonomy_handoff_fit_v1(uuid,uuid):785210ec581d007ff17e7cba25e1a6b0\nprivate.taxonomy_handoff_valid_v1(jsonb):c045ee696fee6b538476b32c5ec2426d\nprivate.taxonomy_pending_saved_event_v1():f6a266fa6552838bb63dcb0a87f849b2\nprivate.taxonomy_preserve_review_handoff_v1(jsonb,uuid,uuid):4da6744c56947085f7122b69a1e45cf8\nprivate.taxonomy_reconcile_pending_reviews_v1(integer):7b57e773d59a41634c41911316d7b77b\nprivate.taxonomy_signed_binding_requeue_v1():f540b18ff827bd6c5e4d277ad873bcea\npublic.handle_uskoci_auth_user_updated():a9f24d642c50909b5addaa54e0b5976c\npublic.rpc_agreement_invalidation_visible_v1(uuid):a6fa339bf03f8c8be69d9562d6c467c8\npublic.rpc_agreement_photo_read_service_v5(uuid,uuid,uuid,uuid,uuid):d3330bb01b7e78a982027186a2e8022c\npublic.rpc_agreement_photo_upload_service_v5(uuid,uuid,text,uuid,integer,uuid,jsonb):0006bc08d4733ff6865a7f5c7d341325\npublic.rpc_agreement_voice_read_service_v1(uuid,uuid,uuid,uuid,uuid):5d82c4a9683513a43f4edc9d8bd08e54\npublic.rpc_agreement_voice_upload_service_v1(uuid,uuid,text,uuid,integer,uuid,jsonb):aebb8132f2500415b2daded197e57975\npublic.rpc_ai_claim_need_location_turn_v1_service(uuid,uuid,uuid,text,jsonb):faefe830a997e2f1092b1657409129ee\npublic.rpc_ai_claim_need_turn_v2_service(uuid,uuid,uuid,text):0b3c7f1d276a3b4349aeebee4f111af7\npublic.rpc_ai_complete_need_location_turn_v1_service(uuid,uuid,uuid,uuid,text,text,text,jsonb,jsonb,text):d0e3deeb6ef0bbfdc59945f294056265\npublic.rpc_ai_read_need_location_turn_v1_service(uuid,uuid,uuid):20a75f2a6727573f7480320e24c7ce53\npublic.rpc_ai_read_need_location_turn_v1(uuid,uuid):48d137c33f8ffc646e18f44ca387e594\npublic.rpc_begin_push_send(uuid,uuid):fc2dcc23f986d667ef61159ebc435228\npublic.rpc_claim_account_closure_action_service(uuid,uuid):eedef6f857cc753d8597dc6d2d263956\npublic.rpc_claim_push_single_target_receipt(uuid):b8c30ebf3ced3a073189f0c0865217dd\npublic.rpc_claim_push_single_target(uuid):922d9c6f68bac7cf615e574ca512c70c\npublic.rpc_claim_push_transport(text):f70229927ca68419e5ca735a5b64b2e9\npublic.rpc_closure_api_guard():09d52badff732c2b22ba7b69adfa4d66\npublic.rpc_complete_account_closure_action_service(uuid,uuid,uuid,uuid,text):7fe61cf236d14948f6449470a669dcd9\npublic.rpc_complete_push_transport(uuid,uuid,text,text):d87908db1908b8c88fe66228c5b07f9f\npublic.rpc_dispatch_account_closure_action_service(uuid,uuid,uuid,uuid):f35b17a8264c6b314f87ce058c968024\npublic.rpc_finalize_account_closure_service(uuid,uuid):a24316685bb99491344cac3de007a757\npublic.rpc_list_account_closure_work_service(integer):602aab9015452f179596eec9ca59738a\npublic.rpc_read_account_closure_execution(uuid,uuid):258d66dbc74d02a169d41f0067a6d97f\npublic.rpc_read_agreement_photo_messages_v5(uuid,uuid,uuid[]):9c5a0868e9507b23b600863f4508a5a5\npublic.rpc_redact_account_closure_step_service(uuid,uuid,uuid,uuid):0fd89c6c870f3496d485f97d8016ba7c\npublic.rpc_review_account_closure_execution(uuid):5c2e414313c5a2827421ac950ebf27bf\npublic.rpc_send_agreement_photo_message_v5(uuid,uuid,integer,text,text,uuid[]):521afb3d35c026c7d2a7e21791f9f3ec\npublic.rpc_send_agreement_voice_message_v1(uuid,uuid,integer,text,uuid):2cb1a99fd913115235a5762bf068f52e\npublic.rpc_set_worker_execution_modes(uuid,text[]):e4b1896c45aeed5c76ce98eac749fa43\npublic.rpc_start_account_closure_execution(uuid,uuid,integer,uuid,text):3fc04b344892a252956219ce85f4de34\npublic.rpc_support_cancel_command_v5(uuid,uuid):a54bd31ad7438a24f06eb56032ed465c\npublic.rpc_support_capabilities_v5(uuid):6ad657ea2bea982105bf6befaa548df7\npublic.rpc_support_detail_v5(uuid,uuid,text):4c3a90433d9bd67f23016524f53bc4b8\npublic.rpc_support_find_context_v5(uuid,text,uuid):66b392dcf118e3109e3a12ebd909c159\npublic.rpc_support_inbox_v5(uuid,text,text):688501eeadefdf498c60dff16a3d25a3\npublic.rpc_support_mark_read_v5(uuid,uuid,text):53b4c26916b2aba7a8d6e4f44f8dfba7\npublic.rpc_support_media_service_v5(uuid,uuid,uuid,uuid):c645c7760aa256d70c91a762dc6fd061\npublic.rpc_support_read_command_v5(uuid,uuid):684e314bebe905aee2595a5e8256e1d6\npublic.rpc_support_set_operator_service_v5(uuid,boolean,integer,uuid):cc04ef5abcafb43498cbef8de0d1176b\npublic.rpc_support_submit_v5(uuid,uuid,text,uuid,integer,text):c30469f1c599e23eaa56163dc1b5b362\npublic.rpc_taxonomy_approve_admission(uuid,text,text):98916c75b4b4aa7e3ba711472126263f\npublic.rpc_taxonomy_assign_worker_categories_service(uuid,uuid[]):59f2d25b4a1b3a8051d7ac90ab956544\npublic.rpc_taxonomy_bind_ready_reviews_service(integer):af2a6941abc507f7ea39adb2883c007d\npublic.rpc_taxonomy_bind_reviewed_need_service(uuid,uuid,uuid,uuid,integer):fa0873f285473eb513bdae1302157569\npublic.rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid):a209973be36f4fe57e8963eefdf7bceb\npublic.rpc_taxonomy_capture_gemini_turn_hints_service(uuid,uuid,uuid,uuid,uuid,text,bigint,jsonb):2e8a861398c36a4efc23fa961b45897b\npublic.rpc_taxonomy_claim_reviewed_batches_service(integer):ad4197f0599bd900f0f77245ec6e8c29\npublic.rpc_taxonomy_commit_admission_service(uuid):e109f516f90fa93b2ef3d10de7c85a51\npublic.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb):757a754bd2310d07eb0587e1f8279b2b\npublic.rpc_taxonomy_finalize_reviewed_batch_service(uuid,uuid,text):af9cd22b779037a8c9f7fad5c8543cfe\npublic.rpc_taxonomy_prepare_admission_service(uuid,uuid,text,uuid,jsonb):8fb67af44c4de3bc93cf2144fd6629c6\npublic.rpc_taxonomy_reconcile_reviewed_outbox_service(integer):41747bdfdba0af1d941bf4fb91f1a887",
+    "erasure_input": "{\"tables\": [[\"private.account_block_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.account_blocks\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.account_closure_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.account_closure_requests\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.account_lineage_events_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.account_lineage_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.agreement_location_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.agreement_location_points\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.agreement_media_snapshots_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.agreement_photo_uploads_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.agreement_review_comments_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.agreement_reviews\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.agreement_voice_uploads_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.ai_need_open_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.ai_need_turn_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.ai_task_review_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.ai_task_reviews\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.ai_test_accounts_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.ai_test_budget_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.ai_test_reservations_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.ai_test_usage_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.classification_turn_hints\", \"16388\", \"{postgres=arwdDxtm/postgres}\", false, false], [\"private.closure_actions_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.closure_dataset_catalog_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.closure_erasure_source_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.closure_executions_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.closure_redaction_certificate_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.closure_redaction_steps_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.closure_scope_sources_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.closure_source_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.closure_start_commands_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.connection_activations\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.connection_policy_versions\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.data_export_artifacts\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.dev_phase1_20261014_catalog_snapshot\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.dev_phase1_20261014_dispatch_snapshot\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.dev_phase1_20261014_needs_snapshot\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.dev_phase1_20261014_opportunity_snapshot\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.dev_phase1_20261014_worker_capabilities_snapshot\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.dev_test101_owner_profile_backup_20261014\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.dev_test101_owner_worker_profile_backup\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.dev_worker_profile_reset_snapshots_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", false, false], [\"private.dispatch_schedule\", \"16388\", null, true, false], [\"private.gemini_debug_log\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\", false, false], [\"private.group_conversations_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.group_memberships_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.group_message_visibility_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.group_messages_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.legal_document_versions\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.location_market_configs\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.marketplace_audit_log\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.marketplace_config\", \"16388\", null, true, false], [\"private.media_evidence_gaps_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.media_evidence_refs_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.need_draft_save_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.need_edit_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.need_fact_registry\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.need_publication_decisions\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.need_publish_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.need_revision_events\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.owned_media_assets\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.preselection_qa_answer_versions\", \"16388\", \"{postgres=arwdDxtm/postgres}\", false, false], [\"private.preselection_qa_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", false, false], [\"private.preselection_qa_materiality_decisions\", \"16388\", \"{postgres=arwdDxtm/postgres}\", false, false], [\"private.preselection_qa_policy_decisions\", \"16388\", \"{postgres=arwdDxtm/postgres}\", false, false], [\"private.preselection_qa_questions\", \"16388\", \"{postgres=arwdDxtm/postgres}\", false, false], [\"private.processor_map_entries\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.processor_map_sets\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.processor_provider_inventory\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.publication_policy_bundles\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.publication_policy_rule_refs\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.push_runtime_readiness\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.qa_ai_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.remaining_search_close_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.requester_identity_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.response_application_snapshots\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.response_revision_resolution_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.response_submit_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.response_withdraw_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.retention_data_classes\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.retention_holds\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.retention_jobs\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.retention_policy_rules\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.retention_policy_sets\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.retention_scan_cursors\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.safety_reports\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.selection_commands\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.support_appeals_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.support_cases_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.support_commands_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.support_decisions_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.support_events_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.support_evidence_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.support_grant_commands_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.support_operator_audit_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.support_operator_grants_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.support_read_markers_v5\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.taxonomy_confirmed_worker_modes_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.taxonomy_match_scope_control_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.work_taxonomy_admissions_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", false, false], [\"private.work_taxonomy_aliases\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_audit\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_binding_control_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.work_taxonomy_categories\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_category_modes\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_control\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_gemini_turn_hints_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.work_taxonomy_legacy_kind_map\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_need_bindings_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.work_taxonomy_need_skills\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_need_snapshots\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_pending_control_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.work_taxonomy_pending_reviews_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.work_taxonomy_related_acceptances\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_relations\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_review_batches_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", false, false], [\"private.work_taxonomy_review_outbox_control_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", false, false], [\"private.work_taxonomy_review_outbox_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", false, false], [\"private.work_taxonomy_risk_actions\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_risk_rules\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_sentence_prefixes\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_service_meanings\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_service_scopes\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_service_verbs\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_standard_coverage\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.work_taxonomy_worker_bindings_v1\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.work_taxonomy_worker_capabilities\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=r/postgres}\", true, false], [\"private.worker_ai_reviews\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.worker_ai_saves\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.worker_ai_sessions\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.worker_ai_turns\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"private.worker_calendar_events\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.worker_calendar_serialization\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, true], [\"private.worker_execution_mode_choices\", \"16388\", \"{postgres=arwdDxtm/postgres}\", true, false], [\"public.access_grants\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, false], [\"public.account_legal_acceptance_events\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, true], [\"public.agreement_change_proposals\", \"16388\", \"{postgres=arwdDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.agreement_execution\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.agreement_invalidations_v1\", \"16388\", \"{postgres=arwdDxtm/postgres,authenticated=r/postgres,service_role=arwdDxtm/postgres}\", true, true], [\"public.agreement_messages\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, false], [\"public.agreement_versions\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.agreements\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.ai_action_proposals\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, false], [\"public.ai_conversations\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, false], [\"public.ai_messages\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, false], [\"public.ai_structured_facts\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.app_accounts\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.app_profiles\", \"16388\", \"{postgres=arwdDxtm/postgres,authenticated=arwDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.data_export_requests\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, true], [\"public.dispatch_rounds\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.gemini_debug_log\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.marketplace_response_versions\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=rDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.marketplace_responses\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=rDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.need_geography\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, false], [\"public.need_requirement_details\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, false], [\"public.need_selections\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.need_sensitive\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.needs\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=Dxtm/postgres,authenticated=arwDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.notification_deliveries\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, false], [\"public.notification_preferences\", \"16388\", \"{postgres=arwdDxtm/postgres,authenticated=r/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.notification_push_attempts\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, false], [\"public.notification_push_devices\", \"16388\", \"{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}\", true, false], [\"public.opportunity_deliveries\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.profile_availability_rules\", \"16388\", \"{postgres=arwdDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.profile_availability_windows\", \"16388\", \"{postgres=arwdDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.user_activity_events\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=rDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false], [\"public.worker_match_preferences\", \"16388\", \"{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}\", true, false]], \"functions\": [{\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"b3b19268fe09f6859786a1b21b3f1068\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.account_lineage_events_append_only()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 2950 2950 25 2950 2950 2950 20 2950 1184 1184\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"5c3ff77eae79eeaf043298fb91490577\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.admit_push_single_target_v1(uuid,uuid,uuid,text,uuid,uuid,uuid,bigint,uuid,timestamp with time zone,timestamp with time zone)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"645eb3b7dbcc4ec37df8e5298a382d5f\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.after_need_revision()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"783b0c5322dfb1c1cbc0eec5df41c38f\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.agreement_message_invalidate_v1()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"1bb97cc9bd31bcfa294eec0e45c5ad8b\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.agreement_photo_asset_guard_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 2950 23 16\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"17800\", \"source\": \"ec19c697db73b6339813be3e8dceab6b\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.agreement_photo_context_v5(uuid,uuid,integer,boolean)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"23893\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"396300dade527c8dde7a40c8843329fa\", \"strict\": false, \"definer\": false, \"language\": \"14\", \"signature\": \"private.agreement_photo_document_v5(private.agreement_photo_uploads_v5)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"20\", \"source\": \"79a7636a596c7251cf650a8d8520d0a6\", \"strict\": true, \"definer\": false, \"language\": \"14\", \"signature\": \"private.agreement_photo_key_v5(uuid)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"c1024cfc1a2e344772e66eee57a0d7a9\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.agreement_photo_link_guard_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"c9b405c188294f0ac058bec193467091\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.agreement_photo_message_guard_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"e37d214696d92e5f71294619fbaa562f\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.agreement_photo_storage_guard_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"23893\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"7539982af9a8ba2e02489e1b98a4fe26\", \"strict\": false, \"definer\": false, \"language\": \"14\", \"signature\": \"private.agreement_photo_transfer_v5(private.agreement_photo_uploads_v5)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"7dac0b4c2cad1da11dcd30e1ea35509a\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.agreement_voice_asset_guard_v1()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 2950 23 16\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"17800\", \"source\": \"db79bbcb1557e698f96e1973f5f1114d\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.agreement_voice_context_v1(uuid,uuid,integer,boolean)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"26285\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"e3d28dc212ec03b7686809307125a2b0\", \"strict\": false, \"definer\": false, \"language\": \"14\", \"signature\": \"private.agreement_voice_document_v1(private.agreement_voice_uploads_v1)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"20\", \"source\": \"7fc22c4fa37e737d09917f03c497b84c\", \"strict\": true, \"definer\": false, \"language\": \"14\", \"signature\": \"private.agreement_voice_key_v1(uuid)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"70b7d13295f1a9407106d32a7c08fb15\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.agreement_voice_link_guard_v1()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"f7945764ecc4176f519c6adc051036a4\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.agreement_voice_message_guard_v1()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"f3baf1ab27b347216cdede156ca3f42a\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.agreement_voice_storage_guard_v1()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"25\", \"source\": \"b697d12234198c95815257d7ce73f147\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.agreement_voice_surface_v1()\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"26285\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"90adbecaf2f168e5aa2813053ef4ee71\", \"strict\": false, \"definer\": false, \"language\": \"14\", \"signature\": \"private.agreement_voice_transfer_v1(private.agreement_voice_uploads_v1)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 2950 2950 25 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"114bd0b4b9d6e60a0abb0d0d64e63c69\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.ai_claim_need_turn_context_v1(uuid,uuid,uuid,text,jsonb)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"7eed48b787cfcc0dc0a832b824482de4\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.ai_location_context_valid(jsonb)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 25 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"25\", \"source\": \"82f3e5fb66887cb90d67abcc042eac22\", \"strict\": false, \"definer\": false, \"language\": \"14\", \"signature\": \"private.ai_location_request_hash(uuid,text,jsonb)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"68bc25e798fc360c2eae0f1fd250c96c\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.ai_location_review_matches(uuid,jsonb)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"b6c73a1b905df8925ff476c26a163847\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.ai_location_turn_document(uuid,uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"42549927e66edf70cf67f5d82cef4530\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.ai_need_turn_status(uuid,uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"54bfc8e4ce0c8fb732897bff5926eeed\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.ai_task_review_immutable()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"df37b1c474eab0b9d5554883f0141d91\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.capture_agreement_media_trigger_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 23 16\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2278\", \"source\": \"5cc5405c2d0ac0504fbed19241c12273\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.capture_agreement_media_v5(uuid,integer,boolean)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"8fde92ed03a3d5fe670e27ceb3005ccf\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.capture_case_media_trigger_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"25 2950 20 2950 2950 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2278\", \"source\": \"5561df0a54794b9d58244c2da15d6314\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.capture_case_media_v5(text,uuid,bigint,uuid,uuid,uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"e1264ac9ee2a5000018f9a28a771d2c4\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.capture_media_active_hold_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"002e289036ba9e6bce3592c83fb22824\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.check_need_resolved_location_binding()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"23113\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2278\", \"source\": \"3833e3df6eb404a5287d8a2d960dec1c\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_assert_current_v5(private.closure_executions_v5)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"9d3a38b3ec64fe4513bdc310e786b3ab\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.closure_auth_dispatched_v5(uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"1009\", \"source\": \"cd0c2921bfd52ba2e96769b2a409b9db\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_blockers_v5(uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"ce750fc1bee5efa5888d511ddddbb28d\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.closure_erasure_agreement_protected_v5(uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"23113\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2278\", \"source\": \"be536bbccba9600ecc5c34f4a4d747de\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_erasure_assert_current_v5(private.closure_executions_v5)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"d6d7e7f6f108fff45a4df5126949fa04\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_erasure_binding_v5()\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"1009\", \"source\": \"727910cbb39ab9413e12d99cf39c5116\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_erasure_exceptions_v5(uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"1009\", \"source\": \"f88717dbf53fd88a5b9d13b5b19f47d2\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.closure_erasure_hard_blockers_v5(uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2278\", \"source\": \"c00e30d3cbb284a2d3b1c7311185bb49\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_erasure_lock_v5(uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"cd5202d783e16afc460cea8815a107fb\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.closure_erasure_media_protected_v5(uuid,text)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"25\", \"source\": \"e6ec1acf0f08f19847b5e342f82f32b2\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.closure_erasure_program_digest_v5()\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"23113\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"245db717b1e8ce88339df354fe7afe45\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.closure_erasure_progress_v5(private.closure_executions_v5)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"23113\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2278\", \"source\": \"f228322985e8ae90bce17880d1ffd9c4\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_erasure_refresh_steps_v5(private.closure_executions_v5)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 23\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2950\", \"source\": \"429195be9326b701c6fee31955cd6766\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_erasure_scope_author_v5(uuid,integer)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"33649ad64a682f939bad905cf9ff4734\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_guard_delivery()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"f13117fd601dcb82de423b78f25acb4f\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_guard_owned_write()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"26 25 3802 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"7fabcc71502e065e638364fc3d58b761\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"25 3802 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"55ba7bf41ce39d9c914929270b916570\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"1009\", \"source\": \"102e417ab6d52ab0eec421a8bda5c0c4\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.closure_redaction_relations_v5()\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"25\", \"source\": \"81dbe706544b14990da7fe2bebb6bbb2\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_redaction_scope_v5(text)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"25\", \"source\": \"41e54d223122b58decd25cf66191470a\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.closure_source_digest_v5()\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 25 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2278\", \"source\": \"3005d3bd63e98c24578cb4ecd26c8da0\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_support_source_fence_v5(uuid,text,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"6753530b240ef747d5a18f9e74ce6fb0\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.closure_taxonomy_export_catalog_v1()\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2249\", \"source\": \"2845351ac34bceeb346257dbc37a686c\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_taxonomy_export_rows_v1(uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"25 3802 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"6d9000e634489b43342297d73f6e8809\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_taxonomy_held_v1(text,jsonb,uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"3bf217135064c6e8c45275c4442355cd\", \"strict\": false, \"definer\": false, \"language\": \"14\", \"signature\": \"private.closure_taxonomy_inventory_v1()\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"2d19b7da71590595e0f939b25ba54b24\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.closure_taxonomy_owner_immutable_v1()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"25 3802 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"5c88c60b705d2d99c61da935536ec137\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_taxonomy_patch_v1(text,jsonb,uuid,uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"83c2d4b7ea5302151a8b99cdc6446631\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.closure_taxonomy_profile_erasing_v1(uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"25 3802 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"bf004f543c92940845b570d8860288cc\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_taxonomy_project_v1(text,jsonb,uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"dd0577a0f6a347da8f2c14cb6b912b3b\", \"strict\": false, \"definer\": false, \"language\": \"14\", \"signature\": \"private.closure_taxonomy_reset_sections_v1()\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"25\", \"source\": \"48a8c7d266e86586a457aa2d2fa51e45\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_taxonomy_scope_v1(text)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"1009\", \"source\": \"079dfd89aec66efbf2513cf8cad4eda9\", \"strict\": false, \"definer\": false, \"language\": \"14\", \"signature\": \"private.closure_taxonomy_semantic_keys_v1()\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"1d4c6fd6725c00cb2c65bccc091cecc9\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.closure_taxonomy_semantic_v1(jsonb)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"a69c3bf40e9fda37969ab522e0cbb92d\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_taxonomy_snapshot_guard_v1()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"03122e7d8c68cce7cda9512a32c636cd\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.closure_taxonomy_try_owner_v1(uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"e08e712c811ab2a093e48ca75a436c25\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.data_export_dataset_catalog()\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"21ae94d4425396da941359cd834913fb\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.data_export_policy_binding()\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"25\", \"source\": \"ffd64be69db4663dcb3e2d07713176cd\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.data_export_projection_sha_v5()\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 2950 3802 1184\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"25\", \"source\": \"c3bde16e2175c7ec33c1a171e0ad04a3\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"a0f65116a72c779634d9a85baf4c7a23\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.enqueue_on_need_change()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"651e61bebf9af17d737ea0478516524c\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.group_need_changed_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"58c5a40f731b3aef845691668ec1f2d4\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_ai_fact_schema()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"f9972cfc47af0358a9f4f03c2e43fe63\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_ai_fact_write()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"0ec9c38c1bfa92db7ce18a68f86ea1a0\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_ai_proposal_write()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"958d23cea53d319f72ca366a9d8d0ebd\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_availability_timezone()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"9eee75a9a0302d125bf2028dae5e3510\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_closed_remaining_search_delivery()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"cf3da799fac158812bbbc549def026a7\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_closed_remaining_search_response()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"3c07e648ae3aebe3a5bbc4cfd7f365ed\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_media_evidence_asset_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"a88fa97fe58cab5b374d99eb9ee2c9af\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_need_edit_base_marker()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"6c9e46dfbf1f38ebb265fe32521a1ecb\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_need_resolved_location_write()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"314b93f7f89d3d52dbcf17a2a2552502\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_need_write()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"cf05c663227f4f1d51a28f463b895bf7\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.guard_persistent_availability()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"319fef6fe239a21ecf134476ed2b90a4\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_profile_write()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"ce59ad1cdee98518950e289aa5c329a4\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_remaining_search_close_fields()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"c9d7f6593950e858b319f316cdbf6422\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_requester_identity_writer()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"08fb5e837ee4cfe8c1e56fb9589b5dc2\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_resolved_location_fact()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"57c374edac340755d033506c92a5eec1\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_retention_ai_child()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"f378d9640f366416fc277a4753ec5fe4\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_retention_ai_origin()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"5280b99f20c4a7be695d7e16402b3f43\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_review_comment_mutation()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"e6c8ebdbc849e54730cd0c5ca136a977\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_unavailable_identity_requirement_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"f71abd4eb5a5adf015f080d5ecff8b67\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.guard_urgent_need()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"cf2100141a25ab38a0dda85fcb51dc86\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_wmp_write()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"abb19096d5f0f00cd7f1817d3223a5d2\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.guard_worker_equipment_retired_v1()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"a6be4e85f69592615e8c5b8272028d0d\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_worker_fact_authority()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"71ca41ff8d3ae6ae5e6c5a8c149d95ab\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.guard_worker_preference_authority()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"998febc1ba2a93e6737d77ee46ce0d72\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.invalidate_resolved_location_fact()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"20\", \"source\": \"e5cba7665e684dab03a61cc6640e158c\", \"strict\": true, \"definer\": false, \"language\": \"14\", \"signature\": \"private.media_evidence_key_v5(uuid)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"116d1c6b2f1b965825afbebcbb2bbd89\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.media_owner_protected_v5(uuid)\", \"volatility\": \"s\"}, {\"acl\": null, \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"2279\", \"source\": \"3244c0fd784d722ece2e3ace8688bfe7\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.needs_sync_taxonomy_category_trigger_fn()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"f2b3f203b4bdcee5621b1bbf0fcab11b\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.notification_preferences_write_guard()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"5596f35f5e6dffecd09969beebb48924\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.pre_v3_application_event()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"3454eb7040f3dab3cb0c35b512b46859\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.push_session_valid(uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"18181\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"25\", \"source\": \"0e0277608bf40f3cccc3575a77b1c23d\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.push_suppression(public.notification_deliveries)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"b0885f470325a6f9aa36900e75bfe355\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.reject_need_publication_decision_mutation()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"1c9daa4e56d29403401079d6844dc2e4\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.resolve_media_snapshot_v5(uuid,jsonb)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"97c59ee2c8b31173b7862c1620b4e523\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.revoke_push_single_target_v1(uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"650c89ef5bc36fe45d802f5dec1c9dbd\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.safety_guard_delivery()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"85730117267a115e5d5517d463c847e7\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.safety_guard_interaction_write()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"d2ba7342ae061b491b5ec4bb74fb81c4\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.set_updated_at()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"23621 2950 23\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"1009\", \"source\": \"5f3505bd6d1faed81ba9ca1e10c2673e\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.support_allowed_actions_v5(private.support_cases_v5,uuid,integer)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2950\", \"source\": \"66773994698c60b9fab919f2a9fda93a\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.support_auth_v5(uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 23 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2278\", \"source\": \"a77f48a8858b74358fb7d34fd044b0bf\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.support_capture_media_v5(uuid,integer,jsonb)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"7ca15b3ed04bec9d9ee82feb65ec9f12\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.support_case_guard_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"404d919547523bda6d2e1296751d32fe\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.support_command_document_v5(uuid,uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"20\", \"source\": \"371c8681b7fd1ffab124e14314f16a50\", \"strict\": true, \"definer\": false, \"language\": \"14\", \"signature\": \"private.support_command_key_v5(uuid,uuid)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"23684\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"db2a7bf6582d715f44bea743f46e49a1\", \"strict\": false, \"definer\": false, \"language\": \"14\", \"signature\": \"private.support_decision_document_v5(private.support_decisions_v5)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"23659\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"612eb7d2d3488f6b0053d1b0075f2775\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"private.support_event_document_v5(private.support_events_v5)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"1b3f45b7f1fcc1bcde10717a1476cb7a\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.support_immutable_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"20\", \"source\": \"8b66568a1ef0a6fc6da2ba0d42c3109e\", \"strict\": false, \"definer\": false, \"language\": \"14\", \"signature\": \"private.support_operator_key_v5()\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"23\", \"source\": \"7c39d64ddd9bad9abc9ae3ef46f27fb6\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.support_operator_revision_v5(uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"94ad410f355654cffccd9de1084571bb\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.support_reference_v5(uuid,jsonb)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2278\", \"source\": \"de34282a8a9dfe3974248fa03e691493\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.support_safe_exit_v5(uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"4d241eccd22b648ad9d5c14f0b1cc903\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.support_safety_capture_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"22661 16\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2950\", \"source\": \"dfa1e697149fa569ffb6b621dffeb21f\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.support_safety_case_v5(private.safety_reports,boolean)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"f4dad2a2bab12c98c450555108306b8f\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.support_safety_closure_v5()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"2950 1009\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"8bfb57431cd6a6fcff2e1e80fe8b5fbc\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.sync_worker_skills_to_taxonomy_capabilities(uuid,text[])\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"3802 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"590328ff1684c32d7d7948c122d47728\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.taxonomy_handoff_compatible_v1(jsonb,jsonb)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"25\", \"source\": \"0ec86390e9f1682f309ca64227ab445e\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.taxonomy_handoff_display_v1(jsonb)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"785210ec581d007ff17e7cba25e1a6b0\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.taxonomy_handoff_fit_v1(uuid,uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"16\", \"source\": \"c045ee696fee6b538476b32c5ec2426d\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.taxonomy_handoff_valid_v1(jsonb)\", \"volatility\": \"i\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"2279\", \"source\": \"f6a266fa6552838bb63dcb0a87f849b2\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.taxonomy_pending_saved_event_v1()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"3802 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"4da6744c56947085f7122b69a1e45cf8\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"private.taxonomy_preserve_review_handoff_v1(jsonb,uuid,uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"2279\", \"source\": \"82031e4f37a89f124c00e1371dfb80bc\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.taxonomy_queue_review_after_save_v1()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"23\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"23\", \"source\": \"7b57e773d59a41634c41911316d7b77b\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.taxonomy_reconcile_pending_reviews_v1(integer)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"2279\", \"source\": \"f540b18ff827bd6c5e4d277ad873bcea\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.taxonomy_signed_binding_requeue_v1()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"b1845ecf847a377a79558863a8ae2ebf\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.tg_worker_calendar_version_insert()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2279\", \"source\": \"6e8543b28bb11312cb454a946a6c95b3\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.worker_ai_area_source_continuity_v1()\", \"volatility\": \"v\"}, {\"acl\": null, \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"2279\", \"source\": \"f24e6379c27ea76f477a93577e70d0cd\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"private.worker_profile_sync_taxonomy_capabilities_trg_fn()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,supabase_auth_admin=X/postgres,service_role=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=\\\"\\\"\"], \"result\": \"2279\", \"source\": \"a9f24d642c50909b5addaa54e0b5976c\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.handle_uskoci_auth_user_updated()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"d3330bb01b7e78a982027186a2e8022c\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_agreement_photo_read_service_v5(uuid,uuid,uuid,uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 25 2950 23 2950 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"0006bc08d4733ff6865a7f5c7d341325\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_agreement_photo_upload_service_v5(uuid,uuid,text,uuid,integer,uuid,jsonb)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"5d82c4a9683513a43f4edc9d8bd08e54\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_agreement_voice_read_service_v1(uuid,uuid,uuid,uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 25 2950 23 2950 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"aebb8132f2500415b2daded197e57975\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_agreement_voice_upload_service_v1(uuid,uuid,text,uuid,integer,uuid,jsonb)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 25 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"faefe830a997e2f1092b1657409129ee\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_ai_claim_need_location_turn_v1_service(uuid,uuid,uuid,text,jsonb)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"0b3c7f1d276a3b4349aeebee4f111af7\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"public.rpc_ai_claim_need_turn_v2_service(uuid,uuid,uuid,text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 2950 25 25 25 3802 3802 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"d0e3deeb6ef0bbfdc59945f294056265\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_ai_complete_need_location_turn_v1_service(uuid,uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"20a75f2a6727573f7480320e24c7ce53\", \"strict\": false, \"definer\": true, \"language\": \"14\", \"signature\": \"public.rpc_ai_read_need_location_turn_v1_service(uuid,uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"48d137c33f8ffc646e18f44ca387e594\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_ai_read_need_location_turn_v1(uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"fc2dcc23f986d667ef61159ebc435228\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_begin_push_send(uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"eedef6f857cc753d8597dc6d2d263956\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_claim_account_closure_action_service(uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"b8c30ebf3ced3a073189f0c0865217dd\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_claim_push_single_target_receipt(uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"922d9c6f68bac7cf615e574ca512c70c\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_claim_push_single_target(uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"f70229927ca68419e5ca735a5b64b2e9\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_claim_push_transport(text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"2278\", \"source\": \"09d52badff732c2b22ba7b69adfa4d66\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_closure_api_guard()\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 2950 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"7fe61cf236d14948f6449470a669dcd9\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_complete_account_closure_action_service(uuid,uuid,uuid,uuid,text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 25 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"d87908db1908b8c88fe66228c5b07f9f\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_complete_push_transport(uuid,uuid,text,text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"f35b17a8264c6b314f87ce058c968024\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_dispatch_account_closure_action_service(uuid,uuid,uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"a24316685bb99491344cac3de007a757\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_finalize_account_closure_service(uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"23\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"602aab9015452f179596eec9ca59738a\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_list_account_closure_work_service(integer)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"258d66dbc74d02a169d41f0067a6d97f\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_read_account_closure_execution(uuid,uuid)\", \"volatility\": \"s\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2951\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"9c5a0868e9507b23b600863f4508a5a5\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_read_agreement_photo_messages_v5(uuid,uuid,uuid[])\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"0fd89c6c870f3496d485f97d8016ba7c\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_redact_account_closure_step_service(uuid,uuid,uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"5c2e414313c5a2827421ac950ebf27bf\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_review_account_closure_execution(uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 23 25 25 2951\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"521afb3d35c026c7d2a7e21791f9f3ec\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_send_agreement_photo_message_v5(uuid,uuid,integer,text,text,uuid[])\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 23 25 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"2cb1a99fd913115235a5762bf068f52e\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_send_agreement_voice_message_v1(uuid,uuid,integer,text,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 1009\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"e4b1896c45aeed5c76ce98eac749fa43\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_set_worker_execution_modes(uuid,text[])\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 23 2950 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"3fc04b344892a252956219ce85f4de34\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_start_account_closure_execution(uuid,uuid,integer,uuid,text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"a54bd31ad7438a24f06eb56032ed465c\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_support_cancel_command_v5(uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"6ad657ea2bea982105bf6befaa548df7\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_support_capabilities_v5(uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"4c3a90433d9bd67f23016524f53bc4b8\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_support_detail_v5(uuid,uuid,text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 25 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"66b392dcf118e3109e3a12ebd909c159\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_support_find_context_v5(uuid,text,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 25 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"688501eeadefdf498c60dff16a3d25a3\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_support_inbox_v5(uuid,text,text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"53b4c26916b2aba7a8d6e4f44f8dfba7\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_support_mark_read_v5(uuid,uuid,text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"c645c7760aa256d70c91a762dc6fd061\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_support_media_service_v5(uuid,uuid,uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"684e314bebe905aee2595a5e8256e1d6\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_support_read_command_v5(uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 16 23 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"cc04ef5abcafb43498cbef8de0d1176b\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_support_set_operator_service_v5(uuid,boolean,integer,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 25 2950 23 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog\"], \"result\": \"3802\", \"source\": \"c30469f1c599e23eaa56163dc1b5b362\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_support_submit_v5(uuid,uuid,text,uuid,integer,text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}\", \"args\": \"2950 25 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"98916c75b4b4aa7e3ba711472126263f\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_approve_admission(uuid,text,text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2951\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"59f2d25b4a1b3a8051d7ac90ab956544\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_assign_worker_categories_service(uuid,uuid[])\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"23\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"af2a6941abc507f7ea39adb2883c007d\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_bind_ready_reviews_service(integer)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 2950 23\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"fa0873f285473eb513bdae1302157569\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_bind_reviewed_need_service(uuid,uuid,uuid,uuid,integer)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"a209973be36f4fe57e8963eefdf7bceb\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 2950 2950 2950 25 20 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"2e8a861398c36a4efc23fa961b45897b\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_capture_gemini_turn_hints_service(uuid,uuid,uuid,uuid,uuid,text,bigint,jsonb)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"23\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"ad4197f0599bd900f0f77245ec6e8c29\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_claim_reviewed_batches_service(integer)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"e109f516f90fa93b2ef3d10de7c85a51\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_commit_admission_service(uuid)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 25 2950 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"757a754bd2310d07eb0587e1f8279b2b\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 25\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"af9cd22b779037a8c9f7fad5c8543cfe\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_finalize_reviewed_batch_service(uuid,uuid,text)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"2950 2950 25 2950 3802\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"3802\", \"source\": \"8fb67af44c4de3bc93cf2144fd6629c6\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_prepare_admission_service(uuid,uuid,text,uuid,jsonb)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"23\", \"owner\": \"16388\", \"config\": [\"search_path=pg_catalog, private\"], \"result\": \"23\", \"source\": \"41747bdfdba0af1d941bf4fb91f1a887\", \"strict\": false, \"definer\": true, \"language\": \"13619\", \"signature\": \"public.rpc_taxonomy_reconcile_reviewed_outbox_service(integer)\", \"volatility\": \"v\"}, {\"acl\": \"{postgres=X/postgres,service_role=X/postgres}\", \"args\": \"\", \"owner\": \"16388\", \"config\": [\"search_path=\\\"\\\"\"], \"result\": \"2279\", \"source\": \"fbb247b78e5a461958844a3c37feb1e5\", \"strict\": false, \"definer\": false, \"language\": \"13619\", \"signature\": \"public.set_updated_at()\", \"volatility\": \"v\"}], \"triggerState\": [[\"private.account_lineage_events_v5\", \"account_lineage_events_v5_append_only\", \"O\"], [\"private.agreement_location_commands\", \"agreement_location_command_closure\", \"O\"], [\"private.agreement_location_points\", \"agreement_location_point_closure\", \"O\"], [\"private.agreement_media_snapshots_v5\", \"media_snapshot_immutable_v5\", \"O\"], [\"private.agreement_photo_uploads_v5\", \"agreement_photo_asset_guard_v5\", \"O\"], [\"private.agreement_review_comments_v1\", \"agreement_review_comment_closure_guard_v1\", \"O\"], [\"private.agreement_review_comments_v1\", \"agreement_review_comment_mutation_guard_v1\", \"O\"], [\"private.agreement_reviews\", \"pre_v3_closure_review\", \"O\"], [\"private.agreement_reviews\", \"pre_v3_review_immutable\", \"O\"], [\"private.agreement_voice_uploads_v1\", \"agreement_voice_asset_guard_v1\", \"O\"], [\"private.ai_need_turn_commands\", \"pre_v3_closure_ai_command\", \"O\"], [\"private.ai_task_review_commands\", \"taxonomy_enqueue_need_accepted_v1\", \"O\"], [\"private.ai_task_review_commands\", \"taxonomy_pending_need_save_v1\", \"O\"], [\"private.ai_task_reviews\", \"ai_task_review_immutable\", \"O\"], [\"private.connection_activations\", \"connection_activations_immutable_trg\", \"O\"], [\"private.connection_policy_versions\", \"connection_policy_versions_immutable_trg\", \"O\"], [\"private.dev_phase1_20261014_dispatch_snapshot\", \"closure_f01_immutable\", \"O\"], [\"private.dev_phase1_20261014_dispatch_snapshot\", \"closure_f01_owned\", \"O\"], [\"private.dev_phase1_20261014_needs_snapshot\", \"closure_f01_immutable\", \"O\"], [\"private.dev_phase1_20261014_needs_snapshot\", \"closure_f01_owned\", \"O\"], [\"private.dev_phase1_20261014_opportunity_snapshot\", \"closure_f01_immutable\", \"O\"], [\"private.dev_phase1_20261014_opportunity_snapshot\", \"closure_f01_owned\", \"O\"], [\"private.dev_phase1_20261014_worker_capabilities_snapshot\", \"closure_f01_immutable\", \"O\"], [\"private.dev_phase1_20261014_worker_capabilities_snapshot\", \"closure_f01_owned\", \"O\"], [\"private.dev_test101_owner_profile_backup_20261014\", \"closure_f01_immutable\", \"O\"], [\"private.dev_test101_owner_profile_backup_20261014\", \"closure_f01_owned\", \"O\"], [\"private.dev_test101_owner_worker_profile_backup\", \"closure_f01_immutable\", \"O\"], [\"private.dev_test101_owner_worker_profile_backup\", \"closure_f01_owned\", \"O\"], [\"private.dev_worker_profile_reset_snapshots_v1\", \"closure_f01_immutable\", \"O\"], [\"private.dev_worker_profile_reset_snapshots_v1\", \"closure_f01_owned\", \"O\"], [\"private.media_evidence_gaps_v5\", \"media_evidence_gap_immutable_v5\", \"O\"], [\"private.media_evidence_refs_v5\", \"media_evidence_immutable_v5\", \"O\"], [\"private.need_publication_decisions\", \"need_publication_decisions_immutable\", \"O\"], [\"private.owned_media_assets\", \"media_evidence_asset_v5\", \"O\"], [\"private.owned_media_assets\", \"media_new_asset_hold_v5\", \"O\"], [\"private.qa_ai_commands\", \"qa_ai_closure_guard\", \"O\"], [\"private.retention_holds\", \"media_hold_evidence_v5\", \"O\"], [\"private.retention_jobs\", \"pre_v3_closure_retention_claim\", \"O\"], [\"private.safety_reports\", \"media_safety_evidence_v5\", \"O\"], [\"private.safety_reports\", \"support_safety_capture_v5\", \"O\"], [\"private.safety_reports\", \"support_safety_closure_v5\", \"O\"], [\"private.support_cases_v5\", \"support_case_guard_v5\", \"O\"], [\"private.support_commands_v5\", \"support_immutable_v5\", \"O\"], [\"private.support_decisions_v5\", \"support_immutable_v5\", \"O\"], [\"private.support_events_v5\", \"support_immutable_v5\", \"O\"], [\"private.support_evidence_v5\", \"support_immutable_v5\", \"O\"], [\"private.support_grant_commands_v5\", \"support_immutable_v5\", \"O\"], [\"private.support_operator_audit_v5\", \"support_immutable_v5\", \"O\"], [\"private.taxonomy_confirmed_worker_modes_v1\", \"closure_f01_immutable\", \"O\"], [\"private.taxonomy_confirmed_worker_modes_v1\", \"closure_f01_owned\", \"O\"], [\"private.work_taxonomy_admissions_v1\", \"closure_f01_immutable\", \"O\"], [\"private.work_taxonomy_admissions_v1\", \"closure_f01_owned\", \"O\"], [\"private.work_taxonomy_categories\", \"taxonomy_guard_parent_move\", \"O\"], [\"private.work_taxonomy_gemini_turn_hints_v1\", \"closure_f01_immutable\", \"O\"], [\"private.work_taxonomy_gemini_turn_hints_v1\", \"closure_f01_owned\", \"O\"], [\"private.work_taxonomy_need_bindings_v1\", \"closure_f01_immutable\", \"O\"], [\"private.work_taxonomy_need_bindings_v1\", \"closure_f01_owned\", \"O\"], [\"private.work_taxonomy_need_bindings_v1\", \"taxonomy_signed_need_bound_requeue_v1\", \"O\"], [\"private.work_taxonomy_need_skills\", \"closure_f01_immutable\", \"O\"], [\"private.work_taxonomy_need_skills\", \"closure_f01_owned\", \"O\"], [\"private.work_taxonomy_need_snapshots\", \"closure_f01_immutable\", \"O\"], [\"private.work_taxonomy_need_snapshots\", \"closure_f01_owned\", \"O\"], [\"private.work_taxonomy_pending_reviews_v1\", \"closure_f01_immutable\", \"O\"], [\"private.work_taxonomy_pending_reviews_v1\", \"closure_f01_owned\", \"O\"], [\"private.work_taxonomy_related_acceptances\", \"closure_f01_immutable\", \"O\"], [\"private.work_taxonomy_related_acceptances\", \"closure_f01_owned\", \"O\"], [\"private.work_taxonomy_review_batches_v1\", \"closure_f01_immutable\", \"O\"], [\"private.work_taxonomy_review_batches_v1\", \"closure_f01_owned\", \"O\"], [\"private.work_taxonomy_review_outbox_v1\", \"closure_f01_immutable\", \"O\"], [\"private.work_taxonomy_review_outbox_v1\", \"closure_f01_owned\", \"O\"], [\"private.work_taxonomy_standard_coverage\", \"taxonomy_check_standard_coverage\", \"O\"], [\"private.work_taxonomy_worker_bindings_v1\", \"closure_f01_immutable\", \"O\"], [\"private.work_taxonomy_worker_bindings_v1\", \"closure_f01_owned\", \"O\"], [\"private.work_taxonomy_worker_bindings_v1\", \"taxonomy_signed_worker_bound_requeue_v1\", \"O\"], [\"private.work_taxonomy_worker_capabilities\", \"closure_f01_immutable\", \"O\"], [\"private.work_taxonomy_worker_capabilities\", \"closure_f01_owned\", \"O\"], [\"private.worker_ai_reviews\", \"worker_ai_review_immutable\", \"O\"], [\"private.worker_ai_saves\", \"taxonomy_enqueue_worker_saved_v1\", \"O\"], [\"private.worker_ai_saves\", \"taxonomy_pending_worker_save_v1\", \"O\"], [\"private.worker_ai_saves\", \"worker_ai_area_source_continuity_v1\", \"O\"], [\"private.worker_execution_mode_choices\", \"closure_f01_immutable\", \"O\"], [\"private.worker_execution_mode_choices\", \"closure_f01_owned\", \"O\"], [\"public.access_grants\", \"pre_v3_closure_grant\", \"O\"], [\"public.access_grants\", \"pre_v3_safety_grant\", \"O\"], [\"public.agreement_change_proposals\", \"pre_v3_closure_proposal\", \"O\"], [\"public.agreement_change_proposals\", \"pre_v3_safety_proposal\", \"O\"], [\"public.agreement_execution\", \"agreement_execution_set_updated_at\", \"O\"], [\"public.agreement_execution\", \"media_problem_evidence_v5\", \"O\"], [\"public.agreement_messages\", \"agreement_photo_link_guard_v5\", \"O\"], [\"public.agreement_messages\", \"agreement_photo_message_guard_v5\", \"O\"], [\"public.agreement_messages\", \"agreement_voice_link_guard_v1\", \"O\"], [\"public.agreement_messages\", \"agreement_voice_message_guard_v1\", \"O\"], [\"public.agreement_messages\", \"chat_b3c_invalidation_after_message\", \"O\"], [\"public.agreement_messages\", \"pre_v3_closure_message\", \"O\"], [\"public.agreement_messages\", \"pre_v3_safety_message\", \"O\"], [\"public.agreement_versions\", \"agreement_version_calendar_sync\", \"O\"], [\"public.agreement_versions\", \"media_agreement_snapshot_v5\", \"O\"], [\"public.agreement_versions\", \"pre_v3_closure_terms\", \"O\"], [\"public.agreements\", \"agreement_calendar_sync\", \"O\"], [\"public.agreements\", \"agreements_require_connection_activation_trg\", \"O\"], [\"public.agreements\", \"agreements_set_updated_at\", \"O\"], [\"public.agreements\", \"chat_b3c_invalidation_lifecycle\", \"O\"], [\"public.agreements\", \"pre_v3_closure_agreement\", \"O\"], [\"public.agreements\", \"pre_v3_safety_agreement\", \"O\"], [\"public.agreements\", \"v5_group_agreement_admission\", \"O\"], [\"public.ai_action_proposals\", \"guard_ai_proposal_write_trg\", \"O\"], [\"public.ai_action_proposals\", \"guard_retention_ai_proposals_trg\", \"O\"], [\"public.ai_conversations\", \"guard_need_edit_base_marker_trg\", \"O\"], [\"public.ai_conversations\", \"guard_retention_ai_origin_trg\", \"O\"], [\"public.ai_conversations\", \"pre_v3_closure_ai_conversation\", \"O\"], [\"public.ai_messages\", \"guard_retention_ai_messages_trg\", \"O\"], [\"public.ai_messages\", \"pre_v3_closure_ai_message\", \"O\"], [\"public.ai_structured_facts\", \"guard_ai_fact_schema_trg\", \"O\"], [\"public.ai_structured_facts\", \"guard_ai_fact_write_trg\", \"O\"], [\"public.ai_structured_facts\", \"guard_resolved_location_fact_trg\", \"O\"], [\"public.ai_structured_facts\", \"guard_retention_ai_facts_trg\", \"O\"], [\"public.ai_structured_facts\", \"invalidate_resolved_location_fact_trg\", \"O\"], [\"public.ai_structured_facts\", \"pre_v3_closure_ai_fact\", \"O\"], [\"public.app_accounts\", \"app_accounts_set_updated_at\", \"O\"], [\"public.app_accounts\", \"pre_v3_closure_account\", \"O\"], [\"public.app_profiles\", \"app_profiles_set_updated_at\", \"O\"], [\"public.app_profiles\", \"guard_profile_write_trg\", \"O\"], [\"public.app_profiles\", \"guard_worker_equipment_retired_v1\", \"O\"], [\"public.app_profiles\", \"pre_v3_closure_profile\", \"O\"], [\"public.app_profiles\", \"pre_v3_requester_identity\", \"O\"], [\"public.app_profiles\", \"pre_v3_worker_fact_authority\", \"O\"], [\"public.app_profiles\", \"worker_profile_sync_taxonomy_capabilities_trg\", \"O\"], [\"public.app_profiles\", \"z_w02_persistent_availability\", \"O\"], [\"public.data_export_requests\", \"pre_v3_closure_export_claim\", \"O\"], [\"public.marketplace_response_versions\", \"pre_v3_application_event\", \"O\"], [\"public.marketplace_response_versions\", \"pre_v3_closure_response_version\", \"O\"], [\"public.marketplace_responses\", \"guard_closed_remaining_search_response_trg\", \"O\"], [\"public.marketplace_responses\", \"marketplace_responses_set_updated_at\", \"O\"], [\"public.marketplace_responses\", \"pre_v3_closure_response\", \"O\"], [\"public.marketplace_responses\", \"pre_v3_safety_response\", \"O\"], [\"public.need_geography\", \"resolved_location_topology_binding_trg\", \"O\"], [\"public.need_selections\", \"need_selections_set_updated_at\", \"O\"], [\"public.need_selections\", \"pre_v3_closure_selection\", \"O\"], [\"public.need_sensitive\", \"guard_need_resolved_location_write_trg\", \"O\"], [\"public.need_sensitive\", \"need_sensitive_set_updated_at\", \"O\"], [\"public.need_sensitive\", \"pre_v3_closure_location\", \"O\"], [\"public.need_sensitive\", \"resolved_location_sensitive_binding_trg\", \"O\"], [\"public.needs\", \"guard_remaining_search_close_fields_trg\", \"O\"], [\"public.needs\", \"guard_unavailable_identity_requirement_v5_trg\", \"O\"], [\"public.needs\", \"needs_after_revision\", \"O\"], [\"public.needs\", \"needs_enqueue_dispatch\", \"O\"], [\"public.needs\", \"needs_guard_urgent\", \"O\"], [\"public.needs\", \"needs_guard_write\", \"O\"], [\"public.needs\", \"needs_set_updated_at\", \"O\"], [\"public.needs\", \"needs_sync_taxonomy_category_trg\", \"O\"], [\"public.needs\", \"pre_v3_closure_need\", \"O\"], [\"public.needs\", \"resolved_location_need_binding_trg\", \"O\"], [\"public.needs\", \"v5_group_need_lifecycle\", \"O\"], [\"public.notification_deliveries\", \"pre_v3_closure_delivery\", \"O\"], [\"public.notification_deliveries\", \"pre_v3_safety_delivery\", \"O\"], [\"public.notification_preferences\", \"notification_preferences_guard\", \"O\"], [\"public.notification_push_devices\", \"pre_v3_closure_device\", \"O\"], [\"public.opportunity_deliveries\", \"guard_closed_remaining_search_delivery_trg\", \"O\"], [\"public.opportunity_deliveries\", \"od_updated_at\", \"O\"], [\"public.profile_availability_rules\", \"pre_v3_closure_availability_rule\", \"O\"], [\"public.profile_availability_rules\", \"profile_rules_set_updated_at\", \"O\"], [\"public.profile_availability_windows\", \"pre_v3_closure_availability_window\", \"O\"], [\"public.profile_availability_windows\", \"profile_windows_set_updated_at\", \"O\"], [\"public.worker_match_preferences\", \"guard_wmp_write_trg\", \"O\"], [\"public.worker_match_preferences\", \"pre_v3_closure_worker_preferences\", \"O\"], [\"public.worker_match_preferences\", \"pre_v3_worker_preference_authority\", \"O\"], [\"public.worker_match_preferences\", \"w02_availability_timezone\", \"O\"], [\"public.worker_match_preferences\", \"wmp_updated_at\", \"O\"], [\"storage.objects\", \"agreement_photo_storage_guard_v5\", \"O\"], [\"storage.objects\", \"agreement_voice_storage_guard_v1\", \"O\"], [\"storage.objects\", \"media_evidence_storage_v5\", \"O\"], [\"storage.objects\", \"protect_objects_delete\", \"O\"], [\"storage.objects\", \"update_objects_updated_at\", \"O\"]]}",
+    "source_roster": [
+      {
+        "oid": "27946",
+        "body_md5": "5c3ff77eae79eeaf043298fb91490577",
+        "signature": "private.admit_push_single_target_v1(uuid,uuid,uuid,text,uuid,uuid,uuid,bigint,uuid,timestamptz,timestamptz)"
+      },
+      {
+        "oid": "25746",
+        "body_md5": "763c4e3a9499053b3884dec5723feed9",
+        "signature": "private.agreement_invalidation_cleanup_v1()"
+      },
+      {
+        "oid": "25750",
+        "body_md5": "a362fcc11419703eb07f07b4f82eebdb",
+        "signature": "private.agreement_invalidation_surface_v1()"
+      },
+      {
+        "oid": "25744",
+        "body_md5": "783b0c5322dfb1c1cbc0eec5df41c38f",
+        "signature": "private.agreement_message_invalidate_v1()"
+      },
+      {
+        "oid": "23943",
+        "body_md5": "1bb97cc9bd31bcfa294eec0e45c5ad8b",
+        "signature": "private.agreement_photo_asset_guard_v5()"
+      },
+      {
+        "oid": "23930",
+        "body_md5": "ec19c697db73b6339813be3e8dceab6b",
+        "signature": "private.agreement_photo_context_v5(uuid,uuid,integer,boolean)"
+      },
+      {
+        "oid": "23939",
+        "body_md5": "396300dade527c8dde7a40c8843329fa",
+        "signature": "private.agreement_photo_document_v5(private.agreement_photo_uploads_v5)"
+      },
+      {
+        "oid": "23929",
+        "body_md5": "79a7636a596c7251cf650a8d8520d0a6",
+        "signature": "private.agreement_photo_key_v5(uuid)"
+      },
+      {
+        "oid": "23933",
+        "body_md5": "c1024cfc1a2e344772e66eee57a0d7a9",
+        "signature": "private.agreement_photo_link_guard_v5()"
+      },
+      {
+        "oid": "23931",
+        "body_md5": "c9b405c188294f0ac058bec193467091",
+        "signature": "private.agreement_photo_message_guard_v5()"
+      },
+      {
+        "oid": "23948",
+        "body_md5": "e37d214696d92e5f71294619fbaa562f",
+        "signature": "private.agreement_photo_storage_guard_v5()"
+      },
+      {
+        "oid": "23940",
+        "body_md5": "7539982af9a8ba2e02489e1b98a4fe26",
+        "signature": "private.agreement_photo_transfer_v5(private.agreement_photo_uploads_v5)"
+      },
+      {
+        "oid": "26329",
+        "body_md5": "7dac0b4c2cad1da11dcd30e1ea35509a",
+        "signature": "private.agreement_voice_asset_guard_v1()"
+      },
+      {
+        "oid": "26321",
+        "body_md5": "db79bbcb1557e698f96e1973f5f1114d",
+        "signature": "private.agreement_voice_context_v1(uuid,uuid,integer,boolean)"
+      },
+      {
+        "oid": "26322",
+        "body_md5": "e3d28dc212ec03b7686809307125a2b0",
+        "signature": "private.agreement_voice_document_v1(private.agreement_voice_uploads_v1)"
+      },
+      {
+        "oid": "26320",
+        "body_md5": "7fc22c4fa37e737d09917f03c497b84c",
+        "signature": "private.agreement_voice_key_v1(uuid)"
+      },
+      {
+        "oid": "26326",
+        "body_md5": "70b7d13295f1a9407106d32a7c08fb15",
+        "signature": "private.agreement_voice_link_guard_v1()"
+      },
+      {
+        "oid": "26324",
+        "body_md5": "f7945764ecc4176f519c6adc051036a4",
+        "signature": "private.agreement_voice_message_guard_v1()"
+      },
+      {
+        "oid": "26331",
+        "body_md5": "f3baf1ab27b347216cdede156ca3f42a",
+        "signature": "private.agreement_voice_storage_guard_v1()"
+      },
+      {
+        "oid": "26360",
+        "body_md5": "b697d12234198c95815257d7ce73f147",
+        "signature": "private.agreement_voice_surface_v1()"
+      },
+      {
+        "oid": "26323",
+        "body_md5": "90adbecaf2f168e5aa2813053ef4ee71",
+        "signature": "private.agreement_voice_transfer_v1(private.agreement_voice_uploads_v1)"
+      },
+      {
+        "oid": "27166",
+        "body_md5": "114bd0b4b9d6e60a0abb0d0d64e63c69",
+        "signature": "private.ai_claim_need_turn_context_v1(uuid,uuid,uuid,text,jsonb)"
+      },
+      {
+        "oid": "27160",
+        "body_md5": "7eed48b787cfcc0dc0a832b824482de4",
+        "signature": "private.ai_location_context_valid(jsonb)"
+      },
+      {
+        "oid": "27161",
+        "body_md5": "82f3e5fb66887cb90d67abcc042eac22",
+        "signature": "private.ai_location_request_hash(uuid,text,jsonb)"
+      },
+      {
+        "oid": "27162",
+        "body_md5": "68bc25e798fc360c2eae0f1fd250c96c",
+        "signature": "private.ai_location_review_matches(uuid,jsonb)"
+      },
+      {
+        "oid": "27163",
+        "body_md5": "b6c73a1b905df8925ff476c26a163847",
+        "signature": "private.ai_location_turn_document(uuid,uuid,uuid)"
+      },
+      {
+        "oid": "22490",
+        "body_md5": "42549927e66edf70cf67f5d82cef4530",
+        "signature": "private.ai_need_turn_status(uuid,uuid,uuid)"
+      },
+      {
+        "oid": "23550",
+        "body_md5": "5cc5405c2d0ac0504fbed19241c12273",
+        "signature": "private.capture_agreement_media_v5(uuid,integer,boolean)"
+      },
+      {
+        "oid": "23553",
+        "body_md5": "5561df0a54794b9d58244c2da15d6314",
+        "signature": "private.capture_case_media_v5(text,uuid,bigint,uuid,uuid,uuid,uuid)"
+      },
+      {
+        "oid": "23200",
+        "body_md5": "3833e3df6eb404a5287d8a2d960dec1c",
+        "signature": "private.closure_assert_current_v5(private.closure_executions_v5)"
+      },
+      {
+        "oid": "24196",
+        "body_md5": "9d3a38b3ec64fe4513bdc310e786b3ab",
+        "signature": "private.closure_auth_dispatched_v5(uuid)"
+      },
+      {
+        "oid": "23196",
+        "body_md5": "cd0c2921bfd52ba2e96769b2a409b9db",
+        "signature": "private.closure_blockers_v5(uuid)"
+      },
+      {
+        "oid": "24174",
+        "body_md5": "ce750fc1bee5efa5888d511ddddbb28d",
+        "signature": "private.closure_erasure_agreement_protected_v5(uuid)"
+      },
+      {
+        "oid": "24190",
+        "body_md5": "be536bbccba9600ecc5c34f4a4d747de",
+        "signature": "private.closure_erasure_assert_current_v5(private.closure_executions_v5)"
+      },
+      {
+        "oid": "24189",
+        "body_md5": "d6d7e7f6f108fff45a4df5126949fa04",
+        "signature": "private.closure_erasure_binding_v5()"
+      },
+      {
+        "oid": "24176",
+        "body_md5": "727910cbb39ab9413e12d99cf39c5116",
+        "signature": "private.closure_erasure_exceptions_v5(uuid)"
+      },
+      {
+        "oid": "24188",
+        "body_md5": "f88717dbf53fd88a5b9d13b5b19f47d2",
+        "signature": "private.closure_erasure_hard_blockers_v5(uuid)"
+      },
+      {
+        "oid": "24187",
+        "body_md5": "c00e30d3cbb284a2d3b1c7311185bb49",
+        "signature": "private.closure_erasure_lock_v5(uuid)"
+      },
+      {
+        "oid": "24173",
+        "body_md5": "cd5202d783e16afc460cea8815a107fb",
+        "signature": "private.closure_erasure_media_protected_v5(uuid,text)"
+      },
+      {
+        "oid": "24194",
+        "body_md5": "245db717b1e8ce88339df354fe7afe45",
+        "signature": "private.closure_erasure_progress_v5(private.closure_executions_v5)"
+      },
+      {
+        "oid": "24195",
+        "body_md5": "f228322985e8ae90bce17880d1ffd9c4",
+        "signature": "private.closure_erasure_refresh_steps_v5(private.closure_executions_v5)"
+      },
+      {
+        "oid": "24175",
+        "body_md5": "429195be9326b701c6fee31955cd6766",
+        "signature": "private.closure_erasure_scope_author_v5(uuid,integer)"
+      },
+      {
+        "oid": "24171",
+        "body_md5": "7fabcc71502e065e638364fc3d58b761",
+        "signature": "private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb)"
+      },
+      {
+        "oid": "24178",
+        "body_md5": "55ba7bf41ce39d9c914929270b916570",
+        "signature": "private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)"
+      },
+      {
+        "oid": "24172",
+        "body_md5": "102e417ab6d52ab0eec421a8bda5c0c4",
+        "signature": "private.closure_redaction_relations_v5()"
+      },
+      {
+        "oid": "24177",
+        "body_md5": "81dbe706544b14990da7fe2bebb6bbb2",
+        "signature": "private.closure_redaction_scope_v5(text)"
+      },
+      {
+        "oid": "24197",
+        "body_md5": "3005d3bd63e98c24578cb4ecd26c8da0",
+        "signature": "private.closure_support_source_fence_v5(uuid,text,uuid)"
+      },
+      {
+        "oid": "32222",
+        "body_md5": "6753530b240ef747d5a18f9e74ce6fb0",
+        "signature": "private.closure_taxonomy_export_catalog_v1()"
+      },
+      {
+        "oid": "32221",
+        "body_md5": "2845351ac34bceeb346257dbc37a686c",
+        "signature": "private.closure_taxonomy_export_rows_v1(uuid)"
+      },
+      {
+        "oid": "32214",
+        "body_md5": "6d9000e634489b43342297d73f6e8809",
+        "signature": "private.closure_taxonomy_held_v1(text,jsonb,uuid)"
+      },
+      {
+        "oid": "32209",
+        "body_md5": "3bf217135064c6e8c45275c4442355cd",
+        "signature": "private.closure_taxonomy_inventory_v1()"
+      },
+      {
+        "oid": "32213",
+        "body_md5": "2d19b7da71590595e0f939b25ba54b24",
+        "signature": "private.closure_taxonomy_owner_immutable_v1()"
+      },
+      {
+        "oid": "32215",
+        "body_md5": "5c88c60b705d2d99c61da935536ec137",
+        "signature": "private.closure_taxonomy_patch_v1(text,jsonb,uuid,uuid)"
+      },
+      {
+        "oid": "32217",
+        "body_md5": "83c2d4b7ea5302151a8b99cdc6446631",
+        "signature": "private.closure_taxonomy_profile_erasing_v1(uuid)"
+      },
+      {
+        "oid": "32220",
+        "body_md5": "bf004f543c92940845b570d8860288cc",
+        "signature": "private.closure_taxonomy_project_v1(text,jsonb,uuid)"
+      },
+      {
+        "oid": "32211",
+        "body_md5": "dd0577a0f6a347da8f2c14cb6b912b3b",
+        "signature": "private.closure_taxonomy_reset_sections_v1()"
+      },
+      {
+        "oid": "32212",
+        "body_md5": "48a8c7d266e86586a457aa2d2fa51e45",
+        "signature": "private.closure_taxonomy_scope_v1(text)"
+      },
+      {
+        "oid": "32210",
+        "body_md5": "079dfd89aec66efbf2513cf8cad4eda9",
+        "signature": "private.closure_taxonomy_semantic_keys_v1()"
+      },
+      {
+        "oid": "32219",
+        "body_md5": "1d4c6fd6725c00cb2c65bccc091cecc9",
+        "signature": "private.closure_taxonomy_semantic_v1(jsonb)"
+      },
+      {
+        "oid": "32218",
+        "body_md5": "a69c3bf40e9fda37969ab522e0cbb92d",
+        "signature": "private.closure_taxonomy_snapshot_guard_v1()"
+      },
+      {
+        "oid": "32216",
+        "body_md5": "03122e7d8c68cce7cda9512a32c636cd",
+        "signature": "private.closure_taxonomy_try_owner_v1(uuid)"
+      },
+      {
+        "oid": "22342",
+        "body_md5": "e08e712c811ab2a093e48ca75a436c25",
+        "signature": "private.data_export_dataset_catalog()"
+      },
+      {
+        "oid": "22343",
+        "body_md5": "21ae94d4425396da941359cd834913fb",
+        "signature": "private.data_export_policy_binding()"
+      },
+      {
+        "oid": "23311",
+        "body_md5": "ffd64be69db4663dcb3e2d07713176cd",
+        "signature": "private.data_export_projection_sha_v5()"
+      },
+      {
+        "oid": "22345",
+        "body_md5": "c3bde16e2175c7ec33c1a171e0ad04a3",
+        "signature": "private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)"
+      },
+      {
+        "oid": "23544",
+        "body_md5": "e5cba7665e684dab03a61cc6640e158c",
+        "signature": "private.media_evidence_key_v5(uuid)"
+      },
+      {
+        "oid": "23560",
+        "body_md5": "116d1c6b2f1b965825afbebcbb2bbd89",
+        "signature": "private.media_owner_protected_v5(uuid)"
+      },
+      {
+        "oid": "22512",
+        "body_md5": "3454eb7040f3dab3cb0c35b512b46859",
+        "signature": "private.push_session_valid(uuid,uuid)"
+      },
+      {
+        "oid": "22519",
+        "body_md5": "0e0277608bf40f3cccc3575a77b1c23d",
+        "signature": "private.push_suppression(public.notification_deliveries)"
+      },
+      {
+        "oid": "23549",
+        "body_md5": "1c9daa4e56d29403401079d6844dc2e4",
+        "signature": "private.resolve_media_snapshot_v5(uuid,jsonb)"
+      },
+      {
+        "oid": "27951",
+        "body_md5": "97c59ee2c8b31173b7862c1620b4e523",
+        "signature": "private.revoke_push_single_target_v1(uuid)"
+      },
+      {
+        "oid": "23865",
+        "body_md5": "5f3505bd6d1faed81ba9ca1e10c2673e",
+        "signature": "private.support_allowed_actions_v5(private.support_cases_v5,uuid,integer)"
+      },
+      {
+        "oid": "23837",
+        "body_md5": "66773994698c60b9fab919f2a9fda93a",
+        "signature": "private.support_auth_v5(uuid)"
+      },
+      {
+        "oid": "23857",
+        "body_md5": "a77f48a8858b74358fb7d34fd044b0bf",
+        "signature": "private.support_capture_media_v5(uuid,integer,jsonb)"
+      },
+      {
+        "oid": "23849",
+        "body_md5": "7ca15b3ed04bec9d9ee82feb65ec9f12",
+        "signature": "private.support_case_guard_v5()"
+      },
+      {
+        "oid": "23851",
+        "body_md5": "404d919547523bda6d2e1296751d32fe",
+        "signature": "private.support_command_document_v5(uuid,uuid)"
+      },
+      {
+        "oid": "23839",
+        "body_md5": "371c8681b7fd1ffab124e14314f16a50",
+        "signature": "private.support_command_key_v5(uuid,uuid)"
+      },
+      {
+        "oid": "23864",
+        "body_md5": "db2a7bf6582d715f44bea743f46e49a1",
+        "signature": "private.support_decision_document_v5(private.support_decisions_v5)"
+      },
+      {
+        "oid": "23863",
+        "body_md5": "612eb7d2d3488f6b0053d1b0075f2775",
+        "signature": "private.support_event_document_v5(private.support_events_v5)"
+      },
+      {
+        "oid": "23842",
+        "body_md5": "1b3f45b7f1fcc1bcde10717a1476cb7a",
+        "signature": "private.support_immutable_v5()"
+      },
+      {
+        "oid": "23838",
+        "body_md5": "8b66568a1ef0a6fc6da2ba0d42c3109e",
+        "signature": "private.support_operator_key_v5()"
+      },
+      {
+        "oid": "23841",
+        "body_md5": "7c39d64ddd9bad9abc9ae3ef46f27fb6",
+        "signature": "private.support_operator_revision_v5(uuid)"
+      },
+      {
+        "oid": "23854",
+        "body_md5": "94ad410f355654cffccd9de1084571bb",
+        "signature": "private.support_reference_v5(uuid,jsonb)"
+      },
+      {
+        "oid": "23840",
+        "body_md5": "de34282a8a9dfe3974248fa03e691493",
+        "signature": "private.support_safe_exit_v5(uuid,uuid)"
+      },
+      {
+        "oid": "23859",
+        "body_md5": "4d241eccd22b648ad9d5c14f0b1cc903",
+        "signature": "private.support_safety_capture_v5()"
+      },
+      {
+        "oid": "23858",
+        "body_md5": "dfa1e697149fa569ffb6b621dffeb21f",
+        "signature": "private.support_safety_case_v5(private.safety_reports,boolean)"
+      },
+      {
+        "oid": "23860",
+        "body_md5": "f4dad2a2bab12c98c450555108306b8f",
+        "signature": "private.support_safety_closure_v5()"
+      },
+      {
+        "oid": "29153",
+        "body_md5": "8bfb57431cd6a6fcff2e1e80fe8b5fbc",
+        "signature": "private.sync_worker_skills_to_taxonomy_capabilities(uuid,text[])"
+      },
+      {
+        "oid": "31307",
+        "body_md5": "590328ff1684c32d7d7948c122d47728",
+        "signature": "private.taxonomy_handoff_compatible_v1(jsonb,jsonb)"
+      },
+      {
+        "oid": "31306",
+        "body_md5": "0ec86390e9f1682f309ca64227ab445e",
+        "signature": "private.taxonomy_handoff_display_v1(jsonb)"
+      },
+      {
+        "oid": "31308",
+        "body_md5": "785210ec581d007ff17e7cba25e1a6b0",
+        "signature": "private.taxonomy_handoff_fit_v1(uuid,uuid)"
+      },
+      {
+        "oid": "31292",
+        "body_md5": "c045ee696fee6b538476b32c5ec2426d",
+        "signature": "private.taxonomy_handoff_valid_v1(jsonb)"
+      },
+      {
+        "oid": "30957",
+        "body_md5": "f6a266fa6552838bb63dcb0a87f849b2",
+        "signature": "private.taxonomy_pending_saved_event_v1()"
+      },
+      {
+        "oid": "31309",
+        "body_md5": "4da6744c56947085f7122b69a1e45cf8",
+        "signature": "private.taxonomy_preserve_review_handoff_v1(jsonb,uuid,uuid)"
+      },
+      {
+        "oid": "30960",
+        "body_md5": "7b57e773d59a41634c41911316d7b77b",
+        "signature": "private.taxonomy_reconcile_pending_reviews_v1(integer)"
+      },
+      {
+        "oid": "30880",
+        "body_md5": "f540b18ff827bd6c5e4d277ad873bcea",
+        "signature": "private.taxonomy_signed_binding_requeue_v1()"
+      },
+      {
+        "oid": "17607",
+        "body_md5": "a9f24d642c50909b5addaa54e0b5976c",
+        "signature": "public.handle_uskoci_auth_user_updated()"
+      },
+      {
+        "oid": "25742",
+        "body_md5": "a6fa339bf03f8c8be69d9562d6c467c8",
+        "signature": "public.rpc_agreement_invalidation_visible_v1(uuid)"
+      },
+      {
+        "oid": "23938",
+        "body_md5": "d3330bb01b7e78a982027186a2e8022c",
+        "signature": "public.rpc_agreement_photo_read_service_v5(uuid,uuid,uuid,uuid,uuid)"
+      },
+      {
+        "oid": "23941",
+        "body_md5": "0006bc08d4733ff6865a7f5c7d341325",
+        "signature": "public.rpc_agreement_photo_upload_service_v5(uuid,uuid,text,uuid,integer,uuid,jsonb)"
+      },
+      {
+        "oid": "26334",
+        "body_md5": "5d82c4a9683513a43f4edc9d8bd08e54",
+        "signature": "public.rpc_agreement_voice_read_service_v1(uuid,uuid,uuid,uuid,uuid)"
+      },
+      {
+        "oid": "26335",
+        "body_md5": "aebb8132f2500415b2daded197e57975",
+        "signature": "public.rpc_agreement_voice_upload_service_v1(uuid,uuid,text,uuid,integer,uuid,jsonb)"
+      },
+      {
+        "oid": "27167",
+        "body_md5": "faefe830a997e2f1092b1657409129ee",
+        "signature": "public.rpc_ai_claim_need_location_turn_v1_service(uuid,uuid,uuid,text,jsonb)"
+      },
+      {
+        "oid": "22493",
+        "body_md5": "0b3c7f1d276a3b4349aeebee4f111af7",
+        "signature": "public.rpc_ai_claim_need_turn_v2_service(uuid,uuid,uuid,text)"
+      },
+      {
+        "oid": "27168",
+        "body_md5": "d0e3deeb6ef0bbfdc59945f294056265",
+        "signature": "public.rpc_ai_complete_need_location_turn_v1_service(uuid,uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)"
+      },
+      {
+        "oid": "27165",
+        "body_md5": "20a75f2a6727573f7480320e24c7ce53",
+        "signature": "public.rpc_ai_read_need_location_turn_v1_service(uuid,uuid,uuid)"
+      },
+      {
+        "oid": "27164",
+        "body_md5": "48d137c33f8ffc646e18f44ca387e594",
+        "signature": "public.rpc_ai_read_need_location_turn_v1(uuid,uuid)"
+      },
+      {
+        "oid": "22522",
+        "body_md5": "fc2dcc23f986d667ef61159ebc435228",
+        "signature": "public.rpc_begin_push_send(uuid,uuid)"
+      },
+      {
+        "oid": "23202",
+        "body_md5": "eedef6f857cc753d8597dc6d2d263956",
+        "signature": "public.rpc_claim_account_closure_action_service(uuid,uuid)"
+      },
+      {
+        "oid": "27950",
+        "body_md5": "b8c30ebf3ced3a073189f0c0865217dd",
+        "signature": "public.rpc_claim_push_single_target_receipt(uuid)"
+      },
+      {
+        "oid": "27949",
+        "body_md5": "922d9c6f68bac7cf615e574ca512c70c",
+        "signature": "public.rpc_claim_push_single_target(uuid)"
+      },
+      {
+        "oid": "22520",
+        "body_md5": "f70229927ca68419e5ca735a5b64b2e9",
+        "signature": "public.rpc_claim_push_transport(text)"
+      },
+      {
+        "oid": "23208",
+        "body_md5": "09d52badff732c2b22ba7b69adfa4d66",
+        "signature": "public.rpc_closure_api_guard()"
+      },
+      {
+        "oid": "23204",
+        "body_md5": "7fe61cf236d14948f6449470a669dcd9",
+        "signature": "public.rpc_complete_account_closure_action_service(uuid,uuid,uuid,uuid,text)"
+      },
+      {
+        "oid": "22523",
+        "body_md5": "d87908db1908b8c88fe66228c5b07f9f",
+        "signature": "public.rpc_complete_push_transport(uuid,uuid,text,text)"
+      },
+      {
+        "oid": "23203",
+        "body_md5": "f35b17a8264c6b314f87ce058c968024",
+        "signature": "public.rpc_dispatch_account_closure_action_service(uuid,uuid,uuid,uuid)"
+      },
+      {
+        "oid": "23205",
+        "body_md5": "a24316685bb99491344cac3de007a757",
+        "signature": "public.rpc_finalize_account_closure_service(uuid,uuid)"
+      },
+      {
+        "oid": "23207",
+        "body_md5": "602aab9015452f179596eec9ca59738a",
+        "signature": "public.rpc_list_account_closure_work_service(integer)"
+      },
+      {
+        "oid": "23206",
+        "body_md5": "258d66dbc74d02a169d41f0067a6d97f",
+        "signature": "public.rpc_read_account_closure_execution(uuid,uuid)"
+      },
+      {
+        "oid": "23937",
+        "body_md5": "9c5a0868e9507b23b600863f4508a5a5",
+        "signature": "public.rpc_read_agreement_photo_messages_v5(uuid,uuid,uuid[])"
+      },
+      {
+        "oid": "24191",
+        "body_md5": "0fd89c6c870f3496d485f97d8016ba7c",
+        "signature": "public.rpc_redact_account_closure_step_service(uuid,uuid,uuid,uuid)"
+      },
+      {
+        "oid": "23197",
+        "body_md5": "5c2e414313c5a2827421ac950ebf27bf",
+        "signature": "public.rpc_review_account_closure_execution(uuid)"
+      },
+      {
+        "oid": "23936",
+        "body_md5": "521afb3d35c026c7d2a7e21791f9f3ec",
+        "signature": "public.rpc_send_agreement_photo_message_v5(uuid,uuid,integer,text,text,uuid[])"
+      },
+      {
+        "oid": "26333",
+        "body_md5": "2cb1a99fd913115235a5762bf068f52e",
+        "signature": "public.rpc_send_agreement_voice_message_v1(uuid,uuid,integer,text,uuid)"
+      },
+      {
+        "oid": "28954",
+        "body_md5": "e4b1896c45aeed5c76ce98eac749fa43",
+        "signature": "public.rpc_set_worker_execution_modes(uuid,text[])"
+      },
+      {
+        "oid": "23198",
+        "body_md5": "3fc04b344892a252956219ce85f4de34",
+        "signature": "public.rpc_start_account_closure_execution(uuid,uuid,integer,uuid,text)"
+      },
+      {
+        "oid": "23853",
+        "body_md5": "a54bd31ad7438a24f06eb56032ed465c",
+        "signature": "public.rpc_support_cancel_command_v5(uuid,uuid)"
+      },
+      {
+        "oid": "23869",
+        "body_md5": "6ad657ea2bea982105bf6befaa548df7",
+        "signature": "public.rpc_support_capabilities_v5(uuid)"
+      },
+      {
+        "oid": "23871",
+        "body_md5": "4c3a90433d9bd67f23016524f53bc4b8",
+        "signature": "public.rpc_support_detail_v5(uuid,uuid,text)"
+      },
+      {
+        "oid": "23873",
+        "body_md5": "66b392dcf118e3109e3a12ebd909c159",
+        "signature": "public.rpc_support_find_context_v5(uuid,text,uuid)"
+      },
+      {
+        "oid": "23870",
+        "body_md5": "688501eeadefdf498c60dff16a3d25a3",
+        "signature": "public.rpc_support_inbox_v5(uuid,text,text)"
+      },
+      {
+        "oid": "23872",
+        "body_md5": "53b4c26916b2aba7a8d6e4f44f8dfba7",
+        "signature": "public.rpc_support_mark_read_v5(uuid,uuid,text)"
+      },
+      {
+        "oid": "23874",
+        "body_md5": "c645c7760aa256d70c91a762dc6fd061",
+        "signature": "public.rpc_support_media_service_v5(uuid,uuid,uuid,uuid)"
+      },
+      {
+        "oid": "23852",
+        "body_md5": "684e314bebe905aee2595a5e8256e1d6",
+        "signature": "public.rpc_support_read_command_v5(uuid,uuid)"
+      },
+      {
+        "oid": "23866",
+        "body_md5": "cc04ef5abcafb43498cbef8de0d1176b",
+        "signature": "public.rpc_support_set_operator_service_v5(uuid,boolean,integer,uuid)"
+      },
+      {
+        "oid": "23867",
+        "body_md5": "c30469f1c599e23eaa56163dc1b5b362",
+        "signature": "public.rpc_support_submit_v5(uuid,uuid,text,uuid,integer,text)"
+      },
+      {
+        "oid": "29330",
+        "body_md5": "98916c75b4b4aa7e3ba711472126263f",
+        "signature": "public.rpc_taxonomy_approve_admission(uuid,text,text)"
+      },
+      {
+        "oid": "29137",
+        "body_md5": "59f2d25b4a1b3a8051d7ac90ab956544",
+        "signature": "public.rpc_taxonomy_assign_worker_categories_service(uuid,uuid[])"
+      },
+      {
+        "oid": "29504",
+        "body_md5": "af2a6941abc507f7ea39adb2883c007d",
+        "signature": "public.rpc_taxonomy_bind_ready_reviews_service(integer)"
+      },
+      {
+        "oid": "29470",
+        "body_md5": "fa0873f285473eb513bdae1302157569",
+        "signature": "public.rpc_taxonomy_bind_reviewed_need_service(uuid,uuid,uuid,uuid,integer)"
+      },
+      {
+        "oid": "29486",
+        "body_md5": "a209973be36f4fe57e8963eefdf7bceb",
+        "signature": "public.rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid)"
+      },
+      {
+        "oid": "29357",
+        "body_md5": "2e8a861398c36a4efc23fa961b45897b",
+        "signature": "public.rpc_taxonomy_capture_gemini_turn_hints_service(uuid,uuid,uuid,uuid,uuid,text,bigint,jsonb)"
+      },
+      {
+        "oid": "29452",
+        "body_md5": "ad4197f0599bd900f0f77245ec6e8c29",
+        "signature": "public.rpc_taxonomy_claim_reviewed_batches_service(integer)"
+      },
+      {
+        "oid": "29331",
+        "body_md5": "e109f516f90fa93b2ef3d10de7c85a51",
+        "signature": "public.rpc_taxonomy_commit_admission_service(uuid)"
+      },
+      {
+        "oid": "29415",
+        "body_md5": "757a754bd2310d07eb0587e1f8279b2b",
+        "signature": "public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)"
+      },
+      {
+        "oid": "29453",
+        "body_md5": "af9cd22b779037a8c9f7fad5c8543cfe",
+        "signature": "public.rpc_taxonomy_finalize_reviewed_batch_service(uuid,uuid,text)"
+      },
+      {
+        "oid": "29326",
+        "body_md5": "8fb67af44c4de3bc93cf2144fd6629c6",
+        "signature": "public.rpc_taxonomy_prepare_admission_service(uuid,uuid,text,uuid,jsonb)"
+      },
+      {
+        "oid": "29454",
+        "body_md5": "41747bdfdba0af1d941bf4fb91f1a887",
+        "signature": "public.rpc_taxonomy_reconcile_reviewed_outbox_service(integer)"
+      }
+    ],
+    "server_version_num": "170006"
+  },
+  "result": {
+    "status": "POSTIMAGE_PINS_MISMATCH",
+    "source_head": "a98321b1154c9e8217115153e178c8ecd08da47e",
+    "builder_sha256": "b1b5f22ccd2b0d6ba316d1e13d9bd61909259c2f295b90036e4f696f51ea8a03",
+    "preimage_reproduced": true,
+    "preimage": {
+      "source": "0c03679b287ed6d726b0b6845bedf54c1463d3fe0efcaf9cd8a947997e160b56",
+      "erasure": "5e121db0bd932accd4b007f80098db67ebc97e99f29e0b76f06378de0f9c4d96"
+    },
+    "expected_postimage": {
+      "erasure": "5e2bc1481310ad3e3ed38e56ede6e0c1cb38d3a3819d4d7e7a469df7b61b4956",
+      "source": "241b9fadde8e91057731c028479448db8f137615243df3401be672f36dab8b8c"
+    },
+    "pinned_postimage": {
+      "erasure": "2a98426f53e0280ddbc8fc4937247a528d4432bfd34a86542b38923c0b0abfdb",
+      "source": "4a6a2f79f99939efe3088b1c1daee61acb7b7fe87caf6191d1741fa91788433f"
+    },
+    "changed_functions": [
+      {
+        "key": "triage",
+        "signature": "private.taxonomy_risk_triage_v1(text)",
+        "oid": "28782",
+        "old_body_md5": "49db026affac1bdde145622f12f4b47f",
+        "new_body_md5": "93d94a6c7e21ce3ecb854cda239b546a",
+        "in_source_roster": false,
+        "in_erasure_roster": false
+      },
+      {
+        "key": "proj",
+        "signature": "private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)",
+        "oid": "31025",
+        "old_body_md5": "f9318f476e32a8233fbb07ccf5d22aeb",
+        "new_body_md5": "116b5c16ca4179459aaa893a7073a611",
+        "in_source_roster": false,
+        "in_erasure_roster": false
+      },
+      {
+        "key": "trigger",
+        "signature": "private.needs_sync_taxonomy_category_trigger_fn()",
+        "oid": "29147",
+        "old_body_md5": "3244c0fd784d722ece2e3ace8688bfe7",
+        "new_body_md5": "43b0a7f32355ab493c3899a9670c7331",
+        "in_source_roster": false,
+        "in_erasure_roster": true
+      },
+      {
+        "key": "commit",
+        "signature": "public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)",
+        "oid": "29415",
+        "old_body_md5": "757a754bd2310d07eb0587e1f8279b2b",
+        "new_body_md5": "f1122a1dcbfa7bedbee5ecae2d6d9a3c",
+        "in_source_roster": true,
+        "in_erasure_roster": true
+      }
+    ],
+    "source_roster_count": 148,
+    "erasure_roster_count": 195,
+    "erasure_input_sha256": "5e121db0bd932accd4b007f80098db67ebc97e99f29e0b76f06378de0f9c4d96",
+    "source_input_sha256": "0c03679b287ed6d726b0b6845bedf54c1463d3fe0efcaf9cd8a947997e160b56",
+    "generated_package_exact": true,
+    "promotion_sha256": "8575b9bec4edd830eca62181d9f107af233332da14c2bde1725ef3d438c71173",
+    "evidence_contains_no_business_rows": true,
+    "scope": "Historical finding at the recorded source head; subsequent builder code derives postconditions from capture, never from these result fields."
+  },
+  "method": [
+    "Execute unmodified live digest input expressions under transaction READ ONLY and matching search_path=pg_catalog.",
+    "Hash the exact PostgreSQL canonical text bytes offline and require both observed live preimage digests to match.",
+    "Validate all four candidate original body hashes against freshly captured live definitions; use actual live OIDs and owner/ACL/config metadata, never historical fixture identities.",
+    "Replace each affected body hash exactly once only when its signature is in the actual roster; verify erasure JSON changes are exactly those source fields.",
+    "Update erasure digest component and affected source-roster signature/hash pairs in source input; hash resulting UTF-8 text."
+  ],
+  "limitations": [
+    "This is an offline deterministic catalog postimage projection, not execution of promotion SQL or DEV acceptance.",
+    "No DDL, data writes, certificate rewrite, readiness override, deployment or full R01 claim occurred.",
+    "Certificates, export/erasure bindings, table metadata, trigger enablement, function signatures and other attributes are assumed unchanged by the proposed four body replacements, as required by package catalog-delta guards.",
+    "Candidate triage and projection functions are absent from these live closure rosters; that is observed digest coverage, not proof they are outside the broader release contract.",
+    "Current source readiness remains false; unchanged stored certificate is not recertified by this calculation."
+  ],
+  "query_sha256": "c073defa89dfa9e27bdf2686235e6de5c46e89ee51ae7000463d0f70f43b6963",
+  "capture_provenance": {
+    "digest_definitions_captured_at": "2026-11-02T08:42:47.182605+00:00",
+    "input_expression_source": "Exact live digest SQL bodies, removing only the outer hash wrapper; source_roster selected from the same live source FROM clause.",
+    "transaction": "BEGIN TRANSACTION READ ONLY; SET LOCAL search_path=pg_catalog; SET LOCAL statement_timeout=30s; SELECT catalog expressions; ROLLBACK;",
+    "query_sha256": "c073defa89dfa9e27bdf2686235e6de5c46e89ee51ae7000463d0f70f43b6963",
+    "omitted_redundancy": "Full CREATE FUNCTION definitions omitted; digest prosrc and function metadata retained, original body hashes cross-checked against the separate frozen preimage."
+  }
+}

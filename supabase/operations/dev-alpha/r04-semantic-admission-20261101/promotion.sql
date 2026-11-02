@@ -782,7 +782,7 @@ IF (SELECT jsonb_build_object('source',private.closure_source_digest_v5(),
  'certificate',(SELECT sha256 FROM private.closure_source_v5 WHERE singleton),
  'schema',private.closure_schema_digest_v5_139(),'erasure',private.closure_erasure_program_digest_v5(),
  'source_ready',private.retention_ai_source_ready(),'erasure_binding',private.closure_erasure_binding_v5(),
- 'export_binding',private.data_export_policy_binding())) IS DISTINCT FROM '{"schema":"df82c2cb19edfa86ee092fb6fdc97528b82a2482f05ae64c45939268346af84c","source":"4a6a2f79f99939efe3088b1c1daee61acb7b7fe87caf6191d1741fa91788433f","erasure":"2a98426f53e0280ddbc8fc4937247a528d4432bfd34a86542b38923c0b0abfdb","certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb
+ 'export_binding',private.data_export_policy_binding())) IS DISTINCT FROM '{"schema":"df82c2cb19edfa86ee092fb6fdc97528b82a2482f05ae64c45939268346af84c","source":"241b9fadde8e91057731c028479448db8f137615243df3401be672f36dab8b8c","erasure":"5e2bc1481310ad3e3ed38e56ede6e0c1cb38d3a3819d4d7e7a469df7b61b4956","certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb
  THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_CLOSURE_STATE_CHANGED'; END IF;
 END; $r04_post$;
 NOTIFY pgrst,'reload schema';

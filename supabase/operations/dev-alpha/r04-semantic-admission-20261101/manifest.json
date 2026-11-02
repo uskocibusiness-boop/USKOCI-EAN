@@ -21,13 +21,15 @@
     "r04_semantic_batch_admission.sql": "2b2fabe0d272385a6821f12f3a2850b098766a668cc2478b98e4d11e9892fcee"
   },
   "preimage_sha256": "30d9ef2f2b62f312624d721e9d0dd3f1e98011acfed64fbca84e91e1fe3e1b26",
-  "builder_sha256": "b1b5f22ccd2b0d6ba316d1e13d9bd61909259c2f295b90036e4f696f51ea8a03",
+  "builder_sha256": "6284220f8871c290796e3b9ff43a4d3ac4a233f66d36496ca1059bcd1f766189",
+  "closure_derivation_sha256": "67dc8975a8a98394dd85d1dc503b9a1ab4968eead9bd3a29376d08141109b6a2",
+  "closure_capture_sha256": "568008a039975ccdadbae83f72dfb32eef9bf1102c7b32a838bbeca57fbc0f6f",
   "files": {
-    "forward.sql": "ec0f0fd5ad433f3983ec4ac6eb4be3bdb9477cf9fb04cd7bd7cc1f419a16e25f",
-    "promotion.sql": "8575b9bec4edd830eca62181d9f107af233332da14c2bde1725ef3d438c71173",
-    "rollback.sql": "169d139924693d3e0cbb88934e9218a6247b3c20688d7e76afb19813635137e1",
+    "forward.sql": "42d283c03f2b0be83921d02db8b73787d703a34d1379b0d284767e5886c94b28",
+    "promotion.sql": "953416d8ae9482e5d8acbae47d9491a5d54c991e0ddde58d80e0bf63160df843",
+    "rollback.sql": "0e77543ebb89ecab9473c205f2bedd85672412909334542a0a07cf526ade8767",
     "preflight.sql": "71cea8324196ad24dce4167a73d45725f42a18ed0f1c3d7e4aaf23f8c0d645dc",
-    "postflight.sql": "df557cb38cc6890ea7265a46faa02f6eb54f2be9857a135a1888b8779645be05",
+    "postflight.sql": "7c57b4ddda752d41c9822f54911f1fa14f066d7d5288f5591b218a801a4db966",
     "acceptance.sql": "48009f80f1e1f39b1459ce98e06ce2f26556d1f9843f9173b60f5371b09bd137",
     "acceptance-readonly.sql": "d689934d97208410baeeb413f00a5bf4c0355e46bdf92259722e550fcf1fbb79",
     "postimages.json": "c36f336d75ce1de00b96018e40e347b5f101df19bc6d45aff1495a16adafa3e4"

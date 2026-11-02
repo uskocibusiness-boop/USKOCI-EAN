@@ -606,8 +606,9 @@ test('frozen package preserves signatures, attributes and closure; changes four 
   assert.equal(preimage.closure.source_ready, false);
   assert.equal(preimage.closure.export_binding, null);
   assert.equal(preimage.closure.erasure_binding, null);
-  assert.equal(postClosure.source, '4a6a2f79f99939efe3088b1c1daee61acb7b7fe87caf6191d1741fa91788433f');
-  assert.equal(postClosure.erasure, '2a98426f53e0280ddbc8fc4937247a528d4432bfd34a86542b38923c0b0abfdb');
+  const closureEvidence = JSON.parse(readFileSync(new URL('./closure-postimage-offline-evidence-20261102.json', import.meta.url), 'utf8'));
+  assert.equal(postClosure.source, closureEvidence.result.expected_postimage.source);
+  assert.equal(postClosure.erasure, closureEvidence.result.expected_postimage.erasure);
   assert.equal(postClosure.certificate, preimage.closure.certificate);
   for (const key of Object.keys(originals)) {
     assert.equal(hash(postimages[key].definition, 'md5'), postimages[key].definition_md5);
