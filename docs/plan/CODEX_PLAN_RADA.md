@@ -3430,6 +3430,31 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
 
+#### Presek celog izvršavanja i nastavak izmene zadatka — 02.11.2026, posle `2b98c9c0`
+
+**Sadašnja izvršna istina; starije tabele ostaju istorija za svoj obim.** Read-only provereni lokalni/remote `2b98c9c0`, PR43 OPEN/DRAFT prema `feature/uskoci-cisto`; poslednji runtime `770d8886` Full41473745432 SUCCESS / R0141473745408 FAILURE. DEV ima321 migraciju, poslednju20261102141629; Need163/Worker114/publication29/postsave13/push43/media28/export28/closure18 ACTIVE. Verzija endpointa sama nije dokaz pokrivenosti poslovnog toka. Stvarna authenticated kolonska prava i dalje dopuštaju42/42 Need kolone; to je metadata dokaz preširokih prava, ne tvrdnja da je izvršen neovlašćen HTTP read tuđeg reda. Retention=false, export/erasure bindings=NULL.
+
+| Paket | Status celine | Najnoviji dokaz i preostala rupa |
+|---|---|---|
+| R01 | BLOCKED | Privatnosni kandidati postoje; strict8/owner-ACL49/managed-net3 FAIL. F21 kolonska prava i stvarni Auth/HTTP negativni dokaz ostaju zaseban posao od platform parity. |
+| R02 | PARTIAL | Lista/mapa/filteri imaju source/CI; celovita DEV/native PAGE/MAP/PLACES i odgovarajući drugi korisnik još nisu potvrđeni. |
+| R03 | PARTIAL | Owner-page DEV paket i stvarni restart → lista → detalj objave potvrđeni; svih5 scope-ova, paginacija i konkurencija nisu kompletan native PASS. |
+| R04 | PARTIAL | Puni153-node katalog, signed ID, REMOTE Worker i Need objava/replacement dokazani u ograničenoj probi. CREATE_CHILD/NEW_BRANCH/EXTEND_MODE/BOTH imaju izolovane provere, ne ceo živi model/Save/matching korpus. |
+| R05 | PARTIAL | Saved-area/TODAY source i izolovani PostGIS dokaz postoje. Udaljeno sačuvano područje → isti Za mene/dispatch/push i realan drugi nalog čekaju DEV prihvat. |
+| R06 | PARTIAL | Rokovi, capture, usage i jeftiniji puni katalog isporučeni; izostali prvi plan i UNKNOWN završetak nisu potpuno operativni. Aktivni Edge nema durable first-plan enqueue; kandidat se ne izjednačava sa uključenim redom. Nova edit-resume popravka ispod. |
+| R07 | PARTIAL | Application attention DEV i Need replacement potvrđeni u svom obimu. HOURLY/CAS i puna prijava → izbor → Dogovor → izmena → završetak čekaju odgovarajući deploy/obostrani prihvat. |
+| R08 | PARTIAL | REMOTE bez grada Save+Activate i prirodna Need objava potvrđeni; više usluga/BOTH/handoff/ispravke i vidljivi recovery nisu kompletno native potvrđeni. |
+| R09 | PARTIAL | Push43 postoji, ali stvarni transport/tap/dva uređaja nisu PASS. Podešavanja i dalje imaju dva sekvencijalna scope upisa sa readback oporavkom; proveriti delimični ishod. Chat „Proverite” je sada read-only (`checkUnknown`), stari nalaz nije aktuelan source bug. |
+| R10 | BLOCKED | Source/export/erasure certifikat nije važeći za završni tok; readiness=false/NULL. Potrebni potpuna pokrivenost kopija, consent, export/closure/retention i stvaran autorizovan prihvat. |
+| R11 | PARTIAL | Brojne konkretne source/CI popravke i cleanup već postoje. Ne ponavljati rešeni chat recovery; završiti aktivne ekrane, medije i ostatak C/SV prema korisničkom riziku. |
+| R12 | PARTIAL | Interni Android APK i ograničen emulator dokaz postoje; dva naloga/uređaja, fizički Android, konačni UX, produkcija i prodavnice nisu potvrđeni. |
+
+**Cleanup granica:** C01–C09/C12/C18 imaju raniji source/focused dokaz, ne zahtevaju ponovno brisanje; C10/C11/C13–C17/C19 ostaju delimični ili otvoreni u svojim ugovorima. SV02–SV04 imaju novije delimične DEV AI/snapshot/post-save dokaze iz gornjih checkpointa; stara tabela „UNAPPLIED” za celu AI vertikalu više nije tekuća. SV01/SV06/SV13/SV14 ostaju privatnosna/integraciona obaveza; SV05 stvaran push prihvat. SV07–SV12 povlačenje starih putanja/tabela/indeksa/debug-a radi se samo uz dokaz potrošača; ono ne sme odlagati osnovni korisnički tok zbog kozmetike.
+
+**Izvršeno sada — R06/R07 edit recovery:** read-only živa funkcija potvrđuje native uzrok: svaki `rpc_ai_open_need_edit_conversation_v2` pravi nov razgovor. Novi [izolovani test](../../supabase/proofs/ai/r06_need_edit_resume.test.mjs) prvo ima4 reprodukciona FAIL; [kandidat i guarded paket](../../supabase/operations/dev-alpha/r06-need-edit-resume-20261102/README.md) vraćaju postojeću kompatibilnu OPEN izmenu. Čuva se svaki tekst/fact, bira razgovor sa poslednjom stvarnom porukom ispred prazne kopije, proveravaju owner/closure/base/consumed-review/status/Agreement. Task lock ostaje, conversation NOWAIT sprečava čekanje u obrnutom redosledu; concurrency je posebno otvoren dokaz. Nema nove tabele, modela, grant-a ili menjanja primenjene migracije.12 izolovanih testova PASS, postojeća2 mobile suite/30 PASS, generator PASS. **SOURCE/IZOLACIJA; DEV NOT_APPLIED**, puni CI još nije potvrđen za ovaj novi paket. Native ponovni ulazak i stvarna konkurencija ostaju pre DONE.
+
+**Jedan redosled sledećeg rada:** (1) prihvat i kontrolisana promocija ovog recovery paketa; (2) R06 prvi trajni plan/UNKNOWN uz budget i retention, bez trećeg klasifikatora; (3) R05/R07/R09 dva naloga od matching-a do Dogovora/ocene/push-a i korekcije otkrivene tim tokom; (4) uporedo R01 privatnosna prava/Auth/parity i R10 data lifecycle; (5) ekran po ekran prema Product masteru, mali ekran/font/tastatura/restart; (6) jedan potpisan Android release kandidat, poslovna/pravna podrška, Play; iOS ostaje zaseban native/store prihvat. Za internu demonstraciju CONDITIONAL GO; nova spoljna testna grupa i javno izdanje NO-GO dok privatnosne i funkcionalne blokade nemaju dokaz. Masovni cleanup i provider cache mogu posle stabilne prve vertikale, ne pre nje.
+
 #### R04/R06: kompaktan puni katalog na DEV-u i zatvaranje rupe u obračunu — 02.11.2026
 
 **DEV/NATIVE potvrđen obim:** `ebfc067e` / Full 41466868632 SUCCESS omogućio je stvarnu prvu objavu: dopuna opisa, promena samo termina uz prenet isti ID bez novog BG poziva, COMMITTED/BOUND po jednom pokušaju, 0 novih kategorija i owner list/detail posle restarta. Zadatak i potvrđena REMOTE sposobnost istog naloga dele category ID `8766e4e3-5a44-4ddf-ab90-1cb607b6de53`; to nije dvokorisnički matching dokaz. Font 1,3× pregledan na Home/list/detail pa vraćen na 1,0×; mrežni prekid daje jasno nedostupan Home pregled, povratak mreže vraća aktivan zadatak. Offline upis/lost-ACK i kompletan UX nisu potvrđeni.
