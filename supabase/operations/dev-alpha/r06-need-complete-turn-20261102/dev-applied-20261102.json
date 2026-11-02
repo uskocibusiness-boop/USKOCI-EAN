@@ -1,5 +1,5 @@
 {
-  "status": "DEV_APPLIED_NATIVE_READBACK_FIX_PENDING",
+  "status": "DEV_APPLIED_NATIVE_COMPLETE_TURN_READBACK_PROVEN",
   "project": "leqcwgzvjsxugfgzdmth",
   "migration": {
     "version": "20261102141629",
@@ -39,6 +39,37 @@
     "change": "Read message proposal IDs with the same registry-derived bound as the turn receipt; unique UUID and owner/shape/safety guards retained.",
     "reproduction": "ai-conversation-status: 13 and 22 IDs fail before fix",
     "validation": "248 focused Jest tests PASS; TypeScript PASS",
-    "native_acceptance": "PENDING_NEW_APK"
+    "native_acceptance": "PASS_68748a4c_REOPENED_SAME_TURN_WITHOUT_PROVIDER"
+  },
+  "apk": {
+    "sourceCommit": "68748a4c280cd9321146cda46a820e831a3b7220",
+    "apkBytes": 123057323,
+    "apkSha256": "df09939704c86ad8ad062699f242d944c739451c1f64fa95121565277bf29898",
+    "nativeInputHashesPreserved": true,
+    "trackedSourceClean": true,
+    "embeddedBundle": {
+      "bytes": 13849184,
+      "sha256": "0018e1be1c9eb3b154547f55a38e45c18b1881ca8e1d765fcee53f2322d2c4d8",
+      "matchesGeneratedBundle": true,
+      "canonicalDevUrlEmbedded": true,
+      "entryCount": 1773,
+      "forbiddenFolderEntries": 0,
+      "abis": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "embeddedUpdateId": "a895e20e-80a8-41a8-92cc-7c1cb5705012",
+      "embeddedCommitTime": 1793629417058
+    }
+  },
+  "native_followup": {
+    "ordinary_review": "READY_AND_PUBLISH_BUTTON_ENABLED",
+    "schedule_change": "new start 4 November persisted, one fact, but model safety REVIEW",
+    "hint_carry": "CORRECTLY_WITHHELD_FOR_REVIEW",
+    "publication": false,
+    "cause": "Need prompt used REVIEW ambiguously for conversational preview and policy hold; Worker prompt already distinguished them.",
+    "fix": "Prompt-only separation of safety and dialogue.next; no runtime downgrade or SQL change.",
+    "tests": "188 PASS / 0 FAIL / 1 existing TODO; actual handler and scheduling SQL; explicit REVIEW/BLOCK retention",
+    "edge_status": "PENDING_CI_AND_DEPLOY"
   }
 }

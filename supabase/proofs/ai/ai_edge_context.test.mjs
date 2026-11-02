@@ -125,6 +125,22 @@ test('capable client preserves all 13 ordinary task facts and the exact completi
  // them locally. This test checks saved facts, not an unenforced schema hint.
  assert.equal(f.calls.filter(c=>c.url.includes('googleapis')).length,1);
 });
+test('Need prompt separates content safety from preview and routine schedule corrections',async()=>{
+ const f=fixture();await f.invoke();const instruction=prompt(providerCall(f));
+ assert.match(instruction,/safety opisuje bezbednost sadržaja, nezavisno od faze razgovora/);
+ assert.match(instruction,/dialogue.next=REVIEW nije safety=REVIEW/);
+ assert.match(instruction,/Promena termina, cene ili drugih podataka običnog zadatka sama po sebi nije bezbednosni rizik/);
+ assert.doesNotMatch(instruction,/Pre REVIEW/);
+});
+for(const safety of ['REVIEW','BLOCK'])test('preview wording cannot downgrade actual content safety '+safety,async()=>{
+ const f=fixture({providerOutput:{safety,assistantMessage:'Potreban je bezbednosni pregled sadržaja.',facts:[],
+  dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
+ const response=await f.invoke({text:'Otvorite pregled zadatka.'});assert.equal(response.status,200);
+ assert.equal((await response.json()).receipt.safety,safety);
+ assert.equal(materialWrites(f)[0].body.p_safety,safety);
+ assert.deepEqual(materialWrites(f)[0].body.p_proposals,[]);
+ assert.ok(!f.calls.some(c=>/publish|commit_admission|push/.test(c.url)));
+});
 for(const factCapability of [undefined,'unknown-version'])test('legacy/unknown fact capability keeps the 12-fact contract: '+factCapability,async()=>{
  const f=fixture({providerOutput:completeTaskOutput(),factCapability,historyRows:[]});
  assert.equal((await f.invoke({text:completeTaskText})).status,502);assert.equal(materialWrites(f).length,0);
