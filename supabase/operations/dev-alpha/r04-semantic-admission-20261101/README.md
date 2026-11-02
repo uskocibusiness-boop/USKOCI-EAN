@@ -27,6 +27,16 @@ Reported checks for `94c8862c`:
 
 The PGlite suite executes significant real PL/pgSQL bodies but constructs synthetic identity/review fixtures and controlled supporting functions. It is **not** the complete signed AI conversation → real Auth/HTTP prepare → Save/Accept → batch → binding → publication/activation → Android readback. The new package has not been installed on DEV or PRODUCTION. The first main GitHub CI for `94c8862c` failed on a strict TypeScript test error. Fix commit `639c97d6` has **full CI SUCCESS** ([run 41367990553](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41367990553)): 626/626 mobile suites, 14,567 tests, 3 snapshots, 1,487 AI tests PASS/0 FAIL, TypeScript, Edge, isolated R04 package/rollback, PostgreSQL/PostGIS and migration integrity PASS. Subsequent commits updating this README and `CODEX_PLAN_RADA.md` are documentation-only. Independent [R01 run 41367990583](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41367990583) remains FAILURE, so this is not DEV promotion permission.
 
+## New downstream R04/R08 source checkpoint — 2026-11-02
+
+At `work/rev14-review-f17@6608730d`, two **additional LOCAL_ONLY (NOT APPLIED)** SQL candidates now exist:
+- `worker-semantic-binder-local-only.sql`: validate the signed, committed, witnessed category ID for a worker's non-registered synonym. Preserve exact mode/leaf/parent/label and reject drift.
+- `worker-remote-semantic-review-local-only.sql`: recognize a complete, current, signed, existing-ID REMOTE worker review without requiring a fictitious city. Never authorize a new category, new mode, or a capability from an unbound AI proposal.
+
+`package.test.mjs` now includes **17/17 isolated scenarios PASS**. The linked full [CI 41374792426](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41374792426) is SUCCESS (626 Jest suites / 14,567 tests; 1,487 AI PASS + one TODO). Independent [R01 41374792443](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41374792443) still FAILS with 8 strict / 49 owner-ACL / 3 managed-net differences.
+
+**These two scripts are NOT in this package's four-function `promotion.sql`**, which remains frozen PREPARED_NOT_APPLIED. New worker-sync preservation and post-binding REMOTE eligibility are NOT closed, and full Auth/Android acceptance is NOT proven. Never run either local-only SQL file directly on DEV/PROD, merge unguarded DDL into promotion, or interpret isolated CI success as deployment authorization. Build one reviewed compatible pre/postimage/rollback bundle and pass R01/closure/client/DEV gates before explicit DEV approval.
+
 ## Controlled DEV verification order
 
 1. Pin the exact source SHA and clean target. Require the relevant **full CI SUCCESS on the runtime SHA** and examine the separate R01 result; do not silently waive R01. Confirm that the relevant supported client(s) can decode both preimage and postimage server responses.
