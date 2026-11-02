@@ -643,7 +643,11 @@ function parseV2Output(parsed: any): ParsedTurn {
   rejectManualOnlyFacts(parsed);
   if (!exact(parsed, ['safety', 'assistantMessage', 'facts', 'dialogue']) || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(parsed.safety) ||
     !Array.isArray(parsed.facts) || parsed.facts.length > 12) {
-    console.info('NEED_AI_OUTPUT_GATE', 'ROOT_SHAPE');
+    // Distinguish contract failures without logging user text or provider data.
+    console.info('NEED_AI_OUTPUT_GATE', 'ROOT_SHAPE',
+      'rootExact', exact(parsed, ['safety', 'assistantMessage', 'facts', 'dialogue']),
+      'safetyValid', ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(parsed.safety),
+      'factCount', Array.isArray(parsed.facts) ? parsed.facts.length : -1);
     throw new Error('AI_V2_OUTPUT_INVALID');
   }
   if (!exact(parsed.dialogue, Object.keys(DIALOGUE_VALUES))) {

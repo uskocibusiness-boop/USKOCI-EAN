@@ -116,6 +116,16 @@ test('provider refusal fails the owned attempt without a persistent conversation
  assert.ok(!f.calls.some(c=>/publish|commit_admission|push/.test(c.url)));
 });
 
+for(const shape of ['too-many-facts','unknown-root-field'])test('invalid root telemetry diagnoses '+shape+' without logging content',async()=>{
+ const output={safety:'ALLOW',assistantMessage:'PRIVATE_PROVIDER_MESSAGE',facts:shape==='too-many-facts'?Array.from({length:13},()=>({key:'need.title',valueJson:'"PRIVATE_FACT"'})):[],
+  ...(shape==='unknown-root-field'?{PRIVATE_FIELD:'PRIVATE_VALUE'}:{})};
+ const f=fixture({providerOutput:output});assert.equal((await f.invoke()).status,502);
+ assert.equal(materialWrites(f).length,0);
+ const gate=f.logs.find(args=>args[0]==='NEED_AI_OUTPUT_GATE'&&args[1]==='ROOT_SHAPE');
+ assert.deepEqual(gate,['NEED_AI_OUTPUT_GATE','ROOT_SHAPE','rootExact',shape==='too-many-facts','safetyValid',true,'factCount',shape==='too-many-facts'?13:0]);
+ assert.ok(!JSON.stringify(f.logs).includes('PRIVATE_'));
+});
+
 test('stable task rules precede fresh private context without dropping it or sharing facts',async()=>{
  const a=fixture({now:'2026-10-19T08:00:00.000Z',activeFacts:[semanticFact('need.title','PRIVATE_FIRST_TASK')]});
  const b=fixture({now:'2026-10-20T08:00:00.000Z',activeFacts:[semanticFact('need.title','PRIVATE_SECOND_TASK')]});
