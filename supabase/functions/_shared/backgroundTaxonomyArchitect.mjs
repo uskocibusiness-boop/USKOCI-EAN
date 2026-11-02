@@ -1013,6 +1013,7 @@ async function classifyWorkerServicesWithGemini({
   skills,
   userMessages,
   priorModes,
+  requestedChanges,
   hasWorkAreas,
   signal,
   providerBudget,
@@ -1024,7 +1025,7 @@ async function classifyWorkerServicesWithGemini({
     'Ispred sebe vidiš KOMPLETNO stablo svih postojećih kategorija u bazi, listu usluga radnika (skills) i njegove poruke.',
     CATALOG_HIERARCHY_INSTRUCTION,
     'Za SVAKU uslugu iz liste skills odredi:',
-    '1. mode: "ON_SITE" (izvršenje kod naručioca/na terenu), "REMOTE" (izvršenje drugde, uključujući radionicu) ili "UNKNOWN". Koristi samo način rada koji je radnik izričito ponudio za tu uslugu ili njegov sačuvani izbor u priorModes. Katalog, vrsta posla i područje rada nisu dokaz saglasnosti. Nepoznat način rada ostaje UNKNOWN i zahteva jedno kratko pitanje.',
+    '1. requestedChanges su izdvojeni predlozi iz ovog razgovora, vezani za stvarni USER citat evidence; još čekaju pregled i Save. Za tu uslugu imaju prednost nad starim priorModes. Vrati tačno jedan item za svaki njen traženi mode: ON_SITE (rad kod naručioca/na terenu) i REMOTE (bez dolaska radnika, digitalno ili u radionici). Ako su ponuđena oba, vrati DVA item-a za ISTU uslugu i istu kategoriju/putanju; BOTH nije vrednost mode-a. Ne prenosi način rada sa jedne usluge na drugu. Za neizmenjene usluge čuvaj priorModes. Katalog i područje rada ne daju saglasnost. Bez poznatog izbora vrati UNKNOWN i jedno stvarno potrebno pitanje; ne ponavljaj pitanje već odgovoreno u requestedChanges.',
     '2. Ako postoji isti canonical naziv ili alias, predloži REUSE_EXISTING ili EXTEND_MODE samo za radnikov izričito ponuđeni mode. Ako neupisan sinonim nedvosmisleno označava ISTI konkretan posao kao postojeći list, predloži REUSE_EXISTING uz categoryId tog lista, parentId="" i razlog koji upoređuje značenje. Proveri sve konkurentne grane i ne spajaj montažu klime sa čišćenjem klime. To je samo hint, ne upis sposobnosti. Ako je stvarno NOV posao, CREATE_CHILD uz parentId tačnog postojećeg roditelja, categoryId="" i proposedPath niz samo nedostajućih nivoa do konkretne usluge; ako nema odgovarajućeg roditelja, CREATE_NEW_BRANCH uz parentId="", categoryId="" i proposedPath nove grane do te usluge. Ne dupliraj postojeći sinonim ni granu. Preširoko ili dvosmisleno (samo "klima" ili "nameštaj") zahteva NEEDS_CLARIFICATION.',
     '3. Za REMOTE uslugu odredi handoffKind: "NONE" (digitalna isporuka bez fizičke predaje), "SHIPPING_RS" (slanje poštom/kurirskom službom u Srbiji), ili "LOCAL_EXCHANGE" (lično preuzimanje u gradu handoffCity).',
     '4. reason: kratko obrazloženje na srpskom (15 do 200 znakova).',
@@ -1035,6 +1036,7 @@ async function classifyWorkerServicesWithGemini({
     skills,
     hasWorkAreas,
     priorModes,
+    requestedChanges,
     recentUserMessages: userMessages.slice(-10),
     completeCatalogTree: treeLines,
   });
@@ -1121,6 +1123,12 @@ export async function buildWorkerFullTreeTaxonomyProposals({
     ? messages.filter((m) => m?.role === 'USER' && typeof m?.body === 'string').map((m) => m.body)
     : [];
 
+  const invalidChanges = new Set(cleanSkills.filter(service => {
+    const norm = normalizedClassificationIdentity(service);
+    return malformedChanges || !requests.has(norm)
+      && declaredChanges.some(change => normalizedClassificationIdentity(change?.service) === norm);
+  }).map(normalizedClassificationIdentity));
+
   const savedEntriesValid = entries => entries.length > 0
     && new Set(entries.map(entry => entry.categoryId)).size === 1
     && entries.every(entry => executionMode(entry.mode)
@@ -1132,8 +1140,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
   const preservedIdentities = new Set();
   for (const service of cleanSkills) {
     const norm = normalizedClassificationIdentity(service);
-    if (!norm || malformedChanges || requests.has(norm)
-        || declaredChanges.some(change => normalizedClassificationIdentity(change?.service) === norm)) continue;
+    if (!norm || invalidChanges.has(norm) || requests.has(norm)) continue;
     const matches = catalog.byNormalizedKey.get(norm) ?? [];
     const saved = priorModes.filter(entry => normalizedClassificationIdentity(entry?.service) === norm);
     if (matches.length === 1 && savedEntriesValid(saved)
@@ -1141,7 +1148,19 @@ export async function buildWorkerFullTreeTaxonomyProposals({
       preservedIdentities.add(norm);
     }
   }
-  const classificationSkills = cleanSkills.filter(service => !preservedIdentities.has(normalizedClassificationIdentity(service)));
+  const classificationSkills = cleanSkills.filter(service => {
+    const norm = normalizedClassificationIdentity(service);
+    return !preservedIdentities.has(norm) && !invalidChanges.has(norm);
+  });
+  // The provider receives the same validated per-service declarations the
+  // result gate uses. Recent-message truncation must not hide an older quote
+  // and make a second model guess one half of BOTH. These remain draft intent,
+  // never saved consent; the existing signed review/Save remains authoritative.
+  const requestedChanges = classificationSkills.flatMap(service => {
+    const request = requests.get(normalizedClassificationIdentity(service));
+    return request ? [{ service, modes: request.modes, evidence: request.evidence,
+      ...(Object.hasOwn(request, 'handoff') ? { handoff: decodeServiceHandoff(request.handoff) } : {}) }] : [];
+  });
   let aiItems = [];
   const failures = [];
   if (classificationSkills.length > 0 && geminiKey && geminiModel) {
@@ -1153,6 +1172,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
         skills: classificationSkills,
         userMessages,
         priorModes,
+        requestedChanges,
         hasWorkAreas: Boolean(hasWorkAreas),
         signal,
         providerBudget,
@@ -1180,7 +1200,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
     const matchingPrior = priorModes.filter((item) => normalizedClassificationIdentity(item?.service) === norm);
 
     const requested = requests.get(norm);
-    if (malformedChanges || !requested && declaredChanges.some(change => normalizedClassificationIdentity(change?.service) === norm)) {
+    if (invalidChanges.has(norm)) {
       // A rejected/duplicated fresh declaration is not an unrelated edit. Do
       // not silently resurrect the old mode while that change is unresolved.
       unresolvedServices.push(service);

@@ -3431,6 +3431,14 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
 
+#### R04/R08 — prenos pojedinačnih načina rada pozadinskom modelu, 02.11.2026
+
+Na početnom `7f93f126` builder proverava kompletan USER-quoted `serviceModeChangesJson`, ali Gemini dobija samo `priorModes` i poslednjih10 USER poruka. Stariji citat može nestati iz njegovog ulaza, dok rezultat mora pokriti baš oba izabrana moda. Uputstvo traži jedan mode bez eksplicitnog pravila za dva item-a iste usluge. Ispravljen `backgroundTaxonomyArchitect.mjs`: model dobija isti validirani `requestedChanges` po usluzi sa citatom i eventualnim handoff-om, traži se jedan rezultat po ponuđenom service/mode paru, a postojeći gate i dalje odbija nepotpun BOTH i ne daje saglasnost pre signed Save. Nevažeće deklaracije se ne šalju u naplaćenu klasifikaciju; nezavisna validna usluga nastavlja. Nema novog klasifikatora, tabele, globalnog alias-a ili uklanjanja zaštita.
+
+Dokaz: postojeći `background_worker_reuse.test.mjs` proširen stvarnim request-aware synthetic transportom; pre izmene18 PASS/7 FAIL, posle25 PASS. Povezanih6 background suite-ova185 PASS/0FAIL, stvarni Worker handler2 PASS, `node --check` PASS. Proba pokriva3 usluge/4 moda, citate van poslednjih10 poruka, isti category ID kroz oba moda, zaseban digitalni handoff i odbijanje lažnog citata/draft autoriteta. Nema plaćenih Gemini poziva. **SOURCE_PROVEN; aktuelni CI/DEV/native prihvat još nije potvrđen.** Poslednji raniji puni CI je41483609100 SUCCESS; R01 ostaje zaseban FAIL. Ne zaključivati kvalitet stvarnog modela ili push iz synthetic PASS-a.
+
+R05 saved-area/TODAY, R06 durable first-plan i edit-resume DEV, R07 kompatibilna price_basis šema, dva korisnika/Agreement/push i R01/R10 i dalje su otvoreni. Ovaj mali zahvat ne zatvara celu višeservisnu vertikalu. Radni kalendar je zajednički profilu; nema tvrdnje da postoje različiti nezavisni kalendari za svaku uslugu.
+
 #### Presek celog izvršavanja i nastavak izmene zadatka — 02.11.2026, posle `2b98c9c0`
 
 **Sadašnja izvršna istina; starije tabele ostaju istorija za svoj obim.** Read-only provereni lokalni/remote `2b98c9c0`, PR43 OPEN/DRAFT prema `feature/uskoci-cisto`; poslednji runtime `770d8886` Full41473745432 SUCCESS / R0141473745408 FAILURE. DEV ima321 migraciju, poslednju20261102141629; Need163/Worker114/publication29/postsave13/push43/media28/export28/closure18 ACTIVE. Verzija endpointa sama nije dokaz pokrivenosti poslovnog toka. Stvarna authenticated kolonska prava i dalje dopuštaju42/42 Need kolone; to je metadata dokaz preširokih prava, ne tvrdnja da je izvršen neovlašćen HTTP read tuđeg reda. Retention=false, export/erasure bindings=NULL.

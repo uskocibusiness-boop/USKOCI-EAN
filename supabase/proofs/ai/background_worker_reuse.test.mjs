@@ -22,7 +22,7 @@ function fixture(t, options = {}) {
   t.mock.method(globalThis, 'fetch', async (url, init) => {
     requests.push(JSON.parse(init.body));
     assert.match(String(url), /:generateContent$/);
-    if (options.provider) return options.provider();
+    if (options.provider) return options.provider(requests.at(-1));
     return new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: {
       parts: [{ text: JSON.stringify({ items: options.decisions ?? [decision()] }) }],
     } }] }));
@@ -129,5 +129,65 @@ for (const rawChanges of ['{', '{}', JSON.stringify([change(known), change(known
     const result = await f.run();
     assert.deepEqual(result.proposals, []);
     assert.ok(result.failures.some(p => p.code === 'WORKER_MODE_REQUEST_INVALID'));
+    assert.equal(f.requests.length, 0, 'a rejected declaration needs no paid classification');
   });
 }
+
+test('classifier receives each quoted execution choice even after its message leaves the recent window', async t => {
+  const services = ['Lektura tekstova', 'Krečenje stanova', 'Časovi engleskog'];
+  const changes = [change(services[0], ['REMOTE'], { handoff: { required: false } }),
+    change(services[1]), change(services[2], ['REMOTE', 'ON_SITE'], { handoff: { required: false } })];
+  const categories = services.map((service, i) => node(i + 1, service));
+  let sent;
+  const f = fixture(t, { skills: services, saved: [], changes, categories,
+    provider: request => {
+      sent = JSON.parse(request.contents[0].parts[0].text);
+      // Request-aware synthetic provider: classification can cover only choices
+      // actually supplied by the caller. This is not a live model quality test.
+      const items = (sent.requestedChanges ?? []).flatMap(entry => entry.modes.map(mode => ({
+        service: entry.service, mode, action: 'REUSE_EXISTING', parentId: '',
+        categoryId: categories.find(category => category.label === entry.service).categoryId,
+        reason: 'Ista konkretna usluga u potpunom katalogu.',
+      })));
+      return new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: {
+        parts: [{ text: JSON.stringify({ items }) }],
+      } }] }));
+    } });
+  f.args.messages.push(...Array.from({ length: 11 }, (_, i) => ({ role: 'USER', body: 'Nezavisna dopuna ' + i })));
+  const result = await f.run();
+  assert.equal(f.requests.length, 1, 'all services share one classifier call');
+  assert.deepEqual(sent.requestedChanges, changes, 'exact owned quotes remain tied to their own services');
+  assert.equal(sent.recentUserMessages.length, 10, 'do not resend the entire history');
+  assert.ok(changes.every(entry => !sent.recentUserMessages.includes(entry.evidence)));
+  assert.deepEqual(result.proposals.map(p => [p.service, p.mode, p.categoryId, p.handoff]), [
+    [services[0], 'REMOTE', id(1), { required: false }],
+    [services[1], 'ON_SITE', id(2), undefined],
+    [services[2], 'REMOTE', id(3), { required: false }],
+    [services[2], 'ON_SITE', id(3), undefined],
+  ]);
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.unresolvedServices, []);
+});
+
+test('invalid change is withheld while an independent valid service still gets classified', async t => {
+  const valid = change();
+  const invalid = change(known, ['REMOTE'], { evidence: 'No USER ever said this exact invented quote' });
+  const f = fixture(t, { skills: [known, fresh], changes: [valid],
+    rawChanges: JSON.stringify([invalid, valid]), decisions: [decision()] });
+  const result = await f.run();
+  assert.equal(f.requests.length, 1);
+  assert.deepEqual(f.sent().skills, [fresh]);
+  assert.deepEqual(f.sent().requestedChanges, [valid]);
+  assert.deepEqual(result.proposals.map(p => p.service), [fresh]);
+  assert.deepEqual(result.unresolvedServices, [known]);
+  assert.ok(result.failures.some(p => p.code === 'WORKER_MODE_REQUEST_INVALID' && p.service === known));
+});
+
+test('draft modes and assistant quotes do not become requested classifier choices', async t => {
+  const f = fixture(t, { skills: [fresh], saved: [], draft: [saved('REMOTE', { service: fresh })] });
+  f.args.messages.push({ role: 'ASSISTANT', body: 'This service is offered online and on site' });
+  const result = await f.run();
+  assert.deepEqual(f.sent().requestedChanges, []);
+  assert.deepEqual(result.proposals, []);
+  assert.ok(result.unresolvedServices.includes(fresh));
+});
