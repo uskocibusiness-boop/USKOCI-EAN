@@ -7,9 +7,9 @@
   "candidate_sha256": "b3bb0bb45fa07bfd9f32e97230d070db802766d73f98a11c6e5cc54f0f55e80e",
   "closure": "UNCHANGED_REQUIRED; readiness remains false",
   "files": {
-    "preflight.sql": "58d3e2c1512a189b3550cf26c8f75b33619c56b2339a6f595777a79942da9024",
-    "promotion.sql": "998a81d579271670a343571a13e0dcfb8135bf968df9ee18d92cb92f1306d4fb",
-    "postflight.sql": "451d6a69ecc5014748204e357d5fd2bbbb7d763b98f8ec409c5ba473ea59edba",
-    "rollback.sql": "02053497fc6352e05f2c3d7fc25afc5752d800f8c3e7c795a1168d3630b4c0c1"
+    "preflight.sql": "122365a5f668eaab4faef7774d573eeaa358c946b8a609c7bc314cb23f6d313b",
+    "promotion.sql": "a4f57c49ff4fd8efc32eb0cf7c3fd6e5e8a88792a71475e924700ba3b9ed891b",
+    "postflight.sql": "b078a7b31d0df8525161f547dc6031a1241956281c89f95d511bfdd24bee9e7d",
+    "rollback.sql": "cde78bb2d0f232a2e0fc9a2f6664048592dd3ba6a80ecc07580bbd350544c7d1"
   }
 }

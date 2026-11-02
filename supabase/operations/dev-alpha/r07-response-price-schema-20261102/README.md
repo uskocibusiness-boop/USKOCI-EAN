@@ -1,6 +1,13 @@
 # R07 — compatible response price-unit columns
 
-PREPARED_NOT_APPLIED. The current mobile `readApplicationCommandState` selects
+Applied to DEV as migration 20261102175412 after Full CI41493570258 SUCCESS
+on cbf18e49. Preflight/postflight PASS; both anonymous zero-row HTTP reads
+changed from 400/42703 to 200/[]; authenticated-role SQL zero-row reads PASS.
+This is schema availability, not authenticated two-user application acceptance.
+Receipt: ../ledger/20261102_response_price_schema.receipt.json. The generated
+manifest remains the immutable preparation artifact.
+
+The current mobile `readApplicationCommandState` selects
 `marketplace_responses.price_basis`; DEV lacks it and returns SQLSTATE 42703.
 This package adds nullable `text` columns to that table and its version table,
 with `TOTAL | HOURLY` constraints. Existing NULL means the historical aggregate
