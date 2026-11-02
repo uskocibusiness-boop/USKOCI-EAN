@@ -197,7 +197,14 @@ for(const mutation of ['stale','unknown_mode'])test('dual worker invalid authori
 });
 for(const catalogModes of [['ON_SITE'],['ON_SITE','REMOTE']])test('dual worker classifier outage keeps the completed conversation without applying a fresh scope, supported='+catalogModes.includes('REMOTE'),async()=>{
  const logs=[],f=dualModeFixture({backgroundStatus:503,catalogModes,log:args=>logs.push(args)});
- const es=await events(f,{text:f.userText});await settleBackground();
+ const es=await events(f,{text:f.userText});
+ // The foreground deliberately finishes first. Event-loop iterations are not
+ // completion evidence under full-CI load; await the actual bounded BG phase.
+ const finished=()=>logs.some(args=>args[0]==='AI_PHASE_MS'&&args[1]==='WORKER_BG_ARCHITECT');
+ const deadline=Date.now()+3000;
+ while(!finished()&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,5));
+ assert.ok(finished(),'background outage phase did not complete');
+ await settleBackground();
  assert.equal(es.at(-1).kind,'final');assert.equal(completions(f).length,1);
  assert.equal(providers(f).filter(call=>call.url.includes(':generateContent')).length,1);
  assert.equal(f.calls.filter(call=>/rpc_taxonomy_capture_gemini_turn_hints_service|rpc_taxonomy_store_classification_turn_hint_service/.test(call.url)).length,0);
