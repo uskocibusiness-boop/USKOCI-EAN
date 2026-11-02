@@ -10,6 +10,8 @@ The Need proof now also executes the actual evaluation Edge handler, decision wr
 
 The 14-body package includes an independent closure calculation and exact pg_proc metadata/whole-catalog delta/inverse-code-rollback proof. Fresh read-only DEV preflight at 10:02:23 UTC returned PREIMAGE_MATCH with positive Auth acceptance=false; none of these replacements was applied. See the same `local-verification-20261102.json` for commands, hashes, final CI and native scope as they become available. Historical limitations below are superseded only for these explicitly proven source/isolated scopes.
 
+Full [CI41427579876 SUCCESS](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41427579876) now covers this connected source:626Jest suites/14567tests,1535AI PASS/1existingTODO,TS/12Deno/SQL/PostGIS/integrity PASS. Test-only `cb3461ee` corrected one stale informal-copy assertion from initial failed run41426536069; runtime is unchanged from APK source `bdc45275`. The internal debug APK is installed and exact embedded source/update verified with limited UI inspection; no new server business acceptance. Separate [R0141427579875 FAILURE](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41427579875) remains8/49/3; DEV promotion is still not performed.
+
 ## What changes and why
 
 A single-word concrete service (e.g. `Lektura`) used to become `NEEDS_CLARIFICATION` solely because its label contained no space; a signed, semantically matched existing service could then remain `PENDING_CLASSIFICATION`. An unregistered synonym could fail batch admission even after the human approved the service. Existing Need and Worker clients also rejected the new server's two optional signed category-witness fields.

@@ -708,8 +708,77 @@
       "Fourteen bodies only; metadata, full catalog delta, derived closure and inverse code rollback verified. Existing certificate/readiness=false/NULL bindings preserved. Rollback of newly admitted data is not proven.",
       "No DEV SQL/Edge apply, flag/billing change or public release. R01/R10 and hosted/native acceptance remain open."
     ],
-    "full_ci": "PENDING_ON_GROUPED_PUSH; prior41418479603 does not prove these edits",
-    "native": "Old51ac APK installed; new source APK not built yet",
+    "full_ci": {
+      "run": 41427579876,
+      "result": "SUCCESS",
+      "head_sha": "cb3461ee66528ca06014390cf7a59d28bd245f6e",
+      "tested_merge_sha": "105f355696f83b2285fef1cc3119a767321093c2",
+      "jest_suites": 626,
+      "jest_tests": 14567,
+      "snapshots": 3,
+      "ai_pass": 1535,
+      "ai_fail": 0,
+      "ai_existing_todo": 1,
+      "source_job_passed_steps": 33,
+      "postgis_job_passed_steps": 9,
+      "checks": "TypeScript,12Deno,reviewedSQL/closure/rollback,PostGIS,migration193 and privacy boundary checks passed. Separate R01 remainsFAIL."
+    },
+    "native": {
+      "classification": "INTERNAL_PREVIEW_BUILD_INSTALLED_LIMITED_UI_INSPECTION_NOT_BUSINESS_E2E",
+      "source_sha": "bdc452755f5c92278d6923c5ef5b39b5be667848",
+      "subsequent_commit": "cb3461ee66528ca06014390cf7a59d28bd245f6e",
+      "subsequent_diff": "one existing test expectation only; APK runtime source unchanged",
+      "apk_path": "artifacts/android-preview-bdc45275-20261102-111046/uskoci-preview-bdc45275-internal.apk",
+      "apk_sha256": "68873cfeb2add5e1f56ba78f912036700a05616edefa0aa08726620b02cee6ac",
+      "apk_bytes": 123080683,
+      "package": "rs.uskoci.preview",
+      "version_code": 36,
+      "signing": "existing Android debug certificate; internal only",
+      "embedded_update_id": "d6b17b95-8a28-4e2f-abf0-36232e25cc8b",
+      "build_seconds": 275.7834099,
+      "signature_v2": "PASS",
+      "zip_16kb_alignment": "PASS_NOT_FULL_ELF_ACCEPTANCE",
+      "native_input_hashes_unchanged": 7,
+      "install": "adb install -r; no data clear",
+      "installed_base_apk_hash_matches": true,
+      "about_source_and_embedded_launch_verified": true,
+      "session": "Cold offline launch showed welcome; after restoring network existing signed-in account restored without credential entry. Do not claim complete offline session lifecycle.",
+      "device": "emulator-5554 Android16/API36; no physical device proof",
+      "inspected": [
+        "Online Home with owned summaries and four tabs; not complete Home states.",
+        "About screen shows exact bdc45275 source, preview runtime/channel and embedded d6b17b95.",
+        "Empty Need route opened offline with a new entry key and no input/send. Formal introductory/composer text visible.",
+        "Need empty route at360dp/font1.3: composer visible and focusable, scrollable content.",
+        "Actual saved Worker profile: ACTIVE state and3pending service confirmations visible; not matching-ready proof."
+      ],
+      "limits": [
+        "No paid AI turn, Save, publication, new capability, push, message or business mutation intentionally triggered.",
+        "System IME showed a floating hardware-keyboard toolbar; full software keyboard occlusion was NOT established. No full keyboard PASS.",
+        "No complete review/Save+Activate/Need publish/matching or two-account E2E against the new server: SQL/Edge replacements remain unapplied.",
+        "Home still contains older informal wording; full UI/copy consistency and all-screen visual acceptance remain open.",
+        "Raw signed-in screenshots/XML stay only in ignored local artifacts. SourceDirty marker is true because preexisting untracked attachments remain; tracked source was clean through APK archive."
+      ],
+      "restored_device_settings": {
+        "density": 420,
+        "density_override": false,
+        "font_scale": 1.0,
+        "show_ime_with_hard_keyboard": 0,
+        "airplane_mode": 0,
+        "wifi": 1,
+        "mobile_data": 0
+      },
+      "local_receipt_sha256": "8e34ad8bcbf86307056624401c6d2451d6aa26d48d5e6a6290e034cc3998b24f",
+      "local_screenshot_sha256": {
+        "01-launch-offline.png": "ebe636f1b2e6e6bc3702beac078bdbf03d1336b30c80d203cfa40610862f2e96",
+        "04-build-identity.png": "8862a0ad76ca98df041e8bfa33427ea20c46b66861eb4b0341629b55c46f8dc4",
+        "05-need-empty.png": "c724413866b61bb2a366634019768692cb1b48c6ecfee06d46cb272d16d5d371",
+        "06-need-360-font130.png": "c426e9d4c5953d381e4466f38e04e9b55a90a87c4280cb61d54d4408a23f680f",
+        "07-need-360-font130.png": "b7aa5842f52bb239266c203bf23ddb2c802a578199d93bee257dffafb4bf3696",
+        "08-need-360-keyboard.png": "5d9db5f9177752870b7ec798d872d5b4a85e456118b36f08dd7ae23057bd3b09",
+        "09-need-soft-keyboard.png": "477e8a184a6fa8e480895e2e16710364fcbff3f64e14e8992a0effb2e3b101b4",
+        "10-worker-profile.png": "f957afc693b2667e46cffb96739074f98fe56d65edf627f8f17628c7b601a389"
+      }
+    },
     "file_sha256": {
       "supabase/operations/dev-alpha/r04-semantic-admission-20261101/build.mjs": "7848670b83ae7801b01ca160ab109f4adb465e1e74a622748378d40021b14c43",
       "supabase/operations/dev-alpha/r04-semantic-admission-20261101/manifest.json": "11f54e70adba1177d7bbea57ef7997a3f5ae09112dae9027300745d43a584555",
@@ -720,6 +789,34 @@
       "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-semantic-mode-context-local-only.sql": "5e78e42b02cae909802c6f5d9d95c3e6f1210c997fe5794c9358c363e9dfb581",
       "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-semantic-prepare-local-only.sql": "fe91217b2c0ce2d0551eb122ab1d7b8e60ee5c90b473f92731f0d4773952ab31",
       "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-semantic-confirmed-prepare-local-only.sql": "2e46681906bd20dc328c637063b7f9a02eed42f606297bd4058133c5ccc527c6"
-    }
+    },
+    "ci_correction": {
+      "initial_run": 41426536069,
+      "initial_result": "FAILURE",
+      "passed_suites": 625,
+      "failed_suites": 1,
+      "passed_tests": 14566,
+      "failed_tests": 1,
+      "cause": "reviewOutcome.test.ts expected old informal copy; current formal runtime copy is intentional. No skipped/weakened behavioral assertion.",
+      "fix_sha": "cb3461ee66528ca06014390cf7a59d28bd245f6e",
+      "runtime_changed": false,
+      "command": "node node_modules/jest/bin/jest.js --runInBand --runTestsByPath src/ui/objava/__tests__/reviewOutcome.test.ts",
+      "result": "PASS",
+      "tests": 3,
+      "duration_seconds": 2.197,
+      "new_full_run": 41427579876
+    },
+    "r01": {
+      "run": 41427579875,
+      "result": "FAILURE",
+      "stage": "STRICT_PARITY",
+      "strict": 8,
+      "owner_acl": 49,
+      "managed_net": 3,
+      "fixture_candidate_executed": false,
+      "manual_retries": 0,
+      "checker_weakened": false
+    },
+    "finalized_at": "2026-11-02T10:27:15.220705+00:00"
   }
 }
