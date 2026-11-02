@@ -1,16 +1,16 @@
--- R08 cityless REMOTE signed semantic REUSE, LOCAL_ONLY source candidate.
+-- R08 cityless REMOTE signed service consent, LOCAL_ONLY source candidate.
 -- NOT a migration, DEV deployment, authorization bypass or production toggle.
 -- Frozen original DEV prosrc MD5 284aa750a1a5c3e6367eaf10df1a410f.
--- Only a current, complete, owner-signed review with a witnessed existing
--- REMOTE category is accepted. New category/mode still requires its own
--- committed post-Save admission/binding. Keep original function owner/ACL.
+-- A complete current REMOTE review may consent to profile activation before
+-- catalog admission. New category/mode still requires its own committed
+-- post-Save admission/binding before eligibility. Keep original owner/ACL.
 CREATE OR REPLACE FUNCTION private.worker_remote_review_ready_v1(p_review jsonb)
  RETURNS boolean
  LANGUAGE plpgsql
  STABLE
  SET search_path TO 'pg_catalog'
 AS $function$
-DECLARE v_exact jsonb;v_plans jsonb;v_plan jsonb;v_service text;v_seen text[]:=ARRAY[]::text[];v_n integer;v_category uuid;
+DECLARE v_exact jsonb;v_plans jsonb;v_plan jsonb;v_service text;v_seen text[]:=ARRAY[]::text[];v_n integer;v_category uuid;v_projection jsonb;
 BEGIN
  IF p_review->>'classificationState' IS DISTINCT FROM 'READY'
  OR jsonb_typeof(p_review#>'{profile,skills}') IS DISTINCT FROM 'array'
@@ -21,9 +21,33 @@ BEGIN
  OR EXISTS(SELECT 1 FROM jsonb_array_elements(p_review->'reviewedServiceModes') m
    WHERE m->>'mode' IS DISTINCT FROM 'REMOTE')
  OR EXISTS(SELECT 1 FROM jsonb_array_elements(p_review->'classificationCandidates') p
-   WHERE p->>'action' IS DISTINCT FROM 'REUSE_EXISTING'
-     OR (p?'handoff' AND private.taxonomy_handoff_valid_v1(p->'handoff') IS NOT TRUE))
+   WHERE p?'handoff' AND private.taxonomy_handoff_valid_v1(p->'handoff') IS NOT TRUE)
  THEN RETURN false; END IF;
+
+ -- New catalog work is activation consent only, never an existing capability.
+ -- Reuse the exact prepare validator (including source-bound hints and handoff)
+ -- instead of introducing a second action/path parser. The Save activation
+ -- owner separately checks account/session/revision/digest/expiry atomically.
+ IF EXISTS(SELECT 1 FROM jsonb_array_elements(p_review->'classificationCandidates') p
+   WHERE p->>'action' IN ('CREATE_CHILD','CREATE_NEW_BRANCH','EXTEND_MODE')) THEN
+   IF auth.uid() IS NULL OR p_review->>'accountId' IS DISTINCT FROM auth.uid()::text
+     OR jsonb_typeof(p_review->'conversationId') IS DISTINCT FROM 'string'
+     OR p_review->>'conversationId' !~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+   THEN RETURN false; END IF;
+   v_projection:=private.taxonomy_review_candidate_projection_v2('WORKER_CAPABILITY',
+     p_review#>'{profile,skills}',p_review->'reviewedServiceModes',auth.uid(),
+     (p_review->>'conversationId')::uuid);
+   -- Do not re-read the pre-Save profile context here: the activation owner has
+   -- already made its own profile writes. The locked session/hint projection is
+   -- still valid; its handoff must match exactly, without inventing or filling it.
+   RETURN v_projection->>'status'='READY'
+     AND p_review->'classificationCandidates'=v_projection->'classificationCandidates'
+     AND p_review->'reviewedServiceModes'=v_projection->'reviewedServiceModes'
+     AND p_review->'classificationCatalogVersion'=v_projection->'classificationCatalogVersion'
+     AND p_review->'classificationCatalogFingerprint'=v_projection->'classificationCatalogFingerprint';
+ END IF;
+ IF EXISTS(SELECT 1 FROM jsonb_array_elements(p_review->'classificationCandidates') p
+   WHERE p->>'action' IS DISTINCT FROM 'REUSE_EXISTING') THEN RETURN false; END IF;
  -- Only today's complete exact canonical/registered-alias set. User-selected
  -- modes never admit a future category or extend an existing category's scope.
  v_exact:=private.taxonomy_review_exact_projection_v1('WORKER_CAPABILITY',
