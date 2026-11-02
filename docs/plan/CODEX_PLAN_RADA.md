@@ -3446,6 +3446,8 @@ Polazni lokalni/remote `ec7abd509ff20246ddff0aa4f74725b74a3d11db`, runtime `4b97
 
 **Granica ovog kruga:** samo dokazni fajlovi i ovaj master; 0 runtime izmena, 0 DEV mutacija, 0 plaćenih AI poziva, bez novog APK-a, promene naloga ili produkcionog izlaza. Interna TEST demonstracija CONDITIONAL GO; spoljna samostalna beta i javno izdanje NO-GO. Pravni/store sadržaj upoređen sa zvaničnim izvorima navedenim u izveštaju, bez tvrdnje pravnog odobrenja.
 
+**R11/R12 dependency dopuna:** fresh `npm audit --package-lock-only --json` na nepromenjenom lock-u:42 zapisa (6 high/31 moderate/5 low/0 critical), [inventar](../continuation/deep-audit-20261102/dependencies.json). Raniji27 više nije tekući broj. High putanje vode kroz Expo CLI/signing/Jest/PostCSS; tranzitivna dostupnost ranjivog koda zahteva ciljnu proveru, nije proglašena bezbednom samo zato što nema direktnog importa. GitHub default-branch50/6critical je drugi obuhvat. Nema dependency nadogradnje ni `audit fix` u ovom pregledu.
+
 #### R07 — nedostajuća jedinica cene u readback-u prijave, 02.11.2026
 
 Pripremljen [kompatibilni paket](../../supabase/operations/dev-alpha/r07-response-price-schema-20261102/README.md) za dve nullable `price_basis` kolone. Stvarni DEV preflight `R07_RESPONSE_SCHEMA_PREIMAGE_MATCH`; početne obe tabele imaju0 redova. Aktuelni mobilni čitač padao je sa42703; izolovana reprodukcija potvrđuje isti uzrok. Paket ne menja iznose, istorijske hash-eve, RPC-jeve, owner/ACL/RLS, trigere ili naplatu. Postojeći writer-i nastavljaju sa NULL/legacy ukupnom cenom; HOURLY writer nije uključen. Stari puni R07b kandidat sa zastarelim preimage-ima nije primenjen.

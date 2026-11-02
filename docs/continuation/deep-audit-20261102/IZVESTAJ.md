@@ -222,6 +222,8 @@ Ranije završeni cleanup paketi zadržavaju raniji source/CI obuhvat; ovo nije n
 
 Aktuelni security advisor ima mnogo privatnih RLS-without-policy i security-definer upozorenja. Privatni deny-by-default i namerni RPC nisu automatski ranjivost. Potvrđene posebne stavke su `notification_copy_v5` bez izričitog search_path-a (literalni CASE), pg_net placement i disabled leaked-password zaštita; prioritet ne sme potisnuti dokazani Need privatnosni problem. Performance advisor daje kandidate za merenje, ne dozvolu za masovno menjanje baze.
 
+**Zavisnosti — sveža dopuna posle objave izveštaja:** `npm audit --package-lock-only --json` sada nalazi **42 zapisa: 6 high, 31 moderate, 5 low, 0 critical**, na nepromenjenom lockfile-u ove grane. To zamenjuje raniji broj27 za ovaj obuhvat. Šest high paketa su Expo CLI, brace-expansion, compression, node-forge, source-map-js i zod; njihovi roditelji su u Expo CLI/signing, Jest/minimatch i PostCSS putanjama. Direktan import poslednjih pet nije pronađen u `src`/Edge izvorima, ali to samo po sebi ne dokazuje odsustvo tranzitivnog rizika. Potreban je ciljan pregled dostupne ranjive putanje i kompatibilne nadogradnje pre release-a; nije izvršen automatski `audit fix`. GitHub push poruka o50 upozorenja, uključujući6 critical, odnosi se na **default branch**, ne ovaj lock. [Tačan inventar i hash](dependencies.json); primeri zvaničnih advisory izvora: [zod](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5), [node-forge](https://github.com/advisories/GHSA-86w9-cpqp-85rv), [compression](https://github.com/advisories/GHSA-vc2v-76pw-4v95). Broj upozorenja nije broj dokazanih napada na APK.
+
 ## VI. Stvarni blokatori za korisnike
 
 | Rizik | Dokaz i posledica | Zatvaranje |
