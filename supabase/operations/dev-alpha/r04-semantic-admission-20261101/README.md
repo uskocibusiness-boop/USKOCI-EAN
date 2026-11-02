@@ -1,4 +1,4 @@
-# R04 semantic admission — reviewed single-word services, synonyms and execution modes
+# R04 semantic admission â€” reviewed single-word services, synonyms and execution modes
 
 **Status: PREPARED_NOT_APPLIED** on DEV `leqcwgzvjsxugfgzdmth` at source commit `94c8862c`. The subsequent strict TypeScript test fix is `639c97d6`. **Source/PGlite tests do not establish DEV or Android acceptance.** Do not run `promotion.sql` merely because this package exists.
 
@@ -25,9 +25,9 @@ Reported checks for `94c8862c`:
 - Need/Worker service Jest selection: 110/110 PASS reported; `reproduce-client-contract.cjs` returns `CONTRACT_VERIFIED_FIXED`.
 - On live DEV, the **read-only** preflight returned `R04_SEMANTIC_DEV_PREIMAGE_MATCH`. It is *not* an applied migration or authenticated positive business test.
 
-The PGlite suite executes significant real PL/pgSQL bodies but constructs synthetic identity/review fixtures and controlled supporting functions. It is **not** the complete signed AI conversation → real Auth/HTTP prepare → Save/Accept → batch → binding → publication/activation → Android readback. The new package has not been installed on DEV or PRODUCTION. The first main GitHub CI for `94c8862c` failed on a strict TypeScript test error. Fix commit `639c97d6` has **full CI SUCCESS** ([run 41367990553](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41367990553)): 626/626 mobile suites, 14,567 tests, 3 snapshots, 1,487 AI tests PASS/0 FAIL, TypeScript, Edge, isolated R04 package/rollback, PostgreSQL/PostGIS and migration integrity PASS. Subsequent commits updating this README and `CODEX_PLAN_RADA.md` are documentation-only. Independent [R01 run 41367990583](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41367990583) remains FAILURE, so this is not DEV promotion permission.
+The PGlite suite executes significant real PL/pgSQL bodies but constructs synthetic identity/review fixtures and controlled supporting functions. It is **not** the complete signed AI conversation â†’ real Auth/HTTP prepare â†’ Save/Accept â†’ batch â†’ binding â†’ publication/activation â†’ Android readback. The new package has not been installed on DEV or PRODUCTION. The first main GitHub CI for `94c8862c` failed on a strict TypeScript test error. Fix commit `639c97d6` has **full CI SUCCESS** ([run 41367990553](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41367990553)): 626/626 mobile suites, 14,567 tests, 3 snapshots, 1,487 AI tests PASS/0 FAIL, TypeScript, Edge, isolated R04 package/rollback, PostgreSQL/PostGIS and migration integrity PASS. Subsequent commits updating this README and `CODEX_PLAN_RADA.md` are documentation-only. Independent [R01 run 41367990583](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41367990583) remains FAILURE, so this is not DEV promotion permission.
 
-## New downstream R04/R08 source checkpoint — 2026-11-02
+## New downstream R04/R08 source checkpoint â€” 2026-11-02
 
 At `work/rev14-review-f17@6608730d`, two **additional LOCAL_ONLY (NOT APPLIED)** SQL candidates now exist:
 - `worker-semantic-binder-local-only.sql`: validate the signed, committed, witnessed category ID for a worker's non-registered synonym. Preserve exact mode/leaf/parent/label and reject drift.
@@ -35,7 +35,15 @@ At `work/rev14-review-f17@6608730d`, two **additional LOCAL_ONLY (NOT APPLIED)**
 
 `package.test.mjs` now includes **17/17 isolated scenarios PASS**. The linked full [CI 41374792426](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41374792426) is SUCCESS (626 Jest suites / 14,567 tests; 1,487 AI PASS + one TODO). Independent [R01 41374792443](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41374792443) still FAILS with 8 strict / 49 owner-ACL / 3 managed-net differences.
 
-**These two scripts are NOT in this package's four-function `promotion.sql`**, which remains frozen PREPARED_NOT_APPLIED. New worker-sync preservation and post-binding REMOTE eligibility are NOT closed, and full Auth/Android acceptance is NOT proven. Never run either local-only SQL file directly on DEV/PROD, merge unguarded DDL into promotion, or interpret isolated CI success as deployment authorization. Build one reviewed compatible pre/postimage/rollback bundle and pass R01/closure/client/DEV gates before explicit DEV approval.
+**These two scripts are NOT in this package's four-function `promotion.sql`**, which remains frozen PREPARED_NOT_APPLIED. At that earlier checkpoint, worker-sync preservation and post-binding REMOTE eligibility were NOT closed (see the subsequent source result below), and full Auth/Android acceptance is NOT proven. Never run either local-only SQL file directly on DEV/PROD, merge unguarded DDL into promotion, or interpret isolated CI success as deployment authorization. Build one reviewed compatible pre/postimage/rollback bundle and pass R01/closure/client/DEV gates before explicit DEV approval.
+
+## Subsequent downstream source — 2026-11-02
+
+Runtime source `d89f9aad2d176c9293a67c95943101659309e953` adds three more LOCAL_ONLY replacements: `worker-semantic-sync-local-only.sql`, `worker-remote-semantic-activation-local-only.sql`, and `worker-semantic-readback-local-only.sql`. The actual saved-mode reader is `rpc_get_worker_execution_modes`; `rpc_read_worker_ai_taxonomy` remains unchanged. Existing bound semantic IDs survive unrelated skill additions and formatting-only label changes. Explicit removal still revokes; a stale binder replay does not regrant. New signed consent can regrant the same ID with the current mode set.
+
+The final **18/18 isolated tests PASS**, including captured live old-body failures and actual trigger/batch/binder/eligibility/public-reader execution with `skills text[]`. Review/Save/Auth and selected helper fixtures remain synthetic. See `local-verification-20261102.json` for source hashes, exact scope and related R06 receipt recovery checks. New Full CI is pending; earlier CI does not certify this source.
+
+**All five extra worker SQL candidates remain outside the frozen FOUR-body promotion.** The previously open sync/durable eligibility/readback source defects are now locally fixed and tested, but not deployed. None of these standalone files may be applied directly to DEV/PROD. The next promotion must be derived and reviewed as one expanded compatible pre/postimage/ACL/closure/rollback package; the original four-body promotion alone is not the complete worker fix. New-category first cityless activation, real Auth Save, public submit/select, matching, and Android remain separate acceptance work.
 
 ## Controlled DEV verification order
 

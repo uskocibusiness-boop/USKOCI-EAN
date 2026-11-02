@@ -1,0 +1,64 @@
+{
+  "classification": "LOCAL_SOURCE_VERIFICATION_NOT_DEV_OR_NATIVE",
+  "source_sha": "d89f9aad2d176c9293a67c95943101659309e953",
+  "base_sha": "5a474f7fb3e981d21d1bfdae6fdf722d334ec5bb",
+  "recorded_at": "2026-11-02T08:38:30.237857+00:00",
+  "checks": [
+    {
+      "command": "node --test supabase/operations/dev-alpha/r04-semantic-admission-20261101/package.test.mjs",
+      "result": "PASS",
+      "tests": 18,
+      "duration_ms": 20512.1492,
+      "includes": "captured old sync/REMOTE/readback regressions; actual trigger, batch, binder, helpers and public reader; synthetic review/Save/Auth and selected support functions"
+    },
+    {
+      "command": "node supabase/operations/dev-alpha/r04-semantic-admission-20261101/build.mjs --check",
+      "result": "PASS",
+      "scope": "unchanged frozen FOUR-body package only, does not package new LOCAL_ONLY candidates"
+    },
+    {
+      "command": "python supabase/migrations/check_migration_integrity.py",
+      "result": "PASS",
+      "files": 193
+    },
+    {
+      "command": "node --test supabase/proofs/ai/r06_postsave_receipt_finalization.test.mjs supabase/proofs/ai/postsave_edge_transport.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs",
+      "result": "PASS",
+      "tests": 57,
+      "scope": "agent-executed final source; final fixture-only regex fix followed by 14/14 SQL suite recheck"
+    },
+    {
+      "command": "node --test supabase/proofs/ai/background_lifecycle_review.test.mjs supabase/proofs/ai/r06_capture_receipt_readback.test.mjs supabase/proofs/ai/r06_first_plan_completion.test.mjs supabase/proofs/ai/r06_first_plan_enqueue.test.mjs",
+      "result": "PASS",
+      "tests": 116,
+      "scope": "agent-executed neighboring suites"
+    },
+    {
+      "command": "node --check supabase/functions/_shared/taxonomyPostSaveWorker.mjs",
+      "result": "PASS"
+    }
+  ],
+  "reproductions": [
+    "Original live sync excludes a bound synonym when unrelated skill is added; rollback then unchanged new-ID path preserves capability and related consent.",
+    "Original live durable REMOTE helper=false and public reader=UNCONFIRMED after real isolated batch/binder.",
+    "Added lowercase/whitespace regression failed UNCONFIRMED vs CONFIRMED before readback normalization fix; passed afterward.",
+    "R06 original finalizer exhausts lost-ACK retry despite same committed receipt; two driver/Edge regressions and SQL baseline failed before fix."
+  ],
+  "file_sha256": {
+    "supabase/operations/dev-alpha/r04-semantic-admission-20261101/package.test.mjs": "07fb1fc3f69829ed0a8e86e3248eb375e348305984d436b608bce0131c7e8fd2",
+    "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-semantic-sync-local-only.sql": "80e65cdfd2c61e9f756e090e31f33cd9bb83b3a01a7a282e77df813306617ccc",
+    "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-remote-semantic-activation-local-only.sql": "37724c282847b410b777da8a173a1aabbf3962d54f8224db357b0b2866374087",
+    "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-semantic-readback-local-only.sql": "f4f810e32a0cb366c81095835a647bf15218cbd39acadda729b7a94cfea7cc8e",
+    "supabase/functions/_shared/taxonomyPostSaveWorker.mjs": "1a787842735041cb754e0811fbbc83d4c78c39d7098758a1c4d03ae06607a584",
+    "supabase/proofs/ai/r06_postsave_receipt_finalization_candidate.sql": "849664b6bcdd1c0d8cadf23bfc5eba4f164228b9cbdf48284c67ddea5b75b83e",
+    "supabase/proofs/ai/r06_postsave_receipt_finalization.test.mjs": "89bd3f66233d85694dd30d94da22c62ae95f781c140ba3c3e5e6aa2b8b1306f1"
+  },
+  "dev": "READ_ONLY: migration20261101174446 and old four R04 bodies, captured08:25:01UTC; worker readers captured08:30:37UTC; NO migration/Edge apply",
+  "ci": "new run not yet started; prior full41374792426SUCCESS / R0141374792443FAIL on6608730d; not inherited as proof for this source",
+  "limits": [
+    "No real prepare/Save/Auth/Android, paid provider or concurrent PG17 execution this round.",
+    "New LOCAL_ONLY SQL not part of frozen promotion; no closure certificate/readiness change.",
+    "No full durable first-plan completion or receipt arriving after terminal finalizer proof.",
+    "Deno unavailable locally; required existing full CI will typecheck Edge."
+  ]
+}
