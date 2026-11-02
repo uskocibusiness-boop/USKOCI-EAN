@@ -1054,6 +1054,16 @@ it('retires the review return when the original intake unmounts', async () => {
 });
 
 // Review r4 ra item 9: a conversation that changes a published task says so on its card, in the menu's own words.
+it('an empty edit conversation does not offer unrelated new-task openings or send an AI turn', async () => {
+  const bound = conversation({ messages: [], facts: completeFacts() }); bound.review.boundNeedId = other;
+  mockLoad.mockResolvedValue(bound); await resume();
+  const drawn = (label: string) => tree.root.findAll(node => typeof node.type === 'string' && node.props.accessibilityLabel === label);
+  expect(text()).toContain('Šta želite da promenite?');
+  expect(text()).not.toContain('Na primer');
+  for (const sentence of TASK_OPENINGS) expect(drawn(sentence)).toHaveLength(0);
+  expect(mockSend).not.toHaveBeenCalled();
+});
+
 it('the card of a task being changed names its review the way the menu does and says "Izmena" in the title and to a screen reader, not over its name', async () => {
   const said = [{ id: other, body: 'Promeni vreme.', fromAi: false, safety: null, proposedFactIds: [] }];
   const bound = conversation({ messages: said, facts: completeFacts() }); bound.review.boundNeedId = other;

@@ -1,13 +1,20 @@
 # R06/R07 — resume the current owned Need edit
 
 PREPARED_NOT_APPLIED. Existing RPC and unchanged five-field mobile receipt.
-02 November continuation: the same candidate/function body (postimage
-f7b516da8af8c7797ef2f58438319df7) is rebased ONLY to the observed closure
+02 November continuation: the same candidate/function body is rebased ONLY to the observed closure
 schema/source after R07 migration20261102175412. No certificate/readiness or
 function dependency was changed. Fresh live SQL-role reproduction inside a
 rolled-back transaction opens two different conversations for the same task;
 neither trial conversation is persisted. All13 focused isolated checks pass.
 The re-derived promotion still requires fresh preflight and relevant full CI.
+
+The first controlled apply after CI41495944402 rolled back at its postimage
+guard. Readback confirmed the original function MD5 and no new migration.
+The generator had hashed TWO final newlines, while pg_get_functiondef returns
+one; the executable DDL already trimmed the extra newline. The corrected exact
+postimage is 34c30e54765bccbfe7b3e58a949001d2. A new actual-PostgreSQL catalog
+regression fails before this correction and passes afterwards; all14 isolated
+checks pass. The function body, permissions and strict comparison are preserved.
 The 02 November native probe lost the ordinary route to a saved edit because
 every call to rpc_ai_open_need_edit_conversation_v2 inserted a new conversation.
 The original messages/facts remained on the server.

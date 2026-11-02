@@ -67,6 +67,13 @@ async function setup(t,patched=true){
 async function message(db,cid,body='Keep my changes'){
  await db.query("INSERT INTO public.ai_messages(account_id,conversation_id,role,body) VALUES($1,$2,'USER',$3)",[owner,cid,body]);
 }
+test('promotion postimage equals the actual PostgreSQL function definition',async t=>{
+ const db=await setup(t);
+ const manifest=JSON.parse(readFileSync(new URL('../../operations/dev-alpha/r06-need-edit-resume-20261102/manifest.json',import.meta.url),'utf8'));
+ const actual=await one(db,"SELECT md5(pg_get_functiondef('public.rpc_ai_open_need_edit_conversation_v2(uuid)'::regprocedure)) hash");
+ assert.equal(actual.hash,manifest.postimage_md5,'Generated postflight must admit the real catalog output, including its exact final newline');
+});
+
 test('preimage reproduces a second conversation and facts on the same edit action',async t=>{
  const db=await setup(t,false),a=await open(db),b=await open(db);assert.notEqual(a.conversationId,b.conversationId);
 });

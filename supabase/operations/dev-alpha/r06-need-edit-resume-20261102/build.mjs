@@ -6,7 +6,9 @@ const base=new URL('./',import.meta.url);
 const read=p=>readFileSync(new URL(p,base),'utf8');
 const pre=JSON.parse(read('../../../proofs/ai/r06_need_edit_resume_preimage.json'));
 const source=read('../../../proofs/ai/r06_need_edit_resume_candidate.sql');
-const next=source.slice(source.indexOf('CREATE OR REPLACE FUNCTION'),source.lastIndexOf('$function$')+11)+'\n';
+// pg_get_functiondef ends at the closing dollar quote plus ONE newline. The
+// SQL statement delimiter belongs only in the executable transaction below.
+const next=source.slice(source.indexOf('CREATE OR REPLACE FUNCTION'),source.lastIndexOf('$function$')+'$function$'.length)+'\n';
 const q=s=>"'"+s.replaceAll("'","''")+"'",hash=(s,a='sha256')=>createHash(a).update(s).digest('hex');
 const original=pre.function.definition;
 assert.equal(hash(original,'md5'),pre.function.md5);
@@ -33,4 +35,3 @@ preimage_md5:pre.function.md5,postimage_md5:hash(next,'md5'),candidate_sha256:ha
 closure:'UNCHANGED_REQUIRED; readiness remains false',files:Object.fromEntries(Object.entries(files).map(([n,s])=>[n,hash(s)]))},null,2)+'\n';
 for(const[n,s]of Object.entries(files)){if(process.argv.includes('--check'))assert.equal(read(n),s,'Generated drift: '+n);else writeFileSync(new URL(n,base),s);}
 console.log('R06_EDIT_RESUME_PACKAGE_PASS');
-

@@ -504,7 +504,7 @@ export function IntakePresentation(props: Props) {
     // A local welcome disappears once the real thread begins. It is never an AI turn.
     welcome="Dobar dan! Opišite šta Vam je potrebno. 🧡"
     welcomeDetail=""
-    openings={TASK_OPENINGS}
+    openings={conversation.review.boundNeedId ? [] : TASK_OPENINGS}
     placeholder="Opišite šta Vam je potrebno"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
     onChange={props.onChange} onSend={send}
