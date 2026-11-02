@@ -1532,6 +1532,47 @@ test('R04/R08 canonical category witness rejects label drift despite unchanged c
   assert.equal((await bind()).rows[0].res.status,'BOUND_WORKER_SERVICES');
 });
 
+
+test('R08 cityless REMOTE reviewed synonym accepts only complete signed existing-ID witness',async t=>{
+  const db=await setup();t.after(()=>db.close());await db.exec(ddl(postimages));
+  const source=readFileSync(new URL('worker-remote-semantic-review-local-only.sql',import.meta.url),'utf8');
+  await db.exec(source);
+  const plan={action:'REUSE_EXISTING',service:'Lektura',mode:'REMOTE',
+    categoryId:category,categoryLabel:'Lektura i korektura',categoryParentId:null,
+    catalogVersion:17,reason:'Same existing remote service verified by Gemini and human'};
+  const review={classificationState:'READY',classificationCatalogVersion:17,
+    classificationCatalogFingerprint:repeat('a',32),profile:{skills:['Lektura']},
+    reviewedServiceModes:[{service:'Lektura',mode:'REMOTE'}],classificationCandidates:[plan]};
+  const check=async envelope=>(await db.query('SELECT private.worker_remote_review_ready_v1($1::jsonb) ok',[JSON.stringify(envelope)])).rows[0].ok;
+  assert.equal(await check(review),true);
+  for(const bad of [
+    {...review,classificationState:'PENDING_CLASSIFICATION'},
+    {...review,classificationCatalogVersion:18},
+    {...review,classificationCatalogFingerprint:repeat('b',32)},
+    {...review,profile:{skills:['Lektura','Prevod']}},
+    {...review,reviewedServiceModes:[{service:'Lektura',mode:'ON_SITE'}]},
+    {...review,classificationCandidates:[{...plan,categoryId:'33333333-3333-4333-8333-333333333333'}]},
+    {...review,classificationCandidates:[{...plan,categoryLabel:'Nezavisna kategorija'}]},
+    {...review,classificationCandidates:[{...plan,categoryParentId:'33333333-3333-4333-8333-333333333333'}]},
+    {...review,classificationCandidates:[{...plan,action:'CREATE_CHILD'}]},
+    {...review,classificationCandidates:[{...plan,handoff:{required:true}}]},
+    {...review,classificationCandidates:[{...plan,categoryId:'not-uuid'}]},
+    {...review,classificationCandidates:[{...plan,categoryParentId:undefined}]},
+    {...review,classificationCandidates:[plan,plan]}
+  ])assert.equal(await check(bad),false,JSON.stringify(bad).slice(0,280));
+  await db.query('UPDATE private.work_taxonomy_categories SET label=$1 WHERE id=$2',['Izmenjena lektura',category]);
+  assert.equal(await check(review),false);
+  await db.query('UPDATE private.work_taxonomy_categories SET label=$1,parent_id=$2 WHERE id=$3',
+    ['Lektura i korektura',craftCategory,category]);
+  assert.equal(await check(review),false);
+  await db.query('UPDATE private.work_taxonomy_categories SET parent_id=NULL WHERE id=$1',[category]);
+  assert.equal(await check(review),true);
+  const child='33333333-4444-4555-8666-777777777762';
+  await db.query("INSERT INTO private.work_taxonomy_categories(id,parent_id,label,canonical_key,state) VALUES($1,$2,'Dodatni list','dodatni list','ESTABLISHED')",[child,category]);
+  assert.equal(await check(review),false);
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_worker_capabilities')).rows[0].n,0);
+});
+
 function repeat(char, n) {
   return char.repeat(n);
 }
