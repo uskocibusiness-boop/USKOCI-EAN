@@ -2,6 +2,10 @@
 
 Ovo je ulaz za nastavak, ne novi plan. Jedini izvršni master ostaje [CODEX_PLAN_RADA.md](../plan/CODEX_PLAN_RADA.md), a jedini proizvodni autoritet [USKOCI_PRODUCT_UX_MASTER.md](../product/USKOCI_PRODUCT_UX_MASTER.md). **Aktuelni prenos: 03.11.2026, za čet sa pristupom samo GitHubu.** Istorijski ulazi od 28–30.10. ostaju ispod; njihove početne komande i statusi ne zamenjuju ovaj checkpoint.
 
+## Noviji DEV transport — 03.11.2026, C10_PAIRED_EDGE_DEV_165_117
+
+**C10_PAIRED_EDGE_DEV_165_117 / 03.11.2026 15:26 UTC:** oba kompletna interview Edge paketa prebačena na DEV `leqcwgzvjsxugfgzdmth` iz source-a `f4a8048`: Need **164→165**, Worker **116→117**, sa punim post-deploy readback-om **18/18 fajlova po funkciji identičnih pripremljenom paketu**. Zatečeni verify_jwt=false i handler Auth očuvani; bez SQL/ACL, kvota, tajni, produkcije ili plaćenog Gemini poziva. Ovaj dokaz NE potvrđuje validan korisnički AI tok, Save/Publish, dvokorisnički E2E ili Android. R01 privatni Need SELECT ostaje otvoren. Receipt: `supabase/operations/dev-alpha/r04-single-pass-20261103/c10-edge-delivery-20261103.json`.
+
 ## Noviji source/proof presek — 03.11.2026, posle prenosa ispod
 
 **Kasniji C10 source nastavak:** polazni HEAD06d6dd637; povučeni neaktivni `classificationExplorer`/`taxonomyScopedShadow`, tri retired-only testa i suvišni loader importi. Postojeća single-pass konfiguracija ima jedan interni gate, sa **istim** deployment ključem `USKOCI_TAXONOMY_DUAL_GEMINI` i očuvanim default-OFF/DEV/project/paid uslovima. Lokalno515 PASS/0FAIL/1postojećiTODO; pinned CI/commit receipt proveriti posebno. Detalji i tačne granice u istom masteru §11.2a i [C10 dokazu](../../supabase/proofs/ai/c10_intake_cleanup.md). Nema novog DEV/Edge/APK/modela; preostali C10 proof/rollout nije DONE. Ne vraćati explorer zbog starog audita. Prethodni glavni CI41640502000 na06d6dd637 je SUCCESS; R0141640502092 je FAILURE, a ne tekući run.
