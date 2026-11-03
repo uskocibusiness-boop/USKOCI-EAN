@@ -1,194 +1,36 @@
-name: USKOCI clean branch checks
+name: USKOCI pinned source transfer
 
 on:
   push:
-    branches: [feature/uskoci-cisto]
-  pull_request:
-    branches: [feature/uskoci-cisto]
-  workflow_dispatch:
+    branches: [work/source-transfer-690671f-20261103]
 
 permissions:
   contents: read
 
-concurrency:
-  group: uskoci-clean-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  r04-first-plan-concurrency:
+  export-pinned-source:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: 690671f63d7d2d6654ab451b1340045e6034fbd8
           persist-credentials: false
-      - uses: actions/setup-node@v4
+          fetch-depth: 1
+      - name: Export tracked source only without credentials or execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "690671f63d7d2d6654ab451b1340045e6034fbd8"
+          mkdir -p "$RUNNER_TEMP/uskoci-source"
+          git archive --format=tar.gz --prefix=USKOCI-EAN/ HEAD > "$RUNNER_TEMP/uskoci-source/source-690671f.tar.gz"
+          git ls-tree -r HEAD > "$RUNNER_TEMP/uskoci-source/git-tree-690671f.txt"
+          cd "$RUNNER_TEMP/uskoci-source"
+          sha256sum source-690671f.tar.gz git-tree-690671f.txt > SHA256SUMS
+      - uses: actions/upload-artifact@v4
         with:
-          node-version: '24'
-          cache: npm
-      - name: Install exact proof dependencies
-        run: npm ci
-      - name: R04 first-plan competing transactions and closure locks (disposable PG17 only)
-        run: node supabase/proofs/ai/run_first_plan_concurrency.mjs
-      - name: Retain bounded concurrency evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: r04-first-plan-native-proof
-          path: artifacts/r04-first-plan-native/
-          if-no-files-found: warn
-          retention-days: 14
-  r05-postgis-candidates:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-      - name: Install exact proof dependencies
-        run: npm ci
-      - name: R05 real PostGIS saved-area retrieval and index plans (disposable only)
-        run: node supabase/proofs/r05/run_saved_area_postgis_proof.mjs
-      - name: Retain bounded PostGIS evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: r05-postgis-saved-area-proof
-          path: artifacts/r05-postgis/
-          if-no-files-found: warn
-          retention-days: 14
-  source-and-contracts:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          # Historical DEV packages must still verify their immutable source
-          # after runtime files evolve. A depth-1 checkout has no pinned commit.
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
-        with:
-          deno-version: v2.5.6
-      - name: Install exact dependencies and verify native patch
-        run: npm ci
-      - name: R01 future public default ACL boundary (isolated PostgreSQL only)
-        run: node --test --test-reporter=spec supabase/proofs/privacy/r01_future_public_default_grants.test.mjs
-      - name: R01 existing nonrow public ACL boundary (isolated PostgreSQL only)
-        run: node --test --test-reporter=spec supabase/proofs/privacy/r01_existing_public_nonrow_privileges.test.mjs
-      - name: R01 PHONE closure against current SQL definitions (isolated only)
-        run: node --test --test-reporter=spec supabase/proofs/privacy/r01_phone_messages_only_current.test.mjs
-      - name: R01 DEV zero-row probe safety contracts (offline only)
-        run: node --test --test-reporter=spec supabase/proofs/privacy/r01-dev-column-probe.test.mjs
-      - name: AI handler preflight (fast failure before full AI matrix)
-        run: |
-          # Compile and exercise the exact current NEED and WORKER handlers.
-          # Keep real unit tests, not a source regex or a skipped assertion.
-          # A failed import or early provider gate must not occupy a 30-minute
-          # full matrix and hide the first useful stack trace.
-          node --test --test-reporter=spec --test-name-pattern='provider refusal fails the owned attempt' supabase/proofs/ai/ai_edge_context.test.mjs
-          # Current one-response contract: atomic completion replaces detached
-          # second-model capture. Keep failure/recovery checks executable.
-          node --test --test-reporter=spec supabase/proofs/ai/single_pass_edge.test.mjs supabase/proofs/ai/complete_first_plan_transport.test.mjs
-          node --test --test-reporter=spec --test-name-pattern='verified Auth identity and owned context' supabase/proofs/ai/owned_intake_edge.test.mjs
-          node --test --test-reporter=spec --test-name-pattern='worker streaming provider has one count-only latency phase' supabase/proofs/ai/v5_worker_edge.test.mjs
-      - name: TypeScript
-        run: npx tsc --noEmit
-      - name: Deno non-npm Edge type checks (11 main functions; no execution)
-        run: |
-          deno check --no-config --no-lock --no-npm --no-remote \
-            supabase/functions/uskoci-account-closure-worker/index.ts \
-            supabase/functions/uskoci-ai-interview/index.ts \
-            supabase/functions/uskoci-data-export-download/index.ts \
-            supabase/functions/uskoci-data-export-worker/index.ts \
-            supabase/functions/uskoci-location-search/index.ts \
-            supabase/functions/uskoci-publication-evaluate/index.ts \
-            supabase/functions/uskoci-push-transport/index.ts \
-            supabase/functions/uskoci-qa-classify/index.ts \
-            supabase/functions/uskoci-speech-session/index.ts \
-            supabase/functions/uskoci-taxonomy-postsave-worker/index.ts \
-            supabase/functions/uskoci-worker-interview/index.ts
-      - name: Deno pinned npm Media Edge type check (12th main function; no execution)
-        run: deno check --no-config --no-lock --no-remote --node-modules-dir=none supabase/functions/uskoci-media/index.ts
-      - name: R04 semantic SQL isolation and signed publication fence (no DEV write)
-        run: |
-          node --test --test-reporter=spec supabase/proofs/ai/r04_semantic_review_pending.test.mjs supabase/proofs/ai/r04_signed_taxonomy_publish_fence.test.mjs
-          node --test --test-reporter=spec supabase/proofs/ai/single_pass_continuity.test.mjs supabase/proofs/ai/r06_first_plan_completion.test.mjs supabase/proofs/ai/r04_single_pass_readers.test.mjs
-          node --test --test-reporter=spec supabase/proofs/ai/r04_first_plan_lifecycle.test.mjs supabase/proofs/ai/r04_first_plan_runner.test.mjs
-          node supabase/operations/dev-alpha/r04-single-pass-20261103/build.mjs --check
-          node supabase/operations/dev-alpha/r04-single-pass-20261103/edge-package.mjs --check
-          node supabase/operations/dev-alpha/r08-application-service-20261103/build.mjs --check
-          node supabase/operations/dev-alpha/task-ai-deadline-20261103/build.mjs --check
-      - name: Reviewed DEV package derivation, acceptance and rollback (isolated only)
-        run: |
-          node --test --test-reporter=spec supabase/operations/dev-alpha/r04-semantic-admission-20261101/closure-postimage.test.mjs
-          node --test --test-reporter=spec supabase/operations/dev-alpha/r08-remote-only-20261101/package.test.mjs supabase/operations/dev-alpha/r08-remote-only-20261101/acceptance.test.mjs supabase/operations/dev-alpha/f10-saved-services-20261101/package.test.mjs supabase/operations/dev-alpha/edge-ai-20261101/package.test.mjs supabase/operations/dev-alpha/edge-ai-20261101/probe.test.mjs supabase/operations/dev-alpha/r03-owner-page-20261101/package.test.mjs supabase/operations/dev-alpha/r07-application-attention-20261101/package.test.mjs supabase/operations/dev-alpha/r04-semantic-admission-20261101/package.test.mjs
-      - name: Isolate-local media upload admission FIFO and cancellation
-        run: node --test --test-reporter=spec supabase/proofs/media/mediaUploadAdmission.test.mjs
-      - name: Mobile unit and contract tests
-        run: npm test -- --maxWorkers=2 --silent
-      - name: Optional profile skill SDK and SQL comparison
-        run: node --test scripts/f13-skill-cas.test.mjs
-      - name: Hourly application and Agreement SQL chain
-        run: |
-          python supabase/proofs/ai/generate_hourly_candidate.py --check
-          node --test scripts/r07b-hourly-chain.test.mjs
-      - name: R03 guarded page source only (no SQL execution)
-        run: |
-          python supabase/proofs/ex04/build_r03_existing_helper.py --check
-          python -m unittest discover -s supabase/proofs/ex04 -p 'test_r03_*.py'
-      - name: R10/R12 closure roster source checks (no DB execution)
-        run: node --test supabase/proofs/ex04/r03-closure-roster.test.mjs
-      - name: R07/R10 price history and saved work areas export (isolated PostgreSQL; no DEV write)
-        run: node --test --test-concurrency=1 --test-reporter=spec supabase/proofs/legal/r07-price-export.test.mjs supabase/proofs/legal/r10-work-areas-export.test.mjs
-      - name: R05 guarded TODAY source and synthetic PostgreSQL day windows
-        run: |
-          python supabase/proofs/r05/build_today_candidate.py --check
-          python -m unittest discover -s supabase/proofs/r05 -p 'test_*.py'
-          node --test supabase/proofs/r05/today_window.test.mjs
-      - name: R11b blind review publication (isolated PGlite; no DEV write)
-        run: node --test --test-reporter=spec supabase/proofs/ai/r11b_blind_review_publication.test.mjs
-      - name: AI intake and taxonomy contracts
-        run: |
-          node --test --test-reporter=spec supabase/proofs/policy/publication_evaluator_edge.test.mjs
-          node --test --test-reporter=spec supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
-          node --test --test-reporter=spec supabase/proofs/dynamic_taxonomy/provider-shadow-validator.test.mjs
-          node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --offline
-          node --test --test-concurrency=2 --test-reporter=spec supabase/proofs/ai/*.test.mjs
-          node --test --test-reporter=dot \
-            supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs \
-            supabase/proofs/taxonomy/published_need_category_gate.test.mjs \
-            supabase/proofs/taxonomy/live_writer_characterization.test.mjs \
-            supabase/proofs/dynamic_taxonomy/classification-active-review.test.mjs \
-            supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs \
-            supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs
-          node --test --test-reporter=dot \
-            supabase/proofs/dynamic_taxonomy/classification-gemini-shadow.test.mjs \
-            supabase/proofs/dynamic_taxonomy/service-handoff.test.mjs \
-            supabase/proofs/dynamic_taxonomy/worker-existing-identity-recovery.test.mjs \
-            supabase/proofs/dynamic_taxonomy/classification-direct-reply.test.mjs \
-            supabase/proofs/dynamic_taxonomy/classification-verified-alias.test.mjs \
-            supabase/proofs/dynamic_taxonomy/classification-turn-feedback.test.mjs \
-            supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs
-      - name: Migration source integrity
-        run: |
-          python supabase/migrations/check_migration_integrity.py
-          python -m unittest discover -s supabase/migrations -p test_migration_integrity.py
-      - name: Need column privacy boundary (isolated SQL)
-        run: |
-          node --test supabase/proofs/privacy/runtime/native-net-invoker.test.mjs supabase/proofs/privacy/runtime/native-net-invoker-sql.test.mjs
-          node --test supabase/proofs/privacy/runtime/extension-provenance.test.mjs supabase/proofs/privacy/runtime/extension-provenance-sql.test.mjs
-          node supabase/proofs/privacy/r01-column-boundary.test.mjs
-          node supabase/proofs/privacy/r01-bootstrap-parity.test.mjs
-          python -B -m unittest discover -s supabase/proofs/privacy/bootstrap -p 'test_*.py'
+          name: pinned-source-690671f
+          path: ${{ runner.temp }}/uskoci-source/
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
