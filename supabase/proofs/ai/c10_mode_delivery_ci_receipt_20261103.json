@@ -1,0 +1,75 @@
+{
+  "scope": "C10_R04_R08_TARGETED_SOURCE",
+  "runId": "41657216084",
+  "runSource": "14a493ecaeb9560cf5581f6c234073d2252c8041",
+  "results": {
+    "intake": {
+      "tests": 189,
+      "pass": 189,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "context": {
+      "tests": 175,
+      "pass": 174,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 1
+    },
+    "catalog": {
+      "tests": 93,
+      "pass": 93,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "continuity": {
+      "tests": 104,
+      "pass": 104,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  },
+  "typescript": "PASS",
+  "denoTwoHandlers": "PASS",
+  "frozenHistoricalPackage": "PASS",
+  "files": {
+    "docs/continuation/NASTAVAK_RADA.md": "03013f23f4de3c218118f18c91d994f365cf0f7c39592cbe2bd6ff6e74c9a590",
+    "docs/plan/CODEX_PLAN_RADA.md": "1419ab8239cfd1bd83c6e396d136db6e80a292659b7a09423112a079f5e51eb9",
+    "supabase/functions/_shared/classificationExplorer.d.mts": null,
+    "supabase/functions/_shared/classificationExplorer.mjs": null,
+    "supabase/functions/_shared/taxonomyRuntimeConfig.mjs": "bd9b146ec53e3e7659d8294cdfac4eac77b4f965ece7c7ee60cd63b111f5a4b0",
+    "supabase/functions/_shared/taxonomyScopedShadow.mjs": null,
+    "supabase/functions/uskoci-ai-interview/index.ts": "1e1cb8728aa59ea23bc0364fc784c74a681087c185b7b732157c7ca1f4db6d0d",
+    "supabase/functions/uskoci-worker-interview/index.ts": "f6bfac725061c0e22904025612d5fc1008e8359023b69e2201f5d310c37b1163",
+    "supabase/proofs/ai/ai_edge_context.test.mjs": "41d0957c7a1d3ea2200a1a86714c78945b155958824c99d5b4ee0d1fc3531dab",
+    "supabase/proofs/ai/c10_intake_cleanup.md": "7729add259c498c69ea498c854b6f56394c1d83f1c990b605e22f76d1f66fdde",
+    "supabase/proofs/ai/intake_module_boundary.test.mjs": "147077cb30e8ac8e2015f8153f5a1290b6ff1dc16da1e808a3e908f8e9c6f75c",
+    "supabase/proofs/ai/owned_intake_edge_runtime.mjs": "da0e651aa667ecc41e695573edf570135fcea377b2228688be75ae472348604c",
+    "supabase/proofs/ai/taxonomy_runtime_config.test.mjs": "3b07ed7e97ea54ec90801b1e3214860a582c579af73fcb1320938f97cfd5423d",
+    "supabase/proofs/ai/v5_worker_edge.test.mjs": "ea3b5ebb6c1be974d2ce3e219b5bfca3c3266eacf42c5cf31061ecd53b03969b",
+    "supabase/proofs/ai/worker_recovery_edge_runtime.mjs": "c799858211c372a374be4a1d2113d17a3c4065f50e4d9e70f4714942b1364a5d",
+    "supabase/proofs/dynamic_taxonomy/classification-explorer.test.mjs": null,
+    "supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs": "28f1303c833b7215bdfbf0e18a6b485e008a43225fab3904d67602a3bc90fe0f",
+    "supabase/proofs/dynamic_taxonomy/taxonomy-scoped-shadow.test.mjs": null,
+    "supabase/proofs/dynamic_taxonomy/unified-classification-source.test.mjs": null,
+    "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs": "1c02bec804686f6beec95e421f97076e9a3d01a7c10d6b9848d74321bd72f79b",
+    "supabase/functions/_shared/workerServiceModeContext.mjs": "377c26c6976deee720e34479eb3afa5f46f4153416d58601efe5d5e2115f4610",
+    "supabase/operations/dev-alpha/r04-single-pass-20261103/edge-package.mjs": "4b0f00ea27a25e6cc57522c106e9d85d97bcbe9a0a27218f79aaaab957eee8f1",
+    "supabase/proofs/ai/frozen_single_pass_package.test.mjs": "0fb9386f08a90019c559ccd2e5c5746ec7f911a471915407e3029b6f4f996e8a",
+    "supabase/proofs/ai/worker_mode_declarations.test.mjs": "2d90586057491f78432e904809caa87634313da3dfad073ad0bd6482f5758197",
+    "supabase/proofs/ai/worker_mode_declarations_README.md": "3be1119f032039a14d7ee098d22712a9cad5a33d0c050f6518ec2cf6986f0e5f"
+  },
+  "limitations": [
+    "synthetic provider and Auth",
+    "not full CI or DEV deployment",
+    "no native acceptance"
+  ],
+  "devCredentialAvailable": false
+}

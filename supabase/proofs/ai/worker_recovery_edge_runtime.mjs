@@ -31,33 +31,13 @@ export function loadWorkerRecoveryHandler(options){
  });
  const classification=evaluate('supabase/functions/_shared/classificationEngine.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_IMPORT'));
  const handoff=evaluate('supabase/functions/_shared/serviceHandoff.mjs',()=>assert.fail('UNDECLARED_HANDOFF_IMPORT'));
- const directReply=evaluate('supabase/functions/_shared/classificationDirectReply.mjs',name=>{
-  if(name==='./serviceHandoff.mjs')return handoff;
-  assert.equal(name,'./classificationEngine.mjs');return classification;
- });
  const execution=evaluate('supabase/functions/_shared/serviceExecutionInstruction.mjs',()=>assert.fail('UNDECLARED_EXECUTION_IMPORT'));
-  const classificationShadow=evaluate('supabase/functions/_shared/classificationGeminiShadow.mjs',name=>{
-  if(name==='./serviceHandoff.mjs')return handoff;
-  assert.equal(name,'./classificationEngine.mjs');return classification;
-  });
  const serviceModes=evaluate('supabase/functions/_shared/workerServiceModeContext.mjs',name=>{
   if(name==='./serviceHandoff.mjs')return handoff;
   assert.equal(name,'./classificationEngine.mjs');return classification;
  });
- const classificationReply=evaluate('supabase/functions/_shared/classificationReply.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_REPLY_IMPORT'));
- const explorer=evaluate('supabase/functions/_shared/classificationExplorer.mjs',name=>{
-  assert.equal(name,'./classificationEngine.mjs');return classification;
- });
  const voice=evaluate('supabase/functions/_shared/interviewVoiceInstruction.mjs',()=>assert.fail('UNDECLARED_SHARED_IMPORT'));
  const timing=evaluate('supabase/functions/_shared/aiPhaseTiming.mjs',()=>assert.fail('UNDECLARED_SHARED_IMPORT'));
- const toolConversation=evaluate('supabase/functions/_shared/geminiToolConversation.ts',name=>{
-  if(name==='./aiPhaseTiming.mjs')return timing;
-  assert.equal(name,'./geminiTaskStream.ts');return stream;
- });
- const providerBudget=evaluate('supabase/functions/_shared/taxonomyProviderBudget.ts',name=>{
-  if(name==='./geminiTaskStream.ts')return stream;
-  assert.equal(name,'./aiTestBudget.ts');return budget;
- });
  const researchDeadline=evaluate('supabase/functions/_shared/researchDeadline.ts',()=>assert.fail('UNDECLARED_DEADLINE_IMPORT'));
  const taxonomyConfig=evaluate('supabase/functions/_shared/taxonomyRuntimeConfig.mjs',()=>assert.fail('UNDECLARED_TAXONOMY_CONFIG_IMPORT'));
  const areaAdmission=evaluate('supabase/functions/_shared/workerAreaAdmission.mjs',()=>assert.fail('UNDECLARED_AREA_IMPORT'));
@@ -71,10 +51,7 @@ export function loadWorkerRecoveryHandler(options){
  const firstPlan=evaluate('supabase/functions/_shared/completeFirstPlan.ts',()=>assert.fail('UNDECLARED_FIRST_PLAN_IMPORT'));
  const singlePass=evaluate('supabase/functions/_shared/singlePassTaxonomy.mjs',name=>{assert.equal(name,'./backgroundTaxonomyArchitect.mjs');return backgroundArchitect;});
  const imports={'../../../src/contracts/workerAreas.ts':workerAreas,'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,'../../../src/contracts/aiAvailability.ts':availability,
-  '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply,
-  '../_shared/classificationDirectReply.mjs':directReply,
-  '../_shared/workerServiceModeContext.mjs':serviceModes,'../_shared/classificationExplorer.mjs':explorer,
-  '../_shared/geminiToolConversation.ts':toolConversation,'../_shared/taxonomyProviderBudget.ts':providerBudget,
+  '../_shared/workerServiceModeContext.mjs':serviceModes,
   '../_shared/researchDeadline.ts':researchDeadline,'../_shared/taxonomyRuntimeConfig.mjs':taxonomyConfig,
   '../_shared/interviewVoiceInstruction.mjs':voice,'../_shared/aiPhaseTiming.mjs':timing,'../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution,
   '../_shared/workerAreaAdmission.mjs':areaAdmission,'../_shared/workerAreaResolver.mjs':areaResolver,

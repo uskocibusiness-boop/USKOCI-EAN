@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {singlePassFixture} from '../ai/single_pass_edge_fixture.mjs';
-import {taxonomyDualGeminiEnabled} from '../../functions/_shared/taxonomyRuntimeConfig.mjs';
+import {taxonomyIntakeEnabled} from '../../functions/_shared/taxonomyRuntimeConfig.mjs';
 const worker=readFileSync(new URL('../../functions/uskoci-worker-interview/index.ts',import.meta.url),'utf8');
 const need=readFileSync(new URL('../../functions/uskoci-ai-interview/index.ts',import.meta.url),'utf8');
 const fixtures={};
@@ -66,14 +66,14 @@ test('hint capture candidate is service-only, private, versioned and has no admi
 test('single-response rollout retains explicit default-OFF and project-bound server config',()=>{
  const env={USKOCI_TAXONOMY_DUAL_GEMINI:'true',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',SUPABASE_ANON_KEY:'synthetic',
   USKOCI_TAXONOMY_ROLLOUT_SCOPE:'DEV',USKOCI_TAXONOMY_ALLOWED_PROJECT_REF:'a'.repeat(20),SUPABASE_URL:'https://'+'a'.repeat(20)+'.supabase.co'};
- assert.equal(taxonomyDualGeminiEnabled(key=>env[key]),true);
+ assert.equal(taxonomyIntakeEnabled(key=>env[key]),true);
  for(const key of Object.keys(env)){
   const incomplete={...env};delete incomplete[key];
-  assert.equal(taxonomyDualGeminiEnabled(name=>incomplete[name]),false,'missing '+key);
+  assert.equal(taxonomyIntakeEnabled(name=>incomplete[name]),false,'missing '+key);
  }
- assert.equal(taxonomyDualGeminiEnabled(key=>({...env,SUPABASE_URL:'https://'+'b'.repeat(20)+'.supabase.co'})[key]),false);
+ assert.equal(taxonomyIntakeEnabled(key=>({...env,SUPABASE_URL:'https://'+'b'.repeat(20)+'.supabase.co'})[key]),false);
  for(const source of [worker,need]){
-  assert.match(source,/taxonomyDualGeminiEnabled as taxonomyIntakeEnabled/);
+  assert.match(source,/taxonomyIntakeEnabled/);
   assert.match(source,/taxonomyIntakeEnabled\(\(key:string\)=>Deno.env.get\(key\)\)/);
   assert.doesNotMatch(source,/https:\/\/leqcwgzvjsxugfgzdmth\.supabase\.co/);
  }

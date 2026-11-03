@@ -51,26 +51,45 @@ export function workerServiceModeInstruction(context, includeContext = true, inc
 /** Quote checks bind a model proposal to owned USER text, not semantic proof of consent.
  * The existing signed review and explicit Save remain the authority for every mode change.
  */
-export function workerModeRequests(serviceModeChangesJson, context, offered) {
+export function inspectWorkerModeRequests(serviceModeChangesJson, context, offered) {
   const userTexts = context.messages.filter(row => row.role === 'USER' && typeof row.body === 'string').map(row => row.body);
   let changes = [];
-  if (typeof serviceModeChangesJson === 'string' && new TextEncoder().encode(serviceModeChangesJson).byteLength <= 12288) {
-    try { const value = JSON.parse(serviceModeChangesJson); if (Array.isArray(value) && value.length <= 12) changes = value; } catch { /* Keep previous choices. */ }
+  // Parse once for both accepted requests and rejected declarations. An invalid
+  // declaration must not disappear and look like an unrelated profile edit.
+  if (typeof serviceModeChangesJson === 'string' && serviceModeChangesJson.trim() !== '') {
+    if (new TextEncoder().encode(serviceModeChangesJson).byteLength > 12288)
+      return { requests: new Map(), invalidServices: new Set(offered.keys()) };
+    try {
+      const value = JSON.parse(serviceModeChangesJson);
+      if (!Array.isArray(value) || value.length > 12)
+        return { requests: new Map(), invalidServices: new Set(offered.keys()) };
+      changes = value;
+    } catch {
+      return { requests: new Map(), invalidServices: new Set(offered.keys()) };
+    }
   }
-  const requests = new Map(), duplicates = new Set();
+  const requests = new Map(), declared = new Set();
   for (const change of changes) {
     const key = normalizedClassificationIdentity(change?.service);
-    if (!exact(change, ['service', 'modes', 'evidence', ...(Object.hasOwn(change??{}, 'handoff') ? ['handoff'] : [])]) || !label(change.service) || !offered.has(key)
+    if (!key || !offered.has(key)) continue;
+    // Count BEFORE validating the row: a valid row plus a malformed duplicate
+    // is still ambiguous. Keep the key poisoned for every later occurrence.
+    if (declared.has(key)) { requests.delete(key); continue; }
+    declared.add(key);
+    if (!exact(change, ['service', 'modes', 'evidence', ...(Object.hasOwn(change??{}, 'handoff') ? ['handoff'] : [])]) || !label(change.service)
         || !Array.isArray(change.modes) || change.modes.length < 1 || change.modes.length > 2
         || !change.modes.every(mode) || new Set(change.modes).size !== change.modes.length
         || (Object.hasOwn(change, 'handoff') && (!change.modes.includes('REMOTE') || !decodeServiceHandoff(change.handoff)))
         || typeof change.evidence !== 'string' || change.evidence.trim().length < 6 || change.evidence.length > 1000
         || !userTexts.some(body => body.includes(change.evidence))) continue;
-    if (requests.has(key)) duplicates.add(key);
     requests.set(key, change);
   }
-  for (const key of duplicates) requests.delete(key);
-  return requests;
+  return { requests, invalidServices: new Set([...declared].filter(key => !requests.has(key))) };
+}
+
+// Retain the existing Map API for supported preservation/recovery callers.
+export function workerModeRequests(serviceModeChangesJson, context, offered) {
+  return inspectWorkerModeRequests(serviceModeChangesJson, context, offered).requests;
 }
 
 /** Recover only a wrong CREATE action for an already-existing exact identity.

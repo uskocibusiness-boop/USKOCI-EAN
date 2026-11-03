@@ -4,7 +4,7 @@
 
 import { normalizedClassificationIdentity } from './classificationEngine.mjs';
 import { decodeServiceHandoff } from './serviceHandoff.mjs';
-import { workerModeRequests } from './workerServiceModeContext.mjs';
+import { inspectWorkerModeRequests } from './workerServiceModeContext.mjs';
 
 // Bounded same-isolate hints/fences, never a substitute for the SQL lifecycle.
 // One map slot per conversation/revision, including pending/consumed markers.
@@ -674,22 +674,9 @@ export async function buildWorkerFullTreeTaxonomyProposals({
   const drafted = new Set(draftModes.map(item => normalizedClassificationIdentity(item?.service)));
   const priorModes = [...savedModes.filter(item => !drafted.has(normalizedClassificationIdentity(item?.service))), ...draftModes];
   const ownedMessages = Array.isArray(messages) ? messages : [];
-  const requests = workerModeRequests(serviceModeChangesJson, { messages: ownedMessages },
+  const { requests, invalidServices: invalidChanges } = inspectWorkerModeRequests(
+    serviceModeChangesJson, { messages: ownedMessages },
     new Map(cleanSkills.map(service => [normalizedClassificationIdentity(service), service])));
-  let declaredChanges = [];
-  let malformedChanges = false;
-  if (typeof serviceModeChangesJson === 'string' && serviceModeChangesJson.trim() !== '') {
-    try {
-      const parsed = JSON.parse(serviceModeChangesJson);
-      if (Array.isArray(parsed) && parsed.length <= 12) declaredChanges = parsed;
-      else malformedChanges = true;
-    } catch { malformedChanges = true; }
-  }
-  const invalidChanges = new Set(cleanSkills.filter(service => {
-    const norm = normalizedClassificationIdentity(service);
-    return malformedChanges || !requests.has(norm)
-      && declaredChanges.some(change => normalizedClassificationIdentity(change?.service) === norm);
-  }).map(normalizedClassificationIdentity));
 
   const savedEntriesValid = entries => entries.length > 0
     && new Set(entries.map(entry => entry.categoryId)).size === 1

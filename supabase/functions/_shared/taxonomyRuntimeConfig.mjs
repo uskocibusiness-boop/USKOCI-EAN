@@ -1,7 +1,6 @@
 /**
- * One server-only owner of optional taxonomy AI rollout flags (A30-D04/D05).
- * All optional capabilities are default OFF, including on DEV. Explicit false
- * and missing config both close them. The historical DUAL_GEMINI key now gates
+ * Single-pass intake admission (A30-D04/D05, C10). Missing/false config is
+ * default OFF, including on DEV. The historical DUAL_GEMINI key still gates
  * the single-response intake and still needs verified DEV scope/paid admission.
  * The key is retained for rollout compatibility, not a second provider call.
  *
@@ -9,11 +8,7 @@
  * current reservation, durable turn and usage fences. No URL, ref or secret is
  * embedded in the source and no request/client input can enable a feature.
  */
-const OPTIONAL = new Set(['USKOCI_TAXONOMY_DIRECT_REPLY','USKOCI_TAXONOMY_UNIFIED_SHADOW','USKOCI_TAXONOMY_SHADOW_CAPTURE']);
-export function taxonomyOptionalEnabled(get, name) {
-  return typeof get === 'function' && OPTIONAL.has(name) && get(name) === 'true';
-}
-export function taxonomyDualGeminiEnabled(get) {
+export function taxonomyIntakeEnabled(get) {
   if (typeof get !== 'function' || get('USKOCI_TAXONOMY_DUAL_GEMINI') !== 'true'
     || get('USKOCI_GEMINI_PAID_TEST_ENABLED') !== 'true'
     || !get('SUPABASE_ANON_KEY') || get('USKOCI_TAXONOMY_ROLLOUT_SCOPE') !== 'DEV') return false;

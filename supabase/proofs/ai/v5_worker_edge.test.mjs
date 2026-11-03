@@ -196,12 +196,10 @@ test('recovery proof loader binds the current complete worker bundle without net
  const loaded=loadWorkerRecoveryHandler({fetch:()=>assert.fail('NETWORK_NOT_ALLOWED'),env:()=>''});
  assert.deepEqual(Object.keys(loaded.sourceHashes).sort(),['src/contracts/workerAreas.ts','supabase/functions/_shared/completeFirstPlan.ts','supabase/functions/_shared/singlePassTaxonomy.mjs','supabase/functions/_shared/interviewVoiceInstruction.mjs','supabase/functions/_shared/aiPhaseTiming.mjs','src/contracts/aiAvailability.ts','supabase/functions/_shared/aiTestBudget.ts',
   'supabase/functions/_shared/geminiTaskStream.ts','supabase/functions/uskoci-worker-interview/index.ts',
-  'supabase/functions/_shared/classificationEngine.mjs','supabase/functions/_shared/classificationGeminiShadow.mjs',
-  'supabase/functions/_shared/classificationDirectReply.mjs',
-  'supabase/functions/_shared/workerServiceModeContext.mjs','supabase/functions/_shared/classificationReply.mjs',
-  'supabase/functions/_shared/classificationExplorer.mjs','supabase/functions/_shared/geminiToolConversation.ts',
+  'supabase/functions/_shared/classificationEngine.mjs',
+  'supabase/functions/_shared/workerServiceModeContext.mjs',
   'supabase/functions/_shared/serviceHandoff.mjs','supabase/functions/_shared/serviceExecutionInstruction.mjs',
-  'supabase/functions/_shared/taxonomyProviderBudget.ts','supabase/functions/_shared/researchDeadline.ts',
+  'supabase/functions/_shared/researchDeadline.ts',
   'supabase/functions/_shared/workerAreaAdmission.mjs','supabase/functions/_shared/workerAreaResolver.mjs',
   'supabase/functions/_shared/backgroundTaxonomyArchitect.mjs',
   'supabase/functions/_shared/taxonomyRuntimeConfig.mjs'].sort());

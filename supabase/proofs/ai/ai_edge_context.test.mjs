@@ -78,14 +78,11 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
   const cache=new Map();
   function load(file){
     assert.ok([entry,registry,resolve(root,'supabase/functions/_shared/singlePassTaxonomy.mjs'),resolve(root,'supabase/functions/_shared/completeFirstPlan.ts'),resolve(root,'supabase/functions/_shared/interviewVoiceInstruction.mjs'),resolve(root,'supabase/functions/_shared/aiPhaseTiming.mjs'),resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),resolve(root,'supabase/functions/_shared/geminiTaskStream.ts'),
-      resolve(root,'supabase/functions/_shared/geminiToolConversation.ts'),resolve(root,'supabase/functions/_shared/taxonomyProviderBudget.ts'),
-      resolve(root,'supabase/functions/_shared/researchDeadline.ts'),resolve(root,'supabase/functions/_shared/classificationExplorer.mjs'),
+      resolve(root,'supabase/functions/_shared/researchDeadline.ts'),
       resolve(root,'supabase/functions/_shared/serviceHandoff.mjs'),resolve(root,'supabase/functions/_shared/serviceExecutionInstruction.mjs'),
       resolve(root,'supabase/functions/_shared/workerServiceModeContext.mjs'),
-      resolve(root,'supabase/functions/_shared/classificationDirectReply.mjs'),
       resolve(root,'src/contracts/aiAvailability.ts'),resolve(root,'src/contracts/taskApplicationDeadline.ts'),resolve(root,'src/contracts/needFactsV2.ts'),resolve(root,'supabase/functions/_shared/locationReply.ts'),
-      resolve(root,'supabase/functions/_shared/taxonomyScopedShadow.mjs'),resolve(root,'supabase/functions/_shared/classificationEngine.mjs'),
-      resolve(root,'supabase/functions/_shared/classificationGeminiShadow.mjs'),resolve(root,'supabase/functions/_shared/classificationReply.mjs'),
+      resolve(root,'supabase/functions/_shared/classificationEngine.mjs'),
       resolve(root,'supabase/functions/_shared/backgroundTaxonomyArchitect.mjs'),
       resolve(root,'supabase/functions/_shared/taxonomyRuntimeConfig.mjs')].includes(file),'test loader may evaluate only exact source entry/shared helpers');
     if(cache.has(file))return cache.get(file).exports;

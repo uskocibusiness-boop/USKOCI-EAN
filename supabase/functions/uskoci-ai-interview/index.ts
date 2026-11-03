@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
-import { taxonomyDualGeminiEnabled as taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
+import { taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../../../src/contracts/aiAvailability.ts';
 // USKOCI server-side AI intake boundary.

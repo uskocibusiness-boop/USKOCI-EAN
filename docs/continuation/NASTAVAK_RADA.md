@@ -4,6 +4,9 @@ Ovo je ulaz za nastavak, ne novi plan. Jedini izvršni master ostaje [CODEX_PLAN
 
 ## Noviji source/proof presek — 03.11.2026, posle prenosa ispod
 
+**Kasniji C10 source nastavak:** polazni HEAD06d6dd637; povučeni neaktivni `classificationExplorer`/`taxonomyScopedShadow`, tri retired-only testa i suvišni loader importi. Postojeća single-pass konfiguracija ima jedan interni gate, sa **istim** deployment ključem `USKOCI_TAXONOMY_DUAL_GEMINI` i očuvanim default-OFF/DEV/project/paid uslovima. Lokalno515 PASS/0FAIL/1postojećiTODO; pinned CI/commit receipt proveriti posebno. Detalji i tačne granice u istom masteru §11.2a i [C10 dokazu](../../supabase/proofs/ai/c10_intake_cleanup.md). Nema novog DEV/Edge/APK/modela; preostali C10 proof/rollout nije DONE. Ne vraćati explorer zbog starog audita. Prethodni glavni CI41640502000 na06d6dd637 je SUCCESS; R0141640502092 je FAILURE, a ne tekući run.
+
+
 Polazni HEAD ovog nastavka je `79ecdb1b90658dd642c28fd6cbe83463315dd232`, grana i Draft PR43 ostaju isti. Noviji R07 current hourly rad (`95d7b97f`) već je na GitHubu i **ne sme se ponovo implementirati iz starog kandidata**. Uski [R07 CI41620795789](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41620795789) je SUCCESS, 57 provera. Glavni [CI41621580803](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41621580803) pao je na jednom mobilnom testu zavisnom od promene minuta; njegovih 14.587 PASS nije puni zeleni CI. Odvojeni [R0141621580853](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41621580853) i dalje je FAILURE/STRICT_PARITY, 8/49/3.
 
 U ovom nastavku postoje GitHub write, terminal i direktan DEV metadata read pristup; sledeći čet mora ponovo proveriti svoje alate. **Nije bilo DEV upisa.** Završena je sledeća ograničena source celina:

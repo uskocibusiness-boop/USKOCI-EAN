@@ -1,4 +1,7 @@
 # USKOČI — jedinstveni plan dovršavanja proizvoda i objavljivanja
+> **SOURCE/CI isporuka C10 + R04/R08, 03.11.2026:** ciljani GitHub run 41657216084 potvrđuje 560 PASS, 0 FAIL/0 SKIP, 1 postojeći TODO; TypeScript, dva Deno handler-a i istorijski Edge paket PASS. Receipt `supabase/proofs/ai/c10_mode_delivery_ci_receipt_20261103.json`. DEV/novi APK/telefon se ovim ne tvrde; R01/R10 ostaju otvoreni.
+> **R04/R08 + C10 pripremljena povezana isporuka, 03.11.2026:** objedinjena provera mode deklaracija odbija i validan+nevalidan duplikat; 42 regresione provere i 145 susednih provera imaju raniji lokalni PASS. C10 uklanja samo neaktivni explorer/scoped-shadow i tri retired-only testa. Istorijski Edge checker sada čita tačno isporučeni `c86ab501`, bez prepisivanja starih manifesta/hash-eva; novi source ima zaseban dokaz. Novi CI/DEV/APK rezultat važi tek uz konkretan receipt. R01/R10 i javno izdanje ostaju otvoreni.
+> **C10 SOURCE CHECKPOINT 03.11.2026 — povučeni neaktivni katalog-explorer/shadow most i lažni testni bundle importi.** Tri runtime/type fajla i tri retired-only testa povučena; oba handler-a čuvaju single-pass i isti deployment flag/default-OFF/paid/project uslov. Novi import-graf dokaz poredi stvarno izvršene fajlove, a ne širi istorijski loader. Lokalno 515 PASS/0 FAIL/1 postojeći TODO (Node22/TS5.8, nije pinned CI); tačan naknadni CI/commit beleži receipt. Nema DEV/Edge/Android/modelskih poziva. C10 je delimičan; dokaz i preostale granice u §11.2a i `supabase/proofs/ai/c10_intake_cleanup.md`.
 > **NOVI CHECKPOINT 03.11.2026 — R01/R07/R10 SOURCE + puni CI potvrđeni; R11b jači izolovani dokaz.** Commit `ab2ccf104`: [Full CI 41637623244 SUCCESS](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41637623244), 627/14.588 mobilnih, AI 1.536 PASS/0 FAIL/1 postojeći TODO, price/workAreas export 13 i Need privacy 17 PASS, PG17 concurrency/PostGIS PASS. R01 [41637623243 FAILURE](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41637623243) ostaje STRICT_PARITY 8/49/3. Naknadni R11b test sada izvršava ceo neizmenjeni kandidat nad deset stvarnih reader/helper tela: 8/8 izolovano PASS, njegova nova CI potvrda se još ne tvrdi. Nema DEV upisa, deploy-a, Auth/HTTP, modela ili Android provere. Sveža metadata potvrđuje široki authenticated SELECT i neprimenjene R11b čitače. R01/R10/R11 i release ostaju otvoreni; detalji §11.2a.
 > **PRETHODNI SOURCE CHECKPOINT 03.11.2026 — R07 current hourly kandidat i povezani SQL/klijent dokazi, bez DEV primene.** Devet sadašnjih tela izvedeno iz svežeg read-only metadata preseka; 25 starih + 17 current provera i 15 edit/resume provera PASS. Sačuvani noviji REMOTE, attention, resume i deadline ugovori. R07 export/real Auth/PG17/native i R01/R10 ostaju otvoreni; detalji §11.2a. Sledeći DEV checkpoint je datiran dokaz prethodne primene, ne primena ovog kandidata.
 > **NAJNOVIJI CHECKPOINT 03.11.2026 — tri SQL celine i obe AI Edge funkcije primenjene na DEV; novi APK instaliran na emulator.** Source `c86ab501`: [Full CI41608739552 SUCCESS](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41608739552). DEV migracije `20261103092404` (usluga iz prijave), `20261103092413` (rok prijava), `20261103092425` (atomic single-pass AI); sva tri postflight-a PASS. Need Edge164 / Worker116, preuzeti sadržaj identičan source-u; 6/6 rejected-access HTTP provera. Rollback-only prijem na stvarnoj šemi prošao completion/replay/readback, REMOTE Save+Activate/binder i ograničeni export/erasure-plan; fixture redovi uklonjeni rollback-om. APK `c86ab501` instaliran uz sačuvanu prijavu; profil, razgovor i potpisani pregled otvoreni na emulatoru. Nema novog plaćenog Gemini poziva, dva-naloga E2E ili push dokaza. AI unos roka još nije uključen u ovom build-u; server podrška jeste instalirana. R01/R10 i javno izdanje ostaju otvoreni. Dokaz i sledeća granica u §11.2a; isti master.
@@ -1687,7 +1690,7 @@ supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs
 
 #### C10 — Aktivne i alternativne AI strategije
 
-**Veza:** R04, R06, R11. **Status:** uslovni kandidat, nije izvršeno.
+**Veza:** R04, R06, R11. **Status:** PARTIAL — ograničeno SOURCE povlačenje explorer/scoped-shadow i usklađenje loader-a 03.11.2026; važeći kasniji dokaz u §11.2a. Preostali validator/proof/rollout i mereni C10 prihvat nisu DONE.
 
 **Jedinica promene:** Posle odabira i dokaza ciljnog postojećeg toka povući nepodržane alternativne flag grane, njihove izvozove i retired-only testove.
 
@@ -3441,6 +3444,19 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 <!-- EXECUTION-UPDATE-BEGIN: ledger-20261028 -->
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
+
+#### C10 — jedan stvarni intake bundle i povlačenje napuštenog explorer/shadow puta, 03.11.2026.
+
+Polazni `06d6dd637`, isti Draft43/radna grana. Prethodni glavni CI41640502000 je SUCCESS, nezavisni R0141640502092 FAILURE. Ovaj zahvat ne proglašava R01 rešenim.
+
+- **Stvarni nalaz:** aktivni Need/Worker već ne importuju explorer/scoped-shadow, ali oba proof loader-a učitavaju napuštene alternative; stari isključeni unified source test zahteva povučenu arhitekturu. Nije otkriven novi drugi plaćeni poziv u aktuelnom toku.
+- **Source:** povučeni `classificationExplorer.mjs/.d.mts`, `taxonomyScopedShadow.mjs` i tri retired-only testa; loader-i i lazy allowlist očišćeni. `taxonomyRuntimeConfig` izlaže samo `taxonomyIntakeEnabled`, bez tri neaktivna optional selektora; **deployment ključ DUAL_GEMINI i sve postojeće ograde ostaju**. Novi AST/import/hash test proverava tačan stvarni bundle i ulazi u postojeći AI CI glob.
+- **Provere:** početni135 PASS; završeni lokalni nepreklopljeni skupovi147+174+93+101 = **515 PASS/0 FAIL/0 SKIP/1 postojeći TODO**. Node22.16/TS5.8.3 nije pinned Node24/TS6; jedan raniji objedinjeni timeout nije PASS. Relevantni katalog/hijerarhija, novi/isti ID, BOTH/handoff, uklanjanje usluge, owner/world, oporavak i obračun ostaju pokriveni. Pinned test/CI receipt beleži se odvojeno.
+- **Očuvano:** runtime stream/reservation/atomic first-plan/Save granice, SQL istorija, pre-132 fixture, primenjeni paketi i preostali validator/accounting proof potrošači. C10 se ne zatvara kao celina dok ti posebni ugovori nisu rešeni.
+- **Granica:** nema live catalog čitanja, DEV/Edge upisa, flag/tajni promena, plaćenog modela, APK/native/E2E ili proizvodne promocije. Ne tvrdi se izmerena brža aplikacija ili manje plaćenih tokena iz brisanja mrtvog koda. Poslednji stvarni delivery ostaje c86ab501.
+
+[Tačan spisak, preimage hash-evi, zamenski testovi i oporavak](../../supabase/proofs/ai/c10_intake_cleanup.md). Ovo je dokaz uz isti master, ne novi backlog. Privremeni source transfer koristi samo već javni tracked sadržaj; privremene workflow-e povući posle prenosa i zabeležiti tačan finalni HEAD.
+
 
 #### R11b — ceo postojeći kandidat nad sadašnjim reader/helper lancem, 03.11.2026.
 
