@@ -1106,7 +1106,10 @@ it('the card of a task being changed names its review the way the menu does and 
   expect(text()).toContain('Izmena'); expect(text()).not.toMatch(/\bNacrt\b/);
   expect(text()).toContain('Pregledajte izmene'); expect(text()).not.toContain('Pregledajte zadatak');
   expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledajte izmene' })).toBeDefined();
-  expect(tree.root.findByProps({ testID: 'intake-draft-head' }).props.accessibilityLabel).toBe('Izmena zadatka, Prenos ormara, Prepoznata usluga: Prevod');
+  expect(tree.root.findByProps({ testID: 'intake-draft-head' }).props.accessibilityLabel).toBe('Izmena zadatka, Prenos ormara');
+  expect(tree.root.findAllByProps({ testID: 'intake-recognized-service' })).toHaveLength(0);
+  // The review stays reachable; classification is an internal fact, not an extra
+  // heading or a label to confirm in the conversation.
 });
 
 // Safety remains visible even while the incomplete card is absent.
