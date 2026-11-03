@@ -60,6 +60,25 @@ Novi testovi koriste postojeće Node/Jest glob-ove; nema nove test biblioteke.
 Privremeni `uskoci-review-workspace.yml` služi samo preuzimanju javnog tracked
 source-a i zaključanih zavisnosti i uklanja se u istom implementation paketu.
 
+## Dodatni povezani UI zahvat — R08/S16, isti datum
+
+Nastavak posle source commita `bf657192ed94bfb0280876f889f4ba617b994bda`.
+Postojeći `Turn` u zajedničkom `AiConversationShell.tsx` više ne pravi
+Reanimated omotač za istoriju ili za već prikazan stream/pending tekst.
+Izbor omotača i ulazna animacija vezani su za prvi mount istog reda: kucanje,
+osvežavanje, promene naglaska i preferenci ne remount-uju pročitani tekst.
+Novi AI odgovor dolazi 8dp odozgo, sopstvena nova poruka 8dp odozdo, koristeći
+postojeće `content.reveal`/240ms/easeOut tokene iz Product B0.3. Nema novog
+animation framework-a, palete, fonta ili paralelnog razgovora. Nije promenjena
+potvrda lokacije, anchor/tastatura, slanje, čuvanje ili prikaz finalnog pregleda.
+
+Šest novih montiranih provera na prethodnom kodu: 1 PASS / 5 FAIL; posle
+izmene svih 6 PASS. Zajedno sa šest postojećih relevantnih testnih celina:
+**7 suite-ova / 382 PASS / 0 FAIL**, TypeScript noEmit PASS. Ovaj broj se
+preklapa sa prethodnih 523 i ne sabira se kao novi nezavisan zbir. Animacioni
+builder-i i native View su zamene; vizuelni Android/iOS prihvat nije izvršen.
+Tačne datoteke i komanda: `conversation-polish-ui-20261103.json`.
+
 ## Granice
 
 Nema SQL, ACL/RLS, Supabase deploy-a, flag/tajni promene, plaćenog modelskog

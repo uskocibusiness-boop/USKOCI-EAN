@@ -671,15 +671,19 @@ function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
 const Turn = memo(function Turn({ fromAi, body, reduced, showSpeaker, emphasis = 'plain' }: ConversationMessage & {
   reduced: boolean; showSpeaker: boolean; emphasis?: 'plain' | 'question' | 'earlier';
 }) {
-  // A turn settles up from 8 dp while it fades in, and it decelerates like every entrance (rule R2, `sys.motion.easeOut`); without the curve
-  // Reanimated would run its own ease-in-out, which has covered only 2 % of the way after the first tenth of the time.
-  const entering = reduced ? undefined : FadeInDown.duration(sys.motion.enter).easing(ReanimatedEasing.bezier(...sys.motion.easeOut))
-    .withInitialValues({ transform: [{ translateY: sys.space.sm }] });
-  return fromAi
-    ? <Animated.View entering={entering} accessibilityLabel={`USKOČI: ${body}`} style={s.assistant}>
-      {showSpeaker ? <Mark /> : null}<T selectable style={emphasis === 'question' ? s.question : emphasis === 'earlier' ? s.earlier : s.answer}>{body}</T></Animated.View>
-    : <Animated.View entering={entering} accessibilityLabel={`Vi: ${body}`} style={s.person}>
-      <T selectable style={s.personText}>{body}</T></Animated.View>;
+  // Decide the host once, as shared Appear does: history is an ordinary View,
+  // while a genuinely new row keeps its animated host after it settles. A
+  // subsequent keystroke/re-read must neither remount text nor replay motion.
+  const [entering] = useState(() => reduced ? undefined : FadeInDown.duration(sys.motion.enter)
+    .easing(ReanimatedEasing.bezier(...sys.motion.easeOut))
+    .withInitialValues({ transform: [{ translateY: (fromAi ? -1 : 1) * sys.motion.categories.content.reveal.translateY }] }));
+  const content = fromAi
+    ? <>{showSpeaker ? <Mark /> : null}<T selectable style={emphasis === 'question' ? s.question : emphasis === 'earlier' ? s.earlier : s.answer}>{body}</T></>
+    : <T selectable style={s.personText}>{body}</T>;
+  const frame = { accessibilityLabel: `${fromAi ? 'USKOČI' : 'Vi'}: ${body}`, style: fromAi ? s.assistant : s.person };
+  return entering
+    ? <Animated.View entering={entering} {...frame}>{content}</Animated.View>
+    : <View {...frame}>{content}</View>;
 });
 
 const s = StyleSheet.create({
