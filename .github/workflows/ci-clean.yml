@@ -1,12 +1,12 @@
 name: USKOCI pinned source transfer
-
 on:
   push:
     branches: [work/source-transfer-690671f-20261103]
-
 permissions:
   contents: read
-
+concurrency:
+  group: uskoci-source-transfer
+  cancel-in-progress: true
 jobs:
   export-pinned-source:
     runs-on: ubuntu-latest
@@ -16,18 +16,17 @@ jobs:
         with:
           ref: f94e77d346155acddf63de255e905004f5d21a15
           persist-credentials: false
-          fetch-depth: 0
-      - name: Export concurrent changes without credentials or execution
+          fetch-depth: 1
+      - name: Export current files without repository history or execution
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "f94e77d346155acddf63de255e905004f5d21a15"
           mkdir -p "$RUNNER_TEMP/uskoci-source"
-          git diff --binary 690671f63d7d2d6654ab451b1340045e6034fbd8 HEAD > "$RUNNER_TEMP/uskoci-source/concurrent-f94e77d.patch"
-          git diff --name-only -z 690671f63d7d2d6654ab451b1340045e6034fbd8 HEAD | tar --null -T - -czf "$RUNNER_TEMP/uskoci-source/concurrent-f94e77d.tar.gz"
+          git archive --format=tar.gz HEAD docs/plan/CODEX_PLAN_RADA.md docs/product/USKOCI_PRODUCT_UX_MASTER.md src/data/__tests__/ai-natural-server-guard.test.ts src/data/__tests__/pkg011-slice5-presentation.test.tsx src/data/__tests__/worker-profile-native.test.tsx src/ui/workerProfile/WorkerProfileSaved.tsx src/ui/workerProfile/__tests__/worker-profile-saved.test.tsx supabase/functions/_shared/backgroundTaxonomyArchitect.mjs supabase/functions/_shared/interviewVoiceInstruction.mjs supabase/functions/_shared/singlePassTaxonomy.mjs supabase/functions/_shared/workerServiceModeContext.mjs supabase/functions/uskoci-ai-interview/index.ts supabase/functions/uskoci-worker-interview/index.ts supabase/proofs/ai/single_pass_edge.test.mjs supabase/proofs/ai/worker_mode_declarations.test.mjs supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs > "$RUNNER_TEMP/uskoci-source/concurrent-f94e77d.tar.gz"
           git ls-tree -r HEAD > "$RUNNER_TEMP/uskoci-source/git-tree-f94e77d.txt"
           cd "$RUNNER_TEMP/uskoci-source"
-          sha256sum concurrent-f94e77d.patch concurrent-f94e77d.tar.gz git-tree-f94e77d.txt > SHA256SUMS
+          sha256sum concurrent-f94e77d.tar.gz git-tree-f94e77d.txt > SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
           name: concurrent-source-f94e77d
