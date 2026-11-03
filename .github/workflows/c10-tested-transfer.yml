@@ -1,0 +1,156 @@
+name: C10 bounded tested source transfer
+
+on:
+  push:
+    branches: [work/rev14-review-f17]
+    paths: [.github/workflows/c10-tested-transfer.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  tested-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.5.6
+      - name: Admit and apply only the reviewed 19-file source delta
+        env:
+          C10_DELTA: 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
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = 'uskocibusiness-boop/USKOCI-EAN'
+          test "$GITHUB_REF" = 'refs/heads/work/rev14-review-f17'
+          test "$(git rev-parse HEAD^)" = '0f4006ae7c2fd962d3705ed18102e81835325cc6'
+          python - <<'PYCODE'
+          import base64,gzip,hashlib,json,os,subprocess
+          from pathlib import Path
+          h=lambda data:hashlib.sha256(data).hexdigest()
+          raw=gzip.decompress(base64.b64decode(os.environ['C10_DELTA'],validate=True))
+          assert h(raw)=='d6f9949b2f9f2eaa24a6337a2bf04c584f51f8b80bc3a66449803cecc9324a83','DELTA_MISMATCH'
+          data=json.loads(raw);root=Path.cwd()
+          changed=set(subprocess.check_output(['git','diff','--name-only',data['source'],'HEAD'],text=True).splitlines())
+          assert changed=={'.github/workflows/c10-source-transfer.yml','.github/workflows/c10-tested-transfer.yml'},'NEWER_SOURCE_PRESENT'
+          assert len(data['changes'])==19
+          for item in data['changes']:
+              path=root/item['path'];assert path.resolve().is_relative_to(root) and not item['path'].startswith('.')
+              actual=h(path.read_bytes()) if path.exists() else None
+              assert actual==item['before'],'PREIMAGE:'+item['path']
+          for item in data['changes']:
+              path=root/item['path']
+              if item['after'] is None:path.unlink();continue
+              if item['before'] is None:content=item['content']
+              else:
+                  lines=path.read_bytes().decode().splitlines(keepends=True)
+                  for start,end,replacement in reversed(item['edits']):
+                      assert 0<=start<=end<=len(lines)
+                      lines[start:end]=replacement
+                  content=''.join(lines)
+              value=content.encode();assert h(value)==item['after'],'POSTIMAGE:'+item['path']
+              path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(value)
+          evidence=Path(os.environ['RUNNER_TEMP'])/'c10';evidence.mkdir()
+          (evidence/'delta.json').write_bytes(raw)
+          subprocess.run(['git','add','--',*[v['path'] for v in data['changes']]],check=True)
+          print('C10_EXACT_SOURCE_DELTA_ADMITTED',len(data['changes']))
+          PYCODE
+          git diff --cached --check
+      - name: Install the exact existing lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          node -e "const a=require('typescript').version,b=require('./package-lock.json').packages['node_modules/typescript'].version;if(a!==b)throw Error('TYPESCRIPT_LOCK_MISMATCH');console.log('PINNED_TYPESCRIPT',a)"
+      - name: Current intake and config proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=spec --test-concurrency=1 supabase/proofs/ai/intake_module_boundary.test.mjs supabase/proofs/ai/single_pass_edge.test.mjs supabase/proofs/ai/v5_worker_edge.test.mjs supabase/proofs/ai/taxonomy_runtime_config.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs | tee "$RUNNER_TEMP/c10/intake.log"
+      - name: Current Need context and business safety proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=spec supabase/proofs/ai/ai_edge_context.test.mjs | tee "$RUNNER_TEMP/c10/context.log"
+      - name: Current catalog hierarchy and ownership proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=spec --test-concurrency=1 supabase/proofs/ai/background_catalog_completeness.test.mjs supabase/proofs/ai/background_catalog_hierarchy.test.mjs supabase/proofs/ai/background_catalog_lifecycle.test.mjs supabase/proofs/ai/background_taxonomy_scope.test.mjs supabase/proofs/ai/background_taxonomy_failures.test.mjs | tee "$RUNNER_TEMP/c10/catalog.log"
+      - name: Continuity and retained accounting negatives
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=spec --test-concurrency=1 supabase/proofs/ai/single_pass_continuity.test.mjs supabase/proofs/ai/classification-full-catalog-edge.test.mjs supabase/proofs/ai/ai_accounting_transport.test.mjs supabase/proofs/ai/gemini_usage.test.mjs | tee "$RUNNER_TEMP/c10/continuity.log"
+      - name: TypeScript and paired Edge import checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit 2>&1 | tee "$RUNNER_TEMP/c10/typescript.log"
+          deno check --no-config --no-lock --no-npm --no-remote supabase/functions/uskoci-ai-interview/index.ts supabase/functions/uskoci-worker-interview/index.ts 2>&1 | tee "$RUNNER_TEMP/c10/deno.log"
+          node supabase/operations/dev-alpha/r04-single-pass-20261103/edge-package.mjs --check | tee "$RUNNER_TEMP/c10/frozen-package.log"
+          git diff --exit-code
+      - name: Record measured results and exact source hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PYCODE'
+          import hashlib,json,os,re,subprocess
+          from pathlib import Path
+          evidence=Path(os.environ['RUNNER_TEMP'])/'c10';data=json.loads((evidence/'delta.json').read_bytes())
+          h=lambda value:hashlib.sha256(value).hexdigest()
+          results={}
+          for name,passed,todo in [('intake',147,0),('context',174,1),('catalog',93,0),('continuity',101,0)]:
+              text=(evidence/(name+'.log')).read_text()
+              text=re.sub(r'\x1b\[[0-9;]*m','',text)
+              get=lambda key:int(re.findall(r'(?:^|\n)[^\n]*?\b'+key+r' (\d+)\s*(?:\n|$)',text)[-1])
+              result={key:get(key) for key in ['tests','pass','fail','cancelled','skipped','todo']}
+              assert result=={'tests':passed+todo,'pass':passed,'fail':0,'cancelled':0,'skipped':0,'todo':todo},(name,result)
+              results[name]=result
+          for item in data['changes']:
+              path=Path(item['path']);actual=h(path.read_bytes()) if path.exists() else None
+              assert actual==item['after'],'TEST_MUTATED_SOURCE:'+item['path']
+          receipt={'scope':'C10_TARGETED_SOURCE_NOT_DEV','baseSource':data['source'],'runSource':os.environ['GITHUB_SHA'],
+              'runId':os.environ['GITHUB_RUN_ID'],'runUrl':'https://github.com/'+os.environ['GITHUB_REPOSITORY']+'/actions/runs/'+os.environ['GITHUB_RUN_ID'],
+              'deltaSha256':h((evidence/'delta.json').read_bytes()),'results':results,'typescript':'PASS','denoTwoHandlers':'PASS','frozenPackage':'PASS',
+              'node':subprocess.check_output(['node','--version'],text=True).strip(),
+              'typescriptVersion':subprocess.check_output(['node','-p',"require('typescript').version"],text=True).strip(),
+              'files':[{k:v[k] for k in ['path','before','after']} for v in data['changes']],
+              'limitations':['synthetic IO, not real Auth/provider','not full CI','no DEV write or Edge deployment','no APK/device/E2E','C10 remains partial']}
+          path=Path('supabase/proofs/ai/c10_intake_cleanup_ci_receipt.json');assert not path.exists()
+          path.write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+          (evidence/'receipt.json').write_bytes(path.read_bytes())
+          subprocess.run(['git','add','--',str(path)],check=True)
+          PYCODE
+          git diff --cached --check
+      - name: Commit tested source without overwriting newer work
+        env:
+          GH_WRITE_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_WRITE_TOKEN" | base64 -w0)"
+          remote="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" ls-remote origin refs/heads/work/rev14-review-f17 | cut -f1)"
+          test "$remote" = "$GITHUB_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'refactor(ai): retire inactive catalog exploration and align intake proofs'
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin HEAD:refs/heads/work/rev14-review-f17
+          git rev-parse HEAD | tee "$RUNNER_TEMP/c10/published-commit.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c10-tested-source-evidence
+          path: ${{ runner.temp }}/c10/
+          if-no-files-found: error
+          retention-days: 7
