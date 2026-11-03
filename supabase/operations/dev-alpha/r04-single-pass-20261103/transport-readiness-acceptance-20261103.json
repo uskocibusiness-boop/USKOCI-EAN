@@ -1,7 +1,7 @@
 {
   "date": "2026-11-03",
   "parent_sha": "b2db154f227e798f71838594b4c315980f7cf0fd",
-  "status": "SOURCE_AND_TARGETED_PASS_FULL_CI_PENDING_DEV_NOT_APPLIED",
+  "status": "SOURCE_CI_PROVEN_DEV_NOT_APPLIED",
   "reproduced_fixes": [
     {
       "problem": "Late provider headers after caller abort left an unread response body open.",
@@ -56,17 +56,27 @@
     "normalization": "LF with trailing whitespace removed; exact normalized source verified. See README mapping to current invariants. Retired cases are not counted as passed."
   },
   "last_github_ci": {
-    "head": "eabec90fb938d7d1bf32e924436c60e3d6273092",
-    "main_run": 41595196358,
-    "main": "FAILURE",
+    "head": "34cea025583d5148ba1f9e622171c95b49a8363e",
+    "runtime_head": "eabec90fb938d7d1bf32e924436c60e3d6273092",
+    "main_run": 41597003376,
+    "main": "SUCCESS",
+    "main_url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41597003376",
+    "mobile_suites": 627,
+    "mobile_tests": 14588,
+    "snapshots": 3,
     "ai_pass": 1500,
     "ai_fail": 0,
     "ai_cancelled": 0,
     "ai_todo": 1,
-    "failure": "Downstream worker prompt policy expected retired literal clauses; the complete downstream 13-file local group then found 20 obsolete source/copy expectations. Not a full CI success.",
-    "r01_run": 41595196357,
+    "downstream_taxonomy_proofs": "PASS: all 13 files, including the six updated policy/contract files",
+    "typechecks": "TypeScript and 12 main Deno Edge checks PASS",
+    "sql_packages": "R04 derivation/rollback, R05 PostGIS, R07 hourly, R10 areas export and R11b isolated checks PASS; not live deployment",
+    "migration_integrity": "PASS, 193 files",
+    "isolated_privacy_boundary": "PASS",
+    "r01_run": 41597003323,
     "r01": "FAILURE",
-    "r01_gate": "STRICT_PARITY / METADATA_PARITY_DIFFERENT"
+    "r01_gate": "STRICT_PARITY / METADATA_PARITY_DIFFERENT",
+    "log": "artifacts/ci-34cea025-success.log"
   },
   "dev_read_only": {
     "project_ref": "leqcwgzvjsxugfgzdmth",
@@ -77,10 +87,18 @@
     "retention_source_ready": false,
     "export_binding_present": false,
     "sql_applied": false,
-    "edge_deployed": false
+    "edge_deployed": false,
+    "confirmed_after_proof_commit": "34cea025583d5148ba1f9e622171c95b49a8363e",
+    "first_plan_rpc_count": 0,
+    "checked_rpc_names": [
+      "rpc_ai_complete_need_turn_with_first_plan_service",
+      "rpc_ai_complete_need_location_turn_with_first_plan_service",
+      "rpc_complete_worker_ai_turn_with_first_plan_service",
+      "rpc_ai_read_first_plan_completion_service"
+    ],
+    "limitations": "Read-only metadata and readiness checks, not function execution under real Auth or native acceptance."
   },
   "remaining": [
-    "Current full CI for this source",
     "Real-schema export/erasure and concurrent transaction acceptance, relevant R01/R10 conditions",
     "Controlled SQL before Edge, then real TEST Auth and native readback"
   ],
@@ -151,5 +169,22 @@
       "python -B -m unittest discover -s supabase/proofs/privacy/bootstrap -p 'test_*.py'"
     ],
     "limitation": "Local synthetic boundary/bootstrap checks, not the separate native-vs-hosted R01 parity workflow."
+  },
+  "previous_github_ci": {
+    "head": "eabec90fb938d7d1bf32e924436c60e3d6273092",
+    "main_run": 41595196358,
+    "main": "FAILURE",
+    "ai_pass": 1500,
+    "ai_fail": 0,
+    "ai_cancelled": 0,
+    "ai_todo": 1,
+    "failure": "Downstream worker prompt policy expected retired literal clauses; the complete downstream 13-file local group then found 20 obsolete source/copy expectations. Not a full CI success.",
+    "r01_run": 41595196357,
+    "r01": "FAILURE",
+    "r01_gate": "STRICT_PARITY / METADATA_PARITY_DIFFERENT"
+  },
+  "manifest_blocker_resolution": {
+    "Current full AI CI migration is not green.": "Resolved for runtime/proof source 34cea025 by Full CI 41597003376. The generated manifest remains a prepared SQL artifact, not deployment approval.",
+    "other_blockers": "Unchanged: real-schema lifecycle/concurrency and relevant R01/R10 conditions still open."
   }
 }
