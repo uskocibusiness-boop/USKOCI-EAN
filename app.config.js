@@ -10,7 +10,7 @@ const STORE_PACKAGE = 'rs.uskoci';
 const PREVIEW_RUNTIME = 'uskoci-v1-preview-r1';
 const PRODUCTION_RUNTIME = 'uskoci-v1-production-r1';
 const UPDATE_URL = 'https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6';
-const NEARBY_PERMISSION = 'USKOČI koristi jednu lokaciju kada pritisneš „U blizini”, da prikaže mapu zadataka oko tebe.';
+const NEARBY_PERMISSION = 'USKOČI koristi jednu lokaciju kada izaberete „U blizini”, kako bi prikazao mapu zadataka u Vašoj okolini.';
 
 module.exports = ({ config }) => {
   assertProductionTarget(process.env);
@@ -54,9 +54,9 @@ module.exports = ({ config }) => {
   }
   if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === photoPlugin)) {
     plugins.push([photoPlugin, {
-      photosPermission: 'Izaberi fotografiju za svoj zadatak ili profil.',
-      cameraPermission: 'USKOČI koristi kameru kada želiš da dodaš fotografiju zadatka ili profila.',
-      microphonePermission: 'Drži mikrofon za razgovor sa USKOČI asistentom. Puštanje završava transkript koji možeš da izmeniš; poruku šalješ tek kada izabereš Pošalji.',
+      photosPermission: 'Izaberite fotografiju za svoj zadatak ili profil.',
+      cameraPermission: 'USKOČI koristi kameru kada želite da dodate fotografiju zadatka ili profila.',
+      microphonePermission: 'Držite mikrofon za razgovor sa USKOČI asistentom. Puštanje završava transkript koji možete da izmenite; poruku šaljete tek kada izaberete Pošalji.',
     }]);
   }
   if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === mapPlugin)) {
@@ -66,7 +66,7 @@ module.exports = ({ config }) => {
   const audioPlugin = 'expo-audio';
   if (!plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === audioPlugin)) {
     plugins.push([audioPlugin, {
-      microphonePermission: 'Mikrofon se koristi samo dok držiš dugme za snimanje glasovne poruke u razgovoru o Dogovoru.',
+      microphonePermission: 'Mikrofon se koristi samo dok držite dugme za snimanje glasovne poruke u razgovoru o Dogovoru.',
       recordAudioAndroid: true,
       enableBackgroundRecording: false,
       enableBackgroundPlayback: false,

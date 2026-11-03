@@ -33,6 +33,25 @@ describe('PKG-002 microphone permission copy', () => {
     expect(result.ios.infoPlist.NSLocationWhenInUseUsageDescription).toContain('jednu lokaciju');
   });
 
+  it('uses formal Vi/Vam/Vas consistently in native permission explanations', () => {
+    const result = configure({ config: {
+      version: '1.0.0', android: { package: 'rs.uskoci.pkg002' }, ios: {}, plugins: [], extra: {},
+    } });
+    const photo = result.plugins.find((plugin: unknown) => Array.isArray(plugin) && plugin[0] === 'expo-image-picker');
+    const location = result.plugins.find((plugin: unknown) => Array.isArray(plugin) && plugin[0] === 'expo-location');
+    const audio = result.plugins.find((plugin: unknown) => Array.isArray(plugin) && plugin[0] === 'expo-audio');
+    expect(photo).toBeDefined();
+    expect(location).toBeDefined();
+    expect(audio).toBeDefined();
+    expect(photo[1].photosPermission).toContain('Izaberite fotografiju');
+    expect(photo[1].cameraPermission).toContain('kada želite');
+    expect(photo[1].microphonePermission).toContain('možete da izmenite');
+    expect(photo[1].microphonePermission).toContain('tek kada izaberete Pošalji');
+    expect(audio[1].microphonePermission).toContain('dok držite dugme');
+    expect(result.ios.infoPlist.NSLocationWhenInUseUsageDescription).toContain('kada izaberete');
+    expect(location[1].locationWhenInUsePermission).toBe(result.ios.infoPlist.NSLocationWhenInUseUsageDescription);
+  });
+
   it('blocks template overlay access while preserving existing permission exclusions', () => {
     const result = configure({ config: { version: '1.0.0', android: {
       package: 'rs.uskoci.preview', blockedPermissions: ['android.permission.ACCESS_BACKGROUND_LOCATION'],
