@@ -1,7 +1,6 @@
 // A logical conversation turn can include several READ-ONLY model/tool rounds.
 // Every paid request has its own durable reservation and immutable usage row.
-import { AI_TEST_LIMITS, reserveAiTestBudget } from './aiTestBudget.ts';
-import { decodeGeminiUsage } from './geminiTaskStream.ts';
+import { reserveAiTestBudget } from './aiTestBudget.ts';
 import type { GeminiAttemptAdmission, GeminiAttemptReport } from './geminiToolConversation.ts';
 
 export async function taxonomyRoundOperationId(accountId: string, conversationId: string, operationId: string, attempt: number): Promise<string> {
@@ -13,59 +12,6 @@ export async function taxonomyRoundOperationId(accountId: string, conversationId
   digest[6] = (digest[6] & 15) | 128; digest[8] = (digest[8] & 63) | 128;
   const h = Array.from(digest.slice(0,16), v => v.toString(16).padStart(2,'0')).join('');
   return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
-}
-
-/** The one BG attempt for this logical turn never shares the foreground key.
- * Purpose/account/conversation prevent cross-flow reuse; model/input changes do
- * not create a fresh paid key for replay of an already dispatched turn. */
-export async function backgroundTaxonomyOperationId(input: {
-  accountId: string; conversationId: string; operationId: string; purpose: 'NEED_INTAKE' | 'PROFILE';
-}): Promise<string> {
-  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (![input.accountId, input.conversationId, input.operationId].every(value => uuid.test(value))
-    || !['NEED_INTAKE', 'PROFILE'].includes(input.purpose)) throw new Error('AI_BG_IDENTITY_INVALID');
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([
-    'USKOCI_TAXONOMY_BACKGROUND_V1', input.accountId.toLowerCase(), input.conversationId.toLowerCase(),
-    input.operationId.toLowerCase(), input.purpose,
-  ]))));
-  digest[6] = (digest[6] & 15) | 128; digest[8] = (digest[8] & 63) | 128;
-  const h = Array.from(digest.slice(0, 16), v => v.toString(16).padStart(2, '0')).join('');
-  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
-}
-
-export function createBackgroundTaxonomyProviderBudget(input: {
-  supabaseUrl: string; serviceRoleKey: string; accountId: string; conversationId: string;
-  operationId: string; purpose: 'NEED_INTAKE' | 'PROFILE'; model: string;
-}) {
-  let started = false;
-  let ledger: ReturnType<typeof createTaxonomyProviderBudget> | undefined;
-  let admission: GeminiAttemptAdmission | undefined;
-  return {
-    async beforeAttempt(event: { requestBytes: number; signal?: AbortSignal }) {
-      if (started) throw new Error('AI_BG_ATTEMPT_CONFLICT');
-      started = true;
-      if (!Number.isSafeInteger(event.requestBytes) || event.requestBytes <= 0
-        || event.requestBytes > AI_TEST_LIMITS.llmRequestBytes || event.signal?.aborted) throw new Error('AI_BG_BUDGET_UNAVAILABLE');
-      const operationId = await backgroundTaxonomyOperationId(input);
-      const reservation = await reserveAiTestBudget({ ...input, operationId, kind: 'LLM', signal: event.signal });
-      if (!reservation.admitted || reservation.replay || !reservation.reservationId) throw new Error('AI_BG_BUDGET_UNAVAILABLE');
-      ledger = createTaxonomyProviderBudget({ ...input, operationId, firstReservationId: reservation.reservationId });
-      admission = { attempt: 1, phase: 'FINAL', requestBytes: event.requestBytes,
-        maxOutputTokens: 1024, signal: event.signal ?? new AbortController().signal };
-      return ledger.beforeAttempt(admission);
-    },
-    async onAttempt(event: { reservationId: string; dispatched: boolean; outcome: 'SUCCEEDED' | 'FAILED';
-      httpStatus: number | null; usageMetadata: unknown; errorCode: string | null }) {
-      if (!ledger || !admission) throw new Error('AI_BG_ATTEMPT_CONFLICT');
-      const details = decodeGeminiUsage(event.usageMetadata);
-      await ledger.onAttempt({ ...admission, ...event, ...details,
-        // An absent/invalid usage record is UNKNOWN. It never creates a zero
-        // ledger row or releases the existing durable reservation.
-        cumulativeUsage: details.usage ?? { promptTokens: 0, outputTokens: 0, totalTokens: 0 },
-        attemptUsageComplete: details.usage !== null, usageComplete: details.usage !== null,
-      });
-    },
-  };
 }
 
 export function createTaxonomyProviderBudget(input: {

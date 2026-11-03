@@ -1,91 +1,31 @@
-// Synthetic provider/catalog transports only. No live Gemini or database writes.
+// Current pure decision validators. No provider/catalog I/O or database writes.
+// Retired second-provider transport cases are covered at the foreground boundary
+// by v5_ai_stream, single_pass_edge and geminiTaskStream proofs, not simulated here.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { syntheticBackgroundBudget } from './background_budget_fixture.mjs';
-import { buildFullTreeTaxonomyProposals, buildWorkerFullTreeTaxonomyProposals } from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
+import { indexFullCatalog, buildFullTreeTaxonomyProposals, buildWorkerFullTreeTaxonomyProposals } from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
 
 const categoryId = '11111111-1111-4111-8111-111111111111';
 let version = 800000;
-function fixture(t, provider, modes = ['ON_SITE'], categoryPatch = {}) {
-  const catalogVersion = ++version;
-  const calls = [];
-  const requestOptions = [];
-  t.mock.method(globalThis, 'fetch', async (_url, init) => {
-    requestOptions.push({ method: init.method, redirect: init.redirect });
-    calls.push(JSON.parse(init.body));
-    return provider(init);
-  });
-  const rpc = async name => {
-    assert.equal(name, 'rpc_taxonomy_fetch_snapshot_v1');
-    return { ok: true, data: { catalogVersion, catalogFingerprint: String(catalogVersion), count: 1, categories: [
-      { categoryId, parentId: null, isLeaf: true,
-        label: 'Servis klima', aliases: [], modes,
-        path: ['Servis klima'], pathIds: [categoryId], ...categoryPatch },
-    ] } };
-  };
-  return { calls, requestOptions, args: { rpc, providerBudget: syntheticBackgroundBudget, geminiKey: 'synthetic', geminiModel: 'synthetic', conversationId: 'synthetic-conversation', draftRevision: 4 } };
+const currentDecision=d=>({categoryId:'',parentId:'',proposedPath:['CREATE_CHILD','CREATE_NEW_BRANCH'].includes(d.action)?[d.service]:[],ambiguityPrompt:'',...d});
+function fixture(t, supplied, modes = ['ON_SITE'], categoryPatch = {}) {
+  t.mock.method(globalThis,'fetch',()=>assert.fail('Pure validation must not make network calls'));
+  let input;
+  try { input=supplied(); } catch { input=null; }
+  const decisions=(input?.decisions??input?.items??[]).map(currentDecision);
+  return {args:{suppliedCatalog:indexFullCatalog(++version,String(version),[{
+    categoryId,parentId:null,isLeaf:true,label:'Servis klima',aliases:[],modes,...categoryPatch
+  }],true),suppliedDecisions:decisions,conversationId:'synthetic-conversation',draftRevision:4}};
 }
-const response = (value, extra = {}) => new Response(JSON.stringify({ candidates: [
-  { finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(value) }] }, ...extra },
-] }));
+const response=value=>value;
 const worker = (args, extra = {}) => buildWorkerFullTreeTaxonomyProposals({
   ...args, skills: ['Popravka klima'], messages: [], hasWorkAreas: true,
   serviceModeContext: { savedServices: [], draftServices: [] }, ...extra,
 });
 const need = args => buildFullTreeTaxonomyProposals({ ...args, items: [{ service: 'Popravka klima', mode: 'ON_SITE' }] });
-const failureCases = [
-  ['rate limit', () => new Response('{}', { status: 429 }), 'RETRYABLE_PROVIDER'],
-  ['unavailable', () => new Response('{}', { status: 503 }), 'RETRYABLE_PROVIDER'],
-  ['invalid credentials', () => new Response('{}', { status: 401 }), 'PROVIDER_PERMANENT_FAILURE'],
-  ['abort', () => { throw new DOMException('Synthetic cancellation', 'AbortError'); }, 'RETRYABLE_PROVIDER'],
-  ['invalid JSON', () => new Response('{'), 'RETRYABLE_PROVIDER'],
-  ['invalid model JSON', () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{' }] } }] })), 'RETRYABLE_PROVIDER'],
-  ['truncated', () => response({ decisions: [], items: [] }, { finishReason: 'MAX_TOKENS' }), 'RETRYABLE_PROVIDER'],
-  ['refused', () => new Response(JSON.stringify({ promptFeedback: { blockReason: 'SAFETY' } })), 'PROVIDER_PERMANENT_FAILURE'],
-  ['missing decisions', () => response({}), 'RETRYABLE_PROVIDER'],
-  ['empty decisions', () => response({ decisions: [], items: [] }), 'RETRYABLE_PROVIDER'],
-];
-for (const [label, provider, expected] of failureCases) {
-  for (const [purpose, build] of [['need', need], ['worker', worker]]) {
-    test(`${purpose}: ${label} is technical failure, never invented user ambiguity`, async t => {
-      const f = fixture(t, provider);
-      const result = await build(f.args);
-      assert.deepEqual(result.proposals, []);
-      assert.deepEqual(result.clarifications, []);
-      assert.equal(result.clarificationHint, null);
-      assert.ok(result.failures.some(failure => failure.status === expected));
-      assert.equal(f.calls.length, 1, 'no automatic paid retry');
-    });
-  }
-}
-
-for (const [purpose, build] of [['need', need], ['worker', worker]]) {
-  test(`R06 ${purpose}: provider redirect is rejected before following an unexpected destination`, async t => {
-    // Simulate Fetch's redirect:'error' rejection, without contacting a provider
-    // or copying the synthetic API key into the simulated second hop.
-    const f = fixture(t, init => {
-      if (init.redirect === 'error') throw new TypeError('simulated redirect refusal');
-      return response({ decisions: [{ service: 'Popravka klima', mode: 'ON_SITE',
-        action: 'CREATE_CHILD', parentId: categoryId, reason: 'Valid synthetic categorization.' }],
-        items: [] });
-    });
-    const result = await build(f.args);
-    assert.deepEqual(f.requestOptions, [{ method: 'POST', redirect: 'error' }]);
-    assert.equal(f.calls.length, 1, 'never retry a possibly dispatched paid request');
-    assert.deepEqual(result.proposals, [], 'redirect may not yield an accepted classification');
-    assert.deepEqual(result.clarifications, []);
-    assert.ok(result.failures.some(failure => failure.code === 'PROVIDER_TRANSPORT_FAILURE'));
-  });
-}
-test('R06 need: a normal non-redirecting response still classifies a new service', async t => {
-  const f = fixture(t, () => response({ decisions: [{ service: 'Popravka klima', mode: 'ON_SITE',
-    action: 'CREATE_CHILD', parentId: categoryId, reason: 'Valid synthetic categorization.' }] }));
-  const result = await need(f.args);
-  assert.deepEqual(f.requestOptions, [{ method: 'POST', redirect: 'error' }]);
-  assert.equal(result.proposals.length, 1);
-  assert.equal(result.proposals[0].action, 'CREATE_CHILD');
-  assert.deepEqual(result.failures, []);
-  assert.ok(f.calls[0].generationConfig.responseSchema.properties.decisions.items.required.includes('action'));
+for(const [purpose,build] of [['need',need],['worker',worker]])test(`${purpose}: missing decisions never invent a clarification or a fresh identity`,async t=>{
+ const f=fixture(t,()=>response({}));const result=await build(f.args);
+ assert.deepEqual(result.proposals,[]);assert.deepEqual(result.clarifications,[]);assert.equal(result.clarificationHint,null);
 });
 
 test('R04 Need: CREATE_CHILD cannot also claim an existing category ID', async t => {
@@ -95,7 +35,6 @@ test('R04 Need: CREATE_CHILD cannot also claim an existing category ID', async t
     reason:'Nova usluga ne može istovremeno nositi tuđ postojeći identitet kategorije.'
   }]}));
   const result=await need(f.args);
-  assert.equal(f.calls.length,1,'do not repeat a potentially billed provider call');
   assert.deepEqual(result.proposals,[]);
   assert.deepEqual(result.clarifications,[]);
   assert.ok(result.failures.some(failure=>failure.code==='PROVIDER_INVALID_DECISION'));
@@ -112,23 +51,12 @@ test('R04 Worker: CREATE_CHILD cannot also claim an existing category ID', async
     messages:[{role:'USER',body:evidence}],
     serviceModeChangesJson:JSON.stringify([{service:'Popravka klima',modes:['ON_SITE'],evidence}]),
   });
-  assert.equal(f.calls.length,1);
   assert.deepEqual(result.proposals,[]);
   assert.deepEqual(result.clarifications,[]);
   assert.deepEqual(result.unresolvedServices,['Popravka klima']);
   assert.ok(result.failures.some(failure=>failure.code==='PROVIDER_INVALID_DECISION'));
 });
 
-test('missing credentials do not call a provider or invent a question', async t => {
-  const f = fixture(t, () => { throw new Error('must not call'); });
-  for (const build of [need, worker]) {
-    const result = await build({ ...f.args, geminiKey: '' });
-    assert.deepEqual(result.clarifications, []);
-    assert.deepEqual(result.proposals, []);
-    assert.equal(result.failures[0].status, 'PROVIDER_PERMANENT_FAILURE');
-  }
-  assert.equal(f.calls.length, 0);
-});
 test('catalog mode and work area never establish a worker execution choice', async t => {
   const f = fixture(t, () => response({ items: [] }));
   const result = await worker({ ...f.args, geminiKey: '' }, { skills: ['Servis klima'] });
@@ -143,29 +71,27 @@ for (const mode of [undefined, 'UNKNOWN', 'BOTH', 'REMOTE']) {
     assert.deepEqual(result.proposals, []);
   });
 }
-test('provider failure preserves saved mode and physical handoff exactly, never draft modes', async t => {
+test('a current resolved draft replaces saved modes without restoring the removed mode', async t => {
   const f = fixture(t, () => new Response('{}', { status: 503 }));
   const handoff = { required: true, shippingCountries: ['RS'] };
   const result = await worker(f.args, { skills: ['Servis klima'], serviceModeContext: {
     savedServices: [{ service: 'Servis klima', mode: 'REMOTE', categoryId, handoff }],
     draftServices: [{ service: 'Servis klima', mode: 'ON_SITE', categoryId }],
   } });
-  // This catalog does not yet offer REMOTE: retain only a validated existing mode,
-  // never use provider failure to create a new extension or authorize ON_SITE.
-  assert.deepEqual(result.proposals, []);
+  assert.deepEqual(result.proposals.map(p=>[p.mode,p.categoryId]),[['ON_SITE',categoryId]]);
+  assert.ok(!Object.hasOwn(result.proposals[0],'handoff'));
   assert.deepEqual(result.clarifications, []);
 });
-test('confirmed saved REMOTE continuity survives provider failure for another unresolved service', async t => {
+test('confirmed saved REMOTE continuity survives missing decisions for another unresolved service', async t => {
   const f = fixture(t, () => new Response('{}', { status: 503 }), ['REMOTE', 'ON_SITE']);
   const handoff = { required: true, localExchange: { countryCode: 'RS', city: 'Novi Sad' } };
   const result = await worker(f.args, { skills: ['Servis klima', 'Popravka klima'], serviceModeContext: {
     savedServices: [{ service: 'Servis klima', mode: 'REMOTE', categoryId, handoff }],
-    draftServices: [{ service: 'Servis klima', mode: 'ON_SITE', categoryId }],
+    draftServices: [],
   } });
   assert.deepEqual(result.proposals.map(p => [p.mode, p.handoff, p.action]), [['REMOTE', handoff, 'REUSE_EXISTING']]);
   assert.deepEqual(result.clarifications, []);
-  assert.equal(result.failures[0].status, 'RETRYABLE_PROVIDER');
-  assert.equal(f.calls.length, 1);
+  assert.deepEqual(result.failures, [], 'absent metadata does not invent an attempted second provider');
   assert.deepEqual(result.unresolvedServices, ['Popravka klima']);
 });
 test('saved missing handoff stays unknown even if the provider proposes worldwide digital work', async t => {
@@ -249,15 +175,12 @@ for (const kind of ['duplicate', 'invented-quote', 'malformed']) {
     assert.ok(result.failures.some(f => f.code === 'WORKER_MODE_REQUEST_INVALID'));
   });
 }
-test('provider diagnostics never log returned private prose or exception details', async t => {
-  const logs = [];
-  t.mock.method(console, 'warn', (...args) => logs.push(args));
-  const f = fixture(t, () => { throw new Error('PRIVATE ADDRESS AND TOKEN'); });
-  await need(f.args);
-  assert.equal(logs.length, 1);
-  assert.doesNotMatch(JSON.stringify(logs), /PRIVATE|ADDRESS|TOKEN/);
-  assert.match(JSON.stringify(logs), /PROVIDER_TRANSPORT_FAILURE/);
+test('missing decision does not log private text or invent a provider attempt',async t=>{
+ const logs=[];t.mock.method(console,'warn',(...args)=>logs.push(args));
+ const f=fixture(t,()=>{throw Error('PRIVATE ADDRESS AND TOKEN');});
+ await need(f.args);assert.deepEqual(logs,[]);
 });
+
 test('R04/F05: requester can preserve an unregistered synonym as a pending existing-ID hint', async t => {
   const f = fixture(t, () => response({ decisions: [{ service: 'Popravka klima', mode: 'ON_SITE',
     action: 'REUSE_EXISTING', categoryId, parentId: '',
@@ -270,9 +193,7 @@ test('R04/F05: requester can preserve an unregistered synonym as a pending exist
   assert.equal(result.proposals[0].catalogVersion, result.catalogVersion);
   assert.deepEqual(result.clarifications, []);
   assert.deepEqual(result.failures, []);
-  assert.ok(f.calls[0].generationConfig.responseSchema.properties.decisions.items.properties.categoryId);
-  // The deployed SQL review still returns PENDING for this unregistered synonym;
-  // no category, alias, consent, capability or READY is granted by this object.
+  // Pure validation grants no category, alias, consent, capability or READY.
   assert.ok(!Object.hasOwn(result, 'canAccept'));
 });
 test('an explicit semantic clarification stays a single question', async t => {
@@ -297,7 +218,7 @@ const fullDecision = mode=>({service:'Popravka klima',mode,action:'CREATE_CHILD'
   handoffCity:'',reason:'Potvrđena nova usluga sa konkretnim izvršenjem.'});
 
 
-test('R04 Need preserves multi-level CREATE_CHILD through the review-only hint without shortening its cache',async t=>{
+test('R04 Need preserves multi-level CREATE_CHILD through deterministic validation without shortening its path',async t=>{
   const path=['Održavanje klima','Popravka klima'];
   const f=fixture(t,()=>response({decisions:[{service:'Popravka klima',mode:'ON_SITE',
     action:'CREATE_CHILD',categoryId:'',parentId:categoryId,proposedPath:path,
@@ -306,8 +227,6 @@ test('R04 Need preserves multi-level CREATE_CHILD through the review-only hint w
   assert.deepEqual(a.proposals.map(p=>[p.action,p.proposedPath]),[['CREATE_CHILD',path]]);
   assert.deepEqual(b.proposals[0].proposedPath,path);
   assert.deepEqual(a.failures,[]);
-  assert.equal(f.calls.length,2,'multiple proposed levels must never reuse a parent-only cached hint');
-  assert.ok(f.calls[0].generationConfig.responseSchema.properties.decisions.items.properties.proposedPath);
 });
 
 test('R04 Need proposes a new structural root only with explicit matching path and no existing ID',async t=>{
@@ -318,7 +237,6 @@ test('R04 Need proposes a new structural root only with explicit matching path a
   assert.deepEqual(r.proposals.map(p=>[p.action,p.parentId,p.categoryId,p.proposedPath]),
     [['CREATE_NEW_BRANCH','','',['3D usluge','3D skeniranje']]]);
   assert.deepEqual(r.failures,[]);
-  assert.ok(f.calls[0].generationConfig.responseSchema.properties.decisions.items.properties.action.enum.includes('CREATE_NEW_BRANCH'));
   assert.ok(!Object.hasOwn(r,'canAccept'),'a hint is not a signed Save');
 });
 
@@ -367,14 +285,11 @@ test('R04 Worker BOTH refuses two different structural paths for the same offere
   assert.deepEqual(r.proposals,[]);
   assert.deepEqual(r.unresolvedServices,['Popravka klima']);
   assert.ok(r.failures.some(x=>x.code==='WORKER_SERVICE_CATEGORY_ID_CONFLICT'));
-  assert.equal(f.calls.length,1,'no automatic paid retry');
 });
 
 test('R04 BOTH: two explicit modes preserve one category parent and requested REMOTE handoff',async t=>{
   const f=fixture(t,()=>response({items:[fullDecision('ON_SITE'),fullDecision('REMOTE')]}));
   const result=await worker(f.args,bothRequest);
-  assert.equal(f.calls.length,1);
-  assert.deepEqual(f.requestOptions, [{ method: 'POST', redirect: 'error' }]);
   assert.deepEqual(result.proposals.map(p=>p.mode),['ON_SITE','REMOTE']);
   assert.deepEqual(result.proposals.map(p=>p.parentId),[categoryId,categoryId]);
   assert.equal(result.proposals[0].action,'CREATE_CHILD');
@@ -410,7 +325,6 @@ test('R04/F05: explicit worker semantic REUSE retains the same ID but remains un
   assert.deepEqual(result.unresolvedServices,['Popravka klima']);
   assert.deepEqual(result.failures,[]);
   assert.ok(!Object.hasOwn(result.proposals[0],'handoff'));
-  assert.ok(f.calls[0].generationConfig.responseSchema.properties.items.items.properties.categoryId);
 });
 
 
@@ -444,38 +358,13 @@ test('R04/F05: a mismatched model service or forged parent cannot bind an existi
 });
 
 test('R04/F05: worker BOTH cannot silently assign two distinct existing category IDs',async t=>{
-  const secondId='22222222-2222-4222-8222-222222222222';
-  const catalogVersion=987654307;
-  const calls=[];
-  t.mock.method(globalThis,'fetch',async (_url,init)=>{
-    calls.push(JSON.parse(init.body));
-    const items=['ON_SITE','REMOTE'].map((mode,i)=>({
-      service:'Popravka klima',mode,action:'REUSE_EXISTING',
-      categoryId:i===0?categoryId:secondId,parentId:'',
-      handoffKind:'NONE',handoffCity:'',
-      reason:'Izabrani postojeći list navodno predstavlja isto značenje rada.'
-    }));
-    return response({items});
-  });
-  const cats=[categoryId,secondId].map((id,i)=>({
-    categoryId:id,parentId:null,isLeaf:true,label:i?'Servis elektrike':'Servis klima',
-    aliases:[],modes:['ON_SITE','REMOTE'],path:[i?'Servis elektrike':'Servis klima'],
-    pathIds:[id]
-  }));
-  const rpc=async name=>{
-    assert.equal(name,'rpc_taxonomy_fetch_snapshot_v1');
-    return {ok:true,data:{catalogVersion,catalogFingerprint:'b'.repeat(32),
-      count:cats.length,categories:cats}};
-  };
-  const evidence='Popravku klima nudim i kod Vas i na daljinu.';
-  const result=await worker({rpc,providerBudget:syntheticBackgroundBudget,geminiKey:'synthetic',geminiModel:'synthetic'},{
-    skills:['Popravka klima'],messages:[{role:'USER',body:evidence}],
-    serviceModeChangesJson:JSON.stringify([{service:'Popravka klima',
-      modes:['ON_SITE','REMOTE'],evidence}])});
-  assert.equal(calls.length,1);
-  assert.deepEqual(result.proposals,[]);
-  assert.deepEqual(result.unresolvedServices,['Popravka klima']);
-  assert.ok(result.failures.some(x=>x.code==='WORKER_SERVICE_CATEGORY_ID_CONFLICT'));
+ const secondId='22222222-2222-4222-8222-222222222222';
+ t.mock.method(globalThis,'fetch',()=>assert.fail('No model I/O'));
+ const cats=[categoryId,secondId].map((id,i)=>({categoryId:id,parentId:null,isLeaf:true,label:i?'Servis elektrike':'Servis klima',aliases:[],modes:['ON_SITE','REMOTE']}));
+ const decisions=['ON_SITE','REMOTE'].map((mode,i)=>currentDecision({service:'Popravka klima',mode,action:'REUSE_EXISTING',categoryId:i===0?categoryId:secondId,reason:'Izabrani postojeći list navodno predstavlja isto značenje rada.'}));
+ const result=await worker({suppliedCatalog:indexFullCatalog(987654307,'b'.repeat(32),cats,true),suppliedDecisions:decisions},bothRequest);
+ assert.deepEqual(result.proposals,[]);assert.deepEqual(result.unresolvedServices,['Popravka klima']);
+ assert.ok(result.failures.some(x=>x.code==='WORKER_SERVICE_CATEGORY_ID_CONFLICT'));
 });
 
 test('R04/F05: valid worker BOTH semantic reuse retains one ID without inventing handoff or READY',async t=>{
@@ -571,23 +460,14 @@ for (const missingMode of ['ON_SITE', 'REMOTE']) {
     assert.deepEqual(result.proposals.map(p => [p.service, p.mode]), [[otherService, 'ON_SITE']]);
     assert.deepEqual(result.unresolvedServices, ['Popravka klima']);
     assert.ok(result.failures.some(f => f.code === 'WORKER_SERVICE_MODE_SET_INCOMPLETE'));
-    assert.equal(f.calls.length, 1, 'no paid automatic repair call');
   });
 }
 
-test('R04 BOTH: two CREATE_CHILD hints cannot put one service under different parents', async t => {
-  const otherParent = '22222222-2222-4222-8222-222222222222';
-  const catalogVersion = ++version;
-  t.mock.method(globalThis, 'fetch', async () => response({ items: [fullDecision('ON_SITE'),
-    { ...fullDecision('REMOTE'), parentId: otherParent },
-  ] }));
-  const rpc = async () => ({ ok: true, data: { catalogVersion, catalogFingerprint: String(catalogVersion), count: 2,
-    categories: [categoryId, otherParent].map((id, i) => ({ categoryId: id, parentId: null,
-      isLeaf: true, label: i ? 'Računari' : 'Servis klima', aliases: [], modes: ['ON_SITE', 'REMOTE'],
-      path: [i ? 'Računari' : 'Servis klima'], pathIds: [id] })),
-  } });
-  const result = await worker({ rpc, providerBudget: syntheticBackgroundBudget, geminiKey: 'synthetic', geminiModel: 'synthetic' }, bothRequest);
-  assert.deepEqual(result.proposals, []);
-  assert.deepEqual(result.unresolvedServices, ['Popravka klima']);
-  assert.ok(result.failures.some(f => f.code === 'WORKER_SERVICE_CATEGORY_ID_CONFLICT'));
+test('R04 BOTH: two CREATE_CHILD hints cannot put one service under different parents',async t=>{
+ const otherParent='22222222-2222-4222-8222-222222222222';
+ t.mock.method(globalThis,'fetch',()=>assert.fail('No model I/O'));
+ const cats=[categoryId,otherParent].map((id,i)=>({categoryId:id,parentId:null,isLeaf:true,label:i?'Računari':'Servis klima',aliases:[],modes:['ON_SITE','REMOTE']}));
+ const result=await worker({suppliedCatalog:indexFullCatalog(++version,String(version),cats,true),suppliedDecisions:[currentDecision(fullDecision('ON_SITE')),currentDecision({...fullDecision('REMOTE'),parentId:otherParent})]},bothRequest);
+ assert.deepEqual(result.proposals,[]);assert.deepEqual(result.unresolvedServices,['Popravka klima']);
+ assert.ok(result.failures.some(f=>f.code==='WORKER_SERVICE_CATEGORY_ID_CONFLICT'));
 });

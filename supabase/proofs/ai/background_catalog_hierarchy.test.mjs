@@ -1,9 +1,8 @@
 // R04: parent-first, explicit identity/hierarchy in BOTH AI model prompts.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { syntheticBackgroundBudget } from './background_budget_fixture.mjs';
-import {formatFullCatalogHierarchy,loadFullCatalogTree,buildFullTreeTaxonomyProposals,
-  buildWorkerFullTreeTaxonomyProposals} from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
+import {singlePassTaxonomyInstruction} from '../../functions/_shared/singlePassTaxonomy.mjs';
+import {formatFullCatalogHierarchy,loadFullCatalogTree} from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
 
 const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`;
 const cat=(n,parentId=null,leaf=true,patch={})=>({
@@ -103,49 +102,19 @@ test('only explicitly complete catalogs can be rendered, with a bounded model bu
   assert.throws(()=>formatFullCatalogHierarchy(full([huge])),/TOO_LARGE/);
 });
 
-test('both real background provider paths receive the same parent-first, explicit identity tree',async t=>{
+test('both current intake prompts receive the same complete parent-first identity tree',()=>{
   const root=cat(810,null,false,{label:'Popravke',modes:[]});
-  const child=cat(811,root.categoryId,true,{label:'Servis uređaja',
-    aliases:['Popravka uređaja'],modes:['ON_SITE']});
-  const modelInputs=[];
-  t.mock.method(globalThis,'fetch',async (_url,init)=>{
-    const request=JSON.parse(init.body);
-    assert.ok(request.systemInstruction.parts[0].text.includes('roditelj pre potomaka'));
-    const input=JSON.parse(request.contents[0].parts[0].text);
-    modelInputs.push(input);
-    const isNeed=Array.isArray(input.servicesToClassify);
-    const decision={service:'Novi servis',mode:isNeed?'ON_SITE':'UNKNOWN',
-      action:'NEEDS_CLARIFICATION',parentId:'',
-      ambiguityPrompt:'Koju vrstu novog servisa želite?',
-      reason:'Bez vrste usluge nije moguć siguran izbor.'};
-    return new Response(JSON.stringify({candidates:[{finishReason:'STOP',
-      content:{parts:[{text:JSON.stringify(isNeed?{decisions:[decision]}:{items:[decision]})}]}}]}));
-  });
-  const rpc=async name=>{
-    assert.equal(name,'rpc_taxonomy_fetch_snapshot_v1');
-    return {ok:true,data:{catalogVersion:987650810,catalogFingerprint:'a'.repeat(32),
-      count:2,categories:[child,root]}};
-  };
-  const args={rpc,providerBudget:syntheticBackgroundBudget,geminiKey:'synthetic',geminiModel:'synthetic'};
-  const requester=await buildFullTreeTaxonomyProposals({...args,
-    items:[{service:'Novi servis',mode:'ON_SITE'}]});
-  const worker=await buildWorkerFullTreeTaxonomyProposals({...args,
-    skills:['Novi servis'],messages:[],serviceModeContext:{savedServices:[],draftServices:[]}});
-  assert.equal(modelInputs.length,2);
-  const trees=modelInputs.map(input=>decoded(input.completeCatalogTree));
+  const child=cat(811,root.categoryId,true,{label:'Servis uređaja',aliases:['Popravka uređaja'],modes:['ON_SITE']});
+  const catalog=full([child,root]);
+  const instructions=['NEED_SERVICE','WORKER_CAPABILITY'].map(p=>singlePassTaxonomyInstruction(catalog,p));
+  const trees=instructions.map(input=>decoded(input.slice(input.indexOf('\n')+1)));
   assert.deepEqual(trees[0],trees[1]);
   for(const rows of trees){
     assert.deepEqual(rows.map(n=>n.id),[root.categoryId,child.categoryId]);
-    assert.deepEqual(ancestry(rows,child.categoryId).map(row=>row.id),[root.categoryId,child.categoryId]);
     assert.deepEqual(ancestry(rows,child.categoryId).map(row=>row.label),['Popravke','Servis uređaja']);
-    assert.equal(rows[1].parentId,root.categoryId);
-    assert.deepEqual(rows[1].aliases,['Popravka uređaja']);
+    assert.equal(rows[1].parentId,root.categoryId);assert.deepEqual(rows[1].aliases,['Popravka uređaja']);
     assert.deepEqual(rows[0].modes,[]);
   }
-  assert.deepEqual(requester.proposals,[]);
-  assert.deepEqual(worker.proposals,[]);
-  assert.equal(requester.clarifications.length,1);
-  assert.equal(worker.clarifications.length,1);
 });
 
 test('a structurally malformed snapshot cannot warm the cache or call the model',async t=>{
