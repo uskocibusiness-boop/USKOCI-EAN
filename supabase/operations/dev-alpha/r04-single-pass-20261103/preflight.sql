@@ -107,6 +107,46 @@ IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_ta
  AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='a41806bd95be583561afae69702d56ac'
  AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
  THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_account_key(uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='29116ea6e982cecd3242354a20faa3fd'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_account_key(uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_account_restricted(uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='9ce14bacf456210147ba14235d7ba8de'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_account_restricted(uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_assert_open(uuid, uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='1d0e22224d546c4756f216acfe103246'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_assert_open(uuid, uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_held_v1(text, jsonb, uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='acb0d6bd7ac5d42203f19c4a39fb3d37'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_held_v1(text, jsonb, uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_patch_v1(text, jsonb, uuid, uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='a9c19f2e02d833846e4554678fd927ea'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_patch_v1(text, jsonb, uuid, uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_scope_v1(text)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='31671394f62583024fb001de5ae7d900'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_scope_v1(text)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_semantic_keys_v1()')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='8ef10c5900936b5dc89ae8f7784f55e8'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_semantic_keys_v1()'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_semantic_v1(jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='15e409e5acd38131c220009eaa2e4866'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_semantic_v1(jsonb)'; END IF;
 IF (SELECT capture->'tables' FROM (SELECT jsonb_build_object(
 'project_ref','leqcwgzvjsxugfgzdmth',
 'captured_at',clock_timestamp(),'server_version_num',current_setting('server_version_num'),'role',current_user,

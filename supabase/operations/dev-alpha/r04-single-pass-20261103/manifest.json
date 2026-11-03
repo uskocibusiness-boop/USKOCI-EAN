@@ -9,18 +9,21 @@
   "preimage_sha256": "5f87ee496fa0010d99b5bdd26ffd38f09a20935164f0294a724509424241d54e",
   "dependencies_sha256": "b3dc67c8ec37d9afc6bbb27a2322cee70b56a7d384a9abcc9a94285c0261f979",
   "chain_dependencies_sha256": "5d437c9a76b12ad000248ddf6cf82540271f00fe3b9cf058653ae37f3f10c4e4",
+  "lifecycle_dependencies_sha256": "797c90c24c4080fa0ae78fc4f7aca82b6d0e0c3e986051029819e30b7af201c4",
   "changed_functions": 7,
   "new_functions": 10,
   "files": {
-    "preflight.sql": "846787cad222cf3f774b751903dfe7b9191d395d81d4fb5e41354a8c6f0d4355",
-    "promotion.sql": "0477a917f44b02d311aba56b7ad9e433755cd7aa30bc75629cfa32e577730fe8",
-    "postflight.sql": "99225cb59a1a06a7a8b3774a9d447997a360378b4e5bdf7c62bd087891a6199f",
-    "rollback.sql": "23ffe34e727e1963beb76078de62d5b5363075b5cea18d73a442e67418d69517",
+    "preflight.sql": "c51e8de3d074598572b7ac4517eb703ead40335b856eb7463421e45d7a445649",
+    "promotion.sql": "67c0a9f6eea4f00e9aef1ef51bf57f0af36e3e39c23a8b2490728c1a2c1990a0",
+    "postflight.sql": "d8fe4405c7ee34d21c070040354de3334813e3ba348d57244855be101f9a21c5",
+    "rollback.sql": "d93152310aa420877d77fb4c9da6af5513f87353ab71d65ffc952059e25b9b7e",
     "postimage.json": "42bd7756238ba480e113820979375feecb46fad9ec63ee8e4d72ff904dc8a162"
   },
+  "requirements": [
+    "Full CI on the promoted source, recorded separately; a previous successful run does not attest later changes."
+  ],
   "blockers": [
-    "Current full AI CI migration is not green.",
-    "Complete real-schema export/erasure and concurrency acceptance remains required; isolated current Worker Save/binder/sync/matching chain is proven.",
+    "Complete real-schema export/erasure and concurrency acceptance remains required; bounded domain fixtures do not attest the entire schema.",
     "R01 and R10 source readiness remain open; this package grants no release approval."
   ],
   "rollback": "Only before first catalog resolution; otherwise forward recovery. Restore compatible Edge versions before SQL rollback.",

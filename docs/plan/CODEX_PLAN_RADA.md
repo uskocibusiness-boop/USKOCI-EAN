@@ -3438,6 +3438,14 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
 
+#### R04/R06 — četiri nedostajuća RPC-ja i granice upisa, 03.11.2026.
+
+**SOURCE / ciljana izolacija; DEV NOT_APPLIED.** Polazni `201cf6224ab89129786af419bdcfbe7c041a709b`. Svež DEV read-only potvrđuje odsustvo Need, Need-location i Worker `*_with_first_plan_service` i `rpc_ai_read_first_plan_completion_service`. Postojeći paket sadrži četiri javna i šest privatnih novih vlasnika; ne uvodi novi AI model. Novi `lifecycle-dependencies.json` fiksira osam živih closure/semantic/erasure definicija i njihov owner/ACL u preflight/postflight/rollback, bez menjanja readiness sertifikata. Svež prošireni preflight: `SINGLE_PASS_PREIMAGE_MATCH`, `release_ready=false`.
+
+- **Izvršeno:** pet stvarno izvršenih lifecycle provera potvrđuje novi export category ID-ja bez internih digest-a, filtriranje tuđih arhivskih redova, DELETE cele hint/archive vrste i poštovanje vlasničkog hold-a. Tri provere runner-a potvrđuju odbijanje spoljne baze i stvarnu zabranu upisa zatvorenog naloga. Trinaest postojećih first-plan testova prolazi nakon izdvajanja nepromenjenog zajedničkog fixture-a; generator `--check` PASS.
+- **Sledeći dokaz u istom CI-ju:** socket-only PostgreSQL 17.6 runner sa sedam konkurentnih scenarija: dupli Need/Location/Worker i lost-ACK readback, rollback/retry, isti novi branch iz dva naloga i closure/write u oba redosleda. Koristi stvarna completion/capture/resolver/closure-lock tela, ali **ograničeni domenski fixture**, ne kompletnu DEV šemu. Rezultat još nije potvrđen u ovom source checkpoint-u; artefakt `r04-first-plan-native-proof` mora sadržati `success` i `cleanup`.
+- **Granica:** nema DEV/Edge promene, modelskih troškova, native dokaza niti oslabljenog R01/R10. Full CI `41597003376` odnosi se na prethodni `34cea025`; novi CI i native receipt beleže se tek posle izvršenja. Ove ciljane provere ne zamenjuju punu export/erasure orkestraciju, Auth/HTTP i relevantni parity dokaz za promociju.
+
 
 #### R04/R06/R08 — transport i spremnost razgovora, 03.11.2026.
 

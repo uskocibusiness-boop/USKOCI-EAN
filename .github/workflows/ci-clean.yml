@@ -15,6 +15,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  r04-first-plan-concurrency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exact proof dependencies
+        run: npm ci
+      - name: R04 first-plan competing transactions and closure locks (disposable PG17 only)
+        run: node supabase/proofs/ai/run_first_plan_concurrency.mjs
+      - name: Retain bounded concurrency evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r04-first-plan-native-proof
+          path: artifacts/r04-first-plan-native/
+          if-no-files-found: warn
+          retention-days: 14
   r05-postgis-candidates:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -102,6 +125,7 @@ jobs:
         run: |
           node --test --test-reporter=spec supabase/proofs/ai/r04_semantic_review_pending.test.mjs supabase/proofs/ai/r04_signed_taxonomy_publish_fence.test.mjs
           node --test --test-reporter=spec supabase/proofs/ai/single_pass_continuity.test.mjs supabase/proofs/ai/r06_first_plan_completion.test.mjs supabase/proofs/ai/r04_single_pass_readers.test.mjs
+          node --test --test-reporter=spec supabase/proofs/ai/r04_first_plan_lifecycle.test.mjs supabase/proofs/ai/r04_first_plan_runner.test.mjs
           node supabase/operations/dev-alpha/r04-single-pass-20261103/build.mjs --check
       - name: Reviewed DEV package derivation, acceptance and rollback (isolated only)
         run: |
