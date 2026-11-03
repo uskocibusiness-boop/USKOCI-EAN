@@ -141,7 +141,7 @@ describe('W02 account-safe receipt boundary', () => {
     mockRpc.mockReset();
     // The product word is "Raspored", never "kalendar".
     await expect(workerCalendarClientService.readRange(FROM, TO)).resolves.toMatchObject({
-      ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavi se da otvoriš svoj Raspored.',
+      ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavite se da otvorite svoj Raspored.',
     });
     expect(mockRpc).not.toHaveBeenCalled();
   });
@@ -154,7 +154,7 @@ describe('W02 account-safe receipt boundary', () => {
     mockAccount = { user: { id: 'account-b' }, accountRevision: 2 };
     mockAccount = { user: { id: 'account-a' }, accountRevision: 3 };
     resolve({ data: range(), error: null });
-    await expect(result).resolves.toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Raspored.' });
+    await expect(result).resolves.toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Raspored.' });
   });
 
   it('accepts the same account across token refresh', async () => {

@@ -1,0 +1,144 @@
+{
+  "cli": "2.116.0",
+  "postgres_version_num": 170006,
+  "supautils_privileged_role": "supabase_privileged_role",
+  "project_id": "uskoci-r01-schema-ci",
+  "images": {
+    "db": "supabase/postgres:17.6.1.165",
+    "kong": "library/kong:2.8.1",
+    "auth": "supabase/gotrue:v2.196.0",
+    "rest": "postgrest/postgrest:v16.1",
+    "storage": "supabase/storage-api:v1.80.0",
+    "realtime": "supabase/realtime:v2.148.3"
+  },
+  "version_files": {
+    "postgres-version": "17.6.1.165",
+    "gotrue-version": "v2.196.0",
+    "rest-version": "v16.1",
+    "storage-version": "v1.80.0",
+    "realtime-version": "v2.148.3"
+  },
+  "extensions": [
+    {
+      "name": "pg_cron",
+      "schema": "pg_catalog",
+      "version": "1.6.4"
+    },
+    {
+      "name": "pg_net",
+      "schema": "public",
+      "version": "0.20.4"
+    },
+    {
+      "name": "pg_stat_statements",
+      "schema": "extensions",
+      "version": "1.11"
+    },
+    {
+      "name": "pgcrypto",
+      "schema": "extensions",
+      "version": "1.3"
+    },
+    {
+      "name": "plpgsql",
+      "schema": "pg_catalog",
+      "version": "1.0"
+    },
+    {
+      "name": "postgis",
+      "schema": "extensions",
+      "version": "3.3.7"
+    },
+    {
+      "name": "supabase_vault",
+      "schema": "vault",
+      "version": "0.3.1"
+    },
+    {
+      "name": "uuid-ossp",
+      "schema": "extensions",
+      "version": "1.1"
+    }
+  ],
+  "service_history": {
+    "storage": [
+      {
+        "id": 59,
+        "hash": "38456f13e39691c2bbb4b5151d0d1cdbabd4a8c4"
+      },
+      {
+        "id": 60,
+        "hash": "db35e1c91a9201e59f4fef8d972c2f277d68b157"
+      },
+      {
+        "id": 61,
+        "hash": "fe0096517ae9d60aaec1d110172ba9036dc66bb7"
+      },
+      {
+        "id": 62,
+        "hash": "0b855f00ff3be0bfca91efee02a9858912491a9a"
+      },
+      {
+        "id": 63,
+        "hash": "c7485e417624f795ce8bb2da21927f48e088904d"
+      },
+      {
+        "id": 64,
+        "hash": "0af424ecd388a39bb1645184b222185a12149675"
+      },
+      {
+        "id": 65,
+        "hash": "da319c4b89ba800ce795d1b699f3a70675138058"
+      },
+      {
+        "id": 66,
+        "hash": "191466c93aa2c46a00e36505577c5fcab8d7cb4b"
+      },
+      {
+        "id": 67,
+        "hash": "15bfe8c35b66642b6c78ba60060fa8793bd2207a"
+      },
+      {
+        "id": 68,
+        "hash": "3c08f6f889922f399519722a932b51007c11bebc"
+      },
+      {
+        "id": 69,
+        "hash": "4febacaaaa0e61e2b783bef081fe03a287e65eb3"
+      },
+      {
+        "id": 70,
+        "hash": "5c17c3777616cd8d7b18b82835525fa3205af57b"
+      },
+      {
+        "id": 71,
+        "hash": "6d14858e66c66f8d6accf8a2630aefd1527fddba"
+      },
+      {
+        "id": 72,
+        "hash": "302beb09e1b469d7d4db19566f2389d280b64aa3"
+      },
+      {
+        "id": 73,
+        "hash": "ba9244051be09f22f714fc0170a2539f8b5f0e68"
+      }
+    ],
+    "realtime": [
+      "20260624120000",
+      "20260626120000",
+      "20260706120000",
+      "20260707120000",
+      "20260709120000",
+      "20260714120000",
+      "20260827120000",
+      "20260914120000",
+      "20260916120000",
+      "20260922120000",
+      "20260925120000",
+      "20260928120000",
+      "20261002120000",
+      "20261008120000",
+      "20261009120000"
+    ]
+  }
+}

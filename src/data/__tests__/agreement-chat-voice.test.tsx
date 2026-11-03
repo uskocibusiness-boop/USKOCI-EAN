@@ -23,7 +23,6 @@ jest.mock('../../ui/system/haptics', () => ({ tick: jest.fn(), forgetTicks: jest
 import { tick } from '../../ui/system/haptics';
 import { AgreementChat, CLOSED_SENTENCE } from '../../ui/AgreementChat';
 import { sys } from '../../ui/system/tokens';
-import { forgetAutoResendForTests } from '../../ui/messages/threadModel';
 
 /**
  * Voice in the conversation (team T3c): a voice message is a bubble in the same shape as text and photo, with a play control, a
@@ -43,12 +42,12 @@ const flat = (style: unknown) => (StyleSheet.flatten(style as never) ?? {}) as R
 const texts = (node: ReactTestInstance = tree.root) => node.findAll(child => String(child.type) === 'T').flatMap(child => child.children.filter(c => typeof c === 'string')).join(' ');
 const button = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 const has = (label: string) => tree.root.findAllByProps({ accessibilityLabel: label }).length > 0;
-const idle = { phase: 'idle', elapsedMs: 0, durationMs: null, preview: 'idle', level: null, error: null, canRecord: true, canSend: false, canDiscard: false, canRetry: false, recovered: [] };
+const idle = { phase: 'idle', elapsedMs: 0, durationMs: null, preview: 'idle', level: null, error: null, canRecord: true, canSend: false, canDiscard: false, canRetry: false, recovered: [], unresolved: [], recoveryBusy: false };
 async function render(over: Partial<typeof props> = {}) {
   await act(async () => { tree = create(<AgreementChat {...props} {...over} />, { createNodeMock: element => element.type === ('ScrollView' as never) ? { scrollToEnd: jest.fn(), scrollTo: jest.fn() } : null }); });
 }
 beforeEach(() => {
-  jest.clearAllMocks(); forgetAutoResendForTests();
+  jest.clearAllMocks();
   jest.spyOn(global, 'requestAnimationFrame').mockImplementation(() => 1);
   jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(() => undefined);
   Object.keys(mockVoice).forEach(key => delete mockVoice[key]);
@@ -58,7 +57,7 @@ beforeEach(() => {
     review: false, reviewFirst: false, screenReader: false, setReviewFirst: jest.fn(), interactionError: null,
     begin: jest.fn().mockResolvedValue(undefined), endHold: jest.fn().mockResolvedValue(undefined), release: jest.fn().mockResolvedValue(undefined),
     cancel: jest.fn().mockResolvedValue(undefined), preview: jest.fn(), send: jest.fn().mockResolvedValue(undefined), retry: jest.fn(),
-    refreshRecovery: jest.fn(), sendRecovered: jest.fn(), discardRecovered: jest.fn(), toggle: jest.fn().mockResolvedValue(undefined),
+    refreshRecovery: jest.fn(), sendRecovered: jest.fn(), discardRecovered: jest.fn(), cancelUnresolved: jest.fn(), toggle: jest.fn().mockResolvedValue(undefined),
   });
   const state: OutboxSnapshot = { phase: 'ready', draft: '', capturing: false, entries: [], error: null };
   props = { messages: [], loading: false, error: false, writable: true, terminal: false, refresh: jest.fn().mockResolvedValue(undefined),
@@ -80,8 +79,8 @@ describe('a voice message in the thread', () => {
 
   it('mine carries the one small mark and a summary with who, what, when and state; the play control stays its own stop', async () => {
     await render({ messages: [voiceRow(true)] });
-    const stop = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Ti: '))[0];
-    expect(stop.props.accessibilityLabel).toBe('Ti: glasovna poruka 0:14, Danas, 14:12, poslato');
+    const stop = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Vi: '))[0];
+    expect(stop.props.accessibilityLabel).toBe('Vi: glasovna poruka 0:14, Danas, 14:12, poslato');
     expect(stop.findAll(node => node.props.accessibilityRole === 'image')[0].props.accessibilityLabel).toBe('Poslato');
     expect(stop.findAllByProps({ accessibilityLabel: 'Preslušaj glasovnu poruku, 0:14' })).toHaveLength(0);
   });
@@ -106,36 +105,62 @@ describe('a voice message in the thread', () => {
     mockVoice.outboxState = { phase: 'ready', error: null, entries: [{ command, state: 'unknown', error: 'INVALID_RESPONSE', persisted: true, attempt: 1 }] };
     await render();
     expect(texts()).toContain('Glasovna poruka'); expect(texts()).toContain('Ne znamo da li je stigla');
-    await act(async () => button('Proveri da li je stigla: glasovna poruka').props.onPress());
-    // The explicit retry goes to the voice outbox, never the text one.
+    await act(async () => button('Proverite da li je stigla: glasovna poruka').props.onPress());
+    expect(props.refresh).toHaveBeenCalledTimes(1);
+    expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
+    await act(async () => button('Pošaljite glasovnu poruku ponovo').props.onPress());
+    // A second explicit gesture uses the original VOICE command, never the text journal.
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000009');
     expect(outbox.retry).not.toHaveBeenCalled();
   });
+});
+
+it('R11c/SB04 unresolved upload is visible, checkable and explicitly cancellable without an automatic send', async () => {
+  const ref = { agreementId: agreement, agreementVersion: 2, clientRequestId: '60000000-0000-4000-8000-000000000001' };
+  mockVoice.recording = { ...idle, unresolved: [{ ref, state: 'STAGED' }] };
+  await render();
+  expect(texts()).toContain('Nepotvrđeno slanje glasovne poruke');
+  expect(texts()).toContain('Snimak čeka obradu na serveru.');
+  expect(has('Proveri stanje snimka')).toBe(true);
+  expect(has('Otkaži nepotvrđeni snimak')).toBe(true);
+  expect(mockVoice.cancelUnresolved).not.toHaveBeenCalled();
+  expect(mockVoice.sendRecovered).not.toHaveBeenCalled();
+  await act(async () => button('Proveri stanje snimka').props.onPress());
+  expect(mockVoice.refreshRecovery).toHaveBeenCalledTimes(1);
+  await act(async () => button('Otkaži nepotvrđeni snimak').props.onPress());
+  expect(mockVoice.cancelUnresolved).toHaveBeenCalledWith(ref);
+  mockVoice.recording = { ...mockVoice.recording, recoveryBusy: true };
+  await act(async () => tree.update(<AgreementChat {...props} />));
+  expect(button('Otkaži nepotvrđeni snimak').props.disabled).toBe(true);
+  expect(button('Proveri stanje snimka').props.disabled).toBe(true);
 });
 
 describe('a voice send the network left unknown', () => {
   const command = { accountId: account, agreementId: agreement, clientMessageId: 'glas_00000010', body: '', voice: { agreementVersion: 2, assetId: glas.assetId } };
   const unknown = (error?: string) => ({ command, state: 'unknown', ...(error ? { error } : {}), persisted: true, attempt: 1 });
 
-  it('is tried once by itself through the VOICE outbox, with the retained command\'s own id, and never through the text outbox', async () => {
+  it('never auto-resends an unknown VOICE command on mount/remount; explicit resend preserves its key', async () => {
     mockVoice.outboxState = { phase: 'ready', error: null, entries: [unknown('UNAVAILABLE')] };
     await render();
-    expect(mockVoice.outbox.retry).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(<AgreementChat {...props} />));
+    expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
+    expect(outbox.retry).not.toHaveBeenCalled();
+    await act(async () => button('Pošaljite glasovnu poruku ponovo').props.onPress());
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000010');
     expect(outbox.retry).not.toHaveBeenCalled(); expect(outbox.sendDraft).not.toHaveBeenCalled();
-    // A later render with the same unknown entry does not try it again.
-    await act(async () => tree.update(<AgreementChat {...props} />));
-    expect(mockVoice.outbox.retry).toHaveBeenCalledTimes(1);
   });
 
-  it('waits until the voice outbox itself is ready, so the one automatic try is not spent on a retry that would be ignored, and then takes it', async () => {
+  it('restoring the voice outbox does not send; explicit resend is still possible once ready', async () => {
     mockVoice.outboxState = { phase: 'loading', error: null, entries: [unknown('UNAVAILABLE')] };
     await render();
+    expect(has('Pošaljite glasovnu poruku ponovo')).toBe(false);
+    expect(has('Proverite da li je stigla: glasovna poruka')).toBe(true);
     expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
-    // The text journal was ready long ago and had nothing to retry; the voice journal becomes ready later and has its own opening.
     mockVoice.outboxState = { phase: 'ready', error: null, entries: [unknown('UNAVAILABLE')] };
     await act(async () => tree.update(<AgreementChat {...props} />));
-    expect(mockVoice.outbox.retry).toHaveBeenCalledTimes(1);
+    expect(has('Pošaljite glasovnu poruku ponovo')).toBe(true);
+    expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
+    await act(async () => button('Pošaljite glasovnu poruku ponovo').props.onPress());
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000010');
   });
 
@@ -155,7 +180,7 @@ describe('the pill with a microphone', () => {
     await render();
     expect(has('Drži za glasovnu poruku')).toBe(true);
     expect(has('Dodaj fotografije')).toBe(false); // no photo controller in this scene: only the microphone stands in the toolbar
-    expect(flat(button('Pošalji poruku').props.style).display).toBe('none');
+    expect(flat(button('Pošaljite poruku').props.style).display).toBe('none');
     expect(has('Pregledaj snimak pre slanja')).toBe(false);
   });
 
@@ -173,11 +198,11 @@ describe('the pill with a microphone', () => {
   it('typing text swaps the microphone for the send, and clearing it brings the microphone back', async () => {
     await render();
     await act(async () => tree.update(<AgreementChat {...props} state={{ ...props.state, draft: 'Nešto' }} />));
-    expect(flat(button('Pošalji poruku').props.style).display).toBeUndefined();
+    expect(flat(button('Pošaljite poruku').props.style).display).toBeUndefined();
     const micSlot = button('Drži za glasovnu poruku').parent!;
     expect(micSlot).toBeTruthy();
     await act(async () => tree.update(<AgreementChat {...props} state={{ ...props.state, draft: '' }} />));
-    expect(flat(button('Pošalji poruku').props.style).display).toBe('none');
+    expect(flat(button('Pošaljite poruku').props.style).display).toBe('none');
   });
 
   it('with a screen reader the microphone is a start/stop button and the review step stays: the field hides while a recording waits', async () => {
@@ -192,7 +217,7 @@ describe('the pill with a microphone', () => {
     expect(has('Pošalji snimak')).toBe(true); expect(has('Odbaci snimak')).toBe(true);
     await act(async () => button('Pošalji snimak').props.onPress());
     expect(mockVoice.send).toHaveBeenCalledTimes(1);
-    expect(button('Napiši poruku').parent!.props.accessibilityElementsHidden).toBe(true);
+    expect(button('Napišite poruku').parent!.props.accessibilityElementsHidden).toBe(true);
   });
 });
 

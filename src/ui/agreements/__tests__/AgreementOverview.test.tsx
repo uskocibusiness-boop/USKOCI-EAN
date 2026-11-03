@@ -127,7 +127,7 @@ describe('the completed and rated overview', () => {
   it('does not replace a pending-change heading or its content with the compact outcome', async () => {
     await draw(props({ agreement: agreement({ stanje: 'COMPLETED' }), step: endStep('GIVEN', true),
       steps: { state: 'COMPLETED', ownRating: 'GIVEN' }, headExtra: <T2>Proveri predlog</T2> }));
-    expect(headers()).toContain('Predlog izmene čeka tvoj odgovor');
+    expect(headers()).toContain('Predlog izmene čeka Vaš odgovor');
     expect(texts()).toContain('Proveri predlog');
     expect(texts()).not.toContain('ocena sačuvana');
   });

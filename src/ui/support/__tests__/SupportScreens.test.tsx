@@ -35,6 +35,8 @@ jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 import { SupportNewScreen, supportRouteReference } from '../SupportNewScreen';
+import { clearSupportNewDraft } from '../supportNewDraft';
+import { clearSupportReplyDraft } from '../supportReplyDraft';
 import { SupportDetailScreen } from '../SupportDetailScreen';
 import { SupportInboxScreen } from '../SupportInboxScreen';
 import { SupportReferenceView } from '../SupportReferenceView';
@@ -74,6 +76,7 @@ const text = () => tree.root.findAllByType('T' as React.ElementType).flatMap(n =
 async function type(label: string, value: string) { await act(async () => field(label).onChangeText(value)); }
 function deferred() { let resolve!: (value: unknown) => void; const promise = new Promise(done => { resolve = done; }); return { resolve, promise }; }
 beforeEach(() => {
+  clearSupportNewDraft(); clearSupportReplyDraft();
   jest.clearAllMocks(); Object.values(mockService).forEach(fn => fn.mockReset()); mockAgreements.mockReset();
   screen = 'NEW'; reference = null; preset = undefined; initialTopic = undefined; routeKey = true; mockSession = { user: { id: A }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockAppState = 'active';
   mockBack.handlers = [];
@@ -175,14 +178,13 @@ it('a flip of the retired app mode keeps the private form and lets the retained 
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Opis zahteva' }).some(n => n.props.value === 'Privatni RAM tekst')).toBe(true);
   await act(async () => retained()); expect(mockService.submit).toHaveBeenCalledTimes(1);
 });
-it.each(['account', 'account ABA', 'blur/focus', 'context'] as const)('a reused mounted screen resets every local draft on %s without relying on its route key', async change => {
+it.each(['account', 'account ABA', 'context'] as const)('a reused mounted screen drops private drafts across a changed %s scope', async change => {
   routeKey = false; reference = { kind: 'AGREEMENT', id: C, revision: 2 }; await render();
   await type('Kratak naslov', 'Stari naslov'); await type('Opis zahteva', 'Privatni tekst prethodne inkarnacije'); await type('Željeni ishod', 'Stari ishod');
   await act(async () => action('Izaberi Dogovor').onPress());
   expect(action('Pošalji privatni zahtev').disabled).toBe(false);
   const retained = action('Pošalji privatni zahtev').onPress;
-  if (change === 'blur/focus') { mockFocused = false; await update(); mockFocused = true; }
-  else if (change === 'account') mockSession = { user: { id: B }, accountRevision: 2 };
+  if (change === 'account') mockSession = { user: { id: B }, accountRevision: 2 };
   else if (change === 'account ABA') mockSession = { user: { id: A }, accountRevision: 3 };
   else reference = { kind: 'TASK_REVIEW', id: D, revision: null };
   await update(); await act(async () => retained()); expect(mockService.prepare).not.toHaveBeenCalled();
@@ -193,6 +195,61 @@ it.each(['account', 'account ABA', 'blur/focus', 'context'] as const)('a reused 
     await act(async () => hostPress('Tema zahteva').onPress());
     expect(action('Pregled odluke o objavi').selected).toBe(true);
   }
+});
+it('R11d keeps unsent support words across ordinary blur/focus but fences the old submit', async () => {
+  routeKey = false; await render();
+  await type('Kratak naslov', 'Naslov koji čuvam'); await type('Opis zahteva', 'Tekst ostaje pri povratku');
+  await type('Željeni ishod', 'Da odgovorite'); const oldSend = action('Pošalji privatni zahtev').onPress;
+  mockFocused = false; await update();
+  await act(async () => oldSend()); expect(mockService.prepare).not.toHaveBeenCalled();
+  mockFocused = true; await update();
+  expect(field('Kratak naslov').value).toBe('Naslov koji čuvam');
+  expect(field('Opis zahteva').value).toBe('Tekst ostaje pri povratku');
+  expect(field('Željeni ishod').value).toBe('Da odgovorite');
+  await act(async () => oldSend()); expect(mockService.prepare).not.toHaveBeenCalled();
+  await act(async () => action('Pošalji privatni zahtev').onPress());
+  expect(mockService.prepare.mock.calls[0][3]).toMatchObject({ title: 'Naslov koji čuvam',
+    body: 'Tekst ostaje pri povratku', desiredOutcome: 'Da odgovorite' });
+});
+it('R11d restores an unsent support narrative after background, then clears it on a new account incarnation', async () => {
+  routeKey = false; await render(); await type('Kratak naslov', 'U istom nalogu');
+  await type('Opis zahteva', 'Privatno samo za ovaj nalog');
+  const oldSend = action('Pošalji privatni zahtev').onPress;
+  await act(async () => { mockAppState = 'background'; mockListeners.forEach(fn => fn('background')); });
+  await act(async () => oldSend()); expect(mockService.prepare).not.toHaveBeenCalled();
+  await act(async () => { mockAppState = 'active'; mockListeners.forEach(fn => fn('active')); });
+  expect(field('Opis zahteva').value).toBe('Privatno samo za ovaj nalog');
+  mockSession = { user: { id: B }, accountRevision: 2 }; await update();
+  expect(field('Opis zahteva').value).toBe('');
+  expect(action('Pošalji privatni zahtev').disabled).toBe(true);
+  mockSession = { user: { id: A }, accountRevision: 3 }; await update();
+  expect(field('Opis zahteva').value).toBe('');
+});
+it('R11d never reuses a selected Agreement revision after focus while restoring the exact written words', async () => {
+  routeKey = false; await render();
+  await act(async () => hostPress('Tema zahteva').onPress());
+  await act(async () => action('Prijava nedolaska').onPress());
+  await type('Kratak naslov', 'Nedolazak'); await type('Opis zahteva', 'Zadržite opis.');
+  await act(async () => action('Izaberi Dogovor').onPress());
+  await act(async () => action('Stvarni sopstveni Dogovor').onPress());
+  expect(action('Pošalji privatni zahtev').disabled).toBe(false);
+  mockFocused = false; await update(); mockFocused = true; await update();
+  expect(field('Opis zahteva').value).toBe('Zadržite opis.');
+  expect(action('Pošalji privatni zahtev').disabled).toBe(true);
+  expect(footerReason()).toContain('Izaberi Dogovor');
+  await act(async () => action('Izaberi Dogovor').onPress());
+  await act(async () => action('Stvarni sopstveni Dogovor').onPress());
+  expect(action('Pošalji privatni zahtev').disabled).toBe(false);
+});
+it('R11d intentional confirmed discard clears even the in-memory return draft', async () => {
+  routeKey = false; await render(); await type('Kratak naslov', 'Ne čuvati');
+  await type('Opis zahteva', 'Ovaj tekst odbacujem.');
+  await act(async () => tree.root.findByType('Screen' as React.ElementType).props.onBack());
+  await act(async () => tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
+  expect(mockRouter.replace).toHaveBeenCalledWith('/podrska');
+  mockFocused = false; await update(); mockFocused = true; await update();
+  expect(field('Kratak naslov').value).toBe('');
+  expect(field('Opis zahteva').value).toBe('');
 });
 it('does not expose a previous account case from a late detail read', async () => {
   screen = 'DETAIL'; const held = deferred(); mockService.detail.mockReturnValueOnce(held.promise); await render();
@@ -225,6 +282,49 @@ it('does not submit a retained reply after its draft has changed, and sends the 
   expect(mockService.prepare).toHaveBeenCalledWith('AUTHOR_REPLY', C, 2, { body: 'Promenjena dopuna', evidence: [] }, expect.objectContaining({ accountId: A }));
   // The outcome is unknown here: the words stay in the field, not editable, until a readback settles it.
   expect(field('Tekst poruke').value).toBe('Promenjena dopuna'); expect(field('Tekst poruke').editable).toBe(false);
+});
+it('R11d keeps an unsent detail reply after same-account blur/focus and fences the earlier send', async () => {
+  screen = 'DETAIL'; routeKey = false; await render(); await type('Tekst poruke', 'Dopuna pre povratka.');
+  const old = field('Pošalji poruku').onPress;
+  mockFocused = false; await update(); await act(async () => old()); expect(mockService.prepare).not.toHaveBeenCalled();
+  mockFocused = true; await update(); expect(field('Tekst poruke').value).toBe('Dopuna pre povratka.');
+  await act(async () => old()); expect(mockService.prepare).not.toHaveBeenCalled();
+  await act(async () => field('Pošalji poruku').onPress());
+  expect(mockService.prepare.mock.calls[0][3].body).toBe('Dopuna pre povratka.');
+});
+it('R11d keeps a private reply but not an old case projection across background reload', async () => {
+  screen = 'DETAIL'; routeKey = false; await render(); await type('Tekst poruke', 'Nezavršeni privatni odgovor');
+  const held = deferred(); mockService.detail.mockReturnValueOnce(held.promise);
+  await act(async () => { mockAppState = 'background'; mockListeners.forEach(fn => fn('background')); });
+  expect(text()).not.toContain('Privatna dopuna');
+  await act(async () => { mockAppState = 'active'; mockListeners.forEach(fn => fn('active')); });
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tekst poruke' })).toHaveLength(0);
+  await act(async () => held.resolve(ok(detail())));
+  expect(field('Tekst poruke').value).toBe('Nezavršeni privatni odgovor');
+});
+it('R11d does not restore another account incarnation private case reply', async () => {
+  screen = 'DETAIL'; routeKey = false; await render(); await type('Tekst poruke', 'Samo moj odgovor');
+  mockSession = { user: { id: B }, accountRevision: 2 }; await update();
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tekst poruke' })
+    .every(node => node.props.value === '')).toBe(true);
+  mockSession = { user: { id: A }, accountRevision: 3 }; await update();
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tekst poruke' })
+    .every(node => node.props.value === '')).toBe(true);
+});
+it('R11d header Back confirms deliberate draft discard and the next visit remains blank', async () => {
+  screen = 'DETAIL'; routeKey = false; await render(); await type('Tekst poruke', 'Izričito odbacujem.');
+  await act(async () => tree.root.findByProps({ variant: 'detail' }).props.onBack());
+  expect(tree.root.findByType(ConfirmSheet).props).toMatchObject({
+    title: 'Odbaciti napisanu dopunu?', confirmLabel: 'Odbaci', cancelLabel: 'Nastavi pisanje',
+  });
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  await act(async () => tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress());
+  expect(field('Tekst poruke').value).toBe('Izričito odbacujem.');
+  await act(async () => tree.root.findByProps({ variant: 'detail' }).props.onBack());
+  await act(async () => tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
+  expect(mockRouter.replace).toHaveBeenCalledWith('/podrska');
+  mockFocused = false; await update(); mockFocused = true; await update();
+  expect(field('Tekst poruke').value).toBe('');
 });
 it('operator reconsideration uses only the actual server appeal and does not infer independent review', async () => {
   screen = 'DETAIL'; mockService.detail.mockResolvedValue(ok({ ...detail(), viewerRole: 'OPERATOR', operatorAvailable: true, allowedActions: ['DECIDE_APPEAL'],
@@ -719,4 +819,36 @@ describe('a bug report', () => {
     await act(async () => tree.root.findByType('Screen' as React.ElementType).props.onBack());
     expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(1);
   });
+});
+
+it.each([
+  { amount: 100, displayValue: '100 EUR', status: 'CONFIRMED', expected: '100 RSD' },
+  { amount: 5000, displayValue: '999 €', status: 'NEEDS_CONFIRMATION', expected: '5.000 RSD' },
+  { amount: null, displayValue: '100 EUR', status: 'UNKNOWN', expected: 'Iznos nije sačuvan' },
+])('support review uses its captured typed price: $amount, $displayValue', async ({ amount, displayValue, status, expected }) => {
+  const value = { kind: 'TASK_REVIEW' as const, id: D, revision: null, content: {
+    draftId: null, draftRevision: null, displayedContentDigest: 'a'.repeat(64),
+    publicFacts: [{ key: 'need.price_rsd', value: amount, displayValue, status },
+      { key: 'need.title', value: 'Naslov', displayValue: 'Sačuvani naslov', status: 'CONFIRMED' }],
+    safety: 'ALLOW', createdAt: time, policy: { bundleId: null, version: null, contentSha256: null }, evaluation: null, media: [],
+  } };
+  const original = JSON.stringify(value);
+  await act(async () => { tree = create(<SupportReferenceView value={value} caseId={C} />); });
+  expect(text()).toContain(expected);
+  expect(text()).not.toContain(displayValue);
+  expect(text()).toContain('Sačuvani naslov');
+  expect(JSON.stringify(value)).toBe(original);
+});
+
+it('support review names the captured hourly unit without trusting stale presentation words', async () => {
+  const value = { kind: 'TASK_REVIEW' as const, id: D, revision: null, content: {
+    draftId: null, draftRevision: null, displayedContentDigest: 'a'.repeat(64),
+    publicFacts: [{ key: 'need.price_basis', value: 'HOURLY', displayValue: 'Ukupno', status: 'CONFIRMED' }],
+    safety: 'ALLOW', createdAt: time, policy: { bundleId: null, version: null, contentSha256: null }, evaluation: null, media: [],
+  } };
+  const original = JSON.stringify(value);
+  await act(async () => { tree = create(<SupportReferenceView value={value} caseId={C} />); });
+  expect(text()).toContain('Po osobi po satu');
+  expect(text()).not.toContain('Ukupno');
+  expect(JSON.stringify(value)).toBe(original);
 });

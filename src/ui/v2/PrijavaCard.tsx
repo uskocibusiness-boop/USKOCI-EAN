@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { FactRow } from '../system/FactRow';
 import { STATUS_CHIPS, StatusChip, type StatusKey } from '../system/StatusChip';
@@ -6,26 +6,9 @@ import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { MoneyLine } from './offer/RecordParts';
 
-/**
- * PrijavaCard: an application ("prijava") as ONE recognisable object, for both people who see it (plan 2.12, owner 2026-10-07;
- * composition spec 4.7, 2026-10-08). The worker meets it in "Moje prijave", the requester among the candidates of a task. It is the
- * same anatomy in both, so a prijava never looks like something else, and only the head differs, because each of them already knows
- * one half of it:
- *
- *   1. the state, as the one `StatusChip` of the app: Poslata, Viđena, Izabrana, Nije izabrana, Povučena. EVERY card has one;
- *   2. who it is about: the TASK's title for the worker, the PERSON (face, name, rating) for the requester;
- *   3. what it is worth, on ONE line: the offered total, what it covers and how many people ("4.500 RSD ukupno · 2 osobe"), and the
- *      term as a fact of its own. The worker's term comes before the offer (it says which job this is), the requester's after it (the
- *      person and the offer are what is chosen between, and a term is shown there only when the person proposed one);
- *   4. the message, in quotes, quietly (two lines on a list, all of it where it is read in full).
- *
- * A price that was not stored says so in words ("Cena nije navedena") and never wears an amount's weight. Nothing here invents a
- * rating, a count, a time or a state: the adapters that build the model (`ApplicationFace` for the worker, `CandidateFace` for the
- * requester) pass only what the read carried.
- *
- * This file draws the CONTENT of the card. The frame (a `Surface record`), the press target and the one action beside it belong to the
- * list that holds it, because they differ with the interaction (the worker's card has a body and a separate foot, the requester's is
- * one press).
+/** Worker application content: task, term, offer, people and message.
+ * CandidateFace owns the requester's composition. Both use the price and status parts below.
+ * The caller owns the press targets, actions and accessible description.
  */
 
 /** The statuses an application can wear: the five words of the owner's decision. */
@@ -35,26 +18,16 @@ export type PrijavaStatus = Extract<StatusKey, `application.${string}`>;
 export type PrijavaPrice = { kind: 'amount'; amount: string; basis: string } | { kind: 'unpriced' };
 export const PRICE_NOT_STORED = 'Cena nije navedena';
 
-export type PrijavaWho =
-  /** The worker's view: which task this application is for. */
-  | { kind: 'task'; title: string }
-  /** The requester's view: the person, with their picture and the rating line the adapter built (a star only beside a real figure). */
-  | { kind: 'person'; name: string; avatar: ReactNode; trust: ReactNode };
-
 export type PrijavaModel = {
   status: PrijavaStatus;
   /** An exceptional line under the state, only when it says something the chip does not ("Zadatak je izmenjen."). */
   reason?: { text: string; tone: 'warn' | 'muted' } | null;
-  who: PrijavaWho;
+  who: { kind: 'task'; title: string };
   /** The term, written once by the app's one time format. */
   term: string;
-  /** False when the term is not drawn: the requester's list says it only for a time the person proposed. The term is still heard. */
-  showTerm?: boolean;
   price: PrijavaPrice;
   /** "1 osoba", "2 osobe". */
   people: string;
-  /** What the person says they have (a vehicle, a tool), only on the requester's card: "Ima: Kombi · Trake za nošenje". It is information, never a condition. */
-  has?: { art: 'vehicle' | 'tool'; text: string } | null;
   /** The message exactly as it is shown, or null when there is none. */
   message: string | null;
   /** The application is over (withdrawn or not chosen). The chip says so; the words stay as readable as ever. */
@@ -109,23 +82,17 @@ export function PrijavaState({ status, reason, detail, silent = false }: Pick<Pr
  * memoised inputs), so a re-render of the list touches only the rows whose application changed. `noteLines` clamps the message
  * (0 = all of it); `large` is the layout class of the window (`useLayoutClass`), which the adapter reads once.
  */
-export const PrijavaCard = memo(function PrijavaCard({ model, large, noteLines = 0, trailing }: {
+export const PrijavaCard = memo(function PrijavaCard({ model, large, noteLines = 0 }: {
   model: PrijavaModel; large: boolean; noteLines?: number;
   /** A card that is over or disabled keeps its words as they are; the argument stays so no caller breaks. */ disabled?: boolean;
-  /** One quiet mark at the end of the head (the requester's caret: the whole card opens the offer). */ trailing?: ReactNode;
 }) {
   const { who } = model;
   const money = <PrijavaPriceText price={model.price} large={large} people={model.people} />;
-  const term = model.showTerm === false ? null : <FactRow art="calendar" value={model.term} />;
   return <>
     <PrijavaState status={model.status} reason={model.reason} detail={model.detail} silent />
-    {who.kind === 'person' ? <View style={s.head}>
-      <View style={s.avatar}>{who.avatar}</View>
-      <View style={s.person}><T variant="heading" style={s.title}>{who.name}</T>{who.trust}</View>
-      {trailing}
-    </View> : <View style={s.head}><T variant="heading" style={[s.title, s.person]}>{who.title}</T>{trailing}</View>}
-    {who.kind === 'task' ? <>{term}{money}</> : <>{money}{term}</>}
-    {model.has ? <FactRow art={model.has.art} value={model.has.text} /> : null}
+    <View style={s.head}><T variant="heading" style={[s.title, s.task]}>{who.title}</T></View>
+    <FactRow art="calendar" value={model.term} />
+    {money}
     {model.message ? <T variant="note" tone="muted" numberOfLines={noteLines || undefined}>{model.message}</T> : null}
   </>;
 });
@@ -136,7 +103,6 @@ const s = StyleSheet.create({
   reason: { color: sys.color.muted, flexShrink: 1 },
   reasonWarn: { color: sys.color.warn },
   head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
-  avatar: { flexShrink: 0 },
-  person: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  task: { flex: 1, minWidth: 0 },
   title: { color: sys.color.ink },
 });

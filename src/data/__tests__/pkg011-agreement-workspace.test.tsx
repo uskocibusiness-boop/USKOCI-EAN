@@ -341,10 +341,10 @@ describe('Poruke says what waits for me and keeps accepted terms one press away'
   // The fixtures are built when each test runs (`proposal` is declared further down this file).
   test.each([
     ['a completion the other side marked, as the requester', () => base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }),
-      'Završetak je označen i čeka tvoju potvrdu'],
+      'Završetak je označen i čeka Vašu potvrdu'],
     ['a change the other side proposed', () => base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true,
-      predlogIzmene: proposal() } }), 'Predlog izmene čeka tvoj odgovor'],
-    ['a finished Dogovor whose rating is due', () => base({ stanje: 'COMPLETED', chatDostupan: false }), 'Čeka tvoju ocenu'],
+      predlogIzmene: proposal() } }), 'Predlog izmene čeka Vaš odgovor'],
+    ['a finished Dogovor whose rating is due', () => base({ stanje: 'COMPLETED', chatDostupan: false }), 'Čeka Vašu ocenu'],
   ])('%s', async (_name, workspace, words) => {
     await render(workspace());
     expect(labels()).toContain('Dogovor: Pomoć pri selidbi. Marko');
@@ -366,9 +366,9 @@ describe('Poruke says what waits for me and keeps accepted terms one press away'
   ])('%s: no false waiting notice, and the accepted terms remain accessible', async (_name, workspace) => {
     await render(workspace());
     expect(labels()).toContain('Dogovor: Pomoć pri selidbi. Marko');
-    expect(texts()).not.toContain('Završetak je označen i čeka tvoju potvrdu');
-    expect(texts()).not.toContain('Predlog izmene čeka tvoj odgovor');
-    expect(texts()).not.toContain('Čeka tvoju ocenu');
+    expect(texts()).not.toContain('Završetak je označen i čeka Vašu potvrdu');
+    expect(texts()).not.toContain('Predlog izmene čeka Vaš odgovor');
+    expect(texts()).not.toContain('Čeka Vašu ocenu');
     expect(texts()).not.toContain('3.000 RSD');
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dogovor: Pomoć pri selidbi. Marko' }).props.onPress());
     expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD, Za ovu saradnju' })).toBeTruthy();
@@ -391,7 +391,7 @@ const proposal = (patch: Record<string, unknown> = {}) => ({ id: 'p1', moj: fals
 test('a change proposal waiting for my answer is the next step, says what it changes, and is the one brand action', async () => {
   await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true, predlogIzmene: proposal() } }));
   const copy = texts();
-  expect(copy).toContain('Predlog izmene čeka tvoj odgovor'); expect(copy).toContain('Cena'); expect(copy).toContain('3.000 RSD');
+  expect(copy).toContain('Predlog izmene čeka Vaš odgovor'); expect(copy).toContain('Cena'); expect(copy).toContain('3.000 RSD');
   expect(copy).toContain('4.500 RSD'); expect(copy).toContain('Ima više stvari nego što je rečeno.');
   expect(copy).toContain('Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.');
   expect(brand()).toEqual(['Odgovori na predlog']); expect(labels()).toContain('Poruke');
@@ -401,9 +401,9 @@ test('a change proposal waiting for my answer is the next step, says what it cha
 test('my own pending proposal is shown as mine and does not take the brand action from the conversation', async () => {
   await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true,
     predlogIzmene: proposal({ moj: true, mozeOdgovoriti: false, mozePovuci: true }) } }));
-  expect(texts()).toContain('Tvoj predlog izmene čeka odgovor'); expect(texts()).toContain('4.500 RSD');
+  expect(texts()).toContain('Vaš predlog izmene čeka odgovor'); expect(texts()).toContain('4.500 RSD');
   expect(brand()).toEqual([]); expect(labels()).toContain('Pogledaj predlog');
-  expect(quietLine()).toEqual(['Čeka da Marko odgovori na tvoj predlog izmene.']);
+  expect(quietLine()).toEqual(['Čeka da Marko odgovori na Vaš predlog izmene.']);
 });
 test('a pending change whose content cannot be read still says it exists and leads to Izmene, inventing nothing', async () => {
   await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true, predlogIzmene: null } }));
@@ -543,7 +543,7 @@ describe('the compact conversation keeps complete identity and accepted terms re
   });
   test('names the real waiting action without losing accepted terms, and compact Back visits the overview before leaving', async () => {
     await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }));
-    const waiting = 'Završetak je označen i čeka tvoju potvrdu';
+    const waiting = 'Završetak je označen i čeka Vašu potvrdu';
     expect(labels()).toContain(`Uslovi Dogovora: Pomoć pri selidbi. ${waiting}`);
     expect(texts()).toContain(waiting);
     expect(texts()).toContain('3.000 RSD');
@@ -679,7 +679,7 @@ describe('the step bar under the tabs, from the state of the Dogovor', () => {
     await act(async () => tree.unmount());
     await render(base({}, 'uskocer'));
     expect(tree.root.findAllByProps({ testID: 'agreement-steps-note' })).toHaveLength(0);
-    expect(texts()).toContain('Kad završiš, dodirni „Zadatak je gotov“.');
+    expect(texts()).toContain('Kada završite, dodirnite „Zadatak je gotov“.');
     expect(texts()).not.toContain('Druga strana tada potvrđuje završetak'); expect(texts()).not.toMatch(/48\s?h/);
   });
 
@@ -878,7 +878,7 @@ describe('how a Dogovor goes is behind an "ⓘ" at its head, for a side of a Dog
 
   test('the worker is told on the page only which button ends the work, and the one who asked for it nothing at all', async () => {
     await render(base({}, 'uskocer'));
-    expect(texts()).toContain('Kad završiš, dodirni „Zadatak je gotov“.');
+    expect(texts()).toContain('Kada završite, dodirnite „Zadatak je gotov“.');
     await act(async () => tree.unmount());
     await render(base());
     expect(texts()).not.toContain('dodirni „Zadatak je gotov“'); expect(quietLine()).toEqual(['Čeka da Marko javi da je zadatak gotov.']);

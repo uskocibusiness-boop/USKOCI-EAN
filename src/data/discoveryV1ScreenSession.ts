@@ -7,9 +7,11 @@ import { discoveryV1MapMarkers, discoveryV1Opportunities, discoveryV1PlaceSugges
 import type { PrilikaProjekcija } from '../contracts/projections';
 import type { DiscoveryV1Counts, DiscoveryV1Availability, DiscoveryV1Item } from './discoveryV1Contract';
 import type { DiscoveryV1MapResponse, DiscoveryV1PlacesResponse, DiscoveryV1PlaceRow } from './discoveryV1SpatialContract';
+import { readFailureReason, type ReadFailureReason } from './readFailure';
 
 type DiscoveryV1MapCounts = DiscoveryV1MapResponse['counts'];
 type DiscoveryV1PlaceCounts = DiscoveryV1PlacesResponse['counts'];
+export type DiscoveryV1MapRead = { loading: boolean; error: ReadFailureReason | null };
 
 export type DiscoveryV1Peek =
   | { kind: 'TASK'; item: PrilikaProjekcija & { revision: number } }
@@ -23,6 +25,8 @@ export type DiscoveryV1ScreenSnapshot = {
   items: (PrilikaProjekcija & { revision: number })[];
   mapMarkers: DiscoveryV1MapMarker[];
   mapWholeBounds: PublicBounds | null;
+  /** MAP transport/contract state only. Native map style readiness has its own owner. */
+  mapRead: DiscoveryV1MapRead;
   places: DiscoveryV1PlaceRow[];
   peek: DiscoveryV1Peek | null;
   /** Only a successful EXACT_PUBLIC read for the current TASK choice can authorize its map price. */
@@ -82,6 +86,8 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
   const owner=createDiscoveryV1Owner(transport,isCurrent);
   let view:MarketplaceView|null=null, peek:DiscoveryV1Peek|null=null, exactTaskId:string|null=null, verifiedPlaceKey:string|null=null, selectionSequence=0, priceGeneration=0;
   let pendingTaskSelection:number|null=null;
+  let listSequence=0,mapGeneration=0,mapSequence=0,mapRead:DiscoveryV1MapRead={loading:false,error:null};
+  let mapRetry:{bounds:PublicBounds;seed:boolean}|null=null;
   /** The task or place bucket the person chose last, while that choice stands (a read for it may still be on its way). */
   let chosen:DiscoveryV1MapMarker|null=null;
   // EX-03 (client work per settle): the owner replaces its page, map and places objects only when an answer lands, so what a snapshot hands out
@@ -111,6 +117,7 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
       items:page?page.items:[],
       mapMarkers:state.map?markersOf(state.map):[],
       mapWholeBounds:state.map?.wholeBounds ? [...state.map.wholeBounds] as PublicBounds : null,
+      mapRead,
       places:state.places?placesOf(state.places):[],
       peek,
       exactTaskId,
@@ -129,23 +136,51 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
   const freshPublicRead=()=>{priceGeneration++;exactTaskId=null;verifiedPlaceKey=null;};
   const freshPublicReadFor=(selection:number)=>{if(selection===selectionSequence) freshPublicRead();};
 
+  /** A retry belongs to this traversal and latest viewport. A stale seed cannot launch its second MAP over a newer viewport. */
+  async function readMap(frame:PublicBounds,seed=false){
+    const generation=mapGeneration,sequence=++mapSequence,selection=selectionSequence;
+    const current=()=>generation===mapGeneration&&sequence===mapSequence&&isCurrent()&&owner.snapshot().active;
+    mapRetry={bounds:[...frame] as PublicBounds,seed};mapRead={loading:true,error:mapRead.error};
+    try{
+      let result=await owner.loadMap(frame);
+      if(!current()||result.kind==='stale')return {kind:'stale' as const};
+      if(result.kind==='applied')freshPublicReadFor(selection);
+      if(seed&&result.kind==='applied'&&result.value.wholeBounds){
+        result=await owner.loadMap([...result.value.wholeBounds] as PublicBounds);
+        if(!current()||result.kind==='stale')return {kind:'stale' as const};
+        if(result.kind==='applied')freshPublicReadFor(selection);
+      }
+      if(result.kind==='applied')mapRead={loading:false,error:null};
+      return result;
+    }catch(error){
+      if(!current())return {kind:'stale' as const};
+      mapRead={loading:false,error:readFailureReason(error)};
+      // The coordinator renews an expired anchor once. A MAP failure must not bypass that recovery contract.
+      if(error instanceof Error&&(error.message==='DISCOVERY_V1_ANCHOR_EXPIRED'||error.message==='DISCOVERY_V1_FOR_ME_PROFILE_REQUIRED'))throw error;
+      return {kind:'failed' as const};
+    }finally{if(current())mapRead={...mapRead,loading:false};}
+  }
+
+  async function retryMap(){
+    if(!view||!mapRetry||!isCurrent())return {kind:'noop' as const,snapshot:snapshot()};
+    const result=await readMap(mapRetry.bounds,mapRetry.seed);
+    return {kind:result.kind,snapshot:snapshot()};
+  }
+
   async function open(next:MarketplaceView,pageLimit=50){
+    const list=++listSequence,generation=++mapGeneration;mapSequence++;mapRetry=null;mapRead={loading:false,error:null};
+    const currentList=()=>list===listSequence&&generation===mapGeneration&&isCurrent();
     view=cloneView(next);peek=null;exactTaskId=null;verifiedPlaceKey=null;chosen=null;selectionSequence++;
     owner.clearSelectionReads();
     const plan=discoveryV1ViewPlan(view);
     owner.begin(plan.filter,plan.pageScope,pageLimit);
     const page=await owner.firstPage();
+    if(!currentList())return {kind:'stale' as const,snapshot:snapshot()};
     if(page.kind!=='applied') return page.kind==='stale'?{kind:'stale' as const,snapshot:snapshot()}:{kind:'noop' as const,snapshot:snapshot()};
-    let mapBounds=plan.mapBounds;
-    if(!mapBounds&&plan.mapSeed){
-      const seeded=await owner.loadMap([...DISCOVERY_V1_SEED_BOUNDS] as PublicBounds);
-      if(seeded.kind==='stale') return {kind:'stale' as const,snapshot:snapshot()};
-      mapBounds=seeded.kind==='applied'&&seeded.value.wholeBounds?[...seeded.value.wholeBounds] as PublicBounds:null;
+    if(plan.mapBounds||plan.mapSeed){
+      await readMap(plan.mapBounds??[...DISCOVERY_V1_SEED_BOUNDS] as PublicBounds,plan.mapSeed);
     }
-    if(mapBounds){
-      const mapped=await owner.loadMap(mapBounds);
-      if(mapped.kind==='stale') return {kind:'stale' as const,snapshot:snapshot()};
-    }
+    if(!currentList())return {kind:'stale' as const,snapshot:snapshot()};
     return {kind:'applied' as const,snapshot:snapshot()};
   }
 
@@ -156,16 +191,21 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
    */
   async function settleMap(listBounds:PublicBounds,mapBounds:PublicBounds=listBounds){
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
-    const selection=selectionSequence;
+    const selection=selectionSequence,list=++listSequence,generation=mapGeneration;
+    const currentList=()=>list===listSequence&&generation===mapGeneration&&isCurrent();
     const area=bounds(listBounds),frame=bounds(mapBounds);
     view={...view,area:[...area] as PublicBounds,pinPlace:null};
     owner.setScope({kind:'AREA',bounds:[...area] as PublicBounds});
-    const pagePromise=owner.firstPage().then(result=>{if(result.kind==='applied') freshPublicReadFor(selection);return result;});
-    const mapPromise=owner.loadMap(frame).then(result=>{if(result.kind==='applied') freshPublicReadFor(selection);return result;});
-    const [page,map]=await Promise.all([pagePromise,mapPromise]);
-    if(page.kind==='stale'||map.kind==='stale') return {kind:'stale' as const,snapshot:snapshot()};
+    const pagePromise=owner.firstPage().then(result=>{if(currentList()&&result.kind==='applied') freshPublicReadFor(selection);return result;});
+    const mapPromise=readMap(frame),mapRequest=mapSequence;
+    const [pageRead,mapReadResult]=await Promise.allSettled([pagePromise,mapPromise]);
+    if(!currentList())return {kind:'stale' as const,snapshot:snapshot()};
+    if(pageRead.status==='rejected')throw pageRead.reason;
+    if(mapReadResult.status==='rejected')throw mapReadResult.reason;
+    const page=pageRead.value,map=mapReadResult.value;
+    if(page.kind==='stale') return {kind:'stale' as const,snapshot:snapshot()};
     const kept=chosen;
-    if(selection===selectionSequence&&kept&&!(map.kind==='applied'&&map.value.buckets.some(bucket=>bucket.key===kept.key))) letGo();
+    if(selection===selectionSequence&&kept&&mapRequest===mapSequence&&map.kind==='applied'&&!map.value.buckets.some(bucket=>bucket.key===kept.key)) letGo();
     return {kind:'applied' as const,snapshot:snapshot()};
   }
 
@@ -175,30 +215,32 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
    */
   async function refreshMap(nextBounds:PublicBounds){
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
-    const selection=selectionSequence;
     const wire=wireBounds(bounds(nextBounds));
     const covered=owner.snapshot().map?.coverageBounds;
-    if(covered&&nearBounds(covered,wire)) return {kind:'noop' as const,snapshot:snapshot()};
-    const result=await owner.loadMap(wire);
-    if(result.kind==='applied') freshPublicReadFor(selection);
+    if(!mapRead.error&&!mapRead.loading&&covered&&nearBounds(covered,wire)) return {kind:'noop' as const,snapshot:snapshot()};
+    const result=await readMap(wire);
     return {kind:result.kind,snapshot:snapshot()};
   }
 
   async function showPoint(point:DiscoveryV1Point){
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
+    const list=++listSequence;
     const key=pointKey(point);
     if(!key) throw new Error('DISCOVERY_V1_SCREEN_POINT');
     view={...view,pinPlace:key,selectedId:null,selectedPlace:null};peek=null;exactTaskId=null;verifiedPlaceKey=null;chosen=null;selectionSequence++;owner.clearSelectionReads();
     owner.setScope({kind:'POINT_LIST',point:{...point}});
     const result=await owner.firstPage();
+    if(list!==listSequence||!isCurrent())return {kind:'stale' as const,snapshot:snapshot()};
     return {kind:result.kind,snapshot:snapshot()};
   }
 
   async function showAll(){
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
+    const list=++listSequence;
     view={...view,area:null,pinPlace:null,selectedId:null,selectedPlace:null};peek=null;exactTaskId=null;verifiedPlaceKey=null;chosen=null;selectionSequence++;owner.clearSelectionReads();
     owner.setScope({kind:'ALL'});
     const result=await owner.firstPage();
+    if(list!==listSequence||!isCurrent())return {kind:'stale' as const,snapshot:snapshot()};
     return {kind:result.kind,snapshot:snapshot()};
   }
 
@@ -289,8 +331,8 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
   const peekNow=()=>peek;
   /** The key of the bucket whose choice stands (its read may still be on its way), or null. */
   const chosenKey=()=>chosen?.key ?? null;
-  const suspend=()=>{selectionSequence++;exactTaskId=null;verifiedPlaceKey=null;owner.suspend();};
-  const retire=()=>{selectionSequence++;peek=null;exactTaskId=null;verifiedPlaceKey=null;chosen=null;view=null;owner.retire();pageMade=null;mapMade=null;placesMade=null;};
+  const suspend=()=>{selectionSequence++;listSequence++;mapGeneration++;mapSequence++;mapRead={...mapRead,loading:false};exactTaskId=null;verifiedPlaceKey=null;owner.suspend();};
+  const retire=()=>{selectionSequence++;listSequence++;mapGeneration++;mapSequence++;mapRetry=null;mapRead={loading:false,error:null};peek=null;exactTaskId=null;verifiedPlaceKey=null;chosen=null;view=null;owner.retire();pageMade=null;mapMade=null;placesMade=null;};
 
-  return {open,settleMap,refreshMap,showPoint,showAll,selectMarker,refreshSelectedExact,nextPage,nextMembers,queryPlaces,nextPlaces,clearPeek,peekNow,chosenKey,suspend,retire,snapshot};
+  return {open,settleMap,refreshMap,retryMap,showPoint,showAll,selectMarker,refreshSelectedExact,nextPage,nextMembers,queryPlaces,nextPlaces,clearPeek,peekNow,chosenKey,suspend,retire,snapshot};
 }

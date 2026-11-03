@@ -1,0 +1,22 @@
+-- No existing account, business/Auth fixture, provider or push call.
+DO $triage$ BEGIN
+ IF private.taxonomy_risk_triage_v1('Lektura') IS DISTINCT FROM 'LOW_RISK_CANDIDATE' THEN
+   RAISE EXCEPTION 'R04_TRIAGE_LEKTURA_FAILED';
+ END IF;
+ IF private.taxonomy_risk_triage_v1('ostalo') IS DISTINCT FROM 'NEEDS_CLARIFICATION' THEN
+   RAISE EXCEPTION 'R04_TRIAGE_OSTALO_FAILED';
+ END IF;
+ IF private.taxonomy_risk_triage_v1('bilo sta') IS DISTINCT FROM 'NEEDS_CLARIFICATION' THEN
+   RAISE EXCEPTION 'R04_TRIAGE_BILO_STA_FAILED';
+ END IF;
+END;$triage$;
+DO $commit_check$ BEGIN
+ BEGIN
+   PERFORM public.rpc_taxonomy_commit_reviewed_batch_service(NULL, NULL, 'NEED_SERVICE', NULL, '[]'::jsonb);
+   RAISE EXCEPTION 'R04_COMMIT_GUARD_FAILED';
+ EXCEPTION WHEN OTHERS THEN
+    -- The real closure guard rejects a NULL owner before input validation.
+    -- An unrelated permission error or a later input error is not this proof.
+    IF SQLSTATE <> '42501' OR SQLERRM <> 'CLOSURE_CONTEXT_INVALID' THEN RAISE; END IF;
+ END;
+END;$commit_check$;

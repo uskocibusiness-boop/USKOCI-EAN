@@ -1,0 +1,179 @@
+{
+  "auditDate": "2026-11-02",
+  "mode": "read-only DEV, source review, emulator observation, isolated reproduction",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/rev14-review-f17",
+  "auditHead": "ec7abd509ff20246ddff0aa4f74725b74a3d11db",
+  "runtimeSha": "4b9755364a7f87dc93d456ff4d7fb56ee67092a5",
+  "pr": 43,
+  "base": "feature/uskoci-cisto",
+  "ci": {
+    "full": {
+      "run": 41498974039,
+      "result": "SUCCESS",
+      "mobileSuites": 626,
+      "mobileTests": 14585,
+      "aiPass": 1611,
+      "aiFail": 0,
+      "aiTodo": 1
+    },
+    "r01": {
+      "run": 41498973974,
+      "result": "FAILURE",
+      "mergeProjectionSha": "d79c6e05570e1f4554727608d9d567ec40bb7da0",
+      "stage": "STRICT_PARITY",
+      "code": "METADATA_PARITY_DIFFERENT",
+      "strict": 8,
+      "effectiveOwnerAcl": 49,
+      "managedNet": 3,
+      "actualAuthProven": false,
+      "postgrestBoundaryProven": false,
+      "candidateApplied": false
+    }
+  },
+  "dev": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "observations": [
+      {
+        "kind": "needs_select",
+        "data": {
+          "columns": {
+            "requester_account_id": true,
+            "remaining_search_close_reason": true,
+            "remaining_search_closed_by_account_id": true
+          },
+          "authenticated_table": true
+        }
+      },
+      {
+        "kind": "cron",
+        "data": [
+          {
+            "id": 1,
+            "name": "uskoci_marketplace_tick",
+            "active": true,
+            "schedule": "* * * * *"
+          },
+          {
+            "id": 2,
+            "name": "uskoci_edge_workers",
+            "active": true,
+            "schedule": "* * * * *"
+          },
+          {
+            "id": 3,
+            "name": "uskoci_taxonomy_postsave_tick_dev",
+            "active": true,
+            "schedule": "* * * * *"
+          }
+        ]
+      },
+      {
+        "kind": "cron_recent",
+        "data": [
+          {
+            "runs": 30,
+            "jobid": 2,
+            "latest": "2026-11-02T19:34:00.461009+00:00",
+            "status": "succeeded"
+          },
+          {
+            "runs": 30,
+            "jobid": 1,
+            "latest": "2026-11-02T19:34:00.186005+00:00",
+            "status": "succeeded"
+          },
+          {
+            "runs": 30,
+            "jobid": 3,
+            "latest": "2026-11-02T19:34:00.159013+00:00",
+            "status": "succeeded"
+          }
+        ]
+      },
+      {
+        "kind": "migration_count",
+        "data": {
+          "count": 323,
+          "latest": "20261102182959",
+          "null_statements": 219
+        }
+      },
+      {
+        "kind": "cleanup_presence",
+        "data": {
+          "old_facts": false,
+          "debug_table": true,
+          "old_messages": false,
+          "unused_lookup_index": true
+        }
+      }
+    ],
+    "pushReadiness": [
+      {
+        "observation": "TICK_OK",
+        "observed_at": "2026-10-23 22:23:01.462234+00",
+        "last_success_at": "2026-10-23 22:23:01.462234+00",
+        "sender_version": "PRE_V3_PUSH_READINESS_V1",
+        "fresh": false
+      }
+    ],
+    "gapChecks": [
+      {
+        "result": {
+          "export_binding": null,
+          "retention_ready": false,
+          "matching_functions": [
+            {
+              "name": "candidate_profile_ids",
+              "body_md5": "5414fa5a122e2055c71dd37993a6ad83",
+              "definition_md5": "665d3bcba58ea4a930a5ac5801383a84"
+            },
+            {
+              "name": "candidate_profile_ids_v1b",
+              "body_md5": "9a2437fd9d6bed07c8338d12501e5cba",
+              "definition_md5": "60b8eae4b4efa8a6b05b81c6c08b0021"
+            },
+            {
+              "name": "worker_need_time_tier_v1",
+              "body_md5": "a845d98b624ae4ac8ec33159beb8bb17",
+              "definition_md5": "2ec15c30354ecc5c438007437a10d5eb"
+            }
+          ],
+          "response_price_columns": 2,
+          "first_plan_table_present": false
+        }
+      }
+    ],
+    "edgeVersions": {
+      "need": 163,
+      "worker": 115,
+      "publication": 29,
+      "postsave": 13,
+      "push": 43,
+      "media": 28,
+      "speech": 29,
+      "location": 31,
+      "closure": 18,
+      "export": 28
+    }
+  },
+  "native": {
+    "platform": "Android emulator API 36",
+    "package": "rs.uskoci.preview",
+    "versionCode": 36,
+    "runtime": "uskoci-v1-preview-r1",
+    "sha256": "fd76da0662f0ddf5c2e8e46cc97668f284117f9ea79375dbf3326dc924375e57",
+    "source": "4b9755364a7f87dc93d456ff4d7fb56ee67092a5",
+    "proofScope": "Owner account; Home, Discovery/list/map/remote, profile, saved Worker, empty Agreements/Messages; no new paid turn or second account"
+  },
+  "limits": [
+    "Not a line-by-line audit of every repository file or all 31,721 product-master lines.",
+    "No new physical-device, two-account full lifecycle, iOS, production, actual push delivery or paid-model acceptance.",
+    "Metadata existence does not mean successful business execution.",
+    "Minimal PGlite fixtures execute actual captured function bodies but are not full hosted PostgreSQL/Auth/HTTP."
+  ],
+  "runtimeEdits": 0,
+  "devMutations": 0,
+  "paidAiCalls": 0
+}

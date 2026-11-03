@@ -49,7 +49,7 @@ it('displays reviewed modes and handoff beside only their own service, while ret
   await act(async()=>{tree=create(<WorkerAiCard profile={prepared.profile} compact={false} review={jest.fn()} disabled={false} verifiedReview={prepared}/>);});
   expect(texts()).toContain('Bez dolaska kod naručioca');expect(texts()).toContain('Kod naručioca');expect(texts()).toContain('Slanje: RS');
   expect(texts()).toContain('do 20 km');expect(texts()).toContain('Nacrt · nije sačuvan');expect(texts()).not.toContain('private-id');
-  expect(texts()).toContain('za okolna mesta potvrdi centar');
+  expect(texts()).toContain('za okolna mesta potvrdite centar');
   expect(tree.root.findAllByProps({testID:'worker-draft-review-note'})).toHaveLength(0);
   const handoff=tree.root.findByProps({testID:'worker-understood-handoff'});
   expect(handoff.parent?.findAllByType('T' as React.ElementType).map(node=>node.props.children)).toContain('3D štampa');
@@ -74,8 +74,10 @@ it('uses one empty label without legacy licence/team rows', async () => {
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, { skills: [], location: { operatingCountryCode: null, city: '', radiusKm: 20, approximatePosition: null } })} />); });
   const copy = texts();
   expect(copy).not.toMatch(/Još nije navedeno/);
-  // Only skills, area and "O meni" need an empty label. Optional equipment has no empty section.
-  expect(copy.split('Nije navedeno').length - 1).toBe(3);
+  // Skills and "O meni" remain empty. Without a confirmed ON_SITE mode, a missing city is not a required travel area.
+  expect(copy.split('Nije navedeno').length - 1).toBe(2);
+  expect(tree.root.findByProps({ testID: 'worker-review-area' }).findAll(node => String(node.type) === 'T')
+    .some(node => node.children.includes('Nije navedeno'))).toBe(false);
   expect(copy).not.toContain('Alat i vozilo');
   expect(tree.root.findAllByProps({ testID: 'worker-tools-note' })).toHaveLength(0);
   expect(copy).not.toMatch(/Licenc|licenc|Broj ljudi|kapacitet|O tebi/);
@@ -103,15 +105,27 @@ it('tells an account with no name to add it, and leads to the one place it is wr
   const onAddName = jest.fn();
   await act(async () => { tree = create(<WorkerAiReviewDetails review={{ ...review(), missingRequired: ['Ime', 'Veštine'], canAccept: false }} onAddName={onAddName} />); });
   const alert = tree.root.findAll(node => node.props.accessibilityRole === 'alert');
-  expect(alert).toHaveLength(1); expect(alert[0].children.join('')).toBe('Dopuni: Ime naloga, Veštine.');
-  const add = tree.root.findAll(node => node.props.label === 'Dodaj ime');
+  expect(alert).toHaveLength(1); expect(alert[0].children.join('')).toBe('Dopunite: Ime naloga, Veštine.');
+  const add = tree.root.findAll(node => node.props.label === 'Dodajte ime');
   expect(add.length).toBeGreaterThan(0); await act(async () => { add[0].props.onPress(); }); expect(onAddName).toHaveBeenCalledTimes(1);
 });
 it('does not offer the way to the name when the name is not what is missing or there is no place to go', async () => {
   await act(async () => { tree = create(<WorkerAiReviewDetails review={{ ...review(), missingRequired: ['Veštine'], canAccept: false }} onAddName={jest.fn()} />); });
-  expect(tree.root.findAll(node => node.props.label === 'Dodaj ime')).toHaveLength(0);
+  expect(tree.root.findAll(node => node.props.label === 'Dodajte ime')).toHaveLength(0);
   await act(async () => tree.update(<WorkerAiReviewDetails review={{ ...review(), missingRequired: ['Ime'], canAccept: false }} />));
-  expect(tree.root.findAll(node => node.props.label === 'Dodaj ime')).toHaveLength(0);
+  expect(tree.root.findAll(node => node.props.label === 'Dodajte ime')).toHaveLength(0);
+});
+it.each([{missing:[]},{missing:['Ime']}])('REMOTE activation confirmation is system work, separate from missing facts $missing',async({missing})=>{
+ const frozen={...review({}, {location:{operatingCountryCode:null,city:'',radiusKm:20,approximatePosition:null}}),
+  activate:true,missingRequired:[...missing,'Potvrda usluga za rad na daljinu'],canAccept:false};
+ const onAddName=jest.fn();
+ await act(async()=>{tree=create(<WorkerAiReviewDetails review={frozen} onAddName={onAddName}/>);});
+ expect(texts()).toContain('Aktivacija čeka potvrdu usluga za rad na daljinu. Za čuvanje bez aktivacije izaberite „Nacrt“.');
+ const alerts=tree.root.findAll(node=>String(node.type)==='T'&&node.props.accessibilityRole==='alert').map(node=>node.children.join(''));
+ expect(alerts.filter(text=>text.startsWith('Dopunite:'))).toEqual(missing.length?['Dopunite: Ime naloga.']:[]);
+ expect(texts()).not.toContain('Dopunite: Potvrda');
+ expect(texts()).not.toMatch(/grad profila|20 km|Aktivan profil|Profil je sačuvan/);
+ expect(onAddName).not.toHaveBeenCalled();
 });
 
 it('writes the year of a rule day only when it is not the current one', async () => {
@@ -136,7 +150,7 @@ it('says who reads "O meni", without claiming verification or a score, and only 
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, { bio: 'Radim vikendom.' })} />); });
   const explanation = tree.root.findByProps({ testID: 'worker-matching-explanation' });
   const copy = explanation.children.filter(child => typeof child === 'string').join('');
-  expect(copy).toBe('Vidljivo na tvom profilu.');
+  expect(copy).toBe('Vidljivo na Vašem profilu.');
   expect(texts().split(' | ').filter(text => text === 'O meni')).toHaveLength(1);
   expect(copy).not.toMatch(/licenc|kapacitet/); expect(copy).not.toMatch(/verifikovan|%|skor/i);
   await act(async () => tree.update(<WorkerAiReviewDetails review={review()} />));
@@ -186,7 +200,7 @@ it('P5 worker review: map belongs to the frozen review and is read-only, not a n
   expect(map.props).toMatchObject({ coarse: true, disabled: true, height: 220, position: saved.profile.location.approximatePosition });
   expect(map.props.scopeKey).toContain(saved.reviewId); expect(map.props.scopeKey).toContain(saved.accountId);
   expect(texts()).toContain('do 20 km');
-  expect(texts()).not.toContain('za okolna mesta potvrdi centar');
+  expect(texts()).not.toContain('za okolna mesta potvrdite centar');
   expect(texts()).not.toContain('tačka radnog područja je sačuvana');
 });
 it('P5 worker review: confirmed on-site work without coordinates never renders a fabricated map', async () => {
@@ -194,7 +208,7 @@ it('P5 worker review: confirmed on-site work without coordinates never renders a
   await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
   expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
   expect(texts()).toContain('do 20 km');
-  expect(texts()).toContain('za okolna mesta potvrdi centar');
+  expect(texts()).toContain('za okolna mesta potvrdite centar');
 });
 it('P5 worker review: confirmed remote work hides an inherited map and radius', async () => {
   const saved: WorkerAiReview = { ...review({}, { skills: ['3D štampa'], location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20,
@@ -203,8 +217,32 @@ it('P5 worker review: confirmed remote work hides an inherited map and radius', 
   await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
   expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
   expect(texts()).toContain('grad profila');
-  expect(texts()).toContain('Posao radiš bez dolaska kod naručioca: onlajn ili kod sebe.');
+  expect(texts()).toContain('Posao radite bez dolaska kod naručioca: onlajn ili kod sebe.');
   expect(texts()).not.toMatch(/20 km|Približan centar za terenske zadatke/);
+});
+it.each(['RS', null])('REMOTE review with no city does not present country %s as a profile city or missing travel area', async operatingCountryCode => {
+  const saved: WorkerAiReview = { ...review({}, { skills: ['Izrada logotipa'], location: { operatingCountryCode, city: '', radiusKm: 20,
+    approximatePosition: null } }), classificationState: 'READY', reviewedServiceModes: [{ service: 'Izrada logotipa', mode: 'REMOTE' }] };
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
+  expect(texts()).toContain('Izrada logotipa'); expect(texts()).toContain('Na daljinu');
+  expect(texts()).not.toMatch(/grad profila|20 km|potvrdite centar/);
+  const area = tree.root.findByProps({ testID: 'worker-review-area' }).findAll(node => String(node.type) === 'T')
+    .flatMap(node => node.children.filter(child => typeof child === 'string')).join(' | ');
+  expect(area).toContain('Posao radite bez dolaska kod naručioca: onlajn ili kod sebe.');
+  expect(area).not.toContain('Nije navedeno');
+  expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
+});
+it('ON_SITE review still shows its genuinely missing city without relabeling the country as one', async () => {
+  const saved: WorkerAiReview = { ...review({}, { location: { operatingCountryCode: 'RS', city: '', radiusKm: 20, approximatePosition: null } }),
+    classificationState: 'READY', reviewedServiceModes: [{ service: 'Selidbe', mode: 'ON_SITE' }], missingRequired: ['Grad'], canAccept: false };
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
+  expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'alert')
+    .map(node => node.children.join(''))).toContain('Dopunite: Grad.');
+  const area = tree.root.findByProps({ testID: 'worker-review-area' }).findAll(node => String(node.type) === 'T')
+    .flatMap(node => node.children.filter(child => typeof child === 'string')).join(' | ');
+  expect(area).toContain('Nije navedeno');
+  expect(area).not.toMatch(/RS|grad profila|Na daljinu/);
+  expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
 });
 it('shows physical handoff beside the signed remote service without making its city a work-map point', async () => {
   const service='Popravka muzičke kutije';

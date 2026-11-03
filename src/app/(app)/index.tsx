@@ -4,7 +4,6 @@ import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { router, useFocusEffect } from 'expo-router';
-import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import { composeHome, readHomeOptional, readHomeSection, type HomeAttentionPreview, type HomeReads, type HomeSection, type HomeTarget } from '../../data/homeSnapshot';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
@@ -13,7 +12,6 @@ import { HomePresentation } from '../../ui/home/HomePresentation';
 import { IntakeResume } from '../../ui/home/IntakeResume';
 import { rememberAiCorrection } from '../../data/aiCorrectionIntent';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
-import { homeOpportunityPreview } from '../../data/homeOpportunityPreview';
 
 /**
  * Početna: the root of the one shell (owner decision 1, 2026-09-19). This route used to be a
@@ -36,18 +34,18 @@ function Home() {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const retrying = useRef<object | null>(null);
-  const optionalRetrying = useRef<{ worker: object | null; opportunities: object | null }>({ worker: null, opportunities: null });
+  const workerRetrying = useRef<object | null>(null);
   const [scope, setScope] = useState<object | null>(null);
   const [focused, setFocused] = useState(false);
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false; retrying.current = null;
-    optionalRetrying.current = { worker: null, opportunities: null };
+    workerRetrying.current = null;
     // A silent refresh keeps the old snapshot without an immediate render. Publish
     // this focus token now so current actions do not wait for a network response;
     // callbacks retained from a previous focus still fail the identity check below.
     setScope(owner); setFocused(true);
     const subscription = AppState.addEventListener('change', state => {
-      if (state !== 'active') optionalRetrying.current = { worker: null, opportunities: null };
+      if (state !== 'active') workerRetrying.current = null;
     });
     return () => { subscription.remove(); if (focus.current === owner) { focus.current = null; setFocused(false); } };
   }, []));
@@ -60,44 +58,35 @@ function Home() {
     try {
       // Application totals come from one bounded page, not the whole history.
       // Tasks and Agreements still need their complete projections for drafts/appointments.
-      let pageItems: MojaPrijavaProjekcija[] = [];
       const [needs, applications, agreements, attention] = await Promise.all([
         readHomeSection(readSignal => source.mojePotrebe({ includeUrgency: false, signal: readSignal }), signal),
         readHomeSection(async () => {
           const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 1, cursor: null });
           if (!page.counts) throw new Error('HOME_APPLICATION_COUNTS_UNAVAILABLE');
-          if (Array.isArray(page.items)) pageItems = page.items;
           return page.counts;
         }, signal),
         readHomeSection(readSignal => source.mojiDogovori({ signal: readSignal }), signal),
         readHomeSection(() => source.paznjaZaPocetnu(), signal)]);
       // Every failed read is unavailable, never an account with nothing in it.
       if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
-      return { needs, applications, agreements, attention, applicationItems: pageItems };
+      return { needs, applications, agreements, attention };
     } finally { signal.removeEventListener('abort', retireRetry); }
   }, [source]);
   const resource = useFocusedResource(load, KEEP_LAST_READ);
   const loadWorker = useCallback((signal: AbortSignal) => readHomeOptional(() => source.mojRadnikProfil(), signal), [source]);
-  const loadOpportunities = useCallback((signal: AbortSignal) => readHomeOptional(readSignal => source.prilikeZaPocetnu({ signal: readSignal }), signal), [source]);
   const workerResource = useFocusedResource(loadWorker, KEEP_LAST_READ);
-  const opportunitiesResource = useFocusedResource(loadOpportunities, KEEP_LAST_READ);
   const home = useMemo(() => resource.data ? composeHome({ ...resource.data,
     workerProfile: workerResource.data ? { kind: 'known', value: workerResource.data.value }
       : workerResource.error ? { kind: 'unavailable' } : undefined,
   }, resource.data.attention) : null, [resource.data, workerResource.data, workerResource.error]);
-  const opportunities = useMemo(() => homeOpportunityPreview(
-    opportunitiesResource.data?.value,
-    resource.data?.needs,
-  ), [resource.data, opportunitiesResource.data]);
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
   const navigate = (action: () => void) => { if (current() && !navigating.current) { navigating.current = true; action(); } };
-  const refreshOptional = (kind: 'worker' | 'opportunities') => {
-    const target = kind === 'worker' ? workerResource : opportunitiesResource;
-    if (!current() || target.loading || target.refreshing || optionalRetrying.current[kind]) return;
-    const retry = {}; optionalRetrying.current[kind] = retry;
-    void target.refresh(true).finally(() => { if (optionalRetrying.current[kind] === retry) optionalRetrying.current[kind] = null; });
+  const refreshWorker = () => {
+    if (!current() || workerResource.loading || workerResource.refreshing || workerRetrying.current) return;
+    const retry = {}; workerRetrying.current = retry;
+    void workerResource.refresh(true).finally(() => { if (workerRetrying.current === retry) workerRetrying.current = null; });
   };
   const open = (target: HomeTarget) => navigate(() => {
     if (target.kind === 'NEED') router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id: target.needId } });
@@ -120,17 +109,9 @@ function Home() {
   // destination (2026-09-23). Every press keeps the focus, account and foreground guards above.
   const onProfile = () => navigate(() => router.navigate('/profil'));
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
-  const myTasks = resource.data?.needs.kind === 'known' ? resource.data.needs.value : undefined;
-  const myApplications = resource.data?.applicationItems;
   return <HomePresentation active={focused} header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-    myTasks={myTasks}
-    myApplications={myApplications}
-    opportunities={opportunities}
     workProfileRead={{ loading: workerResource.loading, refreshing: workerResource.refreshing, error: workerResource.error,
-      stale: !!workerResource.refreshError, onRetry: () => refreshOptional('worker') }}
-    opportunitiesRead={{ loading: opportunitiesResource.loading, refreshing: opportunitiesResource.refreshing, error: opportunitiesResource.error,
-      stale: !!opportunitiesResource.refreshError, onRetry: () => refreshOptional('opportunities') }}
-    onOpenOpportunity={id => navigate(() => router.navigate({ pathname: '/prilike/[id]', params: { id } }))}
+      stale: !!workerResource.refreshError, onRetry: refreshWorker }}
     stale={!!resource.refreshError && !!home}
     intakeResume={<IntakeResume onOpen={conversationId => navigate(() => router.navigate({ pathname: '/nova', params: { conversationId } }))} />}
     availableNow={profile?.state === 'ACTIVE' ? { value: profile.availableNow, onEdit: editAvailability } : undefined}
@@ -150,7 +131,7 @@ function Home() {
     onRefresh={() => {
       if (!current() || resource.loading || retrying.current) return;
       const retry = {}; retrying.current = retry;
-      refreshOptional('worker'); refreshOptional('opportunities');
+      refreshWorker();
       void resource.refresh(true).finally(() => { if (retrying.current === retry) retrying.current = null; });
     }} />;
 }

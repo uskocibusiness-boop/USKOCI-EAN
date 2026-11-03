@@ -84,7 +84,7 @@ describe('useRecentSearches', () => {
     return React.createElement('Snapshot', { snapshot: useRecentSearches(scopeKey, enabled) });
   }
   const mount = async (scopeKey: string, enabled: boolean) => act(async () => { tree = create(<Probe scopeKey={scopeKey} enabled={enabled} />); });
-  beforeEach(() => { jest.clearAllMocks(); mockRead.mockResolvedValue(null); mockWrite.mockResolvedValue(undefined); });
+  beforeEach(() => { mockRead.mockReset().mockResolvedValue(null); mockWrite.mockReset().mockResolvedValue(undefined); });
   afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
   test('the phone is not touched until the search is opened', async () => {
@@ -134,5 +134,69 @@ describe('useRecentSearches', () => {
     expect(shown().items).toEqual([]);
     await act(async () => shown().remember(search('farbanje')));
     expect(mockWrite).toHaveBeenLastCalledWith('uskoci.zadaci.recent.v1.account-2', JSON.stringify([search('farbanje')]));
+  });
+
+  test('reopening an unfinished read retries, keeps a new local search and ignores the retired answer', async () => {
+    let first!: (raw: string) => void, second!: (raw: string) => void;
+    mockRead.mockReturnValueOnce(new Promise<string>(resolve => { first = resolve; }))
+      .mockReturnValueOnce(new Promise<string>(resolve => { second = resolve; }));
+    await mount('account-1:1', true);
+    await act(async () => shown().remember(search('nova')));
+    await act(async () => tree.update(<Probe scopeKey="account-1:1" enabled={false} />));
+    await act(async () => tree.update(<Probe scopeKey="account-1:1" enabled />));
+    expect(mockRead).toHaveBeenCalledTimes(2);
+    expect(shown().items).toEqual([search('nova')]);
+    await act(async () => second(JSON.stringify([search('stara')])));
+    expect(shown().items).toEqual([search('nova'), search('stara')]);
+    await act(async () => first(JSON.stringify([search('zastarela')])));
+    expect(shown().items).toEqual([search('nova'), search('stara')]);
+  });
+
+  test.each(['rejected', 'thrown'] as const)('a %s storage read can recover on reopening without losing a local search', async failure => {
+    if (failure === 'rejected') mockRead.mockRejectedValueOnce(new Error('temporary'));
+    else mockRead.mockImplementationOnce(() => { throw new Error('temporary'); });
+    mockRead.mockResolvedValueOnce(JSON.stringify([search('sačuvana')]));
+    await mount('account-1:1', true);
+    await act(async () => shown().remember(search('nova')));
+    await act(async () => tree.update(<Probe scopeKey="account-1:1" enabled={false} />));
+    await act(async () => tree.update(<Probe scopeKey="account-1:1" enabled />));
+    expect(mockRead).toHaveBeenCalledTimes(2);
+    expect(shown().items).toEqual([search('nova'), search('sačuvana')]);
+  });
+
+  test('an accepted read remains loaded when the same search is reopened', async () => {
+    mockRead.mockResolvedValue(JSON.stringify([search('sačuvana')]));
+    await mount('account-1:1', true);
+    await act(async () => tree.update(<Probe scopeKey="account-1:1" enabled={false} />));
+    await act(async () => tree.update(<Probe scopeKey="account-1:1" enabled />));
+    expect(mockRead).toHaveBeenCalledTimes(1);
+    expect(shown().items).toEqual([search('sačuvana')]);
+  });
+
+  test('account changes hide old searches even while closed and retire the old remember callback', async () => {
+    mockRead.mockResolvedValueOnce(JSON.stringify([search('privatna A')])).mockResolvedValueOnce(null);
+    await mount('account-1:1', true);
+    const oldRemember = shown().remember;
+    await act(async () => tree.update(<Probe scopeKey="account-2:2" enabled={false} />));
+    expect(shown().items).toEqual([]);
+    await act(async () => oldRemember(search('zastarela A')));
+    expect(shown().items).toEqual([]);
+    expect(mockWrite).not.toHaveBeenCalled();
+    await act(async () => tree.update(<Probe scopeKey="account-2:2" enabled />));
+    await act(async () => shown().remember(search('nova B')));
+    expect(mockWrite).toHaveBeenLastCalledWith('uskoci.zadaci.recent.v1.account-2', JSON.stringify([search('nova B')]));
+  });
+
+  test('A to B to A drops the old read and old callback from the earlier account revision', async () => {
+    let first!: (raw: string) => void;
+    mockRead.mockReturnValueOnce(new Promise<string>(resolve => { first = resolve; }))
+      .mockResolvedValueOnce(null).mockResolvedValueOnce(JSON.stringify([search('sadašnja A')]));
+    await mount('account-1:1', true);
+    const oldRemember = shown().remember;
+    await act(async () => tree.update(<Probe scopeKey="account-2:2" enabled />));
+    await act(async () => tree.update(<Probe scopeKey="account-1:3" enabled />));
+    await act(async () => { first(JSON.stringify([search('zastarela A')])); oldRemember(search('stari callback')); });
+    expect(shown().items).toEqual([search('sadašnja A')]);
+    expect(mockWrite).not.toHaveBeenCalled();
   });
 });

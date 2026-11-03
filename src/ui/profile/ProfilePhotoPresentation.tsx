@@ -39,11 +39,12 @@ export const PHOTO_CIRCLE = { width: PREVIEW, height: PREVIEW, aspectRatio: 1, b
  * slab with a spinner; a person without initials or a profile without a photograph is drawn as a person. Removing the
  * public photo asks first (the route renders the sheet). Presentation only: every command and guard is the route's.
  */
-export function ProfilePhotoEditor({ onBack, stage, notice, error, permissionDenied, mode, retryable, running, sending = false, canAct, waiting,
+export function ProfilePhotoEditor({ onBack, stage, notice, error, permissionDenied, mode, retryable, discardable = false, running, sending = false, canAct, waiting,
   hasPhoto, onLibrary, onCamera, onRemove, onApply, onDiscard, onRetry, onCheck, photo, sheet, initials = null }: {
   onBack: () => void; stage: ProfilePhotoStage | null; notice: string | null; error: string | null;
   /** The error is the camera permission refusal: the phone settings are offered. */ permissionDenied: boolean;
   mode: ProfilePhotoMode; retryable: boolean; running: ProfilePhotoRunning;
+  /** An exact avatar read admitted this still-processing asset; its own discard writer can retire it. */ discardable?: boolean;
   /** A chosen picture is on its way (journaled, the upload runs). */ sending?: boolean;
   /** A new command can start now. */ canAct: boolean; /** A read or a command is in flight. */ waiting: boolean;
   /** The profile has a saved photo that can be removed. */ hasPhoto: boolean;
@@ -85,13 +86,15 @@ export function ProfilePhotoEditor({ onBack, stage, notice, error, permissionDen
     {mode === 'unresolved' ? <View style={s.actions}>
       {/* After the read a retry is offered, so the line no longer asks for a check first; before it, the check is the one action. */}
       {retryable ? <>
-        <T>Ne znamo da li je promena sačuvana.</T>
+        <T>{discardable ? 'Fotografija se još obrađuje. Možeš proveriti ishod ili odustati od nje.' : 'Ne znamo da li je promena sačuvana.'}</T>
         <SettingsAction label="Pošalji promenu ponovo" loading={running === 'RETRY'} disabled={waiting} onPress={onRetry} />
         <SettingsAction label="Proveri sačuvanu fotografiju" kind="quiet" disabled={waiting} onPress={onCheck} />
       </> : <>
-        <T>Ne znamo da li je fotografija poslata. Proveri to pre novog izbora.</T>
+        <T>{discardable ? 'Fotografija se još obrađuje. Možeš proveriti ishod ili odustati od nje.' : 'Ne znamo da li je fotografija poslata. Proveri to pre novog izbora.'}</T>
         <SettingsAction label="Proveri sačuvanu fotografiju" disabled={waiting} onPress={onCheck} />
       </>}
+      {discardable ? <SettingsAction label="Odustani od izabrane fotografije" kind="quiet" loading={running === 'DISCARD'}
+        disabled={!canAct || waiting} onPress={onDiscard} /> : null}
     </View> : mode === 'reconcile' ? <View style={s.actions}>
       {/* Every refusal on the phone stays in `pick`, so this is reached only when a read really is needed (a write that
           was not confirmed, a failed read, a conflict): the button says the check its error asks for (review 5b). */}

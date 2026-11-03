@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Keyboard, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Animated, Keyboard, StyleSheet, TextInput, View } from 'react-native';
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { fixedApplicationPrice, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { calendarInstant } from '../../lib/calendarTime';
 import { novac } from '../../lib/novac';
-import { CivilField } from '../calendar/CalendarControls';
-import { civilInstant, zonedParts } from '../calendar/calendarPresentation';
 import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { FactArt } from '../system/FactArt';
@@ -15,7 +13,6 @@ import { tick } from '../system/haptics';
 import { InfoButton } from '../system/InfoButton';
 import { KeyValueRow } from '../system/KeyValueRow';
 import { layout } from '../system/layout';
-import { ListRow } from '../system/ListRow';
 import { MoneySummary } from '../system/MoneySummary';
 import { useReducedMotion } from '../system/motion';
 import { dolaziOsoba, osoba, plural } from '../system/plural';
@@ -25,7 +22,6 @@ import { Section } from '../system/Section';
 import { StateView } from '../system/StateView';
 import { StatusChip } from '../system/StatusChip';
 import { Surface } from '../system/Surface';
-import { useLayoutClass } from '../system/textScale';
 import { brandAction, fieldBox, sys } from '../system/tokens';
 import { T } from '../Text';
 import { withInter } from '../interFont';
@@ -168,10 +164,10 @@ function TaskHead({ opportunity, showTerms = true }: { opportunity: PrilikaProje
  * What was sent (or saved to be checked), as read-only facts: never a greyed form. A time the worker proposed says so,
  * with the task's own window beside it (`proposed`), the same word the composer's Termin row uses; otherwise nothing.
  */
-function SentFacts({ price, people, time, flexible, proposed }: { price: string | null; people: string; time: string; flexible: boolean; proposed: string | null }) {
+function SentFacts({ price, hourly, people, time, flexible, proposed }: { price: string | null; hourly: boolean; people: string; time: string; flexible: boolean; proposed: string | null }) {
   const timeNote = flexible ? 'Tačan početak i kraj još nisu dogovoreni.' : proposed ? `Tvoj predlog · termin zadatka je ${proposed}` : null;
   return <View style={s.reviewBody}>
-    {price ? <MoneySummary label="Ukupna ponuda" amount={price} basis="Za sve ljude iz tvoje prijave" />
+    {price ? <MoneySummary label={hourly ? "Satnica" : "Ukupna ponuda"} amount={price} basis={hourly ? "Po osobi po satu" : "Za sve ljude iz tvoje prijave"} />
       : <FactRow art="money" label="Ukupna ponuda" value="Proveri unetu cenu" size="detail" />}
     <Surface kind="panel" variant="tinted" tone="wash" density="comfortable" style={s.reviewBody}>
       <FactRow art="users" label="Ljudi" value={people} size="detail" />
@@ -203,11 +199,11 @@ const TAG_GONE = TAG_HOLDS + sys.motion.exit;
  * time (only the row that carries them rises into its place), and a receipt that is opened again later, or under reduced motion, is the last
  * frame at once (the tick stays under reduced motion: it is an outcome, not movement).
  */
-function SentReceipt({ fresh, price, title, people, time, timeNote, message, error, actions }: {
+function SentReceipt({ fresh, price, hourly, title, people, time, timeNote, message, error, actions }: {
   /** The send was confirmed while this screen was open: the tag leaves and the tick plays. Otherwise it is the last frame. */
   fresh: boolean;
   /** The total that was sent, "4.500 RSD"; null only if it cannot be read back, and then the row says the state alone. */
-  price: string | null; title: string; people: string; time: string;
+  price: string | null; hourly: boolean; title: string; people: string; time: string;
   /** What the term is beside the task's own, when the person proposed another (or said none is agreed): one quiet line under the receipt. */
   timeNote: string | null; message: string;
   /** A line that must not be lost (a notice the route set), above the actions. */
@@ -229,10 +225,10 @@ function SentReceipt({ fresh, price, title, people, time, timeNote, message, err
     <View style={s.table}>
       <Animated.View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[s.tag, tag]}><FactArt kind="applications" size={96} /></Animated.View>
       <MomentRise still={still} delay={TAG_GONE - sys.motion.press} style={s.sentPlace}>
-        <View accessible accessibilityLabel={price ? `Poslata, ${price} ukupno` : 'Poslata'} style={s.sentRow}>
+        <View accessible accessibilityLabel={price ? `Poslata, ${price} ${hourly ? "po osobi po satu" : "ukupno"}` : 'Poslata'} style={s.sentRow}>
           <FactArt kind="applications" size={28} />
           <StatusChip status="application.sent" />
-          {price ? <><T variant="priceRow" style={s.sentPrice}>{price}</T><T variant="note" tone="muted">ukupno</T></> : null}
+          {price ? <><T variant="priceRow" style={s.sentPrice}>{price}</T><T variant="note" tone="muted">{hourly ? "po osobi po satu" : "ukupno"}</T></> : null}
         </View>
       </MomentRise>
     </View>
@@ -258,49 +254,9 @@ function SentReceipt({ fresh, price, title, people, time, timeNote, message, err
   </>;
 }
 
-/** The exact time of this application, in the one sheet engine; nothing is applied until "Potvrdi termin". */
-function ExactTimeSheet({ draft, timezone, taskTime, close, accept }: {
-  draft: ApplicationDraft; timezone: string; taskTime: string; close: () => void; accept: (start: string | null, end: string | null) => void;
-}) {
-  const { stacked } = useLayoutClass();
-  const [start, setStart] = useState(() => draft.start ? zonedParts(new Date(draft.start), timezone) : { date: '', time: '' });
-  const [end, setEnd] = useState(() => draft.end ? zonedParts(new Date(draft.end), timezone) : { date: '', time: '' });
-  const [dirtyStart, setDirtyStart] = useState(false), [dirtyEnd, setDirtyEnd] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const apply = () => {
-    const from = draft.start && !dirtyStart ? { value: draft.start, error: null } : civilInstant(start.date, start.time, timezone);
-    const to = draft.end && !dirtyEnd ? { value: draft.end, error: null } : civilInstant(end.date, end.time, timezone);
-    if (!from.value || !to.value) { setError(from.error ?? to.error); return; }
-    const a = calendarInstant(from.value), b = calendarInstant(to.value);
-    if (a === null || b === null || a >= b) { setError('Kraj termina mora biti posle početka.'); return; }
-    accept(from.value, to.value);
-  };
-  // Two fields side by side while both fit; stacked on a narrow phone or at the owner's Large text.
-  const row = stacked ? s.stack : s.pair;
-  const cell = stacked ? null : s.cell;
-  return <ProductSheet title="Tačan termin" closeLabel="Zatvori izbor termina" dirty={dirtyStart || dirtyEnd} onClose={close}
-    footer={() => <>
-      <V2Action label="Potvrdi termin" onPress={apply} style={brandAction} />
-      <V2Action label="Koristi termin zadatka" kind="quiet" onPress={() => accept(null, null)} />
-    </>}>
-    {() => <>
-      <T variant="meta" tone="muted">{timezone === 'Europe/Belgrade' ? 'Po vremenu u Srbiji.' : `Vremenska zona: ${timezone}.`}</T>
-      <T variant="body">{`Termin zadatka: ${taskTime}`}</T>
-      <View style={row}>
-        <View style={cell}><CivilField label="Datum početka" mode="date" value={start.date} onChange={value => { setStart(v => ({ ...v, date: value })); setDirtyStart(true); }} /></View>
-        <View style={cell}><CivilField label="Početak" mode="time" value={start.time} onChange={value => { setStart(v => ({ ...v, time: value })); setDirtyStart(true); }} /></View>
-      </View>
-      <View style={row}>
-        <View style={cell}><CivilField label="Datum kraja" mode="date" value={end.date} onChange={value => { setEnd(v => ({ ...v, date: value })); setDirtyEnd(true); }} /></View>
-        <View style={cell}><CivilField label="Kraj" mode="time" value={end.time} onChange={value => { setEnd(v => ({ ...v, time: value })); setDirtyEnd(true); }} /></View>
-      </View>
-      {error ? <T accessibilityRole="alert" variant="note" tone="danger">{error}</T> : null}
-    </>}
-  </ProductSheet>;
-}
-
-/** Composer of one application: what is offered, how many people come, an optional exact time, a short note, one send. */
-export function ApplicationComposerPresentation({ need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, pendingHelp, refreshHelps = true, initialSheet, skillOptIn }: {
+/** A new application follows the task's term; historical frozen commands may still show an old proposed term in their receipt. */
+export function ApplicationComposerPresentation({ applicationPriceBasis, need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, pendingHelp, refreshHelps = true, initialSheet, afterConfirmation }: {
+  applicationPriceBasis?: 'TOTAL' | 'HOURLY';
   need: PotrebaProjekcija; opportunity: PrilikaProjekcija; draft: ApplicationDraft; change: (value: ApplicationDraft) => void;
   submit: () => void; back: () => void; busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void;
   error: string | null; confirmed: boolean; openApplications: () => void; canSubmit: boolean; reset?: () => void;
@@ -311,14 +267,13 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   /** False when the error on screen is one a fresh read of the task cannot fix (the phone could not save the request). */
   refreshHelps?: boolean;
   /** A sheet open from the start. Only the internal gallery sets it; the review it opens is still retired by any change. */
-  initialSheet?: 'review' | 'time';
-  /** Option to add task category into the worker's profile for future notifications and dispatches. */
-  skillOptIn?: { category: string; enabled: boolean; onToggle: (enabled: boolean) => void } | null;
+  initialSheet?: 'review';
+  /** A separate optional profile action, only after the application receipt. */
+  afterConfirmation?: ReactNode;
 }) {
   // The review only stages presentation. The route still validates, journals and sends the command.
   // A changed draft/task cannot be sent through a retained confirmation from the previous review.
-  const reviewKey = JSON.stringify([need.id, need.revizija, need.naslov, need.vremeTekst, need.taskTimezone, need.schedule, draft]);
-  const [editingTime, setEditingTime] = useState(initialSheet === 'time');
+  const reviewKey = JSON.stringify([need.id, need.revizija, need.naslov, need.vremeTekst, need.taskTimezone, need.schedule, need.rezimCene, need.osnovaCene, applicationPriceBasis, draft]);
   const [review, setReview] = useState<{ key: string } | null>(() => initialSheet === 'review' ? { key: reviewKey } : null);
   const [focused, setFocused] = useState<'price' | 'note' | null>(null);
   // The success mark springs only when the send was confirmed while this screen was open.
@@ -351,6 +306,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   const shownPrice = price !== null ? novac(price) : null;
   const issue = composerDraftIssue(draft, need);
   const offers = opportunity.rezimCene !== 'MY_PRICE';
+  const hourly = applicationPriceBasis === undefined ? !offers && need.osnovaCene === 'HOURLY' : applicationPriceBasis === 'HOURLY';
   const left = need.pokrivenost.preostalo;
   const shownBlock = !canSubmit && !confirmed && !pending && blocked ? blocked : null;
   // The footer's last branch: nothing sent, nothing uncertain, nothing in flight, so "Pregledaj prijavu" is the action.
@@ -359,7 +315,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   const locked = confirmed || pending || uncertain;
   const reviewReason = shownBlock?.reason ?? issue.reason;
   const openReview = () => {
-    if (!disabled && canSubmit && !reviewing && !issue.reason && !editingTime) { Keyboard.dismiss(); setReview({ key: reviewKey }); }
+    if (!disabled && canSubmit && !reviewing && !issue.reason) { Keyboard.dismiss(); setReview({ key: reviewKey }); }
   };
   // Every green action is label-only, as the brand action is drawn everywhere else (r6: two of them carried a glyph).
   const primary = confirmed ? <V2Action label="Otvori moje prijave" onPress={openApplications} style={brandAction} />
@@ -371,7 +327,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   // A reason that names a fresh read of the task has the read under it: the task without its price, or without the
   // places this application would take, including a proportional share of a TOTAL budget.
   const refreshFixes = issue.price === 'missing' || (issue.people === 'over' && left < 1);
-  const summary = shownPrice ? `${shownPrice} ukupno`
+  const summary = shownPrice ? `${shownPrice} ${hourly ? "po osobi po satu" : "ukupno"}`
     : offers ? draft.price === '' ? 'Cena još nije upisana' : 'Cena nije ispravna'
     : issue.price === 'missing' ? 'Cena nije navedena' : 'Cena zavisi od broja ljudi';
 
@@ -398,16 +354,16 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
     {/* A grey button with nothing beside it is a dead end: the reason stands above it, and the way out under it. */}
     {shownBlock?.actionLabel && shownBlock.onAction ? <V2Action kind="quiet" compact label={shownBlock.actionLabel} onPress={shownBlock.onAction} /> : null}
   </FlowFooter>;
-  const sentFacts = <SentFacts price={shownPrice} people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} flexible={!exact && !fixed}
+  const sentFacts = <SentFacts hourly={hourly} price={shownPrice} people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} flexible={!exact && !fixed}
     proposed={proposedTaskTime} />;
   const noteLeft = NOTE_LIMIT - draft.note.length;
   // The sent receipt ("Etiketa odlazi") is a moment with its own way on right under it, not a form with a foot: it has no pinned footer.
   return <ComposerFrame key={confirmed ? 'receipt' : 'form'} back={back} footer={confirmed ? undefined : footer} info={!confirmed}>
     {/* A real confirmation is the first thing on the resulting screen, not below the old form's task summary. */}
-    {confirmed ? <SentReceipt fresh={!confirmedAtMount} price={shownPrice} title={readableTitle(opportunity.naslov)}
+    {confirmed ? <><SentReceipt hourly={hourly} fresh={!confirmedAtMount} price={shownPrice} title={readableTitle(opportunity.naslov)}
       people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} error={error}
       timeNote={!exact && !fixed ? 'Tačan početak i kraj još nisu dogovoreni.' : proposedTaskTime ? `Tvoj predlog · termin zadatka je ${proposedTaskTime}` : null}
-      message={draft.note.trim()} actions={<>{primary}<V2Action label="Nazad na zadatak" kind="quiet" onPress={back} /></>} />
+      message={draft.note.trim()} actions={<>{primary}<V2Action label="Nazad na zadatak" kind="quiet" onPress={back} /></>} />{afterConfirmation}</>
     : <>
     <TaskHead opportunity={opportunity} showTerms={locked} />
     {locked ? <>
@@ -435,10 +391,11 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
         <ApplicationPeopleInput value={draft.people} maximum={left} disabled={disabled}
           onChange={people => change({ ...draft, people })} help={placesText(need.pokrivenost, 'worker').text} />
       </Section>
-      <Section title="Kada možeš">
-        <ListRow title={time} subtitle={exact ? `Tvoj predlog termina${proposedTaskTime ? ` · termin zadatka je ${proposedTaskTime}` : ''}` : 'Termin zadatka. Možeš da predložiš drugi.'}
-          testID="composer-term" accessibilityHint="Otvara izbor tačnog termina" disabled={disabled}
-          onPress={() => { if (!disabled && !reviewing) setEditingTime(true); }} last />
+      <Section title="Termin zadatka">
+        <View testID="composer-term">
+          <FactRow art="calendar" label="Termin" value={time} size="detail" />
+          <T variant="note" tone="muted">Prijava se odnosi na termin koji je naveden u zadatku.</T>
+        </View>
       </Section>
       <Section title="Poruka uz prijavu">
         <View style={s.group}>
@@ -449,29 +406,8 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
           <T variant="note" tone="muted">Opciono.{draft.note.length >= NOTE_COUNTER_FROM ? ` Još ${noteLeft} ${plural(noteLeft, 'znak', 'znaka', 'znakova')}.` : ''}</T>
         </View>
       </Section>
-      {skillOptIn ? <Section title="Radni profil">
-        <Surface kind="panel">
-          <View style={s.skillRow}>
-            <View style={s.skillBody}>
-              <T variant="bodyStrong">Dodaj „{skillOptIn.category}“ u radni profil</T>
-              <T variant="note" tone="muted">Ubuduće primaj obaveštenja i preporuke za ovakve zadatke.</T>
-            </View>
-            <Switch
-              testID="composer-skill-opt-in-switch"
-              accessibilityLabel={`Dodaj ${skillOptIn.category} u radni profil`}
-              value={skillOptIn.enabled}
-              disabled={disabled}
-              onValueChange={skillOptIn.onToggle}
-              trackColor={{ false: sys.color.line, true: sys.color.green }}
-            />
-          </View>
-        </Surface>
-      </Section> : null}
     </>}
     </>}
-    {editingTime && !disabled && !reviewing ? <ExactTimeSheet draft={draft} timezone={timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
-      taskTime={fixed ?? need.vremeTekst} close={() => setEditingTime(false)}
-      accept={(start, end) => { change({ ...draft, start, end }); setEditingTime(false); }} /> : null}
     {reviewing ? <ProductSheet title="Ovo šalješ" closeLabel="Nazad na izmenu prijave" backdropHint="Vraća na izmenu prijave." onClose={closeReview}
       footer={() => <>
         <V2Action label="Pošalji ovu prijavu" onPress={confirmReview} style={brandAction} />
@@ -494,14 +430,14 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
 function FixedPrice({ need }: { need: PotrebaProjekcija }) {
   const amount = need.ponudjenaCena?.prikaz;
   // An absent legacy basis is an application total, never an inferred whole-task price.
-  const basis = need.osnovaCene === 'HOURLY' ? 'po satu rada'
+  const basis = need.osnovaCene === 'HOURLY' ? 'po osobi po satu'
     : need.osnovaCene === 'PER_PERSON' ? 'po osobi'
     : need.osnovaCene === 'TOTAL' ? 'za ceo zadatak' : 'ukupno za tvoju prijavu';
   return <View style={s.group}>
     {amount ? <MoneySummary label="Cena zadatka" amount={amount} basis={basis} />
       : <FactRow size="detail" art="money" label="Cena zadatka" value="Cena nije navedena" />}
     {need.osnovaCene === 'TOTAL' ? <T variant="note" tone="muted">Tvoja cena se računa srazmerno broju ljudi, zaokruženo na najbliži dinar.</T> : null}
-    {need.osnovaCene === 'HOURLY' ? <T variant="note" tone="muted">Cena je fiksna satnica koju plaća naručilac po satu rada.</T> : null}
+    {need.osnovaCene === 'HOURLY' ? <T variant="note" tone="muted">Satnica važi za svaku osobu za jedan sat rada. Ukupan iznos zavisi od stvarnog trajanja.</T> : null}
   </View>;
 }
 
@@ -542,7 +478,4 @@ const s = StyleSheet.create({
   summary: { flexShrink: 1, fontVariant: ['tabular-nums'] },
   center: { textAlign: 'center' },
   blocked: { alignItems: 'center', gap: sys.space.xs, paddingTop: sys.space.xs },
-  pair: { flexDirection: 'row', gap: sys.space.md }, stack: { gap: sys.space.md }, cell: { flex: 1, minWidth: 0 },
-  skillRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
-  skillBody: { flex: 1, minWidth: 0, gap: sys.space.xs },
 });

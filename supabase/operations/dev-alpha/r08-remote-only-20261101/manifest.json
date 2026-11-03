@@ -1,0 +1,35 @@
+{
+  "unit": "R08_DEV_PACKAGE",
+  "format_version": 1,
+  "status": "PREPARED_NOT_APPLIED",
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "captured_at": "2026-11-01T13:42:39.251333+00:00",
+  "dependencies_captured_at": "2026-11-01T13:45:02.234967+00:00",
+  "postgres_version_num": 170006,
+  "source_candidate": "supabase/candidates/r08_remote_only_activation.sql",
+  "candidate_sha256": "9f4920cf8ce152a34dd75a7dc52de68e0fa52103c105ff5c8a0ff6d35a11ea6b",
+  "preimage_sha256": "05d4426872c7dc12477e268b7171b15bcd284897b05f745a22baab4b18c6c5c2",
+  "dependencies_sha256": "b98e012b8ccd582a1d8368f07d97cf15dbcd2fb1ef6a63fe86ea1c09a8795c75",
+  "table_fingerprint_md5": "b181b977e466acad94828438658a4856",
+  "acceptance_sha256": "0a402cd18eb277046f57d76a5d7bd6c50061065e28005801c66b496696bc2539",
+  "acceptance_dependencies_sha256": "1326e27348a5c04c1356dd45ff16fbbdb4aca49001fe5d6e5cce3181c2f364b4",
+  "changed_functions": 7,
+  "new_functions": 3,
+  "pinned_dependency_functions": 44,
+  "pinned_relations": 31,
+  "files": {
+    "forward.sql": "7d2fbd747b9715f9250849eebfaef56c60e28f1f756907c771d09aa07a601889",
+    "rollback.sql": "e6c99775609b8c00bb009ef2265eb70ba8ac9f28af4ba49bb0d5ace1d53170e4",
+    "preflight.sql": "ef31302c95780031ad55c146929d6084332db832c0335f26b6fabed3ca5671ed",
+    "postflight.sql": "af6067b9934d81832427acead02bb12b0229f302efe4bc1f6adc489ee547f71d",
+    "postimage.json": "5cb718d5bd99f06a01890ec2be45076f9162d20300330b35a1495edbb061fcf9",
+    "acceptance-guard.sql": "34e87201875b00409d71f0b74e9f3a74462de620801ee95ebcbfa57030c3168f",
+    "promotion.sql": "e3478c24695a97c6fb4fe1714c319a2cda02fda8d4e9993c9f1840a28c378036"
+  },
+  "limitations": [
+    "PGlite validates DDL derivation and rollback, not hosted PostgreSQL17/Auth/RLS/PostGIS.",
+    "Code rollback refuses any ACTIVE cityless worker. After accepted Save use forward recovery; no data undo is claimed.",
+    "External connector project binding is mandatory; a GUC is not server identity.",
+    "No SQL/Edge/mobile deployment or real account acceptance has occurred."
+  ]
+}

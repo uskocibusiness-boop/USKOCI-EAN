@@ -2,26 +2,26 @@ import { authFieldMessages, firstInvalidField, isEmailAddress, tidyCity, validat
 import { defaultAuthMethods } from '../authMethods';
 
 /** What is wrong with the sign-in and sign-up fields before anything is sent, and the defaults the form stands on without the check. */
-const full: AuthFormValues = { ime: 'Ana', prezime: 'Petrović', grad: 'Novi Sad', email: 'ana@example.test', lozinka: 'password' };
+const full: AuthFormValues = { ime: 'Ana', prezime: 'Petrović', email: 'ana@example.test', lozinka: 'password' };
 
 describe('validateAuthForm', () => {
   it('asks a sign-in only for an email and a password, and a password of any length', () => {
-    expect(validateAuthForm('LOGIN', { ...full, ime: '', prezime: '', grad: '', lozinka: 'a' })).toEqual({});
-    expect(validateAuthForm('LOGIN', { ime: '', prezime: '', grad: '', email: '', lozinka: '' })).toEqual({
+    expect(validateAuthForm('LOGIN', { ...full, ime: '', prezime: '', lozinka: 'a' })).toEqual({});
+    expect(validateAuthForm('LOGIN', { ime: '', prezime: '', email: '', lozinka: '' })).toEqual({
       email: authFieldMessages.emailMissing, lozinka: authFieldMessages.lozinkaMissing });
   });
 
-  it('asks a sign-up for a name, a surname, a city, an email and a password of at least six characters', () => {
+  it('asks signup for name, surname, email and password without requiring any city', () => {
     expect(validateAuthForm('SIGNUP', full)).toEqual({});
-    expect(validateAuthForm('SIGNUP', { ime: ' ', prezime: '', grad: '  ', email: '', lozinka: '' })).toEqual({
-      ime: 'Unesi ime.', prezime: 'Unesi prezime.', grad: 'Unesi grad.', email: 'Unesi email.', lozinka: 'Unesi lozinku.' });
+    expect(validateAuthForm('SIGNUP', { ime: ' ', prezime: '', email: '', lozinka: '' })).toEqual({
+      ime: 'Unesite ime.', prezime: 'Unesite prezime.', email: 'Unesite email.', lozinka: 'Unesite lozinku.' });
     expect(validateAuthForm('SIGNUP', { ...full, lozinka: '12345' })).toEqual({ lozinka: 'Lozinka mora imati najmanje 6 znakova.' });
     expect(validateAuthForm('SIGNUP', { ...full, lozinka: '123456' })).toEqual({});
   });
 
   it('says an address that is not one, and lets a spaced one through (it is trimmed when sent)', () => {
-    expect(validateAuthForm('LOGIN', { ...full, email: 'ana@example' })).toEqual({ email: 'Unesi ispravnu email adresu.' });
-    expect(validateAuthForm('LOGIN', { ...full, email: 'ana example.test' })).toEqual({ email: 'Unesi ispravnu email adresu.' });
+    expect(validateAuthForm('LOGIN', { ...full, email: 'ana@example' })).toEqual({ email: 'Unesite ispravnu email adresu.' });
+    expect(validateAuthForm('LOGIN', { ...full, email: 'ana example.test' })).toEqual({ email: 'Unesite ispravnu email adresu.' });
     expect(validateAuthForm('LOGIN', { ...full, email: '  ana@example.test  ' })).toEqual({});
     expect([isEmailAddress('a@b.rs'), isEmailAddress('a@b'), isEmailAddress('@b.rs'), isEmailAddress('')]).toEqual([true, false, false, false]);
   });
@@ -29,10 +29,10 @@ describe('validateAuthForm', () => {
   it('names the first wrong field top to bottom, so it can take the focus', () => {
     expect(firstInvalidField({})).toBeNull();
     expect(firstInvalidField({ lozinka: 'x', email: 'y' })).toBe('email');
-    expect(firstInvalidField({ lozinka: 'x', grad: 'y', ime: 'z' })).toBe('ime');
+    expect(firstInvalidField({ lozinka: 'x', prezime: 'y', ime: 'z' })).toBe('ime');
   });
 
-  it('every sentence is plain Serbian in the "ti" voice, short, with a full stop and without the words of the engine', () => {
+  it('every sentence is plain Serbian in the formal "Vi" voice, short, with a full stop and without the words of the engine', () => {
     for (const sentence of Object.values(authFieldMessages)) {
       expect(sentence).toMatch(/\.$/);
       expect(sentence).not.toMatch(/server|zahtev|greška|neispravn|nevalidn|polje/i);

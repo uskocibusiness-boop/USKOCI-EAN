@@ -95,6 +95,41 @@ it('"Nastavi uređivanje" keeps the screen and its changes', () => {
  act(() => back()());
  expect(confirmButton()).toBeDefined(); expect(mockBack).not.toHaveBeenCalled();
 });
+it('keeps header Back on this screen while a preference write is in flight and releases after readback', () => {
+  const retained = back();
+  act(() => shown().props.onWritingChange(true));
+  act(() => { retained(); back()(); });
+  expect(mockBack).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
+  expect(confirmButton()).toBeUndefined();
+  act(() => shown().props.onWritingChange(false));
+  act(() => back()());
+  expect(mockBack).toHaveBeenCalledTimes(1);
+});
+
+it('a pending discard cannot navigate during a subsequent write, even if it was previously confirmed', () => {
+  makeDirty(); act(() => back()()); expect(confirmButton()).toBeDefined();
+  act(() => shown().props.onWritingChange(true));
+  act(() => confirmButton().props.onPress());
+  expect(mockBack).not.toHaveBeenCalled();
+  expect(mockReplace).not.toHaveBeenCalled();
+});
+
+it('Android hardware Back consumes a write-in-progress even without an unsaved draft', () => {
+  act(() => tree.unmount());
+  let handler!: () => boolean;
+  const spy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation(((_event: string, fn: () => boolean) => {
+    handler = fn; return { remove: jest.fn() }; }) as never);
+  try {
+    act(() => { tree = Renderer.create(<PushSettings />); });
+    act(() => shown().props.onWritingChange(true));
+    let consumed = false; act(() => { consumed = handler(); });
+    expect(consumed).toBe(true); expect(mockBack).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+    act(() => shown().props.onWritingChange(false));
+    expect(handler()).toBe(false);
+  } finally { spy.mockRestore(); }
+});
+
 it('Android Back asks the same question only while something is unsaved', () => {
  act(() => tree.unmount());
  const handlers: (() => boolean)[] = [];

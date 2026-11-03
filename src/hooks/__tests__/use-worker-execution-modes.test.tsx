@@ -67,3 +67,25 @@ it('retires a background read and reads again when foreground returns', async ()
   await act(async () => { for (const callback of mockListeners) callback('active'); });
   expect(seen.view).toEqual({ kind: 'confirmed', modes: ['ON_SITE', 'REMOTE'] });
 });
+
+it('passes saved per-service pending state without using global confirmation and clears it on profile refresh', async () => {
+  const services = [{ service: 'Nova usluga', status: 'PENDING', modes: [] }];
+  mockRead.mockResolvedValue({ ...remote, confirmed: false, modes: [], confirmedAt: null, services });
+  await render(); expect(seen.view).toEqual({ kind: 'unconfirmed', services });
+  let resolve!: (value: unknown) => void;
+  mockRead.mockReturnValue(new Promise(done => { resolve = done; }));
+  await act(async () => { tree.update(<Probe read={1} />); });
+  expect(seen.view).toEqual({ kind: 'loading' });
+  await act(async () => { resolve({ ...remote, services: [] }); });
+  expect(seen.view).toEqual({ kind: 'confirmed', modes: ['REMOTE'], services: [] });
+});
+
+it('ignores a late service read from a previous focus after a newer read has completed', async () => {
+  let resolve!: (value: unknown) => void;
+  mockRead.mockReturnValueOnce(new Promise(done => { resolve = done; })); await render();
+  const services = [{ service: 'Sačuvano', status: 'PENDING', modes: [] }];
+  mockRead.mockResolvedValue({ ...remote, services });
+  await act(async () => { seen.refresh(); });
+  await act(async () => { resolve({ ...remote, services: [{ service: 'Staro', status: 'PENDING', modes: [] }] }); });
+  expect(seen.view).toEqual({ kind: 'confirmed', modes: ['REMOTE'], services });
+});

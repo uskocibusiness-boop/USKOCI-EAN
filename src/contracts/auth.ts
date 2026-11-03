@@ -3,7 +3,8 @@ export type PasswordSignInInput = { email: string; password: string };
 export type EmailSignUpInput = PasswordSignInInput & {
   firstName: string;
   lastName: string;
-  city: string;
+  /** Optional legacy metadata; city is collected in task/work contexts, not required for signup. */
+  city?: string;
 };
 export type PhoneOtpInput = { phone: string };
 export type PhoneOtpVerificationInput = PhoneOtpInput & { token: string };

@@ -73,6 +73,25 @@ test('malformed server receipt cannot claim remote consent', async () => {
   await expect(workerExecutionModeClientService.read(OWNER, 5)).rejects.toThrow('WORKER_MODE_INVALID_RECEIPT');
 });
 
+test.each([
+  { confirmed: true, modes: ['REMOTE'], confirmedAt: null },
+  { confirmed: true, modes: ['REMOTE'], confirmedAt: 'not a date' },
+  { confirmed: true, modes: ['REMOTE'], confirmedAt: '2026-10-12T00:10:52' },
+  { confirmed: true, modes: ['REMOTE'], confirmedAt: '2026-02-30T00:10:52Z' },
+  { confirmed: false, modes: [], confirmedAt: '2026-10-12T00:10:52Z' },
+  { confirmed: false, modes: [], confirmedAt: undefined },
+])('refuses a contradictory or unzoned consent timestamp: %j', async patch => {
+  mockRpc.mockResolvedValue({ data: { ...receipt(['REMOTE']), ...patch }, error: null });
+  await expect(workerExecutionModeClientService.read(OWNER, 5)).rejects.toThrow('WORKER_MODE_INVALID_RECEIPT');
+});
+
+test('accepts valid UTC-offset and leap-day timestamps from the authoritative worker receipt', async () => {
+  mockRpc.mockResolvedValue({ data: { ...receipt(['REMOTE']), confirmedAt: '2028-02-29T23:59:59.123456+01:00' }, error: null });
+  await expect(workerExecutionModeClientService.read(OWNER, 5)).resolves.toMatchObject({
+    confirmed: true, modes: ['REMOTE'], confirmedAt: '2028-02-29T23:59:59.123456+01:00',
+  });
+});
+
 test('invalid duplicate modes never call a write RPC', async () => {
   await expect(workerExecutionModeClientService.save(OWNER, 5, ['REMOTE', 'REMOTE']))
     .rejects.toThrow('WORKER_MODE_SELECTION_REQUIRED');
@@ -89,6 +108,45 @@ test('worker-profile screen does not link to redundant mode settings route', () 
 test('canonical helper sorts ON_SITE then REMOTE', () => {
   expect(canonicalWorkerExecutionModes(['REMOTE', 'ON_SITE'])).toEqual(['ON_SITE', 'REMOTE']);
   expect(canonicalWorkerExecutionModes([])).toEqual([]);
+});
+
+const savedServices = [
+  { service: 'Popravka računara', status: 'CONFIRMED', modes: [
+    { mode: 'REMOTE', status: 'CONFIRMED', handoff: { required: true, localExchange: { countryCode: 'RS', city: 'Novi Sad' } } },
+    { mode: 'ON_SITE', status: 'CONFIRMED', handoff: null },
+  ] },
+  { service: 'Nova usluga', status: 'PENDING', modes: [] },
+];
+test('reads owned per-service details including BOTH, handoff and pending without inventing details on old servers', async () => {
+  mockRpc.mockResolvedValue({ data: { ...receipt(['ON_SITE', 'REMOTE']), servicesVersion: 'WORKER_SAVED_SERVICES_V1', services: savedServices }, error: null });
+  const read = await workerExecutionModeClientService.read(OWNER, 5);
+  expect(read.services).toEqual(savedServices);
+  expect(read.services).not.toBe(savedServices);
+  mockRpc.mockResolvedValue({ data: receipt(['REMOTE']), error: null });
+  expect((await workerExecutionModeClientService.read(OWNER, 5)).services).toBeUndefined();
+});
+
+test.each([
+  { services: savedServices },
+  { servicesVersion: 'WORKER_SAVED_SERVICES_V2', services: savedServices },
+  { servicesVersion: 'WORKER_SAVED_SERVICES_V1', services: null },
+  { servicesVersion: 'WORKER_SAVED_SERVICES_V1', services: [...savedServices, savedServices[0]] },
+  { servicesVersion: 'WORKER_SAVED_SERVICES_V1', services: [{ service: 'Logotip', status: 'CONFIRMED', modes: [] }] },
+  { servicesVersion: 'WORKER_SAVED_SERVICES_V1', services: [{ service: 'Logotip', status: 'CONFIRMED', modes: [{ mode: 'REMOTE', status: 'PENDING', handoff: null }] }] },
+  { servicesVersion: 'WORKER_SAVED_SERVICES_V1', services: [{ service: 'Popravka', status: 'CONFIRMED', modes: [{ mode: 'ON_SITE', status: 'CONFIRMED', handoff: { required: false } }] }] },
+  { servicesVersion: 'WORKER_SAVED_SERVICES_V1', services: [{ service: 'Popravka', status: 'CONFIRMED', modes: [{ mode: 'REMOTE', status: 'CONFIRMED', handoff: { required: true, shippingCountries: ['*'] } }] }] },
+  { servicesVersion: 'WORKER_SAVED_SERVICES_V1', services: [{ service: 'Popravka', status: 'CONFIRMED', modes: [{ mode: 'REMOTE', status: 'CONFIRMED' }] }] },
+])('refuses malformed or contradictory per-service claims: %j', async patch => {
+  mockRpc.mockResolvedValue({ data: { ...receipt(['REMOTE']), ...patch }, error: null });
+  await expect(workerExecutionModeClientService.read(OWNER, 5)).rejects.toThrow('WORKER_MODE_INVALID_RECEIPT');
+});
+
+test('fences per-service readback after A→B→A while the RPC was pending', async () => {
+  mockRpc.mockImplementation(async () => {
+    mockAccount.accountRevision += 2;
+    return { data: { ...receipt(['REMOTE']), servicesVersion: 'WORKER_SAVED_SERVICES_V1', services: savedServices }, error: null };
+  });
+  await expect(workerExecutionModeClientService.read(OWNER, 5)).rejects.toThrow('WORKER_MODE_ACCOUNT_CHANGED');
 });
 
 test('inferWorkerExecutionModes deduces REMOTE, ON_SITE, or both from skills and location', () => {

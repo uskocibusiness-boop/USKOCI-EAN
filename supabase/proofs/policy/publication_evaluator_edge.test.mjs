@@ -47,7 +47,7 @@ const storedReceipt = (ctx = ready(), result = evaluation()) => ({ decisionId: D
   policyBundleId: ctx.binding.policyBundleId, policyVersion: ctx.binding.policyVersion, jurisdiction: ctx.binding.jurisdiction,
   ...result, decisionAt: '2026-09-10T14:40:32.123456Z', publishable: result.outcome === 'ALLOW', authoritative: true });
 function fixture(options = {}) {
-  const calls = [], logs = [], envReads = [], timers = new Map(), due = new Map();
+  const calls = [], logs = [], envReads = [], timers = new Map(), due = new Map(), background = [];
   const env = { SUPABASE_URL: 'https://database.test.invalid', SUPABASE_ANON_KEY: 'SYNTHETIC_ANON_KEY',
     SUPABASE_SERVICE_ROLE_KEY: 'SYNTHETIC_SERVICE_SECRET', GEMINI_API_KEY: 'SYNTHETIC_PROVIDER_SECRET', GEMINI_MODEL: 'gemini-3.8-flash',
     AI_PROVIDER:'gemini',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',USKOCI_GEMINI_IMAGE_REVIEW_ENABLED:'true',...options.env };
@@ -59,6 +59,7 @@ function fixture(options = {}) {
     clearTimeout: id => { timers.delete(id); due.delete(id); },
     console: Object.fromEntries(['log', 'error', 'warn', 'info', 'debug'].map(key => [key, (...args) => logs.push(args)])),
     Deno: { env: { get: key => { envReads.push(key); return env[key]; } }, serve: fn => { handler = fn; } },
+    EdgeRuntime: { waitUntil: promise => background.push(promise) },
     fetch: async (url, init = {}) => {
       const parsed = new URL(url), pathname = parsed.pathname;
       const kind = parsed.origin === 'https://database.test.invalid'
@@ -67,6 +68,7 @@ function fixture(options = {}) {
             : pathname === '/rest/v1/rpc/rpc_claim_ai_task_review_evaluation_service' ? 'reviewClaim'
               : pathname === '/rest/v1/rpc/rpc_complete_ai_task_review_evaluation_service' ? 'reviewComplete'
                 : pathname === '/rest/v1/rpc/rpc_ai_test_budget_reserve_service' ? 'budget'
+                  : pathname === '/rest/v1/rpc/rpc_ai_test_record_usage_service' ? 'usage'
                   : pathname === '/rest/v1/rpc/rpc_read_need_media_assets_service' ? 'media'
                     : pathname.startsWith('/storage/v1/object/profile-media/') ? 'image' : null
         : parsed.origin === 'https://generativelanguage.googleapis.com' && pathname === '/v1beta/models/gemini-3.8-flash:generateContent' ? 'provider' : null;
@@ -85,13 +87,28 @@ function fixture(options = {}) {
       }
       if (kind === 'provider') return json(providerResponse(evaluated));
       if (kind === 'budget') return json({admitted:true,reservationId:OTHER,replay:false,code:'AI_TEST_RESERVED'});
+      if (kind === 'usage') {
+        const b=JSON.parse(init.body);
+        return json({operationId:b.p_operation_id,recorded:true,authoritative:true,
+          promptTokens:b.p_prompt_tokens,outputTokens:b.p_output_tokens,totalTokens:b.p_total_tokens});
+      }
       return json(storedReceipt(contextDocument, evaluated));
     },
   });
   const budgetCompiled=ts.transpileModule(readFileSync(resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),'utf8'),{
     compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
   const budget=new vm.Script(`(function(exports){${budgetCompiled};return exports;})`).runInContext(context)({});
-  context.require=name=>{assert.equal(name,'../_shared/aiTestBudget.ts');return budget;};
+  const modules=new Map([['../_shared/aiTestBudget.ts',budget]]);
+  context.require=name=>{
+    if(modules.has(name))return modules.get(name);
+    const file=name==='../_shared/geminiTaskStream.ts'?'supabase/functions/_shared/geminiTaskStream.ts'
+      :name==='../../../src/contracts/aiAvailability.ts'?'src/contracts/aiAvailability.ts':null;
+    assert.ok(file,`Unexpected dependency ${name}`);
+    const code=ts.transpileModule(readFileSync(resolve(root,file),'utf8'),{
+      compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
+    const loaded=new vm.Script(`(function(exports){${code};return exports;})`).runInContext(context)({});
+    modules.set(name,loaded);return loaded;
+  };
   new vm.Script(compiled.outputText, { filename: entry }).runInContext(context);
   assert.equal(typeof handler, 'function');
   const invoke = (overrides = {}) => {
@@ -101,7 +118,7 @@ function fixture(options = {}) {
       body: typeof body === 'string' || body instanceof ReadableStream ? body : JSON.stringify(body),
       ...(body instanceof ReadableStream ? { duplex: 'half' } : {}), ...rest }));
   };
-  return { calls, logs, envReads, timers, invoke, handle: request => handler(request),
+  return { calls, logs, envReads, timers, background, invoke, handle: request => handler(request),
     tick: ms => { now += ms; for (const [id, at] of [...due]) if (at <= now) { due.delete(id); timers.get(id)?.(); } },
     advance: ms => { now += ms; }, expire: () => { for (const fn of [...timers.values()]) fn(); } };
 }
@@ -113,6 +130,67 @@ async function reached(f, kind, count = 1) {
   assert.ok(kindCalls(f, kind).length >= count, `did not reach ${kind}/${count}`);
 }
 async function flush() { for (let i = 0; i < 30; i++) await Promise.resolve(); }
+const measuredResponse=(value=evaluation())=>({...providerResponse(value),usageMetadata:{
+  promptTokenCount:1000,candidatesTokenCount:30,thoughtsTokenCount:20,totalTokenCount:1050,cachedContentTokenCount:400}});
+
+test('publication records actual provider usage on the reserved review attempt, including thinking without double-counting cache',async()=>{
+  const f=fixture({provider:()=>json(measuredResponse())});
+  const response=await f.invoke({body:{needId:NEED,expectedRevision:7,acceptedReviewId:REVIEW}});
+  assert.equal((await response.json()).kind,'DECISION');
+  await Promise.all(f.background);
+  assert.equal(kindCalls(f,'usage').length,1);
+  assert.deepEqual(JSON.parse(kindCalls(f,'usage')[0].body),{p_operation_id:ATTEMPT,p_model:'gemini-3.8-flash',
+    p_prompt_tokens:1000,p_output_tokens:50,p_total_tokens:1050});
+  assert.equal(kindCalls(f,'provider').length,1);quiet(f);
+});
+
+test('publication legacy reservation and measured usage share the same generated operation ID',async()=>{
+  const f=fixture({provider:()=>json(measuredResponse())});await f.invoke();await Promise.all(f.background);
+  assert.equal(kindCalls(f,'usage').length,1);
+  assert.equal(JSON.parse(kindCalls(f,'usage')[0].body).p_operation_id,JSON.parse(kindCalls(f,'budget')[0].body).p_operation_id);
+  quiet(f);
+});
+
+test('publication accounts a paid invalid decision without turning it into approval',async()=>{
+  const f=fixture({provider:()=>json(measuredResponse({outcome:'MADE_UP',ruleIds:[],safeReasonCodes:[]}))});
+  const response=await f.invoke();await Promise.all(f.background);
+  assert.equal((await response.json()).code,'EVALUATOR_INVALID_RESPONSE');
+  assert.equal(kindCalls(f,'usage').length,1);assert.equal(kindCalls(f,'writer').length,0);quiet(f);
+});
+
+test('publication missing or malformed usage stays unknown, never zero and never another provider call',async()=>{
+  for(const usageMetadata of [undefined,{},null,{promptTokenCount:1000,candidatesTokenCount:30,totalTokenCount:1050}]){
+    const f=fixture({provider:()=>json({...providerResponse(),usageMetadata})});
+    assert.equal((await (await f.invoke()).json()).kind,'DECISION');await Promise.all(f.background);
+    assert.equal(kindCalls(f,'usage').length,0);assert.equal(kindCalls(f,'provider').length,1);quiet(f);
+  }
+});
+
+test('lost publication usage ACK does not delay the decision, retry the model, or escape its bounded background receipt',async()=>{
+  const f=fixture({provider:()=>json(measuredResponse()),usage:()=>new Promise(()=>{})});
+  const pending=f.invoke();await reached(f,'usage');
+  assert.equal((await (await pending).json()).kind,'DECISION');
+  assert.equal(f.background.length,1);f.tick(5000);await Promise.all(f.background);
+  assert.equal(kindCalls(f,'usage').length,1);assert.equal(kindCalls(f,'provider').length,1);
+  assert.deepEqual(f.logs,[['PUBLICATION_USAGE_UNCONFIRMED']]);assert.equal(f.timers.size,0);
+});
+
+test('publication rejects a mismatched usage receipt without leaking its content or changing the decision',async()=>{
+  const f=fixture({provider:()=>json(measuredResponse()),usage:()=>json({operationId:OTHER,recorded:true,
+    authoritative:true,promptTokens:1000,outputTokens:50,totalTokens:1050,private:'PRIVATE_SECRET'})});
+  assert.equal((await (await f.invoke()).json()).kind,'DECISION');await Promise.all(f.background);
+  assert.deepEqual(f.logs,[['PUBLICATION_USAGE_UNCONFIRMED']]);assert.equal(f.timers.size,0);
+});
+
+test('stalled publication usage body is bounded independently after the decision is delivered',async()=>{
+  const body={getReader:()=>({read:()=>new Promise(()=>{}),cancel:()=>new Promise(()=>{}),releaseLock(){}})};
+  const f=fixture({provider:()=>json(measuredResponse()),usage:()=>({ok:true,redirected:false,headers:new Headers(),body})});
+  assert.equal((await (await f.invoke()).json()).kind,'DECISION');
+  f.tick(5000);await Promise.all(f.background);
+  assert.equal(kindCalls(f,'usage').length,1);assert.equal(kindCalls(f,'provider').length,1);
+  assert.deepEqual(f.logs,[['PUBLICATION_USAGE_UNCONFIRMED']]);assert.equal(f.timers.size,0);
+});
+
 function quiet(f) { assert.deepEqual(f.logs, []); assert.equal(f.timers.size, 0); }
 async function rejected(f, code, { status = 200, request, missingSlots } = {}) {
   const result = await f.invoke(request), body = await result.json();

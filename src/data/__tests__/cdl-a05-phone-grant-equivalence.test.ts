@@ -2,12 +2,24 @@
  * CDL-A05 — canonical PHONE grant/revoke contract.
  *
  * Pre-deletion old-vs-new equivalence was proven by PRE-P4 run 33957532925.
+ * Current messages-only policy also prevents new PHONE grants in the client.
  * After deletion these tests lock the canonical RPC/error contract and prove
  * both migrated commands have one physical production owner.
  */
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+const ACCOUNT_ID = '00000000-0000-4000-8000-000000000001';
+const OTHER_ID = '00000000-0000-4000-8000-000000000002';
+const AGREEMENT_ID = '00000000-0000-4000-8000-000000000010';
+
+jest.mock('../../store/sesija', () => ({
+  sesijaSada: () => ({
+    user: { id: '00000000-0000-4000-8000-000000000001' },
+    accountRevision: 1,
+  }),
+}));
 
 jest.mock('../supabaseClient', () => {
   const mockRpc = jest.fn();
@@ -33,63 +45,83 @@ describe('CDL-A05 — canonical phone grant contract', () => {
   it('physically eliminates both transitional PHONE grant owners', () => {
     const dataDir = join(__dirname, '..');
     const indexSource = readFileSync(join(dataDir, 'index.ts'), 'utf8');
-    const authoritySource = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
     const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
 
     expect(indexSource).toContain("import { contactClientService } from './contactClientService'");
     expect(indexSource).toContain('...contactClientService');
-    expect(authoritySource).not.toContain('podeliTelefon');
-    expect(authoritySource).not.toContain('opoziviTelefon');
     expect(baselineSource).not.toContain('async podeliTelefon(');
     expect(baselineSource).not.toContain('async opoziviTelefon(');
     expect(baselineSource).toContain("'podeliTelefon'");
     expect(baselineSource).toContain("'opoziviTelefon'");
   });
 
-  it('podeliTelefon preserves exact RPC, PHONE channel, granted=true and success', async () => {
+  it('podeliTelefon refuses legacy sharing without any server call', async () => {
     resetRpc({ data: null, error: null });
 
     const result = await contactClientService.podeliTelefon('agr-1');
 
-    expect(mockRpc.mock.calls).toEqual([
-      ['rpc_set_contact_grant', {
-        p_agreement_id: 'agr-1',
-        p_channel: 'PHONE',
-        p_granted: true,
-      }],
-    ]);
+    expect(mockRpc).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      ok: false,
+      kod: 'PHONE_SHARING_DISABLED',
+      poruka: 'Brojevi telefona se ne dele. Koristite poruke u aplikaciji.',
+    });
+  });
+
+  it('opoziviTelefon keeps the historical revoke RPC and requires an authoritative owned receipt', async () => {
+    resetRpc({ data: {
+      authoritative: true, channel: 'PHONE', agreementId: AGREEMENT_ID,
+      grantedByAccountId: ACCOUNT_ID, grantedToAccountId: OTHER_ID,
+      granted: false, grantId: null,
+    }, error: null });
+
+    const result = await contactClientService.opoziviTelefon(AGREEMENT_ID);
+
+    expect(mockRpc.mock.calls).toEqual([[
+      'rpc_set_contact_grant',
+      { p_agreement_id: AGREEMENT_ID, p_channel: 'PHONE', p_granted: false },
+    ]]);
     expect(result).toEqual({ ok: true, podatak: null });
   });
 
-  it('opoziviTelefon preserves exact RPC, PHONE channel, granted=false and success', async () => {
+  it('cannot claim revoke success from a void or foreign receipt', async () => {
+    for (const data of [
+      null,
+      { authoritative: true, channel: 'PHONE', agreementId: AGREEMENT_ID,
+        grantedByAccountId: OTHER_ID, grantedToAccountId: ACCOUNT_ID,
+        granted: false, grantId: null },
+      { authoritative: true, channel: 'PHONE', agreementId: AGREEMENT_ID,
+        grantedByAccountId: ACCOUNT_ID, grantedToAccountId: OTHER_ID,
+        granted: true, grantId: null },
+      { authoritative: true, channel: 'EXACT_LOCATION', agreementId: AGREEMENT_ID,
+        grantedByAccountId: ACCOUNT_ID, grantedToAccountId: OTHER_ID,
+        granted: false, grantId: null },
+    ]) {
+      resetRpc({ data, error: null });
+      const result = await contactClientService.opoziviTelefon(AGREEMENT_ID);
+      expect(result).toMatchObject({ ok: false, kod: 'PHONE_REVOKE_INVALID' });
+    }
+  });
+
+  it('preserves known server denial and reports unknown outcome without auto-resend', async () => {
+    resetRpc({ data: null, error: { code: '42501', message: 'NOT_PARTY' } });
+    expect(await contactClientService.opoziviTelefon(AGREEMENT_ID)).toEqual({
+      ok: false, kod: 'NOT_PARTY', poruka: 'Niste učesnik ovog Dogovora.',
+    });
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+    resetRpc({ data: null, error: { code: '42501', message: 'SERVER_UNKNOWN' } });
+    expect(await contactClientService.opoziviTelefon(AGREEMENT_ID)).toMatchObject({
+      ok: false, kod: 'PHONE_REVOKE_UNCONFIRMED',
+    });
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks malformed Agreement references before any writer', async () => {
     resetRpc({ data: null, error: null });
-
-    const result = await contactClientService.opoziviTelefon('agr-2');
-
-    expect(mockRpc.mock.calls).toEqual([
-      ['rpc_set_contact_grant', {
-        p_agreement_id: 'agr-2',
-        p_channel: 'PHONE',
-        p_granted: false,
-      }],
-    ]);
-    expect(result).toEqual({ ok: true, podatak: null });
+    expect(await contactClientService.opoziviTelefon('agr-2')).toMatchObject({
+      ok: false, kod: 'AGREEMENT_NOT_FOUND',
+    });
+    expect(mockRpc).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['grant message', 'podeliTelefon', { message: 'GRANT_DENIED', code: '42501' }, { ok: false, kod: 'PHONE_GRANT_FAILED', poruka: 'Broj telefona nije podeljen.' }],
-    ['grant code', 'podeliTelefon', { code: '42501' }, { ok: false, kod: 'PHONE_GRANT_FAILED', poruka: 'Broj telefona nije podeljen.' }],
-    ['grant fallback', 'podeliTelefon', {}, { ok: false, kod: 'PHONE_GRANT_FAILED', poruka: 'Broj telefona nije podeljen.' }],
-    ['revoke message', 'opoziviTelefon', { message: 'REVOKE_DENIED', code: '42501' }, { ok: false, kod: 'PHONE_REVOKE_FAILED', poruka: 'Deljenje telefona nije opozvano.' }],
-    ['revoke code', 'opoziviTelefon', { code: '42501' }, { ok: false, kod: 'PHONE_REVOKE_FAILED', poruka: 'Deljenje telefona nije opozvano.' }],
-    ['revoke fallback', 'opoziviTelefon', {}, { ok: false, kod: 'PHONE_REVOKE_FAILED', poruka: 'Deljenje telefona nije opozvano.' }],
-  ])('preserves active error mapping: %s', async (_label, method, error, expected) => {
-    resetRpc({ data: null, error });
-
-    const result = method === 'podeliTelefon'
-      ? await contactClientService.podeliTelefon('agr-error')
-      : await contactClientService.opoziviTelefon('agr-error');
-
-    expect(result).toEqual(expected);
-  });
 });

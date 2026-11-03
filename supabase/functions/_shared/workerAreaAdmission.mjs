@@ -5,8 +5,9 @@
  * or a public biography claim while that wire format is in use.
  *
  * This is deliberately a bounded recognizer, not a gazetteer or geocoder.
- * It protects known broad statements while Area V2 has no signed save path.
- * It does not grant regional, country or multi-locality coverage.
+ * The current handler also uses this guard when a provider omits areaRequests.
+ * In that case, typed workAreas may already exist: this guard must not claim
+ * the server only supports one city. It never grants new territory itself.
  */
 const letters = '[\\p{L}]';
 const capitals = '[\\p{Lu}]';
@@ -123,7 +124,7 @@ const scrubAreaBio = text => text.split(/(?<=[.!?])\s+|[,;]\s*/u).map(part => pa
 const independentQuestions = message => (String(message).match(/[^.!?]{2,160}\?/gu) ?? [])
   .map(question => question.trim())
   .filter(question => !/(?:grad|područ|krug|km|kilomet|region|držav|okolin|srb|vojvodin)/iu.test(question))
-  .slice(0, 2);
+  .slice(0, 1);
 
 export function classifyWorkerAreaRequest(input) {
   const normalized = normalize(input);
@@ -172,7 +173,15 @@ export function guardWorkerAreaOutput(output, userText, context) {
   // to CLARIFY, which would make an otherwise ignored patch writable.
   if (!['ALLOW', 'CLARIFY'].includes(output.safety)) return output;
   const scope = classifyWorkerAreaRequest(userText);
+  const hasWorkAreas = Array.isArray(context?.candidate?.workAreas);
   const patch = { ...output.patch };
+  // Restating the exact already-owned country is not a missing territory edit.
+  // Keep any actual location or biography change on the normal guarded path.
+  const countryRestatement = /^(?:(?:radim|dolazim)\s+(?:u|po)\s+)?(?:(?:cela|celoj|čitava|čitavoj)\s+)?(?:srbija|srbiji)[.!]*$/iu.test(normalize(userText));
+  if (hasWorkAreas && scope === 'COUNTRY' && countryRestatement && !Object.hasOwn(patch, 'location')
+      && !Object.hasOwn(patch, 'bio') && context.candidate.workAreas.length === 1
+      && context.candidate.workAreas[0]?.kind === 'COUNTRY'
+      && context.candidate.workAreas[0]?.countryCode === 'RS') return output;
   const removedUnsupportedBio = typeof patch.bio === 'string' && bioAreaClaim(patch.bio);
   if (removedUnsupportedBio) {
     const safeBio = scrubAreaBio(patch.bio);
@@ -200,18 +209,16 @@ export function guardWorkerAreaOutput(output, userText, context) {
     if (proposed && statedCity && !samePlace(proposed.city ?? current?.city, statedCity)) {
       delete patch.location;
       return { ...output, safety: 'CLARIFY', patch,
-        assistantMessage: ['Nisam promenio područje: predloženi grad nije isti kao grad koji si rekao. Koji grad želiš da sačuvam?',
-          ...independentQuestions(output.assistantMessage)].join(' ') };
+        assistantMessage: 'Nisam promenio područje: predloženi grad nije isti kao navedeni grad. Koji grad želite da sačuvate?' };
     }
     if (proposed && distanceFromUser !== null &&
       (distanceFromUser === 'AMBIGUOUS' || distanceFromUser !== (proposed.radiusKm ?? current?.radiusKm))) {
       delete patch.location;
       const distanceQuestion = distanceFromUser === 'AMBIGUOUS'
-        ? 'Nisam promenio područje: broj kilometara nije nedvosmislen. Koliko kilometara ti odgovara?'
-        : 'Nisam promenio područje: predložena udaljenost nije ista kao ona koju si rekao. Koliko kilometara ti odgovara?';
+        ? 'Nisam promenio područje: broj kilometara nije nedvosmislen. Koliko kilometara Vam odgovara?'
+        : 'Nisam promenio područje: predložena udaljenost nije ista kao navedena. Koliko kilometara Vam odgovara?';
       return { ...output, safety: 'CLARIFY', patch,
-        assistantMessage: [distanceQuestion,
-          ...independentQuestions(output.assistantMessage)].join(' ') };
+        assistantMessage: distanceQuestion };
     }
     const cityChanged = proposed?.city !== undefined && !samePlace(proposed.city, current?.city);
     // V1 stores the wish as city/radius, but the matcher reaches surrounding
@@ -246,21 +253,25 @@ export function guardWorkerAreaOutput(output, userText, context) {
         assistantMessage: [caveat, ...independentQuestions(output.assistantMessage)].join(' ') };
     }
     delete patch.location;
-    const message='Razumem grad i okolinu. Do koliko kilometara ti odgovara da ideš? Dosadašnje područje ostaje isto dok to ne razjasnimo.';
+    const message='Razumem grad i okolinu. Do koliko kilometara Vam odgovara da putujete? Dosadašnje područje ostaje isto dok to ne razjasnimo.';
     return { ...output, safety: 'CLARIFY', patch,
-      assistantMessage: [message,...independentQuestions(output.assistantMessage)].join(' ') };
+      assistantMessage: message };
   }
   delete patch.location;
   // A broad area in a biography would become a second, unsourced public truth.
   // Preserve unrelated identity/services/calendar changes from the same turn.
   // The common scrub above also protects a locality-without-distance claim.
-  const message = scope === 'COUNTRY'
-    ? 'Pominješ Srbiju kao područje rada. Trenutno mogu da sačuvam samo jedan grad; neću celu Srbiju svesti na krug oko njega. Koji grad želiš za sada? Dosadašnje područje ostaje isto.'
-    : scope === 'REGION'
-      ? 'Razumem, želiš širu oblast. To još ne mogu da sačuvam kao područje rada. Koji grad želiš za sada? Dosadašnje područje ostaje isto.'
-      : 'Razumem, radiš u više gradova. Za sada mogu da sačuvam samo jedan grad; neću ih spojiti u jedan veliki krug. Koji grad želiš za sada? Dosadašnje područje ostaje isto.';
+  const message = hasWorkAreas
+    ? scope === 'REGION'
+      ? 'Granice te oblasti još nisu podržane kao područje rada. Koje gradove u Srbiji želite da obuhvatite? Dosadašnja područja ostaju ista.'
+      : 'Predlog izmene područja nije pripremljen u ovom odgovoru. Dosadašnja područja ostaju u nacrtu; rad u više gradova ili celoj Srbiji jeste podržan.'
+    : scope === 'COUNTRY'
+      ? 'Navodite Srbiju kao područje rada. Za ovaj profil trenutno je podržan jedan grad. Koji grad želite za sada? Dosadašnje područje ostaje isto.'
+      : scope === 'REGION'
+        ? 'Razumem da želite širu oblast. Za ovaj profil ona još nije podržana. Koji grad želite za sada? Dosadašnje područje ostaje isto.'
+        : 'Razumem da radite u više gradova. Za ovaj profil trenutno je podržan jedan grad. Koji grad želite za sada? Dosadašnje područje ostaje isto.';
   // Keep an independent, already targeted question (most often a missing
   // calendar end time) without retaining any provider assertion about area.
-  const otherQuestions = independentQuestions(output.assistantMessage);
+  const otherQuestions = message.includes('?') ? [] : independentQuestions(output.assistantMessage).slice(0,1);
   return { ...output, safety: 'CLARIFY', patch, assistantMessage: [message, ...otherQuestions].join(' ') };
 }

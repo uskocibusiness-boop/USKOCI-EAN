@@ -3,7 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { safetyClientService, type AccountBlockReceipt } from '../../../data/safetyClientService';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../../lib/idempotencija';
-import { useSesija } from '../../../store/sesija';
+import { sesijaSada, useSesija } from '../../../store/sesija';
 import { announceBlockChange, blockWords } from '../../../ui/safety/blockOutcome';
 import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
 import { BlockedAccountsList, type BlockedAccount } from '../../../ui/settings/BlockedAccountsList';
@@ -28,13 +28,28 @@ function OwnedBlocks() {
   const read = useCallback(() => safetyClientService.listMyBlocks(cursor), [cursor]), editor = useOwnedEditor(read);
   const confirmation = useConfirmSheet();
   const commands = useRef(new Map<string, { revision: number; id: string }>());
+  const focusLifetime = useRef({ epoch: 0, active: false });
   const [pending, setPending] = useState<string | null>(null);
   const closeConfirmation = confirmation.close;
   // A question left open is retired whenever its answer would land on a list that is no longer the one it was asked on.
-  useFocusEffect(useCallback(() => () => closeConfirmation(), [closeConfirmation]));
+  useFocusEffect(useCallback(() => {
+    const epoch = ++focusLifetime.current.epoch;
+    focusLifetime.current.active = true;
+    return () => {
+      if (focusLifetime.current.epoch === epoch) {
+        focusLifetime.current.active = false;
+        focusLifetime.current.epoch++;
+      }
+      closeConfirmation();
+    };
+  }, [closeConfirmation]));
   const refresh = () => { closeConfirmation(); void editor.refresh(); };
   const page = (next: string | null) => { closeConfirmation(); setCursor(next); };
   async function unblock(item: BlockedAccount) {
+    if (!focusLifetime.current.active || !accountId) return;
+    const lifetime = focusLifetime.current.epoch;
+    const originCurrent = () => focusLifetime.current.active && focusLifetime.current.epoch === lifetime
+      && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     const target = item.targetAccountId;
     let command = commands.current.get(target);
     if (!command || command.revision !== item.revision) {
@@ -66,10 +81,14 @@ function OwnedBlocks() {
           throw error;
         }
       });
-    } finally { setPending(null); }
+    } finally { if (originCurrent()) setPending(null); }
     // Said once the server has confirmed it, in the one outcome bar (the person's name when the server returned it), with the way to put it back.
-    if (done.receipt && accountId) announceBlockChange(done.receipt, { accountId, accountRevision },
-      { text: item.displayName ? `Blokiranje je uklonjeno: ${item.displayName}.` : blockWords.removed, onSettled: () => { void editor.refresh(); } });
+    if (done.receipt && accountId && done.receipt.targetAccountId === target)
+      announceBlockChange(done.receipt, { accountId, accountRevision }, {
+        text: item.displayName ? `Blokiranje je uklonjeno: ${item.displayName}.` : blockWords.removed,
+        stillCurrent: originCurrent,
+        onSettled: () => { if (originCurrent()) void editor.refresh(); },
+      });
   }
   const askUnblock = (item: BlockedAccount) => confirmation.ask({ title: item.displayName ? `Odblokirati ${item.displayName}?` : 'Odblokirati osobu?',
     message: 'Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.', confirmLabel: 'Odblokiraj',

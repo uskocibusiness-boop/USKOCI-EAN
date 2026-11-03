@@ -18,6 +18,6 @@ export function WorkerAiTopicEntry({ part }: { part: 'area' | 'time' }) {
   }, [accountId, accountRevision, part]));
   return <WorkerProfileFrame title={part === 'time' ? 'Dostupnost' : 'Područje rada'}
     back={() => router.canGoBack() ? router.back() : router.replace('/profil')}>
-    <QuietReadState art="chat" title="Otvaramo razgovor…" body="Pripremamo tvoj radni profil za izmenu." />
+    <QuietReadState art="chat" title="Otvaramo razgovor…" body="Pripremamo Vaš radni profil za izmenu." />
   </WorkerProfileFrame>;
 }

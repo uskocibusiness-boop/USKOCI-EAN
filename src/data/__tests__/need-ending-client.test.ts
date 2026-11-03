@@ -20,7 +20,7 @@ const document = (n: number, over: Record<string, unknown> = {}) => ({
   revision: 2, published_at: null, created_at: '2026-03-01T10:00:00+00:00', updated_at: '2026-03-01T10:00:00+00:00', response_deadline: null,
   minimum_experience_years: null, execution_location_mode: null, required_licenses: [], task_country_code: null, task_timezone: 'Europe/Belgrade',
   price_basis: 'TOTAL', covered_slots: 0, selectable_application_count: 0, marketplace_responses: [], need_geography: null,
-  need_requirement_details: null, sortAt: `2026-03-01T10:0${n}:00+00:00`, ...over });
+  need_requirement_details: null, sortAt: `2026-03-01T10:${String(59 - n).padStart(2, '0')}:00+00:00`, ...over });
 beforeEach(() => { mockRpc.mockReset(); mockUrgency.mockReset(); mockUrgency.mockResolvedValue(new Map()); });
 
 describe('the ending of a task that ended', () => {

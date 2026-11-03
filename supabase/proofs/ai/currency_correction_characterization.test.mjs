@@ -1,10 +1,11 @@
-// Characterization, not a fix. No network, provider calls, deployment or live data.
+// R07a regression after the recorded prepatch characterization. No network or deployment.
 // Exact DEV SQL bodies observed 2026-10-27 04:43-04:46 UTC, leqcwgzvjsxugfgzdmth.
-// Narrow PGlite schema: NOT complete RLS/closure/retention/lease/Save/publication.
+// Narrow PGlite schema: completion/context/status and prepared-review boundaries;
+// NOT Auth, full RLS/closure, concurrent locks or successful signed Save/publication.
 // The real Edge guard is evaluated; test exports are appended only in the VM.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHash,webcrypto} from 'node:crypto';
+import {createHash,webcrypto,randomUUID} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {resolve,dirname,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -12,6 +13,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import {PGlite} from '@electric-sql/pglite';
 import {syntheticDialogue} from './dialogue_fixture.mjs';
+import {verifyPriceReviewBoundary} from './price_review_boundary_fixture.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 const entry=resolve(root,'supabase/functions/uskoci-ai-interview/index.ts');
@@ -167,7 +169,7 @@ function localEdgeGuard() {
  function load(file) {
   assert.ok(file===entry||bases.some(base=>file.startsWith(base)),'only local Edge dependencies');
   if(cache.has(file))return cache.get(file).exports;
-  const source=readFileSync(file,'utf8')+(file===entry?'\nexport {guardConversationTurn,serverTimeContext};':'');
+  const source=readFileSync(file,'utf8')+(file===entry?'\nexport {guardConversationTurn,serverTimeContext,needTurnPersistenceProposals,parseV2Output};':'');
   const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},
    reportDiagnostics:true,fileName:file.replace(/\.mjs$/,'.ts')});
   assert.equal(compiled.diagnostics.filter(d=>d.category===ts.DiagnosticCategory.Error).length,0);
@@ -185,11 +187,11 @@ const guard=(input,proposals=[],facts=[],priceUnit='UNSPECIFIED')=>edge.guardCon
  dialogue:{...syntheticDialogue(),next:'ACK',priceUnit}},input,[],facts,now);
 const active=async()=> (await db.query('select fact_key,fact_value,status,id from public.ai_structured_facts where conversation_id=$1 and superseded_at is null order by fact_key',[conversation])).rows;
 const apply=async(input,turn)=> (await one('select public.rpc_ai_apply_interview_turn_v2_service($1,$2,$3,$4,$5,$6::jsonb) as result',
- [owner,conversation,input,turn.assistantMessage,turn.safety,json(turn.proposals)])).result;
+ [owner,conversation,input,turn.assistantMessage,turn.safety,json(edge.needTurnPersistenceProposals(turn))])).result;
 const read=async()=> (await one('select public.rpc_ai_need_review_v2($1) as result',[conversation])).result;
 const source=async()=> (await one('select private.ai_task_review_source_before_media($1) as result',[conversation])).result;
 
-test('CUR01 current invalidation gap: actual Edge guard and live SQL body characterization',async t=>{
+test('R07a price retraction: actual Edge, guarded candidate writer and current review bodies',async t=>{
  await db.exec([
  'create schema private;create schema extensions;create schema auth;',
  "create function auth.uid() returns uuid language sql as 'select ''"+owner+"''::uuid';",
@@ -215,67 +217,239 @@ test('CUR01 current invalidation gap: actual Edge guard and live SQL body charac
  for(const row of registry)await db.query("insert into public.ai_structured_facts(account_id,conversation_id,fact_key,fact_value,status,source,scope,confidence,fact_schema_version,value_type,display_value,confirmed_at,confirmed_by_user_id) values($1,$2,$3,$4::jsonb,'CONFIRMED','EXPLICIT_USER_ANSWER','NEED_DRAFT',1,'NEED_FACT_V2',$5,$6,now(),$1)",
  [owner,conversation,row.fact_key,json(initial[row.fact_key]),row.value_type,String(initial[row.fact_key])]);
  const before=await active(),beforeSource=await source();
- let euro;
- await t.test('real Edge guard refuses EUR-as-RSD but provides no retraction command',async()=>{
-  euro=guard('u evrima',[],before);
-  assert.equal(euro.safety,'CLARIFY');assert.equal(euro.proposals.length,0);
-  assert.match(euro.assistantMessage,/Ranije prikazan iznos u RSD može ostati u nacrtu/);
+ const candidate=readFileSync(resolve(root,'supabase/candidates/r07_price_retraction.sql'),'utf8');
+ const baselineMetadata=await one("select proowner,proacl,prosecdef,proconfig from pg_proc where oid='public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)'::regprocedure");
+ const euro=guard('u evrima',[],before);
+ await t.test('current writer refuses the new control atomically before coordinated rollout',async()=>{
+  assert.equal(euro.priceRetraction,'UNSUPPORTED_CURRENCY');
+  assert.equal(euro.proposals.length,0);
+  await assert.rejects(apply('u evrima',euro),{message:'V2_FACT_KEY_INVALID'});
   assert.deepEqual(await active(),before);
+  assert.equal((await one('select count(*)::int as n from public.ai_messages')).n,0);
  });
- await t.test('live writer persists the clarification while old price facts remain active',async()=>{
+ await t.test('candidate requires local opt-in and preserves existing function authority',async()=>{
+  await assert.rejects(db.exec(candidate),{message:'R07_DISPOSABLE_TARGET_REQUIRED'});
+  await db.exec("set uskoci.r07.disposable='LOCAL_ONLY'");
+  await db.exec(candidate);
+  assert.deepEqual(await one("select proowner,proacl,prosecdef,proconfig from pg_proc where oid='public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)'::regprocedure"),baselineMetadata);
+  await assert.rejects(db.exec(candidate),{message:'R07_WRITER_SOURCE_DRIFT'});
+ });
+ // Real fact-write trigger, with only the separate closure exemption stubbed to
+ // false. This checks canonical supersession/provenance, not Auth or closure.
+ const bootstrap=readFileSync(resolve(root,'supabase/proofs/privacy/bootstrap/current-application.sql'),'utf8');
+ const guardStart=bootstrap.indexOf('CREATE OR REPLACE FUNCTION private.guard_ai_fact_write()');
+ const guardEnd=bootstrap.indexOf('$function$;',guardStart)+'$function$;'.length;
+ await db.exec("create function auth.role() returns text language sql as 'select ''service_role''::text';create function private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb) returns boolean language sql as 'select false';");
+ await install(bootstrap.slice(guardStart,guardEnd),'f9972cfc47af0358a9f4f03c2e43fe63');
+ await db.exec('create trigger guard_ai_fact_write_trg before update on public.ai_structured_facts for each row execute function private.guard_ai_fact_write()');
+ await t.test('EUR correction retracts all old price consent and keeps other facts',async()=>{
   const receipt=await apply('u evrima',euro);
   assert.equal(receipt.proposedCount,0);assert.equal(receipt.safety,'CLARIFY');
-  assert.deepEqual(await active(),before);
+  assert.deepEqual(await active(),before.filter(f=>!f.fact_key.startsWith('need.price_')));
   assert.equal((await one('select count(*)::int as n from public.ai_messages')).n,2);
+  for(const old of before.filter(f=>f.fact_key.startsWith('need.price_'))){
+   const row=await one('select * from public.ai_structured_facts where id=$1',[old.id]);
+   assert.ok(row.superseded_at);assert.equal(row.superseded_by,null);
+   assert.equal(row.status,'CONFIRMED');assert.ok(row.confirmed_at);
+   assert.deepEqual(row.fact_value,old.fact_value);
+   await assert.rejects(db.query('select public.rpc_ai_confirm_fact($1)',[old.id]),{message:'SUPERSEDED'});
+  }
  });
- await t.test('real V2 review still exposes old CONFIRMED price and canSaveDraft=true',async()=>{
-  const review=await read();assert.equal(review.safety,'CLARIFY');assert.equal(review.canSaveDraft,true);
-  assert.deepEqual(review.missingRequired,[]);
-  assert.equal(review.facts.find(f=>f.key==='need.price_rsd').value,5000);
-  assert.equal(review.facts.find(f=>f.key==='need.price_rsd').status,'CONFIRMED');
-  // rpc_ai_need_review_v2 only, not a full signed prepare/accept/publish test.
+ await t.test('real review and source no longer expose stale price as active or ready',async()=>{
+  const review=await read();assert.equal(review.canSaveDraft,false);
+  assert.deepEqual(review.missingRequired,['need.price_mode']);
+  assert.equal(review.facts.some(f=>f.key.startsWith('need.price_')),false);
+  const after=await source();assert.notDeepEqual(after,beforeSource);
+  assert.equal(after.facts.some(f=>f.key?.startsWith('need.price_')||f.fact_key?.startsWith('need.price_')),false);
  });
- await t.test('review source changes, but its active facts still contain old RSD amount',async()=>{
-  const afterSource=await source();assert.notDeepEqual(afterSource,beforeSource);
-  assert.deepEqual(afterSource.facts,beforeSource.facts);assert.equal(afterSource.messages.length,2);
- });
- await t.test('later independent ALLOW changes warning safety without clearing old price',async()=>{
+ await t.test('later unrelated ALLOW cannot restore readiness or the retracted amount',async()=>{
   await apply('Hvala.',{safety:'ALLOW',assistantMessage:'Nema na čemu.',proposals:[]});
-  assert.equal((await read()).safety,'ALLOW');
-  assert.equal((await active()).find(f=>f.fact_key==='need.price_rsd').fact_value,5000);
+  assert.equal((await read()).safety,'ALLOW');assert.equal((await read()).canSaveDraft,false);
+  assert.equal((await active()).some(f=>f.fact_key.startsWith('need.price_')),false);
  });
- await t.test('explicit new RSD price supersedes old amount and requires owner confirmation',async()=>{
+ await t.test('a new explicit RSD price requires fresh confirmation and then restores readiness',async()=>{
   const next=guard('Cena je 6000 RSD ukupno.',[proposal('need.price_mode','MY_PRICE','6000 RSD'),
    proposal('need.price_rsd',6000,'6000 RSD'),proposal('need.price_basis','TOTAL','ukupno')],await active());
-  // Edge suppresses unchanged mode/basis; only the changed amount is proposed.
-  assert.equal(next.safety,'ALLOW');assert.equal(next.proposals.length,1);
+  assert.equal(next.priceRetraction,undefined);assert.equal(next.proposals.length,3);
   await apply('Cena je 6000 RSD ukupno.',next);
-  const rows=await active(),amount=rows.find(f=>f.fact_key==='need.price_rsd');
-  assert.equal(amount.fact_value,6000);assert.equal(amount.status,'NEEDS_CONFIRMATION');
-  const old=await one('select superseded_at,superseded_by from public.ai_structured_facts where id=$1',[before.find(f=>f.fact_key==='need.price_rsd').id]);
-  assert.ok(old.superseded_at);assert.equal(old.superseded_by,amount.id);
-  // canSaveDraft alone is not price consent: the base review only requires
-  // registry-required keys to be CONFIRMED. The amount remains unconfirmed.
+  const prices=(await active()).filter(f=>f.fact_key.startsWith('need.price_'));
+  assert.equal(prices.length,3);assert.ok(prices.every(f=>f.status==='NEEDS_CONFIRMATION'));
+  assert.equal((await read()).canSaveDraft,false);
+  for(const fact of prices)await db.query('select public.rpc_ai_confirm_fact($1)',[fact.id]);
   assert.equal((await read()).canSaveDraft,true);
-  for(const fact of rows.filter(f=>f.status==='NEEDS_CONFIRMATION'))await db.query('select public.rpc_ai_confirm_fact($1)',[fact.id]);
-  assert.equal((await read()).canSaveDraft,true);
+  assert.equal((await active()).find(f=>f.fact_key==='need.price_rsd').fact_value,6000);
  });
- await t.test('OFFERS replaces mode; this fact writer alone leaves old amount/basis active',async()=>{
+ await t.test('malformed, conflicting and misplaced controls never change facts or messages',async()=>{
+  const facts=await active(),messages=(await one('select count(*)::int as n from public.ai_messages')).n;
+  const marker={action:'INVALIDATE_PRICE',reason:'UNSUPPORTED_CURRENCY'};
+  const invoke=(payload,safety='CLARIFY',account=owner)=>db.query('select public.rpc_ai_apply_interview_turn_v2_service($1,$2,$3,$4,$5,$6::jsonb)',
+   [account,conversation,'u evrima','Potrebna je nova cena.',safety,json(payload)]);
+  for(const payload of [[{...marker,extra:true}],[{...marker,reason:'OTHER'}],[marker,marker],
+   [proposal('need.people_needed',3,'3 osobe'),marker],
+   [marker,proposal('need.price_rsd',9000,'9000 RSD')]])await assert.rejects(invoke(payload));
+  for(const safety of ['BLOCK','ALLOW'])await assert.rejects(invoke([marker],safety));
+  await assert.rejects(invoke([marker],'CLARIFY','33333333-3333-4333-8333-333333333333'),{message:'CONVERSATION_OWNER_MISMATCH'});
+  // A later invalid ordinary fact rolls the earlier supersession back too.
+  await assert.rejects(invoke([marker,proposal('need.people_needed',-1,'-1 osoba')]));
+  assert.deepEqual(await active(),facts);
+  assert.equal((await one('select count(*)::int as n from public.ai_messages')).n,messages);
+  await db.exec("update public.ai_conversations set status='ABANDONED'");
+  await assert.rejects(invoke([marker]),{message:'CONVERSATION_CLOSED'});
+  await db.exec("update public.ai_conversations set status='OPEN'");
+  assert.deepEqual(await active(),facts);
+ });
+ await t.test('a bare price correction retracts consent while retaining an independent headcount',async()=>{
+  const next=guard('Cena je 7000; 3 osobe.',[proposal('need.price_rsd',7000,'Cena je 7000'),
+   proposal('need.people_needed',3,'3 osobe')],await active());
+  assert.equal(next.priceRetraction,'AMBIGUOUS_CURRENCY');
+  const receipt=await apply('Cena je 7000; 3 osobe.',next);
+  assert.equal(receipt.proposedCount,1);
+  assert.equal((await active()).find(f=>f.fact_key==='need.people_needed').fact_value,3);
+  assert.equal((await read()).canSaveDraft,false);
+ });
+ await t.test('OFFERS remains an explicit choice, never an invented fallback',async()=>{
+  assert.equal((await active()).some(f=>f.fact_key==='need.price_mode'),false);
   const offers=guard('Želim ponude.',[proposal('need.price_mode','OFFERS','Želim ponude')],await active());
+  assert.equal(offers.priceRetraction,undefined);
   await apply('Želim ponude.',offers);
-  const rows=await active();assert.equal(rows.find(f=>f.fact_key==='need.price_mode').fact_value,'OFFERS');
-  assert.equal(rows.find(f=>f.fact_key==='need.price_rsd').fact_value,6000);
-  assert.equal(rows.find(f=>f.fact_key==='need.price_basis').fact_value,'TOTAL');
-  // Canonical Need Save handles OFFERS separately; no claim of old saved Need amount.
+  assert.equal((await active()).find(f=>f.fact_key==='need.price_mode').fact_value,'OFFERS');
+  assert.equal((await active()).some(f=>f.fact_key==='need.price_rsd'),false);
+ });
+ await t.test('nonprice, other-task, uncertain-task and blocked turns cannot retract price',()=>{
+  const turns=[guard('Materijal je 100 EUR.',[],before),guard('3 osobe.',[proposal('need.people_needed',3,'3 osobe')],before)];
+  for(const taskRelation of ['DIFFERENT_TASK','UNCLEAR'])turns.push(edge.guardConversationTurn({safety:'ALLOW',assistantMessage:'Razumem.',proposals:[],
+   dialogue:{...syntheticDialogue(),next:'ACK',taskRelation}},'u evrima',[],before,now));
+  turns.push(edge.guardConversationTurn({safety:'BLOCK',assistantMessage:'Odbijeno.',proposals:[]},'u evrima',[],before,now));
+  for(const turn of turns)assert.equal(turn.priceRetraction,undefined);
+ });
+ // Admit actual owned completion/context/status bodies. Closure admission is
+ // explicitly stubbed; request context, expiry, attempts and replay are real SQL.
+ await db.exec(`alter table private.ai_need_turn_commands
+  add column account_id uuid, add column client_request_id uuid, add column request_hash text,
+  add column provider_dispatched boolean, add column cancelled_at timestamptz,
+  add column lease_expires_at timestamptz, add column context_hash text,
+  add column updated_at timestamptz, add column receipt jsonb;
+  create function private.closure_assert_open(uuid) returns void language plpgsql as 'begin return; end';
+  create function extensions.digest(bytea,text) returns bytea language sql as
+   'select case when $2=''sha256'' then pg_catalog.sha256($1) else null end';`);
+ for(const [name,md5] of [
+  ['private.ai_need_turn_context','972099be9f9429d87bc1566334e7d8f2'],
+  ['private.ai_need_turn_status','42549927e66edf70cf67f5d82cef4530'],
+  ['public.rpc_ai_complete_need_turn_v2_service','80775fc093f270838096ccc104a88668'],
+ ]){
+  const start=bootstrap.indexOf('CREATE OR REPLACE FUNCTION '+name+'(');
+  const end=bootstrap.indexOf('$function$;',start)+'$function$;'.length;
+  await install(bootstrap.slice(start,end),md5);
+ }
+ const seedPrice=async()=>{
+  await db.exec('delete from private.ai_need_turn_commands');
+  await apply('Cena je 8000 RSD ukupno.',guard('Cena je 8000 RSD ukupno.',[
+   proposal('need.price_mode','MY_PRICE','8000 RSD'),proposal('need.price_rsd',8000,'8000 RSD'),
+   proposal('need.price_basis','TOTAL','ukupno')],await active()));
+ };
+ const command=async()=>{
+  const key=randomUUID(),attempt=randomUUID();
+  await db.query(`insert into private.ai_need_turn_commands(turn_id,conversation_id,state,attempt_id,account_id,
+   client_request_id,request_hash,provider_dispatched,lease_expires_at,context_hash)
+   values($1,$2,'PROCESSING',$3,$4,$5,
+    encode(extensions.digest(convert_to(jsonb_build_object('conversationId',$2::uuid,'text','u evrima')::text,'UTF8'),'sha256'),'hex'),
+    true,clock_timestamp()+interval '1 minute',private.ai_need_turn_context($2)->>'sha256')`,
+   [randomUUID(),conversation,attempt,owner,key]);
+  return {key,attempt};
+ };
+ const complete=async(cmd)=> (await one(`select public.rpc_ai_complete_need_turn_v2_service($1,$2,$3,$4,$5,$6,$7,$8::jsonb) as result`,
+  [owner,conversation,cmd.key,cmd.attempt,'u evrima',euro.assistantMessage,euro.safety,json(edge.needTurnPersistenceProposals(euro))])).result;
+ await t.test('owned completion retracts once; replay cannot remove a later valid RSD price',async()=>{
+  await seedPrice();const cmd=await command();
+  const receipt=await complete(cmd);assert.equal(receipt.state,'SUCCEEDED');
+  assert.equal(receipt.receipt.proposedCount,0);
+  assert.equal((await active()).some(f=>f.fact_key.startsWith('need.price_')),false);
+  await apply('Cena je 9000 RSD ukupno.',guard('Cena je 9000 RSD ukupno.',[
+   proposal('need.price_mode','MY_PRICE','9000 RSD'),proposal('need.price_rsd',9000,'9000 RSD'),
+   proposal('need.price_basis','TOTAL','ukupno')],await active()));
+  const facts=await active(),messages=(await one('select count(*)::int as n from public.ai_messages')).n;
+  assert.deepEqual(await complete(cmd),receipt);
+  assert.deepEqual(await active(),facts);
+  assert.equal((await one('select count(*)::int as n from public.ai_messages')).n,messages);
+ });
+ for(const scenario of ['expired','stale-context','wrong-attempt','cancelled','not-dispatched'])await t.test(`owned ${scenario} completion cannot retract current price`,async()=>{
+  await seedPrice();const cmd=await command();
+  if(scenario==='expired')await db.exec("update private.ai_need_turn_commands set lease_expires_at=clock_timestamp()-interval '1 second'");
+  if(scenario==='stale-context')await apply('4 osobe.',guard('4 osobe.',[proposal('need.people_needed',4,'4 osobe')],await active()));
+  if(scenario==='wrong-attempt')cmd.attempt=randomUUID();
+  if(scenario==='cancelled')await db.exec("update private.ai_need_turn_commands set state='FAILED',cancelled_at=clock_timestamp()");
+  if(scenario==='not-dispatched')await db.exec('update private.ai_need_turn_commands set provider_dispatched=false');
+  const facts=await active(),messages=(await one('select count(*)::int as n from public.ai_messages')).n;
+  const result=await complete(cmd);assert.notEqual(result.state,'SUCCEEDED');
+  assert.deepEqual(await active(),facts);
+  assert.equal((await one('select count(*)::int as n from public.ai_messages')).n,messages);
+ });
+ await verifyPriceReviewBoundary({t,db,bootstrap,install,owner,conversation,apply,guard,proposal,active,seedPrice});
+ await t.test('normalized AI display survives the actual writer and prepared review without changing old copies',async()=>{
+  const historic=await one('select envelope from private.ai_task_reviews order by created_at,id limit 1');
+  const input='Cena je 100 RSD ukupno.';
+  const parsed=edge.parseV2Output({safety:'ALLOW',assistantMessage:'Cena je 100 RSD.',dialogue:syntheticDialogue(),facts:[
+   {key:'need.price_mode',valueJson:'"MY_PRICE"',displayValue:'Moja cena',evidence:input,confidence:1},
+   {key:'need.price_rsd',valueJson:'100',displayValue:'100 EUR',evidence:input,confidence:1},
+   {key:'need.price_basis',valueJson:'"TOTAL"',displayValue:'Ukupno',evidence:input,confidence:1}]});
+  const turn=edge.guardConversationTurn(parsed,input,[],await active(),now);
+  assert.equal(turn.safety,'ALLOW');
+  await apply(input,turn);
+  const saved=await one("select fact_value,display_value,status from public.ai_structured_facts where conversation_id=$1 and fact_key='need.price_rsd' and superseded_at is null",[conversation]);
+  assert.deepEqual(saved,{fact_value:100,display_value:'100 RSD',status:'NEEDS_CONFIRMATION'});
+  assert.equal((await read()).facts.find(f=>f.key==='need.price_rsd').displayValue,'100 RSD');
+  const prepared=(await one('select public.rpc_prepare_ai_task_review($1) as result',[conversation])).result;
+  assert.equal(prepared.publicProjection.find(f=>f.key==='need.price_rsd').displayValue,'100 RSD');
+  assert.equal(prepared.publicProjection.find(f=>f.key==='need.price_rsd').value,100);
+  assert.deepEqual(await one('select envelope from private.ai_task_reviews order by created_at,id limit 1'),historic);
  });
  await t.test('live validator supports TOTAL/PER_PERSON/HOURLY and retains FASTEST retirement',async()=>{
   for(const basis of ['TOTAL','PER_PERSON','HOURLY'])await db.query('select private.validate_need_v2_fact($1,$2::jsonb)',['need.price_basis',json(basis)]);
   await assert.rejects(db.query('select private.validate_need_v2_fact($1,$2::jsonb)',['need.price_mode',json('FASTEST')]),{code:'22023'});
  });
- await t.test('existing mismatch: Edge PER_HOUR strips price despite live SQL HOURLY support',async()=>{
+ await t.test('R07b Edge preserves the per-person hourly rate through the actual writer and review',async()=>{
   const hourly=guard('Cena je 1200 RSD na sat.',[proposal('need.price_mode','MY_PRICE','1200 RSD na sat'),
    proposal('need.price_rsd',1200,'1200 RSD na sat'),proposal('need.price_basis','HOURLY','na sat')],[],'PER_HOUR');
-  assert.equal(hourly.safety,'CLARIFY');assert.equal(hourly.proposals.filter(p=>p.key.startsWith('need.price_')).length,0);
-  assert.match(hourly.assistantMessage,/satnica još nije cena celog zadatka/);
+  assert.equal(hourly.safety,'ALLOW');assert.equal(hourly.proposals.filter(p=>p.key.startsWith('need.price_')).length,3);
+  await apply('Cena je 1200 RSD na sat.',hourly);
+  const persisted=await active();
+  assert.equal(persisted.find(f=>f.fact_key==='need.price_rsd').fact_value,1200);
+  assert.equal(persisted.find(f=>f.fact_key==='need.price_basis').fact_value,'HOURLY');
+  const reviewed=(await read()).facts;
+  assert.equal(reviewed.find(f=>f.key==='need.price_rsd').value,1200);
+  assert.equal(reviewed.find(f=>f.key==='need.price_basis').value,'HOURLY');
+ });
+ await t.test('R07b team correction retracts old hourly consent and an unrelated ALLOW cannot restore readiness',async()=>{
+  for(const fact of (await active()).filter(f=>f.fact_key.startsWith('need.price_')))
+   await db.query('select public.rpc_ai_confirm_fact($1)',[fact.id]);
+  assert.equal((await read()).canSaveDraft,true);
+  const prepared=(await one('select public.rpc_prepare_ai_task_review($1) as result',[conversation])).result;
+  assert.equal(prepared.canAccept,true);
+  const history=(await db.query('select * from private.ai_task_reviews order by id')).rows;
+  const old=(await active()).filter(f=>f.fact_key.startsWith('need.price_'));
+  const input='Mislio sam 1200 RSD za celu ekipu na sat.';
+  const corrected=guard(input,[proposal('need.price_mode','MY_PRICE',input),
+   proposal('need.price_rsd',1200,input),proposal('need.price_basis','HOURLY',input)],await active(),'PER_HOUR');
+  assert.equal(corrected.priceRetraction,'UNSUPPORTED_PRICE_BASIS');
+  assert.deepEqual(JSON.parse(json(edge.needTurnPersistenceProposals(corrected))),[
+   {action:'INVALIDATE_PRICE',reason:'UNSUPPORTED_PRICE_BASIS'}]);
+  await apply(input,corrected);
+  assert.equal((await active()).some(f=>f.fact_key.startsWith('need.price_')),false);
+  for(const fact of old){
+   const stored=await one('select status,confirmed_at,superseded_at from public.ai_structured_facts where id=$1',[fact.id]);
+   assert.equal(stored.status,'CONFIRMED');assert.ok(stored.confirmed_at);assert.ok(stored.superseded_at);
+  }
+  await apply('Hvala.',{safety:'ALLOW',assistantMessage:'Nema na čemu.',proposals:[]});
+  assert.equal((await read()).canSaveDraft,false);
+  assert.equal((await active()).some(f=>f.fact_key.startsWith('need.price_')),false);
+  await assert.rejects(db.query('select public.rpc_accept_ai_task_review($1,$2,$3)',
+   [prepared.reviewId,prepared.displayedContentDigest,randomUUID()]),{message:'TASK_REVIEW_STALE'});
+  assert.deepEqual((await db.query('select * from private.ai_task_reviews order by id')).rows,history);
+ });
+ await t.test('R07b team hourly wording cannot become an individual rate through a misleading provider hint',async()=>{
+  const hourly=guard('Cena je 1200 RSD na sat za celu ekipu.',[proposal('need.price_mode','MY_PRICE'),
+   proposal('need.price_rsd',1200),proposal('need.price_basis','HOURLY')],[],'PER_HOUR');
+  assert.equal(hourly.safety,'CLARIFY');assert.equal(hourly.proposals.length,0);
+  assert.match(hourly.assistantMessage,/po osobi po satu/);
  });
 });

@@ -60,6 +60,14 @@ export type MarketplaceView = { query: string; section: 'active' | 'drafts' | 'h
    * otherwise an offset deeper than the first page would be clamped to its end. Absent means the first page only.
    */
   pages?: number };
+/** The five server-owned sets of MY tasks, shared by the pager and its
+ * presentation. Keeping this pure avoids loading auth/Data API from a gallery. */
+export type OwnTasksScope = 'ALL' | 'ACTIVE' | 'DRAFTS' | 'HISTORY' | 'WAITING';
+export function ownTasksScope(view: Pick<MarketplaceView, 'section' | 'attention'>): OwnTasksScope | null {
+  if (view.attention) return view.section === 'drafts' || view.section === 'history' ? null : 'WAITING';
+  return view.section === 'active' ? 'ACTIVE' : view.section === 'drafts' ? 'DRAFTS' : view.section === 'history' ? 'HISTORY' : 'ALL';
+}
+
 export const initialMarketplaceView = (): MarketplaceView => ({ query: '', section: 'active', attention: false,
   price: 'all', mode: 'list', area: null, viewport: null, selectedId: null, when: 'any', where: 'any', places: 1, selectedPlace: null,
   place: null, dates: null, pinPlace: null });
@@ -407,6 +415,6 @@ export function pinLabel(item: MarketplaceItem): PinLabel {
   if (item.rezimCene === 'OFFERS') return { text: 'Ponude', tone: 'offer', spoken: 'Tražim ponude' };
   const price = item.ponudjenaCena, full = typeof price?.prikaz === 'string' ? price.prikaz.trim() : '';
   if (!price || !full) return { text: '', tone: 'none', spoken: 'Cena nije navedena' };
-  const basis = item.osnovaCene === 'TOTAL' ? ' ukupno' : item.osnovaCene === 'PER_PERSON' ? ' po osobi' : '';
+  const basis = item.osnovaCene === 'HOURLY' ? ' po osobi po satu' : item.osnovaCene === 'TOTAL' ? ' ukupno' : item.osnovaCene === 'PER_PERSON' ? ' po osobi' : '';
   return { text: full + basis, tone: 'money', spoken: full + basis };
 }

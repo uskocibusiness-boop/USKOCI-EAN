@@ -141,7 +141,7 @@ export function buildThread(messages: readonly ThreadMessage[], now: Date = new 
  */
 export function messageSpoken(message: Pick<PorukaProjekcija, 'moja' | 'posiljalacIme' | 'telo' | 'fotografije' | 'glas'>,
   moment: { day: string | null; clock: string }, state?: string): string {
-  const who = message.moja ? 'Ti' : message.posiljalacIme;
+  const who = message.moja ? 'Vi' : message.posiljalacIme;
   const photoCount = message.fotografije?.length ?? 0;
   const what = [message.telo, message.glas ? `glasovna poruka ${voiceClock(message.glas.trajanjeMs)}` : '', photoCount ? plural(photoCount, 'fotografija', 'fotografije', 'fotografija') : '']
     .filter(Boolean).join(', ') || 'poruka bez teksta';

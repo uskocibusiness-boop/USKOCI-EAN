@@ -22,7 +22,7 @@ import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { poruka } from '../../ui/system/Poruka';
 
 type Intent = { kind: 'withdraw'; command: PovuciPrijavuKomanda } | { kind: 'resolve'; command: Ru4RazresiPrijavuInput };
-type Pending = { intent: Intent; row: MojaPrijavaProjekcija; inFlight: boolean; reconciled: boolean;
+type Pending = { expectedPriceBasis: 'TOTAL' | 'HOURLY'; intent: Intent; row: MojaPrijavaProjekcija; inFlight: boolean; reconciled: boolean;
   result: 'receipt' | 'unknown' | 'rejected' | null; code: string | null };
 type Loaded = { rows: MojaPrijavaProjekcija[]; notice: string | null };
 const NO_ROWS: MojaPrijavaProjekcija[] = [];
@@ -79,6 +79,7 @@ function observed(pending: Pending, row: ApplicationCommandState) {
   return pending.result === 'receipt' && row.version === pending.row.prijavaVerzija + 1 &&
     row.submittedNeedRevision === pending.row.potrebaRevizija &&
     row.priceRsd === (update ? update.cenaRsd : pending.row.cena.iznos) &&
+    (row.priceBasis ?? 'TOTAL') === pending.expectedPriceBasis &&
     row.coveredSlots === (update ? update.pokrivenaMesta : pending.row.pokrivaMesta) &&
     row.scopeNote === (update ? update.napomena : pending.row.napomena) &&
     (!update || sameInstant(row.proposedStartAt, update.predlozeniPocetak) && sameInstant(row.proposedEndAt, update.predlozeniKraj));
@@ -233,11 +234,12 @@ export default function MojePrijave() {
         if (!raw.ok) result = Object.prototype.hasOwnProperty.call(errors, raw.kod)
           ? { ok: false, kod: raw.kod, poruka: errors[raw.kod] } : unknown();
         else {
-          const receipt = raw.podatak as { stanje?: string; status?: string; verzija?: number; version?: number };
+          const receipt = raw.podatak as { stanje?: string; status?: string; verzija?: number; version?: number; priceBasis?: 'TOTAL' | 'HOURLY' };
           const status = pending.intent.kind === 'withdraw' ? receipt?.stanje : receipt?.status;
           const version = pending.intent.kind === 'withdraw' ? receipt?.verzija : receipt?.version;
           result = positiveInteger(version) && version === pending.row.prijavaVerzija + (withdrawal(pending) ? 0 : 1) &&
-            status === (withdrawal(pending) ? 'WITHDRAWN' : 'SUBMITTED') ? { ok: true, podatak: null } : unknown();
+            status === (withdrawal(pending) ? 'WITHDRAWN' : 'SUBMITTED') &&
+            (withdrawal(pending) || (receipt.priceBasis ?? 'TOTAL') === pending.expectedPriceBasis) ? { ok: true, podatak: null } : unknown();
         }
       } catch { result = unknown(); }
       finally { pending.inFlight = false; }
@@ -283,7 +285,9 @@ export default function MojePrijave() {
       predlozeniPocetak: action === 'UPDATE' ? draft!.start : null, predlozeniKraj: action === 'UPDATE' ? draft!.end : null }) }
       : { kind: 'withdraw', command: Object.freeze({ prijavaId: p.prijavaId, potrebaRevizija: p.potrebaRevizija,
         prijavaVerzija: p.prijavaVerzija, clientRequestId: noviZahtevId('povuci-prijavu'), razlog: null }) };
-    perform({ intent, row: p, inFlight: false, reconciled: false, result: null, code: null });
+    perform({ expectedPriceBasis: action === 'UPDATE'
+      ? draft!.pricing.rezimCene === 'MY_PRICE' && draft!.pricing.osnovaCene === 'HOURLY' ? 'HOURLY' : 'TOTAL'
+      : p.osnovaCene === 'HOURLY' ? 'HOURLY' : 'TOTAL', intent, row: p, inFlight: false, reconciled: false, result: null, code: null });
   };
   const discardIfDirty = (next: () => void) => {
     if (!current()) return;
@@ -358,6 +362,8 @@ export default function MojePrijave() {
     onAgreement={p => { if (rowCurrent(p) && !session.pending && p.stanje === 'SELECTED' && p.dogovorId)
       discardIfDirty(() => { clearReview(); router.push(`/dogovor/${p.dogovorId}` as any); }); }}
     onTask={p => { if (rowCurrent(p) && !session.pending) discardIfDirty(() => { clearReview(); router.push({ pathname: '/prilike/[id]', params: { id: p.potrebaId } }); }); }}
+    onService={p => { if (rowCurrent(p) && idle() && ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'SELECTED'].includes(p.stanje))
+      discardIfDirty(() => { clearReview(); router.push({ pathname: '/profil/usluga-iz-prijave', params: { applicationId: p.prijavaId, needId: p.potrebaId } }); }); }}
     onRetry={() => { if (pending?.result === 'unknown' && pending === session.pending) perform(pending); }}
     onReset={() => { if (current() && pending === session.pending && pending?.reconciled && (pending.result === 'rejected' || pending.result === 'receipt') && !editor.busy && !editor.uncertain) {
       discardIfDirty(() => { session.pending = null; clearReview(); render(v => v + 1); });

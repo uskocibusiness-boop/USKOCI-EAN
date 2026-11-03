@@ -1,0 +1,71 @@
+{
+  "project_ref": "leqcwgzvjsxugfgzdmth",
+  "captured_date": "2026-11-03",
+  "scope": "Read-only current closure locking, export filtering and erasure planning dependencies; no business rows or readiness approval.",
+  "functions": [
+    {
+      "name": "private.closure_account_key",
+      "signature": "private.closure_account_key(uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.closure_account_key(a uuid)\n RETURNS bigint\n LANGUAGE sql\n IMMUTABLE STRICT\n SET search_path TO 'pg_catalog'\nAS $function$ select hashtextextended('uskoci:account-closure:'||a::text,10121); $function$\n",
+      "md5": "29116ea6e982cecd3242354a20faa3fd",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.closure_account_restricted",
+      "signature": "private.closure_account_restricted(uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.closure_account_restricted(a uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$ select exists(select 1 from private.account_closure_requests r where r.account_id=a\n and r.state in('READY','EXECUTING','FAILED','CLOSED')); $function$\n",
+      "md5": "9ce14bacf456210147ba14235d7ba8de",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.closure_assert_open",
+      "signature": "private.closure_assert_open(uuid, uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.closure_assert_open(a uuid, b uuid DEFAULT NULL::uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare u uuid;\nbegin\n if a is null then raise exception 'CLOSURE_CONTEXT_INVALID' using errcode='42501'; end if;\n for u in select distinct x from unnest(array[a,b]) x where x is not null order by x loop\n  perform pg_advisory_xact_lock_shared(private.closure_account_key(u));\n  if private.closure_account_restricted(u) then raise exception 'ACCOUNT_CLOSING' using errcode='42501'; end if;\n end loop;\nend;\n$function$\n",
+      "md5": "1d0e22224d546c4756f216acfe103246",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.closure_taxonomy_held_v1",
+      "signature": "private.closure_taxonomy_held_v1(text, jsonb, uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.closure_taxonomy_held_v1(r text, t jsonb, a uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE cid uuid;rid uuid;\nBEGIN\n IF r='private.work_taxonomy_gemini_turn_hints_v1' THEN cid:=(t->>'conversation_id')::uuid;\n ELSIF t?'source_review_id' THEN\n  rid:=(t->>'source_review_id')::uuid;\n  SELECT conversation_id INTO cid FROM (\n   SELECT conversation_id FROM private.worker_ai_reviews WHERE id=rid AND account_id=a\n   UNION SELECT conversation_id FROM private.ai_task_reviews WHERE id=rid AND account_id=a) s;\n ELSIF r IN('private.work_taxonomy_need_skills','private.work_taxonomy_need_snapshots') THEN\n  RETURN EXISTS(SELECT 1 FROM private.work_taxonomy_need_bindings_v1 b\n   JOIN private.ai_task_reviews v ON v.id=b.source_review_id AND v.account_id=a\n   JOIN private.retention_holds h ON h.account_id=a AND h.conversation_id=v.conversation_id AND h.active\n   WHERE b.owner_account_id=a AND b.need_id=(t->>'need_id')::uuid AND b.need_revision=(t->>'need_revision')::integer);\n ELSIF r IN('private.work_taxonomy_worker_capabilities','private.worker_execution_mode_choices') THEN\n  RETURN EXISTS(SELECT 1 FROM private.taxonomy_confirmed_worker_modes_v1 m\n   JOIN private.worker_ai_reviews v ON v.id=m.source_review_id AND v.account_id=a\n   JOIN private.retention_holds h ON h.account_id=a AND h.conversation_id=v.conversation_id AND h.active\n   WHERE m.worker_account_id=a AND (r='private.worker_execution_mode_choices' OR m.category_id=(t->>'category_id')::uuid));\n END IF;\n RETURN cid IS NOT NULL AND EXISTS(SELECT 1 FROM private.retention_holds h WHERE h.account_id=a AND h.active AND h.conversation_id=cid);\nEND $function$\n",
+      "md5": "acb0d6bd7ac5d42203f19c4a39fb3d37",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.closure_taxonomy_patch_v1",
+      "signature": "private.closure_taxonomy_patch_v1(text, jsonb, uuid, uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.closure_taxonomy_patch_v1(r text, t jsonb, a uuid, g uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE p jsonb;h text;\nBEGIN\n IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(private.closure_taxonomy_inventory_v1()) x WHERE x->>'relation'=r)\n OR t IS NULL OR a IS NULL OR g IS NULL THEN RAISE EXCEPTION 'F01_PATCH_CONTEXT_INVALID';END IF;\n IF private.closure_taxonomy_held_v1(r,t,a) THEN RETURN NULL;END IF;\n h:=encode(extensions.digest(convert_to('AF-D22:F01:'||r||':'||coalesce(t->>'id',t->>'request_key',a::text),'UTF8'),'sha256'),'hex');\n IF r='private.work_taxonomy_review_outbox_v1' THEN\n  -- A retained replay tombstone has no plans, result copy, or usable lease.\n  p:=jsonb_build_object('plans','[]'::jsonb,'state','REVIEW_REQUIRED','binding_state','REVIEW_REQUIRED',\n   'lease_token',null,'lease_until',null,'error_code','CLOSURE_ERASED','binding_error_code','CLOSURE_ERASED',\n   'result',jsonb_build_object('erasedBy','AF-D22'),'binding_result',jsonb_build_object('erasedBy','AF-D22'));\n ELSIF r='private.work_taxonomy_review_batches_v1' THEN\n  p:=jsonb_build_object('plans','[]'::jsonb,'review_digest',h,'plans_digest',h,'result',jsonb_build_object('erasedBy','AF-D22'));\n ELSIF r='private.work_taxonomy_admissions_v1' THEN\n  p:=jsonb_build_object('plan','{}'::jsonb,'source_review_digest',h,'plan_digest',h);\n  IF t->'result'<>'null'::jsonb THEN p:=p||jsonb_build_object('result',jsonb_build_object('erasedBy','AF-D22'));END IF;\n ELSIF r='private.work_taxonomy_pending_reviews_v1' THEN\n  p:=jsonb_build_object('resolution_state','SUPERSEDED','classification_state','REVIEW_REQUIRED');\n ELSE RETURN jsonb_build_object('operation','DELETE','patch','{}'::jsonb);\n END IF;\n IF t@>p THEN RETURN NULL;END IF;\n RETURN jsonb_build_object('operation','UPDATE','patch',p);\nEND $function$\n",
+      "md5": "a9c19f2e02d833846e4554678fd927ea",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.closure_taxonomy_scope_v1",
+      "signature": "private.closure_taxonomy_scope_v1(text)",
+      "definition": "CREATE OR REPLACE FUNCTION private.closure_taxonomy_scope_v1(r text)\n RETURNS text\n LANGUAGE plpgsql\n IMMUTABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE c jsonb;\nBEGIN\n SELECT x INTO c FROM jsonb_array_elements(private.closure_taxonomy_inventory_v1()) x WHERE x->>'relation'=r;\n IF c IS NULL THEN RAISE EXCEPTION 'F01_RELATION_NOT_ADMITTED'; END IF;\n IF c->>'mode'='NEED' THEN\n  RETURN format('t.%I in(select id from public.needs where requester_account_id=$1 union select s.id from private.dev_phase1_20261014_needs_snapshot s where s.requester_account_id=$1 and not exists(select 1 from public.needs n where n.id=s.id))',c->>'ownerColumn');\n END IF;\n RETURN format('t.%I=$1',c->>'ownerColumn');\nEND $function$\n",
+      "md5": "31671394f62583024fb001de5ae7d900",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.closure_taxonomy_semantic_keys_v1",
+      "signature": "private.closure_taxonomy_semantic_keys_v1()",
+      "definition": "CREATE OR REPLACE FUNCTION private.closure_taxonomy_semantic_keys_v1()\n RETURNS text[]\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO 'pg_catalog'\nAS $function$ SELECT ARRAY['action','service','mode','reason','parentId','parentCategoryId','existingCategoryId','childLabel','categoryId','categoryIds','catalogVersion','status','profileId','needId','needRevision','services','items','path','rootLabel','label','canonicalKey','executionScope','sourceCategoryId','targetCategoryId','confirmed','active','verification','confidence','classificationState','proposedPath','sourceCanonicalLabel','targetCanonicalLabel','meaning','canonicalAction','canonicalObject','newRoot','handoff','required','shippingCountries','localExchange','city','countryCode']::text[]; $function$\n",
+      "md5": "8ef10c5900936b5dc89ae8f7784f55e8",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.closure_taxonomy_semantic_v1",
+      "signature": "private.closure_taxonomy_semantic_v1(jsonb)",
+      "definition": "CREATE OR REPLACE FUNCTION private.closure_taxonomy_semantic_v1(v jsonb)\n RETURNS jsonb\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE answer jsonb;k text;x jsonb;\nBEGIN\n IF jsonb_typeof(v)='array' THEN\n  SELECT coalesce(jsonb_agg(private.closure_taxonomy_semantic_v1(value) ORDER BY ord),'[]'::jsonb) INTO answer\n  FROM jsonb_array_elements(v) WITH ORDINALITY e(value,ord);RETURN answer;\n ELSIF jsonb_typeof(v)='object' THEN\n  SELECT coalesce(jsonb_object_agg(key,private.closure_taxonomy_semantic_v1(value)),'{}'::jsonb) INTO answer\n  FROM jsonb_each(v) WHERE key=ANY(private.closure_taxonomy_semantic_keys_v1());RETURN answer;\n END IF;\n RETURN v;\nEND $function$\n",
+      "md5": "15e409e5acd38131c220009eaa2e4866",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    }
+  ]
+}

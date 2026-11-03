@@ -1,0 +1,288 @@
+{
+  "unit": "USKOCI_DEV_READONLY_CHECKPOINT",
+  "format_version": 1,
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "source_sha": "8f9188c85b390cf6d91b29c05050d052a52ecb39",
+  "observed_at": "2026-11-01 12:20:01.895925+00",
+  "project_status": "ACTIVE_HEALTHY",
+  "postgres_platform_version": "17.6.1.165",
+  "migration_count": 314,
+  "last_migrations": [
+    {
+      "version": "20261023210000",
+      "name": "matching_work_areas_and_public_grants"
+    },
+    {
+      "version": "20261023220000",
+      "name": "universal_crown_taxonomy_and_hourly_pricing"
+    },
+    {
+      "version": "20261025000000"
+    },
+    {
+      "version": "20261026145706",
+      "name": "worker_ai_signed_work_areas"
+    },
+    {
+      "version": "20261026150106",
+      "name": "worker_ai_area_source_continuity"
+    },
+    {
+      "version": "20261026150745",
+      "name": "classification_hint_revision_fence"
+    }
+  ],
+  "edge_functions": [
+    {
+      "name": "uskoci-ai-interview",
+      "version": 151,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "7b7dd0f7007e1a01c223684cbe6fc6fa92c5bb49ef9b194bed1f847598181e28"
+    },
+    {
+      "name": "uskoci-location-search",
+      "version": 25,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "6edbe27708030ef3e20e7a43dd27fef9a2627a9d317b4af59d472f3b0433a8bd"
+    },
+    {
+      "name": "uskoci-publication-evaluate",
+      "version": 22,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "a73abe0ddb3502d8ad1b68f90e5e8da050b8c5721cdca9bc9e54b0f08b669e16"
+    },
+    {
+      "name": "uskoci-data-export-worker",
+      "version": 22,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "37c6e8d7acd5f705cd1a118bd4010bdf8647762b7fa628be2e669f9531fba679"
+    },
+    {
+      "name": "uskoci-data-export-download",
+      "version": 22,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "9a592d9bb329a7a26e0a854d53a2c799f712ae96ebc2c9949f3457b24f652e66"
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "version": 104,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "ee625930e3b6d5bd8bc31203eb232bbf159c7cfef86990c541eb337ad0374242"
+    },
+    {
+      "name": "uskoci-speech-session",
+      "version": 23,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "c9be2c2be11cca3e93e661f5af8edf2dfd13cc09fc262f85d2b5a1de958fc8e0"
+    },
+    {
+      "name": "uskoci-qa-classify",
+      "version": 21,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "8c16daa4f0e4e8f7df39270549bc68e61b26c973da9a96bbff37f2b15c34adcf"
+    },
+    {
+      "name": "uskoci-push-transport",
+      "version": 37,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "dcfc991c37c35c76cc125b720a1629aa3b849ccb30e4528d80e3b454c9f5bb34"
+    },
+    {
+      "name": "uskoci-media",
+      "version": 22,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "34e4a23149d30c4abbf606aa5b1fddf12fd370fbf3904b6a20eb29c7a446d1ac"
+    },
+    {
+      "name": "uskoci-account-closure-worker",
+      "version": 12,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "9f7373f9452ef85fb8c615bef64fc2a564aad32b39b9df80bad2152bd2c2ae11"
+    },
+    {
+      "name": "uskoci-taxonomy-postsave-worker",
+      "version": 6,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "36897a7d8c95ffbd30d9c86accf5db82db3650ebb5f12f524c069e339c7e91e6"
+    },
+    {
+      "name": "sbfenv",
+      "version": 4,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18"
+    },
+    {
+      "name": "uskoci-gemini-schema-smoke",
+      "version": 5,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72"
+    },
+    {
+      "name": "uskoci-gemini-provider-probe-dev",
+      "version": 6,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0"
+    }
+  ],
+  "boundary_results": {
+    "observed_at": "2026-11-01 12:20:01.895925+00",
+    "authenticated_needs_table_select": true,
+    "need_column_count": 42,
+    "authenticated_selectable_columns": 42,
+    "needs_rls_enabled": true,
+    "nonpublic_column_privileges": [
+      {
+        "column": "requester_account_id",
+        "authenticated_select": true
+      },
+      {
+        "column": "remaining_search_closed_by_account_id",
+        "authenticated_select": true
+      },
+      {
+        "column": "remaining_search_close_reason",
+        "authenticated_select": true
+      },
+      {
+        "column": "category_id",
+        "authenticated_select": true
+      }
+    ],
+    "retention_ai_source_ready": false,
+    "export_policy_bound": false,
+    "active_retention_policies": 0,
+    "active_privacy_documents": 0,
+    "r06_first_plan_jobs_present": false,
+    "r08_new_activation_core_present": false
+  },
+  "r08_existing_owner_fingerprints": [
+    {
+      "function_name": "rpc_submit_response",
+      "arguments": "p_need_id uuid, p_need_revision integer, p_worker_profile_id uuid, p_covered_slots integer, p_price_rsd integer, p_proposed_start_at timestamp with time zone, p_proposed_end_at timestamp with time zone, p_scope_note text, p_client_request_id text",
+      "definition_md5": "42cecbc9f0c7195f6d9edb6ccef45ca2"
+    },
+    {
+      "function_name": "rpc_select_response",
+      "arguments": "p_need_id uuid, p_need_revision integer, p_response_id uuid, p_response_version integer, p_content_hash text, p_client_request_id text",
+      "definition_md5": "2bd9a91b3f4b8179173c622c974270f9"
+    },
+    {
+      "function_name": "rpc_complete_worker_profile",
+      "arguments": "p_profile_id uuid",
+      "definition_md5": "ba85aa79219961646c387ab64156a073"
+    },
+    {
+      "function_name": "worker_need_fit_v1",
+      "arguments": "nid uuid, pid uuid, p_first_refusal boolean",
+      "definition_md5": "62c7c0a3889c2afd9b5951f6a394fe12"
+    },
+    {
+      "function_name": "rpc_save_worker_ai_review",
+      "arguments": "p_review_id uuid, p_displayed_digest text, p_client_request_id uuid",
+      "definition_md5": "06fd3e603d0448766f7678ac4cd78738"
+    },
+    {
+      "function_name": "rpc_prepare_worker_ai_review_taxonomy",
+      "arguments": "p_conversation_id uuid, p_expected_revision integer, p_activate boolean",
+      "definition_md5": "d8384414376ec427ba2f299610f8964e"
+    },
+    {
+      "function_name": "rpc_prepare_worker_ai_review_taxonomy_confirmed",
+      "arguments": "p_conversation_id uuid, p_expected_revision integer, p_activate boolean, p_selected_modes jsonb",
+      "definition_md5": "365e33ee8addd418537c713c815ab422"
+    }
+  ],
+  "r01_preflight_summary": {
+    "query_file": "supabase/proofs/privacy/r01_read_preflight.sql",
+    "captured_at": "2026-11-01T12:20:33.066501+00:00",
+    "transaction_read_only": "on",
+    "functions_expected": 21,
+    "functions_present": 21,
+    "need_relation": {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "anon=Dxtm/postgres",
+        "authenticated=arwDxtm/postgres",
+        "service_role=arwdDxtm/postgres"
+      ],
+      "rls": true,
+      "owner": "postgres",
+      "present": true,
+      "force_rls": false
+    },
+    "data_api_role_settings": [
+      {
+        "role": "authenticator",
+        "setting": "pgrst.db_pre_request=public.rpc_closure_api_guard"
+      }
+    ],
+    "data_api_database_role_settings": [
+      {
+        "role": "authenticator",
+        "setting": "pgrst.db_pre_request=public.rpc_closure_api_guard",
+        "database": "<all databases>"
+      }
+    ]
+  },
+  "security_advisory_summary": [
+    {
+      "name": "rls_enabled_no_policy",
+      "level": "INFO",
+      "count": 123,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+    },
+    {
+      "name": "function_search_path_mutable",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable"
+    },
+    {
+      "name": "extension_in_public",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public"
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "level": "WARN",
+      "count": 3,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable"
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "count": 196,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+    }
+  ],
+  "limitations": [
+    "Metadata-only and readiness-boolean inspection; no user/business rows were returned.",
+    "No migrations, privilege changes, configuration changes, provider calls, deployments or push sends.",
+    "No real Auth/PostgREST end-user, Android device or release proof.",
+    "R08 owner fingerprints match the candidate inputs, not an applied or accepted R08 patch.",
+    "Advisor counts require contextual review and are not confirmed exploitable vulnerability counts.",
+    "Strict R01 parity, F21 privacy closure and R10 remain open."
+  ]
+}

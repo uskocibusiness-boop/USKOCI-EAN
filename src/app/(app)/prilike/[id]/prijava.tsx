@@ -5,6 +5,7 @@ import type { Ishod, PodnesiPrijavuKomanda } from '../../../../data/ports';
 import { applicationRefusalGuidance, boundedApplicationSelectionRead, conclusiveApplicationRefusal } from '../../../../data/applicationSelectionClientService';
 import { applicationCommandJournal } from '../../../../data/applicationCommandJournal';
 import { applicationComposerDraftMemory } from '../../../../data/applicationComposerDraftMemory';
+import { ApplicationServiceOffer } from '../../../../ui/workerProfile/ApplicationServiceOffer';
 import { fixedApplicationPrice } from '../../../../data/needDetailPresentation';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
@@ -16,15 +17,17 @@ import { ApplicationComposerPresentation, ComposerUnavailable, type ApplicationD
 const NOT_SAVED_ON_DEVICE = 'Prijava nije sačuvana na telefonu. Oslobodi prostor na telefonu i pokušaj ponovo.';
 const NOT_RETIRED_ON_DEVICE = 'Stara prijava nije uklonjena sa telefona. Pokušaj ponovo; nova prijava još nije otvorena.';
 const JOURNAL_RECOVERY_REQUIRED = 'Prvo proveri da li je prethodna prijava poslata. Izaberi „Proveri da li je poslato“.';
-type Receipt = { prijavaId: string; verzija: number; hash: string };
+type Receipt = { prijavaId: string; verzija: number; hash: string; osnovaCene?: 'TOTAL' | 'HOURLY' };
 type Loaded = { need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; applications: MojaPrijavaProjekcija[]; receipt: Receipt | null };
-type Pending = { command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
-/** A price the task names is never typed: it follows the people this application brings (deep read 8.10). */
+type Pending = { applicationPriceBasis: 'TOTAL' | 'HOURLY'; command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
+/** A NEW offer follows the task's own term. Older unconfirmed journals are never rewritten:
+ * those exact commands bypass this draft normalizer and keep their original key/terms. */
 function withTaskPrice(draft: ApplicationDraft, need: PotrebaProjekcija): ApplicationDraft {
-  if (need.rezimCene !== 'MY_PRICE') return draft;
-  const people = draft.people;
+  const canonical = { ...draft, start: null, end: null };
+  if (need.rezimCene !== 'MY_PRICE') return canonical;
+  const people = canonical.people;
   const price = fixedApplicationPrice(need, /^\d+$/.test(people) ? Number(people) : NaN);
-  return { ...draft, people, price: price === null ? '' : String(price) };
+  return { ...canonical, people, price: price === null ? '' : String(price) };
 }
 export default function Prijava() {
   const params = useLocalSearchParams<{ id?: string }>();
@@ -37,11 +40,9 @@ export default function Prijava() {
   // PKG-006: the same intent also survives remount/cold restore through the durable
   // per-account/Need command journal; only its own server outcome retires it.
   const session = useMemo(() => ({ pending: null as Pending | null, draft: null as ApplicationDraft | null, navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false,
-    journaling: false, journalRecovery: false, resetting: false, notice: null as string | null,
-    profileSkillNotice: null as string | null }), [id, izvor, user?.id, accountRevision]);
+    journaling: false, journalRecovery: false, resetting: false, notice: null as string | null }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [validation, setValidation] = useState<string | null>(null);
-  const [addCategoryToProfile, setAddCategoryToProfile] = useState(true);
   useFocusEffect(useCallback(() => {
     session.focused = true; session.focusToken++; render(v => v + 1);
     return () => { session.focused = false; };
@@ -76,7 +77,8 @@ export default function Prijava() {
             session.notice = 'Sačuvana prijava na telefonu se nije mogla pročitati, pa je uklonjena. Proveri svoje prijave.';
           } else if (stored.state === 'PRESENT' && !session.pending) {
             const command = stored.record.command;
-            session.pending = { command, need, opportunity, profile, result: null, inFlight: false, reconciled: false };
+            // The journal owns only the application, not consent for an optional profile change.
+            session.pending = { applicationPriceBasis: stored.record.applicationPriceBasis ?? 'TOTAL', command, need, opportunity, profile, result: null, inFlight: false, reconciled: false };
             session.draft = { price: String(command.cenaRsd), people: String(command.pokrivenaMesta), note: command.napomena ?? '',
               start: command.predlozeniPocetak, end: command.predlozeniKraj };
             if (draftScope) applicationComposerDraftMemory.clear(draftScope);
@@ -134,11 +136,13 @@ export default function Prijava() {
       if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osveži zadatak.'); return; }
       const command: PodnesiPrijavuKomanda = Object.freeze({ clientRequestId: noviZahtevId('prijava'), potrebaId: data.need.id, potrebaRevizija: data.need.revizija,
         radnikProfilId: data.profile.id, pokrivenaMesta: Number(draft.people), cenaRsd: Number(draft.price),
-        predlozeniPocetak: draft.start, predlozeniKraj: draft.end, napomena: draft.note.trim() || null });
+        // New applications never invent a second term; old saved commands keep their exact original fields.
+        predlozeniPocetak: null, predlozeniKraj: null, napomena: draft.note.trim() || null });
       // PKG-006: the identity is durable before any I/O. Without it nothing is sent, and the
       // composer stays editable for a plain retry (no request ever left this device).
       session.journaling = true;
-      try { await applicationCommandJournal.save({ version: 1, accountId, needId: data.need.id, command }, current); }
+      const applicationPriceBasis = data.need.rezimCene === 'MY_PRICE' && data.need.osnovaCene === 'HOURLY' ? 'HOURLY' : 'TOTAL';
+      try { await applicationCommandJournal.save({ version: 1, accountId, needId: data.need.id, command, applicationPriceBasis }, current); }
       catch (error) {
         if (current()) {
           // Another retained composer or an unread/corrupt journal is a recovery case, not proof of a full disk.
@@ -153,17 +157,27 @@ export default function Prijava() {
       // From here the exact command, rather than editable fields, owns recovery.
       if (draftScope) applicationComposerDraftMemory.clear(draftScope);
       if (!current() || session.pending) return;
-      session.pending = { need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false, command };
+      session.pending = { applicationPriceBasis, need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false, command };
     }
     void editor.save(async () => {
       setValidation(null);
       const pending = session.pending!;
       pending.inFlight = true; pending.reconciled = false;
       let result: Ishod<Receipt>;
-      try { result = await izvor.podnesiPrijavu(pending.command); }
+      try {
+        const currentPriceBasis = data.need.rezimCene === 'MY_PRICE' && data.need.osnovaCene === 'HOURLY' ? 'HOURLY' : 'TOTAL';
+        // An old journal may never have reached the server. The same revision must not
+        // reinterpret its frozen total as an hourly rate on its first committed write.
+        result = pending.command.potrebaRevizija === data.need.revizija && pending.applicationPriceBasis !== currentPriceBasis
+          ? { ok: false, kod: 'APPLICATION_PRICE_BASIS_REVIEW_REQUIRED', poruka: 'Sačuvana prijava ima drugačiji način obračuna cene. Proveri svoje postojeće prijave.' }
+          : await izvor.podnesiPrijavu(pending.command);
+      }
       // The notice names the button under it, "Proveri da li je poslato" (r6: it said "Proveri stanje").
       catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ne znamo da li je prijava stigla. Izaberi „Proveri da li je poslato“.' }; }
       finally { pending.inFlight = false; }
+      if (result.ok && (result.podatak.osnovaCene ?? 'TOTAL') !== pending.applicationPriceBasis) {
+        result = { ok: false, kod: 'APPLICATION_SELECTION_INVALID_RECEIPT', poruka: 'Osnovica cene nije potvrđena. Proveri da li je prijava poslata.' };
+      }
       pending.result = result;
       // Only an exact refusal in the original focus settles the route's second fence.
       // Success belongs to the editor receipt; a late success/refusal still needs fresh readback.
@@ -171,17 +185,6 @@ export default function Prijava() {
       // Only this command's own authoritative receipt retires the durable identity.
       if (result.ok) {
         await applicationCommandJournal.clear(accountId, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
-        const taskCategory = pending.need.detalji?.kategorija ?? pending.opportunity.detalji?.kategorija ?? null;
-        const profileSkills = pending.profile.vestine ?? [];
-        const hasSkill = taskCategory ? profileSkills.some(v => v.trim().toLowerCase() === taskCategory.trim().toLowerCase()) : true;
-        if (addCategoryToProfile && taskCategory && !hasSkill) {
-          try {
-            const profileResult = await izvor.azurirajRadnikProfil({ vestine: [...profileSkills, taskCategory] });
-            if (!profileResult.ok && currentAccount()) session.profileSkillNotice = `Prijava je poslata, ali veština „${taskCategory}“ nije dodata u radni profil. Proveri i dodaj je tamo.`;
-          } catch {
-            if (currentAccount()) session.profileSkillNotice = `Prijava je poslata, ali veština „${taskCategory}“ nije dodata u radni profil. Proveri i dodaj je tamo.`;
-          }
-        }
       }
       if (session.focused && currentAccount()) render(v => v + 1);
       return result.ok ? { ok: true, podatak: { ...data, receipt: result.podatak } } : result;
@@ -214,7 +217,11 @@ export default function Prijava() {
       if (session.focused && currentAccount()) render(v => v + 1);
     }
   } : undefined;
-  const pendingHelp = pending && !data.receipt && (!refusal || guidance) ? {
+  const priceBasisReview = pending?.result?.ok === false && pending.result.kod === 'APPLICATION_PRICE_BASIS_REVIEW_REQUIRED';
+  const pendingHelp = priceBasisReview ? {
+    lines: ['Sačuvana prijava ostaje na telefonu dok proveravaš postojeće prijave.'],
+    actions: [{ label: 'Otvori moje prijave', onPress: () => { if (current()) router.push('/moje-prijave'); } }],
+  } : pending && !data.receipt && (!refusal || guidance) ? {
     lines: guidance?.messages.length ? guidance.messages : ['Tvoja prijava ostaje sačuvana dok proveravaš radni profil.'],
     actions: [
       ...((!refusal || guidance?.profile) ? [{ label: 'Dopuni radni profil', onPress: () => { if (current()) router.push('/profil/radnik'); } }] : []),
@@ -223,18 +230,7 @@ export default function Prijava() {
   } : null;
   const currentNeed = pending?.need ?? data.need;
   const currentOpp = pending?.opportunity ?? data.opportunity;
-  const currentProfile = pending?.profile ?? data.profile;
-  const taskCategory = currentNeed.detalji?.kategorija ?? currentOpp.detalji?.kategorija ?? null;
-  const profileSkills = currentProfile.vestine ?? [];
-  const hasCategorySkill = taskCategory
-    ? profileSkills.some(v => v.trim().toLowerCase() === taskCategory.trim().toLowerCase())
-    : true;
-  const skillOptIn = taskCategory && !hasCategorySkill ? {
-    category: taskCategory,
-    enabled: addCategoryToProfile,
-    onToggle: (enabled: boolean) => { setAddCategoryToProfile(enabled); render(v => v + 1); },
-  } : null;
-  return <ApplicationComposerPresentation need={currentNeed} opportunity={currentOpp}
+  return <ApplicationComposerPresentation applicationPriceBasis={pending?.applicationPriceBasis} need={currentNeed} opportunity={currentOpp}
     draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending && !session.resetting && !session.journaling && !session.journalRecovery && !session.reading) {
       session.draft = withTaskPrice(draft, data.need);
       if (draftScope) applicationComposerDraftMemory.remember(draftScope, session.draft);
@@ -243,7 +239,7 @@ export default function Prijava() {
     busy={editor.busy || !!pending?.inFlight || session.resetting || session.journaling} pending={!!pending} uncertain={editor.uncertain || session.journalRecovery || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
     // A conclusive refusal carries its outcome beside the new-offer action immediately.
     // Other failures keep their error and exact-command retry; a collection read never proves refusal.
-    error={validation ?? session.profileSkillNotice ?? session.notice ?? (refusal && !editor.uncertain
+    error={validation ?? session.notice ?? (refusal && !editor.uncertain
       ? `Ova prijava nije primljena. ${refusal.poruka}`
       : editor.error ?? (pending && !data.receipt && !editor.uncertain
         ? 'Ne znamo da li je prijava stigla. Pošalji istu prijavu još jednom — ako je već stigla, neće biti poslata dvaput.'
@@ -258,7 +254,10 @@ export default function Prijava() {
       // header's arrow, so the way on is not "Nazad na zadatak" a second time.
       : data.opportunity.primaNovePrijave !== true ? { reason: 'Zadatak više ne prima prijave.', actionLabel: 'Pogledaj druge zadatke',
         onAction: () => { if (current() && !session.navigated) { session.navigated = true; router.replace('/zadaci'); } } } : null}
-    skillOptIn={skillOptIn}
+    afterConfirmation={data.receipt && user?.id ? <ApplicationServiceOffer
+      key={`${user.id}:${accountRevision}:${data.receipt.prijavaId}`}
+      input={{ accountId: user.id, accountRevision, applicationId: data.receipt.prijavaId, needId: data.need.id, profileId: data.profile.id }}
+      openProfile={() => { if (current()) router.push('/profil/radnik'); }} /> : null}
     submit={submit} back={back} refresh={refresh} reset={reset} pendingHelp={pendingHelp}
     openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true;
       router.replace({ pathname: '/moje-prijave', params: { prijavaId: data.receipt.prijavaId, nova: '1' } }); }} />;

@@ -1,5 +1,8 @@
 # USKOČI ČISTO — objedinjeni status i nastavak MASTER plana
 
+> **VAŽNO — ZASTAREO IZVRŠNI STATUS (26–27.10.2026).** Ovaj dokument i dalje čuva stare nalaze i njihov izvorni kontekst, ali NIJE drugi master ni trenutna komanda za posao. Posle 30.10. samo [CODEX_PLAN_RADA.md](docs/plan/CODEX_PLAN_RADA.md) (§11.2a + §12.6) vodi stvarni SOURCE/CI/DEV/NATIVE status; [Product/UX master 29.10](docs/product/USKOCI_PRODUCT_UX_MASTER.md) određuje usvojena funkcionalna/ekranska pravila. Aktivna radna grana je `work/rev14-review-f17`, ne ovde pomenuta `feature/uskoci-cisto`. Poslednji provereni pre-documentation Full CI 41130520059 i R01 41130520128 imaju FAIL. Ranije opisane „sledeće faze”, lokalni PASS i DEV stanje čitati kao istoriju i ne ponavljati završenu analizu bez konkretne nove razlike.
+
+
 Ažurirano: 27.10.2026; najnoviji read-only DEV SQL dokaz prikupljen 27.10. u 04:43–04:46 UTC.
 Repo: uskocibusiness-boop/USKOCI-EAN. Jedina grana rada: feature/uskoci-cisto.
 Ovaj dokument zamenjuje raniji preoptimističan zaključak o „osam zatvorenih celina”.

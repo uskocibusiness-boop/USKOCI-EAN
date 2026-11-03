@@ -74,11 +74,13 @@ describe('focused hook account incarnation', () => {
       else old.reject(new Error('old offline failure'));
     });
     expect(snapshot()).toMatchObject({ data: null, error: false });
+    expect(snapshot().errorReason).toBeUndefined();
     await act(async () => tree.update(<Probe load={load} />));
     expect(load).toHaveBeenCalledTimes(2);
     expect(mockRemove).toHaveBeenCalledTimes(1);
     await act(async () => fresh.resolve(['fresh private data']));
     expect(snapshot()).toMatchObject({ data: ['fresh private data'], error: false, loading: false });
+    expect(snapshot().errorReason).toBeUndefined();
   });
 
   it('retains its current read state and focus subscription during same-account token refresh', async () => {

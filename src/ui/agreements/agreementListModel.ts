@@ -78,12 +78,12 @@ export type AgreementAttention = { kind: 'change' | 'confirm' | 'rate' | 'check-
  * and stands under "Čeka tebe".
  */
 export function agreementAttention(item: DogovorProjekcija): AgreementAttention | null {
-  if (item.izmenaCeka && !item.izmenaCeka.mojPredlog) return { kind: 'change', title: 'Odgovori na predlog izmene', line: 'Prihvaćeni uslovi važe dok ne odgovoriš.' };
-  if (!item.izmenaCeka && awaitsMyConfirmation(item)) return { kind: 'confirm', title: 'Potvrdi završetak', line: 'Druga strana je označila da je zadatak završen.' };
+  if (item.izmenaCeka && !item.izmenaCeka.mojPredlog) return { kind: 'change', title: 'Odgovorite na predlog izmene', line: 'Prihvaćeni uslovi važe dok ne odgovorite.' };
+  if (!item.izmenaCeka && awaitsMyConfirmation(item)) return { kind: 'confirm', title: 'Potvrdite završetak', line: 'Druga strana je označila da je zadatak završen.' };
   // The only route to rating a finished collaboration was: open the agreement, find the action. The card that is already in
   // front of the person says it, and with `onRate` goes there in one tap.
-  if (awaitsMyRating(item)) return { kind: 'rate', title: 'Oceni saradnju', line: 'Čeka tvoju ocenu' };
-  if (ratingUnknown(item)) return { kind: 'check-rating', title: 'Proveri ocenu', line: 'Podatak o tvojoj oceni nije učitan. Otvori Dogovor.' };
+  if (awaitsMyRating(item)) return { kind: 'rate', title: 'Ocenite saradnju', line: 'Čeka Vašu ocenu' };
+  if (ratingUnknown(item)) return { kind: 'check-rating', title: 'Proverite ocenu', line: 'Podatak o Vašoj oceni nije učitan. Otvorite Dogovor.' };
   return null;
 }
 
@@ -130,7 +130,7 @@ export type AgreementGroupKey = 'waiting' | 'past' | 'today' | 'tomorrow' | 'wee
 export const AGREEMENT_GROUP_ORDER: readonly AgreementGroupKey[] = ['waiting', 'past', 'today', 'tomorrow', 'week', 'later', 'undated'];
 export const AGREEMENT_GROUP_TITLES: Readonly<Record<AgreementGroupKey, string>> = {
   // The same words as the note of a Dogovor with no term ("Termin još nije dogovoren") and the card's own line: one name for one state (J2).
-  waiting: 'Čeka tebe', past: 'Ranije', today: 'Danas', tomorrow: 'Sutra', week: 'Ove nedelje', later: 'Kasnije', undated: 'Termin još nije dogovoren',
+  waiting: 'Čeka Vas', past: 'Ranije', today: 'Danas', tomorrow: 'Sutra', week: 'Ove nedelje', later: 'Kasnije', undated: 'Termin još nije dogovoren',
 };
 export type AgreementGroup = { key: AgreementGroupKey; title: string; items: DogovorProjekcija[] };
 
@@ -251,7 +251,7 @@ export function cancellationDetailsOf(cancellation: AgreementCancellation | null
   if (!cancellation) return null;
   const named = otherName?.trim();
   const other = named && named !== 'Druga strana' ? named : 'Druga strana';
-  const by = cancellation.byMe === true ? 'Ti' : cancellation.byMe === false ? other : '';
+  const by = cancellation.byMe === true ? 'Vi' : cancellation.byMe === false ? other : '';
   const reason = cancellation.reasonState === 'KEPT' ? cancellation.reason ?? '' : cancellation.reasonState === 'REMOVED' ? REASON_ERASED : REASON_NEVER_SAVED;
   return { at: cancellation.cancelledAt, by, reason };
 }

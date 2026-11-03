@@ -35,14 +35,14 @@ const PASSWORD = 'tajna-lozinka-123';
 const SENTINEL = 'PROVIDER_TEXT_SENTINEL https://private.example/token?secret=1';
 const signIn = () => authClientService.signInWithPassword({ email: EMAIL, password: PASSWORD });
 
-/** The six messages, pinned. The first, fifth and sixth are the messages the app already had; they must not move. */
+/** The six messages, pinned. They preserve six distinct failure classes without exposing provider details. */
 const COPY: Record<SignInFailureClass, string> = {
-  BAD_CREDENTIALS: 'Prijava nije uspela. Proveri email i lozinku i pokušaj ponovo.',
-  CONNECTION: 'Ne možemo da se povežemo, pa prijava nije uspela. Proveri vezu i pokušaj ponovo.',
-  EMAIL_NOT_CONFIRMED: 'Email još nije potvrđen. Otvori poruku za potvrdu (proveri i neželjenu poštu), pa se prijavi ponovo.',
-  RESTRICTED_ACCOUNT: 'Pristup ovom nalogu je ograničen, pa prijava trenutno nije moguća. Pokušaj ponovo kada se ograničenje ukloni.',
-  RATE_LIMITED: 'Previše pokušaja. Sačekaj kratko pa pokušaj ponovo.',
-  UNAVAILABLE: 'Prijava trenutno nije dostupna. Pokušaj ponovo.',
+  BAD_CREDENTIALS: 'Prijava nije uspela. Proverite email i lozinku i pokušajte ponovo.',
+  CONNECTION: 'Ne možemo da se povežemo, pa prijava nije uspela. Proverite vezu i pokušajte ponovo.',
+  EMAIL_NOT_CONFIRMED: 'Email još nije potvrđen. Otvorite poruku za potvrdu (proverite i neželjenu poštu), pa se prijavite ponovo.',
+  RESTRICTED_ACCOUNT: 'Pristup ovom nalogu je ograničen, pa prijava trenutno nije moguća. Pokušajte ponovo kada se ograničenje ukloni.',
+  RATE_LIMITED: 'Previše pokušaja. Sačekajte kratko pa pokušajte ponovo.',
+  UNAVAILABLE: 'Prijava trenutno nije dostupna. Pokušajte ponovo.',
 };
 const CLASSES = Object.keys(COPY) as SignInFailureClass[];
 
@@ -70,16 +70,16 @@ describe('the six sign-in messages', () => {
   };
   /** The one thing the person can do, and the screen already offers it: retry, check the connection, confirm the email, wait. */
   const RECOVERY: Record<SignInFailureClass, RegExp> = {
-    BAD_CREDENTIALS: /Proveri email i lozinku i pokušaj ponovo\.$/, CONNECTION: /Proveri vezu i pokušaj ponovo\.$/,
-    EMAIL_NOT_CONFIRMED: /Otvori poruku za potvrdu .*pa se prijavi ponovo\.$/, RESTRICTED_ACCOUNT: /Pokušaj ponovo kada se ograničenje ukloni\.$/,
-    RATE_LIMITED: /Sačekaj kratko pa pokušaj ponovo\.$/, UNAVAILABLE: /Pokušaj ponovo\.$/,
+    BAD_CREDENTIALS: /Proverite email i lozinku i pokušajte ponovo\.$/, CONNECTION: /Proverite vezu i pokušajte ponovo\.$/,
+    EMAIL_NOT_CONFIRMED: /Otvorite poruku za potvrdu .*pa se prijavite ponovo\.$/, RESTRICTED_ACCOUNT: /Pokušajte ponovo kada se ograničenje ukloni\.$/,
+    RATE_LIMITED: /Sačekajte kratko pa pokušajte ponovo\.$/, UNAVAILABLE: /Pokušajte ponovo\.$/,
   };
-  it.each(CLASSES)('%s names what happened, carries one recovery action and speaks plain Serbian in the "ti" voice', failureClass => {
+  it.each(CLASSES)('%s names what happened, carries one recovery action and speaks plain Serbian in the formal "Vi" voice', failureClass => {
     const message = COPY[failureClass];
     expect(message).toMatch(WHAT_HAPPENED[failureClass]);
     expect(message).toMatch(RECOVERY[failureClass]);
     expect(message).not.toMatch(/server/i);
-    expect(message).not.toMatch(/\b(si|sam|ste)\b/i);
+    expect(message).not.toMatch(/\b(proveri|pokušaj|sačekaj|otvori|prijavi)\b/i);
     // Nothing of the provider's vocabulary, codes or numbers reaches a person.
     expect(message).not.toMatch(/invalid|credentials|confirmed|banned|too many|rate limit|timeout|timed out|request|supabase|gotrue|token|auth\b/i);
     expect(message).not.toMatch(/\d/);
@@ -193,14 +193,14 @@ describe('the service turns every failed sign-in into the typed, safe error', ()
 });
 
 describe('every other Auth operation keeps its copy exactly (sign-up, resend and phone are outside this slice)', () => {
-  const UNAVAILABLE = 'Prijava trenutno nije dostupna. Pokušaj ponovo.';
-  const RATE = 'Previše pokušaja. Sačekaj kratko pa pokušaj ponovo.';
+  const UNAVAILABLE = 'Prijava trenutno nije dostupna. Pokušajte ponovo.';
+  const RATE = 'Previše pokušaja. Sačekajte kratko pa pokušajte ponovo.';
   const operations = [
     ['SIGN_UP', 'signUp', () => authClientService.signUp({ email: EMAIL, password: PASSWORD, firstName: 'Ana', lastName: 'Ivić', city: 'Novi Sad' }),
-      'Registracija trenutno nije uspela. Proveri podatke i pokušaj ponovo.'],
-    ['SIGNUP_RESEND', 'resend', () => authClientService.resendSignupConfirmation(EMAIL), 'Novu potvrdu trenutno nije moguće zatražiti. Pokušaj ponovo.'],
-    ['PHONE_SEND', 'signInWithOtp', () => authClientService.sendPhoneOtp({ phone: '+381601234567' }), 'Kod trenutno nije moguće poslati. Proveri broj i pokušaj ponovo.'],
-    ['PHONE_VERIFY', 'verifyOtp', () => authClientService.verifyPhoneOtp({ phone: '+381601234567', token: '012345' }), 'Kod nije potvrđen. Proveri kod i pokušaj ponovo.'],
+      'Registracija trenutno nije uspela. Proverite podatke i pokušajte ponovo.'],
+    ['SIGNUP_RESEND', 'resend', () => authClientService.resendSignupConfirmation(EMAIL), 'Novu potvrdu trenutno nije moguće zatražiti. Pokušajte ponovo.'],
+    ['PHONE_SEND', 'signInWithOtp', () => authClientService.sendPhoneOtp({ phone: '+381601234567' }), 'Kod trenutno nije moguće poslati. Proverite broj i pokušajte ponovo.'],
+    ['PHONE_VERIFY', 'verifyOtp', () => authClientService.verifyPhoneOtp({ phone: '+381601234567', token: '012345' }), 'Kod nije potvrđen. Proverite kod i pokušajte ponovo.'],
   ] as const;
   const signals: [string, unknown, 'DEFAULT' | 'RATE' | 'UNAVAILABLE' | 'BANNED'][] = [
     ['no answer at all (status 0)', new AuthRetryableFetchError(SENTINEL, 0), 'DEFAULT'],
@@ -249,7 +249,7 @@ describe('every other Auth operation keeps its copy exactly (sign-up, resend and
     await expect(authClientService.resendSignupConfirmation(EMAIL)).rejects.toThrow(new Error('Potvrda registracije je namenjena neprijavljenom nalogu.'));
     await expect(authClientService.requestPasswordRecovery(EMAIL)).rejects.toMatchObject({ code: 'SIGNED_IN' });
     mockCurrent = { user: null, accountRevision: 0 };
-    await expect(authClientService.resendSignupConfirmation('not an email')).rejects.toThrow(new Error('Unesi ispravnu email adresu.'));
+    await expect(authClientService.resendSignupConfirmation('not an email')).rejects.toThrow(new Error('Unesite ispravnu email adresu.'));
     delete process.env.EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL;
     await expect(authClientService.requestPasswordRecovery(EMAIL)).rejects.toMatchObject({
       code: 'UNCONFIGURED', message: 'Oporavak lozinke još nije podešen za ovu verziju aplikacije.',

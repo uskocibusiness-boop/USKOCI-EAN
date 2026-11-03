@@ -14,7 +14,7 @@ describe('a task held for a manual check', () => {
   it('says so while nobody is on duty, and names the way that works', () => {
     const copy = manualCheckCopy();
     expect(copy).toBe(manualCheckCopy(false));
-    expect(copy).toBe('Zadatak zahteva ručnu proveru i još nije objavljen. Podrška još nema dežurnog operatera, pa je najbrže da ga izmeniš i ponovo pošalješ.');
+    expect(copy).toBe('Zadatak zahteva ručnu proveru i još nije objavljen. Podrška još nema dežurnog operatera, pa je najbrže da ga izmenite i ponovo pošaljete.');
   });
 
   it('stops saying nobody is on duty the day somebody is, and keeps the fact', () => {

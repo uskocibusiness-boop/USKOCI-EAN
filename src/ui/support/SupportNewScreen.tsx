@@ -5,6 +5,7 @@ import type { DogovorProjekcija } from '../../contracts/projections';
 import { agreementClientService } from '../../data/agreementClientService';
 import type { SupportPayloads, SupportReference, SupportTopic } from '../../data/supportCaseTypes';
 import { positiveInteger, uuid } from '../../data/serverReceipt';
+import { sesijaSada } from '../../store/sesija';
 import { ProductSheet } from '../product/ProductSheet';
 import { SettingsAction, SettingsGroup, SettingsRow, SettingsText as T } from '../settings/SettingsPresentation';
 import { useConfirmSheet } from '../system/ConfirmSheet';
@@ -18,6 +19,7 @@ import type { SupportPreset } from './bugReportPreset';
 import { SupportRecoveryPanel } from './SupportRecoveryPanel';
 import { supportMessageShown, supportMessageTone } from './supportCopy';
 import { useSupportController } from './useSupportController';
+import { clearSupportNewDraft, readSupportNewDraft, rememberSupportNewDraft, supportNewDraftScope } from './supportNewDraft';
 
 type CreateTopic = SupportPayloads['CREATE']['topic'];
 const topics: CreateTopic[] = ['TECHNICAL', 'COLLABORATION', 'NO_SHOW', 'SERVICE_COMPLAINT', 'CONTENT_NOTICE', 'PRIVACY_RIGHTS', 'OTHER'];
@@ -44,8 +46,8 @@ export function SupportNewScreen({ reference, preset, initialTopic }: { referenc
 
 /**
  * Novi zahtev (round 5, owner step 11b): a topic chosen like a radio, the context it came from as an attachment, the
- * words, and the send pinned in the footer with the reason it is grey. The words live only in memory, so Back with typed
- * words asks first. Presentation over the controller: every command, fence and payload is unchanged.
+ * words, and the send pinned in the footer with the reason it is grey. The unsent words live in account/context-bound RAM
+ * across ordinary blur/background, while intentional Back asks before discarding. The service owns submitted journals.
  */
 export function SupportNewView({ model, reference, preset, initialTopic, readAgreements = () => agreementClientService.mojiDogovori({ includeRatings: false }) }: {
   model: ReturnType<typeof useSupportController>; reference: SupportReference | null | 'INVALID';
@@ -54,6 +56,8 @@ export function SupportNewView({ model, reference, preset, initialTopic, readAgr
   /** Where the person's own Dogovori come from (the gallery hands in fixtures). */ readAgreements?: ReadAgreements;
 }) {
   const { state, navigate } = model;
+  const draftScope = supportNewDraftScope(model.accountId, model.accountRevision, reference, preset, initialTopic);
+  useEffect(() => { if (state.receipt?.kind === 'CREATE') clearSupportNewDraft(draftScope); }, [draftScope, state.receipt]);
   const back = () => navigate(() => router.canGoBack() ? router.back() : router.replace('/podrska'));
   const busy = state.phase === 'LOADING' || state.phase === 'SENDING';
   if (reference === 'INVALID') return <SupportFrame title="Novi zahtev" onBack={back}>
@@ -81,7 +85,7 @@ export function SupportNewView({ model, reference, preset, initialTopic, readAgr
   </SupportFrame>;
   if (!model.focused) return <SupportFrame title="Novi zahtev" onBack={back}><SupportLoading /></SupportFrame>;
   return <NewContents key={`${model.accountId}:${model.accountRevision}:${model.incarnationId}:${reference ? `${reference.kind}:${reference.id}:${reference.revision}` : 'NONE'}:${initialTopic ?? ''}`}
-    model={model} initialReference={reference} initialTopic={initialTopic} preset={preset} readAgreements={readAgreements} back={back} />;
+    model={model} initialReference={reference} initialTopic={initialTopic} preset={preset} readAgreements={readAgreements} back={back} draftScope={draftScope} />;
 }
 
 function Attachment({ art, label, last }: { art: FactArtKind; label: string; last: boolean }) {
@@ -89,21 +93,28 @@ function Attachment({ art, label, last }: { art: FactArtKind; label: string; las
     {last ? null : <View pointerEvents="none" style={s.rule} />}</View>;
 }
 
-function NewContents({ model, initialReference, initialTopic, preset, readAgreements, back }: {
-  model: ReturnType<typeof useSupportController>; initialReference: SupportReference | null; initialTopic?: 'NO_SHOW'; preset?: SupportPreset; readAgreements: ReadAgreements; back: () => void;
+function NewContents({ model, initialReference, initialTopic, preset, readAgreements, back, draftScope }: {
+  model: ReturnType<typeof useSupportController>; initialReference: SupportReference | null; initialTopic?: 'NO_SHOW'; preset?: SupportPreset; readAgreements: ReadAgreements; back: () => void; draftScope: string;
 }) {
   const { state, current: parentCurrent, controller, navigate } = model;
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const current = () => alive.current && parentCurrent();
-  const [topic, setTopic] = useState<CreateTopic>(initialReference?.kind === 'TASK_REVIEW' ? 'PUBLICATION_REVIEW'
-    : initialReference?.kind === 'AGREEMENT' ? initialTopic ?? 'COLLABORATION' : 'TECHNICAL');
+  const [remembered] = useState(() => readSupportNewDraft(draftScope));
+  // A context selected from a list must be chosen again after reload: retain words, not an unchecked old Agreement revision.
+  useEffect(() => () => {
+    const now = sesijaSada();
+    if (now.user?.id !== model.accountId || now.accountRevision !== model.accountRevision) clearSupportNewDraft(draftScope);
+  }, [draftScope, model.accountId, model.accountRevision]);
+  const [topic, setTopic] = useState<CreateTopic>(remembered?.topic ?? (initialReference?.kind === 'TASK_REVIEW' ? 'PUBLICATION_REVIEW'
+    : initialReference?.kind === 'AGREEMENT' ? initialTopic ?? 'COLLABORATION' : 'TECHNICAL'));
   const [topicsExpanded, setTopicsExpanded] = useState(false);
   const [context, setContext] = useState<SupportReference | null>(initialReference);
   const [selectedEvidence, setSelectedEvidence] = useState<SupportReference | null>(
     initialReference && ['AGREEMENT_MESSAGE', 'GROUP_MESSAGE'].includes(initialReference.kind) ? initialReference : null);
   const [contextTitle, setContextTitle] = useState<string | null>(null);
-  const [title, setTitle] = useState(preset?.title ?? ''), [body, setBody] = useState(preset?.body ?? ''), [desired, setDesired] = useState('');
+  const [title, setTitle] = useState(remembered?.title ?? preset?.title ?? ''),
+    [body, setBody] = useState(remembered?.body ?? preset?.body ?? ''), [desired, setDesired] = useState(remembered?.desired ?? '');
   // What the person has added to the words they were given: nothing of the preset is a report until they have written under it.
   const written = preset ? body.trim() !== preset.body.trim() : !!body.trim();
   const [choices, setChoices] = useState<DogovorProjekcija[] | null>(null), [choosing, setChoosing] = useState(false), [choiceError, setChoiceError] = useState('');
@@ -132,6 +143,13 @@ function NewContents({ model, initialReference, initialTopic, preset, readAgreem
           : lacking ?? (choosing ? 'Učitavamo tvoje Dogovore…' : null);
   // Words the screen wrote itself are not the person's: leaving with only those asks nothing.
   const dirty = (title !== (preset?.title ?? '') && !!title) || (body !== (preset?.body ?? '') && !!body) || !!desired;
+  useEffect(() => {
+    if (!current()) return;
+    // A durable send/UNKNOWN is reconciled by its journal; no text can become a fresh command after a restart.
+    if (state.pending || state.phase === 'SENDING') { clearSupportNewDraft(draftScope); return; }
+    if (dirty) rememberSupportNewDraft(draftScope, { topic, title, body, desired });
+    else clearSupportNewDraft(draftScope);
+  }, [current, draftScope, dirty, state.pending, state.phase, topic, title, body, desired]);
   // Leaving with typed words asks first, in every state that keeps them on screen. Not while a send is running or
   // unconfirmed: those words may already have reached support, so "neće biti sačuvan" would not be true.
   const guarded = dirty && !state.pending && state.phase !== 'SENDING';
@@ -149,9 +167,10 @@ function NewContents({ model, initialReference, initialTopic, preset, readAgreem
   // The words exist only in memory: leaving with some asks first. An unsent form with nothing typed leaves at once.
   const discard = (go: () => void) => {
     if (!current()) return;
+    const discardAndLeave = () => { clearSupportNewDraft(draftScope); go(); };
     if (guarded) confirm.ask({ title: 'Odbaciti zahtev?', message: 'Uneti tekst neće biti sačuvan.',
-      confirmLabel: 'Odbaci', cancelLabel: 'Nastavi pisanje', tone: 'danger', onConfirm: go });
-    else go();
+      confirmLabel: 'Odbaci', cancelLabel: 'Nastavi pisanje', tone: 'danger', onConfirm: discardAndLeave });
+    else discardAndLeave();
   };
   // The question may outlive the render that asked it (a reload that settles while it is open), so its answer leaves
   // through the latest render's exits, not the ones it was asked with, which would be fenced out (round 5c review).

@@ -142,3 +142,12 @@ describe('R18 storage journal boundary', () => {
     expect(JSON.parse(mockStorage.get(KEY)!)).toEqual(second);
   });
 });
+
+it('freezes the hourly price unit alongside the exact retry without changing its RPC command', async () => {
+  const hourly = { ...record, applicationPriceBasis: 'HOURLY' as const };
+  await applicationCommandJournal.save(hourly);
+  await expect(applicationCommandJournal.load(A, NEED)).resolves.toEqual({ state: 'PRESENT', record: hourly });
+  expect(JSON.parse(mockStorage.get(KEY)!).command).toEqual(command);
+  await expect(applicationCommandJournal.save({ ...hourly, applicationPriceBasis: 'TOTAL' })).rejects.toThrow('APPLICATION_COMMAND_PAYLOAD_CHANGED');
+  expect(() => parseApplicationCommand(JSON.stringify({ ...record, applicationPriceBasis: 'PER_PERSON' }), A, NEED)).toThrow();
+});

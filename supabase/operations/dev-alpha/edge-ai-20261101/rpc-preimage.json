@@ -1,0 +1,463 @@
+{
+  "database": "postgres",
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "22497",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_user_message text, p_assistant_message text, p_safety text, p_proposals jsonb",
+      "name": "rpc_ai_apply_legacy_need_turn_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_ai_apply_legacy_need_turn_service(uuid,uuid,text,text,text,jsonb)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_user_message text, p_assistant_message text, p_safety text, p_proposals jsonb",
+      "definition_md5": "3c761f5172063466ce7445fc1016da3e",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "27167",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_user_message text, p_location_context jsonb",
+      "name": "rpc_ai_claim_need_location_turn_v1_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_ai_claim_need_location_turn_v1_service(uuid,uuid,uuid,text,jsonb)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_user_message text, p_location_context jsonb",
+      "definition_md5": "095dec0dbda8ffded9559bc7ec4567f2",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "22493",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_user_message text",
+      "name": "rpc_ai_claim_need_turn_v2_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_ai_claim_need_turn_v2_service(uuid,uuid,uuid,text)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_user_message text",
+      "definition_md5": "2999a947d41c85145f1efc41845e5621",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "27168",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid, p_user_message text, p_assistant_message text, p_safety text, p_proposals jsonb, p_location_context jsonb, p_location_action text",
+      "name": "rpc_ai_complete_need_location_turn_v1_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_ai_complete_need_location_turn_v1_service(uuid,uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid, p_user_message text, p_assistant_message text, p_safety text, p_proposals jsonb, p_location_context jsonb, p_location_action text",
+      "definition_md5": "8132d7d5b85951180515bcac49617fc9",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "22494",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid, p_user_message text, p_assistant_message text, p_safety text, p_proposals jsonb",
+      "name": "rpc_ai_complete_need_turn_v2_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_ai_complete_need_turn_v2_service(uuid,uuid,uuid,uuid,text,text,text,jsonb)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid, p_user_message text, p_assistant_message text, p_safety text, p_proposals jsonb",
+      "definition_md5": "ff2be465f91497787558d9d1a5cecdba",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "23248",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid",
+      "name": "rpc_ai_dispatch_need_turn_v2_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "boolean",
+      "signature": "rpc_ai_dispatch_need_turn_v2_service(uuid,uuid,uuid,uuid)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid",
+      "definition_md5": "9a97dd0658b52d34f393ec5ba2f40888",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "22495",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid",
+      "name": "rpc_ai_fail_need_turn_v2_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_ai_fail_need_turn_v2_service(uuid,uuid,uuid,uuid)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid",
+      "definition_md5": "059e496acdb47e24a0445e20a4193707",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "27165",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid",
+      "name": "rpc_ai_read_need_location_turn_v1_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_ai_read_need_location_turn_v1_service(uuid,uuid,uuid)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid",
+      "definition_md5": "80fdcf88dc6e0cc067090a7bc16c0309",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "22951",
+      "anon": false,
+      "args": "p_account_id uuid, p_operation_id uuid, p_kind text, p_max_cost_microusd bigint",
+      "name": "rpc_ai_test_budget_reserve_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, public, private"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_ai_test_budget_reserve_service(uuid,uuid,text,bigint)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_operation_id uuid, p_kind text, p_max_cost_microusd bigint",
+      "definition_md5": "10e80907d1ad1da95e2843f0600dfa74",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "24275",
+      "anon": false,
+      "args": "p_operation_id uuid, p_model text, p_prompt_tokens integer, p_output_tokens integer, p_total_tokens integer",
+      "name": "rpc_ai_test_record_usage_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_ai_test_record_usage_service(uuid,text,integer,integer,integer)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_operation_id uuid, p_model text, p_prompt_tokens integer, p_output_tokens integer, p_total_tokens integer",
+      "definition_md5": "c5922708e5eab1d26c387bfae3cf56e8",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "24308",
+      "anon": false,
+      "args": "p_operation_id uuid",
+      "name": "rpc_ai_test_release_unused_reservation_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_ai_test_release_unused_reservation_service(uuid)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_operation_id uuid",
+      "definition_md5": "ff052d6f2dbb1985531e89689b886044",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "24318",
+      "anon": false,
+      "args": "p_operation_id uuid, p_audio_bytes bigint, p_transcript_chars integer",
+      "name": "rpc_ai_test_settle_audio_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_ai_test_settle_audio_service(uuid,bigint,integer)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_operation_id uuid, p_audio_bytes bigint, p_transcript_chars integer",
+      "definition_md5": "4ce052d21e6ddab501c38fdd9a596c8f",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "23026",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_text text",
+      "name": "rpc_claim_worker_ai_turn_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_claim_worker_ai_turn_service(uuid,uuid,uuid,text)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_text text",
+      "definition_md5": "67e1829d58d15aaab9c1be93c6f489df",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "23027",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid, p_output jsonb",
+      "name": "rpc_complete_worker_ai_turn_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_complete_worker_ai_turn_service(uuid,uuid,uuid,uuid,jsonb)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid, p_output jsonb",
+      "definition_md5": "5f0b6545dcde28bf2fcb4ea0f0393458",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "23584",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid",
+      "name": "rpc_dispatch_worker_ai_turn_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_dispatch_worker_ai_turn_service(uuid,uuid,uuid,uuid)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid",
+      "definition_md5": "4f87aef652f0b2096fcdd8ab4f5b1832",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "23028",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid",
+      "name": "rpc_fail_worker_ai_turn_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_fail_worker_ai_turn_service(uuid,uuid,uuid,uuid)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_attempt_id uuid",
+      "definition_md5": "9d1372fc918d145815b0caead814d646",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "23025",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid",
+      "name": "rpc_read_worker_ai_context_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_read_worker_ai_context_service(uuid,uuid)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid",
+      "definition_md5": "6bd424ebe7d0794386a6eed7d1d80d86",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "29072",
+      "anon": false,
+      "args": "p_execution_location_mode text, p_limit integer DEFAULT 80, p_after_key text DEFAULT NULL::text",
+      "name": "rpc_taxonomy_ai_catalog_context_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_taxonomy_ai_catalog_context_service(text,integer,text)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_execution_location_mode text, p_limit integer, p_after_key text",
+      "definition_md5": "3edb20d40d11ded7b13787431e09877d",
+      "security_definer": false
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "28927",
+      "anon": false,
+      "args": "p_execution_location_mode text, p_ai_category text, p_public_description text, p_explicit_required_skills text[]",
+      "name": "rpc_taxonomy_ai_scoped_preview_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_taxonomy_ai_scoped_preview_service(text,text,text,text[])",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_execution_location_mode text, p_ai_category text, p_public_description text, p_explicit_required_skills text[]",
+      "definition_md5": "520bcfceddaf1938b1a5d8aced58d64a",
+      "security_definer": false
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "29357",
+      "anon": false,
+      "args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_turn_id uuid, p_attempt_id uuid, p_purpose text, p_catalog_version bigint, p_proposals jsonb",
+      "name": "rpc_taxonomy_capture_gemini_turn_hints_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_taxonomy_capture_gemini_turn_hints_service(uuid,uuid,uuid,uuid,uuid,text,bigint,jsonb)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_turn_id uuid, p_attempt_id uuid, p_purpose text, p_catalog_version bigint, p_proposals jsonb",
+      "definition_md5": "c363facdb26d33ae872e25e6a79e4306",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "32947",
+      "anon": false,
+      "args": "p_conversation_id uuid, p_draft_revision bigint, p_service text",
+      "name": "rpc_taxonomy_consume_turn_hint_revision_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_taxonomy_consume_turn_hint_revision_service(uuid,bigint,text)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_conversation_id uuid, p_draft_revision bigint, p_service text",
+      "definition_md5": "bcbbff3b28009d7ebf8f27aff8cfa1d2",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "32613",
+      "anon": false,
+      "args": "p_generation integer DEFAULT 1",
+      "name": "rpc_taxonomy_fetch_snapshot_v1",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog",
+        "statement_timeout=5s"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_taxonomy_fetch_snapshot_v1(integer)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_generation integer",
+      "definition_md5": "76a9eb7c34fab1c6623cac093bb4ff27",
+      "security_definer": false
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "32632",
+      "anon": false,
+      "args": "p_conversation_id uuid, p_draft_revision bigint",
+      "name": "rpc_taxonomy_get_unconsumed_turn_hint_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_taxonomy_get_unconsumed_turn_hint_service(uuid,bigint)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_conversation_id uuid, p_draft_revision bigint",
+      "definition_md5": "a1a61b2ec2422ed0eb0c90ad5deabaf6",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "31271",
+      "anon": false,
+      "args": "p_query jsonb",
+      "name": "rpc_taxonomy_query_catalog_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog",
+        "statement_timeout=5s"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_taxonomy_query_catalog_service(jsonb)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_query jsonb",
+      "definition_md5": "b0de0dc1c8128bd8835ef7150745a7a0",
+      "security_definer": false
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "32631",
+      "anon": false,
+      "args": "p_conversation_id uuid, p_draft_revision bigint, p_service text, p_mode text, p_ambiguity_prompt text, p_reason text",
+      "name": "rpc_taxonomy_store_classification_turn_hint_service",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "returns": "jsonb",
+      "signature": "rpc_taxonomy_store_classification_turn_hint_service(uuid,bigint,text,text,text,text)",
+      "service_role": true,
+      "authenticated": false,
+      "identity_args": "p_conversation_id uuid, p_draft_revision bigint, p_service text, p_mode text, p_ambiguity_prompt text, p_reason text",
+      "definition_md5": "3a9c40a677e1598381919b0d55dc832a",
+      "security_definer": true
+    }
+  ],
+  "read_only": "on",
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "captured_at": "2026-11-01T14:07:39.881556+00:00",
+  "capture_role": "postgres",
+  "server_version_num": 170006,
+  "missing_receipt_rpc_absent": true
+}

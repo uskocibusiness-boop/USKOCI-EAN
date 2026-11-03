@@ -70,7 +70,7 @@ function OwnedLegal() {
   // A grey action says why, in the foot's own line above it: while the documents are being read again nothing can be accepted.
   const reading = state.loading ? 'Učitavamo dokumente…' : null;
   const action = state.pending ? <SettingsAction label={shown === 'accept' ? 'Prihvati pregledane dokumente' : shown === 'read' ? 'Proveri da li je prihvaćeno'
-    : shown === 'replay' ? 'Prihvati ponovo' : state.pending === 'READ_REQUIRED' ? 'Proveri da li je prihvaćeno' : 'Prihvati ponovo'}
+    : shown === 'replay' ? 'Ponovi prethodno prihvatanje' : state.pending === 'READ_REQUIRED' ? 'Proveri da li je prihvaćeno' : 'Ponovi prethodno prihvatanje'}
     loading={state.busy} disabled={state.busy || state.loading}
     onPress={() => { if (!current()) return; if (state.pending === 'READ_REQUIRED') press('read', () => controller.readOutcome());
       else press('replay', () => controller.accept(state.bundle)); }} />

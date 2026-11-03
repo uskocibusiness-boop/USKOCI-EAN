@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { inspectGeminiClassificationShadow as inspect, classificationTurnFeedback as feedback }
+import { inspectGeminiClassificationShadow as inspect, classificationTurnFeedback as feedback, workerFinishReviewMessage }
   from '../../functions/_shared/classificationGeminiShadow.mjs';
 
 const rootId='11111111-1111-4111-8111-111111111111';
@@ -17,6 +17,19 @@ const review=(plans,purpose='NEED_SERVICE',services=['3D printovanje'],overrides
   const inspected=inspect(raw(plans,overrides),catalog,purpose);
   return {inspected,result:feedback(inspected,{purpose,services,readyForReview:true})};
 };
+
+test('retained finish helper cannot invite review or promise Save from advisory hints',()=>{
+ const skills=['3D printovanje'],covered=[plan()];
+ for(const message of [workerFinishReviewMessage(skills,covered,true),
+  workerFinishReviewMessage(skills,[],false),workerFinishReviewMessage(['Druga usluga'],[],true)]){
+  assert.doesNotMatch(message,/Otvorite pregled|sačuvano|aktivirano|objavljeno|automatski povezano/);
+  assert.doesNotMatch(message,/11111111|22222222|REUSE_EXISTING/);
+ }
+ assert.match(workerFinishReviewMessage(skills,covered,true),/kada podaci i povezivanje usluga budu potvrđeni/);
+ assert.match(workerFinishReviewMessage(skills,[],false),/trenutno nije potvrđeno/);
+ assert.match(workerFinishReviewMessage(['Druga usluga'],[],true),/Druga usluga.*na lokaciji, na daljinu ili na oba načina/);
+ assert.match(workerFinishReviewMessage([],[],true),/Koje usluge/);
+});
 
 test('both purposes retain exact/registered-alias candidates and leave the useful answer and facts intact',()=>{
   for(const purpose of ['NEED_SERVICE','WORKER_CAPABILITY'])for(const service of ['3D printovanje','3D štampa']){
@@ -84,14 +97,16 @@ test('malformed metadata, stale catalog and an unregistered synonym never become
   }
 });
 
-test('valid deep new branch is reviewable, while activation remains outside the helper',()=>{
+test('legacy deep-branch advisory retains the proposal without claiming confirmed service linkage',()=>{
   for(const purpose of ['NEED_SERVICE','WORKER_CAPABILITY'])for(const action of ['CREATE_CHILD','CREATE_NEW_BRANCH']){
     const proposedPath=['Specijalne usluge','Izrada predmeta','Oblikovanje','Precizni modeli','Kolekcionarstvo','Posebne figure','Minijaturne replike','Izrada posebnih figurica'];
     const proposal=plan({service:proposedPath.at(-1),action,categoryId:'',parentId:action==='CREATE_CHILD'?rootId:'',proposedPath});
     const {result,inspected}=review([proposal],purpose,[proposal.service]);
     assert.deepEqual(inspected.reviewProposals,[proposal]);
     assert.equal(result.state,'PENDING');assert.equal(result.canOfferReview,true);
-    assert.deepEqual(result.questions,[]);assert.match(result.notice,/pre potvrde i čuvanja/);
+    assert.deepEqual(result.questions,[]);assert.match(result.notice,/Povezivanje usluge još nije potvrđeno/);
+    // canOfferReview is a legacy advisory flag, not an active handler/UI gate.
+    assert.equal(Object.hasOwn(result,'authoritative'),false);
     assert.equal(Object.hasOwn(inspected.output,'categoryId'),false);
     const unknown=review([{...proposal,mode:'UNCONFIRMED'}],purpose,[proposal.service]);
     assert.equal(unknown.result.state,'ASK_USER');assert.equal(unknown.result.canOfferReview,false);

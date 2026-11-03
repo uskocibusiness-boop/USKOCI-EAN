@@ -1,14 +1,11 @@
 import { agreementClientService } from './agreementClientService';
 import { applicationClientService } from './applicationClientService';
 import { applicationSelectionClientService } from './applicationSelectionClientService';
-import { aiCommandOverrides } from './aiCommandOverrides';
 import { aiNeedV2Production } from './aiNeedV2Production';
-import { aiProductionOverrides } from './aiProductionOverrides';
 import { candidateClientService } from './candidateClientService';
 import { contactClientService } from './contactClientService';
 import { lazniIzvor } from './lazniIzvor';
 import { needClientService } from './needClientService';
-import { productionAuthorityOverrides } from './productionAuthorityOverrides';
 import { publicProfileClientService } from './publicProfileClientService';
 import { responseClientService } from './responseClientService';
 import { supabaseIzvor } from './supabaseIzvor';
@@ -46,8 +43,8 @@ if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
 // CDL-A09 makes workerProfileClientService the sole Worker-profile mutation owner,
 // preserving DRAFT creation and server-authoritative activation by profile id.
 // CDL-A06/A07 moved problem reporting and completion marking into Agreement service.
-// AI read overrides align NEED_INTAKE with persisted facts; AI command overrides
-// call the JWT-protected Edge boundary and preserve fail-closed HTTP errors.
+// AI intake uses the separate V2 boundary below; the central port owns only
+// the non-AI reads and commands.
 // RU-5 P0C-01 owns cross-account profile reads through a narrow public RPC;
 // raw app_profiles remains owner-only and is never opened for marketplace cards.
 // RU-5 P0D-01 makes candidateClientService the sole Requester candidate-list
@@ -57,14 +54,11 @@ const produkcijskiIzvor: Izvor = {
   ...applicationClientService,
   ...applicationSelectionClientService,
   ...candidateClientService,
-  ...productionAuthorityOverrides,
   ...workerProfileClientService,
   ...publicProfileClientService,
   ...contactClientService,
   ...responseClientService,
   ...needClientService,
-  ...aiProductionOverrides,
-  ...aiCommandOverrides,
   ...agreementClientService,
   ...homeAttentionClientService,
   poreklo: 'supabase',
@@ -72,8 +66,6 @@ const produkcijskiIzvor: Izvor = {
 
 export const izvor: Izvor = koristiLazniIzvor ? lazniIzvor : produkcijskiIzvor;
 
-// RU-2 R02→R07 is deliberately a separate typed boundary while legacy AI
-// read compatibility remains. Legacy opener/message stubs cannot issue writes.
-// New mobile surfaces use only this V2
-// source and therefore cannot accidentally call rpc_ai_publish_need.
+// The signed conversation/review/Save/publish path always uses V2, including
+// when the non-AI test/demo source is selected explicitly.
 export const aiNeedV2Izvor = aiNeedV2Production;

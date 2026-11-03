@@ -1,5 +1,10 @@
 # USKOČI — stvarno stanje čistog foldera (26.10.2026)
 
+> **AKTUELNO UPUTSTVO 30.10.2026 — OVAJ FAJL JE ISTORIJSKI STATUS.** Raniji iskazi ispod o „jedinom checkoutu”, `feature/uskoci-cisto` i završenim testovima predstavljaju stanje 26.10, ne današnju izvršnu istinu. Radna grana je `work/rev14-review-f17`, [PR #43](https://github.com/uskocibusiness-boop/USKOCI-EAN/pull/43) je Draft prema `feature/uskoci-cisto`. Jedini izvršni master je [CODEX_PLAN_RADA.md](docs/plan/CODEX_PLAN_RADA.md) (§11.2a, §12.5–12.6); ciljno ponašanje je u [Product/UX masteru 29.10](docs/product/USKOCI_PRODUCT_UX_MASTER.md). Pre svake popravke pogledati trenutni SHA/CI i ne tretirati ovaj istorijski dokument kao dodatni plan. U poslednjem dokazanom pre-documentation run-u Full CI 41130520059 i R01 41130520128 su FAIL. Ovo nije nova testna provera.
+
+
+> **Nastavak od 28.10.2026:** aktuelni R01–R12 status, stvarni rezultati i sledeći korak vode se u jednom [CODEX_PLAN_RADA.md](docs/plan/CODEX_PLAN_RADA.md#112a-aktuelni-izvršni-status--28102026). Odeljci ispod čuvaju istorijski presek izvornog foldera od 26.10.2026; njihove stare potvrde nisu novi prolaz radne grane `work/rev14-review-f17`.
+
 Ovaj folder je jedini lokalni checkout za `feature/uskoci-cisto`. Stari
 `USKOCI ZAVRSAVANJE/USKOCI-EAN` nije menjan. Više hiljada starih izveštaja,
 workflow-a i pomoćnih skripti iz udaljene grane nije deo ovog izvornog foldera;

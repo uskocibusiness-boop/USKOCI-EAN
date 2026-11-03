@@ -35,7 +35,7 @@ describe('PKG-002 safe Auth error boundary', () => {
   it('keeps a safe bounded rate-limit message without reflecting provider text', async () => {
     mockAuth.signInWithPassword.mockResolvedValue({ error: { message: 'secret provider body', status: 429, code: 'over_request_rate_limit' } });
     await expect(authClientService.signInWithPassword({ email: 'ana@example.test', password: 'secret' }))
-      .rejects.toThrow('Previše pokušaja. Sačekaj kratko pa pokušaj ponovo.');
+      .rejects.toThrow('Previše pokušaja. Sačekajte kratko pa pokušajte ponovo.');
   });
 
   it('preserves legitimate sign-in, signup metadata and OTP payloads', async () => {

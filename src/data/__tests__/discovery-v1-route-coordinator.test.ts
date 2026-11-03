@@ -663,9 +663,129 @@ it('a map refresh after the anchor expired renews the traversal instead of faili
  const h=expiringPaged(3),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
  await route.open(view({sheet:'half',listOffset:200}));h.expire();const before=h.calls.length;
  const result=await route.refreshMap([10,40,12,42]);
- expect(result.kind).toBe('applied');
+ expect(result.kind).toBe('applied');expect(result).toMatchObject({pageApplied:true});
  expect(h.calls.slice(before).filter(x=>x.mode==='PAGE'&&!(x as any).anchor)).toHaveLength(1);
  expect(route.snapshot().screen.items).toHaveLength(1);expect(route.snapshot().view).toMatchObject({sheet:'half',listOffset:200});
+});
+
+it.each([false,true])('F16: explicit MAP retry renews an expired anchor at most once (stubborn: %s)',async stubborn=>{
+ const h=expiringPaged(3,stubborn),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.open(view({sheet:'full',listOffset:400}));h.expire();const before=h.calls.length;
+ if(stubborn)await expect(route.retryMap()).rejects.toThrow('DISCOVERY_V1_ANCHOR_EXPIRED');
+ else expect(await route.retryMap()).toMatchObject({kind:'applied',pageApplied:true});
+ expect(h.calls.slice(before).filter(call=>call.mode==='PAGE'&&call.anchor===null)).toHaveLength(1);
+ expect(route.snapshot().view).toMatchObject({sheet:'full',listOffset:400});
+ expect(route.snapshot().screen.mapRead.loading).toBe(false);
+});
+
+it.each(['refresh','retry'])('F16: a %s refusal already caught by the session cannot fail a newer query',async operation=>{
+ const h=harness(),gate=deferred<void>();let refusing=false;
+ const transport=async(request:DiscoveryV1OwnerRequest)=>{
+   if(refusing&&request.mode==='MAP'){await gate.promise;throw new Error('DISCOVERY_V1_ANCHOR_EXPIRED');}
+   return h.transport(request);
+ };
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);await route.open(view());refusing=true;
+ const old=operation==='refresh'?route.refreshMap([19.5,44.5,20.5,45.5]):route.retryMap();
+ // Observe the session's accepted refusal before the coordinator continuation gets its next turn.
+ gate.resolve();for(let turn=0;turn<30&&!route.snapshot().screen.mapRead.error;turn++)await Promise.resolve();
+ expect(route.snapshot().screen.mapRead.error).not.toBeNull();refusing=false;
+ const newer=route.open(view({query:'novo'}));expect((await old).kind).toBe('stale');await newer;
+ expect(route.snapshot().view?.query).toBe('novo');expect(route.snapshot().screen.mapRead).toEqual({loading:false,error:null});
+});
+
+it('F16: a newer MAP refresh cannot discard the accepted AREA page or its route scope',async()=>{
+ const h=harness(),gate=deferred<void>();let hold=false;
+ const transport=async(request:DiscoveryV1OwnerRequest)=>{
+   if(hold&&request.mode==='MAP'&&request.bounds[0]===19.5)await gate.promise;
+   return h.transport(request);
+ };
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);await route.open(view({pages:3}));hold=true;
+ const moving=route.settleMap([19.5,44.5,20.5,45.5]);
+ await route.refreshMap([19.6,44.6,20.6,45.6]);gate.resolve();expect((await moving).kind).toBe('applied');
+ expect(route.snapshot().view).toMatchObject({area:[19.5,44.5,20.5,45.5],pages:1});
+ expect(route.snapshot().screen.counts).not.toBeNull();expect(route.snapshot().screen.mapRead.error).toBeNull();
+});
+
+it.each(['open','point','all','settle'])('F16: AREA PAGE accepted before MAP finishes cannot overwrite a newer %s list scope',async operation=>{
+ const h=harness(),gate=deferred<void>();let hold=false;
+ const transport=async(request:DiscoveryV1OwnerRequest)=>{
+   if(hold&&request.mode==='MAP'&&request.bounds[0]===19.5)await gate.promise;
+   return h.transport(request);
+ };
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);await route.open(view());hold=true;
+ const old=route.settleMap([19.5,44.5,20.5,45.5]);
+ for(let turn=0;turn<8;turn++)await Promise.resolve();
+ if(operation==='open')await route.open(view({query:'novo'}));
+ else if(operation==='point')await route.showPoint({lat:45.25,lng:19.83});
+ else if(operation==='all')await route.showAll();
+ else await route.settleMap([19.6,44.6,20.6,45.6]);
+ const accepted=route.snapshot().view;gate.resolve();expect((await old).kind).toBe('stale');
+ expect(route.snapshot().view).toEqual(accepted);expect(route.snapshot().screen.counts).not.toBeNull();
+});
+
+it.each(['retry','refresh'])('F16: recovered MAP %s restores the saved TASK choice after a cold partial read',async operation=>{
+ const h=harness();let fail=true;
+ const transport=async(request:DiscoveryV1OwnerRequest)=>{if(fail&&request.mode==='MAP')throw new Error('DISCOVERY_V1_READ_FAILED');return h.transport(request);};
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
+ await route.restore(view({selectedId:ID,sheet:'peek'}));expect(route.snapshot().screen.peek).toBeNull();expect(route.snapshot().view?.selectedId).toBe(ID);
+ fail=false;expect((await (operation==='retry'?route.retryMap():route.refreshMap([19.5,44.5,20.5,45.5]))).kind).toBe('applied');
+ expect(route.snapshot().selectedMarkerKey).toBe('task:'+ID);expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK',item:{id:ID}});
+ expect(route.snapshot().screen.exactTaskId).toBe(ID);expect(h.calls.filter(call=>call.mode==='EXACT_PUBLIC')).toHaveLength(1);
+});
+
+it('F16: MAP recovery cannot invent a saved choice that is absent from its successful buckets',async()=>{
+ const h=harness();let fail=true;
+ const transport=async(request:DiscoveryV1OwnerRequest)=>{
+   if(request.mode==='MAP'){if(fail)throw new Error('DISCOVERY_V1_READ_FAILED');return {...map(request.bounds),buckets:[]};}
+   return h.transport(request);
+ };
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);await route.restore(view({selectedId:ID}));fail=false;
+ await route.retryMap();expect(route.snapshot().screen.peek).toBeNull();expect(route.snapshot().selectedMarkerKey).toBeNull();
+ expect(h.calls.filter(call=>call.mode==='EXACT_PUBLIC')).toHaveLength(0);
+});
+
+it.each(['transport','decode'])('F16: failed %s EXACT of a saved task outside PAGE cannot reject MAP recovery',async failure=>{
+ const h=harness(),outside='44444444-4444-4444-8444-444444444444';let failMap=true;
+ const transport=async(request:DiscoveryV1OwnerRequest)=>{
+   if(request.mode==='MAP'){
+     if(failMap)throw new Error('DISCOVERY_V1_READ_FAILED');
+     return {...map(request.bounds),buckets:[{kind:'TASK',key:'task:'+outside,point:{lat:45.25,lng:19.83},taskId:outside}]};
+   }
+   if(request.mode==='EXACT_PUBLIC'){if(failure==='transport')throw new Error('DISCOVERY_V1_READ_FAILED');return {bad:true};}
+   return h.transport(request);
+ };
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);await route.restore(view({selectedId:outside}));failMap=false;
+ expect((await route.retryMap()).kind).toBe('applied');expect(route.snapshot().screen.items.map(row=>row.id)).toEqual([ID]);
+ expect(route.snapshot().screen.mapRead).toEqual({loading:false,error:null});expect(route.snapshot().screen.peek).toBeNull();
+ expect(route.snapshot().selectedMarkerKey).toBeNull();expect(route.snapshot().view?.selectedId).toBeNull();
+});
+
+it('F16: dismissal while the recovered saved choice reads EXACT cannot restore its halo or card',async()=>{
+ const h=harness(),gate=deferred<void>();let fail=true,exactStarted=false;
+ const transport=async(request:DiscoveryV1OwnerRequest)=>{
+   if(request.mode==='MAP'&&fail)throw new Error('DISCOVERY_V1_READ_FAILED');
+   if(request.mode==='EXACT_PUBLIC'){exactStarted=true;await gate.promise;}
+   return h.transport(request);
+ };
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);await route.restore(view({selectedId:ID}));fail=false;
+ const retry=route.retryMap();for(let turn=0;turn<30&&!exactStarted;turn++)await Promise.resolve();expect(exactStarted).toBe(true);
+ route.clearPeek();gate.resolve();await retry;
+ expect(route.snapshot().screen.peek).toBeNull();expect(route.snapshot().selectedMarkerKey).toBeNull();expect(route.snapshot().view?.selectedId).toBeNull();
+});
+
+it.each(['dismiss','new choice'])('F16: MAP retry cannot restore a saved choice after a newer %s',async action=>{
+ const h=harness(),gate=deferred<void>();let fail=true,hold=false;
+ const transport=async(request:DiscoveryV1OwnerRequest)=>{
+   if(request.mode==='MAP'){if(fail)throw new Error('DISCOVERY_V1_READ_FAILED');if(hold)await gate.promise;}
+   return h.transport(request);
+ };
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);await route.restore(view({selectedId:ID}));
+ fail=false;hold=true;const retry=route.retryMap();
+ if(action==='dismiss')route.clearPeek();
+ else await route.selectMarker({kind:'CLUSTER',key:'cluster:new',point:{lat:45.3,lng:19.9},taskCount:2,distinctPointCount:2,memberBounds:[19.8,45.2,20,45.4]});
+ gate.resolve();await retry;
+ expect(route.snapshot().selectedMarkerKey).toBeNull();expect(route.snapshot().screen.peek).toBeNull();
+ expect(h.calls.filter(call=>call.mode==='EXACT_PUBLIC')).toHaveLength(0);
 });
 
 // EX-03 warm return (owner approval 2026-09-30): the screen that drives a coordinator may leave and come back. detach() fences everything in flight for good and keeps what the

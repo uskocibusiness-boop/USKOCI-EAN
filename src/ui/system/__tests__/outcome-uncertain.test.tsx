@@ -34,9 +34,9 @@ describe('as a screen: the state view with the one button that finds out', () =>
     await render(<OutcomeUncertain onCheck={check} />);
     const view = tree.root.findByType(StateView);
     expect(view.props).toMatchObject({ kind: 'uncertain', art: 'info', title: 'Ne znamo da li je uspelo', body: 'Odgovor nije stigao.', compact: false });
-    expect(texts()).toEqual(['Ne znamo da li je uspelo', 'Odgovor nije stigao.', 'Proveri']);
+    expect(texts()).toEqual(['Ne znamo da li je uspelo', 'Odgovor nije stigao.', 'Proverite']);
     expect(size(actions())).toBe(1);
-    expect(actions()[0].props).toMatchObject({ label: 'Proveri', accessibilityLabel: CHECK_SPOKEN });
+    expect(actions()[0].props).toMatchObject({ label: 'Proverite', accessibilityLabel: CHECK_SPOKEN });
     await act(async () => actions()[0].props.onPress());
     expect(check).toHaveBeenCalledTimes(1);
   });
@@ -49,14 +49,14 @@ describe('as a screen: the state view with the one button that finds out', () =>
   it('lets the flow say it better: its own title and sentence replace the table\'s, and nothing else changes', async () => {
     await render(<OutcomeUncertain about="application" title="Ne znamo da li je prijava stigla Marku" copy="Neće se poslati dvaput."
       onCheck={() => undefined} />);
-    expect(texts()).toEqual(['Ne znamo da li je prijava stigla Marku', 'Neće se poslati dvaput.', 'Proveri']);
+    expect(texts()).toEqual(['Ne znamo da li je prijava stigla Marku', 'Neće se poslati dvaput.', 'Proverite']);
     expect(tree.root.findByType(StateView).props.art).toBe('applications');
   });
 
   it('shows the one quiet way out when it is given one, and never a second way to send the same thing', async () => {
     const out = jest.fn();
     await render(<OutcomeUncertain about="publication" onCheck={() => undefined} quiet={{ label: 'Nazad na zadatak', onPress: out }} />);
-    expect(actions().map(action => action.props.label)).toEqual(['Proveri', 'Nazad na zadatak']);
+    expect(actions().map(action => action.props.label)).toEqual(['Proverite', 'Nazad na zadatak']);
     expect(actions()[1].props.kind).toBe('quiet');
     await act(async () => actions()[1].props.onPress());
     expect(out).toHaveBeenCalledTimes(1);
@@ -66,7 +66,7 @@ describe('as a screen: the state view with the one button that finds out', () =>
     await render(<OutcomeUncertain onCheck={() => undefined} checking />);
     expect(actions()[0].props.loading).toBe(true);
     expect(StyleSheet.flatten(actions()[0].props.style)).toMatchObject({ backgroundColor: brandAction.backgroundColor });
-    expect(texts()).toEqual(['Ne znamo da li je uspelo', 'Odgovor nije stigao.', 'Proveri']);
+    expect(texts()).toEqual(['Ne znamo da li je uspelo', 'Odgovor nije stigao.', 'Proverite']);
   });
 
   it('is announced as an alert, grey, like every failure, and inside a section it is the compact state', async () => {
@@ -94,7 +94,7 @@ describe('as a note: in a foot, a thread or a sheet, where the form stays', () =
     expect(size(tree.root.findAllByType(StateView))).toBe(0);
     const [title] = tree.root.findAllByType(T);
     expect(title.props).toMatchObject({ accessibilityRole: 'alert', children: 'Ne znamo da li je prijava stigla' });
-    expect(actions()[0].props).toMatchObject({ label: 'Proveri', accessibilityLabel: CHECK_SPOKEN });
+    expect(actions()[0].props).toMatchObject({ label: 'Proverite', accessibilityLabel: CHECK_SPOKEN });
   });
 
   it('asks for balanced lines for its title and its sentence', async () => {
@@ -104,16 +104,16 @@ describe('as a note: in a foot, a thread or a sheet, where the form stays', () =
 
   it('draws a sentence only when the flow gives one: the title is already the honest sentence', async () => {
     await render(<OutcomeUncertain layout="inline" onCheck={() => undefined} />);
-    expect(texts()).toEqual(['Ne znamo da li je uspelo', 'Proveri']);
+    expect(texts()).toEqual(['Ne znamo da li je uspelo', 'Proverite']);
     await act(async () => tree.update(<OutcomeUncertain layout="inline" onCheck={() => undefined} copy="Neće se poslati dvaput." />));
-    expect(texts()).toEqual(['Ne znamo da li je uspelo', 'Neće se poslati dvaput.', 'Proveri']);
+    expect(texts()).toEqual(['Ne znamo da li je uspelo', 'Neće se poslati dvaput.', 'Proverite']);
     expect(tree.root.findAllByType(T)[1].props).toMatchObject({ variant: 'note', tone: 'muted' });
   });
 
   it('presses through, shows the spinner while it checks, and offers the one quiet way out', async () => {
     const check = jest.fn(), out = jest.fn();
     await render(<OutcomeUncertain layout="inline" onCheck={check} quiet={{ label: 'Nazad na zadatak', onPress: out }} />);
-    expect(actions().map(action => action.props.label)).toEqual(['Proveri', 'Nazad na zadatak']);
+    expect(actions().map(action => action.props.label)).toEqual(['Proverite', 'Nazad na zadatak']);
     expect(actions()[1].props.kind).toBe('quiet');
     await act(async () => actions()[0].props.onPress()); await act(async () => actions()[1].props.onPress());
     expect([check.mock.calls.length, out.mock.calls.length]).toEqual([1, 1]);

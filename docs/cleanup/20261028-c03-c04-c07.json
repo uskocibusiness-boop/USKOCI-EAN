@@ -1,0 +1,721 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-28",
+  "scope": "C03/C04/C07 actual source cleanup and focused verification; no claim R11, whole cleanup, native/device acceptance or release is complete",
+  "source_evidence": "REV10 dokazi/izvrsivost/readiness_review.json cleanup.retirement_batches, cleanup.normalized_path_index, cleanup.required_per_change_record",
+  "source_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+  "metrics": {
+    "scoped_paths_before": 25,
+    "scoped_paths_after": 17,
+    "removed_files": 9,
+    "added_files": 1,
+    "net_removed_files": 8,
+    "lines_before": 6133,
+    "lines_after": 3999,
+    "net_removed_lines": 2134,
+    "bytes_before_lf": 442946,
+    "bytes_after_lf": 296124,
+    "focused_suites_before": 10,
+    "focused_suites_after": 8,
+    "focused_cases_before": 320,
+    "focused_cases_after": 182,
+    "net_removed_cases": 138,
+    "focused_duration_before_seconds": 7.968,
+    "focused_duration_after_seconds": 6.573,
+    "active_replacement_suites": 7,
+    "active_replacement_cases": 385,
+    "active_replacement_duration_seconds": 15.354,
+    "typecheck": "PASS",
+    "same_ast_declarations": 37
+  },
+  "test_inventory": [
+    {
+      "suite": "aiNeedV2Ui.test.ts",
+      "before": 96,
+      "after": 29,
+      "removed_cases": 67
+    },
+    {
+      "suite": "candidate-face.test.tsx",
+      "before": 59,
+      "after": 59,
+      "removed_cases": 0
+    },
+    {
+      "suite": "entry-brand-raster.test.tsx",
+      "before": 0,
+      "after": 1,
+      "removed_cases": -1
+    },
+    {
+      "suite": "entry-brand-scene-clock.test.tsx",
+      "before": 23,
+      "after": 0,
+      "removed_cases": 23
+    },
+    {
+      "suite": "entry-intro-hook.test.tsx",
+      "before": 12,
+      "after": 0,
+      "removed_cases": 12
+    },
+    {
+      "suite": "entry-v49-reference.test.ts",
+      "before": 24,
+      "after": 0,
+      "removed_cases": 24
+    },
+    {
+      "suite": "pkg003-timezone.test.ts",
+      "before": 11,
+      "after": 11,
+      "removed_cases": 0
+    },
+    {
+      "suite": "prijava-card.test.tsx",
+      "before": 15,
+      "after": 14,
+      "removed_cases": 1
+    },
+    {
+      "suite": "ru2-ai-v2-ui.test.ts",
+      "before": 11,
+      "after": 3,
+      "removed_cases": 8
+    },
+    {
+      "suite": "task-card-face.test.tsx",
+      "before": 54,
+      "after": 54,
+      "removed_cases": 0
+    },
+    {
+      "suite": "w02-capability-terms.test.ts",
+      "before": 15,
+      "after": 11,
+      "removed_cases": 4
+    }
+  ],
+  "records": [
+    {
+      "source_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+      "business_rule_authority": "docs/plan/CODEX_PLAN_RADA.md section 7; REV10 readiness_review.json cleanup.retirement_batches/normalized_path_index/required_per_change_record; current R07 hourly per-person labels preserved",
+      "historical_reference_if_needed": "Original implementation and retired tests remain recoverable from Git at source_commit; no archive copy or default-suite exclusion was created.",
+      "id": "C03",
+      "path_or_symbol": {
+        "files": [
+          {
+            "path": "src/data/aiNeedV2Ui.ts",
+            "action": "MODIFIED",
+            "before_sha256": "3118e61eb57c6485d77a76ae514ad405119b2f83df2def7af150ac8d2bac1ae2",
+            "after_lf_sha256": "a74931838af04f18150f800a8a739d51f62fa983e3639c51a0a0ce5214acefa5",
+            "lines_before": 427,
+            "lines_after": 138,
+            "bytes_before": 24233,
+            "bytes_after_lf": 8369
+          },
+          {
+            "path": "src/data/__tests__/aiNeedV2Ui.test.ts",
+            "action": "MODIFIED",
+            "before_sha256": "a3aa09b3dc630c7d05802327604f36715e5f21a7387bb05a814f1eb784ff168a",
+            "after_lf_sha256": "1358abc558ce4c3cec281335c5eb5dd237c8c70b96b562ecd4d2b85d5d587479",
+            "lines_before": 328,
+            "lines_after": 132,
+            "bytes_before": 20933,
+            "bytes_after_lf": 8642
+          },
+          {
+            "path": "src/data/__tests__/ru2-ai-v2-ui.test.ts",
+            "action": "MODIFIED",
+            "before_sha256": "8474e127844cbc5deccd7d701d0ffe5a733d3a9dd404fc3a7dad70a5d069337d",
+            "after_lf_sha256": "36375dc701a73f87df874d028069b72a3342674a4aaae75169a0b87b33b119d9",
+            "lines_before": 201,
+            "lines_after": 111,
+            "bytes_before": 9999,
+            "bytes_after_lf": 5699
+          },
+          {
+            "path": "src/data/__tests__/w02-capability-terms.test.ts",
+            "action": "MODIFIED",
+            "before_sha256": "045bc56864079a6eddbad7dcd45d4cee599ec78d7f6937d84f56cce2e1ad0599",
+            "after_lf_sha256": "980e430a37e0c78f393e2cdc515a4d1d76fdc676d672f855018be2393ec39777",
+            "lines_before": 23,
+            "lines_after": 15,
+            "bytes_before": 1590,
+            "bytes_after_lf": 928
+          },
+          {
+            "path": "src/data/__tests__/pkg003-timezone.test.ts",
+            "action": "MODIFIED",
+            "before_sha256": "c746a2eca31ee346cd00110990b9a13614ec0ee442eff4234377faa5861336c3",
+            "after_lf_sha256": "9d7323fbf564e3f701477584eacde0c3079fe919cad12bff8804cb62a871bba2",
+            "lines_before": 73,
+            "lines_after": 70,
+            "bytes_before": 2827,
+            "bytes_after_lf": 2600
+          }
+        ],
+        "retired_exports": [
+          "FactCorrection",
+          "FactEditorKind",
+          "factEditorKind",
+          "FactChoice",
+          "factChoices",
+          "factChoiceValue",
+          "choiceCorrectionText",
+          "AMOUNT_MAX_DIGITS",
+          "amountDigits",
+          "editorCorrection",
+          "factCorrectionValue",
+          "factTimestampFields",
+          "timestampCorrectionText",
+          "factListItems",
+          "listCorrectionText",
+          "correctionFromText"
+        ],
+        "retired_internal": [
+          "PRICE_MODE",
+          "PRICE_BASIS",
+          "SCHEDULE_KIND",
+          "FACT_CHOICES",
+          "INTEGER_RANGE",
+          "TEXT_MAX",
+          "DISPLAY_MAX",
+          "displayOf"
+        ]
+      },
+      "current_consumer_or_none": "All retired exports had only module-internal and named test consumers. Active review/support consumers use factLabel/priceAmountRowValue/factReviewValue/slotLabel/safetyMessage, which are preserved.",
+      "action": "RETIRED_RULE: removed the dormant manual fact editor and only its write/choice/parser expectations. Preserved mixed review, currency, privacy and display assertions. REPLACED_BY_CURRENT: pkg003-timezone runs directly against active civilInstant/calendarInstant and keeps all 11 cases.",
+      "active_replacement": [
+        "src/app/(app)/pregled-zadatka.tsx: existing AI conversation correction handoff and signed review flow",
+        "src/data/aiNeedV2Ui.ts: typed read formatters, including RSD and HOURLY → Po osobi po satu",
+        "src/ui/calendar/calendarPresentation.ts: civilInstant; src/lib/calendarTime.ts: calendarInstant",
+        "src/lib/capabilityTerms.ts: unchanged active generic capability boundary"
+      ],
+      "dependent_tests_configs_docs": [
+        "aiNeedV2Ui.test.ts: 96 → 29; 67 manual-only cases retired; mixed display assertions retained",
+        "ru2-ai-v2-ui.test.ts: 11 → 3; 8 manual-only cases retired; registry/order/decoder boundaries retained",
+        "w02-capability-terms.test.ts: 15 → 11; 4 retired manual alias cases removed; generic bounds and immutable input tests retained",
+        "pkg003-timezone.test.ts: 11 → 11, rebound to current parser/formatter owners",
+        "v5-review-screen.test.tsx: 133 retained tests PASS; dizajn-galerija-pregled.test.tsx: 20 PASS"
+      ],
+      "compatibility_boundary": "No new fact writer, RPC, server schema, conversation routing or capability vocabulary. Historical identity facts remain readable; provider exclusion and actual review refusal/correction boundaries remain tested. Removing manual aliases does not remove natural-language hourly support in the active Edge conversation.",
+      "verification": {
+        "focused_tests": 54,
+        "removed_cases": 79,
+        "preserved_ast_declarations": 7,
+        "actual_conversation_and_review_tests": "PASS",
+        "native_or_live_AI_claim": false
+      }
+    },
+    {
+      "source_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+      "business_rule_authority": "docs/plan/CODEX_PLAN_RADA.md section 7; REV10 readiness_review.json cleanup.retirement_batches/normalized_path_index/required_per_change_record; current R07 hourly per-person labels preserved",
+      "historical_reference_if_needed": "Original implementation and retired tests remain recoverable from Git at source_commit; no archive copy or default-suite exclusion was created.",
+      "id": "C04",
+      "path_or_symbol": {
+        "files": [
+          {
+            "path": "src/ui/v2/TaskFace.tsx",
+            "action": "MODIFIED",
+            "before_sha256": "5196c782364424882a83b4f05a427c50296a1ebc0b191232ab6b23a541aa95e5",
+            "after_lf_sha256": "6dfafb6f9337a1ddc531ac451191ac5b6c250817db1610fb2b135989db4e7979",
+            "lines_before": 490,
+            "lines_after": 251,
+            "bytes_before": 31936,
+            "bytes_after_lf": 16909
+          },
+          {
+            "path": "src/ui/v2/cardHeadFit.ts",
+            "action": "MODIFIED",
+            "before_sha256": "0c281ff626b658703e9b005cab3c756d23ce5212e04b2437b5c0d190fa07af0a",
+            "after_lf_sha256": "81ae80544101f9cc544f276e6b292c4ddba88b1413ce39c62a2b13b327189de9",
+            "lines_before": 114,
+            "lines_after": 26,
+            "bytes_before": 7775,
+            "bytes_after_lf": 1893
+          },
+          {
+            "path": "src/ui/v2/CandidateFace.tsx",
+            "action": "MODIFIED",
+            "before_sha256": "0745e772ab8a4e632dbdcb8b57c99b08d24371a069fe2ebca96b81ef6dbbd1ec",
+            "after_lf_sha256": "9910885a14281c641a4126ad5618271c299553ae4a103cccd5af1247e10a5e94",
+            "lines_before": 399,
+            "lines_after": 385,
+            "bytes_before": 27702,
+            "bytes_after_lf": 26533
+          },
+          {
+            "path": "src/ui/v2/PrijavaCard.tsx",
+            "action": "MODIFIED",
+            "before_sha256": "a1289ffa78f4eb8777449dd048929b9388d6e93ead228bf17c7303932ea623c0",
+            "after_lf_sha256": "c09cb7e5746688d0be0815419a206d8e5551aa81ba1f79b701b0d121f6950206",
+            "lines_before": 142,
+            "lines_after": 108,
+            "bytes_before": 9147,
+            "bytes_after_lf": 6324
+          },
+          {
+            "path": "src/data/__tests__/task-card-face.test.tsx",
+            "action": "MODIFIED",
+            "before_sha256": "5b8cbb0c5c7b217c2e25658b37e282699cba0bc5ba6e03caf00aace8ed89651d",
+            "after_lf_sha256": "51f9c92d9fe967ec82026f08e38d9fcbbb70e8e46363cdaf6c4f198f84c7f7cb",
+            "lines_before": 492,
+            "lines_after": 489,
+            "bytes_before": 35520,
+            "bytes_after_lf": 35340
+          },
+          {
+            "path": "src/data/__tests__/candidate-face.test.tsx",
+            "action": "MODIFIED",
+            "before_sha256": "9a51a63895a46708a9e8d1b6aa2cae0f63bc4c831517e9e6e9ada0c4a3cf40e7",
+            "after_lf_sha256": "52f9a228ffa5998696f65dd26b200cc49ef7000ee28cf7e1592c6db5e35ebdc1",
+            "lines_before": 749,
+            "lines_after": 744,
+            "bytes_before": 62874,
+            "bytes_after_lf": 62028
+          },
+          {
+            "path": "src/data/__tests__/prijava-card.test.tsx",
+            "action": "MODIFIED",
+            "before_sha256": "52b0a11b2ac43aa0e105f3ea0bc1e902cac7e2212460043aa36fc2f20561afe5",
+            "after_lf_sha256": "5ce115c721864e5749cbb4eb8d3d7d2becc92eb4d405a0f6e443c352789f4f00",
+            "lines_before": 158,
+            "lines_after": 141,
+            "bytes_before": 12598,
+            "bytes_after_lf": 10422
+          },
+          {
+            "path": "src/data/__tests__/task-card-layout-class.test.tsx",
+            "action": "MODIFIED",
+            "before_sha256": "1be8e349526966716bcd38e9b9976a0cddf0d85d0d350b6a7d2051dc7612a57a",
+            "after_lf_sha256": "006fc71761a955039587ec7d8f7fe025c5ec16641cc3214ac8d909616d082ddd",
+            "lines_before": 220,
+            "lines_after": 220,
+            "bytes_before": 15671,
+            "bytes_after_lf": 15591
+          },
+          {
+            "path": "src/ui/system/__tests__/glyph-import-guard.test.ts",
+            "action": "MODIFIED",
+            "before_sha256": "349c70cb82cfe22fb67b175c62022f27dd1feea36c07c1242f80449873d08e19",
+            "after_lf_sha256": "f4a5609b9c66eee8d329d33f98e79892fdfc24d085d718c49997ba6189723a9f",
+            "lines_before": 86,
+            "lines_after": 85,
+            "bytes_before": 4843,
+            "bytes_after_lf": 4815
+          }
+        ],
+        "retired_exports": [
+          "CardHead",
+          "CardDecision",
+          "CardFoot",
+          "CardBriefFoot",
+          "CardRequirement",
+          "CardPerson",
+          "CardPlaces",
+          "CardNext",
+          "CardNote",
+          "CardWaitingLine",
+          "CardFootLine",
+          "headBeside",
+          "wrapTitle",
+          "titleColumn",
+          "requesterPrijava"
+        ],
+        "retired_exclusively_dependent_symbols": [
+          "CardValue",
+          "CardFact",
+          "FootTone",
+          "FOOT_TONES",
+          "valueStyles",
+          "faceStyles",
+          "HEAD_GAP",
+          "ROOMY_WIDTH",
+          "BESIDE_MAX_TITLE",
+          "BESIDE_MAX_AMOUNT",
+          "BESIDE_MAX_LINES",
+          "AMOUNT_SIZE",
+          "BASIS_SIZE",
+          "CARD_SIDE",
+          "PrijavaWho.person",
+          "PrijavaModel.showTerm",
+          "PrijavaModel.has",
+          "PrijavaCard.trailing"
+        ]
+      },
+      "current_consumer_or_none": "All named old card drawings/layout gates had zero production callers. CardPlaces had one obsolete drawing test; its active placesText assertions remain. requesterPrijava and PrijavaCard person/has/showTerm/trailing branches were test-only. CardValue/CardFact/valueStyles/FootTone were exclusively dependent on removed drawings. faceStyles was internal; WaitingDot retains the exact style in its local stylesheet.",
+      "action": "RETIRED_RULE / REPLACED_BY_CURRENT: removed abandoned drawings and internal styles; narrowed worker PrijavaCard to its active task composition. CandidateFace retains its distinct real requester composition and shared price/status parts. Split mixed tests to retain current time, price, capacity, message and accessibility checks.",
+      "active_replacement": [
+        "TaskCard + discovery/DiscoveryTaskFace: active task card composition",
+        "ApplicationFace → PrijavaCard: worker application composition",
+        "CandidateCard/CandidateCompareCard/CandidatePerson: actual requester composition",
+        "PrijavaPriceText/PrijavaState and offer/RecordParts: shared price/state/actions",
+        "agreementStepsModel → cardHeadFit.textWidth: bundled font measurements retained",
+        "CardStatus/CardStatusLine/CardTitle/WaitingDot and pure task/status/capacity/rating/spoken helpers preserved"
+      ],
+      "dependent_tests_configs_docs": [
+        "candidate-face.test.tsx 59 → 59; removed test-only requester model assertions while retaining candidateHas/candidateTerm/candidateSpoken",
+        "task-card-face.test.tsx 54 → 54; CardPlaces rendering replaced by existing placesText business assertions; actual TaskCard cases retained",
+        "prijava-card.test.tsx 15 → 14; 1 requester-only retired composition case removed; mixed worker checks retained",
+        "task-card-layout-class.test.tsx 84 PASS; application-face.test.tsx 44 PASS",
+        "glyph-import-guard.test.ts: remove only the stale TaskFace Phosphor importer allowance after full CI40730103171 found it; guard logic and all 5 cases unchanged."
+      ],
+      "compatibility_boundary": "No merging of requester/worker interactions and no changes to command ownership, amounts, people counts, status or accessibility strings. No server/data projection changes. Tests establish structural behavior; native pixel-fit remains the release/device gate.",
+      "verification": {
+        "focused_tests": 127,
+        "removed_cases": 1,
+        "additional_active_card_tests": 128,
+        "unchanged_ast_declarations": 30,
+        "typecheck": "PASS",
+        "ci_followup": {
+          "ci_run": "40730103171",
+          "source_commit": "abc0f70e6d10c0c4b295fc75f71b0c195c1fcae9",
+          "observed_result": "1 failed / 14115 total tests; 613 of 614 suites passed",
+          "failure": "glyph-import-guard kept TaskFace.tsx on reviewed Phosphor importers after retired CardNext/CardFootLine and their only icon import were removed",
+          "fix": "Remove only src/ui/v2/TaskFace.tsx from PHOSPHOR_IMPORTERS; do not weaken source-scan assertions or restore obsolete runtime import",
+          "runtime_changes": false,
+          "verification": {
+            "command": "node node_modules/jest/bin/jest.js --runInBand --silent --json --outputFile=../cleanup-ui-glyph-fix.json --runTestsByPath src/ui/system/__tests__/glyph-import-guard.test.ts src/ui/system/__tests__/one-token-source.test.ts",
+            "status": "PASS",
+            "suites": 2,
+            "cases": 78,
+            "seconds": 1.925
+          },
+          "full_ci_after_fix": "PENDING parent run; no passing full-CI claim"
+        }
+      }
+    },
+    {
+      "source_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+      "business_rule_authority": "docs/plan/CODEX_PLAN_RADA.md section 7; REV10 readiness_review.json cleanup.retirement_batches/normalized_path_index/required_per_change_record; current R07 hourly per-person labels preserved",
+      "historical_reference_if_needed": "Original implementation and retired tests remain recoverable from Git at source_commit; no archive copy or default-suite exclusion was created.",
+      "id": "C07",
+      "path_or_symbol": {
+        "files": [
+          {
+            "path": "src/ui/entry/BrandScene.tsx",
+            "action": "REMOVED",
+            "before_sha256": "57d0b63b905c482816a836f426acbefdc8ec65b394b8e3fac13418e437750788",
+            "after_lf_sha256": null,
+            "lines_before": 172,
+            "lines_after": 0,
+            "bytes_before": 10303,
+            "bytes_after_lf": 0
+          },
+          {
+            "path": "src/ui/entry/BrandSceneReview.tsx",
+            "action": "REMOVED",
+            "before_sha256": "ca16abfce064498a707d6b5078bfa0f78add724b3715275faf70e3b04f29b25f",
+            "after_lf_sha256": null,
+            "lines_before": 50,
+            "lines_after": 0,
+            "bytes_before": 2885,
+            "bytes_after_lf": 0
+          },
+          {
+            "path": "src/ui/entry/entryV49Math.ts",
+            "action": "REMOVED",
+            "before_sha256": "218e2dd69e38d53ae0bf9b2a9e83f18ad0c7d2b513535ade9b46d1274c133bf2",
+            "after_lf_sha256": null,
+            "lines_before": 65,
+            "lines_after": 0,
+            "bytes_before": 4831,
+            "bytes_after_lf": 0
+          },
+          {
+            "path": "src/ui/entry/entryV49Notes.ts",
+            "action": "REMOVED",
+            "before_sha256": "00be4a7c9213e2ba24a04af48f8977895b151c1602e32d05b9cba9cd329ea9d7",
+            "after_lf_sha256": null,
+            "lines_before": 3,
+            "lines_after": 0,
+            "bytes_before": 29305,
+            "bytes_after_lf": 0
+          },
+          {
+            "path": "src/hooks/useEntryIntro.ts",
+            "action": "REMOVED",
+            "before_sha256": "ccbeffc5ff0d04b2a59d3014959b1729556a3e2a42759309864d5fcf31c57b01",
+            "after_lf_sha256": null,
+            "lines_before": 49,
+            "lines_after": 0,
+            "bytes_before": 2412,
+            "bytes_after_lf": 0
+          },
+          {
+            "path": "src/data/__tests__/entry-brand-scene-clock.test.tsx",
+            "action": "REMOVED",
+            "before_sha256": "a67e91b1a88703fc654ad282328678313cc6c24e17252a8621b647727b8bfd4c",
+            "after_lf_sha256": null,
+            "lines_before": 310,
+            "lines_after": 0,
+            "bytes_before": 18000,
+            "bytes_after_lf": 0
+          },
+          {
+            "path": "src/data/__tests__/entry-v49-reference.test.ts",
+            "action": "REMOVED",
+            "before_sha256": "fd19d099484bdf782d1fe3525ad841a35d1e330bd984478f4ebbe87b71bef5b7",
+            "after_lf_sha256": null,
+            "lines_before": 80,
+            "lines_after": 0,
+            "bytes_before": 5506,
+            "bytes_after_lf": 0
+          },
+          {
+            "path": "src/data/__tests__/entry-intro-hook.test.tsx",
+            "action": "REMOVED",
+            "before_sha256": "cc5c03e5dc6a907e44de95826b6762d6087fedd3f953ae18ebc824b973614e0e",
+            "after_lf_sha256": null,
+            "lines_before": 136,
+            "lines_after": 0,
+            "bytes_before": 7534,
+            "bytes_after_lf": 0
+          },
+          {
+            "path": "src/data/__tests__/fixtures/entry-v49-chrome.json",
+            "action": "REMOVED",
+            "before_sha256": "f12a7056bef91240986faeb7cea88cdcc8bd6ab9969a309add88515340e10e12",
+            "after_lf_sha256": null,
+            "lines_before": 303,
+            "lines_after": 0,
+            "bytes_before": 5817,
+            "bytes_after_lf": 0
+          },
+          {
+            "path": "src/data/__tests__/entry-brand-raster.test.tsx",
+            "action": "ADDED",
+            "before_sha256": null,
+            "after_lf_sha256": "8b654cbecedf487bde81d0988d0af9be3c42e86a0086b972cad400f12800b064",
+            "lines_before": 0,
+            "lines_after": 25,
+            "bytes_before": 0,
+            "bytes_after_lf": 1708
+          },
+          {
+            "path": "src/ui/system/__tests__/one-token-source.test.ts",
+            "action": "MODIFIED",
+            "before_sha256": "a037b11292d3965911e1d5e67c83604863d1ced68e2414a4adf44468e8a86e2c",
+            "after_lf_sha256": "6c1deb6444e3036e506b2a25b287be87809862939484d7ba5ea71f98f2e46a70",
+            "lines_before": 484,
+            "lines_after": 482,
+            "bytes_before": 31283,
+            "bytes_after_lf": 31116
+          },
+          {
+            "path": "src/designLab/dizajn-profil.tsx",
+            "action": "MODIFIED",
+            "before_sha256": "71375b9de128b10c55b2f779cb9f0be0d6ace253d04098d024f107eb73578a69",
+            "after_lf_sha256": "c4ac58b28cbf342d70a5f3da72a9d8d8a03cf8ee7c1640ddefffc7110ac7a05a",
+            "lines_before": 579,
+            "lines_after": 577,
+            "bytes_before": 57422,
+            "bytes_after_lf": 57207
+          }
+        ],
+        "preserved_paths": [
+          "src/ui/entry/EntryWelcome.tsx",
+          "src/ui/entry/BrandAssets.tsx",
+          "src/ui/entry/BrandRaster.tsx",
+          "src/ui/entry/spojBrandMath.ts",
+          "src/ui/entry/spojBrandData.ts",
+          "assets/brand/premium-entry",
+          "assets/brand/reference-entry",
+          "scripts/sync-entry-reference-assets.cjs",
+          "package.json postinstall"
+        ]
+      },
+      "current_consumer_or_none": "BrandScene/BrandSceneReview: only the internal designLab brand-dimensional scene and old tests. entryV49Math/entryV49Notes: only entry-v49-reference test. useEntryIntro: only entry-intro-hook test. entry-v49-chrome fixture: only removed V49 test. BrandAssets/BrandRaster/BRAND_PARTS remain used by active auth/chrome/error/discovery/settings components.",
+      "action": "RETIRED_RULE: removed abandoned motion source, its design scene, V49 fixture and exclusive tests. Removed its exact token duration allowance. REPLACED_BY_CURRENT: moved the one active BrandRaster/native-SVG-transform regression unchanged into entry-brand-raster.test.tsx. No old design reference retained as a current visual target.",
+      "active_replacement": [
+        "EntryWelcome premium PNG composition and useEntrySplashReady",
+        "entry-spoj-surface.test.tsx and entry-splash-ready-hook.test.tsx",
+        "entry-brand-raster.test.tsx: existing active asset transform regression",
+        "Unchanged sync-entry-reference-assets.cjs postinstall generator and three hash-bound reference-entry input files"
+      ],
+      "dependent_tests_configs_docs": [
+        "entry-brand-scene-clock.test.tsx: 23 cases removed with file; 1 preserved unchanged in entry-brand-raster.test.tsx; net 22 retired",
+        "entry-v49-reference.test.ts: 24 historical-only cases retired; current premium inputs covered by entry-spoj-surface",
+        "entry-intro-hook.test.tsx: 12 retired cosmetic first-visit intro cases",
+        "one-token-source.test.ts: only removed V49 duration allowance; 73 current token checks PASS",
+        "dizajn-profil.tsx: removed import and brand-dimensional scene together; other scenes preserved",
+        "scripts/sync-entry-reference-assets.cjs/package.json unchanged; fresh-output execution + second run verified all 3 manifests/lengths/SHA256"
+      ],
+      "compatibility_boundary": "EntryWelcome, premium PNG, active auth/splash hooks, BrandAssets/BrandRaster, generated font and reference-entry inputs are untouched. Old cosmetic intro-seen storage is not migrated or deleted. The clean-output generator test is not a full clean dependency install, native device or store build proof.",
+      "verification": {
+        "focused_tests": 1,
+        "net_removed_cases": 58,
+        "active_entry_tests": 31,
+        "token_tests": 73,
+        "clean_output_generator": {
+          "generator": "scripts/sync-entry-reference-assets.cjs",
+          "clean_outputs": true,
+          "repeated_run": "PASS",
+          "results": [
+            {
+              "path": "assets/generated/uskoci-entry-city.webp",
+              "bytes": 64388,
+              "sha256": "ad4c57566f3a69b269f6371f2ed516146e583e820c2ce8051c3dcaf870193f01"
+            },
+            {
+              "path": "assets/generated/uskoci-rounded.ttf",
+              "bytes": 134916,
+              "sha256": "0b82ab5fdba8e0147e38e89237ea4a430f0d7017c313d9b8e56a309acde756c0"
+            },
+            {
+              "path": "src/ui/referenceEntry/entryReferenceData.ts",
+              "bytes": 36438,
+              "sha256": "9e4667d9d7050f041c9c9dcdee17054a5928261d139dc7e4d4bca66f5e2e8e47"
+            }
+          ]
+        },
+        "native_device_acceptance": "OPEN"
+      }
+    }
+  ],
+  "verification_evidence": {
+    "cleanup-ui-before.json": {
+      "sha256": "05251b6b49dd500fa4cd5445ab207e0e42089fb9194ee1509d839e8f0049fbdd",
+      "location": "../cleanup-ui-before.json"
+    },
+    "cleanup-ui-after.json": {
+      "sha256": "c6126fd25d43e53fa08d62340bbf5cd3044694b6eeb062cc0f6c6513f074a49b",
+      "location": "../cleanup-ui-after.json"
+    },
+    "cleanup-ui-active.json": {
+      "sha256": "c0ba241b9dc0e564dc070bbe9e0300045baa5052191e3fd9fa3e3534a3c54337",
+      "location": "../cleanup-ui-active.json"
+    },
+    "cleanup-ui-preserved.json": {
+      "sha256": "1cc38fa927f86559f4481819adaa16dd8817da952af9f563396fa7cc7aefca61",
+      "location": "../cleanup-ui-preserved.json"
+    },
+    "cleanup-ui-install-proof.json": {
+      "sha256": "5912d762c03fda9b9aa2e0c4c766300e55e509364c5edc1322ea392233feb89e",
+      "location": "../cleanup-ui-install-proof.json"
+    },
+    "cleanup-ui-glyph-fix.json": {
+      "sha256": "5b20b2ba8263cf5a57e8a0f6173a75ebc8ae9f76406e9fb76cbd6c35f7e03dff",
+      "location": "../cleanup-ui-glyph-fix.json"
+    },
+    "cleanup-ui-auth-scale-current.json": {
+      "sha256": "6b451ae5ba7542d26fd15bf2f4475d9125e7ac97fce19a775146cecb5d122bdf",
+      "location": "../cleanup-ui-auth-scale-current.json"
+    },
+    "cleanup-second-test-count-reconciliation.json": {
+      "sha256": "003133b2ead899b9b8caad0397768031ab105c5919ea0b09fbcb88d4290c5baa",
+      "location": "../cleanup-second-test-count-reconciliation.json"
+    }
+  },
+  "review": {
+    "react_skill": "vercel:react-best-practices SKILL.md reviewed; no new state/effects/events/fetching, active memo components/accessible descriptions/role-specific composition retained",
+    "remaining": "Full CI/build and device/native acceptance are parent/release checks; root ledger update intentionally belongs to parent agent."
+  },
+  "ci_followup": {
+    "ci_run": "40730103171",
+    "source_commit": "abc0f70e6d10c0c4b295fc75f71b0c195c1fcae9",
+    "observed_result": "1 failed / 14115 total tests; 613 of 614 suites passed",
+    "failure": "glyph-import-guard kept TaskFace.tsx on reviewed Phosphor importers after retired CardNext/CardFootLine and their only icon import were removed",
+    "fix": "Remove only src/ui/v2/TaskFace.tsx from PHOSPHOR_IMPORTERS; do not weaken source-scan assertions or restore obsolete runtime import",
+    "runtime_changes": false,
+    "verification": {
+      "command": "node node_modules/jest/bin/jest.js --runInBand --silent --json --outputFile=../cleanup-ui-glyph-fix.json --runTestsByPath src/ui/system/__tests__/glyph-import-guard.test.ts src/ui/system/__tests__/one-token-source.test.ts",
+      "status": "PASS",
+      "suites": 2,
+      "cases": 78,
+      "seconds": 1.925
+    },
+    "full_ci_after_fix": "PENDING parent run; no passing full-CI claim"
+  },
+  "whole_batch_case_count_reconciliation": {
+    "schema": "USKOCI_CLEANUP_SECOND_JEST_COUNT_RECONCILIATION_V1",
+    "baseline_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+    "baseline_full_ci": "40718314704",
+    "current_full_ci": "40730103171",
+    "baseline_suites": 622,
+    "current_suites": 614,
+    "baseline_cases": 14352,
+    "current_cases": 14115,
+    "delta": 237,
+    "recorded_explicit_retirements": {
+      "C03_C04_C07": 138,
+      "C08": 23,
+      "C12": 74
+    },
+    "additional_derived_retirements": {
+      "owner": "C12",
+      "path": "src/ui/auth/__tests__/auth-scale.test.ts",
+      "test_source_unchanged": true,
+      "test_sha256_lf": "d6659128d0e1aa44dc232fe3959016c4f5c6b3d33ec3c1bdbd68d420f4b26e7b",
+      "scope_before": [
+        "src/app/auth.tsx",
+        "src/app/oporavak.tsx",
+        "src/ui/auth/AccountClosingState.tsx",
+        "src/ui/auth/AuthControls.tsx",
+        "src/ui/auth/AuthFlowFrame.tsx",
+        "src/ui/auth/AuthFormStep.tsx",
+        "src/ui/auth/AuthGallery.tsx",
+        "src/ui/auth/AuthIntentLine.tsx",
+        "src/ui/auth/AuthPresentation.tsx",
+        "src/ui/auth/AuthSheet.tsx",
+        "src/ui/auth/AuthStateSteps.tsx",
+        "src/ui/auth/RecoveryLinkSteps.tsx",
+        "src/ui/auth/RestrictedAccountPanel.tsx",
+        "src/ui/auth/authCopy.ts",
+        "src/ui/auth/authMethods.ts",
+        "src/ui/auth/authValidation.ts",
+        "src/ui/auth/keyboardReveal.ts",
+        "src/ui/auth/supportContact.ts",
+        "src/ui/auth/useKeyboardOpen.ts",
+        "src/ui/permissions/PermissionAskHost.tsx",
+        "src/ui/permissions/locationPermission.ts",
+        "src/ui/permissions/notificationAsk.ts",
+        "src/ui/permissions/permissionAsk.ts",
+        "src/ui/permissions/testing/answeringHost.ts"
+      ],
+      "scope_after": [
+        "src/app/auth.tsx",
+        "src/app/oporavak.tsx",
+        "src/ui/auth/AccountClosingState.tsx",
+        "src/ui/auth/AuthControls.tsx",
+        "src/ui/auth/AuthFlowFrame.tsx",
+        "src/ui/auth/AuthFormStep.tsx",
+        "src/ui/auth/AuthGallery.tsx",
+        "src/ui/auth/AuthIntentLine.tsx",
+        "src/ui/auth/AuthPresentation.tsx",
+        "src/ui/auth/AuthSheet.tsx",
+        "src/ui/auth/AuthStateSteps.tsx",
+        "src/ui/auth/RecoveryLinkSteps.tsx",
+        "src/ui/auth/RestrictedAccountPanel.tsx",
+        "src/ui/auth/authCopy.ts",
+        "src/ui/auth/authMethods.ts",
+        "src/ui/auth/authValidation.ts",
+        "src/ui/auth/keyboardReveal.ts",
+        "src/ui/auth/supportContact.ts",
+        "src/ui/auth/useKeyboardOpen.ts",
+        "src/ui/permissions/PermissionAskHost.tsx",
+        "src/ui/permissions/locationPermission.ts",
+        "src/ui/permissions/permissionAsk.ts",
+        "src/ui/permissions/testing/answeringHost.ts"
+      ],
+      "fixed_cases": 3,
+      "parameterized_groups": 2,
+      "cases_before": 51,
+      "cases_after": 49,
+      "current_executed_cases": 49,
+      "current_result": "PASS",
+      "removed_cases": [
+        "the sign-in screens stand on the one scale src/ui/permissions/notificationAsk.ts spells no padding, margin or gap off the scale",
+        "the sign-in screens stand on the one scale src/ui/permissions/notificationAsk.ts spells no size, corner, colour, hairline or typeface of its own"
+      ]
+    },
+    "reconciled_totals": {
+      "C03_C04_C07": 138,
+      "C08": 23,
+      "C12_including_derived": 76,
+      "total": 237
+    },
+    "classification": "RETIRED_RULE: generic source scanner no longer generates checks for removed notificationAsk prototype; scanner remains unchanged for all current files."
+  }
+}

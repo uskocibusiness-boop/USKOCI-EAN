@@ -5,7 +5,7 @@ import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { inicijali } from '../../../lib/inicijali';
-import { useSesija } from '../../../store/sesija';
+import { sesijaSada, useSesija } from '../../../store/sesija';
 import { useIzvor } from '../../../store/uloga';
 import { cityLabel } from '../../../ui/profile/cityLabel';
 import { ProfilePhoto } from '../../../ui/media/ContextPhotos';
@@ -63,12 +63,22 @@ function OwnedPersonalProfile() {
     if(correction)go(()=>router.navigate({pathname:'/profil/razgovor',params:{aiCorrection:correction.token}}));
   };
   const profile = editor.data;
+  const sameAccount = () => !!user?.id && sesijaSada().user?.id === user.id && sesijaSada().accountRevision === accountRevision;
+  // A previous session may have saved the account name but lost the work-name acknowledgement.
+  // Detect a real readback mismatch; never auto-write or infer that an unavailable work read is a mismatch.
+  const workNameMismatch = !!profile && !!work.data && !work.loading && !work.error
+    && profile.displayName.trim() !== work.data.ime.trim();
+  const showWorkNameRepair = !!profile && !dirty && !editor.uncertain && (workNameFailed || workNameMismatch);
   // The account's name is saved; only the work profile's is written again (never the account's, which would need a new revision and request).
   const retryWorkName = async () => {
-    if (!profile || retryingRef.current) return;
+    if (!profile || retryingRef.current || editor.busy || editor.uncertain || dirty || !sameAccount()) return;
+    // A missing/stale work read is not permission to overwrite an unknown profile name.
+    if (!work.data || work.loading || work.error) { void work.refresh(); return; }
     retryingRef.current = true; setRetrying(true);
-    try { setWorkNameFailed(await writeWorkName(izvor, profile.displayName) === 'failed'); }
-    finally { retryingRef.current = false; setRetrying(false); }
+    try {
+      const outcome = await writeWorkName(izvor, profile.displayName, sameAccount, work.data?.ime);
+      if (sameAccount()) { setWorkNameFailed(outcome === 'failed'); void work.refresh(); }
+    } finally { retryingRef.current = false; if (sameAccount()) setRetrying(false); }
   };
   return <SettingsScreen title="Lični podaci" onBack={leave.back} right={profile && nameSave ? <NameSaveButton control={nameSave} /> : undefined}>
     {profile ? <>
@@ -82,10 +92,11 @@ function OwnedPersonalProfile() {
           const result = await requesterProfileClientService.save({ displayName: name, clientRequestId: requestId, expectedRevision: profile.revision });
           if (!result.ok) return result;
           // The second write, after the first is confirmed: the same name into the work profile, if the account has one.
-          setWorkNameFailed(await writeWorkName(izvor, result.podatak.identity.displayName) === 'failed');
+          const outcome = await writeWorkName(izvor, result.podatak.identity.displayName, sameAccount);
+          if (sameAccount()) { setWorkNameFailed(outcome === 'failed'); void work.refresh(); }
           return { ok: true, podatak: result.podatak.identity };
         })} />
-      {workNameFailed ? <WorkNameNotice retrying={retrying} onRetry={() => { void retryWorkName(); }} /> : null}
+      {showWorkNameRepair ? <WorkNameNotice retrying={retrying} onRetry={() => { void retryWorkName(); }} /> : null}
       {/* "O meni" is the work profile's text, written where the work profile is: its editor opens on that part. */}
       {dirty?<T variant="note" tone="muted">Sačuvaj ime pre izmene radnog profila.</T>:null}
       <ProfileFactRows about={about} city={city} onAbout={() => editWithAi('identity')} onCity={() => editWithAi('area')}

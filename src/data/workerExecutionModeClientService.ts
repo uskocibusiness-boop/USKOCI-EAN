@@ -1,6 +1,7 @@
 import { sesijaSada } from '../store/sesija';
 import { ownProfileClientService } from './ownProfileClientService';
 import { supabaseKlijent } from './supabaseClient';
+import { decodeWorkerSavedServices, type WorkerSavedService } from '../contracts/workerSavedServices';
 
 export type WorkerExecutionMode = 'ON_SITE' | 'REMOTE';
 export type WorkerExecutionModeReceipt = {
@@ -8,6 +9,8 @@ export type WorkerExecutionModeReceipt = {
   confirmed: boolean;
   modes: WorkerExecutionMode[];
   confirmedAt: string | null;
+  /** Undefined on the legacy reader; never fill from an AI conversation draft. */
+  services?: readonly WorkerSavedService[];
 };
 
 export function canonicalWorkerExecutionModes(modes: readonly WorkerExecutionMode[]): WorkerExecutionMode[] {
@@ -44,17 +47,30 @@ function scoped(accountId: string, accountRevision: number) {
   }
 }
 
-function readReceipt(value: unknown, profileId: string): WorkerExecutionModeReceipt {
+/** A confirmed choice must carry its actual zoned PostgreSQL timestamp; never
+ * interpret a missing, local-time or malformed value as confirmed consent. */
+function confirmedInstant(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?(?:Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.test(value)
+    || !Number.isFinite(Date.parse(value))) return false;
+  const year = Number(value.slice(0, 4)), month = Number(value.slice(5, 7)), day = Number(value.slice(8, 10));
+  return month >= 1 && month <= 12 && day >= 1 && day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+export function decodeWorkerExecutionModeReceipt(value: unknown, profileId: string): WorkerExecutionModeReceipt {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('WORKER_MODE_INVALID_RECEIPT');
   const row = value as Record<string, unknown>;
   if (row.workerProfileId !== profileId || typeof row.confirmed !== 'boolean' || !Array.isArray(row.modes)
     || row.modes.some(mode => mode !== 'ON_SITE' && mode !== 'REMOTE')
     || row.modes.length > 2 || new Set(row.modes).size !== row.modes.length
     || (row.confirmed ? row.modes.length < 1 : row.modes.length !== 0)
-    || (row.confirmedAt !== null && typeof row.confirmedAt !== 'string')) throw new Error('WORKER_MODE_INVALID_RECEIPT');
+    || (row.confirmed ? !confirmedInstant(row.confirmedAt) : row.confirmedAt !== null)) throw new Error('WORKER_MODE_INVALID_RECEIPT');
+  const hasServices = 'servicesVersion' in row || 'services' in row;
+  const services = hasServices ? decodeWorkerSavedServices(row.services) : undefined;
+  if (hasServices && (row.servicesVersion !== 'WORKER_SAVED_SERVICES_V1' || !services)) throw new Error('WORKER_MODE_INVALID_RECEIPT');
   return { workerProfileId: profileId, confirmed: row.confirmed,
     modes: canonicalWorkerExecutionModes(row.modes as WorkerExecutionMode[]),
-    confirmedAt: typeof row.confirmedAt === 'string' ? row.confirmedAt : null };
+    confirmedAt: row.confirmed ? row.confirmedAt as string : null,
+    ...(services ? { services } : {}) };
 }
 
 async function ownedWorkerId(accountId: string, accountRevision: number): Promise<string> {
@@ -73,7 +89,7 @@ export const workerExecutionModeClientService = {
     });
     scoped(accountId, accountRevision);
     if (error) throw new Error('WORKER_MODE_READ_FAILED');
-    return readReceipt(data, profileId);
+    return decodeWorkerExecutionModeReceipt(data, profileId);
   },
 
   async save(accountId: string, accountRevision: number, modes: WorkerExecutionMode[]): Promise<WorkerExecutionModeReceipt> {

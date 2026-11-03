@@ -45,7 +45,7 @@ type AuthFieldProps = {
 /**
  * One field of a form: its label above it (outside the box, 4 dp over it, so a long label has room and the box is the system
  * field), the box, and under it the one sentence that is wrong or the one quiet line that helps. The whole field is what is kept
- * in view when it takes focus and the keyboard comes up (`keyboardReveal`).
+ * in view when it takes focus and the keyboard comes up; the input has priority if the whole field cannot fit (`keyboardReveal`).
  */
 export function AuthField({
   label, value, onChangeText, placeholder, secure, keyboardType, autoCapitalize = 'none', editable = true, newPassword = false,
@@ -54,18 +54,19 @@ export function AuthField({
   const [shown, setShown] = useState(false);
   const [focused, setFocused] = useState(false);
   const box = useRef<View>(null);
+  const control = useRef<View>(null);
   const reveal = useFocusRevealContext();
   const complete = autoComplete ?? (keyboardType === 'email-address' ? 'email' : secure ? (newPassword ? 'new-password' : 'current-password') : 'off');
   return <View ref={box} testID={`auth-field:${label}`} collapsable={false} style={s.field}>
     {/* The input carries the label for assistive technology; saying it twice would read it twice. */}
     <T variant="meta" tone={focused ? 'ink' : 'muted'} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{label}</T>
-    <View style={s.boxFrame}>
+    <View ref={control} testID={`auth-input:${label}`} collapsable={false} style={s.boxFrame}>
       <TextInput testID={testID} ref={inputRef} accessibilityLabel={label} value={value} onChangeText={onChangeText}
         editable={editable} autoCapitalize={autoCapitalize} autoCorrect={false} keyboardType={keyboardType} placeholder={placeholder}
         placeholderTextColor={sys.color.muted} secureTextEntry={secure && !shown} selectionColor={sys.color.green}
         autoComplete={complete} returnKeyType={returnKeyType} onSubmitEditing={onSubmitEditing}
         submitBehavior={returnKeyType === 'next' ? 'submit' : 'blurAndSubmit'}
-        onFocus={() => { setFocused(true); reveal.focus(box); }}
+        onFocus={() => { setFocused(true); reveal.focus(box, control); }}
         onBlur={() => { setFocused(false); reveal.blur(box); onBlur?.(); }}
         style={[field, secure && s.withEye, focused && s.focused, !!error && s.invalid, !editable && s.disabled]} />
       {secure ? <Press accessibilityRole="button" disabled={!editable} accessibilityState={{ disabled: !editable }}

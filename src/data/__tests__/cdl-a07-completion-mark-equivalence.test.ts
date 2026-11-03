@@ -32,11 +32,9 @@ function resetRpc(result: unknown) {
 describe('CDL-A07 — canonical completion-mark contract', () => {
   it('physically eliminates both lower-precedence completion-mark owners', () => {
     const dataDir = join(__dirname, '..');
-    const authoritySource = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
     const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
     const canonicalSource = readFileSync(join(dataDir, 'agreementClientService.ts'), 'utf8');
 
-    expect(authoritySource).not.toContain('oznaciZavrsetak');
     expect(baselineSource).not.toContain('async oznaciZavrsetak(');
     expect(baselineSource).not.toContain('rokPotvrdeIso: new Date().toISOString()');
     expect(baselineSource).toContain("'oznaciZavrsetak'");

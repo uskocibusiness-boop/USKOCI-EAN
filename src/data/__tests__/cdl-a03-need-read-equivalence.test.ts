@@ -9,6 +9,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+let mockAccount: { user: { id: string } | null; accountRevision: number };
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockAccount }));
+
 jest.mock('../supabaseClient', () => {
   const mockGetUser = jest.fn();
   const mockFrom = jest.fn();
@@ -66,6 +69,7 @@ const mocks = (jest.requireMock('../supabaseClient') as {
 }).__testMocks;
 
 function reset() {
+  mockAccount = { user: { id: 'requester-1' }, accountRevision: 1 };
   Object.values(mocks).forEach((mock) => mock.mockClear());
   mocks.mockGetUser.mockResolvedValue({
     data: { user: { id: 'requester-1' } },
@@ -120,6 +124,36 @@ describe('CDL-A03 — canonical Need read contract', () => {
     expect(unknown.home.prompts?.[0].title).toBe('Nastavi nacrt');
   });
 
+  it.each([undefined, null, false, { id: 'response-1' }, [{ id: '' }], [null], [{}], [{ id: 2 }]])(
+    'rejects an unavailable or malformed owner application collection instead of falsely reporting zero: %p', async rows => {
+      mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, marketplace_responses: rows } });
+      await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_RESPONSE_COUNT_INVALID');
+    });
+  it('reports zero applications only when the response collection is confirmed empty', async () => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, marketplace_responses: [] } });
+    expect((await needClientService.potreba(rawNeed.id))?.brojPrijava).toBe(0);
+  });
+
+  it.each([
+    { fields: { revision: null }, code: 'NEED_REVISION_INVALID' },
+    { fields: { revision: 0 }, code: 'NEED_REVISION_INVALID' },
+    { fields: { revision: '4' }, code: 'NEED_REVISION_INVALID' },
+    { fields: { revision: 1.5 }, code: 'NEED_REVISION_INVALID' },
+    { fields: { revision: Number.NaN }, code: 'NEED_REVISION_INVALID' },
+    { fields: { requester_price_rsd: 0 }, code: 'NEED_PRICE_INVALID' },
+    { fields: { requester_price_rsd: -1 }, code: 'NEED_PRICE_INVALID' },
+    { fields: { requester_price_rsd: '2500' }, code: 'NEED_PRICE_INVALID' },
+    { fields: { requester_price_rsd: 100.2 }, code: 'NEED_PRICE_INVALID' },
+    { fields: { requester_price_rsd: Number.NaN }, code: 'NEED_PRICE_INVALID' },
+  ])('rejects an invalid owner revision or price without inventing its exact contract: $fields', async ({ fields, code }) => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, ...fields } });
+    await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow(code);
+  });
+  it('keeps a draft without an agreed price valid, without inventing 0 RSD', async () => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, mode: 'OFFERS', requester_price_rsd: null } });
+    expect((await needClientService.potreba(rawNeed.id))?.ponudjenaCena).toBeUndefined();
+  });
+
   it('PKG-045: reads selectable count in the explicit document and preserves the historical total', async () => {
     mocks.mockOrder.mockResolvedValue({ error: null, data: [{ ...rawNeed, selectable_application_count: 0 }] });
     const [row] = await needClientService.mojePotrebe();
@@ -131,6 +165,23 @@ describe('CDL-A03 — canonical Need read contract', () => {
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, selectable_application_count: count } });
     await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_ACTIONABLE_COUNT_INVALID');
   });
+  it.each([
+    { required_slots: null }, { required_slots: undefined }, { required_slots: 0 },
+    { required_slots: 51 }, { required_slots: 1.5 }, { required_slots: Number.NaN },
+    { required_slots: '2' }, { covered_slots: null }, { covered_slots: undefined },
+    { covered_slots: -1 }, { covered_slots: 3 }, { covered_slots: Number.NaN },
+    { covered_slots: 1.5 }, { covered_slots: '1' },
+  ])('never invents or clamps a missing, invalid or overfilled Need capacity: %p', async fields => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, ...fields } });
+    await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_CAPACITY_INVALID');
+  });
+  it('preserves exact zero and fully-covered capacities without inventing an action', async () => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, required_slots: 1, covered_slots: 0 } });
+    expect((await needClientService.potreba(rawNeed.id))?.pokrivenost).toMatchObject({ ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 });
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, required_slots: 50, covered_slots: 50 } });
+    expect((await needClientService.potreba(rawNeed.id))?.pokrivenost).toMatchObject({ ukupno: 50, popunjeno: 50, preostalo: 0, udeo: 1 });
+  });
+
   it('preserves null when the server does not disclose the owner count', async () => {
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, selectable_application_count: null } });
     expect((await needClientService.potreba(rawNeed.id))?.brojPrijavaZaIzbor).toBeNull();
@@ -263,6 +314,109 @@ describe('CDL-A03 — canonical Need read contract', () => {
     reset();
     mocks.mockMaybeSingle.mockResolvedValue({ data: null, error: { message: 'NEED_DENIED' } });
     await expect(needClientService.potreba('need-1')).rejects.toThrow('NEED_DENIED');
+  });
+
+  it.each(['resolve', 'reject'])('bounds a non-cooperative detail transport at 15s and ignores its late %s', async late => {
+    jest.useFakeTimers();
+    let resolve!: (value: unknown) => void, reject!: (reason: Error) => void;
+    const transport = new Promise((yes, no) => { resolve = yes; reject = no; });
+    const abortSignal = jest.fn((_signal: AbortSignal) => transport);
+    mocks.mockRpc.mockImplementationOnce(() => Object.assign(transport, { abortSignal }));
+    let outcome: unknown = 'pending';
+    const read = needClientService.potreba(rawNeed.id).then(
+      data => { outcome = data; }, error => { outcome = error.message; });
+    try {
+      await jest.advanceTimersByTimeAsync(14_999);
+      expect(outcome).toBe('pending');
+      await jest.advanceTimersByTimeAsync(1);
+      expect(outcome).toBe('NEED_READ_FAILED');
+      await read;
+      expect(abortSignal).toHaveBeenCalledTimes(1);
+      expect(abortSignal.mock.calls[0][0].aborted).toBe(true);
+      if (late === 'reject') reject(new Error('LATE_TRANSPORT_ERROR'));
+      else resolve({ data: { ...rawNeed, id: '11111111-1111-4111-8111-111111111111', urgent: true }, error: null });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(outcome).toBe('NEED_READ_FAILED');
+      expect(mocks.mockRpc).toHaveBeenCalledTimes(1);
+      expect(jest.getTimerCount()).toBe(0);
+    } finally {
+      resolve({ data: null, error: null });
+      await read;
+      jest.useRealTimers();
+    }
+  });
+
+  it.each(['reject', 'throw'])('keeps a transport %s distinct from a confirmed missing task', async kind => {
+    mocks.mockRpc.mockImplementationOnce(() => {
+      if (kind === 'throw') throw new Error('PRIVATE_TRANSPORT_DETAIL');
+      return Promise.reject(new Error('PRIVATE_TRANSPORT_DETAIL'));
+    });
+    await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_READ_FAILED');
+    expect(mocks.mockRpc).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([null, undefined, {}, { data: null }, { error: null }, { data: null, error: false },
+    ...[undefined, false, 0, '', [], 'task'].map(data => ({ data, error: null }))])(
+    'rejects a malformed detail response rather than pretending the task is missing: %p', async response => {
+      mocks.mockRpc.mockResolvedValueOnce(response);
+      await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_DETAIL_INVALID_PROJECTION');
+      expect(mocks.mockRpc).toHaveBeenCalledTimes(1);
+    });
+
+  it('preserves the backend error fallback without interpreting its data as a task', async () => {
+    mocks.mockRpc.mockResolvedValueOnce({ data: rawNeed, error: {} });
+    await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_READ_FAILED');
+    expect(mocks.mockRpc).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not dispatch a detail read without an active account, while blank IDs still need no request', async () => {
+    mockAccount = { user: null, accountRevision: 2 };
+    await expect(needClientService.potreba('  ')).resolves.toBeNull();
+    await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('AUTH_REQUIRED');
+    expect(mocks.mockRpc).not.toHaveBeenCalled();
+  });
+
+  it.each(['other-account', 'same-account-new-incarnation'])('rejects a detail response after %s', async change => {
+    let finish!: (value: unknown) => void;
+    mocks.mockRpc.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const read = needClientService.potreba(rawNeed.id);
+    mockAccount = { user: { id: change === 'other-account' ? 'requester-2' : 'requester-1' }, accountRevision: 2 };
+    finish({ data: rawNeed, error: null });
+    await expect(read).rejects.toThrow('AUTH_ACCOUNT_CHANGED');
+    expect(mocks.mockRpc).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['deadline', 'account-change'])('retains the independent 4s urgency bound and account fence: %s', async end => {
+    jest.useFakeTimers();
+    const id = '11111111-1111-4111-8111-111111111111';
+    let finish!: (value: unknown) => void;
+    mocks.mockRpc.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const urgencyAbort = jest.fn((_signal: AbortSignal) => new Promise(() => {}));
+    mocks.mockRpc.mockImplementationOnce(() => ({ abortSignal: urgencyAbort }));
+    let outcome: unknown = 'pending';
+    const read = needClientService.potreba(id).then(
+      data => { outcome = data; }, error => { outcome = error.message; });
+    try {
+      await jest.advanceTimersByTimeAsync(14_999);
+      finish({ data: { ...rawNeed, id, urgent: true }, error: null });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(mocks.mockRpc).toHaveBeenLastCalledWith('fn_need_urgency', { p_need_id: id });
+      if (end === 'account-change') mockAccount = { user: { id: 'requester-1' }, accountRevision: 2 };
+      else {
+        await jest.advanceTimersByTimeAsync(3999);
+        expect(outcome).toBe('pending');
+      }
+      await jest.advanceTimersByTimeAsync(end === 'account-change' ? 100 : 1);
+      await read;
+      if (end === 'account-change') expect(outcome).toBe('AUTH_ACCOUNT_CHANGED');
+      else expect(outcome).toMatchObject({ id, naslov: rawNeed.title, urgency: undefined });
+      expect(urgencyAbort.mock.calls[0][0].aborted).toBe(true);
+      expect(mocks.mockRpc).toHaveBeenCalledTimes(2);
+      expect(jest.getTimerCount()).toBe(0);
+    } finally {
+      await jest.advanceTimersByTimeAsync(20_000);
+      jest.useRealTimers();
+    }
   });
 });
 
@@ -490,4 +644,11 @@ describe('schema-compatible historical Need detail', () => {
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, schedule_kind } });
     await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_DETAIL_INVALID_PROJECTION');
   });
+});
+
+it('states hourly per-person meaning without deriving an unknown total from people alone', () => {
+  const hourly = { rezimCene: 'MY_PRICE', osnovaCene: 'HOURLY' as const,
+    ponudjenaCena: { iznos: 1200, prikaz: '1.200 RSD' }, pokrivenost: { ukupno: 2 } };
+  expect(needPriceText(hourly, { withTotal: true })).toBe('1.200 RSD po osobi po satu');
+  expect(needPriceBasisNote(hourly)).toBe('po osobi po satu');
 });

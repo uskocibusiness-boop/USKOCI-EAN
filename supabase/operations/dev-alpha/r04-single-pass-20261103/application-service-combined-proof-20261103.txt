@@ -1,0 +1,13 @@
+✔ captured application-service dependencies retain exact hashes (1.8777ms)
+✔ known task service prepares once, preserves prior capabilities, and becomes confirmed only after the real binder (2962.9774ms)
+✔ wrong owner, foreign TEST/REAL world, changed task and withdrawn offer cannot prepare a profile update (1951.2989ms)
+✔ expired or task-stale preparation never silently saves and a fresh prepare preserves the same category (1954.3498ms)
+✔ existing ordinary profile draft is preserved and ON_SITE needs a real area (1914.7749ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9532.3679

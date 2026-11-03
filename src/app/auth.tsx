@@ -14,7 +14,7 @@ import { RestrictedAccountScreen } from '../ui/auth/RestrictedAccountPanel';
 import { authCopy } from '../ui/auth/authCopy';
 import { defaultAuthMethods } from '../ui/auth/authMethods';
 import {
-  authFieldMessages, firstInvalidField, isEmailAddress, tidyCity, validateAuthForm, type AuthFieldErrors, type AuthFieldName,
+  authFieldMessages, firstInvalidField, isEmailAddress, validateAuthForm, type AuthFieldErrors, type AuthFieldName,
 } from '../ui/auth/authValidation';
 import { publicSupportMailto } from '../ui/auth/supportContact';
 
@@ -64,7 +64,6 @@ export default function AuthScreen() {
 
   const [ime, setIme] = useState('');
   const [prezime, setPrezime] = useState('');
-  const [grad, setGrad] = useState('');
   const [email, setEmail] = useState('');
   // Signing up asks for the password once (design proposal N2): the eye on the field shows it, so a typo can be seen and
   // fixed there, and a second field that had to match the first is gone.
@@ -104,7 +103,7 @@ export default function AuthScreen() {
   // in then, so there is no private support to open; "Obrati se podršci" is drawn only when the owner has given a public address.
   const supportUrl = publicSupportMailto();
   const inputRefs: Record<AuthFieldName, RefObject<TextInput | null>> = {
-    ime: useRef<TextInput>(null), prezime: useRef<TextInput>(null), grad: useRef<TextInput>(null),
+    ime: useRef<TextInput>(null), prezime: useRef<TextInput>(null),
     email: useRef<TextInput>(null), lozinka: useRef<TextInput>(null),
   };
 
@@ -228,14 +227,14 @@ export default function AuthScreen() {
       setPreparedIntent({ intent, accountRevision: sesijaSada().accountRevision });
       if (changing) return;
       setRezim('SIGNUP'); setFaza('EMAIL'); clearFeedback(); setOtvoren(true);
-    }, () => { if (current()) setGreska('Izbor nije sačuvan. Pokušaj ponovo.'); });
+    }, () => { if (current()) setGreska('Izbor nije sačuvan. Pokušajte ponovo.'); });
   }
 
   async function emailAkcija() {
     const ready = offered();
     if (!(rezim === 'SIGNUP' ? ready.emailSignup : ready.emailPassword)) return;
     // What is missing or wrong is said under the field it is about, before anything is sent; the first such field takes the focus.
-    const problems = validateAuthForm(rezim, { ime, prezime, grad, email, lozinka });
+    const problems = validateAuthForm(rezim, { ime, prezime, email, lozinka });
     const first = firstInvalidField(problems);
     if (first) {
       clearFeedback();
@@ -255,7 +254,7 @@ export default function AuthScreen() {
       }
       const result = await authClientService.signUp({
         email: email.trim(), password: lozinka,
-        firstName: ime.trim(), lastName: prezime.trim(), city: tidyCity(grad),
+        firstName: ime.trim(), lastName: prezime.trim(),
       });
       return result.hasSession;
     }, hasSession => {
@@ -328,7 +327,7 @@ export default function AuthScreen() {
     scroller.current?.scrollTo?.({ y: 0, animated: false });
   });
   const onValue = (name: AuthFieldName, value: string) => commands.changeForm(() => {
-    ({ ime: setIme, prezime: setPrezime, grad: setGrad, email: setEmail, lozinka: setLozinka })[name](value);
+    ({ ime: setIme, prezime: setPrezime, email: setEmail, lozinka: setLozinka })[name](value);
     // What was said about a field is not true any more once it is edited; neither is the answer to the last command.
     setFieldErrors(current => {
       if (current[name] === undefined) return current;
@@ -338,8 +337,8 @@ export default function AuthScreen() {
     if (name === 'email' || name === 'lozinka') { setGreska(null); setFailureNext(null); }
   });
 
-  const failureAction = failureNext === 'HAVE_ACCOUNT' ? { note: 'Možda već imaš nalog.', label: authCopy.signIn, onPress: () => { switchWay('LOGIN'); } }
-    : failureNext === 'RESEND' ? { label: 'Pošalji ponovo potvrdu', onPress: () => { void ponoviPotvrduEmaila(); } } : null;
+  const failureAction = failureNext === 'HAVE_ACCOUNT' ? { note: 'Možda već imate nalog.', label: authCopy.signIn, onPress: () => { switchWay('LOGIN'); } }
+    : failureNext === 'RESEND' ? { label: 'Pošaljite ponovo potvrdu', onPress: () => { void ponoviPotvrduEmaila(); } } : null;
   const signupClosed = rezim === 'SIGNUP' && !methods.emailSignup;
   const emailAvailable = rezim === 'SIGNUP' ? methods.emailSignup : methods.emailPassword;
   const toSignIn = <PrimaryButton title={authCopy.backToSignIn} onPress={nazadNaEmail} busy={radi} />;
@@ -358,8 +357,7 @@ export default function AuthScreen() {
     } else {
       content = <AuthFormStep way={rezim} onWay={switchWay} emailOpen={emailAvailable} signUpOpen={methods.emailSignup}
         phoneOpen={methods.phoneOtp} intent={selectedIntent} onIntentChange={next => { void izaberiNameru(next, undefined, true); }}
-        values={{ ime, prezime, grad, email, lozinka }} onValue={onValue}
-        onCityBlur={() => { const tidy = tidyCity(grad); if (tidy !== grad) commands.changeForm(() => setGrad(tidy)); }}
+        values={{ ime, prezime, email, lozinka }} onValue={onValue}
         errors={fieldErrors} failure={greska} failureAction={failureAction} notice={poruka} confirmEmail={methods.emailConfirmationRequired}
         signupReturn={signupReturn?.accountRevision === session.accountRevision && rezim === 'LOGIN' ? signupReturn.kind : null}
         onResendConfirmation={() => void ponoviPotvrduEmaila()}
@@ -380,17 +378,17 @@ export default function AuthScreen() {
     } else if (faza === 'PHONE') {
       content = <PhoneStep signUp={rezim === 'SIGNUP'} phone={telefon} onChange={value => commands.changeForm(() => setTelefon(value))}
         editable={!radi} error={null} failure={greska} onSubmit={() => void posaljiTelefon()} />;
-      footer = <PrimaryButton title="Pošalji kod" onPress={() => void posaljiTelefon()} busy={radi} />;
+      footer = <PrimaryButton title="Pošaljite kod" onPress={() => void posaljiTelefon()} busy={radi} />;
     } else {
       content = <OtpStep code={otp} onChange={value => commands.changeForm(() => setOtp(value))} editable={!radi} error={null}
         notice={poruka} failure={greska} busy={radi} onSubmit={() => void potvrdiOtp()} onResend={() => void posaljiTelefon()}
         onChangePhone={() => commands.changeForm(() => setFaza('PHONE'))} />;
-      footer = <PrimaryButton title="Potvrdi kod" onPress={() => void potvrdiOtp()} busy={radi} />;
+      footer = <PrimaryButton title="Potvrdite kod" onPress={() => void potvrdiOtp()} busy={radi} />;
     }
   } else if (faza === 'RECOVERY') {
     content = <RecoveryStep available={methods.passwordRecovery} email={email} onChange={value => onValue('email', value)} editable={!radi}
       error={fieldErrors.email ?? null} inputRef={inputRefs.email} failure={greska} onSubmit={() => void zatraziOporavak()} />;
-    footer = methods.passwordRecovery ? <PrimaryButton title="Pošalji link" busy={radi} onPress={() => void zatraziOporavak()} /> : toSignIn;
+    footer = methods.passwordRecovery ? <PrimaryButton title="Pošaljite link" busy={radi} onPress={() => void zatraziOporavak()} /> : toSignIn;
   } else if (faza === 'RECOVERY_SENT') {
     content = <RecoverySentStep email={email} onChangeEmail={() => commands.changeForm(() => { setFaza('RECOVERY'); clearFeedback(); })} />;
     footer = <PrimaryButton title={authCopy.backToSignIn} onPress={nazadNaEmail} />;

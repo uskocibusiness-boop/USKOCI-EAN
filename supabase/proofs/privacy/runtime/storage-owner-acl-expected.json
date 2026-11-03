@@ -1,0 +1,802 @@
+{
+  "unit": "R01_STORAGE_ACL_DEV_BASELINE",
+  "format_version": 1,
+  "query_sha256": "dc98d5e7c3fd4da27c4c5d2bdc1627f693712f12ac45685cf2057778c817c7d5",
+  "observation": {
+    "acl": [
+      {
+        "grantable": false,
+        "privilege": "DELETE",
+        "grantee_md5": "2ae66f90b7788ab8950e8f81b829c947",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "INSERT",
+        "grantee_md5": "2ae66f90b7788ab8950e8f81b829c947",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "SELECT",
+        "grantee_md5": "2ae66f90b7788ab8950e8f81b829c947",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "UPDATE",
+        "grantee_md5": "2ae66f90b7788ab8950e8f81b829c947",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "DELETE",
+        "grantee_md5": "700633a1b0f65fa8456a18bd6053193c",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "INSERT",
+        "grantee_md5": "700633a1b0f65fa8456a18bd6053193c",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "SELECT",
+        "grantee_md5": "700633a1b0f65fa8456a18bd6053193c",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "UPDATE",
+        "grantee_md5": "700633a1b0f65fa8456a18bd6053193c",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "DELETE",
+        "grantee_md5": "c56ec2e104f2c93fd656087be1e991a0",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "INSERT",
+        "grantee_md5": "c56ec2e104f2c93fd656087be1e991a0",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "MAINTAIN",
+        "grantee_md5": "c56ec2e104f2c93fd656087be1e991a0",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "REFERENCES",
+        "grantee_md5": "c56ec2e104f2c93fd656087be1e991a0",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "SELECT",
+        "grantee_md5": "c56ec2e104f2c93fd656087be1e991a0",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "TRIGGER",
+        "grantee_md5": "c56ec2e104f2c93fd656087be1e991a0",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "TRUNCATE",
+        "grantee_md5": "c56ec2e104f2c93fd656087be1e991a0",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": false,
+        "privilege": "UPDATE",
+        "grantee_md5": "c56ec2e104f2c93fd656087be1e991a0",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": true,
+        "privilege": "DELETE",
+        "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": true,
+        "privilege": "INSERT",
+        "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": true,
+        "privilege": "MAINTAIN",
+        "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": true,
+        "privilege": "REFERENCES",
+        "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": true,
+        "privilege": "SELECT",
+        "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": true,
+        "privilege": "TRIGGER",
+        "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": true,
+        "privilege": "TRUNCATE",
+        "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": true,
+        "privilege": "UPDATE",
+        "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": false
+      },
+      {
+        "grantable": true,
+        "privilege": "DELETE",
+        "grantee_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": true
+      },
+      {
+        "grantable": true,
+        "privilege": "INSERT",
+        "grantee_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": true
+      },
+      {
+        "grantable": true,
+        "privilege": "MAINTAIN",
+        "grantee_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": true
+      },
+      {
+        "grantable": true,
+        "privilege": "REFERENCES",
+        "grantee_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": true
+      },
+      {
+        "grantable": true,
+        "privilege": "SELECT",
+        "grantee_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": true
+      },
+      {
+        "grantable": true,
+        "privilege": "TRIGGER",
+        "grantee_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": true
+      },
+      {
+        "grantable": true,
+        "privilege": "TRUNCATE",
+        "grantee_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": true
+      },
+      {
+        "grantable": true,
+        "privilege": "UPDATE",
+        "grantee_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "grantor_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+        "owner_entry": true
+      }
+    ],
+    "unit": "R01_STORAGE_OWNER_ACL_CAPTURE",
+    "acl_null": false,
+    "database": "postgres",
+    "effective": [
+      {
+        "role": "anon",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "DELETE"
+      },
+      {
+        "role": "anon",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "INSERT"
+      },
+      {
+        "role": "anon",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "MAINTAIN"
+      },
+      {
+        "role": "anon",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "REFERENCES"
+      },
+      {
+        "role": "anon",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "SELECT"
+      },
+      {
+        "role": "anon",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRIGGER"
+      },
+      {
+        "role": "anon",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRUNCATE"
+      },
+      {
+        "role": "anon",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "UPDATE"
+      },
+      {
+        "role": "authenticated",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "DELETE"
+      },
+      {
+        "role": "authenticated",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "INSERT"
+      },
+      {
+        "role": "authenticated",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "MAINTAIN"
+      },
+      {
+        "role": "authenticated",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "REFERENCES"
+      },
+      {
+        "role": "authenticated",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "SELECT"
+      },
+      {
+        "role": "authenticated",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRIGGER"
+      },
+      {
+        "role": "authenticated",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRUNCATE"
+      },
+      {
+        "role": "authenticated",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "UPDATE"
+      },
+      {
+        "role": "authenticator",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "DELETE"
+      },
+      {
+        "role": "authenticator",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "INSERT"
+      },
+      {
+        "role": "authenticator",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "MAINTAIN"
+      },
+      {
+        "role": "authenticator",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "REFERENCES"
+      },
+      {
+        "role": "authenticator",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "SELECT"
+      },
+      {
+        "role": "authenticator",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRIGGER"
+      },
+      {
+        "role": "authenticator",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRUNCATE"
+      },
+      {
+        "role": "authenticator",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "UPDATE"
+      },
+      {
+        "role": "postgres",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "DELETE"
+      },
+      {
+        "role": "postgres",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "INSERT"
+      },
+      {
+        "role": "postgres",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "MAINTAIN"
+      },
+      {
+        "role": "postgres",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "REFERENCES"
+      },
+      {
+        "role": "postgres",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "SELECT"
+      },
+      {
+        "role": "postgres",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "TRIGGER"
+      },
+      {
+        "role": "postgres",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "TRUNCATE"
+      },
+      {
+        "role": "postgres",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "UPDATE"
+      },
+      {
+        "role": "service_role",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "DELETE"
+      },
+      {
+        "role": "service_role",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "INSERT"
+      },
+      {
+        "role": "service_role",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "MAINTAIN"
+      },
+      {
+        "role": "service_role",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "REFERENCES"
+      },
+      {
+        "role": "service_role",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "SELECT"
+      },
+      {
+        "role": "service_role",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "TRIGGER"
+      },
+      {
+        "role": "service_role",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "TRUNCATE"
+      },
+      {
+        "role": "service_role",
+        "owner": false,
+        "allowed": true,
+        "grantable": false,
+        "privilege": "UPDATE"
+      },
+      {
+        "role": "supabase_admin",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "DELETE"
+      },
+      {
+        "role": "supabase_admin",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "INSERT"
+      },
+      {
+        "role": "supabase_admin",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "MAINTAIN"
+      },
+      {
+        "role": "supabase_admin",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "REFERENCES"
+      },
+      {
+        "role": "supabase_admin",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "SELECT"
+      },
+      {
+        "role": "supabase_admin",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "TRIGGER"
+      },
+      {
+        "role": "supabase_admin",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "TRUNCATE"
+      },
+      {
+        "role": "supabase_admin",
+        "owner": false,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "UPDATE"
+      },
+      {
+        "role": "supabase_auth_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "DELETE"
+      },
+      {
+        "role": "supabase_auth_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "INSERT"
+      },
+      {
+        "role": "supabase_auth_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "MAINTAIN"
+      },
+      {
+        "role": "supabase_auth_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "REFERENCES"
+      },
+      {
+        "role": "supabase_auth_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "SELECT"
+      },
+      {
+        "role": "supabase_auth_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRIGGER"
+      },
+      {
+        "role": "supabase_auth_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRUNCATE"
+      },
+      {
+        "role": "supabase_auth_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "UPDATE"
+      },
+      {
+        "role": "supabase_functions_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "DELETE"
+      },
+      {
+        "role": "supabase_functions_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "INSERT"
+      },
+      {
+        "role": "supabase_functions_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "MAINTAIN"
+      },
+      {
+        "role": "supabase_functions_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "REFERENCES"
+      },
+      {
+        "role": "supabase_functions_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "SELECT"
+      },
+      {
+        "role": "supabase_functions_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRIGGER"
+      },
+      {
+        "role": "supabase_functions_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRUNCATE"
+      },
+      {
+        "role": "supabase_functions_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "UPDATE"
+      },
+      {
+        "role": "supabase_realtime_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "DELETE"
+      },
+      {
+        "role": "supabase_realtime_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "INSERT"
+      },
+      {
+        "role": "supabase_realtime_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "MAINTAIN"
+      },
+      {
+        "role": "supabase_realtime_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "REFERENCES"
+      },
+      {
+        "role": "supabase_realtime_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "SELECT"
+      },
+      {
+        "role": "supabase_realtime_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRIGGER"
+      },
+      {
+        "role": "supabase_realtime_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "TRUNCATE"
+      },
+      {
+        "role": "supabase_realtime_admin",
+        "owner": false,
+        "allowed": false,
+        "grantable": false,
+        "privilege": "UPDATE"
+      },
+      {
+        "role": "supabase_storage_admin",
+        "owner": true,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "DELETE"
+      },
+      {
+        "role": "supabase_storage_admin",
+        "owner": true,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "INSERT"
+      },
+      {
+        "role": "supabase_storage_admin",
+        "owner": true,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "MAINTAIN"
+      },
+      {
+        "role": "supabase_storage_admin",
+        "owner": true,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "REFERENCES"
+      },
+      {
+        "role": "supabase_storage_admin",
+        "owner": true,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "SELECT"
+      },
+      {
+        "role": "supabase_storage_admin",
+        "owner": true,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "TRIGGER"
+      },
+      {
+        "role": "supabase_storage_admin",
+        "owner": true,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "TRUNCATE"
+      },
+      {
+        "role": "supabase_storage_admin",
+        "owner": true,
+        "allowed": true,
+        "grantable": true,
+        "privilege": "UPDATE"
+      }
+    ],
+    "owner_md5": "f889ad163f1f2ebf88b5cf454f194f2f",
+    "read_only": "on",
+    "format_version": 1,
+    "server_version_num": 170006
+  }
+}

@@ -23,13 +23,15 @@ export type SpeechAdapterOptions = {
 
 export function createNativeSpeechAdapter(options: SpeechAdapterOptions): NativeSpeechAdapter {
   let native: NativePcmModule | null = null;
-  const useExpo = process.env.EXPO_PUBLIC_SPEECH_CAPTURE === 'expo';
+  // iOS uses the already-installed Expo PCM stream. Android keeps its reviewed
+  // native default and explicit build-time opt-in; no failed capture switches paths.
+  const useExpo = Platform.OS === 'ios' || process.env.EXPO_PUBLIC_SPEECH_CAPTURE === 'expo';
   let expoPermission: ((signal: AbortSignal) => Promise<'granted' | 'denied' | 'unavailable' | 'later'>) | null = null;
   try {
-    if (Platform.OS === 'android') {
+    if (!Platform.isTV && (Platform.OS === 'android' || Platform.OS === 'ios')) {
       if (useExpo) {
-        // The legacy build does not load expo-audio's native module. Selection is
-        // compile-time only; a failed Expo session never silently starts another mic.
+        // Load only on the selected native path. A failed Expo session never
+        // silently starts another microphone or falls back to an audio file.
         const expo = require('./expoPcmCapture') as typeof import('./expoPcmCapture');
         native = expo.createExpoPcmCapture(); expoPermission = expo.requestExpoSpeechPermission;
       } else native = requireOptionalNativeModule<NativePcmModule>('UskociVoice');
@@ -38,8 +40,9 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
   const arbiter = options.arbiter ?? sharedAudioArbiter;
   return {
     async requestPermission(signal) {
-      if (!native || Platform.OS !== 'android' || signal.aborted) return 'unavailable';
+      if (!native || signal.aborted) return 'unavailable';
       if (expoPermission) return expoPermission(signal);
+      if (Platform.OS !== 'android') return 'unavailable';
       const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
       if (signal.aborted) return 'denied';
       if (granted) return 'granted';

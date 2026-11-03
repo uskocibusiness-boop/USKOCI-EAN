@@ -151,18 +151,26 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
     state={...state,placePaging:true};
     const request:DiscoveryV1PlacesRequest={mode:'PLACES',filter:base.filter,anchor:{...anchor},prefix:base.prefix,
       facetArea:base.facetArea?cloneBounds(base.facetArea):null,limit:base.limit,after:{...cursor},...(DISCOVERY_V1_PLACES_BY_CITY?{groupBy:'CITY' as const}:{})};
-    let raw:unknown;
-    try{raw=await transport(request,own.signal);}
-    catch(error){if(!current(g))return {kind:'stale' as const,snapshot:snapshot()};state={...state,placePaging:false,facetError:true};throw error;}
-    if(!current(g))return {kind:'stale' as const,snapshot:snapshot()};
-    const decoded=decodeDiscoveryV1Places(raw,base.limit);
-    const seen=new Set(state.places.map(row=>row.key)),items=[...state.places];
-    for(const row of decoded.items)if(!seen.has(row.key)){seen.add(row.key);items.push({...row});}
-    state={...state,places:items,placeHasMore:decoded.hasMore,placePaging:false,everywhere:decoded.counts.everywhere,
-      inMapArea:decoded.counts.inArea,facetError:false};
-    placesAnchor=decoded.anchor;placesCursor=decoded.nextCursor;
-    if(placesController===own)placesController=null;own.abort();
-    return {kind:'applied' as const,snapshot:snapshot()};
+    // Continuations share a preview generation; only the latest attempt may publish.
+    const ownsRead=()=>current(g)&&placesController===own;
+    try{
+      const raw=await transport(request,own.signal);
+      if(!ownsRead())return {kind:'stale' as const,snapshot:snapshot()};
+      const decoded=decodeDiscoveryV1Places(raw,base.limit);
+      const seen=new Set(state.places.map(row=>row.key)),items=[...state.places];
+      for(const row of decoded.items)if(!seen.has(row.key)){seen.add(row.key);items.push({...row});}
+      state={...state,places:items,placeHasMore:decoded.hasMore,placePaging:false,everywhere:decoded.counts.everywhere,
+        inMapArea:decoded.counts.inArea,facetError:false};
+      placesAnchor=decoded.anchor;placesCursor=decoded.nextCursor;
+      return {kind:'applied' as const,snapshot:snapshot()};
+    }catch(error){
+      if(!ownsRead())return {kind:'stale' as const,snapshot:snapshot()};
+      // Keep the accepted rows and cursor so retry asks for the same missing page.
+      state={...state,placePaging:false,facetError:true};throw error;
+    }finally{
+      if(placesController===own)placesController=null;
+      own.abort();
+    }
   }
 
   /** The screen has left and may come back: a preview belongs to one visit of the search panel, so what it read and what it is reading are dropped (the owner stays usable). */

@@ -191,17 +191,17 @@ describe('todoActionLabel', () => {
   const base = { safety: 'ALLOW', missingRequired: [] as NeedFactV2Key[], location: {
     taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null } };
   it('names the fix of each row: the time, the amount, the place, or the conversation', () => {
-    expect(todoActionLabel({ key: 'fact', text: REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED, target: 'need.starts_at' })).toBe('Izmeni termin');
-    expect(todoActionLabel({ key: 'fact', text: REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED, target: 'need.ends_at' })).toBe('Izmeni termin');
-    expect(todoActionLabel({ key: 'fact', text: REVIEW_FACT_COPY.MY_PRICE_AMOUNT_REQUIRED, target: 'need.price_rsd' })).toBe('Unesi iznos');
-    expect(todoActionLabel({ key: 'location', text: 'Mesto na mapi nije potvrđeno.', target: 'location' })).toBe('Dodaj mesto');
-    expect(todoActionLabel({ key: 'safety', text: 'x', target: 'conversation' })).toBe('Izmeni u razgovoru');
-    expect(todoActionLabel({ key: 'missing', text: 'x', target: 'conversation' })).toBe('Dopuni u razgovoru');
-    expect(todoActionLabel({ key: 'other', text: 'x', target: 'conversation' })).toBe('Dopuni u razgovoru');
-    expect(todoActionLabel({ key: 'fact', text: 'x', target: 'need.people_needed' })).toBe('Izmeni');
+    expect(todoActionLabel({ key: 'fact', text: REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED, target: 'need.starts_at' })).toBe('Izmenite termin');
+    expect(todoActionLabel({ key: 'fact', text: REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED, target: 'need.ends_at' })).toBe('Izmenite termin');
+    expect(todoActionLabel({ key: 'fact', text: REVIEW_FACT_COPY.MY_PRICE_AMOUNT_REQUIRED, target: 'need.price_rsd' })).toBe('Unesite iznos');
+    expect(todoActionLabel({ key: 'location', text: 'Mesto na mapi nije potvrđeno.', target: 'location' })).toBe('Dodajte mesto');
+    expect(todoActionLabel({ key: 'safety', text: 'x', target: 'conversation' })).toBe('Izmenite u razgovoru');
+    expect(todoActionLabel({ key: 'missing', text: 'x', target: 'conversation' })).toBe('Dopunite u razgovoru');
+    expect(todoActionLabel({ key: 'other', text: 'x', target: 'conversation' })).toBe('Dopunite u razgovoru');
+    expect(todoActionLabel({ key: 'fact', text: 'x', target: 'need.people_needed' })).toBe('Izmenite');
   });
   it('says the conversation for a row whose fact this screen has no row to edit, and nothing for a row with no way out', () => {
-    expect(todoActionLabel({ key: 'fact', text: 'x', target: 'need.starts_at' }, true)).toBe('Dopuni u razgovoru');
+    expect(todoActionLabel({ key: 'fact', text: 'x', target: 'need.starts_at' }, true)).toBe('Dopunite u razgovoru');
     expect(todoActionLabel({ key: 'fact', text: 'x', target: null })).toBeUndefined();
   });
   it('gives every row the server can produce a word', () => {
@@ -212,4 +212,10 @@ describe('todoActionLabel', () => {
     expect(rows.length).toBeGreaterThan(3);
     for (const todo of rows) expect(todoActionLabel(todo)).toEqual(expect.any(String));
   });
+});
+
+it.each(['100 EUR', '100 €', '999999 RSD'])('main review retains typed RSD with historical display %s', displayValue => {
+  const row = { ...fact('need.price_rsd', 100), displayValue };
+  expect(reviewRowValue(row)).toBe('100 RSD');
+  expect(row.displayValue).toBe(displayValue);
 });

@@ -94,6 +94,6 @@ export function publicSummary(facts: readonly SummaryFact[]): Summary {
       : typeof schedule === 'string' ? schedules[schedule] : undefined,
     // An amount with what it buys, or "Tražim ponude" as a quiet word. A price not reached yet is no slot at all.
     value: mode === 'OFFERS' ? { kind: 'offers' }
-      : money ? { kind: 'amount', amount: money, basis: basis === 'HOURLY' ? 'po satu' : basis === 'TOTAL' ? 'ukupno' : basis === 'PER_PERSON' ? 'po osobi' : null } : null,
+      : money ? { kind: 'amount', amount: money, basis: basis === 'HOURLY' ? 'po osobi po satu' : basis === 'TOTAL' ? 'ukupno' : basis === 'PER_PERSON' ? 'po osobi' : null } : null,
     people: typeof people === 'number' ? osoba(people) : null, peopleCount: typeof people === 'number' ? people : null };
 }

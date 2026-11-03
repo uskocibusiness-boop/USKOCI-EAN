@@ -58,14 +58,14 @@ it.each([{ accountId: B }, { profileId: 'bad' }, { revision: 7 }, { rules: null 
 it.each(['read', 'save'] as const)('refuses signed-out %s without transport', async method => {
   mockOwner.user = null;
   const result = method === 'read' ? workerAvailabilityClientService.read() : workerAvailabilityClientService.save(command());
-  await expect(result).resolves.toMatchObject({ ok: false, kod: 'AUTH_REQUIRED' }); expect(mockRpc).not.toHaveBeenCalled();
+  await expect(result).resolves.toMatchObject({ ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavite se da uredite dostupnost.' }); expect(mockRpc).not.toHaveBeenCalled();
 });
 it.each(['read', 'save'] as const)('discards %s after A→B→A without waiting for React', async method => {
   let resolve!: (value: unknown) => void; mockRpc.mockReturnValue(new Promise(done => { resolve = done; }));
   const result = method === 'read' ? workerAvailabilityClientService.read() : workerAvailabilityClientService.save(command());
   mockOwner = { user: { id: B }, accountRevision: 2 }; mockOwner = { user: { id: A }, accountRevision: 3 };
   resolve({ data: method === 'read' ? document() : response(), error: null });
-  await expect(result).resolves.toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED' });
+  await expect(result).resolves.toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite dostupnost.' });
 });
 it.each(['read', 'save'] as const)('bounds unanswered %s without replay or a fabricated result', async method => {
   jest.useFakeTimers(); mockRpc.mockReturnValue(new Promise(() => {}));
@@ -130,4 +130,18 @@ it('keeps operational bounds explicit', () => {
 it('does not confuse separate IANA zones with a selected geocoding provider', () => {
   expect(availabilityTimezone('Europe/Belgrade')).toBe(true); expect(availabilityTimezone('UTC')).toBe(true);
   expect(availabilityTimezone('No/Zone')).toBe(false); expect(availabilityTimezone('CET')).toBe(false);
+});
+
+
+it.each([
+  ['WORKER_PROFILE_REQUIRED', 'Najpre sačuvajte svoj radni profil.'],
+  ['AVAILABILITY_INPUT_INVALID', 'Proverite unete podatke dostupnosti.'],
+  ['AVAILABILITY_ITEM_INVALID', 'Proverite dane, datume i vremenske intervale.'],
+  ['AVAILABILITY_TIMEZONE_INVALID', 'Izaberite ispravnu vremensku zonu.'],
+  ['AVAILABILITY_INPUT_TOO_LARGE', 'Uneti raspored je prevelik. Sačuvajte manji broj pravila i izuzetaka.'],
+  ['AVAILABILITY_VERSION_CONFLICT', 'Dostupnost je u međuvremenu promenjena. Učitajte novo stanje pre čuvanja.'],
+])('uses formal actionable copy for %s without changing the code or retrying', async (code, message) => {
+  mockRpc.mockResolvedValue({ data: null, error: { message: code, code: 'P0001' } });
+  await expect(workerAvailabilityClientService.save(command())).resolves.toMatchObject({ ok: false, kod: code, poruka: message });
+  expect(mockRpc).toHaveBeenCalledTimes(1);
 });

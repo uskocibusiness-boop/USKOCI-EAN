@@ -1,6 +1,4 @@
 import { capabilityTerms } from '../../lib/capabilityTerms';
-import { correctionFromText } from '../aiNeedV2Ui';
-import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
 
 it('shares the existing 50-item/500-codepoint contract without a new vocabulary', () => {
   expect(capabilityTerms(['  Selidbe ', 'SELIDBE', '  bušilica  ', 'Category B'])).toEqual(['Selidbe', 'SELIDBE', 'bušilica', 'Category B']);
@@ -14,10 +12,4 @@ it.each([null, {}, [''], ['   '], [1], [null], ['a', false], Array(51).fill('too
 it('copies input before an asynchronous save rather than retaining a mutable command array', () => {
   const input=['brush']; const result=capabilityTerms(input); input.push('invented');
   expect(result).toEqual(['brush']);
-});
-it.each(['need.required_skills','need.required_tools','need.required_vehicles','need.required_licenses'] as const)('Need correction uses the shared boundary for %s', key => {
-  const fact = { key, valueType: 'TEXT_ARRAY' } as AiNeedV2Fact;
-  expect(correctionFromText(fact, '  Selidbe, bušilica  ')).toMatchObject({ ok: true, value: ['Selidbe', 'bušilica'] });
-  expect(correctionFromText(fact, Array(51).fill('tool').join(','))).toMatchObject({ ok: false });
-  expect(correctionFromText(fact, 'x'.repeat(501))).toMatchObject({ ok: false });
 });

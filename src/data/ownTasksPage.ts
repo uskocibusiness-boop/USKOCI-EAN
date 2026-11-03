@@ -1,6 +1,12 @@
 import type { PotrebaProjekcija } from '../contracts/projections';
-import type { MarketplaceView, OwnedTaskCounts } from './marketplaceView';
-import { record, timestamp, uuid } from './serverReceipt';
+import { calendarInstant } from '../lib/calendarTime';
+import type { MarketplaceView, OwnedTaskCounts, OwnTasksScope } from './marketplaceView';
+export { ownTasksScope } from './marketplaceView';
+export type { OwnTasksScope } from './marketplaceView';
+import { record, uuid } from './serverReceipt';
+
+/** Reject nonexistent civil instants and narrow decoded JSON values to strings. */
+const exactInstant = (value: unknown): value is string => typeof value === 'string' && calendarInstant(value) !== null;
 
 /**
  * EX-04 S1 (A09 Moji zadaci). The server's own sets of my tasks, one keyset page at a time: the three tabs (Aktivni, Nacrti, Istorija), all of them,
@@ -8,7 +14,6 @@ import { record, timestamp, uuid } from './serverReceipt';
  * basis and the selectable count are the ones `mapNeed` already reads; `sortAt` is the keyset value. Pure and React-free: the pager, the service and
  * the fake source share it.
  */
-export type OwnTasksScope = 'ALL' | 'ACTIVE' | 'DRAFTS' | 'HISTORY' | 'WAITING';
 export type OwnTasksCursor = { at: string; id: string };
 export type OwnTasksPageRequest = { scope: OwnTasksScope; limit: number; cursor: OwnTasksCursor | null };
 export type OwnTasksPage = {
@@ -25,18 +30,28 @@ export type OwnTaskDocument = Record<string, unknown> & { id: string; sortAt: st
 const SCOPES: readonly OwnTasksScope[] = ['ALL', 'ACTIVE', 'DRAFTS', 'HISTORY', 'WAITING'];
 export const isOwnTasksScope = (value: unknown): value is OwnTasksScope => SCOPES.includes(value as OwnTasksScope);
 
-/**
- * The set the person is looking at, in the server's words. "Treba moja radnja" narrows to the tasks that wait for my choice, which are active by
- * definition, so a draft or a closed set with it is empty by rule and nothing is read (null).
- */
-export function ownTasksScope(view: Pick<MarketplaceView, 'section' | 'attention'>): OwnTasksScope | null {
-  if (view.attention) return view.section === 'drafts' || view.section === 'history' ? null : 'WAITING';
-  return view.section === 'active' ? 'ACTIVE' : view.section === 'drafts' ? 'DRAFTS' : view.section === 'history' ? 'HISTORY' : 'ALL';
-}
 /** Search and the price filter are refinements of the loaded set: while one is on, the rest of the set is read so the answer is complete. */
 export const ownTasksRefined = (view: Pick<MarketplaceView, 'query' | 'price'>): boolean => view.query.trim() !== '' || view.price !== 'all';
 
 const COUNT_KEYS = ['total', 'active', 'drafts', 'history', 'waiting'] as const;
+
+/** Guard requested set before RPC. Invalid input must not be an empty success. */
+export function isOwnTasksPageRequest(value: unknown): value is OwnTasksPageRequest {
+  const input = record(value);
+  if (!input || !isOwnTasksScope(input.scope) || typeof input.limit !== 'number'
+    || !Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100) return false;
+  if (input.cursor === null) return true;
+  const cursor = record(input.cursor);
+  return !!cursor && exactInstant(cursor.at) && uuid(cursor.id);
+}
+
+/** PostgreSQL keyset (created_at DESC, id DESC): compare full microsecond
+ * instants, including offsets; Date.parse can normalize an invalid civil day. */
+function strictlyBeforeCursor(next: OwnTasksCursor, previous: OwnTasksCursor): boolean {
+  const a = calendarInstant(next.at), b = calendarInstant(previous.at);
+  if (a === null || b === null) return false;
+  return a === b ? next.id.toLowerCase() < previous.id.toLowerCase() : a < b;
+}
 
 /**
  * Strict: anything that does not add up is no answer, never a short or a guessed one. The documents are mapped by the caller's `map` (the one
@@ -45,7 +60,10 @@ const COUNT_KEYS = ['total', 'active', 'drafts', 'history', 'waiting'] as const;
 export function decodeOwnTasksPage(raw: unknown, request: Pick<OwnTasksPageRequest, 'limit' | 'cursor'>, map: (document: any) => PotrebaProjekcija):
   (OwnTasksPage & { documents: OwnTaskDocument[] }) | null {
   const data = record(raw);
-  if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || !timestamp(data.asOf) || data.items.length > request.limit
+  if (!Number.isSafeInteger(request.limit) || request.limit < 1 || request.limit > 100
+      || (request.cursor !== null && (!record(request.cursor)
+        || !exactInstant(request.cursor.at) || !uuid(request.cursor.id)))) return null;
+  if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || !exactInstant(data.asOf) || data.items.length > request.limit
       || (data.hasMore && data.items.length !== request.limit)) return null;
   let counts: OwnedTaskCounts | null = null;
   if (request.cursor === null) {
@@ -57,11 +75,21 @@ export function decodeOwnTasksPage(raw: unknown, request: Pick<OwnTasksPageReque
     counts = { total: n.total, active: n.active, waiting: n.waiting, drafts: n.drafts, history: n.history };
   } else if (data.counts !== null && data.counts !== undefined) return null;
   const items: PotrebaProjekcija[] = [], documents: OwnTaskDocument[] = [], seen = new Set<string>();
+  let previous: OwnTasksCursor | null = request.cursor;
   for (const value of data.items) {
     const document = record(value);
-    if (!document || !uuid(document.id) || !timestamp(document.sortAt) || seen.has(document.id.toLowerCase())) return null;
+    if (!document || !uuid(document.id) || !exactInstant(document.sortAt) || seen.has(document.id.toLowerCase())) return null;
+    const next = { at: document.sortAt, id: document.id };
+    if (previous && !strictlyBeforeCursor(next, previous)) return null;
+    previous = next;
     seen.add(document.id.toLowerCase());
-    try { items.push(map(document)); } catch { return null; }
+    let mapped:PotrebaProjekcija;
+    try { mapped=map(document); } catch { return null; }
+    // The public owner reader's cursor/document identity and the rendered task
+    // identity are one authority. A mismatched mapper output must never become
+    // an actionable row under a different task ID.
+    if(!mapped||!uuid(mapped.id)||mapped.id.toLowerCase()!==document.id.toLowerCase())return null;
+    items.push(mapped);
     documents.push(document as OwnTaskDocument);
   }
   // A page that promises more and gives none could never advance.

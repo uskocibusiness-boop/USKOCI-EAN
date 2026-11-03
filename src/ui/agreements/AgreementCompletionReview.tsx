@@ -32,7 +32,7 @@ export function AgreementCompletionReview({ agreement, worker, confirm, back }: 
             <ProductFact art="calendar" label="Dogovoreni termin" value={agreement.vremeTekst} />
             <ProductFact art="users" label="Dogovoreni broj ljudi" value={osoba(agreement.pokrivenost.popunjeno)} />
             {/* A missing amount is a word and never wears the amount's style. */}
-            <ProductFact art="money" label="Dogovoreno ukupno" value={agreement.cena.prikaz || BEZ_IZNOSA} prominent
+            <ProductFact art="money" label={agreement.osnovaCene === 'HOURLY' ? 'Dogovorena satnica po osobi po satu' : 'Dogovoreno ukupno'} value={agreement.cena.prikaz || BEZ_IZNOSA} prominent
               prominentAs={agreement.cena.prikaz ? 'amount' : 'label'} />
           </ProductFacts>
         </View>

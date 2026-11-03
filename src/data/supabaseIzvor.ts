@@ -197,11 +197,6 @@ type SupabaseIzvor = Omit<
   | 'opoziviTacnuLokaciju'
   | 'azurirajRadnikProfil'
   | 'javniProfil'
-  | 'posaljiKorisnikovuPoruku'
-  | 'ispraviCinjenicu'
-  | 'otvoriRazgovor'
-  | 'razgovor'
-  | 'objaviPotrebu'
   | 'mojePrijave'
   | 'mojePrijaveStrana'
   | 'paznjaZaPocetnu'
@@ -435,6 +430,7 @@ export const supabaseIzvor: SupabaseIzvor = {
 
     return {
       id: data.id,
+      revision: Number.isSafeInteger(data.revision) && data.revision > 0 ? data.revision : undefined,
       urgency: urgency.get(data.id),
       naslov: data.title,
       statusTekst: !remainingClosed && ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',
@@ -540,9 +536,4 @@ export const supabaseIzvor: SupabaseIzvor = {
     return result.podatak.profile;
   },
 
-  async potvrdiCinjenicu(cinjenicaId: string) {
-    const { error } = await supabase.rpc('rpc_ai_confirm_fact', { p_fact_id: cinjenicaId });
-    if (error) return handleRpcError(error, 'RPC_ERROR', 'Greška.');
-    return { ok: true, podatak: null };
-  },
 };

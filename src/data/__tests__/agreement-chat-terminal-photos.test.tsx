@@ -45,30 +45,33 @@ afterEach(async () => { await act(async () => tree?.unmount()); });
 it.each(['READY', 'PROCESSING', 'unknown'] as const)('retains exact %s photo recovery when an active Agreement closes, without new-photo commands', async state => {
   photos.items = [{ ref, receipt: state === 'unknown' ? null : { ...receipt, state, photo: state === 'READY' ? receipt.photo : null } }];
   await render();
-  expect(buttons('Ukloni pripremljenu fotografiju 1')).toHaveLength(1);
-  const retainedSend = button('Pošalji poruku').props.onPress;
+  expect(buttons('Uklonite pripremljenu fotografiju 1')).toHaveLength(1);
+  const retainedSend = button('Pošaljite poruku').props.onPress;
   await close();
-  expect(buttons('Ukloni pripremljenu fotografiju 1')).toHaveLength(1);
-  expect(buttons('Osveži fotografije poruke')).toHaveLength(1);
-  for (const label of ['Napiši poruku', 'Pošalji poruku', 'Dodaj fotografije', 'Galerija',
-    'Kamera', 'Pošalji ponovo · fotografija 1']) expect(buttons(label)).toHaveLength(0);
+  expect(buttons('Uklonite pripremljenu fotografiju 1')).toHaveLength(1);
+  expect(buttons('Osvežite fotografije poruke')).toHaveLength(1);
+  for (const label of ['Napišite poruku', 'Pošaljite poruku', 'Dodaj fotografije', 'Galerija',
+    'Kamera', 'Pošaljite ponovo · fotografija 1']) expect(buttons(label)).toHaveLength(0);
+  await act(async () => { button('Uklonite pripremljenu fotografiju 1').props.onPress(); });
+  // Removal must not write until the person confirms the destructive action.
+  expect(photos.remove).not.toHaveBeenCalled();
   await act(async () => {
-    button('Ukloni pripremljenu fotografiju 1').props.onPress();
-    button('Osveži fotografije poruke').props.onPress(); retainedSend();
+    button('Osvežite fotografije poruke').props.onPress(); retainedSend();
+    button('Ukloni').props.onPress();
   });
   expect(photos.remove).toHaveBeenCalledWith(ref); expect(photos.refresh).toHaveBeenCalledTimes(1);
   expect(photos.pick).not.toHaveBeenCalled(); expect(photos.retry).not.toHaveBeenCalled(); expect(sendDraft).not.toHaveBeenCalled();
   // A command is not proof of cancellation; the receipt remains until the controller retires it.
-  expect(buttons('Ukloni pripremljenu fotografiju 1')).toHaveLength(1);
+  expect(buttons('Uklonite pripremljenu fotografiju 1')).toHaveLength(1);
   photos = { ...photos, items: [], selected: [], hasSelection: false }; await close();
-  expect(buttons('Osveži fotografije poruke')).toHaveLength(0);
+  expect(buttons('Osvežite fotografije poruke')).toHaveLength(0);
 });
 
 it('restores only an existing saved upload into recovery after closure', async () => {
   photos = { ...photos, items: [], selected: [], hasSelection: false, saved: [receipt] };
   await render(); await close();
-  await act(async () => button('Prikaži ranije pripremljene fotografije').props.onPress());
-  await act(async () => button('Prikaži ranije pripremljenu fotografiju 1').props.onPress());
+  await act(async () => button('Prikažite ranije pripremljene fotografije').props.onPress());
+  await act(async () => button('Prikažite ranije pripremljenu fotografiju 1').props.onPress());
   expect(photos.restore).toHaveBeenCalledWith(request);
   expect(photos.pick).not.toHaveBeenCalled(); expect(photos.retry).not.toHaveBeenCalled(); expect(sendDraft).not.toHaveBeenCalled();
 });
@@ -78,30 +81,30 @@ it('keeps terminal photo-read failure and refresh visible until an authoritative
     message: 'Sačuvani izbor nije učitan. Osveži fotografije.' };
   await render(); await close();
   expect(texts()).toContain(photos.message);
-  await act(async () => button('Osveži fotografije poruke').props.onPress());
+  await act(async () => button('Osvežite fotografije poruke').props.onPress());
   expect(photos.refresh).toHaveBeenCalledTimes(1);
-  for (const label of ['Ukloni pripremljenu fotografiju 1', 'Galerija', 'Kamera', 'Pošalji poruku']) {
+  for (const label of ['Uklonite pripremljenu fotografiju 1', 'Galerija', 'Kamera', 'Pošaljite poruku']) {
     expect(buttons(label)).toHaveLength(0);
   }
   expect(photos.restore).not.toHaveBeenCalled(); expect(photos.pick).not.toHaveBeenCalled(); expect(sendDraft).not.toHaveBeenCalled();
   photos = { ...photos, loaded: true, message: null }; await close();
-  expect(buttons('Osveži fotografije poruke')).toHaveLength(0);
+  expect(buttons('Osvežite fotografije poruke')).toHaveLength(0);
 });
 
 it('keeps outbox-reserved photo recovery visible without permitting removal or upload retry', async () => {
   photos = { ...photos, hasSelection: false, selected: [], reserved: () => true };
   await render(); await close();
-  expect(texts()).toContain('Fotografija je uz poruku. Prvo proveri da li je poslata.');
-  expect(buttons('Osveži fotografije poruke')).toHaveLength(1);
-  expect(buttons('Ukloni pripremljenu fotografiju 1')).toHaveLength(0);
-  expect(buttons('Pošalji ponovo · fotografija 1')).toHaveLength(0);
+  expect(texts()).toContain('Fotografija je uz poruku. Prvo proverite da li je poslata.');
+  expect(buttons('Osvežite fotografije poruke')).toHaveLength(1);
+  expect(buttons('Uklonite pripremljenu fotografiju 1')).toHaveLength(0);
+  expect(buttons('Pošaljite ponovo · fotografija 1')).toHaveLength(0);
 });
 
 it.each(['busy', 'capturing'] as const)('keeps recovery disabled while %s', async reason => {
   photos = { ...photos, busy: reason === 'busy', saved: [{ ...receipt, clientRequestId: `${request.slice(0, -1)}2` }] };
   props.state = { ...props.state, capturing: reason === 'capturing' };
   await render(); await close();
-  for (const label of ['Ukloni pripremljenu fotografiju 1', 'Osveži fotografije poruke', 'Prikaži ranije pripremljene fotografije']) {
+  for (const label of ['Uklonite pripremljenu fotografiju 1', 'Osvežite fotografije poruke', 'Prikažite ranije pripremljene fotografije']) {
     expect(button(label).props.disabled).toBe(true);
   }
 });
@@ -110,5 +113,5 @@ it.each(['empty', 'attached', 'CANCELLED', 'FAILED'] as const)('does not reopen 
   photos = { ...photos, hasSelection: false, selected: [], message: 'Ranija poruka o izboru fotografije.', items: state === 'empty' ? [] : [{ ref,
     receipt: state === 'attached' ? { ...receipt, attachedMessageId: request } : { ...receipt, state, photo: null } }] };
   await render(); await close();
-  for (const label of ['Ukloni pripremljenu fotografiju 1', 'Osveži fotografije poruke', 'Galerija']) expect(buttons(label)).toHaveLength(0);
+  for (const label of ['Uklonite pripremljenu fotografiju 1', 'Osvežite fotografije poruke', 'Galerija']) expect(buttons(label)).toHaveLength(0);
 });

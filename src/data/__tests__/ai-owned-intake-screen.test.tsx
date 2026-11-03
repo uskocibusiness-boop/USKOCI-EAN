@@ -33,9 +33,15 @@ const mockLocationResolve = jest.fn();
 jest.mock('../locationDialogueClientService', () => ({ locationDialogueEnabled: () => mockLocationDialogueEnabled,
   resolveLocationDialogue: (...args: unknown[]) => mockLocationResolve(...args) }));
 const mockOpen = jest.fn(), mockLoad = jest.fn(), mockSend = jest.fn(), mockTurn = jest.fn(), mockAbandon = jest.fn();
+const mockReadLatestReview = jest.fn(), mockPrepareReview = jest.fn();
+let mockLastConversation: AiNeedV2Conversation | null = null;
+jest.mock('../aiTaskReviewClientService', () => ({ aiTaskReviewClientService: {
+  readLatest: (...args: unknown[]) => mockReadLatestReview(...args),
+  prepare: (...args: unknown[]) => mockPrepareReview(...args),
+} }));
 const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn(), push: jest.fn() };
 jest.mock('../index', () => ({ aiNeedV2Izvor: { openConversation: (...args: unknown[]) => mockOpen(...args),
-  loadConversation: (...args: unknown[]) => mockLoad(...args), sendMessage: (...args: unknown[]) => mockSend(...args),
+  loadConversation: async (...args: unknown[]) => { const result = await mockLoad(...args); mockLastConversation = result; return result; }, sendMessage: (...args: unknown[]) => mockSend(...args),
   readTurn: (...args: unknown[]) => mockTurn(...args), recoverTurn: (...args: unknown[]) => mockRecover(...args), cancelTurn: (...args: unknown[]) => mockCancel(...args), abandonConversation: (...args: unknown[]) => mockAbandon(...args) } }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
@@ -51,7 +57,7 @@ jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: (options
 // harness stands each in as a host element. Their own behaviour is in voice-composer-controls.test.tsx.
 jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer', VoiceNotice: 'VoiceNotice',
   useVoiceScreenReader: () => false,
-  HOLD_HINT: 'Drži mikrofon dok govoriš, pa pusti da pošalješ.' }));
+  HOLD_HINT: 'Držite mikrofon dok govorite, pa pustite da pošaljete.' }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'AppState') return { currentState: mockAppState, addEventListener: (_name: string, listener: (state: string) => void) => {
     mockAppListeners.add(listener); return { remove: () => mockAppListeners.delete(listener) };
@@ -140,9 +146,31 @@ function publicFact(key: NeedFactV2Key, value: unknown): AiNeedV2Conversation['f
 function completeFacts(title = 'Prenos ormara'): AiNeedV2Conversation['facts'] {
   return [publicFact('need.title', title), publicFact('need.description', 'Prevod kratkog uputstva.'), publicFact('need.category', 'Prevod'),
     publicFact('need.price_mode', 'OFFERS'), publicFact('need.people_needed', 1), publicFact('need.schedule_kind', 'WEEK_FLEXIBLE'),
-    publicFact('need.task_country_code', 'RS'), publicFact('need.task_geography', { mode: 'REMOTE' })];
+    publicFact('need.task_country_code', 'RS'), publicFact('need.task_geography', { mode: 'REMOTE' }), publicFact('need.handoff', { required: false })];
+}
+// Explicit synthetic server review. The actual readiness validator still checks
+// all facts, location, expiration and classification; no readiness function is mocked.
+function currentReview() {
+  const data = mockLastConversation!;
+  const value = (key: string) => data.facts.find(f => f.key === key && f.status !== 'UNKNOWN')?.value ?? null;
+  return { reviewId: other, accountId: mockSession.user.id, conversationId: data.conversationId,
+    schemaVersion: 'NEED_FACT_V2', draftId: null, draftRevision: 1, displayedContentDigest: 'a'.repeat(64),
+    factsRevision: 'b'.repeat(64), sourceTurnRevision: data.messages.length, geographyRevision: 'c'.repeat(64),
+    expiresAt: new Date(Date.now() + 60_000).toISOString(), responseDeadline: null,
+    publicProjection: data.facts.filter(f => f.privacyClass === 'PUBLIC'),
+    ownerPrivateProjection: data.facts.filter(f => f.privacyClass !== 'PUBLIC'), missingRequired: [], canAccept: true,
+    safety: data.safety, classificationState: 'READY', classificationCandidates: [],
+    location: { taskCountryCode: value('need.task_country_code'), geography: value('need.task_geography'),
+      exactAddress: value('need.exact_address'), accessNotes: value('need.access_notes'), resolvedLocation: value('need.resolved_location') } };
 }
 const noSummary = () => expect(tree.root.findAllByProps({ testID: 'intake-task-summary' })).toHaveLength(0);
+it('does not present empty readback fallback REVIEW as a content safety assessment', async () => {
+  const data = conversation({ safety: 'REVIEW', messages: [], facts: [] });
+  mockLoad.mockResolvedValue(data); await resume();
+  expect(text()).not.toContain('Zahtev traži dodatnu proveru');
+  expect(data.safety).toBe('REVIEW'); expect(data.review.canSaveDraft).toBe(false);
+  noSummary(); expect(mockSend).not.toHaveBeenCalled(); expect(mockRouter.push).not.toHaveBeenCalled();
+});
 it('shows one complete proposed task at the end, before explicit review confirmation', async () => {
   const facts = completeFacts().map(f => ({ ...f, status: 'NEEDS_CONFIRMATION' as const }));
   const data = conversation({ facts }); data.review.missingRequired = facts.map(f => f.key);
@@ -151,6 +179,18 @@ it('shows one complete proposed task at the end, before explicit review confirma
   expect(tree.root.findByProps({ testID: 'ai-end-card' }).findAll(node => typeof node.type === 'string' && node.props.testID === 'intake-task-summary')).toHaveLength(1);
   expect(data.review.canSaveDraft).toBe(false);
   expect(mockSend).not.toHaveBeenCalled();
+});
+it.each(['PENDING_CLASSIFICATION','STALE_CATALOG','CATALOG_UNAVAILABLE','REVIEW_REQUIRED'])(
+  'complete facts alone cannot expose a final card while server classification is %s', async state => {
+    mockLoad.mockResolvedValue(conversation({facts:completeFacts()}));
+    mockPrepareReview.mockImplementation(async () => ok({...currentReview(),classificationState:state,canAccept:false}));
+    await resume();noSummary();await options();expect(menuItems('Pregledajte zadatak')).toHaveLength(0);
+    expect(mockSend).not.toHaveBeenCalled();expect(mockRouter.push).not.toHaveBeenCalled();
+    expect(text()).not.toContain('Ponovite opis');
+  });
+it.each(['BLOCK','REVIEW'] as const)('complete facts do not bypass safety %s',async safety=>{
+  mockLoad.mockResolvedValue(conversation({facts:completeFacts(),safety}));await resume();noSummary();
+  expect(mockPrepareReview).not.toHaveBeenCalled();expect(mockSend).not.toHaveBeenCalled();
 });
 it.each([
   ['amount missing', { 'need.price_mode': 'MY_PRICE' }, false],
@@ -210,8 +250,8 @@ it.each(['COMPLETED', 'ABANDONED'] as const)('does not restore a partial card fo
 it('keeps a complete finished task at the end with only one footer review action', async () => {
   mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED', facts: completeFacts() })); await resume();
   expect(tree.root.findAllByProps({ testID: 'ai-end-card' })).toHaveLength(1);
-  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(0);
-  expect(tree.root.findByProps({ testID: 'ai-footer-action' }).findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(1);
+  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findAllByProps({ label: 'Pregledajte zadatak' })).toHaveLength(0);
+  expect(tree.root.findByProps({ testID: 'ai-footer-action' }).findAllByProps({ label: 'Proverite sačuvani zadatak' })).toHaveLength(1);
 });
 function turn(requestId: string, state: string, retryAllowed = false) { return ok({ conversationId: id, clientRequestId: requestId,
   state, retryAllowed, turnId: state === 'ABSENT' ? null : other, receipt: state === 'SUCCEEDED' ? {
@@ -224,13 +264,13 @@ const update = async () => { await act(async () => tree.update(<Intake />)); };
 const button = (label: string) => tree.root.findByProps({ label }).props;
 const input = () => tree.root.findByProps({ accessibilityLabel: 'Poruka za asistenta' }).props;
 const field = () => tree.root.findAllByProps({ accessibilityLabel: 'Poruka za asistenta' });
-const submit = () => tree.root.findByProps({ accessibilityLabel: mockSend.mock.calls.length ? 'Pošalji ponovo' : 'Pošalji poruku' }).props;
+const submit = () => tree.root.findByProps({ accessibilityLabel: mockSend.mock.calls.length ? 'Pošaljite ponovo' : 'Pošaljite poruku' }).props;
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 // Typing and speaking are two modes: the field opens when the keyboard is chosen, and a
 // draft keeps it open. A test that types chooses it first, exactly as a person does.
 const openKeyboard = async () => {
   if (tree.root.findAllByProps({ accessibilityLabel: 'Poruka za asistenta' }).length) return;
-  const keyboard = tree.root.findByProps({ accessibilityLabel: 'Pređi na tastaturu' }).props;
+  const keyboard = tree.root.findByProps({ accessibilityLabel: 'Pređite na tastaturu' }).props;
   await act(async () => keyboard.onPress());
 };
 const type = async (value = 'Treba preneti ormar sutra.') => { await openKeyboard(); await act(async () => input().onChangeText(value)); };
@@ -257,8 +297,12 @@ const menuItems = (label: string) => tree.root.findAll(node => node.props.access
 const menuItem = (label: string) => { const [item] = menuItems(label); if (!item) throw new Error(`No menu item ${label}`); return item.props; };
 const closeMenu = async () => { await act(async () => tree.root.findByType(ActionSheet).props.onClose()); };
 beforeEach(async () => {
+  jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-01T12:00:00Z'));
   await AsyncStorage.clear();
   jest.clearAllMocks(); for (const mock of [mockOpen, mockLoad, mockSend, mockTurn, mockAbandon, mockRecover, mockCancel]) mock.mockReset();
+  mockLastConversation = null;
+  mockReadLatestReview.mockReset().mockResolvedValue(ok(null));
+  mockPrepareReview.mockReset().mockImplementation(async () => ok(currentReview()));
   mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockParams = {}; mockCounter = 0;
   mockReduced = false;mockHeight=844;mockFontScale=1;
   mockVoicePhase = 'IDLE';
@@ -284,7 +328,7 @@ beforeEach(async () => {
   mockUploadPhoto.mockReset(); mockRemovePhoto.mockReset(); mockPickPhotos.mockReset();
 });
 let mockServerPhotos: unknown[] = [];
-afterEach(async () => { await act(async () => tree?.unmount()); });
+afterEach(async () => { await act(async () => tree?.unmount()); jest.spyOn(Date, 'now').mockRestore(); });
 
 // The same controller owns both the idle notice and the visible microphone.
 // Text-first entry does not mount a capture control until voice is selected.
@@ -396,14 +440,14 @@ it.each([
   const sent = mockSend.mock.calls[0].slice(0, 3);
   expect(sent.slice(0, 2)).toEqual([id, spoken]);
   if (outcome === 'explicit retry') {
-    await act(async () => button('Proveri').onPress());
+    await act(async () => button('Proverite').onPress());
     mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     await act(async () => submit().onPress());
     expect(mockSend.mock.calls[1].slice(0, 3)).toEqual(sent);
   } else if (outcome === 'unknown then success') {
     mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
-    await act(async () => button('Proveri').onPress());
+    await act(async () => button('Proverite').onPress());
   }
   expect(input().value).toBe(draft); expect(input().editable).toBe(true);
   expect(mockSend).toHaveBeenCalledTimes(outcome === 'explicit retry' ? 2 : 1);
@@ -436,21 +480,21 @@ it.each([
   expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockSend.mock.calls[0][1]).toBe(origin === 'typed' ? 'Poslati nacrt.' : 'Govorna poruka.');
   if (outcome === 'explicit retry') {
-    await act(async () => button('Proveri').onPress());
+    await act(async () => button('Proverite').onPress());
     mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     await act(async () => submit().onPress());
     expect(mockSend.mock.calls[1].slice(0, 3)).toEqual(mockSend.mock.calls[0].slice(0, 3));
   } else if (outcome === 'unknown then success') {
     mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
-    await act(async () => button('Proveri').onPress());
+    await act(async () => button('Proverite').onPress());
   }
   expect(input().value).toBe(freshDraft); expect(input().editable).toBe(true);
   expect(mockSend).toHaveBeenCalledTimes(outcome === 'explicit retry' ? 2 : 1);
 });
 it('CF01: a typed retry clears only its unchanged raw submitted draft', async () => {
   await render(); await type('  Poslati nacrt.  '); await act(async () => submit().onPress());
-  await act(async () => button('Proveri').onPress());
+  await act(async () => button('Proverite').onPress());
   mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
   await act(async () => submit().onPress());
@@ -485,7 +529,7 @@ it.each(['typed', 'spoken'])('CF01: remounted %s intent restores only IDs and ca
   expect(input().value).toBe(''); expect(input().editable).toBe(true);
   expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
   await type('Fresh draft after recovery'); await options();
-  await act(async () => menuItem('Osveži razgovor').onPress());
+  await act(async () => menuItem('Osvežite razgovor').onPress());
   expect(input().value).toBe('Fresh draft after recovery'); expect(mockSend).toHaveBeenCalledTimes(1);
 });
 it('the accessible start/stop mode still hands speech to the draft for review; only explicit Send writes the AI intent', async () => {
@@ -583,7 +627,7 @@ it('retains the owned open key after an unknown result and retries only by user 
   await render(); await type(); await act(async () => submit().onPress());
   expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockSend).not.toHaveBeenCalled();
   expect(text()).toContain('Ishod nije potvrđen');
-  await act(async () => button('Proveri').onPress());
+  await act(async () => button('Proverite').onPress());
   await openKeyboard();
   // The typed words are still there: nothing was sent, so nothing was consumed.
   expect(input().value).toBe('Treba preneti ormar sutra.');
@@ -601,7 +645,7 @@ it('does not adopt a late open response on a blurred screen; the next send repla
   expect(mockOpen.mock.calls[1][0]).toBe(key);
   // The conversation the screen now has is the one its own second open answered with, never the
   // one the abandoned first attempt came back with.
-  await act(async () => button('Proveri').onPress());
+  await act(async () => button('Proverite').onPress());
   expect(mockLoad).toHaveBeenCalledWith(id); expect(mockLoad).not.toHaveBeenCalledWith(other);
 });
 it.each([['ambiguous', [id]], ['malformed', 'wrong']] as const)('rejects %s resume route without opening a replacement conversation', async (_label, value) => {
@@ -610,7 +654,7 @@ it.each([['ambiguous', [id]], ['malformed', 'wrong']] as const)('rejects %s resu
 });
 it('keeps a failed resume as a read failure and does not create another conversation', async () => {
   mockParams = { conversationId: id }; mockLoad.mockRejectedValueOnce(new Error('private backend detail')); await render();
-  expect(text()).not.toContain('private backend detail'); await act(async () => button('Pokušaj ponovo').onPress());
+  expect(text()).not.toContain('private backend detail'); await act(async () => button('Pokušajte ponovo').onPress());
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockLoad).toHaveBeenCalledTimes(2);
 });
 it('serializes two retained send taps before render and keeps the original body and key', async () => {
@@ -644,9 +688,9 @@ it('keeps a server-processing reply pending after stream loss without resending 
 });
 it('requires real readback after unknown and retries the same key/body only when the server permits', async () => {
   await render(); await type(); const retainedSend = submit().onPress; await act(async () => retainedSend()); const sent = mockSend.mock.calls[0];
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji ponovo' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošaljite ponovo' })).toHaveLength(0);
   await act(async () => retainedSend()); expect(mockSend).toHaveBeenCalledTimes(1);
-  await act(async () => button('Proveri').onPress()); expect(mockTurn).toHaveBeenCalledWith(id, sent[2]);
+  await act(async () => button('Proverite').onPress()); expect(mockTurn).toHaveBeenCalledWith(id, sent[2]);
   await act(async () => input().onChangeText('different body')); expect(input().value).toBe(sent[1]);
   await act(async () => submit().onPress()); expect(mockSend.mock.calls[1].slice(0,3)).toEqual(sent.slice(0,3));
 });
@@ -665,7 +709,7 @@ it.each(['first send', 'existing conversation'] as const)('shows no unknown-outc
   // The recovery is a `Surface`: the component and the view it draws both carry the testID, so only the drawn view is counted.
   const box = () => tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'ai-recovery-in-thread');
   const settledOnly = () => {
-    expect(text()).not.toContain('Ne znamo da li je poruka poslata'); expect(tree.root.findAllByProps({ label: 'Proveri' })).toHaveLength(0);
+    expect(text()).not.toContain('Ne znamo da li je poruka poslata'); expect(tree.root.findAllByProps({ label: 'Proverite' })).toHaveLength(0);
     expect(box()).toHaveLength(0); expect(tree.root.findAllByProps({ testID: 'ai-send-reason' })).toHaveLength(0);
   };
   expect(text()).toContain('Stiže odgovor…'); settledOnly();
@@ -674,7 +718,7 @@ it.each(['first send', 'existing conversation'] as const)('shows no unknown-outc
   expect(text()).not.toContain('Evo, '); expect(text()).toContain('Stiže odgovor…'); settledOnly();
   await act(async () => held.resolve(unknown()));
   expect(text()).toContain('Ne znamo da li je poruka poslata.');
-  expect(box()).toHaveLength(1); expect(button('Proveri').disabled).toBe(false);
+  expect(box()).toHaveLength(1); expect(button('Proverite').disabled).toBe(false);
   expect(mockSend).toHaveBeenCalledTimes(1);
 });
 // One sentence for "we are not sure the message arrived": the status line and the one button. The data layer's own sentence for the same fact
@@ -684,10 +728,10 @@ it('says a send that may not have arrived once, with the shared sentence and the
   mockSend.mockResolvedValueOnce({ ok: false, kod: 'AI_TURN_SEND_UNCONFIRMED', poruka: GENERIC });
   await render(); await type(); await act(async () => submit().onPress());
   expect(text()).toContain('Ne znamo da li je poruka poslata.'); expect(text()).not.toContain(GENERIC);
-  expect(button('Proveri').disabled).toBe(false);
+  expect(button('Proverite').disabled).toBe(false);
 });
 it('keeps the line of any other failed send, even while the delivery is not known', async () => {
-  const OTHER = 'Poruka nije poslata. Pokušaj ponovo.';
+  const OTHER = 'Poruka nije poslata. Pokušajte ponovo.';
   mockSend.mockResolvedValueOnce({ ok: false, kod: 'AI_LOCAL_INTENT_NOT_SAVED', poruka: OTHER });
   await render(); await type(); await act(async () => submit().onPress());
   expect(text()).toContain(OTHER); expect(text()).toContain('Ne znamo da li je poruka poslata.');
@@ -696,44 +740,44 @@ it('keeps the last confirmed conversation readable but locks its draft after a f
   mockLoad.mockResolvedValue(conversation({ messages: [{ id: other, fromAi: true, body: 'Koliko ljudi ti treba?', safety: null, proposedFactIds: [] }] }));
   await resume(); await type('Treba mi dvoje ljudi.');
   mockLoad.mockRejectedValueOnce(new Error('offline'));
-  await options(); await act(async () => menuItem('Osveži razgovor').onPress());
+  await options(); await act(async () => menuItem('Osvežite razgovor').onPress());
   expect(text()).toContain('Koliko ljudi ti treba?');
   expect(tree.root.findByType(AiConversationShell).props).toMatchObject({ canEdit: false, canSend: false });
   expect(input().value).toBe('Treba mi dvoje ljudi.');
   await act(async () => submit().onPress()); expect(mockSend).not.toHaveBeenCalled();
-  await act(async () => button('Proveri').onPress());
+  await act(async () => button('Proverite').onPress());
   expect(tree.root.findByType(AiConversationShell).props.canEdit).toBe(true);
   expect(input().value).toBe('Treba mi dvoje ljudi.');
 });
 it('keeps the retry, cancel and "Asistent još obrađuje" paths once a send has settled, and hides them again while the retry runs', async () => {
   await render(); await type(); await act(async () => submit().onPress());
-  await act(async () => button('Proveri').onPress());
-  expect(text()).toContain('Poruka je sačuvana za ponovni pokušaj.'); expect(button('Otkaži slanje poruke')).toBeDefined();
+  await act(async () => button('Proverite').onPress());
+  expect(text()).toContain('Poruka je sačuvana za ponovni pokušaj.'); expect(button('Otkažite slanje poruke')).toBeDefined();
   const held = deferred(); mockSend.mockReturnValueOnce(held.promise);
   await act(async () => { void submit().onPress(); });
   expect(mockSend).toHaveBeenCalledTimes(2);
   expect(text()).not.toContain('Poruka je sačuvana za ponovni pokušaj.'); expect(text()).not.toContain('Ne znamo da li je poruka poslata');
-  expect(tree.root.findAllByProps({ label: 'Otkaži slanje poruke' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Otkažite slanje poruke' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'ai-recovery-in-thread' })).toHaveLength(0);
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'PROCESSING')));
   await act(async () => held.resolve(turn(mockSend.mock.calls[1][2], 'PROCESSING')));
-  expect(text()).toContain('Asistent još obrađuje poruku. Sačekaj odgovor.'); expect(button('Proveri').disabled).toBe(false);
+  expect(text()).toContain('Asistent još obrađuje poruku. Sačekajte odgovor.'); expect(button('Proverite').disabled).toBe(false);
 });
 it('keeps an in-progress server receipt read-only and never polls or retries automatically', async () => {
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'PROCESSING')));
-  await render(); await type(); await act(async () => submit().onPress()); await act(async () => button('Proveri').onPress());
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji ponovo' })).toHaveLength(0);
+  await render(); await type(); await act(async () => submit().onPress()); await act(async () => button('Proverite').onPress());
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošaljite ponovo' })).toHaveLength(0);
   expect(input().editable).toBe(false); expect(text()).toContain('Asistent još obrađuje poruku'); expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockTurn).toHaveBeenCalledTimes(1);
 });
 it('resolves a lost success receipt using IDs, clears the sent draft and accepts a fresh next request', async () => {
   await render(); await type(); await act(async () => submit().onPress()); const old = mockSend.mock.calls[0][2];
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
-  await act(async () => button('Proveri').onPress());
+  await act(async () => button('Proverite').onPress());
   // The readback clears the sent draft, which returns the composer to voice mode. The
   // invariant is unchanged: the draft is empty and still editable.
   await openKeyboard(); expect(input().value).toBe(''); expect(input().editable).toBe(true);
-  await type('Druga poruka.'); await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pošalji poruku' }).props.onPress());
+  await type('Druga poruka.'); await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pošaljite poruku' }).props.onPress());
   expect(mockSend.mock.calls[1][1]).toBe('Druga poruka.'); expect(mockSend.mock.calls[1][2]).not.toBe(old);
 });
 it('keeps pending intent across blur and reconciles before enabling another send', async () => {
@@ -778,20 +822,20 @@ it('does not read or navigate from a late send result after account change', asy
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(input().value).toBe('');
 });
 it('retires a confirmation callback after blur/refocus and never abandons on Back', async () => {
-  await resume(); await options(); await act(async () => menuItem('Napusti razgovor').onPress());
-  expect(leaveSheet().props).toMatchObject({ title: 'Napustiti razgovor?', cancelLabel: 'Nastavi razgovor', confirmLabel: 'Napusti razgovor', tone: 'danger' });
+  await resume(); await options(); await act(async () => menuItem('Napustite razgovor').onPress());
+  expect(leaveSheet().props).toMatchObject({ title: 'Napustiti razgovor?', cancelLabel: 'Nastavite razgovor', confirmLabel: 'Napustite razgovor', tone: 'danger' });
   const confirm = leaveSheet().props.onConfirm; await blur(); expect(leaveSheets()).toHaveLength(0); await focus();
   await act(async () => confirm()); expect(mockAbandon).not.toHaveBeenCalled();
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
   expect(mockRouter.back).toHaveBeenCalledTimes(1); expect(mockAbandon).not.toHaveBeenCalled();
 });
 it('cancelling the leave question keeps the conversation open and sends nothing', async () => {
-  await resume(); await options(); await act(async () => menuItem('Napusti razgovor').onPress());
+  await resume(); await options(); await act(async () => menuItem('Napustite razgovor').onPress());
   await act(async () => answer('confirm-sheet-cancel'));
   expect(leaveSheets()).toHaveLength(0); expect(mockAbandon).not.toHaveBeenCalled(); expect(mockVoiceCancel).not.toHaveBeenCalled();
 });
 it('explicit abandonment uses the actual authority and becomes closed only after readback', async () => {
-  await resume(); await options(); await act(async () => menuItem('Napusti razgovor').onPress()); expect(mockAbandon).not.toHaveBeenCalled();
+  await resume(); await options(); await act(async () => menuItem('Napustite razgovor').onPress()); expect(mockAbandon).not.toHaveBeenCalled();
   mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
   await act(async () => answer('confirm-sheet-confirm'));
   expect(mockAbandon).toHaveBeenCalledWith(id); expect(leaveSheets()).toHaveLength(0); expect(text()).toContain('Razgovor je napušten.');
@@ -801,7 +845,7 @@ it('explicit abandonment uses the actual authority and becomes closed only after
 it('keeps the leave question open with a busy confirm while abandonment runs, and closes it once that settles', async () => {
   // The screen returns its command to the sheet; a `void` there would close the question before the command is sent.
   const held = deferred(); mockAbandon.mockReturnValueOnce(held.promise);
-  await resume(); await options(); await act(async () => menuItem('Napusti razgovor').onPress());
+  await resume(); await options(); await act(async () => menuItem('Napustite razgovor').onPress());
   mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
   await act(async () => answer('confirm-sheet-confirm'));
   expect(mockAbandon).toHaveBeenCalledTimes(1); expect(leaveSheets()).toHaveLength(1);
@@ -814,14 +858,14 @@ it('keeps the leave question open with a busy confirm while abandonment runs, an
 it('resolves a lost abandon receipt through the same owned conversation and preserves an OPEN draft', async () => {
   mockAbandon.mockResolvedValueOnce(unknown());
   await resume(); await type('Moja neposlata dopuna.'); await options();
-  await act(async () => menuItem('Napusti razgovor').onPress());
+  await act(async () => menuItem('Napustite razgovor').onPress());
   await act(async () => answer('confirm-sheet-confirm'));
   expect(mockAbandon).toHaveBeenCalledTimes(1);
   expect(mockLoad).toHaveBeenCalledTimes(2);
   expect(mockRouter.replace).not.toHaveBeenCalled();
   expect(input().value).toBe('Moja neposlata dopuna.');
   expect(input().editable).toBe(false);
-  await act(async () => button('Proveri').onPress());
+  await act(async () => button('Proverite').onPress());
   expect(mockAbandon).toHaveBeenCalledTimes(1);
   expect(input().value).toBe('Moja neposlata dopuna.');
   expect(input().editable).toBe(true);
@@ -829,7 +873,7 @@ it('resolves a lost abandon receipt through the same owned conversation and pres
 it('shows a closed task conversation when abandon receipt was lost but readback confirms ABANDONED', async () => {
   mockAbandon.mockResolvedValueOnce(unknown());
   mockLoad.mockResolvedValueOnce(conversation()).mockResolvedValue(conversation({ status: 'ABANDONED' }));
-  await resume(); await options(); await act(async () => menuItem('Napusti razgovor').onPress());
+  await resume(); await options(); await act(async () => menuItem('Napustite razgovor').onPress());
   await act(async () => answer('confirm-sheet-confirm'));
   expect(mockAbandon).toHaveBeenCalledTimes(1);
   expect(text()).toContain('Razgovor je napušten.');
@@ -838,7 +882,7 @@ it('shows a closed task conversation when abandon receipt was lost but readback 
 it.each(['PERMISSION_PENDING', 'PREPARING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)('cancels %s capture before abandonment and removes its session scope after readback', async phase => {
   mockVoicePhase = phase; await resume();
   expect(mockVoiceOptions.mock.calls.at(-1)?.[0].conversationId()).toBe(id);
-  await options(); await act(async () => menuItem('Napusti razgovor').onPress());
+  await options(); await act(async () => menuItem('Napustite razgovor').onPress());
   mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
   mockAbandon.mockImplementation(async () => {
     expect(mockVoiceCancel).toHaveBeenCalledWith('navigation');
@@ -860,19 +904,19 @@ it.each(['COMPLETED', 'ABANDONED'] as const)('keeps actual %s conversations read
   mockLoad.mockResolvedValue(conversation({ status })); await resume();
   expect(field()).toHaveLength(0); expect(tree.root.findAllByType('VoiceComposer' as React.ElementType)).toHaveLength(0);
   await options();
-  expect(menuItems('Napusti razgovor')).toHaveLength(0);
+  expect(menuItems('Napustite razgovor')).toHaveLength(0);
 });
 it.each(['COMPLETED', 'ABANDONED'] as const)('%s: the way on stays on the screen, not only in the "···"', async status => {
   const saved = conversation({ status, facts: [publicFact('need.title', 'Prenos ormara')] }); mockLoad.mockResolvedValue(saved); await resume();
   // With a review to open, it is the one green action; otherwise a new task is. The menu keeps its rows for the rare case.
   const onScreen = (label: string) => tree.root.findAllByProps({ label }).length;
-  if (status === 'COMPLETED') { expect(onScreen('Pregledaj zadatak')).toBeGreaterThan(0); expect(onScreen('Novi zadatak')).toBe(0); }
-  else { expect(onScreen('Novi zadatak')).toBeGreaterThan(0); expect(onScreen('Pregledaj zadatak')).toBe(0); }
+  if (status === 'COMPLETED') { expect(onScreen('Proverite sačuvani zadatak')).toBeGreaterThan(0); expect(onScreen('Novi zadatak')).toBe(0); }
+  else { expect(onScreen('Novi zadatak')).toBeGreaterThan(0); expect(onScreen('Pregledajte zadatak')).toBe(0); }
   expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
 });
 it('does not expose abandonment for an edit conversation bound to a Zadatak', async () => {
   const data = conversation(); data.review.boundNeedId = other; mockLoad.mockResolvedValue(data); await resume(); await options();
-  expect(menuItems('Napusti razgovor')).toHaveLength(0);
+  expect(menuItems('Napustite razgovor')).toHaveLength(0);
 });
 
 it('keeps the complete conversation without a premature pinned card', async () => {
@@ -901,8 +945,8 @@ it('keeps current facts in the card and review instead of attaching changed valu
   expect(text()).not.toContain(fact.displayValue);
   expect(thread.findAll(node => String(node.props.accessibilityLabel ?? '').startsWith('Iz ovoga je uzeto:'))).toHaveLength(0);
   noSummary(); await options();
-  await act(async () => menuItem('Pregledaj zadatak').onPress());
-  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
+  expect(menuItems('Pregledajte zadatak')).toHaveLength(0);
+  expect(mockRouter.push).not.toHaveBeenCalled();
 });
 
 it('does not present UNKNOWN facts as completed answers', async () => {
@@ -930,11 +974,9 @@ it('keeps private address and resolved coordinates out of the compact live card 
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
   noSummary();
-  await options(); expect(menuItems('Pregledaj zadatak')).toHaveLength(1);
-  const review = menuItem('Pregledaj zadatak');
-  await act(async () => { review.onPress(); review.onPress(); });
-  expect(mockRouter.push).toHaveBeenCalledTimes(1);
-  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
+  await options(); expect(menuItems('Pregledajte zadatak')).toHaveLength(0);
+  expect(mockRouter.push).not.toHaveBeenCalled();
+  expect(mockPrepareReview).not.toHaveBeenCalled();
 });
 
 it('keeps partial proposals out of the conversation card while facts are gathered', async () => {
@@ -987,14 +1029,14 @@ it('never names a category and does not call the draft ready while only the cate
   mockLoad.mockResolvedValue(hidden); await resume();
   expect(text()).not.toContain('Kategorija'); expect(text()).not.toContain('Još treba');
   expect(text()).not.toContain('Sve traženo je uneto.');
-  noSummary(); await options(); expect(menuItem('Pregledaj zadatak').disabled).toBe(false);
+  noSummary(); await options(); expect(menuItems('Pregledajte zadatak')).toHaveLength(0);
   await act(async () => tree.unmount());
   const done = conversation({ messages: said, facts: completeFacts() });
   mockLoad.mockResolvedValue(done); await resume();
-  expect(text()).toContain('Pregledaj zadatak');
+  expect(text()).toContain('Pregledajte zadatak');
   expect(tree.root.findAllByProps({ testID: 'ai-footer-action' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
-  const review = tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj zadatak' });
+  const review = tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledajte zadatak' });
   await act(async () => review.props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
 });
@@ -1009,8 +1051,8 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text through
   const sends = mockSend.mock.calls.length;
   await type('Dopuna koju još nisam poslao.');
   expect(tree.root.findByProps({testID:'intake-review-unsent-note'}).props.children).toContain('Neposlati tekst nije deo pregleda.');
-  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(1);
-  await act(async () => tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
+  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findAllByProps({ label: 'Pregledajte zadatak' })).toHaveLength(1);
+  await act(async () => tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledajte zadatak' }).props.onPress());
   const first = mockRouter.push.mock.calls.at(-1)![0].params;
   expect(Object.keys(first).sort()).toEqual(['conversationId', 'intakeReturn']);
   await blur();
@@ -1025,10 +1067,10 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text through
   expect(tree.root.findByProps({testID:'ai-correction-context'})).toBeDefined();
   expect(text()).toContain('Mesto i način rada');
   expect(text()).toContain('Prenos dva ormara');
-  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(1);
+  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findAllByProps({ label: 'Pregledajte zadatak' })).toHaveLength(1);
   expect(mockSend).toHaveBeenCalledTimes(sends);
   await type('Izmenjena neposlata dopuna.');
-  await act(async () => tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
+  await act(async () => tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledajte zadatak' }).props.onPress());
   const second = mockRouter.push.mock.calls.at(-1)![0].params;
   expect(second.intakeReturn).not.toBe(first.intakeReturn);
   expect(readIntakeReviewReturn(second.intakeReturn, id)?.params).toEqual(originalParams);
@@ -1039,7 +1081,7 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text through
 it('retires the review return when the original intake unmounts', async () => {
   mockLoad.mockResolvedValue(conversation({ facts: completeFacts() }));
   await resume();
-  await act(async () => tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
+  await act(async () => tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledajte zadatak' }).props.onPress());
   const token = mockRouter.push.mock.calls.at(-1)![0].params.intakeReturn;
   await blur(); expect(readIntakeReviewReturn(token, id)).not.toBeNull();
   await act(async () => tree.unmount());
@@ -1047,13 +1089,23 @@ it('retires the review return when the original intake unmounts', async () => {
 });
 
 // Review r4 ra item 9: a conversation that changes a published task says so on its card, in the menu's own words.
+it('an empty edit conversation does not offer unrelated new-task openings or send an AI turn', async () => {
+  const bound = conversation({ messages: [], facts: completeFacts() }); bound.review.boundNeedId = other;
+  mockLoad.mockResolvedValue(bound); await resume();
+  const drawn = (label: string) => tree.root.findAll(node => typeof node.type === 'string' && node.props.accessibilityLabel === label);
+  expect(text()).toContain('Šta želite da promenite?');
+  expect(text()).not.toContain('Na primer');
+  for (const sentence of TASK_OPENINGS) expect(drawn(sentence)).toHaveLength(0);
+  expect(mockSend).not.toHaveBeenCalled();
+});
+
 it('the card of a task being changed names its review the way the menu does and says "Izmena" in the title and to a screen reader, not over its name', async () => {
   const said = [{ id: other, body: 'Promeni vreme.', fromAi: false, safety: null, proposedFactIds: [] }];
   const bound = conversation({ messages: said, facts: completeFacts() }); bound.review.boundNeedId = other;
   mockLoad.mockResolvedValue(bound); await resume();
   expect(text()).toContain('Izmena'); expect(text()).not.toMatch(/\bNacrt\b/);
-  expect(text()).toContain('Pregledaj izmene'); expect(text()).not.toContain('Pregledaj zadatak');
-  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj izmene' })).toBeDefined();
+  expect(text()).toContain('Pregledajte izmene'); expect(text()).not.toContain('Pregledajte zadatak');
+  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledajte izmene' })).toBeDefined();
   expect(tree.root.findByProps({ testID: 'intake-draft-head' }).props.accessibilityLabel).toBe('Izmena zadatka, Prenos ormara, Prepoznata usluga: Prevod');
 });
 
@@ -1082,7 +1134,7 @@ it('offers photos from the composer before and after the first word, inside the 
   expect(tree.root.findAllByType(PhotoAttachSheet)).toHaveLength(1); expect(mockOpen).not.toHaveBeenCalled();
 
   await act(async () => tree.unmount());
-  await resume(); expect(menuItems('Napusti razgovor')).toHaveLength(0);
+  await resume(); expect(menuItems('Napustite razgovor')).toHaveLength(0);
   await options();
   expect(menuItems('Dodaj fotografije')).toHaveLength(0); expect(menuItems('Fotografije zadatka')).toHaveLength(0);
   expect(optionLabels()).not.toMatch(/mikrofon|prilo[gž]|glasovn/i);
@@ -1111,7 +1163,7 @@ it('keeps the real Gemini question visible and does not open a map for city-only
   expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
   const shell = tree.root.findByType(AiConversationShell).props;
   expect(shell.interactiveContextKey).toBeUndefined();
-  expect(shell.footerAction?.props.label).not.toBe('Prikaži mesto na mapi');
+  expect(shell.footerAction?.props.label).not.toBe('Prikažite mesto na mapi');
 });
 
 it.each(['area', 'label'] as const)('offers map pin search for spoken %s without inventing a private exact address', async slot => {
@@ -1130,7 +1182,7 @@ it.each(['area', 'label'] as const)('offers map pin search for spoken %s without
   const getShell = () => tree.root.findByType(AiConversationShell).props;
   expect(getShell().interactiveContextKey).toEqual(expect.any(String));
   const before = getShell().interactiveContextKey;
-  expect(getShell().footerAction.props.label).toBe('Prikaži mesto na mapi');
+  expect(getShell().footerAction.props.label).toBe('Prikažite mesto na mapi');
   await act(async () => getShell().footerAction.props.onPress());
   // An explicit human tap must request a fresh native scroll to the existing
   // map widget; it never creates another AI turn, address or coordinate.
@@ -1184,13 +1236,13 @@ it('keeps a typed draft but prevents competing send, review and photo navigation
   await resume(); await type('Još jedna napomena');
   const send = submit().onPress;
   const photos = plus().onPress;
-  await options(); const review = menuItem('Pregledaj zadatak').onPress; await closeMenu();
+  await options(); expect(menuItems('Pregledajte zadatak')).toHaveLength(0); await closeMenu();
   const point = tree.root.findByType('PointAsk' as React.ElementType).props;
   await act(async () => point.onEditingChange(true));
   expect(input().value).toBe('Još jedna napomena');
   expect(submit().accessibilityState.disabled).toBe(true);
   // Retained callbacks from before the manual editor opened cannot bypass the interlock.
-  await act(async () => { send(); photos(); review(); });
+  await act(async () => { send(); photos(); });
   expect(mockSend).not.toHaveBeenCalled(); expect(mockRouter.push).not.toHaveBeenCalled();
   expect(tree.root.findAllByType(PhotoAttachSheet)).toHaveLength(0);
   await act(async () => point.onEditingChange(false));
@@ -1228,7 +1280,7 @@ describe('the confirmed place is a line of the conversation', () => {
   // This helper asserts server transcript + confirmed location ordering only.
   // The separate local opening is intentionally above it, without a DB message ID.
   const order = () => tree.root.findByProps({ testID: 'ai-conversation-thread' }).findAll(node => isLine(node)
-    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)
+    || (typeof node.props.accessibilityLabel === 'string' && /^(Vi|USKOČI): /.test(node.props.accessibilityLabel)
       && node.props.testID !== 'ai-local-opening'))
     .map(node => isLine(node) ? 'PLACE' : node.props.accessibilityLabel);
   const docked = () => ['ai-composer-footer', 'ai-pinned-card'].flatMap(region => tree.root.findAllByProps({ testID: region }))
@@ -1244,19 +1296,19 @@ describe('the confirmed place is a line of the conversation', () => {
     mockLoad.mockResolvedValue(placed(fromProvider, before));
     await act(async () => ask().onSaved());
     expect(asks()).toHaveLength(0); expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ label: 'Pokaži mesto na mapi' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Prikažite mesto na mapi' })).toHaveLength(0);
     expect(tree.root.findByProps({ testID: 'ai-conversation-thread' }).findAll(isLine)).toHaveLength(1);
     expect(docked()).toHaveLength(0);
     expect(sentence()).toEqual(['Potvrđeno mesto: Bulevar oslobođenja 65, Novi Sad']);
     expect(line().props.accessibilityLabel).toBe(`Potvrđeno mesto: ${provider}`); // The whole label stays for a screen reader.
-    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'PLACE']);
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Vi: Bulevar oslobođenja 65, Novi Sad', 'PLACE']);
     // The conversation continues below it.
     mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     mockLoad.mockResolvedValue(placed(fromProvider, [...before, ...later]));
     await type('Sutra u deset.'); await act(async () => submit().onPress());
-    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'PLACE',
-      'Ti: Sutra u deset.', 'USKOČI: Zapisao sam termin.']);
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Vi: Bulevar oslobođenja 65, Novi Sad', 'PLACE',
+      'Vi: Sutra u deset.', 'USKOČI: Zapisao sam termin.']);
     expect(docked()).toHaveLength(0); expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
   });
 
@@ -1269,11 +1321,11 @@ describe('the confirmed place is a line of the conversation', () => {
     expect(tree.root.findByType(AiConversationShell).props).toMatchObject({ revealInteractiveContext: true });
     await act(async () => ask().onEditingChange(true));
     // While its editor is open the line stays in history but is not a second way in, and sending waits for the map.
-    expect(line().props.onPress).toBeUndefined(); expect(flat(line())).not.toContain('Izmeni');
+    expect(line().props.onPress).toBeUndefined(); expect(flat(line())).not.toContain('Izmenite');
     expect(tree.root.findByType(AiConversationShell).props.interactiveContextKey).toBeDefined();
     await act(async () => { ask().onEditingChange(false); ask().onClose(); });
     expect(asks()).toHaveLength(0); expect(line().props.onPress).toBeDefined();
-    expect(tree.root.findAllByProps({ label: 'Pokaži mesto na mapi' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Prikažite mesto na mapi' })).toHaveLength(0);
     expect(mockSend).not.toHaveBeenCalled();
   });
 
@@ -1287,7 +1339,7 @@ describe('the confirmed place is a line of the conversation', () => {
       mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
       await render(); await type('Bulevar oslobođenja 65, Novi Sad'); await act(async () => submit().onPress());
     }
-    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'USKOČI: Koliki iznos nudiš?']);
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Vi: Bulevar oslobođenja 65, Novi Sad', 'USKOČI: Koliki iznos nudiš?']);
     expect(asks()).toHaveLength(1);
     // The question is real and should remain visible while pin confirmation is pending.
     await act(async () => ask().onSaved());
@@ -1298,8 +1350,8 @@ describe('the confirmed place is a line of the conversation', () => {
     expect(text()).toContain('Koliki iznos nudiš?');
     mockLoad.mockResolvedValue(placed(fromProvider, withClarification));
     await act(async () => ask().onSaved());
-    const expected = ['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad',
-      'USKOČI: Koliki iznos nudiš?', 'Ti: Kod ulaza.', 'USKOČI: Pomeraj tačku do ulaza.', 'PLACE'];
+    const expected = ['USKOČI: Gde treba da se dođe?', 'Vi: Bulevar oslobođenja 65, Novi Sad',
+      'USKOČI: Koliki iznos nudiš?', 'Vi: Kod ulaza.', 'USKOČI: Pomeraj tačku do ulaza.', 'PLACE'];
     expect(order()).toEqual(expected);
     expect(asks()).toHaveLength(0);
     await act(async () => tree.unmount()); await resume();
@@ -1312,8 +1364,8 @@ describe('the confirmed place is a line of the conversation', () => {
     mockLoad.mockResolvedValue(placed(fromProvider, before)); await resume();
     mockLoad.mockResolvedValue(placed(fromProvider, [...before, ...later]));
     await type('Sutra u deset.'); await act(async () => submit().onPress());
-    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'PLACE',
-      'Ti: Sutra u deset.', 'USKOČI: Zapisao sam termin.']);
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Vi: Bulevar oslobođenja 65, Novi Sad', 'PLACE',
+      'Vi: Sutra u deset.', 'USKOČI: Zapisao sam termin.']);
     const sends = mockSend.mock.calls.length;
     await act(async () => line().props.onPress());
     mockLoad.mockResolvedValue(placed(movedByHand, [...before, ...later]));
@@ -1322,8 +1374,8 @@ describe('the confirmed place is a line of the conversation', () => {
     expect(sentence()).toEqual(['U redu, mesto zadatka je sada: Bulevar oslobođenja 67, Novi Sad.']);
     expect(line().props.accessibilityLabel).toBe('U redu, mesto zadatka je sada: 67, Bulevar oslobođenja, Novi Sad');
     // The acknowledgement belongs where it happened: after the latest message, as the one line for this place.
-    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad',
-      'Ti: Sutra u deset.', 'USKOČI: Zapisao sam termin.', 'PLACE']);
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Vi: Bulevar oslobođenja 65, Novi Sad',
+      'Vi: Sutra u deset.', 'USKOČI: Zapisao sam termin.', 'PLACE']);
     expect(mockSend).toHaveBeenCalledTimes(sends); expect(docked()).toHaveLength(0);
   });
 
@@ -1350,7 +1402,7 @@ describe('the confirmed place is a line of the conversation', () => {
     await act(async () => ask().onSaved());
     expect(asks()).toHaveLength(0); expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
     expect(sentence()).toEqual(['Potvrđeno mesto: Bulevar oslobođenja 65, Novi Sad']);
-    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'PLACE']);
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Vi: Bulevar oslobođenja 65, Novi Sad', 'PLACE']);
     expect(mockSend).not.toHaveBeenCalled();
   });
 
@@ -1514,7 +1566,7 @@ it('retains the new owned-open request after an unknown second-Task open outcome
   await type(); await act(async () => submit().onPress());
   const key = mockOpen.mock.calls[0][0];
   // The outcome is unknown, so the retry asks for the same conversation rather than another one.
-  await act(async () => button('Proveri').onPress());
+  await act(async () => button('Proverite').onPress());
   await type(); await act(async () => submit().onPress());
   expect(mockOpen.mock.calls[1][0]).toBe(key);
 });
@@ -1592,7 +1644,7 @@ it('restores only the opaque pending IDs after remount before any open or provid
   expect(mockSend).toHaveBeenCalledTimes(1);
   expect(tree.root.findByType(AiConversationShell).props).toMatchObject({value:'',canEdit:false,canSend:false});
   await openKeyboard();expect(input().value).toBe('');expect(input().editable).toBe(false);
-  expect(button('Otkaži slanje poruke')).toBeDefined();
+  expect(button('Otkažite slanje poruke')).toBeDefined();
 });
 it('restored absent intent is never auto retried and clears only after exact cancellation readback', async () => {
   const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
@@ -1600,11 +1652,11 @@ it('restored absent intent is never auto retried and clears only after exact can
   await render(); expect(mockSend).not.toHaveBeenCalled();
   const cancelled = recovery(turn(requestId, 'FAILED', false).podatak, true);
   mockCancel.mockResolvedValue(cancelled); mockRecover.mockResolvedValue(cancelled);
-  await act(async () => button('Otkaži slanje poruke').onPress());
+  await act(async () => button('Otkažite slanje poruke').onPress());
   expect(mockCancel).toHaveBeenCalledWith(id, requestId); expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
   await openKeyboard();
   expect(input().editable).toBe(true); await type('Nova poruka');
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pošalji poruku' }).props.onPress());
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pošaljite poruku' }).props.onPress());
   expect(mockSend.mock.calls[0][2]).not.toBe(requestId);
 });
 it('an older server returning unresolved dispatch cannot authorize journal retirement', async () => {
@@ -1613,11 +1665,11 @@ it('an older server returning unresolved dispatch cannot authorize journal retir
   await aiTurnIntentJournal.save(intent); await render();
   const dispatched = recovery(turn(requestId, 'PROCESSING', false).podatak, false, true);
   mockCancel.mockResolvedValue(dispatched); mockRecover.mockResolvedValue(dispatched);
-  await act(async () => button('Otkaži slanje poruke').onPress());
+  await act(async () => button('Otkažite slanje poruke').onPress());
   expect(await aiTurnIntentJournal.load(mockSession.user.id)).toEqual(intent);
   expect(tree.root.findByType(AiConversationShell).props).toMatchObject({canEdit:false,canSend:false});
   await openKeyboard();expect(input().editable).toBe(false);
-  expect(tree.root.findAllByProps({ label: 'Otkaži slanje poruke' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Otkažite slanje poruke' })).toHaveLength(0);
   expect(mockSend).not.toHaveBeenCalled();
 });
 it('canonical success after restart restores conversation and retires the UUID without another send', async () => {
@@ -1721,12 +1773,12 @@ it('routes a conflicting resumed conversation back to the pending UUID owner wit
   await aiTurnIntentJournal.save({ accountId: mockSession.user.id, conversationId: id, clientRequestId: other });
   mockParams = { conversationId: other }; await render();
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockRecover).not.toHaveBeenCalled(); expect(mockLoad).not.toHaveBeenCalled();
-  await act(async () => button('Otvori prethodni razgovor').onPress());
+  await act(async () => button('Otvorite prethodni razgovor').onPress());
   expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: id } });
 });
 it('unknown cancellation response retains the exact UUID across another restart', async () => {
   const intent = { accountId: mockSession.user.id, conversationId: id, clientRequestId: other };
-  await aiTurnIntentJournal.save(intent); await render(); await act(async () => button('Otkaži slanje poruke').onPress());
+  await aiTurnIntentJournal.save(intent); await render(); await act(async () => button('Otkažite slanje poruke').onPress());
   expect(await aiTurnIntentJournal.load(mockSession.user.id)).toEqual(intent);
   await act(async () => tree.unmount()); await render();
   expect(mockRecover).toHaveBeenLastCalledWith(id, other); expect(mockSend).not.toHaveBeenCalled();
@@ -1736,22 +1788,22 @@ it('restored bound-edit dispatched exit explains retained cost and unlocks only 
   await aiTurnIntentJournal.save(intent);mockParams={conversationId:id};
   mockLoad.mockResolvedValue(conversation({review:{...conversation().review,boundNeedId:other}}));
   mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));
-  await render();expect(button('Odustani od odgovora').disabled).toBe(false);
+  await render();expect(button('Odustanite od odgovora').disabled).toBe(false);
   await openKeyboard();
   expect(text()).toContain('poruka je ipak poslata');expect(input().editable).toBe(false);
   const cancelled=recovery(turn(other,'FAILED').podatak,true,true);
   mockCancel.mockResolvedValue(cancelled);mockRecover.mockResolvedValue(cancelled);
-  await act(async()=>button('Odustani od odgovora').onPress());
+  await act(async()=>button('Odustanite od odgovora').onPress());
   expect(mockCancel).toHaveBeenCalledWith(id,other);expect(await aiTurnIntentJournal.load(intent.accountId)).toBeNull();
   await openKeyboard();
   expect(input().editable).toBe(true);expect(text()).toContain('Odgovor je zaustavljen. Poruka je ipak poslata');expect(mockSend).not.toHaveBeenCalled();
-  await type('Izričita nova poruka');await act(async()=>tree.root.findByProps({accessibilityLabel:'Pošalji poruku'}).props.onPress());
+  await type('Izričita nova poruka');await act(async()=>tree.root.findByProps({accessibilityLabel:'Pošaljite poruku'}).props.onPress());
   expect(mockSend).toHaveBeenCalledTimes(1);expect(mockSend.mock.calls[0][2]).not.toBe(other);
 });
 it('lost dispatched cancellation ACK preserves journal until restart reads its terminal receipt',async()=>{
   const intent={accountId:mockSession.user.id,conversationId:id,clientRequestId:other};await aiTurnIntentJournal.save(intent);
   mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));
-  await render();await act(async()=>button('Odustani od odgovora').onPress());
+  await render();await act(async()=>button('Odustanite od odgovora').onPress());
   await openKeyboard();
   expect(await aiTurnIntentJournal.load(intent.accountId)).toEqual(intent);expect(input().editable).toBe(false);
   await act(async()=>tree.unmount());mockRecover.mockResolvedValue(recovery(turn(other,'FAILED').podatak,true,true));await render();
@@ -1763,14 +1815,14 @@ it('completion winning dispatched cancellation shows the actual result without c
   mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));await render();
   const completed=recovery(turn(other,'SUCCEEDED').podatak,false,true);mockCancel.mockResolvedValue(completed);mockRecover.mockResolvedValue(completed);
   mockLoad.mockResolvedValue(conversation({messages:[{id:other,fromAi:true,body:'Stvarni završen odgovor',safety:'ALLOW',proposedFactIds:[]}]}));
-  await act(async()=>button('Odustani od odgovora').onPress());
+  await act(async()=>button('Odustanite od odgovora').onPress());
   expect(text()).toContain('Stvarni završen odgovor');expect(text()).not.toContain('Odgovor je zaustavljen. Poruka je ipak poslata');
   expect(await aiTurnIntentJournal.load(intent.accountId)).toBeNull();expect(mockSend).not.toHaveBeenCalled();
 });
 it('late dispatched cancellation after blur cannot retire the journal or load another conversation',async()=>{
   const intent={accountId:mockSession.user.id,conversationId:id,clientRequestId:other};await aiTurnIntentJournal.save(intent);
   mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));await render();
-  const held=deferred();mockCancel.mockReturnValue(held.promise);await act(async()=>button('Odustani od odgovora').onPress());
+  const held=deferred();mockCancel.mockReturnValue(held.promise);await act(async()=>button('Odustanite od odgovora').onPress());
   await blur();const reads=mockLoad.mock.calls.length;await act(async()=>held.resolve(recovery(turn(other,'FAILED').podatak,true,true)));
   expect(await aiTurnIntentJournal.load(intent.accountId)).toEqual(intent);expect(mockLoad).toHaveBeenCalledTimes(reads);expect(mockSend).not.toHaveBeenCalled();
 });
@@ -1828,7 +1880,7 @@ test('saved task photos stay visible from the facts through authorized asset ref
   // The read failed (a read that did not arrive, not a send that is not known), so the way to try again is on screen, in the table's word for
   // it; nothing navigates away.
   mockReadPhotos.mockResolvedValue(ok({ conversationId: id, accountId: mockSession.user.id, photos: [], ready: true, authoritative: true }));
-  await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo' }).props.onPress());
+  await act(async () => tree.root.findByProps({ label: 'Pokušajte ponovo' }).props.onPress());
   expect(mockReadPhotos).toHaveBeenCalledTimes(2); expect(mockRouter.push).not.toHaveBeenCalled();
 });
 
@@ -1839,7 +1891,7 @@ describe('adding photos inside the conversation', () => {
   const message = (messageId: string, fromAi: boolean, body: string) => ({ id: messageId, fromAi, body, safety: null, proposedFactIds: [] });
   const isLine = (node: { type: unknown; props: { testID?: unknown } }) => typeof node.type === 'string' && node.props.testID === 'task-photo-line';
   const order = () => tree.root.findByProps({ testID: 'ai-conversation-thread' }).findAll(node => isLine(node)
-    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)
+    || (typeof node.props.accessibilityLabel === 'string' && /^(Vi|USKOČI): /.test(node.props.accessibilityLabel)
       && node.props.testID !== 'ai-local-opening'))
     .map(node => isLine(node) ? 'PHOTOS' : node.props.accessibilityLabel);
   const flush = async () => { for (let i = 0; i < 6; i++) await act(async () => { await Promise.resolve(); }); };
@@ -1882,12 +1934,12 @@ describe('adding photos inside the conversation', () => {
     await act(async () => plus().onPress());
     await act(async () => tree.root.findByType(PhotoAttachSheet).props.onPick('LIBRARY'));
     await flush();
-    expect(order()).toEqual(['USKOČI: Šta treba da se uradi?', 'Ti: Popravka slavine.', 'PHOTOS']);
+    expect(order()).toEqual(['USKOČI: Šta treba da se uradi?', 'Vi: Popravka slavine.', 'PHOTOS']);
     mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     mockLoad.mockResolvedValue(conversation({ messages: [...before, message('pm3', false, 'Sutra posle podne.'), message('pm4', true, 'Zapisao sam.')] }));
     await type('Sutra posle podne.'); await act(async () => submit().onPress());
-    expect(order()).toEqual(['USKOČI: Šta treba da se uradi?', 'Ti: Popravka slavine.', 'PHOTOS', 'Ti: Sutra posle podne.', 'USKOČI: Zapisao sam.']);
+    expect(order()).toEqual(['USKOČI: Šta treba da se uradi?', 'Vi: Popravka slavine.', 'PHOTOS', 'Vi: Sutra posle podne.', 'USKOČI: Zapisao sam.']);
     // The corner X asks first; only the answer removes the photo from the draft.
     mockRemovePhoto.mockResolvedValue(ok({ conversationId: id, accountId: mockSession.user.id, photos: [], ready: true, authoritative: true }));
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Ukloni fotografiju 1' }).props.onPress());
@@ -1911,32 +1963,32 @@ describe('adding photos inside the conversation', () => {
 });
 
 
-it('keeps the complete card and safety warning while a photo blocks review, including a retained review callback',async()=>{
- mockLoad.mockResolvedValue(conversation({facts:completeFacts(),safety:'REVIEW'}));await resume();
+it('keeps a ready card while a photo blocks review, including a retained review callback',async()=>{
+ mockLoad.mockResolvedValue(conversation({facts:completeFacts()}));await resume();
  const card=()=>tree.root.findByProps({testID:'intake-task-summary'});
  const safetyText=card().findAllByProps({variant:'note'}).map(node=>node.props.children).filter(child=>typeof child==='string').join(' ');
- const review=card().findByProps({label:'Pregledaj zadatak'}).props.onPress;
+ const review=card().findByProps({label:'Pregledajte zadatak'}).props.onPress;
  let done!:(v:unknown)=>void;mockPickPhotos.mockReturnValue(new Promise(resolve=>{done=resolve;}));
  await act(async()=>plus().onPress());await act(async()=>tree.root.findByType(PhotoAttachSheet).props.onPick('LIBRARY'));
- expect(card().findByProps({label:'Pregledaj zadatak'}).props.disabled).toBe(true);
+ expect(card().findByProps({label:'Pregledajte zadatak'}).props.disabled).toBe(true);
  expect(text()).toContain(safetyText);expect(text()).toContain('Sačekaj da se pošalju izabrane fotografije.');
  await act(async()=>review());expect(mockRouter.push).not.toHaveBeenCalled();
- await act(async()=>done(null));expect(card().findByProps({label:'Pregledaj zadatak'}).props.disabled).toBe(false);
- await act(async()=>card().findByProps({label:'Pregledaj zadatak'}).props.onPress());expect(mockRouter.push).toHaveBeenCalledTimes(1);
+ await act(async()=>done(null));expect(card().findByProps({label:'Pregledajte zadatak'}).props.disabled).toBe(false);
+ await act(async()=>card().findByProps({label:'Pregledajte zadatak'}).props.onPress());expect(mockRouter.push).toHaveBeenCalledTimes(1);
 });
 
 it.each(['PERMISSION_PENDING','PREPARING','STARTING','LISTENING','FINALIZING'] as const)(
  'preserves the ongoing speech and typed draft when review is pressed during %s',async phase=>{
   mockLoad.mockResolvedValue(conversation({facts:completeFacts()}));await resume();
   await type('Dopuna koju još nisam poslao.');
-  const review=()=>tree.root.findByProps({testID:'intake-task-summary'}).findByProps({label:'Pregledaj zadatak'}).props;
+  const review=()=>tree.root.findByProps({testID:'intake-task-summary'}).findByProps({label:'Pregledajte zadatak'}).props;
   const retainedReview=review().onPress;
   mockVoicePhase=phase;
   // A native gesture can change the controller before React paints its new state.
   await act(async()=>retainedReview());
   expect(mockRouter.push).not.toHaveBeenCalled();expect(mockVoiceCancel).not.toHaveBeenCalled();
   await update();expect(review().disabled).toBe(true);
-  expect(text()).toContain('Završi govor pre otvaranja pregleda.');
+  expect(text()).toContain('Završite govor pre otvaranja pregleda.');
   expect(input().value).toBe('Dopuna koju još nisam poslao.');
   expect(mockSend).not.toHaveBeenCalled();
   mockVoicePhase='IDLE';await update();expect(review().disabled).toBe(false);

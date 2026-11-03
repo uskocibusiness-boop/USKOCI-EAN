@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { supabaseKlijent, supabaseKonfigurisan } from '../../data/supabaseClient';
+import { readPublicSupabaseConfig } from '../../data/publicSupabaseConfig';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { HoldToTalkController, type HoldToTalkOptions } from './holdToTalk';
 import { createNativeSpeechAdapter } from './nativeSpeechAdapter';
@@ -35,8 +36,8 @@ export function useHoldToTalk(options: {
         const current = sesijaSada();
         if (signal.aborted || current.user?.id !== session.accountId || current.accountRevision !== session.accountRevision
           || readConversationId() !== session.conversationId || !current.session?.access_token) return null;
-        const url = process.env.EXPO_PUBLIC_SUPABASE_URL, anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-        return url && anonKey ? { url, anonKey, accessToken: current.session.access_token } : null;
+        const publicConfig = readPublicSupabaseConfig();
+        return publicConfig ? { ...publicConfig, accessToken: current.session.access_token } : null;
       } }),
     getScope: () => {
       const current = sesijaSada(), conversationId = readConversationId();

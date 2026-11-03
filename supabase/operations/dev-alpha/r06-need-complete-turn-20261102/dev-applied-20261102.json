@@ -1,0 +1,336 @@
+{
+  "status": "DEV_APPLIED_NATIVE_COMPLETE_TURN_READBACK_PROVEN",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "migration": {
+    "version": "20261102141629",
+    "name": "r06_need_complete_turn_v1",
+    "promotion_sha256": "b234317b2aa2cd809d98ef3c96833bb7a21a1aa59c1b1f30159173bd71456641",
+    "preflight": "R06_COMPLETE_TURN_PREIMAGE_MATCH",
+    "postflight": "R06_COMPLETE_TURN_POSTIMAGE_MATCH"
+  },
+  "approval": "Owner Nastavi after explicit two-function plus Need Edge proposal, 2026-11-02",
+  "edge": {
+    "name": "uskoci-ai-interview",
+    "version": 160,
+    "source_commit": "7d72ba85d315a75d9441259847035fffafd4d9f0",
+    "exact_files_verified": 23,
+    "verify_jwt": false,
+    "own_auth_unchanged": true
+  },
+  "guardrails": {
+    "closure_unchanged": true,
+    "certificate_unchanged": true,
+    "source_ready": false,
+    "acl_rls_unchanged": true,
+    "production_changed": false
+  },
+  "native_probe": {
+    "apk_source": "7d72ba85",
+    "ordinary_turn_state": "SUCCEEDED",
+    "proposed_count": 13,
+    "assistant_message_proposed_fact_ids": 13,
+    "safety": "ALLOW",
+    "provider_retries": 0,
+    "publication": false,
+    "discovered_defect": "Conversation message decoder retained the old 12-ID cap; confirmed server write cannot be loaded on that APK."
+  },
+  "client_fix": {
+    "file": "src/data/aiNeedV2Production.ts",
+    "change": "Read message proposal IDs with the same registry-derived bound as the turn receipt; unique UUID and owner/shape/safety guards retained.",
+    "reproduction": "ai-conversation-status: 13 and 22 IDs fail before fix",
+    "validation": "248 focused Jest tests PASS; TypeScript PASS",
+    "native_acceptance": "PASS_68748a4c_REOPENED_SAME_TURN_WITHOUT_PROVIDER"
+  },
+  "apk": {
+    "sourceCommit": "68748a4c280cd9321146cda46a820e831a3b7220",
+    "apkBytes": 123057323,
+    "apkSha256": "df09939704c86ad8ad062699f242d944c739451c1f64fa95121565277bf29898",
+    "nativeInputHashesPreserved": true,
+    "trackedSourceClean": true,
+    "embeddedBundle": {
+      "bytes": 13849184,
+      "sha256": "0018e1be1c9eb3b154547f55a38e45c18b1881ca8e1d765fcee53f2322d2c4d8",
+      "matchesGeneratedBundle": true,
+      "canonicalDevUrlEmbedded": true,
+      "entryCount": 1773,
+      "forbiddenFolderEntries": 0,
+      "abis": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "embeddedUpdateId": "a895e20e-80a8-41a8-92cc-7c1cb5705012",
+      "embeddedCommitTime": 1793629417058
+    }
+  },
+  "native_followup": {
+    "ordinary_review": "READY_AND_PUBLISH_BUTTON_ENABLED",
+    "schedule_change": "new start 4 November persisted, one fact, but model safety REVIEW",
+    "hint_carry": "CORRECTLY_WITHHELD_FOR_REVIEW",
+    "publication": false,
+    "cause": "Need prompt used REVIEW ambiguously for conversational preview and policy hold; Worker prompt already distinguished them.",
+    "fix": "Prompt-only separation of safety and dialogue.next; no runtime downgrade or SQL change.",
+    "tests": "188 PASS / 0 FAIL / 1 existing TODO; actual handler and scheduling SQL; explicit REVIEW/BLOCK retention",
+    "edge_status": "DEPLOYED_NEED_161_FULL_CI_41463124056_SUCCESS",
+    "historical_probe": true
+  },
+  "native_acceptance_20261102_1514": {
+    "source_commit": "ebfc067ed7177879bb86a6846d740fcf01b53b22",
+    "full_ci": {
+      "run_id": 41466868632,
+      "status": "SUCCESS",
+      "mobile_pass": 14584,
+      "ai_pass": 1578,
+      "ai_existing_todo": 1
+    },
+    "r01": {
+      "run_id": 41466868567,
+      "status": "FAILURE"
+    },
+    "edges": {
+      "need_version": 162,
+      "need_files_verified": 23,
+      "worker_version": 113,
+      "worker_files_verified": 21
+    },
+    "background_fix": "9s classification; timely complete result and confirmed foreground get one 7s capture/readback window; independent retained 3s usage settlement; no provider retry",
+    "focused_tests": {
+      "failed_before_fix": 4,
+      "passed_after_fix": 270
+    },
+    "apk_source": "68748a4c280cd9321146cda46a820e831a3b7220",
+    "conversation_id": "f06e4718-f18e-486e-b382-d2c9d9d38dda",
+    "scope_edit": {
+      "state": "SUCCEEDED",
+      "safety": "ALLOW",
+      "proposed_count": 1,
+      "background_ms": 7015,
+      "hint_captured": true
+    },
+    "schedule_edit": {
+      "state": "SUCCEEDED",
+      "safety": "ALLOW",
+      "proposed_count": 1,
+      "classification_carried": true,
+      "additional_background_calls": 0
+    },
+    "publication": {
+      "need_id": "f90fe165-79a7-4fd9-a5e0-3267641c0938",
+      "status": "PUBLISHED",
+      "category_id": "8766e4e3-5a44-4ddf-ab90-1cb607b6de53",
+      "same_category_as_saved_worker": true,
+      "outbox_state": "COMMITTED",
+      "outbox_attempts": 1,
+      "binding_state": "BOUND",
+      "binding_attempts": 1,
+      "created_categories": 0
+    },
+    "native_readback": {
+      "cold_restart": true,
+      "owner_list": true,
+      "detail": true,
+      "start": "2026-11-04T09:00:00 Europe/Belgrade",
+      "end": "2026-11-06T17:00:00 Europe/Belgrade",
+      "price_rsd": 1500,
+      "price_basis": "TOTAL",
+      "mode": "REMOTE",
+      "slots": 1
+    },
+    "trial_budget": {
+      "calls": 18,
+      "settled_usd": 0.301152,
+      "unsettled": 0,
+      "owner_limit_eur": 1,
+      "hard_cap_proven": false,
+      "qualification": "Earlier 18-settled snapshot excludes the publication evaluator attempt; later audit found one additional UNKNOWN reservation. Not a complete probe invoice."
+    },
+    "not_proven": [
+      "second-account matching and push",
+      "application and Agreement",
+      "completion and ratings",
+      "all-screen UX",
+      "durable recovery of an already lost first plan",
+      "R01/R10 closure",
+      "production release"
+    ]
+  },
+  "compact_catalog_acceptance_20261102_1535": {
+    "source_commit": "d472f0b818553fb19872506e971e1dc898934895",
+    "full_ci": {
+      "run_id": 41470740824,
+      "status": "SUCCESS",
+      "mobile_pass": 14584,
+      "ai_pass": 1579,
+      "ai_existing_todo": 1
+    },
+    "r01": {
+      "run_id": 41470740775,
+      "status": "FAILURE"
+    },
+    "edges": {
+      "need_version": 163,
+      "need_files_verified": 23,
+      "worker_version": 114,
+      "worker_files_verified": 21
+    },
+    "catalog_nodes": 153,
+    "catalog_bytes_before": 61942,
+    "catalog_bytes_after": 27094,
+    "native_edit": {
+      "state": "SUCCEEDED",
+      "safety": "ALLOW",
+      "proposed_count": 1,
+      "same_category_id": true,
+      "review_verified": true,
+      "save": "PUBLISHED_REPLACEMENT_AND_BOUND"
+    },
+    "measured_bg": {
+      "request_bytes": 40655,
+      "prompt_tokens": 16672,
+      "output_tokens": 712,
+      "duration_ms": 7164,
+      "settled_microusd": 15174
+    },
+    "foreground": {
+      "duration_ms": 8546,
+      "settled_microusd": 7847
+    },
+    "cost_scope": "Token-based configured-price estimate; no invoice/cache discount/latency improvement claim.",
+    "trial_budget": {
+      "settled_calls": 20,
+      "settled_usd": 0.324173,
+      "unsettled_prior_publication": 1,
+      "unknown_reservation_max_usd": 0.25,
+      "owner_limit_eur": 1
+    },
+    "publication_usage_fix": {
+      "status": "CI_PROVEN_DEV_PROVEN_NATIVE_PROVEN",
+      "failed_before": 5,
+      "focused_pass": 70,
+      "source_commit": "770d8886557b0beabcc182e962264058bd6897d1"
+    }
+  },
+  "native_edit_recovery_20261102_1545": {
+    "status": "DEFECT_REPRODUCED_NOT_FIXED",
+    "trigger": "Android recreation -> Home -> owner detail -> Edit",
+    "expected": "Resume compatible existing unfinished edit without another model call",
+    "observed": "A new OPEN bound conversation is created; original saved edit is absent from Home unbound-intake list",
+    "original_conversation": "96da1adc-c546-46b2-8915-1cad724a699e",
+    "additional_conversation": "180cc30d-e087-4f91-8d47-deab8c5f7d5a",
+    "original_facts_retained": true,
+    "diagnostic_deep_link_readback": true,
+    "provider_calls_for_recovery": 0,
+    "font_scale_restored": 1.0,
+    "account_changed": false
+  },
+  "publication_usage_prepared": {
+    "source_commit": "770d8886557b0beabcc182e962264058bd6897d1",
+    "preimage_version": 28,
+    "preimage_ezbr_sha256": "a73abe0ddb3502d8ad1b68f90e5e8da050b8c5721cdca9bc9e54b0f08b669e16",
+    "verify_jwt": true,
+    "files": {
+      "supabase/functions/uskoci-publication-evaluate/index.ts": "2639ae690496e657192341501721ea842311d28da7449053823e329f0382b7bf",
+      "supabase/functions/_shared/aiTestBudget.ts": "2b7160d61fc8561c926601bfc21a1d06874b40edb1cc3c8b1e89bb6b16df4d31",
+      "supabase/functions/_shared/geminiTaskStream.ts": "52995599c0c4dd89350681fa657c2777089046dd560555e764931f20c9b12aac",
+      "src/contracts/aiAvailability.ts": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409"
+    },
+    "changed_existing": [
+      "publication handler",
+      "shared reservation fetch/body bound"
+    ],
+    "added_dependencies": [
+      "existing Gemini usage decoder",
+      "its existing availability constants"
+    ],
+    "status": "HISTORICAL_PREPARATION_DEPLOYMENT_CONFIRMED_BELOW"
+  },
+  "publication_usage_acceptance_20261102_1554": {
+    "source_commit": "770d8886557b0beabcc182e962264058bd6897d1",
+    "full_ci": {
+      "run_id": 41473745432,
+      "status": "SUCCESS",
+      "mobile_pass": 14584,
+      "evaluator_pass": 54,
+      "ai_pass": 1586,
+      "ai_existing_todo": 1
+    },
+    "r01": {
+      "run_id": 41473745408,
+      "status": "FAILURE",
+      "strict_differences": 8,
+      "effective_differences": 49,
+      "managed_net_differences": 3
+    },
+    "edge": {
+      "name": "uskoci-publication-evaluate",
+      "preimage_version": 28,
+      "version": 29,
+      "status": "ACTIVE",
+      "exact_files_verified": 4,
+      "verify_jwt": true,
+      "ezbr_sha256": "11d8addb357a51ec0d5aba7140fd22f645a75b6641ad8c9cf9b2f8a5af7f1bd5"
+    },
+    "sql_changed": false,
+    "authorization_changed": false,
+    "production_changed": false,
+    "expired_review": {
+      "refused_without_new_provider_call": true,
+      "explicit_check_refreshed_review": true,
+      "authorized_adb_confirmation_after_refresh": true
+    },
+    "publication": {
+      "old_need_id": "f90fe165-79a7-4fd9-a5e0-3267641c0938",
+      "old_status": "CANCELLED",
+      "replacement_need_id": "b572dd4c-b022-4f51-b71d-8b210f6224c8",
+      "replacement_status": "PUBLISHED",
+      "outbox_state": "COMMITTED",
+      "outbox_attempts": 1,
+      "binding_state": "BOUND",
+      "binding_attempts": 1,
+      "category_id": "8766e4e3-5a44-4ddf-ab90-1cb607b6de53",
+      "same_saved_worker_category": true,
+      "created_categories": 0,
+      "catalog_nodes": 153
+    },
+    "usage": {
+      "operation_id": "817e8c6b-9c6f-4d04-86e4-60995394f8ec",
+      "prompt_tokens": 1467,
+      "output_tokens": 27,
+      "settled_microusd": 1202,
+      "basis": "MEASURED",
+      "requests": 1,
+      "historical_unknown_backfilled": false
+    },
+    "new_edit_total_microusd": 24223,
+    "whole_trial_budget": {
+      "reservations": 22,
+      "settled_calls": 21,
+      "settled_microusd": 325375,
+      "prior_unknown_attempts": 1,
+      "prior_unknown_reserved_max_microusd": 250000,
+      "owner_limit_eur": 1,
+      "provider_invoice_verified": false,
+      "hard_cap_proven": false
+    },
+    "native_readback": {
+      "device": "emulator-5554",
+      "apk_source": "68748a4c280cd9321146cda46a820e831a3b7220",
+      "published_detail": true,
+      "cold_restart": true,
+      "active_count": 1,
+      "owner_list_published_count": 1,
+      "history_count": 1,
+      "description_retained": true,
+      "font_scale": 1.0,
+      "network_enabled": true,
+      "account_changed": false
+    },
+    "open": [
+      "edit conversation resume through ordinary UI",
+      "durable lost first plan",
+      "second-account matching/application/Agreement/push/ratings",
+      "all-screen UX",
+      "latency target and complete spend cap",
+      "R01/R10/release"
+    ]
+  }
+}

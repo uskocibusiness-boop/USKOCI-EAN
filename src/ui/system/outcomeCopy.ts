@@ -25,15 +25,15 @@ import type { FactArtKind } from './FactArt';
 /** The three buttons of the app's trouble states, each one verb. The same word on every screen. */
 export const OUTCOME_ACTION = {
   /** A write that did not go through, or a read that did not arrive: do it again. */
-  retry: 'Pokušaj ponovo',
+  retry: 'Pokušajte ponovo',
   /** The app is not sure a write went through: find out. The ONE button of `uncertain`. */
-  check: 'Proveri',
+  check: 'Proverite',
   /** What is on the screen may be old: read it again (a list, a Dogovor, a task). */
-  refresh: 'Osveži',
+  refresh: 'Osvežite',
 } as const;
 
 /** What a screen reader hears on the check button, which has to carry its visible word (`Proveri`) and say what is checked. */
-export const CHECK_SPOKEN = 'Proveri šta je sačuvano';
+export const CHECK_SPOKEN = 'Proverite šta je sačuvano';
 
 /** The title and the sentence of a state, and the button that goes with it. */
 export type OutcomeWords = { readonly title: string; readonly copy: string; readonly action: string };

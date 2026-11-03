@@ -56,7 +56,7 @@ describe('focused account reads', () => {
     const load = jest.fn<Promise<string[]>, []>().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([]);
     const model = createFocusedResource(load, () => true);
     model.start(); await flush();
-    expect(model.snapshot()).toEqual({ data: null, loading: false, error: true , refreshing: false });
+    expect(model.snapshot()).toEqual({ data: null, loading: false, error: true, refreshing: false, errorReason: 'UNAVAILABLE' });
     await model.refresh();
     expect(model.snapshot()).toEqual({ data: [], loading: false, error: false , refreshing: false });
   });
@@ -196,7 +196,7 @@ describe('opt-in conversation refresh continuity', () => {
     const load = jest.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([]).mockRejectedValueOnce(new Error('offline'));
     const model = createFocusedResource<string[]>(load, () => true, policy);
     model.start(); await flush();
-    expect(model.snapshot()).toEqual({ data: null, loading: false, error: true, refreshing: false });
+    expect(model.snapshot()).toEqual({ data: null, loading: false, error: true, refreshing: false, errorReason: 'UNAVAILABLE' });
     await model.refresh(); await model.refresh();
     expect(model.snapshot()).toMatchObject({ data: [], loading: false, error: false, refreshing: false, refreshError: true });
   });
@@ -242,5 +242,37 @@ describe('opt-in conversation refresh continuity', () => {
     pending.resolve(['another account result']); await waiting; await model.refresh();
     expect(listener).not.toHaveBeenCalled(); expect(load).toHaveBeenCalledTimes(2);
     expect(model.snapshot().data).toEqual(['history']);
+  });
+});
+
+describe('safe read failure lifetime', () => {
+  it('retains a successful snapshot and a safe reason on refresh failure, then clears the reason on retry', async () => {
+    const retry = deferred<string[]>();
+    const load = jest.fn().mockResolvedValueOnce(['last confirmed snapshot'])
+      .mockRejectedValueOnce({ code: '42501', message: 'private SQL payload', details: 'private details' })
+      .mockReturnValueOnce(retry.promise);
+    const model = createFocusedResource<string[]>(load, () => true, { retainOnRefresh: true });
+    model.start(); await flush(); await model.refresh();
+    expect(model.snapshot()).toEqual({ data: ['last confirmed snapshot'], loading: false, error: false,
+      refreshing: false, refreshError: true, errorReason: 'FORBIDDEN' });
+    expect(JSON.stringify(model.snapshot())).not.toContain('private');
+    const pending = model.refresh();
+    expect(model.snapshot()).toMatchObject({ data: ['last confirmed snapshot'], refreshing: true, refreshError: false });
+    expect(model.snapshot().errorReason).toBeUndefined();
+    retry.resolve(['fresh snapshot']); await pending;
+    expect(model.snapshot()).toEqual({ data: ['fresh snapshot'], loading: false, error: false, refreshing: false });
+  });
+
+  it('does not publish an old failure over a newer failed read, and forget clears the diagnostic', async () => {
+    const old = deferred<string[]>(), fresh = deferred<string[]>();
+    const load = jest.fn().mockReturnValueOnce(old.promise).mockReturnValueOnce(fresh.promise);
+    const model = createFocusedResource<string[]>(load, () => true);
+    model.start(); const retry = model.refresh();
+    fresh.reject(new Error('OPPORTUNITIES_RESPONSE_INVALID')); await retry;
+    expect(model.snapshot().errorReason).toBe('CONTRACT');
+    old.reject(new Error('AUTH_REQUIRED')); await flush();
+    expect(model.snapshot().errorReason).toBe('CONTRACT');
+    model.forget();
+    expect(model.snapshot()).toEqual({ data: null, loading: true, error: false, refreshing: false });
   });
 });

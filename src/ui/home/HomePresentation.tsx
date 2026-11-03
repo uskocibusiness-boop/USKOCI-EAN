@@ -1,10 +1,8 @@
 import { useRef, type ReactNode } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, StyleSheet, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
-import type { MojaPrijavaProjekcija, PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
-import { inicijali } from '../../lib/inicijali';
 import type { HomeAttention, HomeRaspored, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import type { OwnedTaskCounts } from '../../data/marketplaceView';
 import type { ApplicationCounts } from '../../data/myApplicationsView';
@@ -18,9 +16,6 @@ import { Surface } from '../system/Surface';
 import { layout } from '../system/layout';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { TaskCard } from '../v2/TaskCard';
-import { OwnTaskCard } from '../v2/OwnTaskCard';
-import { ApplicationCard } from '../v2/ApplicationFace';
 import { sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useLayoutClass } from '../system/textScale';
@@ -30,7 +25,7 @@ import { HowItWorks } from './HowItWorks';
 
 /** Two main actions, the next appointment, real pending work and the account's lists.
  * Empty attention stays hidden; failures retain explicit recovery. One account owns both roles.
- * Current design authority: docs/implementation/design-system/PREMIUM_WHITE_CANON.md.
+ * Current design authority: docs/product/USKOCI_PRODUCT_UX_MASTER.md, S01.
  */
 export type HomePresentationProps = {
   /** Only the focused live route starts decorative motion; galleries stay still. */
@@ -60,58 +55,51 @@ export type HomePresentationProps = {
    * (their initials, or a drawn person). Without it, or without a profile id, the stand-in is the face.
    */
   photo?: (profileId: string, standIn: ReactNode) => ReactNode;
-  opportunities?: readonly PrilikaProjekcija[];
-  onOpenOpportunity?: (id: string) => void;
-  myTasks?: readonly PotrebaProjekcija[];
-  myApplications?: readonly MojaPrijavaProjekcija[];
   workProfileRead?: HomeOptionalRead;
-  opportunitiesRead?: HomeOptionalRead;
 };
 
 type HomeOptionalRead = { loading: boolean; refreshing: boolean; error: boolean; stale: boolean; onRetry: () => void };
 
-/** Optional content has its own quiet recovery, without replacing the account's core overview. */
-function OptionalReadState({ kind, state }: { kind: 'worker' | 'opportunities'; state?: HomeOptionalRead }) {
+/** The work-profile read recovers independently from the account's core overview. */
+function WorkProfileReadState({ state }: { state?: HomeOptionalRead }) {
   if (!state || !state.loading && !state.refreshing && !state.error && !state.stale) return null;
-  const worker = kind === 'worker';
-  return <View testID={`home-${kind}-read`} style={s.recovery}>
+  return <View testID="home-worker-read" style={s.recovery}>
     <T variant="note" tone="muted" accessibilityRole={state.error || state.stale ? 'alert' : undefined}>
-      {state.loading ? worker ? 'Učitavamo radni profil…' : 'Učitavamo aktuelne zadatke…'
-        : state.refreshing ? worker ? 'Osvežavamo radni profil…' : 'Osvežavamo aktuelne zadatke…'
-        : state.stale ? worker ? 'Radni profil nije osvežen. Prikazano je poslednje učitano.' : 'Aktuelni zadaci nisu osveženi. Prikazano je poslednje učitano.'
-          : worker ? 'Radni profil trenutno nije učitan.' : 'Aktuelni zadaci trenutno nisu učitani.'}
+      {state.loading ? 'Učitavamo radni profil…'
+        : state.refreshing ? 'Osvežavamo radni profil…'
+          : state.stale ? 'Radni profil nije osvežen. Prikazano je poslednje učitano.' : 'Radni profil trenutno nije učitan.'}
     </T>
-    {state.error || state.stale || state.refreshing ? <V2Action kind="quiet" compact tone="neutral" label={worker ? 'Osveži radni profil' : 'Osveži aktuelne zadatke'}
+    {state.error || state.stale || state.refreshing ? <V2Action kind="quiet" compact tone="neutral" label="Osvežite radni profil"
       loading={state.refreshing} disabled={state.loading || state.refreshing} onPress={state.onRetry} /> : null}
   </View>;
 }
 
 /** Illustrations identify the two intentions; text and touch area grow independently. */
 const DOOR_ART = 48;
-/** How many things "Čeka te" draws (the blueprint of 8 Oct 2026, T3): a list that is longer is counted, not scrolled. */
+/** How many things "Čeka Vas" draws (the blueprint of 8 Oct 2026, T3): a list that is longer is counted, not scrolled. */
 export const WAITING_LIMIT = 3;
 
 /** Equal intentions, without a persistent account role. Large text uses full-width rows. */
 function StartActions({ onPublish, onEarn }: { onPublish: () => void; onEarn: () => void }) {
   const { stacked } = useLayoutClass();
   return <View testID="home-intentions" style={[s.actions, stacked && s.actionsStacked]}>
-    <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" accessibilityHint="Opiši šta ti treba."
+    <Press accessibilityRole="button" accessibilityLabel="Objavite zadatak" accessibilityHint="Opišite šta Vam treba."
       haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.door, s.publishDoor, stacked && s.doorStacked]}>
       <View style={[s.doorMain, stacked && s.doorMainStacked]}>
         <HomeLaunchArt kind="publish" size={DOOR_ART} />
         <View style={s.doorCopy}>
-          <T variant="heading" style={s.doorTitle}>Objavi zadatak</T>
-          <T variant="note" tone="muted">Opiši šta ti treba.</T>
+          <T variant="heading" style={s.doorTitle}>Objavite zadatak</T>
+          <T variant="note" tone="muted">Opišite šta Vam treba.</T>
         </View>
       </View>
     </Press>
-    <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Pronađi zadatak."
+    <Press accessibilityRole="button" accessibilityLabel="Uskočite i zaradite" accessibilityHint="Pronađite zadatak."
       haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.door, s.earnDoor, stacked && s.doorStacked]}>
       <View style={[s.doorMain, stacked && s.doorMainStacked]}>
         <HomeLaunchArt kind="discover" size={DOOR_ART} />
         <View style={s.doorCopy}>
-          <T variant="heading" style={s.doorTitle}>Uskoči i zaradi</T>
-          <T variant="note" tone="muted">Pronađi zadatak.</T>
+          <T variant="heading" style={s.doorTitle}>Uskočite i zaradite</T>
+          <T variant="note" tone="muted">Pronađite zadatak.</T>
         </View>
       </View>
     </Press>
@@ -230,7 +218,7 @@ function MineRow({ art, title, detail, onPress, last = false }: {
 /** No optimistic availability toggle: the status changes after AI review and Save. */
 function AvailableNowRow({ control, last }: { control: NonNullable<HomePresentationProps['availableNow']>; last: boolean }) {
   return <ListRow leading={<FactArt kind="clock" size={32} />} title="Dostupnost" subtitle={control.value ? 'Mogu odmah' : 'Mogu odmah: isključeno'} last={last}
-    accessibilityLabel="Izmeni dostupnost kroz razgovor" onPress={control.onEdit} />;
+    accessibilityLabel="Izmenite dostupnost kroz razgovor" onPress={control.onEdit} />;
 }
 
 /** Said once and quietly: a part of the overview that could not be read names itself, and the shared recovery above retries it. */
@@ -247,16 +235,16 @@ const INITIAL_READ_HEIGHT = sys.type.heading.lineHeight + layout.group + layout.
 function HomeInitialLoading() {
   return <View testID="home-initial-loading" accessibilityLiveRegion="polite" style={s.initialLoading}>
     <ActivityIndicator size="small" color={sys.color.green} />
-    <T variant="note" tone="muted" style={s.initialLoadingText}>Učitavamo tvoj pregled…</T>
+    <T variant="note" tone="muted" style={s.initialLoadingText}>Učitavamo Vaš pregled…</T>
   </View>;
 }
 
-// The two doors count what their lists hold, never what waits: that is said once, under "Čeka te", from the server's
+// The two doors count what their lists hold, never what waits: that is said once, under "Čeka Vas", from the server's
 // own attention list (PKG-042: no inference fallback). A door that also said "1 čeka izbor" contradicted a known empty
-// "Čeka te", and stood in for it when that list could not be read.
+// "Čeka Vas", and stood in for it when that list could not be read.
 /**
  * "8 aktivnih · 1 nacrt" — the sets of "Moji zadaci", counted by the list's own filter, each with its number (the blueprint of 8 Oct
- * 2026, Z1). A draft that "Čeka te" offers to continue is counted here too: the row is the count of the list it opens, and "Nastavi
+ * 2026, Z1). A draft that "Čeka Vas" offers to continue is counted here too: the row is the count of the list it opens, and "Nastavi
  * nacrt" is an action; the one does not stand in for the other.
  */
 function tasksLine(section: HomeSection<OwnedTaskCounts>): string {
@@ -264,11 +252,11 @@ function tasksLine(section: HomeSection<OwnedTaskCounts>): string {
   const c = section.value;
   const parts = [c.active ? plural(c.active, 'aktivan', 'aktivna', 'aktivnih') : null,
     c.drafts ? plural(c.drafts, 'nacrt', 'nacrta', 'nacrta') : null].filter(Boolean);
-  return parts.length ? parts.join(' · ') : c.total ? 'Nema aktivnih zadataka' : 'Još nemaš zadatak';
+  return parts.length ? parts.join(' · ') : c.total ? 'Nema aktivnih zadataka' : 'Još nemate zadatak';
 }
 /**
  * "1 čeka odgovor" — the applications that are open and wait for the other side's answer, counted by the list's own tabs (the blueprint
- * of 8 Oct 2026, Z1 and U8: "Čeka odgovor" is the list's first group). An application that waits for me sits in the list's own "Čeka te"
+ * of 8 Oct 2026, Z1 and U8: "Čeka odgovor" is the list's first group). An application that waits for me sits in the list's own "Čeka Vas"
  * set, not among these, so a row with none waiting that is not all finished names how many applications there are instead of saying
  * that none waits over one that does.
  */
@@ -276,41 +264,7 @@ function applicationsLine(section: HomeSection<ApplicationCounts>): string {
   if (section.kind === 'unavailable') return 'Trenutno nedostupno';
   const c = section.value;
   if (c.active) return plural(c.active, 'čeka odgovor', 'čekaju odgovor', 'čeka odgovor');
-  return !c.total ? 'Još nemaš prijavu' : c.finished === c.total ? 'Nijedna ne čeka odgovor' : prijava(c.total);
-}
-
-/** Discovery remains the single source of truth for live tasks, distances and prices.
- * Never display invented nearby offers or imply that a sample listing is actionable. */
-function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
-  onEarn: () => void;
-  opportunities?: readonly PrilikaProjekcija[];
-  onOpenOpportunity?: (id: string) => void;
-}) {
-  const items = opportunities?.filter(item => item.primaNovePrijave !== false) ?? [];
-  if (items.length === 0) return null;
-  return (
-    <View style={s.carouselSection}>
-      <View style={s.carouselHeader}>
-        <View style={{ flex: 1 }}>
-          <T variant="heading" style={s.carouselTitle}>Aktuelni zadaci</T>
-        </View>
-        <Press accessibilityRole="button" accessibilityLabel="Pogledaj aktuelne zadatke"
-          onPress={onEarn} style={s.seeAllButton}>
-          <T variant="meta" tone="green" style={{ fontWeight: '600' }}>Pogledaj sve →</T>
-        </Press>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
-        {items.slice(0, 3).map(item => (
-          <TaskCard
-            key={item.id}
-            item={item}
-            onOpen={() => onOpenOpportunity ? onOpenOpportunity(item.id) : onEarn()}
-            style={s.carouselCard}
-          />
-        ))}
-      </ScrollView>
-    </View>
-  );
+  return !c.total ? 'Još nemate prijavu' : c.finished === c.total ? 'Nijedna ne čeka odgovor' : prijava(c.total);
 }
 
 export function HomePresentation(p: HomePresentationProps) {
@@ -325,7 +279,7 @@ export function HomePresentation(p: HomePresentationProps) {
   waiting.settle([...(home?.attention ?? []), ...prompts].map(item => item.id), undefined, { afterLoading: sawInitialLoading.current });
   // Raspored holds the one next appointment that has its day-first words, as a card, and nothing else. With none ahead there is no block
   // (the count of Dogovori with no day, `quietLine`, is no longer drawn here: a weak row, 8 Oct 2026); an active Dogovor is not lost for it,
-  // since what it asks of me is said under "Čeka te" and all of them stand in Raspored.
+  // since what it asks of me is said under "Čeka Vas" and all of them stand in Raspored.
   const next = home?.agreements.kind === 'known' ? home.agreements.value.rows[0] ?? null : null;
   const raspored = next?.raspored;
   agreements.settle(next && raspored ? [next.id] : []);
@@ -341,7 +295,7 @@ export function HomePresentation(p: HomePresentationProps) {
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
   const setupProfile = !!profile && (profile.state === 'NONE' || profile.state === 'DRAFT');
   const availabilityShown = !!profile && profile.state === 'ACTIVE' && !!p.availableNow;
-  // The rows of "Čeka te", in the order they are drawn, so only the last one has no divider. At most WAITING_LIMIT of them (the server's
+  // The rows of "Čeka Vas", in the order they are drawn, so only the last one has no divider. At most WAITING_LIMIT of them (the server's
   // things first, then what the phone itself found, then the ratings); what does not fit is counted in the line under them, together with
   // what the server and the phone already said they left out. With no appointment ahead the first of them is the one record of the screen
   // (`FirstWaiting`, "Danas u 14": the focus must not vanish), and the rest stand under it as rows.
@@ -355,26 +309,24 @@ export function HomePresentation(p: HomePresentationProps) {
   const rowCount = rows.length + (ratingsShown ? 1 : 0);
   const underLead = rowCount > 0 || more > 0;
   const recovery = p.stale ? 'stale' as const : home?.partial ? 'partial' as const : p.error && !home ? 'failed' as const : null;
-  // The pull spinner is for a pull. "Osveži pregled" has a spinner of its own, and no read the route starts by itself may raise the white
+  // The pull spinner is for a pull. "Osvežite pregled" has a spinner of its own, and no read the route starts by itself may raise the white
   // disc of Android's pull at the top of the screen (the owner's phone, 8 Oct 2026).
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
-  const myActiveTasks = (p.myTasks ?? []).filter(item => item.stanje !== 'ZATVORENA');
-  const myActiveApplications = (p.myApplications ?? []).filter(item => item.stanje !== 'WITHDRAWN' && item.stanje !== 'CLOSED');
   return <Screen kind="root" background="wash" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     contentStyle={{ paddingBottom: 100 }}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
     {recovery ? <Surface kind="note" testID="home-recovery" style={s.recovery}>
       <T accessibilityRole="alert" variant="note">{recovery === 'stale' ? 'Nema veze. Prikazano je poslednje učitano.'
-        : recovery === 'partial' ? 'Deo pregleda trenutno nije učitan.' : 'Pregled nije učitan. Proveri vezu i pokušaj ponovo.'}</T>
-      <V2Action label="Osveži pregled" kind="secondary" compact loading={p.refreshing} disabled={p.loading || p.refreshing} onPress={p.onRefresh} />
+        : recovery === 'partial' ? 'Deo pregleda trenutno nije učitan.' : 'Pregled nije učitan. Proverite vezu i pokušajte ponovo.'}</T>
+      <V2Action label="Osvežite pregled" kind="secondary" compact loading={p.refreshing} disabled={p.loading || p.refreshing} onPress={p.onRefresh} />
     </Surface> : null}
     {/* Accepted appointments and pending decisions lead. No inferred urgency or invented schedule. */}
     {next && raspored ? <Section title="Sledeće">
       <Appear index={0} animate={agreements.isNew(next.id)}><RasporedCard row={next} raspored={raspored} photo={p.photo} onOpen={p.onOpen} /></Appear>
     </Section> : null}
 
-    {home && waitingShown ? <Section title="Čeka te">
-      {attentionUnavailable ? <Unavailable text="Ne možemo da učitamo ono što te čeka." /> : null}
+    {home && waitingShown ? <Section title="Čeka Vas">
+      {attentionUnavailable ? <Unavailable text="Ne možemo da učitamo ono što Vas čeka." /> : null}
       {lead ? <View style={underLead ? s.lead : undefined}>
         <Appear index={0} animate={waiting.isNew(lead.id)}><FirstWaiting row={lead} onOpen={p.onOpen} /></Appear>
       </View> : null}
@@ -383,13 +335,13 @@ export function HomePresentation(p: HomePresentationProps) {
       </Appear>)}
       {/* Dogovori/Aktivni lists a completed Dogovor until it is rated; Home names the same thing, verb first, and
           with exactly one it opens that rating in one tap instead of four (critique A1, 2026-09-24). */}
-      {ratingsShown && ratings === 'unknown' ? <ListRow leading={<FactArt kind="star" size={32} />} title="Proveri ocene" subtitle="Nisu svi podaci o ocenama učitani."
-        onPress={() => p.onRatings(null)} last accessibilityLabel="Proveri ocene u Dogovorima"
+      {ratingsShown && ratings === 'unknown' ? <ListRow leading={<FactArt kind="star" size={32} />} title="Proverite ocene" subtitle="Nisu svi podaci o ocenama učitani."
+        onPress={() => p.onRatings(null)} last accessibilityLabel="Proverite ocene u Dogovorima"
         accessibilityHint="Broj Dogovora za ocenjivanje trenutno nije potvrđen." />
         : ratingsShown && ratings === 'due' && home.ratingsDue ? <ListRow leading={<Marked art="star" attention />} title={oceniDogovore(home.ratingsDue)} last
           onPress={() => p.onRatings(home.ratingDueAgreementId)} accessibilityLabel={oceniDogovore(home.ratingsDue)}
           accessibilityHint={home.ratingDueAgreementId ? 'Otvara ocenu saradnje.' : 'Otvara Dogovore.'} /> : null}
-      {more > 0 ? <T variant="note" tone="muted" style={s.more}>I još {more} u tvojim zadacima, prijavama i Dogovorima.</T> : null}
+      {more > 0 ? <T variant="note" tone="muted" style={s.more}>I još {more} u Vašim zadacima, prijavama i Dogovorima.</T> : null}
     </Section> : null}
 
     {/* A Dogovori read that failed says so here, never as an empty schedule; with no appointment ahead there is no block and no placeholder. */}
@@ -401,53 +353,23 @@ export function HomePresentation(p: HomePresentationProps) {
     {/* My lists stand in one group of rows directly under what is above, with the one section gap and no heading or line of their own. */}
     <View style={s.mineGroup}>
       <MineRow art="tasks" title="Moji zadaci" detail={tasksDetail} onPress={p.onMyTasks} />
-      {myActiveTasks.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
-          {myActiveTasks.slice(0, 5).map(task => (
-            <View key={task.id} style={s.carouselCard}>
-              <OwnTaskCard
-                item={task}
-                onOpen={() => p.onOpen({ kind: 'NEED', needId: task.id })}
-                onApplications={(task.brojPrijavaZaIzbor ?? 0) > 0 ? () => p.onOpen({ kind: 'CANDIDATES', needId: task.id }) : undefined}
-              />
-            </View>
-          ))}
-        </ScrollView>
-      ) : null}
-      <MineRow art="applications" title="Moje prijave" detail={applicationsDetail} onPress={p.onMyApplications} last={!setupProfile && !availabilityShown && myActiveApplications.length === 0} />
-      {myActiveApplications.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
-          {myActiveApplications.slice(0, 5).map(app => (
-            <View key={app.prijavaId} style={s.carouselCard}>
-              <ApplicationCard
-                row={app}
-                onTask={() => p.onOpen({ kind: 'NEED', needId: app.potrebaId })}
-                onAgreement={() => app.dogovorId ? p.onOpen({ kind: 'AGREEMENT', agreementId: app.dogovorId }) : undefined}
-                onWithdraw={p.onMyApplications}
-                onReview={p.onMyApplications}
-              />
-            </View>
-          ))}
-        </ScrollView>
-      ) : null}
-      <OptionalReadState kind="worker" state={p.workProfileRead} />
+      <MineRow art="applications" title="Moje prijave" detail={applicationsDetail} onPress={p.onMyApplications} last={!setupProfile && !availabilityShown} />
+      <WorkProfileReadState state={p.workProfileRead} />
       {availabilityShown ? <AvailableNowRow control={p.availableNow!} last={!setupProfile} /> : null}
       {/* R20: until the work profile exists, one row says what it is for and opens its conversation. */}
-      {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesi radni profil" subtitle="Dobijaš zadatke koji ti odgovaraju."
-        onPress={() => p.onOpen({ kind: 'WORKER_PROFILE' })} last accessibilityLabel="Podesi radni profil. Dobijaš zadatke koji ti odgovaraju." /> : null}
+      {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesite radni profil" subtitle="Dobijate zadatke koji Vam odgovaraju."
+        onPress={() => p.onOpen({ kind: 'WORKER_PROFILE' })} last accessibilityLabel="Podesite radni profil. Dobijate zadatke koji Vam odgovaraju." /> : null}
     </View>
     {p.loading && !home ? <HomeInitialLoading /> : null}
-    <OptionalReadState kind="opportunities" state={p.opportunitiesRead} />
-    <ExploreTasksAction onEarn={p.onEarn} opportunities={p.opportunities} onOpenOpportunity={p.onOpenOpportunity} />
     {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}
   </Screen>;
 }
 
-/** "Oceni završen Dogovor" / "Oceni 2 završena Dogovora" / "Oceni 5 završenih Dogovora": the verb leads (A1). */
+/** "Ocenite završen Dogovor" / "Ocenite 2 završena Dogovora" / "Ocenite 5 završenih Dogovora": the verb leads (A1). */
 function oceniDogovore(count: number): string {
-  return count === 1 ? 'Oceni završen Dogovor'
+  return count === 1 ? 'Ocenite završen Dogovor'
     // plural() already carries the count; the emulator showed "2 2 završena Dogovora" when it was added twice.
-    : `Oceni ${plural(count, 'završen Dogovor', 'završena Dogovora', 'završenih Dogovora')}`;
+    : `Ocenite ${plural(count, 'završen Dogovor', 'završena Dogovora', 'završenih Dogovora')}`;
 }
 
 const s = StyleSheet.create({
@@ -467,7 +389,7 @@ const s = StyleSheet.create({
   // The appointment is a record; its parts stand 12 apart.
   appointment: { gap: layout.group },
   appointmentHead: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
-  // The record that leads "Čeka te" when no appointment is ahead: a card, so the rows under it stand one card-gap below.
+  // The record that leads "Čeka Vas" when no appointment is ahead: a card, so the rows under it stand one card-gap below.
   lead: { paddingBottom: layout.group },
   appointmentWhen: { flex: 1, minWidth: 0, gap: sys.space.xs },
   // The time leads, in black ("Danas · 14:00–16:00"), in the voice of money: `priceLarge` is 700 with tabular figures, so the clocks line up.
@@ -481,12 +403,4 @@ const s = StyleSheet.create({
   initialLoading: { minHeight: INITIAL_READ_HEIGHT, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center', gap: sys.space.base },
   initialLoadingText: { textAlign: 'center' },
   mineGroup: { gap: sys.space.sm },
-  carouselSection: { gap: sys.space.sm },
-  carouselHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, gap: sys.space.md },
-  carouselTitle: { color: sys.color.ink },
-  seeAllButton: { minHeight: 48, justifyContent: 'center', paddingHorizontal: sys.space.sm },
-  carouselList: { paddingVertical: sys.space.sm, paddingHorizontal: 2, gap: sys.space.md },
-  carouselCard: {
-    width: 290,
-  },
 });

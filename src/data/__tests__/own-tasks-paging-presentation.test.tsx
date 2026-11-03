@@ -33,6 +33,9 @@ const row = (id: string, patch = {}): MarketplaceItem => ({ id, revizija: 1, nas
   vremeTekst: 'Po dogovoru', uslovi: ['Alat'], rezimCene: 'MY_PRICE', ponudjenaCena: { prikaz: '2.000 RSD' },
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, brojPrijava: 0, brojPrijavaZaIzbor: 0, priblizno: null, ...patch } as MarketplaceItem);
 const COUNTS: OwnedTaskCounts = { total: 40, active: 12, waiting: 4, drafts: 3, history: 25 };
+const COMPLETE: OwnedTaskCounts = { total: 30, active: 2, waiting: 0, drafts: 3, history: 25 };
+const completeCounts = (active: number): OwnedTaskCounts =>
+  ({ total: active + COUNTS.drafts + COUNTS.history, active, waiting: 0, drafts: COUNTS.drafts, history: COUNTS.history });
 let rows: MarketplaceItem[], paging: MarketplacePaging | undefined, snapshot: MarketplaceView, initial: MarketplaceView, loading = false, error = false;
 const loadMore = jest.fn();
 const makePaging = (patch: Partial<MarketplacePaging> = {}): MarketplacePaging => ({ counts: COUNTS, hasMore: true, loadingMore: false, moreError: false, onLoadMore: loadMore, ...patch });
@@ -66,7 +69,7 @@ test('a row of the other sets opens that set, whichever page is loaded: the sect
 
 test('a group has no number in its name while the rest of the set is still being read, and the exact one when it has been read to its end', async () => {
   await render(); expect(texts()).toContain('Objavljeno'); expect(texts()).not.toMatch(/Objavljeno · \d/);
-  paging = makePaging({ hasMore: false }); await act(async () => tree.update(<Screen />));
+  paging = makePaging({ hasMore: false, counts: COMPLETE }); await act(async () => tree.update(<Screen />));
   expect(texts()).toContain('Objavljeno · 2');
   paging = makePaging({ hasMore: true, loadingMore: true }); await act(async () => tree.update(<Screen />)); expect(texts()).not.toMatch(/ · \d/);
 });
@@ -74,13 +77,44 @@ test('a group has no number in its name while the rest of the set is still being
 test('a refined set has no number while the rest of it is still being read, and the exact one when it has been read to its end', async () => {
   initial.query = 'Pomoć one'; await render();
   expect(texts()).not.toMatch(/ · \d/);
-  paging = makePaging({ hasMore: false, counts: COUNTS }); await act(async () => tree.update(<Screen />));
+  paging = makePaging({ hasMore: false, counts: COMPLETE }); await act(async () => tree.update(<Screen />));
   expect(texts()).toContain('Objavljeno · 1');
 });
 
-test('without counts the number of a group is shown only once nothing more is to be read, and no row of the other sets is drawn', async () => {
+test('a missing first-page count cannot certify final groups, even if the last page claims no more', async () => {
   paging = makePaging({ counts: null }); await render(); expect(texts()).not.toMatch(/ · \d/); expect(texts()).not.toContain('Nacrti');
-  paging = makePaging({ counts: null, hasMore: false }); await act(async () => tree.update(<Screen />)); expect(texts()).toContain('Objavljeno · 2');
+  paging = makePaging({ counts: null, hasMore: false }); await act(async () => tree.update(<Screen />));
+  expect(texts()).not.toContain('Objavljeno · 2');
+  expect(texts()).toContain('Spisak zadataka nije potpun. Broj učitanih zadataka ne odgovara serverskom stanju.');
+  expect(actions()).toContain('Proveri spisak zadataka');
+});
+
+test('a terminal but short active set is not mistaken for a complete count, and its cards remain available', async () => {
+  await render();
+  paging = makePaging({ hasMore: false, counts: COUNTS }); await act(async () => tree.update(<Screen />));
+  expect(texts()).toContain('Spisak zadataka nije potpun. Broj učitanih zadataka ne odgovara serverskom stanju.');
+  expect(texts()).not.toMatch(/Objavljeno · \d/);
+  expect(texts()).toContain('Pomoć one');
+  expect(texts()).toContain('Pomoć two');
+  expect(actions()).toContain('Proveri spisak zadataka');
+  await act(async () => action('Proveri spisak zadataka').props.onPress());
+  paging = makePaging({ hasMore: false, counts: COMPLETE }); await act(async () => tree.update(<Screen />));
+  expect(texts()).toContain('Objavljeno · 2');
+  expect(actions()).not.toContain('Proveri spisak zadataka');
+});
+
+test('missing rows in ALL, DRAFTS, HISTORY or WAITING never become successful empty results', async () => {
+  for(const [section,attention,count] of [['all',false,'total'],['drafts',false,'drafts'],['history',false,'history'],['active',true,'waiting']] as const){
+    initial = { ...initialMarketplaceView(), section, attention };
+    rows=[];paging=makePaging({hasMore:false});
+    // Remount: the selected server scope is part of the route identity.
+    if(tree) await act(async () => tree.unmount());
+    await render();
+    expect((COUNTS as any)[count]).toBeGreaterThan(0);
+    expect(texts()).toContain('Spisak zadataka nije potpun');
+    expect(texts()).not.toMatch(/Nemaš nacrt|Istorija je prazna|Još nemaš zadatak|Nema zadataka u ovom prikazu/);
+    expect(actions()).toContain('Proveri spisak zadataka');
+  }
 });
 
 test('the foot offers the next page, says it is reading, or says it failed and offers the same retry', async () => {
@@ -111,7 +145,7 @@ test('a failed page cannot claim filtered results are empty; retry keeps the fil
   expect(snapshot.query).toBe('ne postoji');
   paging = makePaging({ hasMore: true, loadingMore: true }); await act(async () => tree.update(<Screen />));
   expect(texts()).toContain('Učitavamo zadatke…'); expect(actions()).not.toContain('Pokušaj ponovo');
-  paging = makePaging({ hasMore: false }); await act(async () => tree.update(<Screen />)); expect(texts()).toContain('Nema zadataka u ovom prikazu');
+  paging = makePaging({ hasMore: false, counts: COMPLETE }); await act(async () => tree.update(<Screen />)); expect(texts()).toContain('Nema zadataka u ovom prikazu');
 });
 
 test('retrying an empty filtered page can reveal a matching task without clearing the search', async () => {
@@ -119,7 +153,7 @@ test('retrying an empty filtered page can reveal a matching task without clearin
   expect(texts()).toContain('Nismo učitali sve rezultate');
   await act(async () => action('Pokušaj ponovo').props.onPress()); expect(loadMore).toHaveBeenCalledTimes(1);
   paging = makePaging({ loadingMore: true }); await act(async () => tree.update(<Screen />));
-  rows = [...rows, row('match', { naslov: 'Selidba u subotu' })]; paging = makePaging({ hasMore: false });
+  rows = [...rows, row('match', { naslov: 'Selidba u subotu' })]; paging = makePaging({ hasMore: false, counts: completeCounts(3) });
   await act(async () => tree.update(<Screen />));
   expect(snapshot.query).toBe('selidba'); expect(texts()).toContain('Selidba u subotu');
   expect(texts()).not.toContain('Nismo učitali sve rezultate'); expect(texts()).not.toContain('Nema zadataka u ovom prikazu');
@@ -136,7 +170,7 @@ test.each(['active', 'drafts', 'history'] as const)('an unfiltered %s set with a
 test('the filter sheet promises no number while the set is incomplete, and the exact one when it is whole', async () => {
   await render(); await act(async () => press('Filteri').props.onPress());
   expect(actions()).toContain('Prikaži zadatke'); expect(actions().some(label => /^Prikaži \d+ zadat/.test(label))).toBe(false);
-  paging = makePaging({ hasMore: false }); await act(async () => tree.update(<Screen />));
+  paging = makePaging({ hasMore: false, counts: COMPLETE }); await act(async () => tree.update(<Screen />));
   expect(actions()).toContain('Prikaži 2 zadatka');
 });
 

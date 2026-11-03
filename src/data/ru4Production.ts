@@ -112,7 +112,7 @@ export const ru4Production = {
     } };
   },
 
-  async resolveChangedApplication(input: Ru4RazresiPrijavuInput): Promise<Ishod<{ status: string; version: number }>> {
+  async resolveChangedApplication(input: Ru4RazresiPrijavuInput): Promise<Ishod<{ status: string; version: number; priceBasis?: 'TOTAL' | 'HOURLY' }>> {
     const { data, error } = await supabase.rpc('rpc_resolve_stale_response_after_need_edit', {
       p_response_id: input.prijavaId,
       p_expected_response_version: input.ocekivanaVerzija,
@@ -126,11 +126,19 @@ export const ru4Production = {
       p_scope_note: input.napomena ?? null,
     });
     if (error) return fail(error, 'STALE_RESPONSE_RESOLUTION_FAILED', 'Prijava nije mogla da se uskladi sa izmenjenim zadatkom.');
+    const receipt = record(data);
+    const expectedStatus = input.akcija === 'WITHDRAW' ? 'WITHDRAWN' : 'SUBMITTED';
+    // A missing version/status is UNKNOWN, never an accepted command. Do not infer the response version from the request.
+    if (!receipt || receipt.status !== expectedStatus || !positiveInteger(receipt.version)
+      || (receipt.applicationPriceBasis != null && receipt.applicationPriceBasis !== 'TOTAL' && receipt.applicationPriceBasis !== 'HOURLY')) {
+      return failure('STALE_RESPONSE_RESOLUTION_UNCONFIRMED', 'Ishod usklađivanja prijave nije potvrđen. Osveži listu.');
+    }
     return {
       ok: true,
       podatak: {
-        status: String(data?.status ?? ''),
-        version: Number(data?.version ?? input.ocekivanaVerzija),
+        ...(receipt.applicationPriceBasis == null ? {} : { priceBasis: receipt.applicationPriceBasis }),
+        status: expectedStatus,
+        version: receipt.version,
       },
     };
   },

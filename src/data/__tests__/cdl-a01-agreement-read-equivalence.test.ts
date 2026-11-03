@@ -108,7 +108,7 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
     mockRpc.mockReset();
   });
 
-  it('mojiDogovori uses only the canonical paged list RPC and preserves projection mapping', async () => {
+  it('mojiDogovori preserves the canonical RPC and redacts legacy PHONE values', async () => {
     mockRpc.mockResolvedValue({ data: { items: [rawAgreement], hasMore: false }, error: null });
 
     const result = await agreementClientService.mojiDogovori();
@@ -127,8 +127,8 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
       pokrivenost: { ukupno: 3, popunjeno: 2, preostalo: 1, udeo: 2 / 3 },
       rezim: 'PREUZIMANJE_DOSTAVA',
       kontakt: {
-        mojTelefonPodeljen: true,
-        njihovTelefon: '+38160111222',
+        mojTelefonPodeljen: false,
+        njihovTelefon: null,
         lokacijaPostoji: true,
         tacnaLokacija: null,
         emailNijeDeljen: true,
@@ -138,6 +138,8 @@ describe('CDL-A01 — canonical Agreement read contract', () => {
       problemOtvoren: false,
       ocenaMoguca: false,
     });
+    expect(result[0].ucesnici.every(person => person.telefon === null)).toBe(true);
+    expect(JSON.stringify(result[0])).not.toContain('+38160111222');
     expect(result[0].ucesnici).toEqual([
       expect.objectContaining({ id: 'requester-1', ime: 'Miloš', uloga: 'narucilac', viSte: true }),
       expect.objectContaining({ id: 'worker-1', ime: 'Ana', uloga: 'uskocer', viSte: false, mesta: 2 }),
@@ -276,4 +278,14 @@ it('writes each side\'s initials from the real name only, and none for a missing
   const missing = await agreementClientService.dogovor('agr-1');
   expect(missing?.ucesnici.map(person => person.inicijali)).toEqual(['', '']);
   expect(missing?.ucesnici.map(person => person.ime)).toEqual(['Ti', 'Druga strana']);
+});
+
+it('maps accepted hourly terms without inferring the unit from a later source-task edit', async () => {
+  resetHappyAuth();
+  mockRpc.mockResolvedValue({ data: { ...rawAgreement, priceBasis: 'TOTAL', terms: { ...rawAgreement.terms, priceBasis: 'HOURLY' } }, error: null });
+  expect(await agreementClientService.dogovor('agr-1')).toMatchObject({ osnovaCene: 'HOURLY', cena: { iznos: 2400 } });
+  mockRpc.mockResolvedValue({ data: { ...rawAgreement, priceBasis: 'HOURLY' }, error: null });
+  expect((await agreementClientService.dogovor('agr-1'))?.osnovaCene).toBeUndefined();
+  mockRpc.mockResolvedValue({ data: { ...rawAgreement, terms: { ...rawAgreement.terms, priceBasis: 'PER_PERSON' } }, error: null });
+  await expect(agreementClientService.dogovor('agr-1')).rejects.toThrow('AGREEMENT_PRICE_BASIS_INVALID');
 });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildFullTreeTaxonomyProposals, buildWorkerFullTreeTaxonomyProposals, consumeClarificationHint, fetchUnconsumedClarificationHint,
+import { indexFullCatalog, buildFullTreeTaxonomyProposals, buildWorkerFullTreeTaxonomyProposals, consumeClarificationHint, fetchUnconsumedClarificationHint,
   getUnconsumedClarificationHint, hintDraftRevision, persistClarificationHint, storeClarificationHint,
   taskClassificationFingerprint, taskTaxonomyMode, taskTaxonomyScope, workerSkillsFingerprint } from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
 
@@ -89,14 +89,10 @@ for (const purpose of ['need', 'worker']) {
       const ambiguityPrompt = short ? '😀😀😀😀' : 'r'.repeat(499) + '🛠️' + 'z'.repeat(200);
       const decision = { service: 'klima', mode: 'ON_SITE', action: 'NEEDS_CLARIFICATION', parentId: '',
         ambiguityPrompt, reason };
-      t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP',
-        content: { parts: [{ text: JSON.stringify(purpose === 'need' ? { decisions: [decision] } : { items: [decision] }) }] },
-      }] })));
-      const args = { geminiKey: 'synthetic', geminiModel: 'synthetic',
-        rpc: async () => ({ ok: true, data: { catalogVersion: 809040 + Number(short), catalogFingerprint: purpose + short,
-          categories: [{ categoryId: '11111111-1111-4111-8111-111111111111', label: 'Servis uređaja',
-            path: ['Servis uređaja'], aliases: [], modes: ['ON_SITE'] }] } }),
-      };
+      t.mock.method(globalThis,'fetch',()=>assert.fail('Pure taxonomy validation must not call another model'));
+      const args={suppliedDecisions:[decision],suppliedCatalog:indexFullCatalog(809040+Number(short),purpose+short,[{
+        categoryId:'11111111-1111-4111-8111-111111111111',parentId:null,isLeaf:true,label:'Servis uređaja',aliases:[],modes:['ON_SITE']
+      }],true)};
       const result = purpose === 'need'
         ? await buildFullTreeTaxonomyProposals({ ...args, items: [{ service: 'klima', mode: 'ON_SITE' }] })
         : await buildWorkerFullTreeTaxonomyProposals({ ...args, skills: ['klima'], messages: [],
@@ -161,40 +157,15 @@ test('worker skill fingerprint treats the same full replacement as unchanged',()
  assert.equal(workerSkillsFingerprint(null),null);
 });
 
-test('novel task classification receives bounded public scope and does not reuse a decision for a different scope', async () => {
-  const parentId = '11111111-1111-4111-8111-111111111111';
-  const payloads = [];
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async (_url, init) => {
-    const body = JSON.parse(init.body);
-    payloads.push(JSON.parse(body.contents[0].parts[0].text));
-    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({
-      decisions: [{ service: 'klima', mode: 'ON_SITE', action: 'CREATE_CHILD', parentId,
-        reason: 'Potvrđeni obim određuje granu klimatizacije.' }],
-    }) }] } }] }), { status: 200 });
-  };
-  const rpc = async (name) => {
-    assert.equal(name, 'rpc_taxonomy_fetch_snapshot_v1');
-    return { ok: true, data: { catalogVersion: 987654321, catalogFingerprint: 'scope-test',
-      categories: [{ categoryId: parentId, label: 'Klimatizacija', path: ['Klimatizacija'],
-        aliases: [], modes: ['ON_SITE'] }] } };
-  };
-  const classify = (scopeSummary) => buildFullTreeTaxonomyProposals({
-    rpc, geminiKey: 'test-key', geminiModel: 'test-model',
-    items: [{ service: 'klima', mode: 'ON_SITE' }], scopeSummary,
-  });
-  try {
-    const first = await classify('Servis i čišćenje klime');
-    assert.equal(first.proposals[0].action, 'CREATE_CHILD');
-    assert.equal(payloads[0].scopeSummary, 'Servis i čišćenje klime');
-    await classify('Montaža nove klime');
-    assert.equal(payloads[1].scopeSummary, 'Montaža nove klime');
-    assert.equal(payloads.length, 2);
-    await classify('Montaža nove klime');
-    assert.equal(payloads.length, 2);
-    await classify('x'.repeat(600));
-    assert.equal(payloads[2].scopeSummary.length, 500);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+test('pure classification uses only this reply’s decision; no stale decision cache across changed work',async t=>{
+ const parentId='11111111-1111-4111-8111-111111111111';
+ t.mock.method(globalThis,'fetch',()=>assert.fail('No provider/cache I/O belongs to pure validation'));
+ const catalog=indexFullCatalog(987654321,'scope-test',[{categoryId:parentId,parentId:null,isLeaf:false,label:'Klimatizacija',aliases:[],modes:[]}],true);
+ const classify=(scopeSummary,decision)=>buildFullTreeTaxonomyProposals({suppliedCatalog:catalog,suppliedDecisions:decision?[decision]:[],items:[{service:'Servis klime',mode:'ON_SITE'}],scopeSummary});
+ const decision={service:'Servis klime',mode:'ON_SITE',action:'CREATE_CHILD',categoryId:'',parentId,proposedPath:['Servis klime'],ambiguityPrompt:'',reason:'Potvrđeni obim određuje granu klimatizacije.'};
+ assert.equal((await classify('Servis i čišćenje klime',decision)).proposals[0].action,'CREATE_CHILD');
+ const changed=await classify('Montaža nove klime',null);
+ assert.deepEqual(changed.proposals,[],'the earlier decision cannot fill in a missing current decision');
+ assert.deepEqual(changed.clarifications,[],'missing metadata is not a user ambiguity');
+ assert.equal((await classify('Servis i čišćenje klime',decision)).proposals[0].parentId,parentId);
 });

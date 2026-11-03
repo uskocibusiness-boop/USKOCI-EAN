@@ -32,7 +32,7 @@ const SCENES: [Scene, string][] = [
   ['ponude-prazno', 'Ponuda: prazna'], ['ponude', 'Ponuda: popunjena'], ['neispravna', 'Ponuda: neispravna cena'],
   ['previse', 'Ponuda: previše ljudi'], ['po-osobi', 'Cena po osobi'], ['ukupno', 'Cena za ceo zadatak'], ['bez-cene', 'Zadatak bez cene'],
   ['profil', 'Radni profil nije aktivan'], ['zatvoren', 'Zadatak ne prima prijave'], ['pregled', 'Pregled pre slanja'],
-  ['termin', 'Tačan termin'], ['slanje', 'Slanje'], ['ishod', 'Ishod nepoznat'], ['ponovi', 'Ponovi istu prijavu'],
+  ['termin', 'Termin zadatka'], ['slanje', 'Slanje'], ['ishod', 'Ishod nepoznat'], ['ponovi', 'Ponovi istu prijavu'],
   ['odbijeno', 'Odbijena ponuda'], ['poslato', 'Prijava poslata'], ['ucitavanje', 'Prijava: učitavanje'], ['greska', 'Prijava: greška'],
   ['dugacko', 'Dugačak naslov'],
   ['ocena', 'Ocena: izbor'], ['ocena-oznake', 'Ocena: tri oznake'], ['ocena-cuvanje', 'Ocena: čuvanje'], ['ocena-ishod', 'Ocena: ishod nepoznat'],
@@ -75,7 +75,6 @@ export default function DizajnPrijava() {
       : next === 'previse' ? { ...FILLED, people: '5' }
       : next === 'po-osobi' ? { ...EMPTY, price: '2500' }
       : next === 'ukupno' ? { ...EMPTY, price: '18000', people: '3' }
-      : next === 'pregled' || next === 'termin' ? { ...FILLED, start: '2026-09-26T09:00:00Z', end: '2026-09-26T11:00:00Z' }
       : FILLED);
     setRating(next === 'ocena' || next === 'ocena-bez-osobe' ? 0 : 4);
     setTags(next === 'ocena-oznake' || next === 'ocena-cuvanje' || next === 'ocena-ishod' ? ['ON_TIME', 'RELIABLE', 'CAREFUL'] : []);
@@ -96,7 +95,7 @@ export default function DizajnPrijava() {
   if (isAuthGalleryScene(scene)) return <AuthGalleryScene scene={scene} onBack={toList} />;
 
   const composer = (need: PotrebaProjekcija, state: { busy?: boolean; pending?: boolean; uncertain?: boolean; error?: string | null; confirmed?: boolean;
-    reset?: boolean; canSubmit?: boolean; closed?: boolean; blocked?: { reason: string; actionLabel?: string; onAction?: () => void } | null; sheet?: 'review' | 'time' } = {}) =>
+    reset?: boolean; canSubmit?: boolean; closed?: boolean; blocked?: { reason: string; actionLabel?: string; onAction?: () => void } | null; sheet?: 'review' } = {}) =>
     <ApplicationComposerPresentation need={need} opportunity={opportunity(need, !state.closed)} draft={draft}
       // The per-person total follows the people, as the route's own rule does; nothing leaves the phone.
       change={next => setDraft(need.osnovaCene === 'PER_PERSON' && /^\d+$/.test(next.people) ? { ...next, price: String(2500 * Number(next.people)) } : next)}
@@ -120,7 +119,7 @@ export default function DizajnPrijava() {
       actionLabel: 'Dopuni radni profil', onAction: noop } })
     : scene === 'zatvoren' ? composer(NEED, { canSubmit: false, closed: true, blocked: { reason: 'Zadatak više ne prima prijave.', actionLabel: 'Pogledaj druge zadatke', onAction: noop } })
     : scene === 'pregled' ? composer(NEED, { sheet: 'review' })
-    : scene === 'termin' ? composer(NEED, { sheet: 'time' })
+    : scene === 'termin' ? composer(NEED)
     : scene === 'slanje' ? composer(NEED, { busy: true, pending: true })
     // The three notices are the route's own words (`prilike/[id]/prijava.tsx`), so the gallery shows what it produces.
     : scene === 'ishod' ? composer(NEED, { pending: true, uncertain: true, error: 'Ishod slanja nije potvrđen. Proveri ishod.' })

@@ -1,4 +1,4 @@
-import type { AnswerQuestionReceipt, AskQuestionReceipt } from './preselectionQa';
+import type { AnswerQuestionReceipt, AskQuestionReceipt } from './preselectionQa.ts';
 
 export type QaSubmissionIdentity = { type: 'ASK' | 'ANSWER'; needId: string; needRevision: number;
   questionId?: string; clientRequestId: string; textSha256: string };

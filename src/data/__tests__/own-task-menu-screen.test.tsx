@@ -91,6 +91,8 @@ it('draws no "···" at all: every way to change the task is on the screen', as
 });
 
 it('a published task: the edit stands beside the state, the cancel is the last row of the page, and the outcome is said on the screen', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
   await render();
   expect(texts()).not.toContain('Upravljanje zadatkom');
   // The edit is a button of the block of state; what ends the task is a row at the end, the red one last.
@@ -137,6 +139,8 @@ it('a draft: the edit opens the conversation directly, delete asks with its own 
 });
 
 it('a partly agreed task: closing the search reaches its question, and the Dogovori open as they did, from the one action at the head of the page', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
   mockNeed.mockResolvedValue(need('DELIMICNO_POPUNJENA', { pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } }));
   await render();
   // No second way to the Dogovori in a row at the end, and no sentence of why there is no "Otkaži zadatak": the Dogovori open from the page's own action.
@@ -159,4 +163,11 @@ it('an uncertain cancel keeps its recovery on the screen under the title, with n
   const all = texts();
   expect(all.lastIndexOf('Pregledani Zadatak')).toBeLessThan(all.indexOf('Ponovno slanje je dostupno tek posle uspešne provere.'));
   expect(all.indexOf('Ponovno slanje je dostupno tek posle uspešne provere.')).toBeLessThan(all.indexOf('Po dogovoru'));
+});
+
+// Never retain a dormant future-HITNO override beyond its test.
+const originalUrgentForV1Regression = process.env.EXPO_PUBLIC_URGENT;
+afterEach(() => {
+  if (originalUrgentForV1Regression === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentForV1Regression;
 });

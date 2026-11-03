@@ -61,6 +61,7 @@ it('permits a selected exact TASK price only for the same key, ID and public poi
   const selected={key,item};
   expect(discoveryV1SelectedTaskPrice(marker,key,selected)).toBe('5.000 RSD ukupno');
   expect(discoveryV1SelectedTaskPrice(marker,key,{key,item:{...item,osnovaCene:'PER_PERSON'}})).toBe('5.000 RSD po osobi');
+  expect(discoveryV1SelectedTaskPrice(marker,key,{key,item:{...item,osnovaCene:'HOURLY'}})).toBe('5.000 RSD po osobi po satu');
   expect(discoveryV1SelectedTaskPrice(marker,null,selected)).toBeNull();
   expect(discoveryV1SelectedTaskPrice(marker,key,{...selected,key:'task:old'})).toBeNull();
   expect(discoveryV1SelectedTaskPrice(marker,key,{key,item:{...item,id:'other'}})).toBeNull();

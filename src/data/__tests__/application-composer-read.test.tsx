@@ -1,7 +1,10 @@
+// Pre-submit text-skill opt-in was removed. Its owner/recovery boundaries now
+// run against the actual post-submit control in application-service-offer.test.tsx.
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const mockTask = jest.fn(), mockNeed = jest.fn(), mockProfile = jest.fn(), mockWorkWrite = jest.fn(), mockSubmit = jest.fn(), mockSelect = jest.fn(), mockCandidates = jest.fn(), mockApplications = jest.fn(), mockPublic = jest.fn();
 const mockViewed = jest.fn();
+const mockAddSkill = jest.fn();
 const mockSource = { prilika: mockTask, potreba: mockNeed, mojRadnikProfil: mockProfile, azurirajRadnikProfil: mockWorkWrite, podnesiPrijavu: mockSubmit,
   izaberiPrijavu: mockSelect, prijaveZaPotrebu: mockCandidates, mojePrijave: mockApplications, javniProfil: mockPublic, oznaciPrijavuVidjenom: mockViewed };
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
@@ -31,6 +34,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
+jest.mock('../workerProfileClientService', () => ({ workerProfileClientService: { addSkill: (...args: unknown[]) => mockAddSkill(...args) } }));
 const mockStorage = new Map<string, string>();
 jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true, default: {
   getItem: jest.fn(async (key: string) => mockStorage.get(key) ?? null),
@@ -62,10 +66,19 @@ const update = async () => { await act(async () => { tree!.update(React.createEl
 const deferred = () => { let resolve!: (value: any) => void; const promise = new Promise<any>(r => { resolve = r; }); return { promise, resolve }; };
 beforeEach(() => {
   jest.clearAllMocks(); mockFocused = true; mockId = '10000000-0000-4000-8000-000000000001';
+  // A scenario that fails before consuming a one-shot refusal must not poison
+  // the next unrelated submit/recovery scenario.
+  for (const mock of [mockTask,mockNeed,mockProfile,mockWorkWrite,mockSubmit,mockSelect,
+    mockCandidates,mockApplications,mockPublic,mockViewed,mockAddSkill]) mock.mockReset();
+  const storage = require('@react-native-async-storage/async-storage').default;
+  storage.getItem.mockReset().mockImplementation(async (key: string) => mockStorage.get(key) ?? null);
+  storage.setItem.mockReset().mockImplementation(async (key: string,value: string) => { mockStorage.set(key,value); });
+  storage.removeItem.mockReset().mockImplementation(async (key: string) => { mockStorage.delete(key); });
   mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 }; mockRouter.canGoBack.mockReturnValue(true);
   mockNeed.mockResolvedValue(need()); mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rokZaPrijaveIso: null });
   mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE' });
   mockWorkWrite.mockResolvedValue({ ok: true, podatak: null });
+  mockAddSkill.mockResolvedValue({ ok: true, podatak: null });
   mockCandidates.mockResolvedValue([k()]); mockApplications.mockResolvedValue([]);
   mockSubmit.mockResolvedValue({ ok: true, podatak: { prijavaId: k().prijavaId, verzija: 2, hash: k().hash } });
   mockSelect.mockResolvedValue({ ok: true, podatak: { dogovorId: agreement } }); mockPublic.mockResolvedValue(null);
@@ -92,10 +105,25 @@ it('restores only this account and task\'s unsent application after Back and rou
   await act(async () => tree!.unmount()); tree = undefined;
   await render();
   const restored = tree!.root.findByType(ApplicationSelectionPresentation).props.draft;
+  // Legacy in-memory date edits are normalized away for a new application, not sent to the server.
   expect(restored).toEqual({ price: '4500', people: '2', note: 'Dolazimo sa trakama.',
-    start: '2026-09-20T08:00:00Z', end: '2026-09-20T09:00:00Z' });
+    start: null, end: null });
   expect(press('Pregledaj prijavu')).toBeDefined();
   expect(mockSubmit).not.toHaveBeenCalled();
+});
+
+it('new application never submits a second term or writes a worker skill without an explicit opt-in', async () => {
+  mockNeed.mockResolvedValue({ ...need(), detalji: { kategorija: 'Selidbe' } });
+  mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE', vestine: [] });
+  await offer();
+  const view = tree!.root.findByType(ApplicationSelectionPresentation).props;
+  await act(async () => view.change({ ...view.draft, start: '2026-09-20T07:00:00Z', end: '2026-09-20T10:00:00Z' }));
+  const form = tree!.root.findByType(ApplicationSelectionPresentation).props;
+  expect(form.draft.start).toBeNull(); expect(form.draft.end).toBeNull();
+  await sendOffer();
+  expect(mockSubmit).toHaveBeenCalledTimes(1);
+  expect(mockSubmit.mock.calls[0][0]).toMatchObject({ predlozeniPocetak: null, predlozeniKraj: null });
+  expect(mockAddSkill).not.toHaveBeenCalled();
 });
 
 it('does not show a different task or account the unsent application, and gives recovery to the captured command', async () => {
@@ -115,17 +143,6 @@ it('does not show a different task or account the unsent application, and gives 
   await sendOffer();
   expect(applicationComposerDraftMemory.read({ accountId: 'owner-a', accountRevision: 1, needId: mockId! })).toBeNull();
   expect(mockSubmit).toHaveBeenCalledTimes(1);
-});
-
-it('keeps the accepted application confirmed and reports an optional work-profile update failure', async () => {
-  mockNeed.mockResolvedValue({ ...need(), detalji: { kategorija: 'Selidbe' } });
-  mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE', vestine: [] });
-  mockWorkWrite.mockResolvedValue({ ok: false, kod: 'PROFILE_UPDATE_FAILED', poruka: 'Update failed.' });
-  await offer(); await sendOffer();
-  expect(mockSubmit).toHaveBeenCalledTimes(1);
-  expect(mockWorkWrite).toHaveBeenCalledWith({ vestine: ['Selidbe'] });
-  expect(text()).toContain('Prijava je poslata, ali veština „Selidbe“ nije dodata u radni profil.');
-  expect(press('Otvori moje prijave')).toBeDefined();
 });
 
 it('rearms read and Retry after returning to the same retained tab', async () => {
@@ -506,4 +523,87 @@ describe('R18 storage integrity', () => {
     expect(press('Pregledaj prijavu')).toBeUndefined();
     expect(mockSubmit).toHaveBeenCalledTimes(1);
   });
+});
+
+it('sends one per-person hourly rate, freezes its unit on disk, and preserves it after cold restore and a task edit', async () => {
+  const hourly = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'HOURLY', ponudjenaCena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' } };
+  mockNeed.mockResolvedValue(hourly); mockTask.mockResolvedValue({ ...hourly, primaNovePrijave: true });
+  mockSubmit.mockResolvedValue({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Proveri stanje.' });
+  await render(); await edit('Koliko ljudi dolazi', '2'); await sendOffer();
+  const command = mockSubmit.mock.calls[0][0];
+  expect(command).toMatchObject({ cenaRsd: 1200, pokrivenaMesta: 2, potrebaRevizija: 3 });
+  expect(JSON.parse([...mockStorage.values()][0]).applicationPriceBasis).toBe('HOURLY');
+  await act(async () => tree!.unmount()); tree = undefined;
+  const current = { ...hourly, revizija: 4, osnovaCene: 'TOTAL' };
+  mockNeed.mockResolvedValue(current); mockTask.mockResolvedValue({ ...current, primaNovePrijave: true });
+  await render();
+  expect(text()).toContain('Po osobi po satu');
+  mockSubmit.mockResolvedValue({ ok: true, podatak: { prijavaId: k().prijavaId, verzija: 2, hash: k().hash, osnovaCene: 'HOURLY' } });
+  await tap('Pošalji ponovo');
+  expect(mockSubmit.mock.calls[1][0]).toEqual(command);
+  expect(text()).toContain('po osobi po satu');
+  expect(mockStorage.size).toBe(0);
+});
+it('does not confirm an hourly command when its success receipt omits the new price unit', async () => {
+  const hourly = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'HOURLY', ponudjenaCena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' } };
+  mockNeed.mockResolvedValue(hourly); mockTask.mockResolvedValue({ ...hourly, primaNovePrijave: true });
+  await render(); await sendOffer();
+  expect(text()).toContain('Osnovica cene nije potvrđena');
+  expect(text()).not.toContain('Prijava je poslata.');
+  expect(mockStorage.size).toBe(1); expect(mockAddSkill).not.toHaveBeenCalled();
+});
+it('restores a pre-hourly journal as its original total even when the current task is now hourly', async () => {
+  mockSubmit.mockResolvedValue({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Proveri stanje.' });
+  await offer(); await sendOffer();
+  const [key, raw] = [...mockStorage.entries()][0]; const old = JSON.parse(raw); delete old.applicationPriceBasis;
+  mockStorage.set(key, JSON.stringify(old));
+  await act(async () => tree!.unmount()); tree = undefined;
+  const current = { ...need(), revizija: 4, rezimCene: 'MY_PRICE', osnovaCene: 'HOURLY', ponudjenaCena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' } };
+  mockNeed.mockResolvedValue(current); mockTask.mockResolvedValue({ ...current, primaNovePrijave: true });
+  await render();
+  expect(text()).toContain('Ukupna ponuda');
+  expect(text()).not.toContain('Po osobi po satu');
+});
+it('replays a pre-existing frozen alternate-time journal unchanged; never rewrites it into the new task-term command', async () => {
+  const original = {
+    clientRequestId: 'prijava_legacy_term_001', potrebaId: mockId, potrebaRevizija: 3,
+    radnikProfilId: k().radnikProfilId, pokrivenaMesta: 2, cenaRsd: 4500,
+    predlozeniPocetak: '2026-09-20T08:00:00Z', predlozeniKraj: '2026-09-20T09:00:00Z', napomena: 'Stara započeta prijava.',
+  };
+  const oldKey = `uskoci.application.command.v1.owner-a.${mockId}`;
+  const bytes = JSON.stringify({ version: 1, accountId: 'owner-a', needId: mockId, command: original });
+  mockStorage.set(oldKey, bytes);
+  await render();
+  const restored = tree!.root.findByType(ApplicationSelectionPresentation).props;
+  expect(restored.pending).toBe(true);
+  expect(restored.draft.start).toBe(original.predlozeniPocetak);
+  expect(restored.draft.end).toBe(original.predlozeniKraj);
+  expect(mockSubmit).not.toHaveBeenCalled();
+  await tap('Pošalji ponovo');
+  expect(mockSubmit).toHaveBeenCalledTimes(1);
+  expect(mockSubmit.mock.calls[0][0]).toEqual(original);
+  expect(mockStorage.has(oldKey)).toBe(false);
+});
+
+it('does not first-submit an old total journal as hourly under the same task revision', async () => {
+  const key = `uskoci.application.command.v1.owner-a.${mockId}`;
+  const bytes = JSON.stringify({ version: 1, accountId: 'owner-a', needId: mockId, command: {
+    clientRequestId: 'prijava_old_unsent', potrebaId: mockId, potrebaRevizija: 3,
+    radnikProfilId: k().radnikProfilId, pokrivenaMesta: 2, cenaRsd: 4500,
+    predlozeniPocetak: null, predlozeniKraj: null, napomena: null,
+  } });
+  mockStorage.set(key, bytes);
+  const current = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'HOURLY', ponudjenaCena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' } };
+  mockNeed.mockResolvedValue(current); mockTask.mockResolvedValue({ ...current, primaNovePrijave: true });
+  await render(); await tap('Pošalji ponovo');
+  expect(mockSubmit).not.toHaveBeenCalled(); expect(mockAddSkill).not.toHaveBeenCalled();
+  expect(mockStorage.get(key)).toBe(bytes);
+  expect(text()).toContain('Proveri svoje postojeće prijave.');
+  expect(text()).not.toContain('Prijava je poslata.');
+  expect(press('Sastavi novu prijavu')).toBeUndefined();
+  expect(press('Proveri da li je poslato')).toBeDefined();
+  expect(press('Dopuni radni profil')).toBeUndefined();
+  await tap('Otvori moje prijave');
+  expect(mockRouter.push).toHaveBeenCalledWith('/moje-prijave');
+  expect(mockStorage.get(key)).toBe(bytes); expect(mockSubmit).not.toHaveBeenCalled();
 });

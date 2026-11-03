@@ -90,14 +90,11 @@ export function workerServicesMissingScope(skills,reviewProposals) {
  * turn, promoting provider hints or pretending any consent was stored.
  */
 export function workerFinishReviewMessage(skills,reviewProposals,catalogAvailable) {
-  if(!catalogAvailable)return 'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.';
+  if(!catalogAvailable)return 'Povezivanje usluga trenutno nije potvrđeno. Opis Vašeg rada ostaje u razgovoru.';
+  if(!Array.isArray(skills)||!skills.length)return 'Koje usluge želite da pružate?';
   const unresolved=workerServicesMissingScope(skills,reviewProposals);
-  if(!unresolved.count)return 'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.';
-  const examples=unresolved.labels.join(', ');
-  const more=unresolved.count-unresolved.labels.length;
-  return 'Otvorite pregled profila. Za '+examples+
-    (more>0?' i još '+more+' usluga':'')+
-    ' nije potvrđeno da li radite na lokaciji, na daljinu ili oba. Možete to razjasniti u razgovoru, ili sačuvati profil bez automatskog povezivanja za te usluge.';
+  if(!unresolved.count)return 'Pregled će se pojaviti kada podaci i povezivanje usluga budu potvrđeni.';
+  return 'Da li uslugu „'+unresolved.labels[0]+'” pružate na lokaciji, na daljinu ili na oba načina?';
 }
 
 function validItem(p,snapshot) {
@@ -117,6 +114,14 @@ function validItem(p,snapshot) {
   if(p.action==='CREATE_NEW_BRANCH')return p.categoryId===''&&p.parentId===''&&p.proposedPath.length>0;
   if(p.action==='PROPOSE_RESTRUCTURE')return p.categoryId===''&&p.proposedPath.length>0;
   return p.categoryId===''&&p.parentId===''&&p.proposedPath.length===0;
+}
+
+/** Syntax validation shared by live hint admission and the provider proof.
+ * A syntactically valid plan is STILL an untrusted hint: catalog identity,
+ * owner mode/handoff consent and the signed review are checked elsewhere.
+ */
+export function isValidClassificationPlanShape(plan) {
+  return validItem(plan);
 }
 // Diagnostic classes only. Never log model-authored service text, paths or IDs.
 function invalidPlanCode(p) {
@@ -361,9 +366,7 @@ export function classificationTurnFeedback(inspection,{purpose,services=[],ready
   let notice=null;
   if(state==='ASK_USER')notice='Za povezivanje još treba razjasniti uslugu ili način rada. Uneti podaci ostaju u nacrtu.';
   if(state==='RETRY')notice='Podaci ostaju u nacrtu, ali povezivanje vrste usluge još nije provereno. Nije potrebno da ponavljate već date podatke.';
-  if(state==='PENDING')notice=canOfferReview
-    ? 'Predlog nove vrste usluge možete da proverite u pregledu. Nije aktivan pre potvrde i čuvanja.'
-    : 'Podaci ostaju u nacrtu. Povezivanje vrste usluge još čeka proveru.';
+  if(state==='PENDING')notice='Podaci ostaju u razgovoru. Povezivanje usluge još nije potvrđeno.';
   if(state==='UNSUPPORTED')notice='Podaci nisu potvrđeni za povezivanje zadataka. Za ovu uslugu je potrebna dodatna provera.';
   return {state,canOfferReview,questions,notice,issues};
 }

@@ -31,23 +31,23 @@ function Screen({ value, status = 'DRAFT', disabled = false }: { value: WorkerDr
 test('the personal profile reads saved facts and offers AI corrections without manual fields', async () => {
   await act(async () => { tree = create(<Screen value={draft()} />); });
   expect(texts()).toContain('Radni profil'); expect(texts()).toContain('Marko Marić');
-  expect(texts()).toContain('Radni profil je još nacrt'); expect(texts()).toContain('zadaci ti se ne nude');
+  expect(texts()).toContain('Radni profil je još nacrt'); expect(texts()).toContain('zadaci Vam se ne nude');
   expect(texts()).toContain('Selidbe'); expect(texts()).toContain('Montaža'); expect(texts()).not.toContain('Kolica');
   expect(inputs()).toEqual([]);
   expect(labels().filter(label => String(label).startsWith('Izmeni:') || String(label).startsWith('Ukloni '))).toEqual([]);
-  await act(async () => byLabel('Uredi kroz razgovor').props.onPress()); expect(openConversation).toHaveBeenCalledTimes(1);
+  await act(async () => byLabel('Uredite kroz razgovor').props.onPress()); expect(openConversation).toHaveBeenCalledTimes(1);
   await act(async () => byLabel('Nedeljni raspored').props.onPress()); expect(openConversation).toHaveBeenLastCalledWith('time');
   expect(change).not.toHaveBeenCalled(); expect(navigate).not.toHaveBeenCalled();
 });
 
-test('status follows the server state and availability is a read-only summary, never a switch', async () => {
+test('status follows the server while legacy available-now stays hidden and no switch appears', async () => {
   await act(async () => { tree = create(<Screen value={draft({ dostupanOdmah: true })} status="ACTIVE" />); });
-  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost');
+  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Nedeljni raspored'); expect(texts()).not.toContain('Mogu odmah');
   expect(tree.root.findAllByType('Switch' as React.ElementType)).toHaveLength(0);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={draft()} status="SUSPENDED" />); });
   expect(texts()).toContain('Profil je trenutno suspendovan');
-  await act(async () => byLabel('Obrati se podršci').props.onPress()); expect(navigate).toHaveBeenCalledWith('/podrska');
+  await act(async () => byLabel('Obratite se podršci').props.onPress()); expect(navigate).toHaveBeenCalledWith('/podrska');
 });
 test('status block: loading is spoken, an error keeps the one reload action', async () => {
   const retry = jest.fn();
@@ -57,25 +57,25 @@ test('status block: loading is spoken, an error keeps the one reload action', as
   expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<WorkerProfileFrame back={() => {}}><WorkerProfileStatus loading={false} error="Profil nije učitan." retry={retry} /></WorkerProfileFrame>); });
-  expect(texts()).toContain('Profil nije učitan.'); await act(async () => byLabel('Ponovo učitaj profil').props.onPress()); expect(retry).toHaveBeenCalledTimes(1);
+  expect(texts()).toContain('Profil nije učitan.'); await act(async () => byLabel('Ponovo učitajte profil').props.onPress()); expect(retry).toHaveBeenCalledTimes(1);
 });
 test('AI conversation loading and read errors name the conversation under its own header', async () => {
   const retry = jest.fn();
-  await act(async () => { tree = create(<WorkerProfileFrame back={() => {}} title="Moj radni profil" tone="conversation">
+  await act(async () => { tree = create(<WorkerProfileFrame back={() => {}} title="Radni profil" tone="conversation">
     <WorkerProfileStatus context="conversation" loading retry={retry} />
   </WorkerProfileFrame>); });
-  expect(texts()).toContain('Moj radni profil');
+  expect(texts()).toContain('Radni profil');
   expect(texts()).toContain('Otvaramo razgovor');
   expect(texts()).not.toContain('Učitavamo radni profil…');
-  expect(tree.root.findByType(ScreenChrome).props).toMatchObject({ tone: 'conversation', title: 'Moj radni profil' });
+  expect(tree.root.findByType(ScreenChrome).props).toMatchObject({ tone: 'conversation', title: 'Radni profil' });
   expect(require('react-native').StyleSheet.flatten(tree.root.findByType('SafeAreaView' as React.ElementType).props.style).backgroundColor)
     .toBe(sys.conversation.ground);
-  await act(async () => tree.update(<WorkerProfileFrame back={() => {}} title="Moj radni profil" tone="conversation">
+  await act(async () => tree.update(<WorkerProfileFrame back={() => {}} title="Radni profil" tone="conversation">
     <WorkerProfileStatus context="conversation" loading={false} error="Mreža nije dostupna." retry={retry} />
   </WorkerProfileFrame>));
   expect(texts()).toContain('Razgovor nije dostupan');
   expect(texts()).toContain('Mreža nije dostupna.');
-  await act(async () => byLabel('Ponovo učitaj razgovor').props.onPress());
+  await act(async () => byLabel('Ponovo učitajte razgovor').props.onPress());
   expect(retry).toHaveBeenCalledTimes(1);
 });
 // Review of step 9 (2026-09-24): on a 320 × 640 phone the sticky footer rose with the keyboard and left under 100 dp for the
@@ -86,7 +86,7 @@ test('the sticky footer steps aside while the keyboard is up and comes back when
   const spy = jest.spyOn(Keyboard, 'addListener').mockImplementation(((name: string, callback: () => void) => {
     events[name] = callback; return { remove }; }) as never);
   try {
-    await act(async () => { tree = create(<WorkerProfileFrame back={() => {}} footer={React.createElement('T', null, 'Sačuvaj izmene')}>
+    await act(async () => { tree = create(<WorkerProfileFrame back={() => {}} footer={React.createElement('T', null, 'Sačuvajte izmene')}>
       <WorkerProfileForm draft={draft()} change={change} disabled={false} status="ACTIVE" navigate={navigate} /></WorkerProfileFrame>); });
     const footer = () => tree.root.findByProps({ testID: 'worker-profile-footer' });
     const aside = () => StyleSheet.flatten(footer().props.style).display === 'none';
@@ -94,7 +94,7 @@ test('the sticky footer steps aside while the keyboard is up and comes back when
     expect(aside()).toBe(false); expect(footer().props.importantForAccessibility).toBe('auto');
     await act(async () => event(/Show$/)());
     expect(aside()).toBe(true); expect(footer().props.accessibilityElementsHidden).toBe(true);
-    expect(footer().props.importantForAccessibility).toBe('no-hide-descendants'); expect(texts()).toContain('Sačuvaj izmene');
+    expect(footer().props.importantForAccessibility).toBe('no-hide-descendants'); expect(texts()).toContain('Sačuvajte izmene');
     await act(async () => event(/Hide$/)());
     expect(aside()).toBe(false); expect(footer().props.accessibilityElementsHidden).toBe(false);
     await act(async () => tree.unmount());
@@ -116,9 +116,9 @@ test('while the keyboard is up the footer keeps its answer visible and hides onl
     }
     return false;
   };
-  const sentence = 'Sačuvaj unos pre otvaranja drugog podešavanja.';
+  const sentence = 'Sačuvajte unos pre otvaranja drugog podešavanja.';
   const screen = (error: string | null) => <WorkerProfileFrame back={() => {}} footer={<WorkerProfileFooter error={error} held>
-    {React.createElement('T', null, 'Sačuvaj izmene')}</WorkerProfileFooter>}>
+    {React.createElement('T', null, 'Sačuvajte izmene')}</WorkerProfileFooter>}>
     <WorkerProfileForm draft={draft()} change={change} disabled={false} status="ACTIVE" navigate={navigate} /></WorkerProfileFrame>;
   const node = (text: string) => tree.root.findAll(n => String(n.type) === 'T' && n.children.includes(text))[0];
   try {
@@ -129,13 +129,13 @@ test('while the keyboard is up the footer keeps its answer visible and hides onl
     expect(tree.root.findAllByProps({ testID: 'worker-profile-answer' })).toHaveLength(0);
     const footer = tree.root.findByProps({ testID: 'worker-profile-footer' });
     expect(StyleSheet.flatten(footer.props.style).paddingVertical).toBe(0);
-    expect(hidden(node('Sačuvaj izmene'))).toBe(true); expect(hidden(node('Tvoj tekst nije izgubljen. Ispod je prikazano samo ono što je sačuvano.'))).toBe(true);
+    expect(hidden(node('Sačuvajte izmene'))).toBe(true); expect(hidden(node('Vaš tekst nije izgubljen. Ispod je prikazano samo ono što je sačuvano.'))).toBe(true);
     // A tap refuses while the keyboard stays up: its sentence is on screen and announced, the buttons still step aside.
     await act(async () => tree.update(screen(sentence)));
     expect(hidden(node(sentence))).toBe(false); expect(node(sentence).props.accessibilityRole).toBe('alert');
-    expect(hidden(node('Sačuvaj izmene'))).toBe(true);
+    expect(hidden(node('Sačuvajte izmene'))).toBe(true);
     await act(async () => event(/Hide$/)());
-    expect(hidden(node(sentence))).toBe(false); expect(hidden(node('Sačuvaj izmene'))).toBe(false);
+    expect(hidden(node(sentence))).toBe(false); expect(hidden(node('Sačuvajte izmene'))).toBe(false);
     expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'worker-profile-footer' }).props.style).paddingVertical).toBeGreaterThan(0);
   } finally { spy.mockRestore(); }
 });

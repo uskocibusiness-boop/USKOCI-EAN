@@ -38,6 +38,64 @@ function fixture(config={}){
 const providers=f=>f.calls.filter(x=>['generativelanguage.googleapis.com','api.openai.com'].includes(new URL(x.url).hostname));
 const completes=f=>f.calls.filter(x=>x.url.endsWith('/rpc_ai_complete_need_turn_v2_service'));
 
+test('photo-only AI uses one canonical human-readable message for claim, provider and completion',async()=>{
+  let f;
+  f=fixture({complete:body=>{
+    const claim=f.calls.find(call=>call.url.endsWith('/rpc_ai_claim_need_turn_v2_service'));
+    assert.ok(claim,'request identity must be claimed before completion');
+    assert.equal(body.p_user_message,claim.body.p_user_message,
+      'photo-only completion must match the server request hash and cannot persist an empty USER message');
+    return json(turn());
+  }});
+  const reply=await f.invoke({text:'',imageBase64:'c3ludGhldGljLXBob3Rv',imageMime:'image/png'});
+  assert.equal(reply.status,200);
+  assert.deepEqual(await reply.json(),turn());
+  const claim=f.calls.find(call=>call.url.endsWith('/rpc_ai_claim_need_turn_v2_service')).body;
+  assert.equal(claim.p_user_message,'Poslao sam fotografiju posla.');
+  const completion=completes(f)[0].body;
+  assert.equal(completion.p_user_message,claim.p_user_message);
+  const request=providers(f)[0];
+  const parts=request.body.contents.at(-1).parts;
+  assert.equal(parts[0].text,claim.p_user_message);
+  assert.equal(parts[1].inlineData.mimeType,'image/png');
+  assert.equal(parts[1].inlineData.data,'c3ludGhldGljLXBob3Rv');
+  assert.ok(!f.logs.some(value=>JSON.stringify(value).includes('c3ludGhldGljLXBob3Rv')),'photo bytes must stay out of logs');
+});
+test("typed instruction plus photo preserves exactly the user's text at claim and completion",async()=>{
+  const f=fixture();
+  const reply=await f.invoke({text:'Pogledajte oštećenu stolicu.',imageBase64:'c3ludGhldGljLXBob3Rv',imageMime:'image/jpeg'});
+  assert.equal(reply.status,200);
+  const claim=f.calls.find(call=>call.url.endsWith('/rpc_ai_claim_need_turn_v2_service')).body;
+  assert.equal(claim.p_user_message,'Pogledajte oštećenu stolicu.');
+  assert.equal(completes(f)[0].body.p_user_message,claim.p_user_message);
+  const parts=providers(f)[0].body.contents.at(-1).parts;
+  assert.equal(parts[0].text,claim.p_user_message);
+  assert.equal(parts[1].inlineData.mimeType,'image/jpeg');
+});
+
+for(const phrase of ['Hvala, to je to.','To je sve, hvala Vam!','Хвала, то је све.','То је то, хвала!'])test(
+  'courteous Need finish keeps a missing-work question and invents no material facts: '+phrase,async()=>{
+    const f=fixture();
+    const response=await f.invoke({text:phrase});
+    assert.equal(response.status,200);
+    assert.equal(providers(f).length,1);
+    assert.equal(completes(f).length,1);
+    const completion=completes(f)[0].body;
+    assert.equal(completion.p_user_message,phrase);
+    assert.deepEqual(completion.p_proposals,[]);
+    assert.equal(completion.p_assistant_message,
+      'Šta treba da se uradi?');
+  });
+test('a courteous finish followed by a correction must not be swallowed as review-only',async()=>{
+  const f=fixture();
+  const input='Hvala, to je to, ali još promenite broj ljudi.';
+  const response=await f.invoke({text:input});
+  assert.equal(response.status,200);
+  assert.equal(completes(f)[0].body.p_user_message,input);
+  assert.notEqual(completes(f)[0].body.p_assistant_message,
+    'Šta treba da se uradi?');
+});
+
 test('verified Auth identity and owned context drive same stable command through exact completion',async()=>{
  const f=fixture();assert.deepEqual(await(await f.invoke()).json(),turn());
  const auth=f.calls[0],claim=f.calls.find(x=>x.url.endsWith('/rpc_ai_claim_need_turn_v2_service'));
@@ -155,10 +213,9 @@ test('AF-D23 real provider request excludes unavailable identity fact and explai
  const body=providers(f)[0].body;
  assert.ok(!body.generationConfig.responseSchema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
  const instruction=body.systemInstruction.parts[0].text;
- assert.match(instruction,/identitet je samostalno naveden/);
- assert.match(instruction,/provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna/);
- assert.match(instruction,/može nastaviti običnim Zadatkom/);
- assert.match(instruction,/Ne predlažite need\.verified_identity_required/);
+ assert.match(instruction,/Identitet je samostalno naveden/);
+ assert.match(instruction,/provera dokumenta, selfija ili KYC nije dostupna/);
+ assert.match(instruction,/bez need\.required_licenses, need\.verified_identity_required/);
  assert.equal(completes(f)[0].body.p_proposals.length,0);
 });
 for(const value of [true,false])test(`provider cannot bypass manual-only historical identity key with ${value}`,async()=>{

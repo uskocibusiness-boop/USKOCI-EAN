@@ -260,8 +260,18 @@ export async function streamGeminiTask(input: {
   let lastUsage = decodeGeminiUsage(undefined), receivedCompleteBody = false;
   try {
     if (controller.signal.aborted) throw new Error('AI_STREAM_STOPPED');
-    const response = await Promise.race([fetch(input.url, { method: 'POST', redirect: 'error', signal: controller.signal,
-      headers: { 'x-goog-api-key': input.key, 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: geminiRequestBody(input.body) }), stoppedIO]);
+    const pendingResponse = fetch(input.url, { method: 'POST', redirect: 'error', signal: controller.signal,
+      headers: { 'x-goog-api-key': input.key, 'Content-Type': 'application/json', Accept: 'text/event-stream' }, body: geminiRequestBody(input.body) })
+      .then(response => {
+        // A transport may deliver headers after cancellation already won the race.
+        // No reader owns that response, so release its body here without waiting.
+        if (controller.signal.aborted) {
+          void response.body?.cancel().catch(() => undefined);
+          throw new Error('AI_STREAM_STOPPED');
+        }
+        return response;
+      });
+    const response = await Promise.race([pendingResponse, stoppedIO]);
     if (!response.ok) {
       await reportGeminiHttpFailure(response, controller.signal);
       if (response.status === 402) throw new GeminiCreditsUnavailableError();

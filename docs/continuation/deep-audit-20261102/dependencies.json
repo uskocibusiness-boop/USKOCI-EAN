@@ -1,0 +1,569 @@
+{
+  "auditDate": "2026-11-02",
+  "command": "npm audit --package-lock-only --json",
+  "lockSha256": "998565cfa4fd46a135405d7f67af762576304ffcd4de26d717474f86fa545afd",
+  "counts": {
+    "info": 0,
+    "low": 5,
+    "moderate": 31,
+    "high": 6,
+    "critical": 0,
+    "total": 42
+  },
+  "scope": "Current branch lockfile. Not GitHub default-branch alert count; not a proof of APK exploitability. No dependencies were changed.",
+  "highExposureObservation": "High packages occur in Expo CLI/code-signing, Jest/minimatch and PostCSS dependency paths. No direct import was found in src or supabase/functions for brace-expansion/compression/node-forge/source-map-js/zod. Full reachable-path review remains open.",
+  "packages": [
+    {
+      "name": "@expo/cli",
+      "severity": "high",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/expo"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@expo/config",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@expo/local-build-cache-provider",
+        "node_modules/@expo/metro-config",
+        "node_modules/@expo/prebuild-config",
+        "node_modules/expo",
+        "node_modules/expo/node_modules/@expo/cli"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@expo/config-plugins",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@expo/config",
+        "node_modules/@expo/inline-modules",
+        "node_modules/@expo/prebuild-config",
+        "node_modules/expo",
+        "node_modules/expo-splash-screen",
+        "node_modules/expo/node_modules/@expo/cli"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@expo/fingerprint",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/expo"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@expo/inline-modules",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/expo/node_modules/@expo/cli"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@expo/local-build-cache-provider",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/expo"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@expo/metro-config",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/expo",
+        "node_modules/expo/node_modules/@expo/cli"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@expo/prebuild-config",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/expo/node_modules/@expo/cli"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@jest/core",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/jest",
+        "node_modules/jest-cli"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@jest/expect",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@jest/globals",
+        "node_modules/jest-circus"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@jest/globals",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/jest-expo",
+        "node_modules/jest-runtime"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@jest/reporters",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@jest/core"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@jest/transform",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@jest/core",
+        "node_modules/@jest/reporters",
+        "node_modules/babel-jest",
+        "node_modules/jest-runner",
+        "node_modules/jest-runtime",
+        "node_modules/jest-snapshot"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@maplibre/maplibre-react-native",
+      "severity": "moderate",
+      "direct": true,
+      "dependencyParents": [
+        "<root>"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "@react-native/jest-preset",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [],
+      "advisories": []
+    },
+    {
+      "name": "@react-native/virtualized-lists",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/react-native"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "babel-jest",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@react-native/jest-preset",
+        "node_modules/jest-config",
+        "node_modules/jest-expo"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "babel-plugin-istanbul",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@jest/transform",
+        "node_modules/babel-jest"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "brace-expansion",
+      "severity": "high",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@jest/reporters/node_modules/minimatch",
+        "node_modules/jest-config/node_modules/minimatch",
+        "node_modules/jest-runtime/node_modules/minimatch",
+        "node_modules/minimatch",
+        "node_modules/test-exclude/node_modules/minimatch"
+      ],
+      "advisories": [
+        {
+          "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+          "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+          "range": "<1.1.21"
+        },
+        {
+          "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+          "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+          "range": ">=4.0.0 <5.0.12"
+        },
+        {
+          "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+          "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+          "range": "<1.1.20"
+        },
+        {
+          "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+          "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+          "range": ">=4.0.0 <5.0.11"
+        },
+        {
+          "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+          "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+          "range": "<1.1.19"
+        },
+        {
+          "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+          "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+          "range": ">=4.0.0 <5.0.10"
+        }
+      ]
+    },
+    {
+      "name": "compression",
+      "severity": "high",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/expo/node_modules/@expo/cli"
+      ],
+      "advisories": [
+        {
+          "title": "compression vulnerable to Denial of Service via memory leak on premature response close",
+          "url": "https://github.com/advisories/GHSA-vc2v-76pw-4v95",
+          "range": "<1.8.2"
+        }
+      ]
+    },
+    {
+      "name": "create-jest",
+      "severity": "low",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/jest-cli"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "deepmerge",
+      "severity": "low",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@expo/config",
+        "node_modules/jest-config"
+      ],
+      "advisories": [
+        {
+          "title": "deepmerge mergeObject() allows prototype poisoning of returned objects",
+          "url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4",
+          "range": ">=4.2.0 <=4.3.1"
+        }
+      ]
+    },
+    {
+      "name": "expo",
+      "severity": "moderate",
+      "direct": true,
+      "dependencyParents": [
+        "<root>"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "expo-splash-screen",
+      "severity": "moderate",
+      "direct": true,
+      "dependencyParents": [
+        "<root>"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "expo-updates",
+      "severity": "moderate",
+      "direct": true,
+      "dependencyParents": [
+        "<root>"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "glob",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@expo/config",
+        "node_modules/@expo/config-plugins",
+        "node_modules/@expo/fingerprint",
+        "node_modules/@expo/metro-config",
+        "node_modules/@jest/reporters",
+        "node_modules/expo-updates",
+        "node_modules/expo/node_modules/@expo/cli",
+        "node_modules/jest-config",
+        "node_modules/jest-runtime",
+        "node_modules/test-exclude"
+      ],
+      "advisories": [
+        {
+          "title": "Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal",
+          "url": "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4",
+          "range": ">=9.0.0 <=14.0.1"
+        }
+      ]
+    },
+    {
+      "name": "jest",
+      "severity": "low",
+      "direct": true,
+      "dependencyParents": [],
+      "advisories": []
+    },
+    {
+      "name": "jest-circus",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/jest-config"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "jest-cli",
+      "severity": "low",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/jest"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "jest-config",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@jest/core",
+        "node_modules/create-jest",
+        "node_modules/jest-cli"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "jest-expo",
+      "severity": "moderate",
+      "direct": true,
+      "dependencyParents": [],
+      "advisories": []
+    },
+    {
+      "name": "jest-resolve-dependencies",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@jest/core"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "jest-runner",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@jest/core",
+        "node_modules/jest-config"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "jest-runtime",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@jest/core",
+        "node_modules/jest-circus",
+        "node_modules/jest-runner"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "jest-snapshot",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@jest/core",
+        "node_modules/@jest/expect",
+        "node_modules/jest-circus",
+        "node_modules/jest-expo",
+        "node_modules/jest-resolve-dependencies",
+        "node_modules/jest-runtime"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "jest-watch-typeahead",
+      "severity": "low",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/jest-expo"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "minimatch",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@expo/fingerprint",
+        "node_modules/@jest/reporters/node_modules/glob",
+        "node_modules/glob",
+        "node_modules/jest-config/node_modules/glob",
+        "node_modules/jest-runtime/node_modules/glob",
+        "node_modules/test-exclude",
+        "node_modules/test-exclude/node_modules/glob"
+      ],
+      "advisories": [
+        {
+          "title": "minimatch has potential denial of service via globparts amplification",
+          "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+          "range": "<11.0.1"
+        }
+      ]
+    },
+    {
+      "name": "node-forge",
+      "severity": "high",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/@expo/code-signing-certificates",
+        "node_modules/expo/node_modules/@expo/cli"
+      ],
+      "advisories": [
+        {
+          "title": "node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements",
+          "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+          "range": "<=1.4.0"
+        },
+        {
+          "title": "Forge: ASN.1 OID first arc truncation in asn1.oidToDer",
+          "url": "https://github.com/advisories/GHSA-4642-5mcj-2rqw",
+          "range": "<=1.4.0"
+        },
+        {
+          "title": "Forge: Prototype Pollution in forge.http cookie handling via a malicious Set-Cookie",
+          "url": "https://github.com/advisories/GHSA-6wvx-3r32-xmcg",
+          "range": "<=1.4.0"
+        },
+        {
+          "title": "Forge: TLS client crash when the server sends no certificate",
+          "url": "https://github.com/advisories/GHSA-525v-9gp9-w22h",
+          "range": "<=1.4.0"
+        },
+        {
+          "title": "Forge: Regular expression denial of service in PEM decoding (pem.decode)",
+          "url": "https://github.com/advisories/GHSA-7wch-p9px-956x",
+          "range": "<=1.4.0"
+        },
+        {
+          "title": "Forge: Denial of Service via infinite loop in BigInteger.modInverse() with negative input (incomplete fix of CVE-2026-33891)",
+          "url": "https://github.com/advisories/GHSA-h6cr-wjv9-3cpp",
+          "range": "<=1.4.0"
+        },
+        {
+          "title": "Forge: verifyCertificateChain() removes trusted CA certificates with the same subject from the CA store",
+          "url": "https://github.com/advisories/GHSA-4487-j8r4-4g2f",
+          "range": "<=1.4.0"
+        },
+        {
+          "title": "Forge: AES-GCM authentication bypass via unvalidated tagLength option",
+          "url": "https://github.com/advisories/GHSA-5cwg-6vw7-rj6p",
+          "range": "<=1.4.0"
+        },
+        {
+          "title": "Forge: PKCS#12 MAC forgery and constant-key PBE via zero iteration count",
+          "url": "https://github.com/advisories/GHSA-jc66-7q78-782g",
+          "range": "<=1.4.0"
+        },
+        {
+          "title": "Forge: Denial of service in TLS record processing via a record interleaved with a fragmented handshake message",
+          "url": "https://github.com/advisories/GHSA-8hrf-8g6f-7xwp",
+          "range": "<=1.4.0"
+        },
+        {
+          "title": "Forge: Denial of service in TLS record processing via call stack exhaustion",
+          "url": "https://github.com/advisories/GHSA-hqq3-7jhf-c5jx",
+          "range": "<=1.4.0"
+        },
+        {
+          "title": "Forge: X.509 basicConstraints bypass in verifyCertificateChain() via deprecated extension OIDs 2.5.29.10 and 2.5.29.13",
+          "url": "https://github.com/advisories/GHSA-5x38-2vff-x55p",
+          "range": "<=1.4.0"
+        }
+      ]
+    },
+    {
+      "name": "react-native",
+      "severity": "moderate",
+      "direct": true,
+      "dependencyParents": [
+        "<root>"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "source-map-js",
+      "severity": "high",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/postcss"
+      ],
+      "advisories": [
+        {
+          "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+          "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q",
+          "range": ">=1.0.0 <1.2.2"
+        }
+      ]
+    },
+    {
+      "name": "test-exclude",
+      "severity": "moderate",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/babel-plugin-istanbul"
+      ],
+      "advisories": []
+    },
+    {
+      "name": "zod",
+      "severity": "high",
+      "direct": false,
+      "dependencyParents": [
+        "node_modules/expo/node_modules/@expo/cli"
+      ],
+      "advisories": [
+        {
+          "title": "Zod can exhaust memory while validating oversized constrained collections",
+          "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+          "range": "<4.6.6"
+        }
+      ]
+    }
+  ]
+}

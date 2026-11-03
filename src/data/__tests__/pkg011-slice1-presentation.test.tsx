@@ -9,7 +9,7 @@ import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } fr
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
   return new Proxy(native, { get(target, key) {
-    if (key === 'FlatList') return ({ data, renderItem, ListEmptyComponent, ...props }: any) => React.createElement('List', props, data.length ? data.map((item: any) => React.createElement(React.Fragment, { key: item.id }, renderItem({ item }))) : ListEmptyComponent);
+    if (key === 'FlatList') return ({ data, renderItem, ListEmptyComponent, ListFooterComponent, ...props }: any) => React.createElement('List', props, data.length ? data.map((item: any) => React.createElement(React.Fragment, { key: item.id }, renderItem({ item }))) : ListEmptyComponent, ListFooterComponent);
     if (key === 'Modal') return ({ visible, children, ...props }: any) => visible ? React.createElement('Modal', props, children) : null;
     if (key === 'Keyboard') return { dismiss: jest.fn() };
     return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput'].includes(String(key)) ? key : Reflect.get(target, key);
@@ -103,7 +103,7 @@ test('agreements are one list for both sides, keep the accepted facts, say the s
   expect(copy).toContain('Prijavljen je problem');
   // Mila is the other side of this Dogovor, so the row says what Mila did, not what I did.
   expect(copy).toContain('Mila'); expect(copy).toContain('Uskače'); expect(copy).not.toContain('Objavio si'); expect(copy).not.toContain('Uskočio');
-  expect(roleOf('Aktivni').accessibilityRole).toBe('tab'); expect(labels()).toContain('Raspored'); expect(labels()).not.toContain('Kalendar obaveza');
+  expect(roleOf('Prethodne saradnje').accessibilityRole).toBe('button'); expect(labels()).not.toContain('Aktivni'); expect(labels()).toContain('Raspored'); expect(labels()).not.toContain('Kalendar obaveza');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Agreements rows={rows} />); });
   expect(texts()).not.toContain('Tvoje saradnje'); expect(labels()).toContain('Raspored');

@@ -46,7 +46,6 @@ import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfi
   type WorkerActivationChecks } from '../ui/workerProfile/WorkerProfilePresentation';
 import { workerDraft, type WorkerDraft } from '../ui/workerProfile/workerProfileDraft';
 import { workerProfileInfoLines } from '../ui/workerProfile/workerProfileFacts';
-import { BrandSceneReview } from '../ui/entry/BrandSceneReview';
 
 /**
  * Profil, radni profil, fotografija, područje rada, ime (owner's step 9), in every state the lead photographs on the
@@ -278,7 +277,6 @@ const savedRating = (view: Extract<ReviewView, { kind: 'saved' }>, person: Revie
 const toList: { current: () => void } = { current: noop };
 
 const GROUPS: Group[] = [
-  { title: 'Identitet', scenes: [{ key: 'brand-dimensional', label: 'USKOČI: dimenzionalni logo i animacija', draw: () => <BrandSceneReview /> }] },
   { title: 'Profil', scenes: [
     { key: 'hub-active', label: 'Profil: aktivan', draw: () => <Hub identity={ready('Ana Petrović', 'Novi Sad', rating(RATED))}
       capabilityDetail={ACTIVE_LINE} finished={FINISHED} stats={STATS()} email="ana.petrovic@example.com" /> },

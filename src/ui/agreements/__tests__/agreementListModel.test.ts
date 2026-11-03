@@ -29,7 +29,7 @@ const groupOf = (iso: string | null, now = NOW, patch: Partial<DogovorProjekcija
 describe('the day groups, taken in Serbian time from the accepted start', () => {
   it('names the six groups of the plan in its order, and the one more it needs for a day already behind us', () => {
     expect(AGREEMENT_GROUP_ORDER.map(key => AGREEMENT_GROUP_TITLES[key])).toEqual(
-      ['Čeka tebe', 'Ranije', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Termin još nije dogovoren']);
+      ['Čeka Vas', 'Ranije', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Termin još nije dogovoren']);
   });
 
   it('puts today, tomorrow, the rest of this week, later, and no term in their groups', () => {
@@ -95,14 +95,14 @@ describe('the day groups, taken in Serbian time from the accepted start', () => 
   });
 });
 
-describe('"Čeka tebe": everything with an orange foot, always first', () => {
+describe('"Čeka Vas": everything with an orange foot, always first', () => {
   const asWorker = (patch: Partial<DogovorProjekcija>) => agreement('w', patch, 'uskocer');
   it('is a change the other side proposed, a completion I confirm, a rating that is due, and a rating that could not be read', () => {
     expect(agreementAttention(agreement('a', { izmenaCeka: { predlogId: 'p', mojPredlog: false } }))?.kind).toBe('change');
     expect(agreementAttention(agreement('b', { stanje: 'AWAITING_REQUESTER' }))?.kind).toBe('confirm');
     expect(agreementAttention(agreement('c', { stanje: 'COMPLETED', ocenaMoguca: true }))?.kind).toBe('rate');
     expect(agreementAttention(agreement('d', { stanje: 'COMPLETED', stanjeProvereOcene: 'UNAVAILABLE' }))?.kind).toBe('check-rating');
-    // Whatever their day, each of the four stands first, under "Čeka tebe" - a date far ahead (or far behind) does not move it.
+    // Whatever their day, each of the four stands first, under "Čeka Vas" - a date far ahead (or far behind) does not move it.
     for (const patch of [{ izmenaCeka: { predlogId: 'p', mojPredlog: false } }, { stanje: 'AWAITING_REQUESTER' as const },
       { stanje: 'COMPLETED' as const, ocenaMoguca: true }, { stanje: 'COMPLETED' as const, stanjeProvereOcene: 'UNAVAILABLE' as const }]) {
       expect(groupOf('2026-12-20T10:00:00Z', NOW, patch)).toBe('waiting');
@@ -137,7 +137,7 @@ describe('the Aktivni list as groups', () => {
     ];
     const groups = groupActiveAgreements(items, NOW);
     expect(groups.map(group => group.key)).toEqual(['waiting', 'past', 'today', 'tomorrow', 'week', 'later', 'undated']);
-    expect(groups.map(group => group.title)).toEqual(['Čeka tebe', 'Ranije', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Termin još nije dogovoren']);
+    expect(groups.map(group => group.title)).toEqual(['Čeka Vas', 'Ranije', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Termin još nije dogovoren']);
     expect(groups.map(group => group.items.map(item => item.id))).toEqual([['waiting'], ['past'], ['today'], ['tomorrow'], ['week'], ['later'], ['undated']]);
     expect(groupActiveAgreements([agreement('today', starting('2026-10-07T15:00:00Z'))], NOW).map(group => group.key)).toEqual(['today']);
     expect(groupActiveAgreements([], NOW)).toEqual([]);
@@ -266,7 +266,7 @@ describe('the line "Otkazano {datum} · {ko} · {razlog}" from what the server a
   });
 
   it('writes "Ti" for my own cancellation, with the time in Serbian time and the reason as the canceller wrote it', () => {
-    expect(line(answered())).toBe('Otkazano 5. okt · 14:00 · Ti · Promenio sam plan.');
+    expect(line(answered())).toBe('Otkazano 5. okt · 14:00 · Vi · Promenio sam plan.');
   });
 
   it('names the other person when they cancelled, and falls back to "Druga strana" when there is no name', () => {
@@ -281,8 +281,8 @@ describe('the line "Otkazano {datum} · {ko} · {razlog}" from what the server a
   });
 
   it('says why a reason is missing in one short sentence: it was never saved, or it was erased', () => {
-    expect(line(answered({ reason: null, reasonState: 'NOT_KEPT' }))).toBe('Otkazano 5. okt · 14:00 · Ti · ' + REASON_NEVER_SAVED);
-    expect(line(answered({ reason: null, reasonState: 'REMOVED' }))).toBe('Otkazano 5. okt · 14:00 · Ti · ' + REASON_ERASED);
+    expect(line(answered({ reason: null, reasonState: 'NOT_KEPT' }))).toBe('Otkazano 5. okt · 14:00 · Vi · ' + REASON_NEVER_SAVED);
+    expect(line(answered({ reason: null, reasonState: 'REMOVED' }))).toBe('Otkazano 5. okt · 14:00 · Vi · ' + REASON_ERASED);
     expect([REASON_NEVER_SAVED, REASON_ERASED]).toEqual(['Razlog nije sačuvan', 'Razlog je uklonjen']);
   });
 

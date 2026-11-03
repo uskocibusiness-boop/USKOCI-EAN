@@ -23,7 +23,7 @@ type Options = AgreementVoiceScope & {
 };
 const EMPTY_RECORDING: VoiceComposerSnapshot = Object.freeze({ phase: 'idle', elapsedMs: 0, durationMs: null,
   preview: 'idle', previewMs: 0, level: null, error: null, canRecord: false, canSend: false,
-  canDiscard: false, canRetry: false, recovered: [] });
+  canDiscard: false, canRetry: false, recovered: [], unresolved: [], recoveryBusy: false });
 const EMPTY_PLAYBACK: VoicePlaybackSnapshot = Object.freeze({ assetId: null, status: 'idle', positionMs: 0, durationMs: 0, error: null });
 const noSubscribe = () => () => {};
 type Runtime = { composer: ReturnType<typeof createVoiceMessageComposer>; playback: ReturnType<typeof createVoiceMessagePlayback>; retire(): void; current(): boolean };
@@ -185,6 +185,7 @@ export function useAgreementVoice(options: Options) {
     refreshRecovery: () => run(owner => owner.composer.restore()),
     sendRecovered: (ref: Parameters<Runtime['composer']['sendRecovered']>[0]) => settle(owner => owner.composer.sendRecovered(ref)),
     discardRecovered: (ref: Parameters<Runtime['composer']['discardRecovered']>[0]) => run(owner => owner.composer.discardRecovered(ref)),
+    cancelUnresolved: (ref: Parameters<Runtime['composer']['cancelUnresolved']>[0]) => run(owner => owner.composer.cancelUnresolved(ref)),
     toggle: (message: PorukaProjekcija) => run(owner => message.glas ? owner.playback.toggle({
       agreementId: options.agreementId, assetId: message.glas.assetId, messageId: message.id, durationMs: message.glas.trajanjeMs }) : Promise.resolve()),
   };

@@ -80,9 +80,18 @@ function validatePreview({ app, eas, env, firebase }) {
   requireCondition(isPublicKeyForm(env.EXPO_PUBLIC_SUPABASE_ANON_KEY),
     'EXPO_PUBLIC_SUPABASE_ANON_KEY must be a public publishable key or canonical-project anon JWT.');
   assertDevBuildContract(env);
-  requireCondition(expo?.android?.googleServicesFile === './config/firebase/google-services.json' &&
-    expo?.plugins?.includes('./plugins/withFirebaseEnrollmentDisabled.js'),
-  'Expected the reviewed public Firebase file and disabled native enrollment configuration.');
+  const pushProof = env.USKOCI_PUSH_PROOF_BUILD === '1';
+  requireCondition(env.EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL !== '1' || pushProof,
+    'DEV_AUTO_PUSH_REQUIRES_ISOLATED_PREVIEW_PUSH_PROOF_BUILD');
+  requireCondition(expo?.android?.googleServicesFile === './config/firebase/google-services.json',
+    'Expected the reviewed public Firebase file.');
+  requireCondition(Array.isArray(expo?.plugins), 'Expected the resolved native plugin list.');
+  const enrollmentDisabled = expo.plugins.some(plugin =>
+    (Array.isArray(plugin) ? plugin[0] : plugin) === './plugins/withFirebaseEnrollmentDisabled.js');
+  // The dedicated proof must reach the provider; every ordinary preview stays inert.
+  requireCondition(pushProof ? !enrollmentDisabled : enrollmentDisabled, pushProof
+    ? 'Push proof must not disable native Firebase enrollment.'
+    : 'Ordinary preview must disable native Firebase enrollment.');
   validateFirebase(firebase);
 }
 

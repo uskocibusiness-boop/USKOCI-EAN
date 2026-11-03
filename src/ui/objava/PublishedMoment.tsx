@@ -40,7 +40,7 @@ function useScreenReaderOn(): boolean {
   return on;
 }
 
-export function PublishedMoment({ title, taskTitle, actionLabel = 'Otvori zadatak', onContinue }: {
+export function PublishedMoment({ title, taskTitle, actionLabel = 'Otvorite zadatak', onContinue }: {
   /** What happened, as a sentence: "Zadatak je objavljen." */
   title: string;
   /** Actual title of the confirmed task. Missing data never becomes an invented task name. */

@@ -8,18 +8,9 @@ const account=id(1),conversation=id(2),key=id(3),turnId=id(4),attemptId=id(5);
 const json=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
 const receipt={userMessageId:id(6),assistantMessageId:id(7),proposedCount:0,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true};
 const turn=(state='SUCCEEDED')=>({conversationId:conversation,clientRequestId:key,state,turnId,retryAllowed:false,receipt:state==='SUCCEEDED'?receipt:null});
-const oneNodeCatalog=(body,node)=>{
- const q=body.p_query,labels=[node.label,...node.aliases],matches=q.scope!=='ON_SITE'&&q.operation!=='META'&&
-  (q.operation==='EXACT'?labels.includes(q.text):q.operation==='SEARCH'?labels.some(label=>label.includes(q.text)):
-   q.operation==='RESOLVE'?q.categoryIds.includes(node.categoryId):q.operation==='ROOTS');
- const items=matches?[{...node,modes:['REMOTE'],pathIds:[node.categoryId]}]:[];
- return {schemaVersion:'TAXONOMY_CATALOG_QUERY_V1',action:'CATALOG_QUERY',operation:q.operation,scope:q.scope,
-  catalogVersion:7,catalogFingerprint:'a'.repeat(32),items,count:items.length,nextCursor:null,
-  classificationAuthority:'NONE',capabilityAuthority:'NONE',notificationAuthority:'NONE'};
-};
 function fixture(config={}){
  const calls=[];const env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',
-   AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_PROVIDER',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',...config.env};
+   AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_PROVIDER',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',...(config.catalog?{SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co',USKOCI_TAXONOMY_DUAL_GEMINI:'true',USKOCI_TAXONOMY_ROLLOUT_SCOPE:'DEV',USKOCI_TAXONOMY_ALLOWED_PROJECT_REF:'leqcwgzvjsxugfgzdmth'}:{}),...config.env};
  const message=config.message??'Čujem te. Pregledaj zadatak 🟢.';
  const raw=JSON.stringify(withDialogue(config.output??{safety:'ALLOW',assistantMessage:message,facts:[]}));
  const providerStream=()=>{
@@ -41,11 +32,11 @@ function fixture(config={}){
     turn:{...turn(),receipt:{...receipt,proposedCount:body.p_proposals.length,safety:body.p_safety}},
     location:{version:1,promptToken:c.promptToken,reviewRevision:c.reviewRevision,slot:c.slot,proposalId:c.proposal?.id??null,action:body.p_location_action}});}
    if(url.endsWith('/rpc_ai_complete_need_turn_v2_service')){if(config.completionError)throw Error('SYNTHETIC_COMPLETION_ACK_LOST');return json({...turn(),...(config.badReceipt?{turnId:id(99)}:{}),receipt:{...receipt,proposedCount:body.p_proposals.length,safety:body.p_safety}});}
+   if(url.endsWith('/rpc_ai_complete_need_turn_with_first_plan_service'))return json({completion:{...turn(),receipt:{...receipt,proposedCount:body.p_proposals.length,safety:body.p_safety}},firstPlan:config.firstPlan??{state:'RESOLVED',authority:'CATALOG_ONLY',applicability:'NOT_EVALUATED'}});
+   if(url.endsWith('/rpc_taxonomy_fetch_snapshot_v1'))return json({catalogVersion:7,catalogFingerprint:'a'.repeat(32),count:1,categories:[config.catalog]});
    if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(config.failureReceipt??turn('FAILED'));
    if(url.endsWith('/rpc_ai_test_record_usage_service'))return json({recorded:true,authoritative:true,operationId:body.p_operation_id,
     promptTokens:body.p_prompt_tokens,outputTokens:body.p_output_tokens,totalTokens:body.p_total_tokens});
-   if(url.endsWith('/rpc_taxonomy_query_catalog_service'))return json(config.catalog(body));
-   if(url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'))return config.capture?.(body)??json({action:'HINT_CAPTURED',authority:'NONE'});
    assert.fail('UNEXPECTED_ROUTE');
  };
  const {handler}=loadOwnedIntakeHandler({fetch,env:name=>env[name],setTimeout:config.setTimeout,log:config.log});
@@ -68,7 +59,7 @@ for(const phase of ['PROPOSAL','UNRESOLVED'])test('review cannot skip the curren
   locationDecision:{action:'CONTINUE',proposalId:'NONE',explicitConfirmation:false,hasCorrection:false,hasUncertainty:false}}});
  const r=await f.invoke();assert.equal(r.status,200);
  const write=f.calls.find(x=>x.url.endsWith('/rpc_ai_complete_need_location_turn_v1_service')).body;
- assert.match(write.p_assistant_message,phase==='PROPOSAL'?/proveriš predloženo mesto na mapi/:/U kom je gradu/);
+ assert.match(write.p_assistant_message,phase==='PROPOSAL'?/proverite predloženo mesto na mapi/:/U kom je gradu/);
  assert.ok(!write.p_assistant_message.includes('PRIVAT'));assert.deepEqual(write.p_proposals,[]);assert.equal(write.p_location_action,'CONTINUE');
 });
 for(const knownHandoff of [false,true])test('switching to remote ignores the obsolete map and checks handoff, known='+knownHandoff,async()=>{
@@ -83,12 +74,12 @@ for(const knownHandoff of [false,true])test('switching to remote ignores the obs
  const r=await f.invoke();assert.equal(r.status,200);
  const write=f.calls.find(x=>x.url.endsWith('/rpc_ai_complete_need_location_turn_v1_service')).body;
  if(knownHandoff)assert.equal(write.p_assistant_message,message);
- else assert.match(write.p_assistant_message,/Kako preuzimaš rezultat/);
+ else assert.match(write.p_assistant_message,/Kako želite da preuzmete rezultat/);
  assert.doesNotMatch(write.p_assistant_message,/mesto na mapi|polazište/);
  assert.equal(write.p_proposals[0].value.mode,'REMOTE');
 });
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
-const writes=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_complete_need_turn_v2_service'));
+const writes=f=>f.calls.filter(c=>/\/rpc_ai_complete_need_turn(?:_v2|_with_first_plan)_service$/.test(c.url));
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service'));
 const activeFact=(key,value,valueType='TEXT')=>({fact_key:key,fact_value:value,value_type:valueType,display_value:JSON.stringify(value),
  fact_schema_version:'NEED_FACT_V2',status:'CONFIRMED',source:'USER_TEXT',created_at:'2026-10-18T12:00:00Z'});
@@ -107,12 +98,10 @@ for(const relation of ['UNCLEAR','DIFFERENT_TASK'])test(`work replacement ${rela
  const write=writes(f);assert.equal(write.length,1);assert.equal(write[0].body.p_safety,'CLARIFY');assert.deepEqual(write[0].body.p_proposals,[]);
  assert.equal(JSON.stringify(activeFacts),previous);assert.ok(!write[0].body.p_assistant_message.includes('Promenio sam posao'));
  const instruction=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.ok(instruction.includes('Za promenu vrste posla prvo razjasni'));
- assert.ok(instruction.includes('koji raniji termin, budžet i mesto i dalje važe'));
- assert.ok(instruction.includes('Ne šalji promenu vrste, naslova ili opisa dok to nije jasno'));
- assert.ok(instruction.includes('najviše JEDNU nepoznatu informaciju kroz jedno kratko pitanje'));
- assert.ok(!instruction.includes('najviše tri kratka, povezana pitanja'));
- assert.ok(!instruction.includes('sa krečenja pređe na drugu uslugu), dialogue.taskRelation ostaje CONTINUE'));
+ assert.ok(instruction.includes('Replacing the work in this draft requires deciding which old price/time/place remain'));
+ assert.ok(instruction.includes('until clear use CONTINUE/CLARIFY, facts [], one question'));
+ assert.ok(instruction.includes('najviše JEDNO pitanje za JEDNU bitnu nepoznanicu'));
+ assert.ok(instruction.includes('DIFFERENT_TASK=explicit separate task, keep this draft'));
  assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push/.test(c.url)));
 });
 
@@ -173,7 +162,7 @@ test('known private address does not become a new city-only question or a public
   output:{safety:'ALLOW',assistantMessage:`Da li je mesto ${privateAddress}?`,facts:[],
    dialogue:{...rangeDialogue,next:'ASK',questionKey:'need.task_geography'}}});
  const es=await events(f),write=writes(f)[0].body;
- assert.equal(write.p_assistant_message,'Hajde da proverimo predlog mesta na mapi. Pomeri pin ako treba, pa potvrdi tačku.');
+ assert.equal(write.p_assistant_message,'Proverite predlog mesta na mapi. Pomerite pin ako treba, pa potvrdite tačku.');
  assert.ok(!write.p_assistant_message.includes(privateAddress));assert.ok(!JSON.stringify(es).includes(privateAddress));
  assert.deepEqual(write.p_proposals,[]);
 });
@@ -202,7 +191,7 @@ for(const action of ['CONTINUE','CONFIRM_DISPLAYED'])test(`visible unresolved pl
   assert.equal(write.p_assistant_message,message);assert.equal(write.p_location_action,'CONTINUE');assert.deepEqual(write.p_proposals,[]);
   assert.ok(!write.p_assistant_message.includes(locationContext.query));
   assert.equal((await response.json()).location.action,'CONTINUE');
-  assert.ok(providers(f)[0].body.systemInstruction.parts.some(p=>p.text.includes('Prikazano pitanje o mestu ne zaključava temu razgovora')));
+  assert.ok(providers(f)[0].body.systemInstruction.parts.some(p=>p.text.includes('Map questions do not lock the topic')));
  }else assert.equal(locationWrites.length,0);
  assert.equal(providers(f).length,1);
  assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push|save_need_location/.test(c.url)));
@@ -218,18 +207,15 @@ test('owned handler delivers one semantic question budget and rejects a provider
  assert.match(write.p_assistant_message,/Od kog do kog datuma/);
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),write.p_assistant_message);
  const instruction=provider.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.equal(instruction.split('Jedinstveno pravilo pitanja:').length-1,1);
- assert.ok(instruction.includes('najviše JEDNU nepoznatu informaciju kroz jedno kratko pitanje'));
- assert.ok(instruction.includes('Ne sakrivajte drugi zahtev u nabrajanju'));
- assert.ok(instruction.includes('Sve jasne činjenice iz cele korisnikove poruke predložite odmah'));
- assert.ok(instruction.includes('Ako je već rečeno Materijal imam, ne pitajte ko kupuje boju'));
- assert.ok(instruction.includes('WEEK_FLEXIBLE znači samo ovu kalendarsku nedelju'));
- assert.ok(instruction.includes('ne smeju postati FLEXIBLE bez granica'));
- // This checks the real outbound prompt, not natural-language model accuracy.
- assert.ok(instruction.includes('Svaka predložena izmena je u NACRTU, i kada uređujemo postojeći zadatak'));
- assert.ok(instruction.includes('U nacrtu je sada taj budžet; ostalo ostaje nepromenjeno'));
- assert.ok(instruction.includes('Nakon objave drugi mogu da pošalju ponude; ne obećavaj odziv'));
- assert.ok(instruction.includes('AI predlog ili poruka objavi nisu ljudska potvrda niti objava'));
+ assert.equal(instruction.split('najviše JEDNO pitanje za JEDNU bitnu nepoznanicu').length-1,1);
+ assert.ok(instruction.includes('Bez spojenih pitanja, ponavljanja poznatog'));
+ assert.ok(instruction.includes('izdvojite sve jasne podatke, sačuvajte delimične odgovore'));
+ assert.ok(instruction.includes('WEEK_FLEXIBLE=this calendar week'));
+ assert.ok(instruction.includes('FLEXIBLE=explicit bounded choice'));
+ assert.ok(instruction.includes('Store starts_at/ends_at'));
+ assert.ok(instruction.includes('Izmene su NACRT'));
+ assert.ok(instruction.includes('Objavi/Sačuvaj je korisnička potvrda celine'));
+ assert.ok(instruction.includes('Ne tvrdite da je već objavljeno, sačuvano, aktivirano ili poslato drugima'));
  assert.ok(provider.generationConfig.responseSchema.properties.dialogue.properties.schedulePattern.enum.includes('FLEXIBLE_RANGE'));
  // The new enum belongs only to the provider interpretation. SQL command,
  // durable receipt and client SSE keep their existing exact public contracts.
@@ -385,45 +371,35 @@ test('confirmed Need finishes the stream and records usage even with the optiona
  assert.equal(usage[0].body.p_total_tokens,120);
 });
 
-for(const captureFails of [false,true])test(`Need catalog survives through completion; optional hint capture failure=${captureFails} cannot lose final or usage`,async()=>{
- const category=id(20),service='Izrada digitalnih maketa',handoff={required:false};
- const proposal={service,mode:'REMOTE',action:'REUSE_EXISTING',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic service matches catalog identity',catalogVersion:7,handoff};
- const output=withDialogue({safety:'ALLOW',assistantMessage:'Predlog je spreman za pregled.',facts:[],classificationShadowJson:JSON.stringify([proposal])});
- const f=fixture({env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
-   activeFacts:[activeFact('need.category',service),activeFact('need.task_geography',{mode:'REMOTE'},'OBJECT'),activeFact('need.handoff',handoff,'OBJECT')],
-   text:'Nastavljamo isti zadatak izrade digitalnih maketa. Predaje se samo digitalni fajl.',
-   catalog:body=>oneNodeCatalog(body,{categoryId:category,parentId:null,label:service,aliases:[],path:[service],isLeaf:true}),
-  capture:()=>captureFails?new Response('{}',{status:503}):json({action:'HINT_CAPTURED',authority:'NONE'}),
-   provider:()=>json({candidates:[{content:{role:'model',parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}],
-    usageMetadata:{promptTokenCount:100,candidatesTokenCount:20,thoughtsTokenCount:0,totalTokenCount:120}})});
+const remoteFacts=(service,handoff)=>[activeFact('need.category',service),activeFact('need.task_geography',{mode:'REMOTE'},'OBJECT'),activeFact('need.handoff',handoff,'OBJECT')];
+const catalogNode=(service,aliases=[])=>({categoryId:id(20),parentId:null,label:service,aliases,modes:['REMOTE'],isLeaf:true});
+const catalogDecision=service=>({service,mode:'REMOTE',action:'REUSE_EXISTING',categoryId:id(20),parentId:'',proposedPath:[],ambiguityPrompt:'',reason:'Potvrđen isti smisao usluge, uz stvarni ID iz kataloga.'});
+for(const deferred of [false,true])test(`Need atomic catalog completion retains facts and usage; deferred=${deferred}`,async()=>{
+ const service='Izrada digitalnih maketa',handoff={required:false};
+ const f=fixture({catalog:catalogNode(service),activeFacts:remoteFacts(service,handoff),
+  text:'Nastavljamo isti zadatak izrade digitalnih maketa. Predaje se samo digitalni fajl.',
+  output:{safety:'ALLOW',assistantMessage:'Razumeo sam opis posla.',facts:[],taxonomyDecisions:[catalogDecision(service)]},
+  ...(deferred?{firstPlan:{state:'DEFERRED',authority:'NONE',applicability:'NOT_EVALUATED',code:'CATALOG_CHANGED'}}:{})});
  const es=await events(f);
- assert.deepEqual(es.map(e=>e.kind),['accepted','text_delta','final']);assert.equal(providers(f).length,1);assert.equal(failures(f).length,0);
- const capture=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
- assert.equal(capture.length,1);assert.equal(capture[0].body.p_proposals[0].categoryId,category);
- assert.ok(f.calls.indexOf(capture[0])>f.calls.indexOf(writes(f)[0]));
- assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_test_record_usage_service')).length,1);
- assert.ok(!f.calls.some(c=>/ensure_path|commit_admission|publish|push/.test(c.url)));
+ assert.deepEqual(es.map(e=>e.kind),['accepted','text_delta','final']);
+ assert.equal(providers(f).length,1);assert.equal(failures(f).length,0);assert.equal(writes(f).length,1);
+ assert.ok(writes(f)[0].url.endsWith('/rpc_ai_complete_need_turn_with_first_plan_service'));
+ assert.equal(writes(f)[0].body.p_taxonomy_plan.proposals[0].categoryId,id(20));
+ assert.ok(!JSON.stringify(es).includes(id(20)));assert.ok(!JSON.stringify(es).includes('taxonomyDecisions'));
+ assert.ok(!f.calls.some(c=>/capture_gemini|ensure_path|commit_admission|publish|push/.test(c.url)));
 });
 
-for(const registered of [true,false])test(`Need actual handler captures only server-registered alias=${registered} after owned completion`,async()=>{
- const category=id(20),service='3D štampa',handoff={required:true,shippingCountries:['RS']};
- const proposal={service,mode:'REMOTE',action:'REUSE_ALIAS',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic task service and remote mode.',catalogVersion:7,handoff};
- const output=withDialogue({safety:'ALLOW',assistantMessage:'Proveri nacrt.',facts:[],classificationShadowJson:JSON.stringify([proposal])});
- const f=fixture({env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
-   activeFacts:[activeFact('need.category',service),activeFact('need.task_geography',{mode:'REMOTE'},'OBJECT'),activeFact('need.handoff',handoff,'OBJECT')],
-   text:'Nastavljamo isti zadatak 3D štampe kod izvršioca i slanje kurirskom službom u Srbiji.',
-   catalog:body=>oneNodeCatalog(body,{categoryId:category,parentId:null,label:'3D printovanje',aliases:registered?[service]:[],path:['3D printovanje'],isLeaf:true}),
-   provider:()=>json({candidates:[{content:{role:'model',parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}]}),
- });
+for(const registered of [true,false])test(`Need natural wording resolves by real ID without requiring a registered alias=${registered}`,async()=>{
+ const service='3D štampa',handoff={required:true,shippingCountries:['RS']};
+ const f=fixture({catalog:catalogNode('3D printovanje',registered?[service]:[]),activeFacts:remoteFacts(service,handoff),
+  text:'Nastavljamo isti zadatak 3D štampe kod izvršioca i slanje kurirskom službom u Srbiji.',
+  output:{safety:'ALLOW',assistantMessage:'Razumeo sam način izrade i predaje.',facts:[],taxonomyDecisions:[catalogDecision(service)]}});
  const es=await events(f);
  assert.equal(es.at(-1).kind,'final');assert.equal(writes(f).length,1);assert.equal(providers(f).length,1);assert.equal(failures(f).length,0);
- const capture=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
- assert.equal(capture.length,registered?1:0);
- if(registered){
-  assert.deepEqual(capture[0].body.p_proposals,[{...proposal,action:'REUSE_EXISTING'}]);
-  assert.ok(f.calls.indexOf(capture[0])>f.calls.indexOf(writes(f)[0]));
- }
- assert.ok(!f.calls.some(c=>/ensure_path|commit_admission|publish|push/.test(c.url)));
+ const plan=writes(f)[0].body.p_taxonomy_plan;
+ assert.equal(plan.proposals[0].categoryId,id(20));assert.deepEqual(plan.proposals[0].handoff,handoff);
+ assert.deepEqual(plan.anchors,[{categoryId:id(20),label:'3D printovanje',parentId:null}]);
+ assert.ok(!f.calls.some(c=>/capture_gemini|ensure_path|commit_admission|publish|push/.test(c.url)));
 });
 
 for(const taxonomy of [false,true]) for(const payload of [
@@ -432,18 +408,17 @@ for(const taxonomy of [false,true]) for(const payload of [
  {candidates:[{safetyRatings:[{blocked:true}],finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify(withDialogue({safety:'ALLOW',assistantMessage:'Ne sme biti prihvaćeno.',facts:[]}))}]}}]},
 ])test(`provider refusal does not persist BLOCK; catalog=${taxonomy}`,async()=>{
  const service='Izrada digitalnih maketa';
- const f=fixture({env:taxonomy?{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true'}:{},
+ const f=fixture({...(taxonomy?{catalog:catalogNode(service)}:{}),
   activeFacts:[activeFact('need.category',service),activeFact('need.task_geography',{mode:'REMOTE'},'OBJECT')],
-  catalog:body=>oneNodeCatalog(body,{categoryId:id(20),parentId:null,label:service,aliases:[],path:[service],isLeaf:true}),
   provider:()=>{const response={...payload,usageMetadata:{promptTokenCount:100,candidatesTokenCount:0,totalTokenCount:100}};
-    return taxonomy?json(response):new Response('data: '+JSON.stringify(response)+'\n\n',
+    return new Response('data: '+JSON.stringify(response)+'\n\n',
       {headers:{'Content-Type':'text/event-stream'}});}});
  const es=await events(f);
  assert.equal(es.at(-1).kind,'safe_error');
  assert.ok(!es.some(e=>e.kind==='text_delta'||e.kind==='final'));
  assert.equal(writes(f).length,0);assert.equal(failures(f).length,1);
  assert.equal(providers(f).length,1);
- assert.match(providers(f)[0].url,taxonomy ? /:generateContent$/ : /:streamGenerateContent\?alt=sse$/);
+ assert.match(providers(f)[0].url,/:streamGenerateContent\?alt=sse$/);
  assert.ok(!f.calls.some(c=>/publish|commit_admission|push/.test(c.url)));
 });
 

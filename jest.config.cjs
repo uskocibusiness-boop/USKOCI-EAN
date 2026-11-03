@@ -22,7 +22,7 @@ if (extendedRules !== 1) {
 
 module.exports = {
   preset: 'jest-expo',
-  setupFiles: [...expoPreset.setupFiles, require.resolve('react-native-gesture-handler/jestSetup.js'), require.resolve('./jest.urgent-env.cjs')],
+  setupFiles: [...expoPreset.setupFiles, require.resolve('react-native-gesture-handler/jestSetup.js')],
   testMatch: ['**/__tests__/**/*.test.ts?(x)'],
   // Expo's disposable config copies contain package.json files; they are build
   // scratch, not modules or tests. Never let Haste index them as a second app.

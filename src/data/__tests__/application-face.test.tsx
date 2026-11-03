@@ -339,3 +339,11 @@ it.each(['REMOTE', 'STATIONARY', undefined] as const)('draws no place for an app
   expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType) && ['pin', 'remote'].includes(node.props.kind))).toHaveLength(0);
   expect(texts()).not.toContain('Na daljinu');
 });
+
+it('uses the application price unit even when the task now has a different basis', () => {
+  const hourly = row({ osnovaCene: 'HOURLY' });
+  expect(applicationValue(hourly)).toMatchObject({ amount: '4.500 RSD', basis: 'po osobi po satu' });
+  expect(applicationSpoken(hourly)).toContain('4.500 RSD po osobi po satu');
+  const legacy = row({ zadatak: { osnovaCene: 'HOURLY' } as any });
+  expect(applicationValue(legacy)).toMatchObject({ basis: 'ukupno' });
+});

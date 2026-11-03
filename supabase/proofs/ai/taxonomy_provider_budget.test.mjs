@@ -16,6 +16,7 @@ function setup({ unknown = false, logFailure = false } = {}) {
         promptTokens: input.p_prompt_tokens, outputTokens: input.p_output_tokens, totalTokens: input.p_total_tokens })); },
   });
   const api = new vm.Script(`(function(exports,require){${code};return exports;})`).runInContext(context)({}, name => {
+    if (name === './geminiTaskStream.ts') return { decodeGeminiUsage: () => assert.fail('foreground ledger test does not decode BG usage') };
     assert.equal(name, './aiTestBudget.ts'); return { reserveAiTestBudget: () => assert.fail('FIRST_ATTEMPT_ALREADY_RESERVED') };
   });
   const input = { supabaseUrl: 'https://synthetic.invalid', serviceRoleKey: privateValue, accountId: privateValue,

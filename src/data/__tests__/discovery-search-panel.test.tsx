@@ -415,6 +415,21 @@ describe('the server preview (P6) of the search', () => {
     expect(texts()).not.toContain('Još nema zadataka');
   });
 
+  test('R02 SB11: a failed continuation keeps accepted places and enables the same more action again', async () => {
+    const seam = p6Seam(p6Snapshot({ placeHasMore: true, placePaging: true, count: 14 })); p6Search = seam;
+    await render();
+    expect(actionNamed('Učitavamo još mesta…').props.disabled).toBe(true);
+    seam.snapshot = { ...seam.snapshot, placePaging: false, facetError: true };
+    await act(async () => tree.update(panelOf()));
+    expect(show().props).toMatchObject({ label: 'Prikaži 14 zadataka', disabled: false });
+    expect(actionNamed('Prikaži još mesta').props.disabled).toBe(false);
+    expect(texts()).toContain('Mesta trenutno nisu dostupna. Pretraga zadataka i dalje radi.');
+    expect(offered().some(label => label.includes('Novi Sad'))).toBe(true);
+    expect(texts()).not.toContain('Još nema zadataka');
+    await act(async () => actionNamed('Prikaži još mesta').props.onPress());
+    expect(seam.onNextPlaces).toHaveBeenCalledTimes(1);
+  });
+
   test('place continuation and the draft preview are explicit server callbacks; the city drilled into asks for its parts, and the words typed never become a place', async () => {
     mapArea = [19, 44, 21, 46];
     const seam = p6Seam(p6Snapshot({ placeHasMore: true })); p6Search = seam;

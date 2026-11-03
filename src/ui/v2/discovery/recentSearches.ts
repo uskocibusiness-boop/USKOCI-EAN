@@ -50,28 +50,37 @@ export const recentAccount = (scopeKey: string) => scopeKey.split(':')[0] || 'an
  */
 export function useRecentSearches(scopeKey: string, enabled: boolean): { items: readonly RecentSearch[]; remember: (next: RecentSearch) => void } {
   const account = recentAccount(scopeKey);
-  const [items, setItems] = useState<readonly RecentSearch[]>([]);
-  const current = useRef<readonly RecentSearch[]>(items), loaded = useRef<string | null>(null);
+  // Storage stays per account; in-memory reads and callbacks belong to the current session revision.
+  const [snapshot, setSnapshot] = useState<{ scopeKey: string; items: readonly RecentSearch[] }>({ scopeKey, items: [] });
+  const current = useRef(snapshot), loaded = useRef<string | null>(null);
+  const liveScope = useRef(scopeKey), mounted = useRef(true);
+  liveScope.current = scopeKey;
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
-    if (!enabled || loaded.current === account) return;
-    loaded.current = account;
+    if (current.current.scopeKey !== scopeKey) {
+      current.current = { scopeKey, items: [] }; loaded.current = null;
+      setSnapshot(current.current);
+    }
+    if (!enabled || loaded.current === scopeKey) return;
     let alive = true;
-    current.current = []; setItems([]);
     try {
       Promise.resolve(AsyncStorage.getItem(storageKey(account))).then(raw => {
-        if (!alive || loaded.current !== account) return;
+        if (!alive || liveScope.current !== scopeKey) return;
         const stored = parseRecent(raw);
         // A search made while the list was still being read stays on top of it.
-        const merged = current.current.reduceRight<RecentSearch[]>((all, entry) => rememberRecent(all, entry), stored);
-        current.current = merged; setItems(merged);
+        const merged = current.current.items.reduceRight<RecentSearch[]>((all, entry) => rememberRecent(all, entry), stored);
+        current.current = { scopeKey, items: merged }; setSnapshot(current.current);
+        // Only an accepted read is loaded. Closing early or storage failure can retry on reopening.
+        loaded.current = scopeKey;
       }, () => undefined);
     } catch { /* no storage: no recent searches */ }
     return () => { alive = false; };
-  }, [account, enabled]);
+  }, [scopeKey, account, enabled]);
   const remember = useCallback((next: RecentSearch) => {
-    const list = rememberRecent(current.current, next);
-    current.current = list; setItems(list);
+    if (!mounted.current || liveScope.current !== scopeKey) return;
+    const list = rememberRecent(current.current.scopeKey === scopeKey ? current.current.items : [], next);
+    current.current = { scopeKey, items: list }; setSnapshot(current.current);
     try { Promise.resolve(AsyncStorage.setItem(storageKey(account), JSON.stringify(list))).catch(() => undefined); } catch { /* the list stays on screen for this visit */ }
-  }, [account]);
-  return { items, remember };
+  }, [scopeKey, account]);
+  return { items: snapshot.scopeKey === scopeKey ? snapshot.items : [], remember };
 }

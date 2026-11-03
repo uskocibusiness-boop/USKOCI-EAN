@@ -37,7 +37,7 @@ jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar', FaceEdge: 'FaceEd
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 import { CandidateListPresentation, CandidateSelectionPresentation, MEASURE_BEST_RATING, MEASURE_LOWEST_PRICE, candidateMeasures, candidateRatingFigure,
   sortCandidates } from '../../ui/v2/ApplicationSelectionPresentation';
-import { UNPRICED, candidateChip, candidateHas, candidateSpoken, candidateStatus, candidateTerm, candidateTrust, candidateValue, compareIdentityHeight, requesterPrijava,
+import { UNPRICED, candidateChip, candidateHas, candidateSpoken, candidateStatus, candidateTerm, candidateTrust, candidateValue, compareIdentityHeight,
   splitAmount } from '../../ui/v2/CandidateFace';
 import { DogovorenoMoment } from '../../ui/v2/DogovorenoMoment';
 import { PublicProfileSheet } from '../../ui/system/PublicProfileSheet';
@@ -204,12 +204,7 @@ describe('the candidate row', () => {
     expect(splitAmount('4.500')).toEqual(['4.500', '']);
   });
 
-  it('builds the one model both lists draw, with only what the read carried', () => {
-    const model = requesterPrijava(k({ napomena: '  ' }), { timezone: 'Europe/Belgrade', taskTerm: 'Sutra, fleksibilno', viewed: true, avatar: null });
-    expect(model).toMatchObject({ status: 'application.seen', reason: null, term: 'Sutra, fleksibilno', showTerm: false, people: '2 osobe', message: null,
-      has: { art: 'vehicle', text: 'Ima: Kombi · Trake' }, price: { kind: 'amount', amount: '4.500 RSD', basis: 'ukupno' }, who: { kind: 'person', name: 'Milan Petrović' } });
-    // The term is on the card only when the person proposed one; what they have is only what they declared (a vehicle first, then the tools).
-    expect(requesterPrijava(k({ predlozeniPocetak: '2026-09-20T08:00:00Z', predlozeniKraj: '2026-09-20T09:00:00Z' }), { timezone: 'Europe/Belgrade', taskTerm: 'x', avatar: null }).showTerm).toBe(true);
+  it('keeps candidate requirements, time and spoken text faithful to the read', () => {
     expect(candidateHas(k({ dokazPrijave: { sema: 'APPLICATION_V1_SELF_DECLARED', kapacitetTima: 1, vestine: ['Farbanje'], alati: ['Trake', ' '], vozila: [], licence: [] } })))
       .toEqual({ art: 'tool', text: 'Ima: Trake' });
     expect(candidateHas(k({ dokazPrijave: { sema: 'APPLICATION_V1_SELF_DECLARED', kapacitetTima: 1, vestine: ['Farbanje'], alati: [], vozila: [], licence: [] } }))).toBeNull();
@@ -241,6 +236,13 @@ describe('the candidate row', () => {
     expect(candidateTrust({ ocenaTekst: '—', recenzijeTekst: '0 ocena' })).toEqual({ star: false, text: 'Još nema ocena', spoken: 'još nema ocena' });
     // A word where a figure should be ("Novo") is not a rating and gets no star.
     expect(candidateTrust({ ocenaTekst: 'Novo', recenzijeTekst: 'Nema ocena' }).star).toBe(false);
+    // Invalid metadata cannot create a star even when some digits are present.
+    for (const invalid of ['0', '0,0', '5,1', '99', 'NaN', '1e3', 'Ocena 4,8', '4,8 više']) {
+      expect(candidateTrust({ ocenaTekst: invalid, recenzijeTekst: '2 ocene' }).star).toBe(false);
+    }
+    expect(candidateTrust({ ocenaTekst: '4,8', recenzijeTekst: '0 ocena' })).toEqual({
+      star: false, text: 'Još nema ocena', spoken: 'još nema ocena',
+    });
     await render(list([k({ prijavaId: 'a', ime: 'Ana', ocenaTekst: '—', recenzijeTekst: '' }), k({ prijavaId: 'b', ime: 'Bojan', ocenaTekst: '4,8', recenzijeTekst: '' })]));
     const ana = pressNamed('Pogledaj prijavu: Ana'), bojan = pressNamed('Pogledaj prijavu: Bojan');
     expect(stars(ana)).toHaveLength(0);
@@ -406,6 +408,12 @@ describe('the order of the applications', () => {
     expect(candidateRatingFigure({ ocenaTekst: '5', recenzijeTekst: '2 recenzije' })).toEqual({ rating: 5, count: 2 });
     expect(candidateRatingFigure({ ocenaTekst: '4.5', recenzijeTekst: '' })).toEqual({ rating: 4.5, count: 0 });
     for (const word of ['—', 'Novo', '', 'Još nema ocena']) expect(candidateRatingFigure({ ocenaTekst: word, recenzijeTekst: '3 ocene' })).toBeNull();
+    for (const invalid of ['0', '99', '5,1', '3.9999', '1e3', 'Novo 4']) {
+      expect(candidateRatingFigure({ ocenaTekst: invalid, recenzijeTekst: '3 ocene' })).toBeNull();
+    }
+    expect(candidateRatingFigure({ ocenaTekst: '4,8', recenzijeTekst: '0 ocena' })).toBeNull();
+    expect(candidateRatingFigure({ ocenaTekst: '4,8', recenzijeTekst: '999999999999999999999 ocena' }))
+      .toEqual({ rating: 4.8, count: 0 });
   });
 
   it('puts the best rated first, then the one that stands on more ratings, then the earlier one; nobody without a rating comes before anybody with one', () => {
@@ -421,6 +429,77 @@ describe('the order of the applications', () => {
     const unknown = k({ prijavaId: 'unknown', cena: { iznos: 0, valuta: 'RSD', prikaz: '' } });
     const lower = k({ prijavaId: 'lower', cena: { iznos: 3000, valuta: 'RSD', prikaz: '3.000 RSD' } });
     expect(sortCandidates([unknown, a, lower], 'PRICE').map(candidate => candidate.prijavaId)).toEqual(['lower', 'a', 'unknown']);
+  });
+
+  it('orders OFFERS by comparable RSD per person, not total crew amount, and marks only the actual cheapest', () => {
+    const single = k({ prijavaId: 'single', cena: { iznos: 4000, valuta: 'RSD', prikaz: '4.000 RSD' }, pokrivaMesta: 1 });
+    const team = k({ prijavaId: 'team', cena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' }, pokrivaMesta: 3 });
+    const tied = k({ prijavaId: 'tie', cena: { iznos: 2000, valuta: 'RSD', prikaz: '2.000 RSD' }, pokrivaMesta: 1 });
+    const rows = [single, team, tied];
+    expect(sortCandidates(rows, 'PRICE').map(k => k.prijavaId)).toEqual(['team', 'tie', 'single']);
+    expect(candidateMeasures(rows, true).get('team')).toBe(MEASURE_LOWEST_PRICE);
+    expect(candidateMeasures(rows, true).get('tie')).toBe(MEASURE_LOWEST_PRICE);
+    expect(candidateMeasures(rows, true).get('single')).not.toBe(MEASURE_LOWEST_PRICE);
+    expect(candidateMeasures(rows, false).size).toBe(0);
+    expect(sortCandidates(rows, 'ARRIVAL')).toBe(rows);
+    expect(rows.map(k => k.prijavaId)).toEqual(['single', 'team', 'tie']);
+  });
+
+  it('does not divide an hourly per-person rate by team size or compare hourly against total', () => {
+    const hourlyTeam = k({ prijavaId: 'hourlyTeam', osnovaCene: 'HOURLY',
+      cena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' }, pokrivaMesta: 3 });
+    const hourlySingle = k({ prijavaId: 'hourlySingle', osnovaCene: 'HOURLY',
+      cena: { iznos: 1000, valuta: 'RSD', prikaz: '1.000 RSD' }, pokrivaMesta: 1 });
+    const hourly = [hourlyTeam, hourlySingle];
+    expect(sortCandidates(hourly, 'PRICE').map(k => k.prijavaId)).toEqual(['hourlySingle', 'hourlyTeam']);
+    expect(candidateMeasures(hourly, true).get('hourlySingle')).toBe(MEASURE_LOWEST_PRICE);
+    // A non-cheapest candidate may still earn the independent best-rating marker.
+    expect(candidateMeasures(hourly, true).get('hourlyTeam')).not.toBe(MEASURE_LOWEST_PRICE);
+    const total = k({ prijavaId: 'total', cena: { iznos: 4000, valuta: 'RSD', prikaz: '4.000 RSD' }, pokrivaMesta: 2 });
+    const mixed = [total, hourlySingle];
+    expect(sortCandidates(mixed, 'PRICE')).toBe(mixed);
+    expect([...candidateMeasures(mixed, true).values()]).not.toContain(MEASURE_LOWEST_PRICE);
+  });
+
+  it('sorts unpriced offers last, preserves fractional per-person ties and rejects invalid headcounts', () => {
+    const one = k({ prijavaId: 'one', cena: { iznos: 1001, valuta: 'RSD', prikaz: '1.001 RSD' }, pokrivaMesta: 2 });
+    const two = k({ prijavaId: 'two', cena: { iznos: 2002, valuta: 'RSD', prikaz: '2.002 RSD' }, pokrivaMesta: 4 });
+    const unknown = k({ prijavaId: 'missing', cena: { iznos: 0, valuta: 'RSD', prikaz: '' } });
+    const invalid = k({ prijavaId: 'invalid', pokrivaMesta: 0 });
+    expect(sortCandidates([unknown, one, two, invalid], 'PRICE').map(k => k.prijavaId))
+      .toEqual(['one', 'two', 'missing', 'invalid']);
+    expect(candidateMeasures([one, two], true).get('one')).toBe(MEASURE_LOWEST_PRICE);
+    expect(candidateMeasures([one, two], true).get('two')).toBe(MEASURE_LOWEST_PRICE);
+  });
+
+  it('explains price units only after choosing the price order, without replacing accepted offer totals', async () => {
+    const three = k({ prijavaId: 'three', ime: 'Milan', cena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' }, pokrivaMesta: 3 });
+    const one = k({ prijavaId: 'one', ime: 'Ana', cena: { iznos: 4000, valuta: 'RSD', prikaz: '4.000 RSD' }, pokrivaMesta: 1 });
+    await render(<CandidateListPresentation need={need} candidates={[one, three]} open={noop} back={noop} refresh={noop} />);
+    expect(texts()).not.toContain('Poređenje je po osobi;');
+    await act(async () => pressNamed('Redosled prijava: Najranije').props.onPress());
+    await act(async () => pressNamed('Najniža cena').props.onPress());
+    expect(names()).toEqual(['Milan', 'Ana']);
+    expect(texts()).toContain('Poređenje je po osobi; iznos na kartici ostaje ukupna ponuda.');
+    expect(texts()).toContain('6.000');
+  });
+
+  it('never awards a price/rating advantage to SELECTABLE rows that the server says cannot be selected', async () => {
+    const excluded = k({ prijavaId: 'excluded', ime: 'Nije dozvoljeno', stanje: 'SELECTABLE', mozeIzabrati: false,
+      cena: { iznos: 100, valuta: 'RSD', prikaz: '100 RSD' }, ocenaTekst: '5', recenzijeTekst: '50 ocena' });
+    const eligible = k({ prijavaId: 'eligible', ime: 'Izbor je dozvoljen', cena: { iznos: 3000, valuta: 'RSD', prikaz: '3.000 RSD' } });
+    const other = k({ prijavaId: 'other', ime: 'Drugi izbor', cena: { iznos: 5000, valuta: 'RSD', prikaz: '5.000 RSD' } });
+    const rows = [excluded, eligible, other];
+    const marks = candidateMeasures(rows, true);
+    expect(marks.get('excluded')).toBeUndefined();
+    expect(marks.get('eligible')).toBe(MEASURE_LOWEST_PRICE);
+    await render(list(rows));
+    expect(texts()).toContain('3 prijave · 2 za izbor');
+    expect(texts()).not.toContain('Nije dozvoljeno Najniža cena');
+    const blocked = pressNamed('Pogledaj prijavu: Nije dozvoljeno');
+    expect(blocked.props.accessibilityValue.text).not.toContain('Najniža cena');
+    expect(blocked.findAll(node => node.props.children === 'Najniža cena')).toHaveLength(0);
+    expect(pressNamed('Izaberi: Nije dozvoljeno')).toBeUndefined();
   });
 
   it('offers "Najbolja ocena" beside the other two orders and orders the loaded list by it, without a new read', async () => {
@@ -442,6 +521,16 @@ describe('the offer sheet', () => {
       readAgreement={async () => ({ ok: true, podatak: { dogovorId: null } })} openLinkedAgreement={noop} {...patch} />;
   const green = () => tree.root.findAll(node => node.type === ('Press' as unknown as React.ElementType)
     && flat(node.props.style).backgroundColor === sys.color.green).map(node => node.props.accessibilityLabel);
+
+  it('reviews a per-person hourly rate in the selection sheet and final confirmation without calling it a total', async () => {
+    await render(offer({ candidate: k({ osnovaCene: 'HOURLY', cena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' } }) }));
+    expect(tree.root.findAll(node => node.type === ('View' as unknown as React.ElementType)
+      && node.props.accessibilityLabel === 'Satnica: 1.200 RSD, Po osobi po satu')).toHaveLength(1);
+    expect(texts()).not.toContain('Ukupna ponuda');
+    expect(texts()).not.toContain('Ukupno za 2 osobe');
+    await act(async () => pressNamed('Izaberi osobu').props.onPress());
+    expect(texts()).toContain('Prihvataš: 1.200 RSD po osobi po satu · 2 osobe');
+  });
 
   it('is a centred review with one primary action that asks before it chooses', async () => {
     const choose = jest.fn();
@@ -723,4 +812,17 @@ describe('the public profile sheet', () => {
     const bio = tree.root.findAll(node => node.props.children === data.biografija)[0];
     expect(bio.props.numberOfLines).toBeUndefined(); expect(bio.props.selectable).toBe(true);
   });
+});
+
+it('labels an immutable hourly application per person per hour without multiplying its headcount', () => {
+  const hourly = k({ osnovaCene: 'HOURLY', cena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' }, pokrivaMesta: 2 });
+  expect(candidateValue(hourly)).toEqual({ kind: 'amount', amount: '1.200 RSD', basis: 'po osobi po satu' });
+  expect(candidateSpoken(hourly, 'Trajanje po dogovoru')).toContain('1.200 RSD po osobi po satu');
+  expect(candidateValue(k())).toMatchObject({ basis: 'ukupno' });
+});
+it('does not compare a total against an hourly rate when an older application remains in the list', () => {
+  const total = k({ prijavaId: 'total', cena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' } });
+  const hourly = k({ prijavaId: 'hourly', osnovaCene: 'HOURLY', cena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' } });
+  expect([...candidateMeasures([total, hourly], true).values()]).not.toContain(MEASURE_LOWEST_PRICE);
+  expect(sortCandidates([total, hourly], 'PRICE')).toEqual([total, hourly]);
 });

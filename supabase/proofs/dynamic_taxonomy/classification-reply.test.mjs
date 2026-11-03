@@ -12,11 +12,16 @@ test('unverified ordinary REVIEW cannot invite publication while facts remain in
 const turn={safety:'ALLOW',assistantMessage:'Izrada kod izvršioca uz dostavu može biti na daljinu.',
   proposals:[{key:'need.category',value:'3D štampa'}],dialogue:{next:'ANSWER',questionKey:''}};
 const feedback={state:'ASK_USER',canOfferReview:false,questions:['Kakav rezultat želiš?'],notice:'Još je nacrt.'};
-test('classification question follows the answer and preserves independent facts',()=>{
+test('an ANSWER preserves the explanation and independent facts without appending a new question',()=>{
   const next=withClassificationFeedback(turn,feedback);
-  assert.ok(next.assistantMessage.startsWith(turn.assistantMessage));
-  assert.ok(next.assistantMessage.endsWith(feedback.questions[0]));
+  assert.equal(next.assistantMessage,turn.assistantMessage);
   assert.equal(next.proposals,turn.proposals);
+  assert.equal(next.dialogue.next,'ANSWER');
+});
+test('an ACK can add one classification question without altering independent facts',()=>{
+  const next=withClassificationFeedback({...turn,dialogue:{next:'ACK',questionKey:''}},feedback);
+  assert.equal(next.assistantMessage,turn.assistantMessage+'\n\n'+feedback.questions[0]);
+  assert.equal(next.proposals,turn.proposals);assert.equal(next.dialogue.next,'CLARIFY');
 });
 test('existing natural question is not doubled',()=>{
   const asked={...turn,assistantMessage:'Kakve figurice želiš da izradimo?'};

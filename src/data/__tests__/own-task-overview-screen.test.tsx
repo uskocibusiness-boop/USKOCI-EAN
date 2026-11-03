@@ -199,7 +199,7 @@ describe('a draft the publication gate holds back', () => {
     expect(texts()).toContain('Fotografije se još obrađuju');
     expect(brand()).toEqual([]);
     expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(0);
-    const again = tree.root.findByProps({ label: 'Osveži' });
+    const again = tree.root.findByProps({ label: 'Osvežite' });
     await act(async () => again.props.onPress()); expect(calls.refresh).toHaveBeenCalledTimes(1);
     // The same for "not your fault": the owner can only look again later.
     await act(async () => tree.unmount());

@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { ClipPath, Defs, G, Image, Path, Use } from 'react-native-svg';
 import { BRAND_PARTS } from './spojBrandMath';
 
-export const BRAND_RASTER = require('../../../assets/brand/uskoci-dimensional-20261003.png');
+export const BRAND_RASTER = require('../../../assets/brand/premium-entry/logo.png');
 // One untouched transparent atlas, partitioned along its semantic contours. The
 // pin's tip stays with the pin, and the smile does not borrow the adjacent arm.
 // The two touching hands share one curved boundary rather than a rectangular cut.

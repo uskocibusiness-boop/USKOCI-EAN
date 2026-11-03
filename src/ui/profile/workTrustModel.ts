@@ -1,4 +1,4 @@
-import type { MyWorkStats, PublicWorkTrust } from '../../data/workTrustClientService';
+import type { PublicWorkTrust } from '../../data/workTrustClientService';
 import { zadataka } from '../system/plural';
 
 /**
@@ -25,41 +25,10 @@ export const memberSincePhrase = (memberSince: string | null | undefined): strin
 /** The name of the reliability fact everywhere it is said. */
 export const RELIABILITY_LABEL = 'Dolazi kako je dogovoreno';
 
-/**
- * Why there is no percentage yet, in words that are true of the server's definition: it counts the Dogovori that were finished and the
- * ones the person's own side cancelled (a cancellation by the other side is not counted either way).
- */
-export const reliabilityNeeds = (minimum: number): string =>
-  `Procenat se pokazuje kad bar ${minimum} Dogovora bude završeno ili ih otkažeš ti.`;
 /** What the percentage is made of, said once under the figures of the person's own statistics. */
 export const RELIABILITY_MEANING = 'Računa se iz završenih Dogovora i onih koje otkažeš ti. Otkazivanje druge strane se ne računa.';
 /** What a visitor reads when the server has no percentage yet: a sentence about the person, not about the reader. */
 export const RELIABILITY_FEW = 'Još nema dovoljno Dogovora za procenat';
-
-/* ---------------------------------------------------------------------------------------------------- own statistics */
-
-export type StatRow = { key: 'sent' | 'agreed' | 'completed' | 'reliability'; label: string; value: string };
-export type StatsView = { rows: readonly StatRow[]; note: string };
-
-const number = (value: number) => value.toLocaleString('sr-Latn-RS');
-
-/**
- * "Moja statistika": the work funnel in the order it happens (applications sent, agreed, finished), then how reliably the person comes
- * as agreed. (Since when the person is here is a fact OTHERS read on the public profile; it is not repeated here.) `null` for an account
- * without a work profile: there is no work to count, and a row of zeros would say a thing that is not so.
- */
-export function statsView(stats: MyWorkStats | null | undefined): StatsView | null {
-  if (!stats || !stats.hasWorkerProfile) return null;
-  const rows: StatRow[] = [
-    { key: 'sent', label: 'Poslate prijave', value: number(stats.applicationsSent) },
-    { key: 'agreed', label: 'Dogovoreno', value: number(stats.agreementsMade) },
-    { key: 'completed', label: 'Završeno', value: number(stats.agreementsCompleted) },
-    stats.reliabilityState === 'AVAILABLE' && stats.reliabilityPercent !== null
-      ? { key: 'reliability', label: RELIABILITY_LABEL, value: `${stats.reliabilityPercent}%` }
-      : { key: 'reliability', label: RELIABILITY_LABEL, value: 'Još nema procenta' },
-  ];
-  return { rows, note: stats.reliabilityState === 'AVAILABLE' && stats.reliabilityPercent !== null ? RELIABILITY_MEANING : reliabilityNeeds(stats.reliabilityMinimum) };
-}
 
 /* ---------------------------------------------------------------------------------------------------- a public profile */
 

@@ -221,7 +221,7 @@ it('uses the approved dimensional mark on white for both native themes instead o
   // The owner replaced the old flat material while preserving the source motion.
   // Native boot art is exported from the shared BrandMark, with a safe square pad.
   expect(svg).toContain('translate(20 14.5)');
-  expect(svg).toContain('brand/uskoci-dimensional-20261003.png');
+  expect(svg).toContain('brand/premium-entry/logo.png');
   const manifest = JSON.parse(readFileSync(resolve(project, 'assets/brand/uskoci-dimensional-20261003.json'), 'utf8'));
   expect(createHash('sha256').update(png).digest('hex')).toBe(manifest.exports.splash.sha256);
 });

@@ -184,3 +184,12 @@ it('fences late link across account incarnation and performs an actual read on r
   expect(await readSelectedAgreement(need, application)).toEqual({ ok: true, podatak: { dogovorId: null } });
   expect(mockSingle).toHaveBeenCalledTimes(2);
 });
+
+it('preserves an authoritative hourly application unit and rejects unsupported or contradictory receipt units', async () => {
+  mockRpc.mockResolvedValue({ data: { ...receipt(), pricingMode: 'MY_PRICE', applicationPriceBasis: 'HOURLY' }, error: null });
+  expect(await client.podnesiPrijavu(submit())).toMatchObject({ ok: true, podatak: { osnovaCene: 'HOURLY' } });
+  for (const patch of [{ applicationPriceBasis: 'PER_PERSON' }, { pricingMode: 'OFFERS', applicationPriceBasis: 'HOURLY' }]) {
+    mockRpc.mockResolvedValue({ data: { ...receipt(), ...patch }, error: null });
+    expect(await client.podnesiPrijavu(submit())).toMatchObject({ ok: false, kod: 'APPLICATION_SELECTION_INVALID_RECEIPT' });
+  }
+});

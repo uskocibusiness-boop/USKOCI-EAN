@@ -1,0 +1,32 @@
+{
+  "unit": "F10_DEV_PACKAGE",
+  "format_version": 1,
+  "status": "PREPARED_NOT_APPLIED",
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "captured_at": "2026-11-01T13:57:09.380996+00:00",
+  "server_version_num": 170006,
+  "changed_functions": 1,
+  "new_functions": 0,
+  "new_tables": 0,
+  "source_candidate": "supabase/candidates/r08_saved_worker_services.sql",
+  "candidate_sha256": "18cfd084910657c4b7e017320a23987fd13378e9cc8aaaad39152ecd574e562d",
+  "preimage_sha256": "5118dbf93923e9e5793effb6c3bee3d7099218beffbfd73b4d6df0ced19ecd11",
+  "pinned_dependency_functions": 3,
+  "pinned_relations": 11,
+  "files": {
+    "forward.sql": "533dacdc74461530bb368483162134f81b793b095e5ca6b20b22d522c1b1e593",
+    "rollback.sql": "8f2e59f58756550d494f9025828a51efe1fe991d818bb09d68022087a927f1ab",
+    "preflight.sql": "4ef43205a1febe269378efd08a1d255a7cd520e3fc2f37faea56bb5fa1fa021c",
+    "postflight.sql": "99d074f393844b5c64e3991f8ff8eb6301c3abb4958e8d9dd767f9e957a4f004",
+    "acceptance.sql": "e6bb8b116d25a4bc7dea7af1fc47ef8d662d99e39ff895c089b0d204eef7ccdb",
+    "postimage.json": "bda4fffaaa398a225d204a31cc3ff551f65a909c0dba7e7132a0dc765f400f5e"
+  },
+  "limitations": [
+    "External connector project binding is required; the target GUC is an intent marker only.",
+    "The candidate LOCAL_ONLY guard is executed unchanged in disposable derivation; no setting bypass is sent to DEV.",
+    "Hosted DDL must use the controlled migration tool after review, including temporary or rollback-only DDL; execute_sql is metadata-only.",
+    "Acceptance uses auth denial, NULL profile ownership and empty projection only; it is not real-user Save/reopen acceptance.",
+    "Forward/rollback changes only one reader definition and preserves its existing ACL; no data or activation compensation.",
+    "No committed DEV deployment, migration history, Edge change or Android acceptance is claimed."
+  ]
+}

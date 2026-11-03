@@ -30,8 +30,8 @@ export type SignInFailureClass =
   | 'BAD_CREDENTIALS' | 'CONNECTION' | 'EMAIL_NOT_CONFIRMED' | 'RESTRICTED_ACCOUNT' | 'RATE_LIMITED' | 'UNAVAILABLE';
 
 /** Said by every Auth operation, so each has one spelling. */
-export const RATE_LIMITED_COPY = 'Previše pokušaja. Sačekaj kratko pa pokušaj ponovo.';
-export const PROVIDER_UNAVAILABLE_COPY = 'Prijava trenutno nije dostupna. Pokušaj ponovo.';
+export const RATE_LIMITED_COPY = 'Previše pokušaja. Sačekajte kratko pa pokušajte ponovo.';
+export const PROVIDER_UNAVAILABLE_COPY = 'Prijava trenutno nije dostupna. Pokušajte ponovo.';
 
 /**
  * One message per class: what happened in the person's terms, then the one thing to do that the sign-in screen already
@@ -39,10 +39,10 @@ export const PROVIDER_UNAVAILABLE_COPY = 'Prijava trenutno nije dostupna. Pokuš
  * screen, so none is promised.
  */
 export const SIGN_IN_FAILURE_COPY: Readonly<Record<SignInFailureClass, string>> = {
-  BAD_CREDENTIALS: 'Prijava nije uspela. Proveri email i lozinku i pokušaj ponovo.',
-  CONNECTION: 'Ne možemo da se povežemo, pa prijava nije uspela. Proveri vezu i pokušaj ponovo.',
-  EMAIL_NOT_CONFIRMED: 'Email još nije potvrđen. Otvori poruku za potvrdu (proveri i neželjenu poštu), pa se prijavi ponovo.',
-  RESTRICTED_ACCOUNT: 'Pristup ovom nalogu je ograničen, pa prijava trenutno nije moguća. Pokušaj ponovo kada se ograničenje ukloni.',
+  BAD_CREDENTIALS: 'Prijava nije uspela. Proverite email i lozinku i pokušajte ponovo.',
+  CONNECTION: 'Ne možemo da se povežemo, pa prijava nije uspela. Proverite vezu i pokušajte ponovo.',
+  EMAIL_NOT_CONFIRMED: 'Email još nije potvrđen. Otvorite poruku za potvrdu (proverite i neželjenu poštu), pa se prijavite ponovo.',
+  RESTRICTED_ACCOUNT: 'Pristup ovom nalogu je ograničen, pa prijava trenutno nije moguća. Pokušajte ponovo kada se ograničenje ukloni.',
   RATE_LIMITED: RATE_LIMITED_COPY,
   UNAVAILABLE: PROVIDER_UNAVAILABLE_COPY,
 };

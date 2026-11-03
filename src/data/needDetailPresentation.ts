@@ -114,7 +114,7 @@ export type PriceBasis = "TOTAL" | "PER_PERSON" | "HOURLY" | null | undefined;
  * it reads exactly as it always has, because nothing about it has changed. PER_PERSON names the
  * unit, and on a screen with room it also names what the whole task would cost, which is the number
  * the owner said a person actually wants: "3.000 RSD po osobi - 6 osoba - ukupno 18.000 RSD".
- * HOURLY names an hourly rate: "1.500 RSD / sat".
+ * HOURLY names a rate per person per hour; no duration means no final total.
  */
 export function needPriceText(input: {
   rezimCene?: string; ponudjenaCena?: { iznos: number; prikaz: string }; osnovaCene?: PriceBasis;
@@ -123,7 +123,7 @@ export function needPriceText(input: {
   if (input.rezimCene === 'OFFERS') return 'Tražim ponude';
   if (!input.ponudjenaCena) return 'Cena nije navedena';
   const amount = input.ponudjenaCena.prikaz;
-  if (input.osnovaCene === 'HOURLY') return `${amount} / sat`;
+  if (input.osnovaCene === 'HOURLY') return `${amount} po osobi po satu`;
   if (input.osnovaCene === 'PER_PERSON') {
     const people = input.pokrivenost?.ukupno ?? 0;
     if (!options?.withTotal || people < 2 || !Number.isFinite(input.ponudjenaCena.iznos)) return `${amount} po osobi`;
@@ -139,7 +139,7 @@ export function needPriceText(input: {
 export function needPriceBasisNote(input: {
   osnovaCene?: PriceBasis; ponudjenaCena?: { iznos: number }; pokrivenost?: { ukupno: number };
 }): string | null {
-  if (input.osnovaCene === 'HOURLY') return 'po satu rada';
+  if (input.osnovaCene === 'HOURLY') return 'po osobi po satu';
   if (input.osnovaCene === 'TOTAL') return 'ukupno za ceo zadatak';
   if (input.osnovaCene !== 'PER_PERSON') return null;
   const people = input.pokrivenost?.ukupno ?? 0;
@@ -148,14 +148,18 @@ export function needPriceBasisNote(input: {
   return `po osobi · ukupno ${novac(amount * people)}`;
 }
 
-/** The stored task price is a budget; a new application carries only its own headcount's amount. */
+/** TOTAL/PER_PERSON applications carry a total; HOURLY carries the unchanged per-person hourly rate. */
 export function fixedApplicationPrice(input: {
   rezimCene?: string; ponudjenaCena?: { iznos: number }; osnovaCene?: PriceBasis; pokrivenost?: { ukupno: number };
 }, people: number): number | null {
   if (input.rezimCene !== 'MY_PRICE') return null;
   const amount = input.ponudjenaCena?.iznos;
   if (typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 1) return null;
-  if (input.osnovaCene === 'HOURLY') return amount;
+  if (input.osnovaCene === 'HOURLY') {
+    const required = input.pokrivenost?.ukupno;
+    return Number.isSafeInteger(people) && people >= 1 && people <= 50
+      && (required === undefined || Number.isSafeInteger(required) && people <= required) ? amount : null;
+  }
   if (input.osnovaCene !== 'PER_PERSON' && input.osnovaCene !== 'TOTAL') return amount;
   if (!Number.isSafeInteger(people) || people < 1) return null;
   const required = input.pokrivenost?.ukupno;

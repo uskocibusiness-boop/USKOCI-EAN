@@ -10,6 +10,7 @@ import { publishedTaskRoute, rememberPublication } from '../../data/publicationH
 import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
 import { rememberAiCorrection, taskCorrectionTarget, type AiCorrectionTarget } from '../../data/aiCorrectionIntent';
 import { aiNeedV2Izvor, izvor } from '../../data';
+import { readIntakeLifecycle } from '../../data/aiOpenIntakes';
 import { factLabel, priceAmountRowValue } from '../../data/aiNeedV2Ui';
 import { needRequirementRows } from '../../data/needDetailPresentation';
 import type { NeedFactV2Key } from '../../contracts/needFactsV2';
@@ -27,6 +28,7 @@ import { V2Action } from '../../ui/v2/V2Action';
 import { NeedLifecycleActions, type NeedLifecycleMenu } from '../../ui/needs/NeedLifecycleActions';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { StateView } from '../../ui/system/StateView';
+import { classificationPreparationMessage } from '../../ui/aiFirst/intakeReviewReadiness';
 import { QuietReadState } from '../../ui/v2/QuietReadState';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { useReducedMotion } from '../../ui/system/motion';
@@ -54,12 +56,12 @@ import type { PartPencil } from '../../ui/objava/EditPencil';
 import { reviewAsTask } from '../../ui/objava/reviewAsTask';
 import { useReviewPerson } from '../../ui/objava/useReviewPerson';
 
-type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null; publishedReadback: boolean; locationConflict: boolean;
+type Snapshot = { review: AiTaskReviewEnvelope | null; abandoned?: boolean; command: AiTaskPublicationCommand | null; publishedReadback: boolean; locationConflict: boolean;
   /** The task this review is bound to, when it reads as a private draft that was never published: then the review is its FIRST publication. */
   draftNeed: PotrebaProjekcija | null;
   /** The bound task is (or, once accepted, was) a private draft, so the words are those of a first publication, not of an edit. */
   firstPublication: boolean };
-const changed = (): Ishod<never> => ({ ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvori pregled za trenutni nalog.' });
+const changed = (): Ishod<never> => ({ ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvorite pregled za trenutni nalog.' });
 function displayFact(fact: AiTaskReviewFact): AiNeedV2Fact {
   const definition = NEED_FACT_V2_DEFINITIONS[fact.key];
   return { ...fact, id: fact.id ?? fact.key, valueType: definition.valueType,
@@ -79,6 +81,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const accountId = user?.id;
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const pending = useRef<{ review: AiTaskReviewEnvelope; id: string } | null>(null);
+  const pendingAbandon = useRef<string | null>(null);
   const [locationEditor, setLocationEditor] = useState<NeedLocationReview | null>(null);
   // What the task does not say yet is named in one row ("Dodaj još podataka"), and that row opens it. Nothing is hidden;
   // a wall of "Nema navedenih stavki" is just not a wall.
@@ -99,7 +102,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const momentShown = useRef(false);
   const locationProposal = useRef<{ expectedRevision: string; value: NeedLocationInput } | null>(null);
   const resolver = useMemo(() => createProductionLocationResolver(), [accountId, accountRevision, conversationId]);
-  // "Obriši nacrt" asks first, in the centred dialog; the question belongs to this focus and goes with it.
+  // "Obrišite nacrt" asks first, in the centred dialog; the question belongs to this focus and goes with it.
   const confirmation = useConfirmSheet(), closeConfirmation = confirmation.close;
   const question = useRef<object | null>(null);
   // A review opened from "Nacrti" is bound to a task that was never published: its deletion is the lifecycle's own (it asks, persists and
@@ -121,6 +124,19 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     const current = () => scope !== null && scope === focus.current && !!accountId
       && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     if (!conversationId || !current()) return changed();
+    const abandoned = (): Ishod<Snapshot> => ({ ok: true, podatak: { review: null, command: null,
+      abandoned: true, publishedReadback: false, locationConflict: false, draftNeed: null, firstPublication: false } });
+    // An uncertain abandon owns a different outcome from publication. Read the
+    // same conversation before touching the immutable review or preparing another.
+    let lifecycle: Awaited<ReturnType<typeof readIntakeLifecycle>> | null = null;
+    if (pendingAbandon.current === conversationId) {
+      lifecycle = await readIntakeLifecycle(conversationId);
+      if (!current()) return changed();
+      if (lifecycle.status === 'ABANDONED' && lifecycle.boundNeedId === null) return abandoned();
+      // OPEN permits a fresh explicit choice; this read never repeats abandonment.
+      // A completed/bound conversation must recover its actual review command.
+      pendingAbandon.current = null;
+    }
     const latest = pending.current
       ? await aiTaskReviewClientService.read(pending.current.review.reviewId)
       : await aiTaskReviewClientService.readLatest(conversationId);
@@ -138,6 +154,16 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       return { ok: true, podatak: { review, command, publishedReadback, locationConflict: false, draftNeed: null,
         firstPublication: !!review.draftId && firstPublicationOf.current === review.draftId } };
     }
+    // Also check after remount/refocus: an in-memory pending action can be lost,
+    // while the server's abandoned state survives. Never prepare a closed intake.
+    lifecycle ??= await readIntakeLifecycle(conversationId);
+    if (!current()) return changed();
+    if (lifecycle.status === 'ABANDONED') {
+      return lifecycle.boundNeedId === null ? abandoned() : { ok: false, kod: 'AI_INTAKE_STATE_UNCONFIRMED',
+        poruka: 'Stanje razgovora nije potvrđeno. Proverite ponovo.' };
+    }
+    if (lifecycle.status === 'COMPLETED') return { ok: false,
+      kod: 'AI_INTAKE_STATE_UNCONFIRMED', poruka: 'Razgovor više nije otvoren. Njegov sačuvani ishod još nije potvrđen. Proverite ponovo.' };
     let locationConflict = false;
     const savedReview = latest.podatak?.review;
     let location = locationProposal.current ?? (savedReview?.location
@@ -170,11 +196,11 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
         const need = await izvor.potreba(prepared.podatak.draftId);
         if (!current()) return changed();
         if (!need || need.id !== prepared.podatak.draftId) return { ok: false, kod: 'BOUND_TASK_READ_UNCONFIRMED',
-          poruka: 'Nismo uspeli da proverimo trenutno stanje zadatka. Učitaj pregled ponovo.' };
+          poruka: 'Nismo uspeli da proverimo trenutno stanje zadatka. Učitajte pregled ponovo.' };
         draftNeed = need && need.id === prepared.podatak.draftId && need.stanje === 'NACRT' ? need : null;
       } catch {
         return current() ? { ok: false, kod: 'BOUND_TASK_READ_UNCONFIRMED',
-          poruka: 'Nismo uspeli da proverimo trenutno stanje zadatka. Učitaj pregled ponovo.' } : changed();
+          poruka: 'Nismo uspeli da proverimo trenutno stanje zadatka. Učitajte pregled ponovo.' } : changed();
       }
       if (!current()) return changed();
     }
@@ -216,6 +242,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     && !lifecycleNow.current;
   const navigate = (fn: () => void) => { if (!current() || navigating.current) return; navigating.current = true; fn(); };
   const back = () => navigate(() => {
+    if (snapshot?.abandoned) { router.replace('/'); return; }
     if (!conversationId) { router.replace('/nova'); return; }
     // Keep the original route key: adding the newly assigned conversationId remounted a new
     // intake and erased its unsent text. Direct/restored reviews still open the canonical ID.
@@ -282,7 +309,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     setOpening(true); setOpenError(null);
     let result: Awaited<ReturnType<typeof needLocationClientService.read>>;
     try { result = await needLocationClientService.read(conversationId); }
-    catch { if (current() && request.active) { setOpenError('Mesto trenutno nije učitano. Pokušaj ponovo.'); showAtTop(); } return; }
+    catch { if (current() && request.active) { setOpenError('Mesto trenutno nije učitano. Pokušajte ponovo.'); showAtTop(); } return; }
     finally { if (locationOpening.current === request) { locationOpening.current = null; setOpening(false); } }
     if (!current() || !request.active) return;
     if (!result.ok) { setOpenError(result.poruka); showAtTop(); return; }
@@ -292,7 +319,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     // a stale A be explicitly accepted as though it were based on current B.
     if (proposed && proposed.expectedRevision !== result.podatak.revision) {
       locationProposal.current = null;
-      setOpenError('Mesto se promenilo posle otvaranja pregleda. Proveri novu lokaciju pre izmene.');
+      setOpenError('Mesto se promenilo posle otvaranja pregleda. Proverite novu lokaciju pre izmene.');
       showAtTop();
       await editor.refresh();
       return;
@@ -321,7 +348,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       || (command.evaluation?.kind === 'DECISION' && command.evaluation.decision.outcome !== 'ALLOW'));
     // The canonical ACCEPTED state has no evaluation dispatch;145 also blocks
     // any later claim for this immutable unsupported review. Unknown stays read-only.
-    const unavailableEditExit = !!unavailableIdentityFact && command.authoritative === true
+    // An accepted private draft with a still-unresolved signed category must
+    // open the existing edit conversation, not offer an unsupported publish.
+    const unavailableEditExit = (!!unavailableIdentityFact || classificationPending)
+      && command.authoritative === true
       && (command.state === 'EVALUATED' || command.state === 'ACCEPTED');
     if (!supportedEditExit && !unavailableEditExit && !commandMapIncomplete) return;
     await editor.save(async () => {
@@ -351,7 +381,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       ...(retained?.params ?? { conversationId }), aiCorrection: correction.token,
     } }));
   };
-  // "Obriši nacrt" (owner, 2026-10-07), in the two places a draft can be:
+  // "Obrišite nacrt" (owner, 2026-10-07), in the two places a draft can be:
   // - A review that has not been accepted has no task yet: its draft is the conversation it was written in, and the one command the server
   //   has for that is to leave the conversation (`rpc_ai_abandon_need_conversation_v2`, which refuses a conversation bound to a task). The
   //   dialog promises only what that command does: the task is not published and the conversation cannot be continued. There is no way to
@@ -371,18 +401,20 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     if (busyNow.current || !canAct() || !conversationId || bound || command || locationEditor || question.current) return;
     const asked = {}, id: string = conversationId; question.current = asked;
     const name = draftName();
-    confirmation.ask({ title: name ? `Obrisati nacrt „${name}“?` : 'Obrisati nacrt?', confirmLabel: 'Obriši nacrt', tone: 'danger',
-      message: 'Zadatak se neće objaviti, a razgovor o njemu više ne možeš da nastaviš.',
+    confirmation.ask({ title: name ? `Obrisati nacrt „${name}“?` : 'Obrisati nacrt?', confirmLabel: 'Obrišite nacrt', tone: 'danger',
+      message: 'Zadatak se neće objaviti, a razgovor o njemu više ne možete da nastavite.',
       onCancel: () => { if (question.current === asked) question.current = null; },
       onConfirm: () => {
         const mine = question.current === asked; question.current = null;
         if (!mine || busyNow.current || !canAct()) return;
         // The sheet waits on the command it started and shows no outcome of its own: the bar and the next screen do.
         return editor.save(async () => {
+          pendingAbandon.current = id;
           const result = await aiNeedV2Izvor.abandonConversation(id);
           if (!current()) return changed();
           if (!result.ok) return result;
-          poruka.show({ text: 'Nacrt je obrisan.', confirmed: true });
+          pendingAbandon.current = null;
+          poruka.show({ text: 'Razgovor je napušten.', confirmed: true });
           navigate(() => router.replace('/'));
           return { ok: true, podatak: snapshot! };
         });
@@ -422,7 +454,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     return () => subscription.remove();
   }, [momentOpen]));
   // The signed replacement retains edit language even after reopening its private candidate.
-  const acceptLabel = revising ? 'Potvrdi izmene' : 'Objavi zadatak';
+  const acceptLabel = revising ? 'Potvrdite izmene' : 'Objavite zadatak';
   // What the server would refuse about the facts themselves: no amount for "Moja cena", a fixed time without
   // both ends, or one that has already begun (deep read 8.5, 5.1).
   const factProblem = review && !published && !command ? reviewFactProblem(review) : null;
@@ -430,14 +462,14 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // additionally needs every required point, shown once in "Još treba" with its map action.
   const todos = review && !published && !command ? reviewTodos(review, factProblem, !!unavailableIdentityFact) : [];
   const resultCopy = published ? (revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.') : command?.state === 'PUBLISHED'
-    ? 'Objava je zabeležena. Ponovo učitaj zadatak da proveriš prikaz.'
-    : commandMapIncomplete ? 'Nacrt je sačuvan. Dopuni i potvrdi mesto pre objave.'
-    : outcome === 'CLARIFY' ? 'Zadatku je potrebna dopuna. Ispravi ga u razgovoru i pregledaj novu verziju.'
+    ? 'Objava je zabeležena. Ponovo učitajte zadatak da proverite prikaz.'
+    : commandMapIncomplete ? 'Nacrt je sačuvan. Dopunite i potvrdite mesto pre objave.'
+    : outcome === 'CLARIFY' ? 'Zadatku je potrebna dopuna. Ispravite ga u razgovoru i pregledajte novu verziju.'
     // Deep read 8.7: support has no operator yet (7.31), so a review request waits; saying so is the honest part, and (owner decision
     // d07, 2026-10-07) the only way offered is "Izmeni zadatak": no request to support stands beside this sentence while nobody is on duty.
     : outcome === 'REVIEW' ? manualCheckCopy()
-    : outcome === 'BLOCK' ? 'Zadatak nije odobren za objavu. Pregledaj pravila i izmeni opis zadatka.'
-    : evaluation?.kind === 'NOT_READY' ? replacement ? 'Provera izmena trenutno nije spremna. Nova verzija je sačuvana kao privatan nacrt.' : 'Provera objave trenutno nije spremna. Tvoj zadatak je sačuvan kao privatan nacrt.'
+    : outcome === 'BLOCK' ? 'Zadatak nije odobren za objavu. Pregledajte pravila i izmenite opis zadatka.'
+    : evaluation?.kind === 'NOT_READY' ? replacement ? 'Provera izmena trenutno nije spremna. Nova verzija je sačuvana kao privatan nacrt.' : 'Provera objave trenutno nije spremna. Vaš zadatak je sačuvan kao privatan nacrt.'
     // ACCEPTED is exactly "the private draft exists and nothing after it has been confirmed", whether
     // the person asked for a draft or a publish stopped here.
     : command?.state === 'ACCEPTED' ? replacement ? 'Izmene su sačuvane kao privatan nacrt. Nova verzija još nije objavljena.' : 'Sačuvano kao privatan nacrt. Zadatak nije objavljen.'
@@ -448,7 +480,17 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // would be refused by the very question it asked.
   const screenBusy = editor.busy || editor.loading || editor.uncertain || opening;
   const disabled = screenBusy || lifecycleActive;
-  const publishBlocked = !review || disabled || publishedEditUnavailable || !review.canAccept || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
+  // R04: saving a private DRAFT is separate from publishing for matching.
+  // A signed but unconfirmed semantic comparison must not appear publish-ready.
+  const classificationPending = !!review?.classificationState && review.classificationState!=='READY';
+  // Refresh only reads a newer signed result. Unresolved review/mode returns
+  // to the same conversation without blaming wording or sending a model retry.
+  const classificationModeMissing = review?.classificationState === 'SERVICE_MODE_CONFIRMATION_REQUIRED';
+  const classificationNeedsConversation = classificationModeMissing || review?.classificationState === 'REVIEW_REQUIRED';
+  const classificationReason = classificationModeMissing
+    ? 'U razgovoru razjasnite da li se posao radi na lokaciji ili bez dolaska izvršioca.'
+    : classificationPreparationMessage(review?.classificationState);
+  const publishBlocked = !review || disabled || publishedEditUnavailable || !review.canAccept || classificationPending || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.
   const publishWorking = editor.busy && publishing;
@@ -457,7 +499,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // One line ABOVE the publish button, in the foot, ONLY when the button is grey: the first thing in its way, short (the full list is "Još treba"
   // above). A grey button always says why, and the reason stands over it, not under it, where it read as the next thing. A button that can be pressed
   // says what it does by its name and has no sentence over it ("Objavljuješ ovu verziju zadatka." said what "Objavi zadatak" is; the owner, 8 Oct 2026).
-  const caption = todos.length || unavailableIdentityFact ? 'Prvo uradi ono što piše pod „Još treba“.' : null;
+  const caption = todos.length || unavailableIdentityFact ? 'Prvo uradite ono što piše pod „Još treba“.' :
+    classificationPending ? classificationReason : null;
   // A command that fails ticks once with the failure pattern (haptics rule R5), whether it ends in a refusal or in an outcome not known.
   const failedWith = useRef<string | null>(null);
   useEffect(() => { if (editor.error && editor.error !== failedWith.current) tick('error'); failedWith.current = editor.error; }, [editor.error]);
@@ -485,6 +528,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   /** What is shown at the top of the screen after a failure about the place is said where it can be read (a note, and the screen goes up to it). */
   const showAtTop = () => scroll.current?.scrollTo({ y: 0, animated: !reduced });
 
+  if (snapshot?.abandoned) return <SafeAreaView edges={['top', 'bottom']} style={frame.canvas}>
+    <StateView title="Razgovor je napušten." art="check"
+      body="Ovaj razgovor više ne možete da nastavite. Njegovi podaci nisu trajno obrisani."
+      primary={{ label: 'Na početnu', onPress: () => navigate(() => router.replace('/')) }} />
+  </SafeAreaView>;
+
   // The moment replaces the whole review: a finished publication has nothing left to change here. It continues to the task's own
   // overview by itself, on a tap and on Android Back (see `PublishedMoment`); this route's own fence decides whether it may.
   if (momentOpen && command && review) return <PublishedMoment
@@ -494,10 +543,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // The place mode replaces the whole review (one map at a time, no publish under the editor).
   if (locationEditor && review) return <SafeAreaView edges={['top', 'bottom']} style={frame.canvas}>
     <KeyboardAvoidingView style={frame.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <DetailTopBar title="Proveri tačke na mapi" backLabel="Nazad na pregled" disabled={editor.busy} onBack={closePlace} />
+      <DetailTopBar title="Proverite tačke na mapi" backLabel="Nazad na pregled" disabled={editor.busy} onBack={closePlace} />
       {editor.error || editor.uncertain ? <View style={frame.alert}><Surface kind="note" tone="danger"><View style={frame.alertBody}>
         {editor.error ? <T accessibilityRole="alert" style={s.error}>{editor.error}</T> : null}
-        <V2Action label={editor.uncertain ? OUTCOME_ACTION.check : OUTCOME_ACTION.refresh} accessibilityLabel={editor.uncertain ? CHECK_SPOKEN : 'Osveži pregled'}
+        <V2Action label={editor.uncertain ? OUTCOME_ACTION.check : OUTCOME_ACTION.refresh} accessibilityLabel={editor.uncertain ? CHECK_SPOKEN : 'Osvežite pregled'}
           disabled={editor.busy || editor.loading} loading={editor.loading} onPress={refresh} />
       </View></Surface></View> : null}
       <NeedLocationForm layout="screen" reviewOnly review={locationEditor}
@@ -520,7 +569,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       ? review?.publicProjection.find(item => item.key === target && item.id) : undefined;
     const viaConversation = target === 'conversation' || (target === 'location' && !hasPhysicalMap) || (!!target && target !== 'location' && !fact);
     return { key: todo.key, text: target === 'location' && !hasPhysicalMap ? 'Mesto ili način rada treba dopuniti u razgovoru.' : todo.text,
-      actionLabel: target === 'location' && hasPhysicalMap ? 'Potvrdi tačke na mapi' : todoActionLabel(todo, viaConversation),
+      actionLabel: target === 'location' && hasPhysicalMap ? 'Potvrdite tačke na mapi' : todoActionLabel(todo, viaConversation),
       onPress: viaConversation ? () => editInConversation(
           target === 'location'
             ? 'task.location'
@@ -534,8 +583,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   });
   const identityBlock = unavailableIdentityFact ? <View style={s.identity}>
     <T variant="meta" tone="muted">{IDENTITY_VERIFICATION_UNAVAILABLE_COPY}</T>
-    <T variant="body">Ovaj zadatak traži uslov koji aplikacija ne može da proveri. Ukloni uslov da bi zadatak mogao da se objavi.</T>
-    {!command && unavailableIdentityFact.id ? <V2Action label="Ukloni uslov i nastavi" kind="quiet"
+    <T variant="body">Ovaj zadatak traži uslov koji aplikacija ne može da proverite. Uklonite uslov da bi zadatak mogao da se objavi.</T>
+    {!command && unavailableIdentityFact.id ? <V2Action label="Uklonite uslov i nastavite" kind="quiet"
       disabled={quietEdit} onPress={removeUnavailableIdentityRequirement} /> : null}
   </View> : null;
   // The place's pencil is not drawn while anything else is in flight; while the place itself is being read it says so ("Otvaramo…"), because
@@ -548,7 +597,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const systemNote = (item: AiTaskReviewFact | undefined) => item?.source === 'SYSTEM' ? 'Podrazumevana vrednost' : undefined;
   const single = (key: NeedFactV2Key): PreviewPart => ({ note: systemNote(factOf(key)) });
   const grouped = (group: GroupedPart): PreviewPart => ({ note: systemNote(partFact(group, publicFacts)) });
-  const photosAt: PartPencil | undefined = !command && !quietEdit ? { label: hasPhotos ? 'Izmeni, Fotografije' : 'Dodaj fotografije', ...(hasPhotos ? {} : { word: 'Dodaj' }),
+  const photosAt: PartPencil | undefined = !command && !quietEdit ? { label: hasPhotos ? 'Izmenite, Fotografije' : 'Dodajte fotografije', ...(hasPhotos ? {} : { word: 'Dodajte' }),
     onPress: () => { if (!canAct() || !conversationId || locationEditor) return;
       navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId } })); } } : undefined;
   const peopleFact = factOf('need.people_needed');
@@ -558,9 +607,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const moreFacts = command ? [] : publicFacts.filter(item => !!item.id && MORE_LISTS.includes(item.key) && blankList(item));
   // Which green action a stored command offers: its resume, or the way back to the conversation. With neither, the check is the one way forward
   // and wears the green itself.
-  const resumeShown = resumableCommand && locationReadiness.ready && !unavailableIdentityFact;
+  const resumeShown = resumableCommand && locationReadiness.ready && !unavailableIdentityFact && !classificationPending;
   const editShown = !!command && ((command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (!!outcome && outcome !== 'ALLOW')))
-    || (!!unavailableIdentityFact && command.authoritative === true && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')) || commandMapIncomplete);
+    || ((!!unavailableIdentityFact || classificationPending) && command.authoritative === true
+      && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')) || commandMapIncomplete);
   // The table's three words (`system/outcomeCopy`): what is not known is looked at ("Proveri", one button), what may be old is read again
   // ("Osveži"). A screen reader still hears what is read.
   const check = (label: string, primary = false, spoken?: string) => <V2Action label={label} accessibilityLabel={spoken} style={primary ? brandAction : undefined}
@@ -575,13 +625,13 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     {editor.error && !resultCopy ? <T accessibilityRole="alert" style={s.error}>{editor.error}</T> : null}
     {/* After the tap there is one way forward at a time — open the published task, publish the saved draft, or go and change it — and that
         one wears the brand green; what checks the outcome, or leaves for the tasks, stands under it in white. */}
-    {published && command ? <V2Action label="Otvori zadatak" style={brandAction} onPress={openPublished} />
+    {published && command ? <V2Action label="Otvorite zadatak" style={brandAction} onPress={openPublished} />
       : command ? <>
         {/* Only one of the two green actions is ever drawn, and the editor's write in flight is that one's own. */}
-        {resumeShown ? <V2Action label={command.state === 'ACCEPTED' ? 'Objavi ovaj nacrt' : 'Nastavi objavu'} style={brandAction} disabled={disabled}
+        {resumeShown ? <V2Action label={command.state === 'ACCEPTED' ? 'Objavite ovaj nacrt' : 'Nastavite objavu'} style={brandAction} disabled={disabled}
           loading={editor.busy} onPress={resume} /> : null}
-        {editShown ? <V2Action label={commandMapIncomplete ? (commandHasMap ? 'Potvrdi mesto nacrta' : 'Dopuni mesto kroz razgovor') : 'Izmeni zadatak'} style={brandAction} disabled={disabled} loading={editor.busy} onPress={revisePublishedDraft} /> : null}
-        {command.state === 'ACCEPTED' && !editor.uncertain && !editor.error ? <V2Action label="Otvori moje zadatke" kind="quiet" disabled={disabled}
+        {editShown ? <V2Action label={commandMapIncomplete ? (commandHasMap ? 'Potvrdite mesto nacrta' : 'Dopunite mesto kroz razgovor') : 'Izmenite zadatak'} style={brandAction} disabled={disabled} loading={editor.busy} onPress={revisePublishedDraft} /> : null}
+        {command.state === 'ACCEPTED' && !editor.uncertain && !editor.error ? <V2Action label="Otvorite moje zadatke" kind="quiet" disabled={disabled}
           onPress={() => { if (canAct()) navigate(() => router.replace('/potrebe')); }} /> : check(OUTCOME_ACTION.check, !resumeShown && !editShown, CHECK_SPOKEN)}
       </> : <>
         {revising ? <T variant="note" tone="muted" testID="task-edit-publication-consequence">
@@ -589,9 +639,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
         </T> : null}
         <PublishButton label={acceptLabel} blocked={publishBlocked} working={publishWorking} reason={caption} onPress={publish} />
         {/* While a write has no outcome yet, or has been refused, the one thing to do is to read what is true now. */}
-        {editor.uncertain ? check(OUTCOME_ACTION.check, false, CHECK_SPOKEN) : editor.error ? check(OUTCOME_ACTION.refresh, false, 'Osveži pregled')
+        {editor.uncertain ? check(OUTCOME_ACTION.check, false, CHECK_SPOKEN) : editor.error ? check(OUTCOME_ACTION.refresh, false, 'Osvežite pregled')
           : !bound && review.canAccept && !draftWriteProblem && !unavailableIdentityFact
-            ? <V2Action label="Sačuvaj nacrt" kind="quiet" disabled={quietEdit} onPress={() => { void accept(false); }} /> : null}
+            ? <V2Action label="Sačuvajte nacrt" kind="quiet" disabled={quietEdit} onPress={() => { void accept(false); }} /> : null}
       </>}
   </FlowFooter>;
 
@@ -610,7 +660,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
 
   return <>
     <ReviewFrame scrollRef={scroll} footer={footer}
-      header={<DetailTopBar backLabel="Nazad u razgovor" onBack={back} title={published ? 'Objavljeno' : revising ? 'Pregled izmena' : 'Pregled pre objave'} />}>
+      header={<DetailTopBar backLabel="Nazad u razgovor" onBack={back} title={published ? 'Objavljeno' : revising ? 'Pregled izmena' : 'Pregledajte zadatak'} />}>
         {!review || !need ? editor.loading
           ? <QuietReadState art="document" title="Pripremamo pregled…"
             body="Proveravamo sačuvane činjenice i mesto pre potvrde zadatka." />
@@ -618,11 +668,11 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
             primary={{ label: OUTCOME_ACTION.retry, onPress: refresh, disabled: editor.busy || editor.loading }} />
         : <>
           {resultCopy ? <ReviewStatus published={!!published} fresh={!!published && publishedHere.current} text={resultCopy}
-            action={command?.state === 'ACCEPTED' ? <V2Action label={OUTCOME_ACTION.refresh} accessibilityLabel="Osveži pregled" kind="quiet" style={frame.noteAction}
+            action={command?.state === 'ACCEPTED' ? <V2Action label={OUTCOME_ACTION.refresh} accessibilityLabel="Osvežite pregled" kind="quiet" style={frame.noteAction}
               disabled={editor.busy || editor.loading} loading={editor.loading} onPress={refresh} /> : undefined} /> : null}
           {replacement && command && command.state !== 'PUBLISHED' ? <Surface kind="note"><T variant="note" tone="muted" testID="task-edit-publication-consequence">{replacementNotice}</T></Surface> : null}
           {SUPPORT_HAS_DUTY_OPERATOR && command?.state === 'EVALUATED' && outcome === 'REVIEW' ? <SupportContextEntry
-            reference={{ kind: 'TASK_REVIEW', id: review.reviewId, revision: null }} label="Obrati se podršci"
+            reference={{ kind: 'TASK_REVIEW', id: review.reviewId, revision: null }} label="Obratite se podršci"
             disabled={disabled} canAct={canAct} navigate={navigate} /> : null}
           {command ? identityBlock : null}
           {/* What stands in the way comes first, because it is why the green action under the page is grey. */}
@@ -631,8 +681,15 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           </ReviewTodoList> : null}
           {openError ? <Surface kind="note" tone="danger"><T accessibilityRole="alert" style={s.error}>{openError}</T></Surface> : null}
           {snapshot?.locationConflict ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" style={s.warnText}>
-            Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
+            Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledajte ga ili izmenite pre objave.
           </T></Surface> : null}
+          {/* Category labels/reasons remain signed server metadata, never an
+              additional approval form. Business facts are shown below. */}
+          {!command && classificationPending && !editor.error && !editor.uncertain ? <V2Action
+            label={classificationModeMissing ? 'Dopunite način rada' : classificationNeedsConversation ? 'Vratite se u razgovor' : 'Osvežite pregled'} kind="quiet"
+            disabled={quietEdit} loading={!classificationNeedsConversation && editor.loading}
+            onPress={classificationNeedsConversation ? () => editInConversation(classificationModeMissing ? 'task.location' : 'task.details')
+              : () => { if (canAct() && !locationEditor) refresh(); }} /> : null}
           {/* The task detail as it is published: Airbnb-style clean preview with zero redundant intermediate cards. */}
           <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}
             deadlineDecision={process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 === 'true'
@@ -654,12 +711,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
                 return <ReviewFactRow key={item.key} label={factName(item.key)} value={priceAmountRowValue(priceMode, shown) ?? reviewRowValue(shown)}
                   system={item.source === 'SYSTEM'}
                   edit={canEdit ? () => editInConversation(taskCorrectionTarget(item.key)) : undefined}
-                  actionLabel={isBlank ? 'Dodaj' : 'Izmeni'}
+                  actionLabel={isBlank ? 'Dodajte' : 'Izmenite'}
                   last={index === moreFacts.length - 1} />;
               })}
             </ReviewMoreFacts> : undefined} />
           {hasPhysicalMap && review.location && !command && !todos.some(todo => todo.target === 'location') ? <V2Action label={opening ? 'Otvaramo mapu…'
-            : mapNeedsConfirmation ? 'Potvrdi tačke na mapi' : 'Proveri tačke na mapi'}
+            : mapNeedsConfirmation ? 'Potvrdite tačke na mapi' : 'Proverite tačke na mapi'}
             kind="secondary" disabled={placeBusy || opening} onPress={() => { void openLocation(); }} /> : null}
           {/* The ways out at the end: edit in conversation, or delete draft */}
           {!command ? <ReviewWaysOut disabled={quietEdit} onEdit={canEdit ? () => editInConversation() : undefined} onDelete={!bound ? discardDraft : draftNeed ? deleteBoundDraft : undefined} /> : null}

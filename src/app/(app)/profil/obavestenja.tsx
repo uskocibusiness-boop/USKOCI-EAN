@@ -42,14 +42,16 @@ export default function PushSettings() {
    && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
  }
  function back() {
-  if (!current() || !renderedOwner) return;
+  // An explicit Save/phone registration is still in flight; hardware/header Back
+  // must not retire the only screen that owns its readback/unknown outcome.
+  if (!current() || !renderedOwner || latestView.current.writing) return;
   // Native blur may follow another press: this visit dispatches its exit only once.
   renderedOwner.leaving = true;
   if (router.canGoBack()) router.back(); else router.replace('/profil');
  }
  /** Asks before unsaved changes are thrown away; the step itself runs its own checks when it is confirmed. */
  function discardThen(proceed: () => void) {
-  if (!current()) return;
+  if (!current() || latestView.current.writing) return;
   if (!dirty) { proceed(); return; }
   // "Odustani" could be read as giving up the changes; the way out of this question keeps them (as on Dostupnost).
   confirm.ask({ title: 'Odbaciti izmene?', message: 'Izmene vrsta obaveštenja i tihih sati nisu sačuvane.', confirmLabel: 'Odbaci izmene',
@@ -57,9 +59,10 @@ export default function PushSettings() {
  }
  const requestBack = () => discardThen(back);
  // Android's own Back asks the same question while something is unsaved; with nothing unsaved it leaves as always.
- const latestBack = useRef({ dirty, requestBack }); latestBack.current = { dirty, requestBack };
+ const latestBack = useRef({ dirty, writing, requestBack }); latestBack.current = { dirty, writing, requestBack };
  useFocusEffect(useCallback(() => {
   const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+   if (latestBack.current.writing) return true;
    if (!latestBack.current.dirty) return false;
    latestBack.current.requestBack(); return true;
   });

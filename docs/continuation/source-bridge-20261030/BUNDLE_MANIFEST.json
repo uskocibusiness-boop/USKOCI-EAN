@@ -1,0 +1,113 @@
+{
+  "format": "USKOCI_GITHUB_BRIDGE_PARTS_V1",
+  "date": "2026-10-30",
+  "archive_name": "USKOCI_CODEX_BRIDGE_2026-10-30_PUBLIC.zip",
+  "archive_bytes": 11354898,
+  "archive_sha256": "2119897a6518d923728551a074c41a126c1a0e5dfc7230aa06e46462cb234beb",
+  "zip_files": 463,
+  "part_count": 17,
+  "parts": [
+    {
+      "name": "chunk-001.b64.txt",
+      "bytes": 900220,
+      "sha256": "e078f9b1dd36c09d4bc1def08fa608694751b9a22f86a77dfbb1bafbc759de1c",
+      "git_blob_sha": "c877d151918c9ef10199822bfb2a2dec9c753c49"
+    },
+    {
+      "name": "chunk-002.b64.txt",
+      "bytes": 900220,
+      "sha256": "efab7f85c480f8d8a6e68c12c52e6f54d48b1a846f2590ac4c4003934b43cd8c",
+      "git_blob_sha": "25203571ad2f4701314aa54282f90890941c5a8c"
+    },
+    {
+      "name": "chunk-003.b64.txt",
+      "bytes": 900220,
+      "sha256": "e517cebbc99754bc5de3f3af9072af632a25bf479c021f1ed61ddbf3cfa7f1e9",
+      "git_blob_sha": "08cc7f0d69e40673d2015994b266e96937bbb5de"
+    },
+    {
+      "name": "chunk-004.b64.txt",
+      "bytes": 900220,
+      "sha256": "75695d7b59630997a7496c1c8e3dfd4ed0c8a55d4dd01258ac14f6fd2b23933a",
+      "git_blob_sha": "c469c233d7f57ca18dca6fdcdbe55eea5c8fe6ea"
+    },
+    {
+      "name": "chunk-005.b64.txt",
+      "bytes": 900220,
+      "sha256": "1074ca8c2ad37b791006dd4f92a7edc5e67a21283911c884e1d446acbe395627",
+      "git_blob_sha": "508fc5432b3914bf095568e0a9f3ab0068121d1b"
+    },
+    {
+      "name": "chunk-006.b64.txt",
+      "bytes": 900220,
+      "sha256": "2dcccd45b3675069cf81b93eac662a74851e3bf052e9f7413e7818e2b4ffb4d0",
+      "git_blob_sha": "50edac6b12e1d2c0d5e94ec615ee763e5e2fdcb0"
+    },
+    {
+      "name": "chunk-007.b64.txt",
+      "bytes": 900220,
+      "sha256": "21c9051c40e2dfa5781d17d08af9aacb519ae067ff5b78df3b29553dd40d3690",
+      "git_blob_sha": "982a0986b5dda1b88676583a3e0d7d2e539e1021"
+    },
+    {
+      "name": "chunk-008.b64.txt",
+      "bytes": 900220,
+      "sha256": "2abf082512df7bab3dca1aebcf01cb549cbea3332e66b82938c95dc0c1a81a1c",
+      "git_blob_sha": "a98045dbe43ffb72f7c0cfabccfae5612181d61f"
+    },
+    {
+      "name": "chunk-009.b64.txt",
+      "bytes": 900220,
+      "sha256": "cd0a8196e891d8169d544c6a8e06a156bd801ccf539ef4ac148ede26366c8861",
+      "git_blob_sha": "ac1835bb5161f70518cdb26c6f006ca6045f2fef"
+    },
+    {
+      "name": "chunk-010.b64.txt",
+      "bytes": 900220,
+      "sha256": "a402f35a77885440b120ba2209e1972d7bff3471604f20d4e08ad5f54499d808",
+      "git_blob_sha": "0b49289e5d1ab3b7f80cba32438bb23cc5fbc44c"
+    },
+    {
+      "name": "chunk-011.b64.txt",
+      "bytes": 900220,
+      "sha256": "026fa7f883f8b66f1f561bbe21c274a2a9e1fa1d8180743c6491c4742fe8d461",
+      "git_blob_sha": "9af72a046f0c6ea0708e05630c821b85dd2577ae"
+    },
+    {
+      "name": "chunk-012.b64.txt",
+      "bytes": 900220,
+      "sha256": "62b3f9af059ab19ce670a34e0b7a782b5635ed29bd6fdb21fadbe54b086c220d",
+      "git_blob_sha": "4e57463d27f1020ba1ccf56c5e40e3c866723528"
+    },
+    {
+      "name": "chunk-013.b64.txt",
+      "bytes": 900220,
+      "sha256": "b6730e1dcf43259420b012fbb9d3725b5e8817a0d75b3217ef9ab042a0bddc39",
+      "git_blob_sha": "22f942b92fc715d3a9f2370d603c832373b6f014"
+    },
+    {
+      "name": "chunk-014.b64.txt",
+      "bytes": 900220,
+      "sha256": "0faf589dd573d27ae7c2874ddd8400fbdfb64c6c4158e3e384d8ae61e6ef2560",
+      "git_blob_sha": "b136a0af165762129af856895ec9623493ff559d"
+    },
+    {
+      "name": "chunk-015.b64.txt",
+      "bytes": 900220,
+      "sha256": "5edcd0e4003fa9ab50882618e065c169d57fc7c06c660fdf0454d4e45d8ded7c",
+      "git_blob_sha": "2b6f4a7a0b58a9b1c21e24817591a7e514d63fe3"
+    },
+    {
+      "name": "chunk-016.b64.txt",
+      "bytes": 900220,
+      "sha256": "b54127ce4703fd79db16d79e8c77a18dc21760f7201941a25a5e532e10a9da47",
+      "git_blob_sha": "aa23b569c6da6deede0012ebd68d179baed8a5ce"
+    },
+    {
+      "name": "chunk-017.b64.txt",
+      "bytes": 740045,
+      "sha256": "ffa70c3e1d7a345bf466d7ed1caf2784f84e90343a9cea8fa38bd8aad3001fc7",
+      "git_blob_sha": "d1fd1d395b4e6325fadd50821e4aef4511cbc9f9"
+    }
+  ]
+}

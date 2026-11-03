@@ -25,7 +25,7 @@ const mockTick=jest.fn();
 // Rule R5: the held microphone is felt where listening really begins and where the finger lets go, never at touch-down.
 jest.mock('../../ui/system/haptics',()=>({tick:(...a:unknown[])=>mockTick(...a),forgetTicks:jest.fn()}));
 import { VoiceComposer, VoiceNotice } from '../../ui/aiFirst/VoiceComposer';
-import { AgreementVoiceMic } from '../../ui/media/AgreementVoiceControls';
+import { AgreementVoiceMic, voiceTime } from '../../ui/media/AgreementVoiceControls';
 let tree:ReactTestRenderer;
 const idle:VoiceSnapshot={phase:'IDLE',session:null,finalText:'',interimText:'',audioLevel:null,fallbackText:'',error:null};
 
@@ -34,7 +34,7 @@ it.each(['', 'Treba mi pomoć'])('a missing final offers editing only when there
   await act(async () => { tree = create(<VoiceNotice controller={c as unknown as HoldToTalkController}
     state={{ ...idle, error: 'FINAL_TRANSCRIPT_MISSING', fallbackText: retained }} disabled={false} onKeepText={keep} />); });
   const words = tree.root.findAllByType('T' as React.ElementType).map(node => node.props.children).join(' ');
-  expect(tree.root.findAllByProps({ label: 'Uredi sačuvani tekst' })).toHaveLength(retained ? 1 : 0);
+  expect(tree.root.findAllByProps({ label: 'Uredite sačuvani tekst' })).toHaveLength(retained ? 1 : 0);
   if (retained) expect(words).toContain('Prepoznati deo možeš da pregledaš');
   else { expect(words).toContain('Govor nije prepoznat'); expect(words).not.toMatch(/sačuvan|Prepoznati deo/i); }
   expect(c.useFallback).not.toHaveBeenCalled(); expect(keep).not.toHaveBeenCalled();
@@ -45,7 +45,7 @@ afterEach(async()=>{await act(async()=>tree?.unmount());jest.restoreAllMocks();}
 it('hold release finalizes once while edit/send remain the parent controller responsibility',async()=>{
   const c=controller(),keep=jest.fn();
   await act(async()=>{tree=create(<VoiceComposer controller={c as unknown as HoldToTalkController} state={idle} disabled={false} onKeepText={keep}/>);});
-  const mic=tree.root.findByProps({accessibilityLabel:'Drži da govoriš'});
+  const mic=tree.root.findByProps({accessibilityLabel:'Držite da govorite'});
   await act(async()=>mic.props.onResponderGrant({nativeEvent:{pageY:200}}));
   await act(async()=>{mic.props.onResponderRelease();mic.props.onResponderRelease();});
   expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC','hold');expect(c.release).toHaveBeenCalledTimes(1);
@@ -66,8 +66,8 @@ it.each([
   // A preference change cannot reinterpret an already running gesture or its delivery.
   await act(async () => tree.update(<VoiceComposer {...props} tapToTalk={!tap} reviewFirst={!preview} state={{ ...idle, phase: 'LISTENING', session }} />));
   const finish = tree.root.findByProps({ testID: 'voice-mic' });
-  expect(finish.props.accessibilityLabel).toBe(tap ? preview ? 'Zaustavi i pregledaj tekst' : 'Zaustavi i pošalji'
-    : 'Slušamo — pusti za pregled');
+  expect(finish.props.accessibilityLabel).toBe(tap ? preview ? 'Zaustavite i pregledajte tekst' : 'Zaustavite i pošaljite'
+    : 'Slušamo — pustite za pregled');
   await act(async () => { if (tap) finish.props.onPress(); else finish.props.onResponderRelease(); });
   expect(c.release).toHaveBeenCalledTimes(1); expect(keep).not.toHaveBeenCalled();
 });
@@ -146,7 +146,7 @@ it.each(['termination','upward gesture'])('%s cancels held speech without dispat
 it('a tap that ends before the microphone listens asks the composer to explain holding; a real hold does not',async()=>{
   const c=controller(),short=jest.fn();
   await act(async()=>{tree=create(<VoiceComposer controller={c as unknown as HoldToTalkController} state={idle} disabled={false} onKeepText={jest.fn()} onTooShort={short}/>);});
-  const tap=tree.root.findByProps({accessibilityLabel:'Drži da govoriš'});
+  const tap=tree.root.findByProps({accessibilityLabel:'Držite da govorite'});
   await act(async()=>{tap.props.onResponderGrant({nativeEvent:{pageY:200}});tap.props.onResponderRelease();});
   expect(short).toHaveBeenCalledTimes(1);
   await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onResponderGrant({nativeEvent:{pageY:200}}));
@@ -175,11 +175,17 @@ it('screen reader sees explicit Stop, not an instruction to release a held finge
   mockReader=true;const c=controller();const listening={...idle,phase:'LISTENING' as const};
   await act(async()=>{tree=create(<><VoiceComposer controller={c as unknown as HoldToTalkController} state={listening} disabled={false} onKeepText={jest.fn()}/>
     <VoiceNotice controller={c as unknown as HoldToTalkController} state={listening} disabled={false} onKeepText={jest.fn()}/></>);});
-  expect(tree.root.findByProps({accessibilityLabel:'Zaustavi i pregledaj tekst'})).toBeDefined();
-  expect(text()).toContain('Zaustavi, pregledaj tekst i izaberi Pošalji.');
+  expect(tree.root.findByProps({accessibilityLabel:'Zaustavite i pregledajte tekst'})).toBeDefined();
+  expect(text()).toContain('Zaustavite, pregledajte tekst i izaberite Pošaljite.');
   // 2026-09-24: the composer has no mode switch of its own any more; tapping instead of holding is voice mode.
   expect(tree.root.findAllByProps({label:'Govor bez držanja'})).toHaveLength(0);
 });
+it('R11c/C17 the existing voice time label shares the bounded canonical formatter', () => {
+  expect(voiceTime(7_000)).toBe('0:07');
+  expect(voiceTime(65_000)).toBe('1:05');
+  for (const invalid of [NaN, Infinity, -Infinity, -1]) expect(voiceTime(invalid)).toBe('0:00');
+});
+
 describe('Agreement held voice-message control',()=>{
   const setupVoice=(screenReader=false,review=false)=>({
     recording:{phase:'idle',canRecord:true},screenReader,review,
@@ -232,7 +238,7 @@ it('keeps first-speech preparation cancellable and accessible', async () => {
   await act(async () => { tree = create(<><VoiceComposer controller={c as unknown as HoldToTalkController}
     state={idle} disabled={false} onKeepText={jest.fn()} />
     <VoiceNotice controller={c as unknown as HoldToTalkController} state={idle} disabled={false} onKeepText={jest.fn()} /></>); });
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pokreni govorni unos' }).props.onPress());
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pokrenite govorni unos' }).props.onPress());
   const preparing = { ...idle, phase: 'PREPARING' as const };
   await act(async () => { tree.update(<><VoiceComposer controller={c as unknown as HoldToTalkController}
     state={preparing} disabled={true} onKeepText={jest.fn()} />
@@ -241,14 +247,14 @@ it('keeps first-speech preparation cancellable and accessible', async () => {
   expect(pending.props.disabled).toBe(false);
   await act(async () => pending.props.onPress());
   expect(c.release).toHaveBeenCalledWith('GESTURE_SYNTHETIC');
-  await act(async () => tree.root.findByProps({ label: 'Otkaži govor' }).props.onPress());
+  await act(async () => tree.root.findByProps({ label: 'Otkažite govor' }).props.onPress());
   expect(c.cancel).toHaveBeenCalledWith('gesture');
 });
 it('the notice hands kept text back only through the screen, and shows the way to the phone settings after a denial',async()=>{
   const c=controller(),keep=jest.fn();
   await act(async()=>{tree=create(<VoiceNotice controller={c as unknown as HoldToTalkController} state={{...idle,fallbackText:'Treba mi prevoz',error:'CAPTURE_FAILED'}}
     disabled={false} onKeepText={keep}/>);});
-  await act(async()=>tree.root.findByProps({label:'Uredi sačuvani tekst'}).props.onPress());
+  await act(async()=>tree.root.findByProps({label:'Uredite sačuvani tekst'}).props.onPress());
   expect(c.useFallback).toHaveBeenCalledWith(keep);
   await act(async()=>tree.update(<VoiceNotice controller={c as unknown as HoldToTalkController} state={{...idle,error:'MIC_PERMISSION_DENIED'}} disabled={false} onKeepText={keep}/>));
   expect(tree.root.findAllByProps({label:'Podešavanja telefona'})).toHaveLength(1);
@@ -258,16 +264,16 @@ describe('active voice notice recovery', () => {
   it('cancel from the active notice sends nothing; finalizing has no cancellation action', async () => {
     const c = controller(), props = { controller: c as unknown as HoldToTalkController, disabled: false, onKeepText: jest.fn() };
     await act(async () => { tree = create(<VoiceNotice {...props} state={{ ...idle, phase: 'LISTENING' }} />); });
-    await act(async () => tree.root.findByProps({ label: 'Otkaži govor' }).props.onPress());
+    await act(async () => tree.root.findByProps({ label: 'Otkažite govor' }).props.onPress());
     expect(c.cancel).toHaveBeenCalledWith('gesture'); expect(c.release).not.toHaveBeenCalled();
     await act(async () => tree.update(<VoiceNotice {...props} state={{ ...idle, phase: 'FINALIZING' }} />));
-    expect(tree.root.findAllByProps({ label: 'Otkaži govor' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Otkažite govor' })).toHaveLength(0);
   });
   it.each([false, true])('explains tap delivery precisely (preview %s)', async preview => {
     const c = controller(), session = { mode: preview ? 'accessible' : 'hold' } as VoiceSnapshot['session'];
     await act(async () => { tree = create(<VoiceNotice controller={c as unknown as HoldToTalkController} disabled={false}
       onKeepText={jest.fn()} tapToTalk state={{ ...idle, phase: 'LISTENING', session }} />); });
-    expect(text()).toContain(preview ? 'Zaustavi, pregledaj tekst' : 'Dodirni mikrofon da pošalješ');
-    expect(text()).not.toContain('Pusti da pošalješ');
+    expect(text()).toContain(preview ? 'Zaustavite, pregledajte tekst' : 'Dodirnite mikrofon da pošaljete');
+    expect(text()).not.toContain('Pustite da pošaljete');
   });
 });

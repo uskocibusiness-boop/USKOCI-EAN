@@ -173,6 +173,8 @@ describe('the rest of the row', () => {
   });
 
   it('keeps HITNO beside the chip, a word with a symbol, and says it first when it is heard', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
     const urgency = { level: 'HITNO' as const, expiresAt: '2099-01-01T00:00:00Z' };
     await render(<OwnTaskCard item={task({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0, urgency })} onOpen={jest.fn()} />);
     expect(texts()).toContain('HITNO'); expect(chips()).toHaveLength(1);
@@ -182,6 +184,8 @@ describe('the rest of the row', () => {
   // "Papir na stolu" (2026-10-08): the list is in groups by phase, and a group's name already says what state its tasks are in, so its cards do not wear the chip
   // a second time (a division said twice). Nothing else about the card changes: HITNO stays, the foot stays, and the card still says its state aloud.
   it('with `sectionSays` draws no chip but says the state aloud as before, and keeps HITNO, the foot and the next step', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
     await render(<OwnTaskCard item={task()} onOpen={jest.fn()} onApplications={jest.fn()} sectionSays />);
     expect(chips()).toHaveLength(0); expect(texts()).not.toContain('Bira se · 3');
     expect(presses()[0].props.accessibilityValue.text).toMatch(/^Bira se, 3, /);
@@ -215,4 +219,11 @@ describe('the rest of the row', () => {
     await render(<OwnTaskCard item={task({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 })} onOpen={jest.fn()} onApplications={jest.fn()} />);
     expect(presses()).toHaveLength(1);
   });
+});
+
+// Never retain a dormant future-HITNO override beyond its test.
+const originalUrgentForV1Regression = process.env.EXPO_PUBLIC_URGENT;
+afterEach(() => {
+  if (originalUrgentForV1Regression === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentForV1Regression;
 });

@@ -70,7 +70,7 @@ afterEach(async () => { await act(async () => tree?.unmount()); });
 it('says the legal documents are not published yet instead of asking to accept them (deep read 8.2)', async () => {
   mockParams = { form: 'login' };
   await act(async () => { tree = create(<AuthScreen />); });
-  await pressTab('Napravi nalog');
+  await pressTab('Napravite nalog');
   await fill('Email', 'ana@example.test');
   expect(host('Pressable').filter(node => node.props.accessibilityRole === 'checkbox')).toHaveLength(0);
   expect(host('Text').filter(node => node.props.accessibilityRole === 'link')).toHaveLength(0);
@@ -90,7 +90,7 @@ it('opens a cold native login destination whose query arrives after the Auth scr
   expect(tree.root.findAllByType('Hero' as React.ElementType)).toHaveLength(1);
   expect(host('View').some(node => node.props.importantForAccessibility === 'no-hide-descendants' && node.props.pointerEvents === 'none')).toBe(true);
   expect(input('Email')).toBeDefined();
-  expect(button('Prijavi se')).toBeDefined();
+  expect(button('Prijavite se')).toBeDefined();
   expect(mockSplashOptions).toHaveBeenLastCalledWith({ enabled: true });
   expect(host('View').some(node => node.props.onLayout === mockFormLayout)).toBe(true);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
@@ -101,10 +101,10 @@ it('handles a later recovery destination without remounting or carrying an enter
   mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
   await act(async () => { tree = create(<AuthScreen />); });
   await fill('Email', 'ana@example.test'); await fill('Lozinka', 'private-password');
-  const oldLogin = button('Prijavi se').props.onPress;
+  const oldLogin = button('Prijavite se').props.onPress;
   mockParams = { form: 'recovery' };
   await act(async () => tree.update(<AuthScreen />));
-  expect(button('Pošalji link')).toBeDefined();
+  expect(button('Pošaljite link')).toBeDefined();
   expect(host('TextInput')).toHaveLength(1);
   expect(input('Email').props.value).toBe('ana@example.test');
   await act(async () => oldLogin());
@@ -117,10 +117,10 @@ it('handles a later recovery destination without remounting or carrying an enter
 it('does not replay an unchanged route parameter over the user-selected registration form', async () => {
   mockParams = { form: 'login' };
   await act(async () => { tree = create(<AuthScreen />); });
-  await pressTab('Napravi nalog'); await fill('Ime', 'Ana');
+  await pressTab('Napravite nalog'); await fill('Ime', 'Ana');
   await act(async () => tree.update(<AuthScreen />));
-  expect(tab('Napravi nalog').props.accessibilityState).toMatchObject({ selected: true });
-  expect(button('Prijavi se')).toBeUndefined();
+  expect(tab('Napravite nalog').props.accessibilityState).toMatchObject({ selected: true });
+  expect(button('Prijavite se')).toBeUndefined();
   expect(input('Ime').props.value).toBe('Ana');
 });
 
@@ -130,14 +130,14 @@ it('does not interrupt or silently queue a conflicting route during an in-flight
   await act(async () => { tree = create(<AuthScreen />); });
   await fill('Email', 'ana@example.test'); await fill('Lozinka', 'private-password');
   const pending = deferred<void>(); mockAuth.signInWithPassword.mockReturnValueOnce(pending.promise);
-  await act(async () => button('Prijavi se').props.onPress());
+  await act(async () => button('Prijavite se').props.onPress());
   mockParams = { form: 'recovery' };
   await act(async () => tree.update(<AuthScreen />));
   expect(host('TextInput')).toHaveLength(2);
-  expect(button('Pošalji link')).toBeUndefined();
+  expect(button('Pošaljite link')).toBeUndefined();
   await act(async () => pending.reject(new Error('Prijava nije potvrđena.')));
   expect(input('Lozinka').props.value).toBe('private-password');
-  expect(button('Pošalji link')).toBeUndefined();
+  expect(button('Pošaljite link')).toBeUndefined();
   expect(mockAuth.requestPasswordRecovery).not.toHaveBeenCalled();
 });
 
@@ -148,6 +148,6 @@ it('ignores an unknown or removed form parameter without discarding user input',
   for (const form of ['untrusted', undefined]) {
     mockParams = { form }; await act(async () => tree.update(<AuthScreen />));
     expect(input('Email').props.value).toBe('ana@example.test');
-    expect(button('Prijavi se')).toBeDefined();
+    expect(button('Prijavite se')).toBeDefined();
   }
 });

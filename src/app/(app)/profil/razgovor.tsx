@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { workerAiClientService as api, WORKER_AI_READ_TRANSPORT_UNAVAILABLE, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
+import { workerAiClientService as api, WORKER_AI_READ_TRANSPORT_UNAVAILABLE, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurn, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
 import type { Ishod } from '../../../data/ports';
 import { uuid } from '../../../data/serverReceipt';
@@ -13,6 +13,7 @@ import { inferWorkerExecutionModes, workerExecutionModeClientService } from '../
 
 import { useHoldToTalk } from '../../../features/voice/useHoldToTalk';
 import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
+import { classificationPreparationMessage, workerReviewReady } from '../../../ui/aiFirst/intakeReviewReadiness';
 import { workerInterviewOpening } from '../../../ui/aiFirst/aiInterviewWelcome';
 import { useAccountName } from '../../../ui/profile/useAccountName';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
@@ -28,7 +29,7 @@ type Panel='chat'|'review';
 type ReviewActivity='preparing'|'saving'|null;
 type SubmittedDraft={value:string;revision:number};
 type Attempt={id:string;text:string|null;submittedDraft:SubmittedDraft|null};
-const unavailable=():Ishod<never>=>({ok:false,kod:'WORKER_AI_UNAVAILABLE',poruka:'Ponovo učitaj svoj radni profil.'});
+const unavailable=():Ishod<never>=>({ok:false,kod:'WORKER_AI_UNAVAILABLE',poruka:'Ponovo učitajte svoj radni profil.'});
 export default function WorkerConversationRoute(){
   const session=useSesija(),params=useLocalSearchParams<{conversationId?:string|string[];aiCorrection?:string|string[];entryKey?:string|string[];activationRequest?:string|string[]}>();
   const cid=typeof params.conversationId==='string'?params.conversationId:undefined;
@@ -71,13 +72,14 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const [menu,setMenu]=useState(false),[adding,setAdding]=useState(false);
   const draftText=useRef(input);draftText.current=input;
   const draftRevision=useRef(0);
-  const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[,intentChanged]=useState(0);
+  const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[corruptLocalIntent,setCorruptLocalIntent]=useState(false),[,intentChanged]=useState(0);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
   const [rejectedReviewId,setRejectedReviewId]=useState<string|null>(null);
   // A prepared review is authoritative. Retain its activation choice when a
   // later conversation turn retires the review; returning to review must not
   // silently turn a deliberate "keep draft" back into activation.
   const activationChoice=useRef<{conversationId:string;activate:boolean}|null>(null);
+  const [preparationIssue,setPreparationIssue]=useState<{conversationId:string;revision:number;message:string}|null>(null);
   // Leaving, or the app going to the background, makes an open question stale (its answer checks canAct), so it goes too.
   const confirmSheet=useConfirmSheet(),retireConfirmation=confirmSheet.close;
   useFocusEffect(useCallback(()=>{const token={};focus.current=token;setLeaving(false);return()=>{
@@ -93,29 +95,42 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   });return()=>{subscription.remove();active.current=false;abort.current?.abort();};},[retireConfirmation]);
   const owns=useCallback(()=>!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision,
     [accountId,accountRevision]);
-  const read=useCallback(async():Promise<Ishod<WorkerAiSnapshot>>=>{
+  const read=useCallback(async(confirmedTurn?:WorkerAiTurn):Promise<Ishod<WorkerAiSnapshot>>=>{
     const scope=focus.current;if(invalid||!scope||!owns()||!active.current)return unavailable();
     // Restore before opening a conversation or sending anything. Storage holds
     // only three IDs; canonical history restores text after an accepted turn.
     let saved:WorkerAiTurnIntent|null;
-    try{saved=await journal.load(accountId!);}catch{return {ok:false,kod:'WORKER_AI_LOCAL_INTENT_INVALID',poruka:'Ne možemo da proverimo prethodno slanje. Pokušaj ponovo.'};}
+    try{saved=await journal.load(accountId!);}catch(error){
+      if(error instanceof Error&&error.message==='WORKER_AI_LOCAL_INTENT_INVALID'&&owns()){setCorruptLocalIntent(true);
+        return {ok:false,kod:'WORKER_AI_LOCAL_INTENT_INVALID',poruka:'Lokalni zapis prethodnog slanja nije ispravan. Ne šaljemo novu poruku dok ne izaberete oporavak.'};}
+      return unavailable();
+    }
     if(focus.current!==scope||!owns()||!active.current)return unavailable();
+    setCorruptLocalIntent(false);
     if(saved){
       if(cid.current!==saved.conversationId){cid.current=saved.conversationId;router.setParams({conversationId:saved.conversationId});}
       if(pending.current?.id!==saved.clientRequestId){pending.current={id:saved.clientRequestId,text:null,submittedDraft:null};intentChanged(n=>n+1);}
-      const recovered=await api.recoverTurn(saved.conversationId,saved.clientRequestId);
-      if(focus.current!==scope||!owns()||!active.current)return unavailable();
-      if(!recovered.ok)return recovered;
-      setRecovery(recovered.podatak);
-      const terminal=recovered.podatak.conversationStatus!=='OPEN'||recovered.podatak.cancelled
-        ||recovered.podatak.turn?.state==='SUCCEEDED'||recovered.podatak.turn?.state==='FAILED';
+      // Reuse only the exact, decoded success returned to this live owner.
+      // Unknown/lost replies and restarts still use the durable recovery RPC.
+      const confirmed=confirmedTurn?.state==='SUCCEEDED'&&confirmedTurn.authoritative===true
+        &&confirmedTurn.conversationId===saved.conversationId&&confirmedTurn.clientRequestId===saved.clientRequestId;
+      let outcome:WorkerAiTurnRecovery|null=null;
+      if(!confirmed){
+        const recovered=await api.recoverTurn(saved.conversationId,saved.clientRequestId);
+        if(focus.current!==scope||!owns()||!active.current)return unavailable();
+        if(!recovered.ok)return recovered;
+        outcome=recovered.podatak;
+      }
+      setRecovery(outcome);
+      const succeeded=confirmed||outcome?.turn?.state==='SUCCEEDED';
+      const terminal=succeeded||!!outcome&&(outcome.conversationStatus!=='OPEN'||outcome.cancelled||outcome.turn?.state==='FAILED');
       if(terminal){
-        try{await journal.clear(saved);}catch{return {ok:false,kod:'WORKER_AI_LOCAL_INTENT_INVALID',poruka:'Ishod je potvrđen. Ponovi proveru da nastaviš.'};}
+        try{await journal.clear(saved);}catch{return {ok:false,kod:'WORKER_AI_LOCAL_INTENT_INVALID',poruka:'Ishod je potvrđen. Ponovite proveru da nastavite.'};}
         if(focus.current!==scope||!owns()||!active.current)return unavailable();
         // Text equality cannot establish ownership: spoken turns and restored IDs own no typed
         // draft. A typed Send owns only the raw value and edit revision captured at admission.
         const submittedDraft=pending.current?.submittedDraft;
-        if(recovered.podatak.turn?.state==='SUCCEEDED'){
+        if(succeeded){
           setCorrection(null);
           if(submittedDraft)setInput(value=>draftRevision.current===submittedDraft.revision&&value===submittedDraft.value?'':value);
         }
@@ -144,6 +159,42 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       if(result.ok)activationEntryRead.current=activationRequest;
     }
     if(result.ok&&!cid.current){cid.current=result.podatak.conversationId;router.setParams({conversationId:cid.current});}
+    if(result.ok){
+      const snapshot=result.podatak;
+      setPreparationIssue(null);
+      if(snapshot.status==='OPEN'&&!snapshot.saved&&!snapshot.stale&&snapshot.safety==='ALLOW'
+        &&snapshot.candidate.skills.length>0&&!pending.current
+        &&snapshot.turn?.state!=='PROCESSING'&&snapshot.turn?.state!=='UNKNOWN_OUTCOME'){
+        const activate=activationRequest&&reviewedActivationRequest.current!==activationRequest?true
+          :snapshot.review?.activate??(activationChoice.current?.conversationId===snapshot.conversationId?activationChoice.current.activate:false);
+        // Signed preparation has no provider call and cannot Save or Activate.
+        // A failed prepare retains the confirmed conversation for correction/retry.
+        if(!workerReviewReady(snapshot)||snapshot.review?.activate!==activate){
+          try{
+            const prepared=await api.prepare(snapshot.conversationId,snapshot.revision,activate);
+            if(focus.current!==scope||!owns()||!active.current)return unavailable();
+            if(prepared.ok){
+              const reviewed={...snapshot,review:prepared.podatak};
+              result={ok:true,podatak:reviewed};
+              activationChoice.current={conversationId:snapshot.conversationId,activate:prepared.podatak.activate};
+              if(activationRequest)reviewedActivationRequest.current=activationRequest;
+              if(!workerReviewReady(reviewed))setPreparationIssue({conversationId:snapshot.conversationId,revision:snapshot.revision,
+                message:classificationPreparationMessage(prepared.podatak.classificationState)
+                  ??(prepared.podatak.missingRequired.length?'Dopunite podatke koji nedostaju u razgovoru.':'Pregled još nije spreman. Proverite podatke i područje rada u razgovoru.')});
+            }else {
+              result={ok:true,podatak:{...snapshot,review:null}};
+              setPreparationIssue({conversationId:snapshot.conversationId,revision:snapshot.revision,
+                message:'Priprema pregleda nije potvrđena. Proverite razgovor; nije potrebno da ponavljate opis svojih usluga.'});
+            }
+          }catch{
+            if(focus.current!==scope||!owns()||!active.current)return unavailable();
+            result={ok:true,podatak:{...snapshot,review:null}};
+            setPreparationIssue({conversationId:snapshot.conversationId,revision:snapshot.revision,
+              message:'Potvrda pregleda trenutno nije dostupna. Proverite vezu i stanje razgovora.'});
+          }
+        }
+      }
+    }
     return result;
   },[invalid,owns,openKey,accountId,activationRequest]);
   const editor=useOwnedEditor(read);refreshRef.current=editor.refresh;
@@ -169,9 +220,20 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   };
   const turn=data?.turn,awaiting=turn?.state==='PROCESSING'||turn?.state==='UNKNOWN_OUTCOME';
   const writable=data?.status==='OPEN'&&!data.stale&&data.safety!=='BLOCK'&&data.safety!=='REVIEW';
+  const rename=(snapshot:WorkerAiSnapshot):WorkerAiPatch|null=>accountName&&snapshot.candidate.displayName.trim()!==accountName?{displayName:accountName}:null;
   const send=async(body:string,submittedDraft:SubmittedDraft|null=null)=>{
     if(!canAct()||!writable||awaiting||!data||!body.trim()||(pending.current&&!recovery?.retryAllowed))return;
     await editor.save(async()=>{
+      // Name alignment changes the signed candidate revision. Do it before a
+      // new AI turn captures classification, never between that capture and review.
+      // Recovery of an existing command must retain its original context/key.
+      if(!pending.current){
+        if(account.state!=='ready')return {ok:false,kod:'WORKER_ACCOUNT_NAME_UNAVAILABLE',
+          poruka:'Ime naloga još nije učitano. Ponovo otvorite razgovor; poruka nije poslata.'};
+        const name=rename(data);
+        if(name){const named=await api.patch(data.conversationId,data.revision,name);
+          if(!current())return unavailable();if(!named.ok)return named;}
+      }
       const command=pending.current??{id:noviUuidZahtevId(),text:body,submittedDraft};
       if(!command.text)return unavailable();pending.current=command;intentChanged(n=>n+1);setRecovery(null);
       const controller=new AbortController();abort.current=controller;setStream('');
@@ -181,9 +243,9 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
         const sent=await api.send(data.conversationId,command.text,command.id,{signal:controller.signal,
           onText:delta=>{if(current()&&!controller.signal.aborted&&pending.current===command)setStream(value=>value+delta);}});
         if(!current())return unavailable();
-        // Both success and lost transport response are reconciled through the
-        // durable turn. An unknown attempt cannot start a second provider call.
-        const result=await read();if(!current())return unavailable();
+        // Always read the canonical candidate. An exact success skips only
+        // duplicate status recovery; lost responses never resend the model call.
+        const result=await read(sent.ok?sent.podatak:undefined);if(!current())return unavailable();
         return result.ok?result:sent.ok?result:sent;
       }finally{if(abort.current===controller)abort.current=null;if(current())setStream('');}
     });
@@ -238,6 +300,24 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     leave(()=>router.canGoBack()?router.back():router.replace('/profil/radnik'));
   };
   const refresh=()=>{if(current()&&!editor.busy&&!editor.loading&&!voiceBusy)void editor.refresh();};
+  const recoverCorruptLocal=()=>{
+    if(!current()||!accountId||!corruptLocalIntent||editor.busy||editor.loading)return;
+    const ownerId=accountId,entry=focus.current;
+    confirmSheet.ask({
+      title:'Oporaviti lokalni zapis?',
+      message:'Oštećeni zapis na ovom telefonu nema proverljiv identitet prethodnog slanja. Briše se samo taj neispravan lokalni zapis, ne poruka na serveru. Ništa se ne šalje automatski; stari ishod može ostati nepoznat.',
+      cancelLabel:'Odustanite',confirmLabel:'Oporavite zapis',
+      onConfirm:async()=>{
+        if(!entry||entry!==focus.current||!current())return;
+        try{
+          const removed=await journal.discardCorrupt(ownerId);
+          if(entry!==focus.current||!current())return;
+          if(removed)setCorruptLocalIntent(false);
+          await editor.refresh(); // Valid races remain server-reconciled.
+        }catch{if(entry===focus.current&&current())await editor.refresh();}
+      },
+    });
+  };
   const cancelPending=async()=>{
     const command=pending.current;if(!canAct()||voiceBusy||!data||!command||!recovery?.canCancel)return;
     await editor.save(async()=>{const result=await api.cancelTurn(data.conversationId,command.id);
@@ -246,13 +326,16 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       // can retire the journal; an abort alone never means cancellation.
       return read();});
   };
-  // The proposal takes the account's name while it carries another (the assistant's own, or the profile's old one). Nothing is sent when they agree.
-  const rename=(snapshot:WorkerAiSnapshot):WorkerAiPatch|null=>accountName&&snapshot.candidate.displayName.trim()!==accountName?{displayName:accountName}:null;
   const reviewActivation=data?.review?.activate??(activationChoice.current?.conversationId===data?.conversationId
     ?activationChoice.current?.activate:false)??false;
   const review=async(activate=reviewActivation)=>{
     // Native speech can start before React replaces a retained review callback.
     if(!canAct()||!enabled||!writable||!data||voice.controller.getSnapshot().phase!=='IDLE')return;
+    if(workerReviewReady(data)&&data.review?.activate===activate&&!rename(data)&&!reviewNeedsRestart){
+      // A no-op choice must not retire the live panel's handlers. React does
+      // not rerender when setPanel receives its current value.
+      if(panel!=='review')showPanel('review');return;
+    }
     await savePanel('preparing',async()=>{
       // The review is made of the proposal as it stands, so the name goes into the proposal first (one patch, then the same prepare).
       let at={conversationId:data.conversationId,revision:data.revision};
@@ -263,11 +346,12 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       const prepared=await api.prepare(at.conversationId,at.revision,activate);
       if(!current())return unavailable();if(!prepared.ok)return prepared;
       if(activationRequest)reviewedActivationRequest.current=activationRequest;
-      const next=await read();if(next.ok&&current())showPanel('review');return next;
+      activationChoice.current={conversationId:at.conversationId,activate:prepared.podatak.activate};
+      const next=await read();if(next.ok&&current())showPanel(workerReviewReady(next.podatak)?'review':'chat');return next;
     });
   };
   const save=async()=>{
-    const reviewed=data?.review;if(!canAct()||!enabled||!writable||reviewNeedsRestart||!data||!reviewed||!reviewed.canAccept||reviewed.revision!==data.revision||Date.parse(reviewed.expiresAt)<=Date.now())return;
+    const reviewed=data?.review;if(!canAct()||!enabled||!writable||reviewNeedsRestart||!data||!reviewed||!workerReviewReady(data))return;
     if(saveKey.current?.reviewId!==reviewed.reviewId)saveKey.current={reviewId:reviewed.reviewId,key:noviUuidZahtevId()};
     const key=saveKey.current.key;
     await savePanel('saving',async()=>{const saved=await api.save(reviewed,key);if(!current())return unavailable();
@@ -293,8 +377,8 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   };
   const restart=()=>{
     if(!canAct()||voiceBusy||!data)return;
-    confirmSheet.ask({title:'Pokrenuti nov razgovor?',message:'Novi razgovor kreće od sačuvanog profila. Ovaj više nećeš moći da nastaviš; podaci se ne brišu. Neposlati tekst neće biti sačuvan.',
-      cancelLabel:'Nastavi ovaj razgovor',confirmLabel:'Novi razgovor',onConfirm:()=>{
+    confirmSheet.ask({title:'Pokrenuti nov razgovor?',message:'Novi razgovor kreće od sačuvanog profila. Ovaj više nećete moći da nastavite; podaci se ne brišu. Neposlati tekst neće biti sačuvan.',
+      cancelLabel:'Nastavite ovaj razgovor',confirmLabel:'Novi razgovor',onConfirm:()=>{
         // Returned so the confirmation waits on the command it started instead of closing before it is sent.
         if(!canAct()||voiceBusy)return;return editor.save(async()=>{
           // Completed conversations stay completed on the server. Reconcile their
@@ -311,7 +395,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
           if(!confirmed.ok)return confirmed;
           if(confirmed.podatak.conversationId!==previousId||pending.current
             ||(confirmed.podatak.status!=='ABANDONED'&&confirmed.podatak.status!=='COMPLETED'))
-            return {ok:false,kod:'WORKER_AI_ABANDON_UNCONFIRMED',poruka:'Ne znamo da li je prethodni razgovor završen. Proveri stanje.'};
+            return {ok:false,kod:'WORKER_AI_ABANDON_UNCONFIRMED',poruka:'Ne znamo da li je prethodni razgovor završen. Proverite stanje.'};
           router.replace({pathname:'/profil/razgovor',params:{entryKey:noviUuidZahtevId()}});
           return confirmed;
         });
@@ -320,8 +404,8 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const abandon=()=>{
     if(!canAct()||voice.controller.getSnapshot().phase!=='IDLE'||!data||data.status!=='OPEN'||pending.current||awaiting)return;
     confirmSheet.ask({title:'Napustiti razgovor?',
-      message:'Ovaj nacrt više nećeš moći da nastaviš. Sačuvani profil ostaje isti, a podaci razgovora se ne brišu trajno. Neposlati tekst neće biti sačuvan.',
-      cancelLabel:'Nastavi razgovor',confirmLabel:'Napusti razgovor',tone:'danger',onConfirm:()=>{
+      message:'Ovaj nacrt više nećete moći da nastavite. Sačuvani profil ostaje isti, a podaci razgovora se ne brišu trajno. Neposlati tekst neće biti sačuvan.',
+      cancelLabel:'Nastavite razgovor',confirmLabel:'Napustite razgovor',tone:'danger',onConfirm:()=>{
         if(!canAct()||voice.controller.getSnapshot().phase!=='IDLE'||!data||data.status!=='OPEN'||pending.current||awaiting)return;
         return editor.save(async()=>{
           // A lost command response is not proof of failure. Read the same owned
@@ -334,25 +418,25 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
             router.replace('/profil/radnik');return confirmed;
           }
           if(!confirmed.ok)return confirmed;
-          return {ok:false,kod:'WORKER_AI_ABANDON_UNCONFIRMED',poruka:'Ne znamo da li je razgovor napušten. Proveri stanje.'};
+          return {ok:false,kod:'WORKER_AI_ABANDON_UNCONFIRMED',poruka:'Ne znamo da li je razgovor napušten. Proverite stanje.'};
         });
       }});
   };
   const statusCopy=data?.saved?'Profil je sačuvan.':data?.status!=='OPEN'?'Ovaj razgovor je završen.':data.stale?'Sačuvani profil je promenjen. Novi razgovor će početi od tih podataka.':
     data.safety==='BLOCK'||data.safety==='REVIEW'?'Ovaj predlog trenutno ne može da se sačuva.':awaiting?turn?.state==='UNKNOWN_OUTCOME'?
-      'Ne znamo da li je prethodna poruka stigla. Proveri to; poruka se neće poslati dvaput.':'AI još obrađuje poruku. Proveri stanje.':pending.current?'Proveri prethodno slanje. Novi unos i pregled su dostupni kada potvrdimo ishod.':
+      'Ne znamo da li je prethodna poruka stigla. Proverite to; poruka se neće poslati dvaput.':'AI još obrađuje poruku. Proverite stanje.':pending.current?'Proverite prethodno slanje. Novi unos i pregled su dostupni kada potvrdimo ishod.':
       recovery?.cancelled&&recovery.providerDispatched?'Odgovor je zaustavljen. Poruka je ipak poslata jer je asistent već počeo da je obrađuje; profil je ostao isti.':null;
   const lastGoodUnverified=!!data&&!editor.loaded&&!editor.loading;
   const lastGoodCopy='Prikazan je poslednji učitan razgovor. Slanje i čuvanje su pauzirani dok ne proverimo stanje.';
-  if(leaving||!data||!foreground||resuming)return <WorkerProfileFrame back={back} title="Moj radni profil" tone="conversation"><WorkerProfileStatus context="conversation" loading={leaving||editor.loading||!foreground||resuming}
-    error={leaving?null:editor.error} retry={refresh}/>{!leaving&&foreground&&!resuming?confirmSheet.sheet:null}</WorkerProfileFrame>;
+  if(leaving||!data||!foreground||resuming)return <WorkerProfileFrame back={back} title="Radni profil" tone="conversation"><WorkerProfileStatus context="conversation" loading={leaving||editor.loading||!foreground||resuming}
+    error={leaving?null:editor.error} retry={refresh}
+    recoverCorrupt={!leaving&&foreground&&!resuming&&corruptLocalIntent?recoverCorruptLocal:undefined}/>{!leaving&&foreground&&!resuming?confirmSheet.sheet:null}</WorkerProfileFrame>;
   const reviewBusyLabel=reviewActivity==='preparing'?'Pripremamo pregled…':reviewActivity==='saving'?'Čuvamo profil…':'Proveravamo stanje…';
   const busyPanelCopy=editor.busy?<T testID="worker-review-progress" accessibilityRole="alert" variant="meta" tone="muted">
     {reviewActivity==='preparing'?'Pripremamo novi pregled. Profil još nije sačuvan.':reviewActivity==='saving'
-      ?'Čuvamo profil. Sačekaj potvrdu pre povratka u razgovor.':'Proveravamo stanje razgovora. Sačekaj potvrdu.'}
+      ?'Čuvamo profil. Sačekajte potvrdu pre povratka u razgovor.':'Proveravamo stanje razgovora. Sačekajte potvrdu.'}
   </T>:null;
-  if(panel==='review'&&data.review){const frozen=data.review,
-    catalogNeedsRefresh=frozen.classificationState==='CATALOG_UNAVAILABLE'||frozen.classificationState==='STALE_CATALOG',
+  if(panel==='review'&&data.review&&(data.saved||workerReviewReady(data))){const frozen=data.review,
     // The account got its name (in "Lični podaci") while this review still says it is missing: a fresh review puts it in.
     nameAdded=frozen.missingRequired.includes('Ime')&&!!accountName,
     expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision||nameAdded;
@@ -361,10 +445,10 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       if(!canAct()||!enabled||!writable||data.saved||expired||reviewNeedsRestart)return;
       correctPart('details');
     };
-    return <WorkerProfileFrame back={back} title="Tvoj radni profil" footer={data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:<>
-      <V2Action label={editor.busy?reviewBusyLabel:frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'}
+    return <WorkerProfileFrame back={back} title="Pregledajte profil" footer={data.saved?<V2Action label="Otvorite sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:<>
+      <V2Action label={editor.busy?reviewBusyLabel:frozen.activate?'Sačuvajte i aktivirajte profil':'Sačuvajte profil'}
         disabled={!enabled||!writable||reviewNeedsRestart||!frozen.canAccept||expired} onPress={()=>{void save();}} style={brandAction}/>
-      {(expired||editor.uncertain||editor.error)?<V2Action tone="neutral" label="Proveri stanje" onPress={refresh} disabled={editor.busy||editor.loading}/>:null}
+      {(expired||editor.uncertain||editor.error)?<V2Action tone="neutral" label="Proverite stanje" onPress={refresh} disabled={editor.busy||editor.loading}/>:null}
     </>}>
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
       {!data.saved&&input.trim()?<T testID="worker-review-unsent-note" variant="note" tone="muted">Neposlati tekst nije deo ovog pregleda. Ostaje u razgovoru.</T>:null}
@@ -374,13 +458,13 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       {!data.saved?<WorkerAiNotificationsNote matchingReady={frozen.classificationState==='READY'}/>:null}
       {busyPanelCopy}
       {/* The save button below is grey for one of these reasons; the details above name a missing field themselves. */}
-      {!data.saved&&(expired||!writable)?<T variant="meta" tone="muted">{expired?'Ovaj pregled više ne važi. Učitaj novi pregled pre čuvanja.':statusCopy??'Ovaj predlog trenutno ne može da se sačuva.'}</T>:null}
+      {!data.saved&&(expired||!writable)?<T variant="meta" tone="muted">{expired?'Ovaj pregled više ne važi. Učitajte novi pregled pre čuvanja.':statusCopy??'Ovaj predlog trenutno ne može da se sačuva.'}</T>:null}
       {data.profileStatus==='DRAFT'&&!data.saved?<WorkerAiActivation activate={frozen.activate} disabled={!enabled} change={value=>{void review(value);}}/>:null}
-      {(expired||catalogNeedsRefresh)&&!data.saved?<V2Action tone="neutral" label="Učitaj novi pregled" disabled={!enabled||reviewNeedsRestart} onPress={()=>{void review(frozen.activate);}}/>:null}
+      {expired&&!data.saved?<V2Action tone="neutral" label="Učitajte novi pregled" disabled={!enabled||reviewNeedsRestart} onPress={()=>{void review(frozen.activate);}}/>:null}
       {editor.error?<T accessibilityRole="alert" tone="danger">{editor.error}</T>:null}
       {lastGoodUnverified?<T accessibilityRole="alert" variant="note" tone="muted">{lastGoodCopy}</T>:null}
       {reviewNeedsRestart?<>
-        <T variant="note" tone="muted">{editor.uncertain?'Proveri stanje, pa otvori nov razgovor.':'Ovaj predlog više ne može da se sačuva. Novi razgovor kreće od tvog sačuvanog profila.'}</T>
+        <T variant="note" tone="muted">{editor.uncertain?'Proverite stanje, pa otvorite nov razgovor.':'Ovaj predlog više ne može da se sačuva. Novi razgovor kreće od Vašeg sačuvanog profila.'}</T>
         <V2Action tone="neutral" label="Novi razgovor" disabled={!enabled} onPress={restart}/>
       </>:null}
       {confirmSheet.sheet}
@@ -388,9 +472,9 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   }
   // Extra menu actions choose a topic in the same conversation.
   // A grey row says its own reason (review r4 ra item 16): the wait for an answer was named for every cause.
-  const unavailableNow=enabled?undefined:voiceBusy?'Dostupno kad završiš govor.'
+  const unavailableNow=enabled?undefined:voiceBusy?'Dostupno kada završite govor.'
     :awaiting||pending.current?'Dostupno kad razgovor ne čeka odgovor.'
-      :editor.uncertain?'Prvo proveri stanje razgovora.'
+      :editor.uncertain?'Prvo proverite stanje razgovora.'
         :editor.loading||resuming?'Dostupno kad se razgovor učita.':'Dostupno kad se završi prethodna radnja.';
   // The worker side stores the person's message the moment its turn is claimed, and the read returns every stored
   // message, so a turn that is still processing (a lost answer, a return to the app, "Proveri razgovor") already
@@ -401,36 +485,38 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   // Legacy equipment alone is not a configured MVP work profile. The V1 wire
   // still carries it for signed-review compatibility, but the conversation
   // introduces the service, area and availability that actually route tasks.
+  // Signed territories need not populate the legacy city. They are content
+  // worth reviewing, not proof of completion, consent or activation readiness.
   const hasProfileContent = data.candidate.skills.length > 0 || data.candidate.bio.trim().length > 0
-    || data.candidate.location.city.trim().length > 0 || data.candidate.availability.availableNow
+    || data.candidate.location.city.trim().length > 0 || (data.candidate.workAreas?.length ?? 0) > 0
+    || data.candidate.availability.availableNow
     || data.candidate.availability.rules.length > 0 || data.candidate.availability.windows.length > 0;
-  // A past review must not lend its service modes or delivery scope to a newer draft.
-  const currentReview=!data.stale&&!reviewNeedsRestart&&data.review?.accountId===data.accountId
-    &&data.review.conversationId===data.conversationId&&data.review.profileId===data.profileId
-    &&data.review.revision===data.revision&&Date.parse(data.review.expiresAt)>Date.now()?data.review:null;
+  const readyToReview=!reviewNeedsRestart&&workerReviewReady(data);
+  const preparationProblem=preparationIssue?.conversationId===data.conversationId&&preparationIssue.revision===data.revision
+    ?preparationIssue.message:!readyToReview&&data.review&&!data.saved&&Date.parse(data.review.expiresAt)<=Date.now()
+      ?'Pregled više nije aktuelan. Proverite razgovor pre nastavka.':null;
   // The "+" selects a topic for the same conversation. Only an explicit message changes the proposal.
   const openPart=(next:WorkerAiPart)=>{
     if(!canAct()||!enabled||!writable)return;
     correctPart(next);
   };
-  return <><AiConversationShell conversationKey={data.conversationId} title="Moj radni profil" questionFocus initialInputMode="keyboard"
+  return <><AiConversationShell conversationKey={data.conversationId} title="Radni profil" questionFocus initialInputMode="keyboard"
     correction={correction&&writable?{...correction,onDismiss:()=>{if(canAct()&&enabled)setCorrection(null);}}:undefined}
     cardPlacement="end"
     newConversation={{ onPress: restart, disabled: !canAct() || voiceBusy }}
-    exitAction={data.status==='OPEN'?<V2Action kind="destructive" compact label="Napusti razgovor"
+    exitAction={data.status==='OPEN'?<V2Action kind="destructive" compact label="Napustite razgovor"
       disabled={!enabled} reason={enabled?null:unavailableNow} onPress={abandon}/>:undefined}
     closed={!!data.saved || data.status !== 'OPEN'}
-    attach={writable?{label:'Šta želiš da izmeniš?',hint:'Izaberi temu i nastavi isti razgovor.',disabled:!enabled,
+    attach={writable?{label:'Šta želite da izmenite?',hint:'Izaberite temu i nastavite isti razgovor.',disabled:!enabled,
       onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
     // Review is a separate full screen, never a second profile card inside the chat.
-    // The V1 snapshot has no interview-complete signal: meaningful content grants only
-    // a quiet review affordance. Only an owned, current server review can promote it.
+    // The final affordance appears only after current signed readiness, not merely
+    // because some profile content exists. Preparation already ran after readback.
     card={()=>null}
-    footerAction={hasProfileContent&&writable&&!data.saved?<V2Action label="Pregledaj radni profil"
-      kind={currentReview?.canAccept?'primary':'secondary'} tone={currentReview?.canAccept?undefined:'neutral'}
-      style={currentReview?.canAccept?brandAction:undefined} disabled={!enabled}
+    footerAction={readyToReview&&writable&&!data.saved?<V2Action label="Pregledajte radni profil"
+      kind="primary" style={brandAction} disabled={!enabled}
       reason={!enabled?unavailableNow:undefined}
-      onPress={()=>{void review(activationRequest&&reviewedActivationRequest.current!==activationRequest?true:reviewActivation);}}/>:undefined}
+      onPress={()=>{if(workerReviewReady(data))void review();}}/>:undefined}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
     // Immediate client introduction; no Gemini call, cost, fake persisted turn or automatic Save.
     // Removed when the real owned conversation begins; re-entry never invents old AI messages.
@@ -450,10 +536,11 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       void send(input.trim(),{value:input,revision:draftRevision.current});}} onBack={back} onOptions={writable?()=>{if(current()&&panelScope.current===renderedPanel)setMenu(true);}:undefined}
     // A fragment is truthy even when empty, which drew an empty recovery panel in the thread; the slot is filled only
     // when there is something to say.
-    status={statusCopy||editor.error||activationRequest||lastGoodUnverified?<>{pending.current&&!editor.busy?<T variant="bodyStrong">{canRetry?'Poruka čeka ponovni pokušaj':turn?.state==='PROCESSING'?'Poruka je u obradi':'Ishod nije potvrđen'}</T>:null}
+    status={statusCopy||editor.error||activationRequest||lastGoodUnverified||(!editor.busy&&preparationProblem)?<>{pending.current&&!editor.busy?<T variant="bodyStrong">{canRetry?'Poruka čeka ponovni pokušaj':turn?.state==='PROCESSING'?'Poruka je u obradi':'Ishod nije potvrđen'}</T>:null}
       {statusCopy?<T variant="meta" tone="muted">{statusCopy}</T>:null}
+      {!editor.busy&&preparationProblem?<T variant="meta" tone="muted">{preparationProblem}</T>:null}
       {pending.current&&!editor.busy?<T variant="note" tone="muted">Provera ne šalje novu poruku.</T>:null}
-      {activationRequest&&writable&&!data.saved?<T variant="note" tone="muted">Pregledaj podatke pre aktivacije. Ako imaš nezavršen predlog, i njegove izmene ulaze u pregled. Profil postaje aktivan tek kada potvrdiš.</T>:null}
+      {activationRequest&&writable&&!data.saved?<T variant="note" tone="muted">Pregledajte podatke pre aktivacije. Ako imate nezavršen predlog, i njegove izmene ulaze u pregled. Profil postaje aktivan tek kada potvrdite.</T>:null}
       {lastGoodUnverified?<T accessibilityRole="alert" variant="note" tone="muted">{lastGoodCopy}</T>:null}
       {editor.error?<T accessibilityRole="alert" variant="meta" tone="danger">{editor.error}</T>:null}</>:undefined}
     // The shell draws the microphone, its notice and voice mode from this one controller; every transcript comes back
@@ -461,13 +548,22 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     voice={writable?{controller:voice.controller,state:voice.state,disabled:!enabled||!!pending.current,onKeepText:keepTranscript}:undefined}
     actions={<>
       {/* After a save the only next step is the saved profile; a second "check" button beside it read as unfinished. */}
-      {(pending.current||awaiting||editor.uncertain||editor.error)&&!data.saved?<V2Action tone="neutral" label="Proveri razgovor" disabled={editor.busy||editor.loading||voiceBusy} onPress={refresh}/>:null}
+      {(pending.current||awaiting||editor.uncertain||editor.error||preparationProblem)&&!data.saved?<V2Action tone="neutral" label="Proverite razgovor" disabled={editor.busy||editor.loading||voiceBusy}
+        onPress={()=>{
+          // The ready-card gate hides the old name-alignment entry. After the
+          // account name is supplied, explicit recovery uses the same guarded
+          // name patch + signed preparation; it never sends another AI turn.
+          if(!pending.current&&!awaiting&&!editor.uncertain&&data.review?.missingRequired.includes('Ime')&&rename(data))void review();
+          else refresh();
+        }}/>:null}
+      {writable&&!data.saved&&data.review?.missingRequired.includes('Ime')?<V2Action label="Lični podaci" kind="quiet"
+        disabled={!enabled} onPress={()=>leave(()=>router.push('/profil/podaci'))}/>:null}
       {pending.current&&recovery?.canCancel?<>
-        <T variant="meta" tone="muted">Ako odustaneš, odgovor asistenta neće promeniti profil. Ako je asistent već počeo da odgovara, poruka je ipak poslata.</T>
-        <V2Action tone="neutral" label={recovery.providerDispatched?'Odustani od odgovora':'Otkaži prethodno slanje'} kind="quiet"
+        <T variant="meta" tone="muted">Ako odustanete, odgovor asistenta neće promeniti profil. Ako je asistent već počeo da odgovara, poruka je ipak poslata.</T>
+        <V2Action tone="neutral" label={recovery.providerDispatched?'Odustanite od odgovora':'Otkažite prethodno slanje'} kind="quiet"
           disabled={!canAct()||voiceBusy} onPress={()=>{void cancelPending();}}/>
       </>:null}
-      {data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:null}
+      {data.saved?<V2Action label="Otvorite sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:null}
     </>}/>{confirmSheet.sheet}
     {menu?<ActionSheet label="Izmene kroz razgovor" onClose={()=>setMenu(false)} actions={[
       {key:'identity',label:'O meni',icon:'document',disabled:!enabled||!writable,subtitle:unavailableNow,
@@ -475,7 +571,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       {key:'time',label:'Raspored i dostupnost',icon:'calendar',disabled:!enabled||!writable,subtitle:unavailableNow,
         onPress:()=>correctPart('time')},
     ]}/>:null}
-    {adding?<ActionSheet label="Dodaj podatke" onClose={()=>setAdding(false)} actions={([
+    {adding?<ActionSheet label="Dodajte podatke" onClose={()=>setAdding(false)} actions={([
       ['skills','tasks'],['area','pin'],['time','clock'],
     ] as const).map(([key,icon])=>({key,icon,label:key==='area'?'Područje rada':WORKER_PART_TITLE[key],disabled:!enabled||!writable,subtitle:unavailableNow,
       onPress:()=>openPart(key)}))}/>:null}</>;

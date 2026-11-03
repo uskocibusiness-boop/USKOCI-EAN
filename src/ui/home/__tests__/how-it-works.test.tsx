@@ -18,7 +18,7 @@ import { HOW_IT_WORKS_KEY, HOW_IT_WORKS_STEPS, HowItWorks, forgetHiddenHowItWork
  */
 let tree: ReactTestRenderer | undefined;
 const rows = () => tree!.root.findAll(node => String(node.type) === 'View' && node.props.testID === 'how-it-works');
-const hide = () => tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Sakrij')[0];
+const hide = () => tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Sakrijte')[0];
 const mount = async (element: React.ReactElement = <HowItWorks stacked={false} />) => { await act(async () => { tree = create(element); }); };
 const never = () => new Promise<never>(() => {});
 
@@ -31,7 +31,7 @@ afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined
 
 it('says its three steps in the order of a task\'s life, in the proposal\'s own words', async () => {
   expect(HOW_IT_WORKS_STEPS.map(step => [step.title, step.note])).toEqual([
-    ['Objavi ili pronađi', 'Zadatak'], ['Dogovori se', 'Prijava i poruke'], ['Oceni', 'Posle završetka']]);
+    ['Objavite ili pronađite', 'Zadatak'], ['Dogovorite se', 'Prijava i poruke'], ['Ocenite', 'Posle završetka']]);
   expect(HOW_IT_WORKS_STEPS.map(step => step.art)).toEqual(['publish', 'agreements', 'star']);
 });
 
@@ -113,14 +113,14 @@ it.each([
   expect(rows()).toHaveLength(1);
 });
 
-it('lays the steps out in a row, or in a column when there is no room, and "Sakrij" is the 48 dp action at the end of the heading either way', async () => {
+it('lays the steps out in a row, or in a column when there is no room, and "Sakrijte" is the 48 dp action at the end of the heading either way', async () => {
   for (const stacked of [false, true]) {
     await mount(<HowItWorks stacked={stacked} />);
-    const steps = tree!.root.findAll(node => String(node.type) === 'View' && String(node.props.accessibilityLabel).startsWith('1. Objavi ili pronađi'));
+    const steps = tree!.root.findAll(node => String(node.type) === 'View' && String(node.props.accessibilityLabel).startsWith('1. Objavite ili pronađite'));
     expect(steps).toHaveLength(1);
     const flat = Object.assign({}, ...[steps[0].props.style].flat(3).filter(Boolean));
     expect(flat.flexDirection).toBe(stacked ? 'column' : 'row');
-    // It is a Section: the heading says what it is, and "Sakrij" is the command at the end of that line (a 48 dp touch, never a bare grey word).
+    // It is a Section: the heading says what it is, and "Sakrijte" is the command at the end of that line (a 48 dp touch, never a bare grey word).
     expect(tree!.root.findAll(node => String(node.type) === 'T' && node.props.variant === 'heading').map(node => node.props.children)).toEqual(['Kako radi']);
     const style = Object.assign({}, ...[hide().props.style].flat(3).filter(Boolean));
     expect(style.minHeight).toBeGreaterThanOrEqual(48); expect(style.minWidth).toBeGreaterThanOrEqual(48);

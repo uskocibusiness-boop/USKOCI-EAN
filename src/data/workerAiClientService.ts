@@ -1,6 +1,7 @@
 import { AI_CREDITS_UNAVAILABLE, AI_CREDITS_UNAVAILABLE_COPY } from '../contracts/aiAvailability';
 import { decodeWorkerAreas, type WorkerArea } from '../contracts/workerAreas';
 import { decodeServiceHandoff } from '../contracts/serviceHandoff';
+import { decodeTaxonomySemanticReviewCandidates, type TaxonomySemanticReviewCandidate } from '../contracts/taxonomySemanticReview';
 import type { WorkerLocation } from '../contracts/location';
 import type { WorkerAvailabilityInput, AvailabilityRule, AvailabilityWindow } from '../contracts/workerAvailability';
 import type { Ishod } from './ports';
@@ -11,6 +12,7 @@ import { calendarInstant } from '../lib/calendarTime';
 import { sesijaSada } from '../store/sesija';
 import { failure, readOwnedResult, record, sameId, uuid, type ReceiptAccount } from './serverReceipt';
 import { supabaseKlijent } from './supabaseClient';
+import { readPublicSupabaseConfig } from './publicSupabaseConfig';
 import { requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStream';
 
 export type WorkerAiProfile = Readonly<{
@@ -45,7 +47,7 @@ export function explicitWorkerModes(skills:readonly string[],choices:Readonly<Re
   return result.length<=24?result:null;
 }
 export type WorkerAiClassificationCandidate = Readonly<{handoff?:import('../contracts/serviceHandoff').ServiceHandoff} & (
-  {action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;catalogVersion:number;reason:string}|
+  {action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;categoryLabel?:string;categoryParentId?:string|null;catalogVersion:number;reason:string}|
   {action:'EXTEND_MODE';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;categoryLabel:string;categoryParentId:string|null;
     catalogVersion:number;reason:string}|
   {action:'CREATE_CHILD';service:string;mode:'ON_SITE'|'REMOTE';parentId:string;parentLabel:string;
@@ -60,6 +62,8 @@ export type WorkerAiReviewClassification = Readonly<{
   reviewedServiceModes:WorkerAiReviewedMode[];
   classificationCatalogVersion:number|null;
   classificationCatalogFingerprint:string|null;
+  /** A signed but unapproved existing-ID meaning comparison, never READY. */
+  semanticReviewCandidates?:TaxonomySemanticReviewCandidate[];
 }>;
 export type WorkerAiReview = Readonly<{ schemaVersion:'WORKER_PROFILE_V1'; reviewId:string; conversationId:string; accountId:string;
   profileId:string; revision:number; profile:WorkerAiProfile; activate:boolean; missingRequired:string[]; canAccept:boolean;
@@ -139,8 +143,22 @@ function decodeClassification(v:Record<string,unknown>,profile:WorkerAiProfile):
   const result:WorkerAiReviewClassification={classificationState:state,
     classificationCandidates:[],reviewedServiceModes:[],
     classificationCatalogVersion:null,classificationCatalogFingerprint:null};
-  if(state!=='READY')return v.classificationCandidates.length===0&&v.reviewedServiceModes.length===0
-    &&v.classificationCatalogVersion===null&&v.classificationCatalogFingerprint===null?result:null;
+  if(state!=='READY'){
+    if(Object.hasOwn(v,'semanticReviewCandidates')){
+      if(state!=='REVIEW_REQUIRED'||v.classificationCandidates.length!==0||v.reviewedServiceModes.length!==0
+        ||!revision(v.classificationCatalogVersion)||Number(v.classificationCatalogVersion)<1
+        ||typeof v.classificationCatalogFingerprint!=='string'
+        ||!/^[a-f0-9]{32}$/.test(v.classificationCatalogFingerprint))return null;
+      const candidate=decodeTaxonomySemanticReviewCandidates(
+        v.semanticReviewCandidates,v.classificationCatalogVersion,profile.skills);
+      return candidate?{...result,semanticReviewCandidates:candidate,
+        classificationCatalogVersion:v.classificationCatalogVersion as number,
+        classificationCatalogFingerprint:v.classificationCatalogFingerprint}:null;
+    }
+    return v.classificationCandidates.length===0&&v.reviewedServiceModes.length===0
+      &&v.classificationCatalogVersion===null&&v.classificationCatalogFingerprint===null?result:null;
+  }
+  if(Object.hasOwn(v,'semanticReviewCandidates'))return null;
   const version=v.classificationCatalogVersion;
   if(!revision(version)||version<1||typeof v.classificationCatalogFingerprint!=='string'
     ||!/^([a-f0-9]{32})$/.test(v.classificationCatalogFingerprint))return null;
@@ -164,8 +182,13 @@ function decodeClassification(v:Record<string,unknown>,profile:WorkerAiProfile):
     const hasHandoff=Object.hasOwn(c,'handoff');
     if(hasHandoff&&(c.mode!=='REMOTE'||!decodeServiceHandoff(c.handoff)))return null;
     const candidateKeys=(keys:string[])=>hasHandoff?[...keys,'handoff']:keys;
-    const reuse=c.action==='REUSE_EXISTING'&&exact(c,candidateKeys(['action','service','mode','categoryId','catalogVersion','reason']))
-      &&uuid(c.categoryId);
+    const hasLabel=Object.hasOwn(c,'categoryLabel');
+    const reuseKeys=hasLabel
+      ? ['action','service','mode','categoryId','categoryLabel','categoryParentId','catalogVersion','reason']
+      : ['action','service','mode','categoryId','catalogVersion','reason'];
+    const reuse=c.action==='REUSE_EXISTING'&&exact(c,candidateKeys(reuseKeys))
+      &&uuid(c.categoryId)
+      &&(!hasLabel||(text(c.categoryLabel,120)&&c.categoryLabel.trim().length>=3&&(c.categoryParentId===null||uuid(c.categoryParentId))));
     const extend=c.action==='EXTEND_MODE'&&exact(c,candidateKeys(['action','service','mode','categoryId','categoryLabel','categoryParentId','catalogVersion','reason']))
       &&uuid(c.categoryId)&&text(c.categoryLabel,120)&&c.categoryLabel.trim().length>=3
       &&(c.categoryParentId===null||uuid(c.categoryParentId));
@@ -184,9 +207,12 @@ function decodeClassification(v:Record<string,unknown>,profile:WorkerAiProfile):
     if(!seen.has(key)||plans.has(key))return null;
     plans.add(key);
     const handoff=hasHandoff?{handoff:decodeServiceHandoff(c.handoff)!}:{};
+    const extraReuse=hasLabel
+      ?{categoryLabel:c.categoryLabel as string,categoryParentId:c.categoryParentId as string|null}
+      :{};
     result.classificationCandidates.push(reuse
       ?{...handoff,action:'REUSE_EXISTING',service:c.service,mode:c.mode,categoryId:c.categoryId as string,
-        catalogVersion:version,reason:c.reason}
+        ...extraReuse,catalogVersion:version,reason:c.reason}
       :extend?{...handoff,action:'EXTEND_MODE',service:c.service,mode:c.mode,categoryId:c.categoryId as string,
         categoryLabel:c.categoryLabel as string,categoryParentId:c.categoryParentId as string|null,catalogVersion:version,reason:c.reason}
       :child?{...handoff,action:'CREATE_CHILD',service:c.service,mode:c.mode,parentId:c.parentId as string,
@@ -203,16 +229,22 @@ export function decodeWorkerAiReview(raw:unknown,account:string,cid:string):Work
   const extra=!!v&&classKeys.some(key=>Object.hasOwn(v,key));
   const equipment=!!v&&Object.hasOwn(v,'equipmentPolicy');
   const areas=!!v&&Object.hasOwn(v,'workAreaPolicy');
-  const keys=[...(extra?[...legacy,...classKeys]:legacy),...(areas?['workAreaPolicy']:[])];
-  if(!v||!exact(v,equipment?[...keys,'equipmentPolicy']:keys)
+  const semantic=!!v&&Object.hasOwn(v,'semanticReviewCandidates');
+  const keys=[...(extra?[...legacy,...classKeys]:legacy),...(semantic?['semanticReviewCandidates']:[]),...(areas?['workAreaPolicy']:[])];
+  if(!v||(semantic&&!extra)||!exact(v,equipment?[...keys,'equipmentPolicy']:keys)
     ||(equipment&&v.equipmentPolicy!=='PRESERVE_LEGACY_NO_WRITE_V1')
     ||(areas&&v.workAreaPolicy!=='SIGNED_WORK_AREAS_V1')
     ||v.schemaVersion!=='WORKER_PROFILE_V1'||!uuid(v.reviewId)||!sameId(v.conversationId,cid)||!sameId(v.accountId,account)||!uuid(v.profileId)
     ||!revision(v.revision)||!profile||typeof v.activate!=='boolean'||typeof v.canAccept!=='boolean'||!Array.isArray(v.missingRequired)
-    ||v.missingRequired.length>4||v.missingRequired.some(x=>!['Ime','Mesto rada','Veštine','Država i mesto rada'].includes(x))
+    ||v.missingRequired.length>4||v.missingRequired.some(x=>!['Ime','Mesto rada','Veštine','Država i mesto rada','Potvrda usluga za rad na daljinu'].includes(x))
     ||v.canAccept!==(v.missingRequired.length===0)||!text(v.expiresAt,40)||calendarInstant(v.expiresAt)===null||!digest(v.displayedContentDigest))return null;
   const classification=extra?decodeClassification(v,profile):null;
   if(extra&&!classification)return null;
+  // This is an activation refusal in the signed cityless REMOTE review, not a
+  // missing location or permission to activate a proposed category on the client.
+  if(v.missingRequired.includes('Potvrda usluga za rad na daljinu')
+    &&(!v.activate||profile.location.city.trim().length>=2||classification?.classificationState!=='READY'
+      ||!classification.reviewedServiceModes.length||classification.reviewedServiceModes.some(mode=>mode.mode!=='REMOTE')))return null;
   return {schemaVersion:'WORKER_PROFILE_V1',reviewId:v.reviewId,conversationId:v.conversationId,accountId:v.accountId,profileId:v.profileId,
     revision:v.revision,profile,activate:v.activate,missingRequired:[...v.missingRequired],canAccept:v.canAccept,expiresAt:v.expiresAt,displayedContentDigest:v.displayedContentDigest,
     ...classification,...(equipment?{equipmentPolicy:'PRESERVE_LEGACY_NO_WRITE_V1' as const}:{}),...(areas?{workAreaPolicy:'SIGNED_WORK_AREAS_V1' as const}:{})};
@@ -247,15 +279,15 @@ export function decodeWorkerAiSnapshot(raw:unknown,account:string,cid?:string):W
 }
 const ERRORS:Readonly<Record<string,string>>={
   AI_SERVICE_UNAVAILABLE:'AI trenutno nije dostupan.',[AI_CREDITS_UNAVAILABLE]:AI_CREDITS_UNAVAILABLE_COPY,
-  AUTH_REQUIRED:'Prijavi se da urediš radni profil.',WORKER_AI_DENIED:'Ponovo otvori svoj radni profil.',
-  WORKER_AI_STALE:'Profil je promenjen. Sačuvani podaci ostaju; pokreni nov razgovor iz aktuelnog profila.',
-  WORKER_AI_NOT_EDITABLE:'Ovaj razgovor se ne može menjati. Otvori sačuvani profil.',
-  WORKER_PROFILE_RESTRICTED:'Profil trenutno ne može da se menja.',WORKER_AI_TURN_PENDING:'Prethodna poruka još nema potvrđen ishod. Proveri stanje.',
-  WORKER_AI_PATCH_INVALID:'Proveri unos profila, radnog područja i dostupnosti.',WORKER_AI_REQUEST_CONFLICT:'Ovaj zahtev je već vezan za drugi unos. Proveri sačuvano stanje.',
-  WORKER_EQUIPMENT_RETIRED:'Alat i vozila se više ne uređuju u radnom profilu. Nastavi sa uslugama, područjem rada i dostupnošću.',
-  WORKER_AREA_INVALID:'Područje rada još nije razjašnjeno. Nastavi razgovor sa gradovima i dometom koji ti odgovaraju.',
-  WORKER_AREA_REQUIRES_CONVERSATION:'Područje rada promeni kroz razgovor i potvrdi u pregledu profila.',
-  WORKER_AI_RATE_LIMITED:'Poslato je previše poruka zaredom. Sačekaj kratko i proveri razgovor.',
+  AUTH_REQUIRED:'Prijavite se da uredite radni profil.',WORKER_AI_DENIED:'Ponovo otvorite svoj radni profil.',
+  WORKER_AI_STALE:'Profil je promenjen. Sačuvani podaci ostaju; pokrenite nov razgovor iz aktuelnog profila.',
+  WORKER_AI_NOT_EDITABLE:'Ovaj razgovor se ne može menjati. Otvorite sačuvani profil.',
+  WORKER_PROFILE_RESTRICTED:'Profil trenutno ne može da se menja.',WORKER_AI_TURN_PENDING:'Prethodna poruka je još u obradi. Proverite razgovor pre čuvanja profila; provera ne šalje novu poruku.',
+  WORKER_AI_PATCH_INVALID:'Proverite unos profila, radnog područja i dostupnosti.',WORKER_AI_REQUEST_CONFLICT:'Ovaj zahtev je već vezan za drugi unos. Proverite sačuvano stanje.',
+  WORKER_EQUIPMENT_RETIRED:'Alat i vozila se više ne uređuju u radnom profilu. Nastavite sa uslugama, područjem rada i dostupnošću.',
+  WORKER_AREA_INVALID:'Područje rada još nije razjašnjeno. Nastavite razgovor sa gradovima i dometom koji Vam odgovaraju.',
+  WORKER_AREA_REQUIRES_CONVERSATION:'Područje rada promenite kroz razgovor i potvrdite u pregledu profila.',
+  WORKER_AI_RATE_LIMITED:'Poslato je previše poruka zaredom. Sačekajte kratko i proverite razgovor.',
 };
 const scope=():ReceiptAccount|undefined=>{const s=sesijaSada();return s.user?{accountId:s.user.id,accountRevision:s.accountRevision}:undefined;};
 /** Only a proved local read timeout or SDK no-response may keep a last-good interview visible. */
@@ -268,7 +300,7 @@ function call<T>(name:string,args:Record<string,unknown>,decode:(v:unknown,aid:s
 }
 function recoveryCall(name:'rpc_read_worker_ai_turn_recovery'|'rpc_cancel_worker_ai_turn',conversationId:string,clientRequestId:string){
   const owner=scope();
-  if(!owner||!uuid(conversationId)||!uuid(clientRequestId))return Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori razgovor.'));
+  if(!owner||!uuid(conversationId)||!uuid(clientRequestId))return Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite razgovor.'));
   return readOwnedResult({account:owner,errors:ERRORS,write:name==='rpc_cancel_worker_ai_turn',fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
     request:()=>supabaseKlijent().rpc(name,{p_expected_user_id:owner.accountId,p_conversation_id:conversationId,p_client_request_id:clientRequestId}),
     decode:v=>decodeWorkerAiTurnRecovery(v,owner.accountId,conversationId,clientRequestId)});
@@ -282,9 +314,9 @@ export const workerExplicitModeReviewEnabled=()=>signedWorkerReviewEnabled()
 export const workerAiClientService={
   recoverTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_read_worker_ai_turn_recovery',conversationId,clientRequestId),
   cancelTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_cancel_worker_ai_turn',conversationId,clientRequestId),
-  open:(clientRequestId:string)=>!uuid(clientRequestId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori radni profil.')):
+  open:(clientRequestId:string)=>!uuid(clientRequestId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite radni profil.')):
     call('rpc_open_worker_ai',{p_client_request_id:clientRequestId},decodeWorkerAiSnapshot,true),
-  read:(conversationId:string)=>!uuid(conversationId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori razgovor.')):
+  read:(conversationId:string)=>!uuid(conversationId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite razgovor.')):
     call(signedWorkerReviewEnabled()?'rpc_read_worker_ai_taxonomy':'rpc_read_worker_ai',
       {p_conversation_id:conversationId},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId),false,WORKER_AI_READ_TRANSPORT_UNAVAILABLE),
   patch:(conversationId:string,expectedRevision:number,patch:WorkerAiPatch)=>call('rpc_patch_worker_ai',
@@ -298,7 +330,7 @@ export const workerAiClientService={
     if(!workerExplicitModeReviewEnabled())return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_OFF','Potvrda načina rada nije dostupna u ovoj verziji.'));
     if(!uuid(conversationId)||!revision(expectedRevision)||!Array.isArray(modes)||!modes.length||modes.length>24||
       modes.some(x=>!x||typeof x.service!=='string'||!x.service.trim()||!['ON_SITE','REMOTE'].includes(x.mode)))
-      return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_INVALID','Izaberi način rada za svaku uslugu.'));
+      return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_INVALID','Izaberite način rada za svaku uslugu.'));
     return call('rpc_prepare_worker_ai_review_taxonomy_confirmed',
       {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_activate:activate,
         p_selected_modes:modes.map(x=>({service:x.service,mode:x.mode}))},
@@ -306,13 +338,14 @@ export const workerAiClientService={
   },
   save:(review:WorkerAiReview,clientRequestId:string)=>{
     const owner=scope(),frozen=owner?decodeWorkerAiReview(review,owner.accountId,review.conversationId):null;
-    if(!frozen||!uuid(clientRequestId)||!frozen.canAccept)return Promise.resolve(failure('WORKER_AI_REVIEW_REQUIRED','Otvori potpun pregled profila.'));
+    if(!frozen||!uuid(clientRequestId)||!frozen.canAccept)return Promise.resolve(failure('WORKER_AI_REVIEW_REQUIRED','Otvorite potpun pregled profila.'));
     return call('rpc_save_worker_ai_review',{p_review_id:frozen.reviewId,p_displayed_digest:frozen.displayedContentDigest,p_client_request_id:clientRequestId},
       (v,a)=>a===frozen.accountId?decodeWorkerAiSaved(v,frozen):null,true);
   },
   abandon:(conversationId:string)=>call('rpc_abandon_worker_ai',{p_conversation_id:conversationId},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId),true),
   async send(conversationId:string,body:string,clientRequestId:string,stream:AiTurnStreamOptions):Promise<Ishod<WorkerAiTurn>>{
-    const account=scope(),session=sesijaSada().session,url=process.env.EXPO_PUBLIC_SUPABASE_URL,anonKey=process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    const account=scope(),session=sesijaSada().session,config=readPublicSupabaseConfig();
+    const url=config?.url,anonKey=config?.anonKey;
     if(!account||!session?.access_token||!url||!anonKey)return failure('AUTH_REQUIRED',ERRORS.AUTH_REQUIRED);
     if(!uuid(conversationId)||!uuid(clientRequestId)||!text(body,4000)||!body.trim())return failure('WORKER_AI_INPUT_INVALID','Unesi poruku do 4000 znakova.');
     return readOwnedResult({account,errors:ERRORS,write:true,timeoutMs:55_000,fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',

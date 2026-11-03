@@ -27,6 +27,15 @@ const row = () => ({
 beforeEach(() => { jest.clearAllMocks(); maybeSingle.mockReset(); publicProfile.mockResolvedValue(null); });
 
 describe('V2 complete public task context', () => {
+  it.each([1, 42, Number.MAX_SAFE_INTEGER])('preserves task revision %s for optional fit invalidation', async revision => {
+    maybeSingle.mockResolvedValue({ data: { ...row(), revision }, error: null });
+    expect(await supabaseIzvor.prilika('task-a')).toMatchObject({ id: 'task-a', revision });
+  });
+  it.each([undefined, null, 0, -1, 1.5, '2', NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])('keeps an unavailable task revision %p unknown without losing the task', async revision => {
+    maybeSingle.mockResolvedValue({ data: { ...row(), revision }, error: null });
+    const result = await supabaseIzvor.prilika('task-a');
+    expect(result?.id).toBe('task-a'); expect(result?.revision).toBeUndefined();
+  });
   it.each([[0, 0], [0, 19], [45, 0], [45.25456, 19.83456]])('keeps legitimate public coordinates (%s,%s) coarse', async (lat, lng) => {
     maybeSingle.mockResolvedValue({ data: { ...row(), approximate_lat: lat, approximate_lng: lng }, error: null });
     expect((await supabaseIzvor.prilika('task-a'))?.priblizno).toEqual({ lat: Number(lat.toFixed(2)), lng: Number(lng.toFixed(2)) });

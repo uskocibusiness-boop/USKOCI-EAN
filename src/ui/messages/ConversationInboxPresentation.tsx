@@ -88,7 +88,7 @@ export function conversationPreview(message: ConversationInboxRow['lastMessage']
   const content = message.kind === 'PHOTO' ? ['Fotografija', caption].filter(Boolean).join(' · ')
     : message.kind === 'VOICE' ? ['Glasovna poruka', caption].filter(Boolean).join(' · ')
       : caption || 'Tekst poruke nije dostupan';
-  return `${message.mine ? 'Ti: ' : ''}${content}`;
+  return `${message.mine ? 'Vi: ' : ''}${content}`;
 }
 
 /** Keep message punctuation when joining facts for a screen reader; a preview ending in a full stop must not become "..". */
@@ -123,23 +123,23 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
   const notice = items !== null && error ? <Surface kind="note" style={s.notice}>
     <T variant="note" accessibilityRole="alert">Razgovori nisu osveženi.</T>
     <T variant="note" tone="muted">{items.length > 0
-      ? 'Poslednji učitani razgovori ostaju prikazani. Osveži ih da nastaviš.'
-      : 'Pokušaj ponovo da proveriš ima li novih razgovora.'}</T>
-    <V2Action label="Osveži razgovore" kind="quiet" compact onPress={onRefresh} disabled={readDisabled} loading={reading} />
+      ? 'Poslednji učitani razgovori ostaju prikazani. Osvežite ih da nastavite.'
+      : 'Pokušajte ponovo da proverite ima li novih razgovora.'}</T>
+    <V2Action label="Osvežite razgovore" kind="quiet" compact onPress={onRefresh} disabled={readDisabled} loading={reading} />
   </Surface> : null;
   const listHeader = <View style={s.heading}>
     {!titleInHeader ? <T variant="pageTitle" accessibilityRole="header">Poruke</T> : null}
-    <T variant="note" tone="muted">Razgovori o tvojim zadacima</T>
+    <T variant="note" tone="muted">Razgovori o Vašim zadacima</T>
     {notice}
   </View>;
 
   const incomplete = hasMore || pageError || paging;
   const emptyTitle = incomplete ? 'Razgovori još nisu učitani do kraja' : 'Još nema razgovora';
-  const emptyBody = incomplete ? 'Učitaj starije razgovore da nastaviš pregled.' : 'Razgovor započinješ iz Dogovora.';
+  const emptyBody = incomplete ? 'Učitajte starije razgovore da nastavite pregled.' : 'Razgovor započinjete iz Dogovora.';
   const empty = items === null
     ? error && !reading
-      ? <StateView kind="error" title="Razgovori nisu učitani" body="Proveri vezu pa pokušaj ponovo."
-          primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: readDisabled }} />
+      ? <StateView kind="error" title="Razgovori nisu učitani" body="Pokušajte ponovo da učitate razgovore."
+          primary={{ label: 'Pokušajte ponovo', onPress: onRefresh, disabled: readDisabled }} />
       // A calm, explicit read state; no pulsing grey conversation placeholders.
       : <View accessibilityLiveRegion="polite" style={s.loading}>
         <View style={[s.conversationCard, s.loadingCard]}>
@@ -150,11 +150,11 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
     : error ? null
       // Nobody has talked yet: clean empty state with direct action to Agreements
       : <StateView kind="empty" hero compact={false} art="chat" title={emptyTitle} body={emptyBody}
-          primary={onAgreements && emptyTitle === 'Još nema razgovora' ? { label: 'Otvori Dogovore', onPress: onAgreements, disabled: openDisabled } : undefined} />;
+          primary={onAgreements && emptyTitle === 'Još nema razgovora' ? { label: 'Otvorite Dogovore', onPress: onAgreements, disabled: openDisabled } : undefined} />;
   const footer = items !== null && (hasMore || pageError || paging) ? <View style={s.footer}>
-    {pageError ? <T variant="note" accessibilityRole="alert">Stariji razgovori nisu učitani. Pokušaj ponovo da nastaviš.</T> : null}
-    <V2Action label={pageError ? 'Pokušaj ponovo' : 'Učitaj starije razgovore'} kind="quiet" onPress={onLoadMore}
-      disabled={readDisabled} loading={paging} accessibilityLabel={pageError ? 'Ponovo učitaj starije razgovore' : undefined} />
+    {pageError ? <T variant="note" accessibilityRole="alert">Stariji razgovori nisu učitani. Pokušajte ponovo da nastavite.</T> : null}
+    <V2Action label={pageError ? 'Pokušajte ponovo' : 'Učitajte starije razgovore'} kind="quiet" onPress={onLoadMore}
+      disabled={readDisabled} loading={paging} accessibilityLabel={pageError ? 'Ponovo učitajte starije razgovore' : undefined} />
   </View> : null;
 
   return <View style={s.screen}>
@@ -187,7 +187,7 @@ const ConversationRow = memo(function ConversationRow({ item, moment, closed, op
   // Private unread is explicitly unknown in V1, even if an upstream caller accidentally supplies a number.
   const unread = item.kind === 'GROUP' && item.unreadMessageCount !== null && Number.isSafeInteger(item.unreadMessageCount)
     && item.unreadMessageCount > 0 ? item.unreadMessageCount : null;
-  const status = unavailable ? 'Razgovor trenutno nije dostupan.' : failed ? 'Razgovor nije otvoren. Pokušaj ponovo.' : null;
+  const status = unavailable ? 'Razgovor trenutno nije dostupan.' : failed ? 'Razgovor nije otvoren. Pokušajte ponovo.' : null;
   const stamp = conversationStamp(moment);
   const time = moment ? `${moment.dan}, ${moment.sat}` : null;
   const label = spokenFacts([item.task.title, context, closed ? `${item.kind === 'GROUP' ? 'Razgovor je završen' : 'Dogovor je zatvoren'}. Samo za čitanje` : null, preview, time,
@@ -203,7 +203,7 @@ const ConversationRow = memo(function ConversationRow({ item, moment, closed, op
   return <TimedRow leading={face} slot={FACE} title={item.task.title} titleLines={stacked ? 2 : 1} time={stacked ? null : stamp} last disabled={off}
     interactionDisabled={openDisabled}
     onPress={() => { if (!openDisabled) onOpen(item); }} accessibilityLabel={label}
-    accessibilityHint={unavailable ? undefined : failed ? 'Pokušaj ponovo da otvoriš razgovor.' : 'Otvara razgovor uz ovaj zadatak.'}>
+    accessibilityHint={unavailable ? undefined : failed ? 'Pokušajte ponovo da otvorite razgovor.' : 'Otvara razgovor uz ovaj zadatak.'}>
     <View style={s.line}>
       <T variant="note" tone="muted" numberOfLines={1} style={s.grow}>{preview}</T>
       {unread !== null ? <View style={s.unread}><T variant="meta" style={s.unreadText}>{unread.toLocaleString('sr-Latn-RS')}</T></View> : null}

@@ -86,6 +86,19 @@ describe('RU-5 P0C-03 — canonical My Applications client', () => {
     ]);
   });
 
+  it('rejects non-finite prices and non-integer versions, revisions or seats in the actual whole-list RPC projection', async () => {
+    for (const patch of [
+      { priceRsd: 'Infinity' }, { priceRsd: 'NaN' }, { needRevision: 'Infinity' },
+      { submittedNeedRevision: 1.5 }, { version: 2.5 }, { coveredSlots: 1.5 },
+      { coveredSlots: 'NaN' }, { version: Number.MAX_SAFE_INTEGER + 1 },
+    ]) {
+      mockRpc.mockResolvedValueOnce({ data: [{ ...rawApplication, ...patch }], error: null });
+      await expect(applicationClientService.mojePrijave()).rejects.toThrow('MY_APPLICATIONS_INVALID_PROJECTION');
+    }
+    mockRpc.mockResolvedValueOnce({ data: [{ ...rawApplication, priceRsd: '2400', coveredSlots: '1' }], error: null });
+    expect((await applicationClientService.mojePrijave())[0]).toMatchObject({ cena: { iznos: 2400 }, pokrivaMesta: 1 });
+  });
+
   it('preserves selected Agreement link and disables withdraw from projection', async () => {
     mockRpc.mockResolvedValue({
       data: [{

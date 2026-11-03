@@ -8,17 +8,31 @@ export function withClassificationFeedback(turn, feedback, { finishOnly = false,
   const next = questions.length ? questions.join(' ') : feedback.notice;
   if (!next) return turn;
   let assistantMessage = turn.assistantMessage;
+  const proposedReview = turn.dialogue?.next === 'REVIEW';
+  const isUserQuestion = feedback.state === 'ASK_USER' && (
+    assistantMessage.includes('?') ||
+    // A natural question may be deliberately written without "?"; the owned
+    // structured dialogue next is stronger than punctuation counting.
+    turn.dialogue?.next === 'ASK' || turn.dialogue?.next === 'CLARIFY');
+  const isAnsweringUser = feedback.state === 'ASK_USER' && turn.dialogue?.next === 'ANSWER';
+  let addedQuestion = false;
   // A rejected REVIEW transition cannot retain the model's invitation to
   // publish. Facts remain in the live draft; the server's actionable state wins.
-  if (finishOnly || turn.dialogue?.next === 'REVIEW') assistantMessage = next;
-  // Existing substantive questions stay first. On an ordinary answer, add the
-  // missing question or honest processing state without restarting the intake.
-  else if (!(feedback.state === 'ASK_USER' && assistantMessage.includes('?')) &&
-      !assistantMessage.includes(next) && assistantMessage.length + next.length + 2 <= maximum)
+  if (finishOnly || proposedReview) {
+    assistantMessage = next;
+    addedQuestion = questions.length > 0;
+  }
+  // Existing single questions and explanations stay first. Never append a
+  // second classification question simply because the model omitted "?".
+  else if (!isUserQuestion && !isAnsweringUser &&
+      !assistantMessage.includes(next) && assistantMessage.length + next.length + 2 <= maximum) {
     assistantMessage += '\n\n' + next;
+    addedQuestion = questions.length > 0;
+  }
   return { ...turn, assistantMessage,
-    ...(turn.dialogue?.next === 'REVIEW' ? {
-      dialogue: { ...turn.dialogue, next: questions.length ? 'CLARIFY' : 'ACK',
+    ...(turn.dialogue && (proposedReview || addedQuestion) ? {
+      dialogue: { ...turn.dialogue,
+        next: addedQuestion ? 'CLARIFY' : 'ACK',
         questionKey: '' },
     } : {}),
   };

@@ -1,6 +1,11 @@
 /** @jest-environment node */
 // Voice messages B2-a (2026-09-30): the authenticated binary read of ONE voice message - exact request, exact audio type, bounded size, current session only.
-import { readVoiceBinary, VOICE_MAX_BYTES } from '../voiceBinaryRead';
+import { readVoiceBinary as readVoiceBinaryRequest, VOICE_MAX_BYTES } from '../voiceBinaryRead';
+import { agreementVoiceClientService } from '../agreementVoiceClientService';
+
+// Isolated decoder cases provide a caller-owned signal; the actual service/deadline chain is exercised below without mocking either layer.
+const readVoiceBinary = (input: Omit<Parameters<typeof readVoiceBinaryRequest>[0], 'signal'> & { signal?: AbortSignal }) =>
+  readVoiceBinaryRequest({ ...input, signal: input.signal ?? new AbortController().signal });
 
 const OWNER = '11111111-1111-4111-8111-111111111111';
 const AGREEMENT = '22222222-2222-4222-8222-222222222222';
@@ -81,11 +86,62 @@ it('withholds the bytes when the account changes before the answer arrives', asy
   const controller = new AbortController(); controller.abort();
   expect((await readVoiceBinary({ account, body, signal: controller.signal })).error?.message).toBe('MEDIA_UNAVAILABLE');
 });
-it('gives a slow download thirty seconds and then gives up without an answer', async () => {
+it('the actual playback service permits a valid download after 15s but before its one 30s deadline', async () => {
   jest.useFakeTimers();
-  mockFetch.mockImplementation((_url: string, init: RequestInit) => new Promise((_resolve, reject) => { init.signal?.addEventListener('abort', () => reject(new Error('aborted'))); }));
-  const pending = readVoiceBinary({ account, body });
-  await jest.advanceTimersByTimeAsync(29_000); let settled = false; void pending.then(() => { settled = true; }); await jest.advanceTimersByTimeAsync(100); expect(settled).toBe(false);
-  await jest.advanceTimersByTimeAsync(1_500);
-  expect((await pending).error?.message).toBe('MEDIA_UNAVAILABLE');
+  let finish!: (response: Response) => void;
+  mockFetch.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const pending = agreementVoiceClientService.playback(body, account);
+  let settled = false; void pending.then(() => { settled = true; });
+  await jest.advanceTimersByTimeAsync(20_000);
+  expect(settled).toBe(false); expect(jest.getTimerCount()).toBe(1);
+  expect(mockFetch.mock.calls[0][1].signal.aborted).toBe(false);
+  finish(new Response(audio, { headers: { 'Content-Type': 'audio/mp4' } }));
+  const result = await pending;
+  expect(result.ok).toBe(true);
+  if (result.ok) expect(Buffer.from(result.podatak.bytes).equals(Buffer.from(audio))).toBe(true);
+  expect(mockFetch).toHaveBeenCalledTimes(1); expect(jest.getTimerCount()).toBe(0);
+});
+
+it('the same deadline covers a stalled binary body even when the transport ignores abort and returns late', async () => {
+  jest.useFakeTimers();
+  let finish!: (bytes: ArrayBuffer) => void;
+  const response = new Response(audio, { headers: { 'Content-Type': 'audio/mp4' } });
+  jest.spyOn(response, 'arrayBuffer').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  mockFetch.mockResolvedValue(response);
+  const pending = agreementVoiceClientService.playback(body, account);
+  await jest.advanceTimersByTimeAsync(30_000);
+  expect(await pending).toMatchObject({ ok: false, kod: 'MEDIA_UNAVAILABLE' });
+  expect(mockFetch.mock.calls[0][1].signal.aborted).toBe(true);
+  finish(audio.buffer); await jest.advanceTimersByTimeAsync(0);
+  expect(await pending).toMatchObject({ ok: false, kod: 'MEDIA_UNAVAILABLE' });
+  expect(mockFetch).toHaveBeenCalledTimes(1); expect(jest.getTimerCount()).toBe(0);
+});
+
+it('session lookup shares the playback deadline and cannot dispatch after a late auth answer', async () => {
+  jest.useFakeTimers(); let finish!: (value: unknown) => void;
+  mockGetSession.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const pending = agreementVoiceClientService.playback(body, account);
+  await jest.advanceTimersByTimeAsync(30_000);
+  expect(await pending).toMatchObject({ ok: false, kod: 'MEDIA_UNAVAILABLE' });
+  finish({ data: { session: { user: { id: OWNER }, access_token: 'SYNTHETIC_TEST_ONLY' } }, error: null });
+  await jest.advanceTimersByTimeAsync(0);
+  expect(mockFetch).not.toHaveBeenCalled(); expect(jest.getTimerCount()).toBe(0);
+});
+
+it('caller cancellation aborts the actual fetch immediately and suppresses its late success', async () => {
+  jest.useFakeTimers(); let finish!: (response: Response) => void;
+  mockFetch.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const caller = new AbortController();
+  const pending = agreementVoiceClientService.playback(body, account, caller.signal);
+  await jest.advanceTimersByTimeAsync(0); caller.abort();
+  expect(await pending).toMatchObject({ ok: false, kod: 'MEDIA_UNAVAILABLE' });
+  expect(mockFetch.mock.calls[0][1].signal.aborted).toBe(true);
+  finish(new Response(audio, { headers: { 'Content-Type': 'audio/mp4' } })); await jest.advanceTimersByTimeAsync(0);
+  expect(await pending).toMatchObject({ ok: false, kod: 'MEDIA_UNAVAILABLE' });
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+it('the actual service rejects bytes after the same account has a new session incarnation', async () => {
+  mockFetch.mockImplementation(async () => { mockSession = { user: { id: OWNER }, accountRevision: 2 }; return new Response(audio, { headers: { 'Content-Type': 'audio/mp4' } }); });
+  expect(await agreementVoiceClientService.playback(body, account)).toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED' });
 });

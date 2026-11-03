@@ -42,6 +42,8 @@ type Props = {
   onAgreement: (p: MojaPrijavaProjekcija) => void; onRetry: () => void; onReset: () => void;
   /** The task the application belongs to. Without it a worker who applied cannot get back to it. */
   onTask: (p: MojaPrijavaProjekcija) => void;
+  /** Optional profile action, separate from withdrawal/edit/selection. */
+  onService?: (p: MojaPrijavaProjekcija) => void;
   /** An application arrived at from a notification, brought into view once. */
   focusId?: string | null;
   /** Requested destination, including a row that the current owned read cannot return. */
@@ -147,10 +149,11 @@ export function MyApplicationsPresentation(props: Props) {
         {draft ? <View style={s.fields}>
           <T accessibilityRole="header" variant="heading">Izmeni svoju prijavu</T>
           <T variant="note" tone="muted">{draft.pricing.rezimCene === 'OFFERS' ? 'Cena važi za ceo ponuđeni obim.'
+            : draft.pricing.osnovaCene === 'HOURLY' ? 'Satnica važi za svaku osobu za jedan sat rada. Ukupan iznos zavisi od trajanja.'
             : draft.pricing.osnovaCene === 'PER_PERSON' ? 'Cena po osobi iz zadatka množi se brojem ljudi u tvojoj prijavi.'
             : draft.pricing.osnovaCene === 'TOTAL' ? 'Tvoja cena se računa srazmerno broju ljudi, zaokruženo na najbliži dinar.' : 'Cena je određena u zadatku.'}</T>
-          <T variant="meta" tone="muted">Cena prijave ukupno (RSD)</T>
-          <TextInput accessibilityLabel="Cena ponude (RSD)" value={draft.price} keyboardType="number-pad" editable={!disabled && draft.pricing.rezimCene === 'OFFERS'} onChangeText={price => props.onChange({ ...draft, price })} style={s.input} />
+          <T variant="meta" tone="muted">{draft.pricing.osnovaCene === 'HOURLY' ? 'Satnica po osobi (RSD po satu)' : 'Cena prijave ukupno (RSD)'}</T>
+          <TextInput accessibilityLabel={draft.pricing.osnovaCene === 'HOURLY' ? 'Satnica po osobi (RSD po satu)' : 'Cena ponude (RSD)'} value={draft.price} keyboardType="number-pad" editable={!disabled && draft.pricing.rezimCene === 'OFFERS'} onChangeText={price => props.onChange({ ...draft, price })} style={s.input} />
           {invalidFixedPrice ? <T accessibilityRole="alert" variant="note">Cena za ovaj broj ljudi mora biti najmanje 1 RSD. Proveri broj ljudi.</T> : null}
           <T variant="meta" tone="muted">Ljudi koje obezbeđuješ</T>
           <ApplicationPeopleInput label="Broj ljudi" value={draft.people} maximum={draft.pricing.pokrivenost.ukupno} disabled={disabled}
@@ -158,7 +161,7 @@ export function MyApplicationsPresentation(props: Props) {
           <T variant="meta" tone="muted">Napomena</T>
           <TextInput accessibilityLabel="Napomena uz ponudu" value={draft.note} multiline editable={!disabled} onChangeText={note => props.onChange({ ...draft, note })} style={[s.input, s.multiline]} />
           <T variant="note" tone="muted">Ponuđeni termin ostaje nepromenjen: {draft.start || draft.end
-            ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, deviceZone()) : 'Nije naveden u prijavi.'}</T>
+            ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, p.zadatak?.vremenskaZona || deviceZone()) : 'Nije naveden u prijavi.'}</T>
           <V2Action label="Sačuvaj izmenjenu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled || props.draftStale || invalidPeople || invalidFixedPrice} style={brandAction} />
           <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
         </View> : <View>
@@ -180,6 +183,9 @@ export function MyApplicationsPresentation(props: Props) {
         fresh={!!props.freshId && props.freshId === p.prijavaId}
         onReview={() => props.onReview(p)} onAgreement={() => props.onAgreement(p)} onWithdraw={() => props.onWithdraw(p)} onTask={() => props.onTask(p)}>
         {props.expanded === p.prijavaId ? review : null}
+        {props.onService && ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'SELECTED'].includes(p.stanje) ?
+          <V2Action compact kind="quiet" label="Usluga u radnom profilu" disabled={disabled}
+            onPress={() => props.onService?.(p)} /> : null}
       </ApplicationCard>
     </Appear>;
   };
@@ -189,6 +195,13 @@ export function MyApplicationsPresentation(props: Props) {
     : tab === 'all' ? props.rows.length : props.rows.filter(p => applicationSection(p) === tab).length;
   // Whether there is any application at all: a tab of a paged set can be empty while the others are not.
   const hasAny = paging ? (serverCounts ? serverCounts.total > 0 : props.rows.length > 0) : props.rows.length > 0;
+  // A last page may be cut short by concurrent changes or a server read-contract fault.
+  // The first-page count is authoritative; a terminal cursor alone is not evidence
+  // that every application in this specific scope was returned.
+  const expectedSetCount = serverCounts ? props.tab === 'all' ? serverCounts.total : serverCounts[props.tab] : null;
+  const finalCountMismatch = !!paging && !props.loading && !props.unavailable && !props.refreshing &&
+    !paging.hasMore && !paging.loadingMore && !paging.moreError &&
+    (expectedSetCount === null || expectedSetCount !== filtered.length);
   // A number is drawn only for what waits for the person ("Čeka te"); the others are spoken (`Segmented`).
   const tabs = TABS.map(option => ({ ...option, badge: count(option.key) || undefined, badgeLabel: prijava(count(option.key)),
     badgeTone: option.key === 'attention' ? 'attention' as const : undefined }));
@@ -199,6 +212,9 @@ export function MyApplicationsPresentation(props: Props) {
       // (`busy` is a write, item 3); a read in flight shows the loading state above instead of this one.
       : props.unavailable ? <StateView kind="error" art="applications" title="Prijave trenutno nisu dostupne" body={props.message ?? 'Pokušaj ponovo za trenutak.'}
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh, disabled: props.busy }} quiet={{ label: 'Nazad', onPress: props.onBack }} />
+    : finalCountMismatch ? <StateView kind="error" art="applications" title="Spisak prijava nije potpun"
+        body="Broj učitanih prijava ne odgovara serverskom stanju. Proveri prijave ponovo."
+        primary={{ label: 'Proveri spisak prijava', onPress: props.onRefresh, disabled: props.busy }} />
     : hasAny && props.tab !== 'all' ? <StateView art="applications" title={TAB_EMPTY[props.tab]}
           primary={props.tab === 'active' && count('attention') > 0
             ? { label: 'Pogledaj šta te čeka', onPress: () => props.onTab('attention') }
@@ -208,7 +224,8 @@ export function MyApplicationsPresentation(props: Props) {
           : <StateView hero art="applications" title="Još nemaš prijavu" primary={{ label: 'Pronađi zadatak', onPress: props.onExplore }} />}
   </View>;
   const shown = count(props.tab);
-  const showsFeedback = !props.loading && !props.unavailable && (props.message || props.notice || props.pending || missingNamed);
+  const showsFeedback = !props.loading && !props.unavailable &&
+    (props.message || props.notice || props.pending || missingNamed || (finalCountMismatch && visible.length > 0));
   const showsCount = chips && !props.loading && !props.unavailable && shown > 0;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Moje prijave" onBack={props.onBack} />
@@ -236,6 +253,10 @@ export function MyApplicationsPresentation(props: Props) {
         ListHeaderComponent={showsFeedback || showsCount || props.refreshing ? <View style={s.head}>
           {props.refreshing ? <T accessibilityLiveRegion="polite" variant="note" tone="muted">Osvežavamo tvoje prijave… Sačekaj proveru pre izmene ili povlačenja.</T> : null}
           {showsFeedback ? <View style={s.feedback}>
+            {finalCountMismatch && visible.length > 0 ? <Surface kind="note" tone="warn">
+              <T accessibilityRole="alert" variant="body">Spisak prijava nije potpun. Broj učitanih prijava ne odgovara serverskom stanju.</T>
+              <V2Action label="Proveri spisak prijava" onPress={props.onRefresh} kind="quiet" disabled={props.busy} />
+            </Surface> : null}
             {missingNamed ? <Surface kind="note"><T variant="body" accessibilityRole="alert">Ova prijava trenutno nije dostupna</T>
               <V2Action label="Osveži prijave" onPress={props.onRefresh} disabled={props.busy} /></Surface> : null}
             {props.message ? <Note tone="warn">{props.message}</Note> : null}{props.notice ? <Note>{props.notice}</Note> : null}

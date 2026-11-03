@@ -6,19 +6,19 @@
  */
 export const authCopy = {
   /** The first step names the selected way; the switch directly below can change it. */
-  resume: 'Nastavi tamo gde si stao.',
+  resume: 'Nastavite tamo gde ste stali.',
   recoveryName: 'Oporavak lozinke',
   forgot: 'Zaboravljena lozinka?',
-  signIn: 'Prijavi se',
-  signUp: 'Napravi nalog',
+  signIn: 'Prijavite se',
+  signUp: 'Napravite nalog',
   /** The sign-in way of the switch (the other way is `signUp`). */
   signInWay: 'Prijava',
   backToSignIn: 'Nazad na prijavu',
   back: 'Nazad',
-  retry: 'Pokušaj ponovo',
+  retry: 'Pokušajte ponovo',
   /** The one sentence for a failure nobody can say more about. It names the next step. */
-  failed: 'Nešto nije uspelo. Pokušaj ponovo.',
-  oneAccount: 'Jedan nalog za sve: objavi zadatak ili uskoči.',
+  failed: 'Nešto nije uspelo. Pokušajte ponovo.',
+  oneAccount: 'Jedan nalog za sve: objavite zadatak ili uskočite.',
   /** Said instead of a tick that recorded nothing (owner rule PKG-031), while the legal documents are not published. */
   legal: 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.',
 } as const;

@@ -36,7 +36,6 @@ const PHOSPHOR_IMPORTERS = new Set([
   'src/ui/system/SuccessMark.tsx',
   'src/ui/v2/DiscoveryPresentation.tsx',
   'src/ui/v2/NeedUrgencyBadge.tsx',
-  'src/ui/v2/TaskFace.tsx',
   'src/ui/v2/V2Action.tsx',
   'src/ui/v2/discovery/DateRangeGrid.tsx',
   'src/ui/v2/discovery/PricePill.tsx',

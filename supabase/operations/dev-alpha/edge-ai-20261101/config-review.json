@@ -1,0 +1,28 @@
+{
+  "status": "UNVERIFIED_DO_NOT_DEPLOY",
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "source_commit": "53a3220d58643ee30e6646b6be04c807f9c1eb19",
+  "purpose": "Explicit proposed dual-Gemini DEV profile; this is not a capture of effective deployed values or permission to change them.",
+  "expected_non_secret": {
+    "AI_PROVIDER": "gemini",
+    "GEMINI_MODEL": "gemini-3.8-flash",
+    "USKOCI_GEMINI_PAID_TEST_ENABLED": "true",
+    "USKOCI_TAXONOMY_DUAL_GEMINI": "true",
+    "USKOCI_TAXONOMY_ROLLOUT_SCOPE": "DEV",
+    "USKOCI_TAXONOMY_ALLOWED_PROJECT_REF": "leqcwgzvjsxugfgzdmth",
+    "USKOCI_TAXONOMY_SHADOW_CAPTURE": "true",
+    "USKOCI_TAXONOMY_DIRECT_REPLY": "true",
+    "USKOCI_TAXONOMY_UNIFIED_SHADOW": "true"
+  },
+  "must_remain_disabled": ["USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED"],
+  "preserve_existing_pending_verification": ["USKOCI_TASK_AI_APPLICATION_DEADLINE_V1"],
+  "presence_only_no_values_in_evidence": ["SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "GEMINI_API_KEY", "LOCATIONIQ_ACCESS_TOKEN"],
+  "platform_url_must_equal": "https://leqcwgzvjsxugfgzdmth.supabase.co",
+  "limitations": [
+    "Effective flags are unverified: the connector has no secrets listing, no local management login is available, and the dashboard requires sign-in.",
+    "Old DEV handlers defaulted optional taxonomy features on. Current source closes missing optional flags; establish explicit reviewed configuration before promotion.",
+    "Compare digests only for the known non-secret candidate values; never publish provider, anon, service-role, management or location credentials.",
+    "No new production profile, secrets values, flag writes or provider calls are included.",
+    "DEV budget is currently enabled with a current price window but reservation_cap_enforced=false; do not describe it as enforcing its declared five-dollar ceiling. A reservation balance is not a provider invoice."
+  ]
+}

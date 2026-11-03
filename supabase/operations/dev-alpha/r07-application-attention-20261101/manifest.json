@@ -1,0 +1,35 @@
+{
+  "unit": "R07_DEV_APPLICATION_ATTENTION_PACKAGE",
+  "status": "PREPARED_NOT_APPLIED",
+  "project_ref": "leqcwgzvjsxugfgzdmth",
+  "captured_at": "2026-11-01T17:37:56.699339+00:00",
+  "changed_functions": [
+    "private.own_application_rows(uuid)",
+    "public.rpc_list_my_applications()",
+    "public.rpc_list_my_applications_page(text,integer,timestamp with time zone,uuid,integer)"
+  ],
+  "new_functions": 0,
+  "new_tables": 0,
+  "acl_changes": 0,
+  "source": "Exact current DEV definitions plus build.mjs bounded body replacements",
+  "preimage_sha256": "491803330c3811fc5f193b52fda3d23f11a27bb2126f6beb953f50472cc12260",
+  "builder_sha256": "9c832825e277e06898ff2bd253de395c99af24038e62b51e9cf665ff3a2ae53f",
+  "files": {
+    "forward.sql": "2cf247d4d239223d0feb14c1d12a212e8204818bfb2bc93ce4479b9760611e26",
+    "promotion.sql": "5e174baae5fe232e07d1676008be42ec25676767c8a9346d0920051ea679269d",
+    "rollback.sql": "d19fdd95aa86c177e4420131fc7a48ccf874401c7d0b07718ece9953f41b5274",
+    "preflight.sql": "aa41f4ad3f163f15fa5a050d60fa6533f9d8c1f6eb5e8a13b265d52ae4d17936",
+    "postflight.sql": "e19602bb296d8de95b8a24e45e9bbc5057a592f2d1e4066fa6b9a965829c64db",
+    "acceptance.sql": "dab032f662b87434c4f0ec6fe3b4754c9f78226625f80be8934a2a9377e1f16b",
+    "postimages.json": "06877e92830665e9531d94e5338cb2025d5393f4844c996b71a744b3c7b3a002"
+  },
+  "limitations": [
+    "Project identity is the connector binding; the GUC is only an intent marker.",
+    "R10 source_ready=false and NULL export/erasure bindings stay unchanged; no certification or activation occurs.",
+    "Only three existing function bodies change; full catalog delta, ACL/config/owner preservation and exact inverse rollback are mandatory.",
+    "Selection status, Agreement link, application terms and writer behavior stay unchanged. No new acknowledgment marker is introduced.",
+    "Hosted acceptance is AUTH_REQUIRED plus exact NULL-owner projection; positive real Auth/native acceptance remains a separate root step.",
+    "Original EX04B and R07 hourly candidates remain historical/staged source; future promotion must retain this lifecycle distinction.",
+    "No full R01, R10, supported old fleet, provider, push or production admission is claimed."
+  ]
+}

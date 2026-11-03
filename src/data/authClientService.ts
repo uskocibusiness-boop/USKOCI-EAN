@@ -36,10 +36,10 @@ function safeAuthFailure(error: unknown, operation: UserAuthOperation): Error {
   const signals = authFailureSignals(error);
   if (isRateLimited(signals)) return new Error(RATE_LIMITED_COPY);
   if (isProviderUnavailable(signals)) return new Error(PROVIDER_UNAVAILABLE_COPY);
-  if (operation === 'SIGN_UP') return new Error('Registracija trenutno nije uspela. Proveri podatke i pokušaj ponovo.');
-  if (operation === 'SIGNUP_RESEND') return new Error('Novu potvrdu trenutno nije moguće zatražiti. Pokušaj ponovo.');
-  if (operation === 'PHONE_SEND') return new Error('Kod trenutno nije moguće poslati. Proveri broj i pokušaj ponovo.');
-  return new Error('Kod nije potvrđen. Proveri kod i pokušaj ponovo.');
+  if (operation === 'SIGN_UP') return new Error('Registracija trenutno nije uspela. Proverite podatke i pokušajte ponovo.');
+  if (operation === 'SIGNUP_RESEND') return new Error('Novu potvrdu trenutno nije moguće zatražiti. Pokušajte ponovo.');
+  if (operation === 'PHONE_SEND') return new Error('Kod trenutno nije moguće poslati. Proverite broj i pokušajte ponovo.');
+  return new Error('Kod nije potvrđen. Proverite kod i pokušajte ponovo.');
 }
 
 /** The existing Auth transport boundary; no provider, policy or session authority is added. */
@@ -55,7 +55,7 @@ export const authClientService: AuthClientPort = {
 
   async signUp({ email, password, firstName, lastName, city }) {
     const emailRedirectTo = signupConfirmationRedirect();
-    if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna. Pokušaj ponovo malo kasnije.');
+    if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna. Pokušajte ponovo malo kasnije.');
     let result: Awaited<ReturnType<ReturnType<typeof supabaseKlijent>['auth']['signUp']>>;
     try {
       result = await supabaseKlijent().auth.signUp({
@@ -63,7 +63,8 @@ export const authClientService: AuthClientPort = {
         // The existing signup trigger reads full_name. Keep the split metadata
         // as well; neither credentials nor historical profile rows are rewritten.
         options: { emailRedirectTo, data: { first_name: firstName, last_name: lastName,
-          full_name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '), city } },
+          full_name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '),
+          ...(city === undefined ? {} : { city }) } },
       });
     } catch (thrown) { throw safeAuthFailure(thrown, 'SIGN_UP'); }
     const { data, error } = result;
@@ -75,9 +76,9 @@ export const authClientService: AuthClientPort = {
     const owner = sesijaSada();
     if (owner.user) throw new Error('Potvrda registracije je namenjena neprijavljenom nalogu.');
     const emailRedirectTo = signupConfirmationRedirect();
-    if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna. Pokušaj ponovo malo kasnije.');
+    if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna. Pokušajte ponovo malo kasnije.');
     const address = email.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new Error('Unesi ispravnu email adresu.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new Error('Unesite ispravnu email adresu.');
     let error: unknown;
     try { ({ error } = await supabaseKlijent().auth.resend({ type: 'signup', email: address, options: { emailRedirectTo } })); }
     catch (thrown) {

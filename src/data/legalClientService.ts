@@ -8,6 +8,10 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
+/** Only the account-fenced RPC response can retire a superseded reviewed intent.
+ * Local coordinate validation deliberately retains the same public error code. */
+export type LegalAcceptanceResult = Ishod<LegalAcceptanceReceipt> & { authoritativeReviewChanged?: true };
+
 function fail(kod: string, poruka: string): Ishod<never> {
   return { ok: false, kod, poruka };
 }
@@ -60,7 +64,7 @@ function mapDocument(raw: any): LegalDocument | null {
  * a retry replays the original receipt instead of recording twice.
  */
 export const legalClientService = {
-  acceptReviewedBundle(clientRequestId: string, termsSha256: string, privacySha256: string): Promise<Ishod<LegalAcceptanceReceipt>> {
+  acceptReviewedBundle(clientRequestId: string, termsSha256: string, privacySha256: string): Promise<LegalAcceptanceResult> {
     const owner = sesijaSada(), accountId = owner.user?.id;
     if (!accountId) return Promise.resolve(fail('AUTH_REQUIRED', LEGAL_COPY.AUTH_REQUIRED));
     if (!uuid(clientRequestId) || !/^[0-9a-f]{64}$/.test(termsSha256) || !/^[0-9a-f]{64}$/.test(privacySha256))
@@ -71,7 +75,8 @@ export const legalClientService = {
         const r = record(raw), receipt = acceptance(raw);
         return r && sameId(r.accountId, accountId) && sameId(r.clientRequestId, clientRequestId) && r.authoritative === true &&
           receipt?.termsSha256 === termsSha256 && receipt.privacySha256 === privacySha256 ? receipt : null;
-      } });
+      } }).then(result => !result.ok && result.kod === 'LEGAL_REVIEW_CHANGED'
+        ? { ...result, authoritativeReviewChanged: true as const } : result);
   },
   readAcceptance(clientRequestId: string): Promise<Ishod<{ found: boolean; receipt: LegalAcceptanceReceipt | null }>> {
     const owner = sesijaSada(), accountId = owner.user?.id;

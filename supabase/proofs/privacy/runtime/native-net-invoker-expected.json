@@ -1,0 +1,74 @@
+{
+  "unit": "R01_NATIVE_NET_INVOKER_DEV_BASELINE",
+  "format_version": 1,
+  "query_sha256": "9e27587c5e235d187290d235337041ea86a04d91e1ccbec7de76eef40f7d254d",
+  "observation": {
+    "unit": "R01_NATIVE_NET_INVOKER_CAPTURE",
+    "event": {
+      "invokes_helper": true,
+      "create_extension_only": true
+    },
+    "helper": {
+      "invoker": true,
+      "plpgsql": true,
+      "config_kind": "EMPTY_SEARCH_PATH",
+      "event_return": true,
+      "source_sha256": "754e58111dbe32030af4d91591dfd78cb3cf8e8f4f56a5fcc199bb0cf7f4ac2b"
+    },
+    "database": "postgres",
+    "read_only": "on",
+    "delegation": {
+      "registered": true,
+      "role_sha256": "19d4e620c7d14b3a7daf1b6910309a1922d4257e28c241685f784122b1eb79b7"
+    },
+    "principals": [
+      {
+        "present": true,
+        "principal": "anon",
+        "superuser": false,
+        "createrole": false,
+        "database_create": false,
+        "authority_set_count": 0,
+        "authority_usage_count": 0
+      },
+      {
+        "present": true,
+        "principal": "authenticated",
+        "superuser": false,
+        "createrole": false,
+        "database_create": false,
+        "authority_set_count": 0,
+        "authority_usage_count": 0
+      },
+      {
+        "present": true,
+        "principal": "authenticator",
+        "superuser": false,
+        "createrole": false,
+        "database_create": false,
+        "authority_set_count": 0,
+        "authority_usage_count": 0
+      },
+      {
+        "present": true,
+        "principal": "service_role",
+        "superuser": false,
+        "createrole": false,
+        "database_create": false,
+        "authority_set_count": 0,
+        "authority_usage_count": 0
+      }
+    ],
+    "resolution": {
+      "catalog_first": true,
+      "roles_builtin": true,
+      "extension_builtin": true,
+      "ddl_commands_builtin": true,
+      "visible_shadow_routines": 0
+    },
+    "capture_role": "postgres",
+    "format_version": 1,
+    "extension_version": "0.20.4",
+    "server_version_num": 170006
+  }
+}

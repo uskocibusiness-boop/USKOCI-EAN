@@ -236,8 +236,8 @@ describe('the state scenes', () => {
   });
 
   it('says a read that did not arrive, no connection and a service that is down in the words of the table, each with the one button', async () => {
-    for (const [state, title, button] of [['greska', 'Ne možemo da učitamo Dogovore', 'Pokušaj ponovo'], ['bez-veze', 'Nema internet veze', 'Pokušaj ponovo'],
-      ['usluga', 'Usluga trenutno nije dostupna', 'Pokušaj ponovo']] as const) {
+    for (const [state, title, button] of [['greska', 'Ne možemo da učitamo Dogovore', 'Pokušajte ponovo'], ['bez-veze', 'Nema internet veze', 'Pokušajte ponovo'],
+      ['usluga', 'Usluga trenutno nije dostupna', 'Pokušajte ponovo']] as const) {
       open(state); await render();
       expect([state, texts()]).toEqual([state, expect.arrayContaining([title, button])]);
       expect([state, tree.root.findAllByType(V2Action).map(action => action.props.label)]).toEqual([state, [button]]);
@@ -248,7 +248,7 @@ describe('the state scenes', () => {
   it('draws "no connection" as a strip over the rows the screen already has, with the one word that reads again', async () => {
     open('bez-veze-traka'); await render();
     expect(tree.root.findAllByType(OfflineLine)).toHaveLength(1);
-    expect(texts()).toEqual(expect.arrayContaining(['Nema veze. Prikazano je poslednje učitano.', 'Osveži', 'Montaža police u hodniku']));
+    expect(texts()).toEqual(expect.arrayContaining(['Nema veze. Prikazano je poslednje učitano.', 'Osvežite', 'Montaža police u hodniku']));
     expect(tree.root.findAllByType(StateView)).toHaveLength(0);
   });
 
@@ -256,17 +256,17 @@ describe('the state scenes', () => {
     open('nije-sigurno'); await render();
     expect(tree.root.findByType(OutcomeUncertain).props).toMatchObject({ about: 'application' });
     expect(tree.root.findByType(OutcomeUncertain).props.checking).toBeFalsy();
-    expect(tree.root.findAllByType(V2Action).map(action => action.props.label)).toEqual(['Proveri', 'Nazad na zadatak']);
+    expect(tree.root.findAllByType(V2Action).map(action => action.props.label)).toEqual(['Proverite', 'Nazad na zadatak']);
     await act(async () => tree.unmount());
     open('nije-sigurno-provera'); await render();
     expect(tree.root.findByType(OutcomeUncertain).props.checking).toBe(true);
-    expect(tree.root.findAllByType(V2Action)[0].props).toMatchObject({ label: 'Proveri', loading: true });
+    expect(tree.root.findAllByType(V2Action)[0].props).toMatchObject({ label: 'Proverite', loading: true });
     await act(async () => tree.unmount());
     open('nije-sigurno-traka'); await render();
     const foot = tree.root.findByType(FlowFooter);
     expect(foot.findByType(OutcomeUncertain).props.layout).toBe('inline');
     const [check, send] = foot.findAllByType(V2Action);
-    expect([check.props.label, send.props.label, send.props.disabled]).toEqual(['Proveri', 'Pošalji prijavu', true]);
+    expect([check.props.label, send.props.label, send.props.disabled]).toEqual(['Proverite', 'Pošalji prijavu', true]);
     expect(tree.root.findAllByType(Text).some(node => node.props.children === 'Tvoja prijava')).toBe(true);
     // The one press that does something in the gallery: "Proveri" shows its spinner and the next press takes it away.
     await act(async () => check.props.onPress());

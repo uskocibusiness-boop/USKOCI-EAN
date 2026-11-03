@@ -1,0 +1,310 @@
+{
+  "schema": "USKOCI_R07_R10_PRICE_EXPORT_SOURCE_V1",
+  "status": "LOCAL_ONLY_NOT_DEPLOYED",
+  "project_ref": "leqcwgzvjsxugfgzdmth",
+  "captured_at": "2026-11-03 12:23:41.857412+00",
+  "helpers_captured_at": "2026-11-03 12:25:26.051723+00",
+  "method": "Explicit READ ONLY transaction, pg_catalog definitions/types only; no business/Auth records or application function execution.",
+  "source_commit": "79ecdb1b90658dd642c28fd6cbe83463315dd232",
+  "functions": [
+    {
+      "name": "private.data_export_dataset_catalog",
+      "signature": "private.data_export_dataset_catalog()",
+      "body_md5": "e08e712c811ab2a093e48ca75a436c25",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "definer": true,
+      "strict": false,
+      "volatility": "i",
+      "result": "jsonb",
+      "source": {
+        "path": "supabase/proofs/privacy/bootstrap/current-application.sql",
+        "sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f"
+      }
+    },
+    {
+      "name": "private.data_export_snapshot",
+      "signature": "private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)",
+      "body_md5": "c3bde16e2175c7ec33c1a171e0ad04a3",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "definer": true,
+      "strict": false,
+      "volatility": "s",
+      "result": "text",
+      "source": {
+        "path": "supabase/proofs/privacy/bootstrap/current-application.sql",
+        "sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f"
+      }
+    }
+  ],
+  "unchanged_dependencies": [
+    {
+      "name": "private.closure_erasure_program_digest_v5",
+      "signature": "private.closure_erasure_program_digest_v5()",
+      "body_md5": "e6ec1acf0f08f19847b5e342f82f32b2",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "definer": true,
+      "strict": false,
+      "volatility": "s",
+      "result": "text",
+      "source": {
+        "path": "supabase/proofs/privacy/bootstrap/current-application.sql",
+        "sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f"
+      }
+    },
+    {
+      "name": "private.closure_source_digest_v5",
+      "signature": "private.closure_source_digest_v5()",
+      "body_md5": "41e54d223122b58decd25cf66191470a",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "definer": true,
+      "strict": false,
+      "volatility": "s",
+      "result": "text",
+      "source": {
+        "path": "supabase/proofs/privacy/bootstrap/current-application.sql",
+        "sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f"
+      }
+    },
+    {
+      "name": "private.data_export_policy_binding",
+      "signature": "private.data_export_policy_binding()",
+      "body_md5": "21ae94d4425396da941359cd834913fb",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "definer": true,
+      "strict": false,
+      "volatility": "s",
+      "result": "jsonb",
+      "source": {
+        "path": "supabase/proofs/privacy/bootstrap/current-application.sql",
+        "sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f"
+      }
+    },
+    {
+      "name": "private.data_export_projection_sha_v5",
+      "signature": "private.data_export_projection_sha_v5()",
+      "body_md5": "ffd64be69db4663dcb3e2d07713176cd",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "definer": true,
+      "strict": false,
+      "volatility": "s",
+      "result": "text",
+      "source": {
+        "path": "supabase/proofs/privacy/bootstrap/current-application.sql",
+        "sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f"
+      }
+    },
+    {
+      "name": "private.closure_taxonomy_export_catalog_v1",
+      "signature": "private.closure_taxonomy_export_catalog_v1()",
+      "body_md5": "6753530b240ef747d5a18f9e74ce6fb0",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "definer": true,
+      "strict": false,
+      "volatility": "i",
+      "result": "jsonb",
+      "source": {
+        "path": "supabase/proofs/privacy/bootstrap/current-application.sql",
+        "sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f"
+      }
+    },
+    {
+      "name": "private.data_export_scalar_v5",
+      "signature": "private.data_export_scalar_v5(jsonb,text)",
+      "body_md5": "e02fe0db0a56b90b74a29c2b81a38357",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "definer": false,
+      "strict": false,
+      "volatility": "i",
+      "result": "jsonb",
+      "source": {
+        "path": "supabase/proofs/privacy/bootstrap/current-application.sql",
+        "sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f"
+      }
+    }
+  ],
+  "read_columns": [
+    {
+      "relation": "public.agreement_versions",
+      "column_name": "agreement_id",
+      "type": "uuid",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.agreement_versions",
+      "column_name": "version",
+      "type": "integer",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.agreement_versions",
+      "column_name": "status",
+      "type": "text",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.agreement_versions",
+      "column_name": "terms",
+      "type": "jsonb",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.agreement_versions",
+      "column_name": "supersedes_version",
+      "type": "integer",
+      "not_null": false,
+      "default_expression": null
+    },
+    {
+      "relation": "public.agreement_versions",
+      "column_name": "created_at",
+      "type": "timestamp with time zone",
+      "not_null": true,
+      "default_expression": "statement_timestamp()"
+    },
+    {
+      "relation": "public.agreements",
+      "column_name": "id",
+      "type": "uuid",
+      "not_null": true,
+      "default_expression": "extensions.gen_random_uuid()"
+    },
+    {
+      "relation": "public.agreements",
+      "column_name": "requester_account_id",
+      "type": "uuid",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.agreements",
+      "column_name": "worker_account_id",
+      "type": "uuid",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.agreements",
+      "column_name": "current_version",
+      "type": "integer",
+      "not_null": true,
+      "default_expression": "1"
+    },
+    {
+      "relation": "public.marketplace_response_versions",
+      "column_name": "response_id",
+      "type": "uuid",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.marketplace_response_versions",
+      "column_name": "version",
+      "type": "integer",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.marketplace_response_versions",
+      "column_name": "need_revision",
+      "type": "integer",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.marketplace_response_versions",
+      "column_name": "price_rsd",
+      "type": "integer",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.marketplace_response_versions",
+      "column_name": "covered_slots",
+      "type": "integer",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.marketplace_response_versions",
+      "column_name": "created_at",
+      "type": "timestamp with time zone",
+      "not_null": true,
+      "default_expression": "statement_timestamp()"
+    },
+    {
+      "relation": "public.marketplace_response_versions",
+      "column_name": "price_basis",
+      "type": "text",
+      "not_null": false,
+      "default_expression": null
+    },
+    {
+      "relation": "public.marketplace_responses",
+      "column_name": "id",
+      "type": "uuid",
+      "not_null": true,
+      "default_expression": "extensions.gen_random_uuid()"
+    },
+    {
+      "relation": "public.marketplace_responses",
+      "column_name": "worker_account_id",
+      "type": "uuid",
+      "not_null": true,
+      "default_expression": null
+    },
+    {
+      "relation": "public.marketplace_responses",
+      "column_name": "current_version",
+      "type": "integer",
+      "not_null": true,
+      "default_expression": "1"
+    },
+    {
+      "relation": "public.marketplace_responses",
+      "column_name": "price_basis",
+      "type": "text",
+      "not_null": false,
+      "default_expression": null
+    }
+  ],
+  "limits": [
+    "Only two current export owners change; no schema, privilege, data or certificate mutation.",
+    "This is a source candidate; fresh full lifecycle admission and real Auth/HTTP remain open."
+  ]
+}

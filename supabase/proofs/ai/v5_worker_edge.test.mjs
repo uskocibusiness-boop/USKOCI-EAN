@@ -49,6 +49,7 @@ function fixture(options={}){
    if(options.dispatchError)throw new Error('SYNTHETIC_DISPATCH_ACK_LOST');
    return json(options.dispatch??{dispatched:true,turn:turn('PROCESSING')});
   }
+  if(url.endsWith('/rpc_complete_worker_ai_turn_with_first_plan_service'))return json({completion:turn(),firstPlan:{state:'RESOLVED',authority:'CATALOG_ONLY',applicability:'NOT_EVALUATED'}});
   if(url.endsWith('/rpc_complete_worker_ai_turn_service')){if(options.completionError)throw Error('SYNTHETIC_ACK_LOST');return json(options.receipt??turn());}
   if(url.endsWith('/rpc_taxonomy_ai_catalog_context_service'))return json(options.catalog(JSON.parse(init.body)));
   if(url.endsWith('/rpc_taxonomy_query_catalog_service'))return json(queryCatalog(JSON.parse(init.body).p_query,options.catalog));
@@ -79,7 +80,7 @@ function fixture(options={}){
   body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:'SYNTHETIC_USER_MESSAGE',...patch})}))};
 }
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
-const completions=f=>f.calls.filter(c=>c.url.endsWith('/rpc_complete_worker_ai_turn_service'));
+const completions=f=>f.calls.filter(c=>/\/rpc_complete_worker_ai_turn(?:_with_first_plan)?_service$/.test(c.url));
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_fail_worker_ai_turn_service'));
 async function events(f,patch={}){const r=await f.invoke(patch);assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/event-stream/);
  return (await r.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
@@ -90,95 +91,67 @@ for(const failed of [false,true])test('worker streaming provider has one count-o
  assert.equal(phases[0][3],failed?'FAILED':'SUCCEEDED');assert.equal(es.at(-1).kind,failed?'safe_error':'final');
  assert.ok(!JSON.stringify(logs).includes('PRIVATE_PROVIDER_BODY'));assert.ok(!JSON.stringify(logs).includes('SYNTHETIC_USER_MESSAGE'));
 });
-test('worker Gemini prompt asks one question while preserving area, availability and Save authority',async()=>{
- const f=fixture(); await events(f);
+test('compact worker instructions retain one question, independent areas and user Save authority',async()=>{
+ const f=fixture();await events(f);
  const rule=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.match(rule,/Jedno korisno pitanje po poruci/);
- assert.match(rule,/Ask at most ONE short question per reply/);
- assert.match(rule,/experienced, warm craft and work-profile mentor/);
- assert.match(rule,/what the person CAN and WANTS to do/);
- assert.doesNotMatch(rule,/iskusan poslovođa i savetnik naručioca/);
- assert.doesNotMatch(rule,/at most THREE/);
- assert.match(rule,/Novi Sad i Beograd means two CITY entries/);
- assert.match(rule,/Only explicit Sačuvaj profil in the review applies the changes/);
- assert.match(rule,/availabilityChange is/);
- assert.ok(rule.length<20000,`stable worker instruction grew to ${rule.length} characters`);
+ for(const pattern of [/najviše JEDNO pitanje/,/ONE person actually offers/,/Novi Sad i Beograd = two CITY areas/,
+  /Objavi\/Sačuvaj je korisnička potvrda/,/availabilityChange/,/Kategorije\/ID-jevi\/grane idu samo AI→server/])assert.match(rule,pattern);
+ assert.ok(rule.length<12000,`worker instruction grew to ${rule.length} characters`);
 });
 
-// Exact current handler with both Gemini transports stubbed. These scenarios
-// prove routing and accepted patch boundaries, not real provider semantics.
-function dualModeFixture({modes=['REMOTE'],handoff,evidence,quote,priorMode='ON_SITE',priorHandoff,outputSafety='ALLOW',backgroundStatus,log,catalogModes=['REMOTE','ON_SITE']}={}){
- const service='Časovi engleskog',categoryId=id(20);
- const userText=quote??'Od sada držim časove engleskog samo online.';
- const modeContext={schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:4,
-  savedServices:[{service,categoryId,mode:priorMode,...(priorHandoff?{handoff:priorHandoff}:{})}],draftServices:[],unresolvedServices:[]};
- const changes=[{service,modes,evidence:evidence??userText,...(handoff?{handoff}:{})}];
- const f=fixture({env:{SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co'},log,
-  context:{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:4,
-   profileStatus:'ACTIVE',serviceModeContext:modeContext,
-   candidate:{skills:[service],bio:'Prethodni opis.',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
-   messages:[{role:'USER',body:userText},{role:'ASSISTANT',body:'ASSISTANT_ONLY_SCOPE_QUOTE'}]},
-  snapshot:{catalogVersion:7,catalogFingerprint:'a'.repeat(32),categories:[{
-   categoryId,parentId:null,label:service,aliases:[],path:[service],isLeaf:true,modes:catalogModes}]},
-  output:{assistantMessage:'Predlog izmene je u nacrtu.',safety:outputSafety,patch:{bio:'Dopunjen opis.'},serviceModeChangesJson:JSON.stringify(changes)},
-  backgroundProvider:()=>backgroundStatus?new Response('PRIVATE_BG_PROVIDER_BODY',{status:backgroundStatus}):json({candidates:[{content:{parts:[{text:JSON.stringify({items:modes.map(mode=>({service,mode,
-   action:'CREATE_CHILD',parentId:'',handoffKind:handoff?.shippingCountries?'SHIPPING_RS':'NONE',handoffCity:'',
-   reason:'Izričit predlog radnika za njegovu postojeću uslugu.'}))})}]},finishReason:'STOP'}]})});
- return {...f,userText,changes,modeContext};
+// Current single-response classifications and atomic completion. The retired
+// second-provider scheduling is covered by explicit no-second-call assertions.
+const singleEnv={SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co',USKOCI_TAXONOMY_DUAL_GEMINI:'true',
+ USKOCI_TAXONOMY_ROLLOUT_SCOPE:'DEV',USKOCI_TAXONOMY_ALLOWED_PROJECT_REF:'leqcwgzvjsxugfgzdmth'};
+const proposed=(service,mode,categoryId)=>({service,mode,categoryId,action:'REUSE_EXISTING',parentId:'',proposedPath:[],ambiguityPrompt:'',reason:'Smisao usluge odgovara potvrđenom poslu.'});
+const plans=f=>f.calls.filter(c=>c.url.endsWith('/rpc_complete_worker_ai_turn_with_first_plan_service')).flatMap(c=>c.body.p_taxonomy_plan.proposals);
+function modeFixture(options={}){
+ const service='Izrada maketa',categoryId=id(20),quote=options.quote??'Od sada makete radim samo na daljinu.';
+ const modeContext={schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:2,
+  savedServices:[{service,categoryId,mode:'ON_SITE'}],draftServices:[],unresolvedServices:[],...options.modeContext};
+ const decisions=options.decisions??[proposed(service,'REMOTE',categoryId)];
+ const f=fixture({env:singleEnv,context:{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:2,
+  profileStatus:'ACTIVE',serviceModeContext:modeContext,candidate:{skills:[service],bio:'Opis',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
+  messages:options.messages??[{role:'USER',body:quote},{role:'ASSISTANT',body:'ASSISTANT_ONLY_SCOPE_QUOTE'}]},
+  snapshot:{catalogVersion:7,catalogFingerprint:'a'.repeat(32),count:1,categories:[{categoryId,parentId:null,label:service,aliases:[],path:[service],isLeaf:true,modes:options.catalogModes??['REMOTE','ON_SITE']}]},
+  output:{assistantMessage:'Predlog izmene je u nacrtu.',safety:options.safety??'ALLOW',patch:options.patch??{bio:'Dopunjen opis'},taxonomyDecisions:decisions,
+   ...(options.noChanges?{}:{serviceModeChangesJson:JSON.stringify([{service,modes:options.modes??['REMOTE'],evidence:options.evidence??quote,handoff:options.handoff??{required:false}}])})}});
+ return {...f,modeContext,quote};
 }
-async function settleBackground(){for(let i=0;i<20;i++)await new Promise(resolve=>setImmediate(resolve));}
-test('dual worker mode-only correction reaches background review without a skills edit',async()=>{
- const f=dualModeFixture({handoff:{required:false}});
- const es=await events(f,{text:f.userText});await settleBackground();
- assert.equal(es.at(-1).kind,'final');
- const main=providers(f).find(call=>call.url.includes(':streamGenerateContent')).body;
- assert.ok(main.generationConfig.responseSchema.properties.serviceModeChangesJson);
- assert.equal(main.generationConfig.responseSchema.properties.classificationShadowJson,undefined);
- assert.match(main.systemInstruction.parts.map(part=>part.text).join(' '),/include that initial declaration with the exact USER service quote/);
- assert.doesNotMatch(main.systemInstruction.parts.map(part=>part.text).join(' '),/Keep the normal classificationShadowJson full snapshot/);
- assert.equal(providers(f).filter(call=>call.url.includes(':generateContent')).length,1);
- const capture=f.calls.find(call=>call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
- assert.deepEqual(capture?.body.p_proposals.map(p=>({mode:p.mode,handoff:p.handoff})),[{mode:'REMOTE',handoff:{required:false}}]);
- assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Dopunjen opis.'});
- assert.equal(Object.hasOwn(completions(f)[0].body.p_output,'serviceModeChangesJson'),false);
- assert.ok(!f.calls.some(call=>/rpc_save_worker|rpc_set_worker_execution_modes/.test(call.url)));
+test('mode-only correction keeps ID in one atomic completion without a skills edit',async()=>{
+ const f=modeFixture(),es=await events(f,{text:f.quote});assert.equal(es.at(-1).kind,'final');
+ assert.equal(providers(f).length,1);assert.deepEqual(plans(f).map(p=>[p.categoryId,p.mode,p.handoff]),[[id(20),'REMOTE',{required:false}]]);
+ assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Dopunjen opis'});
+ assert.ok(!f.calls.some(c=>/capture_gemini|rpc_save_worker|set_worker_execution|:generateContent/.test(c.url)));
+ assert.ok(!JSON.stringify(es).includes(id(20)));
 });
-test('dual worker handoff-only correction retains REMOTE and queues the new bounded handoff',async()=>{
- const f=dualModeFixture({priorMode:'REMOTE',priorHandoff:{required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}},
-  quote:'Od sada šaljem urađene radove poštom samo unutar Srbije.',handoff:{required:true,shippingCountries:['RS']}});
- const es=await events(f,{text:f.userText});await settleBackground();assert.equal(es.at(-1).kind,'final');
- assert.equal(providers(f).filter(call=>call.url.includes(':generateContent')).length,1);
- const capture=f.calls.find(call=>call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
- assert.deepEqual(capture?.body.p_proposals.map(p=>({mode:p.mode,handoff:p.handoff})),[{mode:'REMOTE',handoff:{required:true,shippingCountries:['RS']}}]);
+test('handoff-only correction retains REMOTE and exact ID without a second provider',async()=>{
+ const handoff={required:true,shippingCountries:['RS']};
+ const f=modeFixture({quote:'Od sada šaljem makete poštom samo u Srbiji.',handoff,
+  modeContext:{savedServices:[{service:'Izrada maketa',categoryId:id(20),mode:'REMOTE',handoff:{required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}}}]}});
+ await events(f,{text:f.quote});assert.equal(providers(f).length,1);assert.deepEqual(plans(f).map(p=>p.handoff),[handoff]);
 });
-for(const evidence of ['PRIVATE_INVENTED_SCOPE','ASSISTANT_ONLY_SCOPE_QUOTE'])test('dual worker invented or assistant mode evidence does not trigger classification: '+evidence,async()=>{
- const f=dualModeFixture({evidence});const es=await events(f,{text:f.userText});await settleBackground();
- assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
- assert.equal(f.calls.filter(call=>call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')).length,0);
+test('bio-only correction carries the owned category into the new revision without another model decision',async()=>{
+ const f=modeFixture({quote:'Dopunite samo moj opis.',noChanges:true,decisions:[]});
+ assert.equal((await events(f,{text:f.quote})).at(-1).kind,'final');
+ assert.equal(providers(f).length,1);assert.deepEqual(plans(f).map(p=>[p.categoryId,p.mode]),[[id(20),'ON_SITE']]);
+ assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Dopunjen opis'});
 });
-test('dual worker mode evidence from an earlier turn does not rerun classification for an unrelated bio edit',async()=>{
- const f=dualModeFixture();const es=await events(f,{text:'Dopuni samo opis profila.'});await settleBackground();
- assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
+for(const evidence of ['PRIVATE_INVENTED_SCOPE','ASSISTANT_ONLY_SCOPE_QUOTE'])test('unowned scope evidence cannot authorize any mode: '+evidence,async()=>{
+ const f=modeFixture({evidence});assert.equal((await events(f,{text:f.quote})).at(-1).kind,'final');
+ assert.equal(providers(f).length,1);assert.deepEqual(plans(f),[]);
 });
-for(const outputSafety of ['BLOCK','REVIEW'])test('dual worker rejected mode change does not launch classifier: '+outputSafety,async()=>{
- const f=dualModeFixture({outputSafety});await events(f,{text:f.userText});await settleBackground();
- assert.equal(providers(f).length,1);assert.equal(f.calls.filter(call=>call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')).length,0);
+for(const safety of ['REVIEW','BLOCK'])test('safety refusal cannot admit a taxonomy plan: '+safety,async()=>{
+ const f=modeFixture({safety});await events(f,{text:f.quote});assert.equal(providers(f).length,1);assert.deepEqual(plans(f),[]);
 });
-for(const mutation of ['stale','unknown_mode'])test('dual worker invalid authoritative mode context stops before budget and provider: '+mutation,async()=>{
- const f=dualModeFixture();
- if(mutation==='stale')f.modeContext.revision=3;else f.modeContext.savedServices[0].mode='UNKNOWN';
- const response=await f.invoke({text:f.userText});assert.equal(response.status,503);
- assert.equal(providers(f).length,0);assert.equal(completions(f).length,0);
- assert.equal(f.calls.filter(call=>call.url.includes('budget_reserve')).length,0);
+for(const mutation of ['stale','unknown_mode'])test('invalid authoritative mode context stops before budget/provider: '+mutation,async()=>{
+ const f=modeFixture();if(mutation==='stale')f.modeContext.revision=1;else f.modeContext.savedServices[0].mode='UNKNOWN';
+ assert.equal((await f.invoke({text:f.quote})).status,503);assert.equal(providers(f).length,0);assert.equal(completions(f).length,0);
+ assert.ok(!f.calls.some(c=>c.url.includes('budget_reserve')));
 });
-for(const catalogModes of [['ON_SITE'],['ON_SITE','REMOTE']])test('dual worker classifier outage keeps the completed conversation without applying a fresh scope, supported='+catalogModes.includes('REMOTE'),async()=>{
- const logs=[],f=dualModeFixture({backgroundStatus:503,catalogModes,log:args=>logs.push(args)});
- const es=await events(f,{text:f.userText});await settleBackground();
- assert.equal(es.at(-1).kind,'final');assert.equal(completions(f).length,1);
- assert.equal(providers(f).filter(call=>call.url.includes(':generateContent')).length,1);
- assert.equal(f.calls.filter(call=>/rpc_taxonomy_capture_gemini_turn_hints_service|rpc_taxonomy_store_classification_turn_hint_service/.test(call.url)).length,0);
- assert.deepEqual(logs.filter(args=>args[0]==='BG_TAXONOMY_PROVIDER_FAILURE'),[['BG_TAXONOMY_PROVIDER_FAILURE','RETRYABLE_PROVIDER','PROVIDER_HTTP_503']]);
- assert.ok(!JSON.stringify(logs).includes('PRIVATE_BG_PROVIDER_BODY'));
+for(const decisions of [[],[proposed('Izrada maketa','REMOTE',id(99))]])test('missing or invalid classification keeps useful facts without a second provider: '+JSON.stringify(decisions),async()=>{
+ const f=modeFixture({decisions});assert.equal((await events(f,{text:f.quote})).at(-1).kind,'final');assert.equal(providers(f).length,1);
+ assert.deepEqual(plans(f),[]);assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Dopunjen opis'});
 });
 
 test('COUNTRY area request reaches the service-only writer as canonical workAreas without coordinates',async()=>{
@@ -221,16 +194,15 @@ test('invalid fallback worker patch still settles complete provider thinking usa
 
 test('recovery proof loader binds the current complete worker bundle without network',async()=>{
  const loaded=loadWorkerRecoveryHandler({fetch:()=>assert.fail('NETWORK_NOT_ALLOWED'),env:()=>''});
- assert.deepEqual(Object.keys(loaded.sourceHashes).sort(),['supabase/functions/_shared/interviewVoiceInstruction.mjs','supabase/functions/_shared/aiPhaseTiming.mjs','src/contracts/aiAvailability.ts','supabase/functions/_shared/aiTestBudget.ts',
+ assert.deepEqual(Object.keys(loaded.sourceHashes).sort(),['src/contracts/workerAreas.ts','supabase/functions/_shared/completeFirstPlan.ts','supabase/functions/_shared/singlePassTaxonomy.mjs','supabase/functions/_shared/interviewVoiceInstruction.mjs','supabase/functions/_shared/aiPhaseTiming.mjs','src/contracts/aiAvailability.ts','supabase/functions/_shared/aiTestBudget.ts',
   'supabase/functions/_shared/geminiTaskStream.ts','supabase/functions/uskoci-worker-interview/index.ts',
-  'supabase/functions/_shared/classificationEngine.mjs','supabase/functions/_shared/classificationGeminiShadow.mjs',
-  'supabase/functions/_shared/classificationDirectReply.mjs',
-  'supabase/functions/_shared/workerServiceModeContext.mjs','supabase/functions/_shared/classificationReply.mjs',
-  'supabase/functions/_shared/classificationExplorer.mjs','supabase/functions/_shared/geminiToolConversation.ts',
+  'supabase/functions/_shared/classificationEngine.mjs',
+  'supabase/functions/_shared/workerServiceModeContext.mjs',
   'supabase/functions/_shared/serviceHandoff.mjs','supabase/functions/_shared/serviceExecutionInstruction.mjs',
-  'supabase/functions/_shared/taxonomyProviderBudget.ts','supabase/functions/_shared/researchDeadline.ts',
+  'supabase/functions/_shared/researchDeadline.ts',
   'supabase/functions/_shared/workerAreaAdmission.mjs','supabase/functions/_shared/workerAreaResolver.mjs',
-  'supabase/functions/_shared/backgroundTaxonomyArchitect.mjs'].sort());
+  'supabase/functions/_shared/backgroundTaxonomyArchitect.mjs',
+  'supabase/functions/_shared/taxonomyRuntimeConfig.mjs'].sort());
  assert.equal((await loaded.handler(new Request('https://edge.invalid',{method:'GET'}))).status,405);
 });
 for(const status of [402,429])for(const diagnostics of [false,true])
@@ -271,7 +243,7 @@ test('invented availability evidence cannot authorize a calendar proposal',async
 });
 
 for(const availability of [null,{ruleChanges:[],windowsUpsert:[],windowIdsRemove:[]}])
-test('owned partial weekday hours keep the precise missing-end question and unsupported-area explanation',async()=>{
+test('unsupported area asks one question while partial calendar intent remains in owned history',async()=>{
  const input='Radim molerske radove po celoj Vojvodini i u Beogradu, radnim danima posle 16. Alat ne bih posebno unosio.';
  const reply='Regionalna pokrivenost još nije podešena. Koji grad i krug oko njega da koristimo za predloge? Do koliko sati radnim danima?';
  const context={schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:0,
@@ -280,14 +252,14 @@ test('owned partial weekday hours keep the precise missing-end question and unsu
   output:{assistantMessage:reply,safety:'ALLOW',patch:{skills:['Molerski radovi'],bio:'Molerski radovi.',availability}}});
  const es=await events(f,{text:input});assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
  const accepted=completions(f)[0].body.p_output;
- assert.match(accepted.assistantMessage,/širu oblast/);assert.match(accepted.assistantMessage,/Do koliko sati radnim danima\?/);
+ assert.match(accepted.assistantMessage,/širu oblast/);assert.match(accepted.assistantMessage,/Koji grad želite za sada\?/);assert.equal((accepted.assistantMessage.match(/\?/g)??[]).length,1);assert.ok(context.messages[0].body.includes('radnim danima posle 16'));
  assert.equal(accepted.safety,'CLARIFY');
  assert.deepEqual(accepted.patch,{skills:['Molerski radovi'],bio:'Molerski radovi.'});
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),accepted.assistantMessage);
  assert.ok(!logs.some(args=>args[0]==='WORKER_AVAILABILITY_GUARD'));
  const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.ok(prompt.includes("For 'radnim danima posle 16', ask 'Do koliko sati radnim danima?'"));
- assert.ok(prompt.includes('Keep this explanation distinct from any missing calendar detail'));
+ assert.ok(prompt.includes('Retain partial days/times and ask only what is missing'));
+ assert.ok(prompt.includes('Unsupported region/cross-border scope: explain and ask Serbian cities/all Serbia'));
 });
 
 for(const mode of ['invented_quote','actual_operation'])test('availability CLARIFY cannot bypass evidence or sneak a calendar mutation: '+mode,async()=>{
@@ -514,131 +486,19 @@ test('distinct owned profile streams real Unicode text, reserves approved budget
  assert.ok(!JSON.stringify(es).includes('PROVIDER_SYNTHETIC'));assert.ok(!f.calls.some(c=>c.url.includes('rpc_save_worker')));
 });
 
-for(const registered of [true,false])test(`worker actual handler keeps original service and captures only server-registered alias=${registered}`,async()=>{
- const service='3D štampa',category=id(20);
- const proposal={service,mode:'REMOTE',action:'REUSE_ALIAS',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic worker service and remote mode.',catalogVersion:7};
- const output={assistantMessage:'Proveri svoj nacrt.',safety:'ALLOW',patch:{skills:[service]},classificationShadowJson:JSON.stringify([proposal])};
- const f=fixture({output,env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
-  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
-   catalogFingerprint:'a'.repeat(32),items:body.p_execution_location_mode==='REMOTE'?[{
-    categoryId:category,parentId:null,label:'3D printovanje',aliases:registered?[service]:[],path:['3D printovanje'],isLeaf:true,
-   }]:[],nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'}),
- });
- const es=await events(f);
- assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);assert.equal(failures(f).length,0);
- assert.equal(completions(f).length,1);
- assert.deepEqual(completions(f)[0].body.p_output.patch.skills,[service]);
- assert.equal(Object.hasOwn(completions(f)[0].body.p_output,'classificationShadowJson'),false);
- const capture=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
- assert.equal(capture.length,registered?1:0);
- if(registered){
-  assert.deepEqual(capture[0].body.p_proposals,[{...proposal,action:'REUSE_EXISTING'}]);
-  assert.ok(f.calls.indexOf(capture[0])>f.calls.indexOf(completions(f)[0]));
- }
- assert.ok(!f.calls.some(c=>/save_worker|ensure_path|commit_admission|publish|push/.test(c.url)));
-});
+// Shadow JSON/tool-pagination capture tests have moved to the current
+// single_pass_edge / single_pass_continuity suites. They exercise whole-catalog
+// IDs, unregistered natural labels, BOTH, partial decisions and no second model.
 
-function paintingFixture(shadow,options={}){
- const service='Krečenje zidova',category=id(23);
- const proposal={service,mode:'ON_SITE',action:'REUSE_EXISTING',categoryId:category,parentId:'',proposedPath:[],
-  reason:'The worker explicitly offers painting at the customer location.',catalogVersion:7};
- const output={assistantMessage:'Pregledaj nacrt pre čuvanja.',safety:'ALLOW',patch:{skills:[service]},
-  ...(shadow==='missing'?{}:{classificationShadowJson:shadow==='valid'?JSON.stringify([proposal]):shadow})};
- return fixture({output,log:options.log,
-  env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true',...options.env},
-  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
-   catalogFingerprint:'a'.repeat(32),items:body.p_execution_location_mode==='REMOTE'?[]:[
-    {categoryId:id(21),parentId:null,label:'Molerski radovi',aliases:[],path:['Molerski radovi'],isLeaf:false},
-    {categoryId:id(22),parentId:id(21),label:'Krečenje',aliases:[],path:['Molerski radovi','Krečenje'],isLeaf:false},
-    {categoryId:category,parentId:id(22),label:service,aliases:[],path:['Molerski radovi','Krečenje',service],isLeaf:true},
-   ],nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'})});
-}
-
-test('two explicit remote services retain both hints when the model tries to recreate an exact existing presentation service',async()=>{
- const service='Izrada prezentacija',translation='Prevođenje tekstova',parent=id(50),presentationId=id(51),translationId=id(52);
- const user='Bavim se izradom prezentacija i prevodom tekstova. Radim od kuće, radnim danima od 18 do 21. Imam i kombi, ali ne nudim prevoz.';
- const scopeQuote='Radim od kuće',calendarQuote='radnim danima od 18 do 21';
- const hints=[{service,mode:'REMOTE',action:'CREATE_CHILD',categoryId:'',parentId:parent,proposedPath:[service],reason:'Explicitly offered presentation work from home.',catalogVersion:7,handoff:{required:false}},
-  {service:translation,mode:'REMOTE',action:'REUSE_EXISTING',categoryId:translationId,parentId:'',proposedPath:[],reason:'Explicitly offered text translation from home.',catalogVersion:7,handoff:{required:false}}];
- const context={schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:0,
-  serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:0,savedServices:[],draftServices:[],unresolvedServices:[]},
-  candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:user}]};
- const availability={ruleChanges:[{ruleId:null,weekdays:[1,2,3,4,5],value:{startTime:'18:00',endTime:'21:00',startsOn:'2026-10-20',endsOn:null,label:'Radnim danima',active:true}}]};
- const logs=[],f=fixture({context,log:args=>logs.push(args),availabilityChange:{kind:'PATCH',evidence:calendarQuote},
-  output:{assistantMessage:'Obe usluge i radno vreme su u nacrtu.',safety:'ALLOW',patch:{skills:[service,translation],vehicles:['Kombi'],availability},
-   serviceModeChangesJson:JSON.stringify([service,translation].map(service=>({service,modes:['REMOTE'],evidence:scopeQuote,handoff:{required:false}}))),
-   classificationShadowJson:JSON.stringify(hints)},
-  env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
-  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode,catalogVersion:7,catalogFingerprint:'a'.repeat(32),
-   items:body.p_execution_location_mode==='ON_SITE'?[{categoryId:parent,parentId:null,label:'Digitalne usluge',aliases:[],path:['Digitalne usluge'],isLeaf:false}]:[
-    {categoryId:presentationId,parentId:parent,label:service,aliases:[],path:['Digitalne usluge',service],isLeaf:true},
-    {categoryId:translationId,parentId:parent,label:translation,aliases:[],path:['Digitalne usluge',translation],isLeaf:true}],
-   nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'})});
- const es=await events(f,{text:user});assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
- const saved=completions(f)[0].body.p_output;assert.deepEqual(saved.patch.skills,[service,translation]);assert.deepEqual(saved.patch.availability,availability);
- assert.equal(Object.hasOwn(saved.patch,'vehicles'),false,'volunteered equipment cannot update the owned candidate');
- const capture=f.calls.find(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
- assert.ok(capture);assert.deepEqual(capture.body.p_proposals.map(p=>[p.service,p.mode,p.action,p.categoryId]),
-  [[service,'REMOTE','REUSE_EXISTING',presentationId],[translation,'REMOTE','REUSE_EXISTING',translationId]]);
- assert.ok(f.calls.indexOf(capture)>f.calls.indexOf(completions(f)[0]));
- assert.ok(logs.some(args=>args[0]==='WORKER_TAXONOMY_IDENTITY_RECOVERY'&&args[1]===1));
- assert.ok(!f.calls.some(c=>/save_worker|ensure_path|commit_admission|publish|push/.test(c.url)));
-});
-
-test('known painting leaf is proposed ON_SITE through actual worker catalog schema and hint capture',async()=>{
- const f=paintingFixture('valid'),es=await events(f);
- assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
- const provider=providers(f)[0].body,schema=provider.generationConfig.responseSchema;
- assert.ok(schema.required.includes('classificationShadowJson'));
- assert.deepEqual(schema.properties.classificationShadowJson,{type:'STRING'});
- const capture=f.calls.find(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
- assert.deepEqual(capture.body.p_proposals.map(p=>[p.service,p.mode,p.categoryId]),[['Krečenje zidova','ON_SITE',id(23)]]);
- assert.ok(f.calls.indexOf(capture)>f.calls.indexOf(completions(f)[0]));
- assert.deepEqual(completions(f)[0].body.p_output.patch.skills,['Krečenje zidova']);
- assert.ok(!Object.hasOwn(completions(f)[0].body.p_output,'classificationShadowJson'));
- assert.ok(!f.calls.some(c=>/rpc_save_worker|ensure_path|commit_admission|publish|push/.test(c.url)));
-});
-
-for(const [shadow,diagnostic] of [['missing','MISSING_CLASSIFICATION_SHADOW'],['[]','EMPTY_CLASSIFICATION_SHADOW']])
-test('worker '+diagnostic+' remains unresolved without catalog-mode inference or a paid retry',async()=>{
- const logs=[],f=paintingFixture(shadow,{log:args=>logs.push(args)}),es=await events(f);
- assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);assert.equal(completions(f).length,1);
- assert.ok(logs.some(args=>args[0]==='WORKER_TAXONOMY_PLAN_SHADOW'&&args[1]===diagnostic));
- assert.ok(!JSON.stringify(logs).includes('Krečenje'));
- assert.ok(!f.calls.some(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')));
- assert.deepEqual(completions(f)[0].body.p_output.patch.skills,['Krečenje zidova']);
-});
-
-test('worker without active catalog protocol retains its original provider schema',async()=>{
- const f=paintingFixture('missing',{env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'false'}});await events(f);
- const schema=providers(f)[0].body.generationConfig.responseSchema;
- assert.ok(!schema.required.includes('classificationShadowJson'));
- assert.ok(!Object.hasOwn(schema.properties,'classificationShadowJson'));
- assert.ok(!f.calls.some(c=>c.url.endsWith('/rpc_taxonomy_query_catalog_service')));
-});
-
-test('stale painting proposal cannot become a current service mode despite a known exact leaf',async()=>{
- const proposal={service:'Krečenje zidova',mode:'ON_SITE',action:'REUSE_EXISTING',categoryId:id(23),parentId:'',proposedPath:[],
-  reason:'Synthetic stale proposal from the previous catalog.',catalogVersion:6};
- const logs=[],f=paintingFixture(JSON.stringify([proposal]),{log:args=>logs.push(args)});await events(f);
- assert.equal(providers(f).length,1);
- assert.ok(logs.some(args=>args[0]==='WORKER_TAXONOMY_PLAN_SHADOW'&&args[1]==='STALE_CATALOG'));
- assert.ok(!f.calls.some(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')));
-});
 test('completed/unknown claim replay cannot reserve or call the provider again',async()=>{
  const f=fixture({replay:true});assert.deepEqual(await(await f.invoke()).json(),turn());assert.equal(providers(f).length,0);assert.equal(f.calls.length,2);
 });
-test('draft worker requires administrative city for activation without limiting remote work or asking an address',async()=>{
- const f=fixture(); await events(f);
- const instruction=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.match(instruction,/rpc_complete_worker_profile requires a city for a NEW DRAFT, even for REMOTE work/);
- assert.match(instruction,/if missing, ask ONE short natural question for the administrative city/);
- assert.match(instruction,/Administrative city does NOT restrict REMOTE matching/);
- assert.match(instruction,/Do not reopen the city interview only because an old profile lacks a city/);
- assert.match(instruction,/never invent a city or infer it from language, phone, service, work area or geolocation/);
- assert.match(instruction,/Only explicit Sačuvaj profil in the review applies the changes/);
- assert.match(instruction,/Never require a home city, address or GPS for a new worker/);
+test('REMOTE-only prompt keeps location optional and server-reviewed Save authoritative',async()=>{
+ const f=fixture();await events(f);const rule=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
+ for(const pattern of [/REMOTE-only needs no city/,/No home city\/address\/GPS interview/,/Country is not inferred from language/,
+  /Objavi\/Sačuvaj je korisnička potvrda/,/Ne tvrdite da je već objavljeno, sačuvano, aktivirano/])assert.match(rule,pattern);
 });
+
 test('contextual worker clarification survives completion and stream without invented profile changes',async()=>{
  const output={assistantMessage:'Izvini, nije mi sasvim jasno na šta misliš. Možeš li to da kažeš drugim rečima?',safety:'CLARIFY',patch:{}};
  const f=fixture({output}),es=await events(f,{text:'SYNTHETIC_UNCLEAR_TEXT'});
@@ -646,19 +506,8 @@ test('contextual worker clarification survives completion and stream without inv
  assert.deepEqual(completions(f)[0].body.p_output,output);
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),output.assistantMessage);
  const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.ok(prompt.includes('USKOČI glas:'));
- assert.ok(prompt.includes('Povremeno može jedan nenametljiv smajli'));
- assert.ok(prompt.includes('niti izmišljaj lično iskustvo'));
- assert.ok(prompt.includes('safety CLARIFY with an empty patch'));
- assert.ok(prompt.includes('You receive text only, not sound'));
- // Actual provider instructions distinguish any proposed edit (even ACTIVE)
- // from public profile persistence; this is not a claim about model compliance.
- assert.ok(prompt.includes('Every proposed change is in the NACRT, including edits to an already ACTIVE profile'));
- assert.ok(prompt.includes('Dodato je u nacrt profila'));
- assert.ok(prompt.includes('ostalo ostaje nepromenjeno'));
- assert.ok(prompt.includes('Only explicit Sačuvaj profil in the review applies the changes'));
- assert.ok(prompt.includes('Never describe proposed changes as saved to the profile, activated or already used for matching/notifications'));
- assert.ok(!prompt.includes('Prefer the question alone'));
+ for(const pattern of [/Vi\/Vam\/Vas/,/najviše jedan diskretan emoji/,/Bez pretpostavljenog roda, ljudskog identiteta\/iskustva/,
+  /CLARIFY nejasno/,/Izmene su NACRT/,/Objavi\/Sačuvaj je korisnička potvrda/,/Ne tvrdite da je već objavljeno/])assert.match(prompt,pattern);
 });
 for(const env of [{USKOCI_GEMINI_PAID_TEST_ENABLED:''},{AI_PROVIDER:'openai'},{GEMINI_MODEL:'another-model'}])test('unapproved config remains closed before reservation/provider',async()=>{
  const f=fixture({env});assert.equal((await f.invoke()).status,503);assert.equal(providers(f).length,0);assert.equal(failures(f).length,1);assert.ok(!f.calls.some(c=>c.url.includes('budget')));
@@ -693,129 +542,13 @@ test('personal interview filters obsolete fields without changing the owned V1 c
  assert.ok(!Object.hasOwn(fields,'licenses'));assert.ok(!Object.hasOwn(fields,'teamCapacity'));
  assert.ok(!Object.hasOwn(fields,'excludedWork'));assert.ok(!Object.hasOwn(fields,'urgentNotifications'));
  assert.equal(candidate.teamCapacity,37);assert.deepEqual(candidate.licenses,['PRIVATE_LEGACY_LICENSE']);
- assert.ok(prompt.includes('ONE person'));assert.ok(prompt.includes('no separate exclusion or urgent-notification preference field'));
+ assert.ok(prompt.includes('ONE person'));assert.ok(prompt.includes('bio is an optional introduction/limits, never a matching filter'));
  assert.ok(!JSON.stringify(provider.systemInstruction.parts.slice(0,2)).includes('"tools":["Kolica"]'));
- assert.ok(!JSON.stringify(provider.systemInstruction.parts.slice(0,2)).includes('"city":"Novi Sad"'));
- assert.equal(provider.systemInstruction.parts.filter(p=>p.text.includes('Current owned candidate')).length,1);
+ assert.equal(provider.systemInstruction.parts.filter(p=>p.text.includes('Owned candidate')).length,1);
 });
 
-function modeFixture(options={}) {
- const service='Izrada maketa', category=id(20);
- const proposal=mode=>({service,mode,action:'REUSE_EXISTING',categoryId:category,parentId:'',proposedPath:[],
-  reason:'Synthetic service mode proposal for the current candidate.',catalogVersion:7});
- const context={schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:2,
-  candidate:{skills:[service],bio:'Prethodni opis',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
-  serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:2,
-   savedServices:[{service,categoryId:category,mode:'REMOTE'}],
-   draftServices:['REMOTE','ON_SITE'].map(mode=>({service,categoryId:category,mode})),unresolvedServices:[]},
-  messages:options.messages??[{role:'USER',body:'Dopuni samo opis profila.'}],...options.context};
- const output={assistantMessage:'Dopunio sam opis. Pregledaj izmene pre čuvanja.',safety:'ALLOW',patch:{bio:'Dopunjen opis'},
-  classificationShadowJson:JSON.stringify(['REMOTE','ON_SITE'].map(proposal)),...options.output};
- return fixture({context,output,env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
-  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
-   catalogFingerprint:'a'.repeat(32),items:options.catalogItems?.(body)??(options.retired||options.catalogModes&&!options.catalogModes.includes(body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE')?[]:[{categoryId:category,parentId:null,label:service,aliases:['Modeli po meri'],path:[service],isLeaf:true}]),
-   nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'})});
-}
-const capturedModes=f=>f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')).flatMap(c=>c.body.p_proposals.map(p=>p.mode));
-
-test('bio-only edit preserves saved REMOTE despite a prior unconfirmed draft and both catalog modes',async()=>{
- const f=modeFixture();await events(f);
- assert.deepEqual(capturedModes(f),['REMOTE']);
- assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Dopunjen opis'});
- assert.equal(providers(f).length,1);assert.ok(!f.calls.some(c=>/rpc_save_worker|rpc_set_worker_execution_modes/.test(c.url)));
- const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.ok(prompt.includes('savedServices'));assert.ok(prompt.includes('does NOT mean this person offers both'));
- assert.ok(!Object.hasOwn(completions(f)[0].body.p_output,'serviceModeChangesJson'));
- assert.ok(!Object.hasOwn(completions(f)[0].body.p_output,'classificationShadowJson'));
-});
-test('conflicting dual-mode saved IDs and fresh hints never reach handler capture; unrelated saved service survives',async()=>{
- const service='Izrada maketa',other='Prevod teksta';
- const onsiteId=id(20),remoteId=id(21),otherId=id(22);
- const row=(categoryId,label)=>({categoryId,parentId:null,label,aliases:[],path:[label],isLeaf:true});
- const hint=(label,mode,categoryId)=>({service:label,mode,action:'REUSE_EXISTING',categoryId,
-  parentId:'',proposedPath:[],reason:'Synthetic saved service identity for an unrelated profile edit.',catalogVersion:7});
- const savedServices=[{service,mode:'ON_SITE',categoryId:onsiteId},{service,mode:'REMOTE',categoryId:remoteId},
-  {service:other,mode:'REMOTE',categoryId:otherId}];
- const f=modeFixture({context:{candidate:{skills:[service,other],bio:'Prethodni opis',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
-  serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:2,savedServices,draftServices:[],unresolvedServices:[]}},
-  output:{classificationShadowJson:JSON.stringify([hint(service,'ON_SITE',onsiteId),hint(service,'REMOTE',remoteId),hint(other,'REMOTE',otherId)])},
-  catalogItems:body=>body.p_execution_location_mode==='REMOTE'?[row(remoteId,service),row(otherId,other)]:[row(onsiteId,service)]});
- await events(f);
- const captures=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
- assert.equal(captures.length,1);
- assert.deepEqual(captures[0].body.p_proposals.map(p=>[p.service,p.mode,p.categoryId]),[[other,'REMOTE',otherId]]);
- assert.deepEqual(savedServices.map(p=>[p.service,p.mode,p.categoryId]),[
-  [service,'ON_SITE',onsiteId],[service,'REMOTE',remoteId],[other,'REMOTE',otherId]],'a chat turn does not rewrite saved modes');
- assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Dopunjen opis'});
- assert.match(completions(f)[0].body.p_output.assistantMessage,/povezivanje vrste usluge još nije provereno/);
-});
-test('a server-registered alias of the same service cannot bypass saved REMOTE continuity',async()=>{
- const service='Modeli po meri';
- const f=modeFixture({output:{patch:{skills:[service]},classificationShadowJson:JSON.stringify(['REMOTE','ON_SITE'].map(mode=>({
-  service,mode,action:'REUSE_EXISTING',categoryId:id(20),parentId:'',proposedPath:[],reason:'Synthetic alias of the same existing offered service.',catalogVersion:7})))}});
- await events(f);assert.deepEqual(capturedModes(f),['REMOTE']);
- assert.deepEqual(completions(f)[0].body.p_output.patch.skills,[service]);
-});
-test('a new service with an explicit REMOTE declaration cannot capture an extra ON_SITE hint',async()=>{
- const quote='Ovu uslugu radim samo na daljinu.';
- const f=modeFixture({context:{serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:2,savedServices:[],draftServices:[],unresolvedServices:['Izrada maketa']}},
-  messages:[{role:'USER',body:quote}],output:{serviceModeChangesJson:JSON.stringify([{service:'Izrada maketa',modes:['REMOTE'],evidence:quote}])}});
- await events(f);assert.deepEqual(capturedModes(f),['REMOTE']);
-});
-test('unconfirmed draft modes cannot replace an absent or revoked saved baseline',async()=>{
- const service='Izrada maketa', categoryId=id(20);
- const f=modeFixture({context:{serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:2,
-  savedServices:[],draftServices:['REMOTE','ON_SITE'].map(mode=>({service,categoryId,mode})),unresolvedServices:[]}},
-  output:{classificationShadowJson:JSON.stringify([{service,mode:'REMOTE',action:'REUSE_EXISTING',categoryId,
-   parentId:'',proposedPath:[],reason:'Current proposal offers only remote service.',catalogVersion:7}])}});
- await events(f);assert.deepEqual(capturedModes(f),['REMOTE']);
-});
-test('finish copy uses the preserved baseline rather than the omitted provider snapshot',async()=>{
- const f=modeFixture({output:{classificationShadowJson:'[]'}});await events(f,{text:'To je to.'});
- assert.deepEqual(capturedModes(f),['REMOTE']);
- assert.ok(!completions(f)[0].body.p_output.assistantMessage.includes('nije potvrđeno'));
- assert.deepEqual(completions(f)[0].body.p_output.patch,{});
-});
-for(const history of [false,true])test('an explicit owned USER mode-change proposal survives for review, earlier turn='+history,async()=>{
- const quote='Od sada makete izrađujem samo na lokaciji naručioca.';
- const f=modeFixture({messages:[{role:'USER',body:quote},...(history?[{role:'ASSISTANT',body:'Pregledaj promenu.'},{role:'USER',body:'Dopuni opis profila.'}]:[])],
-  output:{serviceModeChangesJson:JSON.stringify([{service:'Izrada maketa',modes:['ON_SITE'],evidence:quote}])}});
- await events(f);assert.deepEqual(capturedModes(f),['ON_SITE']);
- assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_complete_worker_ai_turn_service')).length,1);
-});
-for(const evidence of ['Samo na lokaciji naručioca.','Izmišljena izjava koja ne postoji.'])
-test('assistant-only or invented mode evidence cannot replace saved choices: '+evidence,async()=>{
- const f=modeFixture({messages:[{role:'ASSISTANT',body:'Samo na lokaciji naručioca.'},{role:'USER',body:'Dopuni samo opis profila.'}],
-  output:{serviceModeChangesJson:JSON.stringify([{service:'Izrada maketa',modes:['ON_SITE'],evidence}])}});
- await events(f);assert.deepEqual(capturedModes(f),['REMOTE']);
-});
-test('an omitted classification snapshot retains a known service without another provider call',async()=>{
- const f=modeFixture({output:{classificationShadowJson:'[]'}});await events(f);
- assert.deepEqual(capturedModes(f),['REMOTE']);assert.equal(providers(f).length,1);
-});
-test('removing the offered skill cannot resurrect it from saved mode context',async()=>{
- const f=modeFixture({output:{patch:{skills:[]}}});await events(f);
- assert.deepEqual(capturedModes(f),[]);assert.deepEqual(completions(f)[0].body.p_output.patch,{skills:[]});
-});
-test('retired catalog identity is not revived by saved service continuity',async()=>{
- const f=modeFixture({retired:true});await events(f);assert.deepEqual(capturedModes(f),[]);
-});
-
-test('revoked REMOTE catalog scope is not revived by an empty required worker snapshot',async()=>{
- const f=modeFixture({catalogModes:['ON_SITE'],output:{classificationShadowJson:'[]'}});await events(f);
- assert.deepEqual(capturedModes(f),[]);assert.equal(providers(f).length,1);
- assert.ok(providers(f)[0].body.generationConfig.responseSchema.required.includes('classificationShadowJson'));
-});
-test('a safety refusal cannot capture even a valid saved mode',async()=>{
- const f=modeFixture({output:{safety:'BLOCK',patch:{},assistantMessage:'Ne mogu da pomognem sa tim zahtevom.'}});await events(f);
- assert.deepEqual(capturedModes(f),[]);assert.equal(completions(f)[0].body.p_output.safety,'BLOCK');
-});
-for(const serviceModeContext of [undefined,{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:99,savedServices:[],draftServices:[],unresolvedServices:[]}])
-test('missing/stale authoritative mode context stops before any paid call',async()=>{
- const f=modeFixture({context:{serviceModeContext}});const response=await f.invoke();
- assert.equal(response.status,503);assert.equal(providers(f).length,0);assert.equal(completions(f).length,0);
- assert.equal(f.calls.filter(c=>c.url.includes('budget_reserve')).length,0);
-});
+// Saved/draft continuity, revoked scope, conflicting IDs and removal run in
+// single_pass_continuity.test.mjs using the current owned-context contract.
 
 // Synthetic provider replies exercise the actual handler boundary. Prompt
 // assertions do not prove that a live model always preserves the intended list.
@@ -831,35 +564,30 @@ for(const change of ['add','remove'])test(`worker ${change} instruction keeps un
  assert.equal(providers(f).length,1);assert.deepEqual(completions(f)[0].body.p_output.patch,{skills:desired});
  assert.equal(JSON.stringify(candidate),previous);assert.ok(!f.calls.some(c=>/save_worker|bind_reviewed|commit_admission|publish|push/.test(c.url)));
  const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.ok(prompt.includes('The skills array is a COMPLETE replacement list, not additions'));
- assert.ok(prompt.includes('keep every existing offered service the person has not explicitly removed'));
- assert.ok(prompt.includes('Changing the delivery mode of one service does not change other services'));
- assert.ok(prompt.includes('Do not ask about tools or vehicles'));
- assert.ok(prompt.includes('do not ask about them, propose patch.tools or patch.vehicles, clear them'));
- assert.ok(prompt.includes('Existing values remain visible in the signed profile review'));
- assert.ok(prompt.includes('classificationShadowJson is only a proposal'));
- assert.ok(prompt.includes('signed profile review'));
- assert.ok(!prompt.includes('pending a future confirmed structured capability review'));
- assert.ok(prompt.includes("'Znam engleski' is general knowledge, NOT consent to tutoring or translating"));
- assert.ok(prompt.includes("'Imam kombi' is equipment, NOT consent to transport or removals"));
+ for(const pattern of [/skills is the COMPLETE offered list/,/preserve unremoved services/,/Resolve each offered service independently/,
+  /Do not ask for equipment/,/Equipment is read-only\/private/,/English knowledge\/van ownership do not imply translation\/transport/])assert.match(prompt,pattern);
 });
 
-for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!'])
- test('finish request hands off to profile review without another availability question: '+input,async()=>{
+for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!','Hvala, to je to.','To je sve, hvala Vam!','Хвала, то је све.','То је то, хвала!'])
+ test('finish does not invent edits or force an unready review: '+input,async()=>{
   const output={assistantMessage:'Da li su tvoje radno vreme i dostupnost tačni?',safety:'ALLOW',patch:{tools:['Izmišljeni alat']}};
   const f=fixture({output}),es=await events(f,{text:input});
   assert.equal(es.at(-1).kind,'final');
   const applied=completions(f)[0].body.p_output;
   assert.deepEqual(applied.patch,{},'finish is not authorization for invented profile changes');
-  assert.equal(applied.assistantMessage,'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.');
+  assert.equal(applied.assistantMessage,output.assistantMessage);
+  assert.ok(!Object.hasOwn(applied.patch,'bio'),'finish must not silently invent a biography');
   assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),applied.assistantMessage);
-  assert.ok(!es.some(e=>e.text?.includes('dostupnost')));
   assert.equal(providers(f).length,1,'no second paid model call to rewrite a reply');
  });
 
 test('finish handling does not swallow a correction or override a safety refusal',async()=>{
  const plain=fixture(),es=await events(plain,{text:'Nemoj još da sačuvaš.'});assert.equal(es.at(-1).kind,'final');
  assert.deepEqual(completions(plain)[0].body.p_output,plain.output);
+ const courtesy=fixture();
+ await events(courtesy,{text:'Hvala, to je to, ali želim da promenim uslugu.'});
+ assert.deepEqual(completions(courtesy)[0].body.p_output,courtesy.output,
+   'a polite correction must reach the actual provider, not be erased by finish-only');
  const equipment=fixture(),equipmentEvents=await events(equipment,{text:'Sačuvaj, ali dodaj da imam kolica.'});
  assert.equal(equipmentEvents.at(-1).kind,'final');
  assert.deepEqual(completions(equipment)[0].body.p_output.patch,equipment.output.patch);
@@ -886,7 +614,7 @@ test('new worker equipment edits are dropped without hiding historical signed-re
  assert.equal(JSON.stringify(candidate),before,'historical candidate data is not cleared or mutated');
  const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.ok(!prompt.includes('"tools":["Valjak"]'));assert.ok(!prompt.includes('"vehicles":["Kombi"]'));
- assert.ok(prompt.includes('Existing values remain visible in the signed profile review'));
+ assert.ok(prompt.includes('Do not present old equipment as review/matching evidence'));
  assert.ok(!f.calls.some(c=>/rpc_save_worker_ai_review/.test(c.url)));
 });
 
@@ -938,13 +666,35 @@ test('offered vehicle repair remains a legitimate service and biography',async()
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),output.assistantMessage);
 });
 
+for(const safety of ['REVIEW','BLOCK'])test(`${safety} never acknowledges a discarded profile patch as applied`,async()=>{
+ const output={assistantMessage:'Dodao sam lekturu u nacrt. Možete pregledati profil.',safety,
+  patch:{skills:['Lektura'],bio:'Radim lekturu onlajn.'}};
+ const f=fixture({output}),es=await events(f);
+ const accepted=completions(f)[0].body.p_output;
+ assert.equal(accepted.safety,safety);
+ assert.deepEqual(accepted.patch,{});
+ assert.match(accepted.assistantMessage,/Nacrt nije promenjen/);
+ assert.ok(!accepted.assistantMessage.includes('Dodao sam'));
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),accepted.assistantMessage);
+ assert.equal(providers(f).length,1);
+});
+
+test('ordinary profile preview remains ALLOW and provider distinguishes it from safety REVIEW',async()=>{
+ const output={assistantMessage:'Možete pregledati nacrt profila.',safety:'ALLOW',patch:{skills:['Lektura']}};
+ const f=fixture({output});await events(f);
+ assert.deepEqual(completions(f)[0].body.p_output,output);
+ const request=providers(f)[0].body;
+ assert.match(request.systemInstruction.parts.map(p=>p.text).join(' '),/REVIEW konkretan nerešen bezbednosni\/pravni rizik/);
+ assert.match(request.generationConfig.responseSchema.properties.safety.description,/never profile preview/);
+});
+
 for(const safety of ['REVIEW','BLOCK'])test(`${safety} does not admit equipment or biography from a rejected equipment turn`,async()=>{
  const output={assistantMessage:safety==='REVIEW'?'Potreban je pregled.':'Ne mogu da pomognem sa tim zahtevom.',safety,
   patch:{bio:'Imam novi kombi.',tools:['Bušilica'],vehicles:['Kombi']}};
  const f=fixture({output}),es=await events(f);
  assert.equal(es.at(-1).kind,'final');
  const accepted=completions(f)[0].body.p_output;
- assert.equal(accepted.safety,safety);assert.equal(accepted.assistantMessage,output.assistantMessage);
+ assert.equal(accepted.safety,safety);assert.match(accepted.assistantMessage,/Nacrt nije promenjen/);
  assert.deepEqual(accepted.patch,{});
 });
 test('truncated provider response settles failure without a second call or candidate completion',async()=>{

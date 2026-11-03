@@ -57,3 +57,12 @@ it('rejects malformed anchor/cursor IDs and timing rather than restarting silent
 it('rejects a public topology that disagrees with the task location mode',()=>{
   const value=page();value.items[0].publicTopology={mode:'REMOTE'};expect(()=>decodeDiscoveryV1Page(value)).toThrow('DISCOVERY_V1_ITEM_TOPOLOGY');
 });
+
+it('keeps a mixed total/hourly PAGE intact and preserves the hourly per-person amount in EXACT_PUBLIC', () => {
+  const value = page();
+  value.items = [item(), { ...item(), id: PROFILE, priceBasis: 'HOURLY', requesterPriceRsd: 1200 }];
+  value.hasMore = false; value.nextCursor = null;
+  value.counts = { ...value.counts, mapped: 2, listed: 2, inArea: 2 };
+  expect(decodeDiscoveryV1Page(value).items.map(row => [row.priceBasis, row.requesterPriceRsd])).toEqual([['TOTAL', 4000], ['HOURLY', 1200]]);
+  expect(decodeDiscoveryV1Exact({ ...exact(), items: [value.items[1]] }, PROFILE).items[0]).toMatchObject({ priceBasis: 'HOURLY', requesterPriceRsd: 1200 });
+});

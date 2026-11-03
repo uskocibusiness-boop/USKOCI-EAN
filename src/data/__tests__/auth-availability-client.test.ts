@@ -1,4 +1,5 @@
 import { authAvailabilityClientService } from '../authAvailabilityClientService';
+import { readPublicSupabaseConfig } from '../publicSupabaseConfig';
 
 const fetchMock = jest.fn();
 const originalFetch = global.fetch;
@@ -20,6 +21,26 @@ it('reads only public settings with the configured public key and projects curre
   expect(fetchMock).toHaveBeenCalledWith('https://configured.example.test/auth/v1/settings', {
     method: 'GET', headers: { apikey: 'public-anon-test-key' }, signal: expect.any(AbortSignal),
   });
+});
+
+it('uses exactly the same canonical DEV fallback for both missing public settings', async () => {
+  delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+  delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  const config = readPublicSupabaseConfig();
+  expect(config?.url).toBe('https://leqcwgzvjsxugfgzdmth.supabase.co');
+  await expect(authAvailabilityClientService.read()).resolves.toMatchObject({ emailPassword: true });
+  expect(fetchMock).toHaveBeenCalledWith(`${config?.url}/auth/v1/settings`, {
+    method: 'GET', headers: { apikey: config?.anonKey }, signal: expect.any(AbortSignal),
+  });
+});
+
+it.each(['URL only', 'key only', 'blank key'])('blocks partial public configuration instead of mixing targets: %s', async variant => {
+  if (variant === 'URL only') delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  if (variant === 'key only') delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+  if (variant === 'blank key') process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = ' ';
+  expect(readPublicSupabaseConfig()).toBeNull();
+  await expect(authAvailabilityClientService.read()).rejects.toThrow('AUTH_SETTINGS_UNCONFIGURED');
+  expect(fetchMock).not.toHaveBeenCalled();
 });
 
 it('does not activate unimplemented OAuth when future server flags become true', async () => {

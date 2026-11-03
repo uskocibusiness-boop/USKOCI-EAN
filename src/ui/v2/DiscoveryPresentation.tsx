@@ -1,4 +1,5 @@
 import type { WorkAreaCamera } from '../../data/discoveryWorkArea';
+import type { ReadFailureReason } from '../../data/readFailure';
 import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type Context, type ReactNode } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated as NativeAnimated, BackHandler, Easing, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
   type CellRendererProps, type NativeScrollEvent, type ViewToken } from 'react-native';
@@ -24,6 +25,7 @@ import { useReducedMotion } from '../system/motion';
 import { zadataka } from '../system/plural';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
+import { layout } from '../system/layout';
 import { DiscoveryMap } from './DiscoveryMap';
 import type { DiscoveryV1ServerMapSeam, NearbyCameraTarget } from './DiscoveryMap.types';
 import type { DiscoveryV1Availability, DiscoveryV1Counts } from '../../data/discoveryV1Contract';
@@ -58,6 +60,8 @@ export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur
 export type DiscoveryV1PresentationSeam = {
   /** Server MAP geometry; legacy client GeoJSON clustering is bypassed only while this quarantined seam is supplied. */
   map: Omit<DiscoveryV1ServerMapSeam, 'onClear'>;
+  /** Business MAP read only; PAGE and the native map renderer keep their own status and recovery. */
+  mapRead?: { loading: boolean; error: ReadFailureReason | null; onRetry: () => void };
   /** Exact TASK or bounded POINT_MEMBERS rows already owned by the P6 screen session. */
   peek: { key: string; item: MarketplaceItem | null; place: readonly MarketplaceItem[]; placeTotalCount?: number;
     priceUnverified?: boolean } | null;
@@ -88,7 +92,7 @@ export type DiscoveryV1PresentationSeam = {
 };
 
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
-  errorMessage?: string;
+  errorReason?: ReadFailureReason;
   /** An exact published row can be shown while the independent collection is incomplete. */
   collectionStatus?: 'loading' | 'error';
   /** One-shot locality fallback, never a filter, task point or GPS marker. */
@@ -1395,7 +1399,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   if (confirmedEmpty.current.key !== emptyKey) confirmedEmpty.current = { key: emptyKey, value: null };
   const heldEmpty = refreshing && !loading && !error && !props.collectionStatus ? confirmedEmpty.current.value : null;
   const computedState: DiscoveryListStateKind = loading || (refreshing && !heldEmpty) || props.collectionStatus === 'loading' || offMapMore || (offMap && !!p6?.loadingMore && !listed.length) ? { kind: 'loading' }
-    : error || props.collectionStatus === 'error' ? { kind: 'error', onRetry: refreshList, errorDetail: props.errorMessage }
+    : error || props.collectionStatus === 'error' ? { kind: 'error', onRetry: refreshList, errorReason: props.errorReason }
       // Only the map's area or its one point leaves nothing: the tasks are elsewhere on the map, one move or one tap away.
       : (pinPlace || area) && elsewhere && !offMap ? { kind: 'place', point: !!pinPlace, onShowAll: showAll }
         : forMeOn && !conditionsOn ? { kind: 'forMe', onShowAll: () => chooseScope('all'), onWorkProfile: props.onWorkProfile }
@@ -1512,6 +1516,16 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       <T variant="note" style={s.offMapText}>{offMapEntryWords}</T><Glyph name="caret-right" size={16} tone="muted" />
     </Press> : null}
     </View>
+    {p6?.mapRead && (p6.mapRead.loading || p6.mapRead.error) ? <View style={s.mapRecovery}>
+      <T variant="note" tone="muted" accessibilityLiveRegion="polite">{p6.mapRead.loading
+        ? 'Učitavamo oznake na mapi…' : p6.map.markers.length
+          ? 'Oznake zadataka na mapi nisu osvežene.' : 'Oznake zadataka na mapi nisu učitane.'}</T>
+      <Press accessibilityRole="button" accessibilityLabel="Pokušajte ponovo sa mapom" hitSlop={0}
+        accessibilityState={{ disabled: p6.mapRead.loading, busy: p6.mapRead.loading }} disabled={p6.mapRead.loading}
+        onPress={p6.mapRead.loading ? undefined : p6.mapRead.onRetry} style={s.mapRetry}>
+        <T variant="action" style={p6.mapRead.loading ? s.mapRetryBusy : s.relationsRetryText}>Pokušajte ponovo sa mapom</T>
+      </Press>
+    </View> : null}
     {props.collectionStatus === 'error' ? <View style={s.relationsRecovery}>
       <T variant="note" style={s.relationsMessage}>Tvoj zadatak je objavljen. Osveži listu da vidiš i ostale.</T>
       <Press accessibilityRole="button" accessibilityLabel="Osveži ostale zadatke" onPress={refreshList}
@@ -1643,6 +1657,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 }
 
 const s = StyleSheet.create({
+  mapRecovery: { paddingHorizontal: sys.space.md, paddingTop: sys.space.xs },
+  mapRetry: { alignSelf: 'flex-start', minHeight: layout.touch, minWidth: layout.touch, justifyContent: 'center' },
+  mapRetryBusy: { color: sys.color.muted },
   relationsRecovery: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.md },
   relationsMessage: { flex: 1 },
   relationsRetry: { minHeight: 44, justifyContent: 'center', paddingHorizontal: sys.space.sm },

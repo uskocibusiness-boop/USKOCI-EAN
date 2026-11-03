@@ -11,7 +11,7 @@ export type ApplicationEditPricing = {
 export type ExistingApplicationInterval = { start: string | null; end: string | null; pricing: ApplicationEditPricing };
 export type ApplicationCommandState = {
   applicationId: string; needId: string; version: number; submittedNeedRevision: number;
-  status: string; priceRsd: number; coveredSlots: number; scopeNote: string;
+  status: string; priceRsd: number; priceBasis?: 'TOTAL' | 'HOURLY'; coveredSlots: number; scopeNote: string;
   proposedStartAt: string | null; proposedEndAt: string | null;
 };
 const persistedStatuses = new Set(['SUBMITTED', 'DELIVERED', 'VIEWED', 'SHORTLISTED', 'SELECTED',
@@ -30,13 +30,14 @@ export function readApplicationCommandState(p: Pick<MojaPrijavaProjekcija, 'prij
   return readOwnedResult<ApplicationCommandState>({ account: { accountId, accountRevision: owner.accountRevision },
     errors: {}, fallback: 'APPLICATION_STATE_UNAVAILABLE', invalid: 'APPLICATION_STATE_INVALID',
     request: () => supabaseKlijent().from('marketplace_responses')
-      .select('id,need_id,worker_account_id,current_version,submitted_against_need_revision,status,price_rsd,covered_slots,scope_note,proposed_start_at,proposed_end_at')
+      .select('id,need_id,worker_account_id,current_version,submitted_against_need_revision,status,price_rsd,price_basis,covered_slots,scope_note,proposed_start_at,proposed_end_at')
       .eq('id', p.prijavaId).eq('need_id', p.potrebaId).eq('worker_account_id', accountId).maybeSingle(),
     decode(raw) {
       const row = record(raw);
       if (!row || !sameId(row.id, p.prijavaId) || !sameId(row.need_id, p.potrebaId) || row.worker_account_id !== accountId ||
           !positiveInteger(row.current_version) || row.current_version < p.prijavaVerzija ||
           !positiveInteger(row.submitted_against_need_revision) || typeof row.status !== 'string' || !persistedStatuses.has(row.status) ||
+          row.price_basis != null && row.price_basis !== 'TOTAL' && row.price_basis !== 'HOURLY' ||
           !positiveInteger(row.price_rsd) || !positiveInteger(row.covered_slots) || row.covered_slots > 50 ||
           row.scope_note !== null && typeof row.scope_note !== 'string') return null;
       const start = row.proposed_start_at, end = row.proposed_end_at;
@@ -46,7 +47,7 @@ export function readApplicationCommandState(p: Pick<MojaPrijavaProjekcija, 'prij
       }
       return { applicationId: row.id, needId: row.need_id, version: row.current_version,
         submittedNeedRevision: row.submitted_against_need_revision, status: row.status,
-        priceRsd: row.price_rsd, coveredSlots: row.covered_slots, scopeNote: row.scope_note ?? '',
+        priceRsd: row.price_rsd, ...(row.price_basis == null ? {} : { priceBasis: row.price_basis }), coveredSlots: row.covered_slots, scopeNote: row.scope_note ?? '',
         proposedStartAt: start as string | null, proposedEndAt: end as string | null };
     },
   });

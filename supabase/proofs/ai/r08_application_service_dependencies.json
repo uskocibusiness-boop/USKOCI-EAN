@@ -1,0 +1,47 @@
+{
+  "project_ref": "leqcwgzvjsxugfgzdmth",
+  "captured_date": "2026-11-03",
+  "scope": "Read-only captured dependencies for bounded application-to-profile proof; no deployment approval.",
+  "functions": [
+    {
+      "name": "private.accounts_same_world",
+      "signature": "private.accounts_same_world(uuid, uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.accounts_same_world(p_a uuid, p_b uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  select private.account_visibility_world(p_a) = private.account_visibility_world(p_b);\n$function$\n",
+      "md5": "2d6beb6df93bc8eb6ae2622de8319ac5",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.taxonomy_category_path_valid_v1",
+      "signature": "private.taxonomy_category_path_valid_v1(uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_category_path_valid_v1(p_category_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE\n SET search_path TO 'pg_catalog'\nAS $function$\n WITH RECURSIVE ancestry(id,parent_id,visited) AS (\n   SELECT c.id,c.parent_id,ARRAY[c.id] FROM private.work_taxonomy_categories c\n    WHERE c.id=p_category_id AND c.state='ESTABLISHED'\n   UNION ALL\n   SELECT c.id,c.parent_id,a.visited||c.id FROM ancestry a\n     JOIN private.work_taxonomy_categories c ON c.id=a.parent_id AND c.state='ESTABLISHED'\n     WHERE NOT c.id=ANY(a.visited)\n )\n SELECT EXISTS(SELECT 1 FROM ancestry WHERE parent_id IS NULL)\n$function$\n",
+      "md5": "485e0423b3859afd64e3e9a695e4c9f6",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.worker_ai_document",
+      "signature": "private.worker_ai_document(uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.worker_ai_document(cid uuid)\n RETURNS jsonb\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n select jsonb_build_object('schemaVersion','WORKER_PROFILE_V1','conversationId',s.conversation_id,'accountId',s.account_id,\n  'profileId',s.profile_id,'status',c.status,'profileStatus',coalesce((select p.profile_status from public.app_profiles p where p.id=s.profile_id),'DRAFT'),\n  'revision',s.revision,'candidate',s.candidate,'safety',s.safety,\n  'stale',s.base_hash<>private.worker_ai_source_hash(s.account_id),\n  'messages',coalesce((select jsonb_agg(jsonb_build_object('id',m.id,'role',m.role,'body',m.body,'sequence',m.sequence_no) order by m.sequence_no)\n    from (select * from public.ai_messages where conversation_id=cid order by sequence_no desc limit 100) m),'[]'::jsonb),\n  'turn',(select private.worker_ai_turn_document(t.turn_id) from private.worker_ai_turns t where t.conversation_id=cid order by t.created_at desc,t.turn_id desc limit 1),\n  'review',(select r.envelope from private.worker_ai_reviews r where r.conversation_id=cid AND NOT(r.envelope ? 'classificationState') order by\n    exists(select 1 from private.worker_ai_saves z where z.review_id=r.id) desc,r.created_at desc,r.id desc limit 1),\n  'saved',(select z.receipt from private.worker_ai_saves z join private.worker_ai_reviews r on r.id=z.review_id where r.conversation_id=cid AND NOT(r.envelope ? 'classificationState') limit 1))\n from private.worker_ai_sessions s join public.ai_conversations c on c.id=s.conversation_id and c.account_id=s.account_id and c.purpose='PROFILE'\n where s.conversation_id=cid;\n$function$\n",
+      "md5": "8d796caef6b4039c89c6bf16a9e6c020",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.worker_ai_turn_document",
+      "signature": "private.worker_ai_turn_document(uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.worker_ai_turn_document(tid uuid)\n RETURNS jsonb\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n select jsonb_build_object('turnId',t.turn_id,'conversationId',t.conversation_id,'clientRequestId',t.client_request_id,\n  'state',case when state='PROCESSING' and lease_expires_at<statement_timestamp() then 'UNKNOWN_OUTCOME' else state end,\n  'attemptId',attempt_id,'retryAllowed',false,'authoritative',true)\n from private.worker_ai_turns t where turn_id=tid;\n$function$\n",
+      "md5": "dcee2f26162a5ac3f9b86990b1838fa3",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "public.rpc_open_worker_ai",
+      "signature": "public.rpc_open_worker_ai(uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_open_worker_ai(p_client_request_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare u uuid:=auth.uid(); cid uuid; pid uuid; candidate jsonb;\nbegin\n if u is null then raise exception 'AUTH_REQUIRED' using errcode='42501'; end if;\n if p_client_request_id is null then raise exception 'WORKER_AI_ID_REQUIRED' using errcode='22023'; end if;\n perform private.closure_assert_open(u);\n perform pg_advisory_xact_lock(hashtextextended('worker-ai-open:'||u::text,0));\n select s.conversation_id into cid from private.worker_ai_sessions s where s.account_id=u and s.open_request_id=p_client_request_id;\n if cid is not null then return private.worker_ai_document(cid); end if;\n select s.conversation_id into cid from private.worker_ai_sessions s join public.ai_conversations c on c.id=s.conversation_id\n  where s.account_id=u and c.status='OPEN' order by s.created_at desc limit 1;\n if cid is not null then return private.worker_ai_document(cid); end if;\n select id into pid from public.app_profiles where account_id=u and kind='WORKER' for update;\n candidate:=private.worker_ai_initial(u); pid:=coalesce(pid,extensions.gen_random_uuid());\n insert into public.ai_conversations(account_id,purpose) values(u,'PROFILE') returning id into cid;\n insert into private.worker_ai_sessions(conversation_id,account_id,open_request_id,profile_id,base_hash,candidate)\n values(cid,u,p_client_request_id,pid,private.worker_ai_source_hash(u),candidate);\n return private.worker_ai_document(cid);\nend $function$\n",
+      "md5": "7b0d972e34fc970a9521c0c6131130d1",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    }
+  ]
+}

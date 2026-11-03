@@ -115,7 +115,7 @@ export function reviewLocationReadiness(review: ReviewLocation) {
 export function reviewTodos(review: ReviewLocation & { safety: string; missingRequired: readonly NeedFactV2Key[]; canAccept?: boolean },
   factProblem: string | null, identityBlock = false): ReviewTodo[] {
   const todos: ReviewTodo[] = [];
-  if (review.safety === 'BLOCK') todos.push({ key: 'safety', text: 'Zadatak ne može da se objavi ovako. Izmeni ga u razgovoru.', target: 'conversation' });
+  if (review.safety === 'BLOCK') todos.push({ key: 'safety', text: 'Zadatak ne može da se objavi ovako. Izmenite ga u razgovoru.', target: 'conversation' });
   // Plain-language fact remedies already explain these below; do not say the same missing fact twice.
   const missing = review.missingRequired.filter(key => key !== 'need.category'
     && !(factProblem === REVIEW_FACT_COPY.HANDOFF_REQUIRED && key === 'need.handoff')
@@ -141,12 +141,12 @@ export function reviewTodos(review: ReviewLocation & { safety: string; missingRe
  * fix is made in the conversation: a safety block, what is missing, or a fact this screen has no row to edit.
  */
 export function todoActionLabel(todo: ReviewTodo, viaConversation = todo.target === 'conversation'): string | undefined {
-  if (todo.text === REVIEW_FACT_COPY.HANDOFF_REQUIRED) return 'Izaberi predaju';
-  if (viaConversation) return todo.key === 'safety' ? 'Izmeni u razgovoru' : 'Dopuni u razgovoru';
-  if (todo.target === 'location') return 'Dodaj mesto';
-  if (todo.target === 'need.starts_at' || todo.target === 'need.ends_at') return 'Izmeni termin';
-  if (todo.target === 'need.price_rsd') return 'Unesi iznos';
-  return todo.target ? 'Izmeni' : undefined;
+  if (todo.text === REVIEW_FACT_COPY.HANDOFF_REQUIRED) return 'Izaberite predaju';
+  if (viaConversation) return todo.key === 'safety' ? 'Izmenite u razgovoru' : 'Dopunite u razgovoru';
+  if (todo.target === 'location') return 'Dodajte mesto';
+  if (todo.target === 'need.starts_at' || todo.target === 'need.ends_at') return 'Izmenite termin';
+  if (todo.target === 'need.price_rsd') return 'Unesite iznos';
+  return todo.target ? 'Izmenite' : undefined;
 }
 
 /**
@@ -160,7 +160,7 @@ export const SUPPORT_HAS_DUTY_OPERATOR = false;
 /** What the review says when the check ended in "REVIEW": the fact, and, while nobody is on duty, the way that works. */
 export function manualCheckCopy(operatorOnDuty: boolean = SUPPORT_HAS_DUTY_OPERATOR): string {
   const held = 'Zadatak zahteva ručnu proveru i još nije objavljen.';
-  return operatorOnDuty ? held : `${held} Podrška još nema dežurnog operatera, pa je najbrže da ga izmeniš i ponovo pošalješ.`;
+  return operatorOnDuty ? held : `${held} Podrška još nema dežurnog operatera, pa je najbrže da ga izmenite i ponovo pošaljete.`;
 }
 
 /* ------------------------------------------------------------------------------------------------ the parts of the preview */

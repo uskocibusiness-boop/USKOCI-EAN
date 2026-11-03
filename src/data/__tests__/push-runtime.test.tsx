@@ -124,6 +124,31 @@ it('waits for router/auth readiness, then picks up cold tap once without remount
  act(() => tree.update(<PushRuntime ready />)); await act(flush); expect(mockNavigate).toHaveBeenCalledTimes(1);
  act(() => tree.update(<PushRuntime ready={false} />)); act(() => tree.update(<PushRuntime ready />)); await act(flush); expect(mockCold).toHaveBeenCalledTimes(1);
 });
+function ReadinessTransition({ ready, duringCommit }: { ready: boolean; duringCommit: () => void }) {
+ // A committed readiness change must close retained native callbacks before
+ // PushRuntime's passive effect cleanup. This models that actual React window.
+ React.useLayoutEffect(() => { if (!ready) duringCommit(); }, [ready, duringCommit]);
+ return <PushRuntime ready={ready} />;
+}
+it.each(['token', 'foreground'] as const)('retained %s callback cannot read a device after readiness closes before cleanup', async event => {
+ const duringCommit = () => event === 'token' ? mockToken() : mockActive('active');
+ await act(async () => { tree = Renderer.create(<ReadinessTransition ready duringCommit={duringCommit} />); await flush(); });
+ mockSession.mockClear();
+ await act(async () => { tree.update(<ReadinessTransition ready={false} duringCommit={duringCommit} />); await flush(); });
+ expect(mockSession).not.toHaveBeenCalled();
+ expect(mockNative).not.toHaveBeenCalled(); expect(mockRotate).not.toHaveBeenCalled(); expect(mockRevoke).not.toHaveBeenCalled();
+});
+it('an in-flight native token read loses ownership as soon as readiness closes', async () => {
+ mockSession.mockResolvedValue({ ok: true, podatak: device });
+ mockNative.mockReturnValue(new Promise(() => undefined));
+ let ownedDuringCommit: boolean | undefined;
+ const duringCommit = () => { ownedDuringCommit = mockNative.mock.calls[0][1](); };
+ await act(async () => { tree = Renderer.create(<ReadinessTransition ready duringCommit={duringCommit} />); await flush(); });
+ expect(mockNative.mock.calls[0][1]()).toBe(true);
+ act(() => tree.update(<ReadinessTransition ready={false} duringCommit={duringCommit} />));
+ expect(ownedDuringCommit).toBe(false);
+ expect(mockRotate).not.toHaveBeenCalled(); expect(mockRevoke).not.toHaveBeenCalled();
+});
 it('web never invokes unsupported notification listener or native APIs', async () => {
  jest.replaceProperty(Platform, 'OS', 'web'); await mount(); expect(mockCold).not.toHaveBeenCalled(); expect(mockSession).not.toHaveBeenCalled(); expect(mockNative).not.toHaveBeenCalled(); expect(mockSetHandler).not.toHaveBeenCalled();
 });

@@ -66,7 +66,7 @@ it('an uncertain photo is a tile that says so; its X asks first, and only the an
   await draw(tray());
   expect(photos.pick).not.toHaveBeenCalled(); expect(photos.refresh).not.toHaveBeenCalled();
   expect(texts()).toContain('Ne znamo da li je poslato'); expect(texts()).toContain('Ne znamo da li je fotografija poslata.');
-  await act(async () => button('Ukloni pripremljenu fotografiju 1').props.onPress());
+  await act(async () => button('Uklonite pripremljenu fotografiju 1').props.onPress());
   expect(photos.remove).not.toHaveBeenCalled();
   expect(mockAsk.mock.calls[0][0]).toMatchObject({ title: 'Ukloniti fotografiju?', confirmLabel: 'Ukloni', tone: 'danger' });
   await act(async () => { await mockAsk.mock.calls[0][0].onConfirm(); }); expect(photos.remove).toHaveBeenCalledWith(ref);
@@ -83,8 +83,8 @@ it('a ready photo opens the shared full-screen viewer in the Dogovor context; a 
   expect(tree.root.findByType(PhotoViewer).props).toMatchObject({ context: { agreementId: gid }, photos: [{ assetId: asset }], title: 'Fotografije uz poruku' });
   photos = { ...photos, reserved: () => true };
   await act(async () => tree.update(tray()));
-  expect(texts()).toContain('Fotografija je uz poruku. Prvo proveri da li je poslata.');
-  expect(has('Ukloni pripremljenu fotografiju 1')).toBe(false); expect(has('Pošalji ponovo · fotografija 1')).toBe(false);
+  expect(texts()).toContain('Fotografija je uz poruku. Prvo proverite da li je poslata.');
+  expect(has('Uklonite pripremljenu fotografiju 1')).toBe(false); expect(has('Pošalji ponovo · fotografija 1')).toBe(false);
   expect(photos.remove).not.toHaveBeenCalled(); expect(photos.retry).not.toHaveBeenCalled();
 });
 
@@ -135,5 +135,5 @@ it.each([false, true])('the sheet and the removal question follow the reduced-mo
 it('a sending preview shows progress rather than retry or an unknown result',async()=>{
  photos.busy=true;photos.sending=rid;photos.items=[{ref,receipt:null}];photos.preview=()=>new Uint8Array([255,216,255]).buffer;photos.canRetry=()=>true;
  await draw(tray());expect(texts()).toContain('Šalje se');expect(texts()).not.toContain('Pošalji ponovo');expect(texts()).not.toContain('Ne znamo da li');
- expect(button('Ukloni pripremljenu fotografiju 1').props.disabled).toBe(true);
+ expect(button('Uklonite pripremljenu fotografiju 1').props.disabled).toBe(true);
 });

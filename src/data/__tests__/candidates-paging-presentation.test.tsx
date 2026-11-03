@@ -136,6 +136,38 @@ test('the lowest price and the best rating are orders of the WHOLE list: while a
   sort = undefined; await rerender(); expect(control().map(node => node.props.accessibilityLabel)).toEqual(['Redosled prijava: Najranije']);
 });
 
+test('a final page that ends before the first-page total cannot claim the cheapest offer or enable sorting', async () => {
+  candidates = [row('a', { cena: { iznos: 9000, valuta: 'RSD', prikaz: '9.000 RSD' } }),
+    row('b', { cena: { iznos: 3000, valuta: 'RSD', prikaz: '3.000 RSD' } }),
+    row('c', { cena: { iznos: 5000, valuta: 'RSD', prikaz: '5.000 RSD' } })];
+  paging = makePaging({ total: 120, hasMore: false }); sort = 'PRICE';
+  await render();
+  // 117 missing applications are not "read complete", regardless of hasMore=false.
+  expect(texts()).toContain(prijava(120));
+  expect(texts().join(' ')).not.toMatch(/\b\d+ za izbor/);
+  expect(texts()).toContain('Broj prijava ne odgovara učitanom spisku. Proveri prijave ponovo pre poređenja ili izbora najniže cene.');
+  expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Redosled prijava'))).toHaveLength(0);
+  expect(tree.root.findAllByType('Card' as React.ElementType).map(node => node.props.candidate.prijavaId)).toEqual(['a', 'b', 'c']);
+  expect(tree.root.findAllByType('Card' as React.ElementType).every(node => !node.props.measure)).toBe(true);
+  await act(async () => action('Proveri prijave ponovo').props.onPress());
+  expect(refresh).toHaveBeenCalledTimes(1);
+  // A fresh complete snapshot restores ordering, and retires the warning.
+  paging = makePaging({ total: 3, hasMore: false }); await rerender();
+  expect(actions()).not.toContain('Proveri prijave ponovo');
+  expect(tree.root.findAllByType('Card' as React.ElementType).map(node => node.props.candidate.prijavaId)).toEqual(['b', 'c', 'a']);
+});
+
+test('a missing first-page count or an in-flight refresh never marks the loaded subset complete', async () => {
+  sort = 'PRICE'; paging = makePaging({ total: null, hasMore: false }); await render();
+  expect(actions()).toContain('Proveri prijave ponovo');
+  expect(tree.root.findAllByType('Card' as React.ElementType).every(node => !node.props.measure)).toBe(true);
+  paging = makePaging({ total: 3, hasMore: false });
+  await act(async () => tree.update(<CandidateListPresentation need={need} candidates={candidates}
+    open={jest.fn()} back={jest.fn()} refresh={refresh} paging={paging} sort="PRICE" refreshing />));
+  expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Redosled prijava'))).toHaveLength(0);
+  expect(tree.root.findAllByType('Card' as React.ElementType).every(node => !node.props.measure)).toBe(true);
+});
+
 test('every loaded application is a row, in the order it was given, and the rows keep their identity when a page is appended', async () => {
   await render();
   const cards = () => tree.root.findAllByType('Card' as React.ElementType).map(node => node.props.candidate.prijavaId);

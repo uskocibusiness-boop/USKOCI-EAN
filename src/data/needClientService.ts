@@ -8,9 +8,10 @@ import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
 import { readNeedUrgencies } from './needUrgencyClientService';
 import { novac } from '../lib/novac';
-import { decodeOwnTasksPage } from './ownTasksPage';
+import { decodeOwnTasksPage, isOwnTasksPageRequest } from './ownTasksPage';
 import { endingOfStatus, type WithEnding } from './needEnding';
-import { readOwnedResult, timestamp } from './serverReceipt';
+import { readOwnedResult, record, timestamp } from './serverReceipt';
+import { sesijaSada } from '../store/sesija';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -84,12 +85,25 @@ export function readPublicNeedDetail(raw: Record<string, any>): { detail: NeedDe
 function mapNeed(raw: any): WithEnding<PotrebaProjekcija> {
   const { detail: detalji, schedule } = readPublicNeedDetail(raw);
   const kraj = endingOfStatus(raw.status);
-  const ukupno = Math.max(1, Number(raw.required_slots ?? 1));
-  const popunjeno = Math.max(0, Math.min(ukupno, Number(raw.covered_slots ?? 0)));
-  const brojPrijava = Array.isArray(raw.marketplace_responses)
-    ? raw.marketplace_responses.length
-    : 0;
+  // Canonical Need rows always supply the 1–50 required slots and an exact
+  // nonnegative covered count. Missing, fractional or overfilled wire values
+  // cannot silently become 1/0 or be clamped into false capacity facts.
+  const ukupno = raw.required_slots, popunjeno = raw.covered_slots;
+  if (!Number.isSafeInteger(ukupno) || ukupno < 1 || ukupno > 50
+    || !Number.isSafeInteger(popunjeno) || popunjeno < 0 || popunjeno > ukupno)
+    throw new Error('NEED_CAPACITY_INVALID');
+  // This owner reader always returns a concrete list of response IDs. An
+  // unavailable or malformed collection is not proof of zero applications.
+  if (!Array.isArray(raw.marketplace_responses) || raw.marketplace_responses.some(
+    (row: unknown) => !row || typeof row !== 'object' || Array.isArray(row)
+      || typeof (row as { id?: unknown }).id !== 'string' || !(row as { id: string }).id.trim()))
+    throw new Error('NEED_RESPONSE_COUNT_INVALID');
+  const brojPrijava = raw.marketplace_responses.length;
   const cena = raw.requester_price_rsd;
+  const revizija = raw.revision;
+  if (!Number.isSafeInteger(revizija) || revizija < 1) throw new Error('NEED_REVISION_INVALID');
+  if (cena !== null && cena !== undefined && (!Number.isSafeInteger(cena) || cena < 1))
+    throw new Error('NEED_PRICE_INVALID');
   const brojPrijavaZaIzbor = raw.selectable_application_count;
   if (brojPrijavaZaIzbor !== null && (!Number.isSafeInteger(brojPrijavaZaIzbor) || brojPrijavaZaIzbor < 0)) {
     throw new Error('NEED_ACTIONABLE_COUNT_INVALID');
@@ -103,7 +117,7 @@ function mapNeed(raw: any): WithEnding<PotrebaProjekcija> {
     ...(timestamp(raw.updated_at) ? { azurirano: raw.updated_at } : {}),
     ...(timestamp(raw.published_at) ? { objavljeno: raw.published_at } : {}),
     brojFotografija: Array.isArray(raw.public_photo_paths) ? raw.public_photo_paths.length : 0,
-    revizija: Number(raw.revision),
+    revizija,
     naslov: raw.title ?? '',
     opis: raw.description ?? '',
     stanje: stanje(String(raw.status), popunjeno, ukupno, brojPrijavaZaIzbor),
@@ -140,9 +154,9 @@ function mapNeed(raw: any): WithEnding<PotrebaProjekcija> {
       cena === null || cena === undefined
         ? undefined
         : {
-            iznos: Number(cena),
+            iznos: cena,
             valuta: 'RSD',
-            prikaz: novac(Number(cena)),
+            prikaz: novac(cena),
           },
   };
 }
@@ -181,6 +195,7 @@ export const needClientService: NeedReadService = {
    * counts of the sets. A page that does not add up is an invalid read, never a short one; the optional urgency badges share their own 4 s budget.
    */
   async mojePotrebeStrana(request, options) {
+    if (!isOwnTasksPageRequest(request)) throw new Error('OWN_TASKS_PAGE_INVALID');
     const args: Record<string, unknown> = { p_scope: request.scope, p_limit: request.limit };
     if (request.cursor) { args.p_before_at = request.cursor.at; args.p_before_id = request.cursor.id; }
     const result = await readOwnedResult({
@@ -198,11 +213,32 @@ export const needClientService: NeedReadService = {
     const needId = id.trim();
     if (!needId) return null;
 
-    const { data, error } = await supabase.rpc('rpc_read_task', { p_need_id: needId });
-
-    if (error) throw new Error(error.message || 'NEED_READ_FAILED');
-    if (!data) return null;
-    const urgency = await readNeedUrgencies([data]);
-    return { ...mapNeed(data), urgency: urgency.get(data.id) };
+    const owner = sesijaSada();
+    const result = await readOwnedResult({
+      request: async signal => {
+        const request = supabase.rpc('rpc_read_task', { p_need_id: needId });
+        // Bound the whole transport, including an SDK that does not settle on
+        // abort. Keep the existing Error/mapping API outside the receipt decoder.
+        return { data: await (typeof request.abortSignal === 'function' ? request.abortSignal(signal) : request), error: null };
+      },
+      decode: raw => {
+        const response = record(raw);
+        return response && Object.prototype.hasOwnProperty.call(response, 'data')
+          && (response.error === null || record(response.error)) ? response : null;
+      },
+      errors: {}, fallback: 'NEED_READ_FAILED', invalid: 'NEED_DETAIL_INVALID_PROJECTION',
+    });
+    if (!result.ok) throw new Error(result.kod);
+    const { data, error } = result.podatak;
+    const message = record(error)?.message;
+    if (error) throw new Error(typeof message === 'string' && message || 'NEED_READ_FAILED');
+    if (data === null) return null;
+    const document = record(data);
+    if (!document) throw new Error('NEED_DETAIL_INVALID_PROJECTION');
+    const need = mapNeed(document);
+    const urgency = await readNeedUrgencies([{ id: document.id, urgent: document.urgent }]);
+    if (sesijaSada().user?.id !== owner.user?.id || sesijaSada().accountRevision !== owner.accountRevision)
+      throw new Error('AUTH_ACCOUNT_CHANGED');
+    return { ...need, urgency: urgency.get(need.id) };
   },
 };

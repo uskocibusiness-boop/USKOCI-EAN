@@ -1,0 +1,1140 @@
+{
+  "unit": "F10_DEV_PREIMAGE",
+  "tables": [
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "oid": "29370",
+      "rls": true,
+      "kind": "r",
+      "name": "private.taxonomy_confirmed_worker_modes_v1",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "worker_account_id",
+          "type": "uuid",
+          "number": 1,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "category_id",
+          "type": "uuid",
+          "number": 2,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "execution_scope",
+          "type": "text",
+          "number": 3,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "source_review_id",
+          "type": "uuid",
+          "number": 4,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "source_request_key",
+          "type": "uuid",
+          "number": 5,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "confirmed_at",
+          "type": "timestamp with time zone",
+          "number": 6,
+          "default": "statement_timestamp()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "number": 7,
+          "default": "true",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "handoff",
+          "type": "jsonb",
+          "number": 8,
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "oid": "28639",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_aliases",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "number": 1,
+          "default": null,
+          "identity": "a",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "category_id",
+          "type": "uuid",
+          "number": 2,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "locale",
+          "type": "text",
+          "number": 3,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "number": 4,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "normalized_key",
+          "type": "text",
+          "number": 5,
+          "default": "private.taxonomy_normalize_v1(label)",
+          "identity": "",
+          "not_null": false,
+          "generated": "s"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "number": 6,
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "oid": "28605",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_categories",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "number": 1,
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "canonical_key",
+          "type": "text",
+          "number": 2,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "number": 3,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "parent_id",
+          "type": "uuid",
+          "number": 4,
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "number": 5,
+          "default": "'AUTO_PROVISIONAL'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "number": 6,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "catalog_version",
+          "type": "bigint",
+          "number": 7,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "superseded_by",
+          "type": "uuid",
+          "number": 8,
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "number": 9,
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "number": 10,
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "oid": "28903",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_category_modes",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "category_id",
+          "type": "uuid",
+          "number": 1,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "execution_scope",
+          "type": "text",
+          "number": 2,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "source_ref",
+          "type": "text",
+          "number": 3,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "mapped_at",
+          "type": "timestamp with time zone",
+          "number": 4,
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "oid": "29400",
+      "rls": false,
+      "kind": "r",
+      "name": "private.work_taxonomy_review_batches_v1",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "number": 1,
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "owner_account_id",
+          "type": "uuid",
+          "number": 2,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "request_key",
+          "type": "uuid",
+          "number": 3,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "purpose",
+          "type": "text",
+          "number": 4,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "source_review_id",
+          "type": "uuid",
+          "number": 5,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "review_digest",
+          "type": "text",
+          "number": 6,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "plans_digest",
+          "type": "text",
+          "number": 7,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "plans",
+          "type": "jsonb",
+          "number": 8,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "catalog_version",
+          "type": "bigint",
+          "number": 9,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "result",
+          "type": "jsonb",
+          "number": 10,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "committed_at",
+          "type": "timestamp with time zone",
+          "number": 11,
+          "default": "statement_timestamp()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "oid": "29475",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_worker_bindings_v1",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "owner_account_id",
+          "type": "uuid",
+          "number": 1,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "request_key",
+          "type": "uuid",
+          "number": 2,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "source_review_id",
+          "type": "uuid",
+          "number": 3,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "profile_id",
+          "type": "uuid",
+          "number": 4,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "catalog_version",
+          "type": "bigint",
+          "number": 5,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "result",
+          "type": "jsonb",
+          "number": 6,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "bound_at",
+          "type": "timestamp with time zone",
+          "number": 7,
+          "default": "statement_timestamp()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "oid": "28685",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_worker_capabilities",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "worker_account_id",
+          "type": "uuid",
+          "number": 1,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "category_id",
+          "type": "uuid",
+          "number": 2,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "confirmed_at",
+          "type": "timestamp with time zone",
+          "number": 3,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "allow_related_offers",
+          "type": "boolean",
+          "number": 4,
+          "default": "false",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "excluded",
+          "type": "boolean",
+          "number": 5,
+          "default": "false",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "origin",
+          "type": "text",
+          "number": 6,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "number": 7,
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "oid": "22987",
+      "rls": true,
+      "kind": "r",
+      "name": "private.worker_ai_reviews",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "number": 1,
+          "default": "extensions.gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "number": 2,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "conversation_id",
+          "type": "uuid",
+          "number": 3,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "revision",
+          "type": "integer",
+          "number": 4,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "base_hash",
+          "type": "text",
+          "number": 5,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "envelope",
+          "type": "jsonb",
+          "number": 6,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "number": 7,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "number": 8,
+          "default": "clock_timestamp()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "oid": "22998",
+      "rls": true,
+      "kind": "r",
+      "name": "private.worker_ai_saves",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "review_id",
+          "type": "uuid",
+          "number": 1,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "number": 2,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "client_request_id",
+          "type": "uuid",
+          "number": 3,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "receipt",
+          "type": "jsonb",
+          "number": 4,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "number": 5,
+          "default": "clock_timestamp()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "oid": "28930",
+      "rls": true,
+      "kind": "r",
+      "name": "private.worker_execution_mode_choices",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "worker_profile_id",
+          "type": "uuid",
+          "number": 1,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "worker_account_id",
+          "type": "uuid",
+          "number": 2,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "modes",
+          "type": "text[]",
+          "number": 3,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "consent_source",
+          "type": "text",
+          "number": 4,
+          "default": "'EXPLICIT_PROFILE_REVIEW'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "confirmed_at",
+          "type": "timestamp with time zone",
+          "number": 5,
+          "default": "statement_timestamp()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "number": 6,
+          "default": "statement_timestamp()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "force_rls": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,authenticated=arwDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "oid": "17519",
+      "rls": true,
+      "kind": "r",
+      "name": "public.app_profiles",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "number": 1,
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "number": 2,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "number": 3,
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "display_name",
+          "type": "text",
+          "number": 4,
+          "default": "''::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "city",
+          "type": "text",
+          "number": 5,
+          "default": "''::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "headline",
+          "type": "text",
+          "number": 6,
+          "default": "''::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "bio",
+          "type": "text",
+          "number": 7,
+          "default": "''::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "avatar_path",
+          "type": "text",
+          "number": 8,
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "account_type",
+          "type": "text",
+          "number": 9,
+          "default": "'INDIVIDUAL'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "profile_status",
+          "type": "text",
+          "number": 10,
+          "default": "'DRAFT'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "years_experience",
+          "type": "integer",
+          "number": 11,
+          "default": "0",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "portfolio",
+          "type": "jsonb",
+          "number": 12,
+          "default": "'[]'::jsonb",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "skills",
+          "type": "text[]",
+          "number": 13,
+          "default": "ARRAY[]::text[]",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "radius_km",
+          "type": "integer",
+          "number": 14,
+          "default": "15",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "available_now",
+          "type": "boolean",
+          "number": 15,
+          "default": "false",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "team_capacity",
+          "type": "integer",
+          "number": 16,
+          "default": "1",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "tools",
+          "type": "text[]",
+          "number": 17,
+          "default": "ARRAY[]::text[]",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "licenses",
+          "type": "text[]",
+          "number": 18,
+          "default": "ARRAY[]::text[]",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "vehicles",
+          "type": "text[]",
+          "number": 19,
+          "default": "ARRAY[]::text[]",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "exclusions",
+          "type": "text[]",
+          "number": 20,
+          "default": "ARRAY[]::text[]",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "minimum_fee_rsd",
+          "type": "integer",
+          "number": 21,
+          "default": "0",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "rating_requester",
+          "type": "numeric(3,2)",
+          "number": 22,
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "rating_worker",
+          "type": "numeric(3,2)",
+          "number": 23,
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "number": 24,
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "number": 25,
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "available_now_expires_at",
+          "type": "timestamp with time zone",
+          "number": 28,
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "operating_country_code",
+          "type": "text",
+          "number": 30,
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "force_rls": false
+    }
+  ],
+  "database": "postgres",
+  "functions": [
+    {
+      "acl": "{=X/postgres,postgres=X*/postgres,dashboard_user=X/postgres}",
+      "oid": "16448",
+      "owner": "postgres",
+      "config": null,
+      "body_md5": "926ba3fbdb45dc078b3e3cafddc392cc",
+      "signature": "extensions.digest(text,text)",
+      "definition": "CREATE OR REPLACE FUNCTION extensions.digest(text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_digest$function$\n",
+      "acl_entries": [
+        {
+          "grantee": "PUBLIC",
+          "grantor": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        },
+        {
+          "grantee": "postgres",
+          "grantor": "postgres",
+          "grantable": true,
+          "privilege": "EXECUTE"
+        },
+        {
+          "grantee": "dashboard_user",
+          "grantor": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "definition_md5": "95de9cf8798b911a1fe38c27bdb570de",
+      "security_definer": false
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "oid": "31292",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "c045ee696fee6b538476b32c5ec2426d",
+      "signature": "private.taxonomy_handoff_valid_v1(jsonb)",
+      "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_handoff_valid_v1(p_value jsonb)\n RETURNS boolean\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE v_city text;\nBEGIN\n IF jsonb_typeof(p_value) IS DISTINCT FROM 'object'\n    OR octet_length(p_value::text)>2048\n    OR jsonb_typeof(p_value->'required') IS DISTINCT FROM 'boolean'\n    OR p_value-array['required','shippingCountries','localExchange']<>'{}'::jsonb\n THEN RETURN false; END IF;\n IF p_value->'required'='false'::jsonb THEN RETURN p_value='{\"required\":false}'::jsonb; END IF;\n IF NOT(p_value?'shippingCountries' OR p_value?'localExchange') THEN RETURN false; END IF;\n IF p_value?'shippingCountries' THEN\n   IF jsonb_typeof(p_value->'shippingCountries') IS DISTINCT FROM 'array' THEN RETURN false; END IF;\n   IF jsonb_array_length(p_value->'shippingCountries') NOT BETWEEN 1 AND 32\n     OR EXISTS(SELECT 1 FROM jsonb_array_elements(p_value->'shippingCountries') x(value)\n       WHERE jsonb_typeof(x.value) IS DISTINCT FROM 'string' OR x.value#>>'{}' !~ '^[A-Z]{2}$')\n     OR (SELECT count(DISTINCT x.value) FROM jsonb_array_elements(p_value->'shippingCountries') x(value))\n         <>jsonb_array_length(p_value->'shippingCountries')\n   THEN RETURN false; END IF;\n END IF;\n IF p_value?'localExchange' THEN\n   IF jsonb_typeof(p_value->'localExchange') IS DISTINCT FROM 'object'\n     OR NOT((p_value->'localExchange')?&array['countryCode','city'])\n     OR (p_value->'localExchange')-array['countryCode','city']<>'{}'::jsonb\n     OR jsonb_typeof(p_value#>'{localExchange,countryCode}') IS DISTINCT FROM 'string'\n     OR p_value#>>'{localExchange,countryCode}' !~ '^[A-Z]{2}$'\n     OR jsonb_typeof(p_value#>'{localExchange,city}') IS DISTINCT FROM 'string'\n   THEN RETURN false; END IF;\n   v_city:=p_value#>>'{localExchange,city}';\n   IF v_city IS DISTINCT FROM btrim(v_city,\n      U&'\\0009\\000A\\000B\\000C\\000D\\0020\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000\\FEFF')\n      OR char_length(v_city) NOT BETWEEN 3 AND 120\n      OR v_city ~ ('['||chr(1)||'-'||chr(31)||chr(127)||'-'||chr(159)||'<>0-9]')\n   THEN RETURN false; END IF;\n END IF;\n RETURN true;\nEND $function$\n",
+      "acl_entries": [
+        {
+          "grantee": "postgres",
+          "grantor": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "definition_md5": "de8d37190d70e0534bfc123d7b247b1f",
+      "security_definer": false
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "oid": "28591",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "8c360cb0a05699cdae25485a5efc77ba",
+      "signature": "private.taxonomy_normalize_v1(text)",
+      "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_normalize_v1(p_value text)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE PARALLEL SAFE\n SET search_path TO 'pg_catalog'\nAS $function$\n SELECT btrim(regexp_replace(\n   translate(\n     replace(replace(replace(replace(replace(replace(lower(btrim(coalesce(p_value,''))),\n       'ђ','dj'),'љ','lj'),'њ','nj'),'џ','dz'),'đ','dj'),'ß','ss'),\n     'абвгдежзијклмнопрстћуфхцчшčćšž',\n     'abvgdezzijklmnoprstcufhccsccsz'\n   ),\n   '[[:space:]]+', ' ', 'g'\n ))\n$function$\n",
+      "acl_entries": [
+        {
+          "grantee": "postgres",
+          "grantor": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        },
+        {
+          "grantee": "service_role",
+          "grantor": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "definition_md5": "8185e305017348588028e92397866b35",
+      "security_definer": false
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "oid": "28953",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "32156a1eb5b27173a0b473c879a23200",
+      "signature": "public.rpc_get_worker_execution_modes(uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_get_worker_execution_modes(p_worker_profile_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE v_account uuid:=auth.uid(); v_profile public.app_profiles; v_modes text[]; v_at timestamptz;\nBEGIN\n IF v_account IS NULL THEN RAISE EXCEPTION 'AUTH_REQUIRED' USING errcode='28000'; END IF;\n SELECT p.* INTO v_profile FROM public.app_profiles p\n WHERE p.id=p_worker_profile_id AND p.account_id=v_account AND p.kind='WORKER';\n IF NOT FOUND THEN RAISE EXCEPTION 'WORKER_PROFILE_NOT_OWNED' USING errcode='42501'; END IF;\n SELECT m.modes,m.confirmed_at INTO v_modes,v_at\n FROM private.worker_execution_mode_choices m\n WHERE m.worker_profile_id=p_worker_profile_id AND m.worker_account_id=v_account;\n RETURN jsonb_build_object('workerProfileId',p_worker_profile_id,'modes',to_jsonb(coalesce(v_modes,ARRAY[]::text[])),\n  'confirmed',v_at IS NOT NULL,'confirmedAt',v_at,\n  'matchingAuthority','NONE','notificationAuthority','NONE');\nEND $function$\n",
+      "acl_entries": [
+        {
+          "grantee": "postgres",
+          "grantor": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        },
+        {
+          "grantee": "authenticated",
+          "grantor": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        },
+        {
+          "grantee": "service_role",
+          "grantor": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "definition_md5": "f42fe6666c33e8b5faa8313c72f8501d",
+      "security_definer": true
+    }
+  ],
+  "read_only": "on",
+  "tables_md5": "3de2fefde2e3db68670f09395a87db64",
+  "captured_at": "2026-11-01T13:57:09.380996+00:00",
+  "capture_role": "postgres",
+  "format_version": 1,
+  "user_rows_read": false,
+  "server_version_num": 170006,
+  "project_id": "leqcwgzvjsxugfgzdmth"
+}

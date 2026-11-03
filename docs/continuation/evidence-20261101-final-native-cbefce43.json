@@ -1,0 +1,412 @@
+{
+  "unit": "USKOCI_INTERNAL_APK_SIGNED_OUT_NATIVE_EVIDENCE",
+  "formatVersion": 1,
+  "recordedAtUtc": "2026-11-01T15:55:59Z",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/rev14-review-f17",
+  "pullRequest": 43,
+  "sourceCommit": "cbefce43debc73f5605eda389f41ba08db7fd6f9",
+  "overallApplicationStatus": "PARTIAL",
+  "scope": "Actual internal Android APK, signed-out UI only. No whole-application E2E or release acceptance.",
+  "build": {
+    "schemaVersion": 1,
+    "recordedAtUtc": "2026-11-01T15:50:08.8449242Z",
+    "scope": "INTERNAL_LOCAL_PREVIEW_APK_ONLY",
+    "result": "BUILD_AND_ARTIFACT_VERIFICATION_PASS",
+    "sourceCommit": "cbefce43debc73f5605eda389f41ba08db7fd6f9",
+    "trackedSourceCleanThroughArtifactArchive": true,
+    "sourceDirtyEmbedded": true,
+    "sourceDirtyExplanation": "Existing untracked .codex-remote-attachments/; no contents read or packed.",
+    "environmentSource": "eas.json build.preview.env; EAS_BUILD_PROFILE=preview; EAS_BUILD_PLATFORM=android",
+    "command": "android\\gradlew.bat -p android :app:createReleaseUpdatesResources --rerun :app:assembleRelease --console=plain --max-workers=2 --no-parallel --no-daemon -Dorg.gradle.jvmargs=\"-Xmx2048m -XX:MaxMetaspaceSize=1024m\"",
+    "prebuild": false,
+    "clean": false,
+    "globalRerun": false,
+    "buildExit": 0,
+    "buildDuration": "3m29s",
+    "actionableTasks": 932,
+    "executedTasks": 45,
+    "upToDateTasks": 887,
+    "apk": {
+      "path": "C:\\Users\\user\\Desktop\\USKOCI-CISTO\\artifacts\\android-preview-cbefce43-final-20261101-164544\\uskoci-preview-cbefce43-internal.apk",
+      "bytes": 123039115,
+      "sha256": "0fb3c2b08bbf253cc196d2669157c48a4b771cd4b550c8ca5e657d02dee4d2c1",
+      "package": "rs.uskoci.preview",
+      "versionName": "1.0.0",
+      "versionCode": 36,
+      "minSdk": 24,
+      "targetSdk": 36,
+      "abis": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "signing": "EXISTING_ANDROID_DEBUG_KEY",
+      "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+      "signatureV2Verified": true,
+      "zipAlign16KBExit": 0,
+      "zipAlignmentScope": "APK ZIP alignment only, not full ELF/device acceptance",
+      "entries": 1773,
+      "forbiddenFolderEntries": 0
+    },
+    "embeddedConfig": {
+      "build": {
+        "schemaVersion": 1,
+        "version": "1.0.0",
+        "sourceCommit": "cbefce43debc73f5605eda389f41ba08db7fd6f9",
+        "sourceDirty": true,
+        "backendTarget": "canonical",
+        "backendRelease": {},
+        "runtimeVersion": "uskoci-v1-preview-r1",
+        "updateChannel": "preview"
+      },
+      "package": "rs.uskoci.preview",
+      "version": "1.0.0",
+      "versionCode": 36,
+      "updates": {
+        "url": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
+        "enabled": true,
+        "checkAutomatically": "ON_LOAD",
+        "fallbackToCacheTimeout": 0,
+        "requestHeaders": {
+          "expo-channel-name": "preview"
+        }
+      },
+      "runtimeVersion": "uskoci-v1-preview-r1"
+    },
+    "embeddedBundle": {
+      "bytes": 13830980,
+      "sha256": "a24d30617f26247e1a4c81a507b9bdad7ea78b0b442edcff62a47135116a5c67",
+      "matchesGeneratedBundle": true,
+      "canonicalDevUrlEmbedded": true,
+      "entryCount": 1773,
+      "forbiddenFolderEntries": 0,
+      "abis": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "embeddedUpdateId": "e1b0d654-44fd-406e-ac85-f2ea0692598d",
+      "embeddedCommitTime": 1793548027409
+    },
+    "nativeInputHashesPreserved": true,
+    "perTaskUpdatesRerun": true,
+    "previousEmbeddedUpdateId": "73a1bd72-7e7f-4893-9664-29094d9e3e79",
+    "previousEmbeddedCommitTime": 1793547013606,
+    "ota": {
+      "enabled": true,
+      "checkOnLaunch": "ALWAYS",
+      "launchWaitMs": 0,
+      "channel": "preview",
+      "runtime": "uskoci-v1-preview-r1",
+      "requirement": "Upgrade existing AVD without clearing data, offline cold start, verify new embedded identity and actual changed UI. Later online starts may fetch compatible preview OTA."
+    },
+    "limitations": [
+      "No install or launch performed by build agent.",
+      "Physical-device certificate/version compatibility unverified.",
+      "No EAS signing/upload/AAB/Google Play/production readiness.",
+      "Actual oversized signup acceptance must be repeated on this APK.",
+      "No real Auth/business E2E proven."
+    ],
+    "log": "assemble-release.log"
+  },
+  "installedArtifact": {
+    "installation": "adb install -r; no data clear or uninstall",
+    "package": "rs.uskoci.preview",
+    "pulledBaseApkSha256": "0fb3c2b08bbf253cc196d2669157c48a4b771cd4b550c8ca5e657d02dee4d2c1",
+    "hashMatchesArchivedApk": true,
+    "coldStartsMs": [
+      3085,
+      1840,
+      4723
+    ]
+  },
+  "environment": {
+    "avd": "USKOCI_20261101_UI",
+    "serial": "emulator-5554",
+    "android": "36.1",
+    "abi": "x86_64",
+    "stressLayout": {
+      "pixels": "1080x1920",
+      "densityDpi": 480,
+      "dp": "360x640",
+      "fontScale": 1.3
+    },
+    "motion": "Reduced Motion for XML evidence; signup also visually repeated with all three animation scales 1",
+    "network": "Airplane mode ON, Wi-Fi and cellular OFF for every recorded launch and screen",
+    "credentialsEntered": false,
+    "accountCreated": false,
+    "physicalPhoneDetected": false,
+    "finalSettings": {
+      "pixels": "1080x2424",
+      "densityDpi": 420,
+      "fontScale": 1,
+      "animationScales": 1,
+      "offline": true
+    }
+  },
+  "cases": [
+    {
+      "id": "welcome-safe-area",
+      "result": "PASS",
+      "action": "Cold start, scroll welcome with same 540,1610 -> 540,700 gesture as baseline.",
+      "observation": "Content clips at viewport top y=156 below status clock. Both auth entry actions remain available.",
+      "evidence": [
+        "native-ui-20261101/cbefce43-welcome-scrolled.png"
+      ],
+      "baseline": "native-ui-20261101/de5851a8-welcome-overlap.png"
+    },
+    {
+      "id": "signup-input-priority",
+      "result": "PASS",
+      "action": "Open signup and submit empty form, then keyboard Next through Ime, Prezime, Email, Lozinka.",
+      "observation": "Each focused input is completely inside scroll viewport y=348..620, above footer. Ime/Prezime/Lozinka y=400..572 (172px), Email y=408..572 (164px). Whole label/input/error blocks do not fit simultaneously; label/error remain scrollable and partly clipped in this stress layout.",
+      "baseline": "native-ui-20261101/5b4d72fc-signup-oversized.png",
+      "evidence": [
+        "native-ui-20261101/cbefce43-signup-input.png",
+        "native-ui-20261101/cbefce43-28-final-signup-empty.xml",
+        "native-ui-20261101/cbefce43-29-final-signup-surname.xml",
+        "native-ui-20261101/cbefce43-30-final-signup-email.xml",
+        "native-ui-20261101/cbefce43-31-final-signup-password.xml"
+      ]
+    },
+    {
+      "id": "signup-normal-motion",
+      "result": "PASS",
+      "action": "Repeat empty signup submit with animation scales 1, wait for keyboard/scroll settle.",
+      "observation": "Whole focused Ime input remains visible above pinned footer; not a claim that its entire label/error block fits.",
+      "evidence": [
+        "native-ui-20261101/cbefce43-signup-normal-motion.png"
+      ]
+    },
+    {
+      "id": "login-input-regression",
+      "result": "PASS",
+      "action": "Open login, focus Email, press keyboard Next to Lozinka.",
+      "observation": "Email y=574..738 (164px), Lozinka y=566..738 (172px), both above scroll bottom y=786 and pinned action.",
+      "evidence": [
+        "native-ui-20261101/cbefce43-login-keyboard.png",
+        "native-ui-20261101/cbefce43-32-final-login-email.xml",
+        "native-ui-20261101/cbefce43-33-final-login-password.xml"
+      ]
+    },
+    {
+      "id": "recovery-and-back",
+      "result": "PASS",
+      "action": "Hide keyboard, open Zaboravljena lozinka, return with app Back.",
+      "observation": "Recovery email/instruction/action renders; Back returns to login and password. No email was entered and no recovery message sent.",
+      "evidence": [
+        "native-ui-20261101/cbefce43-recovery.png",
+        "native-ui-20261101/cbefce43-35-final-recovery.xml",
+        "native-ui-20261101/cbefce43-36-final-recovery-back.xml"
+      ]
+    },
+    {
+      "id": "signed-out-restart-and-default-layout",
+      "result": "PASS",
+      "action": "Force-stop/relaunch offline, then restore own AVD default size/density/font and relaunch.",
+      "observation": "Welcome renders with readable unclipped text and actions. No AndroidRuntime/ReactNativeJS error entries in the bounded final-run log query.",
+      "evidence": [
+        "native-ui-20261101/cbefce43-welcome-default.png"
+      ]
+    }
+  ],
+  "retainedFiles": [
+    {
+      "path": "native-ui-20261101/cbefce43-28-final-signup-empty.xml",
+      "bytes": 13213,
+      "sha256": "117b9ecac54d59c53bd0144310bdd9ead5339fac89c5c1f98dcf332771134a12",
+      "recordedAtUtc": "2026-11-01T15:50:57.2663399Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-29-final-signup-surname.xml",
+      "bytes": 12569,
+      "sha256": "e90c4d08376eb0ac571ebf2595dc20a73b89a5085a96a40e6c4174c70042669f",
+      "recordedAtUtc": "2026-11-01T15:51:18.5856219Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-30-final-signup-email.xml",
+      "bytes": 11129,
+      "sha256": "a55653b6eada77c595de5f7f3b0580009eb62b1ac4cbd39884e3788b82ccd369",
+      "recordedAtUtc": "2026-11-01T15:51:21.9837731Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-31-final-signup-password.xml",
+      "bytes": 9677,
+      "sha256": "a323ed46bd19a65ca17c8a97e622bce77bbd14d46ea28755963d5d0c14d7dd65",
+      "recordedAtUtc": "2026-11-01T15:51:25.3090049Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-32-final-login-email.xml",
+      "bytes": 11393,
+      "sha256": "bb4c985c34eb81e6416f7d84f24d6c24c8d6c7c581d2bfef109a2c52071f1fbe",
+      "recordedAtUtc": "2026-11-01T15:51:48.4265177Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-33-final-login-password.xml",
+      "bytes": 10659,
+      "sha256": "2141d864588c929489f01cc6deb5d778bf2c21dc3294d70359d33e697ca4d9cb",
+      "recordedAtUtc": "2026-11-01T15:52:00.7357165Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-35-final-recovery.xml",
+      "bytes": 6391,
+      "sha256": "492a0ac261633428da397ee26c19071002c3e0b1be8fba03ad4f3c7d7224a4cb",
+      "recordedAtUtc": "2026-11-01T15:52:13.4579571Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-36-final-recovery-back.xml",
+      "bytes": 11421,
+      "sha256": "3d9feaa3c041cfe1861dde25b585052b29a6ac31d607f1c787f6ddbb6dfe1da4",
+      "recordedAtUtc": "2026-11-01T15:52:23.2039593Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-login-keyboard.png",
+      "bytes": 127098,
+      "sha256": "7487929bc2c10f5061445d8854d42087187827d3cdd4b4d07c903fa3ab7d039b",
+      "recordedAtUtc": "2026-11-01T15:51:48.7041875Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-recovery.png",
+      "bytes": 146512,
+      "sha256": "f0d4bcedd66fd04289048898b922cda58d146e401f76b73da1c6b9c0916bda18",
+      "recordedAtUtc": "2026-11-01T15:52:13.7032832Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-signup-input.png",
+      "bytes": 148630,
+      "sha256": "456045511ccfc938021849c39a137be8ee332691aa44ede7fb5c4f7677a99a3a",
+      "recordedAtUtc": "2026-11-01T15:50:57.5172590Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-signup-normal-motion.png",
+      "bytes": 148591,
+      "sha256": "2ef3335aa071a6db2d31ea66d1d7a4c0a22e16e6f3aaec1e0d1b91dcc8d8e77e",
+      "recordedAtUtc": "2026-11-01T15:52:43.9824928Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-welcome-default.png",
+      "bytes": 495591,
+      "sha256": "379bd151e98bbacc959e6758b2053c7e734dd0f6b8abb7f0a81e729b79591d96",
+      "recordedAtUtc": "2026-11-01T15:53:06.8783711Z"
+    },
+    {
+      "path": "native-ui-20261101/cbefce43-welcome-scrolled.png",
+      "bytes": 416614,
+      "sha256": "58ee3fb1fe378489d41ed397ccb6b19e729f82b86a7a94ac661cbd62ec2a0d7a",
+      "recordedAtUtc": "2026-11-01T15:50:42.0866963Z"
+    }
+  ],
+  "devMetadataRecheck": {
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "checkedAtUtc": "2026-11-01T15:45:10.810662Z",
+    "scope": "READ_ONLY_VERSION_AND_MIGRATION_LEDGER_RECHECK",
+    "functions": [
+      {
+        "slug": "uskoci-ai-interview",
+        "version": 154,
+        "status": "ACTIVE",
+        "bundleSha256": "5a5e6ed42521aaa667fb5ecf0d4b1ec709a30d8f0d5a5a754bd4eca75880afac"
+      },
+      {
+        "slug": "uskoci-location-search",
+        "version": 27,
+        "status": "ACTIVE",
+        "bundleSha256": "6edbe27708030ef3e20e7a43dd27fef9a2627a9d317b4af59d472f3b0433a8bd"
+      },
+      {
+        "slug": "uskoci-publication-evaluate",
+        "version": 24,
+        "status": "ACTIVE",
+        "bundleSha256": "a73abe0ddb3502d8ad1b68f90e5e8da050b8c5721cdca9bc9e54b0f08b669e16"
+      },
+      {
+        "slug": "uskoci-data-export-worker",
+        "version": 24,
+        "status": "ACTIVE",
+        "bundleSha256": "37c6e8d7acd5f705cd1a118bd4010bdf8647762b7fa628be2e669f9531fba679"
+      },
+      {
+        "slug": "uskoci-data-export-download",
+        "version": 24,
+        "status": "ACTIVE",
+        "bundleSha256": "9a592d9bb329a7a26e0a854d53a2c799f712ae96ebc2c9949f3457b24f652e66"
+      },
+      {
+        "slug": "uskoci-worker-interview",
+        "version": 107,
+        "status": "ACTIVE",
+        "bundleSha256": "90a1b99d8fa6e385a182a0792f15d5a4b70bed9daa90bc044260c52643e3475c"
+      },
+      {
+        "slug": "uskoci-speech-session",
+        "version": 25,
+        "status": "ACTIVE",
+        "bundleSha256": "c9be2c2be11cca3e93e661f5af8edf2dfd13cc09fc262f85d2b5a1de958fc8e0"
+      },
+      {
+        "slug": "uskoci-qa-classify",
+        "version": 23,
+        "status": "ACTIVE",
+        "bundleSha256": "8c16daa4f0e4e8f7df39270549bc68e61b26c973da9a96bbff37f2b15c34adcf"
+      },
+      {
+        "slug": "uskoci-push-transport",
+        "version": 39,
+        "status": "ACTIVE",
+        "bundleSha256": "dcfc991c37c35c76cc125b720a1629aa3b849ccb30e4528d80e3b454c9f5bb34"
+      },
+      {
+        "slug": "uskoci-media",
+        "version": 24,
+        "status": "ACTIVE",
+        "bundleSha256": "34e4a23149d30c4abbf606aa5b1fddf12fd370fbf3904b6a20eb29c7a446d1ac"
+      },
+      {
+        "slug": "uskoci-account-closure-worker",
+        "version": 14,
+        "status": "ACTIVE",
+        "bundleSha256": "9f7373f9452ef85fb8c615bef64fc2a564aad32b39b9df80bad2152bd2c2ae11"
+      },
+      {
+        "slug": "uskoci-taxonomy-postsave-worker",
+        "version": 8,
+        "status": "ACTIVE",
+        "bundleSha256": "36897a7d8c95ffbd30d9c86accf5db82db3650ebb5f12f524c069e339c7e91e6"
+      },
+      {
+        "slug": "sbfenv",
+        "version": 6,
+        "status": "ACTIVE",
+        "bundleSha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18"
+      },
+      {
+        "slug": "uskoci-gemini-schema-smoke",
+        "version": 7,
+        "status": "ACTIVE",
+        "bundleSha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72"
+      },
+      {
+        "slug": "uskoci-gemini-provider-probe-dev",
+        "version": 8,
+        "status": "ACTIVE",
+        "bundleSha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0"
+      }
+    ],
+    "confirmedMigrationVersions": [
+      "20261101140429_worker_saved_service_read_model_v1",
+      "20261101140909_worker_signed_remote_only_activation_v1"
+    ],
+    "limitations": [
+      "Not a new function postimage comparison or business execution",
+      "No new secret mutation, DDL, deploy, Auth/provider/push call"
+    ]
+  },
+  "limitations": [
+    "Protected Home changes have source/full-CI evidence, not native pixel acceptance; no app Auth session was available.",
+    "No real registration, email confirmation, JWT, Gemini, worker Save/Activate, task Publish/readback, matching, push, Agreement, media, reputation, account-switch or closure flow.",
+    "The offline legal-document unavailable message is observed UI, not evidence that live legal endpoints were tested.",
+    "Physical Android and two-account acceptance remain open. Emulator is not proof of physical push delivery or device behavior.",
+    "Internal existing debug-key APK, not final AAB, Play signing, OTA publication or production readiness.",
+    "Preview OTA remains enabled. This exact-bundle acceptance used offline starts; future connected starts require checking active update identity.",
+    "Main CI success and native signed-out checks do not close R01/F21, R05, R10, durable first-plan or business/legal/production obligations."
+  ]
+}

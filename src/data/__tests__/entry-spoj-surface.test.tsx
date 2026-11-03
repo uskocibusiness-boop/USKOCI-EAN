@@ -71,14 +71,14 @@ it('uses the approved three-image welcome with two named intent controls and dir
     require('../../../assets/brand/premium-entry/publish.png'));
   expect(tree.root.findByProps({ testID: 'entry-art-discover' }).props.source).toEqual(
     require('../../../assets/brand/premium-entry/discover.png'));
-  expect(button('Objavi zadatak').props.disabled).toBe(false);
-  expect(button('Uskoči i zaradi').props.disabled).toBe(false);
-  expect(button('Objavi zadatak').props.accessibilityRole).toBe('button');
-  expect(button('Uskoči i zaradi').props.accessibilityHint).toMatch(/Isti nalog može/);
+  expect(button('Objavite zadatak').props.disabled).toBe(false);
+  expect(button('Uskočite i zaradite').props.disabled).toBe(false);
+  expect(button('Objavite zadatak').props.accessibilityRole).toBe('button');
+  expect(button('Uskočite i zaradite').props.accessibilityHint).toMatch(/Isti nalog može/);
   expect(requester).not.toHaveBeenCalled();
   expect(worker).not.toHaveBeenCalled();
-  await press('Prijavi se');
-  await press('Napravi nalog');
+  await press('Prijavite se');
+  await press('Napravite nalog');
   expect(signIn).toHaveBeenCalledTimes(1);
   expect(signUp).toHaveBeenCalledTimes(1);
 });
@@ -97,41 +97,49 @@ it('only releases the splash scene after all bundled images load, while retainin
   expect(mockSceneReady).toHaveBeenCalledTimes(1);
 });
 
-it.each([[390, 844, 33, 140], [320, 568, 24, 122]])(
-  'keeps the artwork and auth in a scrollable safe-area composition at %i×%i', async (width, height, top, size) => {
-    mockWindow = { width, height, fontScale: 2 };
+it.each([[390, 844, 33, 140, 2], [320, 568, 24, 122, 2], [360, 640, 32, 130, 1.3]])(
+  'keeps the artwork and auth in a scrollable safe-area composition at %i×%i', async (width, height, top, size, fontScale) => {
+    mockWindow = { width, height, fontScale };
     mockInsets = { ...mockInsets, top, bottom: 24 };
     await render();
     const scroll = tree.root.findByProps({ testID: 'entry-scroll' });
+    const root = StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-welcome' }).props.style);
+    const viewport = StyleSheet.flatten(scroll.props.style);
     const content = StyleSheet.flatten(scroll.props.contentContainerStyle);
     const card = StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-card' }).props.style);
     const artwork = StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-art-publish' }).props.style);
     expect(scroll.props.scrollEnabled).toBe(true);
-    expect(content.paddingTop).toBeGreaterThanOrEqual(top);
-    expect(content.paddingBottom).toBeGreaterThanOrEqual(48);
+    // Insets must protect the viewport after scrolling as well as at offset 0.
+    // Content-only padding moves away and let the real Android welcome draw under the clock.
+    expect(root.paddingTop).toBe(top);
+    expect(root.paddingBottom).toBe(24);
+    expect(viewport).toMatchObject({ flex: 1, overflow: 'hidden' });
+    // Moving the inset outside the scroll must preserve the initial artwork and last CTA spacing.
+    expect(root.paddingTop + content.paddingTop).toBe(Math.max(24, top + (height < 700 ? 12 : 36)));
+    expect(root.paddingBottom + content.paddingBottom).toBe(48);
     expect(card.backgroundColor).toBe(sys.color.surface);
     expect(artwork.width).toBe(size);
     expect(artwork.height).toBe(size);
-    expect(button('Prijavi se').props.disabled).toBe(false);
-    expect(button('Napravi nalog').props.disabled).toBe(false);
+    expect(button('Prijavite se').props.disabled).toBe(false);
+    expect(button('Napravite nalog').props.disabled).toBe(false);
   });
 
 it('delivers each intent immediately once and blocks conflicting controls during its pending operation', async () => {
   const work = deferred();
   requester.mockReturnValue(work.promise);
   await render();
-  const oldPress = button('Objavi zadatak').props.onPress;
+  const oldPress = button('Objavite zadatak').props.onPress;
   await act(async () => { oldPress(); oldPress(); });
   expect(requester).toHaveBeenCalledTimes(1);
   expect(requester.mock.calls[0][0].isCurrent()).toBe(true);
-  for (const label of ['Objavi zadatak', 'Uskoči i zaradi', 'Prijavi se', 'Napravi nalog']) {
+  for (const label of ['Objavite zadatak', 'Uskočite i zaradite', 'Prijavite se', 'Napravite nalog']) {
     expect(button(label).props.disabled).toBe(true);
   }
   expect(tree.root.findByProps({ testID: 'entry-preparing' })).toBeDefined();
   expect(tree.root.findByProps({ accessibilityRole: 'progressbar' }).props.accessibilityState).toEqual({ busy: true });
   await act(async () => work.resolve());
   expect(requester.mock.calls[0][0].isCurrent()).toBe(false);
-  expect(button('Objavi zadatak').props.disabled).toBe(false);
+  expect(button('Objavite zadatak').props.disabled).toBe(false);
   expect(tree.root.findAllByProps({ testID: 'entry-preparing' })).toHaveLength(0);
 });
 
@@ -141,19 +149,19 @@ it('invalidates a cancelled choice and keeps a newer opposite choice when the ol
   requester.mockReturnValue(first.promise);
   worker.mockReturnValue(next.promise);
   await render();
-  await press('Objavi zadatak');
+  await press('Objavite zadatak');
   const oldCurrent = requester.mock.calls[0][0].isCurrent;
   await press('Otkaži izbor');
   expect(oldCurrent()).toBe(false);
-  await press('Uskoči i zaradi');
+  await press('Uskočite i zaradite');
   expect(worker).toHaveBeenCalledTimes(1);
   const newCurrent = worker.mock.calls[0][0].isCurrent;
   await act(async () => first.resolve());
   expect(newCurrent()).toBe(true);
-  expect(button('Uskoči i zaradi').props.disabled).toBe(true);
+  expect(button('Uskočite i zaradite').props.disabled).toBe(true);
   await act(async () => next.resolve());
   expect(newCurrent()).toBe(false);
-  expect(button('Uskoči i zaradi').props.disabled).toBe(false);
+  expect(button('Uskočite i zaradite').props.disabled).toBe(false);
 });
 
 it.each(['background', 'inactive', 'account', 'reflow', 'reduced', 'unmount'])(
@@ -161,7 +169,7 @@ it.each(['background', 'inactive', 'account', 'reflow', 'reduced', 'unmount'])(
     const work = deferred();
     requester.mockReturnValue(work.promise);
     await render();
-    await press('Objavi zadatak');
+    await press('Objavite zadatak');
     const isCurrent = requester.mock.calls[0][0].isCurrent;
     expect(isCurrent()).toBe(true);
     await act(async () => {
@@ -179,12 +187,12 @@ it.each(['background', 'inactive', 'account', 'reflow', 'reduced', 'unmount'])(
 it('rejects a stale account revision before React rerenders and never dispatches under a signed-in account', async () => {
   await render();
   mockAccount = { accountRevision: 1, user: null };
-  await press('Objavi zadatak');
+  await press('Objavite zadatak');
   expect(requester).not.toHaveBeenCalled();
   await act(async () => tree.update(element()));
   mockAccount = { accountRevision: 1, user: { id: 'member' } };
-  await press('Uskoči i zaradi');
-  await press('Prijavi se');
+  await press('Uskočite i zaradite');
+  await press('Prijavite se');
   expect(worker).not.toHaveBeenCalled();
   expect(signIn).not.toHaveBeenCalled();
 });
@@ -192,12 +200,12 @@ it('rejects a stale account revision before React rerenders and never dispatches
 it('shows a retryable error without implying the intent was saved', async () => {
   requester.mockRejectedValue(new Error('storage failed'));
   await render();
-  await press('Objavi zadatak');
+  await press('Objavite zadatak');
   expect(tree.root.findByProps({ accessibilityRole: 'alert' }).children).toEqual(
-    ['Izbor trenutno nije sačuvan. Pokušaj ponovo.']);
-  expect(button('Objavi zadatak').props.disabled).toBe(false);
+    ['Izbor trenutno nije sačuvan. Pokušajte ponovo.']);
+  expect(button('Objavite zadatak').props.disabled).toBe(false);
   expect(requester.mock.calls[0][0].isCurrent()).toBe(false);
-  await press('Uskoči i zaradi');
+  await press('Uskočite i zaradite');
   expect(worker).toHaveBeenCalledTimes(1);
 });
 
@@ -206,12 +214,12 @@ it('remains static under reduced motion and disables all entry actions while aut
   const work = deferred();
   worker.mockReturnValue(work.promise);
   await render();
-  await press('Uskoči i zaradi');
+  await press('Uskočite i zaradite');
   expect(worker).toHaveBeenCalledTimes(1);
   expect(tree.root.findAllByType('ActivityIndicator' as React.ElementType)).toHaveLength(0);
   await act(async () => work.resolve());
   await act(async () => tree.update(element(true)));
-  for (const label of ['Objavi zadatak', 'Uskoči i zaradi', 'Prijavi se', 'Napravi nalog']) {
+  for (const label of ['Objavite zadatak', 'Uskočite i zaradite', 'Prijavite se', 'Napravite nalog']) {
     expect(button(label).props.disabled).toBe(true);
   }
 });

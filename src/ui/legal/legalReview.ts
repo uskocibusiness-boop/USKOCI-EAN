@@ -1,6 +1,7 @@
 import type { LegalAcceptanceReceipt, LegalBundleStatus, LegalDocument } from '../../contracts/legal';
 import type { ProcessorMapStatus } from '../../contracts/processorMap';
 import type { Ishod } from '../../data/ports';
+import type { LegalAcceptanceResult } from '../../data/legalClientService';
 
 export function legalHttpsUrl(value: string): string | null {
   try { const url = new URL(value); return url.protocol === 'https:' && !!url.hostname && !url.username && !url.password ? url.href : null; }
@@ -38,7 +39,7 @@ type Dependencies = {
   intentJournal?: IntentJournal;
   readBundle: () => Promise<Ishod<LegalBundleStatus>>;
   readProcessors: () => Promise<Ishod<ProcessorMapStatus>>;
-  accept: (key: string, terms: string, privacy: string) => Promise<Ishod<LegalAcceptanceReceipt>>;
+  accept: (key: string, terms: string, privacy: string) => Promise<LegalAcceptanceResult>;
   readAcceptance: (key: string) => Promise<Ishod<{ found: boolean; receipt: LegalAcceptanceReceipt | null }>>;
 };
 const unavailable = 'Dokumenti trenutno nisu dostupni. Pokušaj ponovo.';
@@ -56,7 +57,13 @@ export class LegalReviewController {
   snapshot = () => this.state;
   private patch(patch: Partial<LegalReviewState>) { this.state = { ...this.state, ...patch }; this.listeners.forEach(fn => fn()); }
   private current(generation = this.generation) { return this.focused && this.generation === generation && this.deps.isOwner(); }
-  activate() { this.focused = true; ++this.generation; this.patch({ busy: false, pending: this.intent ? 'READ_REQUIRED' : null }); void this.refresh(); }
+  private ownsIntent(intent: Intent | null) {
+    return this.intent === intent && (!this.deps.intentJournal || this.deps.intentJournal.read() === intent);
+  }
+  activate() {
+    if (this.deps.intentJournal) this.intent = this.deps.intentJournal.read();
+    this.focused = true; ++this.generation; this.patch({ busy: false, pending: this.intent ? 'READ_REQUIRED' : null }); void this.refresh();
+  }
   deactivate() { this.focused = false; ++this.generation; }
   async refresh() {
     if (!this.current() || this.state.busy) return;
@@ -77,44 +84,57 @@ export class LegalReviewController {
     });
   }
   async accept(reviewedBundle = this.state.bundle) {
-    if (!this.current() || reviewedBundle !== this.state.bundle || this.state.loading || this.state.busy || this.state.bundle?.acceptedCurrentBundle) return;
-    const documents = reviewedDocuments(this.state.bundle);
-    if (!documents || this.state.pending === 'READ_REQUIRED') return;
-    const [terms, privacy] = documents;
-    if (this.state.receipt?.termsSha256 === terms.sha256 && this.state.receipt.privacySha256 === privacy.sha256) return;
-    if (this.intent && (this.intent.terms !== terms.sha256 || this.intent.privacy !== privacy.sha256)) {
-      this.patch({ pending: 'READ_REQUIRED', error: unknown }); return;
+    if (!this.current() || !this.ownsIntent(this.intent) || reviewedBundle !== this.state.bundle || this.state.loading || this.state.busy) return;
+    let intent = this.intent;
+    if (intent) {
+      // ABSENT permits only an explicit replay of the original reviewed bytes,
+      // even if newer documents are now displayed. It never creates new consent.
+      if (this.state.pending !== 'REPLAY_AVAILABLE') return;
+    } else {
+      const documents = reviewedDocuments(this.state.bundle);
+      if (!documents || this.state.pending || this.state.bundle?.acceptedCurrentBundle) return;
+      const [terms, privacy] = documents;
+      if (this.state.receipt?.termsSha256 === terms.sha256 && this.state.receipt.privacySha256 === privacy.sha256) return;
+      intent = { key: this.deps.newId(), terms: terms.sha256, privacy: privacy.sha256 };
+      this.retain(intent);
     }
-    const intent = this.intent ?? { key: this.deps.newId(), terms: terms.sha256, privacy: privacy.sha256 };
-    this.retain(intent); const generation = this.generation;
+    const generation = this.generation;
+    const current = () => this.current(generation) && this.ownsIntent(intent);
     this.patch({ busy: true, error: null, pending: 'READ_REQUIRED' });
     try {
-      const result = await boundedLegalRead(() => this.deps.accept(intent.key, intent.terms, intent.privacy));
-      if (!this.current(generation)) return;
-      if (result.ok && this.matches(result.podatak, intent)) { this.retain(null); this.patch({ receipt: result.podatak, pending: null }); }
-      else if (!result.ok && result.kod === 'LEGAL_REVIEW_CHANGED') {
-        this.retain(null); this.patch({ bundle: null, pending: null, error: result.poruka });
+      const result = await boundedLegalRead(() => {
+        if (!current()) throw new Error('LEGAL_INTENT_CHANGED');
+        return this.deps.accept(intent.key, intent.terms, intent.privacy);
+      });
+      if (!current()) return;
+      if (result.ok && this.matches(result.podatak, intent)) { this.retain(null); this.patch({ receipt: result.podatak, pending: null, busy: false }); }
+      else if (!result.ok && result.kod === 'LEGAL_REVIEW_CHANGED' && result.authoritativeReviewChanged === true) {
+        // This replay was rejected for obsolete bytes. It says nothing about
+        // whether an earlier request committed; fresh documents need fresh consent.
+        this.retain(null); this.patch({ bundle: null, pending: null, error: result.poruka, busy: false });
       } else this.patch({ error: result.ok ? unknown : result.poruka, pending: 'READ_REQUIRED' });
-    } catch { if (this.current(generation)) this.patch({ error: unknown, pending: 'READ_REQUIRED' }); }
-    finally { if (this.current(generation)) this.patch({ busy: false }); }
+    } catch { if (current()) this.patch({ error: unknown, pending: 'READ_REQUIRED' }); }
+    finally { if (current()) this.patch({ busy: false }); }
   }
   async readOutcome() {
-    if (!this.current() || !this.intent || this.state.busy || this.state.loading) return;
+    if (!this.current() || !this.intent || !this.ownsIntent(this.intent) || this.state.busy || this.state.loading) return;
     const intent = this.intent, generation = this.generation;
+    const current = () => this.current(generation) && this.ownsIntent(intent);
     this.patch({ busy: true, error: null });
     try {
-      const result = await boundedLegalRead(() => this.deps.readAcceptance(intent.key));
-      if (!this.current(generation)) return;
+      const result = await boundedLegalRead(() => {
+        if (!current()) throw new Error('LEGAL_INTENT_CHANGED');
+        return this.deps.readAcceptance(intent.key);
+      });
+      if (!current()) return;
       if (result.ok && result.podatak.found && result.podatak.receipt && this.matches(result.podatak.receipt, intent)) {
-        this.retain(null); this.patch({ receipt: result.podatak.receipt, pending: null });
-      } else if (result.ok && !result.podatak.found) {
-        const documents = reviewedDocuments(this.state.bundle);
-        const same = documents?.[0].sha256 === intent.terms && documents?.[1].sha256 === intent.privacy;
-        this.patch({ pending: same ? 'REPLAY_AVAILABLE' : 'READ_REQUIRED',
-          error: same ? 'Prihvatanje nije sačuvano. Pokušaj ponovo.' : 'Dokumenti su promenjeni dok proveravamo prethodno prihvatanje. Proveri ponovo.' });
+        this.retain(null); this.patch({ receipt: result.podatak.receipt, pending: null, busy: false });
+      } else if (result.ok && result.podatak.found === false && result.podatak.receipt === null) {
+        this.patch({ pending: 'REPLAY_AVAILABLE',
+          error: 'Prethodno prihvatanje još nije pronađeno. Možete ponoviti isto prihvatanje.' });
       } else this.patch({ error: result.ok ? unknown : result.poruka, pending: 'READ_REQUIRED' });
-    } catch { if (this.current(generation)) this.patch({ error: unknown, pending: 'READ_REQUIRED' }); }
-    finally { if (this.current(generation)) this.patch({ busy: false }); }
+    } catch { if (current()) this.patch({ error: unknown, pending: 'READ_REQUIRED' }); }
+    finally { if (current()) this.patch({ busy: false }); }
   }
   private matches(receipt: LegalAcceptanceReceipt, intent: Intent) {
     return receipt.accepted === true && receipt.termsSha256 === intent.terms && receipt.privacySha256 === intent.privacy;

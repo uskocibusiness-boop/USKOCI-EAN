@@ -1,0 +1,34 @@
+{
+  "unit": "R01_NATIVE_NET_PROVENANCE_DEV_BASELINE",
+  "format_version": 1,
+  "query_sha256": "f3e58d5bd6fc69628fcf7b17fbdaf95900d4ac7db6f24a44588ed279e6a512f1",
+  "observation": {
+    "unit": "R01_NATIVE_NET_PROVENANCE_CAPTURE",
+    "format_version": 1,
+    "read_only": "on",
+    "search_path": "pg_catalog",
+    "server_version_num": 170006,
+    "database": "postgres",
+    "extension_version": "0.20.4",
+    "helper": {
+      "source_sha256": "754e58111dbe32030af4d91591dfd78cb3cf8e8f4f56a5fcc199bb0cf7f4ac2b",
+      "normalized_sha256": "55abda380efd46b37b26d3c6e4f3b514e28b7c7c1df44f5ae0315ece4052370d",
+      "native_literal_count": 0,
+      "hosted_literal_count": 1,
+      "config_kind": "EMPTY_SEARCH_PATH",
+      "invoker": true
+    },
+    "event": {
+      "create_extension_only": true,
+      "invokes_helper": true
+    },
+    "dependencies": {
+      "total": 1,
+      "only_event": true
+    },
+    "legacy_branches": {
+      "native_active": false,
+      "hosted_active": false
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
-import { correctionFromText, factCorrectionValue, factReviewValue } from '../aiNeedV2Ui';
+import { factReviewValue } from '../aiNeedV2Ui';
+import { calendarInstant } from '../../lib/calendarTime';
 import { civilInstant } from '../../ui/calendar/calendarPresentation';
 
 const startFact: AiNeedV2Fact = {
@@ -17,11 +18,6 @@ const startFact: AiNeedV2Fact = {
 
 describe('PKG-003 deterministic named-zone task time', () => {
   it('resolves civil input in Europe/Belgrade instead of the runner/device timezone', () => {
-    expect(correctionFromText(startFact, '2026-09-15 12:00')).toEqual({
-      ok: true,
-      value: '2026-09-15T10:00:00.000Z',
-      displayValue: '2026-09-15 12:00',
-    });
     expect(civilInstant('2026-09-15', '12:00', 'Europe/Belgrade')).toEqual({
       value: '2026-09-15T10:00:00.000Z',
       error: null,
@@ -33,26 +29,27 @@ describe('PKG-003 deterministic named-zone task time', () => {
     ['2026-13-01 12:00', 'impossible month'],
     ['2026-09-15 24:00', 'impossible hour'],
   ])('rejects %s (%s) without Date normalization', input => {
-    expect(correctionFromText(startFact, input)).toMatchObject({ ok: false });
+    const [date, time] = input.split(' ');
+    expect(civilInstant(date, time, 'Europe/Belgrade').value).toBeNull();
   });
 
   it('rejects the Europe/Belgrade spring DST gap', () => {
-    const result = correctionFromText(startFact, '2026-03-29 02:30');
-    expect(result).toMatchObject({ ok: false });
-    if (!result.ok) expect(result.message).toContain('ne postoji');
+    const result = civilInstant('2026-03-29', '02:30', 'Europe/Belgrade');
+    expect(result.value).toBeNull();
+    expect(result.error).toContain('ne postoji');
   });
 
   it('rejects the Europe/Belgrade repeated autumn wall clock as ambiguous', () => {
-    const result = correctionFromText(startFact, '2026-10-25 02:30');
-    expect(result).toMatchObject({ ok: false });
-    if (!result.ok) expect(result.message).toContain('ponavlja');
+    const result = civilInstant('2026-10-25', '02:30', 'Europe/Belgrade');
+    expect(result.value).toBeNull();
+    expect(result.error).toContain('ponavlja');
   });
 
-  it('preserves explicit ISO offset and microseconds byte-for-byte', () => {
+  it('preserves explicit ISO instant identity and displays microseconds', () => {
     const exact = '2026-09-15T12:00:45.123456+02:00';
     const fact = { ...startFact, value: exact };
-    expect(correctionFromText(fact, exact)).toEqual({ ok: true, value: exact, displayValue: exact });
-    expect(factCorrectionValue(fact)).toBe(exact);
+    expect(calendarInstant(exact)).toBe(calendarInstant('2026-09-15T10:00:45.123456Z'));
+    expect(fact.value).toBe(exact);
     expect(factReviewValue(fact)).toContain('12:00:45.123456');
     expect(factReviewValue(fact)).toContain('vreme u Beogradu');
   });
@@ -62,7 +59,7 @@ describe('PKG-003 deterministic named-zone task time', () => {
     '09/15/2026 12:00',
     'September 15 2026 12:00',
   ])('rejects zone-less/free-form input %s', input => {
-    expect(correctionFromText(startFact, input)).toMatchObject({ ok: false });
+    expect(calendarInstant(input)).toBeNull();
   });
 
   it('fails closed for an invalid named timezone', () => {

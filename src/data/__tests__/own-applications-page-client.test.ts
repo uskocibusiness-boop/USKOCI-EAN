@@ -112,6 +112,9 @@ it.each<[string, OwnApplicationsPageRequest, (page: any) => void]>([
   ['an application with a malformed identity', first, withFirst(item => { item.applicationId = '../bad'; item.id = '../bad'; })],
   ['an application the whole list would refuse', first, withFirst(item => { item.state = 'WEIRD'; })],
   ['an application with an invalid price', first, withFirst(item => { item.priceRsd = 0; })],
+  ['an application with a non-finite price', first, withFirst(item => { item.priceRsd = 'Infinity'; })],
+  ['an application with a non-finite version', first, withFirst(item => { item.version = 'NaN'; })],
+  ['an application with fractional covered seats', first, withFirst(item => { item.coveredSlots = 2.5; })],
   ['an application without the task facts', first, withFirst(item => { delete item.scheduleKind; delete item.endsAt; delete item.executionLocationMode; delete item.taskTimezone; delete item.priceMode; delete item.priceBasis; delete item.requiredSlots; })],
   ['a part of the task facts', first, withFirst(item => { delete item.taskTimezone; })],
   ['an unknown schedule kind', first, withFirst(item => { item.scheduleKind = 'SOMETIME'; })],
@@ -135,6 +138,34 @@ it.each<[string, OwnApplicationsPageRequest, (page: any) => void]>([
   if (_name === 'sections that do not add up to the total') body.counts.total = 5;
   mockRpc.mockResolvedValue({ data: body, error: null });
   await expect(applicationClientService.mojePrijaveStrana(request)).rejects.toThrow('OWN_APPLICATIONS_PAGE_INVALID');
+});
+
+it('refuses malformed own-application paging requests before any RPC', async () => {
+  for (const request of [
+    { ...first, scope: 'WRONG' }, { ...first, limit: 0 }, { ...first, limit: 101 },
+    { ...first, limit: '30' }, { ...first, cursor: { at: AS_OF, id: uuid(9), rank: -1 } },
+    { ...first, cursor: { at: '2026-02-30T08:00:00+00:00', id: uuid(9), rank: 0 } },
+    { ...first, cursor: { at: AS_OF, id: 'not-uuid', rank: 0 } },
+    { ...first, scope: 'ACTIVE', cursor: { at: AS_OF, id: uuid(9), rank: 0 } },
+  ]) {
+    mockRpc.mockClear();
+    await expect(applicationClientService.mojePrijaveStrana(request as any)).rejects.toThrow('OWN_APPLICATIONS_PAGE_INVALID');
+    expect(mockRpc).not.toHaveBeenCalled();
+  }
+});
+
+it('refuses invalid civil dates and a mapper whose application ID differs from the server keyset row', () => {
+  const docs = ordered().slice(0, 3);
+  const body = payload(docs, { counts: { total: 3, attention: 1, active: 2, finished: 0 } });
+  const map = (doc: any) => ({ prijavaId: doc.id, stanje: doc.state, traziPaznju: doc.attentionRequired }) as any;
+  for (const invalid of ['2026-02-30T10:00:00Z', '2026-04-31T10:00:00+00:00']) {
+    expect(decodeOwnApplicationsPage({ ...body, asOf: invalid }, first, map)).toBeNull();
+    const changed = [...docs]; changed[0] = { ...changed[0], sortAt: invalid };
+    expect(decodeOwnApplicationsPage({ ...body, items: changed }, first, map)).toBeNull();
+  }
+  expect(decodeOwnApplicationsPage(body, first, (doc: any) =>
+    ({ prijavaId: doc.id === docs[0].id ? uuid(777) : doc.id, stanje: doc.state,
+      traziPaznju: doc.attentionRequired }) as any)).toBeNull();
 });
 
 it('a page that is not an object at all is invalid', async () => {
@@ -184,4 +215,20 @@ it('decodes with an injected mapper, so a document the mapper refuses refuses th
   const page = decodeOwnApplicationsPage(body, first, (doc: any) => { seen.push(doc.id); return { prijavaId: doc.id, stanje: doc.state, traziPaznju: doc.attentionRequired } as any; });
   expect(seen).toEqual([uuid(1), uuid(2), uuid(3)]); expect(page?.items).toHaveLength(3);
   expect(decodeOwnApplicationsPage(body, first, () => { throw new Error('no'); })).toBeNull();
+});
+
+it('keeps the submitted price unit distinct from the current task unit, including legacy rows', async () => {
+  const docs = ordered();
+  Object.assign(docs[1], { applicationPriceBasis: 'HOURLY', priceRsd: 1200 });
+  Object.assign(docs[2], { priceMode: 'MY_PRICE', priceBasis: 'HOURLY' });
+  mockRpc.mockResolvedValue({ data: payload(docs), error: null });
+  const page = await applicationClientService.mojePrijaveStrana(first);
+  expect(page.items[1]).toMatchObject({ osnovaCene: 'HOURLY', cena: { iznos: 1200 }, zadatak: { osnovaCene: null } });
+  expect(page.items[2].osnovaCene).toBeUndefined();
+  expect(page.items[2].zadatak?.osnovaCene).toBe('HOURLY');
+  mockRpc.mockResolvedValue({ data: docs, error: null });
+  expect((await applicationClientService.mojePrijave())[1].osnovaCene).toBe('HOURLY');
+  Object.assign(docs[1], { applicationPriceBasis: 'PER_PERSON' });
+  mockRpc.mockResolvedValue({ data: payload(docs), error: null });
+  await expect(applicationClientService.mojePrijaveStrana(first)).rejects.toThrow();
 });

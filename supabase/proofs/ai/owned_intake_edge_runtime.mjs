@@ -32,35 +32,16 @@ export function loadOwnedIntakeHandler(options){
  const taskDeadline=historical?null:evaluate('src/contracts/taskApplicationDeadline.ts',()=>assert.fail('UNDECLARED_TASK_DEADLINE_IMPORT'));
  const availability=historical?null:evaluate('src/contracts/aiAvailability.ts',()=>assert.fail('UNDECLARED_AVAILABILITY_IMPORT'));
  const location=historical?null:evaluate('supabase/functions/_shared/locationReply.ts',()=>assert.fail('UNDECLARED_LOCATION_IMPORT'));
- const taxonomy=historical?null:evaluate('supabase/functions/_shared/taxonomyScopedShadow.mjs',()=>assert.fail('UNDECLARED_TAXONOMY_IMPORT'));
  const classification=historical?null:evaluate('supabase/functions/_shared/classificationEngine.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_IMPORT'));
  const handoff=historical?null:evaluate('supabase/functions/_shared/serviceHandoff.mjs',()=>assert.fail('UNDECLARED_HANDOFF_IMPORT'));
- const directReply=historical?null:evaluate('supabase/functions/_shared/classificationDirectReply.mjs',name=>{
-  if(name==='./serviceHandoff.mjs')return handoff;
-  assert.equal(name,'./classificationEngine.mjs');return classification;
- });
  const execution=historical?null:evaluate('supabase/functions/_shared/serviceExecutionInstruction.mjs',()=>assert.fail('UNDECLARED_EXECUTION_IMPORT'));
- const classificationShadow=historical?null:evaluate('supabase/functions/_shared/classificationGeminiShadow.mjs',name=>{
-  if(name==='./serviceHandoff.mjs')return handoff;
-  assert.equal(name,'./classificationEngine.mjs');return classification;
- });
  const stream=evaluate('supabase/functions/_shared/geminiTaskStream.ts',name=>{
   assert.ok(!historical&&name==='../../../src/contracts/aiAvailability.ts','UNDECLARED_STREAM_IMPORT');return availability;
  });
- const classificationReply=historical?null:evaluate('supabase/functions/_shared/classificationReply.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_REPLY_IMPORT'));
- const explorer=historical?null:evaluate('supabase/functions/_shared/classificationExplorer.mjs',name=>{
-  assert.equal(name,'./classificationEngine.mjs');return classification;
- });
  const voice=historical?null:evaluate('supabase/functions/_shared/interviewVoiceInstruction.mjs',()=>assert.fail('UNDECLARED_SHARED_IMPORT'));
  const timing=historical?null:evaluate('supabase/functions/_shared/aiPhaseTiming.mjs',()=>assert.fail('UNDECLARED_SHARED_IMPORT'));
- const toolConversation=historical?null:evaluate('supabase/functions/_shared/geminiToolConversation.ts',name=>{
-  if(name==='./aiPhaseTiming.mjs')return timing;
-  assert.equal(name,'./geminiTaskStream.ts');return stream;
- });
- const providerBudget=historical?null:evaluate('supabase/functions/_shared/taxonomyProviderBudget.ts',name=>{
-  assert.equal(name,'./aiTestBudget.ts');return budget;
- });
  const researchDeadline=historical?null:evaluate('supabase/functions/_shared/researchDeadline.ts',()=>assert.fail('UNDECLARED_DEADLINE_IMPORT'));
+ const taxonomyConfig=historical?null:evaluate('supabase/functions/_shared/taxonomyRuntimeConfig.mjs',()=>assert.fail('UNDECLARED_TAXONOMY_CONFIG_IMPORT'));
  const serviceModes=historical?null:evaluate('supabase/functions/_shared/workerServiceModeContext.mjs',name=>{
   if(name==='./serviceHandoff.mjs')return handoff;
   assert.equal(name,'./classificationEngine.mjs');return classification;
@@ -70,14 +51,14 @@ export function loadOwnedIntakeHandler(options){
   if(name==='./workerServiceModeContext.mjs')return serviceModes;
   assert.equal(name,'./classificationEngine.mjs');return classification;
  });
+ const firstPlan=historical?null:evaluate('supabase/functions/_shared/completeFirstPlan.ts',()=>assert.fail('UNDECLARED_FIRST_PLAN_IMPORT'));
+ const singlePass=historical?null:evaluate('supabase/functions/_shared/singlePassTaxonomy.mjs',name=>{assert.equal(name,'./backgroundTaxonomyArchitect.mjs');return backgroundArchitect;});
  const imports={'../../../src/contracts/needFactsV2.ts':shared,'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,
-  ...(!historical?{'../../../src/contracts/taskApplicationDeadline.ts':taskDeadline,'../../../src/contracts/aiAvailability.ts':availability,'../_shared/locationReply.ts':location,'../_shared/taxonomyScopedShadow.mjs':taxonomy,
-   '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply,
-   '../_shared/classificationDirectReply.mjs':directReply,
-   '../_shared/classificationExplorer.mjs':explorer,'../_shared/geminiToolConversation.ts':toolConversation,
-   '../_shared/taxonomyProviderBudget.ts':providerBudget,'../_shared/researchDeadline.ts':researchDeadline,
+  ...(!historical?{'../../../src/contracts/taskApplicationDeadline.ts':taskDeadline,'../../../src/contracts/aiAvailability.ts':availability,'../_shared/locationReply.ts':location,
+   '../_shared/researchDeadline.ts':researchDeadline,
+   '../_shared/taxonomyRuntimeConfig.mjs':taxonomyConfig,
    '../_shared/interviewVoiceInstruction.mjs':voice,'../_shared/aiPhaseTiming.mjs':timing,'../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution,
-   '../_shared/backgroundTaxonomyArchitect.mjs':backgroundArchitect}:{})};
+   '../_shared/completeFirstPlan.ts':firstPlan,'../_shared/singlePassTaxonomy.mjs':singlePass,'../_shared/backgroundTaxonomyArchitect.mjs':backgroundArchitect}:{})};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes,sourceBinding:historical?.binding??{kind:'CURRENT_SOURCE'}};
 }

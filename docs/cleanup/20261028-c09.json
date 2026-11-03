@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-28",
+  "source_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+  "source_evidence": "REV10 dokazi/izvrsivost/readiness_review.json: cleanup.retirement_batches C09, normalized_path_index, required_per_change_record",
+  "scope": "C09 source-only helper retirement; useful checks transferred to actual current SQL projection and current Edge modules. R04 Save/owner/binder end-to-end remains unproven.",
+  "removed_test_cases": 12,
+  "new_actual_owner_test_cases": 13,
+  "records": [
+    {
+      "id": "C09",
+      "source_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+      "path_or_symbol": [
+        {
+          "path": "supabase/functions/_shared/classificationOwnerReview.mjs",
+          "sha256": "0a944b44e5eabe581fa7af98a2c63426194c14c59fce722f42945dabb3b62747",
+          "bytes": 5548
+        },
+        {
+          "path": "supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs",
+          "sha256": "c5764192d82680b22a4dbf7be74f59d9f29bf95af320618cd35fdda5577e4df8",
+          "bytes": 6349
+        }
+      ],
+      "current_consumer_or_none": "Only importer of buildOwnerClassificationProjection was its synthetic test; three deployed-source Edge entrypoints use classificationEngine/GeminiShadow/explorer instead. CI named only the exclusive test.",
+      "business_rule_authority": "REV10 R04 and C09: current server identity, explicit per-service mode, complete BOTH, signed review and actual Save/binder own authority; caller-supplied projection is not proof.",
+      "action": "Remove unused projection implementation and 12 synthetic tests; replace explicit CI call with 13 tests executing three verbatim current bootstrap SQL functions and four actual table declarations, plus actual shared Edge validator. No SQL function stubs.",
+      "active_replacement": [
+        "private.taxonomy_review_exact_projection_v1",
+        "private.taxonomy_admission_fingerprint_v1",
+        "private.taxonomy_normalize_v1",
+        "classificationEngine.mjs",
+        "classificationGeminiShadow.mjs",
+        "classificationDirectReply.mjs",
+        "existing signed prepare/review/Save/binder"
+      ],
+      "dependent_tests_configs_docs": [
+        "supabase/proofs/dynamic_taxonomy/classification-active-review.test.mjs",
+        ".github/workflows/ci-clean.yml",
+        "classification-direct-reply.test.mjs",
+        "classification-verified-alias.test.mjs",
+        "worker-signed-review-source.test.mjs",
+        "need-review-signed-source.test.mjs"
+      ],
+      "compatibility_boundary": "No runtime contract, Edge handler, RPC, SQL candidate, migration or client Save changed. Existing source checks are supplementary, not runtime proof. Synthetic rows and isolated PGlite do not prove real Auth/PostgREST, complete Save/binder, concurrent publication orders, deployed bundle, native release or DEV repair.",
+      "verification": {
+        "baseline": "12 retired tests PASS",
+        "actual_owner": "13 actual current SQL/Edge tests PASS",
+        "active_module_regressions": "19 direct-reply +11 verified-alias tests PASS; total43/43",
+        "bootstrap_sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f",
+        "sql_stubs": 0,
+        "new_tests_read_only_effect": "catalog snapshots unchanged around identity/order/unknown cases",
+        "independent_review": "No material issue; AST graph of 12 Edge entrypoints:46 local files,71 relative links,0 missing imports,0 retired-builder references. Deployed remote bundle not inspected."
+      },
+      "historical_reference_if_needed": {
+        "git_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+        "note": "Historical documents and evidence remain intact. Their old source-only checks are not current Save evidence."
+      }
+    }
+  ],
+  "retired_case_mapping": [
+    {
+      "old": 1,
+      "owner": "current SQL exact projection",
+      "check": "Exact UUID, minimal candidate fields, explicit worker modes, unchanged catalog"
+    },
+    {
+      "old": 2,
+      "owner": "current SQL exact projection + classificationDirectReply",
+      "check": "Need explicit geography mode; no worker mode authority; two Need modes rejected"
+    },
+    {
+      "old": 3,
+      "owner": "current SQL exact projection",
+      "check": "Both projection call orders reuse UUID without catalog write; no claim of publication-order or transaction proof"
+    },
+    {
+      "old": 4,
+      "owner": "current SQL exact projection",
+      "check": "Independent services/modes do not inherit each other"
+    },
+    {
+      "old": 5,
+      "owner": "current SQL exact projection",
+      "check": "Absent/partial choices empty the full result, never implicit ON_SITE"
+    },
+    {
+      "old": 6,
+      "owner": "current SQL exact projection",
+      "check": "Foreign service, unsupported mode and duplicate choices reject"
+    },
+    {
+      "old": 7,
+      "owner": "actual Edge shadow + current SQL identity",
+      "check": "Rental cannot become lessons UUID"
+    },
+    {
+      "old": 8,
+      "owner": "current SQL exact projection",
+      "check": "Unknown service unresolved; mixed known/unknown has no ready subset"
+    },
+    {
+      "old": 9,
+      "owner": "actual Edge shadow + current SQL identity",
+      "check": "Parent proposal is not existing identity; valid novel proposals keep separate admission/Save path, old blanket ban retired"
+    },
+    {
+      "old": 10,
+      "owner": "current SQL + classificationDirectReply + verified-alias suite",
+      "check": "Wrong/stale/duplicate/mode conflicts reject. Registered verified aliases are valid; obsolete alias prohibition removed"
+    },
+    {
+      "old": 11,
+      "owner": "current SQL + loadClassificationCatalog actual module suite",
+      "check": "Cross-script duplicate rejected; server fingerprint is computed rather than caller-supplied; missing/malformed/changing catalog checks remain"
+    },
+    {
+      "old": 12,
+      "owner": "current SQL exact projection",
+      "check": "Cyrillic original spelling retains same UUID"
+    },
+    {
+      "additional": "BOTH",
+      "owner": "current SQL + classificationDirectReply",
+      "check": "Both explicit pairs preserve same canonical UUID; current-turn direct reply requires both expected choices"
+    }
+  ]
+}

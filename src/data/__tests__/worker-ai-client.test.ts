@@ -51,6 +51,24 @@ it('allows a slow worker response within55 seconds and retains the same request 
   mockStream.mockReset();jest.useRealTimers();
  }
 });
+it('worker streaming uses the same public DEV fallback as SDK and blocks half-configured overrides',async()=>{
+ const previousUrl=process.env.EXPO_PUBLIC_SUPABASE_URL,previousKey=process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+ try{
+  mockSession.session={access_token:'SYNTHETIC_JWT'};
+  mockStream.mockResolvedValue({error:null,data:{turnId:REVIEW,conversationId:CONVERSATION,clientRequestId:KEY,
+    attemptId:PROFILE,state:'SUCCEEDED',retryAllowed:false,authoritative:true}});
+  delete process.env.EXPO_PUBLIC_SUPABASE_URL;delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  await expect(service.send(CONVERSATION,'Ovo radim',KEY,{} as any)).resolves.toMatchObject({ok:true});
+  expect(mockStream.mock.calls[0][0].url).toBe('https://leqcwgzvjsxugfgzdmth.supabase.co');
+  process.env.EXPO_PUBLIC_SUPABASE_URL='https://other.example.test';
+  await expect(service.send(CONVERSATION,'Ovo radim',KEY,{} as any)).resolves.toMatchObject({ok:false});
+  expect(mockStream).toHaveBeenCalledTimes(1);
+ }finally{
+  if(previousUrl===undefined)delete process.env.EXPO_PUBLIC_SUPABASE_URL;else process.env.EXPO_PUBLIC_SUPABASE_URL=previousUrl;
+  if(previousKey===undefined)delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;else process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY=previousKey;
+  mockStream.mockReset();
+ }
+});
 it('explicit save sends only immutable server review identity/digest and one command key',async()=>{
  await expect(service.save(review(),KEY)).resolves.toEqual({ok:true,podatak:saved()});expect(mockRpc).toHaveBeenCalledTimes(1);
  expect(mockRpc).toHaveBeenCalledWith('rpc_save_worker_ai_review',{p_review_id:REVIEW,p_displayed_digest:'a'.repeat(64),p_client_request_id:KEY});
@@ -143,6 +161,69 @@ it('accepts signed ON_SITE scope for the actual visible worker skill and preserv
  await expect(service.save(signed,KEY)).resolves.toEqual({ok:true,podatak:saved()});
  expect(mockRpc.mock.calls).toEqual([['rpc_save_worker_ai_review',
    {p_review_id:REVIEW,p_displayed_digest:'a'.repeat(64),p_client_request_id:KEY}]]);
+});
+it('accepts REUSE_EXISTING candidate with categoryLabel and categoryParentId metadata and preserves them', async () => {
+ const base = signedWorkerReview();
+ const candidate = {
+   ...base.classificationCandidates[0],
+   categoryLabel: 'Prenos robe i tereta',
+   categoryParentId: null,
+ };
+ const signed = { ...base, classificationCandidates: [candidate] };
+ const decoded = decodeWorkerAiReview(signed, OWNER, CONVERSATION);
+ expect(decoded).not.toBeNull();
+ if (!decoded?.classificationCandidates) throw new Error('Signed READY review must include classification candidates');
+ expect(decoded.classificationCandidates[0]).toMatchObject({
+   action: 'REUSE_EXISTING',
+   categoryLabel: 'Prenos robe i tereta',
+   categoryParentId: null
+ });
+
+ // Valid parent UUID is accepted
+ const withParent = { ...candidate, categoryParentId: '55555555-5555-4555-8555-555555555555' };
+ expect(decodeWorkerAiReview({ ...base, classificationCandidates: [withParent] }, OWNER, CONVERSATION)).not.toBeNull();
+
+ // Negative checks:
+ // 1. Invalid parent ID (not a UUID)
+ expect(decodeWorkerAiReview({ ...base, classificationCandidates: [{ ...candidate, categoryParentId: 'invalid' }] }, OWNER, CONVERSATION)).toBeNull();
+ // 2. Short / empty categoryLabel (< 3 chars)
+ expect(decodeWorkerAiReview({ ...base, classificationCandidates: [{ ...candidate, categoryLabel: 'AB' }] }, OWNER, CONVERSATION)).toBeNull();
+ // 3. Excessively long categoryLabel (> 120 chars)
+ expect(decodeWorkerAiReview({ ...base, classificationCandidates: [{ ...candidate, categoryLabel: 'P'.repeat(121) }] }, OWNER, CONVERSATION)).toBeNull();
+ // 4. Extraneous unknown field
+ expect(decodeWorkerAiReview({ ...base, classificationCandidates: [{ ...candidate, unexpected: 123 }] }, OWNER, CONVERSATION)).toBeNull();
+});
+const pendingRemoteActivation=():WorkerAiReview=>({...signedWorkerReview(),
+ profile:{...profile(),location:{...profile().location,city:'',operatingCountryCode:null}},
+ missingRequired:['Potvrda usluga za rad na daljinu'],canAccept:false,
+ reviewedServiceModes:[{service:'Prenos',mode:'REMOTE'}],
+ classificationCandidates:[{action:'EXTEND_MODE',service:'Prenos',mode:'REMOTE',categoryId:SIGNED_CATEGORY,
+  categoryLabel:'Prenos',categoryParentId:null,catalogVersion:3,reason:'Remote mode needs catalog approval'}],
+});
+it('reads a signed cityless REMOTE activation refusal without granting Save or inventing a place',async()=>{
+ const frozen=pendingRemoteActivation();
+ expect(decodeWorkerAiReview(frozen,OWNER,CONVERSATION)).toEqual(frozen);
+ const raw={...snapshot(),candidate:frozen.profile,review:frozen};
+ mockRpc.mockResolvedValueOnce({data:raw,error:null});
+ await expect(service.read(CONVERSATION)).resolves.toEqual({ok:true,podatak:raw});
+ mockRpc.mockClear();
+ await expect(service.save(frozen,KEY)).resolves.toMatchObject({ok:false,kod:'WORKER_AI_REVIEW_REQUIRED'});
+ expect(mockRpc).not.toHaveBeenCalled();
+ expect(frozen.profile.location).toMatchObject({city:'',operatingCountryCode:null,approximatePosition:null});
+});
+it.each(['unsigned','save-only','city','ON_SITE','BOTH','foreign owner','canAccept','unknown reason'])(
+ 'REMOTE confirmation refusal remains fail-closed for %s',condition=>{
+ const frozen=pendingRemoteActivation();let invalid:unknown=frozen;
+ if(condition==='unsigned')invalid={...review(),profile:frozen.profile,missingRequired:frozen.missingRequired,canAccept:false};
+ if(condition==='save-only')invalid={...frozen,activate:false};
+ if(condition==='city')invalid={...frozen,profile:{...frozen.profile,location:{...frozen.profile.location,city:'Novi Sad'}}};
+ if(condition==='ON_SITE')invalid={...signedWorkerReview(),profile:frozen.profile,missingRequired:frozen.missingRequired,canAccept:false};
+ if(condition==='BOTH')invalid={...frozen,reviewedServiceModes:[...frozen.reviewedServiceModes!,...signedWorkerReview().reviewedServiceModes],
+  classificationCandidates:[...frozen.classificationCandidates!,...signedWorkerReview().classificationCandidates]};
+ if(condition==='foreign owner')invalid={...frozen,accountId:OTHER};
+ if(condition==='canAccept')invalid={...frozen,canAccept:true};
+ if(condition==='unknown reason')invalid={...frozen,missingRequired:['REMOTE activation allowed']};
+ expect(decodeWorkerAiReview(invalid,OWNER,CONVERSATION)).toBeNull();expect(mockRpc).not.toHaveBeenCalled();
 });
 it('accepts two explicit modes under one visible service without two approval buttons',()=>{
  const first=signedWorkerReview();
@@ -275,4 +356,32 @@ it('signed manual mode request sends the exact worker-selected service and scope
   if(old===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES;else process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES=old;
   if(signed===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=signed;
  }
+});
+
+
+it('R04/F05: worker review displays an existing-ID meaning comparison but never upgrades it to READY',()=>{
+  const proposed={
+    service:'Prenos',mode:'ON_SITE',categoryId:SIGNED_CATEGORY,
+    categoryLabel:'Selidbe i prenos',categoryParentId:null,
+    reason:'Ovo je istovetno konkretnoj usluzi prenošenja nameštaja.',catalogVersion:3
+  };
+  const pending={...signedWorkerReview(),classificationState:'REVIEW_REQUIRED',
+    classificationCandidates:[],reviewedServiceModes:[],
+    semanticReviewCandidates:[proposed]};
+  const decoded=decodeWorkerAiReview(pending,OWNER,CONVERSATION);
+  expect(decoded).toMatchObject({classificationState:'REVIEW_REQUIRED',
+    semanticReviewCandidates:[proposed],classificationCandidates:[],reviewedServiceModes:[]});
+  // No new network write, permission or reviewed mode is derived from this hint.
+  expect(mockRpc).not.toHaveBeenCalled();
+  for(const patch of [
+    {classificationState:'READY'},
+    {semanticReviewCandidates:[{...proposed,categoryId:'not-an-id'}]},
+    {semanticReviewCandidates:[{...proposed,mode:'REMOTE'}],classificationCatalogVersion:4},
+    {semanticReviewCandidates:[{...proposed,service:'Drugi zadatak'}]},
+    {semanticReviewCandidates:[{...proposed,categoryLabel:'Čišćenje klima',unknown:true}]},
+    {reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE'}]},
+    {classificationCandidates:signedWorkerReview().classificationCandidates},
+    {classificationCatalogFingerprint:null},
+  ]) expect(decodeWorkerAiReview({...pending,...patch},OWNER,CONVERSATION)).toBeNull();
+  expect(decodeWorkerAiReview({...pending,accountId:OTHER},OWNER,CONVERSATION)).toBeNull();
 });

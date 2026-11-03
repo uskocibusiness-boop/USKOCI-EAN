@@ -28,13 +28,17 @@ const sameOwner = (owner: BlockOwner) => sesijaSada().user?.id === owner.account
  * word. The undo is one new revisioned command from the receipt's revision (the server refuses it if the block moved on in
  * between), with a request id of its own; `onSettled` runs when it is over, whatever came of it, so the screen can read again.
  */
-export function announceBlockChange(receipt: Receipt, owner: BlockOwner, { text, onSettled }: { text?: string; onSettled?: () => void } = {}): void {
+export function announceBlockChange(receipt: Receipt, owner: BlockOwner,
+  { text, onSettled, stillCurrent }: { text?: string; onSettled?: () => void; stillCurrent?: () => boolean } = {}): void {
+  // A valid receipt belongs to its original account/incarnation AND screen lifetime.
+  // Without this check, a completed request can announce success on another user's screen.
+  if (!sameOwner(owner) || (stillCurrent && !stillCurrent())) return;
   poruka.show({ text: text ?? (receipt.blocked ? blockWords.saved : blockWords.removed), confirmed: true,
-    action: { label: 'Vrati', onPress: () => { void putBack(receipt, owner, onSettled); } } });
+    action: { label: 'Vrati', onPress: () => { void putBack(receipt, owner, onSettled, stillCurrent); } } });
 }
 
-async function putBack(receipt: Receipt, owner: BlockOwner, onSettled?: () => void): Promise<void> {
-  if (!sameOwner(owner)) return;
+async function putBack(receipt: Receipt, owner: BlockOwner, onSettled?: () => void, stillCurrent?: () => boolean): Promise<void> {
+  if (!sameOwner(owner) || (stillCurrent && !stillCurrent())) return;
   let confirmed = false;
   try {
     const result = await safetyClientService.setBlock({ targetAccountId: receipt.targetAccountId, blocked: !receipt.blocked,
@@ -42,7 +46,7 @@ async function putBack(receipt: Receipt, owner: BlockOwner, onSettled?: () => vo
     confirmed = result.ok;
   } catch { confirmed = false; }
   // The answer belongs to the account that asked: for anyone else the bar says nothing, and the screen is not told.
-  if (!sameOwner(owner)) return;
+  if (!sameOwner(owner) || (stillCurrent && !stillCurrent())) return;
   poruka.show(confirmed ? { text: receipt.blocked ? blockWords.removed : blockWords.restored, confirmed: true } : { text: blockWords.unconfirmed });
   onSettled?.();
 }

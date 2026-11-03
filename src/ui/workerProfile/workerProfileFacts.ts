@@ -56,7 +56,7 @@ export type WorkerAiPart = 'identity' | 'skills' | 'area' | 'time' | 'tools';
 
 /** The group titles of the review, and of the editors they open. */
 export const WORKER_PART_TITLE: Readonly<Record<WorkerAiPart, string>> = {
-  identity: 'O meni', skills: 'Usluge koje nudiš', area: 'Područje', time: 'Kada imaš vremena', tools: 'Alat i vozilo',
+  identity: 'O meni', skills: 'Usluge koje nudite', area: 'Područje', time: 'Kada imate vremena', tools: 'Alat i vozilo',
 };
 
 /** What the conversation has captured so far, from the draft itself (never from how many questions were asked). */
@@ -86,7 +86,7 @@ export function capturedSpeech(parts: readonly CapturedPart[]): string {
 export function toolsAndVehiclesNote(informationOnly: boolean = TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY): string {
   return informationOnly
     ? 'Samo informacija: ne utiču na pretragu ni na obaveštenja.'
-    : 'Ako zadatak traži alat ili vozilo koje nemaš na spisku, taj zadatak ti se ne nudi i ne možeš da se prijaviš na njega.';
+    : 'Ako zadatak traži alat ili vozilo koje nemate na spisku, taj zadatak Vam se ne nudi i ne možete da se prijavite na njega.';
 }
 /** One row of "Na šta utiče" in the saved profile. `opens` names the screen a row leads to; no row is a dead control. */
 export type ProfileEffect = { key: 'notifications' | 'public' | 'forMe'; title: string; detail: string;
@@ -100,15 +100,15 @@ export type ProfileEffect = { key: 'notifications' | 'public' | 'forMe'; title: 
  */
 export function profileEffects(forMeSwitchExists: boolean = FOR_ME_SWITCH_EXISTS): ProfileEffect[] {
   const rows: ProfileEffect[] = [
-    { key: 'notifications', title: 'Obaveštenja', detail: 'Novi i već otvoreni zadaci koji ti odgovaraju', art: 'bell', opens: 'notifications' },
-    { key: 'public', title: 'Javni profil', detail: 'Ime, „O meni“ i grad vide osobe koje otvore tvoj profil', art: 'eye' },
+    { key: 'notifications', title: 'Obaveštenja', detail: 'Novi i već otvoreni zadaci koji Vam odgovaraju', art: 'bell', opens: 'notifications' },
+    { key: 'public', title: 'Javni profil', detail: 'Ime, „O meni“ i grad vide osobe koje otvore Vaš profil', art: 'eye' },
   ];
-  if (forMeSwitchExists) rows.push({ key: 'forMe', title: 'Zadaci · Za mene', detail: 'Lista po tvom području i vremenu', art: 'tasks' });
+  if (forMeSwitchExists) rows.push({ key: 'forMe', title: 'Zadaci · Za mene', detail: 'Lista po Vašem području i vremenu', art: 'tasks' });
   return rows;
 }
 
 /** The sentence about a team of more than one person, which is said in the offer and nowhere in the profile. */
-export const PEOPLE_COUNT_NOTE = 'Ako za neki zadatak obezbeđuješ više ljudi, njihov broj navodiš u toj ponudi.';
+export const PEOPLE_COUNT_NOTE = 'Ako za neki zadatak obezbeđujete više ljudi, njihov broj navodite u toj ponudi.';
 
 /**
  * What stands behind the "ⓘ" in the bar of the work profile (owner's phone, 8 Oct 2026: too much explaining text on the screen; analysis rule J5).

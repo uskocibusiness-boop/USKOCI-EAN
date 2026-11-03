@@ -3,10 +3,11 @@ import { T } from '../../Text';
 import { StateView } from '../../system/StateView';
 import { sys } from '../../system/tokens';
 import { QuietReadState } from '../QuietReadState';
+import type { ReadFailureReason } from '../../../data/readFailure';
 
 /**
  * What the list of Zadaci says when it has no cards to show, in one place (composition spec 2026-10-07, T7): reading, not read, nothing here,
- * nothing for these conditions, nothing at all. Every state has a sentence and a way on, and the words are the family's: "ti", no machine
+ * nothing for these conditions, nothing at all. Every state has a sentence and a way on, with no machine
  * words, no "server". The map and the list always show every published task (owner, 2026-10-07), so an empty list is never about the
  * person's profile in ordinary map/list mode; the explicit 'Za mene' filter ALSO depends on confirmed offered work and matching eligibility.
  *
@@ -20,7 +21,7 @@ import { QuietReadState } from '../QuietReadState';
  */
 export type DiscoveryListStateKind =
   | { kind: 'loading' }
-  | { kind: 'error'; onRetry: () => void; errorDetail?: string }
+  | { kind: 'error'; onRetry: () => void; errorReason?: ReadFailureReason }
   | { kind: 'place'; point: boolean; onShowAll: () => void }
   | { kind: 'filtered'; remote?: boolean; onClear: () => void }
   | { kind: 'forMe'; onShowAll: () => void; onWorkProfile?: () => void }
@@ -29,8 +30,8 @@ export type DiscoveryListStateKind =
 export const LIST_STATE_WORDS = {
   loading: 'Učitavamo zadatke…',
   error: 'Ne možemo da učitamo zadatke',
-  errorBody: 'Proveri internet vezu i pokušaj ponovo.',
-  retry: 'Pokušaj ponovo',
+  errorBody: 'Zadaci trenutno nisu dostupni. Pokušajte ponovo za trenutak.',
+  retry: 'Pokušajte ponovo',
   showAll: 'Prikaži sve zadatke',
   pointTitle: 'Nema zadataka na ovom mestu', pointBody: 'Pomeri mapu ili prikaži sve zadatke.',
   areaTitle: 'Nema zadataka u ovoj oblasti', areaBody: 'Umanji mapu ili je pomeri da vidiš zadatke u okolini.',
@@ -41,6 +42,15 @@ export const LIST_STATE_WORDS = {
   noneTitle: 'Još niko nije tražio pomoć', noneBody: 'Čim neko objavi zadatak, pojaviće se ovde i na mapi.',
   refresh: 'Osveži', publish: 'Objavi zadatak',
 } as const;
+
+const ERROR_BODY: Readonly<Record<ReadFailureReason, string>> = {
+  AUTH_REQUIRED: 'Vaša prijava nije potvrđena. Pokušajte ponovo; ako se problem nastavi, prijavite se ponovo.',
+  FORBIDDEN: 'Ovaj prikaz trenutno nije dostupan Vašem nalogu. Pristup možete ponovo proveriti.',
+  CONTRACT: 'Zadaci trenutno ne mogu da se prikažu. Pokušajte ponovo za trenutak.',
+  NETWORK: 'Veza nije uspostavljena. Proverite internet vezu i pokušajte ponovo.',
+  TIMEOUT: 'Učitavanje traje duže nego što je očekivano. Pokušajte ponovo.',
+  UNAVAILABLE: LIST_STATE_WORDS.errorBody,
+};
 
 export function DiscoveryListState({ state, clearAllLabel, compact = false }: {
   state: DiscoveryListStateKind;
@@ -54,7 +64,9 @@ export function DiscoveryListState({ state, clearAllLabel, compact = false }: {
       <ActivityIndicator size="small" color={sys.color.green} accessible={false} />
       <T variant="note" tone="muted" style={s.readText}>{w.loading}</T>
     </View> : <QuietReadState art="tasks" title={w.loading} body="Proveravamo zadatke u ovom prikazu." />;
-    case 'error': return <StateView compact={compact} kind="error" art="tasks" title={w.error} body={state.errorDetail ? `${w.errorBody} (${state.errorDetail})` : w.errorBody} primary={{ label: w.retry, onPress: state.onRetry }} />;
+    case 'error': return <StateView compact={compact} kind="error" art="tasks" title={w.error}
+      body={state.errorReason && Object.prototype.hasOwnProperty.call(ERROR_BODY, state.errorReason) ? ERROR_BODY[state.errorReason] : w.errorBody}
+      primary={{ label: w.retry, onPress: state.onRetry }} />;
     case 'place': return <StateView compact={compact} art="map" title={state.point ? w.pointTitle : w.areaTitle} body={state.point ? w.pointBody : w.areaBody}
       primary={{ label: w.showAll, onPress: state.onShowAll }} />;
     case 'filtered': return <StateView compact={compact} art={state.remote ? 'remote' : 'map'}

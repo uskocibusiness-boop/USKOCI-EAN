@@ -82,7 +82,7 @@ it('validates confirmation locally, single-flights the write and waits for confi
   await act(async () => waiting.resolve());
   expect(text()).toContain('Lozinka je promenjena.'); expect(hosts('TextInput')).toHaveLength(0);
   expect(mockReplace).not.toHaveBeenCalled();
-  await press('Prijavi se'); expect(mockReplace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
+  await press('Prijavite se'); expect(mockReplace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
 });
 it('refuses a signed-in actor before checking the supplied link', async () => {
   mockAccount = { user: { id: 'another-account' }, accountRevision: 1 }; await render();
@@ -102,14 +102,14 @@ it('shows a used/expired link without a password form and offers the recovery re
 });
 it('retries a verification read with a new lease, not a password update', async () => {
   mockVerify.mockRejectedValueOnce(new PasswordRecoveryError('VERIFY_UNAVAILABLE')); await render();
-  await press('Pokušaj ponovo'); expect(mockVerify).toHaveBeenCalledTimes(2); expect(mockSave).not.toHaveBeenCalled();
+  await press('Pokušajte ponovo'); expect(mockVerify).toHaveBeenCalledTimes(2); expect(mockSave).not.toHaveBeenCalled();
   expect(field('Nova lozinka')).toBeDefined();
 });
 it('does not claim success or offer blind write retry after an unknown outcome', async () => {
   await render(); await fill('Nova lozinka', 'new-password'); await fill('Potvrdi novu lozinku', 'new-password');
   mockSave.mockRejectedValue(new PasswordRecoveryError('UPDATE_UNKNOWN')); await press('Sačuvaj novu lozinku');
   expect(text()).toContain('Nije potvrđeno da li je lozinka promenjena'); expect(hosts('TextInput')).toHaveLength(0);
-  expect(button('Pokušaj ponovo')).toBeUndefined(); expect(mockSave).toHaveBeenCalledTimes(1);
+  expect(button('Pokušajte ponovo')).toBeUndefined(); expect(mockSave).toHaveBeenCalledTimes(1);
 });
 it('clears entered secrets when another recovery link arrives', async () => {
   await render(); await fill('Nova lozinka', 'previous-password'); await fill('Potvrdi novu lozinku', 'previous-password');
@@ -190,7 +190,7 @@ it.each([false, true])('a restricted account is its own screen, not an expired l
   expect(text()).not.toContain('Link je nevažeći ili je istekao');
   expect(hosts('Text').filter(node => node.props.accessibilityRole === 'alert')).toHaveLength(0);
   expect(button('Zatraži novi link')).toBeUndefined();
-  expect(button('Pokušaj ponovo')).toBeUndefined();
+  expect(button('Pokušajte ponovo')).toBeUndefined();
   expect(hosts('TextInput')).toHaveLength(0);
   await press('Nazad na prijavu');
   expect(mockReplace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
@@ -215,14 +215,14 @@ describe('the frame of the link screen', () => {
     await render();
     expect(commands()).toEqual(['Sačuvaj novu lozinku']);
     await fill('Nova lozinka', 'new-password'); await fill('Potvrdi novu lozinku', 'new-password'); await press('Sačuvaj novu lozinku');
-    expect(commands()).toEqual(['Prijavi se']);
+    expect(commands()).toEqual(['Prijavite se']);
     await act(async () => tree.unmount());
     mockVerify.mockRejectedValueOnce(new PasswordRecoveryError('INVALID_LINK')); await render();
     expect(commands()).toEqual(['Zatraži novi link']);
     await act(async () => tree.unmount());
     mockVerify.mockRejectedValueOnce(new PasswordRecoveryError('VERIFY_UNAVAILABLE')); await render();
     // A link that could not be checked: try again is the green one, a new link is the other way, said in words in the content.
-    expect(commands()).toEqual(['Pokušaj ponovo']);
+    expect(commands()).toEqual(['Pokušajte ponovo']);
     expect(button('Zatraži novi link')).toBeDefined();
   });
 

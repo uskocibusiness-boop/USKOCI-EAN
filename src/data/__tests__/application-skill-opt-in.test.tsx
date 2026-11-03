@@ -40,73 +40,16 @@ const need = {
 const opportunity = { ...need, primaNovePrijave: true, rokZaPrijaveIso: null } as unknown as PrilikaProjekcija;
 const draft: ApplicationDraft = { price: '3000', people: '1', note: '', start: null, end: null };
 
-describe('ApplicationComposerPresentation skill opt-in', () => {
-  it('renders skill opt-in toggle when category is not yet in worker profile', async () => {
-    const onToggle = jest.fn();
+describe('ApplicationComposerPresentation service offer timing', () => {
+  it.each([false, true])('shows the optional service only after authoritative application confirmation (%s)', async confirmed => {
     let tree!: ReactTestRenderer;
-    await act(async () => {
-      tree = create(
-        <ApplicationComposerPresentation
-          need={need}
-          opportunity={opportunity}
-          draft={draft}
-          change={jest.fn()}
-          submit={jest.fn()}
-          back={jest.fn()}
-          busy={false}
-          pending={false}
-          uncertain={false}
-          refresh={jest.fn()}
-          error={null}
-          confirmed={false}
-          openApplications={jest.fn()}
-          canSubmit={true}
-          skillOptIn={{
-            category: 'Selidbe',
-            enabled: true,
-            onToggle,
-          }}
-        />
-      );
-    });
-
-    const switchNodes = tree.root.findAll(node => String(node.type) === 'Switch');
-    expect(switchNodes.length).toBe(1);
-    expect(switchNodes[0].props.value).toBe(true);
-    expect(switchNodes[0].props.accessibilityLabel).toBe('Dodaj Selidbe u radni profil');
-
-    // Toggle the switch
-    act(() => {
-      switchNodes[0].props.onValueChange(false);
-    });
-    expect(onToggle).toHaveBeenCalledWith(false);
-  });
-
-  it('does not render skill opt-in when worker already has the category or skillOptIn is null', async () => {
-    let tree!: ReactTestRenderer;
-    await act(async () => {
-      tree = create(
-        <ApplicationComposerPresentation
-          need={need}
-          opportunity={opportunity}
-          draft={draft}
-          change={jest.fn()}
-          submit={jest.fn()}
-          back={jest.fn()}
-          busy={false}
-          pending={false}
-          uncertain={false}
-          refresh={jest.fn()}
-          error={null}
-          confirmed={false}
-          openApplications={jest.fn()}
-          canSubmit={true}
-          skillOptIn={null}
-        />
-      );
-    });
-
-    const switchNodes = tree.root.findAll(node => String(node.type) === 'Switch');
-    expect(switchNodes.length).toBe(0);
+    await act(async () => { tree = create(<ApplicationComposerPresentation
+      need={need} opportunity={opportunity} draft={draft} change={jest.fn()} submit={jest.fn()} back={jest.fn()}
+      busy={false} pending={false} uncertain={false} refresh={jest.fn()} error={null} confirmed={confirmed}
+      openApplications={jest.fn()} canSubmit={true} afterConfirmation={React.createElement('offer-marker')}
+    />); });
+    expect(tree.root.findAll(node => String(node.type) === 'offer-marker').length).toBe(confirmed ? 1 : 0);
+    expect(tree.root.findAll(node => String(node.type) === 'Switch')).toHaveLength(0);
+    act(() => tree.unmount());
   });
 });

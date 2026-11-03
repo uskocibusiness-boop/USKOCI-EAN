@@ -1,0 +1,196 @@
+{
+  "unit": "USKOCI_UI_SOURCE_CI_EVIDENCE",
+  "format_version": 1,
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/rev14-review-f17",
+  "pull_request": 43,
+  "source_head": "de5851a8564f1948d7d42b5b31a1e836b148e1d8",
+  "tested_merge_sha": "b29e16e9736a30ab5159ca9d9afc23134da304a7",
+  "integration_base_sha": "a9692e11942609bab9406215c3e407d79589dafa",
+  "checked_at_utc": "2026-11-01 15:08:02 UTC",
+  "main_ci": {
+    "workflow_run_id": 41318587731,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41318587731",
+    "job_id": 124883795171,
+    "status": "completed",
+    "conclusion": "success",
+    "all_job_steps_completed_successfully": true,
+    "job_step_count": 32,
+    "non_success_steps": [],
+    "mobile": {
+      "suites_passed": 626,
+      "suites_total": 626,
+      "tests_passed": 14500,
+      "tests_total": 14500,
+      "snapshots_passed": 3
+    },
+    "ai": {
+      "tests": 1480,
+      "passed": 1479,
+      "failed": 0,
+      "todo": 1,
+      "todo_description": "R07a integration: real Auth and full signed accept/Save/publish after price retraction, including an already prepared review"
+    },
+    "typescript": "PASS",
+    "edge_typechecks_passed": 12,
+    "migration_integrity": "PASS",
+    "isolated_privacy": "PASS",
+    "r05_sparse_scan_characterizations": "Both new cases passed; they reproduce the open scan/naive-cap limitation and do not resolve it.",
+    "checks": [
+      {
+        "number": 6,
+        "name": "Install exact dependencies and verify native patch",
+        "conclusion": "success"
+      },
+      {
+        "number": 7,
+        "name": "R01 future public default ACL boundary (isolated PostgreSQL only)",
+        "conclusion": "success"
+      },
+      {
+        "number": 8,
+        "name": "R01 existing nonrow public ACL boundary (isolated PostgreSQL only)",
+        "conclusion": "success"
+      },
+      {
+        "number": 9,
+        "name": "R01 PHONE closure against current SQL definitions (isolated only)",
+        "conclusion": "success"
+      },
+      {
+        "number": 10,
+        "name": "R01 DEV zero-row probe safety contracts (offline only)",
+        "conclusion": "success"
+      },
+      {
+        "number": 11,
+        "name": "AI handler preflight (fast failure before full AI matrix)",
+        "conclusion": "success"
+      },
+      {
+        "number": 12,
+        "name": "TypeScript",
+        "conclusion": "success"
+      },
+      {
+        "number": 13,
+        "name": "Deno non-npm Edge type checks (11 main functions; no execution)",
+        "conclusion": "success"
+      },
+      {
+        "number": 14,
+        "name": "Deno pinned npm Media Edge type check (12th main function; no execution)",
+        "conclusion": "success"
+      },
+      {
+        "number": 15,
+        "name": "R04 semantic SQL isolation and signed publication fence (no DEV write)",
+        "conclusion": "success"
+      },
+      {
+        "number": 16,
+        "name": "Reviewed DEV package derivation, acceptance and rollback (isolated only)",
+        "conclusion": "success"
+      },
+      {
+        "number": 17,
+        "name": "Isolate-local media upload admission FIFO and cancellation",
+        "conclusion": "success"
+      },
+      {
+        "number": 18,
+        "name": "Mobile unit and contract tests",
+        "conclusion": "success"
+      },
+      {
+        "number": 19,
+        "name": "Optional profile skill SDK and SQL comparison",
+        "conclusion": "success"
+      },
+      {
+        "number": 20,
+        "name": "Hourly application and Agreement SQL chain",
+        "conclusion": "success"
+      },
+      {
+        "number": 21,
+        "name": "R03 guarded page source only (no SQL execution)",
+        "conclusion": "success"
+      },
+      {
+        "number": 22,
+        "name": "R10/R12 closure roster source checks (no DB execution)",
+        "conclusion": "success"
+      },
+      {
+        "number": 23,
+        "name": "R05 guarded TODAY source and synthetic PostgreSQL day windows",
+        "conclusion": "success"
+      },
+      {
+        "number": 24,
+        "name": "R11b blind review publication (isolated PGlite; no DEV write)",
+        "conclusion": "success"
+      },
+      {
+        "number": 25,
+        "name": "AI intake and taxonomy contracts",
+        "conclusion": "success"
+      },
+      {
+        "number": 26,
+        "name": "Migration source integrity",
+        "conclusion": "success"
+      },
+      {
+        "number": 27,
+        "name": "Need column privacy boundary (isolated SQL)",
+        "conclusion": "success"
+      }
+    ],
+    "log_summary_lines": [
+      "2026-11-01T15:01:13.6436510Z Test Suites: 626 passed, 626 total",
+      "2026-11-01T15:01:13.6437202Z Tests:       14500 passed, 14500 total",
+      "2026-11-01T15:01:13.6437787Z Snapshots:   3 passed, 3 total",
+      "2026-11-01T15:02:21.4637910Z ✔ R07a integration: real Auth and full signed accept/Save/publish after price retraction, including an already prepared review (0.130194ms) # TODO",
+      "2026-11-01T15:05:45.3067215Z ℹ tests 1480",
+      "2026-11-01T15:05:45.3068015Z ℹ pass 1479",
+      "2026-11-01T15:05:45.3069657Z ℹ todo 1"
+    ]
+  },
+  "r01": {
+    "run_id": 41318587766,
+    "job_id": 124883795273,
+    "status": "completed",
+    "conclusion": "failure",
+    "tested_merge_sha": "b29e16e9736a30ab5159ca9d9afc23134da304a7",
+    "failure_stage": "STRICT_PARITY",
+    "failure_code": "METADATA_PARITY_DIFFERENT",
+    "strict_difference_count": 8,
+    "supplementary_difference_count": 49,
+    "managed_hook_difference_count": 3,
+    "cleanup_step_status": "completed",
+    "cleanup_step_conclusion": "success",
+    "native_net_invoker_paired_verified": true,
+    "native_net_invoker_difference_count": 0,
+    "r01_boundary_admitted": false,
+    "live_access": false,
+    "fixtures_run": false,
+    "candidate_applied": false,
+    "actual_auth_proven": false,
+    "postgrest_boundary_proven": false,
+    "metadata_equal": false,
+    "bootstrap_sql_sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f",
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41318587766",
+    "artifact_id": 13088845007,
+    "artifact_zip_sha256": "054d42d1a792090aff218d13aea632d3eee3e0e38dff0433065c418ffeb70ea9",
+    "cleanup_log_evidence": "2026-11-01T14:59:15.0799009Z R01 disposable project stopped without retaining its data volumes.",
+    "artifact_url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41318587766/artifacts/13088845007"
+  },
+  "limitations": [
+    "Full CI proves the checked-out source and its declared isolated tests; it does not establish real Auth/PostgREST, live Gemini, push delivery, Android installation or release readiness.",
+    "The R01 run still uses its unchanged frozen bootstrap. The separately captured DEV F10/R08 deltas are not incorporated into that bootstrap; this run is not a new comparison against the entire current live DEV catalog.",
+    "R01 strict parity remains failed; narrow native-net invoker success is not full boundary admission.",
+    "No workflow rerun, SQL apply, Edge deployment, master/runtime change or release action was performed while collecting this evidence."
+  ]
+}

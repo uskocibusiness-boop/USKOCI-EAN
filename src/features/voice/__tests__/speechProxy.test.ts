@@ -68,9 +68,8 @@ describe('bounded native STT proxy', () => {
     expect(h.client.messages.at(-1)).toMatchObject({ kind: 'final', text: 'Hello. I need help moving a sofa on Saturday.' });
   });
 
-  // The provider reports no usage on the live stream, so a successful session settles
-  // against the audio it actually sent. The bridge must report exactly the bytes it
-  // forwarded, and the transcript size, at the moment the session ends.
+  // A fully completed session can use the existing estimate. Attempted input bytes
+  // and observed output are not a provider invoice or proof of delivery.
   it('reports the forwarded audio bytes and transcript size when a transcribed session ends', () => {
     const finished = jest.fn();
     const client = new Socket(), provider = new Socket();
@@ -85,7 +84,7 @@ describe('bounded native STT proxy', () => {
     expect(finished).toHaveBeenCalledWith(true, 12, 'Dve osobe.'.length);
   });
 
-  it('reports no transcript when a session ends without one, so its hold is released instead', () => {
+  it('reports incomplete audio dispatch without a transcript, so its hold stays reserved', () => {
     const finished = jest.fn();
     const client = new Socket(), provider = new Socket();
     bridgeSpeech(client, provider, 'owned-conversation', 'owned-operation', finished);
@@ -94,7 +93,7 @@ describe('bounded native STT proxy', () => {
     client.message({ kind: 'release' });
     jest.advanceTimersByTime(SPEECH_LIMITS.finalizationMs + 1);
     expect(finished).toHaveBeenCalledTimes(1);
-    expect(finished.mock.calls[0][0]).toBe(false);
+    expect(finished).toHaveBeenCalledWith(false, 6, 0);
   });
 
   it('never lets generationComplete finish a gesture that is still held', () => {

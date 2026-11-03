@@ -104,6 +104,24 @@ const askForMe = async (on: boolean) => {
   await flush();
 };
 
+test.each(['direct MAP','anchor renewal PAGE'])('F16: %s profile refusal retains the switch-off recovery',async refusedAt=>{
+ await mount();await askForMe(true);mockCalls.length=0;
+ mockTransport=async request=>{
+   if('filter' in request&&request.filter.forMe){
+     mockCalls.push(request);
+     if(refusedAt==='anchor renewal PAGE'&&request.mode==='MAP')throw new Error('DISCOVERY_V1_ANCHOR_EXPIRED');
+     throw new Error(DISCOVERY_V1_FOR_ME_REFUSED);
+   }
+   return server(request);
+ };
+ await act(async()=>bridge().props.actions.onViewportSettled([10,40,12,42]));await flush();
+ expect(bridge().props.snapshot.view.forMe).toBe(false);expect(bridge().props.forMeRefused).toBe(true);
+ expect(bridge().props.error).toBe(false);expect(bridge().props.snapshot.items).toHaveLength(3);
+ expect(bridge().props.snapshot.mapRead).toEqual({loading:false,error:null});
+ expect(mockCalls.filter(call=>call.mode==='PAGE'&&!carriesKey(call))).toHaveLength(1);
+ if(refusedAt==='anchor renewal PAGE')expect(mockCalls.filter(call=>call.mode==='PAGE'&&carriesKey(call))).toHaveLength(1);
+});
+
 describe('the view and the request', () => {
   const view = (patch: Partial<MarketplaceView> = {}): MarketplaceView => ({ ...initialMarketplaceView(), mode: 'map', ...patch });
 

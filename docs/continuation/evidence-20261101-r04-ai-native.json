@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-11-01T17:48:00Z",
+  "scope": "Actual TEST app account, Android emulator, real AI task intake to private draft",
+  "result": "INTAKE_CORRECTION_PRIVATE_SAVE_READBACK_PASS_PUBLICATION_BLOCKED",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "runtimeSource": "cbefce43debc73f5605eda389f41ba08db7fd6f9",
+  "liveNeedEdgeVersion": 154,
+  "taskFixture": {
+    "service": "lektura",
+    "canonicalExistingService": "Lektura tekstova",
+    "mode": "REMOTE",
+    "people": 1,
+    "budgetRsdTotal": 1000,
+    "deadline": "2026-11-04",
+    "description": "Proofreading about 500 Serbian words; spelling/grammar correction without translation."
+  },
+  "observed": {
+    "newConversationCount": 1,
+    "successfulProviderDispatchedTurns": 3,
+    "turnMetadataTimesUtc": [
+      "2026-11-01T17:36:34.178859Z",
+      "2026-11-01T17:37:42.048537Z",
+      "2026-11-01T17:39:54.578354Z"
+    ],
+    "providerDispatchEvidence": "Three owned ai_need_turn_commands rows SUCCEEDED/provider_dispatched=true; not a provider invoice.",
+    "factsPersistAndCorrectionRetained": true,
+    "readableReview": true,
+    "privateSaveConfirmed": true,
+    "serverConversationStatusAfterSave": "COMPLETED",
+    "serverBoundNeedStatus": "DRAFT",
+    "ownDraftCount": 1,
+    "draftListAndDetailReopen": true,
+    "published": false,
+    "applicationOrPushTest": false
+  },
+  "classification": {
+    "signedReviewsPending": 2,
+    "latestReviewAtUtc": "2026-11-01T17:40:21.481992Z",
+    "latestStoredReviewSourceMatchesLatestHint": true,
+    "catalogMatches": true,
+    "catalogVersion": 11,
+    "hintAction": "REUSE_EXISTING",
+    "hintMode": "REMOTE",
+    "handoffRequired": false,
+    "semanticCandidates": 0,
+    "liveProjectionDefinitionMd5": "f9318f476e32a8233fbb07ccf5d22aeb",
+    "cause": "The live candidate projection falls back to exact/registered-alias matching for a non-exact REUSE_EXISTING hint, leaving the matched-source semantic proposal PENDING. Existing LOCAL_ONLY R04 projections expose REVIEW_REQUIRED only; complete owner confirmation and batch admission for the same signed existing identity are still unfinished.",
+    "sourceAfterSaveCaveat": "Current conversation source changes on Save. Its later mismatch with the old hint is not used as evidence of pre-Save staleness; the persisted pre-Save review source matches the latest hint."
+  },
+  "uiCorrection": {
+    "oldText": "Potvrdite značenje usluge pre objave. Nacrt možete da sačuvate.",
+    "problem": "No actionable semantic confirmation exists for PENDING; the caption falsely assigns a server verification problem to the person.",
+    "change": "State-specific truthful reason plus existing signed-review refresh; mode-only correction returns to the existing conversation. Publication guards and private-draft separation remain.",
+    "reproductionFailures": 6,
+    "focusedTestsPassed": 186,
+    "typeScriptPassed": true,
+    "nativeVerificationOfNewCopy": "PASS on installed source 1a673bd3: truthful pending caption, disabled publication and working repeated refresh. Android retains a stale accessibility busy label after completion; the corrected native evidence separates that label from a real loading stall. Copy acceptance does not close R04."
+  },
+  "nextExistingContract": "R04 §6.4: bind owner confirmation to the exact signed semantic candidate/digest/source/catalog/mode/handoff; validate it through existing Save, batch and binder; no global alias insertion or model-authority shortcut.",
+  "artifacts": {
+    "directory": "artifacts/android-ui-20261101",
+    "files": [
+      "89-need-chat-entry.xml",
+      "90-ai-composer.xml",
+      "91-ai-first-reply.xml",
+      "92-ai-composer.xml",
+      "93-ai-next-reply.xml",
+      "94-ai-review.xml",
+      "95-ai-review-bottom.xml",
+      "98-ai-confirm-reply.xml",
+      "99-ai-review-after-confirm.xml",
+      "100-save-draft.xml",
+      "102-draft-count.xml",
+      "103-draft-list.xml",
+      "104-draft-reopen.xml"
+    ],
+    "rawScreensCommitted": false
+  },
+  "automationCaveat": "The first ADB text injection delivered only 99 characters. Facts absent from that delivered message were supplied in the second turn; the AI deadline question is therefore not a duplicate-question defect.",
+  "notProven": [
+    "Full publish/readback/matching",
+    "Worker Save+Activate with real provider",
+    "Two-account application/Agreement/messages/reputation chain",
+    "Physical push",
+    "Actual provider charges/cap enforcement",
+    "Production/store readiness"
+  ],
+  "effects": {
+    "privateDraftsCreated": 1,
+    "publishedTasks": 0,
+    "messagesToOtherUsers": 0,
+    "profileSaves": 0,
+    "manualAliasWrites": 0,
+    "gateBypasses": 0,
+    "productionChanges": 0
+  }
+}

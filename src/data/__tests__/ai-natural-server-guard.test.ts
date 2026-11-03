@@ -59,6 +59,40 @@ const location: LocationContext = { version: 1, promptToken: '2dce6cd8-599b-4d04
 
 describe('natural server AI response without bypassing authoritative review', () => {
   beforeEach(() => { explicitFinish = false; });
+
+  it('automatically stops optional questions for complete REMOTE facts without a finish phrase', () => {
+    const remote = facts().map(f => f.fact_key === 'need.task_geography' ? { ...f, fact_value: { mode: 'REMOTE' } } : f);
+    remote.push({ fact_key: 'need.handoff', fact_value: { required: false }, status: 'CONFIRMED' });
+    const prompt = reply('ASK', 'Da li želite da dodate još neki detalj?');
+    prompt.dialogue.questionKey = 'need.access_notes';
+    const result = guard(prompt, 'Posao je na daljinu i tražim ponude.', remote, { localDate: '2026-10-12' });
+    expect(result.dialogue.next).toBe('REVIEW');
+    expect(result.dialogue.questionKey).toBe('');
+    expect(result.assistantMessage).toContain('Osnovni podaci su zabeleženi.');
+    expect(result.assistantMessage).toContain('ništa još nije objavljeno');
+    expect(result.proposals).toHaveLength(0);
+  });
+  it('asks one required fact rather than an optional one, without waiting for finish', () => {
+    const remote = facts('need.people_needed').map(f => f.fact_key === 'need.task_geography' ? { ...f, fact_value: { mode: 'REMOTE' } } : f);
+    remote.push({ fact_key: 'need.handoff', fact_value: { required: false }, status: 'CONFIRMED' });
+    const prompt = reply('ASK', 'Da li želite da dodate još neki detalj?');
+    prompt.dialogue.questionKey = 'need.access_notes';
+    const result = guard(prompt, 'Treba mi pomoć sa zadatkom.', remote, { localDate: '2026-10-12' });
+    expect(result.dialogue.next).toBe('ASK');
+    expect(result.dialogue.questionKey).toBe('need.people_needed');
+    expect(result.assistantMessage).toBe('Koliko ljudi Vam treba?');
+  });
+  it('does not suppress the users own question or bypass on-site map confirmation', () => {
+    const remote = facts().map(f => f.fact_key === 'need.task_geography' ? { ...f, fact_value: { mode: 'REMOTE' } } : f);
+    remote.push({ fact_key: 'need.handoff', fact_value: { required: false }, status: 'CONFIRMED' });
+    const prompt = reply('ASK', 'Za ovaj posao ne tražimo dodatne detalje.');
+    prompt.dialogue.questionKey = 'need.access_notes';
+    const answer = guard(prompt, 'Zašto mi nije potreban grad?', remote, { localDate: '2026-10-12' });
+    expect(answer.dialogue.next).toBe('ASK');
+    expect(answer.assistantMessage).toBe(prompt.assistantMessage);
+    const local = guard(prompt, 'Ovo je posao na terenu.', facts(), { localDate: '2026-10-12' });
+    expect(local.dialogue.next).toBe('ASK');
+  });
   it('preserves the actual model REVIEW answer when all facts are present', () => {
     const model = 'Sve imam za sada. Pogledaj nacrt kad budeš spreman.';
     expect(call(reply('REVIEW', model)).assistantMessage).toBe(model);
@@ -77,16 +111,16 @@ describe('natural server AI response without bypassing authoritative review', ()
   });
   it('still corrects an unsafe REVIEW when required people count is missing', () => {
     const result = call(reply('REVIEW', 'Sve je spremno za objavu.'), facts('need.people_needed'));
-    expect(result.assistantMessage).toBe('Koliko ljudi ti treba?');
+    expect(result.assistantMessage).toBe('Koliko ljudi Vam treba?');
   });
   it('does not turn an explicit finish request into an automatic publication', () => {
     explicitFinish = true;
     const result = call(reply('REVIEW', 'Objavljeno.'), facts('need.people_needed'));
-    expect(result.assistantMessage).toContain('Otvori pregled zadatka');
+    expect(result.assistantMessage).toBe('Koliko ljudi Vam treba?');
     expect(result.proposals).toHaveLength(0);
   });
   it('retargets an ASK for an already-known fact to the actual missing one', () => {
-    const result = call(reply('ASK', 'Koliko ljudi ti treba?'), facts('need.task_country_code'));
+    const result = call(reply('ASK', 'Koliko ljudi Vam treba?'), facts('need.task_country_code'));
     expect(result.assistantMessage).toBe('U kojoj državi je zadatak?');
   });
   it('asks for the start when the date is genuinely missing, not the invented end', () => {
@@ -107,15 +141,120 @@ describe('natural server AI response without bypassing authoritative review', ()
   });
   it('does not promise review readiness while the displayed location is unconfirmed', () => {
     const result = guard(reply('REVIEW', 'Sve je potvrđeno, objavi.'), 'Kod stare stanice', facts(), { localDate: '2026-10-12' }, location);
-    expect(result.assistantMessage).toContain('proveriš predloženo mesto na mapi');
+    expect(result.assistantMessage).toContain('proverite predloženo mesto na mapi');
     expect(result.proposals).toHaveLength(0);
   });
-  it('does not allow a per-hour amount to become a confirmed task price', () => {
+  it('does not accept an hourly price without a consistent MY_PRICE/HOURLY contract', () => {
     const turn = reply('ACK', 'Zabeležio sam 1.200 po satu.', [{ key: 'need.price_rsd', value: 1200 }]);
     turn.dialogue.priceUnit = 'PER_HOUR';
     const result = call(turn);
     expect(result.safety).toBe('CLARIFY');
     expect(result.proposals).toHaveLength(0);
+  });
+  const hourlyTurn = (basis = 'HOURLY') => {
+    const turn = reply('ACK', 'Satnica je 1200 RSD po osobi po satu.', [
+      { key: 'need.price_mode', value: 'MY_PRICE' },
+      { key: 'need.price_rsd', value: 1200, evidence: '1200 RSD' },
+      { key: 'need.price_basis', value: basis },
+      { key: 'need.people_needed', value: 2 },
+    ]);
+    turn.dialogue.priceUnit = 'PER_HOUR';
+    return turn;
+  };
+  it.each(['Cena je 1200 RSD na sat.', 'Cena je 1200 RSD po osobi po satu.', 'Цена је 1200 РСД по особи по сату.'])(
+    'accepts the D06 unit rate without multiplying by two people or inventing a duration: %s', input => {
+      const turn = hourlyTurn();
+      const result = guard(turn, input, facts('need.people_needed'), { localDate: '2026-10-12' });
+      expect(result.safety).toBe('ALLOW');
+      expect(result.proposals).toEqual(turn.proposals);
+      expect(result.proposals.find(p => p.key === 'need.price_rsd')?.value).toBe(1200);
+      expect(result.proposals.some(p => p.key === 'need.ends_at')).toBe(false);
+    });
+  it.each(['TOTAL', 'PER_PERSON'])('cannot relabel an hourly quote as %s', basis => {
+    const result = guard(hourlyTurn(basis), 'Cena je 1200 RSD na sat.', facts('need.people_needed'), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('CLARIFY');
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+    expect(result.assistantMessage).toContain('po osobi po satu');
+  });
+  it.each(['Cena je 1200 RSD na sat za celu ekipu.', 'Cena je 1200 RSD za dve osobe po satu.',
+    'Цена је 1200 РСД на сат за целу екипу.'])(
+    'does not turn a team or ambiguous multi-person hourly quote into an individual rate: %s', input => {
+      const result = guard(hourlyTurn(), input, facts('need.people_needed'), { localDate: '2026-10-12' });
+      expect(result.safety).toBe('CLARIFY');
+      expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+      expect(result.assistantMessage).toContain('po osobi po satu');
+    });
+  it('uses provider interpretation for team wording beyond the narrow deterministic phrases', () => {
+    const turn = hourlyTurn(); turn.dialogue.priceUnit = 'PER_TEAM_HOUR';
+    const result = guard(turn, 'Naša trojka deli 1200 RSD za svaki sat.', facts('need.people_needed'), { localDate: '2026-10-12' });
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+    expect(result.safety).toBe('CLARIFY');
+  });
+  it('keeps currency correction and its price retraction ahead of hourly clarification', () => {
+    const result = guard(hourlyTurn(), 'Cena je 1200 EUR po osobi po satu.', [
+      ...facts('need.people_needed'), { fact_key: 'need.price_rsd', fact_value: 5000, status: 'CONFIRMED' },
+    ], { localDate: '2026-10-12' });
+    expect(result.safety).toBe('CLARIFY');
+    expect(result).toMatchObject({ priceRetraction: 'UNSUPPORTED_CURRENCY' });
+    expect(result.assistantMessage).toContain('Prethodna cena više nije potvrđena');
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+  });
+  it('preserves an explicit offers choice despite an invalid team hourly amount', () => {
+    const turn = hourlyTurn();
+    turn.proposals[0] = { key: 'need.price_mode', value: 'OFFERS', evidence: 'želim ponude' };
+    turn.dialogue.priceUnit = 'PER_TEAM_HOUR';
+    const result = guard(turn, 'Cena 1200 EUR na sat za celu ekipu; ipak želim ponude.',
+      facts('need.people_needed').filter(f => f.fact_key !== 'need.price_mode'), { localDate: '2026-10-12' });
+    expect(result.proposals).toEqual([turn.proposals[0], { key: 'need.people_needed', value: 2 }]);
+    expect(result.assistantMessage).toContain('tražiš ponude');
+    expect(result).not.toHaveProperty('priceRetraction');
+  });
+  it('does not turn a spurious hourly amount inferred from headcount into a price question', () => {
+    const turn = hourlyTurn(); turn.proposals[1] = { key: 'need.price_rsd', value: 2, evidence: '2 radnika' };
+    const result = guard(turn, '2 radnika', facts('need.people_needed'), { localDate: '2026-10-12' });
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+    expect(result.assistantMessage).not.toContain('Koji iznos');
+  });
+  it('preserves policy REVIEW without leaking a team hourly price into its writer', () => {
+    const turn = hourlyTurn(); turn.safety = 'REVIEW';
+    const result = guard(turn, 'Cena je 1200 RSD na sat za celu ekipu.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('REVIEW');
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+    expect(result.assistantMessage).toContain('dodatno proveriti');
+  });
+  it('retracts the old individual rate when the person corrects it to a team rate', () => {
+    const active = [...facts(), { fact_key: 'need.price_rsd', fact_value: 1200, status: 'CONFIRMED' },
+      { fact_key: 'need.price_basis', fact_value: 'HOURLY', status: 'CONFIRMED' }];
+    const result = guard(hourlyTurn(), 'Mislio sam 1200 RSD za celu ekipu na sat.', active, { localDate: '2026-10-12' });
+    expect(result).toMatchObject({ safety: 'CLARIFY', priceRetraction: 'UNSUPPORTED_PRICE_BASIS', proposals: [] });
+    expect(result.assistantMessage).toContain('Prethodna cena više nije potvrđena');
+  });
+  it.each(['PER_DAY', 'PER_HOUR'])('does not retract old consent for a schedule or provider-basis mismatch alone: %s', priceUnit => {
+    const turn = reply('ACK', 'Razumem.', []); turn.dialogue.priceUnit = priceUnit;
+    turn.dialogue.schedulePattern = 'REPEATED';
+    const result = guard(turn, 'Termin treba da bude u više dana.', [
+      ...facts(), { fact_key: 'need.price_rsd', fact_value: 1200, status: 'CONFIRMED' },
+    ], { localDate: '2026-10-12' });
+    expect(result).toMatchObject({ safety: 'CLARIFY' });
+    expect((result as any).priceRetraction).toBeUndefined();
+  });
+  it.each(['Treba poneti rukavice.', 'Treba poneti rukavice za celu ekipu.', 'Nije za celu ekipu.', 'Za celu ekipu?'])(
+    'does not revoke a confirmed rate using a hallucinated team hint: %s', input => {
+      const turn = reply('ACK', 'Razumem.', []); turn.dialogue.priceUnit = 'PER_TEAM_HOUR';
+      const result = guard(turn, input, [...facts(),
+        { fact_key: 'need.price_rsd', fact_value: 1200, status: 'CONFIRMED' },
+        { fact_key: 'need.price_basis', fact_value: 'HOURLY', status: 'CONFIRMED' },
+      ], { localDate: '2026-10-12' });
+      expect((result as any).priceRetraction).toBeUndefined();
+      expect(result.assistantMessage).not.toContain('Prethodna cena više nije potvrđena');
+    });
+  it('accepts a real short team-scope correction to an already confirmed hourly rate', () => {
+    const turn = reply('ACK', 'Razumem.', []); turn.dialogue.priceUnit = 'PER_TEAM_HOUR';
+    const result = guard(turn, 'Mislio sam za celu ekipu.', [...facts(),
+      { fact_key: 'need.price_rsd', fact_value: 1200, status: 'CONFIRMED' },
+      { fact_key: 'need.price_basis', fact_value: 'HOURLY', status: 'CONFIRMED' },
+    ], { localDate: '2026-10-12' });
+    expect(result).toMatchObject({ safety: 'CLARIFY', priceRetraction: 'UNSUPPORTED_PRICE_BASIS', proposals: [] });
   });
   it.each(['100 EUR', '100 evra', '€100', '100 евра'])(
     'keeps an explicit euro amount out of the RSD price fact: %s', amount => {
@@ -279,7 +418,7 @@ describe('natural server AI response without bypassing authoritative review', ()
     expect(result.safety).toBe('CLARIFY');
     expect(result.proposals).toEqual([people, place]);
     expect(result.dialogue.next).toBe('CLARIFY');
-    expect(result.assistantMessage).toContain('ceo posao');
+    expect(result.assistantMessage).toContain(priceUnit === 'PER_HOUR' ? 'po osobi po satu' : 'ceo posao');
   });
   it('retains people and location without turning repeated shifts into one appointment or a total price', () => {
     const people = { key: 'need.people_needed', value: 4 };
@@ -296,7 +435,7 @@ describe('natural server AI response without bypassing authoritative review', ()
     expect(result.dialogue.next).toBe('CLARIFY');
     expect(result.assistantMessage.toLowerCase()).toContain('odvojene smene');
   });
-  it('clarifies both daily price and repeated shifts while retaining an independently stated country', () => {
+  it('clarifies the repeated schedule first while retaining an independently stated country', () => {
     const country = { key: 'need.task_country_code', value: 'RS' };
     const turn = reply('ACK', 'Zabeleženo.', [country, { key: 'need.price_rsd', value: 5000 },
       { key: 'need.starts_at', value: '2026-10-13T15:00:00+02:00' }]);
@@ -304,7 +443,7 @@ describe('natural server AI response without bypassing authoritative review', ()
     const result = call(turn, facts('need.task_country_code'));
     expect(result.proposals).toEqual([country]);
     expect(result.assistantMessage.toLowerCase()).toContain('odvojene smene');
-    expect(result.assistantMessage).toContain('ceo posao');
+    expect(result.assistantMessage.match(/\?/g)).toHaveLength(1);
   });
   it('still validates a separate timestamp in a partial reply about hourly pricing', () => {
     const turn = reply('ACK', 'Zabeleženo.', [{ key: 'need.people_needed', value: 3 },
@@ -352,11 +491,11 @@ describe('natural server AI response without bypassing authoritative review', ()
     const local = facts('need.exact_address').map(f => f.fact_key === 'need.task_geography'
       ? { ...f, fact_value: { mode: 'STATIONARY', start: { city: 'Užice', [slot]: 'kod bolnice u Užicu' } } } : f);
     const review = call(reply('REVIEW', 'Pogledaj nacrt zadatka.'), local);
-    expect(review.assistantMessage).toContain('proverimo predlog mesta na mapi');
+    expect(review.assistantMessage).toContain('Proverite predlog mesta na mapi');
     expect(review.assistantMessage).not.toContain('U kom delu grada');
     expect(review.proposals).toHaveLength(0);
     const staleAsk = call(reply('ASK', 'U kom delu grada je posao?'), local);
-    expect(staleAsk.assistantMessage).toContain('potvrdi tačku');
+    expect(staleAsk.assistantMessage).toContain('potvrdite tačku');
   });
   it('does not replace a natural ACK after a landmark is already recorded', () => {
     const local = facts('need.exact_address').map(f => f.fact_key === 'need.task_geography'
@@ -400,7 +539,7 @@ describe('natural server AI response without bypassing authoritative review', ()
       if (handoff !== undefined) remote.push({ fact_key: 'need.handoff', fact_value: handoff,
         status: handoff.required === false ? 'UNKNOWN' : 'CONFIRMED' });
       const result = call(reply('REVIEW', 'Sve je spremno.'), remote);
-      expect(result.assistantMessage).toContain('Kako preuzimaš rezultat');
+      expect(result.assistantMessage).toContain('Kako želite da preuzmete rezultat');
       expect(result.proposals).toEqual([]);
     });
   it('keeps the BLOCK safety result intact', () => {

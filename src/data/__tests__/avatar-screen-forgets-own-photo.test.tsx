@@ -96,3 +96,9 @@ it('leaves it alone when a chosen picture that was never saved is let go of: the
   await act(async () => action('Odustani od izabrane fotografije').onPress());
   expect(mockDiscard).toHaveBeenCalledTimes(1); expect(mockApply).not.toHaveBeenCalled(); expect(forget).not.toHaveBeenCalled();
 });
+it('forgets the old cached photo when exact readback proves another session already applied the avatar being discarded', async () => {
+  mockJournal.set(journalKey, JSON.stringify({ phase: 'DISCARD', requestId: REQUEST, assetId: ASSET, expectedPath: null }));
+  mockRead.mockResolvedValue(ok(profile(ref))); await render();
+  expect(forget).toHaveBeenCalledTimes(1); expect(mockJournal.size).toBe(0);
+  expect(mockDiscard).not.toHaveBeenCalled(); expect(mockApply).not.toHaveBeenCalled(); expect(mockClear).not.toHaveBeenCalled();
+});

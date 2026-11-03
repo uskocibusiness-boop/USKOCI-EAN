@@ -1,3 +1,4 @@
+import { candidateRatingValue } from '../../data/candidateRating';
 import { memo, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -18,7 +19,7 @@ import { usePressLift } from '../system/usePressLift';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { RecordFoot, recordBody, recordFlush } from './offer/RecordParts';
-import { PRICE_NOT_STORED, PrijavaPriceText, PrijavaState, prijavaStatusWord, type PrijavaModel, type PrijavaStatus } from './PrijavaCard';
+import { PRICE_NOT_STORED, PrijavaPriceText, PrijavaState, prijavaStatusWord, type PrijavaPrice, type PrijavaStatus } from './PrijavaCard';
 
 /**
  * The requester's side of an application (owner's step 7, 2026-09-24; one `Surface record` since 2026-10-08, composition spec 4.7; "Ponude
@@ -55,6 +56,9 @@ import { PRICE_NOT_STORED, PrijavaPriceText, PrijavaState, prijavaStatusWord, ty
 /** What the service writes when the read carried no rating (`candidateClientService`). */
 const NO_RATING = '—';
 
+
+
+export { candidateRatingValue } from '../../data/candidateRating';
 export type CandidateTrust = { text: string; star: boolean; spoken: string };
 /**
  * The rating with the count it stands on, as the read gave them. A star only beside a real figure; a missing rating is
@@ -63,7 +67,7 @@ export type CandidateTrust = { text: string; star: boolean; spoken: string };
  */
 export function candidateTrust(k: Pick<KandidatProjekcija, 'ocenaTekst' | 'recenzijeTekst'>): CandidateTrust {
   const rating = (k.ocenaTekst ?? '').trim(), count = (k.recenzijeTekst ?? '').trim();
-  const rated = rating !== '' && rating !== NO_RATING && /\d/.test(rating);
+  const rated = candidateRatingValue(rating) !== null && count !== '0 ocena';
   if (rated) return { star: true, text: count ? `${rating} · ${count}` : rating, spoken: count ? `ocena ${rating}, ${count}` : `ocena ${rating}` };
   // The read counted the ratings and there are none: that is news the person can read, not a rating that is "unavailable".
   if (count === '0 ocena') return { star: false, text: 'Još nema ocena', spoken: 'još nema ocena' };
@@ -72,14 +76,14 @@ export function candidateTrust(k: Pick<KandidatProjekcija, 'ocenaTekst' | 'recen
 }
 
 /** What stands in the price row: the total, or the quiet words for a price that was not stored. The people have a place of their own. */
-export type CandidateValue = PrijavaModel['price'];
+export type CandidateValue = PrijavaPrice;
 export const UNPRICED = PRICE_NOT_STORED;
-export function candidateValue(k: Pick<KandidatProjekcija, 'cena' | 'pokrivaMesta'>): CandidateValue {
+export function candidateValue(k: Pick<KandidatProjekcija, 'cena' | 'pokrivaMesta' | 'osnovaCene'>): CandidateValue {
   const shown = (k.cena?.prikaz ?? '').trim();
   if (!shown || !/\d/.test(shown) || !Number.isSafeInteger(k.cena.iznos) || k.cena.iznos <= 0) return { kind: 'unpriced' };
   // An amount never loses its currency: a figure written without one gets the offer's own.
   const amount = /[A-Za-z]/.test(shown) ? shown : `${shown} ${k.cena.valuta || 'RSD'}`;
-  return { kind: 'amount', amount, basis: 'ukupno' };
+  return { kind: 'amount', amount, basis: k.osnovaCene === 'HOURLY' ? 'po osobi po satu' : 'ukupno' };
 }
 
 /** An amount as it is written, in its figure and its currency ("4.500 RSD" → "4.500", "RSD"): the figure carries the card's right side, the currency is a quiet word. */
@@ -162,20 +166,6 @@ export function messagePreview(message: string): { text: string; cut: boolean } 
 }
 
 /**
- * The shared card's model for an application seen by the requester: nothing here that the read did not carry. The requester's list no longer
- * draws it ("Ponude preko stola": `CandidateCard` draws its own five rows, with the term always on it); the function stays only as the shared
- * model's description of what the read carries about an application (the same `PrijavaModel` the worker's card is built from), and is held by its test.
- */
-export function requesterPrijava(k: KandidatProjekcija, context: { timezone?: string | null; taskTerm: string; viewed?: boolean; avatar: ReactNode }): PrijavaModel {
-  const message = k.napomena?.trim();
-  return { status: candidateChip(k, context.viewed), reason: candidateStatus(k),
-    who: { kind: 'person', name: k.ime, avatar: context.avatar, trust: <CandidateTrustLine candidate={k} /> },
-    term: candidateTerm(k, context.timezone, context.taskTerm), showTerm: candidateTime(k, context.timezone) !== null,
-    price: candidateValue(k), people: osoba(k.pokrivaMesta), has: candidateHas(k), message: message || null,
-    quiet: k.stanje === 'WITHDRAWN' || k.stanje === 'CLOSED' || k.stanje === 'FULL' };
-}
-
-/**
  * Everything the card shows, as one sentence a screen reader hears after its name: the state, the rating, the term, the price, the
  * people, what the person has, a bounded preview of the message and, for an application that cannot be chosen, why. `measure` is the
  * list's one comparative mark ("Najniža cena"), said last, as the card draws it.
@@ -255,7 +245,7 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
   const message = k.napomena?.trim() ?? '';
   const stacked = large || narrow;
   const mark: { text: string; tone: CandidateMarkTone } | null = reason ? { text: reason.text, tone: reason.tone }
-    : measure && k.stanje === 'SELECTABLE' ? { text: measure, tone: 'green' } : null;
+    : measure && k.stanje === 'SELECTABLE' && k.mozeIzabrati === true ? { text: measure, tone: 'green' } : null;
   const total = <OfferedTotal value={value} stacked={stacked} />;
   // The one thing to do with an offer that can be chosen now; any other offer (changed, full, closed, chosen, withdrawn) has none.
   const choosable = k.stanje === 'SELECTABLE' && k.mozeIzabrati;

@@ -77,7 +77,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     if(fresh)selectedMarkerKey=null;
   };
   const screenSnapshot=():DiscoveryV1ScreenSnapshot=>{
-    const live=screen.snapshot(),value=held?{...held,peek:live.peek,exactTaskId:live.exactTaskId,verifiedPlaceKey:live.verifiedPlaceKey}:live;
+    const live=screen.snapshot(),value=held?{...held,mapRead:live.mapRead,peek:live.peek,exactTaskId:live.exactTaskId,verifiedPlaceKey:live.verifiedPlaceKey}:live;
     return routeView?{...value,view:cloneView(routeView)}:value;
   };
   const snapshot=():DiscoveryV1RouteSnapshot=>({active,generation,view:routeView?cloneView(routeView):null,screen:screenSnapshot(),
@@ -105,11 +105,17 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   };
   const restoreSelection=async(g:number,chosen:number)=>{
     const marker=savedMarker();
-    if(!marker||chosen!==selections)return;
+    if(!current(g)||!marker||chosen!==selections)return;
     const result=await screen.selectMarker(marker);
-    if(!current(g)||result.kind==='stale')return;
+    if(!current(g)||chosen!==selections||result.kind==='stale')return;
     if((result.kind==='TASK'||result.kind==='PLACE')&&result.applied)selectedMarkerKey=marker.key;
     else if(routeView){routeView={...routeView,selectedId:null,selectedPlace:null};selectedMarkerKey=null;}
+  };
+  /** Restoring an optional saved card cannot turn an accepted PAGE/MAP into a list failure. */
+  const restoreMapSelection=async(g:number,chosen:number)=>{
+    if(screen.chosenKey()!==null||selectedMarkerKey!==null)return;
+    try{await restoreSelection(g,chosen);}
+    catch{if(current(g)&&chosen===selections)clearPeek();}
   };
   /** A retained priced card is checked after MAP/PAGE has already landed and been published. */
   const refreshSelectedExactInBackground=(g:number,chosen:number)=>{
@@ -198,11 +204,38 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     let result;
     try{result=await screen.refreshMap(bounds);}
     catch(error){
-      if(!anchorExpired(error)||!current(g)||!routeView)throw error;
-      return restore({...routeView});
+      if(!current(g))return {kind:'stale' as const,snapshot:snapshot()};
+      if(!anchorExpired(error)||!routeView)throw error;
+      const renewed=await restore({...routeView});
+      return {...renewed,pageApplied:renewed.kind==='applied'};
     }
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
-    if(result.kind==='applied')refreshSelectedExactInBackground(g,chosen);
+    if(result.kind==='applied'){
+      await restoreMapSelection(g,chosen);
+      if(!current(g))return {kind:'stale' as const,snapshot:snapshot()};
+      refreshSelectedExactInBackground(g,chosen);
+    }
+    return {kind:result.kind,snapshot:snapshot()};
+  }
+
+  async function retryMap(){
+    if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
+    const g=generation,chosen=selections;
+    let result;
+    try{result=await screen.retryMap();}
+    catch(error){
+      if(!current(g))return {kind:'stale' as const,snapshot:snapshot()};
+      if(!anchorExpired(error)||!routeView)throw error;
+      const renewed=await restore({...routeView});
+      return {...renewed,pageApplied:renewed.kind==='applied'};
+    }
+    if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
+    if(result.kind==='applied'){
+      // A cold PAGE can retain a saved choice while MAP is unavailable. Its first recovered buckets now permit that exact read.
+      await restoreMapSelection(g,chosen);
+      if(!current(g))return {kind:'stale' as const,snapshot:snapshot()};
+      refreshSelectedExactInBackground(g,chosen);
+    }
     return {kind:result.kind,snapshot:snapshot()};
   }
 
@@ -347,7 +380,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   const retire=()=>{if(!active)return;active=false;generation++;loadingMore=false;selectedMarkerKey=null;routeView=null;held=null;
     screen.retire();overlay.retire();search.retire();};
 
-  return {open,restore,updateView,settleMap,refreshMap,showPoint,showAll,selectMarker,clearPeek,showRows,nextPage,previewSearch,nextSearchPlaces,applySearch,
+  return {open,restore,updateView,settleMap,refreshMap,retryMap,showPoint,showAll,selectMarker,clearPeek,showRows,nextPage,previewSearch,nextSearchPlaces,applySearch,
     snapshot,peekNow:()=>screen.peekNow(),refreshOverlay:()=>refreshOverlay(generation),attach,detach,warm,retire};
 }
 

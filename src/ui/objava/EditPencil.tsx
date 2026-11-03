@@ -23,7 +23,7 @@ export function EditPencil({ pencil, pill = false }: { pencil: PartPencil; pill?
   return <Press accessibilityRole="button" accessibilityLabel={pencil.label} onPress={() => pencil.onPress()} haptic="select"
     scaleTo={sys.motion.scale.button} style={pill ? s.pill : s.pencilBare}>
     <Glyph name="edit" size={20} tone="green" />
-    {pill && !stacked ? <T variant="copy" style={s.word}>{pencil.word ?? 'Izmeni'}</T> : null}
+    {pill && !stacked ? <T variant="copy" style={s.word}>{pencil.word ?? 'Izmenite'}</T> : null}
   </Press>;
 }
 

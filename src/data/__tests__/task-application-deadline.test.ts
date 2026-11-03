@@ -106,7 +106,10 @@ it('candidate SQL derives both signed review variants from the locked fact and p
   const sql = readFileSync(resolve(process.cwd(), 'docs/candidates/task-ai-deadline-20261021/forward_candidate.sql'), 'utf8');
   expect(sql).toContain('public.rpc_prepare_ai_task_review_deadline(');
   expect(sql).toContain('public.rpc_prepare_ai_task_review_deadline_taxonomy(');
-  expect(sql.match(/select x into deadline_fact from jsonb_array_elements\(review->'facts'\)/g)).toHaveLength(2);
+  expect(sql).toContain("private.ai_task_response_deadline_v1(review->'facts')");
+  expect(sql).toContain('SELECT public.rpc_prepare_ai_task_review(p_conversation_id,');
+  expect(sql).toContain('SELECT public.rpc_prepare_ai_task_review_taxonomy(p_conversation_id,');
+  expect(sql).not.toContain('jsonb_array_length(review->\'facts\')>22');
   expect(sql).not.toContain("missing:=missing||jsonb_build_array('need.response_deadline')");
   expect(sql).toContain("if p_value is null or jsonb_typeof(p_value) is distinct from 'object' then");
   expect(sql).toContain("when 'need.response_deadline' then");

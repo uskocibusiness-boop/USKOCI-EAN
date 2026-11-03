@@ -48,7 +48,6 @@ async function run(k: AzurirajProfilKomanda, scenario: Scenario) {
 describe('CDL-A09 — canonical Worker profile mutation contract', () => {
   it('physically eliminates both lower-precedence Worker profile mutation owners', () => {
     const dataDir=join(__dirname,'..');
-    expect(readFileSync(join(dataDir,'productionAuthorityOverrides.ts'),'utf8')).not.toContain('azurirajRadnikProfil');
     const baseline=readFileSync(join(dataDir,'supabaseIzvor.ts'),'utf8');
     expect(baseline).not.toContain('async azurirajRadnikProfil('); expect(baseline).toContain("'azurirajRadnikProfil'");
     const canonical=readFileSync(join(dataDir,'workerProfileClientService.ts'),'utf8');

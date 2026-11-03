@@ -1,0 +1,25 @@
+{
+  "unit": "R01_ADMIN_PATH_DEV_BASELINE",
+  "format_version": 1,
+  "query_sha256": "1c0509fc0ec559b35b3fdfb89d2b70a9f572fa2d76ffccd34d374c81ef4046f9",
+  "observation": {
+    "unit": "R01_ADMIN_EFFECTIVE_PATH_CAPTURE",
+    "format_version": 1,
+    "read_only": "on",
+    "server_version_num": 170006,
+    "database": "postgres",
+    "session_role": "postgres",
+    "admin_role_exists": true,
+    "admin_superuser": true,
+    "role_config_entries": 2,
+    "role_path_entries": 1,
+    "role_path_has_user_macro": true,
+    "role_path_has_ordered_schemas": true,
+    "default_role_db_overrides": 0,
+    "admin_role_all_db_settings": 1,
+    "expected_namespace_count": 3,
+    "admin_usable_namespace_count": 3,
+    "shadow_namespace_count": 0,
+    "effective_path": null
+  }
+}

@@ -160,6 +160,23 @@ describe('reading and commands', () => {
   expect(mockSave).toHaveBeenCalledTimes(1);
   expect(mockSave).toHaveBeenCalledWith(USER, 'REQUESTER', { ...settings, push_enabled: true }, 2);
  });
+ it('enable after a partial unknown response resumes only unsaved WORKER, without registering the phone twice',async () => {
+  await mount();
+  mockSave.mockImplementationOnce((_a: string, role: NotificationRole, saved: NotificationSettings, revision: number) => {
+   held[role] = { ...held[role], revision: revision + 1, settings: saved }; return Promise.resolve(held[role]);
+  }).mockRejectedValueOnce(Error('lost worker acknowledgement'));
+  await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush(); });
+  expect(mockSave).toHaveBeenCalledTimes(2); expect(mockSet).toHaveBeenCalledTimes(1);
+  await act(async () => { button('Pokušaj ponovo').props.onPress(); await flush(); });
+  expect(button('Sačuvaj podešavanja').props.disabled).toBe(false);
+  mockSave.mockImplementationOnce((_a: string, role: NotificationRole, saved: NotificationSettings, revision: number) => {
+   held[role] = { ...held[role], revision: revision + 1, settings: saved }; return Promise.resolve(held[role]);
+  });
+  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+  expect(mockSave).toHaveBeenCalledTimes(3);
+  expect(mockSave).toHaveBeenLastCalledWith(USER, 'WORKER', { ...settings, push_enabled: true }, 5);
+  expect(mockSet).toHaveBeenCalledTimes(1);
+ });
  it('OS denial never registers or opts in', async () => { await mount(); mockNative.mockResolvedValue({ kind: 'DENIED' }); await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush(); }); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled(); });
  it('unknown registration clears action and requires readback; retained callback cannot resend', async () => {
   await mount(); const old = button('Uključi obaveštenja na telefonu').props.onPress; mockSet.mockResolvedValue({ ok: false });
@@ -194,6 +211,22 @@ describe('reading and commands', () => {
   expect(mockSave).toHaveBeenCalledTimes(2);
   expect(mockSave).toHaveBeenCalledWith(USER, 'REQUESTER', { ...settings, push_enabled: false }, 2);
   expect(mockSave).toHaveBeenCalledWith(USER, 'WORKER', { ...settings, push_enabled: false }, 5);
+  expect(mockSet).not.toHaveBeenCalled();
+ });
+ it('disable after a partial unknown response offers only the uncommitted second preference', async () => {
+  serve({ REQUESTER: { push_enabled: true }, WORKER: { push_enabled: true } }); await mount(); await openPhoneManagement();
+  mockSave.mockImplementationOnce((_a: string, role: NotificationRole, saved: NotificationSettings, revision: number) => {
+   held[role] = { ...held[role], revision: revision + 1, settings: saved }; return Promise.resolve(held[role]);
+  }).mockRejectedValueOnce(Error('lost worker acknowledgement'));
+  await act(async () => { button('Isključi obaveštenja na telefonu').props.onPress(); await flush(); });
+  await act(async () => { button('Pokušaj ponovo').props.onPress(); await flush(); });
+  expect(button('Sačuvaj podešavanja').props.disabled).toBe(false);
+  mockSave.mockImplementationOnce((_a: string, role: NotificationRole, saved: NotificationSettings, revision: number) => {
+   held[role] = { ...held[role], revision: revision + 1, settings: saved }; return Promise.resolve(held[role]);
+  });
+  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+  expect(mockSave).toHaveBeenCalledTimes(3);
+  expect(mockSave).toHaveBeenLastCalledWith(USER, 'WORKER', { ...settings, push_enabled: false }, 5);
   expect(mockSet).not.toHaveBeenCalled();
  });
  it('disable leaves a set that already does not send as it is', async () => {
@@ -390,6 +423,27 @@ describe('one screen for both sets', () => {
   expect(button('Pokušaj ponovo')).toBeUndefined();
   expect(mockSave).toHaveBeenCalledTimes(2);
   expect(held.REQUESTER.settings.in_app_enabled).toBe(false); expect(held.WORKER.settings.in_app_enabled).toBe(true);
+  // The next explicit Save must apply only the unfinished role, using its unchanged CAS revision.
+  expect(button('Sačuvaj podešavanja').props.disabled).toBe(false);
+  mockSave.mockImplementationOnce((_a: string, role: NotificationRole, saved: NotificationSettings, revision: number) => {
+   held[role] = { ...held[role], revision: revision + 1, settings: saved }; return Promise.resolve(held[role]);
+  });
+  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+  expect(mockSave).toHaveBeenCalledTimes(3);
+  expect(mockSave).toHaveBeenLastCalledWith(USER, 'WORKER', { ...settings, in_app_enabled: false }, 5);
+  expect(held.REQUESTER.revision).toBe(3); expect(held.WORKER.revision).toBe(6);
+  expect(button('Sačuvaj podešavanja').props.success).toBe(true);
+ });
+ it('a changed foreign revision prevents silently continuing an uncertain shared setting', async () => {
+  await mount(); await openAdvanced(); act(() => control('Obaveštenja u aplikaciji').props.onPress());
+  mockSave.mockRejectedValueOnce(Error('unknown'));
+  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+  held.WORKER = record('WORKER', { responses_enabled: false }, 6);
+  await act(async () => { button('Pokušaj ponovo').props.onPress(); await flush(); });
+  expect(screenText()).toContain('Podešavanja su promenjena na drugom mestu.');
+  expect(button('Sačuvaj podešavanja').props.disabled).toBe(true);
+  expect(mockSave).toHaveBeenCalledTimes(1);
+  expect(held.WORKER.settings.responses_enabled).toBe(false);
  });
  it('a set whose app list differs from the other reads as off and says so, and one touch makes both the same', async () => {
   serve({ WORKER: { in_app_enabled: false } }); await mount(); await openAdvanced();
@@ -407,6 +461,8 @@ describe('one screen for both sets', () => {
 
 describe('the quiet hours', () => {
  it('saves overnight quiet hours, timezone and explicit HITNO override, in both sets, through the same revisioned settings writer', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
   await mount();
   await pickTime('Početak tihih sati', 23, 15);
   await pickTime('Kraj tihih sati', 6, 45);
@@ -903,4 +959,11 @@ describe('saving', () => {
    expect(announce).toHaveBeenCalledTimes(1); expect(announce).toHaveBeenCalledWith('Podešavanja su sačuvana.');
   } finally { (Platform as { OS: string }).OS = os; announce.mockRestore(); }
  });
+});
+
+// Never retain a dormant future-HITNO override beyond its test.
+const originalUrgentForV1Regression = process.env.EXPO_PUBLIC_URGENT;
+afterEach(() => {
+  if (originalUrgentForV1Regression === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentForV1Regression;
 });

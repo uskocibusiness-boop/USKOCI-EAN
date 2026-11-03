@@ -27,10 +27,14 @@ const empty = (key: string | undefined): Memory => ({ key, committed: false, bas
  * Only committed new assistant rows are announced, once by ID. Stream fragments never trigger speech.
  */
 export function useConversationArrival(input: ConversationArrivalInput) {
-  const memory = useRef<Memory>(empty(input.conversationKey));
+  const memory = useRef<Memory | null>(null);
+  if (!memory.current) memory.current = empty(input.conversationKey);
   const prior = memory.current.key === input.conversationKey ? memory.current : empty(input.conversationKey);
   // Render is a pure preview of the next commit: repeated reads/StrictMode renders cannot consume an entrance.
-  const next: Memory = { ...prior, seen: new Set(prior.seen), announced: new Set(prior.announced) };
+  // Stream fragments and composer keystrokes do not add canonical IDs. Share
+  // the committed ledgers until a real arrival requires a copy; never mutate
+  // a prior render's ledger while computing the next render.
+  const next: Memory = { ...prior };
   const sent = input.sentMessage?.trim() || null, stream = !!input.streamingText?.trim();
   if (sent && sent !== prior.lastSent) {
     next.preview = sent;
@@ -64,6 +68,7 @@ export function useConversationArrival(input: ConversationArrivalInput) {
   const entering = new Set<string>(), announcements: Message[] = [];
   input.messages.forEach((message, index) => {
     if (next.seen.has(message.id)) return;
+    if (next.seen === prior.seen) next.seen = new Set(prior.seen);
     next.seen.add(message.id);
     if (index < firstArrival) return;
     if (message.fromAi) {
@@ -76,6 +81,8 @@ export function useConversationArrival(input: ConversationArrivalInput) {
   });
   next.committed = true;
   next.baselined = prior.baselined || input.messages.length > 0;
+
+  if (announcements.length) next.announced = new Set(prior.announced);
 
   useEffect(() => {
     // The effect may be replayed in StrictMode. Mutating this committed ledger before announcing makes that replay silent.

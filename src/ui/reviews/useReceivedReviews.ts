@@ -25,7 +25,7 @@ const waiting = (scope: string, phase: ReceivedReviewsState['phase'] = 'loading'
  * twice, and drops everything when the account changes. A failed first read is an error (never an empty list); a failed next page keeps
  * the page that was read and offers it again.
  */
-export function useReceivedReviews() {
+export function useReceivedReviews(refreshRevision = 0) {
   const { user, accountRevision } = useSesija();
   const accountId = user?.id;
   const scope = `${accountId ?? ''}:${accountRevision}`;
@@ -38,16 +38,20 @@ export function useReceivedReviews() {
     const mine = ++generation.current;
     asking.current = false;
     if (!accountId) { setHeld(waiting(scope, 'error')); return; }
-    setHeld(waiting(scope));
+    // A return to the screen must re-read the first page, but must not blank the last good page.
+    setHeld(current => current.scope === scope && current.phase === 'ready' ? { ...current, more: 'idle' } : waiting(scope));
     let result;
     try { result = await workTrustClientService.receivedReviews({ limit: RECEIVED_REVIEWS_PAGE_SIZE }, { accountId, accountRevision }); } catch { result = null; }
     if (mine !== generation.current) return;
-    if (!result || !result.ok) { setHeld(waiting(scope, 'error')); return; }
+    if (!result || !result.ok) {
+      setHeld(current => current.scope === scope && current.phase === 'ready' ? { ...current, more: 'idle' } : waiting(scope, 'error'));
+      return;
+    }
     const page = result.podatak;
     setHeld({ scope, phase: 'ready', mode: page.mode, items: page.items, hasMore: page.hasMore, cursor: page.nextAfter, totalCount: page.totalCount,
       notListedCount: page.notListedCount, more: 'idle' });
   }, [scope, accountId, accountRevision]);
-  useEffect(() => { void load(); return () => { generation.current += 1; }; }, [load]);
+  useEffect(() => { void load(); return () => { generation.current += 1; }; }, [load, refreshRevision]);
 
   const loadMore = useCallback(async () => {
     const cursor = state.cursor;

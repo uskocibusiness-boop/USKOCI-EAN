@@ -4,6 +4,7 @@
  * Approved Gemini with the shared controlled test budget; no provider fallback.
  */
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
+import { geminiUsage } from '../_shared/geminiTaskStream.ts';
 declare const Deno: {
   env: { get(name: string): string | undefined };
   serve(handler: (request: Request) => Response | Promise<Response>): unknown;
@@ -79,6 +80,35 @@ async function boundedJson(message: Request | Response, limit: number, signal: A
     }
     return JSON.parse(content + decoder.decode());
   } finally { signal.removeEventListener('abort', abort); void reader.cancel().catch(() => {}); reader.releaseLock(); }
+}
+/** Accounting is independent of the publication decision and its cancellation.
+ * Missing usage stays UNKNOWN. A lost ACK never retries/refunds a paid request. */
+async function recordPublicationUsage(origin:string,headers:Record<string,string>,operationId:string,model:string,
+  usage:NonNullable<ReturnType<typeof geminiUsage>>):Promise<void>{
+  const controller=new AbortController();
+  let timer:ReturnType<typeof setTimeout>;
+  const expired=new Promise<never>((_,reject)=>{
+    timer=setTimeout(()=>{controller.abort();reject(new Error('USAGE_TIMEOUT'));},5000);
+  });
+  try{
+    const persist=async()=>{
+      const result=await fetch(`${origin}/rest/v1/rpc/rpc_ai_test_record_usage_service`,{
+        method:'POST',headers,signal:controller.signal,redirect:'error',cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer',
+        body:JSON.stringify({p_operation_id:operationId,p_model:model,p_prompt_tokens:usage.promptTokens,
+          p_output_tokens:usage.outputTokens,p_total_tokens:usage.totalTokens}),
+      });
+      if(controller.signal.aborted||!result.ok||result.redirected){
+        try{void result.body?.cancel().catch(()=>undefined);}catch{/* best effort */}
+        throw new Error('USAGE_UNCONFIRMED');
+      }
+      const saved=row(await boundedJson(result,4096,controller.signal));
+      if(controller.signal.aborted||saved?.operationId!==operationId||typeof saved.recorded!=='boolean'
+        ||saved.authoritative!==true||saved.promptTokens!==usage.promptTokens||saved.outputTokens!==usage.outputTokens
+        ||saved.totalTokens!==usage.totalTokens)throw new Error('USAGE_UNCONFIRMED');
+    };
+    await Promise.race([persist(),expired]);
+  }catch{console.warn('PUBLICATION_USAGE_UNCONFIRMED');}
+  finally{clearTimeout(timer!);controller.abort();}
 }
 async function boundedImage(message:Response,limit:number,signal:AbortSignal):Promise<Uint8Array>{
   if(!message.ok||!message.body)throw new Error('MEDIA_UNAVAILABLE');
@@ -371,8 +401,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
             properties:{outcome:{type:'string',enum:outcomes},ruleIds:{type:'array',items:{type:'string',enum:ctx.policy.rules.map(r=>r.ruleId)}},
               safeReasonCodes:{type:'array',items:{type:'string'}}},required:['outcome','ruleIds','safeReasonCodes']}}});
       if(new TextEncoder().encode(providerBody).length>20*1024*1024)throw new Error('PROVIDER_INPUT_TOO_LARGE');
+      const providerOperationId=reviewAttemptId??crypto.randomUUID();
       const budget=await reserveAiTestBudget({supabaseUrl:base.origin,serviceRoleKey:serviceKey,accountId:user.id,
-        operationId:reviewAttemptId??crypto.randomUUID(),kind:'LLM',signal:controller.signal});
+        operationId:providerOperationId,kind:'LLM',signal:controller.signal});
       if(!budget.admitted)return reviewAttemptId?reviewComplete(null,'EVALUATOR_UNAVAILABLE'):notReady(needId,revision,'EVALUATOR_UNAVAILABLE');
       if (controller.signal.aborted) throw new Error('CANCELLED');
       clearTimeout(timer); timer = setTimeout(abort, providerMs);
@@ -380,7 +411,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
         method:'POST',headers:{'x-goog-api-key':providerKey,'Content-Type':'application/json'},body:providerBody});
       if (upstream.status === 429) return reviewAttemptId ? reviewComplete(null, 'RATE_LIMITED') : notReady(needId, revision, 'RATE_LIMITED');
       if (!upstream.ok) return reviewAttemptId ? reviewComplete(null, 'EVALUATOR_UNAVAILABLE') : notReady(needId, revision, 'EVALUATOR_UNAVAILABLE');
-      const evaluated = providerOutput(await boundedJson(upstream, 131072, controller.signal), ctx.policy);
+      const providerData=await boundedJson(upstream,131072,controller.signal);
+      const usage=geminiUsage(row(providerData)?.usageMetadata);
+      if(usage){
+        const accounting=recordPublicationUsage(base.origin,serviceHeaders,providerOperationId,model,usage);
+        const runtime=(globalThis as unknown as {EdgeRuntime?:{waitUntil(promise:Promise<unknown>):void}}).EdgeRuntime;
+        if(runtime?.waitUntil)runtime.waitUntil(accounting);else await accounting;
+      }
+      const evaluated = providerOutput(providerData, ctx.policy);
       if (!evaluated) return reviewAttemptId ? reviewComplete(null, 'EVALUATOR_INVALID_RESPONSE') : notReady(needId, revision, 'EVALUATOR_INVALID_RESPONSE');
       if (reviewAttemptId) return reviewComplete(evaluated, null);
       const stored = await fetchBound(`${base.origin}/rest/v1/rpc/rpc_record_need_publication_decision_service`, {

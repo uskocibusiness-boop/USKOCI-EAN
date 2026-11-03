@@ -52,7 +52,7 @@ import { SkeletonList } from '../../ui/system/Skeleton';
 
 const identity = (displayName = 'Ana Petrović', revision = REVISION) => ({ schema: 'REQUESTER_IDENTITY_V1', accountId: ACCOUNT,
   profileId: PROFILE_ID, displayName, revision, writableFields: ['displayName'] });
-const work = (patch: Record<string, unknown> = {}) => ({ id: 'w', ime: 'Ana', grad: 'Novi Sad', biografija: 'Radim sa bratom, imamo kombi.', vestine: [], alati: [], vozila: [],
+const work = (patch: Record<string, unknown> = {}) => ({ id: 'w', ime: 'Ana Petrović', grad: 'Novi Sad', biografija: 'Radim sa bratom, imamo kombi.', vestine: [], alati: [], vozila: [],
   licence: [], stanje: 'ACTIVE', dostupanOdmah: false, radijusKm: 20, ...patch });
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 let tree: ReactTestRenderer;
@@ -317,6 +317,51 @@ describe('one name: the account\'s name and then the work profile\'s', () => {
   const NOTICE = 'Ime je sačuvano na nalogu, ali nije upisano u radni profil.';
   const notice = () => tree.root.findAllByProps({ testID: 'work-name-notice' }).length;
 
+  it('R11d/X02 detects a second-name mismatch on a fresh visit and offers only the missing work write', async () => {
+    mockWork.mockResolvedValue(work({ ime: 'Staro radno ime' }));
+    await render();
+    expect(notice()).toBe(1); expect(button('Pokušaj ponovo')).toBeDefined();
+    expect(mockSave).not.toHaveBeenCalled(); expect(mockWorkWrite).not.toHaveBeenCalled();
+    workProfileKeepsWhatIsWritten('Staro radno ime');
+    await press('Pokušaj ponovo');
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockWorkWrite).toHaveBeenCalledWith({ zavrsi: false, ime: 'Ana Petrović' });
+    expect(notice()).toBe(0);
+  });
+  it('R11d/X02 does not assume mismatch when a work profile read fails or does not exist', async () => {
+    mockWork.mockRejectedValueOnce(new Error('OFFLINE')).mockRejectedValue(new Error('OFFLINE'));
+    await render(); expect(notice()).toBe(0); expect(mockWorkWrite).not.toHaveBeenCalled();
+    await act(async () => tree.unmount());
+    mockWork.mockResolvedValue(null); await render();
+    expect(notice()).toBe(0); expect(mockWorkWrite).not.toHaveBeenCalled();
+  });
+  it('R11d/X02 refuses a manual retry that would overwrite a newer work name', async () => {
+    mockWork.mockResolvedValue(work({ ime: 'Staro ime' }));
+    await render(); expect(notice()).toBe(1);
+    mockWork.mockResolvedValueOnce(work({ ime: 'Drugo novije ime' }));
+    await press('Pokušaj ponovo');
+    expect(mockSave).not.toHaveBeenCalled(); expect(mockWorkWrite).not.toHaveBeenCalled();
+    expect(notice()).toBe(1);
+  });
+  it('R11d/X02 recognizes a name that another session already repaired without repeating the writer', async () => {
+    mockWork.mockResolvedValue(work({ ime: 'Staro ime' }));
+    await render(); expect(notice()).toBe(1);
+    mockWork.mockResolvedValue(work({ ime: 'Ana Petrović' }));
+    await press('Pokušaj ponovo');
+    expect(mockWorkWrite).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+    expect(notice()).toBe(0);
+  });
+  it('R11d/X02 refuses the second name write after the account incarnation changed during first write', async () => {
+    let resolve!: (value: unknown) => void;
+    mockSave.mockReturnValue(new Promise(done => { resolve = done; }));
+    await render(); await type('Novo potvrđeno ime');
+    await act(async () => { void barSave().props.onPress(); });
+    mockSession = { user: { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }, accountRevision: 2 };
+    await act(async () => tree.update(<Route />));
+    await act(async () => resolve(ok({ saved: true, idempotentReplay: false, clientRequestId: 'x',
+      identity: identity('Novo potvrđeno ime', 'b'.repeat(64)) })));
+    expect(mockWorkWrite).not.toHaveBeenCalled();
+  });
   it('writes the same name into the work profile after the account\'s is confirmed, reads it back, and says nothing more', async () => {
     mockSave.mockResolvedValue(saved('Ana P.')); workProfileKeepsWhatIsWritten();
     await render(); await type('Ana P.'); await press('Sačuvaj ime');
@@ -365,7 +410,7 @@ describe('one name: the account\'s name and then the work profile\'s', () => {
     mockWorkWrite.mockResolvedValueOnce({ ok: false, kod: 'PROFILE_UPDATE_FAILED', poruka: 'x' });
     await render(); await type('Ana P.'); await press('Sačuvaj ime');
     expect(notice()).toBe(1); expect(mockWorkWrite).toHaveBeenCalledTimes(1);
-    workProfileKeepsWhatIsWritten();
+    workProfileKeepsWhatIsWritten('Ana Petrović');
     await press('Pokušaj ponovo');
     expect(mockSave).toHaveBeenCalledTimes(1); expect(mockRead).toHaveBeenCalledTimes(1);
     expect(mockWorkWrite).toHaveBeenCalledTimes(2); expect(mockWorkWrite).toHaveBeenLastCalledWith({ zavrsi: false, ime: 'Ana P.' });

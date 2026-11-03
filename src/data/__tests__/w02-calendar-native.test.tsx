@@ -113,6 +113,8 @@ describe('actual availability editor interactions', () => {
   // Updated deliberately (owner decision 2026-09-24, "Mogu odmah" saves on its own): the switch used to wait for Save.
   // The intent kept: the save carries the existing owned data unchanged, and only the status moves.
   it('saves Mogu odmah on its own, with the saved week unchanged', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
     const loaded = { ...availability(), rules: [{ id: ruleId, weekdays: [1, 3], startTime: '09:00:00', endTime: '12:00:00', startsOn: '2026-09-01', endsOn: null, label: 'Redovno', active: true }] };
     const pending = jest.fn(() => new Promise<void>(() => {}));
     const onSave = await render(pending, loaded);
@@ -885,4 +887,11 @@ describe('calendar civil date boundaries', () => {
     expect(overlapsInterval('2026-09-10T23:59:59Z', '2026-09-11T00:00:00Z', '2026-09-11T00:00:00Z', '2026-09-12T00:00:00Z')).toBe(false);
     expect(displayTime('2026-09-11T09:00:01.123456Z')).toBe('09:00');
   });
+});
+
+// Never retain a dormant future-HITNO override beyond its test.
+const originalUrgentForV1Regression = process.env.EXPO_PUBLIC_URGENT;
+afterEach(() => {
+  if (originalUrgentForV1Regression === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentForV1Regression;
 });

@@ -63,6 +63,15 @@ it('is the tag, then the small row, then the sentence, the receipt as rows, and 
   expect(tree.root.findAll(node => node.props.accessibilityElementsHidden === true && node.props.importantForAccessibility === 'no-hide-descendants').length).toBeGreaterThan(0);
 });
 
+it('new application shows the task term as a read-only fact, never offers a competing schedule', async () => {
+  await act(async () => { tree = create(element({ confirmed: false })); });
+  const term = tree.root.findByProps({ testID: 'composer-term' });
+  expect(term.findAll(node => typeof node.props.onPress === 'function')).toHaveLength(0);
+  expect(text()).toContain('Prijava se odnosi na termin koji je naveden u zadatku.');
+  expect(text()).not.toContain('Možeš da predložiš drugi.');
+  expect(tree.root.findAll(node => node.props.accessibilityHint === 'Otvara izbor tačnog termina')).toHaveLength(0);
+});
+
 it('says the message as written, and "Bez dodatne poruke." when there is none; and the term the person proposed beside the task\'s own', async () => {
   await act(async () => { tree = create(element({ draft: { ...draft, note: '  ' } })); });
   expect(text()).toContain('Poruka | Bez dodatne poruke.');

@@ -243,6 +243,7 @@ describe('what a pin says', () => {
   it('adds a known total or per-person basis to a legacy pin without guessing a missing basis', () => {
     expect(pinLabel(item('a', { osnovaCene: 'TOTAL' })).text).toBe('6.000 RSD ukupno');
     expect(pinLabel(item('a', { osnovaCene: 'PER_PERSON' })).spoken).toBe('6.000 RSD po osobi');
+    expect(pinLabel(item('a', { osnovaCene: 'HOURLY' })).spoken).toBe('6.000 RSD po osobi po satu');
     expect(pinLabel(item('a', { osnovaCene: null })).text).toBe('6.000 RSD');
   });
   it('a task that asks for offers says so quietly and never wears the money tone, even with a stale amount on it', () => {

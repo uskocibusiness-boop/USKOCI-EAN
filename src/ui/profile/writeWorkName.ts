@@ -20,16 +20,23 @@ async function bounded<T>(request: () => Promise<T>, milliseconds: number): Prom
  * name and `zavrsi: false`, so it neither activates nor changes any other part) and is read back before it is called done: a name saved on one side and not on
  * the other is never left silent. Every failure, including a read that throws, is `failed`; nothing here throws.
  */
-export async function writeWorkName(izvor: Pick<Izvor, 'mojRadnikProfil' | 'azurirajRadnikProfil'>, name: string): Promise<WorkNameWrite> {
+export async function writeWorkName(izvor: Pick<Izvor, 'mojRadnikProfil' | 'azurirajRadnikProfil'>, name: string,
+  stillOwner: () => boolean = () => true, expectedWorkName?: string): Promise<WorkNameWrite> {
   const wanted = name.trim();
-  if (!wanted) return 'failed';
+  if (!wanted || !stillOwner()) return 'failed';
   try {
     const before = await bounded(() => izvor.mojRadnikProfil(), 15_000);
+    if (!stillOwner()) return 'failed';
     if (!before) return 'none';
+    // A retry must not overwrite a newer name that another session saved after this screen's read.
     if (before.ime.trim() === wanted) return 'done';
-    const result = await bounded(() => izvor.azurirajRadnikProfil({ zavrsi: false, ime: wanted }), 65_000);
-    if (!result.ok) return 'failed';
+    if (expectedWorkName !== undefined && before.ime.trim() !== expectedWorkName.trim()) return 'failed';
+    const result = await bounded(() => {
+      if (!stillOwner()) throw new Error('PROFILE_SCOPE_CHANGED');
+      return izvor.azurirajRadnikProfil({ zavrsi: false, ime: wanted });
+    }, 65_000);
+    if (!stillOwner() || !result.ok) return 'failed';
     const after = await bounded(() => izvor.mojRadnikProfil(), 15_000);
-    return after && after.ime.trim() === wanted ? 'done' : 'failed';
+    return stillOwner() && after && after.ime.trim() === wanted ? 'done' : 'failed';
   } catch { return 'failed'; }
 }

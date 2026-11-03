@@ -55,7 +55,8 @@ const candidate = () => ({ displayName: 'Ana', bio: '', skills: ['Montaža'], to
   location: { city: 'Novi Sad', operatingCountryCode: 'RS', radiusKm: 10, approximatePosition: null }, availability: availability() });
 const snapshot = (revision = 0) => ({ schemaVersion: 'WORKER_PROFILE_V1', accountId: A, conversationId: C, profileId: B, status: 'OPEN', profileStatus: 'DRAFT',
   revision, candidate: candidate(), safety: 'ALLOW', stale: false, messages: [], turn: null, review: null, saved: null });
-const reviewed = (revision = 0, activate = true) => ({ ...snapshot(revision), review: { reviewId: '44444444-4444-4444-8444-444444444444', revision,
+const reviewed = (revision = 0, activate = true) => ({ ...snapshot(revision), review: { reviewId: '44444444-4444-4444-8444-444444444444', revision, accountId: A, conversationId: C, profileId: B,
+  classificationState: 'READY', reviewedServiceModes: [{ service: 'Montaža', mode: 'ON_SITE' }],
   expiresAt: new Date(Date.now() + 60000).toISOString(), canAccept: true, activate, missingRequired: [], profile: candidate() } });
 
 let tree: ReactTestRenderer;
@@ -66,19 +67,25 @@ const action = (label: string) => tree.root.findByProps({ label });
 /** The rows of an open menu, once each (a Press is several nodes in the tree). */
 const menuRows = () => tree.root.findAllByType(Press).filter(node => node.props.accessibilityRole === 'menuitem');
 const menuRow = (label: string) => menuRows().find(node => node.props.accessibilityLabel === label)!;
-const render = async () => { await act(async () => { tree = create(<Screen />); }); };
+// Initial load now prepares a signed review before exposing the card. These tests
+// measure subsequent UI actions; initial readiness/recovery is proved separately.
+const render = async () => { await act(async () => { tree = create(<Screen />); }); mockApi.prepare.mockClear(); };
 const click = async (label: string) => { await act(async () => { action(label).props.onPress(); }); };
-const openReview = async () => {
-  mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(reviewed()));
+const openReview = async (activate = true) => {
+  mockApi.prepare.mockImplementation(async (_cid, revision, activate) => ok({...reviewed(revision, activate).review, conversationId: _cid})); mockApi.read.mockResolvedValue(ok(reviewed()));
   await act(async () => { shell().props.footerAction.props.onPress(); });
+  // Activation remains an explicit choice after the ready review opens.
+  if (review().props.review.activate !== activate) await act(async () => tree.root.findByType('Activation' as never).props.change(activate));
 };
 beforeEach(() => {
+  for (const method of Object.values(mockApi)) method.mockReset();
   jest.clearAllMocks(); mockRouteId = C; mockRouter.canGoBack.mockReturnValue(true); mockAccountName = { state: 'ready', name: null };
   mockCorrection=undefined;mockEntryKey=undefined;mockActivationRequest=undefined;mockFocused=true;
   mockVoice.state.phase='IDLE';
   mockJournal.load.mockResolvedValue(null); mockJournal.save.mockResolvedValue(undefined); mockJournal.clear.mockResolvedValue(undefined);
   mockApi.read.mockResolvedValue(ok(snapshot())); mockApi.open.mockResolvedValue(ok(snapshot()));
   mockApi.recoverTurn.mockResolvedValue(ok({}));
+  mockApi.prepare.mockImplementation(async (_cid, revision, activate) => ok({...reviewed(revision, activate).review, conversationId: _cid}));
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
@@ -120,9 +127,9 @@ describe('the conversation (M1)', () => {
   });
   it('is titled "Moj radni profil", puts the latest question first, and offers the "+" for the parts', async () => {
     await render();
-    expect(shell().props.title).toBe('Moj radni profil'); expect(shell().props.questionFocus).toBe(true);
-    expect(shell().props.attach).toMatchObject({ label: 'Šta želiš da izmeniš?', disabled: false });
-    expect(shell().props.attach.hint).toBe('Izaberi temu i nastavi isti razgovor.');
+    expect(shell().props.title).toBe('Radni profil'); expect(shell().props.questionFocus).toBe(true);
+    expect(shell().props.attach).toMatchObject({ label: 'Šta želite da izmenite?', disabled: false });
+    expect(shell().props.attach.hint).toBe('Izaberite temu i nastavite isti razgovor.');
   });
 
   it('draws no "+" when the conversation cannot take anything more', async () => {
@@ -135,8 +142,8 @@ describe('the conversation (M1)', () => {
     await render();
     await act(async () => shell().props.onChange('Moj nezavršen odgovor'));
     await act(async () => { shell().props.attach.onPress(); });
-    expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['Usluge koje nudiš', 'Područje rada', 'Kada imaš vremena']);
-    await act(async () => { menuRow('Usluge koje nudiš').props.onPress(); });
+    expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['Usluge koje nudite', 'Područje rada', 'Kada imate vremena']);
+    await act(async () => { menuRow('Usluge koje nudite').props.onPress(); });
     expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
     expect(shell().props.correction.target).toBe('worker.skills');
     expect(shell().props.value).toBe('Moj nezavršen odgovor');
@@ -157,10 +164,10 @@ describe('the conversation (M1)', () => {
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(shell()).toBeTruthy();
   });
 
-  it('"Kada imaš vremena" opens a topic in the same conversation', async () => {
+  it('"Kada imate vremena" opens a topic in the same conversation', async () => {
     await render();
     await act(async () => { shell().props.attach.onPress(); });
-    await act(async () => { menuRow('Kada imaš vremena').props.onPress(); });
+    await act(async () => { menuRow('Kada imate vremena').props.onPress(); });
     expect(shell().props.correction.target).toBe('worker.time');
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0);
   });
@@ -208,22 +215,22 @@ describe('the review (M2)', () => {
     expect(tree.root.findByProps({ testID: 'worker-review-progress' }).props.children)
       .toContain('Profil još nije sačuvan.');
     expect(mockApi.save).not.toHaveBeenCalled();
-    await act(async () => finishPrepare(ok({})));
+    await act(async () => finishPrepare(ok(reviewed(0, false).review)));
     expect(review().props.review.activate).toBe(false);
-    expect(action('Sačuvaj profil')).toBeTruthy();
+    expect(action('Sačuvajte profil')).toBeTruthy();
 
     let finishSave!: (value: unknown) => void;
     mockApi.save.mockImplementationOnce(() => new Promise(resolve => { finishSave = resolve; }));
     const saved = { ...reviewed(0, false), status: 'COMPLETED', saved: { reviewId: reviewed().review.reviewId,
       conversationId: C, accountId: A, profileId: B, profileStatus: 'DRAFT', saved: true, authoritative: true } };
     mockApi.read.mockResolvedValue(ok(saved));
-    await act(async () => { action('Sačuvaj profil').props.onPress(); });
+    await act(async () => { action('Sačuvajte profil').props.onPress(); });
     expect(action('Čuvamo profil…').props.disabled).toBe(true);
     expect(tree.root.findByProps({ testID: 'worker-review-progress' }).props.children)
       .toContain('Čuvamo profil.');
     expect(mockApi.save).toHaveBeenCalledTimes(1);
     await act(async () => finishSave(ok({})));
-    expect(action('Otvori sačuvani profil')).toBeTruthy();
+    expect(action('Otvorite sačuvani profil')).toBeTruthy();
   });
   it.each(['PERMISSION_PENDING','PREPARING','STARTING','LISTENING','FINALIZING'])(
     'a retained review callback cannot interrupt speech during %s',async phase=>{
@@ -237,69 +244,68 @@ describe('the review (M2)', () => {
       expect(shell().props.footerAction.props.disabled).toBe(true);
       expect(shell().props.value).toBe('Neposlata dopuna.');
       mockVoice.state.phase='IDLE';await act(async()=>tree.update(<Screen/>));
-      await openReview();expect(review().props.review.revision).toBe(0);
-      expect(mockApi.prepare).toHaveBeenCalledWith(C,0,false);
+      await openReview(false);expect(review().props.review.revision).toBe(0);
+      expect(mockApi.prepare).not.toHaveBeenCalled();
       expect(tree.root.findByProps({testID:'worker-review-unsent-note'}).props.children).toContain('Neposlati tekst nije deo ovog pregleda.');
       await act(async()=>review().props.onEdit());
       expect(shell().props.value).toBe('Neposlata dopuna.');expect(shell().props.conversationKey).toBe(C);
       expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
     });
-  it('returns missing-mode review to the same AI conversation and preserves unsent text without a write', async () => {
+  it('missing service mode stays in the conversation with its unsent text and no Save or category form', async () => {
+    const pending={...reviewed(0,false).review,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED'};
+    mockApi.prepare.mockResolvedValue(ok(pending));
     await render();
     await act(async () => shell().props.onChange('Radim samo na daljinu, kod sebe.'));
-    const pending = reviewed();
-    mockApi.prepare.mockResolvedValue(ok({}));
-    mockApi.read.mockResolvedValue(ok({...pending,review:{...pending.review,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED'}}));
-    await act(async () => shell().props.footerAction.props.onPress());
-    expect(tree.root.findAllByProps({label:'Potvrdi način rada za sve usluge'})).toHaveLength(0);
+    expect(shell().props.footerAction).toBeUndefined();
+    expect(tree.root.findAllByType('Review' as never)).toHaveLength(0);
     expect(tree.root.findAllByProps({testID:'worker-explicit-mode-confirmation'})).toHaveLength(0);
-    expect(tree.root.findByType('Note' as never).props.matchingReady).toBe(false);
-    await act(async () => review().props.onEdit());
     expect(shell().props.conversationKey).toBe(C);
     expect(shell().props.value).toBe('Radim samo na daljinu, kod sebe.');
-    expect(shell().props.correction.target).toBe('worker.details');
     expect(mockApi.send).not.toHaveBeenCalled(); expect(mockApi.patch).not.toHaveBeenCalled();
     expect(mockApi.save).not.toHaveBeenCalled(); expect(mockApi.open).not.toHaveBeenCalled();
   });
-  it.each(['CATALOG_UNAVAILABLE','STALE_CATALOG'] as const)('%s can refresh the signed review without a mode form or AI call', async classificationState => {
+  it.each(['CATALOG_UNAVAILABLE','STALE_CATALOG'] as const)('%s recovers readiness before showing a review, without a mode form or model call', async classificationState => {
+    mockApi.prepare.mockResolvedValue(ok({...reviewed(0,false).review,classificationState}));
     await render();
-    const stale=reviewed(0,false);
-    mockApi.prepare.mockResolvedValue(ok({}));
-    mockApi.read.mockResolvedValue(ok({...stale,review:{...stale.review,classificationState}}));
-    await act(async () => shell().props.footerAction.props.onPress());
-    mockApi.prepare.mockClear();
-    expect(tree.root.findAllByProps({label:'Potvrdi način rada za sve usluge'})).toHaveLength(0);
-    expect(action('Učitaj novi pregled').props.disabled).toBe(false);
-    await click('Učitaj novi pregled');
+    expect(shell().props.footerAction).toBeUndefined();
+    expect(tree.root.findAllByType('Review' as never)).toHaveLength(0);
+    mockApi.prepare.mockResolvedValue(ok(reviewed(0,false).review));
+    await click('Proverite razgovor');
     expect(mockApi.prepare).toHaveBeenCalledWith(C,0,false);
+    await act(async () => shell().props.footerAction.props.onPress());
+    expect(tree.root.findByType('Note' as never).props.matchingReady).toBe(true);
     expect(mockApi.send).not.toHaveBeenCalled(); expect(mockApi.save).not.toHaveBeenCalled();
     expect(mockApi.patch).not.toHaveBeenCalled();
   });
-  it.each([undefined,'READY'] as const)('only explicit READY enables the matching note (%s)', async classificationState => {
+  it.each([undefined,'READY'] as const)('only explicit READY permits the finished review (%s)', async classificationState => {
+    mockApi.prepare.mockResolvedValue(ok({...reviewed(0,false).review,classificationState}));
     await render();
-    const current=reviewed();
-    mockApi.prepare.mockResolvedValue(ok({}));
-    mockApi.read.mockResolvedValue(ok({...current,review:{...current.review,classificationState}}));
-    await act(async () => shell().props.footerAction.props.onPress());
-    expect(tree.root.findByType('Note' as never).props.matchingReady).toBe(classificationState==='READY');
+    if(classificationState==='READY') {
+      await act(async () => shell().props.footerAction.props.onPress());
+      expect(tree.root.findByType('Note' as never).props.matchingReady).toBe(true);
+    } else {
+      expect(shell().props.footerAction).toBeUndefined();
+      expect(tree.root.findAllByType('Review' as never)).toHaveLength(0);
+    }
+    expect(mockApi.save).not.toHaveBeenCalled();
   });
-  it('defers an external topic during signed preparation and keeps the unsent text when it completes', async () => {
+  it('defers an external topic during signed preparation and keeps unsent text when it completes', async () => {
     let finish!: (value: unknown) => void;
-    await render(); await act(async () => shell().props.onChange('Moj neposlati odgovor'));
+    await render(); await act(async () => shell().props.onChange('Moj neposlati odgovor')); await openReview(false);
     mockApi.prepare.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    await act(async () => { void shell().props.footerAction.props.onPress(); });
+    await act(async () => { void tree.root.findByType('Activation' as never).props.change(true); });
     mockCorrection = rememberAiCorrection({ accountId: A, accountRevision: 1 }, 'worker.time')!.token;
     await act(async () => tree.update(<Screen />));
     expect(tree.root.findAllByType('Shell' as never)[0]?.props.correction).toBeFalsy();
     mockApi.read.mockResolvedValue(ok(reviewed()));
-    await act(async () => finish(ok({})));
+    await act(async () => finish(ok(reviewed().review)));
     expect(shell().props.correction.target).toBe('worker.time'); expect(shell().props.value).toBe('Moj neposlati odgovor');
     expect(mockApi.prepare).toHaveBeenCalledTimes(1); expect(mockApi.send).not.toHaveBeenCalled();
   });
   it('is titled "Tvoj radni profil", with explicit save and one AI correction action', async () => {
     await render(); await openReview();
-    expect(frame().props.title).toBe('Tvoj radni profil');
-    expect(action('Sačuvaj i aktiviraj profil').props.style).toBe(brandAction);
+    expect(frame().props.title).toBe('Pregledajte profil');
+    expect(action('Sačuvajte i aktivirajte profil').props.style).toBe(brandAction);
     expect(review().props.onEdit).toBeInstanceOf(Function);
     expect(tree.root.findAllByProps({ label: 'Ručno uredi podatke' })).toHaveLength(0);
     expect(tree.root.findAllByType('Note' as never)).toHaveLength(1);
@@ -334,7 +340,7 @@ describe('the review (M2)', () => {
     expect(mockApi.prepare).toHaveBeenCalledTimes(1); expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, true);
     expect(mockApi.send.mock.invocationCallOrder[0]).toBeLessThan(mockApi.prepare.mock.invocationCallOrder[0]);
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(review().props.review.revision).toBe(1);
-    expect(frame().props.title).toBe('Tvoj radni profil');
+    expect(frame().props.title).toBe('Pregledajte profil');
   });
 
   it('opening the correction starts no calendar patch or provider request', async () => {
@@ -346,7 +352,7 @@ describe('the review (M2)', () => {
   });
 
   it('keeps the activation the person chose when the profile is still a draft', async () => {
-    mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(reviewed(0, false)));
+    mockApi.prepare.mockImplementation(async (_cid, revision, activate) => ok({...reviewed(revision, activate).review, conversationId: _cid})); mockApi.read.mockResolvedValue(ok(reviewed(0, false)));
     await render(); await act(async () => { shell().props.footerAction.props.onPress(); });
     mockApi.prepare.mockClear();
     await act(async () => { review().props.onEdit(); });
@@ -358,23 +364,27 @@ describe('the review (M2)', () => {
     expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false);
   });
 
-  it('a review that has expired cannot be edited: it is read again first', async () => {
-    const stale = { ...reviewed(), review: { ...reviewed().review, expiresAt: new Date(Date.now() - 1000).toISOString() } };
-    mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(stale));
-    await render(); await act(async () => { shell().props.footerAction.props.onPress(); });
-    expect(review().props.editDisabled).toBe(true);
-    await act(async () => { review().props.onEdit(); });
-    expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(review()).toBeTruthy();
+  it('an expired preparation cannot expose a review; an explicit refresh admits only the new signed one', async () => {
+    const stale = { ...reviewed().review, expiresAt: new Date(Date.now() - 1000).toISOString() };
+    mockApi.prepare.mockResolvedValue(ok(stale));
+    await render();
+    expect(shell().props.footerAction).toBeUndefined();
+    expect(tree.root.findAllByType('Review' as never)).toHaveLength(0);
+    mockApi.prepare.mockResolvedValue(ok(reviewed().review));
+    await click('Proverite razgovor');
+    await act(async () => shell().props.footerAction.props.onPress());
+    expect(review().props.editDisabled).toBe(false);
+    expect(mockApi.save).not.toHaveBeenCalled();
   });
 
   it('after the save there is nothing left to edit: the saved profile is the one green next step', async () => {
     await render(); await openReview();
     const saved = { ...reviewed(), status: 'COMPLETED', saved: { reviewId: '44444444-4444-4444-8444-444444444444', conversationId: C, accountId: A, profileId: B, profileStatus: 'ACTIVE', saved: true, authoritative: true } };
     mockApi.save.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(saved));
-    await click('Sačuvaj i aktiviraj profil');
+    await click('Sačuvajte i aktivirajte profil');
     expect(mockApi.save).toHaveBeenCalledTimes(1);
     expect(review().props.onEdit).toBeUndefined();
-    expect(action('Otvori sačuvani profil').props.style).toBe(brandAction);
+    expect(action('Otvorite sačuvani profil').props.style).toBe(brandAction);
     expect(tree.root.findAllByProps({ label: 'Nazad na razgovor' })).toHaveLength(0);
   });
 });
@@ -390,7 +400,7 @@ describe('one name: the review is made under the account\'s name', () => {
 
   it('patches the account\'s name into a proposal that carries another, then makes the same review for the revision that patch made', async () => {
     mockAccountName = { state: 'ready', name: 'Milos' };   // the proposal says "Ana"
-    mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.prepare.mockResolvedValue(ok({}));
+    mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.prepare.mockImplementation(async (_cid, revision, activate) => ok({...reviewed(revision, activate).review, conversationId: _cid}));
     await open(reviewed(1));
     expect(mockApi.patch).toHaveBeenCalledTimes(1); expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { displayName: 'Milos' });
     expect(mockApi.prepare).toHaveBeenCalledTimes(1); expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false);
@@ -400,17 +410,17 @@ describe('one name: the review is made under the account\'s name', () => {
 
   it('sends nothing extra when the proposal already carries the account\'s name', async () => {
     mockAccountName = { state: 'ready', name: 'Ana' };
-    mockApi.prepare.mockResolvedValue(ok({}));
+    mockApi.prepare.mockImplementation(async (_cid, revision, activate) => ok({...reviewed(revision, activate).review, conversationId: _cid}));
     await open();
-    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false);
+    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).not.toHaveBeenCalled();
   });
 
   it.each([['an account with no name', { state: 'ready', name: null }], ['a name that could not be read', { state: 'error', retry: () => {} }],
     ['a name that is still being read', { state: 'loading' }]] as const)('makes the review as before for %s: nothing is patched, and no name is made up', async (_label, value) => {
     mockAccountName = value as typeof mockAccountName;
-    mockApi.prepare.mockResolvedValue(ok({}));
+    mockApi.prepare.mockImplementation(async (_cid, revision, activate) => ok({...reviewed(revision, activate).review, conversationId: _cid}));
     await open();
-    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false);
+    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).not.toHaveBeenCalled();
   });
 
   it('a name patch that is refused or unconfirmed prepares nothing and opens no review', async () => {
@@ -420,26 +430,31 @@ describe('one name: the review is made under the account\'s name', () => {
     expect(mockApi.prepare).not.toHaveBeenCalled(); expect(tree.root.findAllByType('Review' as never)).toHaveLength(0);
   });
 
-  it('the review of an account that has no name at all says so and leads to the one place it is written', async () => {
-    const lacking = { ...reviewed(), review: { ...reviewed().review, missingRequired: ['Ime'], canAccept: false } };
-    mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(lacking));
-    await render(); await act(async () => { shell().props.footerAction.props.onPress(); });
-    expect(review().props.onAddName).toBeInstanceOf(Function);
-    await act(async () => { review().props.onAddName(); });
+  it('a nameless account is directed to account details without exposing an incomplete review', async () => {
+    const lacking = {...reviewed(0,false).review,missingRequired:['Ime'],canAccept:false};
+    mockApi.prepare.mockResolvedValue(ok(lacking));
+    await render();
+    expect(shell().props.footerAction).toBeUndefined();
+    expect(tree.root.findAllByType('Review' as never)).toHaveLength(0);
+    await click('Lični podaci');
     expect(mockRouter.push).toHaveBeenCalledWith('/profil/podaci'); expect(mockApi.patch).not.toHaveBeenCalled();
   });
 
-  it('once the account has a name, the review that still lacks it is no longer valid: a fresh one puts the name in', async () => {
-    const lacking = { ...reviewed(), review: { ...reviewed().review, missingRequired: ['Ime'], canAccept: false } };
-    mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(lacking));
-    await render(); await act(async () => { shell().props.footerAction.props.onPress(); });
-    expect(review().props.editDisabled).toBe(false);
-    mockAccountName = { state: 'ready', name: 'Milos' };   // added meanwhile, in "Lični podaci"
+  it('an account name added later can recover preparation without another model message', async () => {
+    const blank = {...snapshot(),candidate:{...candidate(),displayName:''}};
+    const lacking = {...reviewed(0,false).review,profile:blank.candidate,missingRequired:['Ime'],canAccept:false};
+    mockApi.read.mockResolvedValue(ok(blank)); mockApi.prepare.mockResolvedValue(ok(lacking));
+    await render();
+    mockAccountName = {state:'ready',name:'Milos'};
     await act(async () => tree.update(<Screen />));
-    expect(review().props.editDisabled).toBe(true); expect(review().props.onAddName).toBeUndefined();
-    mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.read.mockResolvedValue(ok(reviewed(1)));
-    await click('Učitaj novi pregled');
-    expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { displayName: 'Milos' }); expect(mockApi.prepare).toHaveBeenLastCalledWith(C, 1, true);
+    mockApi.patch.mockResolvedValue(ok({...snapshot(1),candidate:{...candidate(),displayName:'Milos'}}));
+    const fresh={...reviewed(1,false),candidate:{...candidate(),displayName:'Milos'}};
+    fresh.review.profile=fresh.candidate;
+    mockApi.read.mockResolvedValue(ok(fresh)); mockApi.prepare.mockResolvedValue(ok(fresh.review));
+    await click('Proverite razgovor');
+    expect(mockApi.patch).toHaveBeenCalledWith(C,0,{displayName:'Milos'});
+    expect(mockApi.prepare).toHaveBeenLastCalledWith(C,1,false);
+    expect(mockApi.send).not.toHaveBeenCalled(); expect(mockApi.save).not.toHaveBeenCalled();
     expect(review().props.review.missingRequired).toEqual([]);
   });
 });
@@ -448,7 +463,7 @@ describe('one name: the review is made under the account\'s name', () => {
 describe('activation choice belongs to the conversation', () => {
   const prepareFalse = async () => {
     mockApi.prepare.mockImplementation(async (_cid, revision, activate) => {
-      mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({});
+      mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({...reviewed(revision, activate).review,conversationId:_cid});
     });
     await render(); await act(async () => shell().props.footerAction.props.onPress());
     await act(async () => tree.root.findByType('Activation' as never).props.change(false));
@@ -457,8 +472,8 @@ describe('activation choice belongs to the conversation', () => {
   };
   it('keeps an explicit draft choice on Back then review, without saving', async () => {
     await prepareFalse(); await act(async () => shell().props.footerAction.props.onPress());
-    expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false);
-    expect(action('Sačuvaj profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
+    expect(mockApi.prepare).not.toHaveBeenCalled();
+    expect(action('Sačuvajte profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
   });
   it('keeps the draft choice after a conversation turn retires the review', async () => {
     await prepareFalse();
@@ -473,27 +488,27 @@ describe('activation choice belongs to the conversation', () => {
     await prepareFalse();
     const other = '55555555-5555-4555-8555-555555555555';
     mockApi.read.mockResolvedValue(ok({ ...snapshot(), conversationId: other }));
-    mockApi.prepare.mockResolvedValue(ok({})); mockRouteId = other;
+    mockApi.prepare.mockImplementation(async (_cid, revision, activate) => ok({...reviewed(revision, activate).review, conversationId: _cid})); mockRouteId = other;
     await act(async () => tree.update(<Screen />));
     await act(async () => shell().props.footerAction.props.onPress());
     expect(mockApi.prepare).toHaveBeenCalledWith(other, 0, false);
   });
   it('new draft review defaults to saving without activation and never saves while preparing', async () => {
     mockApi.prepare.mockImplementation(async (_cid, revision, activate) => {
-      mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({});
+      mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({...reviewed(revision, activate).review,conversationId:_cid});
     });
     await render(); await act(async()=>shell().props.footerAction.props.onPress());
-    expect(mockApi.prepare).toHaveBeenCalledWith(C,0,false);
-    expect(action('Sačuvaj profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
+    expect(mockApi.prepare).not.toHaveBeenCalled();
+    expect(action('Sačuvajte profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
   });
-  it('activation entry preserves an unfinished draft and only prepares activation after an explicit review tap', async () => {
+  it('activation entry preserves an unfinished draft and prepares but never activates before the explicit Save', async () => {
     await render(); await act(async()=>shell().props.onChange('Moj neposlati odgovor'));
     mockActivationRequest='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     await act(async()=>tree.update(<Screen/>));
     expect(shell().props.value).toBe('Moj neposlati odgovor');
-    expect(mockApi.prepare).not.toHaveBeenCalled(); expect(mockApi.open).not.toHaveBeenCalled();
+    expect(mockApi.prepare).toHaveBeenCalledWith(C,0,true); expect(mockApi.save).not.toHaveBeenCalled(); expect(mockApi.open).not.toHaveBeenCalled();
     mockApi.prepare.mockImplementation(async (_cid, revision, activate) => {
-      mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({});
+      mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({...reviewed(revision, activate).review,conversationId:_cid});
     });
     await act(async()=>shell().props.footerAction.props.onPress());
     expect(mockApi.prepare).toHaveBeenCalledWith(C,0,true); expect(mockApi.save).not.toHaveBeenCalled();
@@ -510,14 +525,14 @@ describe('activation choice belongs to the conversation', () => {
     await render();
     expect(mockApi.open).toHaveBeenCalledTimes(1);
     expect(mockApi.open).toHaveBeenCalledWith(mockActivationRequest);
-    mockApi.prepare.mockResolvedValue(ok({}));
-    const prepared={...reviewed(),conversationId:next};
+    mockApi.prepare.mockImplementation(async (_cid, revision, activate) => ok({...reviewed(revision, activate).review, conversationId: _cid}));
+    const prepared={...reviewed(),conversationId:next,review:{...reviewed().review,conversationId:next}};
     mockApi.read.mockResolvedValue(ok(prepared));
     await act(async()=>shell().props.footerAction.props.onPress());
     mockApi.save.mockResolvedValue(ok({}));
     mockApi.read.mockResolvedValue(ok({...prepared,status:'COMPLETED',saved:{reviewId:prepared.review.reviewId,profileStatus:'ACTIVE'}}));
-    await click('Sačuvaj i aktiviraj profil');
+    await click('Sačuvajte i aktivirajte profil');
     expect(mockApi.open).toHaveBeenCalledTimes(1);
-    expect(action('Otvori sačuvani profil')).toBeTruthy();
+    expect(action('Otvorite sačuvani profil')).toBeTruthy();
   });
 });

@@ -64,7 +64,8 @@ describe('Gemini NEED V2 private structured output gate', () => {
     expect(logs).toContainEqual(['NEED_AI_OUTPUT_GATE', 'DIALOGUE_ENUM']);
     logs.length = 0;
     expect(() => parse({ ...response('ACK', 'NONE'), facts: 'bad' })).toThrow('AI_V2_OUTPUT_INVALID');
-    expect(logs).toContainEqual(['NEED_AI_OUTPUT_GATE', 'ROOT_SHAPE']);
+    expect(logs).toContainEqual(['NEED_AI_OUTPUT_GATE', 'ROOT_SHAPE',
+      'rootExact', true, 'safetyValid', true, 'factCount', -1]);
   });
   it('keeps unsafe typed facts fail-closed after a repaired dialogue hint', () => {
     const secret = 'PRIVATE_ADDRESS_NEVER_LOG_THIS';

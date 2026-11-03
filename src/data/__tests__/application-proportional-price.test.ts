@@ -30,3 +30,9 @@ it('never coerces an invalid headcount or missing original capacity into a quote
   for (const count of [0, -1, 1.5, NaN, Infinity, 4]) expect(fixedApplicationPrice(task, count)).toBeNull();
   expect(fixedApplicationPrice({ ...task, pokrivenost: undefined }, 1)).toBeNull();
 });
+
+it('keeps the per-person hourly rate independent of headcount and never invents a duration total', () => {
+  const hourly = { ...task, osnovaCene: 'HOURLY' as const, ponudjenaCena: { iznos: 1200 } };
+  expect([1, 2, 3].map(people => fixedApplicationPrice(hourly, people))).toEqual([1200, 1200, 1200]);
+  for (const people of [0, -1, 1.5, NaN, Infinity, 4]) expect(fixedApplicationPrice(hourly, people)).toBeNull();
+});

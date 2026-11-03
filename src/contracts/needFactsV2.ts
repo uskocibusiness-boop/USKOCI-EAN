@@ -60,6 +60,11 @@ export const IDENTITY_VERIFICATION_UNAVAILABLE_COPY = 'Provera identiteta dokume
 export const NEED_FACT_V2_KEYS = Object.keys(NEED_FACT_V2_DEFINITIONS) as NeedFactV2Key[];
 export const AI_PROPOSABLE_NEED_FACT_V2_KEYS = NEED_FACT_V2_KEYS.filter(key =>
   !('manualOnly' in NEED_FACT_V2_DEFINITIONS[key]));
+// New clients can read a complete typed turn. Older clients retain their
+// 12-fact wire contract until they explicitly advertise this capability.
+export const MAX_AI_NEED_FACT_V2_PROPOSALS = AI_PROPOSABLE_NEED_FACT_V2_KEYS.length;
+export const NEED_FACT_TURN_CAPABILITY_HEADER = 'x-uskoci-need-facts';
+export const NEED_FACT_TURN_CAPABILITY_VERSION = 'registry-v1';
 export function isAiProposableNeedFactV2Key(value: string): value is NeedFactV2Key {
   return AI_PROPOSABLE_NEED_FACT_V2_KEYS.some(key => key === value);
 }

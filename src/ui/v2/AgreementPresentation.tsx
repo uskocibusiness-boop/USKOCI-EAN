@@ -159,6 +159,7 @@ export function termValue(a: Pick<DogovorProjekcija, 'vremeTekst' | 'stanje'>): 
  */
 export function AgreementTerms({ agreement: a, compact = false }: { agreement: DogovorProjekcija; compact?: boolean }) {
   const people = osoba(a.pokrivenost.popunjeno);
+  const hourly = a.osnovaCene === 'HOURLY';
   const scope = a.prihvacenObim;
   const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
   if (compact) {
@@ -167,7 +168,7 @@ export function AgreementTerms({ agreement: a, compact = false }: { agreement: D
     return <View style={s.facts}>
       <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} />
       <AgreementFact art="calendar" label="Termin" value={term.line} note={term.zone} />
-      <AgreementFact art="money" label={amount ? 'Dogovoreno ukupno' : 'Cena'} value={amount || BEZ_IZNOSA} basis={amount ? 'ukupno' : null} money={/\d/.test(amount)} />
+      <AgreementFact art="money" label={amount ? hourly ? 'Dogovorena satnica' : 'Dogovoreno ukupno' : 'Cena'} value={amount || BEZ_IZNOSA} basis={amount ? hourly ? 'po osobi po satu' : 'ukupno' : null} money={/\d/.test(amount)} />
       {compactPeople ? <AgreementFact art="users" label="Ljudi" value={compactPeople} /> : null}
       {scope ? longScope(scope)
         ? <Disclosure label="Obim zadatka" hint="Prihvaćeni opis zadatka" art="document">
@@ -183,7 +184,7 @@ export function AgreementTerms({ agreement: a, compact = false }: { agreement: D
   return <Section title="Uslovi">
     {a.verzija > 1 ? <T variant="meta" tone="muted" style={s.changedNote}>Uslovi su izmenjeni.</T> : null}
     <View style={s.acceptedFacts}>
-      {price ? <MoneySummary label="Dogovoreno ukupno" amount={amount} basis="Za ovu saradnju" />
+      {price ? <MoneySummary label={hourly ? "Dogovorena satnica" : "Dogovoreno ukupno"} amount={amount} basis={hourly ? "Po osobi po satu" : "Za ovu saradnju"} />
         : <FactRow art="money" label="Cena" value={amount || BEZ_IZNOSA} size="detail" />}
       <FactRow art={remote ? 'remote' : 'pin'} label="Mesto" value={agreementTaskPlace(a)} size="detail" />
       <FactRow art="calendar" label="Termin" value={termValue(a)} size="detail" />

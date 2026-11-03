@@ -132,7 +132,7 @@ describe('the ideas of the UI pass, as the gallery draws them', () => {
     expect(text()).toContain('Otkazano 28. sep · 19:20 · Jelena Nikolić · Živicu je u međuvremenu orezao komšija.');
     await act(async () => { tree.unmount(); });
     await open('cancelled-me');
-    expect(text()).toContain('Otkazano 28. sep · 10:05 · Ti · Razlog nije sačuvan');
+    expect(text()).toContain('Otkazano 28. sep · 10:05 · Vi · Razlog nije sačuvan');
   });
 
   it('R29: before "Sačuvaj" the person is told that a saved rating cannot be changed; grey, the foot says why instead', async () => {
@@ -143,15 +143,16 @@ describe('the ideas of the UI pass, as the gallery draws them', () => {
     expect(text()).not.toContain(SAVE_WARNING); expect(text()).toContain('Izaberi ocenu.');
   });
 
-  it('a send whose outcome is not known says so under its bubble with the one "Proveri"; a refused one keeps "Nije poslato" and "Pošalji ponovo"', async () => {
+  it('an unknown send shows a read-only check and a distinct explicit resend; refused send stays failed', async () => {
     await open('chat-unknown');
     expect(text()).toContain('Ne znamo da li je stigla'); expect(text()).not.toContain('Nije poslato');
-    expect(labels()).toContain('Proveri da li je stigla: Parking je iza zgrade.'); expect(labels()).not.toContain('Ponovi slanje poruke Parking je iza zgrade.');
-    expect(text()).not.toContain('Pošalji ponovo');
+    expect(labels()).toContain('Proverite da li je stigla: Parking je iza zgrade.');
+    expect(labels()).toContain('Ponovite slanje poruke Parking je iza zgrade.');
+    expect(text()).toContain('Pošaljite ponovo');
     await act(async () => { tree.unmount(); });
     await open('chat');
-    expect(text()).toContain('Nije poslato'); expect(text()).toContain('Poruka nije sačuvana na telefonu. Tekst nije odbačen; pokušaj ponovo.');
-    expect(text()).toContain('Pošalji ponovo'); expect(text()).not.toContain('Proveri');
+    expect(text()).toContain('Nije poslato'); expect(text()).toContain('Poruka nije sačuvana na telefonu. Tekst nije odbačen; pokušajte ponovo.');
+    expect(text()).toContain('Pošaljite ponovo'); expect(text()).not.toContain('Proverite da li je stigla:');
   });
 
   it('the group conversation says what the screen of the group says when fewer than two people are chosen', async () => {

@@ -3,7 +3,7 @@ import { FlatList, Keyboard, Platform, StyleSheet, TextInput, View, type ListRen
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PotrebaProjekcija } from '../../contracts/projections';
 import type { MarketplaceItem, MarketplaceView, OwnedTaskCounts } from '../../data/marketplaceView';
-import { initialMarketplaceView, isOwnedNeed, marketplaceItems, ownedTaskCounts } from '../../data/marketplaceView';
+import { initialMarketplaceView, isOwnedNeed, marketplaceItems, ownedTaskCounts, ownTasksScope } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { FactArt } from '../system/FactArt';
@@ -17,6 +17,7 @@ import { plural, zadataka } from '../system/plural';
 import { Section } from '../system/Section';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { StateView } from '../system/StateView';
+import { Surface } from '../system/Surface';
 import { brandAction, fieldBox, sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { T } from '../Text';
@@ -138,8 +139,17 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const counts = useMemo<OwnedTaskCounts | null>(() => paging ? paging.counts : loading || error ? null : ownedTaskCounts(items),
     [items, paging, loading, error]);
   const grouped = view.section === 'active';
-  // Every number in a group's name is exact: a whole list counts itself, a paged read only once it has read to its end (a refined set is read to its end by the route).
-  const exact = !paging || (!paging.hasMore && !paging.loadingMore && !paging.moreError);
+  // The final keyset cursor cannot certify a complete owned-task set on its own.
+  // First-page counts belong to the selected server scope, not the local search/price
+  // refinement; compare them against ALL received rows before making any claim
+  // about group totals, empty filters or the number promised by the filter sheet.
+  const scope = ownTasksScope(view);
+  const expectedSetCount = !paging?.counts || !scope ? null : scope === 'ALL' ? paging.counts.total
+    : scope === 'ACTIVE' ? paging.counts.active : scope === 'WAITING' ? paging.counts.waiting
+      : scope === 'DRAFTS' ? paging.counts.drafts : paging.counts.history;
+  const terminal = !!paging && !loading && !error && !props.refreshing && !paging.hasMore && !paging.loadingMore && !paging.moreError;
+  const incompleteFinal = terminal && (expectedSetCount === null || expectedSetCount !== items.length);
+  const exact = !paging || (terminal && !incompleteFinal);
   const hasOthers = !!counts && (counts.drafts > 0 || counts.history > 0);
   // What the person chose to narrow the list with. A set is not a refinement: an empty Nacrti or Istorija says what that set is, and has
   // nothing to "clear" (plan 2.2). Search is one of the filters now, so it counts as one.
@@ -223,8 +233,11 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // Reading, a failed read, an empty filtered view and a first empty list remain distinct.
   const empty = <View style={s.empty}>
     {reading ? <QuietReadState art="tasks" title="Učitavamo zadatke…" body="Proveravamo tvoje objave, nacrte i istoriju." />
-      : error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatke" body="Proveri internet vezu i pokušaj ponovo."
-        primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
+      : error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatke" body="Učitavanje nije uspelo. Pokušajte ponovo."
+        primary={{ label: 'Pokušajte ponovo', onPress: props.onRefresh }} />
+        : incompleteFinal ? <StateView kind="error" art="tasks" title="Spisak zadataka nije potpun"
+          body="Broj učitanih zadataka ne odgovara serverskom stanju. Proveri spisak ponovo."
+          primary={{ label: 'Proveri spisak zadataka', onPress: props.onRefresh }} />
         : paging?.moreError ? <StateView kind="error" art="tasks" title="Nismo učitali sve rezultate" body="Preostali zadaci trenutno nisu dostupni."
           primary={{ label: 'Pokušaj ponovo', onPress: paging.onLoadMore }} />
         : filterActive ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili filtere."
@@ -261,6 +274,10 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         // Six cards are more than one phone screen of this card; the window stays modest so a fast
         // scroll fills in quickly without holding the whole list mounted.
         initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
+        ListHeaderComponent={incompleteFinal && rows.length > 0 ? <Surface kind="note" tone="warn">
+          <T accessibilityRole="alert" variant="body">Spisak zadataka nije potpun. Broj učitanih zadataka ne odgovara serverskom stanju.</T>
+          <V2Action label="Proveri spisak zadataka" kind="quiet" onPress={props.onRefresh} />
+        </Surface> : undefined}
         ListEmptyComponent={empty} renderItem={renderItem}
         onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6} />
       {/* No floating "+" over my own tasks (owner's information architecture, 2026-09-23): it sat on the cards and
@@ -268,7 +285,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     </View>
     {filterOpen ? <ProductSheet title="Filteri" closeLabel="Zatvori filtere" reduced={reduced} onClose={() => setFilterOpen(false)}
       footer={dismiss => <>
-        <V2Action label={draftCount === null || paging?.hasMore ? 'Prikaži zadatke' : `Prikaži ${zadataka(draftCount)}`} disabled={draftCount === null}
+        <V2Action label={draftCount === null || !exact ? 'Prikaži zadatke' : `Prikaži ${zadataka(draftCount)}`} disabled={draftCount === null}
           onPress={() => { change({ query: queryDraft, price: priceDraft, attention: attentionDraft, selectedId: null }); dismiss(); }} style={brandAction} />
         <V2Action label="Poništi izbor" kind="quiet" onPress={() => { setQueryDraft(''); setPriceDraft('all'); setAttentionDraft(false); }} />
       </>}>{() => <View style={s.sheetBody}>

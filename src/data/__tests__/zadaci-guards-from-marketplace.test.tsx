@@ -95,13 +95,13 @@ test('filters are available without opening the keyboard or ordinary text search
 });
 
 // From marketplace-presentation and pkg011-slice1: a read in flight or a failed read never leaves an old card or the old
-// map on screen, and "Pokušaj ponovo" only asks for the list again.
+// map on screen, and "Pokušajte ponovo" only asks for the list again.
 test.each(['loading', 'error'])('%s removes stale cards and the map; retry is bound and changes nothing else', async status => {
   loading = status === 'loading'; error = status === 'error'; initial.query = 'Pomoć'; await render();
   expect(maps()).toHaveLength(0); expect(cards()).toHaveLength(0);
   if (loading) expect(texts()).toContain('Učitavamo zadatke…');
   if (error) {
-    await click('Pokušaj ponovo');
+    await click('Pokušajte ponovo');
     expect(refresh).toHaveBeenCalledTimes(1); expect(snapshot).toMatchObject({ query: 'Pomoć', mode: 'map' });
   }
 });

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "package": "R08_REMOTE_ONLY_ACTIVATION",
+  "classification": "APPLIED_EXACT_OPERATION_LEDGER_BYTES",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "migration": {
+    "version": "20261101140909",
+    "name": "worker_signed_remote_only_activation_v1",
+    "appliedAtUtc": "2026-11-01T14:09:09Z",
+    "method": "Supabase apply_migration",
+    "appliedBy": "root agent under authorized controlled DEV procedure",
+    "statementCount": 1,
+    "recordedBytes": 186229,
+    "recordedMd5": "38941f60c1453a6e21a163a30385ee0e",
+    "recordedSha256": "e3478c24695a97c6fb4fe1714c319a2cda02fda8d4e9993c9f1840a28c378036",
+    "exactTextInRepo": "supabase/operations/dev-alpha/ledger/20261101140909_worker_signed_remote_only_activation_v1.sql",
+    "reviewedPacket": "supabase/operations/dev-alpha/r08-remote-only-20261101/promotion.sql",
+    "archiveComparedWithCatalog": "IDENTICAL_BYTES"
+  },
+  "postflight": {
+    "result": "R08_DEV_POSTIMAGE_MATCH",
+    "meaning": "Exact seven changed and three new function definitions/ACLs plus pinned dependencies; read-only metadata evidence only.",
+    "functionalAcceptanceFlagInMetadataQuery": false,
+    "rootReadbackAtUtc": "2026-11-01T14:09:25Z",
+    "independentLedgerReadbackAtUtc": "2026-11-01T14:10:07.100729Z",
+    "independentPostflightRepeated": true,
+    "syntheticAuthRemaining": 0,
+    "syntheticConversationsRemaining": 0,
+    "syntheticSavesRemaining": 0
+  },
+  "acceptance": {
+    "hostedPostgresSyntheticAcceptance": "PASS_INSIDE_MIGRATION_TRANSACTION",
+    "postgresVersionNum": 170006,
+    "fixtureSource": "supabase/operations/dev-alpha/r08-remote-only-20261101/acceptance.sql",
+    "realAuthenticatedSqlRoleWithSyntheticClaims": true,
+    "realServiceSqlRoleWithSyntheticClaims": true,
+    "existingEstablishedRemoteCategoryReused": true,
+    "firstSignedPrepareAndSaveActiveWithoutCity": true,
+    "authoritativeOwnerBoundReceiptAndReadback": true,
+    "sameKeyReplayReturnsSameReceipt": true,
+    "unsignedActivationDenied": true,
+    "foreignOwnerSaveDenied": true,
+    "durableRemoteScopeAbsentBeforeBinding": true,
+    "actualBatchAndBinderSucceeded": true,
+    "durableRemoteScopePresentAfterBinding": true,
+    "fixtureRollbackToSavepoint": true,
+    "acceptanceFailureWouldAbortDdlCommit": true,
+    "realGoTrueAuthenticationProven": false,
+    "postgrestHttpProven": false,
+    "realGeminiConversationProven": false,
+    "matchingTaskApplicationSelectionProven": false,
+    "outboxTransportProven": false,
+    "pushDeliveryProven": false,
+    "androidProven": false
+  },
+  "effects": {
+    "changedFunctions": 7,
+    "newPrivateFunctions": 3,
+    "newTables": 0,
+    "existingRpcSignaturesOrAclsChanged": false,
+    "syntheticRowsPersisted": false,
+    "providerCalls": 0,
+    "edgeDeployments": 0,
+    "productionChanges": 0
+  },
+  "provenance": {
+    "frozenPackageManifestUnchanged": true,
+    "oldHistoricalSnapshotsUnchanged": true,
+    "portableMigrationReplayAdmitted": false,
+    "currentBootstrapRecaptured": false,
+    "r01BoundaryAdmitted": false,
+    "nextR01Capture": "Include both approved 20261101 DEV deltas (F10 reader and R08 activation) and actual migration versions; do not describe the earlier bootstrap as current DEV.",
+    "archivePolicy": "Operational evidence only. Do not replay this DEV OID-pinned archive as a portable migration. Use the reviewed guards and recovery procedure."
+  },
+  "recovery": {
+    "packet": "supabase/operations/dev-alpha/r08-remote-only-20261101/rollback.sql",
+    "safeWindow": "Before application use of the promoted review/save path.",
+    "activeCitylessWorkerRefused": true,
+    "afterApplicationUse": "Reviewed forward repair or explicit data compensation; code-only rollback does not undo cached reviews or successful Saves."
+  }
+}

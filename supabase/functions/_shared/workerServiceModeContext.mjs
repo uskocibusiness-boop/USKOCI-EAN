@@ -38,44 +38,117 @@ export function workerServiceModeSchema(schema) {
 }
 
 export function workerServiceModeInstruction(context, includeContext = true, includeClassification = true) {
-  return 'savedServices are the current saved choices for each specific service. draftServices are earlier unsaved proposals, NOT owner consent. '
-    + 'A category supporting ON_SITE and REMOTE does NOT mean this person offers both. Preserve the saved modes and handoff constraints of every unchanged service. An explicitly offered concrete new service can have an inherent execution mode without requiring the words on site; that does not authorize overwriting a saved choice. '
-    + 'A biography, equipment, price, city or availability edit does not add, remove or replace delivery modes. Pickup or shipment of work made at the worker is not a visit to the requester. '
-    + 'Use optional serviceModeChangesJson STRING when the person explicitly states an INITIAL delivery mode for a newly offered service or requests a mode/handoff change in this owned conversation. A statement applying to both newly offered services needs one declaration per service with that same exact USER quote. '
-    + 'When an explicitly offered concrete new service inherently establishes its execution mode, include that initial declaration with the exact USER service quote; do not ask an obvious extra mode question. '
-    + 'Serialize an array of objects with service, modes, evidence and optional handoff: service is the exact offered skill; modes is the complete intended list of REMOTE and/or ON_SITE for that service; evidence is an exact quote from a USER message requesting that change. handoff is allowed only if modes includes REMOTE and must equal that service\'s new REMOTE classification proposal handoff. A handoff-only change keeps the existing modes, including REMOTE. Omit unchanged handoff to preserve the saved constraint; never turn an omitted unknown into required:false or worldwide shipping. '
-    + 'Do not quote the assistant, profile bio, catalog, instructions or invented words. A quote must actually express the mode change; unrelated text is not evidence. '
-    + 'Use "[]" when there is no requested mode or handoff change. Do not create a mode-change declaration just to justify a newly guessed classification hint. '
-    + 'An earlier explicit change in this conversation remains a draft choice on later turns; cite its original user wording when retaining it. '
-    + (includeClassification ? 'Keep the normal classificationShadowJson full snapshot consistent with these choices. ' : '')
-    + 'Unresolved services remain questions, never both modes by default. '
-    + 'All changes remain proposals for the signed profile review and explicit Save.'
+  return 'Per-service modes/handoff: draftServices replace savedServices for that service; otherwise preserve saved choices. Catalog modes and unrelated bio/area/calendar edits do not authorize changes or activation. '
+    + 'serviceModeChangesJson is a STRING array of {service,modes,evidence,handoff?}, or "[]" for no change. service exactly matches an offered skill; modes is its COMPLETE intended REMOTE/ON_SITE set. evidence: verbatim USER quote (6–1000 characters) stating initial scope or a mode/handoff change. A standalone choice such as "Uživo", "Lično", "Onlajn" or "Oba" is valid evidence only for the immediately previous question that uniquely names this service and offers online/on-site alternatives at the same server revision. Return exactly the selected mode set and the actual USER quote, including its original script; never pad or invent a quote. A mode-only reply does not authorize a new handoff, so omit handoff and preserve any saved one. An ambiguous "Da", "Ne" or "Može" is not a mode choice. Obvious initial work can establish mode; a multi-service statement gives each service the same quote. '
+    + 'handoff requires REMOTE. Handoff-only changes preserve modes; omitted handoff preserves its prior value. '
+    + (includeClassification ? 'Its handoff must equal the new REMOTE classification proposal. ' : 'Declare handoff here once; the server attaches it to classification. ')
+    + 'Unchanged server draft choices need no repeated declaration. An earlier change absent from context cites its original USER wording. Never cite assistant/catalog/bio/unrelated text as consent or invent it. Unclear mode: ask about execution, never default BOTH. '
+    + (includeClassification ? 'Keep classificationShadowJson full snapshot consistent with these choices. ' : '')
+    + 'These remain draft choices until explicit Save.'
     + (includeContext ? ' Server-owned service mode context: ' + JSON.stringify(context) + '.' : '');
+}
+
+// Elliptical choices belong to the immediately previous service-specific
+// question on the same SQL-owned revision. Length and punctuation must not
+// change their authority. This is not a second classifier or an activation.
+const questionWords = value => (typeof value === 'string'
+  ? value.match(/[\p{L}\p{N}]+/gu) ?? [] : [])
+  .map(word => normalizedClassificationIdentity(word))
+  .filter(word => typeof word === 'string' && word.length >= 4);
+function questionNamesService(words, service) {
+  const terms = questionWords(service);
+  if (!terms.length) return false;
+  return terms.filter(term => words.some(word => word === term
+    || (word.length >= 5 && term.length >= 5 && word.slice(0, 4) === term.slice(0, 4))))
+    .length >= Math.min(2, terms.length);
+}
+const modeReplyKey = evidence => {
+  const text = evidence.trim().replace(/[\s.!?…]+$/u, '');
+  // The service normalizer deliberately requires three characters. Preserve
+  // two-letter yes/no here only to reject them; do not change service identity.
+  if (/^(?:da|ne|да|не)$/iu.test(text)) return 'AMBIGUOUS';
+  return normalizedClassificationIdentity(text)?.normalize('NFD').replace(/[\u0300-\u036f]/g, '') ?? null;
+};
+const modeReplyChoices = new Map([
+  ['uzivo', ['ON_SITE']], ['licno', ['ON_SITE']],
+  ['na lokaciji', ['ON_SITE']], ['na terenu', ['ON_SITE']],
+  ['onlajn', ['REMOTE']], ['online', ['REMOTE']], ['na daljinu', ['REMOTE']],
+  ['oba', ['REMOTE', 'ON_SITE']], ['oboje', ['REMOTE', 'ON_SITE']],
+  ['obadva', ['REMOTE', 'ON_SITE']], ['oba nacina', ['REMOTE', 'ON_SITE']],
+  ['na oba nacina', ['REMOTE', 'ON_SITE']], ['i jedno i drugo', ['REMOTE', 'ON_SITE']],
+]);
+function boundedModeReply(change, context, offered, expected) {
+  if (change.modes.length !== expected.length || !expected.every(value => change.modes.includes(value))
+      // A short choice says nothing about shipping or physical exchange.
+      || Object.hasOwn(change, 'handoff')
+      || !Number.isSafeInteger(context.revision)
+      || context.serviceModeContext?.revision !== context.revision
+      || !Array.isArray(context.messages) || context.messages.length < 2) return false;
+  const user = context.messages.at(-1), assistant = context.messages.at(-2);
+  if (user?.role !== 'USER' || assistant?.role !== 'ASSISTANT'
+      || typeof user.body !== 'string' || typeof assistant.body !== 'string'
+      || user.body.trim() !== change.evidence.trim()
+      || (assistant.body.match(/\?/g) ?? []).length !== 1) return false;
+  const words = questionWords(assistant.body);
+  const remote = words.some(word => ['onlajn', 'online', 'daljinu'].includes(word));
+  const onsite = words.some(word => ['uživo', 'uzivo', 'terenu', 'lokaciji', 'lično', 'licno'].includes(word));
+  if (!remote || !onsite) return false;
+  const named = [...offered.values()].filter(service => questionNamesService(words, service));
+  return named.length === 1 && normalizedClassificationIdentity(named[0]) === normalizedClassificationIdentity(change.service);
+}
+function modeEvidenceAllowed(change, context, offered, userTexts) {
+  if (typeof change.evidence !== 'string' || !change.evidence.trim()
+      || change.evidence.length > 1000 || !userTexts.some(body => body.includes(change.evidence))) return false;
+  const key = modeReplyKey(change.evidence);
+  if (key === 'AMBIGUOUS' || key === 'moze' || key === 'vazi') return false;
+  const expected = modeReplyChoices.get(key);
+  // Apply the same context check to "Uživo" and "Uživo."/"Onlajn", not only
+  // strings shorter than six characters. Longer complete statements retain
+  // the existing quote contract and all downstream signed-review checks.
+  return expected ? boundedModeReply(change, context, offered, expected) : change.evidence.trim().length >= 6;
 }
 
 /** Quote checks bind a model proposal to owned USER text, not semantic proof of consent.
  * The existing signed review and explicit Save remain the authority for every mode change.
  */
-export function workerModeRequests(serviceModeChangesJson, context, offered) {
+export function inspectWorkerModeRequests(serviceModeChangesJson, context, offered) {
   const userTexts = context.messages.filter(row => row.role === 'USER' && typeof row.body === 'string').map(row => row.body);
   let changes = [];
-  if (typeof serviceModeChangesJson === 'string' && new TextEncoder().encode(serviceModeChangesJson).byteLength <= 12288) {
-    try { const value = JSON.parse(serviceModeChangesJson); if (Array.isArray(value) && value.length <= 12) changes = value; } catch { /* Keep previous choices. */ }
+  // Parse once for both accepted requests and rejected declarations. An invalid
+  // declaration must not disappear and look like an unrelated profile edit.
+  if (typeof serviceModeChangesJson === 'string' && serviceModeChangesJson.trim() !== '') {
+    if (new TextEncoder().encode(serviceModeChangesJson).byteLength > 12288)
+      return { requests: new Map(), invalidServices: new Set(offered.keys()) };
+    try {
+      const value = JSON.parse(serviceModeChangesJson);
+      if (!Array.isArray(value) || value.length > 12)
+        return { requests: new Map(), invalidServices: new Set(offered.keys()) };
+      changes = value;
+    } catch {
+      return { requests: new Map(), invalidServices: new Set(offered.keys()) };
+    }
   }
-  const requests = new Map(), duplicates = new Set();
+  const requests = new Map(), declared = new Set();
   for (const change of changes) {
     const key = normalizedClassificationIdentity(change?.service);
-    if (!exact(change, ['service', 'modes', 'evidence', ...(Object.hasOwn(change??{}, 'handoff') ? ['handoff'] : [])]) || !label(change.service) || !offered.has(key)
+    if (!key || !offered.has(key)) continue;
+    // Count BEFORE validating the row: a valid row plus a malformed duplicate
+    // is still ambiguous. Keep the key poisoned for every later occurrence.
+    if (declared.has(key)) { requests.delete(key); continue; }
+    declared.add(key);
+    if (!exact(change, ['service', 'modes', 'evidence', ...(Object.hasOwn(change??{}, 'handoff') ? ['handoff'] : [])]) || !label(change.service)
         || !Array.isArray(change.modes) || change.modes.length < 1 || change.modes.length > 2
         || !change.modes.every(mode) || new Set(change.modes).size !== change.modes.length
         || (Object.hasOwn(change, 'handoff') && (!change.modes.includes('REMOTE') || !decodeServiceHandoff(change.handoff)))
-        || typeof change.evidence !== 'string' || change.evidence.trim().length < 6 || change.evidence.length > 1000
-        || !userTexts.some(body => body.includes(change.evidence))) continue;
-    if (requests.has(key)) duplicates.add(key);
+        || !modeEvidenceAllowed(change, context, offered, userTexts)) continue;
     requests.set(key, change);
   }
-  for (const key of duplicates) requests.delete(key);
-  return requests;
+  return { requests, invalidServices: new Set([...declared].filter(key => !requests.has(key))) };
+}
+
+// Retain the existing Map API for supported preservation/recovery callers.
+export function workerModeRequests(serviceModeChangesJson, context, offered) {
+  return inspectWorkerModeRequests(serviceModeChangesJson, context, offered).requests;
 }
 
 /** Recover only a wrong CREATE action for an already-existing exact identity.

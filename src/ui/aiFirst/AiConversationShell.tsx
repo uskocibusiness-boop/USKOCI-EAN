@@ -327,7 +327,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   }, [p.value]);
   const voiceIdle = phase === 'IDLE';
   const modeBlocked = !voiceIdle;
-  const modeReason = phase === 'FINALIZING' ? 'Sačekaj da završimo govorni unos.' : 'Završi ili otkaži govor pre promene unosa.';
+  const modeReason = phase === 'FINALIZING' ? 'Sačekaj da završimo govorni unos.' : 'Završite ili otkažite govor pre promene unosa.';
   // Snapshot closes the brief responder→React-render race: a tap cannot unmount
   // the held microphone after begin has acquired the controller but before render.
   const canSwitch = () => voiceIdle && (!p.voice || p.voice.controller.getSnapshot().phase === 'IDLE');
@@ -343,8 +343,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
     });
   };
   const sendReason = p.canSend || !sendShown ? null
-    : p.sendBlockedReason ?? (p.pending ? p.busy ? 'Poruka se šalje.' : 'Ishod prethodne poruke još nije potvrđen. Proveri razgovor.'
-      : !voiceIdle ? 'Završi govor pa pošalji.' : p.busy ? 'Sačekaj da stigne odgovor.' : 'Poruku sada ne možeš da pošalješ.');
+    : p.sendBlockedReason ?? (p.pending ? p.busy ? 'Poruka se šalje.' : 'Ishod prethodne poruke još nije potvrđen. Proverite razgovor.'
+      : !voiceIdle ? 'Završite govor pa pošaljite.' : p.busy ? 'Sačekajte da stigne odgovor.' : 'Poruku sada ne možete da pošaljete.');
   const privacy = () => notice.ask({ title: 'Govorni unos i privatnost', message: VOICE_PROCESSING_NOTICE, confirmLabel: 'U redu', cancelLabel: null });
 
   const last = p.messages.at(-1);
@@ -439,7 +439,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
                 leading={p.openingArts?.[index] ? <FactArt kind={p.openingArts[index]} size={32} role={openingRole(p.openingArts[index])} /> : undefined}
                 // The arrow says "this goes into the field", not "this opens a screen": the row draws no caret of its own.
                 arrow={false} trailing={stackedRows ? undefined : <Glyph name="arrow-up-right" tone="muted" />}
-                accessibilityLabel={opening} accessibilityHint="Upisuje ovo u poruku da možeš da dopuniš."
+                accessibilityLabel={opening} accessibilityHint="Upisuje ovo u poruku da možete da dopunite."
                 onPress={() => { if (!canSwitch()) return; p.onChange(opening + ' '); chooseInput('keyboard', true); }} />)}
             </Section>
           </View> : null}
@@ -467,7 +467,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           ...notes.filter(note => note.afterMessageId === null || !anchored.has(note.afterMessageId)).map(drawNote)]}
         {/* Until the server read brings it back, what was said is still what was said: present, readable, and visibly
             not yet part of the record. */}
-        {p.sentMessage ? <View accessibilityLabel={`Ti, šalje se: ${p.sentMessage}`} style={[s.person, s.sending]}>
+        {p.sentMessage ? <View accessibilityLabel={`Vi, šalje se: ${p.sentMessage}`} style={[s.person, s.sending]}>
           <T selectable style={s.personText}>{p.sentMessage}</T>
         </View> : null}
         {p.streamingText ? <View accessibilityLabel={`USKOČI: ${p.streamingText}`} accessibilityLiveRegion="none" style={s.assistant}>
@@ -528,7 +528,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
             <T variant="note" style={s.latestText}>{p.correction.title}</T>
             <T variant="note" tone="muted">{p.correction.hint}</T>
           </View>
-          <Press accessibilityRole="button" accessibilityLabel="Zatvori temu izmene" onPress={p.correction.onDismiss}
+          <Press accessibilityRole="button" accessibilityLabel="Zatvorite temu izmene" onPress={p.correction.onDismiss}
             disabled={!p.canEdit} accessibilityState={{ disabled: !p.canEdit }} style={s.target}>
             <Glyph name="close" size={20} tone="muted" />
           </Press>
@@ -538,8 +538,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
           const kept = p.voice!.onKeepText(text);
           if (kept) chooseInput('keyboard');
           return kept;
-        }} tapToTalk={tapToTalk} hint={holdHint ? reviewFirst ? 'Drži mikrofon dok govoriš, pa pusti za pregled.' : HOLD_HINT : null}
-          hintAction={holdHint && !p.voice.disabled && voiceIdle ? { label: 'Govori bez držanja', onPress: () => {
+        }} tapToTalk={tapToTalk} hint={holdHint ? reviewFirst ? 'Držite mikrofon dok govorite, pa pustite za pregled.' : HOLD_HINT : null}
+          hintAction={holdHint && !p.voice.disabled && voiceIdle ? { label: 'Govorite bez držanja', onPress: () => {
             if (!canSwitch()) return; Keyboard.dismiss(); setHoldHint(false); setTapToTalk(true); } } : undefined} /> : null}
         {/* When the thread's own recovery note already explains the wait, the line here would say it twice; the send
             button still says it to a screen reader. The same holds while the message is being sent: the thread shows the
@@ -547,24 +547,24 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {sendReason && voiceIdle && !p.status && !(p.pending && p.busy) ? <T testID="ai-send-reason" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
           variant="note" tone="muted" style={s.reason}>{sendReason}</T> : null}
         {p.voice && voiceMode ? <View style={s.inputPreferences}>
-          <Press testID="ai-voice-review" accessibilityRole="checkbox" accessibilityLabel="Pregledaj pre slanja"
+          <Press testID="ai-voice-review" accessibilityRole="checkbox" accessibilityLabel="Pregledajte pre slanja"
             accessibilityState={{ checked: reader || reviewFirst, disabled: modeBlocked || reader }} disabled={modeBlocked || reader}
             accessibilityHint={reader ? 'Uz čitač ekrana tekst se uvek pregleda pre slanja.' : modeBlocked ? modeReason : 'Važi za govor, sa držanjem i bez držanja.'}
             onPress={() => { if (canSwitch() && !reader) setReviewFirst(value => !value); }} haptic="select" style={s.preference}>
             <View style={[s.reviewBox, (reader || reviewFirst) && s.reviewBoxOn]}>{reader || reviewFirst ? <Glyph name="check" size={14} tone="onGreen" /> : null}</View>
-            <T variant="note" style={s.preferenceText}>Pregledaj pre slanja</T>
+            <T variant="note" style={s.preferenceText}>Pregledajte pre slanja</T>
           </Press>
           {voiceMode && !reader ? <Press testID="ai-voice-gesture" accessibilityRole="button"
-            accessibilityLabel={tapToTalk ? 'Koristi držanje mikrofona' : 'Govori bez držanja'}
+            accessibilityLabel={tapToTalk ? 'Koristite držanje mikrofona' : 'Govorite bez držanja'}
             accessibilityHint={modeBlocked ? modeReason : 'Menja gest. Izbor pregleda pre slanja ostaje isti.'}
             accessibilityState={{ disabled: modeBlocked }} disabled={modeBlocked} haptic="select" style={s.gestureChoice}
             onPress={() => { if (canSwitch()) { setTapToTalk(value => !value); setHoldHint(false); } }}>
-            <T variant="note" tone="green">{tapToTalk ? 'Koristi držanje' : 'Bez držanja'}</T>
+            <T variant="note" tone="green">{tapToTalk ? 'Koristite držanje' : 'Bez držanja'}</T>
           </Press> : null}
         </View> : null}
         {reviewedTextShown ? <View testID="ai-transcript-review" style={s.transcriptReview} accessibilityLiveRegion="polite">
           <Glyph name="mic" size={18} tone="green" />
-          <T variant="note" style={s.preferenceText}>Proveri prepoznate reči, pa pošalji poruku.</T>
+          <T variant="note" style={s.preferenceText}>Proverite prepoznate reči, pa pošaljite poruku.</T>
         </View> : null}
         <View testID="ai-composer" onLayout={event => {
           const width = event.nativeEvent.layout.width;
@@ -581,7 +581,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           {voiceMode ? null : <TextInput ref={input} accessibilityLabel="Poruka za asistenta" value={p.value} editable={p.canEdit && voiceIdle && !p.pending}
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
             onChangeText={text => { if (!p.canEdit || p.pending || !canSwitch()) return; setHoldHint(false); setTranscriptReview(null); p.onChange(text); }}
-            placeholder={p.placeholder ?? 'Napiši poruku'} placeholderTextColor={sys.color.muted} multiline maxLength={4000}
+            placeholder={p.placeholder ?? 'Napišite poruku'} placeholderTextColor={sys.color.muted} multiline maxLength={4000}
             onContentSizeChange={event => {
               const measured = Math.ceil(event.nativeEvent.contentSize.height);
               if (!Number.isFinite(measured) || measured <= 0) return;
@@ -595,29 +595,29 @@ export function AiConversationShell(p: AiConversationShellProps) {
           <View testID="ai-composer-tools" style={[s.composerTools, voiceMode && s.voiceTools, !voiceMode && stackedComposer && s.toolsBelow]}>
             {p.voice ? voiceMode ? (
               <VoiceComposer {...p.voice} size={64} tapToTalk={tapToTalk} reviewFirst={reviewFirst} onTooShort={() => setHoldHint(true)} />
-            ) : <Press testID="ai-input-mode" accessibilityRole="button" accessibilityLabel="Pređi na govor"
-                accessibilityHint={modeBlocked ? modeReason : 'Izaberi govor; snimanje počinje tek na mikrofonu.'}
+            ) : <Press testID="ai-input-mode" accessibilityRole="button" accessibilityLabel="Pređite na govor"
+                accessibilityHint={modeBlocked ? modeReason : 'Izaberite govor; snimanje počinje tek na mikrofonu.'}
                 accessibilityState={{ disabled: modeBlocked || p.pending }} disabled={modeBlocked || p.pending} haptic="select"
                 onPress={() => { if (!p.pending) chooseInput('voice'); }} style={s.target}>
                 <Glyph name="mic" size={24} tone={p.pending ? 'muted' : 'green'} />
               </Press> : null}
-            {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Pošalji ponovo' : 'Pošalji poruku'}
+            {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Pošaljite ponovo' : 'Pošaljite poruku'}
               accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
               onPress={() => { if (!p.canSend) return; latest(false); p.onSend(); }} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
               <View style={[s.round, s.send, !p.canSend && s.roundOff]}>
                 <Glyph name="send" size={24} on tone={p.canSend ? 'onGreen' : 'muted'} /></View>
             </Press> : null}
           </View>
-          {voiceMode ? <Press testID="ai-input-mode" accessibilityRole="button" accessibilityLabel="Pređi na tastaturu"
-            accessibilityHint={modeBlocked ? modeReason : hasText ? 'Neposlata poruka je sačuvana.' : 'Napiši poruku umesto govora.'}
+          {voiceMode ? <Press testID="ai-input-mode" accessibilityRole="button" accessibilityLabel="Pređite na tastaturu"
+            accessibilityHint={modeBlocked ? modeReason : hasText ? 'Neposlata poruka je sačuvana.' : 'Napišite poruku umesto govora.'}
             accessibilityState={{ disabled: modeBlocked }} disabled={modeBlocked} haptic="select" style={s.target}
             onPress={() => chooseInput('keyboard', true)}>
             <Glyph name="keyboard" size={26} tone={modeBlocked ? 'muted' : 'ink'} />
           </Press> : null}
         </View>
         {voiceMode && voiceIdle ? <T testID={hasText ? 'ai-retained-draft' : 'ai-voice-instruction'} variant="note" tone="muted" style={s.voicePrompt}>
-          {hasText ? 'Neposlata poruka čeka u tastaturi.' : reader || tapToTalk ? 'Dodirni za početak i kraj govora.'
-            : reviewFirst ? 'Drži za govor, pusti za pregled.' : 'Drži za govor, pusti za slanje.'}
+          {hasText ? 'Neposlata poruka čeka u tastaturi.' : reader || tapToTalk ? 'Dodirnite za početak i kraj govora.'
+            : reviewFirst ? 'Držite za govor, pustite za pregled.' : 'Držite za govor, pustite za slanje.'}
         </T> : null}
         </>}
       </SafeAreaView>}
@@ -671,15 +671,19 @@ function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
 const Turn = memo(function Turn({ fromAi, body, reduced, showSpeaker, emphasis = 'plain' }: ConversationMessage & {
   reduced: boolean; showSpeaker: boolean; emphasis?: 'plain' | 'question' | 'earlier';
 }) {
-  // A turn settles up from 8 dp while it fades in, and it decelerates like every entrance (rule R2, `sys.motion.easeOut`); without the curve
-  // Reanimated would run its own ease-in-out, which has covered only 2 % of the way after the first tenth of the time.
-  const entering = reduced ? undefined : FadeInDown.duration(sys.motion.enter).easing(ReanimatedEasing.bezier(...sys.motion.easeOut))
-    .withInitialValues({ transform: [{ translateY: sys.space.sm }] });
-  return fromAi
-    ? <Animated.View entering={entering} accessibilityLabel={`USKOČI: ${body}`} style={s.assistant}>
-      {showSpeaker ? <Mark /> : null}<T selectable style={emphasis === 'question' ? s.question : emphasis === 'earlier' ? s.earlier : s.answer}>{body}</T></Animated.View>
-    : <Animated.View entering={entering} accessibilityLabel={`Ti: ${body}`} style={s.person}>
-      <T selectable style={s.personText}>{body}</T></Animated.View>;
+  // Decide the host once, as shared Appear does: history is an ordinary View,
+  // while a genuinely new row keeps its animated host after it settles. A
+  // subsequent keystroke/re-read must neither remount text nor replay motion.
+  const [entering] = useState(() => reduced ? undefined : FadeInDown.duration(sys.motion.enter)
+    .easing(ReanimatedEasing.bezier(...sys.motion.easeOut))
+    .withInitialValues({ transform: [{ translateY: (fromAi ? -1 : 1) * sys.motion.categories.content.reveal.translateY }] }));
+  const content = fromAi
+    ? <>{showSpeaker ? <Mark /> : null}<T selectable style={emphasis === 'question' ? s.question : emphasis === 'earlier' ? s.earlier : s.answer}>{body}</T></>
+    : <T selectable style={s.personText}>{body}</T>;
+  const frame = { accessibilityLabel: `${fromAi ? 'USKOČI' : 'Vi'}: ${body}`, style: fromAi ? s.assistant : s.person };
+  return entering
+    ? <Animated.View entering={entering} {...frame}>{content}</Animated.View>
+    : <View {...frame}>{content}</View>;
 });
 
 const s = StyleSheet.create({

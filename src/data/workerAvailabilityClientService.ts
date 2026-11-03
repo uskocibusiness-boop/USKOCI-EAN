@@ -5,14 +5,14 @@ import type { Ishod } from './ports';
 import { failure, readReceipt, record, sameId, uuid } from './serverReceipt';
 
 const COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da urediš dostupnost.',
-  WORKER_PROFILE_REQUIRED: 'Najpre sačuvaj svoj radni profil.',
+  AUTH_REQUIRED: 'Prijavite se da uredite dostupnost.',
+  WORKER_PROFILE_REQUIRED: 'Najpre sačuvajte svoj radni profil.',
   WORKER_PROFILE_RESTRICTED: 'Dostupnost ovog profila trenutno ne može da se menja.',
-  AVAILABILITY_INPUT_INVALID: 'Proveri unete podatke dostupnosti.',
-  AVAILABILITY_ITEM_INVALID: 'Proveri dane, datume i vremenske intervale.',
-  AVAILABILITY_TIMEZONE_INVALID: 'Izaberi ispravnu vremensku zonu.',
-  AVAILABILITY_INPUT_TOO_LARGE: 'Uneti raspored je prevelik. Sačuvaj manji broj pravila i izuzetaka.',
-  AVAILABILITY_VERSION_CONFLICT: 'Dostupnost je u međuvremenu promenjena. Učitaj novo stanje pre čuvanja.',
+  AVAILABILITY_INPUT_INVALID: 'Proverite unete podatke dostupnosti.',
+  AVAILABILITY_ITEM_INVALID: 'Proverite dane, datume i vremenske intervale.',
+  AVAILABILITY_TIMEZONE_INVALID: 'Izaberite ispravnu vremensku zonu.',
+  AVAILABILITY_INPUT_TOO_LARGE: 'Uneti raspored je prevelik. Sačuvajte manji broj pravila i izuzetaka.',
+  AVAILABILITY_VERSION_CONFLICT: 'Dostupnost je u međuvremenu promenjena. Učitajte novo stanje pre čuvanja.',
 };
 const INVALID = 'WORKER_AVAILABILITY_INVALID_RESPONSE';
 function decode(raw: unknown, accountId: string | undefined): WorkerAvailability | null {
@@ -24,7 +24,7 @@ function decode(raw: unknown, accountId: string | undefined): WorkerAvailability
 }
 async function receipt<T>(options: Parameters<typeof readReceipt<T>>[0]): Promise<Ishod<T>> {
   const result = await readReceipt(options);
-  if (!result.ok && result.kod === 'AUTH_ACCOUNT_CHANGED') return failure(result.kod, 'Nalog je promenjen. Ponovo otvori dostupnost.');
+  if (!result.ok && result.kod === 'AUTH_ACCOUNT_CHANGED') return failure(result.kod, 'Nalog je promenjen. Ponovo otvorite dostupnost.');
   if (!result.ok && result.kod === 'AUTH_REQUIRED') return failure(result.kod, COPY.AUTH_REQUIRED);
   return result;
 }
