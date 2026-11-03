@@ -1,0 +1,35 @@
+name: C10 bounded source transfer
+
+on:
+  push:
+    branches: [work/rev14-review-f17]
+    paths: [.github/workflows/c10-source-transfer.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  source-transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 06d6dd637b3190d3643032dd17a7b3d4f429854f
+          persist-credentials: false
+      - name: Archive only the existing tracked public source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "06d6dd637b3190d3643032dd17a7b3d4f429854f"
+          mkdir -p "$RUNNER_TEMP/c10-source"
+          git archive --format=tar.gz HEAD > "$RUNNER_TEMP/c10-source/source.tar.gz"
+          git rev-parse HEAD > "$RUNNER_TEMP/c10-source/source-sha.txt"
+          cd "$RUNNER_TEMP/c10-source"
+          sha256sum source.tar.gz > source.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: c10-source-06d6dd637
+          path: ${{ runner.temp }}/c10-source/
+          if-no-files-found: error
+          retention-days: 1
