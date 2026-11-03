@@ -4,7 +4,7 @@
   "project_ref": "leqcwgzvjsxugfgzdmth",
   "parent_source": "79040f8a573f12fd2aebf883c449623c1f6ad07a",
   "native_ci": {
-    "run": 41600927593,
+    "run": 41601760872,
     "job": "r04-first-plan-concurrency",
     "conclusion": "success",
     "receipt": {
@@ -30,7 +30,8 @@
         "Synthetic domain fixture retains fact/media/location/Worker-patch substitutes; actual completion/capture/resolver/closure-lock bodies execute.",
         "No full export/erasure orchestration, platform parity, paid model, device or deployment approval."
       ]
-    }
+    },
+    "source": "8cecf1b1ecd038d51408aa97f1a6445213fa27f9"
   },
   "local": {
     "first_plan_existing": 13,
@@ -67,6 +68,30 @@
   "limits": [
     "Bounded fixtures, not complete DEV schema or Auth/RLS/HTTP, full lifecycle orchestration or native app.",
     "R01/R10 remain open. No SQL/Edge deployment, paid model or data mutation.",
-    "The parent whole Full CI must be distinguished from its already successful native job; final full run is recorded in the master after completion."
-  ]
+    "Full CI success does not close R01/R10, approve DEV deployment or attest the installed Android application."
+  ],
+  "verified_source": "8cecf1b1ecd038d51408aa97f1a6445213fa27f9",
+  "r01": {
+    "run": 41601760834,
+    "source_sha": "8cecf1b1ecd038d51408aa97f1a6445213fa27f9",
+    "conclusion": "failure",
+    "stage": "STRICT_PARITY",
+    "code": "METADATA_PARITY_DIFFERENT",
+    "strict_rows": 8,
+    "extension_owner_acl_rows": 49,
+    "managed_net_fields": 3,
+    "evidence": "Latest run log, not inferred from the earlier checkpoint."
+  },
+  "full_ci": {
+    "run": 41601760872,
+    "source_sha": "8cecf1b1ecd038d51408aa97f1a6445213fa27f9",
+    "conclusion": "success",
+    "mobile_suites": 627,
+    "mobile_tests": 14588,
+    "snapshots": 3,
+    "main_ai_pass": 1513,
+    "main_ai_fail": 0,
+    "existing_ai_todo": 1,
+    "native_concurrency_scenarios": 7
+  }
 }
