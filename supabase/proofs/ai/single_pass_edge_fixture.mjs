@@ -10,6 +10,7 @@ export const service='Lektura teksta',user='Radim lekturu teksta samo online, be
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
 export const decision=(mode='REMOTE')=>({service,mode,action:'REUSE_EXISTING',categoryId:category,parentId:'',proposedPath:[],ambiguityPrompt:'',reason:'Isti posao lekture koji je opisan u razgovoru.'});
 export function singlePassFixture(kind,options={}){
+ const user=options.user??'Radim lekturu teksta samo online, bez fizičke predaje.';
  const worker=kind==='WORKER',calls=[],waits=[],logs=[],abort=new AbortController();let writes=0;
  const env={SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',
   AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_PROVIDER',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',
@@ -30,12 +31,12 @@ export function singlePassFixture(kind,options={}){
   if(url.endsWith('/auth/v1/user'))return json({id:account});
   if(url.includes('/ai_conversations?'))return json([{id:conversation,account_id:account,status:'OPEN',fact_schema_version:'NEED_FACT_V2'}]);
   if(name==='rpc_ai_claim_need_turn_v2_service')return json({turn:turn('PROCESSING'),claim:{attemptId,leaseExpiresAt:'2099-11-03T12:00:00Z',
-   context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[{fact_key:'need.task_geography',fact_value:{mode:'REMOTE'},value_type:'JSON',
+    context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:options.activeFacts??[{fact_key:'need.task_geography',fact_value:{mode:'REMOTE'},value_type:'JSON',
     display_value:'Na daljinu',fact_schema_version:'NEED_FACT_V2',status:'CONFIRMED',source:'EXPLICIT_USER_ANSWER',created_at:'2026-11-03T00:00:00Z'}]}}});
   if(name==='rpc_claim_worker_ai_turn_service')return json({acquired:true,turn:turn('PROCESSING')});
   if(name==='rpc_read_worker_ai_context_service')return json({schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:0,
    serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:0,savedServices:[],draftServices:[],unresolvedServices:[]},
-   candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:user}]});
+    candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:user}],...options.workerContext});
   if(name==='rpc_taxonomy_fetch_snapshot_v1')return options.catalogUnavailable?json(null,503):json({catalogVersion:7,catalogFingerprint:'a'.repeat(32),count:1,categories:[
    {categoryId:category,parentId:null,label:service,aliases:[],path:[service],isLeaf:true,modes:['REMOTE','ON_SITE']} ]});
   if(name==='rpc_taxonomy_get_unconsumed_turn_hint_service')return json(null);

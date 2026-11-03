@@ -24,7 +24,9 @@ test('consumption is revision-scoped and the old cross-revision endpoint loses s
 test('architect cannot publish a hint before the owner turn succeeds',()=>{
  assert.doesNotMatch(architect,/void persistClarificationHint\(rpc, clarification\)/);
  assert.match(task,/completed\.state === 'SUCCEEDED' && builtTaxonomy\?\.clarifications\?\.length/);
- assert.ok(worker.indexOf('const turn=await measureAiPhase')<worker.indexOf('if (builtTaxonomy?.clarifications?.length)'));
+ const completion=worker.indexOf('const turn=await measureAiPhase');
+ assert.ok(completion>=0&&worker.indexOf('persistClarificationHint(',completion)>completion);
+ assert.match(worker,/turn\.state === 'SUCCEEDED' && builtTaxonomy\?\.clarifications\?\.length/);
  assert.match(worker,/turn.state!=='SUCCEEDED'/,'the completed receipt is validated before storing a clarification');
  for(const source of [task,worker]){
   assert.match(source,/builtTaxonomy\.clarifications\.slice\(0,1\)/);

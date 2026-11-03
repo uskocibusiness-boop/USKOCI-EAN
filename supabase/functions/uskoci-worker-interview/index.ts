@@ -7,7 +7,7 @@ import { decodeWorkerAreas } from '../../../src/contracts/workerAreas.ts';
 import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.mjs';
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
-import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion } from '../_shared/singlePassTaxonomy.mjs';
+import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion, withUnresolvedSinglePassReply } from '../_shared/singlePassTaxonomy.mjs';
 import { completeFirstPlan } from '../_shared/completeFirstPlan.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
@@ -448,6 +448,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           }
         }
         const taxonomyPlan = singlePassCapturePlan(builtTaxonomy, fullCatalog);
+        if (singlePassActive && (output.patch.skills ?? context.candidate?.skills ?? []).length > 0)
+          output = withUnresolvedSinglePassReply(output, builtTaxonomy, taxonomyPlan);
         if (builtTaxonomy?.proposals?.length && !taxonomyPlan) console.info('WORKER_TAXONOMY_HINT_CAPTURE', 'PAYLOAD_UNAVAILABLE');
         // Requires the paired LOCAL_ONLY SQL candidate's reviewed promotion.
         // An absent RPC/lost ACK never triggers a split write or another model.
@@ -472,11 +474,13 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? consumeSignal, t ?? 2500),
             input.conversationId, context.revision, pendingWorkerClarificationHint.service));
         }
-        if (builtTaxonomy?.clarifications?.length) {
+        if (turn.state === 'SUCCEEDED' && builtTaxonomy?.clarifications?.length) {
           const hintSignal = new AbortController().signal;
           void runInBackground(Promise.all(builtTaxonomy.clarifications.slice(0,1).map((hint: any) =>
             persistClarificationHint((name: string,args:Record<string,unknown>,sig?:AbortSignal,t?:number) =>
-              rpc(name,args,sig??hintSignal,t??2500),hint))));
+              rpc(name,args,sig??hintSignal,t??2500),hint).then(stored => {
+                if (!stored) { try { console.warn('WORKER_TAXONOMY_HINT_STORE', 'UNAVAILABLE'); } catch { /* Nonfatal diagnostics. */ } }
+              }))));
         }
         if(!abort.signal.aborted){send('text_delta',{text:output.assistantMessage});send('final',{turn});}
       } catch (error) { await fail(); if(!abort.signal.aborted) { try { send('safe_error',{code:

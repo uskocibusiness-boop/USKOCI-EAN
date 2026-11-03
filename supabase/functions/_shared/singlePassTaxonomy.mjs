@@ -87,6 +87,18 @@ export function singlePassCapturePlan(built, catalog) {
   return new TextEncoder().encode(JSON.stringify(plan)).length <= 14000 ? plan : null;
 }
 
+// Missing classification cannot turn a model's acknowledgement into a ready
+// card invitation. Keep real questions and every guarded business fact. This
+// message grants no authority: signed server review still owns actual readiness.
+export function withUnresolvedSinglePassReply(turn, built, plan) {
+  if (!['ALLOW', 'CLARIFY'].includes(turn?.safety) || plan &&
+      !built?.clarifications?.length && !built?.failures?.length && !built?.unresolvedServices?.length) return turn;
+  if (turn.dialogue?.next !== 'REVIEW' && turn.assistantMessage.includes('?')) return turn;
+  const question = built?.clarifications?.[0]?.ambiguityPrompt;
+  return { ...turn, assistantMessage: question || 'Vaš opis je zabeležen. Provera vrste posla još nije završena.',
+    ...(turn.dialogue ? { dialogue: { ...turn.dialogue, next: question ? 'CLARIFY' : 'ACK', questionKey: 'NONE' } } : {}) };
+}
+
 // The public/mobile completion envelope stays unchanged. A resolved catalog ID
 // is not a published task, an activated profile or saved worker consent.
 export function singlePassCompletion(envelope) {

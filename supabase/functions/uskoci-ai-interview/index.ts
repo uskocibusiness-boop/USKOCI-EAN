@@ -25,7 +25,7 @@ import { validLocationContext, locationProviderSchema, locationInstruction, pars
 import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.mjs';
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
-import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion } from '../_shared/singlePassTaxonomy.mjs';
+import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion, withUnresolvedSinglePassReply } from '../_shared/singlePassTaxonomy.mjs';
 import { completeFirstPlan } from '../_shared/completeFirstPlan.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { decodeServiceHandoff } from '../_shared/serviceHandoff.mjs';
@@ -1445,11 +1445,13 @@ Deno.serve(async (req: Request) => {
     // checks explicit cancellation, ownership, source revision and lease.
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
       let builtTaxonomy: any = null;
+      let hasClassificationInput = false;
       if (singlePassActive && ['ALLOW','CLARIFY'].includes(aiTurn.safety)) {
         const turnProposals = aiTurn.proposals ?? [];
         const fact = (key: string) => activeFacts.find((f: any) => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
         const effectiveFact = (key: string) => turnProposals.find((p: any) => p.key === key)?.value ?? fact(key);
         const effCategory = effectiveFact('need.category');
+        hasClassificationInput = typeof effCategory === 'string' && effCategory.trim().length >= 3;
         const priorCategory = fact('need.category');
         const priorDescription = fact('need.description');
         const proposedDescription = turnProposals.find((p: any) => p.key === 'need.description')?.value;
@@ -1480,6 +1482,8 @@ Deno.serve(async (req: Request) => {
         }
       }
       const taxonomyPlan = singlePassCapturePlan(builtTaxonomy, fullCatalog);
+      if (hasClassificationInput && !locationContext)
+        aiTurn = withUnresolvedSinglePassReply(aiTurn, builtTaxonomy, taxonomyPlan);
       if (builtTaxonomy?.proposals?.length && !taxonomyPlan) console.info('NEED_TAXONOMY_HINT_CAPTURE', 'PAYLOAD_UNAVAILABLE');
       // Paired SQL/Edge promotion is required. Never fall back to a split write
       // or run Gemini again when the atomic RPC is absent or its ACK is lost.
@@ -1523,7 +1527,9 @@ Deno.serve(async (req: Request) => {
         const hintSignal = new AbortController().signal;
         void runInBackground(Promise.all(builtTaxonomy.clarifications.slice(0,1).map((hint: any) =>
           persistClarificationHint((name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) =>
-            rpc(name, args, sig ?? hintSignal, t ?? 2500), hint))));
+            rpc(name, args, sig ?? hintSignal, t ?? 2500), hint).then(stored => {
+              if (!stored) { try { console.warn('NEED_TAXONOMY_HINT_STORE', 'UNAVAILABLE'); } catch { /* Nonfatal diagnostics. */ } }
+            }))));
       }
       // No raw provider prose escapes before the semantic check and the exact
       // owned completion receipt. The existing stream still reports acceptance.

@@ -1,3 +1,6 @@
+// Current clarification receipt/timeout boundaries; historical split capture cases
+// are retained as text. Atomic catalog completion is covered by single_pass_edge
+// and complete_first_plan_transport, with SQL acceptance in r06_first_plan_completion.
 // Exact current NEED/WORKER handlers with synthetic transports only.
 // No provider/database/network calls; background completion is collected by waitUntil.
 import test from 'node:test';
@@ -38,12 +41,11 @@ function fixture(kind,operation,responseFactory,options={}){
     {safety:'ALLOW',assistantMessage:'Predlog je zabeležen u nacrtu.',patch:{skills:options.workerSkills??[SERVICE]},
       availabilityChange:{kind:'NONE',evidence:''},
       serviceModeChangesJson:JSON.stringify([{service:SERVICE,modes:options.workerModes??['ON_SITE'],evidence:user}])};
-  const decision={service:SERVICE,mode:'ON_SITE',action:operation==='store'?'NEEDS_CLARIFICATION':'CREATE_CHILD',
-    parentId:operation==='store'?'':rootId,reason:REASON,ambiguityPrompt:PROMPT,handoffKind:'NONE',handoffCity:''};
+  const decision={service:SERVICE,mode:'ON_SITE',action:'NEEDS_CLARIFICATION',categoryId:'',parentId:'',proposedPath:[],reason:REASON,ambiguityPrompt:PROMPT};
   const env={SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',
     SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_PROVIDER',
     GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true', 
-    // This fixture exercises the explicitly approved DEV dual-classifier path.
+    // The historical rollout flag selects the current single-response DEV path.
     // Production behavior stays default-OFF; tests must never rely on a URL
     // silently granting billable calls or write/capture authority.
     USKOCI_TAXONOMY_DUAL_GEMINI:'true',
@@ -109,6 +111,7 @@ function fixture(kind,operation,responseFactory,options={}){
       if(address.includes(':generateContent'))return providerResult(kind==='NEED'?{decisions:[decision]}:{items:options.workerDecisions??[decision]},options.backgroundUsage);
       const output=unchanged?(kind==='NEED'?withDialogue({safety:'ALLOW',assistantMessage:'Nacrt je ostao isti.',facts:[]}):
         {safety:'ALLOW',assistantMessage:'Opis je dopunjen.',patch:{bio:'Dopunjen opis.'},availabilityChange:{kind:'NONE',evidence:''}}):mainOutput;
+      output.taxonomyDecisions=unchanged?[]:[decision];
       const data='data: '+JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}]})+'\n\n';
       return new Response(data,{headers:{'Content-Type':'text/event-stream'}});
     }
@@ -135,8 +138,8 @@ function fixture(kind,operation,responseFactory,options={}){
   };
   return {calls,logs,completedRevision,invoke,settle:()=>Promise.all(background),async execute(){
     const events=await invoke();
-    assert.equal(calls.filter(call=>call.url.includes('generativelanguage.googleapis.com/')).length,2,'one conversational and one architect call, no retry');
-    assert.equal(calls.filter(call=>call.url.includes(':generateContent')).length,1);
+    assert.equal(calls.filter(call=>call.url.includes('generativelanguage.googleapis.com/')).length,1,'one response owns dialogue and clarification');
+    assert.equal(calls.filter(call=>call.url.includes(':generateContent')).length,0);
     assert.equal(calls.filter(call=>call.url.includes(kind==='NEED'?'rpc_ai_complete_need_turn_v2_service':'rpc_complete_worker_ai_turn_service')).length,1);
     assert.ok(!calls.some(call=>/rpc_(ai_fail_need|fail_worker)|save_worker|publish|commit_admission|push/.test(call.url)));
     const write=calls.filter(call=>call.url.endsWith('/'+(operation==='store'?storeRpc:captureRpc)));
@@ -174,111 +177,10 @@ function fixture(kind,operation,responseFactory,options={}){
     assert.equal(events.at(-1).turn.clientRequestId,id(10));
     assert.equal(events.at(-1).turn.turnId,id(11));
     assert.equal(calls.filter(call=>call.url.includes(':streamGenerateContent')).length,2);
-    assert.equal(calls.filter(call=>call.url.includes(':generateContent')).length,1,'unchanged followup does not retry the failed classifier');
+    assert.equal(calls.filter(call=>call.url.includes(':generateContent')).length,0,'no second provider is dispatched on followup');
     assert.equal(calls.filter(call=>call.url.endsWith('/'+storeRpc)||call.url.endsWith('/'+captureRpc)).length,1);
     assert.ok(!calls.some(call=>/rpc_(ai_fail_need|fail_worker)|save_worker|publish|commit_admission|push/.test(call.url)));
   }};
-}
-
-test('WORKER active mixed-edit path classifies only new work and captures the complete saved-mode snapshot',async()=>{
-  const prior='SYNTHETIC_SAVED_WORK',categoryId=id(40);
-  const handoff={required:true,shippingCountries:['RS']};
-  const f=fixture('WORKER','capture',()=>json({action:'HINT_CAPTURED',authority:'NONE'}),{
-    priorSkills:[prior],workerSkills:[prior,SERVICE],
-    savedServices:[{service:prior,mode:'ON_SITE',categoryId},{service:prior,mode:'REMOTE',categoryId,handoff}],
-    extraCategories:[{categoryId,parentId:rootId,label:prior,aliases:[],path:['Synthetic root',prior],isLeaf:true,modes:['ON_SITE','REMOTE']}],
-  });
-  await f.invoke();
-  const provider=f.calls.filter(call=>call.url.includes(':generateContent'));
-  assert.equal(provider.length,1);
-  assert.deepEqual(JSON.parse(provider[0].body.contents[0].parts[0].text).skills,[SERVICE]);
-  const captures=f.calls.filter(call=>call.url.endsWith('/'+captureRpc));
-  assert.equal(captures.length,1);
-  assert.equal(captures[0].body.p_proposals.length,3);
-  assert.deepEqual(captures[0].body.p_proposals.filter(p=>p.service===prior).map(p=>[p.categoryId,p.mode,p.handoff]),
-    [[categoryId,'ON_SITE',undefined],[categoryId,'REMOTE',handoff]]);
-  assert.ok(!f.calls.some(call=>/save_worker|publish|commit_admission|push/.test(call.url)));
-});
-
-for(const modes of [['ON_SITE'],['REMOTE'],['ON_SITE','REMOTE']]){
-  test(`WORKER real capture path retains complete BOTH or nothing: provider ${modes.join('+')}`,async()=>{
-    const f=fixture('WORKER','capture',()=>json({action:'HINT_CAPTURED',authority:'NONE'}),{
-      user:'Nudim '+SERVICE+' i kod naručioca i na daljinu.',workerModes:['ON_SITE','REMOTE'],
-      workerDecisions:modes.map(mode=>({service:SERVICE,mode,action:'CREATE_CHILD',parentId:rootId,
-        reason:REASON,handoffKind:'NONE',handoffCity:''})),
-    });
-    await f.invoke();
-    const captures=f.calls.filter(call=>call.url.endsWith('/'+captureRpc));
-    if(modes.length===2){
-      assert.equal(captures.length,1);
-      assert.deepEqual(captures[0].body.p_proposals.map(p=>p.mode),['ON_SITE','REMOTE']);
-      assert.equal(captures[0].body.p_purpose,'WORKER_CAPABILITY');
-    }else{
-      assert.equal(captures.length,0,'no partial service leaks through the active Edge to capture RPC');
-    }
-    assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,1);
-    assert.ok(!f.calls.some(call=>/save_worker|publish|commit_admission|push/.test(call.url)));
-  });
-}
-
-
-for(const kind of ['NEED','WORKER']){
-  test(kind+' active BG uses its own durable budget key and measured usage receipt',async()=>{
-    const f=fixture(kind,'capture',()=>json({action:'LOCAL_HINTS_CAPTURED',authority:'NONE'}),{
-      backgroundUsage:{promptTokenCount:100,cachedContentTokenCount:80,candidatesTokenCount:20,thoughtsTokenCount:7,totalTokenCount:127},
-    });
-    await f.invoke();
-    const reservations=f.calls.filter(call=>call.url.endsWith('/rpc_ai_test_budget_reserve_service'));
-    assert.equal(reservations.length,2);
-    assert.equal(reservations[0].body.p_operation_id,key);
-    const bg=reservations[1];assert.notEqual(bg.body.p_operation_id,key);
-    assert.equal(bg.body.p_account_id,account);assert.equal(bg.body.p_kind,'LLM');
-    const provider=f.calls.find(call=>call.url.includes(':generateContent'));
-    assert.ok(f.calls.indexOf(bg)<f.calls.indexOf(provider));
-    const usages=f.calls.filter(call=>call.url.endsWith('/rpc_ai_test_record_usage_service'));
-    assert.equal(usages.length,1,'the foreground has no reported usage in this fixture, never reuse its allocation');
-    assert.deepEqual(usages[0].body,{p_operation_id:bg.body.p_operation_id,p_model:'gemini-3.8-flash',
-      p_prompt_tokens:100,p_output_tokens:27,p_total_tokens:127});
-    assert.ok(f.calls.indexOf(usages[0])>f.calls.indexOf(provider));
-    assert.equal(f.calls.filter(call=>call.url.endsWith('/'+captureRpc)).length,1);
-  });
-  test(kind+' refused BG budget preserves completed foreground without a second provider call',async()=>{
-    const f=fixture(kind,'capture',()=>assert.fail('unadmitted BG has no hint to capture'),{denyBackgroundBudget:true});
-    await f.invoke();
-    assert.equal(f.calls.filter(call=>call.url.includes(':streamGenerateContent')).length,1);
-    assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,0);
-    assert.equal(f.calls.filter(call=>call.url.endsWith('/rpc_ai_test_record_usage_service')).length,0);
-    assert.equal(f.calls.filter(call=>call.url.endsWith('/rpc_ai_test_budget_reserve_service')).length,2);
-    assert.ok(!f.calls.some(call=>/release_unused|settle_audio/.test(call.url)));
-  });
-  test(kind+' capture lost ACK resolves via exact historical receipt without rewriting or reclassifying',async()=>{
-    const f=fixture(kind,'capture',()=>json(null),{captureReadback:true});
-    await f.execute();
-    const writes=f.calls.filter(call=>call.url.endsWith('/'+captureRpc));
-    const reads=f.calls.filter(call=>call.url.endsWith('/'+receiptRpc));
-    assert.equal(writes.length,1);
-    assert.equal(reads.length,1);
-    assert.ok(f.calls.indexOf(reads[0])>f.calls.indexOf(writes[0]));
-    assert.deepEqual(reads[0].body,writes[0].body,'one exact operation and entire proposal content');
-    assert.ok(!f.logs.some(args=>args[0]===kind+'_TAXONOMY_HINT_CAPTURE'));
-    assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,1);
-  });
-  for(const [field,value] of [['turnId',id(98)],['attemptId',id(99)],['purpose','OTHER'],
-    ['catalogVersion',98],['retryAllowed',true],['authority','GRANTED'],['extraPrivate','PRIVATE_SERVICE']]){
-    test(kind+' capture cannot use forged historical receipt '+field,async()=>{
-      const f=fixture(kind,'capture',()=>json(null),
-        {captureReadback:true,captureReceiptOverride:{[field]:value}});
-      await f.execute();
-      assert.equal(f.calls.filter(call=>call.url.endsWith('/'+captureRpc)).length,1);
-      assert.equal(f.calls.filter(call=>call.url.endsWith('/'+receiptRpc)).length,1);
-      assert.ok(f.logs.some(args=>args[0]===kind+'_TAXONOMY_HINT_CAPTURE'));
-    });
-  }
-  test(kind+' feature gate off never contacts undeployed receipt endpoint',async()=>{
-    const f=fixture(kind,'capture',()=>json(null));
-    await f.execute();
-    assert.equal(f.calls.filter(call=>call.url.endsWith('/'+receiptRpc)).length,0);
-  });
 }
 
 for(const kind of ['NEED','WORKER']){
@@ -319,7 +221,7 @@ for(const kind of ['NEED','WORKER']){
         timer=setTimeout(()=>reject(new Error('FOREGROUND_BLOCKED_ON_HINT_READBACK')),3000);
       })]);
       assert.equal(events.at(-1).turn.state,'SUCCEEDED');
-      assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,1);
+      assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,0);
     }finally{clearTimeout(timer);releaseRead();await f.settle();}
     assert.ok(!f.logs.some(args=>args[0]===kind+'_TAXONOMY_HINT_STORE'));
     assert.equal(f.calls.filter(call=>call.url.endsWith('/'+storeRpc)).length,1);
@@ -342,29 +244,21 @@ for(const kind of ['NEED','WORKER']){
       assert.equal(events.at(-1).turn.state,'SUCCEEDED');
       assert.equal(readSignal.aborted,false);
       assert.equal([...timers.values()].filter(timer=>timer.ms===9000).length,0,'classification has completed');
-      const deadlines=[...timers.values()].filter(timer=>timer.ms===7000);
-      assert.equal(deadlines.length,1,'write and readback share one persistence deadline');
+      const deadlines=[...timers.values()].filter(timer=>timer.ms===2500);
+      assert.equal(deadlines.length,1,'the advisory readback has its own bounded RPC deadline');
       deadlines[0].fn();
-      assert.equal(readSignal.aborted,true,'the existing owner deadline reaches the GET child signal');
+      assert.equal(readSignal.aborted,true,'the RPC deadline aborts its GET child signal');
       await f.settle();
       assert.deepEqual(f.logs.filter(args=>args[0]===kind+'_TAXONOMY_HINT_STORE'),[[kind+'_TAXONOMY_HINT_STORE','UNAVAILABLE']]);
-      assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,1);
+      assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,0);
       assert.equal(f.calls.filter(call=>call.url.endsWith('/'+storeRpc)).length,1);
     }finally{
       clearTimeout(watchdog);
-      for(const timer of [...timers.values()])if(timer.ms===9000||timer.ms===7000)timer.fn();
+      for(const timer of [...timers.values()])timer.fn();
       await f.settle();
     }
   });
-  test(kind+' dual turn loads one catalog only when classification inputs change',async()=>{
-    const f=fixture(kind,'capture',()=>json({action:'HINT_CAPTURED',authority:'NONE'}));
-    await f.execute();
-    const snapshots=()=>f.calls.filter(call=>call.url.endsWith('/rpc_taxonomy_fetch_snapshot_v1'));
-    assert.equal(snapshots().length,1,'the builder owns the single complete snapshot load');
-    await f.followup();
-    assert.equal(snapshots().length,1,'unchanged conversational followup must not prefetch the entire catalog');
-  });
-  for(const operation of ['store','capture']){
+  for(const operation of ['store']){
     test(kind+' valid '+operation+' ACK leaves the success stream and diagnostics clean',async()=>{
       const f=fixture(kind,operation,args=>json(operation==='store'?{stored:true,draftRevision:args.p_draft_revision}:{action:'HINT_CAPTURED',authority:'NONE'}));
       await f.execute();
@@ -378,15 +272,7 @@ for(const kind of ['NEED','WORKER']){
       assert.deepEqual(f.logs.filter(args=>args[0]===kind+'_TAXONOMY_HINT_STORE'),[[kind+'_TAXONOMY_HINT_STORE','UNAVAILABLE']]);
     });
   }
-  for(const [label,ack] of [['null',null],['false',false],['empty',{}],['wrong action',{action:'OTHER',authority:'NONE'}],
-    ['wrong authority',{action:'HINT_CAPTURED',authority:'CONFIRMED'}]]){
-    test(kind+' malformed capture '+label+' ACK emits fixed nonfatal status',async()=>{
-      const f=fixture(kind,'capture',()=>json(ack));await f.execute();
-      assert.deepEqual(f.logs.filter(args=>args[0]===kind+'_TAXONOMY_HINT_CAPTURE'),
-        [[kind+'_TAXONOMY_HINT_CAPTURE',kind==='NEED'?'UNAVAILABLE':'RECEIPT_UNEXPECTED']]);
-    });
-  }
-  for(const operation of ['store','capture']){
+  for(const operation of ['store']){
     test(kind+' '+operation+' failure followed by unchanged canonical input has no automatic background retry',async()=>{
       const f=fixture(kind,operation,()=>json(null));await f.execute();await f.followup();
     });

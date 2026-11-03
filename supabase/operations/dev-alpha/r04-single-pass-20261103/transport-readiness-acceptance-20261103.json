@@ -1,0 +1,110 @@
+{
+  "date": "2026-11-03",
+  "parent_sha": "b2db154f227e798f71838594b4c315980f7cf0fd",
+  "status": "SOURCE_AND_TARGETED_PASS_FULL_CI_PENDING_DEV_NOT_APPLIED",
+  "reproduced_fixes": [
+    {
+      "problem": "Late provider headers after caller abort left an unread response body open.",
+      "before": "New regression failed: cancellation count 0, required 1.",
+      "after": "Cancel late body without await, retry, content or usage adoption."
+    },
+    {
+      "problem": "Missing/forged/duplicate/nonleaf classification could retain an invitation to open a ready review.",
+      "before": "10 real-handler cases failed (five per Need/Worker).",
+      "after": "When classification is unresolved, keep real questions and facts; replace unsupported acknowledgement/readiness prose before persistence."
+    },
+    {
+      "problem": "Advisory clarification store false result became invisible to diagnostics.",
+      "after": "One closed UNAVAILABLE status; no user text in logs, retry or interruption of completed conversation."
+    }
+  ],
+  "targeted_checks": [
+    {
+      "log": "artifacts/clarification-transport-current.log",
+      "pass": 53,
+      "fail": 0
+    },
+    {
+      "log": "artifacts/current-provider-transport.log",
+      "pass": 26,
+      "fail": 0
+    },
+    {
+      "log": "artifacts/current-decision-isolation.log",
+      "pass": 12,
+      "fail": 0
+    },
+    {
+      "log": "artifacts/current-full-catalog-fixed.log",
+      "pass": 28,
+      "fail": 0
+    },
+    {
+      "log": "artifacts/owner-clarification-regression.log",
+      "pass": 12,
+      "fail": 0
+    },
+    {
+      "log": "artifacts/ai-cleanup2-deno.log",
+      "need": "PASS",
+      "worker": "PASS"
+    }
+  ],
+  "historical_proofs": {
+    "origin": "24ecfca443141027365c62edf55c3859842d8e2e",
+    "directory": "supabase/proofs/ai/fixtures/retired-dual-provider-24ecfca4",
+    "normalization": "LF with trailing whitespace removed; exact normalized source verified. See README mapping to current invariants. Retired cases are not counted as passed."
+  },
+  "last_github_ci": {
+    "head": "b2db154f227e798f71838594b4c315980f7cf0fd",
+    "main_run": 41592842078,
+    "main": "FAILURE",
+    "ai_pass": 1390,
+    "ai_fail": 192,
+    "ai_cancelled": 2,
+    "ai_todo": 1,
+    "r01_run": 41592842095,
+    "r01": "FAILURE"
+  },
+  "dev_read_only": {
+    "project_ref": "leqcwgzvjsxugfgzdmth",
+    "latest_migration": "20261102182959",
+    "need_edge_version": 163,
+    "worker_edge_version": 115,
+    "new_atomic_completion_functions": [],
+    "retention_source_ready": false,
+    "export_binding_present": false,
+    "sql_applied": false,
+    "edge_deployed": false
+  },
+  "remaining": [
+    "Current full CI for this source",
+    "Real-schema export/erasure and concurrent transaction acceptance, relevant R01/R10 conditions",
+    "Controlled SQL before Edge, then real TEST Auth and native readback"
+  ],
+  "source_hash_format": "SHA256 UTF-8 LF-normalized",
+  "source_hashes": {
+    "supabase/functions/_shared/geminiTaskStream.ts": "589666d33654528e7495d3adb85119275efc73009e96021b40b24236de98f137",
+    "supabase/functions/_shared/singlePassTaxonomy.mjs": "bfae1879536c0d081204eff1a7b6821719dd852f6e167a92257b6f18ae8691d5",
+    "supabase/functions/uskoci-ai-interview/index.ts": "fdaf490e7568127a39ae3576bb83967d1016f6142c190332bae5ec94cc09a90b",
+    "supabase/functions/uskoci-worker-interview/index.ts": "4ec680339155bc0540ed121efde2d74c0d0c72f2f5018037564c3d214bb59d51",
+    "supabase/proofs/ai/background_capture_receipt.test.mjs": "10a3215260553c39c62fe365224f1933bb7cf16d53c1d85c16bd24e24adad4de",
+    "supabase/proofs/ai/background_completion_lifecycle.test.mjs": "be733dc41272013105444b5fe8670cc160b531e5506c6abb52c167e7ea0f98d3",
+    "supabase/proofs/ai/background_novel_decision_cache.test.mjs": "f410856ecc33c9a29794103fbb8eb97d0a288afff82eac51dabd0d87ca51fc97",
+    "supabase/proofs/ai/background_provider_transport.test.mjs": "1005b84f06791f145771a16a782076020743d70ccf3b278ba433399e633bd160",
+    "supabase/proofs/ai/classification-full-catalog-edge.test.mjs": "877844a7c50cf7e054e3aa2491d61df1fcc07b342856c0b19fbba1f42574013d",
+    "supabase/proofs/ai/classification_hint_revision_sql.test.mjs": "9d9b5fdbd897b5c9a0cc5df9c1ae4445c143c6ff64ab8e77b01b5eb4aaea51f9",
+    "supabase/proofs/ai/gemini_wire_diagnostics.test.mjs": "da1960492253c896d5206ac7738db9e8c5217919cfebec187f899aa543c6d922",
+    "supabase/proofs/ai/single_pass_edge_fixture.mjs": "2450d7b465fcc79df9608f046286b7b7ec8b09a5b813fa0e1b046eae32c1f4a6"
+  },
+  "full_local_ai": {
+    "command": "node --test --test-concurrency=2 --test-reporter=spec supabase/proofs/ai/*.test.mjs",
+    "pass": 1497,
+    "fail": 1,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": "Existing R07a real Auth/publish after price retraction, not executed.",
+    "duration_ms": 310269.4949,
+    "failure": "One textual source assertion expected the older guard spelling. Corrected after this run; four source checks plus eight actual lifecycle cases passed (12/12), including both denied-completion/no-hint scenarios. This mixed sequence is not labeled full CI success."
+  }
+}

@@ -2,13 +2,24 @@
 // fixtures/retired-dual-provider-24ecfca4; no active handler dispatches that model.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {singlePassFixture} from './single_pass_edge_fixture.mjs';
+import {singlePassFixture,decision} from './single_pass_edge_fixture.mjs';
 const gate=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
 async function observed(promise){let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Expected boundary was never reached')),2000);})]);}finally{clearTimeout(timer);}}
 const atomic=f=>f.calls.filter(c=>c.name.includes('with_first_plan_service'));
 const providers=f=>f.calls.filter(c=>c.url.includes('generativelanguage.googleapis.com'));
 const json=value=>Response.json(value);
 for(const kind of ['NEED','WORKER']){
+ test(kind+' failed owned completion cannot persist its proposed clarification',async()=>{
+  const question='Da li želite lekturu ili prevođenje teksta?';
+  const f=singlePassFixture(kind,{output:{assistantMessage:question},
+   decisions:[{...decision(),action:'NEEDS_CLARIFICATION',categoryId:'',ambiguityPrompt:question}],
+   rpc:name=>/^(rpc_ai_complete_need_turn_v2_service|rpc_complete_worker_ai_turn_service)$/.test(name)
+    ? new Response('{}',{status:403}):undefined});
+  const events=await f.invoke();assert.equal(events.at(-1).kind,'safe_error');
+  assert.ok(!f.calls.some(c=>c.name==='rpc_taxonomy_store_classification_turn_hint_service'));
+  assert.equal(providers(f).length,1);assert.equal(atomic(f).length,0);
+  assert.ok(!events.some(e=>e.kind==='text_delta'||e.kind==='final'));
+ });
  test(kind+' usage settlement cannot hold an authoritative completion', {timeout:5000},async t=>{
   const started=gate(),release=gate();
   const f=singlePassFixture(kind,{rpc:async(name,body)=>{

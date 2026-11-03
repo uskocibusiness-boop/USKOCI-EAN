@@ -89,6 +89,18 @@ test('already cancelled action never invokes provider',async()=>{
   const abort=new AbortController();abort.abort();const {api}=load();
   await assert.rejects(()=>api.streamGeminiTask(args({signal:abort.signal})),/AI_STREAM_STOPPED/);
 });
+test('response arriving after cancellation is discarded and its body is cancelled without retry',async()=>{
+  const abort=new AbortController();let resolveFetch,calls=0,cancelled=0,usage=0;
+  const late=new Promise(resolve=>{resolveFetch=resolve;});
+  const {api,logs}=load(()=>{calls++;return late;});
+  const pending=api.streamGeminiTask(args({signal:abort.signal,onUsage:()=>usage++}));
+  abort.abort();
+  await assert.rejects(()=>pending,/AI_STREAM_STOPPED/);
+  resolveFetch(new Response(new ReadableStream({cancel(){cancelled++;}}),{headers:{'Content-Type':'text/event-stream'}}));
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(cancelled,1,'the late response must not retain an unread connection');
+  assert.equal(calls,1);assert.equal(usage,0);assert.deepEqual(logs,[]);
+});
 test('hung successful body terminates on cancellation without another request',async()=>{
   const abort=new AbortController();let cancelled=false,calls=0;
   const {api}=load(async()=>{calls++;setTimeout(()=>abort.abort(),5);return new Response(new ReadableStream({cancel(){cancelled=true;}}),{headers:{'Content-Type':'text/event-stream'}});});
