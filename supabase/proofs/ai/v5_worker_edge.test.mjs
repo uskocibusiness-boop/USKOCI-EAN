@@ -542,7 +542,7 @@ test('personal interview filters obsolete fields without changing the owned V1 c
  assert.ok(!Object.hasOwn(fields,'licenses'));assert.ok(!Object.hasOwn(fields,'teamCapacity'));
  assert.ok(!Object.hasOwn(fields,'excludedWork'));assert.ok(!Object.hasOwn(fields,'urgentNotifications'));
  assert.equal(candidate.teamCapacity,37);assert.deepEqual(candidate.licenses,['PRIVATE_LEGACY_LICENSE']);
- assert.ok(prompt.includes('ONE person'));assert.ok(prompt.includes('bio holds introduction/limits, not matching filters'));
+ assert.ok(prompt.includes('ONE person'));assert.ok(prompt.includes('bio is an optional introduction/limits, never a matching filter'));
  assert.ok(!JSON.stringify(provider.systemInstruction.parts.slice(0,2)).includes('"tools":["Kolica"]'));
  assert.equal(provider.systemInstruction.parts.filter(p=>p.text.includes('Owned candidate')).length,1);
 });
