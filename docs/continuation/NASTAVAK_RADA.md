@@ -2,6 +2,10 @@
 
 Ovo je ulaz za nastavak, ne novi plan. Jedini izvršni master ostaje [CODEX_PLAN_RADA.md](../plan/CODEX_PLAN_RADA.md), a jedini proizvodni autoritet [USKOCI_PRODUCT_UX_MASTER.md](../product/USKOCI_PRODUCT_UX_MASTER.md). **Aktuelni prenos: 03.11.2026, za čet sa pristupom samo GitHubu.** Istorijski ulazi od 28–30.10. ostaju ispod; njihove početne komande i statusi ne zamenjuju ovaj checkpoint.
 
+## R12 — potvrđeni QA APK za paralelnu instalaciju, 03.11.2026
+
+**QA_ARM64_SIDEBYSIDE_20261103 — GitHub installable APK source/proof:** [Android QA run 41666366240 SUCCESS](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41666366240), source `be71b33cb4dcd46aa4eae75d2f93225e365cf2be`, `rs.uskoci.preview.qa`, ARM64-only, 85,507,054 bytes, SHA-256 `40cb7cf322499cb9445cb31de8bde897b663437ba0cbd6ae8e8854a69f135391`. GitHub `apksigner` and `aapt` PASS; downloaded artifact ZIP integrity, receipt and APK hash independently verified. Isolated local Android debug signature, DEV target, preview runtime; can install beside signed `rs.uskoci.preview`. **No physical device install, account Auth, paid model, two-account E2E, Firebase push, store signing or release approval.** The APK build predates documentation-only status writes and does not include a later Edge executable revision beyond `f4a8048` (the only later app runtime change is formal native permissions copy).
+
 ## Noviji DEV transport — 03.11.2026, C10_PAIRED_EDGE_DEV_165_117
 
 **C10_PAIRED_EDGE_DEV_165_117 / 03.11.2026 15:26 UTC:** oba kompletna interview Edge paketa prebačena na DEV `leqcwgzvjsxugfgzdmth` iz source-a `f4a8048`: Need **164→165**, Worker **116→117**, sa punim post-deploy readback-om **18/18 fajlova po funkciji identičnih pripremljenom paketu**. Zatečeni verify_jwt=false i handler Auth očuvani; bez SQL/ACL, kvota, tajni, produkcije ili plaćenog Gemini poziva. Ovaj dokaz NE potvrđuje validan korisnički AI tok, Save/Publish, dvokorisnički E2E ili Android. R01 privatni Need SELECT ostaje otvoren. Receipt: `supabase/operations/dev-alpha/r04-single-pass-20261103/c10-edge-delivery-20261103.json`.
