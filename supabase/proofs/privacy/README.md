@@ -22,6 +22,7 @@ Run from the repository root with the installed, locked development dependencies
 node --check supabase/proofs/privacy/r01-column-boundary.test.mjs
 node --check supabase/proofs/privacy/r01_fixture.mjs
 node --check supabase/proofs/privacy/r01_discovery_fixture.mjs
+node --check supabase/proofs/privacy/r01_owner_page_fixture.mjs
 node supabase/proofs/privacy/r01-column-boundary.test.mjs
 ```
 
@@ -40,8 +41,10 @@ inert text; account closure/classification, candidate-state, audit and event
 internals are fixture substitutes; most triggers/constraints are absent. No
 PostgREST, Storage, Realtime, full closure digest, native/OTA or live deployment is
 proven by this test. Its fixture certificate check demonstrates that the candidate
-does not write those rows, not that real closure certification is valid. Current
-owner-page R03 wire incompatibility is characterized, not repaired.
+does not write those rows, not that real closure certification is valid. The
+original owner-page capture is historical. The current proof replaces its body
+with the separately captured owner-page/count chain described below; it does not
+reinstall the old R03 wire mismatch.
 
 ### Current Discovery compatibility addition, 2026-11-01
 
@@ -80,6 +83,54 @@ a reviewed closure-binding consequence; changing Need ACL changes the erasure
 program digest. The LOCAL_ONLY candidate remains unchanged and is not a DEV
 operation packet. These tests do not authorize bypassing that guard or recertifying
 an already incomplete closure/export contract.
+
+### Current owner-page compatibility refresh, 2026-11-03
+
+Fresh metadata-only DEV reads, at source HEAD
+`79ecdb1b90658dd642c28fd6cbe83463315dd232`, found that the executed original
+own-page fixture was stale. Its body MD5 was
+`dad1de3234e72d4e2f44be5e920eda61`; the current
+`public.rpc_list_my_needs_page(text,integer,timestamptz,uuid)` body is
+`509d6c345c84cc6a597bde46d9ae6b75` and calls
+`private.own_task_counts(uuid)` (`01d695467d5fa39dec180086cb07de40`).
+The old assertion that `counts` was absent could not establish compatibility
+with the current reader. A direct comparison reproduced that mismatch before
+the proof was updated.
+
+`r01_owner_page_fixture.mjs` records exact definitions for those two functions,
+body/definition MD5 values, owner, ACL, security mode, search path and effective
+execute privileges. It records the unchanged body hashes and permission metadata
+of the other sixteen executed reader/helper functions, the 42-column Need shape
+and its six current RLS policies. Reader metadata was captured at
+`2026-11-03T12:21:16.403803Z`, the count helper at
+`2026-11-03T12:22:19.847160Z`, and dependency metadata at
+`2026-11-03T12:22:35.411199Z`. All queries used read-only transactions over system
+catalogs. No application function was invoked, no business/Auth row was read or
+created, and no session or secret was retrieved. The historical fixtures and
+canonical bootstrap bytes are unchanged.
+
+The existing SQL proof now binds every executed body to that fresh metadata and
+checks the installed function owner, ACL, security mode, search path and effective
+execute privileges. The same unchanged column candidate preserves five owner
+sections (`ALL`, `ACTIVE`, `DRAFTS`, `HISTORY`, `WAITING`), global counts on the
+first page, null counts on later pages and a complete three-page keyset walk.
+Foreign-owner and closed/missing-account controls remain. The private count
+helper remains inaccessible to `anon`, `authenticated` and `service_role`; its
+internal account argument does not become a new public reader. Existing private
+column, inheritance, whole-row, owner/participant, TEST/REAL, writer and atomic
+rollback checks remain in the same test command.
+
+The focused proof passes **17/17**, with no skipped tests. This is an isolated
+SQL compatibility result, not a new client/native or Auth/HTTP acceptance.
+PostGIS geography and the explicit C collation substitute retain their previous
+limits; the schema-qualified geography name in the new metadata is accounted for
+only in this fixture comparison, without changing any parity checker.
+`r01_read_preflight.sql` now includes the private count helper so a later controlled
+package captures that actual dependency. The live table-wide authenticated SELECT
+still exists; this work did not change DEV privileges, candidate semantics,
+closure certificates, the disposable bootstrap or deployment status. A new live
+capture/preflight at promotion time, closure consequence review and actual
+positive/negative Auth/PostgREST proof remain required.
 
 ## Metadata and promotion checks
 

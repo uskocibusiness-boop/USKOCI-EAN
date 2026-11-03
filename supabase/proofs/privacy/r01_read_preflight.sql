@@ -15,6 +15,7 @@ WITH target_roles AS (
     ('public.rpc_read_task(uuid)'),
     ('public.rpc_list_my_tasks()'),
     ('public.rpc_list_my_needs_page(text,integer,timestamp with time zone,uuid)'),
+    ('private.own_task_counts(uuid)'),
     ('public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamp with time zone,uuid)'),
     ('public.rpc_discovery_v1(jsonb)'),
     ('public.rpc_resolve_activity_event(uuid)'),

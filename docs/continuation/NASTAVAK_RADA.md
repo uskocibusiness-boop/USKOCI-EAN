@@ -2,7 +2,19 @@
 
 Ovo je ulaz za nastavak, ne novi plan. Jedini izvršni master ostaje [CODEX_PLAN_RADA.md](../plan/CODEX_PLAN_RADA.md), a jedini proizvodni autoritet [USKOCI_PRODUCT_UX_MASTER.md](../product/USKOCI_PRODUCT_UX_MASTER.md). **Aktuelni prenos: 03.11.2026, za čet sa pristupom samo GitHubu.** Istorijski ulazi od 28–30.10. ostaju ispod; njihove početne komande i statusi ne zamenjuju ovaj checkpoint.
 
-## Aktuelni presek — 03.11.2026.
+## Noviji source/proof presek — 03.11.2026, posle prenosa ispod
+
+Polazni HEAD ovog nastavka je `79ecdb1b90658dd642c28fd6cbe83463315dd232`, grana i Draft PR43 ostaju isti. Noviji R07 current hourly rad (`95d7b97f`) već je na GitHubu i **ne sme se ponovo implementirati iz starog kandidata**. Uski [R07 CI41620795789](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41620795789) je SUCCESS, 57 provera. Glavni [CI41621580803](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41621580803) pao je na jednom mobilnom testu zavisnom od promene minuta; njegovih 14.587 PASS nije puni zeleni CI. Odvojeni [R0141621580853](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41621580853) i dalje je FAILURE/STRICT_PARITY, 8/49/3.
+
+U ovom nastavku postoje GitHub write, terminal i direktan DEV metadata read pristup; sledeći čet mora ponovo proveriti svoje alate. **Nije bilo DEV upisa.** Završena je sledeća ograničena source celina:
+
+- Aktuelni R01 own-page/count compatibility proof: nova metadata potvrda 18 funkcija, pet scope-ova, brojači, keyset i privatna prava; 17/17 izolovanih provera PASS. Stari capture ostaje istorija. Sveži DEV read potvrđuje da široki authenticated SELECT još postoji; nije zatvoren pravi Auth/HTTP prihvat.
+- R07/R10 cena u izvozu: novi `supabase/candidates/r07_price_export_current.sql` menja samo dve postojeće export funkcije, čuva sačuvane jedinice i prihvaćene verzije u postojećim dataset-ima. 6/6 povezanih SQL provera i 7/7 susednih workAreas provera PASS. **LOCAL_ONLY_NOT_DEPLOYED**, bez admission/sertifikata, punog izvoza ili brisanja naloga.
+- Nestabilan test Dogovora koristi postojeći fiksni `now` ulaz. Runtime nije menjan. Tri relevantna mobilna suite-a 93/93 PASS; TypeScript PASS. Novi export proof je dodat u postojeći glavni CI. Puni rezultat ovog novog paketa beleži se tek po završetku GitHub run-a.
+
+Detaljni fajlovi, dokazi i granice su u istom [masteru §11.2a](../plan/CODEX_PLAN_RADA.md), [R01 dokazu](../../supabase/proofs/privacy/README.md) i [R07/R10 dokazu](../../supabase/proofs/legal/r07-price-export.md). Pre kontrolisane promocije proveriti tadašnji preimage/dependencies, closure/ACL i pravi PG17/Auth prihvat. Ne podešavati LOCAL_ONLY flag na DEV-u. Nema novog modelskog poziva, APK-a, emulatora ili telefonskog/E2E dokaza. Sledeći blok čuva prethodni **datirani DEV/Android** checkpoint i punu komandu; njegov stari HEAD nije naredba da se vrati noviji source.
+
+## Prethodni DEV/Android presek — 03.11.2026, source c86ab501
 
 GitHub je dovoljan za nastavak pregleda izvora i, uz odgovarajući alat, izmene koda. Sam GitHub pristup ne daje mogućnost pisanja, terminal, Supabase sesiju ili emulator. Čitanje datiranog DEV dokaza nije nova provera žive baze.
 

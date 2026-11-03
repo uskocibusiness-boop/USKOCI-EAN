@@ -125,6 +125,9 @@ describe.each([
 });
 
 describe('Dogovori', () => {
+  // A changed minute legitimately refreshes the time labels. This test changes only parent props,
+  // so keep the presentation's existing clock input fixed, including across a CI minute boundary.
+  const NOW = new Date('2026-11-03T10:48:00Z');
   const agreement = (id: string): DogovorProjekcija => ({
     id, verzija: 1, naslov: `Posao ${id}`, stanje: 'CONFIRMED', cena: { iznos: 2500, valuta: 'RSD', prikaz: '2.500 RSD' },
     vremeTekst: '11. septembar · 10–12h', putanjaTekst: 'Novi Sad', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: .5 }, rezim: 'FIZICKI',
@@ -135,7 +138,7 @@ describe('Dogovori', () => {
   });
   let rows: DogovorProjekcija[]; const open = jest.fn();
   function Screen({ pass }: { pass: number }) {
-    return <AgreementCollectionPresentation items={rows} loading={false} error={false} refreshing={pass > 1} section="active" confirmationOnly={false}
+    return <AgreementCollectionPresentation items={rows} loading={false} error={false} refreshing={pass > 1} section="active" confirmationOnly={false} now={NOW}
       onSection={() => {}} onConfirmationOnly={() => {}} onOpen={item => open(item)} onRefresh={() => {}} onHome={() => {}} onCalendar={() => {}} onProfile={() => {}} />;
   }
   beforeEach(() => { rows = [agreement('a'), agreement('b'), agreement('c')]; open.mockClear(); });

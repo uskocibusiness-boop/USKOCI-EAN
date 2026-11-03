@@ -150,8 +150,8 @@ jobs:
           python -m unittest discover -s supabase/proofs/ex04 -p 'test_r03_*.py'
       - name: R10/R12 closure roster source checks (no DB execution)
         run: node --test supabase/proofs/ex04/r03-closure-roster.test.mjs
-      - name: R10 saved work areas export (isolated PostgreSQL; no DEV write)
-        run: node --test --test-reporter=spec supabase/proofs/legal/r10-work-areas-export.test.mjs
+      - name: R07/R10 price history and saved work areas export (isolated PostgreSQL; no DEV write)
+        run: node --test --test-concurrency=1 --test-reporter=spec supabase/proofs/legal/r07-price-export.test.mjs supabase/proofs/legal/r10-work-areas-export.test.mjs
       - name: R05 guarded TODAY source and synthetic PostgreSQL day windows
         run: |
           python supabase/proofs/r05/build_today_candidate.py --check

@@ -10,6 +10,18 @@ import {PGlite} from '@electric-sql/pglite';
 import {pgcrypto} from '@electric-sql/pglite/contrib/pgcrypto';
 import {snapshot} from './r01_fixture.mjs';
 import {discoverySnapshot} from './r01_discovery_fixture.mjs';
+import {ownerPageSnapshot} from './r01_owner_page_fixture.mjs';
+
+const signatureKey = signature => signature.replaceAll('public.','');
+// Keep historical captures intact, but execute the newly captured own-page
+// chain instead of the old R03-incompatible body in the original fixture.
+const currentFunctions = [
+  ...snapshot.functions.filter(f=>!ownerPageSnapshot.functions.some(current=>
+    signatureKey(current.signature)===signatureKey(f.signature))),
+  ...discoverySnapshot.functions,
+  ...ownerPageSnapshot.functions,
+];
+const currentMetadata = [...ownerPageSnapshot.functions,...ownerPageSnapshot.dependencies];
 
 const candidate = readFileSync(new URL('../../candidates/r01_needs_column_privileges.sql', import.meta.url), 'utf8');
 // All columns outside the reviewed 38-column direct-read allowlist. Keep the
@@ -64,7 +76,7 @@ async function aclState() {
 }
 
 test('R01 current SQL boundary and compatibility controls', async t => {
-  await t.test('fixture binds current function bodies before execution', async () => {
+  await t.test('fixture binds fresh owner-page and dependency metadata before execution', async () => {
     assert.equal(publicColumns.length,38);
     assert.equal(new Set(publicColumns).size,38,'no duplicate public column can hide an exclusion');
     assert.equal(snapshot.columns.length,42);
@@ -82,11 +94,32 @@ test('R01 current SQL boundary and compatibility controls', async t => {
       assert(body, f.signature);
       assert.equal(createHash('md5').update(body).digest('hex'),f.body_md5,f.signature);
     }
+    assert.equal(new Set(currentFunctions.map(f=>signatureKey(f.signature))).size,currentFunctions.length);
+    assert.equal(new Set(currentMetadata.map(f=>signatureKey(f.signature))).size,currentMetadata.length);
+    assert.equal(currentFunctions.length,currentMetadata.length,'no captured dependency may be omitted');
+    for(const f of currentFunctions) {
+      const current=currentMetadata.find(m=>signatureKey(m.signature)===signatureKey(f.signature));
+      assert.equal(current?.present,true,f.signature);
+      const body=f.definition.match(/AS \$function\$([\s\S]*)\$function\$/)?.[1];
+      assert(body,f.signature);
+      assert.equal(createHash('md5').update(body).digest('hex'),current.body_md5,
+        `2026-11-03 metadata must bind the executed body of ${f.signature}`);
+    }
+    for(const f of ownerPageSnapshot.functions) assert.equal(
+      createHash('md5').update(f.definition).digest('hex'),f.definition_md5,f.signature);
+    // The fresh capture pins search_path=pg_catalog, so its PostGIS type is
+    // schema-qualified. The old capture used the same extensions type without
+    // qualification; geography remains an explicitly inert local substitute.
+    assert.equal(snapshot.columns.find(c=>c.name==='approx_geog')?.type,'geography(Point,4326)');
+    assert.deepEqual(ownerPageSnapshot.need_columns,snapshot.columns.map(c=>c.name==='approx_geog'
+      ? {...c,type:'extensions.geography(Point,4326)'} : c),'the reviewed column surface must remain current');
     assert(discoverySnapshot.functions.every(f=>f.definer===false),'Discovery runs with caller privileges');
     const policyShape=p=>({policyname:p.policyname,cmd:p.cmd,permissive:p.permissive,roles:p.roles,
       qual:p.qual?.replaceAll('public.','')??null,with_check:p.with_check?.replaceAll('public.','')??null});
     assert.deepEqual(discoverySnapshot.current_reader_policies.filter(p=>p.tablename==='needs').map(policyShape),
       snapshot.policies.map(policyShape),'the original Need policies must still match current metadata');
+    assert.deepEqual(ownerPageSnapshot.need_policies.map(policyShape),snapshot.policies.map(policyShape),
+      '2026-11-03 Need policies must still match the executed fixture');
     assert.equal(await scalar('select current_user'),'postgres');
   });
 
@@ -143,8 +176,7 @@ test('R01 current SQL boundary and compatibility controls', async t => {
     }).join(',');
     await db.exec(`create table public.needs(${ddl},primary key(id)); alter table public.needs enable row level security;`);
     // Function install order is allowed by PL/pgSQL's deferred statement planning.
-    for(const f of snapshot.functions) await db.exec(f.definition);
-    for(const f of discoverySnapshot.functions) await db.exec(f.definition);
+    for(const f of currentFunctions) await db.exec(f.definition);
     await db.exec(`revoke all on all functions in schema public,private,rls_private from public,anon,authenticated;
       grant execute on all functions in schema public to authenticated,service_role;
       grant execute on all functions in schema rls_private to authenticated;
@@ -177,6 +209,18 @@ test('R01 current SQL boundary and compatibility controls', async t => {
     await db.exec(`insert into public.agreements(need_id,worker_account_id,status) values('${active}','${participant}','CONFIRMED');
       insert into public.need_selections values('${active}','${participant}','SELECTED',1);
       insert into private.fixture_candidates values('${published}','SELECTABLE');`);
+    // In particular, the SECURITY DEFINER count helper is private. Do not grant
+    // it to clients merely to make the new owner-page dependency execute.
+    for(const metadata of currentMetadata) {
+      const [installed]=await query(`select pg_get_userbyid(proowner) as owner,prosecdef as security_definer,
+        proconfig as config,(select jsonb_agg(x::text order by x::text) from unnest(proacl) x) as acl,
+        has_function_privilege('anon',oid,'EXECUTE') as anon_execute,
+        has_function_privilege('authenticated',oid,'EXECUTE') as authenticated_execute,
+        has_function_privilege('service_role',oid,'EXECUTE') as service_role_execute
+        from pg_proc where oid=to_regprocedure($1)`,[metadata.signature]);
+      assert.deepEqual(installed,{owner:metadata.owner,security_definer:metadata.security_definer,
+        config:metadata.config,acl:[...metadata.acl].sort(),...metadata.effective_access},metadata.signature);
+    }
   });
 
   await t.test('baseline reproduces foreign private data access with a successful public control', async () => {
@@ -265,14 +309,60 @@ test('R01 current SQL boundary and compatibility controls', async t => {
     assert.deepEqual(page.items.map(x=>x.id).sort(),[published,selection,active,draft].sort());
     for(const item of page.items) for(const col of nonPublicColumns) assert.equal(Object.hasOwn(item,col),false);
     assert(!JSON.stringify(page).includes(marker));
-    // Existing R03 wire mismatch is deliberately not reclassified as fixed.
-    assert.equal(Object.hasOwn(page,'counts'),false);
+    assert.deepEqual(page.counts,{total:4,active:3,drafts:1,history:0,waiting:1});
     await denied(as('authenticated',closed,()=>scalar('select public.rpc_list_my_tasks()')));
     const forged=await as('authenticated',reader,()=>scalar(`select public.selectable_application_count(
       jsonb_populate_record(null::public.needs,jsonb_build_object('id',$1::uuid,'requester_account_id',$2::uuid)))`,[published,reader]));
     assert.equal(forged,null);
     assert.equal(await as('authenticated',reader,()=>scalar(`select public.covered_slots(
       jsonb_populate_record(null::public.needs,jsonb_build_object('id',$1::uuid)))`,[active])),1);
+  });
+
+  await t.test('current own-page preserves five scopes, private counts and continuation after the column patch', async () => {
+    const history=uuid(108);
+    await db.query(`insert into public.needs(id,requester_account_id,status,title,category,execution_location_mode)
+      values($1,$2,'COMPLETED','Synthetic history','Cleaning','REMOTE')`,[history,owner]);
+    const counts={total:5,active:3,drafts:1,history:1,waiting:1};
+    const ownPage=(actor,scope='ALL',limit=30,after=null)=>as('authenticated',actor,
+      ()=>scalar('select public.rpc_list_my_needs_page($1,$2,$3,$4)',
+        [scope,limit,after?.sortAt??null,after?.id??null]));
+    try {
+      const scopes={ALL:[published,selection,active,draft,history],ACTIVE:[published,selection,active],
+        DRAFTS:[draft],HISTORY:[history],WAITING:[published]};
+      for(const [scope,expected] of Object.entries(scopes)) {
+        const page=await ownPage(owner,scope);
+        assert.deepEqual(page.items.map(item=>item.id).sort(),[...expected].sort(),scope);
+        assert.deepEqual(page.counts,counts,`${scope} counts cover all sections`);
+        assert.equal(page.hasMore,false);
+        for(const item of page.items) for(const column of nonPublicColumns) assert.equal(Object.hasOwn(item,column),false);
+        assert(!JSON.stringify(page).includes(marker));
+      }
+      let page=await ownPage(owner,'ALL',2);
+      assert.deepEqual(page.counts,counts);
+      const seen=[];
+      for(let i=0;i<3;i++) {
+        seen.push(...page.items.map(item=>item.id));
+        assert.equal(page.hasMore,i<2);
+        if(i>0) assert.equal(page.counts,null,'later pages do not repeat global counts');
+        if(i<2) page=await ownPage(owner,'ALL',2,page.items.at(-1));
+      }
+      assert.equal(new Set(seen).size,5,'no duplicate or skipped own task');
+      assert.deepEqual([...seen].sort(),scopes.ALL.sort());
+      const foreign=await ownPage(reader);
+      assert.deepEqual(foreign.items,[]);
+      assert.deepEqual(foreign.counts,{total:0,active:0,drafts:0,history:0,waiting:0});
+      assert.deepEqual((await ownPage(real)).items.map(item=>item.id),[realNeed]);
+      await denied(ownPage(closed));
+      await assert.rejects(ownPage(null),error=>error.code==='28000');
+      // The elevated helper accepts an account internally, so exposing EXECUTE
+      // would permit a forged account argument even if page scoping is correct.
+      for(const role of ['anon','authenticated','service_role']) {
+        assert.equal(await scalar("select has_function_privilege($1,'private.own_task_counts(uuid)','EXECUTE')",[role]),false);
+        await denied(as(role,reader,()=>scalar('select private.own_task_counts($1)',[owner])));
+      }
+    } finally {
+      await db.query('delete from public.needs where id=$1',[history]);
+    }
   });
 
   await t.test('current Discovery preserves positive owned/foreign pages, exact landing and scope after the column patch', async () => {
