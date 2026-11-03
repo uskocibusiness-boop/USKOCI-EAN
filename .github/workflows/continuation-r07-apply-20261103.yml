@@ -1,0 +1,118 @@
+name: Exact R07 source continuation 20261103
+
+on:
+  push:
+    branches: [work/rev14-review-f17]
+    paths: [.github/workflows/continuation-r07-apply-20261103.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  reviewed-source:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Refuse newer work or an unexpected parent
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/work/rev14-review-f17
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD^)" = d647a219b53319cb655de42de7cad19ddd030e9e
+          test "$(git ls-remote origin refs/heads/work/rev14-review-f17 | cut -f1)" = "$GITHUB_SHA"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exact proof dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Restore only the hash-pinned reviewed source patch
+        env:
+          READ_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64,gzip,hashlib,json,os,subprocess,urllib.request
+          from pathlib import Path
+          repo='uskocibusiness-boop/USKOCI-EAN'
+          ids=['46225f5688c06612c2f2a667d88f4be034b9a2e6','f1aa7018efe7c94713285a3c2467e4ca583fd0c3']
+          parts=[]
+          for sha in ids:
+              request=urllib.request.Request('https://api.github.com/repos/'+repo+'/git/blobs/'+sha,headers={'Authorization':'Bearer '+os.environ['READ_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(request,timeout=30) as response: item=json.load(response)
+              raw=base64.b64decode(item['content'])
+              assert hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()==sha
+              parts.append(raw)
+          # Recover the exact original transport chunk; verify its original Git identity.
+          encoded=base64.b64encode(parts[0]).decode()
+          needle='vmwBlfekEKOu3'
+          assert encoded.count(needle)==1
+          parts[0]=base64.b64decode(encoded.replace(needle,'vmwBl/bQJUNYvIAHK+uQEKOvXlgBlfekEKOu3'))
+          assert hashlib.sha1(b'blob '+str(len(parts[0])).encode()+b'\0'+parts[0]).hexdigest()=='e91b6a239e8df302cf0a1584434d580357bfbc87'
+          patch=gzip.decompress(b''.join(parts))
+          assert hashlib.sha256(patch).hexdigest()=='0309579a8b0894e69b30b61cd81240613a1992155f99fff8c76f3d230545b174'
+          path=Path(os.environ['RUNNER_TEMP'])/'r07-reviewed.patch';path.write_bytes(patch)
+          expected={
+            'scripts/r07b-hourly-chain.test.mjs':'82f5d484f156400955798ac9311f27889b6e0aeec09cb4529d3b105f1a0403ce',
+            'scripts/r07b-hourly-fixture.mjs':'03e3c984a8e6e096af416888dbcc6979b681e2791a7e3595e53a959f7f2b027b',
+            'supabase/proofs/ai/build_current_hourly_candidate.py':'3d72e0d51bb550da0575f6a284eef0509732263d7e82f0f4b5f42cc701c74a0b',
+            'supabase/proofs/ai/r07_current_hourly_preimage.json':'5649c2e46e70818e2b55019bd197a3019283186f6de70de691df1b3d0539783d',
+            'supabase/proofs/ai/r07_current_hourly_chain.test.mjs':'d8358b5aef2e5c412ab33bbfb4b726bb2758dca3158f077b0f5cc674066e210c',
+            'supabase/proofs/ai/r07_current_hourly_client.test.mjs':'b97156f7c7217d67a58cdc91a8764abe3965070ece8d703b845b9c5739110b1f',
+            'supabase/proofs/ai/r07_current_hourly_fixture.mjs':'7822a1071f61d7284cb3785b55df08f8b1a309924a3e7349a6560e15efde328c',
+            'supabase/proofs/ai/r07_current_hourly_README.md':'d23dee2d995d56dcda36ed58383c740f3315ce9c6555d1cc99d790e0d69d0348',
+            'supabase/candidates/r07_hourly_pricing_current.sql':'fe132a275c37da09f27650ac02fadd84250f54d9ed4386ac313cff547bd3a8d8',
+            'docs/plan/CODEX_PLAN_RADA.md':'e8bf10496748d4e7e4249718b958d1591b871c15a63ff09da1ce9688531c3ac8'}
+          changed=subprocess.check_output(['git','apply','--numstat',str(path)],text=True)
+          assert {line.split('\t',2)[2] for line in changed.splitlines()}==set(expected)-{'supabase/candidates/r07_hourly_pricing_current.sql'}
+          subprocess.run(['git','apply','--check',str(path)],check=True)
+          subprocess.run(['git','apply',str(path)],check=True)
+          subprocess.run(['python','supabase/proofs/ai/build_current_hourly_candidate.py'],check=True)
+          for name,digest in expected.items(): assert hashlib.sha256(Path(name).read_bytes()).hexdigest()==digest,name
+          subprocess.run(['git','add','--',*expected],check=True)
+          actual=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines()
+          assert set(actual)==set(expected)
+          subprocess.run(['git','diff','--cached','--check'],check=True)
+          (Path(os.environ['RUNNER_TEMP'])/'r07-source-files.json').write_text(json.dumps(expected,indent=2))
+          PY
+      - name: Execute current and retained pricing proofs before committing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python supabase/proofs/ai/generate_hourly_candidate.py --check
+          python supabase/proofs/ai/build_current_hourly_candidate.py --check
+          node --test --test-reporter=spec scripts/r07b-hourly-chain.test.mjs | tee "$RUNNER_TEMP/r07-retained.log"
+          node --test --test-reporter=spec --test-concurrency=1 supabase/proofs/ai/r07_current_hourly_chain.test.mjs supabase/proofs/ai/r07_current_hourly_client.test.mjs | tee "$RUNNER_TEMP/r07-current.log"
+          node --test --test-reporter=spec supabase/proofs/ai/r06_need_edit_resume.test.mjs | tee "$RUNNER_TEMP/r07-resume.log"
+      - name: Commit only the verified source; normal fast-forward push
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/work/rev14-review-f17 | cut -f1)" = "$GITHUB_SHA"
+          git diff --exit-code
+          git config user.name 'Agent'
+          git config user.email 'agent@uskoci.ai'
+          git commit -m 'fix(pricing): derive hourly chain from current owners without reverting newer flows'
+          git -c 'credential.helper=!f() { if test "$1" = get; then printf "username=x-access-token\npassword=%s\n" "$GH_TOKEN"; fi; }; f' push origin HEAD:refs/heads/work/rev14-review-f17
+          git rev-parse HEAD > "$RUNNER_TEMP/r07-source-commit.txt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: r07-current-source-verification
+          path: |
+            ${{ runner.temp }}/r07-source-files.json
+            ${{ runner.temp }}/r07-source-commit.txt
+            ${{ runner.temp }}/r07-retained.log
+            ${{ runner.temp }}/r07-current.log
+            ${{ runner.temp }}/r07-resume.log
+          if-no-files-found: warn
+          retention-days: 14
