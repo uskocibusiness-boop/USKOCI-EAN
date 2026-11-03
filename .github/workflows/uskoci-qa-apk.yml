@@ -79,6 +79,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Same bounded ARM64-only ABI and memory settings as the earlier successful owner APK.
+          printf '\nreactNativeArchitectures=arm64-v8a\norg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8\n' >> android/gradle.properties
           cd android
           chmod +x gradlew
           ./gradlew :app:assembleRelease --no-daemon --stacktrace --max-workers=2
