@@ -362,6 +362,8 @@ export default function MojePrijave() {
     onAgreement={p => { if (rowCurrent(p) && !session.pending && p.stanje === 'SELECTED' && p.dogovorId)
       discardIfDirty(() => { clearReview(); router.push(`/dogovor/${p.dogovorId}` as any); }); }}
     onTask={p => { if (rowCurrent(p) && !session.pending) discardIfDirty(() => { clearReview(); router.push({ pathname: '/prilike/[id]', params: { id: p.potrebaId } }); }); }}
+    onService={p => { if (rowCurrent(p) && idle() && ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'SELECTED'].includes(p.stanje))
+      discardIfDirty(() => { clearReview(); router.push({ pathname: '/profil/usluga-iz-prijave', params: { applicationId: p.prijavaId, needId: p.potrebaId } }); }); }}
     onRetry={() => { if (pending?.result === 'unknown' && pending === session.pending) perform(pending); }}
     onReset={() => { if (current() && pending === session.pending && pending?.reconciled && (pending.result === 'rejected' || pending.result === 'receipt') && !editor.busy && !editor.uncertain) {
       discardIfDirty(() => { session.pending = null; clearReview(); render(v => v + 1); });

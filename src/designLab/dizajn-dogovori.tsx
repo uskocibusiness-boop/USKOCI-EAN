@@ -185,6 +185,7 @@ const SCENES: { key: SceneKey; label: string }[] = [
 
 /** The root bar as the Dogovori tab draws it, with a bell that reads nothing. */
 const STILL_HEADER = <ScreenChrome variant="root" title="Dogovori" onProfile={noop}
+  right={<ChromeIconButton glyph="calendar" label="Raspored" onPress={noop} />}
   bell={<ChromeIconButton label="Obaveštenja" icon={Bell} tone="green" onPress={noop} />} />;
 
 function ListScene({ items, loading = false, error = false, initial = 'active', cancellations, now }: { items: DogovorProjekcija[]; loading?: boolean; error?: boolean;

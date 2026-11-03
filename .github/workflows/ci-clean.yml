@@ -75,8 +75,9 @@ jobs:
           # A failed import or early provider gate must not occupy a 30-minute
           # full matrix and hide the first useful stack trace.
           node --test --test-reporter=spec --test-name-pattern='provider refusal fails the owned attempt' supabase/proofs/ai/ai_edge_context.test.mjs
-          node --test --test-reporter=spec --test-name-pattern='task: confirmed completion detaches live background until capture' supabase/proofs/ai/background_completion_lifecycle.test.mjs
-          node --test --test-reporter=spec --test-name-pattern='NEED capture lost ACK resolves via exact historical receipt' supabase/proofs/ai/background_capture_receipt.test.mjs
+          # Current one-response contract: atomic completion replaces detached
+          # second-model capture. Keep failure/recovery checks executable.
+          node --test --test-reporter=spec supabase/proofs/ai/single_pass_edge.test.mjs supabase/proofs/ai/complete_first_plan_transport.test.mjs
           node --test --test-reporter=spec --test-name-pattern='verified Auth identity and owned context' supabase/proofs/ai/owned_intake_edge.test.mjs
           node --test --test-reporter=spec --test-name-pattern='worker streaming provider has one count-only latency phase' supabase/proofs/ai/v5_worker_edge.test.mjs
       - name: TypeScript

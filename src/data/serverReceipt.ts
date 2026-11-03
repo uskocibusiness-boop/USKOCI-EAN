@@ -55,17 +55,17 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
   const owner = sesijaSada();
   const accountId = options.account?.accountId ?? owner.user?.id;
   const accountRevision = options.account?.accountRevision ?? owner.accountRevision;
-  if (!accountId) return failure('AUTH_REQUIRED', 'Prijavi se da nastaviš.');
+  if (!accountId) return failure('AUTH_REQUIRED', 'Prijavite se da nastavite.');
   const current = () => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
-  const changed = () => failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvori zadatak.');
+  const changed = () => failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvorite prikaz.');
   const unconfirmed = () => failure(options.fallback, options.write
-    ? 'Ishod radnje nije potvrđen. Osveži prikaz pre ponovnog pokušaja.'
-    : 'Podaci trenutno nisu dostupni. Proveri vezu i pokušaj ponovo.');
+    ? 'Ishod radnje nije potvrđen. Osvežite prikaz pre ponovnog pokušaja.'
+    : 'Podaci trenutno nisu dostupni. Pokušajte ponovo da ih učitate.');
   if (!current()) return changed();
   const localTimeout = new Error('RPC_RECEIPT_TIMEOUT');
   const localCancelled = new Error('RPC_RECEIPT_CANCELLED');
   const transportUnavailable = () => !options.write && options.readTransportUnavailable
-    ? failure(options.readTransportUnavailable, 'Veza je prekinuta. Pokušaj ponovo.') : unconfirmed();
+    ? failure(options.readTransportUnavailable, 'Veza je prekinuta. Pokušajte ponovo.') : unconfirmed();
   if (options.signal?.aborted) return unconfirmed();
   const controller = new AbortController();
   let rejectCancelled: (reason: Error) => void = () => {};
@@ -104,8 +104,8 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
     }
     const decoded = options.decode(result.data);
     if (decoded === null) return failure(options.invalid, options.write
-      ? 'Potvrda radnje nije stigla cela. Osveži prikaz pre ponovnog pokušaja.'
-      : 'Podaci nisu stigli u ispravnom obliku. Pokušaj ponovo.');
+      ? 'Potvrda radnje nije stigla cela. Osvežite prikaz pre ponovnog pokušaja.'
+      : 'Podaci nisu stigli u ispravnom obliku. Pokušajte ponovo.');
     return { ok: true, podatak: decoded };
   } catch (error) {
     if (!current()) return changed();

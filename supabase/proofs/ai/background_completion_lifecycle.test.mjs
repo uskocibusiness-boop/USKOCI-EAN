@@ -145,7 +145,10 @@ function fixture(purpose, outcome = 'SUCCEEDED', { pendingHint = false, backgrou
     return { status: response.status, text };
   };
   const captures = () => calls.filter(call => call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
-  const drain = async () => { releaseCompletion.resolve(); releaseBg.resolve(); releaseUsage.resolve(); releaseCapture.resolve(); for (let i = 0; i < 8; i++) await flush(); await Promise.all(waits); };
+  // Cleanup must also release the synthetic start fence when the current
+  // handler never starts a retired second model. Assertions still fail; the
+  // test must not hang forever and hide the actual contract mismatch.
+  const drain = async () => { bgStarted.resolve(); releaseCompletion.resolve(); releaseBg.resolve(); releaseUsage.resolve(); releaseCapture.resolve(); for (let i = 0; i < 8; i++) await flush(); await Promise.all(waits); };
   return { ...loaded, invoke, bgStarted, releaseBg, releaseCompletion, usageStarted, releaseUsage, captureStarted, abort, calls, logs, waits, timers, timerHistory, captures, drain,
     get bgSignal() { return bgSignal; }, get providerCalls() { return { main: mainProviderCalls, background: backgroundProviderCalls }; } };
 }

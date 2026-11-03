@@ -72,6 +72,8 @@ export function loadOwnedIntakeHandler(options){
   if(name==='./workerServiceModeContext.mjs')return serviceModes;
   assert.equal(name,'./classificationEngine.mjs');return classification;
  });
+ const firstPlan=historical?null:evaluate('supabase/functions/_shared/completeFirstPlan.ts',()=>assert.fail('UNDECLARED_FIRST_PLAN_IMPORT'));
+ const singlePass=historical?null:evaluate('supabase/functions/_shared/singlePassTaxonomy.mjs',name=>{assert.equal(name,'./backgroundTaxonomyArchitect.mjs');return backgroundArchitect;});
  const imports={'../../../src/contracts/needFactsV2.ts':shared,'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,
   ...(!historical?{'../../../src/contracts/taskApplicationDeadline.ts':taskDeadline,'../../../src/contracts/aiAvailability.ts':availability,'../_shared/locationReply.ts':location,'../_shared/taxonomyScopedShadow.mjs':taxonomy,
    '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply,
@@ -80,7 +82,7 @@ export function loadOwnedIntakeHandler(options){
    '../_shared/taxonomyProviderBudget.ts':providerBudget,'../_shared/researchDeadline.ts':researchDeadline,
    '../_shared/taxonomyRuntimeConfig.mjs':taxonomyConfig,
    '../_shared/interviewVoiceInstruction.mjs':voice,'../_shared/aiPhaseTiming.mjs':timing,'../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution,
-   '../_shared/backgroundTaxonomyArchitect.mjs':backgroundArchitect}:{})};
+   '../_shared/completeFirstPlan.ts':firstPlan,'../_shared/singlePassTaxonomy.mjs':singlePass,'../_shared/backgroundTaxonomyArchitect.mjs':backgroundArchitect}:{})};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes,sourceBinding:historical?.binding??{kind:'CURRENT_SOURCE'}};
 }

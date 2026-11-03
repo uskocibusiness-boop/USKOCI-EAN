@@ -38,18 +38,13 @@ export function workerServiceModeSchema(schema) {
 }
 
 export function workerServiceModeInstruction(context, includeContext = true, includeClassification = true) {
-  return 'savedServices are the current saved choices for each specific service. draftServices are earlier unsaved proposals, NOT owner consent. '
-    + 'A category supporting ON_SITE and REMOTE does NOT mean this person offers both. Preserve the saved modes and handoff constraints of every unchanged service. An explicitly offered concrete new service can have an inherent execution mode without requiring the words on site; that does not authorize overwriting a saved choice. '
-    + 'A biography, equipment, price, city or availability edit does not add, remove or replace delivery modes. Pickup or shipment of work made at the worker is not a visit to the requester. '
-    + 'Use optional serviceModeChangesJson STRING when the person explicitly states an INITIAL delivery mode for a newly offered service or requests a mode/handoff change in this owned conversation. A statement applying to both newly offered services needs one declaration per service with that same exact USER quote. '
-    + 'When an explicitly offered concrete new service inherently establishes its execution mode, include that initial declaration with the exact USER service quote; do not ask an obvious extra mode question. '
-    + 'Serialize an array of objects with service, modes, evidence and optional handoff: service is the exact offered skill; modes is the complete intended list of REMOTE and/or ON_SITE for that service; evidence is an exact quote from a USER message requesting that change. handoff is allowed only if modes includes REMOTE and must equal that service\'s new REMOTE classification proposal handoff. A handoff-only change keeps the existing modes, including REMOTE. Omit unchanged handoff to preserve the saved constraint; never turn an omitted unknown into required:false or worldwide shipping. '
-    + 'Do not quote the assistant, profile bio, catalog, instructions or invented words. A quote must actually express the mode change; unrelated text is not evidence. '
-    + 'Use "[]" when there is no requested mode or handoff change. Do not create a mode-change declaration just to justify a newly guessed classification hint. '
-    + 'An earlier explicit change in this conversation remains a draft choice on later turns; cite its original user wording when retaining it. '
-    + (includeClassification ? 'Keep the normal classificationShadowJson full snapshot consistent with these choices. ' : '')
-    + 'Unresolved services remain questions, never both modes by default. '
-    + 'All changes remain proposals for the signed profile review and explicit Save.'
+  return 'Per-service modes/handoff: draftServices replace savedServices for that service; otherwise preserve saved choices. Catalog modes and unrelated bio/area/calendar edits do not authorize changes or activation. '
+    + 'serviceModeChangesJson is a STRING array of {service,modes,evidence,handoff?}, or "[]" for no change. service exactly matches an offered skill; modes is its COMPLETE intended REMOTE/ON_SITE set. evidence: verbatim USER quote (6–1000 characters) stating initial scope or a mode/handoff change. Obvious initial work can establish mode; a multi-service statement gives each service the same quote. '
+    + 'handoff requires REMOTE. Handoff-only changes preserve modes; omitted handoff preserves its prior value. '
+    + (includeClassification ? 'Its handoff must equal the new REMOTE classification proposal. ' : 'Declare handoff here once; the server attaches it to classification. ')
+    + 'Unchanged server draft choices need no repeated declaration. An earlier change absent from context cites its original USER wording. Never cite assistant/catalog/bio/unrelated text as consent or invent it. Unclear mode: ask about execution, never default BOTH. '
+    + (includeClassification ? 'Keep classificationShadowJson full snapshot consistent with these choices. ' : '')
+    + 'These remain draft choices until explicit Save.'
     + (includeContext ? ' Server-owned service mode context: ' + JSON.stringify(context) + '.' : '');
 }
 

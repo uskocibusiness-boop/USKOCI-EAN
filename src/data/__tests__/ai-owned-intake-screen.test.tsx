@@ -33,9 +33,15 @@ const mockLocationResolve = jest.fn();
 jest.mock('../locationDialogueClientService', () => ({ locationDialogueEnabled: () => mockLocationDialogueEnabled,
   resolveLocationDialogue: (...args: unknown[]) => mockLocationResolve(...args) }));
 const mockOpen = jest.fn(), mockLoad = jest.fn(), mockSend = jest.fn(), mockTurn = jest.fn(), mockAbandon = jest.fn();
+const mockReadLatestReview = jest.fn(), mockPrepareReview = jest.fn();
+let mockLastConversation: AiNeedV2Conversation | null = null;
+jest.mock('../aiTaskReviewClientService', () => ({ aiTaskReviewClientService: {
+  readLatest: (...args: unknown[]) => mockReadLatestReview(...args),
+  prepare: (...args: unknown[]) => mockPrepareReview(...args),
+} }));
 const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn(), push: jest.fn() };
 jest.mock('../index', () => ({ aiNeedV2Izvor: { openConversation: (...args: unknown[]) => mockOpen(...args),
-  loadConversation: (...args: unknown[]) => mockLoad(...args), sendMessage: (...args: unknown[]) => mockSend(...args),
+  loadConversation: async (...args: unknown[]) => { const result = await mockLoad(...args); mockLastConversation = result; return result; }, sendMessage: (...args: unknown[]) => mockSend(...args),
   readTurn: (...args: unknown[]) => mockTurn(...args), recoverTurn: (...args: unknown[]) => mockRecover(...args), cancelTurn: (...args: unknown[]) => mockCancel(...args), abandonConversation: (...args: unknown[]) => mockAbandon(...args) } }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
@@ -140,7 +146,22 @@ function publicFact(key: NeedFactV2Key, value: unknown): AiNeedV2Conversation['f
 function completeFacts(title = 'Prenos ormara'): AiNeedV2Conversation['facts'] {
   return [publicFact('need.title', title), publicFact('need.description', 'Prevod kratkog uputstva.'), publicFact('need.category', 'Prevod'),
     publicFact('need.price_mode', 'OFFERS'), publicFact('need.people_needed', 1), publicFact('need.schedule_kind', 'WEEK_FLEXIBLE'),
-    publicFact('need.task_country_code', 'RS'), publicFact('need.task_geography', { mode: 'REMOTE' })];
+    publicFact('need.task_country_code', 'RS'), publicFact('need.task_geography', { mode: 'REMOTE' }), publicFact('need.handoff', { required: false })];
+}
+// Explicit synthetic server review. The actual readiness validator still checks
+// all facts, location, expiration and classification; no readiness function is mocked.
+function currentReview() {
+  const data = mockLastConversation!;
+  const value = (key: string) => data.facts.find(f => f.key === key && f.status !== 'UNKNOWN')?.value ?? null;
+  return { reviewId: other, accountId: mockSession.user.id, conversationId: data.conversationId,
+    schemaVersion: 'NEED_FACT_V2', draftId: null, draftRevision: 1, displayedContentDigest: 'a'.repeat(64),
+    factsRevision: 'b'.repeat(64), sourceTurnRevision: data.messages.length, geographyRevision: 'c'.repeat(64),
+    expiresAt: new Date(Date.now() + 60_000).toISOString(), responseDeadline: null,
+    publicProjection: data.facts.filter(f => f.privacyClass === 'PUBLIC'),
+    ownerPrivateProjection: data.facts.filter(f => f.privacyClass !== 'PUBLIC'), missingRequired: [], canAccept: true,
+    safety: data.safety, classificationState: 'READY', classificationCandidates: [],
+    location: { taskCountryCode: value('need.task_country_code'), geography: value('need.task_geography'),
+      exactAddress: value('need.exact_address'), accessNotes: value('need.access_notes'), resolvedLocation: value('need.resolved_location') } };
 }
 const noSummary = () => expect(tree.root.findAllByProps({ testID: 'intake-task-summary' })).toHaveLength(0);
 it('does not present empty readback fallback REVIEW as a content safety assessment', async () => {
@@ -158,6 +179,18 @@ it('shows one complete proposed task at the end, before explicit review confirma
   expect(tree.root.findByProps({ testID: 'ai-end-card' }).findAll(node => typeof node.type === 'string' && node.props.testID === 'intake-task-summary')).toHaveLength(1);
   expect(data.review.canSaveDraft).toBe(false);
   expect(mockSend).not.toHaveBeenCalled();
+});
+it.each(['PENDING_CLASSIFICATION','STALE_CATALOG','CATALOG_UNAVAILABLE','REVIEW_REQUIRED'])(
+  'complete facts alone cannot expose a final card while server classification is %s', async state => {
+    mockLoad.mockResolvedValue(conversation({facts:completeFacts()}));
+    mockPrepareReview.mockImplementation(async () => ok({...currentReview(),classificationState:state,canAccept:false}));
+    await resume();noSummary();await options();expect(menuItems('Pregledajte zadatak')).toHaveLength(0);
+    expect(mockSend).not.toHaveBeenCalled();expect(mockRouter.push).not.toHaveBeenCalled();
+    expect(text()).not.toContain('Ponovite opis');
+  });
+it.each(['BLOCK','REVIEW'] as const)('complete facts do not bypass safety %s',async safety=>{
+  mockLoad.mockResolvedValue(conversation({facts:completeFacts(),safety}));await resume();noSummary();
+  expect(mockPrepareReview).not.toHaveBeenCalled();expect(mockSend).not.toHaveBeenCalled();
 });
 it.each([
   ['amount missing', { 'need.price_mode': 'MY_PRICE' }, false],
@@ -218,7 +251,7 @@ it('keeps a complete finished task at the end with only one footer review action
   mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED', facts: completeFacts() })); await resume();
   expect(tree.root.findAllByProps({ testID: 'ai-end-card' })).toHaveLength(1);
   expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findAllByProps({ label: 'Pregledajte zadatak' })).toHaveLength(0);
-  expect(tree.root.findByProps({ testID: 'ai-footer-action' }).findAllByProps({ label: 'Pregledajte zadatak' })).toHaveLength(1);
+  expect(tree.root.findByProps({ testID: 'ai-footer-action' }).findAllByProps({ label: 'Proverite sačuvani zadatak' })).toHaveLength(1);
 });
 function turn(requestId: string, state: string, retryAllowed = false) { return ok({ conversationId: id, clientRequestId: requestId,
   state, retryAllowed, turnId: state === 'ABSENT' ? null : other, receipt: state === 'SUCCEEDED' ? {
@@ -264,8 +297,12 @@ const menuItems = (label: string) => tree.root.findAll(node => node.props.access
 const menuItem = (label: string) => { const [item] = menuItems(label); if (!item) throw new Error(`No menu item ${label}`); return item.props; };
 const closeMenu = async () => { await act(async () => tree.root.findByType(ActionSheet).props.onClose()); };
 beforeEach(async () => {
+  jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-01T12:00:00Z'));
   await AsyncStorage.clear();
   jest.clearAllMocks(); for (const mock of [mockOpen, mockLoad, mockSend, mockTurn, mockAbandon, mockRecover, mockCancel]) mock.mockReset();
+  mockLastConversation = null;
+  mockReadLatestReview.mockReset().mockResolvedValue(ok(null));
+  mockPrepareReview.mockReset().mockImplementation(async () => ok(currentReview()));
   mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockParams = {}; mockCounter = 0;
   mockReduced = false;mockHeight=844;mockFontScale=1;
   mockVoicePhase = 'IDLE';
@@ -291,7 +328,7 @@ beforeEach(async () => {
   mockUploadPhoto.mockReset(); mockRemovePhoto.mockReset(); mockPickPhotos.mockReset();
 });
 let mockServerPhotos: unknown[] = [];
-afterEach(async () => { await act(async () => tree?.unmount()); });
+afterEach(async () => { await act(async () => tree?.unmount()); jest.spyOn(Date, 'now').mockRestore(); });
 
 // The same controller owns both the idle notice and the visible microphone.
 // Text-first entry does not mount a capture control until voice is selected.
@@ -873,7 +910,7 @@ it.each(['COMPLETED', 'ABANDONED'] as const)('%s: the way on stays on the screen
   const saved = conversation({ status, facts: [publicFact('need.title', 'Prenos ormara')] }); mockLoad.mockResolvedValue(saved); await resume();
   // With a review to open, it is the one green action; otherwise a new task is. The menu keeps its rows for the rare case.
   const onScreen = (label: string) => tree.root.findAllByProps({ label }).length;
-  if (status === 'COMPLETED') { expect(onScreen('Pregledajte zadatak')).toBeGreaterThan(0); expect(onScreen('Novi zadatak')).toBe(0); }
+  if (status === 'COMPLETED') { expect(onScreen('Proverite sačuvani zadatak')).toBeGreaterThan(0); expect(onScreen('Novi zadatak')).toBe(0); }
   else { expect(onScreen('Novi zadatak')).toBeGreaterThan(0); expect(onScreen('Pregledajte zadatak')).toBe(0); }
   expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
 });
@@ -908,8 +945,8 @@ it('keeps current facts in the card and review instead of attaching changed valu
   expect(text()).not.toContain(fact.displayValue);
   expect(thread.findAll(node => String(node.props.accessibilityLabel ?? '').startsWith('Iz ovoga je uzeto:'))).toHaveLength(0);
   noSummary(); await options();
-  await act(async () => menuItem('Pregledajte zadatak').onPress());
-  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
+  expect(menuItems('Pregledajte zadatak')).toHaveLength(0);
+  expect(mockRouter.push).not.toHaveBeenCalled();
 });
 
 it('does not present UNKNOWN facts as completed answers', async () => {
@@ -937,11 +974,9 @@ it('keeps private address and resolved coordinates out of the compact live card 
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
   noSummary();
-  await options(); expect(menuItems('Pregledajte zadatak')).toHaveLength(1);
-  const review = menuItem('Pregledajte zadatak');
-  await act(async () => { review.onPress(); review.onPress(); });
-  expect(mockRouter.push).toHaveBeenCalledTimes(1);
-  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
+  await options(); expect(menuItems('Pregledajte zadatak')).toHaveLength(0);
+  expect(mockRouter.push).not.toHaveBeenCalled();
+  expect(mockPrepareReview).not.toHaveBeenCalled();
 });
 
 it('keeps partial proposals out of the conversation card while facts are gathered', async () => {
@@ -994,7 +1029,7 @@ it('never names a category and does not call the draft ready while only the cate
   mockLoad.mockResolvedValue(hidden); await resume();
   expect(text()).not.toContain('Kategorija'); expect(text()).not.toContain('Još treba');
   expect(text()).not.toContain('Sve traženo je uneto.');
-  noSummary(); await options(); expect(menuItem('Pregledajte zadatak').disabled).toBe(false);
+  noSummary(); await options(); expect(menuItems('Pregledajte zadatak')).toHaveLength(0);
   await act(async () => tree.unmount());
   const done = conversation({ messages: said, facts: completeFacts() });
   mockLoad.mockResolvedValue(done); await resume();
@@ -1201,13 +1236,13 @@ it('keeps a typed draft but prevents competing send, review and photo navigation
   await resume(); await type('Još jedna napomena');
   const send = submit().onPress;
   const photos = plus().onPress;
-  await options(); const review = menuItem('Pregledajte zadatak').onPress; await closeMenu();
+  await options(); expect(menuItems('Pregledajte zadatak')).toHaveLength(0); await closeMenu();
   const point = tree.root.findByType('PointAsk' as React.ElementType).props;
   await act(async () => point.onEditingChange(true));
   expect(input().value).toBe('Još jedna napomena');
   expect(submit().accessibilityState.disabled).toBe(true);
   // Retained callbacks from before the manual editor opened cannot bypass the interlock.
-  await act(async () => { send(); photos(); review(); });
+  await act(async () => { send(); photos(); });
   expect(mockSend).not.toHaveBeenCalled(); expect(mockRouter.push).not.toHaveBeenCalled();
   expect(tree.root.findAllByType(PhotoAttachSheet)).toHaveLength(0);
   await act(async () => point.onEditingChange(false));
@@ -1928,8 +1963,8 @@ describe('adding photos inside the conversation', () => {
 });
 
 
-it('keeps the complete card and safety warning while a photo blocks review, including a retained review callback',async()=>{
- mockLoad.mockResolvedValue(conversation({facts:completeFacts(),safety:'REVIEW'}));await resume();
+it('keeps a ready card while a photo blocks review, including a retained review callback',async()=>{
+ mockLoad.mockResolvedValue(conversation({facts:completeFacts()}));await resume();
  const card=()=>tree.root.findByProps({testID:'intake-task-summary'});
  const safetyText=card().findAllByProps({variant:'note'}).map(node=>node.props.children).filter(child=>typeof child==='string').join(' ');
  const review=card().findByProps({label:'Pregledajte zadatak'}).props.onPress;

@@ -17,7 +17,9 @@ export function parseWorkerAreaRequests(raw){
  });
 }
 export function resolveWorkerAreaRows(request,raw){
- if(!Array.isArray(raw)||raw.length>5)throw Error('WORKER_AREA_UNRESOLVED');
+ // A malformed provider reply is an unavailable lookup, not evidence that the
+ // worker gave an unclear city. Only a valid result set may ask for clarification.
+ if(!Array.isArray(raw)||raw.length>5)throw Error('WORKER_AREA_UNAVAILABLE');
  const cities=new Map();
  for(const row of raw){
   if(!row||typeof row!=='object'||!row.address||row.address.country_code?.toLowerCase()!=='rs')continue;
@@ -39,16 +41,25 @@ export function resolveWorkerAreaRows(request,raw){
  if(cities.size!==1)throw Error('WORKER_AREA_UNRESOLVED');
  return [...cities.values()][0];
 }
-export async function resolveWorkerAreas(raw,{token,requestJson,signal}){
- const requests=parseWorkerAreaRequests(raw);
- const areas=await Promise.all(requests.map(async a=>{
-  if(signal?.aborted)throw Error('WORKER_AI_CANCELLED');
-  if(a.kind==='COUNTRY')return {kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,latitude:null,longitude:null,radiusKm:null};
-  if(!token)throw Error('WORKER_AREA_UNAVAILABLE');
+export async function resolveWorkerAreas(raw,{token,requestJson,signal,
+ ownedAreas=/** @type {ReadonlyArray<import('../../../src/contracts/workerAreas.ts').WorkerArea>} */([])}){
+  const requests=parseWorkerAreaRequests(raw);
+  const areas=await Promise.all(requests.map(async a=>{
+    if(signal?.aborted)throw Error('WORKER_AI_CANCELLED');
+    if(a.kind==='COUNTRY')return {kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,latitude:null,longitude:null,radiusKm:null};
+    // Only decoder-validated, server-owned candidate areas may be supplied.
+    // A complete replacement list often repeats untouched cities. Preserve
+    // their exact resolved identity instead of paying/relying on another lookup.
+    // Ambiguous same-name cities and actual edits still require resolution.
+    const sameCity=ownedAreas.filter(area=>area.countryCode===a.countryCode&&cityKey(area.city)===cityKey(a.query));
+    if(sameCity.length===1&&sameCity[0].kind===a.kind&&sameCity[0].radiusKm===a.radiusKm)return {...sameCity[0]};
+    if(!token)throw Error('WORKER_AREA_UNAVAILABLE');
   const url=new URL('https://eu1.locationiq.com/v1/search');
   for(const [key,value] of Object.entries({key:token,q:a.query,format:'json',countrycodes:'rs',addressdetails:'1',limit:'5','accept-language':'sr-Latn'}))url.searchParams.set(key,value);
-  const response=await requestJson(url.toString(),{method:'GET'},131072,7000,signal);
-  if(!response.ok)throw Error('WORKER_AREA_UNAVAILABLE');
+  let response;
+  try{response=await requestJson(url.toString(),{method:'GET'},131072,7000,signal);}
+  catch(error){if(signal?.aborted)throw error;throw Error('WORKER_AREA_UNAVAILABLE');}
+  if(!response?.ok)throw Error('WORKER_AREA_UNAVAILABLE');
   return resolveWorkerAreaRows(a,response.data);
  }));
  if(new Set(areas.map(a=>a.sourceRef??a.countryCode)).size!==areas.length)throw Error('WORKER_AREA_INVALID');

@@ -28,56 +28,57 @@ const NEED_EDIT_COPY: Record<string, string> = {
   NEED_NOT_OWNED: 'Samo vlasnik zadatka može da ga menja.',
   NOT_OWNER: 'Samo vlasnik zadatka može da ga menja.',
   NEED_NOT_FOUND: 'Zadatak nije pronađen.',
-  STALE_REVIEW_REQUIRED: 'Zadatak je u međuvremenu promenjen. Otvori ga ponovo i proveri podatke.',
-  NEED_EDIT_CONFLICT: 'Zadatak je u međuvremenu promenjen. Otvori ga ponovo i proveri podatke.',
-  EDIT_FACTS_REQUIRE_HUMAN_CONFIRMATION: 'Potvrdi sve podatke pre čuvanja izmena.',
-  REQUIRED_CONFIRMED_FACTS_MISSING: 'Nedostaju obavezni podaci. Dopuni ih pre čuvanja.',
+  STALE_REVIEW_REQUIRED: 'Zadatak je u međuvremenu promenjen. Otvorite ga ponovo i proverite podatke.',
+  NEED_EDIT_CONFLICT: 'Zadatak je u međuvremenu promenjen. Otvorite ga ponovo i proverite podatke.',
+  NEED_EDIT_BUSY: 'Razgovor o ovom zadatku trenutno obrađuje drugu radnju. Sačekajte kratko i osvežite prikaz pre ponovnog otvaranja izmene.',
+  EDIT_FACTS_REQUIRE_HUMAN_CONFIRMATION: 'Potvrdite podatke u pregledu pre čuvanja izmena.',
+  REQUIRED_CONFIRMED_FACTS_MISSING: 'Nedostaju obavezni podaci. Dopunite ih pre čuvanja.',
   NO_MATERIAL_CHANGE: 'Nijedan podatak nije promenjen.',
-  EDIT_CONVERSATION_NOT_CONFIRMABLE: 'Ova izmena više nije otvorena. Pokreni izmenu ponovo iz zadatka.',
+  EDIT_CONVERSATION_NOT_CONFIRMABLE: 'Ova izmena više nije otvorena. Pokrenite izmenu ponovo iz zadatka.',
   EDIT_CONVERSATION_NEED_MISMATCH: 'Ova izmena ne pripada ovom zadatku.',
-  MY_PRICE_AMOUNT_REQUIRED: 'Unesi cenu ili izaberi prikupljanje ponuda.',
-  FIXED_WINDOW_BOUNDS_REQUIRED: 'Unesi početak termina. Kraj je opcioni; ako ga navedeš, mora biti kasnije.',
+  MY_PRICE_AMOUNT_REQUIRED: 'Unesite cenu ili izaberite prikupljanje ponuda.',
+  FIXED_WINDOW_BOUNDS_REQUIRED: 'Unesite početak termina. Kraj je opcioni; ako ga navedete, mora biti kasnije.',
 };
 
 
 const ERRORS: Readonly<Record<string, string>> = {
   ...NEED_EDIT_COPY,
-  IDENTITY_VERIFICATION_UNAVAILABLE: 'Provera identiteta nije dostupna. U pregledu ukloni taj uslov da nastaviš običnim zadatkom.',
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
-  AUTH_ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvori razgovor.',
+  IDENTITY_VERIFICATION_UNAVAILABLE: 'Provera identiteta nije dostupna. U pregledu uklonite taj uslov da nastavite običnim zadatkom.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.',
+  AUTH_ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvorite razgovor.',
   CONVERSATION_NOT_FOUND: 'Razgovor nije pronađen.',
   CONVERSATION_NOT_OPEN: 'Ovaj razgovor više nije otvoren.',
   CONVERSATION_PURPOSE_MISMATCH: 'Ovaj razgovor ne pripada unosu zadatka.',
   CONVERSATION_SCHEMA_MISMATCH: 'Ovaj razgovor nije spreman za ovaj unos.',
   REQUESTER_PROFILE_NOT_READY: 'Profil za objavu zadataka nije spreman.',
-  NEED_REVISION_STALE: 'Zadatak je u međuvremenu promenjen. Ponovo proveri podatke.',
-  CLIENT_REQUEST_ID_INVALID: 'Zahtev nije ispravan. Ponovo otvori razgovor.',
-  AI_RATE_LIMITED: 'Zahtevi su trenutno ograničeni. Proveri ishod pre ponovnog pokušaja.',
-  AI_ACCESS_DENIED: 'Pristup razgovoru nije odobren. Ponovo otvori razgovor.',
+  NEED_REVISION_STALE: 'Zadatak je u međuvremenu promenjen. Ponovo proverite podatke.',
+  CLIENT_REQUEST_ID_INVALID: 'Zahtev nije ispravan. Ponovo otvorite razgovor.',
+  AI_RATE_LIMITED: 'Zahtevi su trenutno ograničeni. Proverite ishod pre ponovnog pokušaja.',
+  AI_ACCESS_DENIED: 'Pristup razgovoru nije odobren. Ponovo otvorite razgovor.',
   AI_SERVICE_UNAVAILABLE: 'AI trenutno nije dostupan.',
   [AI_CREDITS_UNAVAILABLE]: AI_CREDITS_UNAVAILABLE_COPY,
-  AI_REQUEST_ID_REUSED: 'Ovaj zahtev već pripada drugoj poruci. Proveri prethodni rezultat.',
-  CONVERSATION_NOT_ABANDONABLE: 'Ovaj razgovor više ne može da se napusti. Proveri njegovo stanje.',
-  CLIENT_REQUEST_ID_REUSED_WITH_DIFFERENT_SNAPSHOT: 'Ovaj zahtev već pripada drugom pregledu. Proveri sačuvano stanje.',
-  DRAFT_SAVE_BLOCKED_BY_SAFETY: 'Proveri zahtev pre čuvanja nacrta.',
-  FACT_NOT_FOUND: 'Podatak više nije dostupan. Osveži pregled.',
-  FACT_SUPERSEDED: 'Podatak je u međuvremenu promenjen. Osveži pregled.',
+  AI_REQUEST_ID_REUSED: 'Ovaj zahtev već pripada drugoj poruci. Proverite prethodni rezultat.',
+  CONVERSATION_NOT_ABANDONABLE: 'Ovaj razgovor više ne može da se napusti. Proverite njegovo stanje.',
+  CLIENT_REQUEST_ID_REUSED_WITH_DIFFERENT_SNAPSHOT: 'Ovaj zahtev već pripada drugom pregledu. Proverite sačuvano stanje.',
+  DRAFT_SAVE_BLOCKED_BY_SAFETY: 'Proverite zahtev pre čuvanja nacrta.',
+  FACT_NOT_FOUND: 'Podatak više nije dostupan. Osvežite pregled.',
+  FACT_SUPERSEDED: 'Podatak je u međuvremenu promenjen. Osvežite pregled.',
   // What the server actually raises on a correction or a confirmation (deep read 7.24). Each of these is
   // an answer "no, because…", not a lost reply, so it must not read "Ishod radnje nije potvrđen".
-  SUPERSEDED: 'Podatak je u međuvremenu promenjen. Osveži pregled.',
-  AI_NEED_DRAFT_BLOCKED: 'Proveri zahtev pre čuvanja nacrta.',
-  CONVERSATION_CLOSED: 'Ovaj razgovor je zatvoren. Otvori zadatak ponovo.',
+  SUPERSEDED: 'Podatak je u međuvremenu promenjen. Osvežite pregled.',
+  AI_NEED_DRAFT_BLOCKED: 'Proverite zahtev pre čuvanja nacrta.',
+  CONVERSATION_CLOSED: 'Ovaj razgovor je zatvoren. Otvorite zadatak ponovo.',
   CONVERSATION_NOT_EDITABLE: 'Ovaj razgovor više ne može da se menja.',
   FACT_SCOPE_NOT_EDITABLE: 'Ovaj podatak ne može da se menja ovde.',
-  LOCATION_EDITOR_REQUIRED: 'Mesto izmeni na mapi, u delu za lokaciju.',
-  CONFIRMED_PROVENANCE_INVALID: 'Ovaj podatak ne može da se potvrdi ovde. Izmeni ga, pa potvrdi.',
+  LOCATION_EDITOR_REQUIRED: 'Mesto izmenite na mapi, u delu za lokaciju.',
+  CONFIRMED_PROVENANCE_INVALID: 'Ovaj podatak ne može da se potvrdi ovde. Izmenite ga, pa potvrdite.',
   V2_FACT_DISPLAY_INVALID: 'Tekst nije ispravan ili je predugačak.',
-  V2_FACT_VALUE_REQUIRED: 'Unesi vrednost.',
-  V2_FACT_INTEGER_REQUIRED: 'Unesi ceo broj.',
+  V2_FACT_VALUE_REQUIRED: 'Unesite vrednost.',
+  V2_FACT_INTEGER_REQUIRED: 'Unesite ceo broj.',
   V2_FACT_TYPE_INVALID: 'Vrednost nije odgovarajućeg oblika.',
-  V2_FACT_ARRAY_ITEM_INVALID: 'Proveri listu: najviše 50 stavki, do 500 znakova po stavci.',
-  V2_FACT_TIMESTAMP_SHAPE_INVALID: 'Termin nije ispravan. Proveri datum i vreme.',
-  V2_TIMESTAMP_INVALID: 'Termin nije ispravan. Proveri datum i vreme.',
+  V2_FACT_ARRAY_ITEM_INVALID: 'Proverite listu: najviše 50 stavki, do 500 znakova po stavci.',
+  V2_FACT_TIMESTAMP_SHAPE_INVALID: 'Termin nije ispravan. Proverite datum i vreme.',
+  V2_TIMESTAMP_INVALID: 'Termin nije ispravan. Proverite datum i vreme.',
   V2_PRICE_INVALID: 'Iznos mora biti između 1 i 100.000.000 RSD.',
   V2_PEOPLE_INVALID: 'Broj ljudi mora biti između 1 i 50.',
   V2_EXPERIENCE_INVALID: 'Iskustvo može biti od 0 do 60 godina.',
@@ -88,15 +89,15 @@ const ERRORS: Readonly<Record<string, string>> = {
   V2_ACCESS_NOTES_INVALID: 'Napomena o pristupu može imati najviše 2.000 znakova.',
   V2_PRICE_MODE_INVALID: 'Cena može biti „moja cena“ ili „ponude“.',
   V2_PRICE_BASIS_INVALID: 'Cena može biti „ukupno“, „po osobi“ ili „po osobi po satu“.',
-  V2_SCHEDULE_KIND_INVALID: 'Termin izmeni prirodnim jezikom kroz razgovor.',
-  V2_AREA_GEOGRAPHY_INVALID: 'Lokaciju izmeni kroz razgovor.',
-  V2_STATIONARY_GEOGRAPHY_INVALID: 'Lokaciju izmeni kroz razgovor.',
-  V2_POINT_TO_POINT_GEOGRAPHY_INVALID: 'Lokaciju izmeni kroz razgovor.',
-  V2_MULTI_STOP_GEOGRAPHY_INVALID: 'Lokaciju izmeni kroz razgovor.',
-  V2_TASK_GEOGRAPHY_MODE_INVALID: 'Lokaciju izmeni kroz razgovor.',
-  V2_TASK_GEOGRAPHY_LOCATION_INVALID: 'Lokaciju izmeni kroz razgovor.',
-  V2_TASK_GEOGRAPHY_WAYPOINTS_INVALID: 'Lokaciju izmeni kroz razgovor.',
-  V2_REMOTE_MUST_HAVE_NO_PHYSICAL_GEOGRAPHY: 'Zadatak na daljinu nema mesto izvođenja. Lokaciju izmeni kroz razgovor.',
+  V2_SCHEDULE_KIND_INVALID: 'Termin izmenite prirodnim jezikom kroz razgovor.',
+  V2_AREA_GEOGRAPHY_INVALID: 'Lokaciju izmenite kroz razgovor.',
+  V2_STATIONARY_GEOGRAPHY_INVALID: 'Lokaciju izmenite kroz razgovor.',
+  V2_POINT_TO_POINT_GEOGRAPHY_INVALID: 'Lokaciju izmenite kroz razgovor.',
+  V2_MULTI_STOP_GEOGRAPHY_INVALID: 'Lokaciju izmenite kroz razgovor.',
+  V2_TASK_GEOGRAPHY_MODE_INVALID: 'Lokaciju izmenite kroz razgovor.',
+  V2_TASK_GEOGRAPHY_LOCATION_INVALID: 'Lokaciju izmenite kroz razgovor.',
+  V2_TASK_GEOGRAPHY_WAYPOINTS_INVALID: 'Lokaciju izmenite kroz razgovor.',
+  V2_REMOTE_MUST_HAVE_NO_PHYSICAL_GEOGRAPHY: 'Zadatak na daljinu nema mesto izvođenja. Lokaciju izmenite kroz razgovor.',
 };
 const SAFETY = ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'] as const;
 const STATUS = ['OPEN', 'COMPLETED', 'ABANDONED'] as const;
@@ -357,14 +358,14 @@ export const aiNeedV2Production = {
   },
 
   async readTurn(conversationId: string, clientRequestId: string): Promise<Ishod<AiNeedTurnStatus>> {
-    if (!uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvori razgovor.');
+    if (!uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
     return readReceipt({ rpc: 'rpc_ai_read_need_turn_v2', args: { p_conversation_id: conversationId, p_client_request_id: clientRequestId },
       errors: ERRORS, fallback: 'AI_TURN_READ_FAILED', invalid: 'AI_TURN_INVALID_RESPONSE', decode: raw => turnStatus(raw, conversationId, clientRequestId) });
   },
 
   async recoverTurn(conversationId: string, clientRequestId: string): Promise<Ishod<AiNeedTurnRecovery>> {
     const account = scope();
-    if (!account || !uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvori razgovor.');
+    if (!account || !uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
     return readReceipt({ rpc: 'rpc_ai_recover_need_turn_v2',
       args: { p_conversation_id: conversationId, p_client_request_id: clientRequestId },
       errors: ERRORS, fallback: 'AI_TURN_READ_FAILED', invalid: 'AI_TURN_INVALID_RESPONSE',
@@ -373,7 +374,7 @@ export const aiNeedV2Production = {
 
   async cancelTurn(conversationId: string, clientRequestId: string): Promise<Ishod<AiNeedTurnRecovery>> {
     const account = scope();
-    if (!account || !uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvori razgovor.');
+    if (!account || !uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
     return readReceipt({ write: true, rpc: 'rpc_ai_cancel_need_turn_v2',
       args: { p_conversation_id: conversationId, p_client_request_id: clientRequestId },
       errors: ERRORS, fallback: 'AI_TURN_CANCEL_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
@@ -381,7 +382,7 @@ export const aiNeedV2Production = {
   },
 
   async sendMessage(conversationId: string, body: string, clientRequestId: string, stream?: AiTurnStreamOptions, image?: { base64: string; mimeType: string }): Promise<Ishod<AiNeedTurnStatus>> {
-    if (!uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvori razgovor.');
+    if (!uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
     const text = typeof body === 'string' ? body.trim() : '';
     if (!text && !image) return fail('MESSAGE_REQUIRED', 'Unesi poruku ili priloži fotografiju.');
     if (text && !boundedText(text, 4000)) return fail('MESSAGE_TOO_LONG', 'Poruka može imati najviše 4000 znakova i ispravan tekst.');
@@ -421,7 +422,7 @@ export const aiNeedV2Production = {
   },
 
   async abandonConversation(conversationId: string): Promise<Ishod<AiNeedConversationAbandoned>> {
-    if (!uuid(conversationId)) return fail('CONVERSATION_REQUIRED', 'Ponovo otvori razgovor.');
+    if (!uuid(conversationId)) return fail('CONVERSATION_REQUIRED', 'Ponovo otvorite razgovor.');
     return readReceipt({ rpc: 'rpc_ai_abandon_need_conversation_v2', args: { p_conversation_id: conversationId }, errors: ERRORS,
       write: true, fallback: 'AI_CONVERSATION_ABANDON_UNCONFIRMED', invalid: 'AI_CONVERSATION_ABANDON_INVALID_RESPONSE', decode(raw) {
         const r = exact(raw, ['conversationId', 'status', 'authoritative', 'idempotentReplay']);
@@ -467,8 +468,16 @@ export const aiNeedV2Production = {
   },
 
   async openEditConversation(needId: string): Promise<Ishod<AiNeedEditOpened>> {
-    if (!uuid(needId)) return fail('NEED_REQUIRED', 'Učitaj zadatak pre izmene.');
-    return readReceipt({ rpc: 'rpc_ai_open_need_edit_conversation_v2', args: { p_need_id: needId }, errors: ERRORS,
+    if (!uuid(needId)) return fail('NEED_REQUIRED', 'Učitajte zadatak pre izmene.');
+    return readOwnedResult({ errors: ERRORS, request: async () => {
+      const result = await supabaseKlijent().rpc('rpc_ai_open_need_edit_conversation_v2', { p_need_id: needId });
+      // This opener uses NOWAIT on the existing conversation. A returned
+      // PostgreSQL lock refusal is different from a lost response; translate
+      // only that closed SQLSTATE, never arbitrary database text or a timeout.
+      // The editor still requires a read before a new attempt; no auto replay.
+      return result.data === null && result.error?.code === '55P03'
+        ? { data: null, error: { message: 'NEED_EDIT_BUSY' } } : result;
+    },
       write: true, fallback: 'NEED_EDIT_OPEN_FAILED', invalid: 'NEED_EDIT_INVALID_RESPONSE', decode(raw) {
         const r = exact(raw, ['conversationId', 'needId', 'revision', 'status', 'authoritative']);
         return r && uuid(r.conversationId) && sameId(r.needId, needId) && positiveInteger(r.revision)
@@ -479,7 +488,7 @@ export const aiNeedV2Production = {
 
   async confirmEdit(needId: string, expectedRevision: number, conversationId: string, clientRequestId: string): Promise<Ishod<AiNeedEditConfirmed>> {
     if (!uuid(needId) || !uuid(conversationId) || !positiveInteger(expectedRevision) || expectedRevision === 2_147_483_647 || !commandKey(clientRequestId))
-      return fail('NEED_EDIT_IDENTITY_INVALID', 'Ponovo otvori pregled izmene.');
+      return fail('NEED_EDIT_IDENTITY_INVALID', 'Ponovo otvorite pregled izmene.');
     return readReceipt({ rpc: 'rpc_confirm_need_edit_from_review_v2', args: { p_need_id: needId, p_expected_revision: expectedRevision,
       p_conversation_id: conversationId, p_client_request_id: clientRequestId }, errors: ERRORS, write: true, fallback: 'NEED_EDIT_CONFIRM_FAILED', invalid: 'NEED_EDIT_INVALID_RESPONSE', decode(raw) {
         const r = exact(raw, ['needId', 'fromRevision', 'revision', 'status', 'revisionEventId', 'conversationId', 'requiresReadmission', 'idempotentReplay', 'authoritative']);

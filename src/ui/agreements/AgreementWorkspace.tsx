@@ -43,10 +43,10 @@ export function agreementNextStep({ state, party, worker, change, ownRating, pro
   problemOpen: boolean; deadline: string;
 }): AgreementStep {
   if (change.waits) return { tone: 'warn',
-    title: change.mine === true ? 'Tvoj predlog izmene čeka odgovor' : change.mine === false ? CHANGE_WAITS_FOR_ME : 'Predlog izmene čeka odgovor',
+    title: change.mine === true ? 'Vaš predlog izmene čeka odgovor' : change.mine === false ? CHANGE_WAITS_FOR_ME : 'Predlog izmene čeka odgovor',
     body: 'Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.' };
   if (state === 'COMPLETED') return { tone: stateTone(state), status: 'task.completed', title: 'Dogovor je završen', body: !party ? null
-    : ownRating === 'GIVEN' ? 'Hvala na saradnji. Tvoja ocena je sačuvana.'
+    : ownRating === 'GIVEN' ? 'Hvala na saradnji. Vaša ocena je sačuvana.'
       : ownRating === 'CLOSED' ? 'Hvala na saradnji.' : 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' };
   // One form of the words across the app ("Dogovor je otkazan", as the task's own notice says it): the full stop that stood here was the only one.
   if (state === 'CANCELLED') return { tone: 'muted', status: 'task.cancelled', title: 'Dogovor je otkazan', body: null };
@@ -55,14 +55,14 @@ export function agreementNextStep({ state, party, worker, change, ownRating, pro
   // Confirmed: the state is the title and the next step its one sentence (phone, 2026-10-08: two sentences stood over the steps). The
   // worker is told which button ends the work; what the other side then does is said in the review that button opens. The one who asked
   // for the work is told nothing here: the foot says, in its own sentence, whose move it is ("Čeka da Marko javi da je zadatak gotov.").
-  return { tone: 'green', title: 'Dogovoreno', body: !party || !worker ? null : 'Kad završiš, dodirni „Zadatak je gotov“.' };
+  return { tone: 'green', title: 'Dogovoreno', body: !party || !worker ? null : 'Kada završite, dodirnite „Zadatak je gotov“.' };
 }
 
 /** The step's own words where the step is mine, shared by the step card and the head of Poruke. */
-const CHANGE_WAITS_FOR_ME = 'Predlog izmene čeka tvoj odgovor';
-const CONFIRM_WAITS_FOR_ME = 'Završetak je označen i čeka tvoju potvrdu';
+const CHANGE_WAITS_FOR_ME = 'Predlog izmene čeka Vaš odgovor';
+const CONFIRM_WAITS_FOR_ME = 'Završetak je označen i čeka Vašu potvrdu';
 /** A finished Dogovor while my rating is due, in the Dogovori list's words for it (owner, 2026-09-23). */
-export const RATING_WAITS_FOR_ME = 'Čeka tvoju ocenu';
+export const RATING_WAITS_FOR_ME = 'Čeka Vašu ocenu';
 
 /**
  * What this Dogovor waits for from ME, if anything, in the step's order and words: a change the other side proposed (it
@@ -164,7 +164,7 @@ export function agreementQuietLine({ state, party, worker, otherName, change, pe
   // The name stands as the subject of its sentence, so it needs no case ending; the app's own stand-in for a missing name is not a name.
   const given = otherName?.trim(), who = given && given !== 'Druga strana' ? given : 'druga strana';
   if (state === 'CANCELLED' || state === 'COMPLETED') return null;
-  if (change.waits) return change.mine === true ? `Čeka da ${who} odgovori na tvoj predlog izmene.` : 'Predlog izmene čeka odgovor.';
+  if (change.waits) return change.mine === true ? `Čeka da ${who} odgovori na Vaš predlog izmene.` : 'Predlog izmene čeka odgovor.';
   if (state === 'AWAITING_REQUESTER' && worker) return `Čeka da ${who} potvrdi završetak.`;
   if (!permissionsKnown) return null;
   if (state === 'CONFIRMED' && !worker) return `Čeka da ${who} javi da je zadatak gotov.`;

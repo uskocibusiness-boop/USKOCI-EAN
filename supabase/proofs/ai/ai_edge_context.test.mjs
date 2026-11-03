@@ -77,7 +77,7 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
     fetch:fakeFetch,console:{error:(...args)=>logs.push(args),info:(...args)=>logs.push(args)},Deno:{env:{get:name=>env[name]},serve:fn=>{handler=fn;}}});
   const cache=new Map();
   function load(file){
-    assert.ok([entry,registry,resolve(root,'supabase/functions/_shared/interviewVoiceInstruction.mjs'),resolve(root,'supabase/functions/_shared/aiPhaseTiming.mjs'),resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),resolve(root,'supabase/functions/_shared/geminiTaskStream.ts'),
+    assert.ok([entry,registry,resolve(root,'supabase/functions/_shared/singlePassTaxonomy.mjs'),resolve(root,'supabase/functions/_shared/completeFirstPlan.ts'),resolve(root,'supabase/functions/_shared/interviewVoiceInstruction.mjs'),resolve(root,'supabase/functions/_shared/aiPhaseTiming.mjs'),resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),resolve(root,'supabase/functions/_shared/geminiTaskStream.ts'),
       resolve(root,'supabase/functions/_shared/geminiToolConversation.ts'),resolve(root,'supabase/functions/_shared/taxonomyProviderBudget.ts'),
       resolve(root,'supabase/functions/_shared/researchDeadline.ts'),resolve(root,'supabase/functions/_shared/classificationExplorer.mjs'),
       resolve(root,'supabase/functions/_shared/serviceHandoff.mjs'),resolve(root,'supabase/functions/_shared/serviceExecutionInstruction.mjs'),
@@ -127,9 +127,9 @@ test('capable client preserves all 13 ordinary task facts and the exact completi
 });
 test('Need prompt separates content safety from preview and routine schedule corrections',async()=>{
  const f=fixture();await f.invoke();const instruction=prompt(providerCall(f));
- assert.match(instruction,/safety opisuje bezbednost sadržaja, nezavisno od faze razgovora/);
- assert.match(instruction,/dialogue.next=REVIEW nije safety=REVIEW/);
- assert.match(instruction,/Promena termina, cene ili drugih podataka običnog zadatka sama po sebi nije bezbednosni rizik/);
+ assert.match(instruction,/safety: ALLOW legitimno/);
+ assert.match(instruction,/REVIEW=business essentials clear, an internal intent only/);
+ assert.match(instruction,/Pregled\/čuvanje\/klasifikacija nisu rizik/);
  assert.doesNotMatch(instruction,/Pre REVIEW/);
 });
 for(const safety of ['REVIEW','BLOCK'])test('preview wording cannot downgrade actual content safety '+safety,async()=>{
@@ -191,27 +191,27 @@ test('stable task rules precede fresh private context without dropping it or sha
 test('requester Gemini prompt asks only one missing fact and retains safety/review rules',async()=>{
  const f=fixture({historyCount:3}); assert.equal((await f.invoke()).status,200);
  const rules=prompt(providerCall(f));
- assert.match(rules,/najviše JEDNU nepoznatu informaciju/);
- assert.match(rules,/Jedno korisno pitanje po poruci/);
- assert.match(rules,/savetnik naručioca za jedan zadatak/);
- assert.match(rules,/ako površina nije navedena, pitajte približnu kvadraturu/);
- assert.match(rules,/SVE jasne činjenice/);
+ assert.match(rules,/najviše JEDNO pitanje za JEDNU bitnu nepoznanicu/);
+ assert.match(rules,/Bez spojenih pitanja/);
+ assert.match(rules,/TASK INTAKE: ONE concrete job/);
+ assert.match(rules,/ask only relevant distinctions/);
+ assert.match(rules,/izdvojite sve jasne podatke/);
  assert.doesNotMatch(rules,/experienced, warm craft and work-profile mentor/);
  assert.doesNotMatch(rules,/najviše TRI zasebne informacije/);
- assert.match(rules,/Tačna privatna adresa\/access notes/);
- assert.match(rules,/ends_at je opcion/);
- assert.match(rules,/Pregled pokazuje nedostatke/);
+ assert.match(rules,/exact address\/access notes use private facts/);
+ assert.match(rules,/ends_at only if stated and later/);
+ assert.match(rules,/aplikacija ga nudi tek uz serverom potvrđene podatke/);
  assert.ok(rules.length<30000,`stable task instruction grew to ${rules.length} characters`);
 });
 
 test('task prompt preserves proportional TOTAL applications and clarification without invented audio access',async()=>{
   const f=fixture();assert.equal((await f.invoke()).status,200);
   const instruction=prompt(providerCall(f));
-  assert.ok(instruction.includes('TOTAL dozvoljava prijavu i za deo traženih ljudi'));
-  assert.ok(instruction.includes('need.price_rsd ostaje ukupna cena'));
+  assert.ok(instruction.includes('TOTAL partial-team price=round(total × offered people / requested people)'));
+  assert.ok(instruction.includes('TOTAL=whole job'));
   assert.ok(!instruction.includes('jedna prijava pokriva ceo zadatak'));
   assert.ok(!instruction.includes('cuo sam od tebe'));
-  assert.ok(instruction.includes('safety CLARIFY i bez novih činjenica'));
+  assert.ok(instruction.includes('CLARIFY nejasno (nerazumljiv unos bez novih podataka)'));
   assert.equal(f.calls.filter(call=>call.url.includes('googleapis')).length,1);
 });
 
@@ -265,7 +265,7 @@ for(const provider of ['gemini'])test(`${provider} outbound V2 schema and prompt
   const f=fixture({provider});assert.equal((await f.invoke()).status,200);
   const call=providerCall(f),schema=call.body.generationConfig?.responseFormat?.text?.schema??call.body.generationConfig?.responseSchema??call.body.text?.format?.schema;
   const allowedKeys=schema.properties.facts.items.properties.key.enum;
-  const promptRegistry=JSON.parse(call.body.systemInstruction.parts[0].text.split('Jedini podržani V2 fact registry: ')[1]);
+  const promptRegistry=call.body.systemInstruction.parts[0].text.split('Fact types; required = complete-draft requirement, not a repeated question: ')[1].split('\n')[0].split(', ').map(value=>({key:value.split(':')[0]}));
   // This fixture keeps the optional application-deadline feature OFF.
   assert.deepEqual(allowedKeys,[...f.registry.AI_PROPOSABLE_NEED_FACT_V2_KEYS]
     .filter(key=>key!=='need.required_licenses'&&key!=='need.response_deadline'));
@@ -285,7 +285,7 @@ test('retired licence requirements remain readable but never reach new task infe
     status:'CONFIRMED',source:'AI',fact_schema_version:'NEED_FACT_V2',created_at:'2026-09-07T10:00:00Z'};
   const f=fixture({activeFacts:[historical]});assert.equal((await f.invoke()).status,200);
   assert.ok(!prompt(providerCall(f)).includes('PRIVATE_HISTORICAL_LICENSE'));
-  assert.match(prompt(providerCall(f)),/Ne pitajte za njih i ne predlažite need.required_licenses/);
+  assert.match(prompt(providerCall(f)),/Licence\/KYC nisu podržani: bez need.required_licenses/);
   const rejected=fixture({providerOutput:{...providerResult,facts:[{key:'need.required_licenses',valueJson:'["LICENSE"]',displayValue:'LICENSE',evidence:userText,confidence:1}]}});
   assert.equal((await rejected.invoke()).status,502);assert.equal(materialWrites(rejected).length,0);
 });
@@ -380,8 +380,8 @@ for(const [now,startsAt,endsAt,inclusiveLastDate] of [
 ])test(`server next calendar week uses per-date offsets and exclusive end at ${now}`,async()=>{
   const f=fixture({now});assert.equal((await f.invoke()).status,200);
   assert.deepEqual(timeContext(providerCall(f)).nextCalendarWeek,{startsAt,endsAt,inclusiveLastDate});
-  assert.ok(prompt(providerCall(f)).includes('ljudima prikažite startsAt–inclusiveLastDate'));
-  assert.ok(prompt(providerCall(f)).includes('DST može dati različite pomake granica'));
+  assert.ok(prompt(providerCall(f)).includes('poslednji uključeni dan, ne isključivu sledeću ponoć'));
+  assert.ok(prompt(providerCall(f)).includes('each bound’s DST offset'));
   const write=materialWrites(f).find(c=>c.url.includes('/rpc_ai_complete_need_turn_v2_service'));
   assert.ok(write);assert.ok(!JSON.stringify(write.body).includes('nextCalendarWeek'));
 });
@@ -391,9 +391,9 @@ test('description guidance avoids duplicate price/date prose without clearing st
   const instruction=prompt(providerCall(f));
   // Guard the meaning of the instruction, independently of the calendar fixtures
   // and its previous formal wording. Runtime fact preservation is tested below.
-  assert.match(instruction,/Ne ponavljajte cenu i datume[^.]*strukturirana polja/);
-  assert.match(instruction,/uklonite staro ponavljanje iz opisa[^.]*očuvane ostale detalje/);
-  assert.match(instruction,/ne povlači niti menja vremenska\/cenovna polja/);
+  assert.match(instruction,/excluding uncertain execution, private addresses and duplicated price\/dates/);
+  assert.match(instruction,/Corrections remove stale claims, not unrelated detail or typed facts/);
+  assert.match(instruction,/not unrelated detail or typed facts/);
 });
 
 for(const provider of ['gemini'])test(`${provider} actual handler sends newest30 chronologically and persists validated proposals`,async()=>{
@@ -402,8 +402,8 @@ for(const provider of ['gemini'])test(`${provider} actual handler sends newest30
   const call=providerCall(f),messages=provider==='gemini'?call.body.contents:call.body.input;
   const texts=messages.map(x=>x.parts?.[0].text??x.content[0].text);
   assert.deepEqual(texts,[...Array.from({length:30},(_,i)=>`SYNTHETIC_HISTORY_${i+21}`),userText]);
-  assert.match(prompt(call),/ne izmišljajte čas, trajanje ili kraj/);
-  assert.match(prompt(call),/ne potvrđen termin/);assert.match(prompt(call),/ljudska potvrda/);
+  assert.match(prompt(call),/ne izmišljajte sat\/trajanje\/kraj/);
+  assert.match(prompt(call),/UNKNOWN nije potvrđeno/);assert.match(prompt(call),/korisnička potvrda celine/);
   assert.equal(timeContext(call).timeZone,'Europe/Belgrade');
   if(provider==='gemini'){
     assert.equal(call.headers['x-goog-api-key'],f.env.GEMINI_API_KEY);assert.equal(new URL(call.url).search,'');
@@ -513,10 +513,10 @@ test('a contradictory date preserves independent answers and withholds synthesiz
 
 test('task prompt carries the shared warm voice and keeps correction in the same conversation',async()=>{
  const f=fixture();await f.invoke();const instructions=prompt(providerCall(f));
- assert.match(instructions,/USKOČI glas:/);
- assert.match(instructions,/Povremeno može jedan nenametljiv smajli/);
- assert.match(instructions,/niti izmišljaj lično iskustvo/);
- assert.match(instructions,/Izmeni kroz razgovor, ne ručni editor/);
+ assert.match(instructions,/USKOČI:/);
+ assert.match(instructions,/najviše jedan diskretan emoji/);
+ assert.match(instructions,/Bez pretpostavljenog roda, ljudskog identiteta\/iskustva/);
+ assert.match(instructions,/Razumite omaške\/ispravke/);
  assert.doesNotMatch(instructions,/ručnom ispravkom u pregledu/);
 });
 test('task Edge keeps an explicit euro budget out of the RSD writer and asks for a chosen dinar amount',async()=>{
@@ -529,7 +529,7 @@ test('task Edge keeps an explicit euro budget out of the RSD writer and asks for
  assert.equal(write.p_safety,'CLARIFY');
  assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
  assert.match(write.p_assistant_message,/RSD/);
- assert.match(prompt(providerCall(f)),/ne preračunavajte po pretpostavljenom kursu/);
+ assert.match(prompt(providerCall(f)),/never convert\/relabel/);
  assert.equal(providerCalls(f).length,1);
 });
 const priceFact=(key,value,evidence)=>({key,valueJson:JSON.stringify(value),displayValue:String(value),evidence,confidence:1});
@@ -552,7 +552,7 @@ test('D06 hourly unit rate reaches the owned writer without headcount multiplica
  assert.equal(write.p_proposals.find(p=>p.key==='need.price_basis').displayValue,'Po osobi po satu');
  assert.equal(write.p_proposals.find(p=>p.key==='need.price_rsd').displayValue,'1200 RSD');
  assert.equal(write.p_proposals.some(p=>p.key==='need.ends_at'),false);
- assert.match(prompt(providerCall(f)),/HOURLY u aplikaciji znači isključivo RSD po osobi po satu/);
+ assert.match(prompt(providerCall(f)),/HOURLY=each person\/hour/);
  const responseSchema=providerCall(f).body.generationConfig.responseSchema;
  assert.ok(responseSchema.properties.dialogue.properties.priceUnit.enum.includes('PER_TEAM_HOUR'));
 });
@@ -885,7 +885,7 @@ test('PKG041 negation with correct evidence is preserved, not converted to the f
 test('finish-only task request cannot invent new terms or claim publication',async()=>{
  const f=fixture();assert.equal((await f.invoke({text:'Objavi zadatak.'})).status,200);
  const written=materialWrites(f)[0].body;assert.deepEqual(written.p_proposals,[]);
- assert.equal(written.p_assistant_message,'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.');
+ assert.equal(written.p_assistant_message,'Šta treba da se uradi?');
 });
 
 const completionFacts=()=>[
@@ -914,14 +914,14 @@ test('a known route still permits a contextual question about its missing destin
 test('a complete spoken route leads to checking map points, not an unverified publish claim',async()=>{
  const f=fixture({activeFacts:routeFacts({mode:'POINT_TO_POINT',start:{city:'Novi Sad',area:'Spens'},end:{city:'Beograd',area:'Gardoš'}}),
   providerOutput:{safety:'ALLOW',facts:[],assistantMessage:'Sve je spremno za objavu.',dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
- await f.invoke();assert.match(materialWrites(f)[0].body.p_assistant_message,/tačke rute koje još nisu potvrđene na mapi/);
+ await f.invoke();assert.match(materialWrites(f)[0].body.p_assistant_message,/Proverite i potvrdite preostale tačke rute na mapi/);
  assert.deepEqual(materialWrites(f)[0].body.p_proposals,[]);
 });
 for(const absent of ['need.title','need.category'])test('REVIEW cannot conceal missing internal completion: '+absent,async()=>{
  const f=fixture({activeFacts:completionFacts().filter(x=>x.fact_key!==absent),providerOutput:{safety:'ALLOW',facts:[],
   assistantMessage:'Sve je spremno.',dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
  await f.invoke();const result=materialWrites(f)[0].body;
- assert.equal(result.p_assistant_message,'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.');
+ assert.equal(result.p_assistant_message,'Podaci za pregled još nisu potpuni. Opis posla ostaje u razgovoru.');
  assert.deepEqual(result.p_proposals,[]);assert.equal(providerCalls(f).length,1);
 });
 test('REVIEW asks the missing material question and retains the last content proposal',async()=>{
@@ -929,7 +929,7 @@ test('REVIEW asks the missing material question and retains the last content pro
   providerOutput:{safety:'ALLOW',facts:[proposed('need.category','Nošenje stvari')],assistantMessage:'Spremno.',
    dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
  await f.invoke();const result=materialWrites(f)[0].body;
- assert.equal(result.p_assistant_message,'Imaš li planiran budžet ili želiš da dobiješ ponude?');
+ assert.equal(result.p_assistant_message,'Imate li planiran budžet ili želite da dobijete ponude?');
  assert.equal(result.p_proposals[0].key,'need.category');
 });
 test('the last classification retains all proposals while a city-only task still asks for its actual place',async()=>{
@@ -950,15 +950,16 @@ test('finish-only can recover only missing presentation from the existing descri
  assert.deepEqual(result.p_proposals.map(x=>x.key),['need.category','need.title']);
  assert.ok(!result.p_assistant_message.includes('Objavljeno'));assert.equal(providerCalls(f).length,1);
  const instruction=providerCalls(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.match(instruction,/obavezno predložite nedostajuća polja u facts u ovoj istoj poruci/);
- assert.ok(instruction.includes(JSON.stringify({existingDescription:'Prenošenje nekoliko kesa od ulaza do stana.',missingPresentation:['need.title','need.category']})));
+ assert.match(instruction,/Iz postojećeg need.description u serverskim činjenicama dopunite samo/);
+ assert.match(instruction,/dopunite samo need.title, need.category/);
+ assert.ok(instruction.includes('Prenošenje nekoliko kesa od ulaza do stana.'));
 });
 for(const variant of ['unknown-description','complete','normal-turn'])
 test('explicit finish completion instruction is absent outside its narrow context: '+variant,async()=>{
  const activeFacts=completionFacts().filter(x=>variant==='complete'||x.fact_key!=='need.category');
  if(variant==='unknown-description')activeFacts.find(x=>x.fact_key==='need.description').status='UNKNOWN';
  const f=fixture({activeFacts});await f.invoke({text:variant==='normal-turn'?'Hvala na objašnjenju.':'To je to.'});
- assert.ok(!providerCalls(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n').includes('obavezno predložite nedostajuća polja u facts u ovoj istoj poruci'));
+ assert.ok(!providerCalls(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n').includes('Iz postojećeg need.description u serverskim činjenicama dopunite samo'));
  assert.equal(providerCalls(f).length,1);
 });
 for(const variant of ['no-description','unknown-description','wrong-evidence','existing-category','different-task'])
@@ -977,7 +978,7 @@ test('a question about known headcount is replaced by one genuinely missing topi
   providerOutput:{safety:'ALLOW',assistantMessage:'Koliko ljudi, kada, gde i koja cena?',facts:[],
    dialogue:{...syntheticDialogue(),next:'ASK',questionKey:'need.people_needed'}}});
  assert.equal((await f.invoke()).status,200);
- assert.equal(materialWrites(f)[0].body.p_assistant_message,'Imaš li planiran budžet ili želiš da dobiješ ponude?');
+ assert.equal(materialWrites(f)[0].body.p_assistant_message,'Imate li planiran budžet ili želite da dobijete ponude?');
 });
 
 for(const [questionKey,message] of [
@@ -1004,8 +1005,8 @@ test('known job description may ask ONE scope clarification without being replac
  assert.deepEqual(written.p_proposals,[]);
  assert.equal(written.p_safety,'CLARIFY');
  const instruction=prompt(providerCall(f));
- assert.match(instruction,/obim konkretno opisanog posla ostaje dvosmislen/);
- assert.match(instruction,/dialogue.next CLARIFY sa questionKey NONE/);
+ assert.match(instruction,/CLARIFY=ambiguity, including known description/);
+ assert.match(instruction,/Non-ASK questionKey=NONE/);
  assert.equal(providerCalls(f).length,1);
 });
 

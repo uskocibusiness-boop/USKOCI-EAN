@@ -89,19 +89,12 @@ export function workerServicesMissingScope(skills,reviewProposals) {
 /** Finish-only response: reveal incompleteness without forcing another AI
  * turn, promoting provider hints or pretending any consent was stored.
  */
-export function workerFinishReviewMessage(skills,reviewProposals,catalogAvailable,mayOfferBio=false) {
-  // An optional writing offer is not a mandatory interview field, saved bio or classification permission.
-  const bioOffer=mayOfferBio
-    ? ' Ako želite, mogu da sastavim kratak opis Vašeg rada na osnovu potvrđenih podataka. Opis nije uslov za pregled ili čuvanje.'
-    : '';
-  if(!catalogAvailable)return 'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.'+bioOffer;
+export function workerFinishReviewMessage(skills,reviewProposals,catalogAvailable) {
+  if(!catalogAvailable)return 'Povezivanje usluga trenutno nije potvrđeno. Opis Vašeg rada ostaje u razgovoru.';
+  if(!Array.isArray(skills)||!skills.length)return 'Koje usluge želite da pružate?';
   const unresolved=workerServicesMissingScope(skills,reviewProposals);
-  if(!unresolved.count)return 'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.'+bioOffer;
-  const examples=unresolved.labels.join(', ');
-  const more=unresolved.count-unresolved.labels.length;
-  return 'Otvorite pregled profila. Za '+examples+
-    (more>0?' i još '+more+' usluga':'')+
-    ' nije potvrđeno da li radite na lokaciji, na daljinu ili oba. Možete to razjasniti u razgovoru, ili sačuvati profil bez automatskog povezivanja za te usluge.'+bioOffer;
+  if(!unresolved.count)return 'Pregled će se pojaviti kada podaci i povezivanje usluga budu potvrđeni.';
+  return 'Da li uslugu „'+unresolved.labels[0]+'” pružate na lokaciji, na daljinu ili na oba načina?';
 }
 
 function validItem(p,snapshot) {
@@ -373,9 +366,7 @@ export function classificationTurnFeedback(inspection,{purpose,services=[],ready
   let notice=null;
   if(state==='ASK_USER')notice='Za povezivanje još treba razjasniti uslugu ili način rada. Uneti podaci ostaju u nacrtu.';
   if(state==='RETRY')notice='Podaci ostaju u nacrtu, ali povezivanje vrste usluge još nije provereno. Nije potrebno da ponavljate već date podatke.';
-  if(state==='PENDING')notice=canOfferReview
-    ? 'Predlog nove vrste usluge možete da proverite u pregledu. Nije aktivan pre potvrde i čuvanja.'
-    : 'Podaci ostaju u nacrtu. Povezivanje vrste usluge još čeka proveru.';
+  if(state==='PENDING')notice='Podaci ostaju u razgovoru. Povezivanje usluge još nije potvrđeno.';
   if(state==='UNSUPPORTED')notice='Podaci nisu potvrđeni za povezivanje zadataka. Za ovu uslugu je potrebna dodatna provera.';
   return {state,canOfferReview,questions,notice,issues};
 }

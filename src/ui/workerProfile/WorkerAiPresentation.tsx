@@ -12,6 +12,7 @@ import { layout } from '../system/layout';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
+import { classificationPreparationMessage } from '../aiFirst/intakeReviewReadiness';
 import { V2Action } from '../v2/V2Action';
 import { FactChoiceEditor } from '../v2/FactChoiceEditor';
 import { cityLabel } from '../profile/cityLabel';
@@ -72,7 +73,8 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
       })}
       {!profile.skills.length?<T variant="note" tone="muted">Usluge još razjašnjavamo.</T>:null}
       {!expanded&&profile.skills.length>shownSkills.length?<T variant="note" tone="muted">{`Još ${profile.skills.length-shownSkills.length} u detaljima`}</T>:null}
-      {place?<PreviewFact art="pin">{onSite
+      {onSite&&profile.workAreas?.length?<PreviewFact art="pin">{workerAreasLabel(profile.workAreas)}</PreviewFact>
+        :place?<PreviewFact art="pin">{onSite
         ?`${place} · do ${profile.location.radiusKm} km${displayedPinPosition(profile.location.approximatePosition,true)?'':' (za okolna mesta potvrdite centar)'}`
         :`Grad profila: ${place}`}</PreviewFact>:null}
       {profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
@@ -128,7 +130,7 @@ function ReviewGroup({part,children}:{part:WorkerAiPart;children:ReactNode}){
 /** Owner 2026-10-07: the interview ends by saying what the profile is for — ink with the bell, not grey small print. */
 // "novim i već otvorenim": publishing queues new tasks, and saving the profile re-queues the open ones (requeue_open_needs_for_worker_v5).
 export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Zadatke povezujemo sa potvrđenim uslugama, načinom rada, područjem i vremenom. Obaveštenja birate Vi.';
-export const WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE='Profil možete da sačuvate, ali automatska obaveštenja za nepotvrđene usluge neće stizati dok kategorija i način rada ne budu potvrđeni.';
+export const WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE='Automatska obaveštenja za ove usluge još nisu spremna. Čuvanje profila samo po sebi ne potvrđuje povezivanje sa zadacima.';
 export function WorkerAiNotificationsNote({matchingReady=false}:{matchingReady?:boolean}={}){
   return <View style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
     <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{matchingReady?WORKER_PROFILE_NOTIFICATIONS_NOTE:WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE}</T></View>;
@@ -177,24 +179,11 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
           {handoff?<T testID="worker-review-handoff" variant="note" tone="muted">Predaja: {handoff}</T>:null}
         </View>;
       })}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
-      {review.semanticReviewCandidates?.length ? <View testID="worker-semantic-review-proposals" style={s.services}>
-        <T accessibilityRole="header" variant="bodyStrong">Proverite predloge usluga</T>
-        {review.semanticReviewCandidates.map(item=><View key={item.service+'|'+item.mode} style={s.service}>
-          <T variant="bodyStrong">{item.service}</T>
-          <T variant="note" tone="muted">Predložena usluga: {item.categoryLabel} · {item.mode==='ON_SITE'?'Na lokaciji':'Na daljinu'}</T>
-          <T variant="note" tone="muted">{item.reason}</T>
-        </View>)}
-        <T accessibilityRole="alert" variant="note" tone="muted">Ovo je samo predlog, ne potvrđena sposobnost. Automatsko povezivanje čeka proveru značenja i načina rada; za ispravku se vratite u isti razgovor.</T>
-      </View> : null}
+      {/* The person reviews offered work above. Catalog proposals/IDs/reasons
+          remain in the signed receipt and do not become a second user choice. */}
       {review.classificationState&&review.classificationState!=='READY'
         ?<T testID="worker-classification-pending" variant="note" tone="muted">
-          {review.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED'
-            ?'U istom razgovoru navedite koje usluge radite na lokaciji, na daljinu ili na oba načina. Automatsko povezivanje čeka potvrdu načina rada.'
-            :review.classificationState==='CATALOG_UNAVAILABLE'
-              ?'Provera usluga trenutno nije dostupna. Pokušajte ponovo da učitate pregled; automatsko povezivanje do tada čeka.'
-              :review.classificationState==='STALE_CATALOG'
-                ?'Podaci o uslugama su promenjeni. Učitajte novi pregled pre potvrde.'
-                :'Predložene usluge još nisu potvrđene za automatsko povezivanje sa zadacima.'}
+          {classificationPreparationMessage(review.classificationState)}
         </T>:null}
     </ReviewGroup>
     <ReviewGroup part="area">
@@ -218,7 +207,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       </>}
     </ReviewGroup>
     <ReviewGroup part="time">
-      <Fact art="clock">{p.availability.availableNow?'Mogu odmah, dok to ne isključite':'Mogu odmah: isključeno'}</Fact>
+      <Fact art="clock">{p.availability.availableNow?'Mogu odmah':'Mogu odmah: isključeno'}</Fact>
       {p.availability.rules.length?<View style={s.scheduleGroup}>
         <T variant="bodyStrong">Redovna nedelja</T>
         {p.availability.rules.map(rule=><Row key={rule.id} quiet={!rule.active}

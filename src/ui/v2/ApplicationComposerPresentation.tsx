@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Keyboard, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Animated, Keyboard, StyleSheet, TextInput, View } from 'react-native';
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { fixedApplicationPrice, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -255,7 +255,7 @@ function SentReceipt({ fresh, price, hourly, title, people, time, timeNote, mess
 }
 
 /** A new application follows the task's term; historical frozen commands may still show an old proposed term in their receipt. */
-export function ApplicationComposerPresentation({ applicationPriceBasis, need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, pendingHelp, refreshHelps = true, initialSheet, skillOptIn }: {
+export function ApplicationComposerPresentation({ applicationPriceBasis, need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, pendingHelp, refreshHelps = true, initialSheet, afterConfirmation }: {
   applicationPriceBasis?: 'TOTAL' | 'HOURLY';
   need: PotrebaProjekcija; opportunity: PrilikaProjekcija; draft: ApplicationDraft; change: (value: ApplicationDraft) => void;
   submit: () => void; back: () => void; busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void;
@@ -268,8 +268,8 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   refreshHelps?: boolean;
   /** A sheet open from the start. Only the internal gallery sets it; the review it opens is still retired by any change. */
   initialSheet?: 'review';
-  /** Option to add task category into the worker's profile for future notifications and dispatches. */
-  skillOptIn?: { category: string; enabled: boolean; onToggle: (enabled: boolean) => void } | null;
+  /** A separate optional profile action, only after the application receipt. */
+  afterConfirmation?: ReactNode;
 }) {
   // The review only stages presentation. The route still validates, journals and sends the command.
   // A changed draft/task cannot be sent through a retained confirmation from the previous review.
@@ -360,10 +360,10 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   // The sent receipt ("Etiketa odlazi") is a moment with its own way on right under it, not a form with a foot: it has no pinned footer.
   return <ComposerFrame key={confirmed ? 'receipt' : 'form'} back={back} footer={confirmed ? undefined : footer} info={!confirmed}>
     {/* A real confirmation is the first thing on the resulting screen, not below the old form's task summary. */}
-    {confirmed ? <SentReceipt hourly={hourly} fresh={!confirmedAtMount} price={shownPrice} title={readableTitle(opportunity.naslov)}
+    {confirmed ? <><SentReceipt hourly={hourly} fresh={!confirmedAtMount} price={shownPrice} title={readableTitle(opportunity.naslov)}
       people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} error={error}
       timeNote={!exact && !fixed ? 'Tačan početak i kraj još nisu dogovoreni.' : proposedTaskTime ? `Tvoj predlog · termin zadatka je ${proposedTaskTime}` : null}
-      message={draft.note.trim()} actions={<>{primary}<V2Action label="Nazad na zadatak" kind="quiet" onPress={back} /></>} />
+      message={draft.note.trim()} actions={<>{primary}<V2Action label="Nazad na zadatak" kind="quiet" onPress={back} /></>} />{afterConfirmation}</>
     : <>
     <TaskHead opportunity={opportunity} showTerms={locked} />
     {locked ? <>
@@ -406,24 +406,6 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
           <T variant="note" tone="muted">Opciono.{draft.note.length >= NOTE_COUNTER_FROM ? ` Još ${noteLeft} ${plural(noteLeft, 'znak', 'znaka', 'znakova')}.` : ''}</T>
         </View>
       </Section>
-      {skillOptIn ? <Section title="Radni profil">
-        <Surface kind="panel">
-          <View style={s.skillRow}>
-            <View style={s.skillBody}>
-              <T variant="bodyStrong">Dodaj „{skillOptIn.category}“ u radni profil</T>
-              <T variant="note" tone="muted">Ubuduće primaj obaveštenja i preporuke za ovakve zadatke.</T>
-            </View>
-            <Switch
-              testID="composer-skill-opt-in-switch"
-              accessibilityLabel={`Dodaj ${skillOptIn.category} u radni profil`}
-              value={skillOptIn.enabled}
-              disabled={disabled}
-              onValueChange={skillOptIn.onToggle}
-              trackColor={{ false: sys.color.line, true: sys.color.green }}
-            />
-          </View>
-        </Surface>
-      </Section> : null}
     </>}
     </>}
     {reviewing ? <ProductSheet title="Ovo šalješ" closeLabel="Nazad na izmenu prijave" backdropHint="Vraća na izmenu prijave." onClose={closeReview}
@@ -496,6 +478,4 @@ const s = StyleSheet.create({
   summary: { flexShrink: 1, fontVariant: ['tabular-nums'] },
   center: { textAlign: 'center' },
   blocked: { alignItems: 'center', gap: sys.space.xs, paddingTop: sys.space.xs },
-  skillRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
-  skillBody: { flex: 1, minWidth: 0, gap: sys.space.xs },
 });

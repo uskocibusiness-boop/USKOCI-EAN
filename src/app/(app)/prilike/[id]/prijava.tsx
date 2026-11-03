@@ -5,7 +5,7 @@ import type { Ishod, PodnesiPrijavuKomanda } from '../../../../data/ports';
 import { applicationRefusalGuidance, boundedApplicationSelectionRead, conclusiveApplicationRefusal } from '../../../../data/applicationSelectionClientService';
 import { applicationCommandJournal } from '../../../../data/applicationCommandJournal';
 import { applicationComposerDraftMemory } from '../../../../data/applicationComposerDraftMemory';
-import { workerProfileClientService } from '../../../../data/workerProfileClientService';
+import { ApplicationServiceOffer } from '../../../../ui/workerProfile/ApplicationServiceOffer';
 import { fixedApplicationPrice } from '../../../../data/needDetailPresentation';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
@@ -19,8 +19,7 @@ const NOT_RETIRED_ON_DEVICE = 'Stara prijava nije uklonjena sa telefona. Pokuša
 const JOURNAL_RECOVERY_REQUIRED = 'Prvo proveri da li je prethodna prijava poslata. Izaberi „Proveri da li je poslato“.';
 type Receipt = { prijavaId: string; verzija: number; hash: string; osnovaCene?: 'TOTAL' | 'HOURLY' };
 type Loaded = { need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; applications: MojaPrijavaProjekcija[]; receipt: Receipt | null };
-type SkillAddition = Readonly<{ input: Readonly<{ accountId: string; accountRevision: number; profileId: string; skill: string }>; current: () => boolean }>;
-type Pending = { applicationPriceBasis: 'TOTAL' | 'HOURLY'; command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean; skillAddition: SkillAddition | null };
+type Pending = { applicationPriceBasis: 'TOTAL' | 'HOURLY'; command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
 /** A NEW offer follows the task's own term. Older unconfirmed journals are never rewritten:
  * those exact commands bypass this draft normalizer and keep their original key/terms. */
 function withTaskPrice(draft: ApplicationDraft, need: PotrebaProjekcija): ApplicationDraft {
@@ -41,12 +40,9 @@ export default function Prijava() {
   // PKG-006: the same intent also survives remount/cold restore through the durable
   // per-account/Need command journal; only its own server outcome retires it.
   const session = useMemo(() => ({ pending: null as Pending | null, draft: null as ApplicationDraft | null, navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false,
-    journaling: false, journalRecovery: false, resetting: false, notice: null as string | null,
-    profileSkillNotice: null as string | null, skillConsent: false }), [id, izvor, user?.id, accountRevision]);
+    journaling: false, journalRecovery: false, resetting: false, notice: null as string | null }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [validation, setValidation] = useState<string | null>(null);
-  // Consent is scoped to this particular application incarnation, never carried from A→B→A.
-  const addCategoryToProfile = session.skillConsent;
   useFocusEffect(useCallback(() => {
     session.focused = true; session.focusToken++; render(v => v + 1);
     return () => { session.focused = false; };
@@ -82,7 +78,7 @@ export default function Prijava() {
           } else if (stored.state === 'PRESENT' && !session.pending) {
             const command = stored.record.command;
             // The journal owns only the application, not consent for an optional profile change.
-            session.pending = { applicationPriceBasis: stored.record.applicationPriceBasis ?? 'TOTAL', command, need, opportunity, profile, result: null, inFlight: false, reconciled: false, skillAddition: null };
+            session.pending = { applicationPriceBasis: stored.record.applicationPriceBasis ?? 'TOTAL', command, need, opportunity, profile, result: null, inFlight: false, reconciled: false };
             session.draft = { price: String(command.cenaRsd), people: String(command.pokrivenaMesta), note: command.napomena ?? '',
               start: command.predlozeniPocetak, end: command.predlozeniKraj };
             if (draftScope) applicationComposerDraftMemory.clear(draftScope);
@@ -142,12 +138,6 @@ export default function Prijava() {
         radnikProfilId: data.profile.id, pokrivenaMesta: Number(draft.people), cenaRsd: Number(draft.price),
         // New applications never invent a second term; old saved commands keep their exact original fields.
         predlozeniPocetak: null, predlozeniKraj: null, napomena: draft.note.trim() || null });
-      const skill = data.need.detalji?.kategorija ?? data.opportunity.detalji?.kategorija ?? null;
-      const hasSkill = skill ? (data.profile.vestine ?? []).some(value => value.trim().toLowerCase() === skill.trim().toLowerCase()) : true;
-      // Freeze the single requested addition and its screen generation before the first await.
-      // A later profile read supplies the skills to merge; this snapshot never supplies an array to write.
-      const skillAddition: SkillAddition | null = addCategoryToProfile && skill && !hasSkill
-        ? Object.freeze({ input: Object.freeze({ accountId, accountRevision, profileId: data.profile.id, skill }), current }) : null;
       // PKG-006: the identity is durable before any I/O. Without it nothing is sent, and the
       // composer stays editable for a plain retry (no request ever left this device).
       session.journaling = true;
@@ -167,7 +157,7 @@ export default function Prijava() {
       // From here the exact command, rather than editable fields, owns recovery.
       if (draftScope) applicationComposerDraftMemory.clear(draftScope);
       if (!current() || session.pending) return;
-      session.pending = { applicationPriceBasis, need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false, command, skillAddition };
+      session.pending = { applicationPriceBasis, need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false, command };
     }
     void editor.save(async () => {
       setValidation(null);
@@ -195,19 +185,6 @@ export default function Prijava() {
       // Only this command's own authoritative receipt retires the durable identity.
       if (result.ok) {
         await applicationCommandJournal.clear(accountId, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
-        const addition = pending.skillAddition;
-        // The optional action is attempted at most once, even if the application receipt is replayed.
-        pending.skillAddition = null;
-        if (addition && current() && addition.current()) {
-          const stillCurrent = () => current() && addition.current();
-          const notice = `Prijava je poslata, ali dodavanje veštine „${addition.input.skill}“ nije potvrđeno. Proveri radni profil.`;
-          try {
-            const profileResult = await workerProfileClientService.addSkill(addition.input, stillCurrent);
-            if (!profileResult.ok && stillCurrent()) session.profileSkillNotice = notice;
-          } catch {
-            if (stillCurrent()) session.profileSkillNotice = notice;
-          }
-        }
       }
       if (session.focused && currentAccount()) render(v => v + 1);
       return result.ok ? { ok: true, podatak: { ...data, receipt: result.podatak } } : result;
@@ -253,19 +230,6 @@ export default function Prijava() {
   } : null;
   const currentNeed = pending?.need ?? data.need;
   const currentOpp = pending?.opportunity ?? data.opportunity;
-  const currentProfile = pending?.profile ?? data.profile;
-  const taskCategory = currentNeed.detalji?.kategorija ?? currentOpp.detalji?.kategorija ?? null;
-  const profileSkills = currentProfile.vestine ?? [];
-  const hasCategorySkill = taskCategory
-    ? profileSkills.some(v => v.trim().toLowerCase() === taskCategory.trim().toLowerCase())
-    : true;
-  const skillOptIn = taskCategory && !hasCategorySkill ? {
-    category: taskCategory,
-    enabled: addCategoryToProfile,
-    onToggle: (enabled: boolean) => { if (current() && !editor.busy && !session.pending && !session.resetting && !session.journaling && !session.journalRecovery && !session.reading) {
-      session.skillConsent = enabled; render(v => v + 1);
-    } },
-  } : null;
   return <ApplicationComposerPresentation applicationPriceBasis={pending?.applicationPriceBasis} need={currentNeed} opportunity={currentOpp}
     draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending && !session.resetting && !session.journaling && !session.journalRecovery && !session.reading) {
       session.draft = withTaskPrice(draft, data.need);
@@ -275,7 +239,7 @@ export default function Prijava() {
     busy={editor.busy || !!pending?.inFlight || session.resetting || session.journaling} pending={!!pending} uncertain={editor.uncertain || session.journalRecovery || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
     // A conclusive refusal carries its outcome beside the new-offer action immediately.
     // Other failures keep their error and exact-command retry; a collection read never proves refusal.
-    error={validation ?? session.profileSkillNotice ?? session.notice ?? (refusal && !editor.uncertain
+    error={validation ?? session.notice ?? (refusal && !editor.uncertain
       ? `Ova prijava nije primljena. ${refusal.poruka}`
       : editor.error ?? (pending && !data.receipt && !editor.uncertain
         ? 'Ne znamo da li je prijava stigla. Pošalji istu prijavu još jednom — ako je već stigla, neće biti poslata dvaput.'
@@ -290,7 +254,10 @@ export default function Prijava() {
       // header's arrow, so the way on is not "Nazad na zadatak" a second time.
       : data.opportunity.primaNovePrijave !== true ? { reason: 'Zadatak više ne prima prijave.', actionLabel: 'Pogledaj druge zadatke',
         onAction: () => { if (current() && !session.navigated) { session.navigated = true; router.replace('/zadaci'); } } } : null}
-    skillOptIn={skillOptIn}
+    afterConfirmation={data.receipt && user?.id ? <ApplicationServiceOffer
+      key={`${user.id}:${accountRevision}:${data.receipt.prijavaId}`}
+      input={{ accountId: user.id, accountRevision, applicationId: data.receipt.prijavaId, needId: data.need.id, profileId: data.profile.id }}
+      openProfile={() => { if (current()) router.push('/profil/radnik'); }} /> : null}
     submit={submit} back={back} refresh={refresh} reset={reset} pendingHelp={pendingHelp}
     openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true;
       router.replace({ pathname: '/moje-prijave', params: { prijavaId: data.receipt.prijavaId, nova: '1' } }); }} />;

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScreenHeader } from '../../ui/system/ScreenHeader';
 import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
-import { AppState } from 'react-native';
+import { ChromeIconButton } from '../../ui/system/ScreenChrome';
+import { AppState, BackHandler } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { NeedSearchState } from '../../contracts/needSearchRecovery';
@@ -30,6 +31,16 @@ function AgreementListSession() {
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
   const [roleFilter, setRoleFilter] = useState<AgreementRoleFilter>('all');
   const [expandedTaskKey, setExpandedTaskKey] = useState<string | null>(null);
+  // Previous collaborations are a child view, not a second root tab. Android
+  // Back returns to the same list and filters before leaving Dogovori.
+  useFocusEffect(useCallback(() => {
+    if (section !== 'history') return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setSection('active');
+      return true;
+    });
+    return () => subscription.remove();
+  }, [section]));
   // The profile's total means every role. Consume this explicit entry once so
   // back from a detail preserves filters and a later profile entry resets again.
   useEffect(() => {
@@ -162,7 +173,8 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
         scope, generation: renderedReadGeneration, data: resource.data }); }).catch(() => undefined);
     return () => { live = false; };
   }, [cancelledKey, user?.id, accountRevision, scope, renderedReadGeneration, resource.data, resource.loading, resource.refreshing, resource.error, resource.refreshError]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" showTitle onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} refreshError={resource.refreshError} error={!!resource.error}
+  return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" showTitle onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />}
+    right={<ChromeIconButton glyph="calendar" label="Raspored" onPress={() => navigate(() => router.navigate('/raspored'))} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} refreshError={resource.refreshError} error={!!resource.error}
     ownerCapacities={!resource.loading && !resource.refreshing && !resource.error && !resource.refreshError && current() && capacities?.key === capacityKey
       && capacities.scope === scope && capacities.generation === renderedReadGeneration && capacities.data === resource.data ? capacities.value : null}
     cancellations={!resource.loading && !resource.refreshing && !resource.error && !resource.refreshError && current() && cancellations?.key === cancelledKey && cancellations.scope === scope

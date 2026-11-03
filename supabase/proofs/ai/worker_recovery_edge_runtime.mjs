@@ -61,13 +61,16 @@ export function loadWorkerRecoveryHandler(options){
  const researchDeadline=evaluate('supabase/functions/_shared/researchDeadline.ts',()=>assert.fail('UNDECLARED_DEADLINE_IMPORT'));
  const taxonomyConfig=evaluate('supabase/functions/_shared/taxonomyRuntimeConfig.mjs',()=>assert.fail('UNDECLARED_TAXONOMY_CONFIG_IMPORT'));
  const areaAdmission=evaluate('supabase/functions/_shared/workerAreaAdmission.mjs',()=>assert.fail('UNDECLARED_AREA_IMPORT'));
- const areaResolver=evaluate('supabase/functions/_shared/workerAreaResolver.mjs',()=>assert.fail('UNDECLARED_AREA_IMPORT'));
+ const workerAreas=evaluate('src/contracts/workerAreas.ts',()=>assert.fail('UNDECLARED_WORKER_AREAS_IMPORT'));
+ const areaResolver=evaluate('supabase/functions/_shared/workerAreaResolver.mjs',name=>{assert.equal(name,'../../../src/contracts/workerAreas.ts');return workerAreas;});
  const backgroundArchitect=evaluate('supabase/functions/_shared/backgroundTaxonomyArchitect.mjs',name=>{
   if(name==='./serviceHandoff.mjs')return handoff;
   if(name==='./workerServiceModeContext.mjs')return serviceModes;
   assert.equal(name,'./classificationEngine.mjs');return classification;
  });
- const imports={'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,'../../../src/contracts/aiAvailability.ts':availability,
+ const firstPlan=evaluate('supabase/functions/_shared/completeFirstPlan.ts',()=>assert.fail('UNDECLARED_FIRST_PLAN_IMPORT'));
+ const singlePass=evaluate('supabase/functions/_shared/singlePassTaxonomy.mjs',name=>{assert.equal(name,'./backgroundTaxonomyArchitect.mjs');return backgroundArchitect;});
+ const imports={'../../../src/contracts/workerAreas.ts':workerAreas,'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,'../../../src/contracts/aiAvailability.ts':availability,
   '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply,
   '../_shared/classificationDirectReply.mjs':directReply,
   '../_shared/workerServiceModeContext.mjs':serviceModes,'../_shared/classificationExplorer.mjs':explorer,
@@ -75,7 +78,7 @@ export function loadWorkerRecoveryHandler(options){
   '../_shared/researchDeadline.ts':researchDeadline,'../_shared/taxonomyRuntimeConfig.mjs':taxonomyConfig,
   '../_shared/interviewVoiceInstruction.mjs':voice,'../_shared/aiPhaseTiming.mjs':timing,'../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution,
   '../_shared/workerAreaAdmission.mjs':areaAdmission,'../_shared/workerAreaResolver.mjs':areaResolver,
-  '../_shared/backgroundTaxonomyArchitect.mjs':backgroundArchitect};
+  '../_shared/completeFirstPlan.ts':firstPlan,'../_shared/singlePassTaxonomy.mjs':singlePass,'../_shared/backgroundTaxonomyArchitect.mjs':backgroundArchitect};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes,sourceBinding:{kind:'CURRENT_SOURCE141'}};
 }

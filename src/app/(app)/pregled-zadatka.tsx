@@ -28,6 +28,7 @@ import { V2Action } from '../../ui/v2/V2Action';
 import { NeedLifecycleActions, type NeedLifecycleMenu } from '../../ui/needs/NeedLifecycleActions';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { StateView } from '../../ui/system/StateView';
+import { classificationPreparationMessage } from '../../ui/aiFirst/intakeReviewReadiness';
 import { QuietReadState } from '../../ui/v2/QuietReadState';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { useReducedMotion } from '../../ui/system/motion';
@@ -482,15 +483,13 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // R04: saving a private DRAFT is separate from publishing for matching.
   // A signed but unconfirmed semantic comparison must not appear publish-ready.
   const classificationPending = !!review?.classificationState && review.classificationState!=='READY';
-  // A pending server comparison is not a missing user confirmation. The existing
-  // refresh can read a newer signed result; it cannot perform semantic admission.
+  // Refresh only reads a newer signed result. Unresolved review/mode returns
+  // to the same conversation without blaming wording or sending a model retry.
   const classificationModeMissing = review?.classificationState === 'SERVICE_MODE_CONFIRMATION_REQUIRED';
-  const classificationReason = review?.classificationState === 'CATALOG_UNAVAILABLE'
-    ? 'Provera usluge trenutno nije dostupna.'
-    : review?.classificationState === 'STALE_CATALOG' ? 'Podaci za proveru usluge su se promenili.'
-    : review?.classificationState === 'REVIEW_REQUIRED' ? 'Usluga još nije potvrđena za objavu.'
-    : classificationModeMissing ? 'Način rada još nije potvrđen.'
-    : 'Provera usluge još nije završena.';
+  const classificationNeedsConversation = classificationModeMissing || review?.classificationState === 'REVIEW_REQUIRED';
+  const classificationReason = classificationModeMissing
+    ? 'U razgovoru razjasnite da li se posao radi na lokaciji ili bez dolaska izvršioca.'
+    : classificationPreparationMessage(review?.classificationState);
   const publishBlocked = !review || disabled || publishedEditUnavailable || !review.canAccept || classificationPending || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.
@@ -684,17 +683,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           {snapshot?.locationConflict ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" style={s.warnText}>
             Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledajte ga ili izmenite pre objave.
           </T></Surface> : null}
-          {review.semanticReviewCandidates?.length ? <Surface kind="note">
-            <T accessibilityRole="header" variant="bodyStrong">Proverite predlog postojeće usluge</T>
-            {review.semanticReviewCandidates.map(item=><T testID="need-semantic-review-proposal" key={item.service+'|'+item.mode} variant="note">
-              {item.service} → {item.categoryLabel} ({item.mode==='ON_SITE'?'na lokaciji':'na daljinu'}). {item.reason}
-            </T>)}
-            <T accessibilityRole="alert" variant="note" tone="muted">Ovo je AI predlog; usluga još nije potvrđena. Objavljivanje i povezivanje čekaju proveru. Za ispravku se vratite u isti razgovor; privatan nacrt možete da sačuvate.</T>
-          </Surface> : null}
+          {/* Category labels/reasons remain signed server metadata, never an
+              additional approval form. Business facts are shown below. */}
           {!command && classificationPending && !editor.error && !editor.uncertain ? <V2Action
-            label={classificationModeMissing ? 'Dopunite način rada' : 'Osvežite pregled'} kind="quiet"
-            disabled={quietEdit} loading={!classificationModeMissing && editor.loading}
-            onPress={classificationModeMissing ? () => editInConversation('task.location')
+            label={classificationModeMissing ? 'Dopunite način rada' : classificationNeedsConversation ? 'Vratite se u razgovor' : 'Osvežite pregled'} kind="quiet"
+            disabled={quietEdit} loading={!classificationNeedsConversation && editor.loading}
+            onPress={classificationNeedsConversation ? () => editInConversation(classificationModeMissing ? 'task.location' : 'task.details')
               : () => { if (canAct() && !locationEditor) refresh(); }} /> : null}
           {/* The task detail as it is published: Airbnb-style clean preview with zero redundant intermediate cards. */}
           <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}

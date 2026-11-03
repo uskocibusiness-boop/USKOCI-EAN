@@ -1,0 +1,703 @@
+{
+  "role": "postgres",
+  "tables": [
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "name": "private.ai_need_turn_commands",
+      "owner": "postgres",
+      "columns": [
+        {
+          "acl": null,
+          "name": "account_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "client_request_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "turn_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "request_hash",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "state",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "context_hash",
+          "type": "text",
+          "not_null": false
+        },
+        {
+          "acl": null,
+          "name": "attempt_id",
+          "type": "uuid",
+          "not_null": false
+        },
+        {
+          "acl": null,
+          "name": "lease_expires_at",
+          "type": "timestamp with time zone",
+          "not_null": false
+        },
+        {
+          "acl": null,
+          "name": "receipt",
+          "type": "jsonb",
+          "not_null": false
+        },
+        {
+          "acl": null,
+          "name": "attempt_times",
+          "type": "timestamp with time zone[]",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "provider_dispatched",
+          "type": "boolean",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "cancelled_at",
+          "type": "timestamp with time zone",
+          "not_null": false
+        }
+      ],
+      "policies": null,
+      "triggers": [
+        {
+          "enabled": "O",
+          "definition": "CREATE TRIGGER pre_v3_closure_ai_command BEFORE INSERT OR UPDATE ON private.ai_need_turn_commands FOR EACH ROW EXECUTE FUNCTION private.closure_guard_owned_write('ACCOUNT', 'account_id')",
+          "function_md5": "331b1d322cee8e46a0b155524932861b"
+        }
+      ],
+      "force_rls": true,
+      "constraints": [
+        "CHECK (((cancelled_at IS NULL) OR ((state = 'FAILED'::text) AND (receipt IS NULL))))",
+        "CHECK ((cardinality(attempt_times) <= 6))",
+        "CHECK (((state = 'SUCCEEDED'::text) = (receipt IS NOT NULL)))",
+        "CHECK (((state <> 'PROCESSING'::text) OR ((attempt_id IS NOT NULL) AND (lease_expires_at IS NOT NULL) AND (context_hash IS NOT NULL))))",
+        "CHECK (((context_hash IS NULL) OR (context_hash ~ '^[0-9a-f]{64}$'::text)))",
+        "PRIMARY KEY (account_id, client_request_id)",
+        "CHECK (((receipt IS NULL) OR ((jsonb_typeof(receipt) = 'object'::text) AND (octet_length((receipt)::text) <= 4096))))",
+        "CHECK ((request_hash ~ '^[0-9a-f]{64}$'::text))",
+        "CHECK ((state = ANY (ARRAY['PROCESSING'::text, 'SUCCEEDED'::text, 'FAILED'::text])))",
+        "UNIQUE (turn_id)"
+      ]
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "name": "private.work_taxonomy_aliases",
+      "owner": "postgres",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "bigint",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "category_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "locale",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "label",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "normalized_key",
+          "type": "text",
+          "not_null": false
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        }
+      ],
+      "policies": null,
+      "triggers": null,
+      "force_rls": false,
+      "constraints": [
+        "FOREIGN KEY (category_id) REFERENCES private.work_taxonomy_categories(id) ON DELETE RESTRICT",
+        "CHECK (((char_length(label) >= 3) AND (char_length(label) <= 120)))",
+        "CHECK ((locale ~ '^[a-z]{2}(-[A-Z]{2})?$'::text))",
+        "UNIQUE (locale, normalized_key)",
+        "PRIMARY KEY (id)"
+      ]
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "name": "private.work_taxonomy_audit",
+      "owner": "postgres",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "bigint",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "action",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "category_id",
+          "type": "uuid",
+          "not_null": false
+        },
+        {
+          "acl": null,
+          "name": "normalized_key",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "catalog_version",
+          "type": "bigint",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "source_ref",
+          "type": "text",
+          "not_null": false
+        },
+        {
+          "acl": null,
+          "name": "at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        }
+      ],
+      "policies": null,
+      "triggers": null,
+      "force_rls": false,
+      "constraints": [
+        "CHECK ((action = ANY (ARRAY['AUTO_CREATED'::text, 'EXISTING_REUSED'::text, 'ALIAS_COLLISION'::text, 'CORRECTED'::text, 'RETIRED'::text, 'MERGED'::text])))",
+        "FOREIGN KEY (category_id) REFERENCES private.work_taxonomy_categories(id)",
+        "PRIMARY KEY (id)"
+      ]
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "name": "private.work_taxonomy_categories",
+      "owner": "postgres",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "canonical_key",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "label",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "parent_id",
+          "type": "uuid",
+          "not_null": false
+        },
+        {
+          "acl": null,
+          "name": "state",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "source",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "catalog_version",
+          "type": "bigint",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "superseded_by",
+          "type": "uuid",
+          "not_null": false
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        }
+      ],
+      "policies": null,
+      "triggers": [
+        {
+          "enabled": "O",
+          "definition": "CREATE TRIGGER taxonomy_guard_parent_move BEFORE UPDATE OF parent_id ON private.work_taxonomy_categories FOR EACH ROW EXECUTE FUNCTION private.taxonomy_guard_parent_move_v1()",
+          "function_md5": "b0f59e4b13e72d97132490fa237ba90c"
+        }
+      ],
+      "force_rls": false,
+      "constraints": [
+        "CHECK (((char_length(canonical_key) >= 3) AND (char_length(canonical_key) <= 160)))",
+        "UNIQUE (canonical_key)",
+        "CHECK ((catalog_version > 0))",
+        "CHECK (((superseded_by IS NULL) OR (superseded_by <> id)))",
+        "CHECK (((parent_id IS NULL) OR (parent_id <> id)))",
+        "CHECK ((canonical_key = private.taxonomy_normalize_v1(label)))",
+        "CHECK (((char_length(label) >= 3) AND (char_length(label) <= 120)))",
+        "FOREIGN KEY (parent_id) REFERENCES private.work_taxonomy_categories(id) ON DELETE RESTRICT",
+        "PRIMARY KEY (id)",
+        "CHECK ((source = ANY (ARRAY['SYSTEM'::text, 'AI_REVIEWED'::text, 'OPERATOR'::text])))",
+        "CHECK ((state = ANY (ARRAY['AUTO_PROVISIONAL'::text, 'ESTABLISHED'::text, 'RETIRED'::text])))",
+        "FOREIGN KEY (superseded_by) REFERENCES private.work_taxonomy_categories(id)"
+      ]
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "name": "private.work_taxonomy_category_modes",
+      "owner": "postgres",
+      "columns": [
+        {
+          "acl": null,
+          "name": "category_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "execution_scope",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "source_ref",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "mapped_at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        }
+      ],
+      "policies": null,
+      "triggers": null,
+      "force_rls": false,
+      "constraints": [
+        "FOREIGN KEY (category_id) REFERENCES private.work_taxonomy_categories(id) ON DELETE RESTRICT",
+        "CHECK ((execution_scope = ANY (ARRAY['ON_SITE'::text, 'REMOTE'::text])))",
+        "PRIMARY KEY (category_id, execution_scope)",
+        "CHECK (((char_length(source_ref) >= 3) AND (char_length(source_ref) <= 120)))"
+      ]
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "name": "private.work_taxonomy_control",
+      "owner": "postgres",
+      "columns": [
+        {
+          "acl": null,
+          "name": "singleton",
+          "type": "boolean",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "auto_registration_enabled",
+          "type": "boolean",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "max_auto_creates_per_hour",
+          "type": "integer",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "catalog_version",
+          "type": "bigint",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        }
+      ],
+      "policies": null,
+      "triggers": null,
+      "force_rls": false,
+      "constraints": [
+        "CHECK ((catalog_version > 0))",
+        "CHECK (((max_auto_creates_per_hour >= 1) AND (max_auto_creates_per_hour <= 10000)))",
+        "PRIMARY KEY (singleton)",
+        "CHECK (singleton)"
+      ]
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "name": "private.work_taxonomy_gemini_turn_hints_v1",
+      "owner": "postgres",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "purpose",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "account_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "client_request_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "turn_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "attempt_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "source_fingerprint",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "catalog_version",
+          "type": "bigint",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "proposals",
+          "type": "jsonb",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "payload_digest",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        }
+      ],
+      "policies": null,
+      "triggers": [
+        {
+          "enabled": "O",
+          "definition": "CREATE TRIGGER closure_f01_immutable BEFORE UPDATE ON private.work_taxonomy_gemini_turn_hints_v1 FOR EACH ROW EXECUTE FUNCTION private.closure_taxonomy_owner_immutable_v1('account_id')",
+          "function_md5": "4f8e522641d38d2795dd00b45a00f62b"
+        },
+        {
+          "enabled": "O",
+          "definition": "CREATE TRIGGER closure_f01_owned BEFORE INSERT OR DELETE OR UPDATE ON private.work_taxonomy_gemini_turn_hints_v1 FOR EACH ROW EXECUTE FUNCTION private.closure_guard_owned_write('ACCOUNT', 'account_id')",
+          "function_md5": "331b1d322cee8e46a0b155524932861b"
+        }
+      ],
+      "force_rls": false,
+      "constraints": [
+        "UNIQUE (purpose, account_id, turn_id)",
+        "CHECK ((catalog_version > 0))",
+        "CHECK ((payload_digest ~ '^[a-f0-9]{64}$'::text))",
+        "PRIMARY KEY (id)",
+        "CHECK (((jsonb_typeof(proposals) = 'array'::text) AND ((jsonb_array_length(proposals) >= 1) AND (jsonb_array_length(proposals) <= 24))))",
+        "CHECK ((purpose = ANY (ARRAY['WORKER_CAPABILITY'::text, 'NEED_SERVICE'::text])))",
+        "CHECK ((source_fingerprint ~ '^[a-f0-9]{64}$'::text))"
+      ]
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "name": "private.worker_ai_sessions",
+      "owner": "postgres",
+      "columns": [
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "account_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "open_request_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "profile_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "base_hash",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "candidate",
+          "type": "jsonb",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "revision",
+          "type": "integer",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "safety",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        }
+      ],
+      "policies": null,
+      "triggers": null,
+      "force_rls": false,
+      "constraints": [
+        "UNIQUE (account_id, open_request_id)",
+        "CHECK ((octet_length((candidate)::text) <= 524288))",
+        "PRIMARY KEY (conversation_id)",
+        "CHECK ((revision >= 0))",
+        "CHECK ((safety = ANY (ARRAY['ALLOW'::text, 'CLARIFY'::text, 'REVIEW'::text, 'BLOCK'::text])))"
+      ]
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "name": "private.worker_ai_turns",
+      "owner": "postgres",
+      "columns": [
+        {
+          "acl": null,
+          "name": "turn_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "account_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "client_request_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "body_hash",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "source_revision",
+          "type": "integer",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "attempt_id",
+          "type": "uuid",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "state",
+          "type": "text",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "lease_expires_at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "completion_hash",
+          "type": "text",
+          "not_null": false
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "provider_dispatched",
+          "type": "boolean",
+          "not_null": true
+        },
+        {
+          "acl": null,
+          "name": "cancelled_at",
+          "type": "timestamp with time zone",
+          "not_null": false
+        },
+        {
+          "acl": null,
+          "name": "user_message_id",
+          "type": "uuid",
+          "not_null": false
+        }
+      ],
+      "policies": null,
+      "triggers": null,
+      "force_rls": false,
+      "constraints": [
+        "CHECK (((cancelled_at IS NULL) OR ((state = 'FAILED'::text) AND (completion_hash IS NULL))))",
+        "UNIQUE (account_id, client_request_id)",
+        "FOREIGN KEY (conversation_id) REFERENCES private.worker_ai_sessions(conversation_id)",
+        "PRIMARY KEY (turn_id)",
+        "CHECK ((state = ANY (ARRAY['PROCESSING'::text, 'SUCCEEDED'::text, 'FAILED'::text])))"
+      ]
+    }
+  ],
+  "closure": {
+    "schema": "6603130dcd5df2f0493668e318eee0caffe4c7c249e0f15d6b108537caf2cbe9",
+    "source": "da67d3b605b7d5b7e3af8d3264bc55aa87d7249c61436e3ef9d17d5791237a81",
+    "certificate": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "source_ready": false,
+    "export_binding": null,
+    "erasure_binding": null
+  },
+  "captured_at": "2026-11-03T00:18:37.080139+00:00",
+  "project_ref": "leqcwgzvjsxugfgzdmth",
+  "server_version_num": "170006"
+}

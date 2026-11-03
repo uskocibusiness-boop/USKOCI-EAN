@@ -66,6 +66,7 @@ const click=async(label:string)=>{await act(async()=>{action(label).props.onPres
 const sheets=()=>tree.root.findAllByType(ConfirmSheet);
 const answer=async(testID:'confirm-sheet-confirm'|'confirm-sheet-cancel')=>{await act(async()=>{tree.root.findByType(ConfirmSheet).findByProps({testID}).props.onPress();});};
 beforeEach(()=>{jest.clearAllMocks();mockAccount=A;mockRevision=1;mockFocused=true;mockParams={conversationId:C};mockStored=null;
+ mockApi.prepare.mockReset().mockResolvedValue({ok:false,kod:'WORKER_AI_REVIEW_REQUIRED',poruka:'Pregled nije spreman.'});
  mockAccountName={state:'ready',name:null};
  mockRouter.canGoBack.mockReturnValue(true);
  mockJournal.load.mockImplementation(async()=>mockStored);mockJournal.save.mockImplementation(async(i:unknown)=>{mockStored=i;});mockJournal.clear.mockImplementation(async()=>{mockStored=null;});
@@ -86,8 +87,6 @@ it('sets the account name before the paid turn, so review does not invalidate it
  await act(async()=>shell().props.onSend());
  expect(mockApi.patch).toHaveBeenCalledWith(C,0,{displayName:'Milos'});
  expect(mockApi.patch.mock.invocationCallOrder[0]).toBeLessThan(mockApi.send.mock.invocationCallOrder[0]);
- mockApi.prepare.mockResolvedValue(ok({}));
- await act(async()=>shell().props.footerAction.props.onPress());
  expect(mockApi.patch).toHaveBeenCalledTimes(1);
  expect(mockApi.prepare).toHaveBeenCalledWith(C,2,false);
 });
@@ -170,7 +169,7 @@ it('allows only one manual conversation read while the previous check is loading
 });
 it.each(['current','older revision','foreign owner','foreign conversation','foreign profile','expired','stale'])(
  'only a current owned review promotes the review action: %s',async condition=>{
-  const data=snapshot();
+  const data={...snapshot(),candidate:{...candidate(),location:{...candidate().location,city:'Novi Sad'}}};
   const prepared={schemaVersion:'WORKER_PROFILE_V1',reviewId:K,conversationId:C,accountId:A,profileId:B,
     revision:data.revision,profile:data.candidate,activate:true,missingRequired:[],canAccept:true,
     expiresAt:new Date(Date.now()+60_000).toISOString(),displayedContentDigest:'a'.repeat(64),classificationState:'READY',
@@ -182,21 +181,22 @@ it.each(['current','older revision','foreign owner','foreign conversation','fore
   if(condition==='expired')prepared.expiresAt='2000-01-01T00:00:00Z';
   mockApi.read.mockResolvedValue(ok({...data,stale:condition==='stale',review:prepared}));await render();
   expect(shell().props.card(false)).toBeNull();
-  if(condition==='stale')expect(shell().props.footerAction).toBeUndefined();
-  else expect(shell().props.footerAction.props.kind).toBe(condition==='current'?'primary':'secondary');
-  expect(mockApi.prepare).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+  if(condition==='current')expect(shell().props.footerAction.props.kind).toBe('primary');
+  else expect(shell().props.footerAction).toBeUndefined();
+  if(condition==='current'||condition==='stale')expect(mockApi.prepare).not.toHaveBeenCalled();
+  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
  });
 it('keeps partial city data out of the chat and never starts classification or a review automatically',async()=>{
  mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[],location:{...candidate().location,city:'Novi Sad'}}}));
  await render();expect(shell().props.card(false)).toBeNull();
- expect(shell().props.footerAction.props.kind).toBe('secondary');expect(mockApi.prepare).not.toHaveBeenCalled();
+ expect(shell().props.footerAction).toBeUndefined();expect(mockApi.prepare).not.toHaveBeenCalled();
 });
 const areaOnlyCases:WorkerArea[]=[
  {kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,latitude:null,longitude:null,radiusKm:null},
  {kind:'CITY',countryCode:'RS',label:'Novi Sad',city:'Novi Sad',sourceRef:'osm:relation:100',latitude:45.27,longitude:19.83,radiusKm:null},
  {kind:'RADIUS',countryCode:'RS',label:'Novi Sad · do 25 km',city:'Novi Sad',sourceRef:'osm:relation:100',latitude:45.27,longitude:19.83,radiusKm:25},
 ];
-it.each(areaOnlyCases)('a $kind-only draft offers a quiet review entry, not completion or automatic Save',async area=>{
+it.each(areaOnlyCases)('a $kind-only draft keeps the conversation editable without a premature review',async area=>{
  const profile={...candidate(),skills:[],workAreas:[area]};
  // Exercise the supported decoded shape, including COUNTRY without a legacy city.
  expect(jest.requireActual('../workerAiClientService').decodeWorkerAiProfile(profile)).toEqual(profile);
@@ -207,13 +207,11 @@ it.each(areaOnlyCases)('a $kind-only draft offers a quiet review entry, not comp
  expect(shell().props.welcome).toBe('Dobar dan! Šta želite da dopunite? 🧡');
  expect(shell().props.showWelcomeArt).toBe(false);expect(shell().props.canEdit).toBe(true);
  const reviewAction=shell().props.footerAction;
- expect(reviewAction).toBeDefined();expect(reviewAction.props.kind).toBe('secondary');
- expect(reviewAction.props.disabled).toBe(false);
+ expect(reviewAction).toBeUndefined();
  expect(mockApi.prepare).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
  expect(mockApi.patch).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
  await act(async()=>shell().props.onChange('Još nisam poslao koju uslugu nudim.'));
- await act(async()=>reviewAction.props.onPress());
- expect(mockApi.prepare).toHaveBeenCalledWith(C,0,false);
+ expect(mockApi.prepare).not.toHaveBeenCalled();
  expect(shell().props.value).toBe('Još nisam poslao koju uslugu nudim.');
  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.patch).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
 });
@@ -226,8 +224,7 @@ it.each([undefined,[]])('empty work areas (%p) and legacy equipment do not creat
 it.each(['PROCESSING','UNKNOWN_OUTCOME'])('an area-only draft keeps the %s turn fence before review',async state=>{
  mockApi.read.mockResolvedValue(ok({...snapshot(turn(state)),candidate:{...candidate(),skills:[],workAreas:[areaOnlyCases[0]]}}));
  await render();const reviewAction=shell().props.footerAction;
- expect(reviewAction).toBeDefined();expect(reviewAction.props.kind).toBe('secondary');expect(reviewAction.props.disabled).toBe(true);
- await act(async()=>reviewAction.props.onPress());
+ expect(reviewAction).toBeUndefined();
  expect(mockApi.prepare).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
 });
 it.each([false,true])('an area-only draft respects the server review refusal for activate=%p',async activate=>{
@@ -236,12 +233,9 @@ it.each([false,true])('an area-only draft respects the server review refusal for
   revision:0,profile:data.candidate,activate,missingRequired:['Veštine'],canAccept:false,
   expiresAt:new Date(Date.now()+60_000).toISOString(),displayedContentDigest:'a'.repeat(64)};
  mockApi.prepare.mockResolvedValue(ok(frozen));mockApi.read.mockResolvedValue(ok({...data,review:frozen}));
- await render();expect(shell().props.footerAction.props.kind).toBe('secondary');
- await act(async()=>shell().props.footerAction.props.onPress());
- expect(mockApi.prepare).toHaveBeenCalledWith(C,0,activate);
- expect(tree.root.findByType('Review' as any).props.review).toBe(frozen);
- const label=activate?'Sačuvajte i aktivirajte profil':'Sačuvajte profil';
- expect(action(label).props.disabled).toBe(true);await click(label);
+ await render();expect(shell().props.footerAction).toBeUndefined();
+ expect(mockApi.prepare).not.toHaveBeenCalled();
+ expect(tree.root.findAllByType('Review' as any)).toHaveLength(0);
  expect(mockApi.save).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
  expect(mockApi.patch).not.toHaveBeenCalled();
 });
@@ -360,10 +354,18 @@ it('a late departed turn and retained Back cannot update a reincarnated account'
  await act(async()=>{mockAccount=A;mockRevision++;tree.update(<Screen/>);});await act(async()=>oldBack());
  expect(mockRouter.back).toHaveBeenCalledTimes(1);expect(mockJournal.clear).not.toHaveBeenCalled();
 });
-const reviewed=()=>({...snapshot(),review:{reviewId:K,revision:0,expiresAt:new Date(Date.now()+60000).toISOString(),canAccept:true,activate:true,missingRequired:[],profile:candidate()}});
+const reviewed=()=>{
+ const profile={...candidate(),location:{...candidate().location,city:'Novi Sad'}};
+ return {...snapshot(),candidate:profile,review:{schemaVersion:'WORKER_PROFILE_V1',reviewId:K,accountId:A,conversationId:C,profileId:B,
+ revision:0,expiresAt:new Date(Date.now()+60000).toISOString(),canAccept:true,activate:true,missingRequired:[],profile,
+ classificationState:'READY',reviewedServiceModes:[{service:'Montaža',mode:'ON_SITE'}],displayedContentDigest:'a'.repeat(64)}};
+};
 const enterReview=async()=>{
- mockApi.prepare.mockResolvedValue(ok({}));mockApi.read.mockResolvedValue(ok(reviewed()));
+ mockApi.read.mockResolvedValue(ok(reviewed()));
+ await click('Proverite razgovor');
+ const prepares=mockApi.prepare.mock.calls.length;
  await act(async()=>shell().props.footerAction.props.onPress());
+ expect(mockApi.prepare).toHaveBeenCalledTimes(prepares);
 };
 const reviewBack=()=>tree.root.findByType('Frame' as any).props.back;
 
@@ -393,11 +395,12 @@ it.each([false,true])('signed cityless REMOTE refusal can be saved only after a 
   raw={...raw,status:'COMPLETED',saved:receipt};
   return lostAck?{ok:false,kod:'UNKNOWN',poruka:'Odgovor nije stigao.'}:ok(receipt);
  });
- await render();await act(async()=>shell().props.footerAction.props.onPress());
- expect(action('Sačuvajte i aktivirajte profil').props.disabled).toBe(true);
- await click('Sačuvajte i aktivirajte profil');expect(mockApi.save).not.toHaveBeenCalled();
- await act(async()=>tree.root.findByType('Activation' as any).props.change(false));
- expect(mockApi.prepare.mock.calls.map(call=>call.slice(0,3))).toEqual([[C,0,true],[C,0,false]]);
+ await render();expect(shell().props.footerAction).toBeUndefined();
+ expect(mockApi.save).not.toHaveBeenCalled();
+ raw={...raw,review:draft};await click('Proverite razgovor');
+ const prepares=mockApi.prepare.mock.calls.length;
+ await act(async()=>shell().props.footerAction.props.onPress());
+ expect(mockApi.prepare).toHaveBeenCalledTimes(prepares);
  expect(tree.root.findByType('Review' as any).props.review).toEqual(draft);
  expect(action('Sačuvajte profil').props.disabled).toBe(false);expect(mockApi.save).not.toHaveBeenCalled();
  await click('Sačuvajte profil');
@@ -409,13 +412,11 @@ it.each([false,true])('signed cityless REMOTE refusal can be saved only after a 
 });
 
 it('a legacy review does not claim confirmed matching when classification authority is absent',async()=>{
- await render();await enterReview();
- const note=tree.root.findAll(node=>node.props?.testID==='worker-review-notifications-note');
- expect(note.length).toBeGreaterThan(0);
- expect(note[0].props.children).toContain('neće stizati dok kategorija i način rada ne budu potvrđeni');
- expect(note[0].props.children).not.toContain('Zadatke povezujemo sa potvrđenim uslugama');
- expect(note[0].props.children).not.toContain('novim i već otvorenim');
- expect(note[0].props.tone).toBeUndefined();
+ const data=reviewed();mockApi.read.mockResolvedValue(ok({...data,review:{...data.review,classificationState:undefined}}));
+ await render();expect(shell().props.footerAction).toBeUndefined();
+ expect(tree.root.findAllByType('Review' as any)).toHaveLength(0);
+ expect(visibleText()).not.toContain('Zadatke povezujemo sa potvrđenim uslugama');
+ expect(mockApi.save).not.toHaveBeenCalled();
 });
 it('a retired-field review refusal keeps a guarded restart path after same-review readback',async()=>{
  await render();await enterReview();
@@ -776,25 +777,22 @@ it('late dispatched exit after account reincarnation cannot clear the old journa
  expect(mockJournal.clear).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
 });
 
-it('clean worker chat exposes a quiet review action without saving or claiming completion', async () => {
+it('a failed review preparation keeps recovery available without a premature review or Save', async () => {
   mockApi.prepare.mockResolvedValue({ ok: false, kod: 'UNAVAILABLE', poruka: 'Proveri stanje.' });
   await render(); const reviewAction = shell().props.footerAction;
   expect(shell().props.card(false)).toBeNull();
-  expect(reviewAction.props.label).toBe('Pregledajte radni profil');
-  expect(reviewAction.props.kind).toBe('secondary'); expect(reviewAction.props.disabled).toBe(false);
-  expect(mockApi.prepare).not.toHaveBeenCalled(); expect(mockApi.save).not.toHaveBeenCalled();
-  await act(async () => reviewAction.props.onPress());
+  expect(reviewAction).toBeUndefined();
+  expect(action('Proverite razgovor')).toBeTruthy();expect(mockApi.save).not.toHaveBeenCalled();
   expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false); expect(mockApi.save).not.toHaveBeenCalled();
 });
 it('clean worker chat has no empty-profile call to action and no review during an unresolved turn', async () => {
   mockApi.read.mockResolvedValue(ok({ ...snapshot(), candidate: { ...candidate(), skills: [] } }));
   await render(); expect(shell().props.card(false)).toBeNull(); expect(shell().props.footerAction).toBeUndefined(); await act(async () => tree.unmount());
   mockApi.read.mockResolvedValue(ok(snapshot(turn()))); await render();
-  const reviewAction = shell().props.footerAction; expect(reviewAction.props.disabled).toBe(true); expect(reviewAction.props.reason).toBeTruthy();
-  await act(async () => reviewAction.props.onPress()); expect(mockApi.prepare).not.toHaveBeenCalled();
+  expect(shell().props.footerAction).toBeUndefined();expect(mockApi.prepare).not.toHaveBeenCalled();
 });
-it('assistant completion wording never promotes a partial worker profile or sends an automatic review',async()=>{
+it('assistant completion wording never promotes a partial worker profile when server preparation refuses it',async()=>{
   mockApi.read.mockResolvedValue(ok({...snapshot(),messages:[{id:K,role:'ASSISTANT',body:'Sve je gotovo. Profil je spreman!',sequence:1}]}));
   await render();expect(shell().props.card(false)).toBeNull();
-  expect(shell().props.footerAction.props.kind).toBe('secondary');expect(mockApi.prepare).not.toHaveBeenCalled();
+  expect(shell().props.footerAction).toBeUndefined();expect(mockApi.save).not.toHaveBeenCalled();
 });

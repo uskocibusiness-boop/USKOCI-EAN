@@ -279,15 +279,15 @@ export function decodeWorkerAiSnapshot(raw:unknown,account:string,cid?:string):W
 }
 const ERRORS:Readonly<Record<string,string>>={
   AI_SERVICE_UNAVAILABLE:'AI trenutno nije dostupan.',[AI_CREDITS_UNAVAILABLE]:AI_CREDITS_UNAVAILABLE_COPY,
-  AUTH_REQUIRED:'Prijavi se da urediš radni profil.',WORKER_AI_DENIED:'Ponovo otvori svoj radni profil.',
-  WORKER_AI_STALE:'Profil je promenjen. Sačuvani podaci ostaju; pokreni nov razgovor iz aktuelnog profila.',
-  WORKER_AI_NOT_EDITABLE:'Ovaj razgovor se ne može menjati. Otvori sačuvani profil.',
-  WORKER_PROFILE_RESTRICTED:'Profil trenutno ne može da se menja.',WORKER_AI_TURN_PENDING:'Prethodna poruka još nema potvrđen ishod. Proveri stanje.',
-  WORKER_AI_PATCH_INVALID:'Proveri unos profila, radnog područja i dostupnosti.',WORKER_AI_REQUEST_CONFLICT:'Ovaj zahtev je već vezan za drugi unos. Proveri sačuvano stanje.',
-  WORKER_EQUIPMENT_RETIRED:'Alat i vozila se više ne uređuju u radnom profilu. Nastavi sa uslugama, područjem rada i dostupnošću.',
-  WORKER_AREA_INVALID:'Područje rada još nije razjašnjeno. Nastavi razgovor sa gradovima i dometom koji ti odgovaraju.',
-  WORKER_AREA_REQUIRES_CONVERSATION:'Područje rada promeni kroz razgovor i potvrdi u pregledu profila.',
-  WORKER_AI_RATE_LIMITED:'Poslato je previše poruka zaredom. Sačekaj kratko i proveri razgovor.',
+  AUTH_REQUIRED:'Prijavite se da uredite radni profil.',WORKER_AI_DENIED:'Ponovo otvorite svoj radni profil.',
+  WORKER_AI_STALE:'Profil je promenjen. Sačuvani podaci ostaju; pokrenite nov razgovor iz aktuelnog profila.',
+  WORKER_AI_NOT_EDITABLE:'Ovaj razgovor se ne može menjati. Otvorite sačuvani profil.',
+  WORKER_PROFILE_RESTRICTED:'Profil trenutno ne može da se menja.',WORKER_AI_TURN_PENDING:'Prethodna poruka je još u obradi. Proverite razgovor pre čuvanja profila; provera ne šalje novu poruku.',
+  WORKER_AI_PATCH_INVALID:'Proverite unos profila, radnog područja i dostupnosti.',WORKER_AI_REQUEST_CONFLICT:'Ovaj zahtev je već vezan za drugi unos. Proverite sačuvano stanje.',
+  WORKER_EQUIPMENT_RETIRED:'Alat i vozila se više ne uređuju u radnom profilu. Nastavite sa uslugama, područjem rada i dostupnošću.',
+  WORKER_AREA_INVALID:'Područje rada još nije razjašnjeno. Nastavite razgovor sa gradovima i dometom koji Vam odgovaraju.',
+  WORKER_AREA_REQUIRES_CONVERSATION:'Područje rada promenite kroz razgovor i potvrdite u pregledu profila.',
+  WORKER_AI_RATE_LIMITED:'Poslato je previše poruka zaredom. Sačekajte kratko i proverite razgovor.',
 };
 const scope=():ReceiptAccount|undefined=>{const s=sesijaSada();return s.user?{accountId:s.user.id,accountRevision:s.accountRevision}:undefined;};
 /** Only a proved local read timeout or SDK no-response may keep a last-good interview visible. */
@@ -300,7 +300,7 @@ function call<T>(name:string,args:Record<string,unknown>,decode:(v:unknown,aid:s
 }
 function recoveryCall(name:'rpc_read_worker_ai_turn_recovery'|'rpc_cancel_worker_ai_turn',conversationId:string,clientRequestId:string){
   const owner=scope();
-  if(!owner||!uuid(conversationId)||!uuid(clientRequestId))return Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori razgovor.'));
+  if(!owner||!uuid(conversationId)||!uuid(clientRequestId))return Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite razgovor.'));
   return readOwnedResult({account:owner,errors:ERRORS,write:name==='rpc_cancel_worker_ai_turn',fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
     request:()=>supabaseKlijent().rpc(name,{p_expected_user_id:owner.accountId,p_conversation_id:conversationId,p_client_request_id:clientRequestId}),
     decode:v=>decodeWorkerAiTurnRecovery(v,owner.accountId,conversationId,clientRequestId)});
@@ -314,9 +314,9 @@ export const workerExplicitModeReviewEnabled=()=>signedWorkerReviewEnabled()
 export const workerAiClientService={
   recoverTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_read_worker_ai_turn_recovery',conversationId,clientRequestId),
   cancelTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_cancel_worker_ai_turn',conversationId,clientRequestId),
-  open:(clientRequestId:string)=>!uuid(clientRequestId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori radni profil.')):
+  open:(clientRequestId:string)=>!uuid(clientRequestId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite radni profil.')):
     call('rpc_open_worker_ai',{p_client_request_id:clientRequestId},decodeWorkerAiSnapshot,true),
-  read:(conversationId:string)=>!uuid(conversationId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori razgovor.')):
+  read:(conversationId:string)=>!uuid(conversationId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite razgovor.')):
     call(signedWorkerReviewEnabled()?'rpc_read_worker_ai_taxonomy':'rpc_read_worker_ai',
       {p_conversation_id:conversationId},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId),false,WORKER_AI_READ_TRANSPORT_UNAVAILABLE),
   patch:(conversationId:string,expectedRevision:number,patch:WorkerAiPatch)=>call('rpc_patch_worker_ai',
@@ -330,7 +330,7 @@ export const workerAiClientService={
     if(!workerExplicitModeReviewEnabled())return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_OFF','Potvrda načina rada nije dostupna u ovoj verziji.'));
     if(!uuid(conversationId)||!revision(expectedRevision)||!Array.isArray(modes)||!modes.length||modes.length>24||
       modes.some(x=>!x||typeof x.service!=='string'||!x.service.trim()||!['ON_SITE','REMOTE'].includes(x.mode)))
-      return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_INVALID','Izaberi način rada za svaku uslugu.'));
+      return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_INVALID','Izaberite način rada za svaku uslugu.'));
     return call('rpc_prepare_worker_ai_review_taxonomy_confirmed',
       {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_activate:activate,
         p_selected_modes:modes.map(x=>({service:x.service,mode:x.mode}))},
@@ -338,7 +338,7 @@ export const workerAiClientService={
   },
   save:(review:WorkerAiReview,clientRequestId:string)=>{
     const owner=scope(),frozen=owner?decodeWorkerAiReview(review,owner.accountId,review.conversationId):null;
-    if(!frozen||!uuid(clientRequestId)||!frozen.canAccept)return Promise.resolve(failure('WORKER_AI_REVIEW_REQUIRED','Otvori potpun pregled profila.'));
+    if(!frozen||!uuid(clientRequestId)||!frozen.canAccept)return Promise.resolve(failure('WORKER_AI_REVIEW_REQUIRED','Otvorite potpun pregled profila.'));
     return call('rpc_save_worker_ai_review',{p_review_id:frozen.reviewId,p_displayed_digest:frozen.displayedContentDigest,p_client_request_id:clientRequestId},
       (v,a)=>a===frozen.accountId?decodeWorkerAiSaved(v,frozen):null,true);
   },

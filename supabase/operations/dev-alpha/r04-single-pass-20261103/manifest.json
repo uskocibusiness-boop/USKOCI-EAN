@@ -1,0 +1,30 @@
+{
+  "unit": "R04_R06_SINGLE_PASS_DEV",
+  "status": "PREPARED_NOT_APPLIED",
+  "project_ref": "leqcwgzvjsxugfgzdmth",
+  "source_candidates": {
+    "../../../proofs/ai/r04_turn_catalog_resolution_candidate.sql": "eb1104d5c156a319805210e7258616c60ba5382cdd1122205f828a8c968b4f3f",
+    "../../../proofs/ai/r06_first_plan_completion_candidate.sql": "7bd46378f7288de3436bdf4815c53876caae054eba169d82195e6b63c541198e"
+  },
+  "preimage_sha256": "5f87ee496fa0010d99b5bdd26ffd38f09a20935164f0294a724509424241d54e",
+  "dependencies_sha256": "b3dc67c8ec37d9afc6bbb27a2322cee70b56a7d384a9abcc9a94285c0261f979",
+  "changed_functions": 7,
+  "new_functions": 10,
+  "files": {
+    "preflight.sql": "04a17c4f2bd4d6f994af37eda145a7d1b6c25ab95e912de8f45e664082d45e26",
+    "promotion.sql": "5f24b2c30a8ac7a36a0631b2a88e96fdedce6576c0b65e6eb33c2846353d2fc2",
+    "postflight.sql": "2eb47f0a20e74774fc60ee80bff872020f7674a7230ea611699fb34b8806d926",
+    "rollback.sql": "3012d992e358d5cddfe041f1fc9f0ca55807cc7a31b165f8dbecfc29ac1423cf",
+    "postimage.json": "42bd7756238ba480e113820979375feecb46fad9ec63ee8e4d72ff904dc8a162"
+  },
+  "blockers": [
+    "Current full CI and current Worker regression migration are not green.",
+    "Complete real-schema Save/binder/export/erasure and concurrency acceptance remains required.",
+    "R01 and R10 source readiness remain open; this package grants no release approval."
+  ],
+  "rollback": "Only before first catalog resolution; otherwise forward recovery. Restore compatible Edge versions before SQL rollback.",
+  "limits": [
+    "Offline DDL derivation is not Auth/HTTP, DEV or native acceptance.",
+    "Connector project binding is required; no SQL setting proves the remote project."
+  ]
+}

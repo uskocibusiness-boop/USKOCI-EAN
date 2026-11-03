@@ -1,8 +1,9 @@
 /**
  * One server-only owner of optional taxonomy AI rollout flags (A30-D04/D05).
  * All optional capabilities are default OFF, including on DEV. Explicit false
- * and missing config both close them; a paid background classifier additionally
- * needs a verified DEV project scope and the existing paid-test admission flag.
+ * and missing config both close them. The historical DUAL_GEMINI key now gates
+ * the single-response intake and still needs verified DEV scope/paid admission.
+ * The key is retained for rollout compatibility, not a second provider call.
  *
  * This is not provider budget authority. Every paid operation still passes the
  * current reservation, durable turn and usage fences. No URL, ref or secret is

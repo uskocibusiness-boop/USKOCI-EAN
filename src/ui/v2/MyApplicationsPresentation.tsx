@@ -42,6 +42,8 @@ type Props = {
   onAgreement: (p: MojaPrijavaProjekcija) => void; onRetry: () => void; onReset: () => void;
   /** The task the application belongs to. Without it a worker who applied cannot get back to it. */
   onTask: (p: MojaPrijavaProjekcija) => void;
+  /** Optional profile action, separate from withdrawal/edit/selection. */
+  onService?: (p: MojaPrijavaProjekcija) => void;
   /** An application arrived at from a notification, brought into view once. */
   focusId?: string | null;
   /** Requested destination, including a row that the current owned read cannot return. */
@@ -181,6 +183,9 @@ export function MyApplicationsPresentation(props: Props) {
         fresh={!!props.freshId && props.freshId === p.prijavaId}
         onReview={() => props.onReview(p)} onAgreement={() => props.onAgreement(p)} onWithdraw={() => props.onWithdraw(p)} onTask={() => props.onTask(p)}>
         {props.expanded === p.prijavaId ? review : null}
+        {props.onService && ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'SELECTED'].includes(p.stanje) ?
+          <V2Action compact kind="quiet" label="Usluga u radnom profilu" disabled={disabled}
+            onPress={() => props.onService?.(p)} /> : null}
       </ApplicationCard>
     </Appear>;
   };

@@ -113,6 +113,8 @@ type Props = {
   turnRoles?: Readonly<Record<string, IntakeTurnRole>>;
   conversation: AiNeedV2Conversation; value: string; busy: boolean; error: string | null;
   canSubmit: boolean; canEdit: boolean; canReview: boolean; reviewLabel: string;
+  /** Current server review is ready; opening an existing publication outcome is separate. */
+  reviewReady?: boolean;
   reviewDisabledReason?: string | null;
   correction?: AiConversationShellProps['correction'];
   /** Separate route authority from the temporary speech/semantic interaction lock. */
@@ -401,7 +403,7 @@ export function IntakePresentation(props: Props) {
   const stillNeededText = !stillNeeded.length ? null : stillNeeded.length <= 3 ? stillNeeded.join(' · ')
     : `${stillNeeded.slice(0, 3).join(' · ')} · i još ${stillNeeded.length - 3}`;
   const completeProposal = completeDraftProposal(conversation.facts) && !!place && gap.done === gap.total;
-  const readyForReview = completeProposal && open && reviewContentReady && conversation.safety !== 'BLOCK'
+  const readyForReview = completeProposal && open && reviewContentReady && (props.reviewReady ?? props.canReview) && conversation.safety === 'ALLOW'
     && !stillNeededText && !hiddenMissing && !needsPoint && !busy && !pending && !props.error;
   const showSummary = readyForReview || (completed && completeProposal && conversation.safety !== 'BLOCK' && !busy && !pending && !props.error);
   // Current facts belong in the final card and the explicit full review. Decorating
