@@ -1,66 +1,55 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {singlePassFixture} from '../ai/single_pass_edge_fixture.mjs';
+import {taxonomyDualGeminiEnabled} from '../../functions/_shared/taxonomyRuntimeConfig.mjs';
 const worker=readFileSync(new URL('../../functions/uskoci-worker-interview/index.ts',import.meta.url),'utf8');
 const need=readFileSync(new URL('../../functions/uskoci-ai-interview/index.ts',import.meta.url),'utf8');
-test('both worker and need use one shadow schema/inspection module',()=>{
- for(const source of [worker,need]){
-  assert.match(source,/classificationGeminiShadow\.mjs/);
-  assert.match(source,/withGeminiClassificationShadowSchema/);
-  assert.match(source,/inspectGeminiClassificationShadow/);
-  assert.match(source,/geminiClassificationShadowInstruction/);
-  assert.match(source,/USKOCI_TAXONOMY_UNIFIED_SHADOW/);
- }
-});
-// The worker's field stripping and mutation boundary run against the actual
-// handler in proofs/ai/v5_worker_edge.test.mjs, independent of variable names.
-test('need strips new fields before strict facts parser and owner-bound completion',()=>{
- const checked=need.indexOf('inspectGeminiClassificationShadow(value');
- // The same strict parser is now bound to the negotiated fact capacity. Check
- // that binding too: replacing it with a passthrough must fail this boundary.
- const binding=need.indexOf('const parseFacts=(output:any)=>parseV2Output(output,maxProposals)');
- const strict=need.indexOf('parseFacts(checked.output)');
- const completion=need.indexOf("'rpc_ai_complete_need_turn_v2_service'");
- assert.ok(checked>0&&binding>checked&&strict>binding&&completion>strict);
- assert.match(need,/parseLocationOutput\(checked\.output,locationContext,parseFacts\)/);
- assert.doesNotMatch(need,/rpc_taxonomy_commit_admission_service/);
-});
-test('need category is a single service label and taxonomy tree stays in shadow metadata',()=>{
- assert.match(need,/U need\.category upišite SAMO naziv konkretne usluge/);
- assert.match(need,/bez nadkategorije\/putanje\/prefiksa/);
- assert.doesNotMatch(need,/možete navesti stablo u formatu Šira grupa/);
-});
+const fixtures={};
+for(const kind of ['WORKER','NEED']){const f=singlePassFixture(kind);await f.invoke();fixtures[kind]=f;}
+const provider=f=>f.calls.filter(call=>call.url.startsWith('https://generativelanguage.googleapis.com/'));
+const prompt=f=>provider(f)[0].body.systemInstruction.parts.map(part=>part.text).join('\n');
 
-const captureSql=readFileSync(new URL('../../candidates/dynamic-taxonomy-20261011/gemini-turn-review-hints-v1.sql',import.meta.url),'utf8');
-const activeCapture=readFileSync(new URL('../../functions/_shared/backgroundTaxonomyArchitect.mjs',import.meta.url),'utf8');
-test('both handlers write optional hint receipts only after immutable successful AI turn',()=>{
- const wc=worker.indexOf("rpc('rpc_complete_worker_ai_turn_service'");
- const wh=worker.indexOf('captureTaxonomyHintsWithReceipt(');
- const nc=need.indexOf("'rpc_ai_complete_need_turn_v2_service'");
- const nh=need.indexOf('captureTaxonomyHintsWithReceipt(');
- assert.ok(wc>0&&wh>wc,'worker hint capture must follow successful turn completion');
- assert.ok(nc>0&&nh>nc,'need hint capture must follow successful turn completion');
- for(const source of [worker,need]){
-  assert.match(source,/USKOCI_TAXONOMY_SHADOW_CAPTURE/);
-  assert.match(source,/reviewHints|taxonomyReviewHints/);
-  assert.match(source,/captureTaxonomyHintsWithReceipt/);
-  assert.match(source,/USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED/);
-  assert.match(source,/HISTORICAL_CAPTURE_PRESENT/);
-  // Both callers supply the complete owned turn identity; they never perform canonical admission.
-  for (const key of ['p_account_id','p_conversation_id','p_client_request_id','p_turn_id','p_attempt_id',
-    'p_purpose','p_catalog_version','p_proposals']) assert.match(source,new RegExp(key+'\\s*:'));
-  assert.doesNotMatch(source,/rpc_taxonomy_commit_admission_service/);
+test('both handlers send one provider request containing conversation and private taxonomy schema',()=>{
+ for(const f of Object.values(fixtures)){
+  assert.equal(provider(f).length,1);
+  const request=provider(f)[0].body;
+  assert.ok(request.generationConfig.responseSchema.required.includes('taxonomyDecisions'));
+  assert.ok(request.generationConfig.responseSchema.properties.assistantMessage);
+  assert.equal(request.tools,undefined,'catalog exploration must not add another model loop');
+  assert.match(prompt(f),/private taxonomyDecisions only, never assistantMessage\/title\/description\/bio/);
  }
- // The actual writer remains in the single reused helper, not a second
- // classifier or a client-side writer. Its historical receipt never grants
- // Save, matching, binding or a retry of the billed provider request.
- assert.match(activeCapture,/rpc\('rpc_taxonomy_capture_gemini_turn_hints_service'/);
- assert.match(activeCapture,/rpc\('rpc_taxonomy_read_gemini_turn_hint_receipt_service'/);
- assert.match(activeCapture,/ack\.authority === 'NONE'/);
- assert.match(activeCapture,/receipt\.authority !== 'NONE'/);
- assert.match(activeCapture,/receipt\.applicability !== 'NOT_EVALUATED'/);
- assert.match(activeCapture,/receipt\.retryAllowed !== false/);
 });
+test('need strips private taxonomy fields before strict facts and location parsing',()=>{
+ const checked=need.indexOf('const extracted = takeSinglePassTaxonomy(value)');
+ const stripped=need.indexOf('value = extracted.output',checked);
+ const binding=need.indexOf('const parseFacts=(output:any)=>parseV2Output(output,maxProposals)');
+ const strict=need.indexOf('parseFacts(value)',binding);
+ const completion=need.indexOf("'rpc_ai_complete_need_turn_with_first_plan_service'");
+ assert.ok(checked>0&&stripped>checked&&binding>stripped&&strict>binding&&completion>strict);
+ assert.match(need,/parseLocationOutput\(value,locationContext,parseFacts\)/);
+ const write=fixtures.NEED.calls.find(call=>call.name==='rpc_ai_complete_need_turn_with_first_plan_service').body;
+ assert.ok(write.p_proposals.every(p=>!JSON.stringify(p).includes('taxonomyDecisions')));
+ assert.ok(write.p_taxonomy_plan.proposals.length>0,'classification persists separately from business facts');
+});
+test('need category remains a concrete service and private tree data never becomes a public fact',()=>{
+ assert.match(prompt(fixtures.NEED),/need.category: internal natural action\+object, no path\/place\/price\/date\/quantity or generic fallback/);
+ assert.match(prompt(fixtures.NEED),/Classify one effective service using typed task_geography, not city alone/);
+ assert.match(prompt(fixtures.NEED),/Kategorije\/ID-jevi\/grane idu samo AI→server, bez korisničkog prikaza\/odobrenja/);
+});
+test('first plan uses one owned completion write, never the retired split capture or business Save',()=>{
+ for(const [kind,f] of Object.entries(fixtures)){
+  const writes=f.calls.filter(call=>/complete.*turn.*service$/.test(call.name));
+  assert.equal(writes.length,1,kind);
+  assert.match(writes[0].name,/with_first_plan_service$/);
+  for(const key of ['p_account_id','p_conversation_id','p_client_request_id','p_attempt_id','p_taxonomy_plan'])
+   assert.ok(Object.hasOwn(writes[0].body,key),kind+': '+key);
+  assert.ok(!f.calls.some(call=>/rpc_taxonomy_(capture_gemini_turn_hints|bind_reviewed_worker|bind_reviewed_need|commit_reviewed_batch)_service/.test(call.name)));
+ }
+ // SQL rollback/atomicity/lost-ACK negatives are exercised in the current R06
+ // first-plan and handler tests; this synthetic transport is not DEV proof.
+});
+const captureSql=readFileSync(new URL('../../candidates/dynamic-taxonomy-20261011/gemini-turn-review-hints-v1.sql',import.meta.url),'utf8');
 test('hint capture candidate is service-only, private, versioned and has no admission authority',()=>{
  assert.match(captureSql,/ENABLE ROW LEVEL SECURITY/);
  assert.match(captureSql,/REVOKE ALL ON private\.work_taxonomy_gemini_turn_hints_v1/);
@@ -74,37 +63,34 @@ test('hint capture candidate is service-only, private, versioned and has no admi
  assert.doesNotMatch(captureSql,/INSERT INTO public\.notification_deliveries/i);
 });
 
-test('optional taxonomy and paid dual rollout share explicit default-OFF config without hardcoded DEV URL',()=>{
- const harness=readFileSync(new URL('gemini-real-provider-smoke.mjs',import.meta.url),'utf8');
- assert.match(harness,/WORKER_CAPABILITY/);
- assert.match(harness,/NEED_SERVICE/);
- assert.match(harness,/--provider/);
- assert.match(harness,/classificationShadowJson/);
+test('single-response rollout retains explicit default-OFF and project-bound server config',()=>{
+ const env={USKOCI_TAXONOMY_DUAL_GEMINI:'true',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',SUPABASE_ANON_KEY:'synthetic',
+  USKOCI_TAXONOMY_ROLLOUT_SCOPE:'DEV',USKOCI_TAXONOMY_ALLOWED_PROJECT_REF:'a'.repeat(20),SUPABASE_URL:'https://'+'a'.repeat(20)+'.supabase.co'};
+ assert.equal(taxonomyDualGeminiEnabled(key=>env[key]),true);
+ for(const key of Object.keys(env)){
+  const incomplete={...env};delete incomplete[key];
+  assert.equal(taxonomyDualGeminiEnabled(name=>incomplete[name]),false,'missing '+key);
+ }
+ assert.equal(taxonomyDualGeminiEnabled(key=>({...env,SUPABASE_URL:'https://'+'b'.repeat(20)+'.supabase.co'})[key]),false);
  for(const source of [worker,need]){
-  assert.match(source,/taxonomyRuntimeConfig\.mjs/);
-  assert.match(source,/taxonomyOptionalEnabled\(/);
-  assert.match(source,/taxonomyDualGeminiEnabled\(/);
+  assert.match(source,/taxonomyDualGeminiEnabled as taxonomyIntakeEnabled/);
+  assert.match(source,/taxonomyIntakeEnabled\(\(key:string\)=>Deno.env.get\(key\)\)/);
   assert.doesNotMatch(source,/https:\/\/leqcwgzvjsxugfgzdmth\.supabase\.co/);
-  assert.doesNotMatch(source,/USKOCI_TAXONOMY_DUAL_GEMINI'\) !== 'false'/);
-  assert.match(source,/withGeminiClassificationShadowSchema/);
  }
 });
-
-const sharedPrompt=readFileSync(new URL('../../functions/_shared/classificationGeminiShadow.mjs',import.meta.url),'utf8');
-const workerReviewUI=readFileSync(new URL('../../../src/ui/workerProfile/WorkerAiPresentation.tsx',import.meta.url),'utf8');
-test('worker shadow asks for COMPLETE current skills, never partial patch-only suggestions or invented delivery consent',()=>{
-  for(const clause of ['compare EACH distinct entry in the resulting skills array',
-    'Cover EVERY offered skill','never return only the skills newly mentioned',
-    'UNCONFIRMED rather than omitting it or guessing','at most ONE necessary question per turn',
-    'never owner consent']) assert.ok(sharedPrompt.includes(clause),clause);
-  assert.match(sharedPrompt,/purpose==='WORKER_CAPABILITY'/);
-  // The private shadow is advisory. It must never activate auto-notifications.
-  assert.doesNotMatch(sharedPrompt,/INSERT INTO public\.notification_deliveries/);
+test('worker classifies every offered service and retains current IDs without invented consent',()=>{
+ const text=prompt(fixtures.WORKER);
+ assert.match(text,/One decision per offered service\/mode/);
+ assert.match(text,/preserve unchanged saved\/draft IDs, including mode\/handoff edits/);
+ assert.match(text,/Never restore removed services/);
+ assert.match(text,/UNKNOWN only for clarification/);
+ assert.match(text,/These remain draft choices until explicit Save/);
+ assert.match(text,/COMPLETE offered list: preserve unremoved services/);
 });
-test('unfinished worker modes show an actionable reason instead of promising automatic matching',()=>{
-  assert.match(workerReviewUI,/review\.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED'/);
-  // Interaction and user copy are covered by worker-review-parts / worker-conversation-parts.
-  // This source boundary only protects honest default authority, not historical wording.
-  assert.match(workerReviewUI,/WorkerAiNotificationsNote\(\{matchingReady=false\}/);
-  assert.doesNotMatch(workerReviewUI,/export function WorkerAiModeConfirmation/);
+test('unfinished worker review renders preparation reasons and notifications default to unconfirmed',()=>{
+ const ui=readFileSync(new URL('../../../src/ui/workerProfile/WorkerAiPresentation.tsx',import.meta.url),'utf8');
+ assert.match(ui,/review\.classificationState&&review\.classificationState!=='READY'/);
+ assert.match(ui,/classificationPreparationMessage\(review\.classificationState\)/);
+ assert.match(ui,/WorkerAiNotificationsNote\(\{matchingReady=false\}/);
+ assert.doesNotMatch(ui,/export function WorkerAiModeConfirmation/);
 });

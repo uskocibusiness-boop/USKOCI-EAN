@@ -56,15 +56,17 @@
     "normalization": "LF with trailing whitespace removed; exact normalized source verified. See README mapping to current invariants. Retired cases are not counted as passed."
   },
   "last_github_ci": {
-    "head": "b2db154f227e798f71838594b4c315980f7cf0fd",
-    "main_run": 41592842078,
+    "head": "eabec90fb938d7d1bf32e924436c60e3d6273092",
+    "main_run": 41595196358,
     "main": "FAILURE",
-    "ai_pass": 1390,
-    "ai_fail": 192,
-    "ai_cancelled": 2,
+    "ai_pass": 1500,
+    "ai_fail": 0,
+    "ai_cancelled": 0,
     "ai_todo": 1,
-    "r01_run": 41592842095,
-    "r01": "FAILURE"
+    "failure": "Downstream worker prompt policy expected retired literal clauses; the complete downstream 13-file local group then found 20 obsolete source/copy expectations. Not a full CI success.",
+    "r01_run": 41595196357,
+    "r01": "FAILURE",
+    "r01_gate": "STRICT_PARITY / METADATA_PARITY_DIFFERENT"
   },
   "dev_read_only": {
     "project_ref": "leqcwgzvjsxugfgzdmth",
@@ -95,7 +97,13 @@
     "supabase/proofs/ai/classification-full-catalog-edge.test.mjs": "877844a7c50cf7e054e3aa2491d61df1fcc07b342856c0b19fbba1f42574013d",
     "supabase/proofs/ai/classification_hint_revision_sql.test.mjs": "9d9b5fdbd897b5c9a0cc5df9c1ae4445c143c6ff64ab8e77b01b5eb4aaea51f9",
     "supabase/proofs/ai/gemini_wire_diagnostics.test.mjs": "da1960492253c896d5206ac7738db9e8c5217919cfebec187f899aa543c6d922",
-    "supabase/proofs/ai/single_pass_edge_fixture.mjs": "2450d7b465fcc79df9608f046286b7b7ec8b09a5b813fa0e1b046eae32c1f4a6"
+    "supabase/proofs/ai/single_pass_edge_fixture.mjs": "2450d7b465fcc79df9608f046286b7b7ec8b09a5b813fa0e1b046eae32c1f4a6",
+    "supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs": "bce5a0666a6da09e54e62864a50d915e9b7925fef9cd44aeae30222a70c18479",
+    "supabase/proofs/dynamic_taxonomy/classification-gemini-shadow.test.mjs": "5742da42e65b44e04839d4e7f4a15198eb356345020d2f24694e44cf0d39c5e9",
+    "supabase/proofs/dynamic_taxonomy/classification-turn-feedback.test.mjs": "baa6e4745ffdf5ae7fd7f04514c533e9a81f7bfef7d5474023a73b6c6f641477",
+    "supabase/proofs/dynamic_taxonomy/service-handoff.test.mjs": "4f8fa34b391de402f12f3f79bacec0484a837beb80141204420fb4e3ce74c078",
+    "supabase/proofs/dynamic_taxonomy/worker-existing-identity-recovery.test.mjs": "6c03cec403328017d970def8ced8ba569429a586fb124e242418577eff3814a1",
+    "supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs": "a78722a08f0f5b24983075a4d6c0f2209064f7e305405ab9d0e686e6b2c73998"
   },
   "full_local_ai": {
     "command": "node --test --test-concurrency=2 --test-reporter=spec supabase/proofs/ai/*.test.mjs",
@@ -106,5 +114,42 @@
     "todo": "Existing R07a real Auth/publish after price retraction, not executed.",
     "duration_ms": 310269.4949,
     "failure": "One textual source assertion expected the older guard spelling. Corrected after this run; four source checks plus eight actual lifecycle cases passed (12/12), including both denied-completion/no-hint scenarios. This mixed sequence is not labeled full CI success."
+  },
+  "proof_update_parent_sha": "eabec90fb938d7d1bf32e924436c60e3d6273092",
+  "downstream_proofs": {
+    "files": 13,
+    "before": {
+      "pass": 151,
+      "fail": 20
+    },
+    "after": {
+      "pass": 171,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "duration_ms": 8145.9001
+    },
+    "logs": [
+      "artifacts/ai-tail-before.log",
+      "artifacts/ai-tail-after.log"
+    ],
+    "changes": "Six proof files now check the composed prompt actually sent by current handlers and private metadata/atomic completion boundaries. Removed expectations for split capture, two providers and premature review invitations. Existing SQL ownership/REMOTE guard, malformed handoff, consent, category identity and revision negatives remain. No runtime change in this proof update.",
+    "limitations": "Synthetic provider responses and prompt wiring do not prove real Gemini quality or DEV/native behavior."
+  },
+  "final_local_integrity_privacy": {
+    "status": "PASS",
+    "log": "artifacts/ci-tail-integrity-privacy.log",
+    "migration_files": 193,
+    "commands": [
+      "python supabase/migrations/check_migration_integrity.py",
+      "python -m unittest discover -s supabase/migrations -p test_migration_integrity.py",
+      "node --test supabase/proofs/privacy/runtime/native-net-invoker.test.mjs supabase/proofs/privacy/runtime/native-net-invoker-sql.test.mjs",
+      "node --test supabase/proofs/privacy/runtime/extension-provenance.test.mjs supabase/proofs/privacy/runtime/extension-provenance-sql.test.mjs",
+      "node supabase/proofs/privacy/r01-column-boundary.test.mjs",
+      "node supabase/proofs/privacy/r01-bootstrap-parity.test.mjs",
+      "python -B -m unittest discover -s supabase/proofs/privacy/bootstrap -p 'test_*.py'"
+    ],
+    "limitation": "Local synthetic boundary/bootstrap checks, not the separate native-vs-hosted R01 parity workflow."
   }
 }

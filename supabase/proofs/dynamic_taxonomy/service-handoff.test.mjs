@@ -182,12 +182,14 @@ test('owned context rejects malformed handoff or handoff attached to onsite',()=
 test('both interview instructions share execution semantics without adding mode or assuming shipping',()=>{
   for(const purpose of ['NEED_SERVICE','WORKER_CAPABILITY']){
     const text=serviceExecutionInstruction(purpose);
-    assert.match(text,/only ON_SITE and REMOTE/);assert.match(text,/without asking an obvious extra question/);
-    assert.match(text,/Do not silently replace physical work with advice/);
-    assert.match(text,/necessary measurement, installation or other worker visit is ON_SITE/);
-    assert.match(text,/does not mean the worker offers courier/);
-    assert.match(text,/Unknown remains omitted/);assert.match(text,/REMOTE alone never means shipping everywhere/);
-    assert.match(text,/description\/bio prose filters/);
+    assert.match(text,/BOTH = both scopes, not a third mode/);
+    assert.match(text,/Infer an obvious scope \(painting an apartment: ON_SITE\)/);
+    assert.match(text,/never substitute advice\/design/);
+    assert.match(text,/measurement, installation or worker delivery is ON_SITE/);
+    assert.match(text,/Customer pickup\/external shipment is handoff, not a worker visit or transport service/);
+    assert.match(text,/Unknown: omit and ask the missing option/);
+    assert.match(text,/never assume digital-only\/worldwide shipping/);
+    assert.match(text,/Use structured constraints for matching, not prose/);
   }
   assert.throws(()=>serviceExecutionInstruction('THIRD_MODE'),/EXECUTION_PURPOSE_INVALID/);
 });

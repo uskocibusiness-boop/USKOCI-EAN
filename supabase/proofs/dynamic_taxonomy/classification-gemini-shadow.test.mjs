@@ -130,7 +130,7 @@ test('worker snapshot requires explicit unresolved proposals without inferring s
  assert.match(prompt,/never a reason to omit the service/);
  // Execution semantics live in the shared section sent by both real handlers;
  // classification metadata does not need a second copy of that authority rule.
- assert.match(serviceExecutionInstruction('WORKER_CAPABILITY'),/Catalog modes only limit supported scopes/);
+ assert.match(serviceExecutionInstruction('WORKER_CAPABILITY'),/profession, city, equipment or catalog modes alone do not resolve ambiguous services/);
  const unresolved={...plan('PRIVATE_SERVICE','','UNCONFIRMED','NEEDS_REVIEW')};
  const result=inspect(withEncodedShadow(worker,[unresolved]),snapshot,'WORKER_CAPABILITY');
  assert.deepEqual(result.statuses,['NEEDS_REVIEW']);

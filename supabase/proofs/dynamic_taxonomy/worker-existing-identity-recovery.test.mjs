@@ -68,6 +68,7 @@ test('existing source-bound same mode and handoff can establish choice without a
 });
 test('initial explicit mode for each new service is instructed as a quoted proposal, not consent',()=>{
  const prompt=workerServiceModeInstruction(fixture().modeContext);
- assert.ok(prompt.includes('INITIAL delivery mode'));assert.ok(prompt.includes('one declaration per service'));
- assert.ok(prompt.includes('All changes remain proposals for the signed profile review and explicit Save'));
+ assert.match(prompt,/verbatim USER quote \(6–1000 characters\) stating initial scope/);
+ assert.match(prompt,/a multi-service statement gives each service the same quote/);
+ assert.match(prompt,/These remain draft choices until explicit Save/);
 });
