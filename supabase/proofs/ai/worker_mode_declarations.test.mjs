@@ -56,6 +56,55 @@ test('unique quoted mode set remains a Map request, not activation', () => {
   assert.deepEqual(result.get(key(B)).modes, ['ON_SITE']);
 });
 
+// The short "Oba" regression is evaluated against the actual shared parser
+// and single-pass builder; it does not call the paid model or perform Save.
+function shortReplyFixture(question = 'Da li časove matematike držite onlajn ili uživo?', answer = 'Oba') {
+  const f = fixtures();
+  f.modeContext.revision = 7;
+  f.messages = [{ role: 'ASSISTANT', body: question }, { role: 'USER', body: answer }];
+  f.context = { revision: 7, serviceModeContext: f.modeContext,
+    messages: f.messages, candidate: { skills: [A, B, C] } };
+  return f;
+}
+const shortBoth = () => ({ service: A, modes: ['REMOTE', 'ON_SITE'], evidence: 'Oba' });
+test('recent Oba binds only the asked service at the same draft revision', () => {
+  const f = shortReplyFixture();
+  assert.deepEqual(request([shortBoth()], f).get(key(A)).modes, ['REMOTE', 'ON_SITE']);
+  assert.equal(request([{ ...shortBoth(), modes: ['REMOTE'] }], f).size, 0);
+});
+test('Oba refuses non-mode, wrong-service, multi-service, stale or unsigned questions', () => {
+  const examples = [
+    shortReplyFixture('Da li časove matematike radite vikendom ili radnim danom?'),
+    shortReplyFixture('Da li košenje trave radite onlajn ili uživo?'),
+    shortReplyFixture('Da li časove matematike i popravku računara radite onlajn ili uživo?'),
+  ];
+  const stale = shortReplyFixture();
+  stale.messages.push({ role: 'ASSISTANT', body: 'Koje Vam vreme odgovara?' });
+  examples.push(stale);
+  const differentRevision = shortReplyFixture();
+  differentRevision.context.revision = 8;
+  examples.push(differentRevision);
+  const missingRevision = shortReplyFixture();
+  delete missingRevision.context.serviceModeContext;
+  examples.push(missingRevision);
+  for (const f of examples) assert.equal(request([shortBoth()], f).size, 0);
+  assert.equal(request([{ ...shortBoth(), evidence: 'Da' }], shortReplyFixture(undefined, 'Da')).size, 0);
+  assert.equal(request([{ ...shortBoth(), service: B }], shortReplyFixture()).size, 0);
+});
+test('single-pass uses scoped Oba without changing other saved services or IDs', async () => {
+  const f = shortReplyFixture();
+  const result = await build(asJson([shortBoth()]), { messages: f.messages,
+    serviceModeContext: f.modeContext, draftRevision: 8 });
+  assert.deepEqual(result.proposals.filter(p => p.service === A).map(p => p.mode),
+    ['REMOTE', 'ON_SITE']);
+  assert.deepEqual(result.proposals.filter(p => p.service !== A).map(p => p.service), [B, C]);
+  assert.equal(result.failures.some(row => row.code === 'WORKER_MODE_REQUEST_INVALID'), false);
+  const stale = await build(asJson([shortBoth()]), { messages: f.messages,
+    serviceModeContext: { ...f.modeContext, revision: 6 }, draftRevision: 8 });
+  assert.equal(stale.proposals.some(p => p.service === A), false);
+  assert.ok(stale.failures.some(row => row.code === 'WORKER_MODE_REQUEST_INVALID'));
+});
+
 const malformed = [
   ['unknown mode', x => ({ ...x, modes: ['REMOTE', 'UNKNOWN'] })],
   ['duplicate mode', x => ({ ...x, modes: ['REMOTE', 'REMOTE'] })],

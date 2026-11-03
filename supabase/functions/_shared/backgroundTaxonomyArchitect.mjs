@@ -675,7 +675,8 @@ export async function buildWorkerFullTreeTaxonomyProposals({
   const priorModes = [...savedModes.filter(item => !drafted.has(normalizedClassificationIdentity(item?.service))), ...draftModes];
   const ownedMessages = Array.isArray(messages) ? messages : [];
   const { requests, invalidServices: invalidChanges } = inspectWorkerModeRequests(
-    serviceModeChangesJson, { messages: ownedMessages },
+    serviceModeChangesJson, { messages: ownedMessages,
+      revision: Number.isSafeInteger(draftRevision) ? draftRevision - 1 : null, serviceModeContext },
     new Map(cleanSkills.map(service => [normalizedClassificationIdentity(service), service])));
 
   const savedEntriesValid = entries => entries.length > 0
