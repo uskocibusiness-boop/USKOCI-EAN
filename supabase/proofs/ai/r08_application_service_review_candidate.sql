@@ -1,4 +1,5 @@
--- LOCAL_ONLY / NOT_TESTED / NOT_DEPLOYED. Not a migration or a DEV operation.
+-- LOCAL_ONLY / NOT_DEPLOYED. Not a migration or a DEV operation.
+-- Bounded SQL proof: r08_application_service_review.test.mjs; not full schema/Auth acceptance.
 -- Application -> optional owned profile review, without a provider or label lookup.
 -- Reuses worker_ai_sessions/reviews, the existing Save, outbox and signed binder.
 -- A promotion must capture dependencies/preimages, ACL/closure inventory and rollback.
