@@ -170,8 +170,8 @@ describe('what the saved profile shows', () => {
     await show({ rating: <RatingLineView average={4.8} count={12} /> });
     const copy = all();
     for (const part of ['Ana Petrović', '4,8 · 12 ocena', 'Šta radite', 'Selidbe', 'Nošenje', 'Područje dolaska', 'Novi Sad · do 20 km',
-      'Kada', 'Mogu odmah', 'Nedeljni raspored']) expect(copy).toContain(part);
-    expect(copy.join(' ')).not.toMatch(/Oprema|Bušilica|Kombi/);
+      'Kada', 'Nedeljni raspored']) expect(copy).toContain(part);
+    expect(copy.join(' ')).not.toMatch(/Oprema|Bušilica|Kombi|Mogu odmah/);
     expect(copy.filter(text => text === 'Selidbe')).toHaveLength(1);
     expect(copy).not.toContain('Pregledajte profil'); expect(copy).not.toContain('Selidbe · Nošenje');
     expect(action('Uredite kroz razgovor')).toBeTruthy();
@@ -254,21 +254,31 @@ describe('the card\'s line of the kinds of work', () => {
     expect(Array.from(long).length).toBeLessThanOrEqual(28); expect(long.endsWith('…')).toBe(true);
   });
 });
-describe('availability is edited through AI', () => {
-  it('shows the saved state and opens a topic without a switch or optimistic change', async () => {
-    const onEdit = jest.fn(); await show({ availableNow: { value: true, onEdit } });
-    expect(toggle()).toBeUndefined(); expect(all()).toContain('Mogu odmah');
-    await act(async () => press('Dostupnost').props.onPress());
-    expect(onEdit).toHaveBeenCalledTimes(1); expect(all()).toContain('Mogu odmah');
+describe('legacy available-now stays in data but not on the ordinary worker profile', () => {
+  it.each([true, false])('hides availability %s and edits time through the weekly schedule', async value => {
+    const onEdit = jest.fn();
+    const { openConversation } = await show({ availableNow: { value, onEdit } }, draft({ dostupanOdmah: value }));
+    expect(toggle()).toBeUndefined();
+    expect(all()).not.toContain('Mogu odmah');
+    expect(press('Dostupnost')).toBeUndefined();
+    await act(async () => press('Nedeljni raspored').props.onPress());
+    expect(openConversation).toHaveBeenCalledWith('time');
+    expect(onEdit).not.toHaveBeenCalled();
   });
-  it('does not run a retained action while disabled', async () => {
-    const onEdit = jest.fn(); await show({ disabled: true, availableNow: { value: false, onEdit } });
-    expect(press('Dostupnost').props.disabled).toBe(true);
-    await act(async () => press('Dostupnost').props.onPress()); expect(onEdit).not.toHaveBeenCalled();
+  it('keeps the calendar disabled during a pending edit', async () => {
+    const onEdit = jest.fn();
+    await show({ disabled: true, availableNow: { value: false, onEdit } });
+    expect(press('Dostupnost')).toBeUndefined();
+    expect(press('Nedeljni raspored').props.disabled).toBe(true);
+    expect(onEdit).not.toHaveBeenCalled();
   });
-  it('keeps suspended availability read-only', async () => {
+  it('keeps a suspended profile readable without legacy availability control', async () => {
     await show({ readOnly: true }, draft({ dostupanOdmah: true }));
-    expect(toggle()).toBeUndefined(); expect(all()).toContain('Uključeno');
+    expect(toggle()).toBeUndefined();
+    expect(press('Dostupnost')).toBeUndefined();
+    expect(press('Nedeljni raspored')).toBeUndefined();
+    expect(all()).toContain('Nedeljni raspored');
+    expect(all()).not.toContain('Mogu odmah');
   });
 });
 

@@ -5,7 +5,6 @@ import { T } from '../Text';
 import { Press } from '../Press';
 import { cityLabel } from '../profile/cityLabel';
 import { FactArt } from '../system/FactArt';
-import { ClockArt } from '../system/ClockArt';
 import { layout, ruleWidth } from '../system/layout';
 import { ListRow } from '../system/ListRow';
 import { brandAction, profileLift, sys } from '../system/tokens';
@@ -26,7 +25,7 @@ export type SavedProfilePart = 'skills' | 'tools' | 'vehicles';
 /** Number of services shown before the disclosure. */
 export const SKILL_CHIPS_MAX = 8;
 
-/** The saved availability state and the owned AI entry used to change it. */
+/** Legacy availability datum retained for caller/older-client compatibility, not an ordinary profile UI control. */
 export type AvailableNowControl = { value: boolean; onEdit: () => void };
 
 /**
@@ -36,7 +35,7 @@ export type AvailableNowControl = { value: boolean; onEdit: () => void };
  * The route owns status, the AI entry and restrictions on a suspended profile.
  */
 export function WorkerProfileSaved({ draft, status, disabled, navigate, openConversation, accountName = null, onUseAccountName, nameWorking = false,
-  face, rating, availableNow, readOnly = false, executionModes, refreshModes, showConversationAction = true, confirmMap }: {
+  face, rating, readOnly = false, executionModes, refreshModes, showConversationAction = true, confirmMap }: {
   draft: WorkerDraft; status: ReactNode; disabled: boolean; navigate: (path: SavedProfilePath) => void;
   /** A part opens as local context in the same owned AI conversation. */ openConversation?: (part?: WorkerAiPart) => void;
   /** Hide the generic entry when the route already supplies its main conversation action. */ showConversationAction?: boolean;
@@ -46,7 +45,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   /** That write is in flight. */ nameWorking?: boolean;
   /** The face in the card: the photo, or what stands in for it. */ face?: ReactNode;
   /** The rating in the card (a line, or nothing). */ rating?: ReactNode;
-  /** The saved state; editing opens an AI topic and does not toggle it. */ availableNow?: AvailableNowControl;
+  /** Legacy caller input, retained for older route contracts; the saved profile no longer displays this control. */ availableNow?: AvailableNowControl;
   executionModes?: WorkerExecutionModeView; refreshModes?: () => void;
   /** A separate, explicit confirmation of the saved area's approximate point. */ confirmMap?: () => void;
 }) {
@@ -94,12 +93,10 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
     {onSite && !readOnly && confirmMap ? <V2Action label="Potvrdite tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
       onPress={() => { if (!disabled) confirmMap(); }} /> : null}
     <View testID="worker-profile-time-card" style={s.sectionCard}><SettingsGroup title="Kada">
-        {availableNow && !readOnly
-          ? <SettingsRow label="Dostupnost" value={availableNow.value ? 'Mogu odmah' : 'Mogu odmah: isključeno'} valuePlacement="below"
-            icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => { if (!disabled) availableNow.onEdit(); }} />
-          : <ListRow leading={<ClockArt size={32} quiet />} title="Mogu odmah" value={draft.dostupanOdmah ? 'Uključeno' : 'Isključeno'} />}
-        {!readOnly ? <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}
-          onPress={() => openConversation ? openConversation('time') : navigate('/profil/dostupnost')} last /> : null}
+        {/* Owner decision: "Mogu odmah" remains in legacy data, not on the ordinary saved profile. */}
+        {readOnly ? <ListRow title="Nedeljni raspored" leading={<FactArt kind="calendar" size={32} />} />
+          : <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}
+            onPress={() => openConversation ? openConversation('time') : navigate('/profil/dostupnost')} last />}
       </SettingsGroup></View>
   </View>;
 }

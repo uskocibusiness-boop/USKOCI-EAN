@@ -56,6 +56,60 @@ test('unique quoted mode set remains a Map request, not activation', () => {
   assert.deepEqual(result.get(key(B)).modes, ['ON_SITE']);
 });
 
+test('observed lektura + Arabic classes + errands: scoped Oba preserves saved service identity', async () => {
+  const lektura = 'Lektura tekstova', arabic = 'Časovi arapskog jezika', errands = 'Pomoć u gradu i potrčko';
+  const lId = '44444444-4444-4444-8444-444444444444';
+  const aId = '55555555-5555-4555-8555-555555555555';
+  const eId = '66666666-6666-4666-8666-666666666666';
+  const services = [
+    { service: lektura, categoryId: lId, modes: ['REMOTE'] },
+    { service: arabic, categoryId: aId, modes: ['REMOTE', 'ON_SITE'] },
+    { service: errands, categoryId: eId, modes: ['ON_SITE'] },
+  ];
+  const nodes = services.map(({ service, categoryId, modes }) => ({
+    categoryId, parentId: null, label: service, aliases: [], isLeaf: true, modes,
+  }));
+  const catalog = indexFullCatalog(3, 'a'.repeat(32), nodes, true);
+  const messages = [
+    { role: 'USER', body: 'Već pružam lekturu. Dodajem časove arapskog jezika i pomoć u gradu.' },
+    { role: 'ASSISTANT', body: 'Da li časove arapskog jezika pružate onlajn, uživo ili na oba načina?' },
+    { role: 'USER', body: 'Oba' },
+  ];
+  const serviceModeContext = {
+    revision: 7, savedServices: [{ service: lektura, mode: 'REMOTE', categoryId: lId }],
+    draftServices: [], unresolvedServices: [arabic, errands],
+  };
+  const offered = new Map([lektura, arabic, errands].map(service => [key(service), service]));
+  const declaration = { service: arabic, modes: ['REMOTE', 'ON_SITE'], evidence: 'Oba' };
+  const parsed = workerModeRequests(asJson([declaration]), { revision: 7, messages, serviceModeContext }, offered);
+  assert.deepEqual(parsed.get(key(arabic)).modes, ['REMOTE', 'ON_SITE']);
+  assert.equal(parsed.has(key(lektura)), false);
+  assert.equal(parsed.has(key(errands)), false);
+
+  const suppliedDecisions = [
+    { service: lektura, mode: 'REMOTE', action: 'REUSE_EXISTING', categoryId: lId,
+      parentId: '', proposedPath: [], reason: 'Previously confirmed proofreading category.', catalogVersion: 3 },
+    ...(['REMOTE', 'ON_SITE'].map(mode => ({
+      service: arabic, mode, action: 'REUSE_EXISTING', categoryId: aId, parentId: '',
+      proposedPath: [], reason: 'The worker offers this one Arabic language tutoring service.', catalogVersion: 3,
+    }))),
+    { service: errands, mode: 'ON_SITE', action: 'REUSE_EXISTING', categoryId: eId,
+      parentId: '', proposedPath: [], reason: 'This is an independent in-person errands service.', catalogVersion: 3 },
+  ];
+  const result = await buildWorkerFullTreeTaxonomyProposals({
+    skills: [lektura, arabic, errands], messages, serviceModeContext,
+    serviceModeChangesJson: asJson([declaration]), suppliedCatalog: catalog,
+    suppliedDecisions, draftRevision: 8,
+  });
+  assert.deepEqual(result.proposals.filter(p => p.service === lektura).map(p => [p.mode, p.categoryId]),
+    [['REMOTE', lId]]);
+  assert.deepEqual(result.proposals.filter(p => p.service === arabic).map(p => [p.mode, p.categoryId]),
+    [['REMOTE', aId], ['ON_SITE', aId]]);
+  assert.equal(result.proposals.some(p => p.service === errands), false);
+  assert.ok(result.unresolvedServices.includes(errands));
+  assert.equal(result.failures.some(f => f.code === 'WORKER_MODE_REQUEST_INVALID'), false);
+});
+
 // The short "Oba" regression is evaluated against the actual shared parser
 // and single-pass builder; it does not call the paid model or perform Save.
 function shortReplyFixture(question = 'Da li časove matematike držite onlajn ili uživo?', answer = 'Oba') {

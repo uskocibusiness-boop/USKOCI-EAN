@@ -504,6 +504,9 @@ Svi zadaci su deo istog plana. Status opisanog koda i starih testova nije novo i
 **A30-D07/D08 — novi uslov:** R01 [strict 41074572941](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41074572941) FAIL (8 strict/49 extension owner-ACL/3 managed-net); `caller_mismatch_count=0` uz `caller_scope_verified=false` nije dokaz pune efektivne autorizacije. Potrebni hosted/native provisioning, admin/definer/Storage/auth putanje, tačan platform pin bez blanket waiver-a, stvarni end-user zero-row i pozitivno/negativno čitanje privatnih Need kolona na istom world-u. 19 živih RPC-ova su zaseban reproduktivni problem M01. **Status: SOURCE kandidat, DEV ACL/HTTP acceptance OPEN.**
 
 ### R01 — Privatnost čitanja, stvarne dozvole i isporučeni ugovor
+
+**DEV read-only presek 03.11.2026:** `public.needs` ima `relrowsecurity=true`, ali `has_table_privilege('authenticated', 'public.needs','SELECT')=true` (anon=false, šest policy-ja); privatnost kolona nije zatvorena. [R01 strict CI 41692994097](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41692994097) je **FAIL**: osam raw parity, 49 owner/ACL i tri managed-net razlike; dokaz nije Auth/PostgREST prihvat niti odobren waiver. Bez SQL/DEV upisa, R01 ostaje BLOCKED i zabrana javnog izdanja važi.
+
 <!-- EXECUTION-UPDATE-BEGIN: r01-20261028 -->
 
 **Izvršni status 28.10.2026:** `IN_PROGRESS`; lokalni kandidat `1959064` je `IMPLEMENTED` i `VERIFIED` samo u ograničenom SQL modelu. Novi read-only bootstrap capture `82ff498` izvršen je na DEV PostgreSQL 17.6; svih 680 aplikacionih funkcija zadržava REV10 telo i proverene ACL/security atribute. To nije puna schema parity provera. F21 nije zatvoren: stvarni Auth/PostgREST, puna tekuća šema i kompatibilnost podržanih native/OTA klijenata još nisu dokazani; DEV nije menjan. Tačan obuhvat i nastavak su u [11.2a](#112a-aktuelni-izvršni-status--28102026).
@@ -700,6 +703,9 @@ Delimični/mrežni neuspeh naredne strane ne sme se preimenovati u uspešan kraj
 **A30-D04:** `devTaxonomyFlagP1`/`isLiveDualGemini` u Need/Worker sadrže hardcoded DEV URL. Zameniti jednim proverljivim server-scope config owner-om sa default-OFF za novu naplativu strategiju dok R06/kvote/signed Save nisu potvrđeni. Ne koristiti `!== 'false'` kao implicitnu aktivaciju na PROD. Gen1/2/Shadow/Explorer povlačiti tek posle dokazane trenutne i podržane stare caller ekvivalencije; nova natural-depth kategorija iz AI ne znači da je zaista upisana bez ljudske potvrde. **Status: SOURCE+CI po starijem SHA-u; provider/DEV E2E OPEN.**
 
 ### R04 — Potpuna klasifikacija, stabilan identitet i potvrđena namera
+
+**Izvršenje 03.11.2026 — R04/R08 kratki odgovor (SOURCE, bez DEV/NATIVE potvrde):** commit [`f44fac2e`](https://github.com/uskocibusiness-boop/USKOCI-EAN/commit/f44fac2e267b999ca6652c005c8d22d9ec488a32) ograničava `Oba` na poslednje pitanje o obe vrste rada za tačno jednu uslugu, vezuje dokaz za owned revision i prenosi ga u single-pass builder (`workerServiceModeContext.mjs`, `backgroundTaxonomyArchitect.mjs`). Postojeći parser lokalno 3/3 ciljane smoke kontrole; [puni CI 41692994105](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41692994105) **SUCCESS** (sva tri posla, AI/taxonomy 1596 PASS / 0 FAIL, uključujući tri `Oba` regresije). Doslovni lektura/arapski/potrčko scenario i S14 UI dodatna su naredna odvojena source provera. Ovaj rezultat nije native niti validan razgovor stvarnog korisnika. DEV Worker v118 nije ažuriran ovom izmenom.
+
 
 #### Problem i granica prema R06
 
@@ -1033,6 +1039,9 @@ Uslov završetka je potvrđen poslovni rezultat kroz pravi reader/writer i razum
 **A30-D11/F10/D13:** `WorkerProfileSaved.tsx` sada pokazuje `SkillsRow` stringove i jedan zbirni „Način rada“; konačno ponovno čitanje mora verno prikazati mode/handoff/pending **po svakoj potvrđenoj usluzi**, ne uzeti neodobreni AI draft kao istinu. Jedno pitanje, završni review i Save/Save+activate ostaju bez novih obaveznih polja. Deterministički AI copy persirati, ne menjati user text. **Status: SOURCE delimičan, real model/Save/device OPEN.**
 
 ### R08 — Prirodan završetak razgovora i veran sačuvani rezultat
+
+**Vlasnička UI odluka 03.11.2026 (S14):** kontrola i oznaka `Mogu odmah` uklanjaju se iz običnog sačuvanog radnog profila, dok nasleđeni podatak/TTL, kompatibilni klijent i baza ostaju nedirnuti do zasebnog caller audita; pristup nedeljnom rasporedu ostaje. Source i pripadajuće mobilne testove proveriti odvojenim CI i, pre DONE, stvarnim Android prikazom.
+
 
 #### Problem i traženi rezultat
 

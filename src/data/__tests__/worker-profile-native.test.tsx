@@ -108,7 +108,7 @@ it('read failure offers retry without constructing a false/15km draft', async ()
   mockRead.mockRejectedValueOnce(new Error('private diagnostic')); await render();
   expect(texts()).toContain('Profil nije učitan'); expect(texts()).not.toContain('private diagnostic');
   expect(tree.root.findAllByProps({ label: 'Dostupnost' })).toHaveLength(0);
-  click('Ponovo učitajte profil'); await settle(); expect(texts()).toContain('Mogu odmah');
+  click('Ponovo učitajte profil'); await settle(); expect(texts()).toContain('Nedeljni raspored'); expect(texts()).not.toContain('Mogu odmah');
 });
 
 const readingScroll = () => tree.root.findByType('ScrollView' as any);
@@ -148,7 +148,7 @@ describe('the saved profile is read first', () => {
     expect(texts()).not.toContain('Pregledajte profil'); expect(texts()).toContain('Ana');
     expect(texts()).toContain('Šta radite'); expect(texts()).toContain('Prevoz, utovar');
     expect(texts()).toContain('Područje dolaska'); expect(texts()).toContain('Novi Sad · do 20 km');
-    expect(texts()).toContain('Kada'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost'); expect(texts()).toContain('Dostupnost');
+    expect(texts()).toContain('Kada'); expect(texts()).toContain('Nedeljni raspored'); expect(texts()).not.toContain('Mogu odmah'); expect(texts()).not.toContain('Dostupnost');
     expect(texts()).not.toMatch(/Oprema|Bušilica|Kombi/);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Izmeni: O meni' })).toHaveLength(0);
     // The two buttons of the older reading ("Izmeni razgovorom" and "Izmeni ručno") are gone, and so is the notifications row: the rows lead to the part they change.
@@ -242,7 +242,7 @@ describe('the saved profile is read first', () => {
     expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockRouter.navigate).not.toHaveBeenCalled();
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
     // It says its state and cannot be touched: a suspended profile is not switched by its owner.
-    expect(tree.root.findAllByProps({ testID: 'worker-available-now' })).toHaveLength(0); expect(texts()).toContain('Uključeno');
+    expect(tree.root.findAllByProps({ testID: 'worker-available-now' })).toHaveLength(0); expect(texts()).not.toContain('Mogu odmah'); expect(texts()).toContain('Nedeljni raspored');
     await act(async () => tree.unmount());
     mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await renderReading();
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
@@ -366,10 +366,11 @@ it('a first visit is only a calm AI entry; opening it creates no profile or manu
   expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
 });
 
-it.each([true, false])('availability %s remains a saved fact and opens the time topic without a direct write', async available => {
+it.each([true, false])('availability %s stays saved but hidden; weekly schedule opens time topic without a write', async available => {
   mockRead.mockResolvedValue({ ...profile, dostupanOdmah: available }); await renderReading();
   expect(tree.root.findAll(node => String(node.type) === 'Switch')).toHaveLength(0);
-  click('Dostupnost');
+  expect(texts()).not.toContain('Mogu odmah');
+  click('Nedeljni raspored');
   const route = mockRouter.navigate.mock.calls.at(-1)![0];
   expect(takeAiCorrection(route.params.aiCorrection, { accountId: mockAccount, accountRevision: mockRevision }, 'worker',
     '30000000-0000-4000-8000-000000000001')?.target).toBe('worker.time');
