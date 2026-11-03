@@ -1,0 +1,84 @@
+{
+  "unit": "R07_CURRENT_HOURLY_SOURCE_VERIFICATION",
+  "date": "2026-11-03",
+  "status": "SOURCE_TARGETED_CI_CONFIRMED_NOT_DEPLOYED",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/rev14-review-f17",
+  "source_base": "d8975895d33dfd0d684f43e09e901e9976fdf8e2",
+  "verified_source_commit": "95d7b97fa337470dc7cee40db0653d50000e8565",
+  "targeted_ci": {
+    "run_id": 41620795789,
+    "job_id": 125865676421,
+    "workflow_head": "39306c7477c94e315472898a847b6988e5239b08",
+    "conclusion": "success",
+    "verification": "The bounded job restored the exact hash-pinned source patch, verified all ten file hashes, generated the candidate, ran the tests, then committed that unchanged source as verified_source_commit using a normal fast-forward push.",
+    "node": "24.22.1",
+    "retained_pricing_tests": 25,
+    "current_sql_tests": 16,
+    "actual_typescript_adapter_sql_tests": 1,
+    "neighbor_edit_resume_tests": 15,
+    "total_pass": 57,
+    "total_fail": 0,
+    "total_skipped": 0,
+    "both_generator_checks": "PASS",
+    "artifact_id": 13223920421,
+    "artifact_name": "r07-current-source-verification",
+    "artifact_zip_sha256": "22eb562298594a1787251295b1bcc0ad60f28fa011e4532f9dae6b6454443cd3"
+  },
+  "local_verification": {
+    "node": "22.16.0",
+    "pglite": "0.5.8",
+    "postgres_engine": "18.3",
+    "typescript": "6.0.3",
+    "total_pass": 57,
+    "total_fail": 0,
+    "both_generator_checks": "PASS"
+  },
+  "dev_read_only_capture": {
+    "project_ref": "leqcwgzvjsxugfgzdmth",
+    "postgres_version_num": "170006",
+    "function_metadata_at": "2026-11-03T10:10:26.179946Z",
+    "dependencies_and_columns_at": "2026-11-03T10:08:48.858943Z",
+    "scope": "Function bodies were matched by hashes to already-public source; function identity/owner/ACL/config and two existing nullable price_basis columns/checks were inspected through system catalogs. No business or Auth rows were read."
+  },
+  "related_r01_read_only": {
+    "captured_at": "2026-11-03T09:59:09.784783Z",
+    "authenticated_needs_table_select": true,
+    "private_columns_authenticated_select": true,
+    "private_columns_anon_select": false,
+    "private_columns": ["requester_account_id", "remaining_search_closed_by_account_id", "remaining_search_close_reason"],
+    "resolved": false
+  },
+  "source_files_sha256": {
+    "scripts/r07b-hourly-chain.test.mjs": "82f5d484f156400955798ac9311f27889b6e0aeec09cb4529d3b105f1a0403ce",
+    "scripts/r07b-hourly-fixture.mjs": "03e3c984a8e6e096af416888dbcc6979b681e2791a7e3595e53a959f7f2b027b",
+    "supabase/proofs/ai/build_current_hourly_candidate.py": "3d72e0d51bb550da0575f6a284eef0509732263d7e82f0f4b5f42cc701c74a0b",
+    "supabase/proofs/ai/r07_current_hourly_preimage.json": "5649c2e46e70818e2b55019bd197a3019283186f6de70de691df1b3d0539783d",
+    "supabase/proofs/ai/r07_current_hourly_chain.test.mjs": "d8358b5aef2e5c412ab33bbfb4b726bb2758dca3158f077b0f5cc674066e210c",
+    "supabase/proofs/ai/r07_current_hourly_client.test.mjs": "b97156f7c7217d67a58cdc91a8764abe3965070ece8d703b845b9c5739110b1f",
+    "supabase/proofs/ai/r07_current_hourly_fixture.mjs": "7822a1071f61d7284cb3785b55df08f8b1a309924a3e7349a6560e15efde328c",
+    "supabase/proofs/ai/r07_current_hourly_README.md": "d23dee2d995d56dcda36ed58383c740f3315ce9c6555d1cc99d790e0d69d0348",
+    "supabase/candidates/r07_hourly_pricing_current.sql": "fe132a275c37da09f27650ac02fadd84250f54d9ed4386ac313cff547bd3a8d8",
+    "docs/plan/CODEX_PLAN_RADA.md": "e8bf10496748d4e7e4249718b958d1591b871c15a63ff09da1ce9688531c3ac8"
+  },
+  "cleanup": {
+    "temporary_transfer_workflows_removed_with_this_receipt": [
+      ".github/workflows/continuation-source-20261103.yml",
+      ".github/workflows/continuation-r07-apply-20261103.yml"
+    ],
+    "purpose": "Both were bounded source-transfer tools for the offline terminal, not permanent product or deployment infrastructure."
+  },
+  "full_ci": "Not attested by this targeted receipt. Inspect the subsequent relevant source run separately.",
+  "dev_writes": false,
+  "dev_deployment": false,
+  "paid_provider_calls": 0,
+  "new_apk": false,
+  "native_or_two_account_e2e": false,
+  "release_ready": false,
+  "remaining": [
+    "Fresh full dependency and lifecycle review, controlled promotion/forward-repair package and supported old-client acceptance.",
+    "Real PostgreSQL 17 and GoTrue/PostgREST positive/negative acceptance; PGlite 18.3 and substituted network/session ports are not hosted acceptance.",
+    "Response/Agreement price-unit export, full account lifecycle and the other R07 obligations in the existing master.",
+    "R01 private-column boundary, R10 readiness and native/two-account release gates remain open."
+  ]
+}
