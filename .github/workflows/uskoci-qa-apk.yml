@@ -66,8 +66,8 @@ jobs:
           src.expo.android.package = 'rs.uskoci.preview.qa';
           fs.writeFileSync('app.json', JSON.stringify(src, null, 2) + '\n');
           NODE
-          node scripts/build-contract.cjs
           node - <<'NODE'
+          Object.assign(process.env,require('./eas.json').build.preview.env);
           const expo=require('./app.config.js')({config: require('./app.json').expo});
           if(expo.android.package!=='rs.uskoci.preview.qa'||expo.extra?.uskociBuild?.backendTarget!=='canonical'||expo.runtimeVersion!=='uskoci-v1-preview-r1') throw Error('QA_BUILD_IDENTITY_INVALID');
           if (expo.android.googleServicesFile) throw Error('QA_MUST_HAVE_NO_FIREBASE');
