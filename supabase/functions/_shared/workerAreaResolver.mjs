@@ -41,27 +41,66 @@ export function resolveWorkerAreaRows(request,raw){
  if(cities.size!==1)throw Error('WORKER_AREA_UNRESOLVED');
  return [...cities.values()][0];
 }
+// A free LocationIQ key allows two lookups/second. A single worker turn can
+// contain up to five CITY/RADIUS areas: never burst them with Promise.all.
+// This is per-turn pacing, not a distributed cross-worker rate limiter; one
+// bounded 429 retry handles a concurrent request from another isolate/client.
+const LOOKUP_GAP_MS=600;
+function waitLookupGap(ms,signal){
+ if(signal?.aborted)return Promise.reject(Error('WORKER_AI_CANCELLED'));
+ if(ms<=0)return Promise.resolve();
+ return new Promise((resolve,reject)=>{
+  let timer;
+  const aborted=()=>{clearTimeout(timer);signal?.removeEventListener('abort',aborted);reject(Error('WORKER_AI_CANCELLED'));};
+  timer=setTimeout(()=>{signal?.removeEventListener('abort',aborted);resolve();},ms);
+  signal?.addEventListener('abort',aborted,{once:true});
+  if(signal?.aborted)aborted();
+ });
+}
 export async function resolveWorkerAreas(raw,{token,requestJson,signal,
  ownedAreas=/** @type {ReadonlyArray<import('../../../src/contracts/workerAreas.ts').WorkerArea>} */([])}){
-  const requests=parseWorkerAreaRequests(raw);
-  const areas=await Promise.all(requests.map(async a=>{
-    if(signal?.aborted)throw Error('WORKER_AI_CANCELLED');
-    if(a.kind==='COUNTRY')return {kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,latitude:null,longitude:null,radiusKm:null};
-    // Only decoder-validated, server-owned candidate areas may be supplied.
-    // A complete replacement list often repeats untouched cities. Preserve
-    // their exact resolved identity instead of paying/relying on another lookup.
-    // Ambiguous same-name cities and actual edits still require resolution.
-    const sameCity=ownedAreas.filter(area=>area.countryCode===a.countryCode&&cityKey(area.city)===cityKey(a.query));
-    if(sameCity.length===1&&sameCity[0].kind===a.kind&&sameCity[0].radiusKm===a.radiusKm)return {...sameCity[0]};
-    if(!token)throw Error('WORKER_AREA_UNAVAILABLE');
+ const requests=parseWorkerAreaRequests(raw);
+ const areas=[];
+ let lastProviderStart=0,rateRetryUsed=false;
+ for(const a of requests){
+  if(signal?.aborted)throw Error('WORKER_AI_CANCELLED');
+  if(a.kind==='COUNTRY'){
+   areas.push({kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,latitude:null,longitude:null,radiusKm:null});
+   continue;
+  }
+  // Reuse an already-owned signed OSM identity. No new provider query,
+  // invented geocoding result, widened radius or new consent.
+  const sameCity=ownedAreas.filter(area=>area.countryCode===a.countryCode&&cityKey(area.city)===cityKey(a.query));
+  if(sameCity.length===1&&sameCity[0].kind===a.kind&&sameCity[0].radiusKm===a.radiusKm){
+   areas.push({...sameCity[0]});continue;
+  }
+  if(!token){console.warn('WORKER_AREA_LOOKUP','TOKEN_MISSING');throw Error('WORKER_AREA_UNAVAILABLE');}
   const url=new URL('https://eu1.locationiq.com/v1/search');
   for(const [key,value] of Object.entries({key:token,q:a.query,format:'json',countrycodes:'rs',addressdetails:'1',limit:'5','accept-language':'sr-Latn'}))url.searchParams.set(key,value);
-  let response;
-  try{response=await requestJson(url.toString(),{method:'GET'},131072,7000,signal);}
-  catch(error){if(signal?.aborted)throw error;throw Error('WORKER_AREA_UNAVAILABLE');}
-  if(!response?.ok)throw Error('WORKER_AREA_UNAVAILABLE');
-  return resolveWorkerAreaRows(a,response.data);
- }));
+  for(;;){
+   await waitLookupGap(Math.max(0,lastProviderStart+LOOKUP_GAP_MS-Date.now()),signal);
+   if(signal?.aborted)throw Error('WORKER_AI_CANCELLED');
+   lastProviderStart=Date.now();
+   let response;
+   try{response=await requestJson(url.toString(),{method:'GET'},131072,7000,signal);}
+   catch(error){
+    if(signal?.aborted)throw error;
+    console.warn('WORKER_AREA_LOOKUP','TRANSPORT');
+    throw Error('WORKER_AREA_UNAVAILABLE');
+   }
+   if(response?.ok){areas.push(resolveWorkerAreaRows(a,response.data));break;}
+   if(response?.status===429&&!rateRetryUsed){
+    rateRetryUsed=true;
+    console.warn('WORKER_AREA_LOOKUP','RATE_LIMIT_RETRY');
+    await waitLookupGap(1100,signal);
+    continue;
+   }
+   // Do not print URLs (they include the key), locality text, IPs or provider bodies.
+   console.warn('WORKER_AREA_LOOKUP',response?.status===429?'RATE_LIMIT':'UPSTREAM');
+   throw Error('WORKER_AREA_UNAVAILABLE');
+  }
+ }
+ // All-or-nothing: the caller's signed draft cannot gain half a territory.
  if(new Set(areas.map(a=>a.sourceRef??a.countryCode)).size!==areas.length)throw Error('WORKER_AREA_INVALID');
  return areas;
 }
