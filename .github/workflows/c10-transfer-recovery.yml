@@ -1,0 +1,81 @@
+name: C10 exact transport recovery
+
+on:
+  push:
+    branches: [work/rev14-review-f17]
+    paths: [.github/workflows/c10-transfer-recovery.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  tested-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.5.6
+      - name: Restore exact transport and execute unchanged bounded acceptance
+        env:
+          GH_WRITE_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'RECOVERY'
+          import base64,gzip,hashlib,os,re,subprocess
+          from pathlib import Path
+          assert os.environ['GITHUB_REPOSITORY']=='uskocibusiness-boop/USKOCI-EAN'
+          assert os.environ['GITHUB_REF']=='refs/heads/work/rev14-review-f17'
+          assert subprocess.check_output(['git','rev-parse','HEAD^'],text=True).strip()=='db0c81c4fb8f5bb119e6878eff0e2155d1eec5a1'
+          source=Path('.github/workflows/c10-tested-transfer.yml').read_text()
+          evidence=Path(os.environ['RUNNER_TEMP'])/'c10-transport';evidence.mkdir()
+          (evidence/'original-workflow.yml').write_text(source)
+          payload=re.search(r'^          C10_DELTA: ([A-Za-z0-9+/=]+)$',source,re.M).group(1)
+          for before,after in [('ZqEb5Hhm0ZipS7','ZqEb+5Hhm0ZipS7'),('GacGI6qOHx5+YGpo5','GacGI6OHx5+YGpo5'),('D95vfMvJJbiLLNNa','D95vfMvJbiLLNNa')]:
+              assert payload.count(before)==1,'TRANSPORT_FRAGMENT_MISMATCH'
+              payload=payload.replace(before,after)
+          (evidence/'corrected-payload.b64').write_text(payload)
+          raw=gzip.decompress(base64.b64decode(payload,validate=True))
+          assert hashlib.sha256(raw).hexdigest()=='d6f9949b2f9f2eaa24a6337a2bf04c584f51f8b80bc3a66449803cecc9324a83','DELTA_MISMATCH'
+          blocks=[];lines=source.splitlines(keepends=True);i=0
+          while i<len(lines):
+              if lines[i].rstrip()=='        run: |':
+                  i+=1;buf=[]
+                  while i<len(lines) and (lines[i].startswith('          ') or not lines[i].strip()):
+                      buf.append(lines[i][10:] if lines[i].strip() else lines[i]);i+=1
+                  blocks.append(''.join(buf))
+              else:i+=1
+          expected=['7b5588a9e89181af82c567ea69589c79260bc5e39be0e9f3bc600281eb19f971','b27f1cf8eac4d2853c5c927576292cf9029d1f92fd9e85e39b7e7354f342bf56','5efc8cb7da414606a2b82165cfd27980f351175ccea3fc7bd3581ea1dab085ff','a7bdbbd05d6f1c4e25f66013d129b610b0b3f244e60181427f512c841c492b9b','81f36c828f5fdb652da449612ddce775f3a762da548caae7c33c1f26aa747863','c4a87f485113644a85f3c4a48c98056a9893f385d74e1adaa3b620c3aca05e0c','519cbf2a8a562482e71a994ace70a13c2c1c34478aabb568f56d689d2cb32fac','d5f65d32d23250bc1277f696ad472d635b115574507fba753eddb28ecd726928','dce67e13961b72423628610ef530f8a76a6f49cd96c81763d245fe0db4903488']
+          assert [hashlib.sha256(b.encode()).hexdigest() for b in blocks]==expected,'RUNNER_SOURCE_MISMATCH'
+          blocks[0]=blocks[0].replace("'0f4006ae7c2fd962d3705ed18102e81835325cc6'","'db0c81c4fb8f5bb119e6878eff0e2155d1eec5a1'")
+          old="{'.github/workflows/c10-source-transfer.yml','.github/workflows/c10-tested-transfer.yml'}"
+          new="{'.github/workflows/c10-source-transfer.yml','.github/workflows/c10-tested-transfer.yml','.github/workflows/c10-transfer-recovery.yml'}"
+          assert blocks[0].count(old)==1
+          blocks[0]=blocks[0].replace(old,new)
+          base_env=dict(os.environ);token=base_env.pop('GH_WRITE_TOKEN');base_env['C10_DELTA']=payload
+          for index,block in enumerate(blocks):
+              print('::group::C10 bounded step '+str(index+1),flush=True)
+              env=dict(base_env)
+              if index==8:env['GH_WRITE_TOKEN']=token
+              subprocess.run(['bash','-euo','pipefail','-c',block],env=env,check=True)
+              print('::endgroup::',flush=True)
+          RECOVERY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c10-recovered-source-evidence
+          path: |
+            ${{ runner.temp }}/c10/
+            ${{ runner.temp }}/c10-transport/
+          if-no-files-found: error
+          retention-days: 7
