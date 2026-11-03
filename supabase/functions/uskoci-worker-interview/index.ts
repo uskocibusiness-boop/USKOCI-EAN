@@ -1,4 +1,3 @@
-import { normalizedClassificationIdentity } from '../_shared/classificationEngine.mjs';
 import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
 import { taxonomyDualGeminiEnabled as taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
@@ -12,10 +11,10 @@ import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSingle
 import { completeFirstPlan } from '../_shared/completeFirstPlan.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
-import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, workerModeRequests } from '../_shared/workerServiceModeContext.mjs';
+import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction } from '../_shared/workerServiceModeContext.mjs';
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
-import { loadFullCatalogTree, buildWorkerFullTreeTaxonomyProposals, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint, workerSkillsFingerprint } from '../_shared/backgroundTaxonomyArchitect.mjs';
+import { loadFullCatalogTree, buildWorkerFullTreeTaxonomyProposals, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>Deno.env.get(key));
@@ -426,19 +425,14 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         }
         let builtTaxonomy: any = null;
         if (singlePassActive && ['ALLOW','CLARIFY'].includes(output.safety)) {
-          const skillsModified = Array.isArray(output.patch.skills) &&
-            workerSkillsFingerprint(output.patch.skills)!==workerSkillsFingerprint(context.candidate?.skills);
           const effectiveSkills = output.patch.skills ?? context.candidate?.skills ?? [];
           // Classification is already in the one paid reply. Validate it against
           // guarded facts and USER quotes; never start a second model here.
-          const offered=new Map<string,string>();
-          if(Array.isArray(effectiveSkills))for(const skill of effectiveSkills){
-            const identity=normalizedClassificationIdentity(skill);
-            if(identity)offered.set(identity,skill);
-          }
-          const serviceModesModified=workerModeRequests(serviceModeChangesJson,
-            {messages:[{role:'USER',body:input.text}]},offered).size>0;
-          if ((skillsModified || serviceModesModified || Boolean(pendingWorkerClarificationHint) || taxonomyDecisions.length > 0) && Array.isArray(effectiveSkills) && effectiveSkills.length > 0) {
+          // Every completed answer advances the draft revision, including a
+          // bio-only edit. Carry current owned IDs forward even when no fresh
+          // model decision is needed; the pure builder revalidates them against
+          // this catalog and never restores removed services or grants consent.
+          if (Array.isArray(effectiveSkills) && effectiveSkills.length > 0) {
             // Local validation of the already paid response; no background provider.
             builtTaxonomy = await measureAiPhase('WORKER_TAXONOMY_VALIDATE', () => buildWorkerFullTreeTaxonomyProposals({
               suppliedCatalog: fullCatalog,

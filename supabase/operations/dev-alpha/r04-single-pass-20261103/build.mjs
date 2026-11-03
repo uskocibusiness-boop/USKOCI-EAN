@@ -8,9 +8,10 @@ import {PGlite} from '@electric-sql/pglite';
 const here=new URL('./',import.meta.url);
 const read=name=>readFileSync(new URL(name,here),'utf8').replace(/\r\n/g,'\n');
 const hash=(s,algorithm='sha256')=>createHash(algorithm).update(s).digest('hex');
-const q=s=>"'"+s.replaceAll("'","''")+"'";
+const q=s=>s===null?'NULL':"'"+s.replaceAll("'","''")+"'";
 const qi=s=>'"'+s.replaceAll('"','""')+'"';
 export const pre=JSON.parse(read('preimage.json')),deps=JSON.parse(read('dependencies.json'));
+const chain=JSON.parse(read('chain-dependencies.json'));
 const target='leqcwgzvjsxugfgzdmth';
 const candidates=['../../../proofs/ai/r04_turn_catalog_resolution_candidate.sql','../../../proofs/ai/r06_first_plan_completion_candidate.sql'];
 const hint='private.work_taxonomy_gemini_turn_hints_v1',view='private.work_taxonomy_turn_hints_resolved_v1';
@@ -29,7 +30,7 @@ function acl(f){
  ['authenticated','service_role'].filter(role=>f.acl.includes(role+'=')).map(role=>`GRANT EXECUTE ON FUNCTION ${f.signature} TO ${role};`).join('\n');
 }
 export async function derive(){
- assert.equal(pre.project_ref,target);assert.equal(deps.project_ref,target);
+ assert.equal(pre.project_ref,target);assert.equal(deps.project_ref,target);assert.equal(chain.project_ref,target);
  assert.equal(deps.role,'postgres');assert.equal(deps.server_version_num,'170006');
  const db=new PGlite();
  try{
@@ -101,7 +102,7 @@ function unchangedReadiness(){return `IF ((${closureRead})-'schema'-'source') IS
 export async function generate(){
  const d=await derive();
  const missing=d.created.map(f=>`IF to_regprocedure(${q(f.signature)}) IS NOT NULL THEN RAISE EXCEPTION 'SINGLE_PASS_HELPER_PRESENT';END IF;`).join('\n');
- const preflight=`DO $pre$ BEGIN\n${context}\n${guard(d.before,{oid:true})}\n${tableGuard()}\n${noColumn}\n${missing}
+ const preflight=`DO $pre$ BEGIN\n${context}\n${guard(d.before,{oid:true})}\n${guard(chain.functions)}\n${tableGuard()}\n${noColumn}\n${missing}
  IF (${closureRead}) IS DISTINCT FROM ${q(JSON.stringify(deps.closure))}::jsonb THEN RAISE EXCEPTION 'SINGLE_PASS_CLOSURE_DRIFT';END IF;
  END;$pre$;`;
  const newDdl=d.created.map(f=>ddl(f)+acl(f)).join('\n');
@@ -112,7 +113,7 @@ export async function generate(){
  CREATE VIEW ${view} WITH(security_invoker=true) AS ${d.viewDef}
  REVOKE ALL ON ${view} FROM PUBLIC,anon,authenticated,service_role;
  ${d.changed.map(ddl).join('\n')}`;
- const post=`DO $post$ BEGIN\n${context}\n${guard(d.after)}\n${unchangedReadiness()}
+ const post=`DO $post$ BEGIN\n${context}\n${guard(d.after)}\n${guard(chain.functions)}\n${unchangedReadiness()}
  IF NOT EXISTS(SELECT 1 FROM pg_class c WHERE c.oid=${q(view)}::regclass AND c.reloptions=ARRAY['security_invoker=true']
  AND c.relacl::text=${q(d.viewAcl)} AND md5(pg_get_viewdef(c.oid,true))=${q(hash(d.viewDef,'md5'))}) THEN RAISE EXCEPTION 'SINGLE_PASS_VIEW_ACL_DRIFT';END IF;
  IF NOT EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid=${q(hint)}::regclass AND attname='catalog_resolution'
@@ -137,9 +138,10 @@ export async function generate(){
  };
  files['manifest.json']=JSON.stringify({unit:'R04_R06_SINGLE_PASS_DEV',status:'PREPARED_NOT_APPLIED',project_ref:target,
   source_candidates:Object.fromEntries(candidates.map(p=>[p,hash(read(p))])),preimage_sha256:hash(read('preimage.json')),
-  dependencies_sha256:hash(read('dependencies.json')),changed_functions:d.changed.length,new_functions:d.created.length,
+  dependencies_sha256:hash(read('dependencies.json')),chain_dependencies_sha256:hash(read('chain-dependencies.json')),
+  changed_functions:d.changed.length,new_functions:d.created.length,
   files:Object.fromEntries(Object.entries(files).map(([n,s])=>[n,hash(s)])),
-  blockers:['Current full CI and current Worker regression migration are not green.','Complete real-schema Save/binder/export/erasure and concurrency acceptance remains required.',
+  blockers:['Current full AI CI migration is not green.','Complete real-schema export/erasure and concurrency acceptance remains required; isolated current Worker Save/binder/sync/matching chain is proven.',
    'R01 and R10 source readiness remain open; this package grants no release approval.'],
   rollback:'Only before first catalog resolution; otherwise forward recovery. Restore compatible Edge versions before SQL rollback.',
   limits:['Offline DDL derivation is not Auth/HTTP, DEV or native acceptance.','Connector project binding is required; no SQL setting proves the remote project.']},null,2)+'\n';

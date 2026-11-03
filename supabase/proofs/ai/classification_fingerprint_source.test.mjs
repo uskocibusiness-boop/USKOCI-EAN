@@ -5,17 +5,19 @@ import { test } from 'node:test';
 const task=readFileSync('supabase/functions/uskoci-ai-interview/index.ts','utf8');
 const worker=readFileSync('supabase/functions/uskoci-worker-interview/index.ts','utf8');
 
-test('task background classifier runs on semantic fingerprint change or an exact pending clarification',()=>{
+test('task validates the supplied decision on semantic change or current clarification',()=>{
  assert.doesNotMatch(task,/onlyNonCoreModified/);
  assert.match(task,/const priorFingerprint=taskClassificationFingerprint/);
  assert.match(task,/const effectiveFingerprint=taskClassificationFingerprint/);
- assert.match(task,/if \(classificationInputChanged \|\| Boolean\(pendingClarificationHint\)\)/);
+ assert.match(task,/if \(classificationInputChanged \|\| Boolean\(pendingClarificationHint\) \|\| taxonomyDecisions.length > 0\)/);
+ assert.match(task,/suppliedDecisions: taxonomyDecisions/);
+ assert.doesNotMatch(task,/dualArchitectPromise/);
 });
 
-test('worker same-list patch is not a classification change while explicit mode evidence remains relevant',()=>{
- assert.match(worker,/workerSkillsFingerprint\(output\.patch\.skills\)!==workerSkillsFingerprint\(context\.candidate\?\.skills\)/);
- // A nonempty metadata string is not a mode change. The active dual path
- // requires a valid offered service plus evidence from this USER turn.
- assert.match(worker,/const serviceModesModified=workerModeRequests\(serviceModeChangesJson,\s*\{messages:\[\{role:'USER',body:input\.text\}\]\},offered\)\.size>0/);
- assert.match(worker,/skillsModified \|\| serviceModesModified \|\| Boolean\(pendingWorkerClarificationHint\)/);
+test('worker carries current owned IDs across every new revision using local validation',()=>{
+ assert.match(worker,/if \(Array.isArray\(effectiveSkills\) && effectiveSkills.length > 0\)/);
+ assert.match(worker,/suppliedDecisions: taxonomyDecisions/);
+ assert.match(worker,/serviceModeContext: context.serviceModeContext/);
+ assert.match(worker,/messages: context.messages/);
+ assert.doesNotMatch(worker,/dualWorkerArchitectPromise|skillsModified \|\| serviceModesModified/);
 });

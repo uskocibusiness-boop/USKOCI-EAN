@@ -1,0 +1,93 @@
+{
+  "date": "2026-11-03",
+  "git_parent": "e04cd1bdc271170eeb4c129ea49e6d2666ec31bb",
+  "source_hash_format": "SHA256 UTF-8 LF-normalized",
+  "source_hashes": {
+    "supabase/functions/uskoci-ai-interview/index.ts": "9f9e5f6e10a0149c4e0cde9d6c09191cf4dbafd9c7e0aedb7fbd8f427db8fffe",
+    "supabase/functions/uskoci-worker-interview/index.ts": "f4b9214d57c12fd95862956b1468dca0673dddc35104b442fcfaead612fe359b",
+    "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs": "5311a9b940815eabae3de9a9a2cc265c3e3c1ca3cfb4f74a6d3522b1c5aee41f",
+    "supabase/functions/_shared/singlePassTaxonomy.mjs": "f0842c8f2e22cba3ba212fdb37e257d367372db2b4d29cf9cce6bc3fd0bec89f",
+    "supabase/functions/_shared/completeFirstPlan.ts": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de",
+    "supabase/proofs/ai/r04_single_pass_readers.test.mjs": "cd0b1b6b095cbd51f71cc41a0709b640185d6eb468139df35ce19873fa69d5fc",
+    "supabase/proofs/ai/v5_worker_edge.test.mjs": "15a3b8f6226928afa79e60cb984e87523c2e78b4dbd3f6b7562461c9d3886cc7",
+    "supabase/proofs/ai/background_worker_reuse.test.mjs": "5891083b4394c26af1fb0c52bf5dc24cf3611f26327b1a9cef327a0b56ee9e44",
+    "supabase/operations/dev-alpha/r04-single-pass-20261103/chain-dependencies.json": "5d437c9a76b12ad000248ddf6cf82540271f00fe3b9cf058653ae37f3f10c4e4"
+  },
+  "status": "SOURCE_AND_ISOLATED_PASS_DEV_NOT_APPLIED",
+  "connected_proof": {
+    "command": "node --test --test-concurrency=2 --test-reporter=spec supabase/proofs/ai/v5_worker_edge.test.mjs supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/single_pass_edge.test.mjs supabase/proofs/ai/background_worker_reuse.test.mjs supabase/proofs/ai/r04_single_pass_readers.test.mjs supabase/proofs/ai/classification_fingerprint_source.test.mjs supabase/proofs/ai/classification_hint_revision_sql.test.mjs supabase/proofs/ai/owned_intake_edge.test.mjs supabase/proofs/ai/interview_voice_one_question.test.mjs",
+    "pass": 400,
+    "fail": 0,
+    "cancelled": 0,
+    "todo": 1,
+    "duration_ms": 45552.5496,
+    "todo_scope": "Existing R07a real Auth and signed accept/Save/publish after price retraction; not executed."
+  },
+  "reproduction": "Bio-only correction with no fresh taxonomy decision lost the existing category from the next revision: expected one owned category proposal, observed none. Current handler revalidates owned continuity locally; no new provider call.",
+  "sql_chain": {
+    "cases": [
+      "existing canonical label",
+      "natural unregistered label",
+      "new nested branch"
+    ],
+    "actual_current_dev_bodies": [
+      "Save",
+      "batch",
+      "binder",
+      "remote-only eligibility",
+      "profile skill sync",
+      "sync trigger"
+    ],
+    "verified": [
+      "same category ID in READY review and saved/bound capability",
+      "REMOTE activation without invented city",
+      "idempotent Save",
+      "no capability before Save/binder",
+      "match with same category",
+      "explicit removal revokes matching",
+      "no global alias required"
+    ],
+    "limitations": [
+      "PGlite, not hosted PostgreSQL Auth/HTTP",
+      "closure lifecycle and calendar/location/requeue boundaries use documented fixture substitutes",
+      "not push delivery or full E2E"
+    ]
+  },
+  "checks": {
+    "deno_need": "PASS",
+    "deno_worker": "PASS",
+    "build_mjs_check": "PASS",
+    "ddl_rollback_reapply": "PASS"
+  },
+  "dev": {
+    "project_ref": "leqcwgzvjsxugfgzdmth",
+    "read_only_preflight": "SINGLE_PASS_PREIMAGE_MATCH",
+    "release_ready": false,
+    "sql_applied": false,
+    "edge_deployed": false
+  },
+  "ci_reference": {
+    "head": "e04cd1bdc271170eeb4c129ea49e6d2666ec31bb",
+    "main_run": 41554482552,
+    "observed_main": "Mobile, TypeScript, Deno and preceding SQL stages passed; AI stage was still running when recorded. Not full CI success.",
+    "r01_run": 41554482523,
+    "r01": "FAIL strict parity",
+    "strict_differences": 8,
+    "platform_effective_differences": 49,
+    "managed_net_differences": 3
+  },
+  "broader_matrix_before_last_fixes": {
+    "pass": 1274,
+    "fail": 340,
+    "cancelled": 22,
+    "todo": 1,
+    "duration_ms": 384866.9028,
+    "limits": "Earlier diagnostic, not the final current-tree count. Includes retired second-provider fixture expectations; not all failures classified. No tests were skipped to declare CI success."
+  },
+  "promotion_remaining": [
+    "Finish current full AI regression migration and diagnose remaining failures",
+    "Complete real-schema export/erasure and concurrency acceptance",
+    "Resolve relevant R01/R10 conditions before controlled SQL then Edge promotion",
+    "Real TEST Auth and Android readback after deployment"
+  ]
+}

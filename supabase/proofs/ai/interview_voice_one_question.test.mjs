@@ -4,10 +4,10 @@ import {interviewVoiceInstruction} from '../../functions/_shared/interviewVoiceI
 
 test('shared USKOČI dialogue has one question, remembers clear answers and does not claim Save authority',()=>{
  const rules=interviewVoiceInstruction();
- assert.match(rules,/Jedno korisno pitanje po poruci/);
- assert.match(rules,/najviše JEDNU informaciju/);
- assert.match(rules,/Prihvatite sve jasne podatke/);
- assert.match(rules,/ne pitajte već odgovoreno/);
- assert.match(rules,/bez potvrde sistema/);
+ assert.match(rules,/najviše JEDNO pitanje/);
+ assert.match(rules,/JEDNU bitnu nepoznanicu/);
+ assert.match(rules,/izdvojite sve jasne podatke/);
+ assert.match(rules,/Bez spojenih pitanja, ponavljanja poznatog/);
+ assert.match(rules,/Ne tvrdite da je već objavljeno, sačuvano, aktivirano/);
  assert.ok(rules.length < 1600,'do not grow duplicated conversational guidance');
 });

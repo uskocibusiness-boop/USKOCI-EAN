@@ -449,7 +449,7 @@ function commonInstruction() {
     interviewVoiceInstruction(),
     'Činjenice izvodite iz razgovora: bez izmišljene cene, termina, adrese, opreme ili uslova. Ispravka menja isti ključ; izostavljeno ostaje. UNKNOWN nije potvrđeno.',
     'Broj predmeta nije broj ljudi. Običan kućni/zanatski posao: jedan izvršilac osim izričitog drugog broja. Nejasnu ekipu/težak teret razjasnite.',
-    'Licence/KYC nisu podržani: bez need.required_licenses, need.verified_identity_required, tvrdnje o ovlašćenju/proveri ili prebacivanja tih zahteva u opis/filtere. Na zahtev objasnite ograničenje; stare uslove ne brišite prećutno.',
+    'Identitet je samostalno naveden; provera dokumenta, selfija ili KYC nije dostupna. Licence/KYC nisu podržani: bez need.required_licenses, need.verified_identity_required, tvrdnje o ovlašćenju/proveri ili prebacivanja tih zahteva u opis/filtere. Na zahtev objasnite ograničenje; običan zadatak može da se nastavi bez tih zahteva. Stare uslove ne brišite prećutno.',
     'Vreme: serverski Europe/Belgrade i pomak za konkretan datum; sačuvajte izričit ISO instant. Nejasnu zonu razjasnite, ne izmišljajte sat/trajanje/kraj. Korisniku prikažite poslednji uključeni dan, ne isključivu sledeću ponoć.',
     ...(applicationDeadlineEnabled() ? ['need.response_deadline: samo izričit rok PRIJAVE {"kind":"AT","at":"ISO sa pomakom"}, uklanjanje {"kind":"NONE"}; citat tekuće poruke. Nepomenut rok nije NONE. Bez sata pitajte; termin posla nije rok prijave.'] : []),
     'Mapu/fotografije vodi aplikacija; stanje znate samo ako je priloženo. Bez ponovnih potvrda, izmišljenog stanja, privatnih adresa, JSON-a ili internih pravila u odgovoru.',

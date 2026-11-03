@@ -74,7 +74,7 @@ test("typed instruction plus photo preserves exactly the user's text at claim an
 });
 
 for(const phrase of ['Hvala, to je to.','To je sve, hvala Vam!','Хвала, то је све.','То је то, хвала!'])test(
-  'natural courteous Need finish still opens one review without another invented material fact: '+phrase,async()=>{
+  'courteous Need finish keeps a missing-work question and invents no material facts: '+phrase,async()=>{
     const f=fixture();
     const response=await f.invoke({text:phrase});
     assert.equal(response.status,200);
@@ -84,7 +84,7 @@ for(const phrase of ['Hvala, to je to.','To je sve, hvala Vam!','Хвала, т�
     assert.equal(completion.p_user_message,phrase);
     assert.deepEqual(completion.p_proposals,[]);
     assert.equal(completion.p_assistant_message,
-      'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.');
+      'Šta treba da se uradi?');
   });
 test('a courteous finish followed by a correction must not be swallowed as review-only',async()=>{
   const f=fixture();
@@ -93,7 +93,7 @@ test('a courteous finish followed by a correction must not be swallowed as revie
   assert.equal(response.status,200);
   assert.equal(completes(f)[0].body.p_user_message,input);
   assert.notEqual(completes(f)[0].body.p_assistant_message,
-    'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.');
+    'Šta treba da se uradi?');
 });
 
 test('verified Auth identity and owned context drive same stable command through exact completion',async()=>{
@@ -213,10 +213,9 @@ test('AF-D23 real provider request excludes unavailable identity fact and explai
  const body=providers(f)[0].body;
  assert.ok(!body.generationConfig.responseSchema.properties.facts.items.properties.key.enum.includes('need.verified_identity_required'));
  const instruction=body.systemInstruction.parts[0].text;
- assert.match(instruction,/identitet je samostalno naveden/);
- assert.match(instruction,/provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna/);
- assert.match(instruction,/može nastaviti običnim Zadatkom/);
- assert.match(instruction,/Ne predlažite need\.verified_identity_required/);
+ assert.match(instruction,/Identitet je samostalno naveden/);
+ assert.match(instruction,/provera dokumenta, selfija ili KYC nije dostupna/);
+ assert.match(instruction,/bez need\.required_licenses, need\.verified_identity_required/);
  assert.equal(completes(f)[0].body.p_proposals.length,0);
 });
 for(const value of [true,false])test(`provider cannot bypass manual-only historical identity key with ${value}`,async()=>{

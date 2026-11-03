@@ -77,6 +77,36 @@ IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_ta
  AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='c363facdb26d33ae872e25e6a79e4306'
  AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
  THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_taxonomy_capture_gemini_turn_hints_service(uuid, uuid, uuid, uuid, uuid, text, bigint, jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.sync_worker_skills_to_taxonomy_capabilities(uuid,text[])')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='bbd0d3a199055f16243f979166dd6fca'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.sync_worker_skills_to_taxonomy_capabilities(uuid,text[])'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.worker_profile_sync_taxonomy_capabilities_trg_fn()')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='16015b90ea1099d5ae804953a6fae4d4'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM NULL)
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.worker_profile_sync_taxonomy_capabilities_trg_fn()'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.worker_remote_only_activation_ready_v1(uuid,text[])')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='935bd52f260fb62c699ad30feb5588fe'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.worker_remote_only_activation_ready_v1(uuid,text[])'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_save_worker_ai_review(uuid,text,uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='4228b28e9741f4cc4b6a033a6349ea11'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_save_worker_ai_review(uuid,text,uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='e7886b252709960a76c589279878001b'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='a41806bd95be583561afae69702d56ac'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)'; END IF;
 IF (SELECT capture->'tables' FROM (SELECT jsonb_build_object(
 'project_ref','leqcwgzvjsxugfgzdmth',
 'captured_at',clock_timestamp(),'server_version_num',current_setting('server_version_num'),'role',current_user,
