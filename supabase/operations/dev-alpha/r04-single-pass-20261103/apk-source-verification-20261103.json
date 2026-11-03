@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "c86ab501ba461abd4db1cafe200c4ebe6f09c04e",
+  "apkBytes": 123083267,
+  "apkSha256": "eb533386498e6e4ae4b88b28dec198fbf61ce9c971a3cce1487ada728f21f4d6",
+  "nativeInputHashesPreserved": true,
+  "trackedSourceClean": true,
+  "embeddedBundle": {
+    "bytes": 13875132,
+    "sha256": "957541e6abd31585d142938f818c80847db7a769b5a260e02c4f68cd92875381",
+    "matchesGeneratedBundle": true,
+    "canonicalDevUrlEmbedded": true,
+    "entryCount": 1773,
+    "forbiddenFolderEntries": 0,
+    "abis": [
+      "arm64-v8a",
+      "x86_64"
+    ],
+    "embeddedUpdateId": "3d2d05f8-bfa4-46c1-bae9-474cbea77bb4",
+    "embeddedCommitTime": 1793643904702
+  }
+}
