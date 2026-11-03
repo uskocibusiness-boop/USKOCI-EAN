@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {PGlite} from '@electric-sql/pglite';
+import {deriveClosure} from './closure-postimage.mjs';
 const here=new URL('./',import.meta.url);
 const read=name=>readFileSync(new URL(name,here),'utf8').replace(/\r\n/g,'\n');
 const hash=(s,algorithm='sha256')=>createHash(algorithm).update(s).digest('hex');
@@ -58,7 +59,7 @@ export async function derive(){
   for(const f of created)assert.equal(f.acl,f.name.startsWith('public.')?'{postgres=X/postgres,service_role=X/postgres}':'{postgres=X/postgres}',f.name);
   const viewDef=(await db.query(`SELECT pg_get_viewdef(${q(view)}::regclass,true) AS definition`)).rows[0].definition;
   const viewAcl=(await db.query(`SELECT relacl::text AS acl FROM pg_class WHERE oid=${q(view)}::regclass`)).rows[0].acl;
-  const check=(await db.query(`SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conrelid=${q(hint)}::regclass`)).rows;
+  const check=(await db.query(`SELECT conname AS name,pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conrelid=${q(hint)}::regclass`)).rows;
   assert.equal(check.length,1);
   // Execute the generated restoration and reapply the complete candidate.
   // No rows/semantic writes are involved in this DDL round trip.
@@ -73,7 +74,7 @@ export async function derive(){
     assert.equal(allowed,role==='service_role'&&f.name.startsWith('public.'),f.name+' '+role);
    }
   }
-  return {before,after,created,changed,viewDef,viewAcl,columnCheck:check[0].definition};
+  return {before,after,created,changed,viewDef,viewAcl,columnCheck:check[0].definition,columnCheckName:check[0].name};
  }finally{await db.close();}
 }
 function guard(functions,{oid=false}={}){
@@ -99,10 +100,13 @@ function restoreDdl(d){return `${d.changed.map(f=>ddl(d.before.find(x=>x.signatu
  ${d.created.filter(f=>f.name.startsWith('public.')).map(f=>'DROP FUNCTION '+f.signature+' RESTRICT;').join('\n')}
  ${d.created.filter(f=>f.name.startsWith('private.')).reverse().map(f=>'DROP FUNCTION '+f.signature+' RESTRICT;').join('\n')}
  ALTER TABLE ${hint} DROP COLUMN catalog_resolution RESTRICT;`;}
-function unchangedReadiness(){return `IF ((${closureRead})-'schema'-'source') IS DISTINCT FROM ${q(JSON.stringify(Object.fromEntries(Object.entries(deps.closure).filter(([k])=>!['schema','source'].includes(k)))))}::jsonb
- THEN RAISE EXCEPTION 'SINGLE_PASS_READINESS_CHANGED';END IF;`;}
+function closureGuard(expected){return `IF ((${closureRead})||jsonb_build_object('erasure',private.closure_erasure_program_digest_v5())) IS DISTINCT FROM ${q(JSON.stringify(expected))}::jsonb
+ THEN RAISE EXCEPTION 'SINGLE_PASS_CLOSURE_STATE_CHANGED';END IF;`;}
 export async function generate(){
  const d=await derive();
+ const closureCapture=JSON.parse(read('closure-input.json'));
+ assert.deepEqual(Object.fromEntries(Object.entries(closureCapture.actual).filter(([k])=>k!=='erasure')),deps.closure);
+ const postClosure=await deriveClosure(closureCapture,d);
  const missing=d.created.map(f=>`IF to_regprocedure(${q(f.signature)}) IS NOT NULL THEN RAISE EXCEPTION 'SINGLE_PASS_HELPER_PRESENT';END IF;`).join('\n');
  const preflight=`DO $pre$ BEGIN\n${context}\n${guard(d.before,{oid:true})}\n${guard(chain.functions)}\n${guard(lifecycle.functions)}\n${tableGuard()}\n${noColumn}\n${missing}
  IF (${closureRead}) IS DISTINCT FROM ${q(JSON.stringify(deps.closure))}::jsonb THEN RAISE EXCEPTION 'SINGLE_PASS_CLOSURE_DRIFT';END IF;
@@ -115,7 +119,7 @@ export async function generate(){
  CREATE VIEW ${view} WITH(security_invoker=true) AS ${d.viewDef}
  REVOKE ALL ON ${view} FROM PUBLIC,anon,authenticated,service_role;
  ${d.changed.map(ddl).join('\n')}`;
- const post=`DO $post$ BEGIN\n${context}\n${guard(d.after)}\n${guard(chain.functions)}\n${guard(lifecycle.functions)}\n${unchangedReadiness()}
+ const post=`DO $post$ BEGIN\n${context}\n${guard(d.after)}\n${guard(chain.functions)}\n${guard(lifecycle.functions)}\n${closureGuard(postClosure)}
  IF NOT EXISTS(SELECT 1 FROM pg_class c WHERE c.oid=${q(view)}::regclass AND c.reloptions=ARRAY['security_invoker=true']
  AND c.relacl::text=${q(d.viewAcl)} AND md5(pg_get_viewdef(c.oid,true))=${q(hash(d.viewDef,'md5'))}) THEN RAISE EXCEPTION 'SINGLE_PASS_VIEW_ACL_DRIFT';END IF;
  IF NOT EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid=${q(hint)}::regclass AND attname='catalog_resolution'
@@ -133,19 +137,24 @@ export async function generate(){
  ${preflight}\nNOTIFY pgrst,'reload schema';`);
  const files={
   'preflight.sql':`BEGIN TRANSACTION READ ONLY;SET LOCAL search_path=pg_catalog;SET LOCAL statement_timeout='30s';\n${preflight}\nSELECT 'SINGLE_PASS_PREIMAGE_MATCH' AS result,false AS release_ready;ROLLBACK;\n`,
-  'promotion.sql':wrap(forward+'\n'+post+"\nNOTIFY pgrst,'reload schema';"),
+  'promotion.sql':wrap(forward+'\n'+post+"\nSAVEPOINT single_pass_acceptance;\n"+read('acceptance.sql')+
+   "\nROLLBACK TO SAVEPOINT single_pass_acceptance;RELEASE SAVEPOINT single_pass_acceptance;\n"+post+"\nNOTIFY pgrst,'reload schema';"),
   'postflight.sql':`BEGIN TRANSACTION READ ONLY;SET LOCAL search_path=pg_catalog;\n${post}\nSELECT 'SINGLE_PASS_POSTIMAGE_MATCH' AS result,false AS release_ready;ROLLBACK;\n`,
   'rollback.sql':rollback,
   'postimage.json':JSON.stringify(d.after,null,2)+'\n',
+  'closure-postimage.json':JSON.stringify(postClosure,null,2)+'\n',
  };
  files['manifest.json']=JSON.stringify({unit:'R04_R06_SINGLE_PASS_DEV',status:'PREPARED_NOT_APPLIED',project_ref:target,
   source_candidates:Object.fromEntries(candidates.map(p=>[p,hash(read(p))])),preimage_sha256:hash(read('preimage.json')),
   dependencies_sha256:hash(read('dependencies.json')),chain_dependencies_sha256:hash(read('chain-dependencies.json')),lifecycle_dependencies_sha256:hash(read('lifecycle-dependencies.json')),
+  closure_input_sha256:hash(read('closure-input.json')),
+  transactional_acceptance_sha256:hash(read('acceptance.sql')),
   changed_functions:d.changed.length,new_functions:d.created.length,
   files:Object.fromEntries(Object.entries(files).map(([n,s])=>[n,hash(s)])),
   requirements:['Full CI on the promoted source, recorded separately; a previous successful run does not attest later changes.'],
-  blockers:['Complete real-schema export/erasure and concurrency acceptance remains required; bounded domain fixtures do not attest the entire schema.',
-   'R01 and R10 source readiness remain open; this package grants no release approval.'],
+  controlled_dev:['Promotion aborts unless rollback-only current-schema Worker completion/replay/readback, signed Save/binder, owner isolation, inventory export and erasure planning pass.',
+   'Synthetic claims are not real Auth/HTTP. Existing R10 blocks full account export/erasure; no certificate or readiness override is permitted.'],
+  blockers:['R01 and R10 remain public-release blockers; complete lifecycle orchestration and real Auth/Android acceptance remain open.'],
   rollback:'Only before first catalog resolution; otherwise forward recovery. Restore compatible Edge versions before SQL rollback.',
   limits:['Offline DDL derivation is not Auth/HTTP, DEV or native acceptance.','Connector project binding is required; no SQL setting proves the remote project.']},null,2)+'\n';
  return files;

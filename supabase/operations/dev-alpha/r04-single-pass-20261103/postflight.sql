@@ -213,8 +213,8 @@ IF ((SELECT capture->'closure' FROM (SELECT jsonb_build_object(
 ORDER BY n.name) FROM (VALUES('private.work_taxonomy_gemini_turn_hints_v1'),('private.work_taxonomy_control'),('private.work_taxonomy_categories'),
 ('private.work_taxonomy_category_modes'),('private.work_taxonomy_aliases'),('private.work_taxonomy_audit'),
 ('private.ai_need_turn_commands'),('private.worker_ai_sessions'),('private.worker_ai_turns')) n(name)
-JOIN pg_class c ON c.oid=to_regclass(n.name))) AS capture) x)-'schema'-'source') IS DISTINCT FROM '{"certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb
- THEN RAISE EXCEPTION 'SINGLE_PASS_READINESS_CHANGED';END IF;
+JOIN pg_class c ON c.oid=to_regclass(n.name))) AS capture) x)||jsonb_build_object('erasure',private.closure_erasure_program_digest_v5())) IS DISTINCT FROM '{"schema":"2fe197c8ce6d1863bb4bb0e5fb69d1916568d3e96612c7f50cca30fa70a4a43d","source":"b27518f1a52812d4e662781aa06b4d81ba5bbf4bcca075a1c7ca4c3a6234659e","erasure":"1321ab1535cf6c96ae287271d7945c20bb7df793b8f4b7dd3bb4af2390e4eec1","certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb
+ THEN RAISE EXCEPTION 'SINGLE_PASS_CLOSURE_STATE_CHANGED';END IF;
  IF NOT EXISTS(SELECT 1 FROM pg_class c WHERE c.oid='private.work_taxonomy_turn_hints_resolved_v1'::regclass AND c.reloptions=ARRAY['security_invoker=true']
  AND c.relacl::text='{postgres=arwdDxtm/postgres}' AND md5(pg_get_viewdef(c.oid,true))='f17fec7b4c7e4c411abd0c6eef8b2432') THEN RAISE EXCEPTION 'SINGLE_PASS_VIEW_ACL_DRIFT';END IF;
  IF NOT EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid='private.work_taxonomy_gemini_turn_hints_v1'::regclass AND attname='catalog_resolution'

@@ -1,0 +1,29 @@
+{
+  "project_ref": "leqcwgzvjsxugfgzdmth",
+  "status": "PREPARED_NOT_APPLIED",
+  "signature": "public.rpc_worker_service_from_application(uuid,uuid,uuid,boolean)",
+  "source_sha256": "b24ae69d489bc527e95632e6295d5a4de06ec131d4a78691bf7f2c5aa3817a11",
+  "dependencies_sha256": "cddfca7c98de64c57446345be7d418770caae5e77966f7964f7cf3c90b58dc0b",
+  "postimage": {
+    "md5": "f34071223df9b206bf37417b292d6f9b",
+    "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+    "definer": true,
+    "config": [
+      "search_path=pg_catalog"
+    ]
+  },
+  "files": {
+    "preflight.sql": "408b8c476a1a7afc820866b6d82057fc89c23bb43712c1ca0a2a9c4ac5e5c20e",
+    "promotion.sql": "073a3069428ce8dd46313b6bf1fce2f6aac865f598e0fc7c5851f6798bdc8107",
+    "postflight.sql": "f411d2b082acf440d53a9f46cd2c1730206b23b19293cccca821914e8fcdb39e",
+    "rollback.sql": "1a6204b056ae1776e7a00703bdf5b5df7ca55e8805e982f739c39c55fb971c44"
+  },
+  "requirements": [
+    "Relevant full CI success; read-only preflight; guarded transaction and postflight; TEST Auth/UI acceptance."
+  ],
+  "recovery": "Remove only this additive endpoint. Preserve all profile, review, capability and Save data; reapply restores receipt lookup.",
+  "limits": [
+    "No new storage or readiness/certificate changes. Global R01/R10 remain open.",
+    "Isolated SQL proof does not establish real Auth/HTTP or Android behavior."
+  ]
+}

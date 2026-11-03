@@ -1839,8 +1839,387 @@ IF ((SELECT capture->'closure' FROM (SELECT jsonb_build_object(
 ORDER BY n.name) FROM (VALUES('private.work_taxonomy_gemini_turn_hints_v1'),('private.work_taxonomy_control'),('private.work_taxonomy_categories'),
 ('private.work_taxonomy_category_modes'),('private.work_taxonomy_aliases'),('private.work_taxonomy_audit'),
 ('private.ai_need_turn_commands'),('private.worker_ai_sessions'),('private.worker_ai_turns')) n(name)
-JOIN pg_class c ON c.oid=to_regclass(n.name))) AS capture) x)-'schema'-'source') IS DISTINCT FROM '{"certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb
- THEN RAISE EXCEPTION 'SINGLE_PASS_READINESS_CHANGED';END IF;
+JOIN pg_class c ON c.oid=to_regclass(n.name))) AS capture) x)||jsonb_build_object('erasure',private.closure_erasure_program_digest_v5())) IS DISTINCT FROM '{"schema":"2fe197c8ce6d1863bb4bb0e5fb69d1916568d3e96612c7f50cca30fa70a4a43d","source":"b27518f1a52812d4e662781aa06b4d81ba5bbf4bcca075a1c7ca4c3a6234659e","erasure":"1321ab1535cf6c96ae287271d7945c20bb7df793b8f4b7dd3bb4af2390e4eec1","certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb
+ THEN RAISE EXCEPTION 'SINGLE_PASS_CLOSURE_STATE_CHANGED';END IF;
+ IF NOT EXISTS(SELECT 1 FROM pg_class c WHERE c.oid='private.work_taxonomy_turn_hints_resolved_v1'::regclass AND c.reloptions=ARRAY['security_invoker=true']
+ AND c.relacl::text='{postgres=arwdDxtm/postgres}' AND md5(pg_get_viewdef(c.oid,true))='f17fec7b4c7e4c411abd0c6eef8b2432') THEN RAISE EXCEPTION 'SINGLE_PASS_VIEW_ACL_DRIFT';END IF;
+ IF NOT EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid='private.work_taxonomy_gemini_turn_hints_v1'::regclass AND attname='catalog_resolution'
+ AND atttypid='jsonb'::regtype AND NOT attnotnull AND NOT attisdropped AND attacl IS NULL)
+ OR NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='private.work_taxonomy_gemini_turn_hints_v1'::regclass AND pg_get_constraintdef(oid)='CHECK (((catalog_resolution IS NULL) OR ((jsonb_typeof(catalog_resolution) = ''object''::text) AND (pg_column_size(catalog_resolution) <= 12000) AND ((catalog_resolution ->> ''state''::text) = ANY (ARRAY[''RESOLVED''::text, ''DEFERRED''::text])) AND ((catalog_resolution ->> ''inputDigest''::text) ~ ''^[0-9a-f]{64}$''::text))))')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_COLUMN_DRIFT';END IF;
+ END;$post$;
+SAVEPOINT single_pass_acceptance;
+-- DML-only current-schema acceptance. The caller MUST create SAVEPOINT single_pass_acceptance
+-- and ROLLBACK TO it after success; any assertion failure aborts the promotion.
+-- Synthetic claims exercise SQL roles/RPCs, not GoTrue, PostgREST or Gemini.
+DO $single_pass_acceptance$
+<<r08_fixture>>
+DECLARE
+ owner_id uuid := 'af040303-0000-4000-8000-000000000001';
+ other_id uuid := 'af040303-0000-4000-8000-000000000002';
+ conversation_id uuid := 'af040303-0000-4000-8000-000000000003';
+ request_id uuid := 'af040303-0000-4000-8000-000000000004';
+ category_id uuid := '065e7a4e-7956-4fc6-9d42-2d10b3a3aafb';
+ service_label text := 'Izrada jednostavnog sajta';
+ profile_id uuid; version bigint; review jsonb; receipt jsonb; result jsonb;
+ denied boolean; candidate jsonb; taxonomy_plan jsonb; completed jsonb; model_output jsonb; exported jsonb; hint jsonb;
+ turn_id uuid:=gen_random_uuid(); attempt_id uuid:=gen_random_uuid();
+BEGIN
+ IF current_user<>'postgres' THEN RAISE EXCEPTION 'R08_ACCEPTANCE_ROLE_REQUIRED'; END IF;
+ IF EXISTS(SELECT 1 FROM auth.users WHERE id IN(owner_id,other_id))
+  OR EXISTS(SELECT 1 FROM public.ai_conversations WHERE id=conversation_id)
+  OR EXISTS(SELECT 1 FROM private.worker_ai_sessions s WHERE s.conversation_id=r08_fixture.conversation_id)
+ THEN RAISE EXCEPTION 'R08_ACCEPTANCE_FIXTURE_COLLISION'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM private.work_taxonomy_categories c
+   JOIN private.work_taxonomy_category_modes m ON m.category_id=c.id
+   WHERE c.id=r08_fixture.category_id AND c.label=service_label AND c.state='ESTABLISHED'
+    AND m.execution_scope='REMOTE')
+ THEN RAISE EXCEPTION 'R08_ACCEPTANCE_EXISTING_REMOTE_SERVICE_MISSING'; END IF;
+ SELECT catalog_version INTO STRICT version FROM private.work_taxonomy_control WHERE singleton;
+
+ -- No password, session, email delivery or real identity is created. The existing
+ -- Auth INSERT trigger creates the account and its two profiles transactionally.
+ PERFORM set_config('request.jwt.claims','{}',true);
+ PERFORM set_config('request.jwt.claim.sub','',true);
+ PERFORM set_config('request.jwt.claim.role','',true);
+ INSERT INTO auth.users(id,raw_user_meta_data)
+ VALUES(owner_id,'{"full_name":"R08 synthetic acceptance","mode":"worker"}'::jsonb);
+ INSERT INTO private.account_lineage_v5(account_id,lineage,reason,source_ref)
+ VALUES(owner_id,'SYNTHETIC_ACCEPTANCE_FIXTURE','R08 rollback-only SQL acceptance','R08_DEV_20261101');
+ IF private.account_visibility_world(owner_id)<>'TEST' THEN RAISE EXCEPTION 'R08_ACCEPTANCE_WORLD'; END IF;
+ SELECT p.id INTO STRICT profile_id FROM public.app_profiles p
+ WHERE p.account_id=owner_id AND p.kind='WORKER' AND p.profile_status='DRAFT' AND p.city='';
+ INSERT INTO public.ai_conversations(id,account_id,purpose,status)
+ VALUES(conversation_id,owner_id,'PROFILE','OPEN');
+ candidate:=private.worker_ai_initial(owner_id)||jsonb_build_object(
+  'bio','Synthetic remote service acceptance','skills',jsonb_build_array(service_label));
+ INSERT INTO private.worker_ai_sessions(conversation_id,account_id,open_request_id,profile_id,base_hash,candidate,revision,safety)
+ VALUES(conversation_id,owner_id,request_id,profile_id,private.worker_ai_source_hash(owner_id),candidate,1,'ALLOW');
+ -- Synthetic provider output; real completion, resolver, review, Save and binder.
+ -- No Gemini request, paid reservation, session or password.
+ INSERT INTO private.worker_ai_turns(turn_id,account_id,conversation_id,client_request_id,body_hash,
+  source_revision,attempt_id,state,lease_expires_at,provider_dispatched)
+ VALUES(turn_id,owner_id,conversation_id,request_id,repeat('a',64),1,attempt_id,'PROCESSING',clock_timestamp()+interval '5 minutes',true);
+ taxonomy_plan:=jsonb_build_object('catalogVersion',version,'anchors',jsonb_build_array(
+  jsonb_build_object('categoryId',category_id,'label',service_label,'parentId',
+   (SELECT parent_id FROM private.work_taxonomy_categories WHERE id=category_id))),
+  'proposals',jsonb_build_array(jsonb_build_object('action','REUSE_EXISTING','service',service_label,'mode','REMOTE',
+   'categoryId',category_id,'parentId','','proposedPath','[]'::jsonb,'catalogVersion',version,
+   'reason','Synthetic acceptance of the existing catalog identity','handoff',jsonb_build_object('required',false))));
+ model_output:=jsonb_build_object('assistantMessage','Pregled je spreman.','safety','ALLOW','patch','{}'::jsonb);
+ PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','service_role')::text,true);
+ PERFORM set_config('request.jwt.claim.sub',owner_id::text,true);
+ PERFORM set_config('request.jwt.claim.role','service_role',true);
+ EXECUTE 'SET LOCAL ROLE service_role';
+ completed:=public.rpc_complete_worker_ai_turn_with_first_plan_service(owner_id,conversation_id,request_id,attempt_id,model_output,taxonomy_plan);
+ IF completed#>>'{firstPlan,state}' IS DISTINCT FROM 'RESOLVED' THEN RAISE EXCEPTION 'SINGLE_PASS_WORKER_COMPLETION';END IF;
+ IF public.rpc_complete_worker_ai_turn_with_first_plan_service(owner_id,conversation_id,request_id,attempt_id,model_output,taxonomy_plan)
+  IS DISTINCT FROM completed THEN RAISE EXCEPTION 'SINGLE_PASS_REPLAY';END IF;
+ result:=public.rpc_ai_read_first_plan_completion_service('rpc_complete_worker_ai_turn_with_first_plan_service',
+  jsonb_build_object('p_account_id',owner_id,'p_conversation_id',conversation_id,'p_client_request_id',request_id,'p_attempt_id',attempt_id,
+   'p_output',model_output,'p_taxonomy_plan',taxonomy_plan));
+ IF result IS DISTINCT FROM jsonb_build_object('state','COMPLETED','envelope',completed) THEN RAISE EXCEPTION 'SINGLE_PASS_ACK_READBACK';END IF;
+ EXECUTE 'RESET ROLE';
+
+ PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);
+ PERFORM set_config('request.jwt.claim.sub',owner_id::text,true);
+ PERFORM set_config('request.jwt.claim.role','authenticated',true);
+ EXECUTE 'SET LOCAL ROLE authenticated';
+ denied:=false;
+ BEGIN PERFORM public.rpc_complete_worker_profile(profile_id);
+ EXCEPTION WHEN SQLSTATE 'P0001' THEN
+  IF SQLERRM='CITY_REQUIRED' THEN denied:=true; ELSE RAISE; END IF;
+ END;
+ IF NOT denied THEN RAISE EXCEPTION 'R08_ACCEPTANCE_UNSIGNED_ACTIVATION'; END IF;
+ review:=public.rpc_prepare_worker_ai_review_taxonomy(conversation_id,2,true);
+ IF review->'canAccept' IS DISTINCT FROM 'true'::jsonb
+  OR review->'missingRequired' IS DISTINCT FROM '[]'::jsonb
+  OR review->>'classificationState' IS DISTINCT FROM 'READY'
+ THEN RAISE EXCEPTION 'R08_ACCEPTANCE_PREPARE'; END IF;
+ receipt:=public.rpc_save_worker_ai_review((review->>'reviewId')::uuid,review->>'displayedContentDigest',request_id);
+ IF receipt->>'profileStatus' IS DISTINCT FROM 'ACTIVE'
+  OR receipt->'authoritative' IS DISTINCT FROM 'true'::jsonb
+  OR receipt->>'accountId' IS DISTINCT FROM owner_id::text
+  OR receipt->>'profileId' IS DISTINCT FROM profile_id::text
+  OR receipt->>'reviewId' IS DISTINCT FROM review->>'reviewId'
+ THEN RAISE EXCEPTION 'R08_ACCEPTANCE_SAVE_RECEIPT'; END IF;
+ IF public.rpc_save_worker_ai_review((review->>'reviewId')::uuid,review->>'displayedContentDigest',request_id)
+  IS DISTINCT FROM receipt THEN RAISE EXCEPTION 'R08_ACCEPTANCE_REPLAY'; END IF;
+ result:=public.rpc_read_worker_ai_taxonomy(conversation_id);
+ IF result->'saved' IS DISTINCT FROM receipt THEN RAISE EXCEPTION 'R08_ACCEPTANCE_READBACK'; END IF;
+
+ PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',other_id,'role','authenticated')::text,true);
+ PERFORM set_config('request.jwt.claim.sub',other_id::text,true);
+ denied:=false;
+ BEGIN PERFORM public.rpc_save_worker_ai_review((review->>'reviewId')::uuid,review->>'displayedContentDigest',request_id);
+ EXCEPTION WHEN SQLSTATE '42501' THEN
+  IF SQLERRM='WORKER_AI_DENIED' THEN denied:=true; ELSE RAISE; END IF;
+ END;
+ IF NOT denied THEN RAISE EXCEPTION 'R08_ACCEPTANCE_FOREIGN_OWNER'; END IF;
+ EXECUTE 'RESET ROLE';
+ IF NOT EXISTS(SELECT 1 FROM public.app_profiles p WHERE p.id=profile_id AND p.account_id=owner_id
+  AND p.profile_status='ACTIVE' AND p.city='' AND p.operating_country_code IS NULL)
+ THEN RAISE EXCEPTION 'R08_ACCEPTANCE_FABRICATED_LOCATION'; END IF;
+ IF private.worker_remote_only_activation_ready_v1(owner_id,ARRAY[service_label])
+ THEN RAISE EXCEPTION 'R08_ACCEPTANCE_PREBINDING_AUTHORITY'; END IF;
+ IF (SELECT count(*) FROM private.work_taxonomy_review_outbox_v1 o
+  WHERE o.owner_account_id=owner_id AND o.source_review_id=(review->>'reviewId')::uuid)<>1
+ THEN RAISE EXCEPTION 'R08_ACCEPTANCE_OUTBOX'; END IF;
+
+ PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','service_role')::text,true);
+ PERFORM set_config('request.jwt.claim.sub',owner_id::text,true);
+ PERFORM set_config('request.jwt.claim.role','service_role',true);
+ EXECUTE 'SET LOCAL ROLE service_role';
+ result:=public.rpc_taxonomy_commit_reviewed_batch_service(owner_id,request_id,'WORKER_CAPABILITY',
+  (review->>'reviewId')::uuid,review->'classificationCandidates');
+ IF result->>'status' IS DISTINCT FROM 'COMMITTED' OR (result->>'createdCount')::integer<>0
+ THEN RAISE EXCEPTION 'R08_ACCEPTANCE_BATCH'; END IF;
+ result:=public.rpc_taxonomy_bind_reviewed_worker_service(owner_id,request_id,(review->>'reviewId')::uuid,profile_id);
+ IF result->>'status' IS DISTINCT FROM 'BOUND_WORKER_SERVICES'
+ THEN RAISE EXCEPTION 'R08_ACCEPTANCE_BINDER'; END IF;
+ EXECUTE 'RESET ROLE';
+ IF NOT private.worker_remote_only_activation_ready_v1(owner_id,ARRAY[service_label])
+ THEN RAISE EXCEPTION 'R08_ACCEPTANCE_DURABLE_REMOTE'; END IF;
+ -- Actual inventory-driven export walks the live schema, not a mock projector.
+ SELECT to_jsonb(h) INTO STRICT hint FROM private.work_taxonomy_gemini_turn_hints_v1 h
+ WHERE h.account_id=owner_id AND h.conversation_id=r08_fixture.conversation_id;
+ SELECT value INTO STRICT exported FROM private.closure_taxonomy_export_rows_v1(owner_id)
+ WHERE key=(SELECT x->>'key' FROM jsonb_array_elements(private.closure_taxonomy_inventory_v1()) x
+  WHERE x->>'relation'='private.work_taxonomy_gemini_turn_hints_v1')
+  AND value->>'conversation_id'=conversation_id::text;
+ IF exported#>>'{catalog_resolution,items,0,categoryId}' IS DISTINCT FROM category_id::text
+  OR exported::text LIKE '%completionDigest%' OR exported::text LIKE '%inputDigest%'
+ THEN RAISE EXCEPTION 'SINGLE_PASS_EXPORT';END IF;
+ IF EXISTS(SELECT 1 FROM private.closure_taxonomy_export_rows_v1(other_id)
+  WHERE value->>'conversation_id'=conversation_id::text) THEN RAISE EXCEPTION 'SINGLE_PASS_FOREIGN_EXPORT';END IF;
+ IF private.closure_redaction_patch_v5('private.work_taxonomy_gemini_turn_hints_v1',hint,owner_id,request_id)
+  IS DISTINCT FROM jsonb_build_object('operation','DELETE','patch','{}'::jsonb)
+ THEN RAISE EXCEPTION 'SINGLE_PASS_ERASURE_PLAN';END IF;
+ -- Full account erasure remains blocked by existing R10 certification. Do not
+ -- bypass it or manufacture a closure certificate to make this proof green.
+ IF private.retention_ai_source_ready() IS DISTINCT FROM false
+  OR private.closure_erasure_binding_v5() IS NOT NULL OR private.data_export_policy_binding() IS NOT NULL
+ THEN RAISE EXCEPTION 'SINGLE_PASS_UNEXPECTED_LIFECYCLE_AUTHORITY';END IF;
+END;
+$single_pass_acceptance$;
+
+ROLLBACK TO SAVEPOINT single_pass_acceptance;RELEASE SAVEPOINT single_pass_acceptance;
+DO $post$ BEGIN
+IF current_database()<>'postgres' OR current_user<>'postgres' OR current_setting('server_version_num')<>'170006'
+ THEN RAISE EXCEPTION 'SINGLE_PASS_CONTEXT_REFUSED';END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.ai_need_turn_status(uuid, uuid, uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='5005a5ed32bd85188d22cc4ca80c03dd'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.ai_need_turn_status(uuid, uuid, uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_inventory_v1()')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='0c77ca6e8303f73ce87ad49e8010a6e2'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_inventory_v1()'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_project_v1(text, jsonb, uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='524dc46219cde78e5a961fc9df397adf'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_project_v1(text, jsonb, uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_reset_sections_v1()')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='2e73e1ed2516f9065ce8a59307520e6c'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_reset_sections_v1()'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.taxonomy_first_plan_complete_receipt_v1(uuid, uuid, uuid, uuid, text, text, jsonb, jsonb, text, boolean)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='0e88345092d21b62c1c140bdaae2e00d'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.taxonomy_first_plan_complete_receipt_v1(uuid, uuid, uuid, uuid, text, text, jsonb, jsonb, text, boolean)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.taxonomy_first_plan_input_digest_v1(text, jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='ee28e221d434fa584ac4576930f9df72'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.taxonomy_first_plan_input_digest_v1(text, jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.taxonomy_first_plan_lock_v1(uuid, uuid, uuid, uuid, text)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='e6be34fdb2887bffbb91d473f257f823'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.taxonomy_first_plan_lock_v1(uuid, uuid, uuid, uuid, text)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.taxonomy_resolve_turn_catalog_v1(uuid, text, jsonb, text)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='35243079b776b4ee2ed1a944c2887f15'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.taxonomy_resolve_turn_catalog_v1(uuid, text, jsonb, text)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.taxonomy_resolved_turn_proposals_v1(private.work_taxonomy_gemini_turn_hints_v1)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='547d43c7108780d54f3d2d9d90dd12e4'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.taxonomy_resolved_turn_proposals_v1(private.work_taxonomy_gemini_turn_hints_v1)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.taxonomy_review_candidate_projection_v2(text, jsonb, jsonb, uuid, uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='aeae6f02c0ef0883dde1e220a396f1a2'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.taxonomy_review_candidate_projection_v2(text, jsonb, jsonb, uuid, uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.taxonomy_risk_triage_v1(text)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='43422a711aeaca57d4b78e3d55b3333a'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.taxonomy_risk_triage_v1(text)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.taxonomy_turn_category_identity_v1(uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='348e4ce86f5859993707e0c6093de83c'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.taxonomy_turn_category_identity_v1(uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.worker_ai_service_mode_context_v1(uuid, uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='8c9bce866734738a56c1d331928ee676'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.worker_ai_service_mode_context_v1(uuid, uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.worker_ai_turn_document(uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='dcee2f26162a5ac3f9b86990b1838fa3'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.worker_ai_turn_document(uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.worker_remote_review_ready_v1(jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='eff4bf5c05164fe1bf08599b1eefa36c'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.worker_remote_review_ready_v1(jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_ai_complete_need_location_turn_v1_service(uuid, uuid, uuid, uuid, text, text, text, jsonb, jsonb, text)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='10d26307c5a7ef4c16940fa8e54d4d64'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_ai_complete_need_location_turn_v1_service(uuid, uuid, uuid, uuid, text, text, text, jsonb, jsonb, text)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_ai_complete_need_location_turn_with_first_plan_service(uuid, uuid, uuid, uuid, text, text, text, jsonb, jsonb, text, jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='960f9f020e4f66c1ebb74d2512057149'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_ai_complete_need_location_turn_with_first_plan_service(uuid, uuid, uuid, uuid, text, text, text, jsonb, jsonb, text, jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_ai_complete_need_turn_v2_service(uuid, uuid, uuid, uuid, text, text, text, jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='b867f1c7289fb7513f5acec4a050b8c8'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_ai_complete_need_turn_v2_service(uuid, uuid, uuid, uuid, text, text, text, jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_ai_complete_need_turn_with_first_plan_service(uuid, uuid, uuid, uuid, text, text, text, jsonb, jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='5faa3837540dea6ab97287a039ea08b7'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_ai_complete_need_turn_with_first_plan_service(uuid, uuid, uuid, uuid, text, text, text, jsonb, jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_ai_read_first_plan_completion_service(text, jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='91362567fd674b21fc4632304dfbbf08'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_ai_read_first_plan_completion_service(text, jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_complete_worker_ai_turn_service(uuid, uuid, uuid, uuid, jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='5f0b6545dcde28bf2fcb4ea0f0393458'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_complete_worker_ai_turn_service(uuid, uuid, uuid, uuid, jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_complete_worker_ai_turn_with_first_plan_service(uuid, uuid, uuid, uuid, jsonb, jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='f010585363a9afea45b794e5e65cd1a0'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_complete_worker_ai_turn_with_first_plan_service(uuid, uuid, uuid, uuid, jsonb, jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_prepare_worker_ai_review_taxonomy(uuid, integer, boolean)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='85f9036f76a0b6d313bb164ba09f72b4'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_prepare_worker_ai_review_taxonomy(uuid, integer, boolean)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_prepare_worker_ai_review_taxonomy_confirmed(uuid, integer, boolean, jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='2c9a6526f65cfa6a5b1dd14bdc3b9491'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_prepare_worker_ai_review_taxonomy_confirmed(uuid, integer, boolean, jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_taxonomy_capture_gemini_turn_hints_service(uuid, uuid, uuid, uuid, uuid, text, bigint, jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='c363facdb26d33ae872e25e6a79e4306'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_taxonomy_capture_gemini_turn_hints_service(uuid, uuid, uuid, uuid, uuid, text, bigint, jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.sync_worker_skills_to_taxonomy_capabilities(uuid,text[])')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='bbd0d3a199055f16243f979166dd6fca'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.sync_worker_skills_to_taxonomy_capabilities(uuid,text[])'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.worker_profile_sync_taxonomy_capabilities_trg_fn()')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='16015b90ea1099d5ae804953a6fae4d4'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM NULL)
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.worker_profile_sync_taxonomy_capabilities_trg_fn()'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.worker_remote_only_activation_ready_v1(uuid,text[])')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='935bd52f260fb62c699ad30feb5588fe'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.worker_remote_only_activation_ready_v1(uuid,text[])'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_save_worker_ai_review(uuid,text,uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='4228b28e9741f4cc4b6a033a6349ea11'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_save_worker_ai_review(uuid,text,uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='e7886b252709960a76c589279878001b'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='a41806bd95be583561afae69702d56ac'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_account_key(uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='29116ea6e982cecd3242354a20faa3fd'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_account_key(uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_account_restricted(uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='9ce14bacf456210147ba14235d7ba8de'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_account_restricted(uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_assert_open(uuid, uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='1d0e22224d546c4756f216acfe103246'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_assert_open(uuid, uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_held_v1(text, jsonb, uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='acb0d6bd7ac5d42203f19c4a39fb3d37'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_held_v1(text, jsonb, uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_patch_v1(text, jsonb, uuid, uuid)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='a9c19f2e02d833846e4554678fd927ea'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_patch_v1(text, jsonb, uuid, uuid)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_scope_v1(text)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='31671394f62583024fb001de5ae7d900'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_scope_v1(text)'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_semantic_keys_v1()')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='8ef10c5900936b5dc89ae8f7784f55e8'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_semantic_keys_v1()'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=to_regprocedure('private.closure_taxonomy_semantic_v1(jsonb)')
+
+ AND md5(replace(pg_get_functiondef(p.oid),chr(13),''))='15e409e5acd38131c220009eaa2e4866'
+ AND pg_get_userbyid(p.proowner)='postgres' AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres}')
+ THEN RAISE EXCEPTION 'SINGLE_PASS_FUNCTION_DRIFT: %','private.closure_taxonomy_semantic_v1(jsonb)'; END IF;
+IF ((SELECT capture->'closure' FROM (SELECT jsonb_build_object(
+'project_ref','leqcwgzvjsxugfgzdmth',
+'captured_at',clock_timestamp(),'server_version_num',current_setting('server_version_num'),'role',current_user,
+'closure',jsonb_build_object('source',private.closure_source_digest_v5(),'schema',private.closure_schema_digest_v5_139(),
+'certificate',(SELECT sha256 FROM private.closure_source_v5 WHERE singleton),'source_ready',private.retention_ai_source_ready(),
+'erasure_binding',private.closure_erasure_binding_v5(),'export_binding',private.data_export_policy_binding()),
+'tables',(SELECT jsonb_agg(jsonb_build_object('name',n.name,'owner',pg_get_userbyid(c.relowner),'acl',c.relacl::text,
+'rls',c.relrowsecurity,'force_rls',c.relforcerowsecurity,
+'columns',(SELECT jsonb_agg(jsonb_build_object('name',a.attname,'type',format_type(a.atttypid,a.atttypmod),
+'not_null',a.attnotnull,'acl',a.attacl::text) ORDER BY a.attnum) FROM pg_attribute a WHERE a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped),
+'constraints',(SELECT jsonb_agg(pg_get_constraintdef(x.oid) ORDER BY x.conname) FROM pg_constraint x WHERE x.conrelid=c.oid),
+'policies',(SELECT jsonb_agg(to_jsonb(p) ORDER BY p.policyname) FROM pg_policies p WHERE p.schemaname||'.'||p.tablename=n.name),
+'triggers',(SELECT jsonb_agg(jsonb_build_object('definition',pg_get_triggerdef(t.oid),'enabled',t.tgenabled,'function_md5',md5(replace(pg_get_functiondef(t.tgfoid),chr(13),''))) ORDER BY t.tgname) FROM pg_trigger t WHERE t.tgrelid=c.oid AND NOT t.tgisinternal))
+ORDER BY n.name) FROM (VALUES('private.work_taxonomy_gemini_turn_hints_v1'),('private.work_taxonomy_control'),('private.work_taxonomy_categories'),
+('private.work_taxonomy_category_modes'),('private.work_taxonomy_aliases'),('private.work_taxonomy_audit'),
+('private.ai_need_turn_commands'),('private.worker_ai_sessions'),('private.worker_ai_turns')) n(name)
+JOIN pg_class c ON c.oid=to_regclass(n.name))) AS capture) x)||jsonb_build_object('erasure',private.closure_erasure_program_digest_v5())) IS DISTINCT FROM '{"schema":"2fe197c8ce6d1863bb4bb0e5fb69d1916568d3e96612c7f50cca30fa70a4a43d","source":"b27518f1a52812d4e662781aa06b4d81ba5bbf4bcca075a1c7ca4c3a6234659e","erasure":"1321ab1535cf6c96ae287271d7945c20bb7df793b8f4b7dd3bb4af2390e4eec1","certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb
+ THEN RAISE EXCEPTION 'SINGLE_PASS_CLOSURE_STATE_CHANGED';END IF;
  IF NOT EXISTS(SELECT 1 FROM pg_class c WHERE c.oid='private.work_taxonomy_turn_hints_resolved_v1'::regclass AND c.reloptions=ARRAY['security_invoker=true']
  AND c.relacl::text='{postgres=arwdDxtm/postgres}' AND md5(pg_get_viewdef(c.oid,true))='f17fec7b4c7e4c411abd0c6eef8b2432') THEN RAISE EXCEPTION 'SINGLE_PASS_VIEW_ACL_DRIFT';END IF;
  IF NOT EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid='private.work_taxonomy_gemini_turn_hints_v1'::regclass AND attname='catalog_resolution'

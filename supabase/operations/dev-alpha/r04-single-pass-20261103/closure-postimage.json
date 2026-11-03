@@ -1,0 +1,9 @@
+{
+  "schema": "2fe197c8ce6d1863bb4bb0e5fb69d1916568d3e96612c7f50cca30fa70a4a43d",
+  "source": "b27518f1a52812d4e662781aa06b4d81ba5bbf4bcca075a1c7ca4c3a6234659e",
+  "erasure": "1321ab1535cf6c96ae287271d7945c20bb7df793b8f4b7dd3bb4af2390e4eec1",
+  "certificate": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "source_ready": false,
+  "export_binding": null,
+  "erasure_binding": null
+}

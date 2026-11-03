@@ -1,0 +1,20 @@
+{
+  "project_ref": "leqcwgzvjsxugfgzdmth",
+  "status": "PREPARED_NOT_APPLIED",
+  "candidate_sha256": "16545f7f66de5eda6fecbad7731c16b68db6924300af52a22ced761623b12ff7",
+  "preimage_sha256": "3096862057bfc5be96276f4875953fa3baaf4611bd4619c6790b32fdf2fc7494",
+  "changed_functions": 2,
+  "new_functions": 3,
+  "closure": "UNCHANGED_REQUIRED",
+  "files": {
+    "preflight.sql": "9b3e55d9db683e6d8a1ae066ef7256655fabebb0c5a87eb2e731a9890e72cb16",
+    "promotion.sql": "68236a51cd07541a0d0ac7d11db7a15130553c521a4c42a0f707ebdff4ad83e5",
+    "postflight.sql": "892aa3dbcad3c4507905f5ca0dd0908bc3e43bcef6ec696e3249e911e42099ca",
+    "rollback.sql": "4544385217a1e606a9193dc6f9ce01b87d9250ba6de526eea5fa36737519e501"
+  },
+  "activation": "Separate compatible Edge/client flags. Do not enable until both ends and signed review/readback have been checked.",
+  "recovery": "Inverse only before first deadline fact; otherwise compatible forward recovery.",
+  "limits": [
+    "No DEV or Auth/HTTP proof from generation. Global R01/R10 remain open."
+  ]
+}

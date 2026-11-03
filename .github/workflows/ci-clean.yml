@@ -127,6 +127,9 @@ jobs:
           node --test --test-reporter=spec supabase/proofs/ai/single_pass_continuity.test.mjs supabase/proofs/ai/r06_first_plan_completion.test.mjs supabase/proofs/ai/r04_single_pass_readers.test.mjs
           node --test --test-reporter=spec supabase/proofs/ai/r04_first_plan_lifecycle.test.mjs supabase/proofs/ai/r04_first_plan_runner.test.mjs
           node supabase/operations/dev-alpha/r04-single-pass-20261103/build.mjs --check
+          node supabase/operations/dev-alpha/r04-single-pass-20261103/edge-package.mjs --check
+          node supabase/operations/dev-alpha/r08-application-service-20261103/build.mjs --check
+          node supabase/operations/dev-alpha/task-ai-deadline-20261103/build.mjs --check
       - name: Reviewed DEV package derivation, acceptance and rollback (isolated only)
         run: |
           node --test --test-reporter=spec supabase/operations/dev-alpha/r04-semantic-admission-20261101/closure-postimage.test.mjs

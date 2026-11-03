@@ -137,3 +137,18 @@ test('rollback restores exact original body and reapply restores resume',async t
  await db.exec(candidate);assert.equal((await open(db)).conversationId,a.conversationId);
 });
 
+test('deadline extension preserves current edit recovery, closure denial and the existing deadline',async t=>{
+ const db=await setup(t);
+ const deadline=readFileSync(new URL('../../../docs/candidates/task-ai-deadline-20261021/forward_candidate.sql',import.meta.url),'utf8');
+ const opener=deadline.match(/CREATE OR REPLACE FUNCTION public\.rpc_ai_open_need_edit_conversation_v2[\s\S]*?\$function\$;/)[0];
+ await db.exec(opener);
+ await db.exec("INSERT INTO private.need_fact_registry VALUES('need.response_deadline','NEED_FACT_V2','OBJECT',false,'PUBLIC',true,'needs.response_deadline');UPDATE public.needs SET response_deadline='2099-10-10T15:00:00Z'");
+ const first=await open(db);await message(db,first.conversationId);
+ assert.deepEqual(await open(db),first);
+ const fact=await one(db,"SELECT fact_value FROM public.ai_structured_facts WHERE fact_key='need.response_deadline'");
+ assert.equal(fact.fact_value.kind,'AT');
+ assert.equal(Date.parse(fact.fact_value.at),Date.parse('2099-10-10T15:00:00Z'));
+ await db.exec("SELECT set_config('test.closed','true',false)");
+ await assert.rejects(open(db),/ACCOUNT_CLOSING/);
+});
+
