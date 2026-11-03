@@ -11,12 +11,12 @@ const closure=JSON.parse(read('closure-preimage.json')),q=s=>"'"+s.replaceAll("'
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const definitions=[...source.matchAll(/CREATE (?:OR REPLACE )?FUNCTION (?:public|private)\.[\s\S]*?\$function\$;/g)].map(m=>m[0]);
 const grants=source.slice(source.indexOf('revoke all on function public.rpc_prepare_ai_task_review_deadline('),source.indexOf('do $proof$'));
-const helperGrant='REVOKE ALL ON FUNCTION private.ai_task_response_deadline_v1(uuid) FROM PUBLIC,anon,authenticated,service_role;';
+const helperGrant='REVOKE ALL ON FUNCTION private.ai_task_response_deadline_v1(jsonb) FROM PUBLIC,anon,authenticated,service_role;';
 const row={fact_key:'need.response_deadline',schema_version:'NEED_FACT_V2',value_type:'OBJECT',required_for_draft:false,privacy_class:'PUBLIC',material:true,target_owner:'needs.response_deadline'};
 const registry=`INSERT INTO private.need_fact_registry(fact_key,schema_version,value_type,required_for_draft,privacy_class,material,target_owner) VALUES('need.response_deadline','NEED_FACT_V2','OBJECT',false,'PUBLIC',true,'needs.response_deadline');`;
 const state=`jsonb_build_object('source',private.closure_source_digest_v5(),'schema',private.closure_schema_digest_v5_139(),'erasure',private.closure_erasure_program_digest_v5(),'certificate',(SELECT sha256 FROM private.closure_source_v5 WHERE singleton),'source_ready',private.retention_ai_source_ready(),'export_binding',private.data_export_policy_binding(),'erasure_binding',private.closure_erasure_binding_v5())`;
 export async function generate(){
- assert.equal(pre.project_ref,'leqcwgzvjsxugfgzdmth');assert.equal(pre.read_only,true);assert.equal(definitions.length,5);
+ assert.equal(pre.project_ref,'leqcwgzvjsxugfgzdmth');assert.equal(pre.read_only,true);assert.equal(definitions.length,7);
  const db=new PGlite();let after;
  try{
   await db.exec('CREATE SCHEMA private;CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;SET check_function_bodies=false;CREATE TABLE public.ai_conversations(id uuid);CREATE TABLE public.needs(id uuid);CREATE TABLE public.need_sensitive(id uuid);');
@@ -41,11 +41,11 @@ export async function generate(){
   'promotion.sql':tx(guard(false)+'\n'+registry+'\n'+definitions.join('\n')+'\n'+helperGrant+'\n'+grants+'\n'+guard(true)),
   'postflight.sql':'BEGIN TRANSACTION READ ONLY;SET LOCAL search_path=pg_catalog;\n'+guard(true)+"\nSELECT 'TASK_DEADLINE_POSTIMAGE_MATCH' result;ROLLBACK;\n",
   'rollback.sql':tx(guard(true)+"\nDO $unused$ BEGIN IF EXISTS(SELECT 1 FROM public.ai_structured_facts WHERE fact_key='need.response_deadline') THEN RAISE EXCEPTION 'TASK_DEADLINE_IN_USE_FORWARD_RECOVERY';END IF;END $unused$;\n"+
-   created.filter(f=>f.signature.startsWith('public.')).map(f=>'DROP FUNCTION '+f.signature+' RESTRICT;').join('\n')+'\nDROP FUNCTION private.ai_task_response_deadline_v1(uuid) RESTRICT;\n'+
+   created.filter(f=>f.signature.startsWith('public.')).map(f=>'DROP FUNCTION '+f.signature+' RESTRICT;').join('\n')+'\nDROP FUNCTION private.ai_task_response_deadline_v1(jsonb) RESTRICT;\n'+
    pre.functions.filter(f=>definitions.some(d=>d.includes('FUNCTION '+f.signature.split('(')[0]+'('))).map(f=>f.definition+';').join('\n')+"\nDELETE FROM private.need_fact_registry WHERE fact_key='need.response_deadline';\n"+guard(false)),
  };
  files['manifest.json']=JSON.stringify({project_ref:pre.project_ref,status:'PREPARED_NOT_APPLIED',candidate_sha256:hash(source),preimage_sha256:hash(read('../../../../docs/candidates/task-ai-deadline-20261021/preimage-20261103.json')),
-  changed_functions:2,new_functions:3,closure:'UNCHANGED_REQUIRED',files:Object.fromEntries(Object.entries(files).map(([n,s])=>[n,hash(s)])),
+  changed_functions:4,new_functions:3,closure:'UNCHANGED_REQUIRED',files:Object.fromEntries(Object.entries(files).map(([n,s])=>[n,hash(s)])),
   activation:'Separate compatible Edge/client flags. Do not enable until both ends and signed review/readback have been checked.',
   recovery:'Inverse only before first deadline fact; otherwise compatible forward recovery.',limits:['No DEV or Auth/HTTP proof from generation. Global R01/R10 remain open.']},null,2)+'\n';
  return files;

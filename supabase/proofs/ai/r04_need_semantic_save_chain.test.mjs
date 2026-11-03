@@ -184,6 +184,37 @@ async function needFixture(t){
  return db;
 }
 
+async function installDeadline(db){
+ const sql=readFileSync(new URL('../../../docs/candidates/task-ai-deadline-20261021/forward_candidate.sql',import.meta.url),'utf8');
+ const defs=[...sql.matchAll(/CREATE (?:OR REPLACE )?FUNCTION (?:public|private)\.[\s\S]*?\$function\$;/g)].map(m=>m[0]);
+ for(const def of defs.filter(d=>!d.includes('FUNCTION public.rpc_ai_open_need_edit_conversation_v2(')))await db.exec(def);
+ await db.exec("INSERT INTO private.need_fact_registry VALUES('need.response_deadline','NEED_FACT_V2','OBJECT',false,'PUBLIC',true,'needs.response_deadline')");
+ await db.query(`INSERT INTO public.ai_structured_facts(account_id,conversation_id,fact_key,fact_value,status,source,scope,fact_schema_version,value_type,display_value)
+ VALUES($1,$2,'need.response_deadline','{"kind":"AT","at":"2099-10-10T15:00:00Z"}','NEEDS_CONFIRMATION','EXPLICIT_USER_ANSWER','NEED_DRAFT','NEED_FACT_V2','OBJECT','Prijave do 10. oktobra')`,[owner,cid]);
+ await db.query("UPDATE private.work_taxonomy_gemini_turn_hints_v1 SET source_fingerprint=encode(extensions.digest(private.ai_task_review_source($1)::text,'sha256'),'hex')",[cid]);
+}
+
+test('deadline fact keeps legacy and opt-in signed prepare aligned through actual Save',async t=>{
+ const db=await needFixture(t);
+ for(const f of Object.values(postimages))await db.exec(f.definition);
+ await installDeadline(db);
+ const legacy=await prepare(db),opt=(await one(db,'SELECT public.rpc_prepare_ai_task_review_deadline_taxonomy($1) result',[cid])).result;
+ assert.deepEqual(opt,legacy,'one signed review for both clients');
+ assert.equal(Date.parse(legacy.responseDeadline),Date.parse('2099-10-10T15:00:00Z'));
+ assert.ok(mobileDecoder().decodeAiTaskReview(legacy,owner));assert.equal(legacy.canAccept,true);
+ const stale=(await one(db,"SELECT public.rpc_prepare_ai_task_review_taxonomy($1,'2020-01-01T00:00:00Z') result",[cid])).result;
+ assert.deepEqual(stale,legacy,'old stale deadline cannot override the newer displayed fact');
+ const saved=(await accept(db,legacy)).rows[0].result;
+ const read=(await one(db,'SELECT public.rpc_read_ai_task_review($1) result',[legacy.reviewId])).result;
+ assert.equal(read.review.responseDeadline,legacy.responseDeadline);
+ assert.equal(read.command.needId,saved.needId);
+ await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[other]);
+ await assert.rejects(prepare(db),/TASK_REVIEW_NOT_FOUND/);
+ await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[owner]);
+ await db.exec("SELECT set_config('test.closure','closed',false)");
+ await assert.rejects(prepare(db),/ACCOUNT_CLOSED/);
+});
+
 test('Need actual signed prepare/decoder/Save/bind/readback, replay and no-ALLOW publication fence',async t=>{
  const db=await needFixture(t);
  const baseline=await prepare(db);
@@ -245,6 +276,7 @@ test('Need actual signed prepare/decoder/Save/bind/readback, replay and no-ALLOW
 for(const loseCompletionAck of [false,true])
 test('Need actual Edge evaluation -> mobile resume -> canonical PUBLISHED owned readback; '+(loseCompletionAck?'lost completion ACK':'normal ACK'),async t=>{
  const db=await needFixture(t);await publicationFixture(db);
+ await installDeadline(db);
  for(const f of Object.values(postimages))await db.exec(f.definition);
  const reviewed=await prepare(db);
  assert.equal(reviewed.classificationState,'READY');assert.equal(reviewed.canAccept,true);
@@ -285,6 +317,8 @@ test('Need actual Edge evaluation -> mobile resume -> canonical PUBLISHED owned 
  assert.equal(published.status,'PUBLISHED');assert.equal(published.id,accepted.needId);
  assert.equal(published.revision,accepted.needRevision);assert.equal(published.category,reviewed.classificationCandidates[0].service);
  assert.equal(published.published_at,result.podatak.published.publishedAt);
+ assert.equal(Date.parse(published.response_deadline),Date.parse('2099-10-10T15:00:00Z'));
+ assert.equal(Date.parse(result.podatak.published.responseDeadline),Date.parse(reviewed.responseDeadline));
  await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[other]);
  assert.equal((await one(db,'SELECT public.rpc_read_task($1) result',[accepted.needId])).result,null);
  await assert.rejects(db.query('SELECT public.rpc_publish_accepted_ai_task_review($1,$2)',[reviewed.reviewId,request]),/TASK_REVIEW_NOT_FOUND/);
