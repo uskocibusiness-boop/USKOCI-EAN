@@ -474,7 +474,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     return `${key}:${definition.valueType}${definition.requiredForDraft ? ' required' : ''}${definition.privacyClass === 'PRIVATE' ? ' private' : ''}`;
   }).join(', ');
   return [
-    'TASK INTAKE: ONE concrete job. Prioritize missing scope, execution/place, time, price/offers. Use the declared schema.',
+    'TASK INTAKE: ONE concrete job. Prioritize missing scope, execution/place, time, price/offers. As soon as required facts are known, set dialogue.next=REVIEW and stop optional questions without waiting for a finish phrase; this is only an intent, server review and Publish remain separate. Use the declared schema.',
     ...commonInstruction(),
     'Scope: ask only relevant distinctions (wall/floor area, load/access, lesson subject/level, route, digital deliverable). Optional unknown details can remain for agreement. Draft a short need.title and neutral need.description retaining scope/materials/limits, excluding uncertain execution, private addresses and duplicated price/dates. Corrections remove stale claims, not unrelated detail or typed facts.',
     'need.category: internal natural action+object, no path/place/price/date/quantity or generic fallback. Derive from clear work: room size does not change service; painting a car does. facts contains only new/changed schema keys; valueJson is a JSON-encoded value of its registered type. evidence: short verbatim USER quote; title/description synthesis may use "Sinteza potvrđenih činjenica i razgovora". An acknowledgement alone is not a fact update.',
@@ -1202,7 +1202,22 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     const clarifyingApplicationDeadline = applicationDeadlineEnabled() && dialogue.questionKey === 'need.response_deadline'
       && !facts.has('need.response_deadline') && (pendingDeadlineQuestion || /prijav|konkuri|javlj/iu.test(input));
     const askingAlreadyKnown = activeFacts.some(f => f.fact_key === dialogue.questionKey && f.status !== 'UNKNOWN' && !proposals.some(p => p.key === dialogue.questionKey));
-    if (askingAlreadyKnown && !needsPlaceDetail && !clarifyingApplicationDeadline) {
+    // A complete REMOTE draft does not require the person to say "završi".
+    // The model cannot prolong it by asking for optional facts or a known fact.
+    // This is only a REVIEW intent: server-signed preparation and Publish stay
+    // separate; an explicit user question is answered before any next step.
+    const personAsks = /[?？]\s*$/u.test(input.trim());
+    if (!missing.length && geography?.mode === 'REMOTE' && !clarifyingApplicationDeadline && !personAsks) {
+      assistantMessage = 'Osnovni podaci su zabeleženi. Možete da ih pregledate čim server potvrdi da je nacrt spreman; ništa još nije objavljeno.';
+      dialogue = { ...dialogue, next: 'REVIEW', questionKey: '' };
+    } else if (missing.length && !questions[dialogue.questionKey] && !needsPlaceDetail && !clarifyingApplicationDeadline && !personAsks) {
+      // Required information takes priority over unrelated optional details.
+      const key = missing.find(key => questions[key]);
+      if (key) {
+        assistantMessage = incompleteMessage();
+        dialogue = { ...dialogue, next: 'ASK', questionKey: key };
+      }
+    } else if (askingAlreadyKnown && !needsPlaceDetail && !clarifyingApplicationDeadline) {
       assistantMessage = missing.length ? incompleteMessage() : nextPlaceMessage;
     }
   } else if (dialogue?.next === 'REVIEW' && missing.length) {
@@ -1218,7 +1233,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   }
   // ACK is not permission to replace the answer with another robotic template.
   // The validated assistantMessage is already bounded and is not publication authority.
-  return { ...turn, proposals, assistantMessage };
+  return { ...turn, proposals, assistantMessage, dialogue };
 }
 
 Deno.serve(async (req: Request) => {

@@ -23,6 +23,9 @@ test('shared Serbian voice and worker interview request ONE fact, not a fixed qu
  assert.match(prompt,/izdvojite sve jasne podatke, sačuvajte delimične odgovore/);
  assert.match(prompt,/Na korisnikovo pitanje odgovorite pre svog/);
  assert.doesNotMatch(prompt,/Ask up to THREE short, related questions/);
+ assert.match(prompt,/ne čekajte da korisnik kaže/);
+ assert.match(prompt,/stop optional questions proactively, without waiting for any finish phrase/);
+ assert.match(handler,/rpc_read_worker_ai_context_service/);
 });
 test('questions see owned candidate and bounded saved history, without discarding unrelated facts',()=>{
  assert.match(prompt,/Owned candidate \(not verified claims\)/);

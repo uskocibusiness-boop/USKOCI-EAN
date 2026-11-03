@@ -95,7 +95,7 @@ export function withUnresolvedSinglePassReply(turn, built, plan) {
       !built?.clarifications?.length && !built?.failures?.length && !built?.unresolvedServices?.length) return turn;
   if (turn.dialogue?.next !== 'REVIEW' && turn.assistantMessage.includes('?')) return turn;
   const question = built?.clarifications?.[0]?.ambiguityPrompt;
-  return { ...turn, assistantMessage: question || 'Vaš opis je zabeležen. Provera vrste posla još nije završena.',
+  return { ...turn, assistantMessage: question || 'Opis ostaje u razgovoru, ali povezivanje usluge trenutno nije potvrđeno. Proverite stanje razgovora; nije potrebno da ponavljate opis.',
     ...(turn.dialogue ? { dialogue: { ...turn.dialogue, next: question ? 'CLARIFY' : 'ACK', questionKey: 'NONE' } } : {}) };
 }
 

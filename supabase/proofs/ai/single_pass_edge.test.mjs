@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {singlePassFixture as fixture,id,decision,category,service} from './single_pass_edge_fixture.mjs';
+import {withUnresolvedSinglePassReply} from '../../functions/_shared/singlePassTaxonomy.mjs';
 const providers=f=>f.calls.filter(c=>c.url.includes('generativelanguage.googleapis.com'));
 const atomic=f=>f.calls.filter(c=>c.name.includes('with_first_plan_service'));
 for(const kind of ['NEED','WORKER']){
@@ -41,4 +42,16 @@ for(const decisions of [[decision('REMOTE')],[decision('REMOTE'),decision('ON_SI
 test('WORKER invented consent cannot grant a mode',async()=>{
  const f=fixture('WORKER',{evidence:'Izjava koja ne postoji u korisničkom razgovoru.'});await f.invoke();
  assert.equal(atomic(f).length,0);assert.equal(providers(f).length,1);
+});
+
+test('technical classification uncertainty preserves user facts without another human question',()=>{
+ const turn={safety:'ALLOW',assistantMessage:'Vaš opis je zabeležen.',dialogue:{next:'REVIEW',questionKey:'NONE'}};
+ const technical=withUnresolvedSinglePassReply(turn,null,null);
+ assert.match(technical.assistantMessage,/povezivanje usluge trenutno nije potvrđeno/);
+ assert.match(technical.assistantMessage,/nije potrebno da ponavljate opis/);
+ assert.equal(technical.dialogue.next,'ACK');
+ const question='Da li radite na terenu ili na daljinu?';
+ const business=withUnresolvedSinglePassReply(turn,{clarifications:[{ambiguityPrompt:question}]},null);
+ assert.equal(business.assistantMessage,question);
+ assert.equal(business.dialogue.next,'CLARIFY');
 });

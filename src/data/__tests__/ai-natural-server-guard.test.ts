@@ -59,6 +59,40 @@ const location: LocationContext = { version: 1, promptToken: '2dce6cd8-599b-4d04
 
 describe('natural server AI response without bypassing authoritative review', () => {
   beforeEach(() => { explicitFinish = false; });
+
+  it('automatically stops optional questions for complete REMOTE facts without a finish phrase', () => {
+    const remote = facts().map(f => f.fact_key === 'need.task_geography' ? { ...f, fact_value: { mode: 'REMOTE' } } : f);
+    remote.push({ fact_key: 'need.handoff', fact_value: { required: false }, status: 'CONFIRMED' });
+    const prompt = reply('ASK', 'Da li želite da dodate još neki detalj?');
+    prompt.dialogue.questionKey = 'need.access_notes';
+    const result = guard(prompt, 'Posao je na daljinu i tražim ponude.', remote, { localDate: '2026-10-12' });
+    expect(result.dialogue.next).toBe('REVIEW');
+    expect(result.dialogue.questionKey).toBe('');
+    expect(result.assistantMessage).toContain('Osnovni podaci su zabeleženi.');
+    expect(result.assistantMessage).toContain('ništa još nije objavljeno');
+    expect(result.proposals).toHaveLength(0);
+  });
+  it('asks one required fact rather than an optional one, without waiting for finish', () => {
+    const remote = facts('need.people_needed').map(f => f.fact_key === 'need.task_geography' ? { ...f, fact_value: { mode: 'REMOTE' } } : f);
+    remote.push({ fact_key: 'need.handoff', fact_value: { required: false }, status: 'CONFIRMED' });
+    const prompt = reply('ASK', 'Da li želite da dodate još neki detalj?');
+    prompt.dialogue.questionKey = 'need.access_notes';
+    const result = guard(prompt, 'Treba mi pomoć sa zadatkom.', remote, { localDate: '2026-10-12' });
+    expect(result.dialogue.next).toBe('ASK');
+    expect(result.dialogue.questionKey).toBe('need.people_needed');
+    expect(result.assistantMessage).toBe('Koliko ljudi Vam treba?');
+  });
+  it('does not suppress the users own question or bypass on-site map confirmation', () => {
+    const remote = facts().map(f => f.fact_key === 'need.task_geography' ? { ...f, fact_value: { mode: 'REMOTE' } } : f);
+    remote.push({ fact_key: 'need.handoff', fact_value: { required: false }, status: 'CONFIRMED' });
+    const prompt = reply('ASK', 'Za ovaj posao ne tražimo dodatne detalje.');
+    prompt.dialogue.questionKey = 'need.access_notes';
+    const answer = guard(prompt, 'Zašto mi nije potreban grad?', remote, { localDate: '2026-10-12' });
+    expect(answer.dialogue.next).toBe('ASK');
+    expect(answer.assistantMessage).toBe(prompt.assistantMessage);
+    const local = guard(prompt, 'Ovo je posao na terenu.', facts(), { localDate: '2026-10-12' });
+    expect(local.dialogue.next).toBe('ASK');
+  });
   it('preserves the actual model REVIEW answer when all facts are present', () => {
     const model = 'Sve imam za sada. Pogledaj nacrt kad budeš spreman.';
     expect(call(reply('REVIEW', model)).assistantMessage).toBe(model);
