@@ -1,0 +1,94 @@
+{
+  "kind": "R04_R08_R11_CONVERSATION_POLISH_SOURCE_PROOF",
+  "date": "2026-11-03",
+  "baseSourceSha": "4e6f5c05579d0151a3aefe791738634120ad6bb4",
+  "executionPlan": "docs/plan/CODEX_PLAN_RADA.md",
+  "productAuthority": "docs/product/USKOCI_PRODUCT_UX_MASTER.md",
+  "workspace": {
+    "runId": 41726803003,
+    "artifactId": 13275860714,
+    "verifiedTrackedBlobs": 3925,
+    "omittedFontFiles": 6,
+    "mismatches": 0,
+    "allFilesAudited": false
+  },
+  "environment": {
+    "node": "22.16.0",
+    "typescript": "6.0.3",
+    "dependencies": "existing package-lock with project native patch applied",
+    "ciNode24": "separate check; not claimed by this local receipt"
+  },
+  "baseline": {
+    "shortReplies": {
+      "tests": 57,
+      "pass": 36,
+      "fail": 21
+    },
+    "assistantLifecycle": {
+      "tests": 12,
+      "pass": 2,
+      "fail": 10
+    },
+    "conversationArrival": {
+      "tests": 16,
+      "pass": 15,
+      "fail": 1
+    }
+  },
+  "after": {
+    "ai": {
+      "files": 11,
+      "pass": 587,
+      "fail": 0,
+      "skip": 0,
+      "todo": 1,
+      "command": "node --test --test-concurrency=2 --test-reporter=spec supabase/proofs/ai/worker_mode_short_replies.test.mjs supabase/proofs/ai/worker_mode_declarations.test.mjs supabase/proofs/ai/single_pass_continuity.test.mjs supabase/proofs/ai/background_taxonomy_failures.test.mjs supabase/proofs/ai/background_taxonomy_scope.test.mjs supabase/proofs/ai/background_worker_reuse.test.mjs supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/v5_worker_edge.test.mjs supabase/proofs/ai/single_pass_edge.test.mjs supabase/proofs/ai/owned_intake_edge.test.mjs supabase/proofs/ai/intake_module_boundary.test.mjs"
+    },
+    "mobile": {
+      "suites": 10,
+      "pass": 523,
+      "fail": 0,
+      "command": "node node_modules/jest/bin/jest.js --runInBand src/data/__tests__/ai-conversation-arrival.test.tsx src/data/__tests__/ai-conversation-layout.test.tsx src/data/__tests__/ai-conversation-question-focus.test.tsx src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/worker-conversation-parts.test.tsx src/data/__tests__/worker-profile-native.test.tsx src/ui/aiFirst/__tests__/assistant-motion-lifecycle.test.tsx src/ui/aiFirst/__tests__/draft-stickers.test.tsx src/data/__tests__/w02-worker-availability-client.test.ts src/data/__tests__/w02-worker-calendar-client.test.ts"
+    },
+    "typescriptNoEmit": true,
+    "nodeSyntax": true,
+    "diffWhitespace": true,
+    "historyLedger": {
+      "historicalMessages": 1000,
+      "streamFragments": 30,
+      "historyCopiesDuringFragments": 0,
+      "copiesForCanonicalArrival": 1
+    }
+  },
+  "gitBlobSha1": {
+    "src/data/__tests__/ai-conversation-arrival.test.tsx": "62c65d759ee2b73313f660acdd1fb10f612b9a40",
+    "src/data/__tests__/w02-worker-availability-client.test.ts": "830539fb2a3ac7c5223340719ecdac8c9ab61ee8",
+    "src/data/__tests__/w02-worker-calendar-client.test.ts": "bf2ed5f52104ad3eaf6182d9f8409aed424c0709",
+    "src/data/workerAvailabilityClientService.ts": "6d9f41b2b843fcfc8e5716aa9fa3ac284ab06702",
+    "src/data/workerCalendarClientService.ts": "abf79b3b55410a850357deba5a8b48fef8a120d2",
+    "src/ui/aiFirst/AiAssistantArt.tsx": "5d3d7ac22ad11486c889e965403621a707ae47fc",
+    "src/ui/aiFirst/__tests__/assistant-motion-lifecycle.test.tsx": "c4c41a91a68c4551c0770baf7c7a85023f450001",
+    "src/ui/aiFirst/useConversationArrival.ts": "cbcf29080d4a6acff480c60dd8433f0acd45b734",
+    "supabase/functions/_shared/workerServiceModeContext.mjs": "f5250531a31c0603b938424cf22c6690e862ff7b",
+    "supabase/proofs/ai/conversation-polish-20261103.md": "2f2b69ff0ea0e40188f835a9880a8992e4e1075e",
+    "supabase/proofs/ai/worker_mode_declarations_README.md": "e17e4a2c97a989198a1019330ca6a8eda6294258",
+    "supabase/proofs/ai/worker_mode_short_replies.test.mjs": "fae8e3f7d30c7e17ed30d75232321a8d56ef8230"
+  },
+  "bounds": {
+    "supabaseWrite": false,
+    "edgeDeploy": false,
+    "paidModel": false,
+    "nativeDevice": false,
+    "apkOrOta": false,
+    "productionOrStore": false,
+    "fullAudit": false,
+    "R01Closed": false,
+    "R10Closed": false
+  },
+  "notes": [
+    "Existing R07a real-Auth integration TODO remains; no negative assertion removed.",
+    "Synthetic messages/catalog and controlled native animation/AppState ports; real runtime parser/builder and React code.",
+    "No claim of measured phone latency, FPS, complete visual freeze or public release.",
+    "Temporary read-only workspace workflow is deleted in the implementation commit."
+  ]
+}

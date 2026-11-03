@@ -1,4 +1,8 @@
-# R04/R08 — odbijanje duplih mode deklaracija i jedan parser
+# R04/R08 — jedan parser za mode deklaracije
+
+> **Noviji povezani source/test dokaz:** [prirodni kratki odgovori i prikaz razgovora](conversation-polish-20261103.md). Postojeće odbijanje dvosmislenih duplikata ostaje; istorijski status ispod opisuje njegov prvobitni lokalni prolaz, ne današnji GitHub/DEV status.
+
+## Istorijski lokalni dokaz duplikata
 
 Datum: 03.11.2026. Bazni source: `06d6dd637b3190d3643032dd17a7b3d4f429854f`.
 Status ovog paketa: **LOCAL PATCH / TESTED IN ISOLATION / NOT COMMITTED / NOT DEPLOYED**.

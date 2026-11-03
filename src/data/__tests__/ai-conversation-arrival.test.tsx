@@ -127,3 +127,26 @@ test('a failed stream does not suppress a later separate turn that never streame
   await update({ messages: [...input.messages, user('u2', 'Novo pitanje'), ai('a2')], sentMessage: null, busy: false });
   expect(arrival.shouldEnter('a2')).toBe(true); expect(mockAnnounce).toHaveBeenCalledTimes(1);
 });
+
+
+test('stream fragments do not copy a long canonical history ledger; a real arrival copies it once', async () => {
+  input.messages = Array.from({ length: 1000 }, (_, index) => ai(`history-${index}`));
+  await render();
+  const iterate = Set.prototype[Symbol.iterator];
+  let historyCopies = 0;
+  const spy = jest.spyOn(Set.prototype, Symbol.iterator).mockImplementation(function (this: Set<unknown>) {
+    if (this.has('history-0')) historyCopies++;
+    return iterate.call(this);
+  });
+  try {
+    for (let index = 0; index < 30; index++) await update({ streamingText: `Pristigli deo ${index}`, busy: true });
+    expect(historyCopies).toBe(0);
+    expect(mockAnnounce).not.toHaveBeenCalled();
+    await update({ messages: [...input.messages, ai('new', 'Potvrđen odgovor.')], streamingText: '', busy: false });
+    expect(historyCopies).toBe(1);
+    expect(arrival.shouldEnter('new')).toBe(false);
+    expect(mockAnnounce.mock.calls).toEqual([['USKOČI: Potvrđen odgovor.']]);
+    await update({ messages: [...input.messages] });
+    expect(historyCopies).toBe(1); expect(mockAnnounce).toHaveBeenCalledTimes(1);
+  } finally { spy.mockRestore(); }
+});

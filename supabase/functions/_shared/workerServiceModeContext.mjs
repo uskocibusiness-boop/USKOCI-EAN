@@ -39,7 +39,7 @@ export function workerServiceModeSchema(schema) {
 
 export function workerServiceModeInstruction(context, includeContext = true, includeClassification = true) {
   return 'Per-service modes/handoff: draftServices replace savedServices for that service; otherwise preserve saved choices. Catalog modes and unrelated bio/area/calendar edits do not authorize changes or activation. '
-    + 'serviceModeChangesJson is a STRING array of {service,modes,evidence,handoff?}, or "[]" for no change. service exactly matches an offered skill; modes is its COMPLETE intended REMOTE/ON_SITE set. evidence: verbatim USER quote (6–1000 characters) stating initial scope or a mode/handoff change. Short "Oba" is allowed as its own verbatim USER quote only after the immediately previous assistant question uniquely names this service and offers both online/on-site modes at the same server revision; never invent longer quotes. Obvious initial work can establish mode; a multi-service statement gives each service the same quote. '
+    + 'serviceModeChangesJson is a STRING array of {service,modes,evidence,handoff?}, or "[]" for no change. service exactly matches an offered skill; modes is its COMPLETE intended REMOTE/ON_SITE set. evidence: verbatim USER quote (6–1000 characters) stating initial scope or a mode/handoff change. A standalone choice such as "Uživo", "Lično", "Onlajn" or "Oba" is valid evidence only for the immediately previous question that uniquely names this service and offers online/on-site alternatives at the same server revision. Return exactly the selected mode set and the actual USER quote, including its original script; never pad or invent a quote. A mode-only reply does not authorize a new handoff, so omit handoff and preserve any saved one. An ambiguous "Da", "Ne" or "Može" is not a mode choice. Obvious initial work can establish mode; a multi-service statement gives each service the same quote. '
     + 'handoff requires REMOTE. Handoff-only changes preserve modes; omitted handoff preserves its prior value. '
     + (includeClassification ? 'Its handoff must equal the new REMOTE classification proposal. ' : 'Declare handoff here once; the server attaches it to classification. ')
     + 'Unchanged server draft choices need no repeated declaration. An earlier change absent from context cites its original USER wording. Never cite assistant/catalog/bio/unrelated text as consent or invent it. Unclear mode: ask about execution, never default BOTH. '
@@ -48,39 +48,64 @@ export function workerServiceModeInstruction(context, includeContext = true, inc
     + (includeContext ? ' Server-owned service mode context: ' + JSON.stringify(context) + '.' : '');
 }
 
-// A short reply counts only for the immediately previous service-specific
-// assistant question on this exact SQL-owned draft revision. Never lower the
-// quote requirement for unrelated context or an ambiguous yes/no response.
+// Elliptical choices belong to the immediately previous service-specific
+// question on the same SQL-owned revision. Length and punctuation must not
+// change their authority. This is not a second classifier or an activation.
 const questionWords = value => (typeof value === 'string'
   ? value.match(/[\p{L}\p{N}]+/gu) ?? [] : [])
   .map(word => normalizedClassificationIdentity(word))
   .filter(word => typeof word === 'string' && word.length >= 4);
-function questionNamesService(question, service) {
+function questionNamesService(words, service) {
   const terms = questionWords(service);
   if (!terms.length) return false;
-  const words = questionWords(question);
   return terms.filter(term => words.some(word => word === term
     || (word.length >= 5 && term.length >= 5 && word.slice(0, 4) === term.slice(0, 4))))
     .length >= Math.min(2, terms.length);
 }
-function boundedShortModeReply(change, context, offered) {
-  // "Oba" has one complete meaning; "Da"/"Ne" must not expand capabilities.
-  const answer = normalizedClassificationIdentity(change.evidence.trim().replace(/[.!?]+$/u, ''));
-  if (answer !== 'oba' || change.modes.length !== 2
-      || !change.modes.includes('REMOTE') || !change.modes.includes('ON_SITE')
+const modeReplyKey = evidence => {
+  const text = evidence.trim().replace(/[\s.!?…]+$/u, '');
+  // The service normalizer deliberately requires three characters. Preserve
+  // two-letter yes/no here only to reject them; do not change service identity.
+  if (/^(?:da|ne|да|не)$/iu.test(text)) return 'AMBIGUOUS';
+  return normalizedClassificationIdentity(text)?.normalize('NFD').replace(/[\u0300-\u036f]/g, '') ?? null;
+};
+const modeReplyChoices = new Map([
+  ['uzivo', ['ON_SITE']], ['licno', ['ON_SITE']],
+  ['na lokaciji', ['ON_SITE']], ['na terenu', ['ON_SITE']],
+  ['onlajn', ['REMOTE']], ['online', ['REMOTE']], ['na daljinu', ['REMOTE']],
+  ['oba', ['REMOTE', 'ON_SITE']], ['oboje', ['REMOTE', 'ON_SITE']],
+  ['obadva', ['REMOTE', 'ON_SITE']], ['oba nacina', ['REMOTE', 'ON_SITE']],
+  ['na oba nacina', ['REMOTE', 'ON_SITE']], ['i jedno i drugo', ['REMOTE', 'ON_SITE']],
+]);
+function boundedModeReply(change, context, offered, expected) {
+  if (change.modes.length !== expected.length || !expected.every(value => change.modes.includes(value))
+      // A short choice says nothing about shipping or physical exchange.
+      || Object.hasOwn(change, 'handoff')
       || !Number.isSafeInteger(context.revision)
       || context.serviceModeContext?.revision !== context.revision
       || !Array.isArray(context.messages) || context.messages.length < 2) return false;
   const user = context.messages.at(-1), assistant = context.messages.at(-2);
   if (user?.role !== 'USER' || assistant?.role !== 'ASSISTANT'
       || typeof user.body !== 'string' || typeof assistant.body !== 'string'
-      || user.body.trim() !== change.evidence.trim() || !assistant.body.includes('?')) return false;
+      || user.body.trim() !== change.evidence.trim()
+      || (assistant.body.match(/\?/g) ?? []).length !== 1) return false;
   const words = questionWords(assistant.body);
   const remote = words.some(word => ['onlajn', 'online', 'daljinu'].includes(word));
   const onsite = words.some(word => ['uživo', 'uzivo', 'terenu', 'lokaciji', 'lično', 'licno'].includes(word));
   if (!remote || !onsite) return false;
-  const named = [...offered.values()].filter(service => questionNamesService(assistant.body, service));
+  const named = [...offered.values()].filter(service => questionNamesService(words, service));
   return named.length === 1 && normalizedClassificationIdentity(named[0]) === normalizedClassificationIdentity(change.service);
+}
+function modeEvidenceAllowed(change, context, offered, userTexts) {
+  if (typeof change.evidence !== 'string' || !change.evidence.trim()
+      || change.evidence.length > 1000 || !userTexts.some(body => body.includes(change.evidence))) return false;
+  const key = modeReplyKey(change.evidence);
+  if (key === 'AMBIGUOUS' || key === 'moze' || key === 'vazi') return false;
+  const expected = modeReplyChoices.get(key);
+  // Apply the same context check to "Uživo" and "Uživo."/"Onlajn", not only
+  // strings shorter than six characters. Longer complete statements retain
+  // the existing quote contract and all downstream signed-review checks.
+  return expected ? boundedModeReply(change, context, offered, expected) : change.evidence.trim().length >= 6;
 }
 
 /** Quote checks bind a model proposal to owned USER text, not semantic proof of consent.
@@ -115,8 +140,7 @@ export function inspectWorkerModeRequests(serviceModeChangesJson, context, offer
         || !Array.isArray(change.modes) || change.modes.length < 1 || change.modes.length > 2
         || !change.modes.every(mode) || new Set(change.modes).size !== change.modes.length
         || (Object.hasOwn(change, 'handoff') && (!change.modes.includes('REMOTE') || !decodeServiceHandoff(change.handoff)))
-        || typeof change.evidence !== 'string' || (!change.evidence.trim() || (change.evidence.trim().length < 6 && !boundedShortModeReply(change, context, offered))) || change.evidence.length > 1000
-        || !userTexts.some(body => body.includes(change.evidence))) continue;
+        || !modeEvidenceAllowed(change, context, offered, userTexts)) continue;
     requests.set(key, change);
   }
   return { requests, invalidServices: new Set([...declared].filter(key => !requests.has(key))) };

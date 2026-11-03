@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { Animated, AppState, Easing, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useReducedMotion } from '../system/motion';
@@ -15,97 +15,90 @@ export type AiAssistantArtProps = {
   animated?: boolean;
 };
 
-/** Existing USKOČI robot identity, shared by task and work-profile interviews.
- * Static art identifies the assistant at small sizes (24); living HD breathing and blink/wink micro-motions
- * bring it alive at hero sizes (88 and 128) using pure native-driver Animated transforms (B22). */
+/** Static transcript markers have no animation values, timers or AppState subscription.
+ * Only an explicitly animated illustration owns motion; no layout or brand changes. */
 export const AiAssistantArt = memo(function AiAssistantArt({ size, animated }: AiAssistantArtProps) {
+  if (animated ?? (size >= 88)) return <AnimatedAssistantArt size={size} />;
+  return <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden
+    style={{ width: size, height: size, flexShrink: 0 }}><AssistantImage size={size} /></View>;
+});
+
+function AssistantImage({ size }: Pick<AiAssistantArtProps, 'size'>) {
+  return <Image source={SOURCE} contentFit="contain" transition={0} cachePolicy="memory" allowDownscaling
+    accessible={false} style={{ width: size, height: size }} />;
+}
+
+function AnimatedAssistantArt({ size }: Pick<AiAssistantArtProps, 'size'>) {
   const reduced = useReducedMotion();
-  const shouldAnimate = animated ?? (size >= 88);
-
-  const floatAnim = useRef(new Animated.Value(0)).current;
-  const blinkAnim = useRef(new Animated.Value(0)).current;
-  const winkAnim = useRef(new Animated.Value(0)).current;
-  const [foreground, setForeground] = useState(AppState.currentState === 'active');
+  // Lazy allocation also avoids constructing unused native values on every re-render.
+  const [{ floatAnim, blinkAnim, winkAnim }] = useState(() => ({
+    floatAnim: new Animated.Value(0), blinkAnim: new Animated.Value(0), winkAnim: new Animated.Value(0),
+  }));
 
   useEffect(() => {
-    const sub = AppState.addEventListener('change', state => setForeground(state === 'active'));
-    return () => sub.remove();
-  }, []);
-
-  useEffect(() => {
-    if (!shouldAnimate || reduced || !foreground) {
-      floatAnim.setValue(0);
-      blinkAnim.setValue(0);
-      winkAnim.setValue(0);
-      return;
-    }
-
-    // 1. Organic breathing float & gentle 2.5D micro-tilt
-    const floatLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: 1,
-          duration: sys.motion.assistant.floatHalf,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-          isInteraction: false,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 0,
-          duration: sys.motion.assistant.floatHalf,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-          isInteraction: false,
-        }),
-      ])
-    );
-    floatLoop.start();
-
-    // 2. Periodic natural eye blink and friendly wink
+    let floatLoop: Animated.CompositeAnimation | null = null;
+    let eyeRun: Animated.CompositeAnimation | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let cancelled = false;
+    let running = false, generation = 0;
+    const stop = () => {
+      // Invalidate callbacks before stopping: native stop may call completion synchronously.
+      running = false; generation++;
+      if (timer !== undefined) clearTimeout(timer);
+      timer = undefined;
+      floatLoop?.stop(); eyeRun?.stop();
+      floatLoop = null; eyeRun = null;
+      for (const value of [floatAnim, blinkAnim, winkAnim]) {
+        value.stopAnimation(); value.setValue(0);
+      }
+    };
+    if (reduced) { stop(); return; }
 
-    const scheduleNextBlink = () => {
-      if (cancelled) return;
+    const scheduleBlink = (owner: number) => {
+      if (!running || owner !== generation) return;
       const delay = sys.motion.assistant.nextBlinkMin + Math.random() * sys.motion.assistant.nextBlinkJitter;
       timer = setTimeout(() => {
-        if (cancelled || AppState.currentState !== 'active') return;
-        const isWink = Math.random() < 0.3;
-        if (isWink) {
-          Animated.sequence([
-            Animated.timing(winkAnim, { toValue: 1, duration: sys.motion.assistant.winkClose, easing: Easing.ease, useNativeDriver: true }),
-            Animated.timing(winkAnim, { toValue: 0, duration: sys.motion.assistant.winkOpen, easing: Easing.ease, useNativeDriver: true }),
-          ]).start(() => scheduleNextBlink());
-        } else {
-          Animated.sequence([
-            Animated.timing(blinkAnim, { toValue: 1, duration: sys.motion.assistant.blinkClose, easing: Easing.ease, useNativeDriver: true }),
-            Animated.timing(blinkAnim, { toValue: 0, duration: sys.motion.assistant.blinkOpen, easing: Easing.ease, useNativeDriver: true }),
-          ]).start(() => scheduleNextBlink());
-        }
+        timer = undefined;
+        if (!running || owner !== generation || AppState.currentState !== 'active') return;
+        const wink = Math.random() < 0.3, value = wink ? winkAnim : blinkAnim;
+        eyeRun = Animated.sequence([
+          Animated.timing(value, { toValue: 1,
+            duration: wink ? sys.motion.assistant.winkClose : sys.motion.assistant.blinkClose,
+            easing: Easing.ease, useNativeDriver: true, isInteraction: false }),
+          Animated.timing(value, { toValue: 0,
+            duration: wink ? sys.motion.assistant.winkOpen : sys.motion.assistant.blinkOpen,
+            easing: Easing.ease, useNativeDriver: true, isInteraction: false }),
+        ]);
+        eyeRun.start(({ finished }) => {
+          if (!running || owner !== generation) return;
+          eyeRun = null;
+          if (finished) scheduleBlink(owner);
+        });
       }, delay);
     };
-
-    scheduleNextBlink();
-
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-      floatLoop.stop();
+    const start = () => {
+      if (running) return;
+      running = true;
+      const owner = ++generation;
+      floatLoop = Animated.loop(Animated.sequence([
+        Animated.timing(floatAnim, { toValue: 1, duration: sys.motion.assistant.floatHalf,
+          easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+        Animated.timing(floatAnim, { toValue: 0, duration: sys.motion.assistant.floatHalf,
+          easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+      ]));
+      floatLoop.start(); scheduleBlink(owner);
     };
-  }, [shouldAnimate, reduced, foreground, floatAnim, blinkAnim, winkAnim]);
+    // Stop immediately on the native lifecycle event, not after a React state update.
+    const subscription = AppState.addEventListener('change', state => state === 'active' ? start() : stop());
+    if (AppState.currentState === 'active') start();
+    return () => { subscription.remove(); stop(); };
+  }, [reduced, floatAnim, blinkAnim, winkAnim]);
 
-  const translateY = floatAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -size * 0.045],
-  });
-  const rotate = floatAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: ['0deg', '1.2deg', '-0.8deg'],
-  });
-  const scale = floatAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.02],
-  });
+  const { translateY, rotate, scale, rightLidOpacity } = useMemo(() => ({
+    translateY: floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -size * 0.045] }),
+    rotate: floatAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: ['0deg', '1.2deg', '-0.8deg'] }),
+    scale: floatAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.02] }),
+    rightLidOpacity: Animated.add(blinkAnim, winkAnim),
+  }), [size, floatAnim, blinkAnim, winkAnim]);
 
   const leftEyeStyle = {
     position: 'absolute' as const,
@@ -148,7 +141,6 @@ export const AiAssistantArt = memo(function AiAssistantArt({ size, animated }: A
   };
 
   const leftLidOpacity = blinkAnim;
-  const rightLidOpacity = Animated.add(blinkAnim, winkAnim);
 
   return (
     <Animated.View
@@ -159,19 +151,11 @@ export const AiAssistantArt = memo(function AiAssistantArt({ size, animated }: A
         width: size,
         height: size,
         flexShrink: 0,
-        transform: shouldAnimate ? [{ translateY }, { rotate }, { scale }] : undefined,
+        transform: [{ translateY }, { rotate }, { scale }],
       }}
     >
-      <Image
-        source={SOURCE}
-        contentFit="contain"
-        transition={0}
-        cachePolicy="memory"
-        allowDownscaling
-        accessible={false}
-        style={{ width: size, height: size }}
-      />
-      {shouldAnimate && size >= 88 ? (
+      <AssistantImage size={size} />
+      {size >= 88 ? (
         <>
           <Animated.View style={[leftEyeStyle, { opacity: leftLidOpacity }]} />
           <Animated.View style={[leftSlitStyle, { opacity: leftLidOpacity }]} />
@@ -181,7 +165,7 @@ export const AiAssistantArt = memo(function AiAssistantArt({ size, animated }: A
       ) : null}
     </Animated.View>
   );
-});
+}
 
 export type AssistantWelcomeMemory = { key: string | undefined; consumed: boolean };
 
