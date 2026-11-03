@@ -101,6 +101,8 @@ jobs:
       - name: R04 semantic SQL isolation and signed publication fence (no DEV write)
         run: |
           node --test --test-reporter=spec supabase/proofs/ai/r04_semantic_review_pending.test.mjs supabase/proofs/ai/r04_signed_taxonomy_publish_fence.test.mjs
+          node --test --test-reporter=spec supabase/proofs/ai/single_pass_continuity.test.mjs supabase/proofs/ai/r06_first_plan_completion.test.mjs supabase/proofs/ai/r04_single_pass_readers.test.mjs
+          node supabase/operations/dev-alpha/r04-single-pass-20261103/build.mjs --check
       - name: Reviewed DEV package derivation, acceptance and rollback (isolated only)
         run: |
           node --test --test-reporter=spec supabase/operations/dev-alpha/r04-semantic-admission-20261101/closure-postimage.test.mjs

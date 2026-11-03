@@ -1144,10 +1144,9 @@ it('a flip of the retired app mode retires nothing: a publish in flight still la
 
 
 it.each([
-  ['PENDING_CLASSIFICATION','Provera usluge još nije završena.'],
+  ['PENDING_CLASSIFICATION','Podaci su sačuvani u razgovoru. Povezivanje usluge još nije potvrđeno.'],
   ['CATALOG_UNAVAILABLE','Provera usluge trenutno nije dostupna.'],
-  ['STALE_CATALOG','Podaci za proveru usluge su se promenili.'],
-  ['REVIEW_REQUIRED','Usluga još nije potvrđena za objavu.'],
+  ['STALE_CATALOG','Potvrda povezivanja usluge više nije važeća.'],
 ] as const)('R04 recovery: %s offers a real review refresh without inventing user confirmation',async(classificationState,reason)=>{
   const pending:AiTaskReviewEnvelope={...review(),classificationState,
     classificationCandidates:[],reviewedServiceModes:[]};
@@ -1174,11 +1173,25 @@ it.each([
   expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 
+it('R04 recovery: unresolved semantics offers the same conversation without a taxonomy approval form',async()=>{
+  mockPrepare.mockResolvedValue(ok({...review(),classificationState:'REVIEW_REQUIRED',classificationCandidates:[],reviewedServiceModes:[]}));
+  await render();
+  expect(text()).toContain('Povezivanje usluge zahteva dodatnu proveru.');
+  expect(publish().disabled).toBe(true);
+  expect(action('Sačuvajte nacrt').disabled).toBeFalsy();
+  expect(commands('Osvežite pregled')).toHaveLength(0);
+  await act(async()=>action('Vratite se u razgovor').onPress());
+  const route=mockRouter.replace.mock.calls[0][0];
+  expect(route.pathname).toBe('/nova');
+  expect(takeAiCorrection(route.params.aiCorrection,{accountId:OWNER,accountRevision:1},'task',CONVERSATION)?.target).toBe('task.details');
+  expect(mockAccept).not.toHaveBeenCalled();expect(mockDraft).not.toHaveBeenCalled();expect(mockCorrect).not.toHaveBeenCalled();
+});
+
 it('R04 recovery: only missing execution mode opens the existing same-conversation location correction',async()=>{
   mockPrepare.mockResolvedValue(ok({...review(),classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
     classificationCandidates:[],reviewedServiceModes:[]}));
   await render();
-  expect(text()).toContain('Način rada još nije potvrđen.');
+  expect(text()).toContain('U razgovoru razjasnite da li se posao radi na lokaciji ili bez dolaska izvršioca.');
   expect(commands('Osvežite pregled')).toHaveLength(0);
   expect(publish().disabled).toBe(true);
   await act(async()=>action('Dopunite način rada').onPress());
@@ -1222,7 +1235,7 @@ it('R04 recovery: network failure retains the existing single error recovery and
   expect(mockAccept).not.toHaveBeenCalled();expect(mockDraft).not.toHaveBeenCalled();
 });
 
-it('R04/F05: signed semantic candidate is shown without unlocking publish, private draft remains separate',async()=>{
+it('R04/F05: signed taxonomy metadata stays internal without unlocking publish, private draft remains separate',async()=>{
   const original=review();
   const service='Montaža gotovog ormara';
   const proposal={
@@ -1239,10 +1252,11 @@ it('R04/F05: signed semantic candidate is shown without unlocking publish, priva
     semanticReviewCandidates:[proposal]};
   mockPrepare.mockResolvedValue(ok(pending));
   await render();
-  expect(text()).toContain('Proverite predlog postojeće usluge');
-  expect(text()).toContain('Sklapanje ormara');
-  expect(text()).toContain('Ovo je AI predlog; usluga još nije potvrđena.');
-  expect(text()).toContain('Usluga još nije potvrđena za objavu.');
+  expect(text()).not.toContain('Proverite predlog postojeće usluge');
+  expect(text()).not.toContain(proposal.categoryId);
+  expect(text()).not.toContain('Sklapanje ormara');
+  expect(text()).not.toContain('Ovo je AI predlog; usluga još nije potvrđena.');
+  expect(text()).toContain('Povezivanje usluge zahteva dodatnu proveru.');
   expect(publish().disabled).toBe(true);
   expect(action('Sačuvajte nacrt').disabled).toBeFalsy();
   expect(mockAccept).not.toHaveBeenCalled();

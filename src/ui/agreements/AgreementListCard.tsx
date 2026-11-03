@@ -265,7 +265,7 @@ function AgreementCollaborator({ item, taskTitle, now, stale = false, cancellati
       {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
       {attention && !(attention.kind === 'rate' && onRate) ? <T variant="note" style={s.footTitle}>{attention.title}</T> : null}
     </Press>
-    {attention?.kind === 'rate' && onRate ? <Press accessibilityRole="button" accessibilityLabel={`Oceni saradnju, ${taskTitle}, ${name}`}
+    {attention?.kind === 'rate' && onRate ? <Press accessibilityRole="button" accessibilityLabel={`${attention.title}, ${taskTitle}, ${name}`}
       onPress={() => onRate(item)} haptic="select" style={s.more}><AttentionFoot attention={attention} /></Press> : null}
   </View>;
 }

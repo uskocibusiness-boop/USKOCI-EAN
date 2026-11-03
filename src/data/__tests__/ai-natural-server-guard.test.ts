@@ -77,16 +77,16 @@ describe('natural server AI response without bypassing authoritative review', ()
   });
   it('still corrects an unsafe REVIEW when required people count is missing', () => {
     const result = call(reply('REVIEW', 'Sve je spremno za objavu.'), facts('need.people_needed'));
-    expect(result.assistantMessage).toBe('Koliko ljudi ti treba?');
+    expect(result.assistantMessage).toBe('Koliko ljudi Vam treba?');
   });
   it('does not turn an explicit finish request into an automatic publication', () => {
     explicitFinish = true;
     const result = call(reply('REVIEW', 'Objavljeno.'), facts('need.people_needed'));
-    expect(result.assistantMessage).toContain('Otvori pregled zadatka');
+    expect(result.assistantMessage).toBe('Koliko ljudi Vam treba?');
     expect(result.proposals).toHaveLength(0);
   });
   it('retargets an ASK for an already-known fact to the actual missing one', () => {
-    const result = call(reply('ASK', 'Koliko ljudi ti treba?'), facts('need.task_country_code'));
+    const result = call(reply('ASK', 'Koliko ljudi Vam treba?'), facts('need.task_country_code'));
     expect(result.assistantMessage).toBe('U kojoj državi je zadatak?');
   });
   it('asks for the start when the date is genuinely missing, not the invented end', () => {
@@ -107,7 +107,7 @@ describe('natural server AI response without bypassing authoritative review', ()
   });
   it('does not promise review readiness while the displayed location is unconfirmed', () => {
     const result = guard(reply('REVIEW', 'Sve je potvrđeno, objavi.'), 'Kod stare stanice', facts(), { localDate: '2026-10-12' }, location);
-    expect(result.assistantMessage).toContain('proveriš predloženo mesto na mapi');
+    expect(result.assistantMessage).toContain('proverite predloženo mesto na mapi');
     expect(result.proposals).toHaveLength(0);
   });
   it('does not accept an hourly price without a consistent MY_PRICE/HOURLY contract', () => {
@@ -457,11 +457,11 @@ describe('natural server AI response without bypassing authoritative review', ()
     const local = facts('need.exact_address').map(f => f.fact_key === 'need.task_geography'
       ? { ...f, fact_value: { mode: 'STATIONARY', start: { city: 'Užice', [slot]: 'kod bolnice u Užicu' } } } : f);
     const review = call(reply('REVIEW', 'Pogledaj nacrt zadatka.'), local);
-    expect(review.assistantMessage).toContain('proverimo predlog mesta na mapi');
+    expect(review.assistantMessage).toContain('Proverite predlog mesta na mapi');
     expect(review.assistantMessage).not.toContain('U kom delu grada');
     expect(review.proposals).toHaveLength(0);
     const staleAsk = call(reply('ASK', 'U kom delu grada je posao?'), local);
-    expect(staleAsk.assistantMessage).toContain('potvrdi tačku');
+    expect(staleAsk.assistantMessage).toContain('potvrdite tačku');
   });
   it('does not replace a natural ACK after a landmark is already recorded', () => {
     const local = facts('need.exact_address').map(f => f.fact_key === 'need.task_geography'
@@ -505,7 +505,7 @@ describe('natural server AI response without bypassing authoritative review', ()
       if (handoff !== undefined) remote.push({ fact_key: 'need.handoff', fact_value: handoff,
         status: handoff.required === false ? 'UNKNOWN' : 'CONFIRMED' });
       const result = call(reply('REVIEW', 'Sve je spremno.'), remote);
-      expect(result.assistantMessage).toContain('Kako preuzimaš rezultat');
+      expect(result.assistantMessage).toContain('Kako želite da preuzmete rezultat');
       expect(result.proposals).toEqual([]);
     });
   it('keeps the BLOCK safety result intact', () => {

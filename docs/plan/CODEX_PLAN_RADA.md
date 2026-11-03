@@ -3437,6 +3437,17 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
 
+#### R08/R07/UI — nastavak posle prvog push-a, 03.11.2026.
+
+**SOURCE + izolovane provere; DEV NOT_APPLIED.** Celokupan prethodni lokalni paket je poslat na istu granu/Draft43 kao `ccec112a6561bf818796093221742362a610044d`. Main CI `41552548208` je FAIL na mobilnim testovima (608 suite PASS, 18 FAIL; 161 assertion FAIL), R01 `41552547827` je FAIL na strict bootstrap-u. Zeleni prethodni CI nije dokaz ovog paketa.
+
+- **Stvarne popravke:** registrovan nedostajući `profil/usluga-iz-prijave` kao unutrašnji FULL ekran; prelaz na prethodne saradnje čisti filter potvrde; grupna ocena koristi istu pristojnu oznaku kao vidljiva radnja. U `profil/razgovor.tsx` ponovni izbor već spremnog pregleda više ne menja scope bez React rendera i ne onesposobljava njegove callback-e. Eksplicitni oporavak nakon dodavanja imena naloga koristi postojeći owner/revision name patch → prepare/readback, bez modela, Save-a ili aktivacije. Oba poslednja kvara reprodukovana su pre ispravke.
+- **Aktuelni mobilni ugovori:** kartica ostaje skrivena dok potpisani pregled nije READY; nema korisničke potvrde kategorije. Worker parts + recovery + Need review **291/291 PASS**. Prijava i zasebno dobrovoljno dodavanje usluge **52/52 PASS**: bez ponavljanja korisničke saglasnosti posle restarta, bez Save-a na mount/izgubljeni ACK i bez prelaska između naloga. Osamnaest obsolete pre-submit opt-in slučajeva zamenjeno je sa 15 testova stvarnog post-submit `ApplicationServiceOffer`; postojeće submit/journal/HOURLY/owner negativne provere ostaju. Reset testnih implementacija uklanja curenje memorijskog journal/prepare mock-a između slučajeva.
+- **Prikaz i copy:** usklađene provere novog ulaza „Prethodne saradnje”, zbirne grupe „Sledeće”, formalnog obraćanja, razgovora i kompaktnog prompta. Devet povezanih UI/model suite-ova prolazi; naknadni Need guard, worker review parts, tab navigator i welcome prolaze. Test navigatora eksplicitno razdvaja kompatibilni stari build od odobrenog četvorotabnog build-a, bez oslanjanja na spoljašnji env. Registracija svih ruta potvrđena. Nema native/screenshot dokaza ovog prolaza.
+- **AI kontinuitet:** novi `single_pass_continuity.test.mjs` **21/21 PASS** proverava isti ID, više usluga, uklanjanje, mode/handoff promene, BOTH, neodobrenu promenu i novu granu nad stvarnim pure builder-om, bez provider poziva. CI sada obuhvata i ove provere, atomic SQL i kompletan generator paketa. TypeScript PASS. Puni CI ostaje obavezan; nije preskočen ili ublažen.
+
+**Pre DEV-a još obavezno:** aktuelna puna provera i migracija starih second-model fixture-a, prihvat novog SQL-a kroz stvarni Save/binder/export/erasure i relevantne R01/R10 uslove; potom jedinstvena SQL/Edge promocija i readback. Ovaj checkpoint ne daje dozvolu za nasumično slanje kandidata, ne menja sertifikate i ne tvrdi da su matching/push, dva naloga ili izdanje zatvoreni.
+
 #### R04/R06/R08 — provera i priprema prenosa, 03.11.2026.
 
 Posle izričitog zahteva vlasnika da se rad dovrši i pošalje na GitHub/DEV nastavljena je ciljana verifikacija. Ranija zabrana testiranja i oznake NOT_TESTED ispod ostaju istorija tog prolaza; sledeći rezultati važe samo za navedeni obuhvat. Polazni lokalni/remote HEAD `160ef70d9ec23aea89344694b8d9e2e5cb782fdf`, ista grana i Draft43; nema prepisivanja korisničkih izmena.

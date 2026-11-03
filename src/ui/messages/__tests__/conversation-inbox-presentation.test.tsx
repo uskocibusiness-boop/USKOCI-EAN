@@ -61,7 +61,7 @@ describe('rows and their words', () => {
   it('is one row per conversation in the server\'s order, with no day headings between them', async () => {
     await draw(props(items, { titleInHeader: true }));
     expect(rows()).toHaveLength(3);
-    expect(texts()).toContain('Razgovori o tvojim zadacima');
+    expect(texts()).toContain('Razgovori o Vašim zadacima');
     expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header')).toHaveLength(0);
     // The task distinguishes rows, even when several conversations share a counterpart.
     expect(rows().map(node => texts(node).split(' | ')[1])).toEqual([
@@ -99,14 +99,14 @@ describe('rows and their words', () => {
     await draw(props(items));
     expect(rows()[0].props.accessibilityLabel).toBe('Sastavljanje IKEA ormara. Privatno · Jovana. Gotovo, sve je sastavljeno. Danas, 13:00');
     expect(rows()[0].props.accessibilityHint).toBe('Otvara razgovor uz ovaj zadatak.');
-    expect(rows()[2].props.accessibilityLabel).toContain('Ti: Hvala!');
+    expect(rows()[2].props.accessibilityLabel).toContain('Vi: Hvala!');
   });
 
-  it('keeps a caption with a photo or a voice message, writes "Ti: " for mine and invents no sender, duration or status', () => {
+  it('keeps a caption with a photo or a voice message, writes "Vi: " for mine and invents no sender, duration or status', () => {
     const lastOf = (kind: 'TEXT' | 'PHOTO' | 'VOICE', preview: string | null, mine = false) => row({ id: A, at: '2026-10-07T11:00:00Z', last: kind, preview, mine }).lastMessage;
     expect(conversationPreview(lastOf('PHOTO', 'Evo ormara'))).toBe('Fotografija · Evo ormara');
     expect(conversationPreview(lastOf('PHOTO', null))).toBe('Fotografija');
-    expect(conversationPreview(lastOf('VOICE', null, true))).toBe('Ti: Glasovna poruka');
+    expect(conversationPreview(lastOf('VOICE', null, true))).toBe('Vi: Glasovna poruka');
     expect(conversationPreview(lastOf('TEXT', null))).toBe('Tekst poruke nije dostupan');
   });
 });
@@ -147,7 +147,7 @@ describe('a tap opens that conversation', () => {
     await act(async () => tree.update(<ConversationInboxPresentation {...props([item], { unavailableKeys: new Set([`AGREEMENT:${A}`]) })} />));
     expect(texts()).toContain('Razgovor trenutno nije dostupan.');
     await act(async () => tree.update(<ConversationInboxPresentation {...props([item], { openErrorKey: `AGREEMENT:${A}` })} />));
-    expect(texts()).toContain('Razgovor nije otvoren. Pokušaj ponovo.');
+    expect(texts()).toContain('Razgovor nije otvoren. Pokušajte ponovo.');
   });
 });
 
@@ -215,7 +215,7 @@ describe('the states of the list', () => {
     const p = props([active], { hasMore: true });
     await draw(p);
     expect(rows()).toHaveLength(1);
-    await act(async () => tree.root.findByProps({ label: 'Učitaj starije razgovore' }).props.onPress());
+    await act(async () => tree.root.findByProps({ label: 'Učitajte starije razgovore' }).props.onPress());
     expect(p.onLoadMore).toHaveBeenCalledTimes(1);
     await act(async () => tree.update(<ConversationInboxPresentation {...p} items={[active, closed]} hasMore={false} />));
     expect(rows()).toHaveLength(2);
@@ -236,7 +236,7 @@ describe('the states of the list', () => {
     await act(async () => tree.update(<ConversationInboxPresentation {...props([], { onAgreements })} />));
     // The state of the system (one green way forward), not a screen of its own.
     // The first encounter ("Predmet vrata", the owner's pick of 2026-10-08): the two panels at the size of a door.
-    expect(tree.root.findAllByType('StateView' as never)[0].props).toMatchObject({ kind: 'empty', hero: true, art: 'chat', title: 'Još nema razgovora', body: 'Razgovor započinješ iz Dogovora.' });
+    expect(tree.root.findAllByType('StateView' as never)[0].props).toMatchObject({ kind: 'empty', hero: true, art: 'chat', title: 'Još nema razgovora', body: 'Razgovor započinjete iz Dogovora.' });
     await act(async () => tree.root.findAllByType('StateView' as never)[0].props.primary.onPress());
     expect(onAgreements).toHaveBeenCalledTimes(1);
   });
@@ -250,19 +250,19 @@ describe('the states of the list', () => {
   it('offers retry for a previously empty read that failed to refresh without claiming the inbox is still empty', async () => {
     const p = props([], { error: true });
     await draw(p);
-    expect(texts()).toContain('Pokušaj ponovo da proveriš ima li novih razgovora.');
+    expect(texts()).toContain('Pokušajte ponovo da proverite ima li novih razgovora.');
     expect(tree.root.findAllByType('StateView' as never)).toHaveLength(0);
-    await act(async () => tree.root.findByProps({ label: 'Osveži razgovore' }).props.onPress());
+    await act(async () => tree.root.findByProps({ label: 'Osvežite razgovore' }).props.onPress());
     expect(p.onRefresh).toHaveBeenCalledTimes(1);
   });
 
   it('offers older conversations and tries again after a failed page', async () => {
     const p = props([row({ id: A, at: '2026-10-07T11:00:00Z' })], { hasMore: true });
     await draw(p);
-    await act(async () => tree.root.findByProps({ label: 'Učitaj starije razgovore' }).props.onPress());
+    await act(async () => tree.root.findByProps({ label: 'Učitajte starije razgovore' }).props.onPress());
     expect(p.onLoadMore).toHaveBeenCalledTimes(1);
     await act(async () => tree.update(<ConversationInboxPresentation {...props([row({ id: A, at: '2026-10-07T11:00:00Z' })], { hasMore: true, pageError: true })} />));
-    expect(texts()).toContain('Stariji razgovori nisu učitani. Pokušaj ponovo da nastaviš.');
+    expect(texts()).toContain('Stariji razgovori nisu učitani. Pokušajte ponovo da nastavite.');
   });
 });
 

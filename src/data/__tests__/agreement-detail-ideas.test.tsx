@@ -222,7 +222,7 @@ describe('CANCEL-INFO: who cancelled, when and why', () => {
     mockCancellationRead.mockResolvedValue({ ok: true, podatak: new Map([[mockAgreementId, { agreementId: mockAgreementId, cancelledAt: '2026-10-05T12:00:00Z',
       by: 'REQUESTER', byMe: true, reason: null, reasonState: 'NOT_KEPT' }]]) });
     await render(cancelled());
-    expect(line()).toMatch(/^Otkazano 5\. okt( 2026)? · 14:00 · Ti · Razlog nije sačuvan$/);
+    expect(line()).toMatch(/^Otkazano 5\. okt( 2026)? · 14:00 · Vi · Razlog nije sačuvan$/);
   });
 
   it('says only "Otkazano" when the server says nothing, and invents no side, time or reason', async () => {

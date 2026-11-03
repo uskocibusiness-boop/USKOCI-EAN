@@ -132,7 +132,7 @@ describe('the ideas of the UI pass, as the gallery draws them', () => {
     expect(text()).toContain('Otkazano 28. sep · 19:20 · Jelena Nikolić · Živicu je u međuvremenu orezao komšija.');
     await act(async () => { tree.unmount(); });
     await open('cancelled-me');
-    expect(text()).toContain('Otkazano 28. sep · 10:05 · Ti · Razlog nije sačuvan');
+    expect(text()).toContain('Otkazano 28. sep · 10:05 · Vi · Razlog nije sačuvan');
   });
 
   it('R29: before "Sačuvaj" the person is told that a saved rating cannot be changed; grey, the foot says why instead', async () => {

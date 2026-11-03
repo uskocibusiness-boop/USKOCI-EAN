@@ -6,8 +6,8 @@ import type { NeedSearchState } from '../../contracts/needSearchRecovery';
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
   return new Proxy(native, { get(target, key) {
-    if (key === 'FlatList') return ({ data, renderItem, ListEmptyComponent, ...props }: any) => React.createElement('List', props,
-      data.length ? data.map((item: any) => React.createElement(React.Fragment, { key: item.id }, renderItem({ item }))) : ListEmptyComponent);
+    if (key === 'FlatList') return ({ data, renderItem, ListEmptyComponent, ListFooterComponent, ...props }: any) => React.createElement('List', props,
+      data.length ? data.map((item: any) => React.createElement(React.Fragment, { key: item.id }, renderItem({ item }))) : ListEmptyComponent, ListFooterComponent);
     return ['View', 'ScrollView', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
@@ -56,7 +56,7 @@ test('a failed refresh keeps the last Dogovor cards and offers an explicit retry
     onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} now={NOW} />); });
   expect(titles()).toContain('Otvori Dogovor Posao confirmed');
   expect(texts()).toContain('Prikazano je poslednje učitano stanje.');
-  await tap('Ponovo osveži Dogovore');
+  await tap('Ponovo osvežite Dogovore');
   expect(refresh).toHaveBeenCalledTimes(1);
 });
 test('stale Dogovori keep filter exits without claiming a current action count', async () => {
@@ -71,9 +71,9 @@ test('stale Dogovori keep filter exits without claiming a current action count',
   };
   await act(async () => { tree = create(<Stale />); });
   expect(texts()).toContain('Za proveru · 1 zadatak');
-  expect(texts()).not.toContain('Potvrdi završetak');
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka tvoju potvrdu' })).toHaveLength(0);
-  await tap('Prikaži sve aktivne');
+  expect(texts()).not.toContain('Potvrdite završetak');
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka Vašu potvrdu' })).toHaveLength(0);
+  await tap('Prikažite sve aktivne');
   expect(titles()).toContain('Otvori Dogovor Posao owner-wait');
   await tap('Sve uloge');
   expect(titles()).toContain('Otvori Dogovor Posao worker-wait');
@@ -81,7 +81,7 @@ test('stale Dogovori keep filter exits without claiming a current action count',
   await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} refreshError now={NOW}
     section="history" confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}}
     onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />); });
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka tebe · 1 zadatak' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka Vas · 1 zadatak' })).toHaveLength(0);
   expect(titles()).toContain('Otvori Dogovor Posao done');
 });
 test('stale grouped task keeps collaborators reachable without an unverified urgent foot', async () => {
@@ -94,14 +94,14 @@ test('stale grouped task keeps collaborators reachable without an unverified urg
     onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />); });
   expect(texts()).toContain('Za proveru · 1 zadatak');
   expect(texts()).not.toContain('obaveze čekaju tebe');
-  expect(texts()).not.toContain('Potvrdi završetak');
+  expect(texts()).not.toContain('Potvrdite završetak');
   expect(titles()).toHaveLength(2);
 });
 test('active and history preserve both actual participant roles; attention means my requester confirmation', async () => {
   await render(); expect(titles()).toHaveLength(3); // One list holds both sides of one account, and each row says which side from its own participants.
   // A number is drawn only for what needs the person: one Dogovor waits for my confirmation, and Istorija says no count at all.
-  expect(headers()[0]).toBe('Čeka tebe · 1 zadatak');
-  expect(tree.root.findByProps({ accessibilityLabel: 'Istorija' }).props.accessibilityValue).toEqual({ text: '' });
+  expect(headers()[0]).toBe('Čeka Vas · 1 zadatak');
+  expect(tree.root.findByProps({ accessibilityLabel: 'Prethodne saradnje' }).props.accessibilityValue).toBeUndefined();
   // The row carries the other person's photo and name, so the sentence beside it is about THEM,
   // third person — the same words the Dogovor itself uses in AgreementPeople. It used to read
   // "Milos SLJIVIC   Uskočio si": their name, then a sentence about me, with nothing to mark that
@@ -110,14 +110,14 @@ test('active and history preserve both actual participant roles; attention means
   expect(texts()).toContain('Ti objavljuješ'); expect(texts()).toContain('Ti uskačeš');
   expect(texts()).not.toContain('Uskočio si'); expect(texts()).not.toContain('Objavio si');
   // The filter speaks to the person ("tvoju"), never in the first person ("moju").
-  await tap('Čeka tvoju potvrdu'); expect(titles()).toEqual(['Otvori Dogovor Posao waiting-mine']);
+  await tap('Čeka Vašu potvrdu'); expect(titles()).toEqual(['Otvori Dogovor Posao waiting-mine']);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka moju potvrdu' })).toHaveLength(0);
-  await tap('Čeka tvoju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);
+  await tap('Čeka Vašu potvrdu'); await tap('Prethodne saradnje'); expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);
   expect(texts()).toContain('Sve uloge');
   // Round-1 critique A11 (owner step 8): Aktivni and Istorija only. "Svi" repeated both sets and is gone.
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Svi' })).toHaveLength(0);
   // Nothing in history waits for a confirmation, so the filter is offered on Aktivni only.
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka tvoju potvrdu' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka Vašu potvrdu' })).toHaveLength(0);
 });
 // Istorija has an outcome filter; a cancelled Dogovor still wears its own "Otkazan" state chip.
 test('Istorija offers all, completed and cancelled outcomes, narrows the list and recovers from a filter with no results', async () => {
@@ -125,7 +125,7 @@ test('Istorija offers all, completed and cancelled outcomes, narrows the list an
   await render();
   // Aktivni has no history chips, and Istorija has no confirmation filter.
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Ishod Dogovora' })).toHaveLength(0);
-  await tap('Istorija');
+  await tap('Prethodne saradnje');
   const chips = () => tree.root.findByProps({ accessibilityLabel: 'Ishod Dogovora' }).findAllByProps({ accessibilityRole: 'radio' }).map(node => [node.props.accessibilityLabel, node.props.accessibilityState.checked]);
   expect(chips()).toEqual([['Svi ishodi', true], ['Završeni', false], ['Otkazani', false]]);
   expect(titles()).toEqual(['done', 'off', 'done-2'].map(id => `Otvori Dogovor Posao ${id}`));
@@ -137,7 +137,7 @@ test('Istorija offers all, completed and cancelled outcomes, narrows the list an
   rows = [agreement('done', 'COMPLETED'), agreement('live', 'CONFIRMED')];
   await act(async () => tree.update(<Screen />));
   expect(texts()).toContain('Nema otkazanih Dogovora');
-  await act(async () => tree.root.findByProps({ label: 'Prikaži sve' }).props.onPress());
+  await act(async () => tree.root.findByProps({ label: 'Prikažite sve' }).props.onPress());
   expect(titles()).toEqual(['Otvori Dogovor Posao done']);
 });
 // Round 2c (verifier vf, must 2): since 2026-09-24 a missing name reaches the screens as an empty string. The card wrote
@@ -199,17 +199,17 @@ test('leads with the person\'s face beside the work title (two lines at most) an
 test.each(['loading', 'error'])('%s hides stale private rows and error retry uses actual callback', async state => {
   loading = state === 'loading'; error = state === 'error'; await render(); expect(titles()).toEqual([]);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Tvoja uloga u Dogovorima' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka tvoju potvrdu' })).toHaveLength(0);
-  if (error) { await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo' }).props.onPress()); expect(refresh).toHaveBeenCalledTimes(1); }
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka Vašu potvrdu' })).toHaveLength(0);
+  if (error) { await act(async () => tree.root.findByProps({ label: 'Pokušajte ponovo' }).props.onPress()); expect(refresh).toHaveBeenCalledTimes(1); }
 });
 test('empty history still offers a real task route, with no invented review or unread controls', async () => {
-  rows = []; await render(); expect(texts()).toContain('Još nemaš Dogovor');
-  await tap('Istorija'); expect(texts()).toContain('Istorija je prazna');
+  rows = []; await render(); expect(texts()).toContain('Još nemate Dogovora');
+  await tap('Prethodne saradnje'); expect(texts()).toContain('Još nema prethodnih saradnji');
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Ishod Dogovora' })).toHaveLength(0);
   // History explains what it will contain; the active first encounter retains its task actions.
   expect(texts()).toContain('Ovde će biti završeni i otkazani Dogovori.');
   expect(tree.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'agreements' && node.props.size === 144)).toHaveLength(1);
-  await act(async () => tree.root.findByProps({ label: 'Idi na Početnu' }).props.onPress()); expect(tasks).toHaveBeenCalledTimes(1);
+  await act(async () => tree.root.findByProps({ label: 'Idite na Početnu' }).props.onPress()); expect(tasks).toHaveBeenCalledTimes(1);
   expect(texts()).not.toMatch(/Oceni|nepročitan/);
 });
 
@@ -217,19 +217,19 @@ test('empty history still offers a real task route, with no invented review or u
 // Dogovor waited for the person's rating one tab away.
 test('a finished Dogovor that still waits for my rating stays among the active ones and says so; a rated one is history', async () => {
   rows = [{ ...agreement('done-unrated', 'COMPLETED'), ocenaMoguca: true }, agreement('done', 'COMPLETED')];
-  // The foot is one line, the verb ("Oceni saradnju"); why it waits is the card's hint, and the chip says "Završen".
-  await render(); expect(titles()).toEqual(['Otvori Dogovor Posao done-unrated']); expect(texts()).toContain('Oceni saradnju');
-  expect(tree.root.findByProps({ accessibilityLabel: 'Otvori Dogovor Posao done-unrated' }).props.accessibilityHint).toBe('Oceni saradnju. Čeka tvoju ocenu');
-  expect(texts()).not.toContain('Čeka tvoju ocenu');
-  await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done']); expect(texts()).not.toContain('Oceni saradnju');
+  // The foot is one line, the verb ("Ocenite saradnju"); why it waits is the card's hint, and the chip says "Završen".
+  await render(); expect(titles()).toEqual(['Otvori Dogovor Posao done-unrated']); expect(texts()).toContain('Ocenite saradnju');
+  expect(tree.root.findByProps({ accessibilityLabel: 'Otvori Dogovor Posao done-unrated' }).props.accessibilityHint).toBe('Ocenite saradnju. Čeka Vašu ocenu');
+  expect(texts()).not.toContain('Čeka Vašu ocenu');
+  await tap('Prethodne saradnje'); expect(titles()).toEqual(['Otvori Dogovor Posao done']); expect(texts()).not.toContain('Ocenite saradnju');
 });
 
 test('an unavailable rating stays reachable from active work without claiming that a rating is due or already settled', async () => {
   rows = [{ ...agreement('unknown', 'COMPLETED'), ocenaMoguca: false, stanjeProvereOcene: 'UNAVAILABLE' }, agreement('done', 'COMPLETED')];
   await render(); expect(titles()).toEqual(['Otvori Dogovor Posao unknown']);
-  expect(texts()).toContain('Proveri ocenu'); expect(texts()).not.toContain('Čeka tvoju ocenu');
+  expect(texts()).toContain('Proverite ocenu'); expect(texts()).not.toContain('Čeka Vašu ocenu');
   await tap('Otvori Dogovor Posao unknown'); expect(open).toHaveBeenCalledWith(rows[0]);
-  await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done']);
+  await tap('Prethodne saradnje'); expect(titles()).toEqual(['Otvori Dogovor Posao done']);
 });
 
 test('old unknown ratings cannot preempt accepted appointments or confirmed rating actions in Active', async () => {
@@ -241,16 +241,16 @@ test('old unknown ratings cannot preempt accepted appointments or confirmed rati
     { ...agreement('no-term', 'CONFIRMED'), prihvacenPocetak: null },
   ];
   await render();
-  // Both ratings have an orange foot, so both stand under "Čeka tebe", first; the one the read could not answer for comes after
+  // Both ratings have an orange foot, so both stand under "Čeka Vas", first; the one the read could not answer for comes after
   // the one that is really due, whatever its date. Then the days: tomorrow, this week, and no term last.
   expect(titles()).toEqual(['Otvori Dogovor Posao due', 'Otvori Dogovor Posao old-unknown', 'Otvori Dogovor Posao soon',
     'Otvori Dogovor Posao later', 'Otvori Dogovor Posao no-term']);
-  expect(headers()).toEqual(['Čeka tebe · 2 zadatka', 'Sutra', 'Ove nedelje', 'Termin još nije dogovoren']);
+  expect(headers()).toEqual(['Čeka Vas · 2 zadatka', 'Sledeće', 'Bez tačnog termina']);
 });
 
-// Plan 2.6: Aktivni is groups, "Čeka tebe" first and always, then the days in Serbian time, each under its own heading.
+// Plan 2.6: Aktivni is groups, "Čeka Vas" first and always, then the days in Serbian time, each under its own heading.
 const headers = () => tree.root.findByType('List' as React.ElementType).findAllByType('T' as React.ElementType).filter(node => node.props.accessibilityRole === 'header').map(node => node.props.children);
-test('Aktivni is groups: Čeka tebe first, then Danas, Sutra, Ove nedelje, Kasnije and Termin još nije dogovoren, each with its heading', async () => {
+test('Aktivni is groups: Čeka Vas first, then Danas, Sutra, Ove nedelje, Kasnije and Termin još nije dogovoren, each with its heading', async () => {
   rows = [
     { ...agreement('no-term', 'CONFIRMED'), prihvacenPocetak: null },
     { ...agreement('later', 'CONFIRMED'), prihvacenPocetak: '2026-10-05T10:00:00Z' },
@@ -261,10 +261,10 @@ test('Aktivni is groups: Čeka tebe first, then Danas, Sutra, Ove nedelje, Kasni
     agreement('over', 'COMPLETED'), agreement('off', 'CANCELLED'),
   ];
   await render();
-  expect(headers()).toEqual(['Čeka tebe · 1 zadatak', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Termin još nije dogovoren']);
+  expect(headers()).toEqual(['Čeka Vas · 1 zadatak', 'Danas', 'Sledeće', 'Bez tačnog termina']);
   expect(titles()).toEqual(['waits', 'today', 'tomorrow', 'week', 'later', 'no-term'].map(id => `Otvori Dogovor Posao ${id}`));
   // The rows of Istorija keep the server's order and carry no day headings.
-  await tap('Istorija'); expect(headers()).toEqual([]);
+  await tap('Prethodne saradnje'); expect(headers()).toEqual([]);
   expect(titles()).toEqual(['over', 'off'].map(id => `Otvori Dogovor Posao ${id}`));
 });
 // Plan 2.6: the compact card says WHEN in Serbian time from the accepted instant, never from display text, and WHERE, in one grey line.
@@ -296,7 +296,7 @@ test('a card wears one state chip: Dogovoren, U toku, Čeka potvrdu, Završen or
   expect(chipWord('Posao waits')).toEqual(['Čeka potvrdu · izmenjeni uslovi']);
   expect(chipWord('Posao rate')).toEqual(['Završen · izmenjeni uslovi']);
   expect(STATUS_CHIPS['task.now'].word).toBe('U toku');
-  await tap('Istorija');
+  await tap('Prethodne saradnje');
   expect(chipWord('Posao done')).toEqual(['Završen · izmenjeni uslovi']);
   expect(chipWord('Posao off')).toEqual(['Otkazan · izmenjeni uslovi']);
   // Nothing about who cancelled or when: the Dogovor carries none of it, and a card invents nothing.
@@ -305,7 +305,7 @@ test('a card wears one state chip: Dogovoren, U toku, Čeka potvrdu, Završen or
 test('a Dogovor whose day is behind us is not "Danas": it stands under "Ranije", before today\'s', async () => {
   rows = [{ ...agreement('yesterday', 'CONFIRMED'), prihvacenPocetak: '2026-09-23T10:00:00Z' }, { ...agreement('today', 'CONFIRMED'), prihvacenPocetak: '2026-09-24T14:00:00Z' }];
   await render();
-  expect(headers()).toEqual(['Ranije', 'Danas']);
+  expect(headers()).toEqual(['Ranije, još otvoreno', 'Danas']);
   expect(titles()).toEqual(['yesterday', 'today'].map(id => `Otvori Dogovor Posao ${id}`));
 });
 
@@ -328,29 +328,30 @@ test('active order follows accepted instants after rescheduling, preserving offs
 // Dogovor waits for me. Round-1 critique A11 (owner step 8): the line under the tabs that counted again is gone.
 const card = (title: string) => tree.root.findAllByType('Press' as React.ElementType).find(node => node.props.accessibilityLabel === `Otvori Dogovor ${title}`)!;
 const cardTexts = (title: string) => card(title).findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
-test('the two sets are equal halves that never scroll, and only what waits for me carries a number, once the read settles', async () => {
+test('previous collaborations have one footer entry after the owned read, without a second root tab bar or invented counts', async () => {
   await render();
-  // Composition spec 4.8: two sets of equal width in one row - not content-sized, never a scroller, nothing cut off.
-  expect(tree.root.findByType(Segmented).props.contentSized).toBeUndefined();
-  expect(tree.root.findByType(Segmented).props.scroll).toBeUndefined();
-  // Tabs name sets; the count is next to the waiting group, not mistaken for all active agreements.
-  expect(tree.root.findByType(Segmented).props.options.map((option: { key: string; badge?: number; badgeTone?: string }) => [option.key, option.badge, option.badgeTone]))
-    .toEqual([['active', undefined, undefined], ['history', undefined, undefined]]);
+  expect(tree.root.findAllByType(Segmented)).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Prethodne saradnje' })).toHaveLength(1);
   expect(texts()).not.toContain('3 Dogovora'); expect(texts()).not.toContain('2 Dogovora');
-  // Nothing waits for me: no number at all (a zero on a badge reads as news).
-  rows = rows.filter(row => row.id !== 'waiting-mine');
-  await act(async () => tree.update(<Screen />));
-  expect(tree.root.findByType(Segmented).props.options.map((option: { badge?: number }) => option.badge)).toEqual([undefined, undefined]);
-  await act(async () => tree.unmount()); loading = true; await render();
-  expect(tree.root.findByType(Segmented).props.options.every((option: { badge?: number }) => option.badge === undefined)).toBe(true);
+  await tap('Prethodne saradnje');
+  expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);
+  await tap('Nazad na Dogovore');
+  expect(titles()).toHaveLength(3);
+  for (const state of ['loading', 'error']) {
+    loading = state === 'loading'; error = state === 'error';
+    await act(async () => tree.update(<Screen />));
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Prethodne saradnje' })).toHaveLength(0);
+    expect(titles()).toEqual([]);
+  }
 });
+
 test('the number belongs to the waiting heading and counts tasks requiring action', async () => {
   rows = [{ ...agreement('a', 'CONFIRMED'), izmenaCeka: { predlogId: 'p', mojPredlog: false } }, agreement('b', 'AWAITING_REQUESTER'),
     { ...agreement('c', 'COMPLETED'), ocenaMoguca: true }, agreement('plain', 'CONFIRMED')];
   await render();
-  expect(headers()[0]).toBe('Čeka tebe · 3 zadatka');
-  expect(tree.root.findByProps({ accessibilityLabel: 'Aktivni' }).props.accessibilityValue).toEqual({ text: '' });
-  expect(tree.root.findByType(Segmented).props.options[0].badge).toBeUndefined();
+  expect(headers()[0]).toBe('Čeka Vas · 3 zadatka');
+  expect(tree.root.findAllByType(Segmented)).toHaveLength(0);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Prethodne saradnje' }).props.accessibilityValue).toBeUndefined();
 });
 test('only a Dogovor that waits for me carries the strip, in the order the Dogovor itself leads with', async () => {
   rows = [{ ...agreement('change', 'CONFIRMED'), izmenaCeka: { predlogId: 'p1', mojPredlog: false } },
@@ -358,7 +359,7 @@ test('only a Dogovor that waits for me carries the strip, in the order the Dogov
     agreement('confirm', 'AWAITING_REQUESTER'), { ...agreement('blocked', 'AWAITING_REQUESTER'), izmenaCeka: { predlogId: 'p3', mojPredlog: true } },
     agreement('worker-waits', 'AWAITING_REQUESTER', false), agreement('plain', 'CONFIRMED')];
   await render();
-  expect(cardTexts('Posao change')).toContain('Odgovori na predlog izmene'); expect(card('Posao change').props.accessibilityHint).toBe('Odgovori na predlog izmene. Prihvaćeni uslovi važe dok ne odgovoriš.');
+  expect(cardTexts('Posao change')).toContain('Odgovorite na predlog izmene'); expect(card('Posao change').props.accessibilityHint).toBe('Odgovorite na predlog izmene. Prihvaćeni uslovi važe dok ne odgovorite.');
   // My own proposal waits for the other side: said quietly, never as my task.
   expect(cardTexts('Posao mine')).toContain('Tvoja izmena čeka odgovor');
   for (const title of ['Posao mine', 'Posao change']) {
@@ -366,9 +367,9 @@ test('only a Dogovor that waits for me carries the strip, in the order the Dogov
     expect(card(title).props.accessibilityValue.text).toContain('Važeći iznos, 2.500 RSD za ovu saradnju');
   }
   expect(cardTexts('Posao plain')).not.toContain('Važeći iznos'); expect(card('Posao mine').props.accessibilityHint).toBeUndefined();
-  expect(cardTexts('Posao confirm')).toContain('Potvrdi završetak'); expect(cardTexts('Posao confirm')).toContain('Čeka potvrdu');
+  expect(cardTexts('Posao confirm')).toContain('Potvrdite završetak'); expect(cardTexts('Posao confirm')).toContain('Čeka potvrdu');
   // A pending change blocks completion, so no strip asks for a confirmation the server would refuse.
-  expect(cardTexts('Posao blocked')).not.toContain('Potvrdi završetak');
+  expect(cardTexts('Posao blocked')).not.toContain('Potvrdite završetak');
   expect(cardTexts('Posao worker-waits')).toContain('Čeka potvrdu'); expect(card('Posao worker-waits').props.accessibilityHint).toBeUndefined();
   // The chip is orange only for the confirmation that is mine; the same words wait quietly for the other side's.
   const { STATUS_TONES } = require('../../ui/system/StatusChip');
@@ -389,7 +390,7 @@ test.each([undefined, true, false])('a missing amount stays unknown even with pe
 // Round-1 critique A3: a finished or cancelled Dogovor that never had a time is not waiting for one.
 test.each(['COMPLETED', 'CANCELLED'] as const)('a %s Dogovor without a time says "Bez tačnog termina", never "Termin nije potvrđen"', async state => {
   rows = [{ ...agreement('over', state), vremeTekst: 'Termin nije potvrđen' }];
-  await render(); await tap('Istorija');
+  await render(); await tap('Prethodne saradnje');
   const text = cardTexts('Posao over');
   expect(text).toContain('Bez tačnog termina'); expect(text).not.toContain('Termin nije potvrđen');
   // The spoken card says the same words as the drawn one.
@@ -409,7 +410,7 @@ test('the term is one full line and its zone note stands on its own line', async
 test('a card draws no caret; the body is the one press that opens the Dogovor', async () => {
   const { CaretRight } = require('phosphor-react-native');
   await render();
-  expect(tree.root.findAllByType(CaretRight)).toHaveLength(0);
+  for (const title of titles()) expect(tree.root.findByProps({ accessibilityLabel: title }).findAllByType(CaretRight)).toHaveLength(0);
 });
 // Round-1 critique A13 applied to the card: "1 osoba" beside the one person the card already shows said them twice.
 test('a card says how many people only when it is more than the one person it shows', async () => {
@@ -421,7 +422,7 @@ test('a card says how many people only when it is more than the one person it sh
   expect(card('Posao three').findAllByType('T' as React.ElementType).some(node => node.props.children === 'Druga osoba · Uskače na tvoj zadatak · 3 osobe')).toBe(true);
 });
 
-// Round-1 critique A2 and B1 (owner step 8): the "Oceni saradnju" strip looked like a button and opened the Dogovor. It
+// Round-1 critique A2 and B1 (owner step 8): the "Ocenite saradnju" strip looked like a button and opened the Dogovor. It
 // is its own press now, straight to the rating the route guards, drawn on white under a hairline with an orange dot.
 describe('the rating strip is a press of its own', () => {
   const rate = jest.fn();
@@ -434,33 +435,32 @@ describe('the rating strip is a press of its own', () => {
   beforeEach(() => { rate.mockClear(); rows = [{ ...agreement('done-unrated', 'COMPLETED'), ocenaMoguca: true }, agreement('plain', 'CONFIRMED')]; });
   test('it is labelled with the Dogovor, goes to the rating with that Dogovor, and never opens the Dogovor', async () => {
     await act(async () => { tree = create(<Rated />); });
-    const strip = tree.root.findByProps({ accessibilityLabel: 'Oceni saradnju, Posao done-unrated' });
+    const strip = tree.root.findByProps({ accessibilityLabel: 'Ocenite saradnju, Posao done-unrated' });
     expect(strip.type).toBe('Press'); expect(strip.props.accessibilityRole).toBe('button');
     await act(async () => strip.props.onPress());
     expect(rate).toHaveBeenCalledTimes(1); expect(rate).toHaveBeenCalledWith(rows[0]); expect(open).not.toHaveBeenCalled();
     // The strip is a sibling of the body, never inside it, and the body no longer speaks the rating as its own hint.
-    expect(card('Posao done-unrated').findAllByProps({ accessibilityLabel: 'Oceni saradnju, Posao done-unrated' })).toHaveLength(0);
+    expect(card('Posao done-unrated').findAllByProps({ accessibilityLabel: 'Ocenite saradnju, Posao done-unrated' })).toHaveLength(0);
     expect(card('Posao done-unrated').props.accessibilityHint).toBeUndefined();
-    expect(cardTexts('Posao done-unrated')).not.toContain('Oceni saradnju');
+    expect(cardTexts('Posao done-unrated')).not.toContain('Ocenite saradnju');
     await act(async () => card('Posao done-unrated').props.onPress()); expect(open).toHaveBeenCalledWith(rows[0]); expect(rate).toHaveBeenCalledTimes(1);
     // Only a Dogovor that waits for my rating has the strip.
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Oceni saradnju, Posao plain' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Ocenite saradnju, Posao plain' })).toHaveLength(0);
   });
   test('it is drawn on white under a hairline with an 8 dp orange dot and warn words; the card keeps its plain edge', async () => {
     const { sys } = require('../../ui/system/tokens');
     await act(async () => { tree = create(<Rated />); });
-    const strip = tree.root.findByProps({ accessibilityLabel: 'Oceni saradnju, Posao done-unrated' });
+    const strip = tree.root.findByProps({ accessibilityLabel: 'Ocenite saradnju, Posao done-unrated' });
     // The rule separates the independent target. Colour belongs to the actual next action, not a tinted panel.
     expect(flat(strip.props.style)).toMatchObject({ borderTopWidth: 1, borderTopColor: sys.color.line, minHeight: 48 });
     expect(flat(strip.props.style).backgroundColor).toBe(sys.color.surface);
     const dots = strip.findAll(node => typeof node.type === 'string' && flat(node.props.style).backgroundColor === sys.color.orange);
     expect(dots).toHaveLength(1); expect(flat(dots[0].props.style)).toMatchObject({ width: 8, height: 8 });
-    const words = strip.findAllByType('T' as React.ElementType).find(node => node.children.includes('Oceni saradnju'))!;
+    const words = strip.findAllByType('T' as React.ElementType).find(node => node.children.includes('Ocenite saradnju'))!;
     expect(flat(words.props.style).color).toBe(sys.color.warn);
     // No orange card edge and no orange fill anywhere on the list: the dot is the only orange. (The one other orange of the screen is the
     // count on the tab "Aktivni", for what waits for me; it is the control's, not the list's.)
-    const tabs = new Set(tree.root.findByType(Segmented).findAll(() => true));
-    const fills = tree.root.findAll(node => !tabs.has(node) && typeof node.type === 'string' && [sys.color.orange, sys.color.orangeSoft, sys.color.orangeHalo]
+    const fills = tree.root.findAll(node => typeof node.type === 'string' && [sys.color.orange, sys.color.orangeSoft, sys.color.orangeHalo]
       .includes(flat(node.props.style).backgroundColor as string) && flat(node.props.style).width !== 8);
     expect(fills).toHaveLength(0);
     expect(tree.root.findAll(node => [sys.color.orange, sys.color.orangeHalo].includes(flat(node.props.style).borderColor as string))).toHaveLength(0);
@@ -469,7 +469,7 @@ describe('the rating strip is a press of its own', () => {
 
 // Round-1 critique A12: the header is profile · mark · bell on all three tabs; the calendar is a view of these Dogovori,
 // so it ends the Aktivni/Istorija tab row as a quiet icon with the same spoken label.
-test('the visible Dogovori title, profile and bell lead a light equal tab row with the calendar', async () => {
+test('the Dogovori header keeps the calendar reachable without another tab row', async () => {
   const calendar = jest.fn();
   await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} section="active"
     confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}} onOpen={open} onRefresh={refresh} onHome={tasks}
@@ -477,26 +477,10 @@ test('the visible Dogovori title, profile and bell lead a light equal tab row wi
   const { ScreenHeader } = require('../../ui/system/ScreenHeader');
   const bar = tree.root.findByType(ScreenHeader);
   expect(bar.props).toMatchObject({ showTitle: true, title: 'Dogovori' });
-  expect(bar.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header' && node.props.children === 'Dogovori')).toHaveLength(1);
-  expect(bar.props.right).toBeUndefined();
-  expect(bar.findAll(node => node.props.accessibilityLabel === 'Raspored')).toHaveLength(0);
-  // The calendar stands in the same row as the two sets, after them. The sets are equal halves of the room that is left, and
-  // never slide sideways (composition spec 4.8): the control is cut off by nothing, at any text size.
-  const scroller = tree.root.findByType(Segmented).parent!;
-  expect(tree.root.findByType(Segmented).props.scroll).toBeUndefined();
-  expect(tree.root.findByType(Segmented).props).toMatchObject({ appearance: 'underline', equal: true });
-  expect(scroller.type).toBe('View');
-  const tabRow = scroller.parent!;
-  const entry = tabRow.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === 'Raspored');
+  expect(tree.root.findAllByType(Segmented)).toHaveLength(0);
+  const entry = bar.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === 'Raspored');
   expect(entry).toHaveLength(1);
-  expect(tabRow.children.map(child => typeof child === 'string' ? child : child === scroller ? 'tabs' : child.props.label))
-    .toEqual(['tabs', 'Raspored']);
-  // Composition spec 4.8: the planner's entry is the calendar as an icon button, 48 dp, in the same row; its word is its spoken
-  // label (the plan's pill with the word beside the glyph is what pushed "Istorija" out of the row).
-  const pill = tabRow.children.find(child => typeof child !== 'string' && child !== scroller) as ReactTestInstance;
-  expect(pill.props).toMatchObject({ glyph: 'calendar', label: 'Raspored' }); expect(pill.props.caption).toBeUndefined();
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Raspored' }).filter(node => node.type === ('Press' as React.ElementType))).toHaveLength(1);
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Kalendar obaveza' })).toHaveLength(0);
+  expect(bar.props.right.props).toMatchObject({ glyph: 'calendar', label: 'Raspored' });
   await act(async () => entry[0].props.onPress());
   expect(calendar).toHaveBeenCalledTimes(1);
 });
@@ -509,8 +493,8 @@ test('an empty set leads to the set that holds Dogovori and turns the confirmati
   await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} section="active"
     confirmationOnly onSection={onSection} onConfirmationOnly={onConfirmationOnly} onOpen={open} onRefresh={refresh} onHome={tasks}
     onCalendar={() => {}} onProfile={() => {}} />); });
-  expect(texts()).toContain('Nijedan Dogovor ne čeka tvoju potvrdu');
-  await act(async () => tree.root.findByProps({ label: 'Pogledaj istoriju' }).props.onPress());
+  expect(texts()).toContain('Nijedan Dogovor ne čeka Vašu potvrdu');
+  await tap('Prethodne saradnje');
   expect(onSection).toHaveBeenCalledTimes(1); expect(onSection).toHaveBeenCalledWith('history');
   expect(onConfirmationOnly).toHaveBeenCalledTimes(1); expect(onConfirmationOnly).toHaveBeenCalledWith(false);
   expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
@@ -520,13 +504,13 @@ test('an empty set leads to the set that holds Dogovori and turns the confirmati
   expect(texts()).toContain('Nema aktivnih Dogovora');
   // Not a first encounter: the quiet 96, never the picture at the size of a door.
   expect(tree.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'agreements' && node.props.size === 144)).toHaveLength(0);
-  await act(async () => tree.root.findByProps({ label: 'Pogledaj istoriju' }).props.onPress());
+  await tap('Prethodne saradnje');
   expect(titles()).toEqual(['Otvori Dogovor Posao done']);
   // And back: an empty history leads to the active Dogovori.
   await act(async () => tree.unmount());
-  rows = [agreement('live', 'CONFIRMED')]; await render(); await tap('Istorija');
-  expect(texts()).toContain('Istorija je prazna');
-  await act(async () => tree.root.findByProps({ label: 'Pogledaj aktivne Dogovore' }).props.onPress());
+  rows = [agreement('live', 'CONFIRMED')]; await render(); await tap('Prethodne saradnje');
+  expect(texts()).toContain('Još nema prethodnih saradnji');
+  await act(async () => tree.root.findByProps({ label: 'Pogledajte Dogovore' }).props.onPress());
   expect(titles()).toEqual(['Otvori Dogovor Posao live']);
 });
 
@@ -544,10 +528,10 @@ describe('a cancelled Dogovor says when, by whom and why', () => {
 
   test('writes "Otkazano {datum} · {ko} · {razlog}" under the chip, for the cancelled one only', async () => {
     await act(async () => { tree = create(<Cancelled cancellations={new Map([['off', answer('off')], ['over', answer('over')]])} />); });
-    expect(cardTexts('Posao off')).toContain('Otkazano 23. sep · 12:00 · Ti · Promenio sam plan.');
+    expect(cardTexts('Posao off')).toContain('Otkazano 23. sep · 12:00 · Vi · Promenio sam plan.');
     // A finished Dogovor is not cancelled, whatever a map says about its id.
     expect(cardTexts('Posao over')).not.toContain('Otkazano');
-    expect(card('Posao off').props.accessibilityValue.text).toContain('Otkazano 23. sep · 12:00 · Ti · Promenio sam plan.');
+    expect(card('Posao off').props.accessibilityValue.text).toContain('Otkazano 23. sep · 12:00 · Vi · Promenio sam plan.');
   });
 
   test('names the other person when they cancelled, and says why a reason is missing', async () => {
@@ -574,14 +558,14 @@ describe('the empty list leads to the two ways a Dogovor begins', () => {
     await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} section="active" confirmationOnly={false}
       onSection={() => {}} onConfirmationOnly={() => {}} onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}}
       onTasks={onTasks} onPublish={onPublish} />); });
-    await act(async () => tree.root.findByProps({ label: 'Pogledaj zadatke' }).props.onPress()); expect(onTasks).toHaveBeenCalledTimes(1);
-    await act(async () => tree.root.findByProps({ label: 'Objavi zadatak' }).props.onPress()); expect(onPublish).toHaveBeenCalledTimes(1);
-    expect(tree.root.findAllByProps({ label: 'Idi na Početnu' })).toHaveLength(0); expect(tasks).not.toHaveBeenCalled();
+    await act(async () => tree.root.findByProps({ label: 'Pogledajte zadatke' }).props.onPress()); expect(onTasks).toHaveBeenCalledTimes(1);
+    await act(async () => tree.root.findByProps({ label: 'Objavite zadatak' }).props.onPress()); expect(onPublish).toHaveBeenCalledTimes(1);
+    expect(tree.root.findAllByProps({ label: 'Idite na Početnu' })).toHaveLength(0); expect(tasks).not.toHaveBeenCalled();
     // Only the tasks, no way to publish: the quiet way is Početna.
     await act(async () => tree.update(<AgreementCollectionPresentation items={rows} loading={false} error={false} section="active" confirmationOnly={false}
       onSection={() => {}} onConfirmationOnly={() => {}} onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} onTasks={onTasks} />));
-    expect(tree.root.findAllByProps({ label: 'Pogledaj zadatke' })).toHaveLength(1); expect(tree.root.findAllByProps({ label: 'Idi na Početnu' })).toHaveLength(1);
-    expect(tree.root.findAllByProps({ label: 'Objavi zadatak' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Pogledajte zadatke' })).toHaveLength(1); expect(tree.root.findAllByProps({ label: 'Idite na Početnu' })).toHaveLength(1);
+    expect(tree.root.findAllByProps({ label: 'Objavite zadatak' })).toHaveLength(0);
   });
 });
 
@@ -600,7 +584,7 @@ test('the first rows after a skeleton arrive once, at most six; a warm list and 
   rows = [agreement('warm', 'CONFIRMED'), agreement('over', 'COMPLETED')];
   await render();
   expect(arriving()).toBe(0);
-  await tap('Istorija'); expect(arriving()).toBe(0);
+  await tap('Prethodne saradnje'); expect(arriving()).toBe(0);
 });
 
 test('a single actual role needs no account-like role switch; mixed roles retain the filter', async () => {
@@ -624,7 +608,7 @@ test('mixed roles and history outcomes have distinct visible and spoken meaning 
   await render();
   expect(texts()).toContain('Uloga');
   await tap('Uskačem');
-  await tap('Istorija');
+  await tap('Prethodne saradnje');
   expect(texts()).toContain('Ishod');
   expect(tree.root.findByProps({ accessibilityLabel: 'Tvoja uloga u Dogovorima' }).findByProps({ accessibilityLabel: 'Uskačem' }).props.accessibilityState.checked).toBe(true);
   const outcome = tree.root.findByProps({ accessibilityLabel: 'Ishod Dogovora' }).findByProps({ accessibilityLabel: 'Svi ishodi' });
@@ -643,8 +627,8 @@ test('mixed roles and history outcomes have distinct visible and spoken meaning 
 
 test('history shows no stale outcome controls during first read or failed read, then restores the selected filter', async () => {
   rows = [agreement('done', 'COMPLETED'), agreement('off', 'CANCELLED'), agreement('help', 'CONFIRMED', false)];
-  loading = true;
-  await render(); await tap('Istorija');
+  await render(); await tap('Prethodne saradnje');
+  loading = true; await act(async () => tree.update(<Screen />));
   expect(texts()).toContain('Učitavamo Dogovore…');
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Ishod Dogovora' })).toHaveLength(0);
   loading = false;
@@ -680,10 +664,10 @@ test('a warm history refresh keeps confirmed cards and filter controls in place'
 test('role filters use my actual participant role and persist across active/history without hiding the reset', async () => {
  rows = [agreement('request', 'CONFIRMED'), agreement('help', 'CONFIRMED', false), agreement('old-help', 'COMPLETED', false)];
  await render();await tap('Uskačem');expect(titles()).toEqual(['Otvori Dogovor Posao help']);
- await tap('Istorija');expect(titles()).toEqual(['Otvori Dogovor Posao old-help']);
+ await tap('Prethodne saradnje');expect(titles()).toEqual(['Otvori Dogovor Posao old-help']);
  await tap('Tražim pomoć');expect(titles()).toEqual([]);
  await tap('Sve uloge');expect(titles()).toEqual(['Otvori Dogovor Posao old-help']);
- await tap('Aktivni');expect(titles()).toHaveLength(2);
+ await tap('Nazad na Dogovore');expect(titles()).toHaveLength(2);
 });
 
 
@@ -697,9 +681,9 @@ test('one shared heading keeps individual prices, statuses and original click ta
   expect(texts()).toContain('3 saradnje'); expect(texts()).toContain('2.500 RSD'); expect(texts()).toContain('3.100 RSD');
   expect(texts()).toContain('Otkazan'); expect(texts()).not.toMatch(/PRIVATE_|5.600/);
   await tap('Otvori Dogovor Selidba, Milan'); expect(open).toHaveBeenLastCalledWith(rows[1]);
-  await tap('Čeka tvoju potvrdu'); expect(titles()).toHaveLength(3);
-  await tap('Istorija'); expect(texts()).toContain('Saradnje su uz aktivne zadatke');
-  await act(async () => tree.root.findByProps({ label: 'Pogledaj aktivne Dogovore' }).props.onPress());
+  await tap('Čeka Vašu potvrdu'); expect(titles()).toHaveLength(3);
+  await tap('Prethodne saradnje'); expect(texts()).toContain('Saradnje su uz aktivne zadatke');
+  await act(async () => tree.root.findByProps({ label: 'Pogledajte Dogovore' }).props.onPress());
   expect(titles()).toHaveLength(3);
 });
 
@@ -757,7 +741,7 @@ test('single owner collaboration can show 1/2, while the worker cannot see owner
 });
 test('the completed history match is shown before three cancelled siblings, expansion retains all', async () => {
   rows = ['Ana', 'Milan', 'Iva'].map(id => collaboration(id, 'CANCELLED')).concat(collaboration('Petar', 'COMPLETED'));
-  await render(); await tap('Istorija'); await tap('Završeni');
+  await render(); await tap('Prethodne saradnje'); await tap('Završeni');
   expect(titles()[0]).toBe('Otvori Dogovor Selidba, Petar'); expect(titles()).toHaveLength(3);
   await tap('Prikaži sve saradnje za Selidba'); expect(titles()).toHaveLength(4);
   await tap('Otvori Dogovor Selidba, Petar'); expect(open).toHaveBeenLastCalledWith(rows[3]);
@@ -767,8 +751,8 @@ test('confirmation filter reveals the matching collaboration even behind three c
   rows = ['Ana', 'Milan', 'Iva'].map(id => ({ ...collaboration(id, 'CONFIRMED'), izmenaCeka: { predlogId: 'change-' + id, mojPredlog: false } as DogovorProjekcija['izmenaCeka'] }))
     .concat(collaboration('Petar', 'AWAITING_REQUESTER'));
   await render(); expect(titles()).not.toContain('Otvori Dogovor Selidba, Petar');
-  await tap('Čeka tvoju potvrdu'); expect(titles()[0]).toBe('Otvori Dogovor Selidba, Petar');
-  expect(headers()[0]).toBe('Čeka tebe · 1 zadatak');
+  await tap('Čeka Vašu potvrdu'); expect(titles()[0]).toBe('Otvori Dogovor Selidba, Petar');
+  expect(headers()[0]).toBe('Čeka Vas · 1 zadatak');
 });
 test('a grouped rating opens the original completed agreement, not a sibling or shared task', async () => {
   rows = [collaboration('Ana', 'CONFIRMED'), { ...collaboration('Petar', 'COMPLETED'), ocenaMoguca: true }];
@@ -776,7 +760,7 @@ test('a grouped rating opens the original completed agreement, not a sibling or 
   await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} now={NOW}
     section="active" confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}} onOpen={open} onRate={rate}
     onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />); });
-  await tap('Oceni saradnju, Selidba, Petar'); expect(rate).toHaveBeenCalledWith(rows[1]); expect(open).not.toHaveBeenCalled();
+  await tap('Ocenite saradnju, Selidba, Petar'); expect(rate).toHaveBeenCalledWith(rows[1]); expect(open).not.toHaveBeenCalled();
 });
 
 
@@ -798,23 +782,23 @@ test('grouped rows speak cancellation details, changed terms, own pending change
 test('history keeps a direct way to outstanding tasks, preserving role and clearing the confirmation filter', async () => {
   rows = [agreement('confirm', 'AWAITING_REQUESTER'), { ...agreement('rate', 'COMPLETED'), ocenaMoguca: true },
     agreement('helper', 'CONFIRMED', false), agreement('finished', 'COMPLETED')];
-  await render(); await tap('Tražim pomoć'); await tap('Čeka tvoju potvrdu');
-  expect(headers()[0]).toBe('Čeka tebe · 1 zadatak');
-  await tap('Istorija'); await tap('Čeka tebe · 2 zadatka');
-  expect(headers()[0]).toBe('Čeka tebe · 2 zadatka');
+  await render(); await tap('Tražim pomoć'); await tap('Čeka Vašu potvrdu');
+  expect(headers()[0]).toBe('Čeka Vas · 1 zadatak');
+  await tap('Prethodne saradnje'); await tap('Čeka Vas · 2 zadatka');
+  expect(headers()[0]).toBe('Čeka Vas · 2 zadatka');
   expect(titles()).toEqual(['Otvori Dogovor Posao confirm', 'Otvori Dogovor Posao rate']);
   expect(tree.root.findByProps({ accessibilityLabel: 'Tražim pomoć' }).props.accessibilityState.checked).toBe(true);
-  expect(tree.root.findByProps({ accessibilityLabel: 'Čeka tvoju potvrdu' }).props.accessibilityState.checked).toBe(false);
-  await tap('Istorija'); loading = true; await act(async () => tree.update(<Screen />));
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka tebe · 2 zadatka' })).toHaveLength(0);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Čeka Vašu potvrdu' }).props.accessibilityState.checked).toBe(false);
+  await tap('Prethodne saradnje'); loading = true; await act(async () => tree.update(<Screen />));
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka Vas · 2 zadatka' })).toHaveLength(0);
   loading = false; error = true; await act(async () => tree.update(<Screen />));
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka tebe · 2 zadatka' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka Vas · 2 zadatka' })).toHaveLength(0);
 });
 
 test('three waiting collaborations on one task count once; a confirmation filter counts only the visible task', async () => {
   rows = ['Ana', 'Iva', 'Milan'].map(id => collaboration(id, 'AWAITING_REQUESTER'))
     .concat({ ...agreement('separate', 'COMPLETED'), ocenaMoguca: true });
-  await render(); expect(headers()[0]).toBe('Čeka tebe · 2 zadatka');
-  await tap('Čeka tvoju potvrdu'); expect(headers()[0]).toBe('Čeka tebe · 1 zadatak');
+  await render(); expect(headers()[0]).toBe('Čeka Vas · 2 zadatka');
+  await tap('Čeka Vašu potvrdu'); expect(headers()[0]).toBe('Čeka Vas · 1 zadatak');
   expect(titles()).toHaveLength(3);
 });

@@ -242,7 +242,7 @@ export function AgreementCollectionPresentation(props: Props) {
       onScroll={event => { scrollOffsets.current[section] = Math.max(0, event.nativeEvent.contentOffset.y); }} scrollEventThrottle={32}
       onRefresh={pull.onRefresh} showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
       ListFooterComponent={section === 'active' && settledRead ? <Press accessibilityRole="button" accessibilityLabel="Prethodne saradnje"
-        onPress={() => props.onSection('history')} style={s.historyLink}>
+        onPress={() => { props.onSection('history'); props.onConfirmationOnly(false); }} style={s.historyLink}>
         <T variant="body" style={s.attentionText}>Prethodne saradnje</T><Glyph name="caret-right" size={20} />
       </Press> : null}
       // Six of these cards are more than one phone screen; a modest window fills a fast scroll quickly.

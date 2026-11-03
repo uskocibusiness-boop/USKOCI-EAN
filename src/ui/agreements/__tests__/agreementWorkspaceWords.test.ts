@@ -19,8 +19,8 @@ describe('the sentence that stands where no button does', () => {
     // The worker has reported the work done: the confirmation is the requester\'s, and it is said whether or not the permissions were read.
     expect(line({ state: 'AWAITING_REQUESTER', worker: true })).toBe('Čeka da Marko potvrdi završetak.');
     expect(line({ state: 'AWAITING_REQUESTER', worker: true, permissionsKnown: false })).toBe('Čeka da Marko potvrdi završetak.');
-    expect(line({ state: 'CONFIRMED', change: { waits: true, mine: true } })).toBe('Čeka da Marko odgovori na tvoj predlog izmene.');
-    expect(line({ state: 'AWAITING_REQUESTER', worker: true, change: { waits: true, mine: true } })).toBe('Čeka da Marko odgovori na tvoj predlog izmene.');
+    expect(line({ state: 'CONFIRMED', change: { waits: true, mine: true } })).toBe('Čeka da Marko odgovori na Vaš predlog izmene.');
+    expect(line({ state: 'AWAITING_REQUESTER', worker: true, change: { waits: true, mine: true } })).toBe('Čeka da Marko odgovori na Vaš predlog izmene.');
   });
 
   it('tells the one who asked for the work whose move it is while the work is under way, not that completion is "not available"', () => {
@@ -64,8 +64,8 @@ describe('the sentence that stands where no button does', () => {
   });
 
   it('does not invent a name when the Dogovor does not carry one, and does not write the app\'s own stand-in as if it were a name', () => {
-    expect(line({ otherName: undefined, change: { waits: true, mine: true } })).toBe('Čeka da druga strana odgovori na tvoj predlog izmene.');
-    expect(line({ otherName: '   ', change: { waits: true, mine: true } })).toBe('Čeka da druga strana odgovori na tvoj predlog izmene.');
+    expect(line({ otherName: undefined, change: { waits: true, mine: true } })).toBe('Čeka da druga strana odgovori na Vaš predlog izmene.');
+    expect(line({ otherName: '   ', change: { waits: true, mine: true } })).toBe('Čeka da druga strana odgovori na Vaš predlog izmene.');
     // "Druga strana" is what the Dogovor reader puts where a name is missing; mid-sentence it is lower case.
     expect(line({ otherName: 'Druga strana', state: 'AWAITING_REQUESTER', worker: true })).toBe('Čeka da druga strana potvrdi završetak.');
   });
@@ -80,7 +80,7 @@ describe('one pair of words for finishing the work', () => {
     ownRating: 'NOT_APPLICABLE', problemOpen: false, deadline: 'Do 18. sep · 12:00', ...patch });
 
   it('tells the worker, in ONE sentence, to press "Zadatak je gotov" - the button\'s own words - and promises no hours', () => {
-    expect(step().body).toBe('Kad završiš, dodirni „Zadatak je gotov“.');
+    expect(step().body).toBe('Kada završite, dodirnite „Zadatak je gotov“.');
     expect(step().body).not.toMatch(/\d+\s?h|označi završetak/);
     // One sentence (J5): what the other side then does is said by the review the button opens, not by a second one here.
     expect(step().body?.match(/[.!?]/g)).toHaveLength(1);
@@ -107,7 +107,7 @@ describe('one pair of words for finishing the work', () => {
       }
     }
     expect(RATING_WAITS_FOR_ME.toLowerCase()).not.toContain('posao');
-    expect(agreementWaitsForMe({ state: 'AWAITING_REQUESTER', requester: true, change: none, ownRating: 'NOT_APPLICABLE' })).toBe('Završetak je označen i čeka tvoju potvrdu');
+    expect(agreementWaitsForMe({ state: 'AWAITING_REQUESTER', requester: true, change: none, ownRating: 'NOT_APPLICABLE' })).toBe('Završetak je označen i čeka Vašu potvrdu');
   });
 });
 

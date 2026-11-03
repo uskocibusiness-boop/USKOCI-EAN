@@ -38,9 +38,10 @@ const routes = inMemoryContext({ _layout: RootLayout, '(app)/_layout': RealTabsL
   ...Object.fromEntries(routeNames(APP).map(name => [`(app)/${name}`, Screen(name)])) });
 
 let tree: ReactTestRenderer;
+const originalInboxFlag = process.env.EXPO_PUBLIC_CONVERSATION_INBOX;
 const settle = async () => { for (let i = 0; i < 8; i++) await act(async () => { await Promise.resolve(); }); };
-beforeEach(() => { jest.useFakeTimers(); jest.spyOn(console, 'warn').mockImplementation(() => {}); jest.spyOn(console, 'error').mockImplementation(() => {}); });
-afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); jest.mocked(Haptics.selectionAsync).mockClear(); });
+beforeEach(() => { process.env.EXPO_PUBLIC_CONVERSATION_INBOX = '0'; jest.useFakeTimers(); jest.spyOn(console, 'warn').mockImplementation(() => {}); jest.spyOn(console, 'error').mockImplementation(() => {}); });
+afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); if (originalInboxFlag === undefined) delete process.env.EXPO_PUBLIC_CONVERSATION_INBOX; else process.env.EXPO_PUBLIC_CONVERSATION_INBOX = originalInboxFlag; jest.restoreAllMocks(); jest.mocked(Haptics.selectionAsync).mockClear(); });
 
 const flat = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) ?? {};
 const hosts = (testID: string) => tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === testID);

@@ -331,7 +331,11 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const review=async(activate=reviewActivation)=>{
     // Native speech can start before React replaces a retained review callback.
     if(!canAct()||!enabled||!writable||!data||voice.controller.getSnapshot().phase!=='IDLE')return;
-    if(workerReviewReady(data)&&data.review?.activate===activate&&!rename(data)&&!reviewNeedsRestart){showPanel('review');return;}
+    if(workerReviewReady(data)&&data.review?.activate===activate&&!rename(data)&&!reviewNeedsRestart){
+      // A no-op choice must not retire the live panel's handlers. React does
+      // not rerender when setPanel receives its current value.
+      if(panel!=='review')showPanel('review');return;
+    }
     await savePanel('preparing',async()=>{
       // The review is made of the proposal as it stands, so the name goes into the proposal first (one patch, then the same prepare).
       let at={conversationId:data.conversationId,revision:data.revision};
@@ -544,7 +548,14 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     voice={writable?{controller:voice.controller,state:voice.state,disabled:!enabled||!!pending.current,onKeepText:keepTranscript}:undefined}
     actions={<>
       {/* After a save the only next step is the saved profile; a second "check" button beside it read as unfinished. */}
-      {(pending.current||awaiting||editor.uncertain||editor.error||preparationProblem)&&!data.saved?<V2Action tone="neutral" label="Proverite razgovor" disabled={editor.busy||editor.loading||voiceBusy} onPress={refresh}/>:null}
+      {(pending.current||awaiting||editor.uncertain||editor.error||preparationProblem)&&!data.saved?<V2Action tone="neutral" label="Proverite razgovor" disabled={editor.busy||editor.loading||voiceBusy}
+        onPress={()=>{
+          // The ready-card gate hides the old name-alignment entry. After the
+          // account name is supplied, explicit recovery uses the same guarded
+          // name patch + signed preparation; it never sends another AI turn.
+          if(!pending.current&&!awaiting&&!editor.uncertain&&data.review?.missingRequired.includes('Ime')&&rename(data))void review();
+          else refresh();
+        }}/>:null}
       {writable&&!data.saved&&data.review?.missingRequired.includes('Ime')?<V2Action label="Lični podaci" kind="quiet"
         disabled={!enabled} onPress={()=>leave(()=>router.push('/profil/podaci'))}/>:null}
       {pending.current&&recovery?.canCancel?<>
