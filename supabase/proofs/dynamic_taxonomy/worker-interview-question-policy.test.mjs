@@ -68,11 +68,13 @@ test('only server-confirmed review and explicit Save grant business authority',(
 });
 test('optional biography does not add a mandatory interview or confirmation turn',()=>{
  assert.match(prompt,/Calendar detail\/bio are optional/);
- assert.match(prompt,/When routing is clear and bio absent, offer drafting once without delaying review/);
- assert.match(prompt,/explicit request\/acceptance gets 2–3 sentences from known facts/);
- assert.match(prompt,/no invented credentials\/equipment\/reliability\/contact details\/promises/);
- assert.match(prompt,/bio holds introduction\/limits, not matching filters/);
- assert.match(prompt,/fix only that claim in the SAME patch/);
+ assert.match(prompt,/draft a concise 2–3 sentence bio in the SAME patch from user-provided facts/);
+ assert.match(prompt,/without another question or model call/);
+ assert.match(prompt,/owner can edit it at signed review before Save/);
+ assert.match(prompt,/A missing bio never delays readiness/);
+ assert.match(prompt,/Do not invent experience, credentials, equipment, clients, reliability or promises/);
+ assert.match(prompt,/bio is an optional introduction\/limits, never a matching filter/);
+ assert.match(prompt,/correct only the contradictory claim/);
  assert.doesNotMatch(prompt,/Da li Vam odgovara ovakav opis/);
 });
 test('first screen welcomes naturally and named sections describe offered skills',()=>{

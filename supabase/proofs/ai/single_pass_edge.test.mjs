@@ -55,3 +55,24 @@ test('technical classification uncertainty preserves user facts without another 
  assert.equal(business.assistantMessage,question);
  assert.equal(business.dialogue.next,'CLARIFY');
 });
+
+test('WORKER provider can draft a factual bio in the existing turn without a second call or automatic Save',async()=>{
+ const bio='Pružam lekturu tekstova na daljinu. Dogovaramo obim i rok u razgovoru.';
+ const f=fixture('WORKER',{output:{patch:{skills:[service],bio,availability:null}}});
+ const events=await f.invoke();
+ assert.equal(events.at(-1)?.kind,'final',JSON.stringify(f.logs));
+ assert.equal(providers(f).length,1);
+ assert.equal(atomic(f).length,1);
+ assert.equal(atomic(f)[0].body.p_output.patch.bio,bio);
+ assert.ok(!f.calls.some(c=>/save_worker|publish|activate/.test(c.name)));
+});
+test('NEED instruction retains incidental job details in existing typed facts, not extra questions',async()=>{
+ const f=fixture('NEED'),events=await f.invoke();
+ assert.equal(events.at(-1)?.kind,'final',JSON.stringify(f.logs));
+ const prompt=JSON.stringify(providers(f)[0].body.systemInstruction);
+ assert.match(prompt,/Capture ALL distinct details already stated in this turn and confirmed history/);
+ assert.match(prompt,/stairs\/no lift, size\/fragility, access/);
+ assert.match(prompt,/need\.critical_conditions or private access_notes/);
+ assert.equal(providers(f).length,1);
+ assert.ok(!f.calls.some(c=>/publish|rpc_save_worker/.test(c.name)));
+});
