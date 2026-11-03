@@ -40,9 +40,9 @@ test('the personal profile reads saved facts and offers AI corrections without m
   expect(change).not.toHaveBeenCalled(); expect(navigate).not.toHaveBeenCalled();
 });
 
-test('status follows the server state and availability is a read-only summary, never a switch', async () => {
+test('status follows the server while legacy available-now stays hidden and no switch appears', async () => {
   await act(async () => { tree = create(<Screen value={draft({ dostupanOdmah: true })} status="ACTIVE" />); });
-  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost');
+  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Nedeljni raspored'); expect(texts()).not.toContain('Mogu odmah');
   expect(tree.root.findAllByType('Switch' as React.ElementType)).toHaveLength(0);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={draft()} status="SUSPENDED" />); });

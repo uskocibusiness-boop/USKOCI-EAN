@@ -193,7 +193,7 @@ describe('the saved profile is read first', () => {
   it('"Područje dolaska" leads to the area and "Nedeljni raspored" to the week, and neither writes anything', async () => {
     await renderReading();
     click('Područje dolaska'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
-    click('Dostupnost'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
+    click('Nedeljni raspored'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
     expect(mockWrite).not.toHaveBeenCalled();
   });
   it.each([['Područje dolaska', 'worker.area'], ['Nedeljni raspored', 'worker.time']] as const)(
