@@ -144,7 +144,7 @@ export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoice
       {uploading ? <View style={s.row}><ActivityIndicator color={sys.color.ink} /><T variant="note" tone="muted">Pripremamo slanje…</T></View> :
         <View style={s.row}>
           <Action label="Odbaci snimak" disabled={!state.canDiscard} onPress={() => { void voice.cancel(); }} />
-          {failed ? <Action label="Proveri isto slanje" primary disabled={!state.canRetry} onPress={() => { void voice.retry(); }} /> : null}
+          {failed && state.canRetry ? <Action label="Proveri isto slanje" primary onPress={() => { void voice.retry(); }} /> : null}
         </View>}
     </View> : null}
     {state.error ? <T variant="note" tone="danger" accessibilityLiveRegion="polite">{state.error.message}</T> : null}
