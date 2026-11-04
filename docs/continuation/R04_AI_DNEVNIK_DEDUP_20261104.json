@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-04",
+  "sourceCommit": "d3fba6e5a52508469daa54f0f5da05f6a8307e5c",
+  "workflowSource": "9c37de115136131564d75b1e6b1dcf7e6d2ef95a",
+  "run": "41807957823",
+  "scope": "R04/R11 shared local AI unknown-outcome journal implementation",
+  "functionality": {
+    "oneSharedImplementationForTwoIndependentJournals": true,
+    "needStorageKey": "uskoci.ai.turn.intent.v1.",
+    "workerStorageKey": "uskoci.worker.ai.turn.intent.v1.",
+    "differentErrorCodesPreserved": true,
+    "separatePerAccountQueues": true,
+    "doesNotEraseUnresolvedIntents": true,
+    "backendOrProtocolChanged": false,
+    "noNewAIModelCall": true
+  },
+  "verification": {
+    "lockedInstall": true,
+    "TypeScript": true,
+    "fullMobileSuites": 629,
+    "fullMobileTests": 14620,
+    "mobilePassed": 14620,
+    "mobileFailed": 0,
+    "newCrossModeTests": 2,
+    "serverAIRuntimeSourceUnchanged": true,
+    "androidHermesExport": true
+  },
+  "limitations": [
+    "No DEV Edge deploy",
+    "No real Gemini acceptance or physical Android test",
+    "R01/R10 and end-to-end collaboration still open"
+  ]
+}
