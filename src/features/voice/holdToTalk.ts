@@ -23,31 +23,31 @@ export type VoiceErrorCode =
   | 'DRAFT_NOT_ACCEPTED' | 'VOICE_PREPARATION_FAILED';
 
 export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
-  VOICE_NOT_CONFIGURED: 'Govorni unos još nije povezan. Možeš da nastaviš kucanjem.',
-  MIC_PERMISSION_DENIED: 'Mikrofon nije dozvoljen. Dozvolu možeš promeniti u podešavanjima telefona ili nastaviti kucanjem.',
-  MIC_PERMISSION_TIMEOUT: 'Zahtev za mikrofon je istekao. Pokreni novi unos ponovo.',
-  MIC_UNAVAILABLE: 'Mikrofon trenutno nije dostupan. Nastavi kucanjem.',
-  CAPTURE_FAILED: 'Govorni unos je prekinut. Možeš da nastaviš kucanjem.',
-  SPEECH_UNAVAILABLE: 'Govorni servis trenutno nije dostupan. Pokušaj kasnije ili nastavi kucanjem.',
-  SPEECH_CONNECTION_FAILED: 'Veza za govorni unos je prekinuta. Pokušaj ponovo ili nastavi kucanjem.',
-  CAPTURE_TIMEOUT: 'Snimanje je dostiglo ograničenje trajanja. Nastavi kraćom porukom.',
-  AUDIO_INTERRUPTED: 'Snimanje je prekinuto. Pokušaj ponovo ili napiši poruku.',
-  FINALIZATION_FAILED: 'Tekst govora nije potvrđen. Pokušaj ponovo ili napiši poruku.',
-  FINALIZATION_TIMEOUT: 'Tekst govora nije stigao na vreme. Pokušaj ponovo ili napiši poruku.',
-  FINAL_TRANSCRIPT_MISSING: 'Govor nije prepoznat. Pokušaj ponovo ili napiši poruku.',
-  TRANSCRIPT_INVALID: 'Tekst govora nije mogao da se prikaže. Pokušaj ponovo ili napiši poruku.',
-  TRANSCRIPT_TOO_LONG: 'Poruka može da ima do 4.000 znakova. Podeli je na kraće poruke.',
-  AI_SPEAKING: 'Sačekaj da se čitanje odgovora završi pre govornog unosa.',
-  DRAFT_NOT_ACCEPTED: 'Završni tekst je sačuvan. Otvori ga za izmenu pre slanja; ako je poruka puna, najpre je skrati.',
-  VOICE_PREPARATION_FAILED: 'Govorni unos nije pripremljen. Proveri vezu i pokušaj ponovo ili nastavi kucanjem.',
+  VOICE_NOT_CONFIGURED: 'Govorni unos još nije povezan. Možete da nastavite kucanjem.',
+  MIC_PERMISSION_DENIED: 'Mikrofon nije dozvoljen. Dozvolu možete promeniti u podešavanjima telefona ili nastaviti kucanjem.',
+  MIC_PERMISSION_TIMEOUT: 'Zahtev za mikrofon je istekao. Pokrenite novi govorni unos.',
+  MIC_UNAVAILABLE: 'Mikrofon trenutno nije dostupan. Nastavite kucanjem.',
+  CAPTURE_FAILED: 'Govorni unos je prekinut. Možete da nastavite kucanjem.',
+  SPEECH_UNAVAILABLE: 'Govorni servis trenutno nije dostupan. Pokušajte kasnije ili nastavite kucanjem.',
+  SPEECH_CONNECTION_FAILED: 'Veza za govorni unos je prekinuta. Pokušajte ponovo ili nastavite kucanjem.',
+  CAPTURE_TIMEOUT: 'Snimanje je dostiglo ograničenje trajanja. Nastavite kraćom porukom.',
+  AUDIO_INTERRUPTED: 'Snimanje je prekinuto. Pokušajte ponovo ili napišite poruku.',
+  FINALIZATION_FAILED: 'Tekst govora nije potvrđen. Pokušajte ponovo ili napišite poruku.',
+  FINALIZATION_TIMEOUT: 'Tekst govora nije stigao na vreme. Pokušajte ponovo ili napišite poruku.',
+  FINAL_TRANSCRIPT_MISSING: 'Govor nije prepoznat. Pokušajte ponovo ili napišite poruku.',
+  TRANSCRIPT_INVALID: 'Tekst govora nije mogao da se prikaže. Pokušajte ponovo ili napišite poruku.',
+  TRANSCRIPT_TOO_LONG: 'Poruka može da ima do 4.000 znakova. Podelite je na kraće poruke.',
+  AI_SPEAKING: 'Sačekajte da se čitanje odgovora završi pre govornog unosa.',
+  DRAFT_NOT_ACCEPTED: 'Završni tekst je sačuvan. Otvorite ga za izmenu pre slanja; ako je poruka puna, najpre je skratite.',
+  VOICE_PREPARATION_FAILED: 'Govorni unos nije pripremljen. Proverite vezu i pokušajte ponovo ili nastavite kucanjem.',
 };
 
 /** Retention is a fact, not a promise attached to an error code. */
 export function voiceErrorCopy(code: VoiceErrorCode, retainedText = ''): string {
   if (!retainedText.trim() || code === 'DRAFT_NOT_ACCEPTED') return VOICE_ERROR_COPY[code];
   return code === 'FINAL_TRANSCRIPT_MISSING'
-    ? 'Nije stigao ceo tekst. Prepoznati deo možeš da pregledaš pre slanja.'
-    : `${VOICE_ERROR_COPY[code]} Prepoznati deo možeš da pregledaš pre slanja.`;
+    ? 'Nije stigao ceo tekst. Prepoznati deo možete da pregledate pre slanja.'
+    : `${VOICE_ERROR_COPY[code]} Prepoznati deo možete da pregledate pre slanja.`;
 }
 
 export type SpeechEvent =

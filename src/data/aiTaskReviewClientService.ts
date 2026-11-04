@@ -148,7 +148,12 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
     || !timestamp(r.expiresAt) || (r.responseDeadline !== null && !timestamp(r.responseDeadline))
     || typeof r.canAccept !== 'boolean' || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(String(r.safety))
     || !Array.isArray(r.publicProjection) || !Array.isArray(r.ownerPrivateProjection) || r.publicProjection.length + r.ownerPrivateProjection.length > MAX_NEED_FACT_V2_PAYLOAD
-    || !Array.isArray(r.missingRequired) || r.missingRequired.length > MAX_NEED_FACT_V2_PAYLOAD || !r.missingRequired.every(k => typeof k === 'string' && isNeedFactV2Key(k) && (NEED_FACT_V2_DEFINITIONS[k].requiredForDraft || k === 'need.handoff' || k === 'need.response_deadline'))) return null;
+    || !Array.isArray(r.missingRequired) || r.missingRequired.length > MAX_NEED_FACT_V2_PAYLOAD
+    || !r.missingRequired.every(k => typeof k === 'string' && isNeedFactV2Key(k) && (
+      NEED_FACT_V2_DEFINITIONS[k].requiredForDraft
+      // The server also reports conditional price/time requirements; an end remains optional unless invalid when supplied.
+      || k === 'need.price_rsd' || k === 'need.starts_at' || k === 'need.ends_at'
+      || k === 'need.handoff' || k === 'need.response_deadline'))) return null;
   let replacement: AiTaskReplacement | undefined;
   if (hasReplacement) {
     const value = record(r.replacement);

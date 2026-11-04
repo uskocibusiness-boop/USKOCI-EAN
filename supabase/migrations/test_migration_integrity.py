@@ -6,7 +6,7 @@ import json
 import unittest
 from pathlib import Path
 
-from check_migration_integrity import check_later_participant_contract, check_physical_suffix
+from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence
 
 
 class ParticipantContractTests(unittest.TestCase):
@@ -66,7 +66,7 @@ class PhysicalSuffixTests(unittest.TestCase):
     def setUp(self):
         root = Path(__file__).parent
         self.section = json.loads((root / "MIGRATION_PROVENANCE.json").read_text())["physical_suffix_readmission_20261018"]
-        self.evidence = json.loads((root.parent.parent / self.section["evidence"]).read_text())
+        self.evidence = load_catalog_evidence(self.section)
         self.manifest = dict((line.split("  ")[1], line.split("  ")[0]) for line in (root / "MD5_MANIFEST.txt").read_text().splitlines())
 
     def rejects(self, section):
@@ -120,7 +120,7 @@ class Oct26ReconciliationTests(unittest.TestCase):
         root = Path(__file__).parent
         metadata = json.loads((root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
         self.section = metadata["physical_suffix_reconciliation_20261026"]
-        self.evidence = json.loads((root.parent.parent / self.section["evidence"]).read_text(encoding="utf-8"))
+        self.evidence = load_catalog_evidence(self.section)
         self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
                              for line in (root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
 
@@ -144,6 +144,35 @@ class Oct26ReconciliationTests(unittest.TestCase):
                     section["entries"][0][mutation] = "INVALID"
                 with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                     check_physical_suffix(section, self.manifest, self.evidence)
+
+
+class ArchivedCatalogEvidenceTests(unittest.TestCase):
+    def setUp(self):
+        metadata = json.loads(Path(__file__).with_name("MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
+        self.sections = [metadata[key] for key in (
+            "physical_suffix_readmission_20261018", "physical_suffix_reconciliation_20261026")]
+
+    def test_missing_or_unrecognized_archived_evidence_fails_closed(self):
+        for original in self.sections:
+            for key, value in (("catalog_evidence", None), ("evidence", "invented-receipt.json")):
+                with self.subTest(key=key):
+                    section = copy.deepcopy(original)
+                    section[key] = value
+                    with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                        load_catalog_evidence(section)
+
+    def test_frozen_source_identity_project_and_recorded_hashes_cannot_be_changed(self):
+        for original in self.sections:
+            for key in ("source_git_commit", "source_file_sha256", "project", "joined_sha256", "joined_md5", "version", "name"):
+                with self.subTest(key=key):
+                    section = copy.deepcopy(original)
+                    evidence = section["catalog_evidence"]
+                    if key in ("source_git_commit", "source_file_sha256", "project"):
+                        evidence[key] = "changed"
+                    else:
+                        evidence["liveMigrationCatalogHashes"][0][key] = "changed"
+                    with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                        load_catalog_evidence(section)
 
 
 if __name__ == "__main__":

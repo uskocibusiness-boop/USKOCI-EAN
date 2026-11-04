@@ -129,7 +129,7 @@ export function useAgreementVoice(options: Options) {
     hold.current = { runtime: owner, cancelled: false, completed: false, review: reviewRef.current, stopping: null, explicitStop: false };
     setInteractionError(null);
     try { await owner.composer.start(); }
-    catch { if (owner.current()) setInteractionError('Mikrofon nije spreman. Pokušaj ponovo.'); }
+    catch { if (owner.current()) setInteractionError('Mikrofon nije spreman. Pokušajte ponovo.'); }
   }
   function finishHold(gesture: Hold): Promise<void> {
     if (gesture.stopping) return gesture.stopping;
@@ -145,7 +145,7 @@ export function useAgreementVoice(options: Options) {
     const gesture = hold.current;
     if (!gesture) return;
     try { await finishHold(gesture); }
-    catch { gesture.cancelled = true; if (gesture.runtime.current()) setInteractionError('Snimanje nije zaustavljeno. Izaberi Odustani.'); }
+    catch { gesture.cancelled = true; if (gesture.runtime.current()) setInteractionError('Snimanje nije zaustavljeno. Izaberite Odustani.'); }
     finally {
       // Responder termination may emit press-out without touch-cancel. A later tap must never inherit its send authority.
       if (!gesture.completed && hold.current === gesture) { gesture.cancelled = true; hold.current = null; }
@@ -164,7 +164,7 @@ export function useAgreementVoice(options: Options) {
         await owner.composer.send();
         if (owner.current()) await latest.current.refresh();
       }
-    } catch { if (owner.current()) setInteractionError('Snimak nije poslat. Proveri stanje snimanja.'); }
+    } catch { if (owner.current()) setInteractionError('Snimak nije poslat. Proverite stanje snimanja.'); }
     finally { if (hold.current === gesture) hold.current = null; }
   }
   const run = async (work: (owner: Runtime) => Promise<void>) => {
@@ -172,7 +172,7 @@ export function useAgreementVoice(options: Options) {
     if (!owner?.current()) return;
     setInteractionError(null);
     try { await work(owner); }
-    catch { if (owner.current()) setInteractionError('Promena snimka nije potvrđena. Pokušaj ponovo.'); }
+    catch { if (owner.current()) setInteractionError('Promena snimka nije potvrđena. Pokušajte ponovo.'); }
   };
   const settle = async (work: (owner: Runtime) => Promise<void>) => run(async owner => {
     await work(owner); if (owner.current()) await latest.current.refresh();

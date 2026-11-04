@@ -19,9 +19,31 @@ PARTICIPANT_CONTRACT_FILE = (
 )
 
 
+# Frozen catalog facts extracted from the two archived receipts at 357d767d.
+# Pin their canonical JSON bytes independently of the editable provenance entries.
+CATALOG_EVIDENCE_SHA256 = {
+    'supabase/operations/dev-alpha/ledger/20261021_server_package.receipt.json':
+        '32dff9bd11e449edf4709a20422b6d19705250fa40d7edbf2957d4d339791dd5',
+    'supabase/operations/dev-alpha/ledger/20261026_ai_contract_migrations.readonly.json':
+        '4f72a19944bcafe7ad9edc7b5299a5a522ab01479cbc8d1e0ae4718d91b63b01',
+}
+
+
 def fail(message: str) -> None:
     print(f"FAIL migration_integrity: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def load_catalog_evidence(section: dict) -> dict:
+    """Read the narrow, immutable archived catalog witness kept with provenance."""
+    expected = CATALOG_EVIDENCE_SHA256.get(section.get("evidence"))
+    evidence = section.get("catalog_evidence")
+    if expected is None or not isinstance(evidence, dict):
+        fail("missing or unrecognized archived catalog evidence")
+    canonical = json.dumps(evidence, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    if hashlib.sha256(canonical).hexdigest() != expected:
+        fail("archived catalog evidence differs from its pinned immutable snapshot")
+    return evidence
 
 
 def check_later_participant_contract(filename: str, sql: str) -> None:
@@ -152,22 +174,15 @@ def main() -> None:
     suffix = metadata.get("physical_suffix_readmission_20261018")
     suffix_names = []
     if suffix:
-        evidence_path = (ROOT.parent.parent / suffix["evidence"]).resolve()
-        if not evidence_path.is_relative_to(ROOT.parent.parent.resolve()):
-            fail("physical suffix evidence escaped repository")
-        suffix_names = check_physical_suffix(suffix, manifest_map, json.loads(evidence_path.read_text(encoding="utf-8")))
+        suffix_names = check_physical_suffix(suffix, manifest_map, load_catalog_evidence(suffix))
     # Oct-26 forward work has independently observed live ledger revisions,
     # but differently named physical files and different recorded SQL bytes.
     # Preserve the Oct-18 snapshot unchanged; check the new evidence separately.
     oct26_section = metadata.get("physical_suffix_reconciliation_20261026")
     oct26_suffix_names = []
     if oct26_section:
-        oct26_evidence_path = (ROOT.parent.parent / oct26_section["evidence"]).resolve()
-        if not oct26_evidence_path.is_relative_to(ROOT.parent.parent.resolve()):
-            fail("Oct-26 suffix evidence escaped repository")
         oct26_suffix_names = check_physical_suffix(
-            oct26_section, manifest_map,
-            json.loads(oct26_evidence_path.read_text(encoding="utf-8")),
+            oct26_section, manifest_map, load_catalog_evidence(oct26_section),
         )
         applied_oct26 = [
             item for item in oct26_section.get("entries", [])

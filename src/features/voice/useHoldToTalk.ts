@@ -15,7 +15,7 @@ import { SPEECH_LIMITS } from './speechProtocol';
  * 2026-09-23) in both conversations and in voice mode. It now says what the app does; the other sentences are unchanged.
  * Privacy copy: recorded for the owner's review.
  */
-export const VOICE_PROCESSING_NOTICE = 'Zvuk se prolazno šalje Google servisu radi transkripcije. USKOČI ne čuva audio snimke. Kad pustiš mikrofon, ili u glasovnom režimu ponovo dodirneš, izgovoreni tekst odmah odlazi u razgovor. Ako uključiš „Pregledaj tekst pre slanja“ ili koristiš čitač ekrana, tekst najpre stiže u polje za poruku i šalje se tek kad izabereš Pošalji. Google može privremeno obrađivati podatke globalno radi bezbednosti plaćenog servisa.';
+export const VOICE_PROCESSING_NOTICE = 'Zvuk se prolazno šalje Google servisu radi transkripcije. USKOČI ne čuva audio snimke. Kad pustite mikrofon, ili u glasovnom režimu ponovo dodirnete, izgovoreni tekst odmah odlazi u razgovor. Ako uključite „Pregledajte pre slanja“ ili koristite čitač ekrana, tekst najpre stiže u polje za poruku i šalje se tek kad izaberete Pošalji. Google može privremeno obrađivati podatke globalno radi bezbednosti plaćenog servisa.';
 
 export function useHoldToTalk(options: {
   /** A getter exposes a lazily opened id before React's next render. Null disables speech. */
