@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { workerAiClientService as api, WORKER_AI_READ_TRANSPORT_UNAVAILABLE, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurn, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
+import { workerAiClientService as api, workerExplicitModeReviewEnabled, explicitWorkerModes, WORKER_AI_READ_TRANSPORT_UNAVAILABLE, type WorkerAiModeChoice, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurn, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
 import type { Ishod } from '../../../data/ports';
 import { uuid } from '../../../data/serverReceipt';
@@ -19,7 +19,7 @@ import { useAccountName } from '../../../ui/profile/useAccountName';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
-import { WorkerAiActivation, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../../../ui/workerProfile/WorkerAiPresentation';
+import { WorkerAiActivation, WorkerAiModeConfirmationSheet, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../../../ui/workerProfile/WorkerAiPresentation';
 import { WORKER_PART_TITLE, type WorkerAiPart } from '../../../ui/workerProfile/workerProfileFacts';
 import { T } from '../../../ui/Text';
 import { V2Action } from '../../../ui/v2/V2Action';
@@ -63,6 +63,8 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const abort=useRef<AbortController|null>(null),refreshRef=useRef<()=>Promise<void>>(async()=>{});
   const [panel,setPanel]=useState<Panel>('chat'),[input,setInput]=useState(''),[stream,setStream]=useState('');
   const [reviewActivity,setReviewActivity]=useState<ReviewActivity>(null);
+  const [modeSheet,setModeSheet]=useState(false);
+  const [modeSelection,setModeSelection]=useState<{scope:string;choices:Record<string,WorkerAiModeChoice>}>({scope:'',choices:{}});
   const [correction,setCorrection]=useState<AiCorrectionIntent|null>(null);
   const panelScope=useRef<object>({}),renderedPanel=panelScope.current,panelWrite=useRef(false);
   // Only the conversation and its signed review own a panel. Profile changes
@@ -95,7 +97,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   });return()=>{subscription.remove();active.current=false;abort.current?.abort();};},[retireConfirmation]);
   const owns=useCallback(()=>!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision,
     [accountId,accountRevision]);
-  const read=useCallback(async(confirmedTurn?:WorkerAiTurn):Promise<Ishod<WorkerAiSnapshot>>=>{
+  const read=useCallback(async(confirmedTurn?:WorkerAiTurn,skipAutoPrepare=false):Promise<Ishod<WorkerAiSnapshot>>=>{
     const scope=focus.current;if(invalid||!scope||!owns()||!active.current)return unavailable();
     // Restore before opening a conversation or sending anything. Storage holds
     // only three IDs; canonical history restores text after an accepted turn.
@@ -163,7 +165,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       const snapshot=result.podatak;
       setPreparationIssue(null);
       if(snapshot.status==='OPEN'&&!snapshot.saved&&!snapshot.stale&&snapshot.safety==='ALLOW'
-        &&snapshot.candidate.skills.length>0&&!pending.current
+        &&snapshot.candidate.skills.length>0&&!pending.current&&!skipAutoPrepare
         &&snapshot.turn?.state!=='PROCESSING'&&snapshot.turn?.state!=='UNKNOWN_OUTCOME'){
         const activate=activationRequest&&reviewedActivationRequest.current!==activationRequest?true
           :snapshot.review?.activate??(activationChoice.current?.conversationId===snapshot.conversationId?activationChoice.current.activate:false);
@@ -325,6 +327,43 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       // Cancellation may lose to completion. Only the canonical read
       // can retire the journal; an abort alone never means cancellation.
       return read();});
+  };
+  // A signed unresolved service mode alone exposes explicit confirmation.
+  // The ordinary Gemini dialogue remains the default for clear work.
+  const modeScope=data?`${data.conversationId}:${data.revision}`:'';
+  const modePending=!!data?.review && data.review.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED';
+  const modeEligible=workerExplicitModeReviewEnabled()&&modePending&&!!data&&!data.saved
+    &&data.candidate.skills.length>0&&data.candidate.skills.length<=12
+    &&new Set(data.candidate.skills).size===data.candidate.skills.length&&!!writable&&!reviewNeedsRestart;
+  const openModeSheet=()=>{
+    if(!canAct()||!enabled||!modeEligible||!data)return;
+    setModeSelection({scope:modeScope,choices:{}});setModeSheet(true);
+  };
+  const confirmModes=async()=>{
+    if(!canAct()||!enabled||!modeEligible||!data?.review||modeSelection.scope!==modeScope)return;
+    const modes=explicitWorkerModes(data.candidate.skills,modeSelection.choices);
+    if(!modes)return;
+    const {conversationId,revision}=data,activate=data.review.activate;
+    await savePanel('preparing',async()=>{
+      const prepared=await api.prepareConfirmed(conversationId,revision,activate,modes);
+      if(!current())return unavailable();
+      if(!prepared.ok)return prepared;
+      if(prepared.podatak.conversationId!==conversationId||prepared.podatak.revision!==revision
+        ||prepared.podatak.activate!==activate)return unavailable();
+      activationChoice.current={conversationId,activate};
+      if(activationRequest)reviewedActivationRequest.current=activationRequest;
+      // Ordinary read auto-prepares and could replace the explicitly signed
+      // result. Read it from its true owner, without another preparation.
+      const result=await read(undefined,true);
+      if(result.ok&&current()){
+        setModeSheet(false);setModeSelection({scope:'',choices:{}});
+        if(workerReviewReady(result.podatak))showPanel('review');
+        else if(result.podatak.review)setPreparationIssue({conversationId,revision,
+          message:classificationPreparationMessage(result.podatak.review.classificationState)
+            ??'Proverite potvrđeni pregled pre čuvanja.'});
+      }
+      return result;
+    });
   };
   const reviewActivation=data?.review?.activate??(activationChoice.current?.conversationId===data?.conversationId
     ?activationChoice.current?.activate:false)??false;
@@ -548,6 +587,8 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     voice={writable?{controller:voice.controller,state:voice.state,disabled:!enabled||!!pending.current,onKeepText:keepTranscript}:undefined}
     actions={<>
       {/* After a save the only next step is the saved profile; a second "check" button beside it read as unfinished. */}
+      {modeEligible?<V2Action label="Potvrdite način rada" tone="neutral" kind="secondary"
+        disabled={!enabled} onPress={openModeSheet}/>:null}
       {(pending.current||awaiting||editor.uncertain||editor.error||preparationProblem)&&!data.saved?<V2Action tone="neutral" label="Proverite razgovor" disabled={editor.busy||editor.loading||voiceBusy}
         onPress={()=>{
           // The ready-card gate hides the old name-alignment entry. After the
@@ -565,6 +606,15 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       </>:null}
       {data.saved?<V2Action label="Otvorite sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:null}
     </>}/>{confirmSheet.sheet}
+    {modeSheet&&modeEligible&&modeSelection.scope===modeScope?<WorkerAiModeConfirmationSheet
+      skills={data.candidate.skills} choices={modeSelection.choices}
+      complete={!!explicitWorkerModes(data.candidate.skills,modeSelection.choices)}
+      disabled={editor.busy||editor.loading||!enabled} error={editor.error}
+      onChoice={(service,mode)=>{if(enabled&&data.candidate.skills.includes(service))
+        setModeSelection(value=>value.scope===modeScope
+          ?{...value,choices:{...value.choices,[service]:mode}}:value);}}
+      onConfirm={()=>{void confirmModes();}}
+      onClose={()=>{if(!editor.busy)setModeSheet(false);}}/>:null}
     {menu?<ActionSheet label="Izmene kroz razgovor" onClose={()=>setMenu(false)} actions={[
       {key:'identity',label:'O meni',icon:'document',disabled:!enabled||!writable,subtitle:unavailableNow,
         onPress:()=>correctPart('identity')},
