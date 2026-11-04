@@ -29,7 +29,7 @@ export function AgreementVoiceMessage({ voice, message }: { voice: AgreementVoic
   const active = voice.playback.assetId === message.glas.assetId;
   const status = active ? voice.playback.status : 'idle';
   const playing = status === 'playing', loading = status === 'loading';
-  const label = playing ? 'Pauziraj glasovnu poruku' : status === 'error' ? 'Ponovo učitaj glasovnu poruku' : 'Preslušaj glasovnu poruku';
+  const label = playing ? 'Pauzirajte glasovnu poruku' : status === 'error' ? 'Ponovo učitajte glasovnu poruku' : 'Preslušajte glasovnu poruku';
   return <View style={s.message}>
     <Press accessibilityRole="button" accessibilityLabel={`${label}, ${voiceTime(message.glas.trajanjeMs)}`}
       accessibilityState={{ busy: loading, disabled: loading }} disabled={loading}
@@ -49,8 +49,8 @@ export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }
   const capturing = state.phase === 'requesting' || state.phase === 'recording';
   const disabled = !capturing && !state.canRecord;
   const label = voice.screenReader
-    ? capturing ? 'Zaustavi snimanje i pregledaj glasovnu poruku' : 'Snimi glasovnu poruku'
-    : 'Drži za glasovnu poruku';
+    ? capturing ? 'Zaustavite snimanje i pregledajte glasovnu poruku' : 'Snimite glasovnu poruku'
+    : 'Držite za glasovnu poruku';
   const MicTarget = voice.screenReader ? Press : Animated.View;
   // The recording REALLY began (the microphone is open, not merely touched): one tick, as the picture changes (spec M-04, rule R5).
   // A tick is not movement and follows no reduced-motion setting (`system/haptics`).
@@ -63,7 +63,7 @@ export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }
   // Called off by dragging away or by the system taking the touch: the recording is dropped, and that is felt as a refusal.
   const cancel = () => { if (held.current) { held.current = false; lift.settle(); tick('cancel'); void voice.cancel(); } };
   return <MicTarget accessible accessibilityRole="button" accessibilityLabel={label}
-    accessibilityHint={voice.review ? `Snimak prvo preslušaj, pa izaberi Pošalji snimak.${voice.screenReader ? '' : ' Povuci nagore da odustaneš.'}` : 'Drži dok govoriš. Puštanje šalje snimak. Povuci nagore da otkažeš.'}
+    accessibilityHint={voice.review ? `Snimak prvo preslušajte, pa izaberite „Pošaljite snimak“.${voice.screenReader ? '' : ' Povucite nagore da odustanete.'}` : 'Držite dok govorite. Puštanje dugmeta šalje snimak. Povucite nagore da otkažete.'}
     accessibilityState={{ disabled, busy: state.phase === 'requesting' }} disabled={disabled}
     // Press-out is not finger-up: leaving its rectangle used to stop a still-held recording.
     onStartShouldSetResponder={voice.screenReader ? undefined : () => !disabled}
@@ -89,7 +89,7 @@ export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }
 /** The same opt-in review mode stays explicit beside the microphone, including its off state. */
 export function AgreementVoicePreference({ voice, writable, compact = false }: { voice: AgreementVoiceController; writable: boolean; compact?: boolean }) {
   if (voice.recording.phase !== 'idle' || !writable || voice.screenReader) return null;
-  return <Press accessibilityRole="checkbox" accessibilityLabel="Pregledaj snimak pre slanja"
+  return <Press accessibilityRole="checkbox" accessibilityLabel="Pregledajte snimak pre slanja"
     accessibilityState={{ checked: voice.reviewFirst }}
     onPress={() => voice.setReviewFirst(!voice.reviewFirst)} style={[s.preference, compact && s.preferenceCompact]}>
     <View accessible={false} style={[s.preferenceMark, voice.reviewFirst && s.preferenceMarkChecked]}>
@@ -109,16 +109,16 @@ export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoice
   const review = state.phase === 'review', failed = state.phase === 'failed', uploading = state.phase === 'uploading';
   return <View style={s.panel}>
     {recording || requesting ? <View style={s.recording}>
-      <View style={s.flex}><T variant="bodyStrong">{requesting ? 'Pripremamo mikrofon…' : `Snimaš · ${voiceTime(state.elapsedMs)}`}</T>
-        {recording ? <T variant="note" tone="muted">{voice.screenReader ? 'Zaustavi, pa pregledaj snimak.' : `${voice.review ? 'Pusti za pregled.' : 'Pusti za slanje.'} Povuci ↑ da odustaneš.`}</T> : null}</View>
+      <View style={s.flex}><T variant="bodyStrong">{requesting ? 'Pripremamo mikrofon…' : `Snimanje · ${voiceTime(state.elapsedMs)}`}</T>
+        {recording ? <T variant="note" tone="muted">{voice.screenReader ? 'Zaustavite snimanje, pa pregledajte snimak.' : `${voice.review ? 'Pustite dugme za pregled.' : 'Pustite dugme za slanje.'} Povucite ↑ da odustanete.`}</T> : null}</View>
       {recording && state.level !== null ? <View accessible={false} style={s.meter}>
         <View style={[s.level, { width: `${Math.round(state.level * 100)}%` }]} /></View> : null}
-      <Action label="Odustani" onPress={() => { void voice.cancel(); }} />
+      <Action label="Odustanite" onPress={() => { void voice.cancel(); }} />
     </View> : null}
     {review ? <View style={s.review}>
       <T variant="meta" tone="muted">Glasovna poruka</T>
       <View style={s.reviewActions}>
-        <Press accessibilityRole="button" accessibilityLabel={state.preview === 'playing' ? 'Pauziraj snimak' : 'Preslušaj snimak'}
+        <Press accessibilityRole="button" accessibilityLabel={state.preview === 'playing' ? 'Pauzirajte snimak' : 'Preslušajte snimak'}
           accessibilityValue={state.durationMs !== null ? { text: voiceTime(state.durationMs) } : undefined}
           onPress={() => { void voice.preview(); }} style={[s.reviewPlay, stacked && s.reviewPlayStacked]}>
           <View accessible={false}><Glyph name="wave" size={24} /></View>
@@ -127,15 +127,15 @@ export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoice
             {state.durationMs !== null ? <T variant="meta" tone="muted" style={s.duration}>{voiceTime(state.durationMs)}</T> : null}
           </View>
         </Press>
-        <Press accessibilityRole="button" accessibilityLabel="Odbaci snimak" disabled={!state.canDiscard}
+        <Press accessibilityRole="button" accessibilityLabel="Odbacite snimak" disabled={!state.canDiscard}
           accessibilityState={{ disabled: !state.canDiscard }} onPress={() => { void voice.cancel(); }}
           style={[s.reviewDiscard, !state.canDiscard && s.disabled]}>
           <Glyph name="trash" size={24} />
         </Press>
-        <Press accessibilityRole="button" accessibilityLabel="Pošalji snimak" disabled={!state.canSend}
+        <Press accessibilityRole="button" accessibilityLabel="Pošaljite snimak" disabled={!state.canSend}
           accessibilityState={{ disabled: !state.canSend }} onPress={() => { void voice.send(); }}
           style={[s.reviewSend, !state.canSend && s.disabled]}>
-          <T variant="note" style={s.reviewSendText}>Pošalji</T>
+          <T variant="note" style={s.reviewSendText}>Pošaljite</T>
         </Press>
       </View>
     </View> : null}
@@ -143,8 +143,8 @@ export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoice
       <T variant="bodyStrong">Glasovna poruka{state.durationMs !== null ? ` · ${voiceTime(state.durationMs)}` : ''}</T>
       {uploading ? <View style={s.row}><ActivityIndicator color={sys.color.ink} /><T variant="note" tone="muted">Pripremamo slanje…</T></View> :
         <View style={s.row}>
-          <Action label="Odbaci snimak" disabled={!state.canDiscard} onPress={() => { void voice.cancel(); }} />
-          {failed && state.canRetry ? <Action label="Proveri isto slanje" primary onPress={() => { void voice.retry(); }} /> : null}
+          <Action label="Odbacite snimak" disabled={!state.canDiscard} onPress={() => { void voice.cancel(); }} />
+          {failed && state.canRetry ? <Action label="Proverite isto slanje" primary onPress={() => { void voice.retry(); }} /> : null}
         </View>}
     </View> : null}
     {state.error ? <T variant="note" tone="danger" accessibilityLiveRegion="polite">{state.error.message}</T> : null}
@@ -153,11 +153,11 @@ export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoice
       <T variant="bodyStrong">Nepotvrđeno slanje glasovne poruke</T>
       <T variant="note" tone="muted">{item.state === 'STAGED' ? 'Snimak čeka obradu na serveru.'
         : item.state === 'PROCESSING' ? 'Snimak se još obrađuje.'
-          : item.state === 'ABSENT' ? 'Server još ne potvrđuje ovaj pokušaj. Proveri isti snimak.'
+          : item.state === 'ABSENT' ? 'Server još ne potvrđuje ovaj pokušaj. Proverite isti snimak.'
             : 'Stanje ranijeg snimka trenutno nije provereno.'}</T>
       <View style={s.row}>
-        <Action label="Proveri stanje snimka" disabled={state.recoveryBusy} onPress={() => { void voice.refreshRecovery(); }} />
-        <Action label="Otkaži nepotvrđeni snimak" disabled={state.recoveryBusy}
+        <Action label="Proverite stanje snimka" disabled={state.recoveryBusy} onPress={() => { void voice.refreshRecovery(); }} />
+        <Action label="Otkažite nepotvrđeni snimak" disabled={state.recoveryBusy}
           onPress={() => { void voice.cancelUnresolved(item.ref); }} />
       </View>
     </View>)}
@@ -165,8 +165,8 @@ export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoice
       <T variant="bodyStrong">Sačuvan snimak · {voiceTime(item.durationMs)}</T>
       <T variant="note" tone="muted">Snimak je sačuvan, ali još nije poslat.</T>
       <View style={s.row}>
-        <Action label="Odbaci sačuvan snimak" disabled={state.recoveryBusy} onPress={() => { void voice.discardRecovered(item.ref); }} />
-        {writable ? <Action label="Pošalji sačuvan snimak" primary disabled={state.recoveryBusy} onPress={() => { void voice.sendRecovered(item.ref); }} /> : null}
+        <Action label="Odbacite sačuvan snimak" disabled={state.recoveryBusy} onPress={() => { void voice.discardRecovered(item.ref); }} />
+        {writable ? <Action label="Pošaljite sačuvan snimak" primary disabled={state.recoveryBusy} onPress={() => { void voice.sendRecovered(item.ref); }} /> : null}
       </View>
     </View>)}
   </View>;
