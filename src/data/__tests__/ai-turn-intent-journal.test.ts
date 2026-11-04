@@ -5,6 +5,7 @@ jest.mock('@react-native-async-storage/async-storage', () => { const values = ne
   removeItem: jest.fn(async (key: string) => { values.delete(key); }), clear: jest.fn(async () => { values.clear(); }),
 }; });
 import { aiTurnIntentJournal as journal } from '../aiTurnIntentJournal';
+import { workerAiTurnIntentJournal as workerJournal } from '../workerAiTurnIntentJournal';
 const A = '11111111-1111-4111-8111-111111111111', B = '22222222-2222-4222-8222-222222222222';
 const C = '33333333-3333-4333-8333-333333333333', K = '44444444-4444-4444-8444-444444444444';
 const intent = { accountId: A, conversationId: C, clientRequestId: K };
@@ -52,3 +53,27 @@ it.each(['not-json', JSON.stringify({ ...intent, text: 'private' }), JSON.string
     await expect(journal.save(intent)).rejects.toThrow('AI_LOCAL_INTENT_INVALID');
     expect(await AsyncStorage.getItem('uskoci.ai.turn.intent.v1.' + A)).toBe(raw);
   });
+
+it('isolates Need and Worker recovery intents for the same account and survives clearing either one', async () => {
+  const workerIntent = { ...intent, conversationId: B, clientRequestId: B };
+  const stored = await Promise.allSettled([journal.save(intent), workerJournal.save(workerIntent)]);
+  expect(stored.map(x => x.status)).toEqual(['fulfilled', 'fulfilled']);
+  expect(await journal.load(A)).toEqual(intent);
+  expect(await workerJournal.load(A)).toEqual(workerIntent);
+  expect(await AsyncStorage.getItem('uskoci.ai.turn.intent.v1.' + A)).toBe(JSON.stringify(intent));
+  expect(await AsyncStorage.getItem('uskoci.worker.ai.turn.intent.v1.' + A)).toBe(JSON.stringify(workerIntent));
+  await journal.clear(intent);
+  expect(await journal.load(A)).toBeNull();
+  expect(await workerJournal.load(A)).toEqual(workerIntent);
+  await workerJournal.clear(workerIntent);
+  expect(await workerJournal.load(A)).toBeNull();
+});
+
+it('an invalid Need journal never authorizes discarding the Worker pending command', async () => {
+  const workerIntent = { ...intent, clientRequestId: B };
+  await workerJournal.save(workerIntent);
+  await AsyncStorage.setItem('uskoci.ai.turn.intent.v1.' + A, 'broken-json');
+  expect(await journal.discardCorrupt(A)).toBe(true);
+  expect(await workerJournal.load(A)).toEqual(workerIntent);
+  expect(await workerJournal.discardCorrupt(A)).toBe(false);
+});

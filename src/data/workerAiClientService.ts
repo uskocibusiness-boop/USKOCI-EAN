@@ -347,7 +347,7 @@ export const workerAiClientService={
     const account=scope(),session=sesijaSada().session,config=readPublicSupabaseConfig();
     const url=config?.url,anonKey=config?.anonKey;
     if(!account||!session?.access_token||!url||!anonKey)return failure('AUTH_REQUIRED',ERRORS.AUTH_REQUIRED);
-    if(!uuid(conversationId)||!uuid(clientRequestId)||!text(body,4000)||!body.trim())return failure('WORKER_AI_INPUT_INVALID','Unesi poruku do 4000 znakova.');
+    if(!uuid(conversationId)||!uuid(clientRequestId)||!text(body,4000)||!body.trim())return failure('WORKER_AI_INPUT_INVALID','Unesite poruku do 4.000 znakova.');
     return readOwnedResult({account,errors:ERRORS,write:true,timeoutMs:55_000,fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
       request:()=>requestAiTurnStream({...stream,endpoint:'uskoci-worker-interview',url,anonKey,accessToken:session.access_token,
         conversationId,clientRequestId,text:body,deadline:Date.now()+55000,

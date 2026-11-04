@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { workerAreasLabel } from '../../contracts/workerAreas';
 import { serviceHandoffText } from '../../contracts/serviceHandoff';
 import { StyleSheet, View } from 'react-native';
-import type { WorkerAiProfile, WorkerAiReview } from '../../data/workerAiClientService';
+import type { WorkerAiProfile, WorkerAiReview, WorkerAiModeChoice } from '../../data/workerAiClientService';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
@@ -14,6 +14,7 @@ import { sys } from '../system/tokens';
 import { useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import { classificationPreparationMessage } from '../../features/ai/intake/intakeReviewReadiness';
 import { V2Action } from '../v2/V2Action';
+import { ProductSheet } from '../product/ProductSheet';
 import { FactChoiceEditor } from '../v2/FactChoiceEditor';
 import { cityLabel } from '../profile/cityLabel';
 import { ResolvedPinMap } from '../location/ResolvedPinMap';
@@ -236,6 +237,40 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
     </Press>:null}
   </View>;
 }
+
+/** Only a signed unresolved service-mode review offers this fallback. No
+ * automatic Save, catalogue classification or matching authority is created. */
+const MODE_OPTIONS=[
+  {value:'ON_SITE',label:'Na lokaciji'},
+  {value:'REMOTE',label:'Na daljinu'},
+  {value:'BOTH',label:'Oba načina'},
+] as const;
+export function WorkerAiModeConfirmationSheet({skills,choices,complete,disabled,onChoice,onConfirm,onClose,error}:{
+  skills:readonly string[];choices:Readonly<Record<string,WorkerAiModeChoice|undefined>>;
+  complete:boolean;disabled:boolean;error?:string|null;
+  onChoice:(service:string,mode:WorkerAiModeChoice)=>void;onConfirm:()=>void;onClose:()=>void;
+}){
+  return <ProductSheet title="Potvrdite način rada" onClose={onClose} dismissible={!disabled}
+    dirty={!disabled&&Object.keys(choices).length>0}
+    footer={()=> <V2Action kind="primary" label="Potvrdite izabrano" disabled={disabled||!complete}
+      reason={!complete?'Izaberite način rada za svaku ponuđenu uslugu.':undefined}
+      onPress={onConfirm}/>}>
+    {()=> <>
+      <T variant="copy" tone="muted">Način rada nije bio sasvim jasan iz razgovora.
+        Izaberite ga za svaku uslugu; ne morate ponovo da opisujete posao.</T>
+      {skills.map(service=><View key={service} style={s.group} testID="worker-mode-service">
+        <T variant="bodyStrong">{service}</T>
+        <FactChoiceEditor label={`Način rada: ${service}`} options={MODE_OPTIONS}
+          value={choices[service]??null} disabled={disabled}
+          onChange={mode=>{if(!disabled)onChoice(service,mode as WorkerAiModeChoice);}}/>
+      </View>)}
+      <T variant="note" tone="muted">Potvrda priprema novi pregled profila.
+        Ne aktivira usluge i ne šalje obaveštenja.</T>
+      {error?<T variant="note" tone="danger" accessibilityRole="alert">{error}</T>:null}
+    </>}
+  </ProductSheet>;
+}
+
 export function WorkerAiActivation({activate,disabled,change}:{activate:boolean;disabled:boolean;change:(v:boolean)=>void}){
   return <View style={s.section}><T variant="bodyStrong" style={s.ink}>Posle čuvanja</T>
     <FactChoiceEditor label="Status profila posle čuvanja" value={activate?'active':'draft'} disabled={disabled}

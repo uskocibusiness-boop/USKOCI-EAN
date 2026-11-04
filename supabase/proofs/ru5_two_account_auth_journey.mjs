@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import { assertRu5TwoAccountLocal } from './ru5_two_account_local_guard.mjs';
 
 const url = process.env.SUPABASE_URL;
 const anonKey = process.env.SUPABASE_ANON_KEY;
@@ -12,6 +13,8 @@ assert.ok(url, 'SUPABASE_URL required');
 assert.ok(anonKey, 'SUPABASE_ANON_KEY required');
 assert.ok(serviceRoleKey, 'SUPABASE_SERVICE_ROLE_KEY required for fixture-only email confirmation fallback');
 assert.ok(dbUrl, 'DB_URL required for disposable fixture setup/verification');
+// Refuse nonlocal/test-unauthorized targets before real Auth accounts or SQL.
+assertRu5TwoAccountLocal(process.env);
 
 const clientOptions = {
   auth: {
@@ -296,6 +299,8 @@ console.log([
   'W06_selected_reload',
   'P0D03_REQUESTER_SELECTION_V1_PROMOTIONAL_FREE_HEADCOUNT_0_RSD',
   'disposable_local_db_only',
+  'seeded_published_need_not_an_ai_publication',
+  'agreement_chat_not_exercised',
   'bounded_note_not_claimed',
   'device_ui_not_claimed',
 ].join(' '));

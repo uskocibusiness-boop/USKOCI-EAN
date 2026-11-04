@@ -5,7 +5,8 @@ let mockAccount=A,mockRevision=1,mockFocused=true,mockParams:{conversationId?:st
 // ONE NAME (owner, 8 Oct 2026): the profile is saved under the ACCOUNT's name; the hook is mocked (the real one reads the server). No name by default.
 let mockAccountName:{state:string;name?:string|null}={state:'ready',name:null};
 const mockListeners=new Set<(s:string)=>void>();
-const mockApi={read:jest.fn(),open:jest.fn(),send:jest.fn(),recoverTurn:jest.fn(),cancelTurn:jest.fn(),patch:jest.fn(),prepare:jest.fn(),save:jest.fn(),abandon:jest.fn()};
+const mockApi={read:jest.fn(),open:jest.fn(),send:jest.fn(),recoverTurn:jest.fn(),cancelTurn:jest.fn(),patch:jest.fn(),prepare:jest.fn(),prepareConfirmed:jest.fn(),save:jest.fn(),abandon:jest.fn()};
+let mockExplicitModeEnabled=false;
 const mockJournal={load:jest.fn(),save:jest.fn(),clear:jest.fn()};let mockStored:unknown=null;
 const mockRouter={back:jest.fn(),replace:jest.fn(),canGoBack:jest.fn(),setParams:jest.fn()};
 const mockVoice={controller:{cancel:jest.fn(),getSnapshot:()=>mockVoice.state},state:{phase:'IDLE'}};const mockVoiceHook=jest.fn((_options:unknown)=>mockVoice);
@@ -25,7 +26,7 @@ jest.mock('../../ui/profile/useAccountName',()=>({useAccountName:()=>mockAccount
 jest.mock('../workerAiClientService',()=>({get workerAiClientService(){return mockApi;},
  WORKER_AI_READ_TRANSPORT_UNAVAILABLE:'WORKER_AI_READ_TRANSPORT_UNAVAILABLE',
  explicitWorkerModes:jest.requireActual('../workerAiClientService').explicitWorkerModes,
- workerExplicitModeReviewEnabled:()=>false}));
+ workerExplicitModeReviewEnabled:()=>mockExplicitModeEnabled}));
 jest.mock('../workerAiTurnIntentJournal',()=>({get workerAiTurnIntentJournal(){return mockJournal;}}));
 jest.mock('../../features/voice/useHoldToTalk',()=>({useHoldToTalk:(options:unknown)=>mockVoiceHook(options)}));
 jest.mock('../../ui/aiFirst/VoiceComposer',()=>({VoiceComposer:'VoiceComposer'}));
@@ -36,6 +37,7 @@ jest.mock('../../ui/aiFirst/AiConversationShell',()=>({AiConversationShell:({act
 }}));
 jest.mock('../../ui/workerProfile/WorkerProfilePresentation',()=>({WorkerProfileFrame:(props:any)=>require('react').createElement('Frame',props,props.children,props.footer),WorkerProfileStatus:'Status'}));
 jest.mock('../../ui/workerProfile/WorkerAiPresentation',()=>({WorkerAiActivation:'Activation',WorkerAiCard:'Card',WorkerAiReviewDetails:'Review',
+  WorkerAiModeConfirmationSheet:'ModeConfirmation',
  WorkerAiNotificationsNote:(props:any)=>require('react').createElement(jest.requireActual('../../ui/workerProfile/WorkerAiPresentation').WorkerAiNotificationsNote,props)}));
 jest.mock('../../ui/Text',()=>({T:'T'}));
 jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));
@@ -65,7 +67,7 @@ const click=async(label:string)=>{await act(async()=>{action(label).props.onPres
 // "Novi razgovor" is asked in an in-app ConfirmSheet (it was Alert.alert); a test presses its buttons.
 const sheets=()=>tree.root.findAllByType(ConfirmSheet);
 const answer=async(testID:'confirm-sheet-confirm'|'confirm-sheet-cancel')=>{await act(async()=>{tree.root.findByType(ConfirmSheet).findByProps({testID}).props.onPress();});};
-beforeEach(()=>{jest.clearAllMocks();mockAccount=A;mockRevision=1;mockFocused=true;mockParams={conversationId:C};mockStored=null;
+beforeEach(()=>{jest.clearAllMocks();mockExplicitModeEnabled=false;mockAccount=A;mockRevision=1;mockFocused=true;mockParams={conversationId:C};mockStored=null;
  mockApi.prepare.mockReset().mockResolvedValue({ok:false,kod:'WORKER_AI_REVIEW_REQUIRED',poruka:'Pregled nije spreman.'});
  mockAccountName={state:'ready',name:null};
  mockRouter.canGoBack.mockReturnValue(true);
@@ -411,6 +413,165 @@ it.each([false,true])('signed cityless REMOTE refusal can be saved only after a 
  await click('Otvorite sačuvani profil');expect(mockRouter.replace).toHaveBeenCalledWith('/profil/radnik');
 });
 
+it.each(['PENDING_CLASSIFICATION','REVIEW_REQUIRED'] as const)(
+  'a server-accepted %s work profile reaches Save without inventing matching readiness', async state => {
+    const data=reviewed();
+    const signed={...data.review!,activate:false,classificationState:state,reviewedServiceModes:[],classificationCandidates:[]};
+    const receipt={reviewId:signed.reviewId,conversationId:C,accountId:A,profileId:B,
+      profileStatus:'DRAFT',saved:true,authoritative:true};
+    let current={...data,review:signed,saved:null as null|typeof receipt};
+    mockApi.read.mockImplementation(async()=>ok(current));
+    mockApi.save.mockImplementation(async()=>{
+      current={...current,status:'COMPLETED',saved:receipt};
+      return ok(receipt);
+    });
+    await render();
+    expect(shell().props.footerAction.props.label).toBe('Pregledajte radni profil');
+    const calls=mockApi.prepare.mock.calls.length;
+    await act(async()=>shell().props.footerAction.props.onPress());
+    expect(mockApi.prepare).toHaveBeenCalledTimes(calls);
+    expect(tree.root.findByType('Review' as any).props.review).toEqual(signed);
+    expect(action('Sačuvajte profil').props.disabled).toBe(false);
+    await click('Sačuvajte profil');
+    expect(mockApi.save).toHaveBeenCalledWith(signed,expect.any(String));
+    expect(visibleText()).toContain('Profil je sačuvan');
+    expect(visibleText()).not.toContain(' i aktivan');
+    expect(visibleText()).not.toContain('Zadatke povezujemo sa potvrđenim uslugama');
+    expect(mockApi.send).not.toHaveBeenCalled();
+  });
+it('mode confirmation is an explicit feature-gated fallback, not another mandatory AI form',async()=>{
+  const data=reviewed();
+  const pending={...data.review!,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    reviewedServiceModes:[],classificationCandidates:[]};
+  mockApi.read.mockResolvedValue(ok({...data,review:pending}));
+  mockApi.prepare.mockResolvedValue(ok(pending));
+  await render();
+  expect(tree.root.findAllByProps({label:'Potvrdite način rada'})).toHaveLength(0);
+  expect(mockApi.prepareConfirmed).not.toHaveBeenCalled();
+  expect(mockApi.send).not.toHaveBeenCalled();
+});
+it('confirmed BOTH sends exact service modes and re-reads the owned review without re-preparing',async()=>{
+  mockExplicitModeEnabled=true;
+  const data=reviewed();
+  const pending={...data.review!,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    reviewedServiceModes:[],classificationCandidates:[]};
+  const ready={...data.review!,reviewedServiceModes:[
+    {service:'Montaža',mode:'ON_SITE'},{service:'Montaža',mode:'REMOTE'}]};
+  let canonical:unknown={...data,review:pending};
+  mockApi.read.mockImplementation(async()=>ok(canonical));
+  mockApi.prepare.mockResolvedValue(ok(pending));
+  mockApi.prepareConfirmed.mockImplementation(async()=>{
+    canonical={...data,review:ready};return ok(ready);
+  });
+  await render();
+  expect(action('Potvrdite način rada').props.disabled).toBe(false);
+  const previous=mockApi.prepare.mock.calls.length;
+  await click('Potvrdite način rada');
+  expect(tree.root.findByType('ModeConfirmation' as any).props.complete).toBe(false);
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onConfirm());
+  expect(mockApi.prepareConfirmed).not.toHaveBeenCalled();
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onChoice('Montaža','BOTH'));
+  expect(tree.root.findByType('ModeConfirmation' as any).props.complete).toBe(true);
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onConfirm());
+  expect(mockApi.prepareConfirmed).toHaveBeenCalledWith(C,0,true,[
+    {service:'Montaža',mode:'ON_SITE'},{service:'Montaža',mode:'REMOTE'}]);
+  expect(mockApi.prepare).toHaveBeenCalledTimes(previous);
+  expect(tree.root.findAllByType('ModeConfirmation' as any)).toHaveLength(0);
+  expect(tree.root.findByType('Review' as any).props.review).toEqual(ready);
+  expect(action('Sačuvajte i aktivirajte profil').props.disabled).toBe(false);
+  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+});
+it('no inference or RPC when even one of multiple offered services lacks an explicit scope',async()=>{
+  mockExplicitModeEnabled=true;
+  const data=reviewed(), profile={...data.candidate,skills:['Montaža','Lektura']};
+  const pending={...data.review!,profile,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    reviewedServiceModes:[],classificationCandidates:[]};
+  mockApi.read.mockResolvedValue(ok({...data,candidate:profile,review:pending}));
+  mockApi.prepare.mockResolvedValue(ok(pending));
+  await render();await click('Potvrdite način rada');
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onChoice('Montaža','ON_SITE'));
+  expect(tree.root.findByType('ModeConfirmation' as any).props.complete).toBe(false);
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onConfirm());
+  expect(mockApi.prepareConfirmed).not.toHaveBeenCalled();
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onChoice('Lektura','REMOTE'));
+  expect(tree.root.findByType('ModeConfirmation' as any).props.complete).toBe(true);
+  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+});
+it('a refused explicit review never changes the existing profile or silently saves',async()=>{
+  mockExplicitModeEnabled=true;
+  const data=reviewed();
+  const pending={...data.review!,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    reviewedServiceModes:[],classificationCandidates:[]};
+  mockApi.read.mockResolvedValue(ok({...data,review:pending}));
+  mockApi.prepare.mockResolvedValue(ok(pending));
+  mockApi.prepareConfirmed.mockResolvedValue({ok:false,kod:'WORKER_AI_STALE',poruka:'Pregled je zastareo.'});
+  await render();await click('Potvrdite način rada');
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onChoice('Montaža','REMOTE'));
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onConfirm());
+  expect(mockApi.prepareConfirmed).toHaveBeenCalledTimes(1);
+  expect(mockApi.save).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+  expect(tree.root.findAllByType('Review' as any)).toHaveLength(0);
+});
+it('refuses a replaced signed review after explicit modes and cannot silently Save it',async()=>{
+  mockExplicitModeEnabled=true;
+  const data=reviewed();
+  const pending={...data.review!,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    reviewedServiceModes:[],classificationCandidates:[]};
+  const signed={...data.review!,reviewId:'55555555-5555-4555-8555-555555555555'};
+  mockApi.read.mockResolvedValue(ok({...data,review:pending}));
+  mockApi.prepare.mockResolvedValue(ok(pending));
+  mockApi.prepareConfirmed.mockImplementation(async()=>{
+    mockApi.read.mockResolvedValue(ok({...data,review:{...signed,reviewId:K}}));
+    return ok(signed);
+  });
+  await render();await click('Potvrdite način rada');
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onChoice('Montaža','ON_SITE'));
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onConfirm());
+  expect(mockApi.prepareConfirmed).toHaveBeenCalledTimes(1);
+  expect(tree.root.findAllByType('Review' as any)).toHaveLength(0);
+  expect(mockApi.save).not.toHaveBeenCalled();
+  expect(mockApi.send).not.toHaveBeenCalled();
+});
+it('aligns the one account name before explicit scope and binds the signed new revision',async()=>{
+  mockExplicitModeEnabled=true;mockAccountName={state:'ready',name:'Miloš'};
+  const data=reviewed(), named={...data,revision:1,candidate:{...data.candidate,displayName:'Miloš'}};
+  const pending={...data.review!,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    reviewedServiceModes:[],classificationCandidates:[]};
+  const signed={...data.review!,revision:1,profile:named.candidate};
+  let state:unknown={...data,review:pending};
+  mockApi.read.mockImplementation(async()=>ok(state));
+  mockApi.prepare.mockResolvedValue(ok(pending));
+  mockApi.patch.mockImplementation(async()=>{
+    state={...named,review:null};return ok(named);
+  });
+  mockApi.prepareConfirmed.mockImplementation(async()=>{
+    state={...named,review:signed};return ok(signed);
+  });
+  await render();await click('Potvrdite način rada');
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onChoice('Montaža','ON_SITE'));
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onConfirm());
+  expect(mockApi.patch).toHaveBeenCalledWith(C,0,{displayName:'Miloš'});
+  expect(mockApi.prepareConfirmed).toHaveBeenCalledWith(C,1,true,[{service:'Montaža',mode:'ON_SITE'}]);
+  expect(mockApi.patch.mock.invocationCallOrder[0]).toBeLessThan(mockApi.prepareConfirmed.mock.invocationCallOrder[0]);
+  expect(tree.root.findByType('Review' as any).props.review).toEqual(signed);
+  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+});
+it('backgrounding retires an incomplete mode choice and a retained confirm cannot reach the server',async()=>{
+  mockExplicitModeEnabled=true;
+  const data=reviewed();
+  const pending={...data.review!,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    reviewedServiceModes:[],classificationCandidates:[]};
+  mockApi.read.mockResolvedValue(ok({...data,review:pending}));
+  mockApi.prepare.mockResolvedValue(ok(pending));
+  await render();await click('Potvrdite način rada');
+  const retained=tree.root.findByType('ModeConfirmation' as any).props.onConfirm;
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onChoice('Montaža','BOTH'));
+  await act(async()=>{for(const listener of [...mockListeners])listener('background');});
+  expect(tree.root.findAllByType('ModeConfirmation' as any)).toHaveLength(0);
+  await act(async()=>retained());
+  expect(mockApi.prepareConfirmed).not.toHaveBeenCalled();
+  expect(mockApi.save).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+});
 it('a legacy review does not claim confirmed matching when classification authority is absent',async()=>{
  const data=reviewed();mockApi.read.mockResolvedValue(ok({...data,review:{...data.review,classificationState:undefined}}));
  await render();expect(shell().props.footerAction).toBeUndefined();

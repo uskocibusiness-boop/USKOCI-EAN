@@ -34,9 +34,17 @@ export function taskReadyToPrepare(conversation: AiNeedV2Conversation): boolean 
   return location.geography.mode === 'REMOTE' || points.total > 0 && points.done === points.total;
 }
 
+/** Pending semantic classification does not forbid accepting an otherwise valid
+ * signed business review. It confers NO catalog admission or matching right;
+ * publication and worker binding have separate server-side authority. Technical
+ * failures and a genuinely unresolved execution mode still remain blocked. */
+function classificationCanShowReview(state: string | undefined): boolean {
+  return state === 'READY' || state === 'PENDING_CLASSIFICATION' || state === 'REVIEW_REQUIRED';
+}
+
 export function taskReviewReady(review: AiTaskReviewEnvelope | null | undefined, conversation: AiNeedV2Conversation, now = Date.now()): boolean {
   return !!review && taskReadyToPrepare(conversation) && review.conversationId === conversation.conversationId
-    && review.canAccept && review.safety === 'ALLOW' && review.classificationState === 'READY'
+    && review.canAccept && review.safety === 'ALLOW' && classificationCanShowReview(review.classificationState)
     && review.missingRequired.length === 0 && Date.parse(review.expiresAt) > now
     && factKey([...review.publicProjection, ...review.ownerPrivateProjection]) === factKey(conversation.facts)
     && JSON.stringify(ordered(normalizeNeedLocation(review.location))) === JSON.stringify(ordered(taskLocation(conversation)))
@@ -49,7 +57,7 @@ export function workerReviewReady(snapshot: WorkerAiSnapshot, now = Date.now()):
   if (!review || snapshot.status !== 'OPEN' || snapshot.stale || snapshot.safety !== 'ALLOW'
     || review.accountId !== snapshot.accountId || review.conversationId !== snapshot.conversationId
     || review.profileId !== snapshot.profileId || review.revision !== snapshot.revision
-    || !review.canAccept || review.missingRequired.length || review.classificationState !== 'READY'
+    || !review.canAccept || review.missingRequired.length || !classificationCanShowReview(review.classificationState)
     || !(Date.parse(review.expiresAt) > now)) return false;
   const onSite = review.reviewedServiceModes?.some(item => item.mode === 'ON_SITE');
   return !onSite || !!review.profile.workAreas?.length

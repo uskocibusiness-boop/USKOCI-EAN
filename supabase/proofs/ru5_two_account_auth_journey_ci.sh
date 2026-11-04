@@ -3,6 +3,19 @@ set -euo pipefail
 
 : "${GITHUB_WORKSPACE:?GITHUB_WORKSPACE required}"
 DB_URL="${DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+# Validate the database before any psql, migration replay or fixture creation.
+# A connection-string override must never cause live DEV/production writes.
+RU5_TWO_ACCOUNT_LOCAL_ACK='LOCAL_DISPOSABLE_TWO_AUTH_SEEDED_NEED'
+export RU5_TWO_ACCOUNT_LOCAL_ACK
+DB_URL="$DB_URL" GUARD_MODULE="$GITHUB_WORKSPACE/supabase/proofs/ru5_two_account_local_guard.mjs" \
+  node --input-type=module -e '
+    const { assertRu5TwoAccountLocal }=await import(process.env.GUARD_MODULE);
+    assertRu5TwoAccountLocal({
+      RU5_TWO_ACCOUNT_LOCAL_ACK:process.env.RU5_TWO_ACCOUNT_LOCAL_ACK,
+      SUPABASE_URL:"http://127.0.0.1:54321",
+      DB_URL:process.env.DB_URL,
+    });
+  '
 PROOF_DIR=/tmp/uskoci-ru5-two-account-auth-journey
 
 rm -rf "$PROOF_DIR"

@@ -384,7 +384,7 @@ export const aiNeedV2Production = {
   async sendMessage(conversationId: string, body: string, clientRequestId: string, stream?: AiTurnStreamOptions, image?: { base64: string; mimeType: string }): Promise<Ishod<AiNeedTurnStatus>> {
     if (!uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
     const text = typeof body === 'string' ? body.trim() : '';
-    if (!text && !image) return fail('MESSAGE_REQUIRED', 'Unesi poruku ili priloži fotografiju.');
+    if (!text && !image) return fail('MESSAGE_REQUIRED', 'Unesite poruku ili priložite fotografiju.');
     if (text && !boundedText(text, 4000)) return fail('MESSAGE_TOO_LONG', 'Poruka može imati najviše 4000 znakova i ispravan tekst.');
     const account = scope(), deadline = Date.now() + 55_000;
     return readOwnedResult({ account, write: true, timeoutMs: 55_000, errors: ERRORS, fallback: 'AI_TURN_SEND_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
@@ -432,16 +432,16 @@ export const aiNeedV2Production = {
   },
 
   async confirmFact(factId: string): Promise<Ishod<null>> {
-    if (!uuid(factId)) return fail('FACT_REQUIRED', 'Osveži pregled podataka.');
+    if (!uuid(factId)) return fail('FACT_REQUIRED', 'Osvežite pregled podataka.');
     const result = await readReceipt({ rpc: 'rpc_ai_confirm_fact', args: { p_fact_id: factId }, errors: ERRORS, write: true,
       fallback: 'AI_FACT_CONFIRM_FAILED', invalid: 'AI_FACT_CONFIRM_INVALID_RESPONSE', decode: raw => sameId(raw, factId) ? { factId: raw } : null });
     return result.ok ? { ok: true, podatak: null } : result;
   },
 
   async correctFact(factId: string, value: unknown, displayValue: string): Promise<Ishod<{ newFactId: string }>> {
-    if (!uuid(factId)) return fail('FACT_REQUIRED', 'Osveži pregled podataka.');
+    if (!uuid(factId)) return fail('FACT_REQUIRED', 'Osvežite pregled podataka.');
     const display = typeof displayValue === 'string' ? displayValue.trim() : '';
-    if (!boundedText(display, 1000) || value === null || !safeJson(value) || !locationPayloadFits(value)) return fail('FACT_VALUE_INVALID', 'Unesi ispravnu vrednost.');
+    if (!boundedText(display, 1000) || value === null || !safeJson(value) || !locationPayloadFits(value)) return fail('FACT_VALUE_INVALID', 'Unesite ispravnu vrednost.');
     return readReceipt({ rpc: 'rpc_ai_correct_fact_v2', args: { p_fact_id: factId, p_value: value, p_display_value: display }, errors: ERRORS, write: true,
       fallback: 'AI_V2_FACT_CORRECTION_FAILED', invalid: 'AI_V2_FACT_CORRECTION_INVALID_RESPONSE', decode: raw => uuid(raw) && !sameId(raw, factId) ? { newFactId: raw } : null });
   },

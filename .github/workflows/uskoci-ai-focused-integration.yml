@@ -1,0 +1,63 @@
+name: USKOCI focused AI integration checks
+
+# Fast proof for the isolated Need/Worker integration branch.
+# The canonical full release CI remains mandatory before merging a milestone.
+on:
+  push:
+    branches:
+      - work/uskoci-ai-flow-integration-20261104
+permissions:
+  contents: read
+
+concurrency:
+  group: uskoci-ai-focused-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ai-source-and-screen-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Check TypeScript source
+        run: npx tsc --noEmit
+      - name: Test DEV-only smoke admission and synthetic chat/readback (never paid)
+        run: node --test --test-reporter=spec scripts/uskoci-ai-dev-smoke.test.mjs
+      - name: Test active Worker Edge logic with synthetic Auth and provider
+        run: |
+          node --test --test-reporter=spec \
+            supabase/proofs/ai/ai_phase_timing.test.mjs \
+            supabase/proofs/ai/v5_worker_edge.test.mjs \
+            supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs
+      - name: Prove two-account journey cannot write to cloud DEV or production
+        run: node --test supabase/proofs/ru5_two_account_local_guard.test.mjs
+      - name: Assert signed remote cityless selection parity and strict migration preimages
+        run: node --test supabase/proofs/ai/r05_cityless_remote_signed_selection.test.mjs
+      - name: Test matching eligibility and synthetic push without sending
+        run: |
+          node --test --test-reporter=spec \
+            supabase/proofs/ai/r05_saved_area_retrieval.test.mjs \
+            supabase/proofs/notifications/n09_push_transport_edge.test.mjs
+      - name: Test both AI review screens and owned recovery
+        run: |
+          npm test -- --runInBand --silent --runTestsByPath \
+            src/data/__tests__/ai-owned-intake-screen.test.tsx \
+            src/data/__tests__/v5-review-screen.test.tsx \
+            src/data/__tests__/worker-ai-conversation-recovery.test.tsx \
+            src/data/__tests__/ai-task-review-client.test.ts \
+            src/data/__tests__/worker-ai-client.test.ts \
+            src/data/__tests__/ai-turn-intent-journal.test.ts \
+            src/data/__tests__/worker-ai-turn-intent-journal.test.ts \
+            src/data/__tests__/activity-application-push-target-service.test.ts \
+            src/data/__tests__/activity-application-target-service.test.ts \
+            src/data/__tests__/push-readiness.test.ts

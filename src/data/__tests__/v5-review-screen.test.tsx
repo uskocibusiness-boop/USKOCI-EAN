@@ -1103,6 +1103,27 @@ it('saves the reviewed task as a private draft without asking for publication, t
   expect(action('Osvežite').disabled).toBe(false);
   await act(async () => action('Otvorite moje zadatke').onPress()); expect(mockRouter.replace).toHaveBeenCalledWith('/potrebe');
 });
+// A signed but not yet classified service must still permit the server-accepted
+// private draft, without silently publishing or authorizing candidate matching.
+it('a signed pending review can be saved privately and read back without publication', async () => {
+  const pending:AiTaskReviewEnvelope={...review(),classificationState:'PENDING_CLASSIFICATION',
+    classificationCandidates:[],reviewedServiceModes:[],classificationCatalogVersion:null,classificationCatalogFingerprint:null};
+  mockPrepare.mockResolvedValue(ok(pending));
+  mockDraft.mockImplementation(async () => {
+    mockRead.mockResolvedValue(ok({review:pending,command:command('ACCEPTED')}));
+    return ok(command('ACCEPTED'));
+  });
+  await render();
+  expect(publish().disabled).toBe(true);
+  expect(action('Sačuvajte nacrt').disabled).toBe(false);
+  await act(async () => action('Sačuvajte nacrt').onPress());
+  expect(mockDraft).toHaveBeenCalledWith({review:pending,clientRequestId:expect.any(String)});
+  expect(text()).toContain('Sačuvano kao privatan nacrt. Zadatak nije objavljen.');
+  expect(commands('Objavite ovaj nacrt')).toHaveLength(0);
+  expect(commands('Izmenite zadatak')).toHaveLength(1);
+  expect(mockAccept).not.toHaveBeenCalled();
+  expect(mockResume).not.toHaveBeenCalled();
+});
 // Round 2c (verifier va, must 1): loading is the write the action started. "Objavi zadatak" read the editor's busy flag,
 // which every save sets, so it spun and was spoken as busy while a draft or a corrected fact was being saved.
 it('spins "Objavi zadatak" only for the publish itself: while a draft saves it waits grey and is not busy', async () => {
