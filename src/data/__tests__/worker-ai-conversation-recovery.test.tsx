@@ -457,7 +457,7 @@ it('confirmed BOTH sends exact service modes and re-reads the owned review witho
     reviewedServiceModes:[],classificationCandidates:[]};
   const ready={...data.review!,reviewedServiceModes:[
     {service:'Montaža',mode:'ON_SITE'},{service:'Montaža',mode:'REMOTE'}]};
-  let canonical={...data,review:pending};
+  let canonical:unknown={...data,review:pending};
   mockApi.read.mockImplementation(async()=>ok(canonical));
   mockApi.prepare.mockResolvedValue(ok(pending));
   mockApi.prepareConfirmed.mockImplementation(async()=>{
