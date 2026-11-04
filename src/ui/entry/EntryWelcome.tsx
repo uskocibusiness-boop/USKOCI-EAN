@@ -17,7 +17,7 @@ export type EntryIntentSelection = { isCurrent: () => boolean };
 
 // Official 3D clay natural illustrations matching Home doors ("Objavite zadatak" & "Uskočite i zaradite")
 const publish = require('../../../assets/illustrations/natural-v1/publish.webp');
-const discover = require('../../../assets/illustrations/natural-v1/workbag.webp');
+const discover = require('../../../assets/illustrations/natural-v1/money.webp');
 
 export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy = false, error }: {
   onRequester: (selection: EntryIntentSelection) => void | Promise<void>;

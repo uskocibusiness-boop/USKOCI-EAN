@@ -29,7 +29,7 @@ export function AuthIntentLine({ intent, disabled = false, onChange }: {
     accessibilityLabel={`${authIntentSentence[intent]}. Promeni`} accessibilityHint={`Prebacuje na „${authIntentSentence[next]}“.`}
     accessibilityState={{ disabled }} onPress={() => onChange(next)} style={s.row}>
     <View accessible={false} importantForAccessibility="no-hide-descendants">
-      <FactArt kind={intent === 'REQUESTER' ? 'publish' : 'tool'} size={24} />
+      <FactArt kind={intent === 'REQUESTER' ? 'publish' : 'money'} size={24} cut="art" />
     </View>
     <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'} style={s.sentence}>{authIntentSentence[intent]}</T>
     {/* The word is the command: green words inside a 48 dp-high area, not a second button drawn beside the sentence. */}
