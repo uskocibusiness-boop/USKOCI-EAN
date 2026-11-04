@@ -103,7 +103,7 @@ export function AgreementPersonBar({ person, back, right }: { person: UcesnikPro
 export function AgreementFact({ art, label, value, note, basis, money = false }: {
   art: FactArtKind; label: string; value: string; note?: string | null; basis?: string | null; money?: boolean;
 }) {
-  return <View accessible accessibilityLabel={`${label}: ${value}${note ? `, ${note}` : ''}`} style={s.fact}>
+  return <View accessible accessibilityLabel={`${label}: ${value}${money && basis ? ` ${basis}` : ''}${note ? `, ${note}` : ''}`} style={s.fact}>
     <View style={s.factArt}>{art === 'money' && money ? <MoneyArt size={24} /> : <FactArt kind={art} size={24} cut="art" />}</View>
     <View style={s.factCopy}>
       <T variant="note" style={money ? s.factMoney : s.factValue}>{value}{money && basis ? <T variant="note" tone="muted">{` ${basis}`}</T> : null}</T>
