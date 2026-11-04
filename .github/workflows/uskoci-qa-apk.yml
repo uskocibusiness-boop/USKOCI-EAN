@@ -29,6 +29,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Capture tracked source for offline audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/uskoci-source"
+          git archive --format=tar.gz --output="$RUNNER_TEMP/uskoci-source/source.tar.gz" HEAD
+          git rev-parse HEAD > "$RUNNER_TEMP/uskoci-source/source-commit.txt"
+          git ls-tree -r -l HEAD > "$RUNNER_TEMP/uskoci-source/source-inventory.txt"
+      - name: Upload exact source snapshot separately from APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: uskoci-source-${{ github.sha }}
+          path: ${{ runner.temp }}/uskoci-source/
+          if-no-files-found: error
+          retention-days: 3
       - name: Set up Node
         uses: actions/setup-node@v4
         with:

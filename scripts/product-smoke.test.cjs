@@ -95,3 +95,57 @@ test('voice retry requires a retained send intent',async()=>{
     await voice.dispose();
   }
 });
+
+test('signed task readiness follows the server handoff projection',async t=>{
+  const ts=require('typescript'),mod={exports:{}};
+  const source=fs.readFileSync(path.join(root,'src/features/ai/intake/intakeReviewReadiness.ts'),'utf8');
+  const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+  // Unit boundary: decoded location/summary inputs, no provider, transport or native calls.
+  new Function('module','exports','require',js)(mod,mod.exports,id=>{
+    if(id==='../../../data/reviewFactProblem')return {reviewFactProblem:()=>null};
+    if(id==='../../../ui/v2/draftSummary')return {completeDraftProposal:()=>true};
+    if(id==='../../../lib/location')return {normalizeNeedLocation:v=>v?.geography?v:null,pointsMissing:()=>({total:1,done:1})};
+    throw Error('UNEXPECTED_READINESS_IMPORT:'+id);
+  });
+  const now=Date.parse('2026-11-04T12:00:00Z');
+  function fixture(mode='STATIONARY'){
+    const facts=[['need.task_country_code','RS'],['need.task_geography',mode==='REMOTE'?{mode}:{mode,start:{city:'Novi Sad'}}],
+      ['need.title','Popravka stolice'],['need.description','Popravka drvene stolice'],['need.category','Popravka nameštaja'],
+      ['need.price_mode','MY_PRICE'],['need.price_rsd',3000],['need.people_needed',1],['need.schedule_kind','FLEXIBLE'],
+      ['need.handoff',{required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}}]]
+      .map(([key,value],i)=>({id:String(i),key,value,status:'CONFIRMED',privacyClass:'PUBLIC'}));
+    const conversation={conversationId:'conversation-a',status:'OPEN',safety:'ALLOW',facts,messages:[]};
+    const review={conversationId:conversation.conversationId,canAccept:true,safety:'ALLOW',classificationState:'READY',
+      missingRequired:[],expiresAt:'2026-11-04T12:15:00Z',
+      publicProjection:structuredClone(facts.filter(f=>mode==='REMOTE'||f.key!=='need.handoff')),ownerPrivateProjection:[],
+      location:{taskCountryCode:'RS',geography:structuredClone(facts[1].value),exactAddress:null,accessNotes:null,resolvedLocation:null}};
+    return {conversation,review};
+  }
+  const ready=({conversation,review})=>mod.exports.taskReviewReady(review,conversation,now);
+  await t.test('on-site mode correction does not get stuck on the previous handoff',()=>assert.equal(ready(fixture()),true));
+  await t.test('remote handoff must remain visible',()=>{
+    const f=fixture('REMOTE');assert.equal(ready(f),true);
+    f.review.publicProjection=f.review.publicProjection.filter(x=>x.key!=='need.handoff');assert.equal(ready(f),false);
+  });
+  await t.test('remote handoff changes invalidate the review',()=>{
+    const f=fixture('REMOTE');f.review.publicProjection.find(x=>x.key==='need.handoff').value={required:false};assert.equal(ready(f),false);
+  });
+  await t.test('price and geography mismatches still block review',()=>{
+    const f=fixture();f.conversation.facts=f.conversation.facts.filter(x=>x.key!=='need.handoff');assert.equal(ready(f),true);
+    f.review.publicProjection.find(x=>x.key==='need.price_rsd').value=4000;assert.equal(ready(f),false);
+    f.review.publicProjection.find(x=>x.key==='need.price_rsd').value=3000;f.review.location.geography={mode:'REMOTE'};assert.equal(ready(f),false);
+  });
+  await t.test('on-site signed review cannot add an extra handoff',()=>{
+    const f=fixture();f.review.publicProjection.push(structuredClone(f.conversation.facts.at(-1)));assert.equal(ready(f),false);
+  });
+  await t.test('expired, unclassified and unaccepted reviews stay blocked',()=>{
+    for(const change of [{expiresAt:'2026-11-04T11:59:59Z'},{classificationState:'PENDING_CLASSIFICATION'},{canAccept:false}]){
+      const f=fixture();Object.assign(f.review,change);assert.equal(ready(f),false);
+    }
+  });
+  await t.test('comparison does not mutate facts or weaken the cache identity',()=>{
+    const f=fixture(),before=structuredClone(f),key=mod.exports.taskReadinessKey(f.conversation);
+    ready(f);assert.deepEqual(f,before);f.conversation.facts.at(-1).value={required:false};
+    assert.notEqual(mod.exports.taskReadinessKey(f.conversation),key);
+  });
+});

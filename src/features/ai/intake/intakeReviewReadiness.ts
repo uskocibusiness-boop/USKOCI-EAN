@@ -35,11 +35,17 @@ export function taskReadyToPrepare(conversation: AiNeedV2Conversation): boolean 
 }
 
 export function taskReviewReady(review: AiTaskReviewEnvelope | null | undefined, conversation: AiNeedV2Conversation, now = Date.now()): boolean {
+  const location = taskLocation(conversation);
+  // The signed server review omits handoff outside REMOTE work. Compare that
+  // same projection after a mode correction, without changing conversation facts
+  // or accepting an extra handoff in the signed on-site review.
+  const facts = location && location.geography.mode !== 'REMOTE'
+    ? conversation.facts.filter(fact => fact.key !== 'need.handoff') : conversation.facts;
   return !!review && taskReadyToPrepare(conversation) && review.conversationId === conversation.conversationId
     && review.canAccept && review.safety === 'ALLOW' && review.classificationState === 'READY'
     && review.missingRequired.length === 0 && Date.parse(review.expiresAt) > now
-    && factKey([...review.publicProjection, ...review.ownerPrivateProjection]) === factKey(conversation.facts)
-    && JSON.stringify(ordered(normalizeNeedLocation(review.location))) === JSON.stringify(ordered(taskLocation(conversation)))
+    && factKey([...review.publicProjection, ...review.ownerPrivateProjection]) === factKey(facts)
+    && JSON.stringify(ordered(normalizeNeedLocation(review.location))) === JSON.stringify(ordered(location))
     && !reviewFactProblem(review, now)
     && !review.publicProjection.some(fact => fact.key === 'need.verified_identity_required' && fact.value === true);
 }
