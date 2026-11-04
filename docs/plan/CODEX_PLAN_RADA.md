@@ -1,5 +1,7 @@
 # USKOČI — jedinstveni plan dovršavanja proizvoda i objavljivanja
 
+> **R11, 04.11.2026 — kontrolisano arhiviranje starih APPLIED SQL kandidata:** [izveštaj](../continuation/ARHIVIRANI_APPLIED_KANDIDATI_20261104.md) i [SHA indeks](../continuation/ARHIVIRANI_APPLIED_KANDIDATI_20261104.json). Iz Git stabla uklonjeni su samo istorijski paketi bez spoljašnjih izvršnih referenci; dokaz primene je u postojećem ledger-u, svaki original je identičan čuvanoj Git verziji. Aktivni SQL/Edge/CI dokazi ostaju, istorijski kod može se vratiti iz pinovanog commita. Ovo ne menja aplikaciju ni DEV i ne dokazuje da je kompletno čišćenje završeno.
+
 > R11 IZVRSENI KORAK 04.11.2026: uklonjen je prenosni teret od 20 istorijskih arhivskih fajlova iz izdvojene grane, uz Git SHA-256 i potpunu obnovu postojeceg dokaza. Original ostaje u Git istoriji f554e77144840b960b74d4240d23936e365a8594. Vidi docs/continuation/ARHIVIRANI_IZVORI_20261104.md. App, server, migracije, testovi, dizajn i postojece poslovne funkcije nisu menjani. Ovo nije novi master niti zavrsena celovita optimizacija.
 
 
