@@ -33,6 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p /tmp/uskoci-sql-cleanup
           python3 scripts/retire_applied_sql_once.py > /tmp/uskoci-sql-cleanup/selection.log
           git diff --check
           python3 - <<'PY'
