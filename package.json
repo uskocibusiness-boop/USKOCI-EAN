@@ -70,7 +70,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "node --test scripts/product-smoke.test.cjs"
   },
   "private": true
 }

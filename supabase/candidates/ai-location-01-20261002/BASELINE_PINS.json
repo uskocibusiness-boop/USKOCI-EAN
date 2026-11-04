@@ -1,6 +1,0 @@
-{
-  "public.rpc_ai_claim_need_turn_v2_service(uuid,uuid,uuid,text)": "1b0ee1adeb41d9eed168b0aea4db934c",
-  "private.ai_need_turn_status(uuid,uuid,uuid)": "f3fd671c15642b37aa8c9d7182dcb3df",
-  "public.rpc_ai_complete_need_turn_v2_service(uuid,uuid,uuid,uuid,text,text,text,jsonb)": "ff2be465f91497787558d9d1a5cecdba",
-  "private.need_location_review_document(uuid)": "244eaa9446dbf43b36d0b8fa7dfa7837"
-}

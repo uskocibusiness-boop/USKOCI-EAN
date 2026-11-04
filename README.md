@@ -1,44 +1,38 @@
-# USKOČI — aktivni izvorni kod
+# USKOČI — čist izvršni proizvod (izdvojena grana)
 
-**Aktuelna radna grana za nastavak razvoja:** `work/rev14-review-f17` u
-`uskocibusiness-boop/USKOCI-EAN`; [PR #43](https://github.com/uskocibusiness-boop/USKOCI-EAN/pull/43)
-je Draft prema `feature/uskoci-cisto`. Default GitHub grana NIJE radna grana.
-Aplikacija je Expo / React Native; DEV Supabase je `leqcwgzvjsxugfgzdmth`.
+Ovo je samostalna radna grana za aktivan React Native/Expo kod,
+Supabase Edge funkcije, kanonske migracije baze, native integraciju,
+brend-resurse i konfiguraciju izgradnje.
 
-## Jedini pravilan ulaz za Codex
+**Ovo nije spajanje sa glavnom granom i nije nova aplikacija od nule.**
+Polazni izvor: work/uskoci-cleanroom-audit-20261104
+na commitu 357d767d9f7ad61b0cd452c9c3a0e44b1b69664f.
 
-1. Prvo pročitaj [nastavak rada](docs/continuation/NASTAVAK_RADA.md), proveri stvarni remote HEAD / lokalno stablo i poslednji CI na tom SHA-u.
-2. **Jedini operativni plan** je [CODEX_PLAN_RADA.md](docs/plan/CODEX_PLAN_RADA.md), posebno §11.2a (izvršni status), §4.2–4.3 (zavisnosti i acceptance) i **§12.5–12.6** (integritet dokaza i usaglašena izvršna istina).
-3. **Jedini noviji Product/UX kanon** je [USKOCI_PRODUCT_UX_MASTER.md](docs/product/USKOCI_PRODUCT_UX_MASTER.md) (izvorni Product/UX master 29.10, **važeća vlasnička korekcija 31.10: jedna zajednička reputacija naloga**). Čitaj samo relevantni S01–S18 i E/J ugovor za konkretan posao; istorija iza „ISTORIJSKA EVIDENCIJA” nije novi autoritet.
-4. [REV10/REV13/REV14 dokazni most](docs/continuation/source-bridge-20261030/README.md) ima 208 mapiranih istorijskih nalaza, 77 ekranskih ugovora i 44 dodatna nalaza. **Istorijski dokaz NIJE trenutni bug niti potvrđen PASS.** Obnovi/verifikuj jednom, otvaraj samo potrebne izvore.
-5. Kod, SQL, Edge, DEV, NATIVE i PROD razlikuj po izvoru, testu, run ID-ju i statusu. R01 strict FAIL, R10 closure i release ostaju stvarni gates. Ne pravi drugi master, ne biraj old default branch i ne ponavljaj puni audit svakog ZIP-a za svaku ispravku.
+## Jedina dva mastera
+- docs/plan/CODEX_PLAN_RADA.md — izvršni plan.
+- docs/product/USKOCI_PRODUCT_UX_MASTER.md — vlasnički UX i proizvod.
 
+## Čisti proizvod
+- src/app — ulazi Expo Router ekrana.
+- src/features, src/data, src/contracts, src/ui, src/hooks — aktivna aplikacija.
+- supabase/functions — aktivni Edge kod i zajednički validatori.
+- supabase/migrations — kanonska SQL istorija (nije cela DEV ledger istorija).
+- assets, config, modules, plugins, patches, vendor — build/resursi.
 
-## Šta je u folderu
+## Razvoj bez nepotrebne istorije u folderu
+Velika kolekcija QA provera, SQL kandidata, istorijskih analiza i
+restore dokaza nije obrisana iz Git istorije. Čuva se u drugoj grani,
+work/uskoci-cleanroom-audit-20261104, na prethodno pinovanom commitu.
+Tamo se po potrebi izvršavaju detaljni testovi nad aktuelnim kodom.
+Ova grana koristi mali smoke test preko npm test i zadrzava
+postojeci QA APK workflow za zasebnu Android proveru.
 
-- `src/`, `assets/`, `modules/`, `plugins/`, `patches/`, `config/` i `vendor/`:
-  klijentski kod i resursi.
-- `supabase/functions/` i `supabase/migrations/`: Edge kod i kanonske SQL
-  migracije. Istorija primena na DEV-u nije isto što i broj lokalnih SQL fajlova.
-- `src/**/__tests__/`, `supabase/proofs/` i `supabase/candidates/`: postojeće
-  provere i kandidati. Kandidat SQL nije automatski primenjena migracija.
-- `scripts/`: provere ugovora builda, nativne zakrpe i resursa.
-
-`node_modules/`, `android/`, `.expo/`, lokalni `.env` i generisani resursi se ne
-prate u Git-u. Instalacija zavisnosti na novoj mašini treba da ih obnovi iz
-`package-lock.json`, `patches/` i sačuvanih ulaznih resursa.
-
-## Brze lokalne provere
-
-```text
+## Lokalna izgradnja
 npm ci
+npm test
 npx tsc --noEmit
-npm test -- --runInBand
-node --test supabase/proofs/ai/ai_edge_context.test.mjs
-python supabase/migrations/check_migration_integrity.py
-```
+npx expo export --platform android
 
-Preview APK cilja DEV. Produkcioni build/OTA je namerno blokiran u
-`scripts/build-contract.cjs` dok se ne podesi i proveri zaseban produkcioni
-backend. Prolaz tipova i lokalnih testova sam po sebi ne potvrđuje instalaciju
-ili korisnički tok na telefonu.
+Ovo nije potvrda realnog Gemini razgovora, Supabase DEV Auth/RLS,
+instaliranog APK-a ili stvarnog dvo-naložnog toka. Produkcioni backend
+mora imati odvojenu verifikaciju i ne sme naslepo koristiti DEV postavke.
