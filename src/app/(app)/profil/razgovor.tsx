@@ -13,7 +13,8 @@ import { inferWorkerExecutionModes, workerExecutionModeClientService } from '../
 
 import { useHoldToTalk } from '../../../features/voice/useHoldToTalk';
 import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
-import { classificationPreparationMessage, workerReviewReady } from '../../../features/ai/intake/intakeReviewReadiness';
+import { classificationPreparationMessage, workerReviewPresentable, workerReviewReady } from '../../../features/ai/intake/intakeReviewReadiness';
+import { useReviewExpiry } from '../../../features/ai/intake/useReviewExpiry';
 import { workerInterviewOpening } from '../../../features/ai/intake/aiInterviewWelcome';
 import { useAccountName } from '../../../ui/profile/useAccountName';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
@@ -204,12 +205,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   },[data?.conversationId,data?.review]);
   const reviewNeedsRestart=!!rejectedReviewId&&data?.review?.reviewId===rejectedReviewId&&!data.saved;
   useEffect(()=>{if(data&&data.review?.reviewId!==rejectedReviewId)setRejectedReviewId(null);},[data?.review?.reviewId,rejectedReviewId]);
-  const [,expireReview]=useState(0);
-  useEffect(()=>{
-    if(!data?.review||data.saved)return;
-    const delay=Date.parse(data.review.expiresAt)-Date.now();if(delay<=0)return;
-    const timer=setTimeout(()=>expireReview(value=>value+1),delay+1);return()=>clearTimeout(timer);
-  },[data?.review?.reviewId,data?.review?.expiresAt,data?.saved]);
+  const reviewHasExpired=useReviewExpiry(data?.review&&!data.saved?data.review.expiresAt:null);
   const current=()=>!!renderedFocus&&focus.current===renderedFocus&&owns()&&active.current;
   const canAct=()=>current()&&panelScope.current===renderedPanel&&!resuming&&!editor.busy&&!editor.loading&&editor.loaded&&!editor.uncertain&&!!data;
   const savePanel=async(activity:Exclude<ReviewActivity,null>,command:()=>Promise<Ishod<WorkerAiSnapshot>>)=>{
@@ -436,10 +432,10 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     {reviewActivity==='preparing'?'Pripremamo novi pregled. Profil još nije sačuvan.':reviewActivity==='saving'
       ?'Čuvamo profil. Sačekajte potvrdu pre povratka u razgovor.':'Proveravamo stanje razgovora. Sačekajte potvrdu.'}
   </T>:null;
-  if(panel==='review'&&data.review&&(data.saved||workerReviewReady(data))){const frozen=data.review,
+  if(panel==='review'&&data.review&&(data.saved||workerReviewPresentable(data))){const frozen=data.review,
     // The account got its name (in "Lični podaci") while this review still says it is missing: a fresh review puts it in.
     nameAdded=frozen.missingRequired.includes('Ime')&&!!accountName,
-    expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision||nameAdded;
+    expired=reviewHasExpired||frozen.revision!==data.revision||nameAdded;
     // A correction returns to this conversation without sending or replacing its typed draft.
     const editConversation=()=>{
       if(!canAct()||!enabled||!writable||data.saved||expired||reviewNeedsRestart)return;

@@ -29,6 +29,7 @@ import { NeedLifecycleActions, type NeedLifecycleMenu } from '../../ui/needs/Nee
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { StateView } from '../../ui/system/StateView';
 import { classificationPreparationMessage } from '../../features/ai/intake/intakeReviewReadiness';
+import { reviewExpired, useReviewExpiry } from '../../features/ai/intake/useReviewExpiry';
 import { QuietReadState } from '../../ui/v2/QuietReadState';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { useReducedMotion } from '../../ui/system/motion';
@@ -215,6 +216,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const busyNow = useRef(false); busyNow.current = editor.busy || editor.loading || editor.uncertain;
   const lifecycleNow = useRef(false); lifecycleNow.current = lifecycleActive;
   const snapshot = editor.data, review = snapshot?.review, command = snapshot?.command;
+  const expired = useReviewExpiry(review && !command ? review.expiresAt : null);
+  const expiredCopy = 'Ovaj pregled više ne važi. Osvežite ga pre potvrde; podaci iz razgovora ostaju sačuvani.';
   const locationReadiness = reviewLocationReadiness(review ?? { location: null });
   const resumableCommand = !!command && command.authoritative === true && (command.state === 'ACCEPTED'
     || (command.state === 'EVALUATED' && command.evaluation?.kind === 'DECISION' && command.evaluation.decision.outcome === 'ALLOW'));
@@ -237,7 +240,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const view = useMemo(() => ({}), [snapshot, locationEditor, intakeReturn]), currentView = useRef(view); currentView.current = view;
   const renderedFocus = focus.current;
   const current = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
-    && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
+    && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision
+    && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
   const canAct = () => current() && !navigating.current && !locationOpening.current && !editor.loading && !editor.busy && !editor.uncertain
     && !lifecycleNow.current;
   const navigate = (fn: () => void) => { if (!current() || navigating.current) return; navigating.current = true; fn(); };
@@ -259,8 +263,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // retained command identity; they differ only in whether evaluation and publication follow now.
   const accept = async (andPublish: boolean) => {
     if (!canAct() || !review || !review.canAccept || publishedEditUnavailable || draftWriteProblem || unavailableIdentityFact || locationEditor || command || review.accountId !== accountId) return;
+    // A queued tap must recheck time itself, not trust a render or timer.
+    // Accepted commands use resume below and are deliberately not gated here.
+    if (reviewExpired(review.expiresAt)) return;
     if (andPublish && !locationReadiness.ready) return;
     const accepted = pending.current ?? { review, id: noviUuidZahtevId() };
+    if (reviewExpired(accepted.review.expiresAt)) return;
     if (andPublish && !reviewLocationReadiness(accepted.review).ready) return;
     pending.current = accepted;
     // Marked only once the editor has taken the write (the export screen's rule), so a refused second press never
@@ -490,7 +498,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const classificationReason = classificationModeMissing
     ? 'U razgovoru razjasnite da li se posao radi na lokaciji ili bez dolaska izvršioca.'
     : classificationPreparationMessage(review?.classificationState);
-  const publishBlocked = !review || disabled || publishedEditUnavailable || !review.canAccept || classificationPending || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
+  const publishBlocked = !review || disabled || expired || publishedEditUnavailable || !review.canAccept || classificationPending || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.
   const publishWorking = editor.busy && publishing;
@@ -499,7 +507,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // One line ABOVE the publish button, in the foot, ONLY when the button is grey: the first thing in its way, short (the full list is "Još treba"
   // above). A grey button always says why, and the reason stands over it, not under it, where it read as the next thing. A button that can be pressed
   // says what it does by its name and has no sentence over it ("Objavljuješ ovu verziju zadatka." said what "Objavi zadatak" is; the owner, 8 Oct 2026).
-  const caption = todos.length || unavailableIdentityFact ? 'Prvo uradite ono što piše pod „Još treba“.' :
+  const caption = expired && !editor.busy && !editor.uncertain ? expiredCopy : todos.length || unavailableIdentityFact ? 'Prvo uradite ono što piše pod „Još treba“.' :
     classificationPending ? classificationReason : null;
   // A command that fails ticks once with the failure pattern (haptics rule R5), whether it ends in a refusal or in an outcome not known.
   const failedWith = useRef<string | null>(null);
@@ -637,10 +645,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
         {revising ? <T variant="note" tone="muted" testID="task-edit-publication-consequence">
             {replacement ? replacementNotice : 'Objavljivanje izmena trenutno nije dostupno. Ovaj pregled neće promeniti postojeću objavu. Izmene ostaju u razgovoru.'}
         </T> : null}
-        <PublishButton label={acceptLabel} blocked={publishBlocked} working={publishWorking} reason={caption} onPress={publish} />
+        {expired && !editor.busy && !editor.uncertain
+          ? check('Osvežite pregled', true, 'Osvežite pregled pre potvrde zadatka')
+          : <PublishButton label={acceptLabel} blocked={publishBlocked} working={publishWorking} reason={caption} onPress={publish} />}
         {/* While a write has no outcome yet, or has been refused, the one thing to do is to read what is true now. */}
-        {editor.uncertain ? check(OUTCOME_ACTION.check, false, CHECK_SPOKEN) : editor.error ? check(OUTCOME_ACTION.refresh, false, 'Osvežite pregled')
-          : !bound && review.canAccept && !draftWriteProblem && !unavailableIdentityFact
+        {editor.uncertain ? check(OUTCOME_ACTION.check, false, CHECK_SPOKEN) : editor.error && !expired ? check(OUTCOME_ACTION.refresh, false, 'Osvežite pregled')
+          : !expired && !bound && review.canAccept && !draftWriteProblem && !unavailableIdentityFact
             ? <V2Action label="Sačuvajte nacrt" kind="quiet" disabled={quietEdit} onPress={() => { void accept(false); }} /> : null}
       </>}
   </FlowFooter>;

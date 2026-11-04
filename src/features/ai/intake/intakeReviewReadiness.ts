@@ -50,16 +50,21 @@ export function taskReviewReady(review: AiTaskReviewEnvelope | null | undefined,
     && !review.publicProjection.some(fact => fact.key === 'need.verified_identity_required' && fact.value === true);
 }
 
-export function workerReviewReady(snapshot: WorkerAiSnapshot, now = Date.now()): boolean {
+// An already opened review may stay visible after expiry, with Save disabled.
+// This check is never sufficient to admit a new review or a Save command.
+export function workerReviewPresentable(snapshot: WorkerAiSnapshot): boolean {
   const review = snapshot.review;
   if (!review || snapshot.status !== 'OPEN' || snapshot.stale || snapshot.safety !== 'ALLOW'
     || review.accountId !== snapshot.accountId || review.conversationId !== snapshot.conversationId
     || review.profileId !== snapshot.profileId || review.revision !== snapshot.revision
-    || !review.canAccept || review.missingRequired.length || review.classificationState !== 'READY'
-    || !(Date.parse(review.expiresAt) > now)) return false;
+    || !review.canAccept || review.missingRequired.length || review.classificationState !== 'READY') return false;
   const onSite = review.reviewedServiceModes?.some(item => item.mode === 'ON_SITE');
   return !onSite || !!review.profile.workAreas?.length
     || !!review.profile.location.operatingCountryCode && review.profile.location.city.trim().length >= 2;
+}
+
+export function workerReviewReady(snapshot: WorkerAiSnapshot, now = Date.now()): boolean {
+  return workerReviewPresentable(snapshot) && Date.parse(snapshot.review!.expiresAt) > now;
 }
 
 // A technical failure never asks the person to restate an already understood job.
