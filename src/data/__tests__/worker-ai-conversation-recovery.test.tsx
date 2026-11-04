@@ -415,7 +415,14 @@ it.each(['PENDING_CLASSIFICATION','REVIEW_REQUIRED'] as const)(
   'a server-accepted %s work profile reaches Save without inventing matching readiness', async state => {
     const data=reviewed();
     const signed={...data.review!,activate:false,classificationState:state,reviewedServiceModes:[],classificationCandidates:[]};
-    mockApi.read.mockResolvedValue(ok({...data,review:signed}));
+    const receipt={reviewId:signed.reviewId,conversationId:C,accountId:A,profileId:B,
+      profileStatus:'DRAFT',saved:true,authoritative:true};
+    let current={...data,review:signed,saved:null as null|typeof receipt};
+    mockApi.read.mockImplementation(async()=>ok(current));
+    mockApi.save.mockImplementation(async()=>{
+      current={...current,status:'COMPLETED',saved:receipt};
+      return ok(receipt);
+    });
     await render();
     expect(shell().props.footerAction.props.label).toBe('Pregledajte radni profil');
     const calls=mockApi.prepare.mock.calls.length;
@@ -423,8 +430,12 @@ it.each(['PENDING_CLASSIFICATION','REVIEW_REQUIRED'] as const)(
     expect(mockApi.prepare).toHaveBeenCalledTimes(calls);
     expect(tree.root.findByType('Review' as any).props.review).toEqual(signed);
     expect(action('Sačuvajte profil').props.disabled).toBe(false);
-    expect(mockApi.save).not.toHaveBeenCalled();
+    await click('Sačuvajte profil');
+    expect(mockApi.save).toHaveBeenCalledWith(signed,expect.any(String));
+    expect(visibleText()).toContain('Profil je sačuvan');
+    expect(visibleText()).not.toContain(' i aktivan');
     expect(visibleText()).not.toContain('Zadatke povezujemo sa potvrđenim uslugama');
+    expect(mockApi.send).not.toHaveBeenCalled();
   });
 it('a legacy review does not claim confirmed matching when classification authority is absent',async()=>{
  const data=reviewed();mockApi.read.mockResolvedValue(ok({...data,review:{...data.review,classificationState:undefined}}));

@@ -6,24 +6,6 @@ on:
   push:
     branches:
       - work/uskoci-ai-flow-integration-20261104
-  pull_request:
-    branches:
-      - work/product-cleanup-20261104
-    paths:
-      - src/features/ai/intake/**
-      - src/data/aiNeedV2Production.ts
-      - src/data/aiTaskReviewClientService.ts
-      - src/data/workerAiClientService.ts
-      - src/data/aiTurnIntentJournal.ts
-      - src/data/workerAiTurnIntentJournal.ts
-      - src/data/__tests__/ai-owned-intake-screen.test.tsx
-      - src/data/__tests__/worker-ai-conversation-recovery.test.tsx
-      - src/data/__tests__/ai-task-review-client.test.ts
-      - src/data/__tests__/worker-ai-client.test.ts
-      - src/data/__tests__/ai-turn-intent-journal.test.ts
-      - src/data/__tests__/worker-ai-turn-intent-journal.test.ts
-      - .github/workflows/uskoci-ai-focused-integration.yml
-
 permissions:
   contents: read
 
@@ -53,6 +35,7 @@ jobs:
         run: |
           npm test -- --runInBand --silent --runTestsByPath \
             src/data/__tests__/ai-owned-intake-screen.test.tsx \
+            src/data/__tests__/v5-review-screen.test.tsx \
             src/data/__tests__/worker-ai-conversation-recovery.test.tsx \
             src/data/__tests__/ai-task-review-client.test.ts \
             src/data/__tests__/worker-ai-client.test.ts \
