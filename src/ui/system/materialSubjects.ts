@@ -9,11 +9,11 @@ export const MATERIAL_SUBJECTS: Partial<Record<string, number>> = {
   calendar: require('../../../assets/illustrations/natural-v1/calendar.webp'),
   clock: require('../../../assets/illustrations/natural-v1/clock.webp'),
   users: require('../../../assets/illustrations/natural-v1/users.webp'),
-  // Money renders via dynamic vector coins (FactArt dinar coins) for crisp detail across all card sizes
+  money: require('../../../assets/illustrations/natural-v1/money.webp'),
   map: require('../../../assets/illustrations/natural-v1/map.webp'),
   tasks: require('../../../assets/illustrations/natural-v1/tasks.webp'),
   agreements: require('../../../assets/illustrations/natural-v1/agreements.webp'),
-  offers: require('../../../assets/illustrations/natural-v1/offers.webp'),
+  offers: require('../../../assets/illustrations/natural-v1/money.webp'),
   applications: require('../../../assets/illustrations/natural-v1/applications.webp'),
   send: require('../../../assets/illustrations/natural-v1/applications.webp'),
   chat: require('../../../assets/illustrations/natural-v1/chat.webp'),

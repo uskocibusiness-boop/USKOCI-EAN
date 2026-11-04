@@ -346,7 +346,7 @@ function FactArtBase({ kind, size = 20, tone, role, cut = 'auto', muted = false 
   const drawnCut = factCutFor(size, cut);
   const artRole = muted || tone ? undefined : role ?? (drawnCut === 'art' ? ART_ROLE[kind] : undefined);
   // Explicit warning/confirmed/AI role colors have meaning and must not disappear into an image.
-  const subject = drawnCut === 'art' && size >= 24 && !muted && !tone
+  const subject = (drawnCut === 'art' || cut === 'art') && size >= 20 && !muted && !tone
     && role !== 'waiting' && role !== 'confirmed' && role !== 'ai' ? MATERIAL_SUBJECTS[kind] : undefined;
   if (subject !== undefined) return <View aria-hidden accessible={false} accessibilityElementsHidden
     importantForAccessibility="no-hide-descendants" style={{ width: size, height: size }}>

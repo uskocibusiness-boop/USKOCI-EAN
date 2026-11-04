@@ -109,7 +109,7 @@ function spokenWithOffers(spoken: string, value: TaskValue, word: string): strin
 function ValueRow({ model, mapPreview = false }: { model: TaskRecordModel; mapPreview?: boolean }) {
   const { value } = model;
   if (value.kind !== 'amount') return <View style={s.offerRow}>
-    <FactArt kind="money" size={mapPreview ? 28 : 22} cut={mapPreview ? 'art' : 'auto'} />
+    <FactArt kind="money" size={mapPreview ? 28 : 24} cut="art" />
     <T variant="bodyStrong">{value.kind === 'offers' ? model.offersWord : VALUE_WORDS[value.kind]}</T>
   </View>;
   const budget = <View style={[s.valueRow, mapPreview && s.previewBudget]}>
@@ -119,7 +119,7 @@ function ValueRow({ model, mapPreview = false }: { model: TaskRecordModel; mapPr
       {value.basis ? <T variant="note" tone="muted">{value.basis}</T> : null}
     </View>
   </View>;
-  return <View style={s.valueWithArt}><FactArt kind="money" size={mapPreview ? 28 : 22} cut={mapPreview ? 'art' : 'auto'} />{budget}</View>;
+  return <View style={s.valueWithArt}><FactArt kind="money" size={mapPreview ? 28 : 24} cut="art" />{budget}</View>;
 }
 
 /** Quiet supporting symbols leave the task, budget and person as the visual anchors. */
