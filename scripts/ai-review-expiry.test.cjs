@@ -75,11 +75,15 @@ function harness(kind = 'task', options = {}) {
   const overrides = {
     'react': React, 'react/jsx-runtime': require('react/jsx-runtime'),
     'react-native': { AppState: app, Platform: { OS: 'android' }, BackHandler: { addEventListener: () => ({ remove() {} }) },
-      StyleSheet: { create: x => x }, View: 'View', ScrollView: 'ScrollView', KeyboardAvoidingView: 'KeyboardAvoidingView' },
+      StyleSheet: { create: x => x, flatten: x => Array.isArray(x) ? Object.assign({}, ...x.filter(Boolean)) : (x || {}) },
+      View: 'View', ScrollView: 'ScrollView', KeyboardAvoidingView: 'KeyboardAvoidingView',
+      Easing: { bezier: () => ({}), out: () => ({}), inOut: () => ({}), ease: () => ({}), linear: () => ({}) },
+      Animated: { timing: () => ({ start: cb => cb?.() }), Value: class { constructor(v) { this._v = v; } setValue(v) { this._v = v; } interpolate() { return this; } } } },
     'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
     'expo-router': { useFocusEffect, useLocalSearchParams: () => ({ conversationId: ID(2) }),
       router: { setParams() {}, replace() {}, push() {}, back() {}, canGoBack: () => true } },
     'src/store/sesija.ts': { useSesija: () => session, sesijaSada: () => session },
+    'src/data/supabaseClient.ts': { supabaseKlijent: {}, supabaseKonfigurisan: () => false },
     'src/data/aiTaskReviewClientService.ts': { aiTaskReviewClientService: taskApi },
     'src/data/workerAiClientService.ts': { workerAiClientService: workerApi },
     'src/data/workerAiTurnIntentJournal.ts': { workerAiTurnIntentJournal: { load: async () => null } },
@@ -126,20 +130,47 @@ function harness(kind = 'task', options = {}) {
   };
   for (const [name, names] of Object.entries(widgets)) overrides[name] = ui(names);
   overrides['src/ui/objava/ReviewPresentation.tsx'].reviewStyles = {};
+  overrides['@supabase/supabase-js'] = require('@supabase/supabase-js');
+  overrides['react-native-gesture-handler'] = { GestureHandlerRootView: host('GestureHandlerRootView'), ScrollView: 'ScrollView' };
+  overrides['expo-haptics'] = { impactAsync: async () => {}, selectionAsync: async () => {}, notificationAsync: async () => {} };
+  overrides['expo/fetch'] = { fetch: globalThis.fetch };
+  overrides['expo'] = {};
+  overrides['expo-image'] = { Image: host('Image') };
+  overrides['phosphor-react-native'] = new Proxy({}, { get: () => 'Glyph' });
+  overrides['react-native-svg'] = new Proxy({}, { get: () => 'Svg' });
+  overrides['@maplibre/maplibre-react-native'] = new Proxy({}, { get: () => host('MapLibre') });
+  const reanimatedMock = {
+    View: 'View',
+    createAnimatedComponent: c => c,
+    useSharedValue: v => ({ value: v }),
+    useAnimatedStyle: () => ({}),
+    withTiming: v => v,
+    withSpring: v => v,
+    Easing: { bezier: () => ({}), out: () => ({}), inOut: () => ({}), ease: () => ({}), linear: () => ({}) },
+  };
+  reanimatedMock.default = reanimatedMock;
+  overrides['react-native-reanimated'] = reanimatedMock;
+  overrides['@react-native-async-storage/async-storage'] = {
+    getItem: async () => null,
+    setItem: async () => {},
+    removeItem: async () => {},
+    clear: async () => {},
+  };
   const cache = new Map();
   function load(name) {
     if (Object.hasOwn(overrides, name)) return overrides[name];
     const full = ['', '.ts', '.tsx', '.mjs', '/index.ts'].map(ext => path.resolve(ROOT, name + ext)).find(p => fs.existsSync(p) && fs.statSync(p).isFile());
     if (!full) throw Error('UNEXPECTED_IMPORT:' + name);
-    name = path.relative(ROOT, full);
+    if (/\.(webp|png|jpg|jpeg|svg|gif)$/i.test(full)) return 1;
+    name = path.relative(ROOT, full).replace(/\\/g, '/');
     if (Object.hasOwn(overrides, name)) return overrides[name];
     if (cache.has(name)) return cache.get(name).exports;
     const source = PREIMAGE && BASE_FILES.has(name) ? execFileSync('git', ['show', `${PREIMAGE}:${name}`], { cwd: ROOT, encoding: 'utf8' }) : fs.readFileSync(full, 'utf8');
-    const js = ts.transpileModule(source, { fileName: full, compilerOptions: { target: ts.ScriptTarget.ES2022,
+    const js = ts.transpileModule(source, { fileName: full.replace(/\.mjs$/, '.ts'), compilerOptions: { target: ts.ScriptTarget.ES2022,
       module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
     const mod = { exports: {} }; cache.set(name, mod);
     new Function('module', 'exports', 'require', 'Date', 'setTimeout', 'clearTimeout', js)(mod, mod.exports,
-      id => load(id.startsWith('.') ? path.relative(ROOT, path.resolve(path.dirname(full), id)) : id), ClockDate,
+      id => load(id.startsWith('.') ? path.relative(ROOT, path.resolve(path.dirname(full), id)).replace(/\\/g, '/') : id), ClockDate,
       clock.set.bind(clock), clock.clear.bind(clock));
     return mod.exports;
   }
