@@ -107,7 +107,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     const allowed = options.isCurrent() && live.writable && live.version !== null && !outboxBusy() && !finishing && !checkingRecovery;
     return Object.freeze({ phase, elapsedMs, durationMs: recorded?.durationMs ?? null, preview, previewMs, level, error: failure,
       canRecord: phase === 'idle' && allowed && !starting && !working && !releaseRecordingClaim, canSend: (phase === 'review') && allowed && !working,
-      canDiscard: !working && !finishing && (phase === 'recording' || phase === 'review' || phase === 'failed'), canRetry: phase === 'failed' && allowed && !working, recovered, unresolved, recoveryBusy: checkingRecovery || working });
+      canDiscard: !working && !finishing && (phase === 'recording' || phase === 'review' || phase === 'failed'), canRetry: phase === 'failed' && allowed && !working && pending !== null, recovered, unresolved, recoveryBusy: checkingRecovery || working });
   };
   snapshot = build();
   const publish = () => { snapshot = build(); for (const listener of [...listeners]) { try { listener(); } catch { /* a screen's own failure never stops the model */ } } };
