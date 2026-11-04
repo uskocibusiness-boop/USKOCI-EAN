@@ -41,6 +41,8 @@ jobs:
             supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs
       - name: Prove two-account journey cannot write to cloud DEV or production
         run: node --test supabase/proofs/ru5_two_account_local_guard.test.mjs
+      - name: Assert signed remote cityless selection parity and strict migration preimages
+        run: node --test supabase/proofs/ai/r05_cityless_remote_signed_selection.test.mjs
       - name: Test matching eligibility and synthetic push without sending
         run: |
           node --test --test-reporter=spec \
