@@ -39,6 +39,11 @@ jobs:
             supabase/proofs/ai/ai_phase_timing.test.mjs \
             supabase/proofs/ai/v5_worker_edge.test.mjs \
             supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs
+      - name: Test matching eligibility and synthetic push without sending
+        run: |
+          node --test --test-reporter=spec \
+            supabase/proofs/ai/r05_saved_area_retrieval.test.mjs \
+            supabase/proofs/notifications/n09_push_transport_edge.test.mjs
       - name: Test both AI review screens and owned recovery
         run: |
           npm test -- --runInBand --silent --runTestsByPath \
@@ -48,4 +53,7 @@ jobs:
             src/data/__tests__/ai-task-review-client.test.ts \
             src/data/__tests__/worker-ai-client.test.ts \
             src/data/__tests__/ai-turn-intent-journal.test.ts \
-            src/data/__tests__/worker-ai-turn-intent-journal.test.ts
+            src/data/__tests__/worker-ai-turn-intent-journal.test.ts \
+            src/data/__tests__/activity-application-push-target-service.test.ts \
+            src/data/__tests__/activity-application-target-service.test.ts \
+            src/data/__tests__/push-readiness.test.ts
