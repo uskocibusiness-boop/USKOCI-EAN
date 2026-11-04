@@ -355,7 +355,15 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       // Ordinary read auto-prepares and could replace the explicitly signed
       // result. Read it from its true owner, without another preparation.
       const result=await read(undefined,true);
-      if(result.ok&&current()){
+      if(!current())return unavailable();
+      // Another session must not substitute a different signed review for
+      // these human-chosen modes, even at the same conversation revision.
+      if(result.ok&&(result.podatak.conversationId!==conversationId||result.podatak.revision!==revision
+        ||result.podatak.review?.reviewId!==prepared.podatak.reviewId
+        ||result.podatak.review?.displayedContentDigest!==prepared.podatak.displayedContentDigest))
+        return {ok:false,kod:'WORKER_AI_REVIEW_CHANGED',
+          poruka:'Pregled je u međuvremenu promenjen. Proverite razgovor pre potvrde načina rada.'};
+      if(result.ok){
         setModeSheet(false);setModeSelection({scope:'',choices:{}});
         if(workerReviewReady(result.podatak))showPanel('review');
         else if(result.podatak.review)setPreparationIssue({conversationId,revision,
@@ -531,7 +539,9 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     || data.candidate.availability.availableNow
     || data.candidate.availability.rules.length > 0 || data.candidate.availability.windows.length > 0;
   const readyToReview=!reviewNeedsRestart&&workerReviewReady(data);
-  const preparationProblem=preparationIssue?.conversationId===data.conversationId&&preparationIssue.revision===data.revision
+  const preparationProblem=modeEligible
+    ?'Možete potvrditi način rada za svaku uslugu ili ga razjasniti porukom.'
+    :preparationIssue?.conversationId===data.conversationId&&preparationIssue.revision===data.revision
     ?preparationIssue.message:!readyToReview&&data.review&&!data.saved&&Date.parse(data.review.expiresAt)<=Date.now()
       ?'Pregled više nije aktuelan. Proverite razgovor pre nastavka.':null;
   // The "+" selects a topic for the same conversation. Only an explicit message changes the proposal.

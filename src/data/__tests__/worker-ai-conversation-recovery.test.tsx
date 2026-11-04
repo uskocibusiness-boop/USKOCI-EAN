@@ -512,6 +512,26 @@ it('a refused explicit review never changes the existing profile or silently sav
   expect(mockApi.save).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
   expect(tree.root.findAllByType('Review' as any)).toHaveLength(0);
 });
+it('refuses a replaced signed review after explicit modes and cannot silently Save it',async()=>{
+  mockExplicitModeEnabled=true;
+  const data=reviewed();
+  const pending={...data.review!,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    reviewedServiceModes:[],classificationCandidates:[]};
+  const signed={...data.review!,reviewId:'55555555-5555-4555-8555-555555555555'};
+  mockApi.read.mockResolvedValue(ok({...data,review:pending}));
+  mockApi.prepare.mockResolvedValue(ok(pending));
+  mockApi.prepareConfirmed.mockImplementation(async()=>{
+    mockApi.read.mockResolvedValue(ok({...data,review:{...signed,reviewId:K}}));
+    return ok(signed);
+  });
+  await render();await click('Potvrdite način rada');
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onChoice('Montaža','ON_SITE'));
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onConfirm());
+  expect(mockApi.prepareConfirmed).toHaveBeenCalledTimes(1);
+  expect(tree.root.findAllByType('Review' as any)).toHaveLength(0);
+  expect(mockApi.save).not.toHaveBeenCalled();
+  expect(mockApi.send).not.toHaveBeenCalled();
+});
 it('a legacy review does not claim confirmed matching when classification authority is absent',async()=>{
  const data=reviewed();mockApi.read.mockResolvedValue(ok({...data,review:{...data.review,classificationState:undefined}}));
  await render();expect(shell().props.footerAction).toBeUndefined();
