@@ -45,6 +45,31 @@ export function validateSmokeBudget(report,now=Date.now()) {
   return true;
 }
 
+/** Verifies what the REAL Need conversation stored, not just Gemini's final SSE marker.
+ * Only key names/counts are reported; text, addresses and user-supplied values
+ * never enter the CI log. The fixed synthetic smoke mentions an exact RSD sum.
+ */
+export function validateNeedCapture(value,cid) {
+  if (!value || typeof value!=='object' || value.schemaVersion!=='NEED_FACT_V2'
+    || value.conversationId!==cid || value.status!=='OPEN' || !Array.isArray(value.facts))
+    throw Error('SMOKE_NEED_CAPTURE_INVALID');
+  const captured=value.facts.filter(f=>f&&typeof f.key==='string'&&f.status!=='UNKNOWN');
+  const keys=new Set(captured.map(f=>f.key));
+  if (!['need.title','need.description','need.price_mode','need.price_rsd'].every(k=>keys.has(k))
+    || captured.find(f=>f.key==='need.price_mode')?.value!=='MY_PRICE'
+    || captured.find(f=>f.key==='need.price_rsd')?.value!==10000)
+    throw Error('SMOKE_NEED_CAPTURE_INCOMPLETE');
+  return captured.length;
+}
+
+export function validateWorkerCapture(value,cid) {
+  if (!value || typeof value!=='object' || value.conversationId!==cid
+    || !value.candidate || !Array.isArray(value.candidate.skills)
+    || value.candidate.skills.length<2 || new Set(value.candidate.skills).size!==value.candidate.skills.length)
+    throw Error('SMOKE_WORKER_CAPTURE_INCOMPLETE');
+  return value.candidate.skills.length;
+}
+
 export function decodeSseEvents(payload) {
   if (typeof payload !== 'string' || Buffer.byteLength(payload,'utf8') > MAX_BODY_BYTES) throw Error('SMOKE_RESPONSE_OVERSIZE');
   const chunks = payload.split(/\r?\n\r?\n/);
@@ -119,13 +144,18 @@ export async function runDevSmoke(rawEnvironment=process.env,{fetchImpl=fetch}={
   if (!persisted || typeof persisted!=='object') throw Error('SMOKE_READBACK_MISSING');
   if (cfg.kind==='NEED' && (persisted.state!=='SUCCEEDED' || persisted.conversationId!==cid))
     throw Error('SMOKE_NEED_RECEIPT_MISMATCH');
-  if (cfg.kind==='WORKER' && (persisted.conversationId!==cid || !persisted.candidate))
-    throw Error('SMOKE_WORKER_RECEIPT_MISMATCH');
+  // One owner-scoped, read-only review RPC proves that the synthetic user's
+  // stated task facts actually reached durable storage; turn success alone is
+  // not semantic capture. No new model call or business Save is performed.
+  const capturedFacts=cfg.kind==='NEED'
+    ? validateNeedCapture(await rpc('rpc_ai_need_review_v2',{p_conversation_id:cid}),cid) : null;
+  const capturedSkills=cfg.kind==='WORKER' ? validateWorkerCapture(persisted,cid) : null;
   const safeSummary={kind:cfg.kind,environment:'DEV',completed:true,elapsedMs:Date.now()-started,
     sseEvents:events.length,hasFinalReceipt:true,readbackValidated:true,
     reviewIsNotPublication:true};
+  if (cfg.kind==='NEED') safeSummary.typedFacts=capturedFacts;
   if (cfg.kind==='WORKER') {
-    safeSummary.typedSkills=Array.isArray(persisted.candidate.skills)?persisted.candidate.skills.length:null;
+    safeSummary.typedSkills=capturedSkills;
     safeSummary.typedAreas=Array.isArray(persisted.candidate.workAreas)?persisted.candidate.workAreas.length:null;
     safeSummary.profileWasNotActivated=true;
   }

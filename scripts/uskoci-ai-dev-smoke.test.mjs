@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DEV_URL,validateSmokeEnvironment,validateSmokeBudget,decodeSseEvents,runDevSmoke} from './uskoci-ai-dev-smoke.mjs';
+import {DEV_URL,validateSmokeEnvironment,validateSmokeBudget,validateNeedCapture,validateWorkerCapture,decodeSseEvents,runDevSmoke} from './uskoci-ai-dev-smoke.mjs';
 
 const valid=()=>({
  USKOCI_DEV_SMOKE_ACK:'DEV_TEST_PAID_ONE_TURN_NO_PUBLISH',
@@ -93,13 +93,20 @@ for(const kind of ['NEED','WORKER']){
     return json({conversationId:CID});
    if(url.includes('/functions/v1/'))return sse(body.clientRequestId);
    if(url.endsWith('/rpc_ai_read_need_turn_v2'))return json({state:'SUCCEEDED',conversationId:CID});
-   if(url.endsWith('/rpc_read_worker_ai_taxonomy'))return json({conversationId:CID,candidate:{skills:['Krečenje'],workAreas:[]}});
+   if(url.endsWith('/rpc_ai_need_review_v2'))return json({schemaVersion:'NEED_FACT_V2',conversationId:CID,status:'OPEN',facts:[
+     {key:'need.title',value:'Krečenje sobe',status:'NEEDS_CONFIRMATION'},
+     {key:'need.description',value:'Soba oko 20 m2',status:'NEEDS_CONFIRMATION'},
+     {key:'need.price_mode',value:'MY_PRICE',status:'NEEDS_CONFIRMATION'},
+     {key:'need.price_rsd',value:10000,status:'NEEDS_CONFIRMATION'}]});
+   if(url.endsWith('/rpc_read_worker_ai_taxonomy'))return json({conversationId:CID,candidate:{skills:['Krečenje','Gletovanje'],workAreas:[]}});
    throw Error('UNEXPECTED_TEST_REQUEST');
   };
   const summary=await runDevSmoke({...valid(),USKOCI_DEV_SMOKE_KIND:kind},{fetchImpl});
   assert.equal(summary.completed,true);assert.equal(summary.readbackValidated,true);
   assert.equal(summary.reviewIsNotPublication,true);
-  assert.equal(calls.length,5);
+  if(kind==='NEED')assert.equal(summary.typedFacts,4);
+  if(kind==='WORKER')assert.equal(summary.typedSkills,2);
+  assert.equal(calls.length,kind==='NEED'?6:5);
   assert.match(calls[0].path,/budget_report/);
   assert.ok(calls[1].path.includes('/auth/v1/token'));
   assert.ok(calls[3].path.endsWith(kind==='NEED'?'/uskoci-ai-interview':'/uskoci-worker-interview'));
@@ -108,3 +115,22 @@ for(const kind of ['NEED','WORKER']){
   assert.ok(!calls.some(c=>/publish|save_worker|notification|push|dispatch/.test(c.path)));
  });
 }
+
+const taskFact=(key,value)=>({key,value,status:'NEEDS_CONFIRMATION'});
+test('a final Need receipt without title, description or exact synthetic price is NOT semantic capture',()=>{
+ const review={schemaVersion:'NEED_FACT_V2',conversationId:CID,status:'OPEN',facts:[
+  taskFact('need.title','Krečenje sobe'),taskFact('need.description','Soba ima oko 20 m2'),
+  taskFact('need.price_mode','MY_PRICE'),taskFact('need.price_rsd',10000)]};
+ assert.equal(validateNeedCapture(review,CID),4);
+ for(const v of [
+  {...review,conversationId:ID},{...review,facts:[]},
+  {...review,facts:review.facts.filter(f=>f.key!=='need.description')},
+  {...review,facts:review.facts.map(f=>f.key==='need.price_rsd'?{...f,value:1000}:f)},
+  {...review,facts:review.facts.map(f=>f.key==='need.price_mode'?{...f,status:'UNKNOWN'}:f)},
+ ])assert.throws(()=>validateNeedCapture(v,CID),/^Error: SMOKE_NEED_CAPTURE_/);
+});
+test('Worker needs at least two distinct explicitly offered services',()=>{
+ assert.equal(validateWorkerCapture({conversationId:CID,candidate:{skills:['Krečenje','Gletovanje']}},CID),2);
+ for(const skills of [[],['Krečenje'],['Krečenje','Krečenje']])
+  assert.throws(()=>validateWorkerCapture({conversationId:CID,candidate:{skills}},CID),/SMOKE_WORKER_CAPTURE_INCOMPLETE/);
+});
