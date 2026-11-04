@@ -56,3 +56,42 @@
               assert.equal(JSON.stringify(logs).includes('PRIVATE_'),false);
             } finally {console.info=original;}
           });
+
+test('voice retry requires a retained send intent',async()=>{
+  const ts=require('typescript');
+  const source=fs.readFileSync(path.join(root,'src/features/voiceMessages/voiceMessageComposer.ts'),'utf8');
+  const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+  const mod={exports:{}};
+  new Function('module','exports','require',js)(mod,mod.exports,id=>{
+    if(id==='./voiceCopy')return {VOICE_ERROR_COPY:{UPLOAD_UNCONFIRMED:'Proverite stanje.'}};
+    throw new Error('UNEXPECTED_VOICE_IMPORT:'+id);
+  });
+  function make(newRequestId,save){
+    const lease=()=>{};lease.isCurrent=()=>true;
+    return mod.exports.createVoiceMessageComposer({
+      accountId:'00000000-0000-4000-8000-000000000001',accountRevision:1,
+      agreementId:'00000000-0000-4000-8000-000000000002',isCurrent:()=>true,
+      agreement:()=>({version:1,writable:true}),
+      recorder:{requestPermission:async()=> 'granted',start:async()=>{},
+        stop:async()=>({uri:'local-recording',durationMs:1200}),cancel:async()=>{},onInterrupted:()=>()=>{}},
+      player:{stop:async()=>{},release:async()=>{}},
+      files:{remove:async()=>{},read:async()=>new ArrayBuffer(64)},
+      arbiter:{claim:async()=>lease},
+      uploads:{upload:async()=>{throw Error('UNEXPECTED_UPLOAD');},read:async()=>{throw Error('UNEXPECTED_READ');},cancel:async()=>{throw Error('UNEXPECTED_CANCEL');}},
+      journal:{load:async()=>[],save,clear:async()=>{}},
+      outbox:{getSnapshot:()=>({capturing:false,entries:[]}),sendVoice:async()=>{}},
+      newRequestId,timers:{setInterval:()=>1,clearInterval:()=>{}}
+    });
+  }
+  for(const [newId,save,shouldRetry] of [
+    [()=>{throw Error('NO_KEY');},async()=>{},false],
+    [()=> '00000000-0000-4000-8000-000000000003',async()=>{throw Error('STORAGE_DOWN');},true]
+  ]){
+    const voice=make(newId,save);
+    await voice.start();assert.equal(voice.getSnapshot().phase,'recording');
+    await voice.stop();assert.equal(voice.getSnapshot().phase,'review');
+    await voice.send();assert.equal(voice.getSnapshot().phase,'failed');
+    assert.equal(voice.getSnapshot().canRetry,shouldRetry);
+    await voice.dispose();
+  }
+});
