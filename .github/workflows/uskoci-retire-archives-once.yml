@@ -1,0 +1,128 @@
+name: USKOCI verified historic evidence retirement
+
+on:
+  push:
+    branches: [work/product-cleanup-20261104]
+    paths: [.github/workflows/uskoci-retire-archives-once.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  verified-cleanup:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN' && github.ref == 'refs/heads/work/product-cleanup-20261104'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    env:
+      BASE_SHA: f554e77144840b960b74d4240d23936e365a8594
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Confirm preimages and both original restore paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/work/product-cleanup-20261104
+          test -z "$(git status --porcelain)"
+          python3 docs/continuation/restore.py
+          python3 docs/continuation/source-bridge-20261030/assemble.py
+      - name: Retire exactly 20 verified archive inputs, preserve historical recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/archive_cleanup_once.py
+          git diff --check
+      - name: Prove original restore and bridge reconstruction after removal
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile docs/continuation/restore.py docs/continuation/source-bridge-20261030/assemble.py
+          python3 docs/continuation/restore.py | tee /tmp/uskoci-archive-cleanup/restore-verify.log
+          python3 docs/continuation/source-bridge-20261030/assemble.py | tee /tmp/uskoci-archive-cleanup/bridge-verify.log
+          python3 docs/continuation/restore.py --restore /tmp/uskoci-archive-cleanup/recovered-review > /tmp/uskoci-archive-cleanup/recovered-review.log
+          python3 docs/continuation/source-bridge-20261030/assemble.py --restore /tmp/uskoci-archive-cleanup/recovered-bridge > /tmp/uskoci-archive-cleanup/recovered-bridge.log
+          test -z "$(git diff "$BASE_SHA" --name-only -- src supabase assets modules vendor patches plugins scripts/product-audit.cjs scripts/product-audit.test.cjs package.json package-lock.json metro.config.cjs app.config.js app.json index.js jest.config.cjs eas.json tsconfig.json)"
+      - name: Verify unchanged mobile sources, types and focused contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci > /tmp/uskoci-archive-cleanup/npm-ci.log 2>&1
+          ./node_modules/.bin/tsc --noEmit > /tmp/uskoci-archive-cleanup/typescript.log 2>&1
+          npm test -- --runInBand --silent --runTestsByPath tests/ai/__tests__/aiDownLine.test.ts tests/ai/__tests__/aiInterviewWelcome.test.ts src/data/__tests__/ai-conversation-turn-motion.test.tsx > /tmp/uskoci-archive-cleanup/mobile-focused.log 2>&1
+          node --test supabase/proofs/ai/worker_mode_short_replies.test.mjs > /tmp/uskoci-archive-cleanup/ai-contract.log 2>&1
+          node scripts/product-audit.cjs --out /tmp/uskoci-archive-cleanup/inventory > /tmp/uskoci-archive-cleanup/inventory-summary.log
+      - name: Verify Android Metro preview export still succeeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS' > /tmp/uskoci-archive-cleanup/android-export.log 2>&1
+          const {spawnSync}=require('node:child_process');
+          const env={...process.env,...require('./eas.json').build.preview.env,
+             EAS_BUILD_PROFILE:'preview',USKOCI_OTA_TARGET:'preview',EXPO_NO_TELEMETRY:'1',EXPO_OFFLINE:'1'};
+          const r=spawnSync(process.execPath,['node_modules/expo/bin/cli','export','--platform','android','--output-dir','/tmp/uskoci-archive-cleanup/android-export'],{env,stdio:'inherit'});
+          if(r.error)throw r.error;
+          process.exit(r.status??1);
+          JS
+      - name: Final scope guard and single verified branch commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -- scripts/archive_cleanup_once.py .github/workflows/uskoci-retire-archives-once.yml
+          git add -- docs/plan/CODEX_PLAN_RADA.md docs/continuation/NASTAVAK_RADA.md docs/continuation/restore.py docs/continuation/source-bridge-20261030/README.md docs/continuation/source-bridge-20261030/assemble.py docs/continuation/ARHIVIRANI_IZVORI_20261104.md docs/continuation/ARHIVIRANI_IZVORI_20261104.json
+          git diff --cached --check
+          python3 - <<'PY'
+          import json,os,subprocess,pathlib
+          master='docs/continuation/'
+          original=json.loads(pathlib.Path(master+'ARHIVIRANI_IZVORI_20261104.json').read_text())
+          expected={row['path'] for row in original['removed']}
+          expected.update({'docs/plan/CODEX_PLAN_RADA.md',master+'NASTAVAK_RADA.md',
+              master+'restore.py',master+'source-bridge-20261030/README.md',
+              master+'source-bridge-20261030/assemble.py',
+              master+'ARHIVIRANI_IZVORI_20261104.md',master+'ARHIVIRANI_IZVORI_20261104.json'})
+          changed=set(subprocess.check_output(['git','diff','--name-only',os.environ['BASE_SHA']]).decode().splitlines())
+          if changed!=expected: raise SystemExit('UNEXPECTED_CLEANUP_SCOPE '+repr(sorted(changed^expected)))
+          count=len([x for x in subprocess.check_output(['git','ls-files','-z']).split(b'\0') if x])
+          if count != 3922: raise SystemExit('TRACKED_COUNT_MISMATCH '+str(count))
+          proof={'date':'2026-11-04','baseline':os.environ['BASE_SHA'],'workflowSource':os.environ['GITHUB_SHA'],
+              'run':os.environ['GITHUB_RUN_ID'],'trackedBefore':3940,'trackedAfter':count,
+              'removed':len(original['removed']),'removedBytes':original['removedBytes'],
+              'archivesRestoredAndVerified':True,'fullReviewAndBridgeRestored':True,
+              'runtimeChanged':False,'edgeChanged':False,'databaseChanged':False,
+              'checks':['checksum and Git blob preflight','restore.py before/after','assemble.py before/after',
+                        'complete evidence restoration','npm ci','TypeScript','focused AI/Jest contracts',
+                        'Android Metro preview export','exact source change guard'],
+              'limits':['Not phone/native E2E','Git history still contains original objects','No app logic removed']}
+          pathlib.Path('/tmp/uskoci-archive-cleanup/final-proof.json').write_text(json.dumps(proof,indent=2)+'\n')
+          print(json.dumps(proof))
+          PY
+          remote=$(git ls-remote origin refs/heads/work/product-cleanup-20261104 | cut -f1)
+          test "$remote" = "$GITHUB_SHA"
+          git config user.name "USKOCI verified cleanup"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(r11): retire recoverable evidence from active repository tree"
+          auth=$(printf "x-access-token:%s" "$GH_TOKEN" | base64 -w0)
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin HEAD:refs/heads/work/product-cleanup-20261104
+          git rev-parse HEAD > /tmp/uskoci-archive-cleanup/published-commit.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: uskoci-history-cleanup-evidence
+          path: |
+            /tmp/uskoci-archive-cleanup/*.log
+            /tmp/uskoci-archive-cleanup/*.json
+            /tmp/uskoci-archive-cleanup/*.txt
+          retention-days: 14
+          if-no-files-found: warn
