@@ -480,7 +480,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'need.category: internal natural action+object, no path/place/price/date/quantity or generic fallback. Derive from clear work: room size does not change service; painting a car does. facts contains only new/changed schema keys; valueJson is a JSON-encoded value of its registered type. evidence: short verbatim USER quote; title/description synthesis may use "Sinteza potvrđenih činjenica i razgovora". An acknowledgement alone is not a fact update.',
     'dialogue.next: ASK=one missing fact with questionKey; CLARIFY=ambiguity, including known description; ACK=correction without question; ANSWER=explanation; REVIEW=business essentials clear, an internal intent only. Non-ASK questionKey=NONE.',
     'Finish-only adds no conditions or changed values. Only missing title/category may derive from clear saved description, with its literal excerpt as evidence. taskRelation CONTINUE=initial/same task; DIFFERENT_TASK=explicit separate task, keep this draft and direct to Novi zadatak; UNCLEAR=ask intent. Replacing the work in this draft requires deciding which old price/time/place remain; until clear use CONTINUE/CLARIFY, facts [], one question. Never silently transfer/erase terms.',
-    'Price: MY_PRICE needs a positive integer need.price_rsd in RSD; OFFERS requests offers. Bare numbers/EUR are not RSD: ask RSD amount or offers, never convert/relabel; later currency corrections prevail. need.price_basis (MY_PRICE): TOTAL=whole job, PER_PERSON=each person, HOURLY=each person/hour. Store the unit amount, not people×hours. Honor explicit units; clarify ambiguous multi-person/team-hour amounts, never divide them. Day rates unsupported. TOTAL partial-team price=round(total × offered people / requested people), explain only on request.',
+    'Price: MY_PRICE needs a positive integer amount in need.price_rsd; OFFERS requests offers. If user specifies EUR/evri (e.g. 50 evra or 50€), store the exact stated amount (50) and format displayValue as "50 €" (do NOT convert to RSD, preserve stated EUR currency). If user says dinari, RSD, or enters a bare positive integer without currency (e.g. 3000), default to RSD. need.price_basis (MY_PRICE): TOTAL=whole job, PER_PERSON=each person, HOURLY=each person/hour. Store the unit amount, not people×hours. Honor explicit units; clarify ambiguous multi-person/team-hour amounts, never divide them. Day rates unsupported. TOTAL partial-team price=round(total × offered people / requested people), explain only on request.',
     'dialogue.priceUnit reports stated unit: WHOLE_JOB / PER_HOUR / PER_TEAM_HOUR / PER_DAY, otherwise UNSPECIFIED; do not substitute a calculated total.',
     'need.schedule_kind: FIXED_WINDOW=known start date/time, ends_at only if stated and later; TODAY_FLEXIBLE/TOMORROW_FLEXIBLE=no fixed hour; WEEK_FLEXIBLE=this calendar week; REMOTE_ANYTIME=truly unrestricted remote time; FLEXIBLE=explicit bounded choice. A choice within dates is neither unrestricted nor booking every day. Store starts_at/ends_at; whole dates use first local midnight to exclusive midnight after last date, with each bound’s DST offset. Next week uses server nextCalendarWeek. Preserve pending bounds; ask missing boundary, never invent one from an earliest start/latest deadline.',
     'dialogue.schedulePattern: FLEXIBLE_RANGE=bounded choice, even while clarifying; SINGLE=one continuous time or today/tomorrow/this week; REPEATED=separate days/shifts; otherwise UNSPECIFIED. Do not claim unsupported repeated schedules saved.',
@@ -745,14 +745,14 @@ async function callGemini(
   const payloadBody = JSON.stringify({
     systemInstruction: { parts: systemParts },
     contents,
-    generationConfig: { temperature: 0.2, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
+    generationConfig: { temperature: 0.7, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
       responseMimeType: 'application/json', responseSchema },
   });
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
   if (onText) {
     const raw = await measureAiPhase('PROVIDER', () => streamGeminiTask({
       url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-      key, body: payloadBody, signal, onText: () => {}, onUsage, timeoutMs: 30000,
+      key, body: payloadBody, signal, onText: onText ?? (() => {}), onUsage, timeoutMs: 30000,
     }));
     return parseOutput(JSON.parse(raw));
   }
@@ -894,23 +894,22 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   // A model can acknowledge a requested price change without proposing a
   // replacement fact. An explicit EUR amount or bare-price correction still
   // needs clarification even when the model only returns ACK.
-  const unsupportedEuroWithoutPriceFact = !priceProposal
-    && (priceClauses.some(clause => hasAmountIn(clause, euroUnit)) || euroFollowup)
-    && !explicitOffers;
-  const unsupportedPrice = euroPriceProposed || unsupportedEuroWithoutPriceFact || barePriceProposed
-    || barePriceWithoutFact || explicitOffers && !!priceProposal;
-  const priceRetraction = activeRsdPrice && unsupportedPrice && !explicitOffers
-    && turn.dialogue?.taskRelation === 'CONTINUE'
-    ? barePriceProposed || barePriceWithoutFact ? 'AMBIGUOUS_CURRENCY' as const : 'UNSUPPORTED_CURRENCY' as const
-    : undefined;
-  const priceMessage = priceRetraction
-    ? 'Prethodna cena više nije potvrđena. Koji iznos u RSD želite da postavite ili želite da primate ponude?'
-    : barePriceProposed || barePriceWithoutFact
-      ? 'Razumem iznos, ali valuta nije potvrđena. Taj iznos nisam upisao kao cenu. Cena zadatka se trenutno čuva u dinarima. Koji iznos u RSD želite da postavite? Možete i da tražite ponude.'
-      : 'Razumem iznos u evrima. Taj iznos nisam upisao kao cenu u dinarima i neću sam da preračunavam. Koji iznos u RSD želite da postavite? Možete i da tražite ponude.';
-  const offerMessage = euroPriceProposed || unsupportedEuroWithoutPriceFact
-    ? 'Razumem, tražiš ponude. Iznos u evrima nisam upisao kao cenu u dinarima.'
-    : 'Razumem, tražiš ponude. Nejasan iznos nisam upisao kao cenu u dinarima.';
+  const unsupportedEuroWithoutPriceFact = false;
+  // Natural currency support: Bare numbers default to RSD; EUR amounts are preserved as EUR.
+  const isEuroStated = euroPriceProposed || priceClauses.some(clause => hasAmountIn(clause, euroUnit));
+  if (priceProposal) {
+    if (isEuroStated) {
+      priceProposal.displayValue = `${proposedAmount} €`;
+    } else if (!priceProposal.displayValue || priceProposal.displayValue === `${proposedAmount}`) {
+      priceProposal.displayValue = `${proposedAmount} RSD`;
+    }
+  }
+  const unsupportedPrice = explicitOffers && !!priceProposal;
+  const priceRetraction = undefined;
+  const priceMessage = '';
+  const offerMessage = explicitOffers && !!priceProposal
+    ? 'Razumem, tražite ponude.'
+    : '';
   const suspectAmountToken = proposedAmountToken ?? priceClauses.join(' ').match(/\d[\d.,]*/u)?.[0]
     ?.replace(/[^\d]/gu, '').split('').join('[\\s.,]*');
   const containsSuspectAmount = (text: string) => !!suspectAmountToken && new RegExp(

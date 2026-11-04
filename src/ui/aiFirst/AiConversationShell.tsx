@@ -226,26 +226,18 @@ export function AiConversationShell(p: AiConversationShellProps) {
   }, [p.conversationKey, p.interactiveContextKey, !!p.context, inlineContext, !!p.revealInteractiveContext, cancelFollow, revealContext]);
   const cancelContextReveal = () => { if (contextOwner.current) contextOwner.current.pending = false; };
   const scrollLatest = useCallback((animated = false) => {
-    const key = replyKey.current, node = latestReply.current, ancestor = threadContent.current;
-    if (key && node?.measureLayout && ancestor) {
-      const conversation = anchorConversation.current;
-      const current = () => anchorConversation.current === conversation && replyKey.current === key && latestReply.current === node && followLatest.current && !userScrolling.current && !contextActive.current;
-      const failed = () => { if (current()) thread.current?.scrollToEnd({ animated }); };
-      try { node.measureLayout(ancestor, (_x, y) => {
-        if (current() && Number.isFinite(y)) thread.current?.scrollTo({ y: Math.max(0, y), animated });
-      }, failed); } catch { failed(); }
-    } else thread.current?.scrollToEnd({ animated });
+    thread.current?.scrollToEnd({ animated });
   }, []);
   const followAfterLayout = useCallback(() => {
     if (contextActive.current || !followLatest.current || userScrolling.current || !activity.current) return;
     cancelFollow();
-    scrollLatest();
-    // Keyboard avoidance settles after the first layout; every later content/viewport event can replace this pass.
     followFrame.current = requestAnimationFrame(() => {
       followFrame.current = null;
-      if (!contextActive.current && followLatest.current && !userScrolling.current && activity.current) scrollLatest();
+      if (!contextActive.current && followLatest.current && !userScrolling.current && activity.current) {
+        thread.current?.scrollToEnd({ animated: false });
+      }
     });
-  }, [cancelFollow, scrollLatest]);
+  }, [cancelFollow]);
   const reduced = useReducedMotion();
   const notice = useConfirmSheet({ reduced });
   const arrival = useConversationArrival(p);

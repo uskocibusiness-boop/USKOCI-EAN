@@ -312,11 +312,11 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
               : 'Poređenje je po osobi; iznos na kartici ostaje ukupna ponuda.'}
           </T> : null}
           {incompleteFinal ? <Surface kind="note" tone="warn">
-            <T variant="note" tone="muted">Broj prijava ne odgovara učitanom spisku. Proveri prijave ponovo pre poređenja ili izbora najniže cene.</T>
-            <V2Action label="Proveri prijave ponovo" kind="quiet" compact disabled={refreshing} onPress={refresh} />
+            <T variant="note" tone="muted">Broj prijava ne odgovara učitanom spisku. Proverite prijave ponovo pre poređenja ili izbora najniže cene.</T>
+            <V2Action label="Proverite prijave ponovo" kind="quiet" compact disabled={refreshing} onPress={refresh} />
           </Surface> : null}
           {!known && compare ? <View accessibilityLiveRegion="polite" style={s.notes}>
-            <T variant="note" tone="muted">Porediš učitane prijave. Još nisu prikazane sve prijave.</T>
+            <T variant="note" tone="muted">Poredite učitane prijave. Još nisu prikazane sve prijave.</T>
             {paging?.moreError ? <V2Action label="Učitaj preostale prijave" kind="quiet" compact onPress={paging.onLoadMore} />
               : paging?.loadingMore ? <T variant="meta" tone="muted">Učitavamo preostale…</T> : null}
           </View> : null}
@@ -359,17 +359,17 @@ function SelectedAgreementAction({ load, open }: { load: () => Promise<Ishod<{ d
 }
 
 /** The words that stand before the one choice that forms the Dogovor, while it is retried; the question itself is `CHOICE_QUESTION`. */
-const CHOICE_TITLE = 'Kad izabereš prijavu, nastaje Dogovor.';
+const CHOICE_TITLE = 'Kada izaberete prijavu, nastaje Dogovor.';
 /** The question the dialog asks: a verb with a question mark, and under it what is accepted and what follows (plan 2.3). */
-const CHOICE_QUESTION = 'Izabrati ovu osobu?';
+const CHOICE_QUESTION = 'Izabrati ovog kandidata?';
 /** What is accepted: the price, the people and the term that applies (the person's proposal, or else the task's own), then what follows. */
 const choiceTerms = (candidate: KandidatProjekcija, term: string) => {
   const price = candidateValue(candidate);
-  return `Prihvataš: ${price.kind === 'amount' ? `${price.amount} ${price.basis}` : UNPRICED} · ${osoba(candidate.pokrivaMesta)} · ${term}. Dogovor odmah važi za obe strane.`;
+  return `Prihvatate: ${price.kind === 'amount' ? `${price.amount} ${price.basis}` : UNPRICED} · ${osoba(candidate.pokrivaMesta)} · ${term}. Dogovor odmah važi za obe strane.`;
 };
 const CHOICE_NOTE = 'Pri izboru proveravamo da li izabrana osoba i dalje ima slobodan termin.';
 /** The one name of the choice: the green button of the application and the confirm of the question it asks. */
-const CHOOSE_LABEL = 'Izaberi osobu';
+const CHOOSE_LABEL = 'Izaberite kandidata';
 
 /**
  * One application in full, as a sheet over the list (owner's step 7, 2026-09-24; it was a page of its own with a review page
@@ -472,7 +472,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
     const remainingSlots = Math.max(0, (need.pokrivenost?.preostalo ?? 0) - (candidate?.pokrivaMesta ?? 1));
     const secondaryAction = chooseNext && remainingSlots > 0 ? (
       <V2Action
-        label={`Izaberi sledećeg pomoćnika (još ${remainingSlots} ${remainingSlots === 1 ? 'mesto' : 'mesta'})`}
+        label={`Izaberite sledećeg pomoćnika (još ${remainingSlots} ${remainingSlots === 1 ? 'mesto' : 'mesta'})`}
         kind="quiet"
         onPress={chooseNext}
       />

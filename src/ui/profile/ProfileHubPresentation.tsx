@@ -67,12 +67,12 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
       accessibilityLiveRegion="polite" accessibilityState={{ busy: true }} style={[s.identity, s.reading]}>
       <FactArt kind="person" size={64} />
       <T variant="heading" style={s.center}>Učitavamo profil…</T>
-      <T variant="note" tone="muted" style={s.center}>Proveravamo tvoje podatke pre prikaza profila.</T>
+      <T variant="note" tone="muted" style={s.center}>Proveravamo Vaše podatke pre prikaza profila.</T>
     </View> : identity.state === 'error' ? <View key="error" testID="profile-identity" accessible={false}
       accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={s.identity}>
       <Avatar initials={null} size={PROFILE_AVATAR} />
       <T variant="bodyStrong" style={s.center}>Profil trenutno nije dostupan.</T>
-      <T variant="note" tone="muted" style={s.center}>Proveri vezu pa pokušaj ponovo.</T>
+      <T variant="note" tone="muted" style={s.center}>Proverite vezu pa pokušajte ponovo.</T>
       <View style={s.retry}><SettingsAction label="Pokušaj ponovo" kind="secondary" onPress={identity.retry} /></View>
     </View> : <View key="ready" testID="profile-identity" accessible={false}
       accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={s.identity}>
@@ -102,13 +102,13 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
     <ProfileLink label="Radni profil" subtitle="Usluge, područje i dostupnost" detail={capabilityDetail}
       attention={capabilityNeedsAttention} disabled={busy} onPress={go('/profil/radnik')}
       onRetry={capabilityError ? onRetryCapability : undefined} />
-    <ProfileLink label="Moje prijave" subtitle="Pogledaj status i odgovore" disabled={busy} onPress={go('/moje-prijave')} />
+    <ProfileLink label="Moje prijave" subtitle="Pogledajte status i odgovore" disabled={busy} onPress={go('/moje-prijave')} />
     <ProfileLink label="Podešavanja" subtitle="Nalog, privatnost i obaveštenja" settings disabled={busy} onPress={go('/profil/podesavanja')} />
-    <ProfileLink label="Pomoć i podrška" subtitle="Pronađi odgovor ili prijavi problem" detail={words.support} disabled={busy} onPress={go('/podrska')} />
+    <ProfileLink label="Pomoć i podrška" subtitle="Pronađite odgovor ili prijavite problem" detail={words.support} disabled={busy} onPress={go('/podrska')} />
     <ProfileLink label="Moj raspored" subtitle="Dogovori i dostupnost" disabled={busy} onPress={go('/raspored')} />
     {/* The prototype's generic activity card becomes the actual published-task destination.
         Finished collaborations remain reachable through their live figure above. */}
-    <ProfileLink label="Moji zadaci" subtitle="Tvoje objave i izbor izvršilaca" disabled={busy} onPress={go('/potrebe')} />
+    <ProfileLink label="Moji zadaci" subtitle="Vaše objave i izbor izvršilaca" disabled={busy} onPress={go('/potrebe')} />
     {sheet}
   </Screen>;
 }

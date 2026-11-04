@@ -23,20 +23,20 @@ export function AccountSettings({ email, busy, logoutError, version, words, open
       {row('Lični podaci', 'profile', '/profil/podaci', 'Ime, fotografija i opis', 'info')}
       {row('Pristup nalogu', 'shield', '/profil/lozinka', 'Promena lozinke')}
     </AccountGroup>
-    <AccountGroup title="Tvoje iskustvo">
+    <AccountGroup title="Korisničko iskustvo">
       {row('AI razgovori', 'messages', '/ai-istorija', 'Zadaci i radni profil', 'violet')}
       {row('Obaveštenja', 'notifications', '/profil/obavestenja', 'Telefon, prijave i zadaci', 'orange')}
       {row('Privatnost i podaci', 'shield', '/profil/privatnost', 'Vidljivost, podaci i blokirane osobe', 'info')}
     </AccountGroup>
     <AccountGroup title="Pomoć">
-      {row('Pomoć i podrška', 'messages', '/podrska', words.support ?? 'Odgovori i tvoji zahtevi', 'info')}
+      {row('Pomoć i podrška', 'messages', '/podrska', words.support ?? 'Odgovori i Vaši zahtevi', 'info')}
       {row('Prijavi grešku', 'info', '/profil/prijava-greske', undefined, 'orange')}
       {row('Pravila i saglasnosti', 'shield', '/profil/pravna', words.legal, 'violet')}
       {row('O aplikaciji', 'settings', '/profil/o-aplikaciji', version, 'muted')}
     </AccountGroup>
     <View style={s.exit}>
-      {logoutError ? <T tone="danger" accessibilityRole="alert" style={s.detail}>Odjava nije uspela. Pokušaj ponovo.</T> : null}
-      <Press accessibilityRole="button" accessibilityLabel={busy ? 'Sačekaj…' : 'Odjavi se'} accessibilityHint="Otvara potvrdu odjave."
+      {logoutError ? <T tone="danger" accessibilityRole="alert" style={s.detail}>Odjava nije uspela. Pokušajte ponovo.</T> : null}
+      <Press accessibilityRole="button" accessibilityLabel={busy ? 'Sačekajte…' : 'Odjavi se'} accessibilityHint="Otvara potvrdu odjave."
         accessibilityState={{ disabled: busy, busy }}
         disabled={busy} onPress={onLogout} haptic="select" style={s.logout}>
         <Glyph name="logout" size={20} tone={busy ? 'muted' : 'ink'} />

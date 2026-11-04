@@ -64,7 +64,7 @@ export type AgreementOverviewProps = {
 export function AgreementOverview({ agreement, step, steps, info, headExtra, party, enabled, concealed = false, problem, group, groupReady = false, privatePartyName, location, on }: AgreementOverviewProps) {
   const title = readableTitle(agreement.naslov);
   const ownRole = agreement.ucesnici.find(person => person.viSte)?.uloga;
-  const roleLabel = ownRole === 'narucilac' ? 'Ti objavljuješ' : ownRole === 'uskocer' ? 'Ti uskačeš' : undefined;
+  const roleLabel = ownRole === 'narucilac' ? 'Vi objavljujete' : ownRole === 'uskocer' ? 'Vi uskačete' : undefined;
   // These seats belong to this accepted bilateral Dogovor. Other collaborations and whether applications remain open
   // cannot be inferred from this projection, even when its source task needs more people.
   const coverage = agreement.pokrivenost;
@@ -73,7 +73,7 @@ export function AgreementOverview({ agreement, step, steps, info, headExtra, par
   const link = (command: (() => void) | undefined) => command ? { disabled: !enabled, onPress: command } : undefined;
   return <>
     {groupReady ? <T variant="pageTitle" accessibilityRole="header">{title}</T> : null}
-    {groupReady ? <T variant="heading" accessibilityRole="header">{privatePartyName ? `Tvoj Dogovor: ${privatePartyName}` : 'Tvoj pojedinačni Dogovor'}</T> : null}
+    {groupReady ? <T variant="heading" accessibilityRole="header">{privatePartyName ? `Vaš Dogovor: ${privatePartyName}` : 'Vaš pojedinačni Dogovor'}</T> : null}
     <AgreementHead title={title} roleLabel={roleLabel} coverageLine={coverageLine} showTitle={!groupReady}
       step={step} steps={steps} info={info}>{headExtra}</AgreementHead>
     {on.proposeTerm ? <AgreementTermNote disabled={!enabled} onPropose={on.proposeTerm} /> : null}

@@ -41,7 +41,7 @@ export const exportWord = (phase: ExportPhase | undefined): string | undefined =
 
 /** The legal documents as one short answer. */
 export const LEGAL_WORDS: Readonly<Record<NonNullable<HubStates['legal']>, string>> = {
-  UNPUBLISHED: 'Još nisu objavljena', PENDING: 'Čekaju tvoju saglasnost', ACCEPTED: 'Prihvaćena',
+  UNPUBLISHED: 'Još nisu objavljena', PENDING: 'Čekaju Vašu saglasnost', ACCEPTED: 'Prihvaćena',
 };
 export const legalWord = (legal: HubStates['legal']): string | undefined => legal === undefined ? undefined : LEGAL_WORDS[legal];
 

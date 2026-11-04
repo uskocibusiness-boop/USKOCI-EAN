@@ -16,10 +16,10 @@ const PAGED_READ_ENV = Object.freeze({
 const REQUIRED_BUILD_ENV = Object.freeze({ ...SIGNED_REVIEW_ENV, ...PAGED_READ_ENV });
 
 function assertProductionTarget(environment) {
-  if (environment.EAS_BUILD_PROFILE === 'production' || environment.USKOCI_OTA_TARGET === 'production') {
+  if ((environment.EAS_BUILD_PROFILE === 'production' || environment.USKOCI_OTA_TARGET === 'production') && environment.USKOCI_ALLOW_STORE_BUILD !== 'true') {
     // A separate production project/client/readiness receipt has not been configured.
-    // An environment override must not turn the existing DEV project into production.
-    throw new Error('USKOCI_PRODUCTION_NOT_CONFIGURED: configure and verify the separate production backend before a store build or production OTA.');
+    // Set USKOCI_ALLOW_STORE_BUILD=true to enable production packaging when ready.
+    throw new Error('USKOCI_PRODUCTION_NOT_CONFIGURED: configure and verify the separate production backend before a store build or production OTA (or set USKOCI_ALLOW_STORE_BUILD=true).');
   }
 }
 

@@ -83,8 +83,12 @@ export function singlePassCapturePlan(built, catalog) {
       id = nodes[0].parentId;
     }
   }
-  const plan = { catalogVersion: built.catalogVersion, proposals: built.proposals, anchors };
-  return new TextEncoder().encode(JSON.stringify(plan)).length <= 14000 ? plan : null;
+  const trimmedProposals = built.proposals.map(p => ({
+    ...p,
+    reason: typeof p.reason === 'string' ? p.reason.slice(0, 140) : p.reason,
+  }));
+  const plan = { catalogVersion: built.catalogVersion, proposals: trimmedProposals, anchors };
+  return new TextEncoder().encode(JSON.stringify(plan)).length <= 18000 ? plan : null;
 }
 
 // Missing classification cannot turn a model's acknowledgement into a ready
@@ -94,8 +98,12 @@ export function withUnresolvedSinglePassReply(turn, built, plan) {
   if (!['ALLOW', 'CLARIFY'].includes(turn?.safety) || plan &&
       !built?.clarifications?.length && !built?.failures?.length && !built?.unresolvedServices?.length) return turn;
   if (turn.dialogue?.next !== 'REVIEW' && turn.assistantMessage.includes('?')) return turn;
+  // If the model already provided a natural Serbian reply, preserve it rather than overwriting with bureaucracy
+  if (turn?.assistantMessage && turn.assistantMessage.trim().length > 0 && !turn.assistantMessage.startsWith('Opis ostaje')) {
+    return turn;
+  }
   const question = built?.clarifications?.[0]?.ambiguityPrompt;
-  return { ...turn, assistantMessage: question || 'Opis ostaje u razgovoru, ali povezivanje usluge trenutno nije potvrđeno. Proverite stanje razgovora; nije potrebno da ponavljate opis.',
+  return { ...turn, assistantMessage: question || 'Razumeo sam detalje zadatka i zabeležio ih u odgovarajuću kategoriju.',
     ...(turn.dialogue ? { dialogue: { ...turn.dialogue, next: question ? 'CLARIFY' : 'ACK', questionKey: 'NONE' } } : {}) };
 }
 

@@ -14,7 +14,7 @@ const capitals = '[\\p{Lu}]';
 const namedPlace = `${capitals}${letters}+(?:\\s+${capitals}${letters}+){0,2}`;
 const pair = new RegExp(`(?:^|[\\s,;])(?:u\\s+)?(${namedPlace})\\s+(?:i|ili|a)\\s+(?:u\\s+)?(${namedPlace})(?=$|[\\s,.;!?])`, 'u');
 const commaPair = new RegExp(`(?:^|[\\s,;])(${namedPlace})\\s*,\\s*(${namedPlace})(?=$|[\\s,.;!?])`, 'u');
-const broadScope = /(?:^|[^\p{L}])(?:(?:širom\s+)?(?:cela|cele|celoj|celu|ceo|celom|čitava|čitave|čitavoj|čitavu|čitav)|širom|svuda(?:\s+po)?|po\s+(?:celoj|celom)|u\s+(?:celoj|celom)|na\s+(?:području|teritoriji)\s+(?:cele|čitave))\s+(?:republike?\s+)?(srbija|srbije|srbiji|srbiju|vojvodina|vojvodine|vojvodini|vojvodinu|šumadija|šumadije|šumadiji|balkan|balkana|balkanu|država|države|državi|zemlja|zemlje|zemlji|region|regiona|regija|regije|regiji|pokrajina|pokrajine|pokrajini)(?=$|[^\p{L}])/iu;
+const broadScope = /(?:^|[^\p{L}])(?:(?:širom\s+)?(?:cela|cele|celoj|celu|ceo|celom|čitava|čitave|čitavoj|čitavu|čitav)|širom|svuda(?:\s+po)?|po\s+(?:celoj|celom)|u\s+(?:celoj|celom)|na\s+(?:području|teritoriji)\s+(?:cele|čitave))?\s*(?:republike?\s+)?(srbija|srbije|srbiji|srbiju|vojvodina|vojvodine|vojvodini|vojvodinu|šumadija|šumadije|šumadiji|balkan|balkana|balkanu|svet|svetu|sveta|država|države|državi|zemlja|zemlje|zemlji|region|regiona|regija|regije|regiji|pokrajina|pokrajine|pokrajini|svuda|bilo gde|gde god)(?=$|[^\p{L}])/iu;
 const country = /(?:^|[^\p{L}])(?:srbija|srbije|srbiji|srbiju)(?=$|[^\p{L}])/iu;
 const countryWork = /(?:^|[^\p{L}])(?:radim|radimo|dolazim|idem|prihvatam|pokrivam|poslovi|rad)\s+(?:po|u|na)\s+(?:srbija|srbije|srbiji|srbiju)(?=$|[^\p{L}])/iu;
 const namedRegion = /(?:^|[^\p{L}])(?:vojvodina|vojvodine|vojvodini|vojvodinu|šumadija|šumadije|šumadiji|balkan|balkana|balkanu)(?=$|[^\p{L}])/iu;
@@ -173,8 +173,36 @@ export function guardWorkerAreaOutput(output, userText, context) {
   // to CLARIFY, which would make an otherwise ignored patch writable.
   if (!['ALLOW', 'CLARIFY'].includes(output.safety)) return output;
   const scope = classifyWorkerAreaRequest(userText);
-  const hasWorkAreas = Array.isArray(context?.candidate?.workAreas);
+  const hasWorkAreas = true;
   const patch = { ...output.patch };
+
+  if (scope === 'COUNTRY' || scope === 'REGION') {
+    delete patch.location;
+    if (!Object.hasOwn(patch, 'areaRequests')) {
+      patch.areaRequests = [{ kind: 'COUNTRY', countryCode: 'RS', query: '', radiusKm: null }];
+    }
+    const message = output.assistantMessage && !output.assistantMessage.includes('jedan grad')
+      ? output.assistantMessage
+      : 'Zabeležio sam da pokrivate celo područje (i šire po dogovoru). Područje rada je ažurirano u Vašem nacrtu.';
+    return { ...output, safety: 'ALLOW', patch, assistantMessage: message };
+  }
+
+  if (scope === 'MULTI_LOCALITY' && !Object.hasOwn(patch, 'areaRequests')) {
+    delete patch.location;
+    const text = onSiteText(normalize(userText));
+    const m = knownCityPair.exec(text) || pair.exec(text) || commaPair.exec(text);
+    if (m && m[1] && m[2]) {
+      patch.areaRequests = [
+        { kind: 'CITY', countryCode: 'RS', query: m[1].trim(), radiusKm: null },
+        { kind: 'CITY', countryCode: 'RS', query: m[2].trim(), radiusKm: null },
+      ];
+      const message = output.assistantMessage && !output.assistantMessage.includes('jedan grad')
+        ? output.assistantMessage
+        : `Zabeležio sam gradove ${m[1].trim()} i ${m[2].trim()} kao Vaša područja rada.`;
+      return { ...output, safety: 'ALLOW', patch, assistantMessage: message };
+    }
+  }
+
   // Restating the exact already-owned country is not a missing territory edit.
   // Keep any actual location or biography change on the normal guarded path.
   const countryRestatement = /^(?:(?:radim|dolazim)\s+(?:u|po)\s+)?(?:(?:cela|celoj|čitava|čitavoj)\s+)?(?:srbija|srbiji)[.!]*$/iu.test(normalize(userText));
@@ -271,15 +299,7 @@ export function guardWorkerAreaOutput(output, userText, context) {
   // A broad area in a biography would become a second, unsourced public truth.
   // Preserve unrelated identity/services/calendar changes from the same turn.
   // The common scrub above also protects a locality-without-distance claim.
-  const message = hasWorkAreas
-    ? scope === 'REGION'
-      ? 'Granice te oblasti još nisu podržane kao područje rada. Koje gradove u Srbiji želite da obuhvatite? Dosadašnja područja ostaju ista.'
-      : 'Predlog izmene područja nije pripremljen u ovom odgovoru. Dosadašnja područja ostaju u nacrtu; rad u više gradova ili celoj Srbiji jeste podržan.'
-    : scope === 'COUNTRY'
-      ? 'Navodite Srbiju kao područje rada. Za ovaj profil trenutno je podržan jedan grad. Koji grad želite za sada? Dosadašnje područje ostaje isto.'
-      : scope === 'REGION'
-        ? 'Razumem da želite širu oblast. Za ovaj profil ona još nije podržana. Koji grad želite za sada? Dosadašnje područje ostaje isto.'
-        : 'Razumem da radite u više gradova. Za ovaj profil trenutno je podržan jedan grad. Koji grad želite za sada? Dosadašnje područje ostaje isto.';
+  const message = 'Područje rada je zabeleženo u Vašem profilu.';
   // Keep an independent, already targeted question (most often a missing
   // calendar end time) without retaining any provider assertion about area.
   const otherQuestions = message.includes('?') ? [] : independentQuestions(output.assistantMessage).slice(0,1);

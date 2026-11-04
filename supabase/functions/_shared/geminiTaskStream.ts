@@ -96,6 +96,7 @@ export function geminiRequestBody(raw: string): string {
   if (!generation || typeof generation !== 'object' || Array.isArray(generation)) throw new Error('AI_STREAM_INVALID');
   const mime = generation.responseMimeType;
   const schema = generation.responseSchema;
+  const specifiedTemperature = typeof generation.temperature === 'number' ? generation.temperature : undefined;
   delete generation.temperature;
   delete generation.topP;
   delete generation.topK;
@@ -103,6 +104,9 @@ export function geminiRequestBody(raw: string): string {
   delete generation.responseSchema;
   delete generation.responseFormat;
   generation.thinkingConfig = { thinkingLevel: 'low' };
+  if (specifiedTemperature !== undefined) {
+    generation.temperature = specifiedTemperature;
+  }
   if (mime !== undefined || schema !== undefined) {
     if (mime !== 'application/json' || !schema || typeof schema !== 'object' || Array.isArray(schema)) throw new Error('AI_STREAM_INVALID');
     // Structured output travels in the provider's documented generateContent fields. The

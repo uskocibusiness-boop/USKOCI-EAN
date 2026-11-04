@@ -82,7 +82,7 @@ export function candidateValue(k: Pick<KandidatProjekcija, 'cena' | 'pokrivaMest
   const shown = (k.cena?.prikaz ?? '').trim();
   if (!shown || !/\d/.test(shown) || !Number.isSafeInteger(k.cena.iznos) || k.cena.iznos <= 0) return { kind: 'unpriced' };
   // An amount never loses its currency: a figure written without one gets the offer's own.
-  const amount = /[A-Za-z]/.test(shown) ? shown : `${shown} ${k.cena.valuta || 'RSD'}`;
+  const amount = /[A-Za-z€]/.test(shown) ? shown : `${shown} ${k.cena.valuta || 'RSD'}`;
   return { kind: 'amount', amount, basis: k.osnovaCene === 'HOURLY' ? 'po osobi po satu' : 'ukupno' };
 }
 

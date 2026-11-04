@@ -110,7 +110,7 @@ const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(
  * card and the sheet of the candidate show (the name and photo, the rating, the total, the people, the term, the message, and the vehicle and the
  * tools of the application), nothing the application does not carry.
  */
-export const WHAT_THE_OTHER_SIDE_SEES = ['Osoba koja traži pomoć vidi tvoje ime i fotografiju, ocenu, iznos, broj ljudi, termin i poruku.'] as const;
+export const WHAT_THE_OTHER_SIDE_SEES = ['Naručilac vidi Vaše ime i fotografiju, ocenu, iznos, broj ljudi, termin i poruku.'] as const;
 
 /**
  * The screen's frame: the bar that says whose application this is, a keyboard-safe body that scrolls, and the pinned foot. The
@@ -118,7 +118,7 @@ export const WHAT_THE_OTHER_SIDE_SEES = ['Osoba koja traži pomoć vidi tvoje im
  * shows the outcome, not the old scroll position in the note. `info` is the form's ⓘ, in the 48 dp column every control of the bar stands in.
  */
 function ComposerFrame({ back, children, footer, info = false }: { back: () => void; children: ReactNode; footer?: ReactNode; info?: boolean }) {
-  return <Screen kind="flow" header={<ProductHeader title="Tvoja prijava" backLabel="Nazad na zadatak" back={back}
+  return <Screen kind="flow" header={<ProductHeader title="Vaša prijava" backLabel="Nazad na zadatak" back={back}
     right={info ? <View style={s.infoSlot}><InfoButton title="Šta vidi druga strana" lines={WHAT_THE_OTHER_SIDE_SEES} /></View> : undefined} />} footer={footer}>
     {children}
   </Screen>;
@@ -165,10 +165,10 @@ function TaskHead({ opportunity, showTerms = true }: { opportunity: PrilikaProje
  * with the task's own window beside it (`proposed`), the same word the composer's Termin row uses; otherwise nothing.
  */
 function SentFacts({ price, hourly, people, time, flexible, proposed }: { price: string | null; hourly: boolean; people: string; time: string; flexible: boolean; proposed: string | null }) {
-  const timeNote = flexible ? 'Tačan početak i kraj još nisu dogovoreni.' : proposed ? `Tvoj predlog · termin zadatka je ${proposed}` : null;
+  const timeNote = flexible ? 'Tačan početak i kraj još nisu dogovoreni.' : proposed ? `Vaš predlog · termin zadatka je ${proposed}` : null;
   return <View style={s.reviewBody}>
-    {price ? <MoneySummary label={hourly ? "Satnica" : "Ukupna ponuda"} amount={price} basis={hourly ? "Po osobi po satu" : "Za sve ljude iz tvoje prijave"} />
-      : <FactRow art="money" label="Ukupna ponuda" value="Proveri unetu cenu" size="detail" />}
+    {price ? <MoneySummary label={hourly ? "Satnica" : "Ukupna ponuda"} amount={price} basis={hourly ? "Po osobi po satu" : "Za sve ljude iz Vaše prijave"} />
+      : <FactRow art="money" label="Ukupna ponuda" value="Proverite unetu cenu" size="detail" />}
     <Surface kind="panel" variant="tinted" tone="wash" density="comfortable" style={s.reviewBody}>
       <FactRow art="users" label="Ljudi" value={people} size="detail" />
       <FactRow art="calendar" label="Termin" value={time} note={timeNote ?? undefined} size="detail" />
@@ -362,7 +362,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
     {/* A real confirmation is the first thing on the resulting screen, not below the old form's task summary. */}
     {confirmed ? <><SentReceipt hourly={hourly} fresh={!confirmedAtMount} price={shownPrice} title={readableTitle(opportunity.naslov)}
       people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} error={error}
-      timeNote={!exact && !fixed ? 'Tačan početak i kraj još nisu dogovoreni.' : proposedTaskTime ? `Tvoj predlog · termin zadatka je ${proposedTaskTime}` : null}
+      timeNote={!exact && !fixed ? 'Tačan početak i kraj još nisu dogovoreni.' : proposedTaskTime ? `Vaš predlog · termin zadatka je ${proposedTaskTime}` : null}
       message={draft.note.trim()} actions={<>{primary}<V2Action label="Nazad na zadatak" kind="quiet" onPress={back} /></>} />{afterConfirmation}</>
     : <>
     <TaskHead opportunity={opportunity} showTerms={locked} />
@@ -373,18 +373,18 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
       {/* After a known refusal the same offer is not repeated, so the sentence about repeating it is not said. */}
       {!reset ? <T variant="meta" tone="muted">Termin, cena i broj ljudi ostaju isti.</T> : null}
     </> : <>
-      {offers ? <Section title="Tvoja ponuda">
+      {offers ? <Section title="Vaša ponuda">
         <View style={s.group}>
           <View style={[s.priceBox, focused === 'price' && s.fieldFocused, issue.price === 'invalid' && s.fieldDanger]}>
             <FactArt kind="money" size={32} />
-            <TextInput accessibilityLabel="Tvoja ukupna ponuda za ljude koje dovodiš (RSD)" keyboardType="number-pad" maxLength={10} value={draft.price}
+            <TextInput accessibilityLabel="Vaša ukupna ponuda" keyboardType="number-pad" maxLength={10} value={draft.price}
               editable={!disabled} style={s.priceInput} placeholder="Iznos" placeholderTextColor={sys.color.muted}
               onFocus={() => setFocused('price')} onBlur={() => setFocused(null)}
-              accessibilityHint={issue.price === 'invalid' ? 'Upiši ceo iznos u dinarima, bez tačaka i slova.' : undefined}
+              accessibilityHint={issue.price === 'invalid' ? 'Unesite ceo iznos, bez tačaka i slova.' : undefined}
               onChangeText={value => { if (!disabled) change({ ...draft, price: value }); }} />
-            <T variant="bodyStrong" tone="muted" accessible={false}>RSD</T>
+            <T variant="bodyStrong" tone="muted" accessible={false}>{need.ponudjenaCena?.valuta === 'EUR' ? '€' : 'RSD'}</T>
           </View>
-          <T variant="note" tone="muted">Za sve ljude koje dovodiš.</T>
+          <T variant="note" tone="muted">Za sve izvršioce koje prijavljujete.</T>
         </View>
       </Section> : <FixedPrice need={need} />}
       <Section title="Koliko vas dolazi">
@@ -400,7 +400,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
       <Section title="Poruka uz prijavu">
         <View style={s.group}>
           <TextInput accessibilityLabel="Poruka uz prijavu" multiline maxLength={NOTE_LIMIT} value={draft.note} editable={!disabled}
-            style={[s.note, focused === 'note' && s.fieldFocused]} placeholder="Npr. šta donosiš ili kada možeš da dođeš." placeholderTextColor={sys.color.muted}
+            style={[s.note, focused === 'note' && s.fieldFocused]} placeholder="Npr. šta donosite ili kada možete da dođete." placeholderTextColor={sys.color.muted}
             onFocus={() => setFocused('note')} onBlur={() => setFocused(null)}
             onChangeText={note => { if (!disabled) change({ ...draft, note }); }} />
           <T variant="note" tone="muted">Opciono.{draft.note.length >= NOTE_COUNTER_FROM ? ` Još ${noteLeft} ${plural(noteLeft, 'znak', 'znaka', 'znakova')}.` : ''}</T>
@@ -420,7 +420,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
         </View>
         {sentFacts}
         <SentMessage note={draft.note} />
-        <T variant="meta" tone="muted">Ako tvoja prijava bude izabrana, odmah nastaje Dogovor.</T>
+        <T variant="meta" tone="muted">Ako Vaša prijava bude izabrana, odmah nastaje Dogovor.</T>
       </View>}
     </ProductSheet> : null}
   </ComposerFrame>;
@@ -432,11 +432,11 @@ function FixedPrice({ need }: { need: PotrebaProjekcija }) {
   // An absent legacy basis is an application total, never an inferred whole-task price.
   const basis = need.osnovaCene === 'HOURLY' ? 'po osobi po satu'
     : need.osnovaCene === 'PER_PERSON' ? 'po osobi'
-    : need.osnovaCene === 'TOTAL' ? 'za ceo zadatak' : 'ukupno za tvoju prijavu';
+    : need.osnovaCene === 'TOTAL' ? 'za ceo zadatak' : 'ukupno za Vašu prijavu';
   return <View style={s.group}>
     {amount ? <MoneySummary label="Cena zadatka" amount={amount} basis={basis} />
       : <FactRow size="detail" art="money" label="Cena zadatka" value="Cena nije navedena" />}
-    {need.osnovaCene === 'TOTAL' ? <T variant="note" tone="muted">Tvoja cena se računa srazmerno broju ljudi, zaokruženo na najbliži dinar.</T> : null}
+    {need.osnovaCene === 'TOTAL' ? <T variant="note" tone="muted">Vaša cena se računa srazmerno broju osoba.</T> : null}
     {need.osnovaCene === 'HOURLY' ? <T variant="note" tone="muted">Satnica važi za svaku osobu za jedan sat rada. Ukupan iznos zavisi od stvarnog trajanja.</T> : null}
   </View>;
 }
