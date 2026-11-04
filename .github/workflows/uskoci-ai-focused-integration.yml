@@ -31,6 +31,8 @@ jobs:
         run: npm ci
       - name: Check TypeScript source
         run: npx tsc --noEmit
+      - name: Test DEV-only smoke admission and synthetic chat/readback (never paid)
+        run: node --test --test-reporter=spec scripts/uskoci-ai-dev-smoke.test.mjs
       - name: Test active Worker Edge logic with synthetic Auth and provider
         run: |
           node --test --test-reporter=spec \
