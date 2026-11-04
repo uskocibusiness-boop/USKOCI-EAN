@@ -28,7 +28,7 @@ import { V2Action } from '../../ui/v2/V2Action';
 import { NeedLifecycleActions, type NeedLifecycleMenu } from '../../ui/needs/NeedLifecycleActions';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { StateView } from '../../ui/system/StateView';
-import { classificationPreparationMessage } from '../../ui/aiFirst/intakeReviewReadiness';
+import { classificationPreparationMessage } from '../../features/ai/intake/intakeReviewReadiness';
 import { QuietReadState } from '../../ui/v2/QuietReadState';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { useReducedMotion } from '../../ui/system/motion';

@@ -12,7 +12,7 @@ import { layout } from '../system/layout';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
-import { classificationPreparationMessage } from '../aiFirst/intakeReviewReadiness';
+import { classificationPreparationMessage } from '../../features/ai/intake/intakeReviewReadiness';
 import { V2Action } from '../v2/V2Action';
 import { FactChoiceEditor } from '../v2/FactChoiceEditor';
 import { cityLabel } from '../profile/cityLabel';

@@ -1,5 +1,5 @@
-import { AI_CREDITS_UNAVAILABLE_COPY } from '../../../contracts/aiAvailability';
-import { AI_DOWN_WITH_DRAFT, SEND_UNCONFIRMED_CODE, aiDownLine, conversationErrorLine } from '../aiDownLine';
+import { AI_CREDITS_UNAVAILABLE_COPY } from '../../../src/contracts/aiAvailability';
+import { AI_DOWN_WITH_DRAFT, SEND_UNCONFIRMED_CODE, aiDownLine, conversationErrorLine } from '../../../src/features/ai/intake/aiDownLine';
 
 /** R19: the assistant is down and the draft is safe, said once and only when it is true. */
 describe('aiDownLine', () => {

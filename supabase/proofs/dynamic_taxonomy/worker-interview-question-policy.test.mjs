@@ -81,7 +81,7 @@ test('first screen welcomes naturally and named sections describe offered skills
  const route=readFileSync(new URL('../../../src/app/(app)/profil/razgovor.tsx',import.meta.url),'utf8');
  const facts=readFileSync(new URL('../../../src/ui/workerProfile/workerProfileFacts.ts',import.meta.url),'utf8');
  assert.match(route,/welcome=\{hasProfileContent\?'Dobar dan! Šta želite da dopunite\? 🧡':'Dobar dan! Čime se bavite\? 🧡'\}/);
- const welcome=readFileSync(new URL('../../../src/ui/aiFirst/aiInterviewWelcome.ts',import.meta.url),'utf8');
+ const welcome=readFileSync(new URL('../../../src/features/ai/intake/aiInterviewWelcome.ts',import.meta.url),'utf8');
  assert.match(route,/introMessage=\{data\.messages\.length===0 && !unread \? workerInterviewOpening\(hasProfileContent\) : undefined\}/);
  assert.match(welcome,/Dobro došli u USKOČI zajednicu/);
  assert.match(welcome,/Za početak, koje vrste poslova ili usluga želite da ponudite/);

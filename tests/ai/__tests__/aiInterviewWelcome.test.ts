@@ -1,4 +1,4 @@
-import {workerInterviewOpening,taskInterviewOpening} from '../aiInterviewWelcome';
+import {workerInterviewOpening,taskInterviewOpening} from '../../../src/features/ai/intake/aiInterviewWelcome';
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 
@@ -33,9 +33,9 @@ describe('first USKOČI AI welcome',()=>{
     expect(text.split('?')).toHaveLength(2);
   });
   test('worker LLM is instructed not to repeat onboarding or request unsupported fields',()=>{
-    const source=readFileSync(resolve(__dirname,'../../../../supabase/functions/uskoci-worker-interview/index.ts'),'utf8');
+    const source=readFileSync(resolve(__dirname,'../../../supabase/functions/uskoci-worker-interview/index.ts'),'utf8');
     expect(source).toContain('The phone already introduced the flow');
-    const voice=readFileSync(resolve(__dirname,'../../../../supabase/functions/_shared/interviewVoiceInstruction.mjs'),'utf8');
+    const voice=readFileSync(resolve(__dirname,'../../../supabase/functions/_shared/interviewVoiceInstruction.mjs'),'utf8');
     expect(source).toContain('interviewVoiceInstruction()');
     expect(voice).toContain('najviše JEDNO pitanje za JEDNU bitnu nepoznanicu');
     expect(voice).toContain('Objavi/Sačuvaj je korisnička potvrda celine');

@@ -1,9 +1,9 @@
-import type { AiNeedV2Conversation } from '../../contracts/aiNeedV2';
-import type { AiTaskReviewEnvelope } from '../../data/aiTaskReviewClientService';
-import type { WorkerAiSnapshot } from '../../data/workerAiClientService';
-import { reviewFactProblem } from '../../data/reviewFactProblem';
-import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
-import { completeDraftProposal } from '../v2/draftSummary';
+import type { AiNeedV2Conversation } from '../../../contracts/aiNeedV2';
+import type { AiTaskReviewEnvelope } from '../../../data/aiTaskReviewClientService';
+import type { WorkerAiSnapshot } from '../../../data/workerAiClientService';
+import { reviewFactProblem } from '../../../data/reviewFactProblem';
+import { normalizeNeedLocation, pointsMissing } from '../../../lib/location';
+import { completeDraftProposal } from '../../../ui/v2/draftSummary';
 
 // In-memory comparison only. Neither conversation values nor this key belong in
 // logs/storage. Object member order from separate JSON responses is irrelevant.

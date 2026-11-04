@@ -14,7 +14,7 @@ import { WorkerAiCard } from '../ui/workerProfile/WorkerAiPresentation';
 import { ScreenChrome } from '../ui/system/ScreenChrome';
 import { UNCERTAIN_ABOUT } from '../ui/system/outcomeCopy';
 import { T } from '../ui/Text';
-import { aiDownLine } from '../ui/aiFirst/aiDownLine';
+import { aiDownLine } from '../features/ai/intake/aiDownLine';
 import { layout } from '../ui/system/layout';
 import { ListRow } from '../ui/system/ListRow';
 import { LARGE_LAYOUT, LayoutClassOverride } from '../ui/system/textScale';

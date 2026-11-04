@@ -25,7 +25,7 @@ import { V2Action } from './V2Action';
 import { CardTitle, valueSpoken } from './TaskFace';
 import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
 import { AiConversationShell, type AiConversationShellProps } from '../aiFirst/AiConversationShell';
-import { taskInterviewOpening } from '../aiFirst/aiInterviewWelcome';
+import { taskInterviewOpening } from '../../features/ai/intake/aiInterviewWelcome';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
 import type { LocationReplyPrompt } from '../location/ConversationPointAsk';
 import { ConfirmedPlaceLine } from '../location/ConfirmedPlaceLine';

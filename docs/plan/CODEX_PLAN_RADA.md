@@ -3489,6 +3489,13 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
 
+#### R11 — izdvojena zajednicka AI intake pravila, 04.11.2026.
+
+Posebna grana `work/product-cleanup-20261104`, polazni `a3623973`. Tri modula iz `src/ui/aiFirst/` premestena u `src/features/ai/intake/`, dve postojece provere u `tests/ai/__tests__/`; 21 referenca uskladjena bez promene poslovne logike, UI ponasanja ili ruta. Sva nepromenjena originalna tela proverena bajt-po-bajt; mapirani staticki graf je isti. `scripts/product-audit.cjs` pravi popis svih pracenih fajlova i konzervativnih veza, ali NE proglasava semanticki audit ili odobrava brisanje. Izvestaji idu u ignorisani `artifacts/product-audit/`.
+
+Locked install, TypeScript, 140 Node provera, 14618/14618 mobilnih provera u 629 suite-ova i Android Metro export PASS. Tacan obuhvat, izvor, run i postimage hash-evi: [izvrsni receipt](../continuation/product-cleanup-20261104/receipt.json). Polazni run41743652087 zasebno potvrdjuje originalni kod. Privremeni workflow-i i migraciona skripta povuceni posle ovog prolaza. Nema DEV/SQL/Edge/OTA/model/telefon izmena, R01/R10 i realan AI/dvokorisnicki prihvat nisu zatvoreni. Ovo je strukturni korak istog R11, ne novi master ili zavrsen proizvod.
+
+
 #### R12 — QA_ARM64_SIDEBYSIDE_20261103, potvrđen instalacioni fajl
 
 **QA_ARM64_SIDEBYSIDE_20261103 — GitHub installable APK source/proof:** [Android QA run 41666366240 SUCCESS](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41666366240), source `be71b33cb4dcd46aa4eae75d2f93225e365cf2be`, `rs.uskoci.preview.qa`, ARM64-only, 85,507,054 bytes, SHA-256 `40cb7cf322499cb9445cb31de8bde897b663437ba0cbd6ae8e8854a69f135391`. GitHub `apksigner` and `aapt` PASS; downloaded artifact ZIP integrity, receipt and APK hash independently verified. Isolated local Android debug signature, DEV target, preview runtime; can install beside signed `rs.uskoci.preview`. **No physical device install, account Auth, paid model, two-account E2E, Firebase push, store signing or release approval.** The APK build predates documentation-only status writes and does not include a later Edge executable revision beyond `f4a8048` (the only later app runtime change is formal native permissions copy).

@@ -1,4 +1,4 @@
-import { AI_CREDITS_UNAVAILABLE_COPY } from '../../contracts/aiAvailability';
+import { AI_CREDITS_UNAVAILABLE_COPY } from '../../../contracts/aiAvailability';
 
 /**
  * What the conversation says when the AI itself is not there (UX needs R19, until the owner decides on a fallback form): the
