@@ -191,8 +191,8 @@ jobs:
           restore dokaza nije obrisana iz Git istorije. Čuva se u drugoj grani,
           work/uskoci-cleanroom-audit-20261104, na prethodno pinovanom commitu.
           Tamo se po potrebi izvršavaju detaljni testovi nad aktuelnim kodom.
-          Ova grana pokreće mali izvorni smoke test preko npm test i proverava
-          TypeScript, Expo build i native integraciju u GitHub Actions.
+          Ova grana koristi mali smoke test preko npm test i zadrzava
+          postojeci QA APK workflow za zasebnu Android proveru.
 
           ## Lokalna izgradnja
           npm ci
@@ -309,9 +309,10 @@ jobs:
           if(r.error)throw r.error;
           process.exit(r.status??1);
           JS
+          rm -f .github/workflows/uskoci-product-check.yml
           git rm -- scripts/product_slim_once.py .github/workflows/uskoci-product-slim-once.yml
           git add -- package.json README.md docs/plan/CODEX_PLAN_RADA.md \
-            scripts/product-smoke.test.cjs .github/workflows/uskoci-product-check.yml
+            scripts/product-smoke.test.cjs
           git diff --cached --check
           python3 - <<'PY'
           from pathlib import Path
@@ -322,11 +323,11 @@ jobs:
           changed=set(subprocess.check_output(['git','diff','--cached','--name-only',os.environ['PRODUCT_BASE_SHA']],text=True).splitlines())
           expected={x['path'] for x in r['removedFilesIndex']}|{
               'README.md','package.json','docs/plan/CODEX_PLAN_RADA.md',
-              'scripts/product-smoke.test.cjs','.github/workflows/uskoci-product-check.yml'}
+              'scripts/product-smoke.test.cjs'}
           if changed!=expected:
               raise SystemExit('FINAL_PRODUCT_SCOPE_NOT_VERIFIED '+repr(sorted(changed^expected)[:25]))
           retained=[p for p in subprocess.check_output(['git','ls-files','-z']).split(b'\0') if p]
-          if len(retained)!=r['retainedOriginalFiles']+2:
+          if len(retained)!=r['retainedOriginalFiles']+1:
               raise SystemExit('WRONG_FINAL_PRODUCT_FILE_COUNT '+str(len(retained)))
           report={
               'source':r['sourceCommit'],'productBranch':'work/uskoci-cist-proizvod-20261104',
