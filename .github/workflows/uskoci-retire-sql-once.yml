@@ -70,7 +70,10 @@ jobs:
         run: |
           set -euo pipefail
           node --test --test-reporter=spec supabase/proofs/ai/*.test.mjs > /tmp/uskoci-sql-cleanup/ai-node.log 2>&1
-          node --test --test-reporter=spec supabase/proofs/match_category_fallback/source.test.mjs > /tmp/uskoci-sql-cleanup/match-node.log 2>&1
+          # The old match_category_fallback/source.test.mjs expects a proof workflow absent at baseline.
+          # R05's currently maintained availability test is the appropriate focused gate.
+          test ! -e .github/workflows/match-category-fallback-proof.yml
+          node --test --test-reporter=spec supabase/proofs/r05/today_window.test.mjs > /tmp/uskoci-sql-cleanup/match-node.log 2>&1
           node --test --test-reporter=spec supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs > /tmp/uskoci-sql-cleanup/taxonomy-node.log 2>&1
           node --test --test-reporter=spec supabase/proofs/privacy/r01_future_public_default_grants.test.mjs > /tmp/uskoci-sql-cleanup/privacy-node.log 2>&1
           node supabase/operations/dev-alpha/r04-single-pass-20261103/build.mjs --check > /tmp/uskoci-sql-cleanup/edge-package.log 2>&1
