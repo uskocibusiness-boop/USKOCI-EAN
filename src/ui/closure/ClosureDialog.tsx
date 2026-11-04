@@ -54,18 +54,27 @@ export function ClosureDialog({ onClose, closeRequestRef }: { onClose: () => voi
   const live = (token: object | null) => token !== null && focus.current === token && !leaving.current && active.current && !!accountId
     && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
 
-  async function readIntent(i: ClosureIntent, token: object) {
+  async function finishIntent(i: ClosureIntent, token: object) {
+    if (!live(token)) return;
+    await closureIntentJournal.clear(i.accountId, i.clientRequestId, () => live(token)); if (!live(token)) return;
+    // A different dialog may have saved another intent. Clearing this key is
+    // not permission to discard its successor or to start a new command.
+    const pending = await closureIntentJournal.load(i.accountId); if (!live(token)) return;
+    setIntent(pending); setAbsent(false); setReview(null); setState(null);
+    if (pending) await readIntent(pending, token); else await readReview(token);
+  }
+  async function readIntent(i: ClosureIntent, token: object, knownRefusal = false) {
     if (i.kind === 'START') {
       const result = await closureExecutionClientService.read(i.clientRequestId, owner); if (!live(token)) return;
       if (!result.ok) { setMessage(result.poruka); return; }
+      if (!result.podatak.found && knownRefusal) { await finishIntent(i, token); return; }
       setAbsent(!result.podatak.found); setState(result.podatak.execution);
       setMessage(result.podatak.found ? '' : closureUnconfirmedCopy.START);
     } else {
       const result = await accountClosureClientService.readReceipt(i.clientRequestId, owner); if (!live(token)) return;
       if (!result.ok) { setMessage(result.poruka); return; }
-      if (!result.podatak.found) { setAbsent(true); setMessage(closureUnconfirmedCopy.PREPARE); return; }
-      await closureIntentJournal.clear(i.accountId, i.clientRequestId); if (!live(token)) return;
-      setIntent(null); setAbsent(false); await readReview(token);
+      if (!result.podatak.found && !knownRefusal) { setAbsent(true); setMessage(closureUnconfirmedCopy.PREPARE); return; }
+      await finishIntent(i, token);
     }
   }
   async function readReview(token: object) {
@@ -112,7 +121,12 @@ export function ClosureDialog({ onClose, closeRequestRef }: { onClose: () => voi
       : await accountClosureClientService.prepare({ expectedRevision: i.expectedRevision, clientRequestId: i.clientRequestId }, owner);
     if (!live(token)) return;
     if (!result.ok) setMessage(result.poruka);
-    await readIntent(i, token);
+    // These current SQL rejections happen before a fresh command is committed.
+    // A transport/receipt failure stays UNKNOWN. Even a known rejection retires
+    // its intent only after the owned, exact-key receipt lookup confirms absence.
+    const knownRefusal = !result.ok && (result.kod === 'CLOSURE_REVISION_CONFLICT'
+      || (i.kind === 'START' && (result.kod === 'CLOSURE_POLICY_NOT_READY' || result.kod === 'CLOSURE_BLOCKED')));
+    await readIntent(i, token, knownRefusal);
   }
   const prepare = () => run(async token => {
     const status = await accountClosureClientService.read(owner); if (!live(token)) return;

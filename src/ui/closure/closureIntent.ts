@@ -16,5 +16,5 @@ function parse(raw:string|null,a:string):ClosureIntent|null{
 export const closureIntentJournal={
  load:(a:string)=>queue(a,async()=>{if(!uuid(a))throw new Error('CLOSURE_LOCAL_STATE_INVALID');return parse(await AsyncStorage.getItem(key(a)),a);}),
  save:(intent:ClosureIntent)=>queue(intent.accountId,async()=>{const existing=parse(await AsyncStorage.getItem(key(intent.accountId)),intent.accountId);if(existing&&JSON.stringify(existing)!==JSON.stringify(intent))throw new Error('CLOSURE_UNRESOLVED_INTENT');await AsyncStorage.setItem(key(intent.accountId),JSON.stringify(intent));}),
- clear:(a:string,clientRequestId:string)=>queue(a,async()=>{const existing=parse(await AsyncStorage.getItem(key(a)),a);if(existing?.clientRequestId===clientRequestId)await AsyncStorage.removeItem(key(a));})
+ clear:(a:string,clientRequestId:string,isCurrent:()=>boolean=()=>true)=>queue(a,async()=>{if(!isCurrent())return;const existing=parse(await AsyncStorage.getItem(key(a)),a);if(isCurrent()&&existing?.clientRequestId===clientRequestId)await AsyncStorage.removeItem(key(a));})
 };

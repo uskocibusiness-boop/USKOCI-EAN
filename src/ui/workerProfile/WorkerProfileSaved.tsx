@@ -90,7 +90,8 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
           : grad ? <ListRow title="Grad profila" value={grad} leading={<FactArt kind="pin" size={32} />} last /> : null}
       </SettingsGroup>
     </View>
-    {onSite && !readOnly && confirmMap ? <V2Action label="Potvrdite tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
+    {/* Signed work areas already own their territory and center; this separate editor only changes the legacy city point. */}
+    {onSite && !draft.workAreas?.length && !readOnly && confirmMap ? <V2Action label="Potvrdite tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
       onPress={() => { if (!disabled) confirmMap(); }} /> : null}
     <View testID="worker-profile-time-card" style={s.sectionCard}><SettingsGroup title="Kada">
         {/* Owner decision: "Mogu odmah" remains in legacy data, not on the ordinary saved profile. */}
