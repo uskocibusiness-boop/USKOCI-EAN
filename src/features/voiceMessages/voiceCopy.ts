@@ -5,19 +5,19 @@ export type VoiceErrorCode =
   | 'PLAYBACK_FAILED' | 'PLAYBACK_UNAVAILABLE';
 
 export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
-  MIC_PERMISSION_DENIED: 'Mikrofon nije dozvoljen. Dozvolu možeš da promeniš u podešavanjima telefona.',
-  MIC_PERMISSION_BLOCKED: 'Mikrofon je isključen u podešavanjima telefona. Uključi ga za glasovnu poruku.',
+  MIC_PERMISSION_DENIED: 'Mikrofon nije dozvoljen. Dozvolu možete da promenite u podešavanjima telefona.',
+  MIC_PERMISSION_BLOCKED: 'Mikrofon je isključen u podešavanjima telefona. Uključite ga za glasovnu poruku.',
   MIC_UNAVAILABLE: 'Mikrofon trenutno nije dostupan.',
-  RECORDING_FAILED: 'Snimanje nije uspelo. Pokušaj ponovo.',
-  RECORDING_TOO_SHORT: 'Snimak je prekratak. Drži malo duže.',
-  RECORDING_INTERRUPTED: 'Snimanje je prekinuto. Možeš da preslušaš šta je snimljeno.',
-  RECORDING_INVALID: 'Snimak nije ispravan. Snimi ponovo.',
-  NOT_AVAILABLE: 'U ovom Dogovoru trenutno ne možeš da šalješ poruke.',
-  VERSION_CHANGED: 'Uslovi Dogovora su se promenili. Osveži Dogovor pa snimi ponovo.',
-  UPLOAD_UNCONFIRMED: 'Ne znamo da li je snimak stigao. Pokušaj ponovo; neće se poslati dvaput.',
-  SEND_NOT_STORED: 'Poruka nije sačuvana za slanje. Pokušaj ponovo.',
-  OUTCOME_UNKNOWN: 'Ne znamo da li je snimak stigao. Proveri vezu i pokušaj ponovo.',
-  PLAYBACK_FAILED: 'Glasovna poruka se ne može pustiti. Pokušaj ponovo.',
+  RECORDING_FAILED: 'Snimanje nije uspelo. Pokušajte ponovo.',
+  RECORDING_TOO_SHORT: 'Snimak je prekratak. Držite dugme malo duže.',
+  RECORDING_INTERRUPTED: 'Snimanje je prekinuto. Možete da preslušate snimak.',
+  RECORDING_INVALID: 'Snimak nije ispravan. Snimite ponovo.',
+  NOT_AVAILABLE: 'U ovom Dogovoru trenutno ne možete da šaljete poruke.',
+  VERSION_CHANGED: 'Uslovi Dogovora su se promenili. Osvežite Dogovor pa snimite ponovo.',
+  UPLOAD_UNCONFIRMED: 'Ne znamo da li je snimak stigao. Pokušajte ponovo; neće se poslati dvaput.',
+  SEND_NOT_STORED: 'Poruka nije sačuvana za slanje. Pokušajte ponovo.',
+  OUTCOME_UNKNOWN: 'Ne znamo da li je snimak stigao. Proverite vezu i pokušajte ponovo.',
+  PLAYBACK_FAILED: 'Glasovna poruka se ne može pustiti. Pokušajte ponovo.',
   PLAYBACK_UNAVAILABLE: 'Glasovna poruka trenutno nije dostupna.',
 };
 
@@ -29,4 +29,4 @@ export function voiceClock(milliseconds: number): string {
 /** How a person hears a voice message row: who, what and how long. */
 export function voiceSpoken(durationMs: number): string { return `Glasovna poruka, ${voiceClock(durationMs)}`; }
 /** Shown to an older build, to a support reader and wherever the audio itself cannot be. */
-export const VOICE_OLD_BUILD_NOTICE = 'Glasovna poruka. Ažuriraj aplikaciju da je poslušaš.';
+export const VOICE_OLD_BUILD_NOTICE = 'Glasovna poruka. Ažurirajte aplikaciju da je poslušate.';
