@@ -2,22 +2,22 @@ import { sesijaSada } from '../store/sesija';
 import type { ReceiptAccount } from './serverReceipt';
 
 const WORDS = {
-  'task.details': ['Izmena zadatka', 'Napiši šta želiš da promeniš. Ostale podatke možeš da ostaviš iste.'],
-  'task.title': ['Naslov zadatka', 'Napiši kakav naslov želiš.'],
-  'task.price': ['Cena i ponude', 'Napiši novi budžet ili da želiš ponude. Navedi na šta se iznos odnosi.'],
-  'task.time': ['Termin zadatka', 'Napiši novi termin ili da je vreme fleksibilno.'],
-  'task.deadline': ['Rok za prijave', 'Napiši do kog datuma i sata se ljudi mogu prijaviti, ili izričito reci da nema posebnog roka. Termin rada ostaje odvojen.'],
-  'task.people': ['Broj ljudi', 'Napiši koliko osoba ti je potrebno.'],
-  'task.description': ['Opis zadatka', 'Napiši šta u opisu dodaješ, menjaš ili uklanjaš.'],
-  'task.location': ['Mesto i način rada', 'Napiši koje mesto, tačku rute ili način rada želiš da promeniš. Ostale podatke zadržavamo u istom razgovoru.'],
-  'task.handoff': ['Način predaje', 'Napiši kako se preuzima rezultat: samo onlajn, lično preuzimanje ili slanje.'],
-  'task.requirements': ['Uslovi zadatka', 'Napiši koji uslov želiš da promeniš i kako treba da glasi.'],
-  'worker.details': ['Izmena radnog profila', 'Napiši šta želiš da promeniš. Nastavljamo isti razgovor; sačuvani profil ostaje isti do potvrde.'],
-  'worker.skills': ['Usluge koje nudiš', 'Napiši koju uslugu dodaješ, menjaš ili više ne nudiš.'],
-  'worker.area': ['Područje rada', 'Napiši gde želiš da radiš i da li radiš na lokaciji ili na daljinu.'],
-  'worker.time': ['Kada imaš vremena', 'Napiši dane i vreme kada možeš da radiš, ili šta menjaš u dostupnosti.'],
-  'worker.tools': ['Alat i vozilo', 'Ako želiš, napiši šta od opreme dodaješ ili uklanjaš. Ovaj podatak nije obavezan.'],
-  'worker.identity': ['O meni', 'Napiši kako želiš da te predstavimo drugim ljudima.'],
+  'task.details': ['Izmena zadatka', 'Napišite šta želite da promenite. Ostale podatke možete da ostavite iste.'],
+  'task.title': ['Naslov zadatka', 'Napišite kakav naslov želite.'],
+  'task.price': ['Cena i ponude', 'Napišite novi budžet ili da želite ponude. Navedite na šta se iznos odnosi.'],
+  'task.time': ['Termin zadatka', 'Napišite novi termin ili da je vreme fleksibilno.'],
+  'task.deadline': ['Rok za prijave', 'Napišite do kog datuma i sata se ljudi mogu prijaviti, ili izričito recite da nema posebnog roka. Termin rada ostaje odvojen.'],
+  'task.people': ['Broj ljudi', 'Napišite koliko osoba Vam je potrebno.'],
+  'task.description': ['Opis zadatka', 'Napišite šta u opisu dodajete, menjate ili uklanjate.'],
+  'task.location': ['Mesto i način rada', 'Napišite koje mesto, tačku rute ili način rada želite da promenite. Ostale podatke zadržavamo u istom razgovoru.'],
+  'task.handoff': ['Način predaje', 'Napišite kako se preuzima rezultat: samo onlajn, lično preuzimanje ili slanje.'],
+  'task.requirements': ['Uslovi zadatka', 'Napišite koji uslov želite da promenite i kako treba da glasi.'],
+  'worker.details': ['Izmena radnog profila', 'Napišite šta želite da promenite. Nastavljamo isti razgovor; sačuvani profil ostaje isti do potvrde.'],
+  'worker.skills': ['Usluge koje nudite', 'Napišite koju uslugu dodajete, menjate ili više ne nudite.'],
+  'worker.area': ['Područje rada', 'Napišite gde želite da radite i da li radite na lokaciji ili na daljinu.'],
+  'worker.time': ['Kada imate vremena', 'Napišite dane i vreme kada možete da radite, ili šta menjate u dostupnosti.'],
+  'worker.tools': ['Alat i vozilo', 'Ako želite, napišite šta od opreme dodajete ili uklanjate. Ovaj podatak nije obavezan.'],
+  'worker.identity': ['O meni', 'Napišite kako želite da Vas predstavimo drugim ljudima.'],
 } as const;
 export type AiCorrectionTarget = keyof typeof WORDS;
 export type AiCorrectionIntent = Readonly<{ token: string; target: AiCorrectionTarget; title: string; hint: string }>;

@@ -5,8 +5,8 @@ name: USKOCI temporary isolated Android APK proof
 on:
   workflow_dispatch:
   push:
-    branches: [work/rev14-review-f17]
-    paths: [.github/workflows/uskoci-qa-apk.yml]
+    branches: [work/uskoci-cist-proizvod-20261104]
+    paths-ignore: ['docs/**', '**/*.md']
 
 permissions:
   contents: read
@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   qa-apk:
+    if: github.ref == 'refs/heads/work/uskoci-cist-proizvod-20261104'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -44,6 +45,10 @@ jobs:
         run: |
           npm ci
           node scripts/verify-native-patches.cjs
+      - name: Verify the active clean source
+        run: |
+          npm test
+          npx tsc --noEmit
       - name: Pin canonical DEV settings and isolate app identity
         shell: bash
         run: |
@@ -71,10 +76,24 @@ jobs:
           const expo=require('./app.config.js')({config: require('./app.json').expo});
           if(expo.android.package!=='rs.uskoci.preview.qa'||expo.extra?.uskociBuild?.backendTarget!=='canonical'||expo.runtimeVersion!=='uskoci-v1-preview-r1') throw Error('QA_BUILD_IDENTITY_INVALID');
           if (expo.android.googleServicesFile) throw Error('QA_MUST_HAVE_NO_FIREBASE');
-          console.log('QA package isolation, DEV backend and preview runtime PASS');
+          if (expo.updates.enabled !== false || expo.updates.checkAutomatically !== 'NEVER' || expo.updates.useEmbeddedUpdate !== true) throw Error('QA_MUST_USE_EMBEDDED_SOURCE');
+          if (expo.extra.uskociBuild.sourceCommit !== process.env.GITHUB_SHA) throw Error('QA_SOURCE_COMMIT_MISMATCH');
+          console.log('QA package isolation, DEV backend and embedded-only source PASS');
           NODE
       - name: Generate only the Android native project
         run: npx expo prebuild --platform android --no-install --clean
+      - name: Verify generated native update isolation
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          manifest = ET.parse('android/app/src/main/AndroidManifest.xml').getroot()
+          android = '{http://schemas.android.com/apk/res/android}'
+          metadata = {item.get(android + 'name'): item.get(android + 'value') for item in manifest.findall('application/meta-data')}
+          assert metadata.get('expo.modules.updates.ENABLED') == 'false', 'QA_NATIVE_UPDATES_MUST_BE_DISABLED'
+          assert metadata.get('expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH') == 'NEVER', 'QA_NATIVE_UPDATE_CHECK_MUST_BE_DISABLED'
+          assert metadata.get('expo.modules.updates.HAS_EMBEDDED_UPDATE') != 'false', 'QA_NATIVE_BUNDLE_REQUIRED'
+          print('Generated Android manifest: embedded source only PASS')
+          PY
       - name: Build standalone installable release JS bundle and APK
         shell: bash
         run: |
@@ -92,8 +111,28 @@ jobs:
           apk=android/app/build/outputs/apk/release/app-release.apk
           test -s "$apk"
           tools_dir="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
-          "$tools_dir/apksigner" verify --verbose "$apk"
-          "$tools_dir/aapt" dump badging "$apk" | grep -F "package: name='rs.uskoci.preview.qa'"
+          "$tools_dir/apksigner" verify --verbose --print-certs "$apk" > artifacts/qa-apk/signature.txt
+          "$tools_dir/aapt" dump badging "$apk" > artifacts/qa-apk/apk-badging.txt
+          grep -F "package: name='rs.uskoci.preview.qa'" artifacts/qa-apk/apk-badging.txt
+          "$tools_dir/aapt" dump xmltree "$apk" AndroidManifest.xml > artifacts/qa-apk/AndroidManifest-tree.txt
+          python - <<'PY'
+          import json, re, zipfile
+          from pathlib import Path
+          directory = Path('artifacts/qa-apk')
+          manifest = (directory / 'AndroidManifest-tree.txt').read_text()
+          blocks = re.split(r'(?m)^\s*E: ', manifest)
+          enabled = [block for block in blocks if block.startswith('meta-data ') and '"expo.modules.updates.ENABLED"' in block]
+          assert len(enabled) == 1 and re.search(r'android:value\([^)]*\)=\(type 0x12\)0x0\b', enabled[0]), 'APK_UPDATES_NOT_DISABLED'
+          with zipfile.ZipFile('android/app/build/outputs/apk/release/app-release.apk') as apk:
+            names = apk.namelist()
+            abis = sorted({name.split('/')[1] for name in names if name.startswith('lib/') and name.endswith('.so')})
+            assert abis == ['arm64-v8a'], 'APK_ABI_MISMATCH'
+            assert 'assets/index.android.bundle' in names and apk.getinfo('assets/index.android.bundle').file_size > 0, 'APK_EMBEDDED_BUNDLE_MISSING'
+            dex = [name for name in names if re.fullmatch(r'classes\d*\.dex', name)]
+            assert dex and any(b'USKOCI_RNR01' in apk.read(name) for name in dex), 'APK_NATIVE_PATCH_MISSING'
+          (directory / 'native-receipt.json').write_text(json.dumps({'abis': abis, 'embeddedBundle': True, 'otaEnabled': False, 'nativePatchMarker': 'USKOCI_RNR01', 'dexFiles': len(dex)}, indent=2) + '\n')
+          print('Final APK: ARM64, embedded bundle, OTA disabled and native patch marker PASS')
+          PY
           cp "$apk" artifacts/qa-apk/USKOCI-QA-$(git rev-parse --short=9 HEAD).apk
           (cd artifacts/qa-apk && sha256sum *.apk > SHA256SUMS.txt)
           node - <<'NODE'
@@ -102,10 +141,11 @@ jobs:
           const files=fs.readdirSync(dir).filter(f=>f.endsWith('.apk'));
           if(files.length!==1)throw Error('APK_COUNT_INVALID');
           const data=fs.readFileSync(dir + '/' + files[0]);
-          const meta={status:'BUILD_OUTPUT_NOT_NATIVE_E2E',sourceCommit:process.env.GITHUB_SHA,filename:files[0],bytes:data.length,sha256:crypto.createHash('sha256').update(data).digest('hex'),package:'rs.uskoci.preview.qa',signing:'EPHEMERAL_LOCAL_ANDROID_DEBUG_KEY',backend:'DEV',push:'NOT_PROVEN',replacesExistingPreview:false};
+          const native=JSON.parse(fs.readFileSync(dir + '/native-receipt.json','utf8'));
+          const meta={status:'BUILD_OUTPUT_NOT_NATIVE_E2E',sourceCommit:process.env.GITHUB_SHA,filename:files[0],bytes:data.length,sha256:crypto.createHash('sha256').update(data).digest('hex'),package:'rs.uskoci.preview.qa',signing:'EXPO_TEMPLATE_ANDROID_DEBUG_KEY',backend:'DEV',runtimeVersion:'uskoci-v1-preview-r1',...native,configOverrides:{name:'USKOČI • QA',androidPackage:'rs.uskoci.preview.qa'},push:'NOT_PROVEN',deviceInstall:'NOT_PERFORMED',replacesExistingPreview:false};
           fs.writeFileSync(dir + '/build-receipt.json',JSON.stringify(meta,null,2)+'\n');
           NODE
-          printf 'Temporary side-by-side QA APK only. New package/signing; NOT the signed EAS preview, NOT production/store, NO push proof.\n' > artifacts/qa-apk/README.txt
+          printf 'Temporary side-by-side ARM64 QA APK only. Embedded source only; OTA disabled. New package/signing; NOT the signed EAS preview, NOT production/store, NO push or device-install proof.\n' > artifacts/qa-apk/README.txt
       - name: Upload installable APK and bounded receipt
         uses: actions/upload-artifact@v4
         with:

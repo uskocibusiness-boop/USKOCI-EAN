@@ -88,8 +88,13 @@ module.exports = ({ config }) => {
     // Preview Firebase has no Android client for proof/dev/unknown packages.
     delete android.googleServicesFile;
   }
-  const updates = { ...config.updates, url: UPDATE_URL, enabled: true, checkAutomatically: 'ON_LOAD', fallbackToCacheTimeout: 0,
+  // The side-by-side QA APK must keep the exact bundle being attested, even online.
+  // Ordinary preview builds retain their existing OTA channel and behaviour.
+  const isolatedQa = android.package === 'rs.uskoci.preview.qa';
+  const updates = { ...config.updates, url: UPDATE_URL, enabled: !isolatedQa,
+    checkAutomatically: isolatedQa ? 'NEVER' : 'ON_LOAD', fallbackToCacheTimeout: 0,
     requestHeaders: { ...(config.updates?.requestHeaders ?? {}), 'expo-channel-name': channel } };
+  if (isolatedQa) updates.useEmbeddedUpdate = true;
   return { ...config, android, ios, plugins, runtimeVersion, updates, extra: { ...config.extra,
     uskociBuild: { ...buildIdentity({ root: __dirname, version: config.version }), runtimeVersion, updateChannel: channel },
   } };

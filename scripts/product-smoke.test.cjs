@@ -11,10 +11,10 @@
           });
           test('one shared service handoff contract exists for both client and Edge',()=>{
             const client=fs.readFileSync(path.join(root,'src/contracts/serviceHandoff.ts'),'utf8');
-            assert.match(client,/supabase\\/functions\\/_shared\\/serviceHandoff[.]mjs/);
+            assert.ok(client.includes("from '../../supabase/functions/_shared/serviceHandoff.mjs'"));
             assert.ok(exists('supabase/functions/_shared/serviceHandoff.mjs'));
           });
-          test('both Edge interview entrypoints remain buildable source',()=>{
+          test('both Edge interview entrypoints are retained',()=>{
             for(const p of ['supabase/functions/uskoci-ai-interview/index.ts',
               'supabase/functions/uskoci-worker-interview/index.ts'])assert.ok(exists(p),p);
           });
@@ -41,4 +41,18 @@
               'assets/illustrations/uskoci-messages-v2.png'])
               assert.ok(exists(p),p);
           });
-          
+          test('AI timing distinguishes active phases without logging private text',async()=>{
+            const {measureAiPhase}=await import('../supabase/functions/_shared/aiPhaseTiming.mjs');
+            const phases=['NEED_FULL_CATALOG','WORKER_FULL_CATALOG','NEED_TAXONOMY_VALIDATE','WORKER_TAXONOMY_VALIDATE'];
+            const original=console.info, logs=[];
+            console.info=(...args)=>logs.push(args);
+            try {
+              const value={private:'PRIVATE_RESULT'}, error=new Error('PRIVATE_ERROR');
+              for(const phase of phases)assert.equal(await measureAiPhase(phase,async()=>value),value);
+              await assert.rejects(measureAiPhase('PRIVATE_PROMPT',async()=>{throw error;}),e=>e===error);
+              assert.deepEqual(logs.map(row=>row[1]),[...phases,'UNKNOWN']);
+              assert.ok(logs.every(row=>row.length===4&&row[0]==='AI_PHASE_MS'&&Number.isFinite(row[2])&&row[2]>=0));
+              assert.equal(logs.at(-1)[3],'FAILED');
+              assert.equal(JSON.stringify(logs).includes('PRIVATE_'),false);
+            } finally {console.info=original;}
+          });
