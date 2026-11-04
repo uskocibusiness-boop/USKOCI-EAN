@@ -50,6 +50,10 @@ def main():
     code_sources=[]
     documents=[]
     for p in tracked:
+        # This one-shot retirement inventory itself contains all candidate names.
+        # It is not a runtime or test consumer of any candidate.
+        if p == "scripts/retire_applied_sql_once.py":
+            continue
         ext=Path(p).suffix.lower()
         if ext in CODE_SUFFIXES or p in CHECK_CONFIGS or (p.startswith(".github/workflows/") and ext in (".yml",".yaml")):
             try:
