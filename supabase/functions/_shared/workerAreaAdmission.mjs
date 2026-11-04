@@ -182,9 +182,19 @@ export function guardWorkerAreaOutput(output, userText, context) {
       && !Object.hasOwn(patch, 'bio') && context.candidate.workAreas.length === 1
       && context.candidate.workAreas[0]?.kind === 'COUNTRY'
       && context.candidate.workAreas[0]?.countryCode === 'RS') return output;
-  const removedUnsupportedBio = typeof patch.bio === 'string' && bioAreaClaim(patch.bio);
+  // A separate, exact owned sentence is not a new territory claim. Mixed or
+  // edited sentences still pass the ordinary guard; never exempt substrings.
+  const ownedBioSentences = hasWorkAreas && context.candidate.workAreas.length > 0 && scope === 'NONE'
+    && !Object.hasOwn(patch, 'location') && !remoteWithoutOnSiteArea(normalize(userText))
+    && typeof context.candidate.bio === 'string'
+    ? new Set(context.candidate.bio.trim().split(/(?<=[.!?])\s+/u).filter(sentence => /[.!?]$/u.test(sentence)))
+    : new Set();
+  const proposedBioSentences = typeof patch.bio === 'string' ? patch.bio.trim().split(/(?<=[.!?])\s+/u) : [];
+  const newBio = proposedBioSentences.filter(sentence => !ownedBioSentences.has(sentence)).join(' ');
+  const removedUnsupportedBio = typeof patch.bio === 'string' && bioAreaClaim(newBio);
   if (removedUnsupportedBio) {
-    const safeBio = scrubAreaBio(patch.bio);
+    const safeBio = proposedBioSentences.map(sentence => ownedBioSentences.has(sentence) ? sentence : scrubAreaBio(sentence))
+      .filter(Boolean).join(' ');
     if (safeBio) patch.bio = safeBio;
     else delete patch.bio;
   }
