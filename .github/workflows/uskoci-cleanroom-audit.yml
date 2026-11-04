@@ -1,0 +1,158 @@
+name: USKOCI Cleanroom full-file audit
+
+on:
+  push:
+    branches: [work/uskoci-cleanroom-audit-20261104]
+    paths: [.github/workflows/uskoci-cleanroom-audit.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uskoci-cleanroom-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN' && github.ref == 'refs/heads/work/uskoci-cleanroom-audit-20261104'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SOURCE_BASE: 839dd0a30228fbc34d46337e66449c053be434ea
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prove separate branch, no merges and unchanged app runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/work/uskoci-cleanroom-audit-20261104
+          test -z "$(git status --porcelain)"
+          python3 - <<'PY'
+          import os, subprocess
+          base=os.environ['SOURCE_BASE']
+          changed=set(subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines())
+          expected={'scripts/cleanroom-file-ledger.cjs',
+            'scripts/cleanroom-file-ledger.test.cjs',
+            'docs/continuation/cleanroom-20261104/README.md',
+            '.github/workflows/uskoci-cleanroom-audit.yml'}
+          if changed!=expected: raise SystemExit('WRONG_SOURCE_SCOPE '+repr(sorted(changed^expected)))
+          merges=subprocess.check_output(['git','rev-list','--merges',base+'..HEAD'],text=True).strip()
+          if merges: raise SystemExit('UNREQUESTED_MERGE '+merges)
+          print('CLEANROOM_NO_MERGES_AND_NO_RUNTIME_CHANGES')
+          PY
+          mkdir -p "$RUNNER_TEMP/uskoci-cleanroom"
+      - name: Locked npm install, TypeScript and audit tool regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci > "$RUNNER_TEMP/uskoci-cleanroom/npm-install.log" 2>&1
+          ./node_modules/.bin/tsc --noEmit > "$RUNNER_TEMP/uskoci-cleanroom/typescript.log" 2>&1
+          node --test --test-reporter=spec scripts/product-audit.test.cjs scripts/cleanroom-file-ledger.test.cjs > "$RUNNER_TEMP/uskoci-cleanroom/audit-tests.log" 2>&1
+      - name: Inventory and verify every single tracked file
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/cleanroom-file-ledger.cjs "$RUNNER_TEMP/uskoci-cleanroom/file-ledger" | tee "$RUNNER_TEMP/uskoci-cleanroom/file-ledger.log"
+          python3 - <<'PY'
+          import os,json,subprocess,pathlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'uskoci-cleanroom/file-ledger'
+          ledger=json.loads((p/'FILE_LEDGER.json').read_text())
+          report=json.loads((p/'REPORT.json').read_text())
+          tracked={s.decode() for s in subprocess.check_output(['git','ls-files','-z']).split(b'\0') if s}
+          if set(item['path'] for item in ledger)!=tracked: raise SystemExit('MISSING_TRACKED_PATH')
+          if report['verifiedSourceFiles']!=len(tracked): raise SystemExit('HASH_INTEGRITY_INCOMPLETE')
+          if any(item['semanticCodeReview']!='PENDING' or item['deletionApproved'] for item in ledger):
+              raise SystemExit('INVALID_SEMANTIC_CLAIM')
+          print('EVERY_GIT_TRACKED_FILE_ACCOUNTED_FOR',len(ledger))
+          PY
+      - name: Compile all tracked Python sources without executing them
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,subprocess,pathlib
+          root=pathlib.Path.cwd()
+          files=[p.decode() for p in subprocess.check_output(['git','ls-files','-z']).split(b'\0') if p.endswith(b'.py')]
+          errors=[]
+          for p in files:
+              try: compile((root/p).read_bytes(),p,'exec')
+              except Exception as error:errors.append({'path':p,'error':str(error)})
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'uskoci-cleanroom/python-check.json'
+          out.write_text(json.dumps({'pythonFiles':len(files),'syntaxFindings':errors,'notARuntimeProof':True},indent=2)+'\n')
+          print('PYTHON_SYNTAX_INVENTORY',len(files),'ISSUES',len(errors))
+          PY
+      - name: Full mobile Jest regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test -- --maxWorkers=2 --silent --json --outputFile "$RUNNER_TEMP/uskoci-cleanroom/jest.json" > "$RUNNER_TEMP/uskoci-cleanroom/jest.log" 2>&1
+          node - <<'JS'
+          const r=require(process.env.RUNNER_TEMP+'/uskoci-cleanroom/jest.json');
+          if(!r.success||r.numFailedTests||r.numFailedTestSuites)throw Error('FULL_MOBILE_REGRESSION_FAILED');
+          console.log(JSON.stringify({suites:r.numTotalTestSuites,tests:r.numTotalTests,passed:r.numPassedTests}));
+          JS
+      - name: Existing AI source contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=spec supabase/proofs/ai/worker_mode_short_replies.test.mjs supabase/proofs/ai/worker_mode_declarations.test.mjs supabase/proofs/ai/single_pass_edge.test.mjs > "$RUNNER_TEMP/uskoci-cleanroom/server-ai.log" 2>&1
+          node --test --test-reporter=spec supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs > "$RUNNER_TEMP/uskoci-cleanroom/worker-policy.log" 2>&1
+      - name: Android Hermes preview export, not native phone acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS' > "$RUNNER_TEMP/uskoci-cleanroom/android.log" 2>&1
+          const {spawnSync}=require('node:child_process');
+          const env={...process.env,...require('./eas.json').build.preview.env,EAS_BUILD_PROFILE:'preview',USKOCI_OTA_TARGET:'preview',EXPO_NO_TELEMETRY:'1',EXPO_OFFLINE:'1'};
+          const r=spawnSync(process.execPath,['node_modules/expo/bin/cli','export','--platform','android','--output-dir',process.env.RUNNER_TEMP+'/uskoci-cleanroom/android-export'],{env,stdio:'inherit'});
+          if(r.error)throw r.error;
+          process.exit(r.status??1);
+          JS
+      - name: Bound factual evidence by exact source and finish unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,pathlib,subprocess
+          dest=pathlib.Path(os.environ['RUNNER_TEMP'])/'uskoci-cleanroom'
+          a=json.loads((dest/'file-ledger/REPORT.json').read_text())
+          j=json.loads((dest/'jest.json').read_text())
+          py=json.loads((dest/'python-check.json').read_text())
+          receipt={'runId':os.environ['GITHUB_RUN_ID'],'branch':'work/uskoci-cleanroom-audit-20261104',
+            'sourceSHA':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+            'baselineSHA':os.environ['SOURCE_BASE'],
+            'trackedFiles':a['countedTracked'],'integrityVerifiedFiles':a['verifiedSourceFiles'],
+            'semanticFilesReviewed':0,'wholeProjectSemanticallyReviewed':False,
+            'staticEdges':a['staticEdges'],'unresolvedReferences':a['unresolvedStaticReferences'],
+            'pythonSyntaxFindings':py['syntaxFindings'],
+            'mobileSuites':j['numTotalTestSuites'],'mobileTests':j['numTotalTests'],
+            'mobilePassed':j['numPassedTests'],
+            'tsc':True,'serverAISubset':True,'androidMetroHermes':True,
+            'mergedBranches':False,'updatedRuntime':False,'deployedDEV':False,
+            'note':'Whole tracked-file inventory and automated checks do not equal reviewed semantics, real Gemini or Android device acceptance.'}
+          (dest/'RECEIPT.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+          print('CLEANROOM_VERIFIED_RECEIPT '+json.dumps(receipt,ensure_ascii=False))
+          PY
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: uskoci-cleanroom-all-files-evidence
+          path: ${{ runner.temp }}/uskoci-cleanroom/
+          if-no-files-found: warn
+          retention-days: 30
