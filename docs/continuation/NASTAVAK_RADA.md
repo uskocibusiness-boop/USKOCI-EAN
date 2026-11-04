@@ -1,5 +1,7 @@
 # USKOČI — prenos rada i komanda za nastavak
 
+> ISTORIJSKI PAKETI ARHIVIRANI 04.11.2026: 3 ZIP-a i 17 bridge-delova nisu vise u aktivnom checkout-u. Originali su u Git istoriji commita f554e77144840b960b74d4240d23936e365a8594. Postojece restore.py i assemble.py automatski citaju iz tog commita i proveravaju sve hash-eve. Detalji u ARHIVIRANI_IZVORI_20261104.md. Starije tvrdnje ispod da su ZIP-ovi u payload folderu su istorijski opisi.
+
 Ovo je ulaz za nastavak, ne novi plan. Jedini izvršni master ostaje [CODEX_PLAN_RADA.md](../plan/CODEX_PLAN_RADA.md), a jedini proizvodni autoritet [USKOCI_PRODUCT_UX_MASTER.md](../product/USKOCI_PRODUCT_UX_MASTER.md). **Aktuelni prenos: 03.11.2026, za čet sa pristupom samo GitHubu.** Istorijski ulazi od 28–30.10. ostaju ispod; njihove početne komande i statusi ne zamenjuju ovaj checkpoint.
 
 ## R12 — potvrđeni QA APK za paralelnu instalaciju, 03.11.2026

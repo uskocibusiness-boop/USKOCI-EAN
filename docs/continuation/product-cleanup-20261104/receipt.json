@@ -1,0 +1,74 @@
+{
+  "kind": "R11_AI_INTAKE_STRUCTURE_ACCEPTANCE",
+  "date": "2026-11-04",
+  "baselineSource": "a3623973450130fcf0e770f9ed28f315f366d5b2",
+  "workflowSource": "15d6530cd8da1e94c89024e2654e6387cf1631af",
+  "runId": "41746040445",
+  "runUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41746040445",
+  "branch": "work/product-cleanup-20261104",
+  "baselineRun": 41743652087,
+  "scope": {
+    "runtimeLogicChanged": false,
+    "sqlChanged": false,
+    "edgeDeployment": false,
+    "paidModel": false,
+    "nativeDevice": false,
+    "apk": false,
+    "production": false,
+    "fullRepositorySemanticReview": false
+  },
+  "graph": {
+    "originalTrackedFiles": 3937,
+    "unchangedOriginalFiles": 3925,
+    "changedOrMovedSourceFiles": 12,
+    "rewrittenReferences": 21,
+    "staticLocalEdgesBefore": 9064,
+    "staticLocalEdgesAfter": 9064,
+    "mappedStaticGraphEqual": true,
+    "newUnresolvedReferences": 0,
+    "semanticReviewComplete": false,
+    "scope": "Static imports and exact unchanged bytes, not dynamic/SQL/native reachability or device proof."
+  },
+  "verification": {
+    "nodeVersion": "v24.22.2",
+    "lockedInstall": true,
+    "typeScript": true,
+    "nodeTests": 140,
+    "nodePass": 140,
+    "nodeFail": 0,
+    "mobileSuites": 629,
+    "mobileTests": 14618,
+    "mobilePassed": 14618,
+    "mobileFailed": 0,
+    "mobilePending": 0,
+    "androidMetroExport": true
+  },
+  "moves": {
+    "src/ui/aiFirst/aiDownLine.ts": "src/features/ai/intake/aiDownLine.ts",
+    "src/ui/aiFirst/aiInterviewWelcome.ts": "src/features/ai/intake/aiInterviewWelcome.ts",
+    "src/ui/aiFirst/intakeReviewReadiness.ts": "src/features/ai/intake/intakeReviewReadiness.ts",
+    "src/ui/aiFirst/__tests__/aiDownLine.test.ts": "tests/ai/__tests__/aiDownLine.test.ts",
+    "src/ui/aiFirst/__tests__/aiInterviewWelcome.test.ts": "tests/ai/__tests__/aiInterviewWelcome.test.ts"
+  },
+  "runtimeAndTestSha256": {
+    "src/app/(app)/nova.tsx": "996a6aaab1a9eeec8bf9558ec6b883dd1cd5c38e8d10a6f2ed539e0c8e63016c",
+    "src/app/(app)/pregled-zadatka.tsx": "325d06e0f6f55fc176c895e3b032368001b382e06db0f280517b7bce81d3cb87",
+    "src/app/(app)/profil/razgovor.tsx": "53ad55112c99bb7c1c981d14f5735037dd18ef221b0beca83994e47791fae98c",
+    "src/designLab/dizajn-ai.tsx": "aac7c51f1f8e07d813e2c7650d80e34ea930f75cf82699ad796607a8ac720d6d",
+    "src/features/ai/intake/aiDownLine.ts": "cffae393a7bd8e93a1953de8d661568147fd3349ea985ef88c5c3496ab6fe02a",
+    "src/features/ai/intake/aiInterviewWelcome.ts": "8fe71269ea4d6a3fde799a61ebd3db20bc615da95437188ab8641de90436b251",
+    "src/features/ai/intake/intakeReviewReadiness.ts": "3ce3569f43914144dca7d23c6bfb431e9d00ec3ad0b0915603648dc1330a2c8e",
+    "src/ui/v2/IntakePresentation.tsx": "d2f0cc98cd1f0e6542cf6780d5b08270b5ef2bb2a796985351628cd3f17939e5",
+    "src/ui/workerProfile/WorkerAiPresentation.tsx": "f1961142a38e37029ac9d82903b0d8077835d3cd8b0b3ee1d34b7e9d1f8a73c9",
+    "supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs": "90787a5ab1a6881fdfc44d88b66a6527dec7cda2b33d4f6119199bee538ba917",
+    "tests/ai/__tests__/aiDownLine.test.ts": "edc479aac18985822ff48ed68bae6cecdf596fc28d0121673dd7d16297eb6d77",
+    "tests/ai/__tests__/aiInterviewWelcome.test.ts": "91ebbb13aaaaf73447f0f2b63ba28e8424277b75e70345722b62b7f9f5adaa2e"
+  },
+  "remaining": [
+    "Full semantic audit of remaining modules",
+    "Live AI bundle alignment and real-user acceptance",
+    "R01 privacy/parity and R10 lifecycle",
+    "Actual two-account/device/push acceptance"
+  ],
+  "note": "Runtime hashes were verified after tests and export. Final commit adds this evidence and plan entry and removes temporary workflow/recipe only; it is not a new native or live-server proof."
+}

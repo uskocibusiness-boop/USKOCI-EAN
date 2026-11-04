@@ -13,8 +13,8 @@ import { inferWorkerExecutionModes, workerExecutionModeClientService } from '../
 
 import { useHoldToTalk } from '../../../features/voice/useHoldToTalk';
 import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
-import { classificationPreparationMessage, workerReviewReady } from '../../../ui/aiFirst/intakeReviewReadiness';
-import { workerInterviewOpening } from '../../../ui/aiFirst/aiInterviewWelcome';
+import { classificationPreparationMessage, workerReviewReady } from '../../../features/ai/intake/intakeReviewReadiness';
+import { workerInterviewOpening } from '../../../features/ai/intake/aiInterviewWelcome';
 import { useAccountName } from '../../../ui/profile/useAccountName';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
 import { brandAction, sys } from '../../../ui/system/tokens';

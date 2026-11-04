@@ -20,8 +20,8 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 
 import { IntakePresentation, IntakeUnavailable } from '../../ui/v2/IntakePresentation';
 import type { IntakeTurnRole } from '../../ui/v2/intakeLocationOrder';
-import { SEND_UNCONFIRMED_CODE, conversationErrorLine } from '../../ui/aiFirst/aiDownLine';
-import { classificationPreparationMessage, taskReadinessKey, taskReadyToPrepare, taskReviewReady } from '../../ui/aiFirst/intakeReviewReadiness';
+import { SEND_UNCONFIRMED_CODE, conversationErrorLine } from '../../features/ai/intake/aiDownLine';
+import { classificationPreparationMessage, taskReadinessKey, taskReadyToPrepare, taskReviewReady } from '../../features/ai/intake/intakeReviewReadiness';
 import { useHoldToTalk } from '../../features/voice/useHoldToTalk';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { tick } from '../../ui/system/haptics';

@@ -5,6 +5,8 @@ import json
 from pathlib import Path, PurePosixPath
 import stat
 import zipfile
+import io
+import subprocess
 
 
 def digest(data):
@@ -18,6 +20,22 @@ def safe_relative(name):
     return Path(*path.parts)
 
 
+ARCHIVED_SOURCE = "f554e77144840b960b74d4240d23936e365a8594"
+
+def archive_bytes(base, file):
+    if file.is_file():
+        return file.read_bytes()
+    repo = base.parent.parent
+    relative = file.relative_to(repo).as_posix()
+    result = subprocess.run(
+        ["git", "-C", str(repo), "show", ARCHIVED_SOURCE + ":" + relative],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    if result.returncode:
+        raise FileNotFoundError(
+            "Historical archive missing: " + relative
+            + ". Fetch commit " + ARCHIVED_SOURCE + " using git fetch origin " + ARCHIVED_SOURCE)
+    return result.stdout
+
 def run():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--restore', type=Path, help='Destination workspace root; omit to verify only')
@@ -30,10 +48,10 @@ def run():
     # Validate every archive, member and existing destination BEFORE writing anything.
     for archive in manifest['archives']:
         file = base / safe_relative(archive['file'])
-        raw = file.read_bytes()
+        raw = archive_bytes(base, file)
         if len(raw) != archive['bytes'] or digest(raw) != archive['sha256']:
             raise ValueError(f'Archive hash/size mismatch: {file.name}')
-        with zipfile.ZipFile(file) as z:
+        with zipfile.ZipFile(io.BytesIO(raw)) as z:
             members = [i for i in z.infolist() if not i.is_dir()]
             expected = {i['path']: i for i in archive['entries']}
             if len(members) != len(expected) or {i.filename for i in members} != set(expected):

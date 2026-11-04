@@ -1,5 +1,13 @@
 # USKOČI — jedinstveni plan dovršavanja proizvoda i objavljivanja
 
+> **R11 — arhiviranje neupotrebljenih starih ilustracija, 04.11.2026:** izdvojeno 18 starih velikih PNG-a i 2 originalna manifesta/provenance uz ocuvanje Git bajtova i SHA-256. [Inventar](../continuation/ARHIVIRANA_IZVORNA_ILUSTRACIJA_20261104.md). Aktivni natural-v1 WebP, ikonice, brand, server, migracije i native fontovi nisu menjani. Validacija Metro exporta i testova mora proci pre objave grane; samo broj uklonjenih originala nije APK/UX dokaz.
+
+> R11 EAS upload, 04.11.2026: root .easignore cuva sva postojeca .gitignore pravila, a u EAS prenosu izostavlja dokumentaciju, istorijski SQL/proof/operativne pakete, Design Lab i testove. Provera svih pracenih putanja: 3913 pre, 2992 iskljuceno (62062008 bajtova), 921 zadrzano. Izvrsni Android Metro export pre/posle ima 1 potpuno istih JS/asset SHA-256 izlaza. Nema brisanja runtime koda, SQL/DEV promene, niti tvrdnje da je APK manji. Ovo nije zvanicni EAS build:inspect, native build ili telefon test. [CI dokaz](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41803897750).
+
+> **R11, 04.11.2026 — kontrolisano arhiviranje starih APPLIED SQL kandidata:** [izveštaj](../continuation/ARHIVIRANI_APPLIED_KANDIDATI_20261104.md) i [SHA indeks](../continuation/ARHIVIRANI_APPLIED_KANDIDATI_20261104.json). Iz Git stabla uklonjeni su samo istorijski paketi bez spoljašnjih izvršnih referenci; dokaz primene je u postojećem ledger-u, svaki original je identičan čuvanoj Git verziji. Aktivni SQL/Edge/CI dokazi ostaju, istorijski kod može se vratiti iz pinovanog commita. Ovo ne menja aplikaciju ni DEV i ne dokazuje da je kompletno čišćenje završeno.
+
+> R11 IZVRSENI KORAK 04.11.2026: uklonjen je prenosni teret od 20 istorijskih arhivskih fajlova iz izdvojene grane, uz Git SHA-256 i potpunu obnovu postojeceg dokaza. Original ostaje u Git istoriji f554e77144840b960b74d4240d23936e365a8594. Vidi docs/continuation/ARHIVIRANI_IZVORI_20261104.md. App, server, migracije, testovi, dizajn i postojece poslovne funkcije nisu menjani. Ovo nije novi master niti zavrsena celovita optimizacija.
+
 
 > **AKTUELNO USAGLAŠAVANJE 04.11.2026 — BEZ NOVOG MASTERA, READ-ONLY PRESEK KODA/DEV-A + IZVRŠNI REDOSLED.** Polazni source: `work/rev14-review-f17@5c11a7fbd9327b038e8e6f1d336dfcf8ef1d5766`, [Draft PR #43](https://github.com/uskocibusiness-boop/USKOCI-EAN/pull/43). [Full CI 41734320112 SUCCESS](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41734320112); [R01 parity 41734319832 FAILURE](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41734319832). Pročitani važeći B0/B1–B4 i relevantni S01/S02/S04/S08/S11/S16 Product/UX kanona, CODEX R01–R12, prethodni forenzički izveštaji od 27.10, 30.10. i 03.11, aktivne RN rute/prezentacije, Edge package source/readback, PostgreSQL metadata/policy/privilegije i security advisors. GitHub inventar: 3.937 tracked blob fajlova (to NIJE 3.937 semantički pročitanih fajlova). DEV: 326 migration-ledger zapisa, 15 ACTIVE Edge funkcija, 33 public + 134 private tabele. Ova dopuna **NE** menja izvršni kod, DEV, podatke, EAS/OTA, flagove, produkciju, modele, šemu ili dozvole i **NE** predstavlja novi acceptance test ili novi master.
 
@@ -3488,6 +3496,13 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 <!-- EXECUTION-UPDATE-BEGIN: ledger-20261028 -->
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
+
+#### R11 — izdvojena zajednicka AI intake pravila, 04.11.2026.
+
+Posebna grana `work/product-cleanup-20261104`, polazni `a3623973`. Tri modula iz `src/ui/aiFirst/` premestena u `src/features/ai/intake/`, dve postojece provere u `tests/ai/__tests__/`; 21 referenca uskladjena bez promene poslovne logike, UI ponasanja ili ruta. Sva nepromenjena originalna tela proverena bajt-po-bajt; mapirani staticki graf je isti. `scripts/product-audit.cjs` pravi popis svih pracenih fajlova i konzervativnih veza, ali NE proglasava semanticki audit ili odobrava brisanje. Izvestaji idu u ignorisani `artifacts/product-audit/`.
+
+Locked install, TypeScript, 140 Node provera, 14618/14618 mobilnih provera u 629 suite-ova i Android Metro export PASS. Tacan obuhvat, izvor, run i postimage hash-evi: [izvrsni receipt](../continuation/product-cleanup-20261104/receipt.json). Polazni run41743652087 zasebno potvrdjuje originalni kod. Privremeni workflow-i i migraciona skripta povuceni posle ovog prolaza. Nema DEV/SQL/Edge/OTA/model/telefon izmena, R01/R10 i realan AI/dvokorisnicki prihvat nisu zatvoreni. Ovo je strukturni korak istog R11, ne novi master ili zavrsen proizvod.
+
 
 #### R12 — QA_ARM64_SIDEBYSIDE_20261103, potvrđen instalacioni fajl
 

@@ -1,5 +1,7 @@
 # USKOČI — povezana izvorna forenzika REV10–REV14 (30. oktobar 2026)
 
+> ARHIVIRANO 04.11.2026: 17 delova arhive iz parts/ je povuceno iz aktivnog stabla. assemble.py ih sada dobija iz celovite Git istorije na commitu f554e77144840b960b74d4240d23936e365a8594 uz istu proveru SHA-256. Za shallow klon: git fetch origin f554e77144840b960b74d4240d23936e365a8594. Link: ../ARHIVIRANI_IZVORI_20261104.md.
+
 > **NOVI POTPUNI REFERENTNI IZVOR:** [Product/UX master od 29.10](../../product/USKOCI_PRODUCT_UX_MASTER.md), prvobitno bajt-identično prenet, potom ažuriran vlasničkom odlukom 31.10. o jednoj reputaciji naloga; kanonski A–J/S01–S18 ima prednost nad starim vizuelnim predlozima, dok je **jedini izvršni master** i dalje [CODEX_PLAN_RADA.md](../../plan/CODEX_PLAN_RADA.md) (§11.2a, §12.5–12.6). Bridge pokazuje istorijsko poreklo, NE 208 otvorenih bugova niti kompletan potvrđen runtime. Radna grana je `work/rev14-review-f17`; CI/DEV/NATIVE stanje uzimati iz poslednjeg izvršnog dokaza, ne iz Bridge preseka. Već odlučeno: MAX 6 fotografija (1–3 preporuka), `/arhiva` samo kompatibilnost, signup bez obaveznog grada, jedna zajednička reputacija naloga, 4 glavna taba. Korekcija [77 starih ugovora](UGOVORI_77.md) čuva ID-jeve i jasno označava povučeni stari archive target.
 
 
