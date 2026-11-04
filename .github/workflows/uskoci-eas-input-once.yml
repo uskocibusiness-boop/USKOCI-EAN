@@ -46,7 +46,7 @@ jobs:
             EAS_BUILD_PROFILE:'preview',USKOCI_OTA_TARGET:'preview',
             EXPO_NO_TELEMETRY:'1',EXPO_OFFLINE:'1'};
           const result=spawnSync(process.execPath,['node_modules/expo/bin/cli',
-            'export','--platform','android','--output-dir','/tmp/uskoci-eas-audit/android-original'],
+            'export','--no-bytecode','--platform','android','--output-dir','/tmp/uskoci-eas-audit/android-original'],
             {env,stdio:'inherit'});
           if(result.error)throw result.error;
           process.exit(result.status??1);
@@ -116,7 +116,7 @@ jobs:
             EAS_BUILD_PROFILE:'preview',USKOCI_OTA_TARGET:'preview',
             EXPO_NO_TELEMETRY:'1',EXPO_OFFLINE:'1'};
           const result=spawnSync(process.execPath,['node_modules/expo/bin/cli',
-            'export','--platform','android','--output-dir','/tmp/uskoci-eas-audit/android-filtered'],
+            'export','--no-bytecode','--platform','android','--output-dir','/tmp/uskoci-eas-audit/android-filtered'],
             {env,stdio:'inherit'});
           if(result.error)throw result.error;
           process.exit(result.status??1);
@@ -138,6 +138,21 @@ jobs:
               'outputs':len(old),'bitwiseEqual':True,'scope':'Metro JS/assets, not APK or native-device test'},indent=2)+'\n')
           print('BITWISE_EQUAL_ANDROID_OUTPUTS',len(old))
           PY
+      - name: Standard Android Hermes bytecode must also export from filtered input
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS' > /tmp/uskoci-eas-audit/android-hermes.log 2>&1
+          const {spawnSync}=require('node:child_process');
+          const env={...process.env,...require('./eas.json').build.preview.env,
+            EAS_BUILD_PROFILE:'preview',USKOCI_OTA_TARGET:'preview',
+            EXPO_NO_TELEMETRY:'1',EXPO_OFFLINE:'1'};
+          const result=spawnSync(process.execPath,['node_modules/expo/bin/cli',
+            'export','--platform','android','--output-dir','/tmp/uskoci-eas-audit/android-hermes'],
+            {env,stdio:'inherit'});
+          if(result.error)throw result.error;
+          process.exit(result.status??1);
+          JS
       - name: Restore original proof corpus; add only EAS ignore and existing plan note
         shell: bash
         run: |
