@@ -1,0 +1,108 @@
+name: USKOCI isolated product baseline
+
+on:
+  push:
+    branches: [work/product-cleanup-20261104]
+    paths: [.github/workflows/uskoci-product-baseline.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uskoci-product-baseline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  baseline:
+    if: github.ref == 'refs/heads/work/product-cleanup-20261104'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a3623973450130fcf0e770f9ed28f315f366d5b2
+          path: USKOCI
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify pinned source and preserve a source-only audit package
+        working-directory: USKOCI
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = a3623973450130fcf0e770f9ed28f315f366d5b2
+          git diff --exit-code
+          mkdir -p "$RUNNER_TEMP/uskoci-product-baseline"
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess, tarfile
+          root=pathlib.Path.cwd()
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'uskoci-product-baseline'
+          entries=[]
+          for raw in subprocess.check_output(['git','ls-tree','-rzl','HEAD']).split(b'\0'):
+              if not raw: continue
+              meta,path=raw.split(b'\t',1)
+              mode,kind,oid,size=meta.decode().split()
+              path=path.decode('utf-8')
+              entries.append({'path':path,'mode':mode,'type':kind,'gitBlob':oid,'bytes':int(size) if size!='-' else None})
+          excluded=[]
+          with tarfile.open(out/'source-a3623973.tgz','w:gz') as archive:
+              for row in entries:
+                  path=row['path']
+                  if pathlib.PurePosixPath(path).suffix.lower() in ('.ttf','.otf','.woff','.woff2','.ttc'):
+                      excluded.append(path)
+                      continue
+                  if row['type']=='blob': archive.add(root/path,arcname=path,recursive=False)
+          (out/'tracked-tree.json').write_text(json.dumps(entries,ensure_ascii=False,indent=2)+'\n')
+          receipt={'sourceSha':'a3623973450130fcf0e770f9ed28f315f366d5b2','trackedEntries':len(entries),'excludedFontPaths':excluded,'sourceArchiveSha256':hashlib.sha256((out/'source-a3623973.tgz').read_bytes()).hexdigest(),'scope':'Tracked source inventory, not semantic review. Source archive excludes font bytes. Runner checkout retains them for the actual baseline export. No DEV, credentials, paid model, APK or native-device execution.'}
+          (out/'receipt.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+          print('BASELINE_SOURCE_RECEIPT '+json.dumps(receipt))
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: USKOCI/package-lock.json
+      - name: Install locked dependencies and apply existing native patches
+        working-directory: USKOCI
+        run: npm ci
+      - name: TypeScript baseline
+        working-directory: USKOCI
+        shell: bash
+        run: |
+          set -o pipefail
+          ./node_modules/.bin/tsc --noEmit 2>&1 | tee "$RUNNER_TEMP/uskoci-product-baseline/typescript.log"
+      - name: Existing AI conversation and arrival contracts, offline
+        working-directory: USKOCI
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test --test-reporter=spec supabase/proofs/ai/worker_mode_short_replies.test.mjs supabase/proofs/ai/worker_mode_declarations.test.mjs supabase/proofs/ai/single_pass_edge.test.mjs 2>&1 | tee "$RUNNER_TEMP/uskoci-product-baseline/ai-baseline.log"
+          ./node_modules/.bin/jest --runInBand --silent --runTestsByPath src/data/__tests__/ai-conversation-arrival.test.tsx src/data/__tests__/ai-conversation-turn-motion.test.tsx src/ui/aiFirst/__tests__/assistant-motion-lifecycle.test.tsx 2>&1 | tee "$RUNNER_TEMP/uskoci-product-baseline/conversation-baseline.log"
+      - name: Android Metro export baseline, not an APK or device proof
+        working-directory: USKOCI
+        shell: bash
+        run: |
+          set -o pipefail
+          node - <<'JS' 2>&1 | tee "$RUNNER_TEMP/uskoci-product-baseline/android-export.log"
+          const {spawnSync}=require('node:child_process');
+          const preview=require('./eas.json').build.preview.env;
+          const env={...process.env,...preview,EAS_BUILD_PROFILE:'preview',USKOCI_OTA_TARGET:'preview',EXPO_NO_TELEMETRY:'1',EXPO_OFFLINE:'1'};
+          const r=spawnSync(process.execPath,['node_modules/expo/bin/cli','export','--platform','android','--output-dir',process.env.RUNNER_TEMP+'/uskoci-baseline-export'],{env,stdio:'inherit'});
+          if(r.error) throw r.error;
+          process.exit(r.status ?? 1);
+          JS
+      - name: Verify tracked baseline remained unchanged
+        if: always()
+        working-directory: USKOCI
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: uskoci-product-baseline-a3623973
+          path: ${{ runner.temp }}/uskoci-product-baseline/
+          if-no-files-found: error
+          retention-days: 7
