@@ -142,20 +142,20 @@ export function MyApplicationsPresentation(props: Props) {
       <View pointerEvents="none" style={s.rule} />
       <View style={s.review}>
           <T accessibilityRole="header" variant="heading">{props.draftStale ? 'Nesačuvan unos prijave' : 'Trenutni uslovi zadatka'}</T>
-          {props.draftStale ? <T accessibilityRole="alert" variant="body">Prijava se promenila tokom uređivanja. Tvoj unos je sačuvan na ovom ekranu, ali ga ne možeš poslati. Kopiraj tekst koji želiš da zadržiš, pa započni novi pregled.</T>
+          {props.draftStale ? <T accessibilityRole="alert" variant="body">Prijava se promenila tokom uređivanja. Vaš unos je sačuvan na ovom ekranu, ali ga ne možete poslati. Kopirajte tekst koji želite da zadržite, pa započnite novi pregled.</T>
             : <><T variant="body">{p.opis || 'Dodatni opis nije naveden.'}</T>
-              <T variant="note" tone="muted">Prijava je poslata pre nego što je zadatak izmenjen. Ako je zadržiš, ostaju ponuđena cena, obim, termin i napomena.</T></>}
+              <T variant="note" tone="muted">Prijava je poslata pre nego što je zadatak izmenjen. Ako je zadržite, ostaju ponuđena cena, obim, termin i napomena.</T></>}
         {props.editingLoading ? <ActivityIndicator accessibilityLabel="Učitavanje sačuvanog termina" color={sys.color.green} /> : null}
         {draft ? <View style={s.fields}>
-          <T accessibilityRole="header" variant="heading">Izmeni svoju prijavu</T>
+          <T accessibilityRole="header" variant="heading">Izmenite svoju prijavu</T>
           <T variant="note" tone="muted">{draft.pricing.rezimCene === 'OFFERS' ? 'Cena važi za ceo ponuđeni obim.'
             : draft.pricing.osnovaCene === 'HOURLY' ? 'Satnica važi za svaku osobu za jedan sat rada. Ukupan iznos zavisi od trajanja.'
-            : draft.pricing.osnovaCene === 'PER_PERSON' ? 'Cena po osobi iz zadatka množi se brojem ljudi u tvojoj prijavi.'
-            : draft.pricing.osnovaCene === 'TOTAL' ? 'Tvoja cena se računa srazmerno broju ljudi, zaokruženo na najbliži dinar.' : 'Cena je određena u zadatku.'}</T>
+            : draft.pricing.osnovaCene === 'PER_PERSON' ? 'Cena po osobi iz zadatka množi se brojem ljudi u Vašoj prijavi.'
+            : draft.pricing.osnovaCene === 'TOTAL' ? 'Vaša cena se računa srazmerno broju ljudi, zaokruženo na najbliži dinar.' : 'Cena je određena u zadatku.'}</T>
           <T variant="meta" tone="muted">{draft.pricing.osnovaCene === 'HOURLY' ? 'Satnica po osobi (RSD po satu)' : 'Cena prijave ukupno (RSD)'}</T>
           <TextInput accessibilityLabel={draft.pricing.osnovaCene === 'HOURLY' ? 'Satnica po osobi (RSD po satu)' : 'Cena ponude (RSD)'} value={draft.price} keyboardType="number-pad" editable={!disabled && draft.pricing.rezimCene === 'OFFERS'} onChangeText={price => props.onChange({ ...draft, price })} style={s.input} />
-          {invalidFixedPrice ? <T accessibilityRole="alert" variant="note">Cena za ovaj broj ljudi mora biti najmanje 1 RSD. Proveri broj ljudi.</T> : null}
-          <T variant="meta" tone="muted">Ljudi koje obezbeđuješ</T>
+          {invalidFixedPrice ? <T accessibilityRole="alert" variant="note">Cena za ovaj broj ljudi mora biti najmanje 1 RSD. Proverite broj ljudi.</T> : null}
+          <T variant="meta" tone="muted">Ljudi koje obezbeđujete</T>
           <ApplicationPeopleInput label="Broj ljudi" value={draft.people} maximum={draft.pricing.pokrivenost.ukupno} disabled={disabled}
             onChange={people => props.onChange({ ...draft, people })} help={`Zadatak traži ${osobuAkuz(draft.pricing.pokrivenost.ukupno)}.`} />
           <T variant="meta" tone="muted">Napomena</T>
@@ -207,21 +207,21 @@ export function MyApplicationsPresentation(props: Props) {
     badgeTone: option.key === 'attention' ? 'attention' as const : undefined }));
   // Reading, a failed read, an empty filtered set and a first empty list remain distinct.
   const empty = <View style={s.empty}>
-    {props.loading ? <QuietReadState art="applications" title="Učitavamo tvoje prijave…" body="Proveravamo njihova aktuelna stanja." />
+    {props.loading ? <QuietReadState art="applications" title="Učitavamo Vaše prijave…" body="Proveravamo njihova aktuelna stanja." />
       // The fallback names no cause nobody checked (review r4 item 4). The retry greys out while a command is in flight
       // (`busy` is a write, item 3); a read in flight shows the loading state above instead of this one.
-      : props.unavailable ? <StateView kind="error" art="applications" title="Prijave trenutno nisu dostupne" body={props.message ?? 'Pokušaj ponovo za trenutak.'}
-        primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh, disabled: props.busy }} quiet={{ label: 'Nazad', onPress: props.onBack }} />
+      : props.unavailable ? <StateView kind="error" art="applications" title="Prijave trenutno nisu dostupne" body={props.message ?? 'Pokušajte ponovo za trenutak.'}
+        primary={{ label: 'Pokušajte ponovo', onPress: props.onRefresh, disabled: props.busy }} quiet={{ label: 'Nazad', onPress: props.onBack }} />
     : finalCountMismatch ? <StateView kind="error" art="applications" title="Spisak prijava nije potpun"
-        body="Broj učitanih prijava ne odgovara serverskom stanju. Proveri prijave ponovo."
-        primary={{ label: 'Proveri spisak prijava', onPress: props.onRefresh, disabled: props.busy }} />
+        body="Broj učitanih prijava ne odgovara serverskom stanju. Proverite prijave ponovo."
+        primary={{ label: 'Proverite spisak prijava', onPress: props.onRefresh, disabled: props.busy }} />
     : hasAny && props.tab !== 'all' ? <StateView art="applications" title={TAB_EMPTY[props.tab]}
           primary={props.tab === 'active' && count('attention') > 0
-            ? { label: 'Pogledaj šta te čeka', onPress: () => props.onTab('attention') }
+            ? { label: 'Pogledajte šta Vas čeka', onPress: () => props.onTab('attention') }
             : props.tab === 'active' && count('finished') > 0
-              ? { label: 'Pogledaj istoriju', onPress: () => props.onTab('finished') }
+              ? { label: 'Pogledajte istoriju', onPress: () => props.onTab('finished') }
               : { label: 'Prikaži sve prijave', onPress: () => props.onTab('all') }} />
-          : <StateView hero art="applications" title="Još nemaš prijavu" primary={{ label: 'Pronađi zadatak', onPress: props.onExplore }} />}
+          : <StateView hero art="applications" title="Još nemate prijavu" primary={{ label: 'Pronađite zadatak', onPress: props.onExplore }} />}
   </View>;
   const shown = count(props.tab);
   const showsFeedback = !props.loading && !props.unavailable &&
@@ -246,27 +246,27 @@ export function MyApplicationsPresentation(props: Props) {
         ListFooterComponent={paging && !props.refreshing && !props.loading && !props.unavailable && visible.length > 0 && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.foot}>
           {paging.moreError ? <>
             <T variant="note" tone="muted">Ne možemo da učitamo ostale prijave.</T>
-            <V2Action label="Pokušaj ponovo" kind="quiet" onPress={paging.onLoadMore} />
+            <V2Action label="Pokušajte ponovo" kind="quiet" onPress={paging.onLoadMore} />
           </> : paging.loadingMore ? <T variant="note" tone="muted">Učitavamo još prijava…</T>
             : <V2Action label="Prikaži još" kind="quiet" onPress={paging.onLoadMore} />}
         </View> : null}
         ListHeaderComponent={showsFeedback || showsCount || props.refreshing ? <View style={s.head}>
-          {props.refreshing ? <T accessibilityLiveRegion="polite" variant="note" tone="muted">Osvežavamo tvoje prijave… Sačekaj proveru pre izmene ili povlačenja.</T> : null}
+          {props.refreshing ? <T accessibilityLiveRegion="polite" variant="note" tone="muted">Osvežavamo Vaše prijave… Sačekajte proveru pre izmene ili povlačenja.</T> : null}
           {showsFeedback ? <View style={s.feedback}>
             {finalCountMismatch && visible.length > 0 ? <Surface kind="note" tone="warn">
               <T accessibilityRole="alert" variant="body">Spisak prijava nije potpun. Broj učitanih prijava ne odgovara serverskom stanju.</T>
-              <V2Action label="Proveri spisak prijava" onPress={props.onRefresh} kind="quiet" disabled={props.busy} />
+              <V2Action label="Proverite spisak prijava" onPress={props.onRefresh} kind="quiet" disabled={props.busy} />
             </Surface> : null}
             {missingNamed ? <Surface kind="note"><T variant="body" accessibilityRole="alert">Ova prijava trenutno nije dostupna</T>
-              <V2Action label="Osveži prijave" onPress={props.onRefresh} disabled={props.busy} /></Surface> : null}
+              <V2Action label="Osvežite prijave" onPress={props.onRefresh} disabled={props.busy} /></Surface> : null}
             {props.message ? <Note tone="warn">{props.message}</Note> : null}{props.notice ? <Note>{props.notice}</Note> : null}
             {/* A command waits for its readback: a flat tint above the list, never a card among the cards. */}
             {props.pending ? <Surface kind="note"><T variant="body">{props.busy ? 'Čekamo potvrdu radnje…'
-              : props.pendingAction === 'withdraw' ? 'Proveri da li je prijava povučena. Ponovni pokušaj koristi isti zahtev za povlačenje.'
-                : props.pendingAction === 'update' ? 'Proveri da li je izmenjena prijava sačuvana. Ponovni pokušaj koristi isti zahtev.'
-                  : props.pendingAction === 'keep' ? 'Proveri da li je potvrda izmenjenog zadatka sačuvana. Ponovni pokušaj koristi isti zahtev.'
-                    : 'Proveri stanje prijave pre nastavka. Ponovni pokušaj koristi isti zahtev.'}</T>
-              <V2Action label="Proveri stanje prijave" onPress={props.onRefresh} disabled={props.busy} />
+              : props.pendingAction === 'withdraw' ? 'Proverite da li je prijava povučena. Ponovni pokušaj koristi isti zahtev za povlačenje.'
+                : props.pendingAction === 'update' ? 'Proverite da li je izmenjena prijava sačuvana. Ponovni pokušaj koristi isti zahtev.'
+                  : props.pendingAction === 'keep' ? 'Proverite da li je potvrda izmenjenog zadatka sačuvana. Ponovni pokušaj koristi isti zahtev.'
+                    : 'Proverite stanje prijave pre nastavka. Ponovni pokušaj koristi isti zahtev.'}</T>
+              <V2Action label="Proverite stanje prijave" onPress={props.onRefresh} disabled={props.busy} />
               {props.canRetry ? <V2Action label="Ponovi istu radnju" onPress={props.onRetry} disabled={props.busy} /> : null}
               {props.canReset ? <V2Action label="Pregledaj trenutnu prijavu" onPress={props.onReset} disabled={props.busy} /> : null}</Surface> : null}
           </View> : null}

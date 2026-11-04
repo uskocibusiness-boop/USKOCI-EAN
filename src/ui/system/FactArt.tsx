@@ -133,7 +133,15 @@ function mark(kind: FactArtKind, m: string): ReactNode {
     // Two people side by side with a gap, never overlapping: the second is smaller and lower, both in the full tone.
     case 'users': return solid('M10.4 4.2a5.6 5.6 0 1 0 0 11.2 5.6 5.6 0 0 0 0-11.2ZM2.4 27.6v-2.6a8 6.6 0 0 1 16 0v2.6ZM25.7 9.5a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8ZM21.4 27.6v-2.2a4.3 4.3 0 0 1 8.6 0v2.2Z');
     case 'person': return <>{solid('M16 3.2a5.4 5.4 0 1 0 0 10.8 5.4 5.4 0 0 0 0-10.8Z')}{solid('M5.4 29v-2.6c0-5.3 4.7-9 10.6-9s10.6 3.7 10.6 9V29Z')}</>;
-    case 'money': return <><Rect x={2.4} y={7.2} width={27.2} height={17.6} rx={4.2} fill={m} /><Circle cx={16} cy={16} r={4.6} fill={WHITE} /></>;
+    // Dinar coins: a tactile pair of overlapping coins with relief rings and central emblem.
+    case 'money': return <>
+      <Circle cx={20.2} cy={12} r={7.6} fill={m} />
+      <Circle cx={20.2} cy={12} r={5.2} fill="none" stroke={WHITE} strokeWidth={1.4} />
+      <Circle cx={13} cy={18} r={9.6} fill={WHITE} />
+      <Circle cx={13} cy={18} r={8.4} fill={m} />
+      <Circle cx={13} cy={18} r={6} fill="none" stroke={WHITE} strokeWidth={1.4} />
+      <Circle cx={13} cy={18} r={2.8} fill={WHITE} />
+    </>;
     // A screen with a person on it and a stand: a video call, work that happens somewhere else.
     case 'remote': return <>{solid('M6.8 4h18.4a3.6 3.6 0 0 1 3.6 3.6v11.6a3.6 3.6 0 0 1-3.6 3.6H6.8a3.6 3.6 0 0 1-3.6-3.6V7.6A3.6 3.6 0 0 1 6.8 4Z')}
       {solid('M16 7a2.6 2.6 0 1 0 0 5.2A2.6 2.6 0 0 0 16 7ZM10.4 19.8a5.6 4.6 0 0 1 11.2 0Z', WHITE)}{stroke('M16 22.8v4M10.6 28.2h10.8')}</>;
@@ -210,10 +218,18 @@ function art(kind: FactArtKind, c: Tone): ReactNode {
       <Circle cx={11.1} cy={10.1} r={5.3} fill={c.edge} /><Circle cx={11.1} cy={9.1} r={5.3} fill={c.front} />
       {shine('M8.2 7.7a3.2 3.2 0 0 1 2.9-1.8')}{edge('M2 25.8v-2.3a9.1 9.1 0 0 1 18.2 0v2.3a2.6 2.6 0 0 1-2.6 2.6h-13A2.6 2.6 0 0 1 2 25.8Z')}
       {face('M2 24.2v-2.1a9.1 9.1 0 0 1 18.2 0v2.1a2.6 2.6 0 0 1-2.6 2.6h-13A2.6 2.6 0 0 1 2 24.2Z')}{shine('M5.9 21.5a5.3 5.3 0 0 1 2.2-3.1')}</>;
-    case 'money': return <>{shadow}<Rect x={7.5} y={3.6} width={21.8} height={16} rx={4} fill={c.soft} stroke={c.light} strokeWidth={1.1} />
-      <Rect x={2.3} y={11} width={26.4} height={17} rx={4.2} fill={c.edge} /><Rect x={2.3} y={9.1} width={26.4} height={17} rx={4.2} fill={c.front} />
-      {shine('M6.6 11.8h17.7')}<Ellipse cx={15.5} cy={17.5} rx={4} ry={4.8} fill={WHITE} />
-      {line('M15.5 15.9v3.1', c.edge, 1.8)}{line('M6.6 17.7v3.4m17.8-6.7v3.4', c.light, 1.9)}</>;
+    // Dinar coins: tactile pair of coins with 3D edge, shaded relief and metallic shine.
+    case 'money': return <>{shadow}
+      <Ellipse cx={20.2} cy={20.5} rx={6} ry={1.4} fill="#163D2B" opacity={0.06} />
+      <Circle cx={20.2} cy={13.2} r={8} fill={c.edge} />
+      <Circle cx={20.2} cy={11.8} r={8} fill={c.soft} stroke={c.light} strokeWidth={1.1} />
+      <Circle cx={20.2} cy={11.8} r={5.4} fill="none" stroke={c.light} strokeWidth={1.2} />
+      <Circle cx={13} cy={19.2} r={8.8} fill={c.edge} />
+      <Circle cx={13} cy={17.6} r={8.8} fill={c.front} />
+      {shine('M7.4 14.8a6.8 6.8 0 0 1 7.6-3.8')}
+      <Circle cx={13} cy={17.6} r={6} fill="none" stroke={WHITE} strokeWidth={1.3} opacity={0.9} />
+      <Circle cx={13} cy={17.6} r={2.6} fill={WHITE} opacity={0.95} />
+    </>;
     // A screen with a person on it, a call: work from a distance. It used to carry a tick, which said "confirmed".
     case 'remote': return <>{shadow}<Rect x={2.6} y={4.8} width={26.8} height={19.7} rx={4.2} fill={c.edge} />
       <Rect x={2.6} y={3.4} width={26.8} height={19.7} rx={4.2} fill={c.front} /><Rect x={5.3} y={6.1} width={21.4} height={13.7} rx={1.8} fill={WHITE} />

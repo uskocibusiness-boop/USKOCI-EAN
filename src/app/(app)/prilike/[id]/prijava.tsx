@@ -14,9 +14,9 @@ import { useIzvor } from '../../../../store/uloga';
 import { ApplicationComposerPresentation, ComposerUnavailable, type ApplicationDraft } from '../../../../ui/v2/ApplicationComposerPresentation';
 
 /** The phone could not keep the request: a fresh read of the task cannot fix that, so no refresh is offered beside it. */
-const NOT_SAVED_ON_DEVICE = 'Prijava nije sačuvana na telefonu. Oslobodi prostor na telefonu i pokušaj ponovo.';
-const NOT_RETIRED_ON_DEVICE = 'Stara prijava nije uklonjena sa telefona. Pokušaj ponovo; nova prijava još nije otvorena.';
-const JOURNAL_RECOVERY_REQUIRED = 'Prvo proveri da li je prethodna prijava poslata. Izaberi „Proveri da li je poslato“.';
+const NOT_SAVED_ON_DEVICE = 'Prijava nije sačuvana na telefonu. Oslobodite prostor na telefonu i pokušajte ponovo.';
+const NOT_RETIRED_ON_DEVICE = 'Stara prijava nije uklonjena sa telefona. Pokušajte ponovo; nova prijava još nije otvorena.';
+const JOURNAL_RECOVERY_REQUIRED = 'Prvo proverite da li je prethodna prijava poslata. Izaberite „Proveri da li je poslato“.';
 type Receipt = { prijavaId: string; verzija: number; hash: string; osnovaCene?: 'TOTAL' | 'HOURLY' };
 type Loaded = { need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; applications: MojaPrijavaProjekcija[]; receipt: Receipt | null };
 type Pending = { applicationPriceBasis: 'TOTAL' | 'HOURLY'; command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
@@ -60,8 +60,8 @@ export default function Prijava() {
       const opportunity = liveOpportunity ?? session.pending?.opportunity;
       const need = liveNeed ?? session.pending?.need;
       const profile = liveProfile ?? session.pending?.profile;
-      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proveri zadatak i radni profil.' };
-      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Osveži pa pokušaj ponovo.' };
+      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proverite zadatak i radni profil.' };
+      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
       session.notice = null;
       if (!session.pending && user?.id) {
         // A recreated instance restores only the exact unresolved command of this account and
@@ -70,11 +70,11 @@ export default function Prijava() {
         try {
           const stored = await applicationCommandJournal.load(user.id, id);
           const owned = sesijaSada().user?.id === user.id && sesijaSada().accountRevision === accountRevision;
-          if (generation !== session.readRevision || !owned) return { ok: false, kod: 'STALE_READ', poruka: 'Osveži pa pokušaj ponovo.' };
+          if (generation !== session.readRevision || !owned) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
           if (stored.state === 'CORRUPT') {
             await applicationCommandJournal.discard(user.id, id);
-            if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Osveži pa pokušaj ponovo.' };
-            session.notice = 'Sačuvana prijava na telefonu se nije mogla pročitati, pa je uklonjena. Proveri svoje prijave.';
+            if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
+            session.notice = 'Sačuvana prijava na telefonu se nije mogla pročitati, pa je uklonjena. Proverite svoje prijave.';
           } else if (stored.state === 'PRESENT' && !session.pending) {
             const command = stored.record.command;
             // The journal owns only the application, not consent for an optional profile change.
@@ -92,7 +92,7 @@ export default function Prijava() {
           // An unread journal may hold an earlier sent command. Do not offer a fresh identity until it is read.
           session.journalRecovery = true;
           return { ok: false, kod: 'APPLICATION_JOURNAL_READ_FAILED',
-            poruka: 'Ne možemo da proverimo prethodno poslatu prijavu. Pokušaj ponovo.' };
+            poruka: 'Ne možemo da proverimo prethodno poslatu prijavu. Pokušajte ponovo.' };
         }
       }
       // Displayed terms and command revision come from the same Need read.
@@ -104,7 +104,7 @@ export default function Prijava() {
       if (session.pending) session.pending.reconciled = !session.pending.inFlight;
       const result = session.pending?.result;
       return { ok: true, podatak: { opportunity: displayedOpportunity, need, profile, applications, receipt: result?.ok ? result.podatak : null } };
-    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Podatke za prijavu trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo.' }; }
+    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Podatke za prijavu trenutno nije moguće učitati. Proverite vezu i pokušajte ponovo.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
   }, [id, izvor, session, draftScope]);
   const editor = useOwnedEditor(read), data = editor.data;
@@ -130,10 +130,10 @@ export default function Prijava() {
       const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN;
       const people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
       if (!Number.isSafeInteger(price) || price < 1 || price > 2_147_483_647 || !Number.isSafeInteger(people) ||
-          people < 1 || people > data.need.pokrivenost.preostalo) { setValidation('Unesi cenu u dinarima i broj ljudi koji staje u preostala mesta.'); return; }
-      if (data.profile.stanje !== 'ACTIVE' || data.opportunity.primaNovePrijave !== true) { setValidation('Proveri trenutni zadatak i aktivan radni profil.'); return; }
+          people < 1 || people > data.need.pokrivenost.preostalo) { setValidation('Unesite cenu u dinarima i broj ljudi koji staje u preostala mesta.'); return; }
+      if (data.profile.stanje !== 'ACTIVE' || data.opportunity.primaNovePrijave !== true) { setValidation('Proverite trenutni zadatak i aktivan radni profil.'); return; }
       const deadline = data.opportunity.rokZaPrijaveIso;
-      if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osveži zadatak.'); return; }
+      if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osvežite zadatak.'); return; }
       const command: PodnesiPrijavuKomanda = Object.freeze({ clientRequestId: noviZahtevId('prijava'), potrebaId: data.need.id, potrebaRevizija: data.need.revizija,
         radnikProfilId: data.profile.id, pokrivenaMesta: Number(draft.people), cenaRsd: Number(draft.price),
         // New applications never invent a second term; old saved commands keep their exact original fields.
@@ -169,14 +169,14 @@ export default function Prijava() {
         // An old journal may never have reached the server. The same revision must not
         // reinterpret its frozen total as an hourly rate on its first committed write.
         result = pending.command.potrebaRevizija === data.need.revizija && pending.applicationPriceBasis !== currentPriceBasis
-          ? { ok: false, kod: 'APPLICATION_PRICE_BASIS_REVIEW_REQUIRED', poruka: 'Sačuvana prijava ima drugačiji način obračuna cene. Proveri svoje postojeće prijave.' }
+          ? { ok: false, kod: 'APPLICATION_PRICE_BASIS_REVIEW_REQUIRED', poruka: 'Sačuvana prijava ima drugačiji način obračuna cene. Proverite svoje postojeće prijave.' }
           : await izvor.podnesiPrijavu(pending.command);
       }
       // The notice names the button under it, "Proveri da li je poslato" (r6: it said "Proveri stanje").
-      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ne znamo da li je prijava stigla. Izaberi „Proveri da li je poslato“.' }; }
+      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ne znamo da li je prijava stigla. Izaberite „Proverite da li je poslato“.' }; }
       finally { pending.inFlight = false; }
       if (result.ok && (result.podatak.osnovaCene ?? 'TOTAL') !== pending.applicationPriceBasis) {
-        result = { ok: false, kod: 'APPLICATION_SELECTION_INVALID_RECEIPT', poruka: 'Osnovica cene nije potvrđena. Proveri da li je prijava poslata.' };
+        result = { ok: false, kod: 'APPLICATION_SELECTION_INVALID_RECEIPT', poruka: 'Osnovica cene nije potvrđena. Proverite da li je prijava poslata.' };
       }
       pending.result = result;
       // Only an exact refusal in the original focus settles the route's second fence.
@@ -219,10 +219,10 @@ export default function Prijava() {
   } : undefined;
   const priceBasisReview = pending?.result?.ok === false && pending.result.kod === 'APPLICATION_PRICE_BASIS_REVIEW_REQUIRED';
   const pendingHelp = priceBasisReview ? {
-    lines: ['Sačuvana prijava ostaje na telefonu dok proveravaš postojeće prijave.'],
+    lines: ['Sačuvana prijava ostaje na telefonu dok proveravate postojeće prijave.'],
     actions: [{ label: 'Otvori moje prijave', onPress: () => { if (current()) router.push('/moje-prijave'); } }],
   } : pending && !data.receipt && (!refusal || guidance) ? {
-    lines: guidance?.messages.length ? guidance.messages : ['Tvoja prijava ostaje sačuvana dok proveravaš radni profil.'],
+    lines: guidance?.messages.length ? guidance.messages : ['Vaša prijava ostaje sačuvana dok proveravate radni profil.'],
     actions: [
       ...((!refusal || guidance?.profile) ? [{ label: 'Dopuni radni profil', onPress: () => { if (current()) router.push('/profil/radnik'); } }] : []),
       ...(guidance?.calendar ? [{ label: 'Otvori raspored', onPress: () => { if (current()) router.push('/raspored'); } }] : []),
@@ -242,7 +242,7 @@ export default function Prijava() {
     error={validation ?? session.notice ?? (refusal && !editor.uncertain
       ? `Ova prijava nije primljena. ${refusal.poruka}`
       : editor.error ?? (pending && !data.receipt && !editor.uncertain
-        ? 'Ne znamo da li je prijava stigla. Pošalji istu prijavu još jednom — ako je već stigla, neće biti poslata dvaput.'
+        ? 'Ne znamo da li je prijava stigla. Pošaljite istu prijavu još jednom — ako je već stigla, neće biti poslata dvaput.'
         : null))}
     refreshHelps={validation !== NOT_SAVED_ON_DEVICE && validation !== NOT_RETIRED_ON_DEVICE}
     canSubmit={!session.journalRecovery && data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
@@ -252,7 +252,7 @@ export default function Prijava() {
         onAction: () => { if (current()) router.push('/profil/radnik'); } }
       // A task that closed under the draft is a dead end without a way on (r6): the other tasks are it. Back stays the
       // header's arrow, so the way on is not "Nazad na zadatak" a second time.
-      : data.opportunity.primaNovePrijave !== true ? { reason: 'Zadatak više ne prima prijave.', actionLabel: 'Pogledaj druge zadatke',
+      : data.opportunity.primaNovePrijave !== true ? { reason: 'Zadatak više ne prima prijave.', actionLabel: 'Pogledajte druge zadatke',
         onAction: () => { if (current() && !session.navigated) { session.navigated = true; router.replace('/zadaci'); } } } : null}
     afterConfirmation={data.receipt && user?.id ? <ApplicationServiceOffer
       key={`${user.id}:${accountRevision}:${data.receipt.prijavaId}`}

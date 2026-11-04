@@ -62,8 +62,8 @@ export function TaskDecisionValue({ need, size = 'detail', offersInfo }: { need:
 
 /** What "Tražim ponude" says to the person who asks, and to the person who may answer. The page shows the fact; this is the explanation behind it. */
 export const OFFERS_INFO = {
-  owner: ['Ne navodiš iznos.', 'Svako ko se prijavi predlaže ukupan iznos, a ti biraš.'],
-  worker: ['Zadatak nema unapred određen iznos.', 'U prijavi predlažeš ukupan iznos.'],
+  owner: ['Ne navodite iznos.', 'Svako ko se prijavi predlaže ukupan iznos, a Vi birate.'],
+  worker: ['Zadatak nema unapred određen iznos.', 'U prijavi predlažete ukupan iznos.'],
 } as const;
 
 /**

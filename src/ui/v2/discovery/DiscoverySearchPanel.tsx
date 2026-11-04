@@ -278,25 +278,25 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const centering = mode === 'filters' && !!selectedCenter && draft.where !== 'remote';
   const unconfirmedPlace = mode === 'filters' && draft.where !== 'remote' && !!locationQuery.trim()
     && !selectedCenter && (locationEdited || locationQuery.trim() !== (appliedMapPlace?.label ?? ''));
-  const show = minPriceInvalid ? { label: 'Proveri najmanju cenu', disabled: true }
-    : unconfirmedPlace ? { label: 'Izaberi potvrđeno mesto', disabled: true }
+  const show = minPriceInvalid ? { label: 'Proverite najmanju cenu', disabled: true }
+    : unconfirmedPlace ? { label: 'Izaberite potvrđeno mesto', disabled: true }
     : centering ? { label: 'Prikaži oblast na mapi', disabled: false }
     : effectiveReadiness === 'loading' ? { label: 'Učitavamo zadatke…', disabled: true }
     : effectiveReadiness === 'error' ? { label: 'Zadaci nisu učitani', disabled: true }
       : effectiveReadiness === 'pending' ? { label: 'Prikaži zadatke', disabled: false }
         : count > 0 ? { label: `Prikaži ${zadataka(count)}`, disabled: false } : { label: 'Nema zadataka za ove uslove', disabled: true };
-  const emptyReason = minPriceInvalid ? 'Unesi ceo iznos od 1 do 2.147.483.647 RSD.'
-    : unconfirmedPlace ? 'Pronađi mesto i izaberi predlog, ili obriši unos.'
-    : !centering && counted && count === 0 ? 'Promeni filtere ili ih očisti.' : null;
+  const emptyReason = minPriceInvalid ? 'Unesite ceo iznos od 1 do 2.147.483.647 RSD.'
+    : unconfirmedPlace ? 'Pronađite mesto i izaberite predlog, ili obrišite unos.'
+    : !centering && counted && count === 0 ? 'Promenite filtere ili ih očistite.' : null;
   const retryPreview = !minPriceInvalid && !unconfirmedPlace && !centering && effectiveReadiness === 'error' && p6Search
     ? () => p6Search.onDraft({ ...previewDraft, placeSearch }, mapArea) : undefined;
   // The foot every flow has (UI/UX pass 2026-10-08): the quiet "Očisti" beside the one green action, which says how many tasks the list will show;
   // when it cannot be pressed the reason stands in a line above it. At a large text size or a narrow window the two stand one under the other.
-  const footer = <FlowFooter testID="search-footer" reason={retryPreview ? 'Zadaci nisu učitani. Tvoji izbori su sačuvani.' : emptyReason ?? undefined}>
+  const footer = <FlowFooter testID="search-footer" reason={retryPreview ? 'Zadaci nisu učitani. Vaši izbori su sačuvani.' : emptyReason ?? undefined}>
     <View testID="search-actions" style={[s.actions, stackedActions && s.actionsStacked]}>
       <V2Action label={CLEAR} kind="quiet" tone="neutral" compact style={s.reset} onPress={clearAll} />
       <View testID="search-show" accessibilityLiveRegion="polite" style={[s.grow, stackedActions && s.showStacked]}>
-        <V2Action label={retryPreview ? 'Pokušaj ponovo' : show.label} disabled={!retryPreview && show.disabled} onPress={retryPreview ?? apply} style={brandAction} />
+        <V2Action label={retryPreview ? 'Pokušajte ponovo' : show.label} disabled={!retryPreview && show.disabled} onPress={retryPreview ?? apply} style={brandAction} />
       </View>
     </View>
   </FlowFooter>;
@@ -396,21 +396,21 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     footer={footer} onCloseButton={onCloseButton} onRequestClose={requestClose} onClosed={onClose}>
     <ScrollView style={s.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.sections}>
       {draft.where !== 'remote' ? section('place', 'Mesto na mapi', <>
-        <T variant="note" tone="muted">Unesi mesto, izaberi potvrđeni predlog, pa primeni. Mapa će se pomeriti na približno područje.</T>
+        <T variant="note" tone="muted">Unesite mesto, izaberite potvrđeni predlog, pa primenite. Mapa će se pomeriti na približno područje.</T>
         <TextInput testID="filters-place-input" accessibilityLabel="Grad ili mesto" value={locationQuery} placeholder="Grad ili mesto"
           autoCapitalize="words" autoCorrect={false} returnKeyType="search" onSubmitEditing={() => { void lookUpPlace(); }}
           onChangeText={text => { locationEpoch.current++; resolver.cancel(); setLocationQuery(text); setLocationEdited(true);
             setSelectedCenter(null); setPlaceLookup({ status: 'idle' }); }}
           style={s.locationInput} />
-        <V2Action label={placeLookup.status === 'loading' ? 'Tražimo mesto…' : 'Pronađi mesto'} kind="secondary"
+        <V2Action label={placeLookup.status === 'loading' ? 'Tražimo mesto…' : 'Pronađite mesto'} kind="secondary"
           disabled={!locationQuery.trim() || placeLookup.status === 'loading'} onPress={() => { void lookUpPlace(); }} />
         {placeLookup.status === 'blocked' ? <T variant="note" accessibilityRole="alert">Pretraga mesta trenutno nije aktivirana.</T> : null}
-        {placeLookup.status === 'error' ? <T variant="note" accessibilityRole="alert">Mesto nije učitano. Pokušaj ponovo.</T> : null}
+        {placeLookup.status === 'error' ? <T variant="note" accessibilityRole="alert">Mesto nije učitano. Pokušajte ponovo.</T> : null}
         {placeLookup.status === 'empty' ? <T variant="note" accessibilityLiveRegion="polite">Nema predloga za uneto mesto.</T> : null}
         {placeLookup.candidates?.map((candidate, index) => <V2Action key={`${candidate.label}:${index}`}
-          label={`${selectedCenter === candidate ? 'Izabrano' : 'Izaberi'}: ${candidate.label}`} kind="quiet"
+          label={`${selectedCenter === candidate ? 'Izabrano' : 'Izaberite'}: ${candidate.label}`} kind="quiet"
           onPress={() => { setSelectedCenter(candidate); setLocationQuery(candidate.label); setLocationEdited(false); edit(ANYWHERE); }} />)}
-        {selectedCenter ? <T variant="note" accessibilityLiveRegion="polite">{selectedCenter.label} je spremno. Mapa se pomera tek kada primeniš filtere.</T> : null}
+        {selectedCenter ? <T variant="note" accessibilityLiveRegion="polite">{selectedCenter.label} je spremno. Mapa se pomera tek kada primenite filtere.</T> : null}
         {placeLookup.status === 'ready' ? <T variant="meta" accessibilityRole="link"
           onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}>Pretraga: LocationIQ · izvori podataka</T> : null}
       </>) : null}
@@ -440,7 +440,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
               edit({ minBudgetRsd: trimmed && /^[0-9]+$/.test(trimmed) && Number.isInteger(amount) && amount >= 1 && amount <= 2_147_483_647
                 ? amount : null });
             }} style={s.locationInput} />
-          {minPriceInvalid ? <T variant="note" accessibilityRole="alert">Unesi ceo iznos od 1 do 2.147.483.647 RSD.</T> : null}
+          {minPriceInvalid ? <T variant="note" accessibilityRole="alert">Unesite ceo iznos od 1 do 2.147.483.647 RSD.</T> : null}
         </> : null}
       </>)}
       {section('when', 'Kada', <>
@@ -448,13 +448,13 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         <Choice compact label="Kada" options={whenOptions} value={whenValue}
           onChange={when => { setRangeStart(null); edit({ when: draft.when === when && !draft.dates ? 'any' : when, dates: null }); }} />
         <Press testID="search-date-toggle" accessibilityRole="button" accessibilityLabel="Datumi"
-          accessibilityValue={{ text: draft.dates ? whenWords(draft, now) : 'Izaberi datume' }} accessibilityState={{ expanded: datesOpen }}
+          accessibilityValue={{ text: draft.dates ? whenWords(draft, now) : 'Izaberite datume' }} accessibilityState={{ expanded: datesOpen }}
           onPress={toggleDates} haptic="select" hitSlop={0} scaleTo={sys.motion.scale.row} style={s.dateToggle}>
-          <T variant="copy" style={[s.grow, draft.dates ? s.dateOn : s.ink]}>{draft.dates ? whenWords(draft, now) : 'Izaberi datume'}</T>
+          <T variant="copy" style={[s.grow, draft.dates ? s.dateOn : s.ink]}>{draft.dates ? whenWords(draft, now) : 'Izaberite datume'}</T>
           <TurningCaret open={datesOpen} />
         </Press>
         {datesOpen ? <View testID="search-date-editor" style={s.dateEditor}>
-          <T variant="note" tone="muted" accessibilityLiveRegion="polite">{rangeStart ? 'Izaberi poslednji dan.' : 'Izaberi prvi i poslednji dan.'}</T>
+          <T variant="note" tone="muted" accessibilityLiveRegion="polite">{rangeStart ? 'Izaberite poslednji dan.' : 'Izaberite prvi i poslednji dan.'}</T>
           <DateRangeGrid today={today} from={rangeStart ?? draft.dates?.from ?? null} to={rangeStart ? null : draft.dates?.to ?? null} now={now} onDay={tapDay} />
           {draft.dates ? <V2Action label="Gotovo" kind="secondary" onPress={() => { setDatesOpen(false); setRangeStart(null); }} /> : null}
         </View> : null}

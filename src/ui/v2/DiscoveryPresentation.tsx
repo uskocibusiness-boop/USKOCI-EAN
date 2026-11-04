@@ -1527,20 +1527,20 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       </Press>
     </View> : null}
     {props.collectionStatus === 'error' ? <View style={s.relationsRecovery}>
-      <T variant="note" style={s.relationsMessage}>Tvoj zadatak je objavljen. Osveži listu da vidiš i ostale.</T>
-      <Press accessibilityRole="button" accessibilityLabel="Osveži ostale zadatke" onPress={refreshList}
-        style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Osveži</T></Press>
+      <T variant="note" style={s.relationsMessage}>Vaš zadatak je objavljen. Osvežite listu da vidite i ostale.</T>
+      <Press accessibilityRole="button" accessibilityLabel="Osvežite ostale zadatke" onPress={refreshList}
+        style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Osvežite</T></Press>
     </View> : null}
     {props.publicationUnavailable ? <View style={s.relationsRecovery}>
       <T variant="note" style={s.relationsMessage}>{props.publicationUnavailable === 'missing'
         ? 'Objavljen zadatak trenutno nije dostupan u pretrazi.' : 'Prikaz objavljenog zadatka nije potvrđen.'}</T>
-      {props.onOpenPublishedTask ? <Press accessibilityRole="button" accessibilityLabel="Otvori moj objavljen zadatak"
-        onPress={props.onOpenPublishedTask} style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Otvori moj zadatak</T></Press> : null}
+      {props.onOpenPublishedTask ? <Press accessibilityRole="button" accessibilityLabel="Otvorite Vaš objavljen zadatak"
+        onPress={props.onOpenPublishedTask} style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Otvorite Vaš zadatak</T></Press> : null}
     </View> : null}
     {!loading && !error && items.length > 0 && props.relationsError ? <View style={s.relationsRecovery}>
-      <T variant="note" tone="muted" style={s.relationsMessage}>Tvoj status uz zadatke nije učitan.</T>
-      <Press accessibilityRole="button" accessibilityLabel="Proveri status zadataka" onPress={refreshList}
-        style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Proveri</T></Press>
+      <T variant="note" tone="muted" style={s.relationsMessage}>Vaš status uz zadatke nije učitan.</T>
+      <Press accessibilityRole="button" accessibilityLabel="Proverite status zadataka" onPress={refreshList}
+        style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Proverite</T></Press>
     </View> : null}
   </View>;
 

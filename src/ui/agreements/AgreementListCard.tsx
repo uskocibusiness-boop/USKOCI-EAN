@@ -87,7 +87,7 @@ function AgreementCard({ item, now, stale = false, cancellation, capacity, onOpe
 
   const other = item.ucesnici.find(person => !person.viSte);
   const ownRole = item.ucesnici.find(person => person.viSte)?.uloga;
-  const roleLabel = ownRole === 'narucilac' ? 'Ti objavljuješ' : ownRole === 'uskocer' ? 'Ti uskačeš' : null;
+  const roleLabel = ownRole === 'narucilac' ? 'Vi objavljujete' : ownRole === 'uskocer' ? 'Vi uskačete' : null;
   // A retained list is a last-known snapshot. Its urgent action needs a fresh read.
   const attention = stale ? null : agreementAttention(item);
   const title = readableTitle(item.naslov);
@@ -109,7 +109,7 @@ function AgreementCard({ item, now, stale = false, cancellation, capacity, onOpe
   const rateAside = attention?.kind === 'rate' && onRate ? attention : null;
   const footInside = attention && !rateAside ? attention : null;
   const spoken = [name, role, `${agreementChipWord(chip)}${changed ? `, ${changed}` : ''}`, when, term.zone, amount ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ${item.osnovaCene === 'HOURLY' ? 'po osobi po satu' : 'za ovu saradnju'}` : BEZ_IZNOSA, place, people,
-    cancelledLine, ownProposal ? 'Tvoja izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null]
+    cancelledLine, ownProposal ? 'Vaša izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null]
     .filter((part): part is string => !!part).join(', ');
   // The one Avatar: a missing name (an empty string since 2026-09-24) draws the person, never an empty disc or a dash.
   const initials = <Avatar initials={other?.inicijali} size={AVATAR} />;
@@ -139,7 +139,7 @@ function AgreementCard({ item, now, stale = false, cancellation, capacity, onOpe
           {cancelledLine ? <T variant="note" tone="muted">{cancelledLine}</T> : null}
           {/* My own proposal waits for the other side: a quiet line, not a task of mine. */}
           {ownProposal ? <View style={s.note}><FactArt kind="clock" size={16} muted />
-            <T variant="note" tone="muted" style={s.noteText}>Tvoja izmena čeka odgovor</T></View> : null}
+            <T variant="note" tone="muted" style={s.noteText}>Vaša izmena čeka odgovor</T></View> : null}
           {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
         </View>
         {footInside ? <View style={s.foot}><AttentionFoot attention={footInside} /></View> : null}
@@ -202,14 +202,14 @@ export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, n
   const ordered = prioritize === 'all' ? byUrgency : [...byUrgency.filter(matches), ...byUrgency.filter(item => !matches(item))];
   const shown = expanded ? ordered : ordered.slice(0, 3);
   const waiting = stale ? 0 : group.items.filter(item => agreementAttention(item)).length;
-  const role = first.ucesnici.find(person => person.viSte)?.uloga === 'narucilac' ? 'Tražiš pomoć' : 'Uskačeš';
+  const role = first.ucesnici.find(person => person.viSte)?.uloga === 'narucilac' ? 'Tražite pomoć' : 'Uskačete';
   return <Appear index={index} animate={animate}><Surface kind="record">
     <View style={s.taskHead}>
       <T variant="heading">{title}</T>
       <T variant="note" tone="muted">{role} · {plural(group.items.length, 'saradnja', 'saradnje', 'saradnji')} ukupno</T>
       {capacity?.count ? <T testID="owner-task-capacity" variant="note" style={s.capacity}>{capacity.count}</T> : null}
       {capacity?.next ? <T variant="note" tone="muted">{capacity.next}</T> : null}
-      {waiting ? <T variant="note" style={s.footTitle}>{plural(waiting, 'obaveza čeka', 'obaveze čekaju', 'obaveza čeka')} tebe</T> : null}
+      {waiting ? <T variant="note" style={s.footTitle}>{plural(waiting, 'obaveza čeka', 'obaveze čekaju', 'obaveza čeka')} Vas</T> : null}
       {capacity && onOpenOwnerTask ? <Press accessibilityRole="button"
         accessibilityLabel={capacity.count ? `Otvori zadatak: ${title}` : `Proveri popunjenost zadatka: ${title}`}
         accessibilityHint="Otvara vlasnikov zadatak i proverava trenutno stanje i dozvoljene radnje."
@@ -242,7 +242,7 @@ function AgreementCollaborator({ item, taskTitle, now, stale = false, cancellati
   const spoken = [agreementChipWord(chip), item.verzija > 1 ? 'izmenjeni uslovi' : null, when, term.zone,
     item.cena.prikaz ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ${item.osnovaCene === 'HOURLY' ? 'po osobi po satu' : 'za ovu saradnju'}` : amount, place, people, attention?.title,
     cancelled ? cancellationLine(cancelled, now) : null,
-    item.izmenaCeka?.mojPredlog ? 'Tvoja izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null].filter(Boolean).join(', ');
+    item.izmenaCeka?.mojPredlog ? 'Vaša izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null].filter(Boolean).join(', ');
   const initials = <Avatar initials={other?.inicijali} size={AVATAR} />;
   return <View style={s.collaborator}>
     <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${taskTitle}, ${name}`}
@@ -261,7 +261,7 @@ function AgreementCollaborator({ item, taskTitle, now, stale = false, cancellati
         <AcceptedAmount item={item} />
       </View>
       {cancelled ? <T variant="note" tone="muted">{cancellationLine(cancelled, now)}</T> : null}
-      {item.izmenaCeka?.mojPredlog ? <T variant="note" tone="muted">Tvoja izmena čeka odgovor</T> : null}
+      {item.izmenaCeka?.mojPredlog ? <T variant="note" tone="muted">Vaša izmena čeka odgovor</T> : null}
       {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
       {attention && !(attention.kind === 'rate' && onRate) ? <T variant="note" style={s.footTitle}>{attention.title}</T> : null}
     </Press>

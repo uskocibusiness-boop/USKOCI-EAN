@@ -232,24 +232,24 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
   // Reading, a failed read, an empty filtered view and a first empty list remain distinct.
   const empty = <View style={s.empty}>
-    {reading ? <QuietReadState art="tasks" title="Učitavamo zadatke…" body="Proveravamo tvoje objave, nacrte i istoriju." />
+    {reading ? <QuietReadState art="tasks" title="Učitavamo zadatke…" body="Proveravamo Vaše objave, nacrte i istoriju." />
       : error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatke" body="Učitavanje nije uspelo. Pokušajte ponovo."
         primary={{ label: 'Pokušajte ponovo', onPress: props.onRefresh }} />
         : incompleteFinal ? <StateView kind="error" art="tasks" title="Spisak zadataka nije potpun"
-          body="Broj učitanih zadataka ne odgovara serverskom stanju. Proveri spisak ponovo."
-          primary={{ label: 'Proveri spisak zadataka', onPress: props.onRefresh }} />
+          body="Broj učitanih zadataka ne odgovara serverskom stanju. Proverite spisak ponovo."
+          primary={{ label: 'Proverite spisak zadataka', onPress: props.onRefresh }} />
         : paging?.moreError ? <StateView kind="error" art="tasks" title="Nismo učitali sve rezultate" body="Preostali zadaci trenutno nisu dostupni."
-          primary={{ label: 'Pokušaj ponovo', onPress: paging.onLoadMore }} />
-        : filterActive ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili filtere."
+          primary={{ label: 'Pokušajte ponovo', onPress: paging.onLoadMore }} />
+        : filterActive ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promenite pretragu ili filtere."
           primary={{ label: 'Poništi filtere', onPress: () => change({ query: '', price: 'all', attention: false, selectedId: null }) }} />
-          : view.section === 'drafts' ? <StateView art="tasks" title="Nemaš nacrt" body="Nacrt pregledaš pre objave." />
+          : view.section === 'drafts' ? <StateView art="tasks" title="Nemate nacrt" body="Nacrt pregledate pre objave." />
           : view.section === 'history' ? <StateView art="tasks" title="Istorija je prazna" body="Ovde su završeni, otkazani i istekli zadaci." />
           : items.length ? <StateView art="tasks" title="Nema aktivnih zadataka"
-            primary={props.onNew ? { label: 'Objavi novi zadatak', onPress: props.onNew } : undefined} />
+            primary={props.onNew ? { label: 'Objavite novi zadatak', onPress: props.onNew } : undefined} />
             // The first encounter: the paper with the pin and the pencil, the object of the door that fulfils it.
-            : <StateView hero art="publish" title="Još nemaš zadatak" body="Reci šta ti treba. Nacrt pregledaš pre objave."
-              primary={props.onNew ? { label: 'Objavi zadatak', onPress: props.onNew } : undefined}
-              quiet={props.onExplore ? { label: 'Pogledaj zadatke', onPress: props.onExplore } : undefined} />}
+            : <StateView hero art="publish" title="Još nemate zadatak" body="Navedite šta Vam treba. Nacrt pregledate pre objave."
+              primary={props.onNew ? { label: 'Objavite zadatak', onPress: props.onNew } : undefined}
+              quiet={props.onExplore ? { label: 'Pogledajte zadatke', onPress: props.onExplore } : undefined} />}
   </View>;
 
   // The one control of the bar. A control nobody can guess from a drawing says its word beside it (the sliders icon alone says nothing).
@@ -304,7 +304,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
             {PRICES.map(([value, label]) => <ChoiceRow key={value} kind="radio" label={label} checked={priceDraft === value} onPress={() => setPriceDraft(value)} />)}
           </View>
         </Section>
-        <ChoiceRow kind="checkbox" label="Čeka tvoj izbor" hint="Zadaci sa prijavama koje možeš da izabereš." checked={attentionDraft}
+        <ChoiceRow kind="checkbox" label="Čeka Vaš izbor" hint="Zadaci sa prijavama koje možete da izaberete." checked={attentionDraft}
           onPress={() => setAttentionDraft(value => !value)} />
       </View>}</ProductSheet> : null}
   </SafeAreaView>;

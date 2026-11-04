@@ -98,8 +98,8 @@ export function AgreementLinks({ task, application, history }: {
   if (task) rows.push(last => <ListRow key="task" leading={<FactArt kind="tasks" size={32} />} title="Otvori zadatak" last={last}
     accessibilityLabel={`Otvori zadatak: ${task.title}. ${task.place}`} accessibilityHint="Otvara detalje zadatka iz kog je nastao ovaj Dogovor."
     disabled={task.disabled} onPress={task.onPress} />);
-  if (application) rows.push(last => <ListRow key="application" leading={<FactArt kind="applications" size={32} />} title="Tvoja prijava" last={last}
-    accessibilityLabel="Tvoja prijava" disabled={application.disabled} onPress={application.onPress} />);
+  if (application) rows.push(last => <ListRow key="application" leading={<FactArt kind="applications" size={32} />} title="Vaša prijava" last={last}
+    accessibilityLabel="Vaša prijava" disabled={application.disabled} onPress={application.onPress} />);
   if (events) rows.push(() => <AgreementHistory key="history" events={events} />);
   if (!rows.length) return null;
   return <View>{rows.map((row, index) => row(index === rows.length - 1))}</View>;
@@ -173,12 +173,12 @@ export function AgreementProblemNote({ mine, openedAt, narrative, active = false
 }) {
   return <Surface kind="note" tone="warn" testID="agreement-problem-note" style={s.problem}>
     <View style={s.noteHead}>
-      <T accessibilityRole="header" variant="bodyStrong" style={[s.title, s.noteTitle]}>{mine ? 'Problem je prijavljen sa tvog naloga.' : 'Problem je prijavila druga strana.'}</T>
+      <T accessibilityRole="header" variant="bodyStrong" style={[s.title, s.noteTitle]}>{mine ? 'Problem je prijavljen sa Vašeg naloga.' : 'Problem je prijavila druga strana.'}</T>
       {active ? <InfoButton title="Šta znači prijavljen problem" lines={PROBLEM_LINES} /> : null}
     </View>
     <T variant="note" tone="muted">{vreme(openedAt)}</T>
     <T variant="body" style={s.title}>{narrative}</T>
-    <T variant="note" tone="muted">{keptFirst ? 'Sačuvan je prvi opis, a tvoj novi nije dodat. Za dopunu koristi Poruke.'
+    <T variant="note" tone="muted">{keptFirst ? 'Sačuvan je prvi opis, a Vaš novi nije dodat. Za dopunu koristite Poruke.'
       : 'Opis vide oba učesnika, a problem sam po sebi ne određuje krivicu ili dug.'}</T>
   </Surface>;
 }
@@ -196,7 +196,7 @@ export function AgreementProblemUnknown({ legacy, onRefresh, disabled = false }:
   return <Surface kind="note" tone="warn" testID="agreement-problem-note" style={s.problem}>
     <T accessibilityRole="header" variant="bodyStrong" style={s.title}>Problem je prijavljen</T>
     <T variant="note" tone="muted">{legacy ? 'Detalji ranije prijavljenog problema nisu dostupni. Problem ostaje sačuvan.' : 'Detalji prijave trenutno nisu učitani.'}</T>
-    {onRefresh ? <V2Action label="Osveži detalje prijave" kind="quiet" disabled={disabled} onPress={onRefresh} /> : null}
+    {onRefresh ? <V2Action label="Osvežite detalje prijave" kind="quiet" disabled={disabled} onPress={onRefresh} /> : null}
   </Surface>;
 }
 
@@ -213,11 +213,11 @@ export function AgreementProblemForm({ value, onChange, editable, kept, busy, ca
   return <Section title="Problem u Dogovoru">
     <View style={s.form}>
       <T variant="note" tone="muted">Opis će videti druga strana u Porukama. Ovo nije poverljiva prijava podršci.</T>
-      <TextInput accessibilityLabel="Opiši problem" value={value} onChangeText={onChange} multiline maxLength={4000} editable={editable}
+      <TextInput accessibilityLabel="Opišite problem" value={value} onChangeText={onChange} multiline maxLength={4000} editable={editable}
         placeholder="Šta je ostalo nerešeno?" placeholderTextColor={sys.color.muted} style={s.input} />
-      <V2Action label={busy ? 'Čuvamo prijavu…' : kept ? 'Pošalji ponovo' : 'Pošalji prijavu problema'} disabled={!canSend} onPress={onSend} />
+      <V2Action label={busy ? 'Čuvamo prijavu…' : kept ? 'Pošaljite ponovo' : 'Pošaljite prijavu problema'} disabled={!canSend} onPress={onSend} />
       {!kept ? <V2Action label="Odustani od prijave problema" kind="quiet" disabled={disabled} onPress={onCancel} />
-        : <T variant="note" tone="muted">Opis je sačuvan na ovom ekranu. Osveži Dogovor pa ga pošalji ponovo.</T>}
+        : <T variant="note" tone="muted">Opis je sačuvan na ovom ekranu. Osvežite Dogovor pa ga pošaljite ponovo.</T>}
     </View>
   </Section>;
 }
@@ -237,7 +237,7 @@ export function AgreementProblemExits({ onMessages, onCancel, onNoShow, disabled
         accessibilityLabel="Dogovorite se u Porukama" accessibilityHint="Napišite šta je ostalo nerešeno." last={false} />
       {/* Red words are a command, but this one opens the cancelling with its reason, so it keeps the arrow of a way onward. */}
       {onCancel ? <ListRow leading={<Glyph name="cancel" size={24} tone="danger" />} tone="danger" arrow title="Otkaži Dogovor" onPress={onCancel} disabled={disabled}
-        accessibilityLabel="Otkaži Dogovor" accessibilityHint="Otkazivanje uz razlog. Pre slanja vidiš pregled." /> : null}
+        accessibilityLabel="Otkaži Dogovor" accessibilityHint="Otkazivanje uz razlog. Pre slanja vidite pregled." /> : null}
       <ListRow leading={<FactArt kind="shield" size={32} />} title="Prijavi nedolazak" onPress={onNoShow} disabled={disabled}
         accessibilityLabel="Prijavi nedolazak" accessibilityHint="Otvara podršku sa ovim Dogovorom." last />
     </View>
@@ -252,9 +252,9 @@ export function AgreementProblemExits({ onMessages, onCancel, onNoShow, disabled
 export function AgreementStatusView({ loading = false, error = false, retry, back }: { loading?: boolean; error?: boolean; retry?: () => void; back: () => void }) {
   return <Screen kind="detail" header={<ProductHeader title="Dogovor" back={back} />}>
     {loading ? <QuietReadState art="document" title="Učitavamo Dogovor…" body="Proveravamo pristup i važeće uslove." />
-      : error ? <StateView kind="error" art="document" title="Dogovor nije učitan" body="Proveri internet vezu i pokušaj ponovo."
-        primary={retry ? { label: 'Ponovo učitaj Dogovor', onPress: retry } : undefined} />
-        : <StateView kind="error" art="document" title="Dogovor nije dostupan" body="Veza je zastarela ili nemaš pristup ovom Dogovoru."
+      : error ? <StateView kind="error" art="document" title="Dogovor nije učitan" body="Proverite internet vezu i pokušajte ponovo."
+        primary={retry ? { label: 'Ponovo učitajte Dogovor', onPress: retry } : undefined} />
+        : <StateView kind="error" art="document" title="Dogovor nije dostupan" body="Veza je zastarela ili nemate pristup ovom Dogovoru."
           primary={{ label: 'Nazad na Dogovore', onPress: back }} />}
   </Screen>;
 }

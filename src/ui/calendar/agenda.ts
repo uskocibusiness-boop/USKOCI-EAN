@@ -24,8 +24,8 @@ import { serbianClock, serbianDayOf, serbianDayRange } from './serbianDays';
 export type AgendaAgreement = DogovorProjekcija;
 export type AgendaState = 'CONFIRMED' | 'AWAITING_REQUESTER' | 'COMPLETED';
 
-export const ROLE_WORKER = 'Uskačeš';
-export const ROLE_REQUESTER = 'Tvoj zadatak';
+export const ROLE_WORKER = 'Uskačete';
+export const ROLE_REQUESTER = 'Vaš zadatak';
 /** A schedule row whose Dogovor the list did not confirm at the same version is still a confirmed term, never a guess. */
 export const SCHEDULE_FALLBACK_TITLE = 'Potvrđen Dogovor';
 export const LIST_FALLBACK_TITLE = 'Dogovor';

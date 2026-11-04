@@ -45,7 +45,7 @@ export function workerCommand(draft: WorkerDraft, initial: WorkerDraft, activate
   // The name is not typed in the work profile any more, so what is missing is said where it is done: the name in "Lični podaci", the skill here, the place in the area.
   if (activate && values.ime.length < 2) return { error: 'Za aktivaciju dodaj ime u „Lični podaci“.' };
   if (activate && !values.vestine.length) return { error: 'Za aktivaciju dodaj bar jednu veštinu.' };
-  if (activate && values.grad.length < 2 && !initial.workAreas?.length) return { error: 'Za aktivaciju potvrdi područje rada u razgovoru.' };
+  if (activate && values.grad.length < 2 && !initial.workAreas?.length) return { error: 'Za aktivaciju potvrdite područje rada u razgovoru.' };
   const before = { ...initial, radijusKm: Number(initial.radius) };
   const command: AzurirajProfilKomanda = { zavrsi: activate };
   // Only changed fields are written. A location edit elsewhere cannot be

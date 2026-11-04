@@ -86,7 +86,7 @@ export function ApplicationServiceOffer({ input, openProfile }: {
         ? alreadyPresent ? 'Ova usluga je već u Vašem profilu.' : 'Dodato u radni profil.'
         : saved && !uncertain ? 'Dodavanje je u toku.' : 'Dodajte ovu vrstu posla u radni profil.'}</T>
       {!confirmed && !profileHelp ? <V2Action compact loading={busy} error={error}
-        label={error ? 'Pokušajte ponovo' : saved ? 'Osveži' : 'Dodaj'}
+        label={error ? 'Pokušajte ponovo' : saved ? 'Osvežite' : 'Dodajte'}
         onPress={() => void act(!uncertain && !saved)} /> : null}
       {profileHelp ? <V2Action compact kind="quiet" label="Otvorite radni profil" error={error ?? 'Profil je u međuvremenu izmenjen.'} onPress={() => {
         if (current(owner.generation) && !owner.busy) openProfile();

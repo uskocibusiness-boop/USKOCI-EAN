@@ -53,10 +53,10 @@ const MARK_READ_ACTIONS = [{ name: MARK_READ_ACTION, label: 'Označi kao pročit
 
 const EMPTY_TITLE: Record<'ALL' | InboxRole, string> = {
   ALL: 'Još nema obaveštenja',
-  REQUESTER: 'Još nema obaveštenja o tvojim zadacima',
-  WORKER: 'Još nema obaveštenja o tvojim prijavama',
+  REQUESTER: 'Još nema obaveštenja o Vašim zadacima',
+  WORKER: 'Još nema obaveštenja o Vašim prijavama',
 };
-const AGAIN = 'Proveri vezu i pokušaj ponovo. Do tada vidiš poslednja učitana obaveštenja.';
+const AGAIN = 'Proverite vezu i pokušajte ponovo. Do tada vidite poslednja učitana obaveštenja.';
 
 type DayRow = { kind: 'day'; id: string; label: string; first: boolean };
 type EventRow = { kind: 'event'; id: string; item: InboxItem; moment: Trenutak | null; last: boolean };
@@ -242,8 +242,8 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
   // The pull spinner is for a pull only (a tab switched or a read of the screen's own used to raise it: the white dot of 8 Oct 2026).
   const pull = usePullRefresh(onRefresh, loading);
 
-  const banner = unavailable ? <Banner title="Sadržaj više nije dostupan." sentence="Možda je uklonjen ili mu više nemaš pristup." disabled={busy} />
-    : error === 'action' ? <Banner title="Ne znamo da li je radnja uspela." sentence={AGAIN} retry={onRefresh} retryLabel="Osveži obaveštenja" disabled={busy} />
+  const banner = unavailable ? <Banner title="Sadržaj više nije dostupan." sentence="Možda je uklonjen ili mu više nemate pristup." disabled={busy} />
+    : error === 'action' ? <Banner title="Ne znamo da li je radnja uspela." sentence={AGAIN} retry={onRefresh} retryLabel="Osvežite obaveštenja" disabled={busy} />
       : error === 'load' && page ? <Banner title="Obaveštenja nisu osvežena." sentence={AGAIN} retry={onRefresh} disabled={busy} /> : null;
 
   // "Označi sve" stands at the end of the heading of the first day. A list whose first row is not a day (an event that has no readable
@@ -265,11 +265,11 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
 
   const empty = !page && (loading || !error)
     ? <NotificationLoading label="Učitavamo obaveštenja…" />
-    : !page ? <StateView kind="error" title="Obaveštenja nisu učitana" body="Proveri vezu i pokušaj ponovo da učitaš obaveštenja."
-        primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: busy }} />
+    : !page ? <StateView kind="error" title="Obaveštenja nisu učitana" body="Proverite vezu i pokušajte ponovo da učitate obaveštenja."
+        primary={{ label: 'Pokušajte ponovo', onPress: onRefresh, disabled: busy }} />
       // A failed refresh has no current empty result to claim. Keep the last confirmed empty page and date its meaning.
       : error ? <StateView kind="empty" art="bell" title="U poslednjem pregledu nije bilo obaveštenja"
-          body={error === 'load' ? 'Nismo uspeli da proverimo ima li novih. Osveži obaveštenja kada budeš mogao.'
+          body={error === 'load' ? 'Nismo uspeli da proverimo ima li novih. Osvežite obaveštenja kada budete mogli.'
             : error === 'page' ? 'Starija obaveštenja nisu učitana.' : 'Ishod radnje još nije potvrđen.'} />
         // A filtered empty is only this view, not proof that the whole inbox is empty. During a refresh it remains the last confirmed result.
         : <StateView kind="empty" hero={!role} art="bell" title={EMPTY_TITLE[role ?? 'ALL']}

@@ -6,12 +6,12 @@ import { loadNearbyLocation } from './nearbyLocation';
 import { askForLocation } from '../../permissions/locationPermission';
 
 export const NEARBY_COPY: Partial<Record<NearbyStatus, string>> = {
-  locating: 'Tražimo tvoju lokaciju…',
-  denied: 'Dozvoli lokaciju u podešavanjima ili pomeri mapu ručno.',
-  'services-off': 'Lokacija je isključena na uređaju. Uključi je pa pokušaj ponovo.',
-  timeout: 'Lokacija nije pronađena na vreme. Pokušaj ponovo ili pomeri mapu.',
-  unavailable: 'Lokacija trenutno nije dostupna. Pokušaj ponovo ili pomeri mapu.',
-  unsupported: 'U blizini je dostupno u mobilnoj aplikaciji. Ovde pomeri mapu ručno.',
+  locating: 'Tražimo Vašu lokaciju…',
+  denied: 'Dozvolite lokaciju u podešavanjima ili pomerite mapu ručno.',
+  'services-off': 'Lokacija je isključena na uređaju. Uključite je pa pokušajte ponovo.',
+  timeout: 'Lokacija nije pronađena na vreme. Pokušajte ponovo ili pomerite mapu.',
+  unavailable: 'Lokacija trenutno nije dostupna. Pokušajte ponovo ili pomerite mapu.',
+  unsupported: 'U blizini je dostupno u mobilnoj aplikaciji. Ovde pomerite mapu ručno.',
 };
 
 /**

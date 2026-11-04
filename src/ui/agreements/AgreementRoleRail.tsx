@@ -43,7 +43,7 @@ function MeasuredRail({ value, onChange, width }: Props & { width: number }) {
     contentContainerStyle={s.items} keyboardShouldPersistTaps="handled" scrollEventThrottle={16}
     onContentSizeChange={measured => { contentWidth.current = measured; reveal(); }}
     onScroll={event => { offset.current = event.nativeEvent.contentOffset.x; }}
-    accessibilityRole="radiogroup" accessibilityLabel="Tvoja uloga u Dogovorima">
+    accessibilityRole="radiogroup" accessibilityLabel="Vaša uloga u Dogovorima">
     {AGREEMENT_ROLE_FILTERS.map(option => {
       const on = value === option.key;
       return <Press key={option.key} accessibilityRole="radio" accessibilityLabel={option.spoken}

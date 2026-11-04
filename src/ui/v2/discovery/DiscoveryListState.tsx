@@ -33,14 +33,14 @@ export const LIST_STATE_WORDS = {
   errorBody: 'Zadaci trenutno nisu dostupni. Pokušajte ponovo za trenutak.',
   retry: 'Pokušajte ponovo',
   showAll: 'Prikaži sve zadatke',
-  pointTitle: 'Nema zadataka na ovom mestu', pointBody: 'Pomeri mapu ili prikaži sve zadatke.',
-  areaTitle: 'Nema zadataka u ovoj oblasti', areaBody: 'Umanji mapu ili je pomeri da vidiš zadatke u okolini.',
+  pointTitle: 'Nema zadataka na ovom mestu', pointBody: 'Pomerite mapu ili prikažite sve zadatke.',
+  areaTitle: 'Nema zadataka u ovoj oblasti', areaBody: 'Umanjite mapu ili je pomerite da vidite zadatke u okolini.',
   filteredTitle: 'Nema zadataka u ovom prikazu', filteredBody: 'Nijedan zadatak ne odgovara ovim uslovima.',
   remoteTitle: 'Nema zadataka na daljinu', remoteBody: 'Nijedan zadatak na daljinu ne odgovara ovim uslovima.',
-  forMeTitle: 'Za sada nema zadataka za tebe', forMeBody: 'Gledamo potvrđene usluge koje nudiš, područje i dostupnost. Ako si upravo podesio profil, proveri da li su tvoje usluge sačuvane i potvrđene.',
-  forMeEdit: 'Otvori radni profil',
+  forMeTitle: 'Za sada nema zadataka za Vas', forMeBody: 'Gledamo potvrđene usluge koje nudite, područje i dostupnost. Ako ste upravo podesili profil, proverite da li su Vaše usluge sačuvane i potvrđene.',
+  forMeEdit: 'Otvorite radni profil',
   noneTitle: 'Još niko nije tražio pomoć', noneBody: 'Čim neko objavi zadatak, pojaviće se ovde i na mapi.',
-  refresh: 'Osveži', publish: 'Objavi zadatak',
+  refresh: 'Osvežite', publish: 'Objavite zadatak',
 } as const;
 
 const ERROR_BODY: Readonly<Record<ReadFailureReason, string>> = {

@@ -1010,8 +1010,8 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     assistantMessage,
   });
   let dialogue = turn.dialogue;
-  if (dialogue?.taskRelation === 'DIFFERENT_TASK') return clarification('Za drugi posao izaberi Novi zadatak u opcijama razgovora. Ovaj razgovor čuva prethodni zadatak.');
-  if (dialogue?.taskRelation === 'UNCLEAR') return clarification('Da li menjaš ovaj zadatak ili želiš da napraviš novi?');
+  if (dialogue?.taskRelation === 'DIFFERENT_TASK') return clarification('Za drugi zadatak izaberite „Novi zadatak“ u opcijama razgovora. Ovaj razgovor čuva prethodni zadatak.');
+  if (dialogue?.taskRelation === 'UNCLEAR') return clarification('Da li menjate ovaj zadatak ili želite da napravite novi?');
   if (unsupportedPrice) {
     // Keep independently understood job/people/place/time; do not persist a
     // public copy that carries the unsupported amount. A genuinely chosen

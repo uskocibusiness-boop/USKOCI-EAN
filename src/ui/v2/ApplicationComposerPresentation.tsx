@@ -132,7 +132,7 @@ export function ComposerUnavailable({ loading, message, retry, back }: { loading
   const [title, body] = splitFirstSentence(message);
   return <ComposerFrame back={back}>
     {loading ? <QuietReadState art="applications" title="Učitavamo podatke za prijavu…" body="Proveravamo zadatak i uslove prijave." />
-      : <StateView kind="error" title={title} body={body ?? undefined} primary={retry ? { label: 'Pokušaj ponovo', onPress: retry } : undefined} />}
+      : <StateView kind="error" title={title} body={body ?? undefined} primary={retry ? { label: 'Pokušajte ponovo', onPress: retry } : undefined} />}
   </ComposerFrame>;
 }
 
@@ -322,7 +322,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
     : uncertain ? <V2Action label="Proverite da li je poslato" onPress={refresh} disabled={busy} style={brandAction} />
     // A known refusal cannot be undone by repeating the same command: the one way on is a new application on fresh terms.
     : reset ? <V2Action label="Sastavi novu prijavu" onPress={reset} disabled={busy} style={brandAction} />
-    : pending || busy ? <V2Action label={busy ? 'Slanje…' : 'Pošalji ponovo'} onPress={submit} disabled={busy} loading={busy} style={brandAction} />
+    : pending || busy ? <V2Action label={busy ? 'Slanje…' : 'Pošaljite ponovo'} onPress={submit} disabled={busy} loading={busy} style={brandAction} />
     : <V2Action label="Pregledaj prijavu" onPress={openReview} disabled={!canSubmit || reviewing || !!issue.reason} style={brandAction} />;
   // A reason that names a fresh read of the task has the read under it: the task without its price, or without the
   // places this application would take, including a proportional share of a TOTAL budget.
@@ -408,10 +408,10 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
       </Section>
     </>}
     </>}
-    {reviewing ? <ProductSheet title="Ovo šalješ" closeLabel="Nazad na izmenu prijave" backdropHint="Vraća na izmenu prijave." onClose={closeReview}
+    {reviewing ? <ProductSheet title="Pregled prijave" closeLabel="Nazad na izmenu prijave" backdropHint="Vraća na izmenu prijave." onClose={closeReview}
       footer={() => <>
-        <V2Action label="Pošalji ovu prijavu" onPress={confirmReview} style={brandAction} />
-        <V2Action label="Izmeni prijavu" kind="quiet" onPress={closeReview} />
+        <V2Action label="Pošaljite ovu prijavu" onPress={confirmReview} style={brandAction} />
+        <V2Action label="Izmenite prijavu" kind="quiet" onPress={closeReview} />
       </>}>
       {() => <View style={s.reviewBody}>
         <View style={s.reviewTask}>

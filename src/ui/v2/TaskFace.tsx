@@ -144,9 +144,9 @@ export function taskStatus(item: MarketplaceItem, relation?: TaskCardRelation, s
     return text ? { text, quiet: item.stanje === 'NACRT' || item.stanje === 'ZATVORENA' } : null;
   }
   // A sent application is a paper plane in words, never the tick of something finished.
-  return relation === 'OWNED' ? { text: 'Tvoj zadatak', quiet: false }
+  return relation === 'OWNED' ? { text: 'Vaš zadatak', quiet: false }
     : relation === 'APPLIED' ? { text: 'Prijava poslata', quiet: false }
-    : relation === 'UNKNOWN' ? { text: 'Tvoj status nije potvrđen', quiet: true }
+    : relation === 'UNKNOWN' ? { text: 'Vaš status nije potvrđen', quiet: true }
     : relation === 'PENDING' ? { text: 'Proveravamo…', quiet: true } : null;
 }
 

@@ -23,7 +23,7 @@ type Props = { agreement: DogovorProjekcija; enabled: boolean;
 type Snapshot = { state: LocationGrantState; revealed: ExactLocationReveal | null };
 const activeGrant = (grant: LocationGrant | undefined) => !!grant && grant.status === 'GRANTED'
   && (grant.expiresAt === null || Date.parse(grant.expiresAt) > Date.now());
-const invalid = (): Ishod<never> => ({ ok: false, kod: 'LOCATION_SCOPE_CHANGED', poruka: 'Dozvola za lokaciju je promenjena. Osveži prikaz.' });
+const invalid = (): Ishod<never> => ({ ok: false, kod: 'LOCATION_SCOPE_CHANGED', poruka: 'Dozvola za lokaciju je promenjena. Osvežite prikaz.' });
 
 /** Unmount the private session on background, account, revision, participant or terminal state changes. */
 export function AgreementPrivateLocation({ agreement, enabled, onRequestAddress }: Props) {
@@ -145,7 +145,7 @@ function LocationSession({ agreementId, accountId, accountRevision, requesterId,
     {privateData ? <PrivatePoints key={`${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} value={privateData}
       scope={`${accountId}:${agreementId}:${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} canUse={canUsePrivateMap} /> : null}
     {/* The permission is read when the section opens and when this is pressed: the button says it, so no sentence does (J3). */}
-    <V2Action label="Osveži dozvolu za lokaciju" kind="quiet" disabled={editor.busy} style={quietStart} onPress={() => { void editor.refresh(); }} />
+    <V2Action label="Osvežite dozvolu za lokaciju" kind="quiet" disabled={editor.busy} style={quietStart} onPress={() => { void editor.refresh(); }} />
   </View>;
 }
 

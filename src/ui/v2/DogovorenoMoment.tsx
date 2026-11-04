@@ -112,7 +112,7 @@ export function DogovorenoMoment({ youFace, themFace, people, taskTitle, term, a
         <T accessibilityRole={fresh ? 'alert' : 'header'} accessibilityLiveRegion="polite" variant="display" style={s.centred}>Dogovoreno!</T>
       </MomentRise>
       <View style={s.rows}>
-        {([['users', people], ['calendar', term], ['offers', amount]] as const).map(([art, value], index) =>
+        {([['users', people], ['calendar', term], ['money', amount]] as const).map(([art, value], index) =>
           <MomentRise key={art} still={still} delay={ROWS_AT + index * sys.motion.stagger}>
             <FactRow art={art} value={value} size="detail" />
           </MomentRise>)}

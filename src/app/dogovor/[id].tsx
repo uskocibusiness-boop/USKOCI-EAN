@@ -131,10 +131,10 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     // A review belongs to one exact read. Invalidate synchronously, before a refresh
     // can yield: neither a retained confirm nor a retained opener may reuse its terms.
     completionReadEpoch.current++; closeCompletionReview();
-    if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
+    if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
     try {
       const data = await bounded(() => izvor.dogovor(id));
-      if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
+      if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
       if (data && data.id !== id) return { ok: false, kod: 'INVALID_RESPONSE', poruka: 'Dogovor nije dostupan.' };
       if (!data) return { ok: true, podatak: null };
       // "Oceni saradnju" stayed on the footer after the rating was saved (phone, 2026-09-23): the workspace read does
@@ -146,13 +146,13 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
         // It runs after the workspace read, before the Dogovor first shows; a failed read changes nothing (the rating
         // stays on offer), so it gets 5 s rather than the 15 s a command gets.
         const review = await bounded(() => reviewsClientService.context(id, { accountId, accountRevision }), 5_000).catch(() => null);
-        if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
+        if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
         ownRating = !review?.ok ? 'UNKNOWN' : review.podatak.review ? 'GIVEN' : review.podatak.eligible ? 'DUE' : 'CLOSED';
       }
       if (data.problemOtvoren) {
         const result = await agreementProblemService.read(id, data.verzija, data.ucesnici.map(party => party.id), { accountId, accountRevision })
           .catch(() => null);
-        if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Dogovor.' };
+        if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
         if (result?.ok && result.podatak.state === 'AVAILABLE') {
           return { ok: true, podatak: { ...data, problemReport: result.podatak.report, problemReportState: 'AVAILABLE', ownRating } };
         }
@@ -162,7 +162,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
           problemReportState: result?.ok && result.podatak.state === 'LEGACY_UNAVAILABLE' ? 'LEGACY_UNAVAILABLE' : 'UNAVAILABLE', ownRating } };
       }
       return { ok: true, podatak: { ...data, problemReport: null, problemReportState: 'ABSENT', ownRating } };
-    } catch { return { ok: false, kod: 'AGREEMENT_READ_FAILED', poruka: 'Dogovor nije učitan. Proveri vezu i pokušaj ponovo.' }; }
+    } catch { return { ok: false, kod: 'AGREEMENT_READ_FAILED', poruka: 'Dogovor nije učitan. Proverite vezu i pokušajte ponovo.' }; }
   }, [izvor, id, accountId, accountRevision, ownsAccount, closeCompletionReview]);
   const workspace = useOwnedEditor(read);
   const renderedCompletionRead = completionReadEpoch.current;
@@ -332,12 +332,12 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       setProblemAttempt(narrative);
       const receipt = await agreementProblemService.submit(id, narrative, { accountId, accountRevision });
       if (!receipt.ok) return knownProblemRefusal(receipt.kod) ? receipt
-        : { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Ne znamo da li je problem prijavljen. Osveži Dogovor pa pokušaj ponovo.' };
+        : { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Ne znamo da li je problem prijavljen. Osvežite Dogovor pa pokušajte ponovo.' };
       const next = await read();
       if (!next.ok) return next;
       const stored = next.podatak?.problemReport;
       if (!stored || stored.openedBy !== receipt.podatak.problemOpenedBy || calendarInstant(stored.openedAt) !== calendarInstant(receipt.podatak.problemOpenedAt)) {
-        return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Ne znamo da li je problem prijavljen. Osveži Dogovor.' };
+        return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Ne znamo da li je problem prijavljen. Osvežite Dogovor.' };
       }
       return next;
     });
@@ -363,7 +363,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       completionDisplay.current = display; setCompleting(true);
       const result = await bounded<Ishod<unknown>>(() => worker ? izvor.oznaciZavrsetak(id) : izvor.potvrdiZavrsetak(id));
       // A known server denial keeps its own copy; anything else is an unconfirmed outcome.
-      if (!result.ok) return { ok: false as const, kod: result.kod, poruka: completionDenial(result.kod) ?? 'Ne znamo da li je promena sačuvana. Osveži Dogovor pa pokušaj ponovo.' };
+      if (!result.ok) return { ok: false as const, kod: result.kod, poruka: completionDenial(result.kod) ?? 'Ne znamo da li je promena sačuvana. Osvežite Dogovor pa pokušajte ponovo.' };
       const next = await read();
       if (!next.ok) return next;
       // Only the server's own terminal readback confirms; an unchanged state stays unconfirmed.
@@ -371,7 +371,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       const confirmed = worker ? state === 'AWAITING_REQUESTER' || state === 'COMPLETED' : state === 'COMPLETED';
       // Said as what did not get written, never as the normal wait for the other side ("čeka potvrdu"; review r3b).
       if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: worker
-        ? 'Nismo uspeli da zabeležimo da je zadatak gotov. Osveži Dogovor pa pokušaj ponovo.' : 'Nismo uspeli da zabeležimo potvrdu završetka. Osveži Dogovor pa pokušaj ponovo.' };
+        ? 'Nismo uspeli da zabeležimo da je zadatak gotov. Osvežite Dogovor pa pokušajte ponovo.' : 'Nismo uspeli da zabeležimo potvrdu završetka. Osvežite Dogovor pa pokušajte ponovo.' };
       return next;
     }); } finally {
       if (completionDisplay.current === display) { completionDisplay.current = null; setCompleting(false); }
@@ -530,8 +530,8 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
             steps={{ state: dogovor.stanje, ownRating: dogovor.ownRating, cancellation: cancelled ? cancellationDetailsOf(cancellation, other?.ime) : null }}
             headExtra={<>
               {active && me && !radnje ? <View style={s.stack}>
-                <T variant="note" tone="muted">Ne možemo da proverimo da li možeš da završiš zadatak. Osveži Dogovor.</T>
-                <V2Action label="Osveži Dogovor" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} />
+                <T variant="note" tone="muted">Ne možemo da proverimo da li možete da završite zadatak. Osvežite Dogovor.</T>
+                <V2Action label="Osvežite Dogovor" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} />
               </View> : null}
               {changeWaits ? <View style={s.stack}>
                 {pendingChange?.izmene.map(change => <View key={change.polje} style={s.change}>
@@ -541,7 +541,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
                 </View>)}
                 {pendingChange?.razlog ? <T variant="note" tone="muted">Razlog: {pendingChange.razlog}</T> : null}
                 {pendingChange?.mozeOdgovoriti ? null
-                  : <V2Action label="Pogledaj predlog" kind="quiet" disabled={!enabled} onPress={openChanges} />}
+                  : <V2Action label="Pogledajte predlog" kind="quiet" disabled={!enabled} onPress={openChanges} />}
               </View> : null}
             </>}
             problem={{ note: problemNote, exits: problemExits, form: problemForm }}

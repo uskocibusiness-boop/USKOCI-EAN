@@ -42,7 +42,7 @@ export function applyClosedReason(need: Pick<PrilikaProjekcija, 'pokrivenost' | 
 }
 
 /** What the page says about this account's own part in the task, as the state at its head. Not known (a failed read) says nothing here: the foot says it. */
-const relationStatus = (relation: TaskRelation): { text: string; quiet: boolean } | null => relation.kind === 'OWNER' ? { text: 'Tvoj zadatak', quiet: false }
+const relationStatus = (relation: TaskRelation): { text: string; quiet: boolean } | null => relation.kind === 'OWNER' ? { text: 'Vaš zadatak', quiet: false }
   : relation.kind === 'APPLIED' ? { text: relation.agreementId ? 'Prijava je izabrana' : 'Prijava poslata', quiet: false } : null;
 
 /** What the worker's own plans and work area say about this task (UX plan R25), drawn as two quiet rows under the facts; see `detail/taskFit`. A row without its fact is not drawn. */
@@ -105,13 +105,13 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   // The one foot: what I am to this task decides the one action, and the reason stands above it when there is one.
   const foot = !ready ? null : relation.kind === 'OWNER'
     ? <FlowFooter>
-      <ProductFooterAction label="Otvori svoj zadatak" onPress={onOwnTask} disabled={busy} /></FlowFooter>
+      <ProductFooterAction label="Otvorite Vaš zadatak" onPress={onOwnTask} disabled={busy} /></FlowFooter>
     : relation.kind === 'APPLIED'
       ? <FlowFooter>
-        <ProductFooterAction label={relation.agreementId ? 'Otvori Dogovor' : 'Pogledaj svoju prijavu'} onPress={onOwnApplication} disabled={busy} /></FlowFooter>
+        <ProductFooterAction label={relation.agreementId ? 'Otvorite Dogovor' : 'Pogledajte Vašu prijavu'} onPress={onOwnApplication} disabled={busy} /></FlowFooter>
       : relation.kind === 'UNKNOWN'
-        ? <FlowFooter reason="Ne možemo da proverimo da li je ovo tvoj zadatak ili je prijava već poslata.">
-          <V2Action label="Proveri ponovo" onPress={retry} disabled={busy || !canRetry} /></FlowFooter>
+        ? <FlowFooter reason="Ne možemo da proverimo da li je ovo Vaš zadatak ili je prijava već poslata.">
+          <V2Action label="Proverite ponovo" onPress={retry} disabled={busy || !canRetry} /></FlowFooter>
         : canApply
           ? <FlowFooter reason={deadline ? `Prijave do ${deadline}` : undefined}>
             <ProductFooterAction label={applyActionLabel(!!price?.isAmount)} onPress={apply} disabled={busy} /></FlowFooter>
@@ -123,15 +123,15 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
     <Screen kind="detail" header={<ProductHeader back={back} disabled={busy} title={need ? readableTitle(need.naslov) : undefined} titleVisible={scrollTitle.titleVisible}
       right={menu.button} />} footer={foot} onScroll={scrollTitle.onScroll}>
       {!need && loading ? <QuietReadState art="tasks" title="Učitavamo zadatak…" body="Proveravamo najnovije uslove i dostupnost prijave." /> : null}
-      {!need && !loading && error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatak" body="Proveri internet vezu i pokušaj ponovo."
-        primary={canRetry ? { label: 'Pokušaj ponovo', onPress: retry, disabled: busy } : undefined} /> : null}
+      {!need && !loading && error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatak" body="Proverite internet vezu i pokušajte ponovo."
+        primary={canRetry ? { label: 'Pokušajte ponovo', onPress: retry, disabled: busy } : undefined} /> : null}
       {/* A task that is not there says so and leads back to the other tasks; a read that may only have failed can be tried again. */}
-      {!need && !loading && !error && missing ? <StateView art="tasks" title="Ovaj zadatak više nije dostupan" body="Zadatak je možda zatvoren ili ga ne možeš da vidiš."
+      {!need && !loading && !error && missing ? <StateView art="tasks" title="Ovaj zadatak više nije dostupan" body="Zadatak je možda zatvoren ili više nije dostupan."
         primary={onOtherTasks ? { label: 'Nazad na zadatke', onPress: onOtherTasks, disabled: busy } : undefined}
-        quiet={canRetry ? { label: 'Pokušaj ponovo', onPress: retry, disabled: busy } : undefined} /> : null}
+        quiet={canRetry ? { label: 'Pokušajte ponovo', onPress: retry, disabled: busy } : undefined} /> : null}
       {need && stale ? <Surface kind="note" tone="warn">
-        <T accessibilityLiveRegion="polite" variant="note">Vidiš starije podatke. Osveži zadatak pre nastavka.</T>
-        {error && canRetry ? <V2Action label="Pokušaj ponovo" kind="quiet" onPress={retry} disabled={busy} style={s.refresh} /> : null}
+        <T accessibilityLiveRegion="polite" variant="note">Vidite starije podatke. Osvežite zadatak pre nastavka.</T>
+        {error && canRetry ? <V2Action label="Pokušajte ponovo" kind="quiet" onPress={retry} disabled={busy} style={s.refresh} /> : null}
       </Surface> : null}
       {need ? <>
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
@@ -140,9 +140,9 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         </View>
         <TaskDetailSummary need={need} audience="worker" place={taskPlace(need).text} remote={remote} />
         {ready && (fit?.overlapTitle || typeof fit?.distanceKm === 'number' && fit.distanceKm >= 0) ? <View style={s.fit}>
-          {fit?.overlapTitle ? <FactRow size="detail" art="alert" value={`Preklapa se sa tvojim Dogovorom ${fit.overlapTitle}`} /> : null}
+          {fit?.overlapTitle ? <FactRow size="detail" art="alert" value={`Preklapa se sa Vašim Dogovorom ${fit.overlapTitle}`} /> : null}
           {typeof fit?.distanceKm === 'number' && fit.distanceKm >= 0 ? <FactRow size="detail" art="map"
-            value={`Oko ${Math.max(1, Math.round(fit.distanceKm))} km od tvog područja rada`} /> : null}
+            value={`Oko ${Math.max(1, Math.round(fit.distanceKm))} km od Vašeg područja rada`} /> : null}
         </View> : null}
         {need.opis ? <Section title="O zadatku"><DetailDescription text={need.opis} /></Section> : null}
         {ready && !stale ? photos : null}

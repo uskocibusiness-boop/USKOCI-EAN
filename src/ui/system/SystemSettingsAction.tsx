@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Linking } from 'react-native';
 import { V2Action } from '../v2/V2Action';
 
-const FAILED = 'Otvaranje podešavanja nije potvrđeno. Pokušaj ponovo ili ih otvori ručno.';
+const FAILED = 'Otvaranje podešavanja nije potvrđeno. Pokušajte ponovo ili ih otvorite ručno.';
 const openNativeSettings = () => Linking.openSettings();
 
 /** Opening the OS page is not permission consent. The calling screen still reads

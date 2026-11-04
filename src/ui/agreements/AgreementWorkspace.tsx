@@ -92,10 +92,10 @@ export type AgreementInfo = { title: string; lines: readonly string[] };
  */
 export function agreementStepsInfo({ worker }: { worker: boolean }): AgreementInfo {
   return { title: 'Kako ide Dogovor', lines: [
-    worker ? 'Kad završiš zadatak, dodirni „Zadatak je gotov“.' : 'Osoba koja uskače javlja da je zadatak gotov.',
-    worker ? 'Druga strana potvrđuje završetak ili prijavljuje problem.' : 'Ti potvrđuješ završetak ili prijavljuješ problem.',
-    worker ? 'Ako nema odgovora u roku, Dogovor se zatvara sam.' : 'Ako ne odgovoriš u roku, Dogovor se zatvara sam.',
-    'Kad je završetak potvrđen, možeš da oceniš saradnju.',
+    worker ? 'Kad završite zadatak, dodirnite „Zadatak je gotov“.' : 'Osoba koja uskače javlja da je zadatak gotov.',
+    worker ? 'Druga strana potvrđuje završetak ili prijavljuje problem.' : 'Vi potvrđujete završetak ili prijavljujete problem.',
+    worker ? 'Ako nema odgovora u roku, Dogovor se zatvara sam.' : 'Ako ne odgovorite u roku, Dogovor se zatvara sam.',
+    'Kad je završetak potvrđen, možete da ocenite saradnju.',
   ] };
 }
 

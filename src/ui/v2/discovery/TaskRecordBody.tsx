@@ -64,7 +64,7 @@ export type TaskRecordModel = {
 export const OFFERS_WORD = { worker: 'Tražim ponude', owner: 'Tražim ponude' } as const;
 
 /** The short words of the relation mark where the state's own sentence is longer; the sentence keeps its words for a screen reader. */
-const MARK_WORDS: Readonly<Record<string, string>> = { 'Tvoj zadatak': 'Tvoj', 'Tvoj status nije potvrđen': 'Status nije potvrđen' };
+const MARK_WORDS: Readonly<Record<string, string>> = { 'Vaš zadatak': 'Vaš', 'Tvoj zadatak': 'Vaš', 'Vaš status nije potvrđen': 'Status nije potvrđen', 'Tvoj status nije potvrđen': 'Status nije potvrđen' };
 
 /** What a face shows and says, from the task and what this account is to it. */
 export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation, sectionSays?: StanjePotrebe,
@@ -109,7 +109,7 @@ function spokenWithOffers(spoken: string, value: TaskValue, word: string): strin
 function ValueRow({ model, mapPreview = false }: { model: TaskRecordModel; mapPreview?: boolean }) {
   const { value } = model;
   if (value.kind !== 'amount') return <View style={s.offerRow}>
-    {value.kind === 'offers' ? <FactArt kind="offers" size={24} cut={mapPreview ? 'art' : 'auto'} /> : null}
+    <FactArt kind="money" size={mapPreview ? 28 : 22} cut={mapPreview ? 'art' : 'auto'} />
     <T variant="bodyStrong">{value.kind === 'offers' ? model.offersWord : VALUE_WORDS[value.kind]}</T>
   </View>;
   const budget = <View style={[s.valueRow, mapPreview && s.previewBudget]}>
@@ -119,7 +119,7 @@ function ValueRow({ model, mapPreview = false }: { model: TaskRecordModel; mapPr
       {value.basis ? <T variant="note" tone="muted">{value.basis}</T> : null}
     </View>
   </View>;
-  return mapPreview ? <View style={s.valueWithArt}><FactArt kind="money" size={28} cut="art" />{budget}</View> : budget;
+  return <View style={s.valueWithArt}><FactArt kind="money" size={mapPreview ? 28 : 22} cut={mapPreview ? 'art' : 'auto'} />{budget}</View>;
 }
 
 /** Quiet supporting symbols leave the task, budget and person as the visual anchors. */

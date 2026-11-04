@@ -133,13 +133,13 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision,
       const checked = await read();
       if (!checked.ok) return checked;
       if (checked.podatak.review?.reviewId !== result.podatak.reviewId) {
-        return failure('REVIEW_READBACK_REQUIRED', 'Ne možemo da vidimo da li je ocena sačuvana. Proveri to.');
+        return failure('REVIEW_READBACK_REQUIRED', 'Ne možemo da vidimo da li je ocena sačuvana. Proverite to.');
       }
       return checked;
     }, commentOn ? { settledFailure: result => !result.ok && COMMENT_REFUSALS.has(result.kod) } : undefined);
   };
   const loading = workspace.loading || !foreground || resumeRequired;
-  const retry = { label: attempt ? 'Proveri sačuvanu ocenu' : 'Ponovo učitaj ocenu', disabled: workspace.busy || !foreground,
+  const retry = { label: attempt ? 'Proverite sačuvanu ocenu' : 'Ponovo učitajte ocenu', disabled: workspace.busy || !foreground,
     onPress: () => { if (current()) void workspace.refresh(); } };
   const view: ReviewView = loading ? { kind: 'loading' }
     : !context && workspace.error ? { kind: 'error', message: workspace.error }
@@ -149,7 +149,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision,
       onToggleTag: tag => { if (editable && current() && !attemptRef.current) setTags(values => values.includes(tag)
         ? values.filter(value => value !== tag) : values.length < context.tagCatalog.maxTags ? [...values, tag] : values); },
       save: { label: settled ? 'Sačuvaj ocenu ponovo' : 'Sačuvaj ocenu', loading: workspace.busy, disabled: !enabled || rating < 1 || blocked !== null,
-        reason: enabled && rating < 1 ? 'Izaberi ocenu od 1 do 5 pre slanja.' : enabled && blocked !== null ? blocked : null, onPress: submit },
+        reason: enabled && rating < 1 ? 'Izaberite ocenu od 1 do 5 pre slanja.' : enabled && blocked !== null ? blocked : null, onPress: submit },
       ...(commentPolicy ? { comment: { value: commentText, open: commentOpen || commentText !== '', editable, maxLength: commentPolicy.maxLength,
         count: reviewCommentLength(commentText), invalid: blocked !== null,
         onOpen: () => { if (editable && current()) setCommentOpen(true); },

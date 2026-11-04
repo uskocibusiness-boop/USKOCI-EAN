@@ -17,9 +17,9 @@ export default function SafetyRoute() {
         onBack={() => router.canGoBack() ? router.back() : router.replace('/profil')}>
         {/* Reached with no usable target (a stale link, a hand-typed route, your own account): say what opens it and
             where, and offer the one place on this side of the app where the people you block are. */}
-        <StateView kind="empty" art="shield" title={own ? 'Ovo je tvoj nalog' : 'Nije izabrana osoba'}
-          body={own ? 'Prijavu i blokiranje pokrećeš sa profila druge osobe, iz zadatka ili iz Dogovora.'
-            : 'Prijavu ili blokiranje pokrećeš sa profila osobe, iz zadatka ili iz Dogovora.'}
+        <StateView kind="empty" art="shield" title={own ? 'Ovo je Vaš nalog' : 'Nije izabrana osoba'}
+          body={own ? 'Prijavu i blokiranje pokrećete sa profila druge osobe, iz zadatka ili iz Dogovora.'
+            : 'Prijavu ili blokiranje pokrećete sa profila osobe, iz zadatka ili iz Dogovora.'}
           quiet={{ label: 'Blokirane osobe', onPress: () => router.replace('/profil/blokirani') }} />
       </SettingsScreen>;
   // EX-07 S06: a build compiled with the safety-target-name flag hands the screen the PROFILE the person came from, when it is an identifier, so that the screen can ask the server for

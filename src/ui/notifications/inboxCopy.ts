@@ -21,14 +21,14 @@ export function inboxDestination(item: Pick<InboxItem, 'eventType' | 'role'>): s
       return 'Otvara Dogovor';
     case 'OPPORTUNITY_AVAILABLE': return 'Otvara zadatak';
     // A requester's own task: the applications to choose from.
-    case 'RESPONSE_RECEIVED': case 'RESPONSE_UPDATED': case 'RESPONSE_WITHDRAWN': return 'Otvara prijave za tvoj zadatak';
+    case 'RESPONSE_RECEIVED': case 'RESPONSE_UPDATED': case 'RESPONSE_WITHDRAWN': return 'Otvara prijave za Vaš zadatak';
     // A worker's own application.
     case 'RESPONSE_VIEWED': case 'RESPONSE_SHORTLISTED': case 'RESPONSE_NOT_SELECTED': case 'RESPONSE_STALE': case 'RESPONSE_EXPIRED':
-      return 'Otvara tvoju prijavu';
+      return 'Otvara Vašu prijavu';
     // The same event is the owner's task for a requester and the offer for a worker.
-    case 'NEED_REVISED': return item.role === 'REQUESTER' ? 'Otvara tvoj zadatak' : 'Otvara tvoju prijavu';
+    case 'NEED_REVISED': return item.role === 'REQUESTER' ? 'Otvara Vaš zadatak' : 'Otvara Vašu prijavu';
     // A cancelled task is not a place to stand: the person who applied lands on their own applications.
-    case 'NEED_CANCELLED': return item.role === 'REQUESTER' ? 'Otvara tvoj zadatak' : 'Otvara tvoje prijave';
+    case 'NEED_CANCELLED': return item.role === 'REQUESTER' ? 'Otvara Vaš zadatak' : 'Otvara Vaše prijave';
     case 'CLARIFICATION_CREATED': case 'CLARIFICATION_ANSWERED': return 'Otvara pitanja o zadatku';
     default: return null;
   }
@@ -38,15 +38,19 @@ export function inboxDestination(item: Pick<InboxItem, 'eventType' | 'role'>): s
 export function inboxActionLabel(item: Pick<InboxItem, 'eventType' | 'role'>): string | null {
   const destination = inboxDestination(item);
   return destination ? ({
-    'Otvara poruku u Dogovoru': 'Otvori poruku',
-    'Otvara predlog izmene Dogovora': 'Pregledaj izmenu',
-    'Otvara Dogovor': 'Otvori dogovor',
-    'Otvara zadatak': 'Pogledaj zadatak',
-    'Otvara prijave za tvoj zadatak': 'Pregledaj prijave',
-    'Otvara tvoju prijavu': 'Pogledaj prijavu',
-    'Otvara tvoj zadatak': 'Pogledaj svoj zadatak',
-    'Otvara tvoje prijave': 'Pogledaj svoje prijave',
-    'Otvara pitanja o zadatku': 'Pogledaj pitanja',
+    'Otvara poruku u Dogovoru': 'Otvorite poruku',
+    'Otvara predlog izmene Dogovora': 'Pregledajte izmenu',
+    'Otvara Dogovor': 'Otvorite Dogovor',
+    'Otvara zadatak': 'Pogledajte zadatak',
+    'Otvara prijave za Vaš zadatak': 'Pregledajte prijave',
+    'Otvara prijave za tvoj zadatak': 'Pregledajte prijave',
+    'Otvara Vašu prijavu': 'Pogledajte prijavu',
+    'Otvara tvoju prijavu': 'Pogledajte prijavu',
+    'Otvara Vaš zadatak': 'Pogledajte svoj zadatak',
+    'Otvara tvoj zadatak': 'Pogledajte svoj zadatak',
+    'Otvara Vaše prijave': 'Pogledajte svoje prijave',
+    'Otvara tvoje prijave': 'Pogledajte svoje prijave',
+    'Otvara pitanja o zadatku': 'Pogledajte pitanja',
   } as Record<string, string>)[destination] ?? null : null;
 }
 

@@ -65,10 +65,10 @@ function reconcilePendingWrite(pending: PendingWrite, snapshot: Snapshot) {
  return { settings, conflict, confirmed: incomplete.length === 0 };
 }
 function validateDraft(value: NotificationSettings): string | null {
- if (!value.quiet_timezone.trim()) return 'Izaberi zonu telefona za tihe sate.';
+ if (!value.quiet_timezone.trim()) return 'Izaberite vremensku zonu za tihe sate.';
  if (!value.quiet_hours_enabled) return null;
- if (!value.quiet_start || !value.quiet_end) return 'Za tihe sate izaberi početak i kraj.';
- if (!TIME.test(value.quiet_start) || !TIME.test(value.quiet_end)) return 'Vreme tihih sati nije ispravno. Izaberi ga ponovo.';
+ if (!value.quiet_start || !value.quiet_end) return 'Za tihe sate izaberite početak i kraj.';
+ if (!TIME.test(value.quiet_start) || !TIME.test(value.quiet_end)) return 'Vreme tihih sati nije ispravno. Izaberite ga ponovo.';
  return null;
 }
 
@@ -540,7 +540,7 @@ export function PushPreferencesView({ signedIn, data, busy, error, locked, dirty
          : readiness?.state === 'NOT_READY' ? 'Slanje iz aplikacije trenutno nije uključeno, čak i ako je telefon povezan.'
           : 'Ne znamo da li slanje obaveštenja radi.'}</T>
        {readiness ? <T variant="meta" tone="muted">Provereno: {vreme(readiness.checkedAt)}</T> : null}
-       <T variant="meta" tone="muted">Ova provera ne potvrđuje da je obaveštenje stiglo na tvoj telefon.</T>
+       <T variant="meta" tone="muted">Ova provera ne potvrđuje da je obaveštenje stiglo na Vaš telefon.</T>
       </View>
      </SettingsGroup>
     </View>
@@ -571,15 +571,15 @@ function phoneStatus(native: NativePushState['kind'], push: PushScope, registere
   : `Obaveštenja na telefon su uključena samo za „${SECTION[push.on]}“.`;
  // A saved preference is not evidence that another phone received a notification.
  const onElsewhere = push.state !== 'none' ? ` ${choice}` : '';
- if (native === 'UNSUPPORTED') return { title: 'Nije dostupno na ovom uređaju', body: `Ovde ne možeš da uključiš obaveštenja na telefonu. Podešavanja u aplikaciji i dalje možeš da uređuješ.${onElsewhere}` };
+ if (native === 'UNSUPPORTED') return { title: 'Nije dostupno na ovom uređaju', body: `Ovde ne možete da uključite obaveštenja na telefonu. Podešavanja u aplikaciji i dalje možete da uređujete.${onElsewhere}` };
  if (native === 'UNCONFIGURED') return { title: 'Povezivanje trenutno nije dostupno', body: `Ova verzija aplikacije trenutno ne može da poveže telefon za obaveštenja.${onElsewhere}` };
- if (native === 'DENIED') return { title: 'Telefon ne dozvoljava obaveštenja', body: `Dozvoli obaveštenja u podešavanjima telefona.${onElsewhere}` };
+ if (native === 'DENIED') return { title: 'Telefon ne dozvoljava obaveštenja', body: `Dozvolite obaveštenja u podešavanjima telefona.${onElsewhere}` };
  if (native === 'PERMISSION_REQUIRED') return { title: 'Potrebna je dozvola telefona',
   body: `Dugme ispod traži dozvolu za obaveštenja i povezuje ovaj telefon. ${choice}` };
  if (!registered) return { title: 'Ovaj telefon još nije povezan', body: `Dozvola telefona je data. ${choice}` };
  const only = push.state === 'some' ? ` Obaveštenja stižu samo za „${SECTION[push.on]}“.` : '';
  return { title: push.state === 'all' ? 'Obaveštenja su uključena' : push.state === 'none' ? 'Obaveštenja su isključena' : 'Obaveštenja su delimično uključena',
-  body: `Ovaj telefon je povezan sa tvojim nalogom.${only} Stanje slanja je prikazano ispod.` };
+  body: `Ovaj telefon je povezan sa Vašim nalogom.${only} Stanje slanja je prikazano ispod.` };
 }
 
 /** iOS ignores `accessibilityLiveRegion`, so there the saved line is also said once, when it appears. */

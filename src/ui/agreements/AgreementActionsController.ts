@@ -5,7 +5,7 @@ import { journalFor, normalizeAgreementCommand, parseJournal, permits, type Agre
 export type AgreementActionsState = { phase: 'LOADING' | 'READY' | 'SENDING' | 'UNKNOWN' | 'CONFIRMED' | 'REJECTED' | 'ERROR';
   snapshot: AgreementChangeSnapshot | null; journal: AgreementActionJournal | null; error: string | null;
   message: string | null; canRetry: boolean; needsReentry: boolean };
-const unknown = 'Ne znamo da li je radnja uspela. Osveži Dogovor pre nego što pokušaš ponovo.';
+const unknown = 'Ne znamo da li je radnja uspela. Osvežite Dogovor pre nego što pokušate ponovo.';
 export class AgreementActionsController {
   private state: AgreementActionsState = { phase: 'LOADING', snapshot: null, journal: null, error: null, message: null, canRetry: false, needsReentry: false };
   private listeners = new Set<() => void>(); private disposed = false; private busy = false;
@@ -86,7 +86,7 @@ export class AgreementActionsController {
     if (previous) {
       if (this.state.phase !== 'UNKNOWN' || !this.state.canRetry) return;
       if (JSON.stringify(previous) !== JSON.stringify(journal)) {
-        this.update({ error: 'Ovo se razlikuje od onoga što je ranije poslato. Unesi iste uslove i isti razlog.' }); return;
+        this.update({ error: 'Ovo se razlikuje od onoga što je ranije poslato. Unesite iste uslove i isti razlog.' }); return;
       }
     } else if (this.state.phase !== 'READY' || !permits(this.state.snapshot, command, this.deps.account.accountId)) return;
     this.command = command;

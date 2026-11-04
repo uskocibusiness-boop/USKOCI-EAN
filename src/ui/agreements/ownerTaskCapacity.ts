@@ -33,10 +33,10 @@ export function ownerTaskCapacity(group: AgreementTaskGroup, state?: NeedSearchS
   const current = state ? decodeNeedSearchState(state, taskId) : null;
   if (!current) return { taskId, count: null, next: null };
   const next = current.nextAction === 'REOPEN_SEARCH' && current.canReopen
-    ? 'Možeš ponovo da tražiš ljude u zadatku.'
-    : current.nextAction === 'SEARCH_IN_PROGRESS' ? 'Potraga je otvorena. Proveri prijave na zadatku.'
-      : current.nextAction === 'REVIEW_TASK_TIME' ? 'Vreme za potragu je prošlo. Proveri zadatak.'
-        : current.nextAction === 'OPEN_AGREEMENTS' ? 'Proveri saradnje koje čekaju tvoju radnju.'
-          : current.missingSlots > 0 ? 'Proveri sledeći korak na zadatku.' : null;
+    ? 'Možete ponovo da tražite ljude u zadatku.'
+    : current.nextAction === 'SEARCH_IN_PROGRESS' ? 'Potraga je otvorena. Proverite prijave na zadatku.'
+      : current.nextAction === 'REVIEW_TASK_TIME' ? 'Vreme za potragu je prošlo. Proverite zadatak.'
+        : current.nextAction === 'OPEN_AGREEMENTS' ? 'Proverite saradnje koje čekaju Vašu radnju.'
+          : current.missingSlots > 0 ? 'Proverite sledeći korak na zadatku.' : null;
   return { taskId, count: `Potvrđeno ${current.coveredSlots}/${current.requiredSlots}`, next };
 }

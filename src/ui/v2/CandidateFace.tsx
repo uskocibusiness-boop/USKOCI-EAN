@@ -251,7 +251,7 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
   const choosable = k.stanje === 'SELECTABLE' && k.mozeIzabrati;
   return <Animated.View style={lift.style}>
     <Surface kind="record" style={[recordFlush, k.stanje === 'SELECTED' && s.chosen]}>
-      <Press disabled={disabled} accessibilityState={{ disabled }} accessibilityRole="button" accessibilityLabel={`Pogledaj prijavu: ${k.ime}`}
+      <Press disabled={disabled} accessibilityState={{ disabled }} accessibilityRole="button" accessibilityLabel={`Pogledajte prijavu: ${k.ime}`}
         accessibilityValue={{ text: candidateSpoken(k, fallbackTime, timezone, viewed, mark && !reason ? mark.text : null) }} accessibilityHint="Otvara celu prijavu."
         haptic="select" scaleTo={1} onPressIn={lift.give} onPressOut={lift.settle} onPress={onOpen} style={recordBody}>
         {chip === 'application.sent' ? null : <PrijavaState status={chip} reason={null} silent />}
@@ -274,7 +274,7 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
           {message ? <T variant="note" tone="muted" numberOfLines={2}>{`„${message}“`}</T> : null}
         </View> : null}
       </Press>
-      {choosable ? <RecordFoot disabled={disabled} label="Izaberi" tone="green" accessibilityLabel={`Izaberi: ${k.ime}`} accessibilityHint="Otvara prijavu, gde izbor potvrđuješ."
+      {choosable ? <RecordFoot disabled={disabled} label="Izaberi" tone="green" accessibilityLabel={`Izaberi: ${k.ime}`} accessibilityHint="Otvara prijavu, gde izbor potvrđujete."
         onPress={onOpen} onPressIn={lift.give} onPressOut={lift.settle} /> : null}
     </Surface>
   </Animated.View>;
@@ -350,7 +350,7 @@ export function CandidatePerson({ candidate: k, photo, onPress, disabled = false
       <CandidateTrustLine candidate={k} lines={3} />
       {/* A visible word for the row (verify r4c item 3): with only the picture and "Ocena nije dostupna" beside the caret,
           the row read as dead or as a link to the rating. It stays while a command runs, as the caret does. */}
-      <T variant="bodyStrong" tone="green">Pogledaj profil</T>
+      <T variant="bodyStrong" tone="green">Pogledajte profil</T>
     </View>
     <Glyph name="caret-right" size={20} tone="muted" />
   </Press>;

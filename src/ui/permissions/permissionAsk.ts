@@ -31,10 +31,10 @@ const LATER = 'Ne sada';
  * so the voice message is drawn as the message it is.
  */
 export const PERMISSION_ASK_COPY: Readonly<Record<PermissionKind, PermissionAskCopy>> = {
-  microphone: { art: 'chat', title: 'Da snimiš glasovnu poruku?', message: 'Snima se samo dok držiš dugme.', allow: ALLOW, later: LATER },
-  photos: { art: 'photo', title: 'Da dodaš fotografiju?', message: 'Dodaju se samo slike koje izabereš.', allow: ALLOW, later: LATER },
+  microphone: { art: 'chat', title: 'Da snimite glasovnu poruku?', message: 'Snima se samo dok držite dugme.', allow: ALLOW, later: LATER },
+  photos: { art: 'photo', title: 'Da dodate fotografiju?', message: 'Dodaju se samo slike koje izaberete.', allow: ALLOW, later: LATER },
   location: { art: 'pin', title: 'Da nađemo zadatke u blizini?', message: 'Samo dok je aplikacija otvorena.', allow: ALLOW, later: LATER },
-  notifications: { art: 'bell', title: 'Da ti javimo kad stigne odgovor?', message: 'Samo o tvojim zadacima i Dogovorima.', allow: ALLOW, later: LATER },
+  notifications: { art: 'bell', title: 'Da Vam javimo kad stigne odgovor?', message: 'Samo o Vašim zadacima i Dogovorima.', allow: ALLOW, later: LATER },
 };
 
 /** A question that is open: what is asked, and the id its answer must carry. */

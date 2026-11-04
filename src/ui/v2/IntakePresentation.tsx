@@ -278,9 +278,13 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
  * objava. Only these exact sentences are said otherwise; whatever the assistant wrote in its own words is shown as it came.
  * TRAŽI SERVER (not changed here): the edit conversation's REVIEW step should answer "Otvori pregled izmena. Tamo ih potvrđuješ." itself.
  */
-const SERVER_REVIEW_ENDINGS: ReadonlySet<string> = new Set(['Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.',
-  'Otvori pregled zadatka. Tamo proveri podatke pre objave.']);
-export const EDIT_ENDING = 'Otvori pregled izmena. Tamo ih potvrđuješ.';
+const SERVER_REVIEW_ENDINGS: ReadonlySet<string> = new Set([
+  'Otvorite pregled zadatka. Tamo možete da dopunite podatke i potvrdite objavu.',
+  'Otvorite pregled zadatka. Tamo proverite podatke pre objave.',
+  'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.',
+  'Otvori pregled zadatka. Tamo proveri podatke pre objave.',
+]);
+export const EDIT_ENDING = 'Otvorite pregled izmena. Tamo ih potvrđujete.';
 export const editEnding = (body: string): string => SERVER_REVIEW_ENDINGS.has(body.trim()) ? EDIT_ENDING : body;
 
 /**

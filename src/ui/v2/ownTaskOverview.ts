@@ -134,10 +134,10 @@ export function ownTaskOverview(input: {
   const live = state ? state.activeAgreementCount : 0;
   let primary: OverviewPrimary | null = null;
   if (canChoose) {
-    const label = cancelled ? 'Izaberi drugu prijavu' : waiting === 1 ? 'Pogledaj prijavu' : 'Pogledaj prijave';
+    const label = cancelled ? 'Izaberite drugu prijavu' : waiting === 1 ? 'Pogledajte prijavu' : 'Pogledajte prijave';
     primary = { kind: 'CANDIDATES', label, spoken: `${label}, ${prijave(waiting!)} za izbor` };
   } else if (canLook) {
-    primary = { kind: 'CANDIDATES', label: 'Pogledaj prijave', spoken: `Pogledaj prijave, ukupno ${prijave(total)}` };
+    primary = { kind: 'CANDIDATES', label: 'Pogledajte prijave', spoken: `Pogledajte prijave, ukupno ${prijave(total)}` };
   } else if (need.stanje !== 'ZATVORENA' && popunjeno > 0 && input.canOpenAgreements) {
     primary = { kind: 'AGREEMENTS', label: live > 1 ? 'Otvori Dogovore' : 'Otvori Dogovor' };
   }

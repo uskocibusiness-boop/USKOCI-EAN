@@ -51,9 +51,9 @@ export function TodayButton({ here, onPress }: { here: boolean; onPress: () => v
 
 /** What the dots and the colours mean, one short line each (the screen itself carries no explanation). The line about the shade is only said when the shade is drawn. */
 export function legendLines(shading: boolean): string[] {
-  return ['Zelena tačka: Dogovor u kome uskačeš.', 'Koralna tačka: Dogovor za tvoj zadatak.',
-    ...(shading ? ['Osenčen dan: dan iz tvoje dostupnosti za rad.'] : []), 'Crvena linija u prikazu dana: trenutno vreme.',
-    'Narandžasta tačka u prikazu dana: nešto čeka tebe.'];
+  return ['Zelena tačka: Dogovor u kome uskačete.', 'Koralna tačka: Dogovor za Vaš zadatak.',
+    ...(shading ? ['Osenčen dan: dan iz Vaše dostupnosti za rad.'] : []), 'Crvena linija u prikazu dana: trenutno vreme.',
+    'Narandžasta tačka u prikazu dana: nešto čeka na Vas.'];
 }
 export function LegendButton({ shading }: { shading: boolean }) {
   // The mark is 20 dp and its touch reaches to 48 round it: the box keeps that touch from lying over "Danas" beside it.

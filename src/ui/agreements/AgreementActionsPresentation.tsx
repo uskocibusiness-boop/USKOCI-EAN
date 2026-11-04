@@ -85,12 +85,12 @@ const ending = (command: AgreementActionCommand) => command.kind === 'CANCEL' ||
  * sačuvan.", "Ishod nije potvrđen…") is the record of what was read back; it is drawn under these as it is.
  */
 const WORDS: Record<string, { unconfirmed: string; confirmed: string; rejected: string; again: string }> = {
-  PROPOSE: { unconfirmed: 'Predlog izmene još nije potvrđen', confirmed: 'Predlog je poslat', rejected: 'Predlog nije poslat', again: 'Ponovo pošalji predlog' },
-  CANCEL: { unconfirmed: 'Otkazivanje još nije potvrđeno', confirmed: 'Otkazivanje je potvrđeno', rejected: 'Dogovor nije otkazan', again: 'Ponovo otkaži Dogovor' },
-  WITHDRAW: { unconfirmed: 'Povlačenje predloga još nije potvrđeno', confirmed: 'Povlačenje je potvrđeno', rejected: 'Predlog nije povučen', again: 'Ponovo povuci predlog' },
-  RESPOND: { unconfirmed: 'Odgovor na predlog još nije potvrđen', confirmed: 'Odgovor je poslat', rejected: 'Odgovor nije poslat', again: 'Ponovo pošalji odgovor' },
+  PROPOSE: { unconfirmed: 'Predlog izmene još nije potvrđen', confirmed: 'Predlog je poslat', rejected: 'Predlog nije poslat', again: 'Ponovo pošaljite predlog' },
+  CANCEL: { unconfirmed: 'Otkazivanje još nije potvrđeno', confirmed: 'Otkazivanje je potvrđeno', rejected: 'Dogovor nije otkazan', again: 'Ponovo otkažite Dogovor' },
+  WITHDRAW: { unconfirmed: 'Povlačenje predloga još nije potvrđeno', confirmed: 'Povlačenje je potvrđeno', rejected: 'Predlog nije povučen', again: 'Ponovo povucite predlog' },
+  RESPOND: { unconfirmed: 'Odgovor na predlog još nije potvrđen', confirmed: 'Odgovor je poslat', rejected: 'Odgovor nije poslat', again: 'Ponovo pošaljite odgovor' },
 };
-const wordsFor = (kind: string | null) => (kind && WORDS[kind]) || { unconfirmed: 'Ne znamo da li je uspelo', confirmed: 'Potvrđeno', rejected: 'Nije uspelo', again: 'Pošalji ponovo' };
+const wordsFor = (kind: string | null) => (kind && WORDS[kind]) || { unconfirmed: 'Ne znamo da li je uspelo', confirmed: 'Potvrđeno', rejected: 'Nije uspelo', again: 'Pošaljite ponovo' };
 
 export type AgreementActionsPresentationProps = {
   phase: AgreementActionsState['phase']; snapshot: AgreementChangeSnapshot | null; accountId: string;
@@ -121,7 +121,7 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
     // needs its reason: until one is chosen the decision is grey, with the reason why (plan 2.3), not a press that answers with an error.
     const reasonMissing = form.kind === 'CANCEL' && !form.reason.trim();
     footer = <V2Action tone="neutral" label={form.kind === 'CANCEL' ? 'Pregledaj otkazivanje' : 'Pregledaj predlog'} style={brandAction}
-      disabled={busy || reasonMissing} reason={reasonMissing && !busy ? (form.reentry ? 'Unesi razlog.' : 'Izaberi razlog.') : null}
+      disabled={busy || reasonMissing} reason={reasonMissing && !busy ? (form.reentry ? 'Unesite razlog.' : 'Izaberite razlog.') : null}
       error={p.error} onPress={p.onPrepareForm} />;
   } else if (review) {
     chrome = <ScreenChrome variant="flow" onClose={p.onCloseReview} closeLabel="Odustani od radnje" disabled={busy}
@@ -135,12 +135,12 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
     // shape between reading and read.
     chrome = <ScreenChrome variant="detail" onBack={p.onBack} title="Izmene i otkazivanje"
       right={p.phase === 'READY' || p.phase === 'ERROR' || p.phase === 'LOADING'
-        ? <ChromeIconButton label="Osveži uslove Dogovora" icon={ArrowClockwise} disabled={busy} onPress={p.onRefresh} /> : undefined} />;
+        ? <ChromeIconButton label="Osvežite uslove Dogovora" icon={ArrowClockwise} disabled={busy} onPress={p.onRefresh} /> : undefined} />;
     if (p.phase === 'LOADING' && !snapshot) {
       body = <QuietReadState art="document" title="Učitavamo važeće uslove…" body="Proveravamo trenutno stanje Dogovora." />;
     } else if (p.phase === 'ERROR' && !snapshot) {
       body = <StateView kind="error" art="document" title="Dogovor nije učitan" body={p.error ?? undefined}
-        primary={{ label: 'Ponovo učitaj Dogovor', onPress: p.onRefresh }} />;
+        primary={{ label: 'Ponovo učitajte Dogovor', onPress: p.onRefresh }} />;
     } else if (p.phase === 'UNKNOWN') {
       const words = wordsFor(p.journalKind), reentry = p.needsReentry && (p.journalKind === 'PROPOSE' || p.journalKind === 'CANCEL');
       body = <View style={s.stack}>
@@ -148,11 +148,11 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
           <T variant="bodyStrong">{words.unconfirmed}</T>
           {p.error ? <T variant="copy">{p.error}</T> : null}
         </View>
-        <V2Action tone="neutral" label="Proveri da li je uspelo" style={brandAction} onPress={p.onRefresh} />
+        <V2Action tone="neutral" label="Proverite da li je uspelo" style={brandAction} onPress={p.onRefresh} />
         {reentry
-          ? <V2Action tone="neutral" label={p.journalKind === 'CANCEL' ? 'Ponovo unesi otkazivanje' : 'Ponovo unesi predlog'} disabled={!p.canRetry}
-            reason={p.canRetry ? null : 'Prvo proveri da li je prethodna radnja uspela.'} onPress={() => p.onOpenForm(p.journalKind as 'PROPOSE' | 'CANCEL', true)} />
-          : <V2Action tone="neutral" label={words.again} disabled={!p.canRetry || p.needsReentry} reason={!p.canRetry || p.needsReentry ? 'Prvo proveri da li je prethodna radnja uspela.' : null}
+          ? <V2Action tone="neutral" label={p.journalKind === 'CANCEL' ? 'Ponovo unesite otkazivanje' : 'Ponovo unesite predlog'} disabled={!p.canRetry}
+            reason={p.canRetry ? null : 'Prvo proverite da li je prethodna radnja uspela.'} onPress={() => p.onOpenForm(p.journalKind as 'PROPOSE' | 'CANCEL', true)} />
+          : <V2Action tone="neutral" label={words.again} disabled={!p.canRetry || p.needsReentry} reason={!p.canRetry || p.needsReentry ? 'Prvo proverite da li je prethodna radnja uspela.' : null}
             onPress={p.onRetry} />}
       </View>;
     } else if (p.phase === 'CONFIRMED' || p.phase === 'REJECTED') {
@@ -193,7 +193,7 @@ function Hub({ snapshot, accountId, error, busy, onOpenForm, onPrepare }: { snap
       const mine = proposal.proposedBy === accountId;
       // Every command here opens its review step, so it says the deed ("Prihvati izmenu"), not "look at accepting".
       return <View key={proposal.proposalId} style={s.proposal}>
-        <T variant="heading" accessibilityRole="header">{mine ? 'Tvoj predlog čeka odgovor' : snapshot.counterpartName ? `${snapshot.counterpartName} predlaže` : 'Predlog druge strane'}</T>
+        <T variant="heading" accessibilityRole="header">{mine ? 'Vaš predlog čeka odgovor' : snapshot.counterpartName ? `${snapshot.counterpartName} predlaže` : 'Predlog druge strane'}</T>
         <Terms terms={proposal.terms} base={snapshot.terms} />
         {proposal.reason ? <Reason text={proposal.reason} /> : null}
         {actions.canRespondChange && !mine ? <>
@@ -266,7 +266,7 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
     {instead(before !== null && (mode === 'date' ? value !== before : civilClock(value) !== before), mode === 'date' ? civilDay(before ?? '') : before ?? '')}
   </View>;
   return <View style={s.stack}>
-    {form.reentry ? <T variant="copy" tone="muted">Prethodni unos nije sačuvan na telefonu. Unesi iste podatke i isti razlog kao prvi put da bismo proverili da li je već stiglo.</T> : null}
+    {form.reentry ? <T variant="copy" tone="muted">Prethodni unos nije sačuvan na telefonu. Unesite iste podatke i isti razlog kao prvi put da bismo proverili da li je već stiglo.</T> : null}
     {form.kind === 'PROPOSE' ? <>
       <View style={s.field}>
         <T variant="meta">{base?.priceBasis === 'HOURLY' ? 'Satnica po osobi' : 'Cena'}</T>

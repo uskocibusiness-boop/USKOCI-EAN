@@ -56,13 +56,13 @@ const changedOffer = (draft: OfferEdit | null, original: OfferEdit | null) => !!
   (draft.price !== original.price || draft.people !== original.people || draft.note !== original.note);
 const errors: Readonly<Record<string, string>> = { ...applicationSelectionErrors,
   FORBIDDEN: 'Ova prijava nije dostupna na ovom nalogu.', RESPONSE_NOT_OWNED: 'Ova prijava nije dostupna na ovom nalogu.',
-  RESPONSE_NOT_WITHDRAWABLE: 'Prijavu trenutno ne možeš da povučeš. Osveži listu da vidiš trenutno stanje.',
-  RESPONSE_NOT_AWAITING_REVIEW: 'Prijava je u međuvremenu promenjena. Osveži listu.',
-  RESPONSE_ALREADY_CURRENT: 'Prijava je već ažurirana. Osveži listu.',
-  INVALID_PROPOSED_WINDOW: 'Taj termin nije prihvaćen. Otvori prijavu i izaberi drugi termin.',
+  RESPONSE_NOT_WITHDRAWABLE: 'Prijavu trenutno ne možete da povučete. Osvežite listu da vidite trenutno stanje.',
+  RESPONSE_NOT_AWAITING_REVIEW: 'Prijava je u međuvremenu promenjena. Osvežite listu.',
+  RESPONSE_ALREADY_CURRENT: 'Prijava je već ažurirana. Osvežite listu.',
+  INVALID_PROPOSED_WINDOW: 'Taj termin nije prihvaćen. Otvorite prijavu i izaberite drugi termin.',
   SCOPE_NOTE_TOO_LONG: 'Napomena može imati najviše 1.200 znakova.',
 };
-const unknown = () => ({ ok: false as const, kod: 'APPLICATION_OUTCOME_UNKNOWN', poruka: 'Ne znamo da li je radnja uspela. Osveži listu pa pokušaj ponovo.' });
+const unknown = () => ({ ok: false as const, kod: 'APPLICATION_OUTCOME_UNKNOWN', poruka: 'Ne znamo da li je radnja uspela. Osvežite listu pa pokušajte ponovo.' });
 const identity = (p: MojaPrijavaProjekcija) => `${p.prijavaId}:${p.potrebaId}:${p.potrebaRevizija}:${p.prijavaRevizija}:${p.prijavaVerzija}:${p.stanje}`;
 const withdrawal = (pending: Pending) => pending.intent.kind === 'withdraw' || pending.intent.command.akcija === 'WITHDRAW';
 function observed(pending: Pending, row: ApplicationCommandState) {
@@ -265,15 +265,15 @@ export default function MojePrijave() {
     const draft = session.draft ? pricedOffer(session.draft) : null;
     if (action === 'UPDATE') {
       if (!draft) return;
-      if (session.draftFor !== identity(p)) { session.message = 'Prijava se promenila tokom uređivanja. Sačuvaj svoj tekst, pa započni novi pregled.';
+      if (session.draftFor !== identity(p)) { session.message = 'Prijava se promenila tokom uređivanja. Sačuvajte svoj tekst, pa započnite novi pregled.';
         render(v => v + 1); return; }
       const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN, people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
       if (positiveInteger(people) && people <= draft.pricing.pokrivenost.ukupno && draft.pricing.rezimCene === 'MY_PRICE'
         && fixedApplicationPrice(draft.pricing, people) === null) {
-        session.message = 'Cena za ovaj broj ljudi mora biti najmanje 1 RSD. Proveri broj ljudi.'; render(v => v + 1); return;
+        session.message = 'Cena za ovaj broj ljudi mora biti najmanje 1 RSD. Proverite broj ljudi.'; render(v => v + 1); return;
       }
-      if (!positiveInteger(price) || !positiveInteger(people)) { session.message = 'Unesi cenu u dinarima i broj ljudi, bez decimala.'; render(v => v + 1); return; }
-      if (people > draft!.pricing.pokrivenost.ukupno) { session.message = `Možeš da prijaviš najviše ${draft!.pricing.pokrivenost.ukupno}.`; render(v => v + 1); return; }
+      if (!positiveInteger(price) || !positiveInteger(people)) { session.message = 'Unesite cenu u dinarima i broj ljudi, bez decimala.'; render(v => v + 1); return; }
+      if (people > draft!.pricing.pokrivenost.ukupno) { session.message = `Možete da prijavite najviše ${draft!.pricing.pokrivenost.ukupno}.`; render(v => v + 1); return; }
       // Existing RU4 SQL limit, not a new UI/business policy.
       if (Array.from(draft.note.trim()).length > 1200) { session.message = errors.SCOPE_NOTE_TOO_LONG; render(v => v + 1); return; }
     }
@@ -306,7 +306,7 @@ export default function MojePrijave() {
       // The card shows the title without its stored wrapping quotes; the dialog names the same task the same way.
       // The question names the task and says what follows for the other person and for the worker (plan 2.3): no reason is asked.
       confirmation.ask({ title: 'Povući prijavu?',
-        message: `Osoba koja je objavila zadatak više ne vidi tvoju ponudu za „${readableTitle(p.naslov)}”. Ako zadatak i dalje prima prijave, možeš da pošalješ novu.`,
+        message: `Osoba koja je objavila zadatak više ne vidi Vašu ponudu za „${readableTitle(p.naslov)}”. Ako zadatak i dalje prima prijave, možete da pošaljete novu.`,
         cancelLabel: 'Odustani', confirmLabel: 'Povuci prijavu', tone: 'danger', onConfirm: () => {
           if (review === session.editRevision) makeIntent(p, 'WITHDRAW');
         } });
@@ -320,8 +320,8 @@ export default function MojePrijave() {
       if (!rowCurrent(p) || generation !== session.editRevision) return;
       if (result.ok) { const offer = pricedOffer({ price: String(p.cena.iznos), people: String(p.pokrivaMesta), note: p.napomena, ...result.podatak });
         session.draft = offer; session.original = offer; session.draftFor = identity(p); }
-      else session.message = 'Ne možemo da prikažemo termin i cenu prijave. Osveži prijave pa pokušaj ponovo.';
-    } catch { if (current() && generation === session.editRevision) session.message = 'Termin i cena nisu učitani. Osveži prijave pre izmene.'; }
+      else session.message = 'Ne možemo da prikažemo termin i cenu prijave. Osvežite prijave pa pokušajte ponovo.';
+    } catch { if (current() && generation === session.editRevision) session.message = 'Termin i cena nisu učitani. Osvežite prijave pre izmene.'; }
     finally { if (generation === session.editRevision) { session.editingLoading = false; if (current()) render(v => v + 1); } }
   };
   const navigate = (path: '/zadaci' | '/profil') => discardIfDirty(() => { clearReview(); router.navigate(path); });

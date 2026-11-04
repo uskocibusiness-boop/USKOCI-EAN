@@ -34,7 +34,7 @@ export const tagLabels: Record<ReviewTag, string> = {
   AS_AGREED: 'Po dogovoru', CAREFUL: 'Pažljivo', CLEAR_COMMUNICATION: 'Jasna komunikacija',
   ON_TIME: 'Na vreme', RELIABLE: 'Pouzdano', RESPECTFUL: 'Uz poštovanje',
 };
-const ratingLabels = ['Izaberi ocenu', 'Loše', 'Ispod očekivanja', 'Dobro', 'Vrlo dobro', 'Odlično'];
+const ratingLabels = ['Izaberite ocenu', 'Loše', 'Ispod očekivanja', 'Dobro', 'Vrlo dobro', 'Odlično'];
 const STARS = [1, 2, 3, 4, 5] as const;
 /** The face of the person the rating is about: 72, centred, the sticker edge round it. */
 const FACE = 72;
@@ -140,8 +140,8 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
             {tagsFull && view.editable ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">{fullHint(view.catalog.maxTags)}</T> : null}
           </Section>
           {view.comment ? <ReviewCommentField field={view.comment} /> : null}
-          {view.attempt ? <T variant="meta" tone="muted">Čuvamo tvoju ocenu dok proveravaš da li je poslata.</T> : null}
-        </> : view.kind === 'unavailable' ? <StateView kind="empty" art="star" title="Ocena još nije dostupna" body="Oceni saradnju kad Dogovor bude završen."
+          {view.attempt ? <T variant="meta" tone="muted">Čuvamo Vašu ocenu dok proveravate da li je poslata.</T> : null}
+        </> : view.kind === 'unavailable' ? <StateView kind="empty" art="star" title="Ocena još nije dostupna" body="Ocenite saradnju kad Dogovor bude završen."
           primary={{ label: backLabel, onPress: onBack }} /> : null}
   </Screen>;
 }
@@ -169,10 +169,10 @@ function SavedRating({ view, person, face }: { view: Extract<ReviewView, { kind:
         </StarGlow>
         <Pecat label="Ocenjeno" tone="green" shape="check" tickKind="success" play={view.fresh} style={s.pecat} />
       </View>
-      <T variant="body" style={[s.ink, s.center]}>{`Tvoja ocena: ${view.rating} od 5`}</T>
+      <T variant="body" style={[s.ink, s.center]}>{`Vaša ocena: ${view.rating} od 5`}</T>
       {view.tags.length ? <T variant="note" tone="muted" style={s.center}>{reviewedTags(view.tags)}</T> : null}
       {view.comment ? <View style={s.savedComment}>
-        <T variant="meta" tone="muted">Tvoj komentar</T>
+        <T variant="meta" tone="muted">Vaš komentar</T>
         <ReviewCommentText text={view.comment} />
       </View> : null}
       <T variant="note" tone="muted" style={[s.center, s.note]}>{SACUVANO_NOTE}</T>

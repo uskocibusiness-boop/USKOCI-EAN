@@ -17,7 +17,7 @@ import { hasNeedAttention } from '../../data/marketplaceView';
  */
 export type OwnTaskPhase = 'choosing' | 'published' | 'agreed';
 export const OWN_TASK_PHASES: readonly { readonly key: OwnTaskPhase; readonly title: string }[] = [
-  { key: 'choosing', title: 'Čeka tvoj izbor' }, { key: 'published', title: 'Objavljeno' }, { key: 'agreed', title: 'Dogovoreno' },
+  { key: 'choosing', title: 'Čeka Vaš izbor' }, { key: 'published', title: 'Objavljeno' }, { key: 'agreed', title: 'Dogovoreno' },
 ];
 
 /** The phase of one active task; null for a draft and for a closed task, which are not in the groups. */

@@ -458,11 +458,11 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
   const primary = confirmed ? <BrandAction label="Otvori Dogovor" onPress={openAgreement} />
     : selected ? <SelectedAgreementAction load={readAgreement} open={openLinkedAgreement} />
     : busy ? <BrandAction label="Povezivanje…" onPress={() => { void choose(); }} disabled loading />
-    : uncertain ? <BrandAction label="Proveri da li je izabrano" onPress={refresh} disabled={busy} />
-    : pending ? <BrandAction label="Pošalji izbor ponovo" onPress={() => { void choose(); }} />
+    : uncertain ? <BrandAction label="Proverite da li je izabrano" onPress={refresh} disabled={busy} />
+    : pending ? <BrandAction label="Pošaljite izbor ponovo" onPress={() => { void choose(); }} />
     : candidate.mozeIzabrati ? <BrandAction label={CHOOSE_LABEL} onPress={askToChoose} />
     : null;
-  const quiet = reset ? <V2Action label="Pregledaj prijave" kind="quiet" onPress={reset} disabled={busy} /> : null;
+  const quiet = reset ? <V2Action label="Pregledajte prijave" kind="quiet" onPress={reset} disabled={busy} /> : null;
   const priceWords = value.kind === 'amount' ? value.amount : UNPRICED;
   // "Dogovoreno!" (owner's pick of 2026-10-08, "Susret dva lica"): once the Dogovor is made the offer is not what the person needs to see, so
   // the sheet gives way to the moment, a whole screen with two faces, the task's title, the word, three rows and the one green way on, which
@@ -484,7 +484,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
       youFace={ownFace ?? <Avatar initials={null} size={72} />}
       themFace={themFace ?? (publicPhoto ? publicPhoto(candidate.radnikProfilId, 72) : <Avatar initials={candidate.inicijali || null} size={72} />)}
       // A candidate whose name the read could not give has no letters: the pair is just "vas dvoje", never "Ti i Ime nije dostupno".
-      people={candidate.inicijali ? `Ti i ${candidate.ime}` : 'Vas dvoje'} taskTitle={readableTitle(need.naslov)} term={term}
+      people={candidate.inicijali ? `Vi i ${candidate.ime}` : 'Vas dvoje'} taskTitle={readableTitle(need.naslov)} term={term}
       amount={value.kind === 'amount' ? `${value.amount} ${value.basis}` : UNPRICED} />;
   }
   // The person's name is the sheet's title (review r4 rk item 3): a real heading for a screen reader, and the sheet's own
@@ -504,7 +504,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
           the reason beside it when it is not simply open, and the one thing to do when it cannot be chosen now. */}
       <View style={s.state}>
         <PrijavaState status={candidateChip(candidate, viewed)} reason={!reason ? null : { text: reason.text, tone: reason.tone }} />
-        {blocked ? <V2Action label="Osveži prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noteAction} /> : null}
+        {blocked ? <V2Action label="Osvežite prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noteAction} /> : null}
       </View>
       {value.kind === 'amount'
         ? <MoneySummary label={candidate.osnovaCene === 'HOURLY' ? 'Satnica' : 'Ukupna ponuda'} amount={priceWords}

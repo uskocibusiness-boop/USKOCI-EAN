@@ -20,9 +20,9 @@ export function ApplicationPeopleInput({ value, maximum, disabled, onChange, lab
   const [focused, setFocused] = useState(false);
   const large = useTextScale() >= 1.3;
   const count = applicationPeopleCount(value);
-  const error = maximum < 1 ? 'Sva mesta su popunjena. Osveži zadatak.'
-    : count === null ? `Upiši ceo broj od 1 do ${maximum}.`
-    : count > maximum ? `Možeš da prijaviš najviše ${maximum}.` : null;
+  const error = maximum < 1 ? 'Sva mesta su popunjena. Osvežite zadatak.'
+    : count === null ? `Unesite ceo broj od 1 do ${maximum}.`
+    : count > maximum ? `Možete da prijavite najviše ${maximum}.` : null;
   const step = (next: number) => {
     onChange(String(next));
     AccessibilityInfo.announceForAccessibility(dolaziOsoba(next));
@@ -31,7 +31,7 @@ export function ApplicationPeopleInput({ value, maximum, disabled, onChange, lab
     <View style={s.row}>
       <ChromeIconButton label="Jedna osoba manje" glyph="minus" disabled={disabled || count === null || count <= 1}
         onPress={() => { if (!disabled && count !== null && count > 1) step(count - 1); }} />
-      <TextInput accessibilityLabel={label} accessibilityHint={error ?? 'Broj možeš i direktno da upišeš.'}
+      <TextInput accessibilityLabel={label} accessibilityHint={error ?? 'Broj možete i direktno da upišete.'}
         keyboardType="number-pad" selectTextOnFocus maxLength={4} value={value} editable={!disabled}
         style={[s.input, large && s.large, focused && s.focused, !!error && s.invalid]}
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}

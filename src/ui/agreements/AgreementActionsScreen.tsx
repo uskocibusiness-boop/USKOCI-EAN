@@ -111,7 +111,7 @@ export function AgreementActionsScreen({ agreementId, start }: {
     if (!actionCurrent() || busy || submitting.current || !snapshot || reviewRef.current || (!fromForm && formRef.current)) return;
     const normalized = normalizeAgreementCommand(command);
     if (state.journal && journalFor(normalized).payloadHash !== state.journal.payloadHash) {
-      setError('Ovo se razlikuje od onoga što je ranije poslato. Unesi iste podatke i isti razlog.'); return;
+      setError('Ovo se razlikuje od onoga što je ranije poslato. Unesite iste podatke i isti razlog.'); return;
     }
     reviewBase.current = snapshot; reviewDraft.current = fromForm ? formRef.current : null;
     reviewRef.current = normalized; setReview(normalized); formRef.current = null; setForm(null); setError(null);
@@ -120,12 +120,12 @@ export function AgreementActionsScreen({ agreementId, start }: {
     if (!form || formRef.current !== form || !current() || busy || !snapshot) return;
     const version = form.reentry ? state.journal!.agreementVersion : snapshot.agreementVersion;
     if (form.kind === 'CANCEL') {
-      if (!form.reason.trim()) { setError('Unesi razlog otkazivanja.'); return; }
+      if (!form.reason.trim()) { setError('Unesite razlog otkazivanja.'); return; }
       prepare({ kind: 'CANCEL', agreementId, version, reason: form.reason }, true); return;
     }
     const patch: { cenaIznos?: number; cenaValuta?: string; obim?: string; pocetakIso?: string; krajIso?: string } = {};
     if (form.priceChanged && (form.reentry || Number(form.price) !== snapshot.terms?.priceRsd)) {
-      if (!/^[1-9][0-9]*$/.test(form.price.trim()) || !Number.isSafeInteger(Number(form.price))) { setError('Unesi pozitivan ceo iznos u RSD.'); return; }
+      if (!/^[1-9][0-9]*$/.test(form.price.trim()) || !Number.isSafeInteger(Number(form.price))) { setError('Unesite pozitivan ceo iznos u RSD.'); return; }
       patch.cenaIznos = Number(form.price); patch.cenaValuta = 'RSD';
     }
     if (form.scopeChanged && (form.reentry || form.scope.trim() !== (snapshot.terms?.scopeNote ?? ''))) patch.obim = form.scope;

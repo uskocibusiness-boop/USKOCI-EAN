@@ -97,7 +97,7 @@ const FOOT: Record<ApplicationFootAction, { label: string; spoken: string; tone:
   agreement: { label: 'Otvori Dogovor', spoken: 'Otvori Dogovor', tone: 'green', caret: 'right' },
   // Withdrawing is rare ("retko"): a quiet ink link on every open card, and the danger colour only in the question it
   // opens (review r4 item 7).
-  withdraw: { label: 'Povuci prijavu', spoken: 'Povuci prijavu', tone: 'ink', caret: 'none', hint: 'Pre povlačenja te pitamo da potvrdiš.' },
+  withdraw: { label: 'Povuci prijavu', spoken: 'Povuci prijavu', tone: 'ink', caret: 'none', hint: 'Pre povlačenja tražimo da potvrdite.' },
   // The spoken name starts with the visible words, so voice control and a screen reader name it the same (WCAG 2.5.3).
   review: { label: 'Pregledaj izmene zadatka', spoken: 'Pregledaj izmene zadatka', tone: 'waiting', caret: 'down', hint: 'Otvara trenutne uslove ispod kartice.' },
 };
@@ -107,7 +107,7 @@ export const applicationFootWords = (action: ApplicationFootAction) => FOOT[acti
 /** Everything the body shows, as one sentence after its command name, in the order it is drawn. Empty parts are left out. */
 export function applicationSpoken(row: MojaPrijavaProjekcija, fresh = false): string {
   // The message is my own words, said as such and without the quotation marks the card draws around them.
-  return prijavaSpoken(workerPrijava(row, fresh), { message: row.napomena?.trim(), messageLabel: 'tvoja poruka' });
+  return prijavaSpoken(workerPrijava(row, fresh), { message: row.napomena?.trim(), messageLabel: 'Vaša poruka' });
 }
 
 /* ------------------------------------------------------------------------------------------------ the parts */

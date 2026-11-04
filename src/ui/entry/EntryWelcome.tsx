@@ -10,14 +10,14 @@ import { T } from '../Text';
 import { authCopy } from '../auth/authCopy';
 import { profileLift, sys } from '../system/tokens';
 
+import { BrandLockup } from './BrandAssets';
+
 type Intent = 'REQUESTER' | 'WORKER';
 export type EntryIntentSelection = { isCurrent: () => boolean };
 
-// Exact original assets from the approved Figma welcome (2:138), kept as
-// separate images rather than flattening the screen into a bitmap.
-const logo = require('../../../assets/brand/premium-entry/logo.png');
-const publish = require('../../../assets/brand/premium-entry/publish.png');
-const discover = require('../../../assets/brand/premium-entry/discover.png');
+// Official 3D clay natural illustrations matching Home doors ("Objavite zadatak" & "Uskočite i zaradite")
+const publish = require('../../../assets/illustrations/natural-v1/publish.webp');
+const discover = require('../../../assets/illustrations/natural-v1/workbag.webp');
 
 export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy = false, error }: {
   onRequester: (selection: EntryIntentSelection) => void | Promise<void>;
@@ -44,7 +44,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   const acknowledgeImage = useCallback((name: string) => {
     if (loaded.current.has(name)) return;
     loaded.current.add(name);
-    if (loaded.current.size === 3) onSceneReady();
+    if (loaded.current.size === 2) onSceneReady();
   }, [onSceneReady]);
 
   const enterAnim = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
@@ -147,9 +147,9 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
       contentContainerStyle={[styles.content, { paddingHorizontal: gutter,
         paddingTop: Math.max(24, safeTop + (height < 700 ? 12 : 36)) - safeTop, paddingBottom: 24 }]}>
       <Animated.View testID="entry-card" style={[styles.card, { padding: cardPadding, opacity: enterAnim, transform: [{ translateY: enterAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
-        <Image testID="entry-logo" source={logo} contentFit="contain" transition={0}
-          style={{ width: logoWidth, height: logoWidth / 3, alignSelf: 'center' }}
-          accessible accessibilityLabel="USKOČI" onLoad={() => acknowledgeImage('logo')} />
+        <View testID="entry-logo" style={{ alignSelf: 'center', marginBottom: 12 }}>
+          <BrandLockup width={Math.min(220, logoWidth)} />
+        </View>
         <T testID="entry-title" style={[styles.title, width < 350 && styles.narrowTitle]}>Za svaki zadatak,{`\n`}prava osoba.</T>
         <T style={styles.description}>Objavite šta Vam treba ili uskočite svojim vremenom i znanjem.</T>
         <View style={[styles.choices, { gap: artGap }]}>

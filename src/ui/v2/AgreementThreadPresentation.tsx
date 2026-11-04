@@ -108,7 +108,7 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
       const fallback = <Avatar initials={member?.inicijali ?? null} size={40} />;
       return <View style={[s.sender, message.moja && s.senderMine]}>
         {member?.profilId ? <ProfilePhoto profileId={member.profilId} size={40} fallback={fallback} /> : fallback}
-        <T variant="note" tone="muted">{member?.ime || (message.moja ? 'Ti' : message.posiljalacIme || 'Sagovornik')}</T>
+        <T variant="note" tone="muted">{member?.ime || (message.moja ? 'Vi' : message.posiljalacIme || 'Sagovornik')}</T>
       </View>;
     }} />
   </View>;

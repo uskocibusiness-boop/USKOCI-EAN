@@ -15,7 +15,7 @@ export const REVIEW_COMMENT_COUNTER_FROM = 400;
  * with what, and that it is final. Plain product wording, not legal copy. The comment is shown with the reviewer's rating, name
  * and photo: the star-only reviews of other people are not part of this sentence and no sentence about them is promised anywhere.
  */
-export const REVIEW_COMMENT_NOTICE = 'Komentar vide svi na profilu osobe koju ocenjuješ, uz tvoju ocenu, ime i fotografiju. Posle slanja se ne menja.';
+export const REVIEW_COMMENT_NOTICE = 'Komentar vide svi na profilu osobe koju ocenjujete, uz Vašu ocenu, ime i fotografiju. Posle slanja se ne menja.';
 /** The native field takes twice the limit in UTF-16 units (every code point is at most two), so a paste is never cut silently: the counter says how much to shorten. */
 const NATIVE_LIMIT_FACTOR = 2;
 

@@ -38,7 +38,7 @@ export const agreementStateText = (state: DogovorProjekcija['stanje']) => states
  * Dogovor's bar and its people rows say it with these words. Empty when the Dogovor does not say.
  */
 export function agreementRole(person: Pick<UcesnikProjekcija, 'uloga'> | null | undefined): string {
-  return person?.uloga === 'narucilac' ? 'Traži pomoć' : person?.uloga === 'uskocer' ? 'Uskače na tvoj zadatak' : '';
+  return person?.uloga === 'narucilac' ? 'Traži pomoć' : person?.uloga === 'uskocer' ? 'Uskače na Vaš zadatak' : '';
 }
 
 /**
@@ -222,7 +222,7 @@ export function AgreementPeople({ agreement }: { agreement: DogovorProjekcija })
           ? <ProfilePhoto profileId={person.profilId} size={56} fallback={<Avatar initials={person.inicijali} size={56} />} />
           : <Avatar initials={person.inicijali} size={56} />}
         title={person.ime}
-        subtitle={`${person.uloga === 'narucilac' ? (person.viSte ? 'Ti · tražiš pomoć' : 'Traži pomoć') : person.viSte ? 'Ti · uskačeš' : 'Uskače'}${person.mesta !== null ? ` · ${osoba(person.mesta)}` : ''}`} />)}
+        subtitle={`${person.uloga === 'narucilac' ? (person.viSte ? 'Vi · tražite pomoć' : 'Traži pomoć') : person.viSte ? 'Vi · uskačete' : 'Uskače'}${person.mesta !== null ? ` · ${osoba(person.mesta)}` : ''}`} />)}
     </View>
   </Section>;
 }
