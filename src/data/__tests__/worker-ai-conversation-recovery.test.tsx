@@ -532,6 +532,30 @@ it('refuses a replaced signed review after explicit modes and cannot silently Sa
   expect(mockApi.save).not.toHaveBeenCalled();
   expect(mockApi.send).not.toHaveBeenCalled();
 });
+it('aligns the one account name before explicit scope and binds the signed new revision',async()=>{
+  mockExplicitModeEnabled=true;mockAccountName={state:'ready',name:'Miloš'};
+  const data=reviewed(), named={...data,revision:1,candidate:{...data.candidate,displayName:'Miloš'}};
+  const pending={...data.review!,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    reviewedServiceModes:[],classificationCandidates:[]};
+  const signed={...data.review!,revision:1,profile:named.candidate};
+  let state:unknown={...data,review:pending};
+  mockApi.read.mockImplementation(async()=>ok(state));
+  mockApi.prepare.mockResolvedValue(ok(pending));
+  mockApi.patch.mockImplementation(async()=>{
+    state={...named,review:null};return ok(named);
+  });
+  mockApi.prepareConfirmed.mockImplementation(async()=>{
+    state={...named,review:signed};return ok(signed);
+  });
+  await render();await click('Potvrdite način rada');
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onChoice('Montaža','ON_SITE'));
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onConfirm());
+  expect(mockApi.patch).toHaveBeenCalledWith(C,0,{displayName:'Miloš'});
+  expect(mockApi.prepareConfirmed).toHaveBeenCalledWith(C,1,true,[{service:'Montaža',mode:'ON_SITE'}]);
+  expect(mockApi.patch.mock.invocationCallOrder[0]).toBeLessThan(mockApi.prepareConfirmed.mock.invocationCallOrder[0]);
+  expect(tree.root.findByType('Review' as any).props.review).toEqual(signed);
+  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+});
 it('a legacy review does not claim confirmed matching when classification authority is absent',async()=>{
  const data=reviewed();mockApi.read.mockResolvedValue(ok({...data,review:{...data.review,classificationState:undefined}}));
  await render();expect(shell().props.footerAction).toBeUndefined();

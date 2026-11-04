@@ -345,10 +345,25 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     if(!modes)return;
     const {conversationId,revision}=data,activate=data.review.activate;
     await savePanel('preparing',async()=>{
-      const prepared=await api.prepareConfirmed(conversationId,revision,activate,modes);
+      // Keep the one account name consistent, exactly as the ordinary review
+      // does. A signed review from the old revision must not be reused after
+      // the name changes; all explicit service choices remain unchanged.
+      let preparedRevision=revision;
+      const name=rename(data);
+      if(name){
+        const named=await api.patch(conversationId,revision,name);
+        if(!current())return unavailable();
+        if(!named.ok)return named;
+        if(named.podatak.conversationId!==conversationId
+          ||named.podatak.revision<=revision
+          ||JSON.stringify(named.podatak.candidate.skills)!==JSON.stringify(data.candidate.skills))
+          return unavailable();
+        preparedRevision=named.podatak.revision;
+      }
+      const prepared=await api.prepareConfirmed(conversationId,preparedRevision,activate,modes);
       if(!current())return unavailable();
       if(!prepared.ok)return prepared;
-      if(prepared.podatak.conversationId!==conversationId||prepared.podatak.revision!==revision
+      if(prepared.podatak.conversationId!==conversationId||prepared.podatak.revision!==preparedRevision
         ||prepared.podatak.activate!==activate)return unavailable();
       activationChoice.current={conversationId,activate};
       if(activationRequest)reviewedActivationRequest.current=activationRequest;
@@ -358,7 +373,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       if(!current())return unavailable();
       // Another session must not substitute a different signed review for
       // these human-chosen modes, even at the same conversation revision.
-      if(result.ok&&(result.podatak.conversationId!==conversationId||result.podatak.revision!==revision
+      if(result.ok&&(result.podatak.conversationId!==conversationId||result.podatak.revision!==preparedRevision
         ||result.podatak.review?.reviewId!==prepared.podatak.reviewId
         ||result.podatak.review?.displayedContentDigest!==prepared.podatak.displayedContentDigest))
         return {ok:false,kod:'WORKER_AI_REVIEW_CHANGED',
@@ -366,7 +381,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       if(result.ok){
         setModeSheet(false);setModeSelection({scope:'',choices:{}});
         if(workerReviewReady(result.podatak))showPanel('review');
-        else if(result.podatak.review)setPreparationIssue({conversationId,revision,
+        else if(result.podatak.review)setPreparationIssue({conversationId,revision:preparedRevision,
           message:classificationPreparationMessage(result.podatak.review.classificationState)
             ??'Proverite potvrđeni pregled pre čuvanja.'});
       }
