@@ -81,7 +81,7 @@ def run():
         '''ARCHIVED_SOURCE = "f554e77144840b960b74d4240d23936e365a8594"
 
 def archived_part_bytes(name):
-    if not re.fullmatch(r"chunk-\\d{3}\\.b64\\.txt", name):
+    if not re.fullmatch(r"chunk-[0-9]{3}[.]b64[.]txt", name):
         raise ValueError("Invalid evidence part")
     file = HERE / "parts" / name
     if file.is_file():
