@@ -44,8 +44,8 @@ test('craft scenario keeps actual trade, without offering unrelated errands or c
 });
 test('knowing English or owning a van is not permission to offer translation or transport',()=>{
  assert.match(prompt,/English knowledge\/van ownership do not imply translation\/transport/);
- assert.match(prompt,/Equipment is read-only\/private: omit edits/);
- assert.match(prompt,/Do not present old equipment as review\/matching evidence or invent experience/);
+ assert.match(prompt,/legacy tools\/vehicles arrays remain read-only and private/);
+ assert.match(prompt,/never output them or present old equipment as review\/matching evidence/);
  assert.match(prompt,/skills is the COMPLETE offered list: preserve unremoved services/);
 });
 test('ON_SITE territory and REMOTE mode retain shared execution authority',()=>{
@@ -74,7 +74,7 @@ test('optional biography does not add a mandatory interview or confirmation turn
  assert.match(prompt,/A missing bio never delays readiness/);
  assert.match(prompt,/Do not invent experience, credentials, equipment, clients, reliability or promises/);
  assert.match(prompt,/bio is an optional introduction\/limits, never a matching filter/);
- assert.match(prompt,/correct only the contradictory claim/);
+ assert.match(prompt,/replace only the corrected claim/);
  assert.doesNotMatch(prompt,/Da li Vam odgovara ovakav opis/);
 });
 test('first screen welcomes naturally and named sections describe offered skills',()=>{

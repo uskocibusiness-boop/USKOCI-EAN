@@ -392,6 +392,20 @@ test('comma-linked biography keeps independent experience after wide-area claim 
  assert.equal(committed.patch.bio,'Moler sam deset godina.');
  assert.deepEqual(committed.patch.skills,['Moler']);
 });
+test('preserves an owned work-area bio sentence while saving a separate vehicle fact',async()=>{
+ const saved='Radim u Novom Sadu.', added='Imam kombi za prevoz svoje opreme.';
+ const owned=[{kind:'CITY',countryCode:'RS',label:'Novi Sad',city:'Novi Sad',radiusKm:null,
+   sourceRef:'osm:relation:100',latitude:45.27,longitude:19.83}];
+ const candidate={...savedAreaContext.candidate,bio:saved,workAreas:owned};
+ const f=fixture({context:{...savedAreaContext,candidate},output:{assistantMessage:'Opis je dopunjen.',
+   safety:'ALLOW',patch:{bio:saved+' '+added}}});
+ const es=await events(f,{text:added});assert.equal(es.at(-1).kind,'final');
+ const accepted=completions(f)[0].body.p_output;
+ assert.equal(accepted.patch.bio,saved+' '+added);
+ assert.equal(accepted.patch.workAreas,undefined);
+ assert.equal(providers(f).length,1);
+ assert.ok(!f.calls.some(call=>/rpc_save_worker_ai_review|rpc_taxonomy_.*bind|push/.test(call.url)));
+});
 test('two personal names do not block a separate explicit Novi Sad area',async()=>{
  const f=fixture({context:savedAreaContext,output:{assistantMessage:'Novi Sad do 30 km je u nacrtu.',safety:'ALLOW',patch:{
   location:{city:'Novi Sad',radiusKm:30},skills:['Krečenje']}}});
@@ -565,7 +579,7 @@ for(const change of ['add','remove'])test(`worker ${change} instruction keeps un
  assert.equal(JSON.stringify(candidate),previous);assert.ok(!f.calls.some(c=>/save_worker|bind_reviewed|commit_admission|publish|push/.test(c.url)));
  const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
  for(const pattern of [/skills is the COMPLETE offered list/,/preserve unremoved services/,/Resolve each offered service independently/,
-  /Do not ask for equipment/,/Equipment is read-only\/private/,/English knowledge\/van ownership do not imply translation\/transport/])assert.match(prompt,pattern);
+  /Do not ask for equipment inventory/,/legacy tools\/vehicles arrays remain read-only and private/,/English knowledge\/van ownership do not imply translation\/transport/])assert.match(prompt,pattern);
 });
 
 for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!','Hvala, to je to.','To je sve, hvala Vam!','Хвала, то је све.','То је то, хвала!'])
@@ -591,7 +605,7 @@ test('finish handling does not swallow a correction or override a safety refusal
  const equipment=fixture(),equipmentEvents=await events(equipment,{text:'Sačuvaj, ali dodaj da imam kolica.'});
  assert.equal(equipmentEvents.at(-1).kind,'final');
  assert.deepEqual(completions(equipment)[0].body.p_output.patch,equipment.output.patch);
- assert.match(completions(equipment)[0].body.p_output.assistantMessage,/Alat i vozila ne menjam kroz ovaj razgovor/);
+ assert.equal(completions(equipment)[0].body.p_output.assistantMessage,equipment.output.assistantMessage);
  const f=fixture({output:{assistantMessage:'Ne mogu da pomognem sa tim zahtevom.',safety:'BLOCK',patch:{}}});
  await events(f,{text:'Sačuvaj'});assert.equal(completions(f)[0].body.p_output.safety,'BLOCK');
 });
@@ -607,14 +621,14 @@ test('new worker equipment edits are dropped without hiding historical signed-re
  const es=await events(f,{text:'Dodaj gletovanje i novu bušilicu.'});
  assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);assert.equal(completions(f).length,1);
  const accepted=completions(f)[0].body.p_output;
- assert.deepEqual(accepted.patch,{skills:['Krečenje','Gletovanje']});
+ assert.deepEqual(accepted.patch,{skills:['Krečenje','Gletovanje'],bio:'Imam novu bušilicu.'});
  assert.equal(accepted.safety,'ALLOW');
- assert.match(accepted.assistantMessage,/Alat i vozila ne menjam kroz ovaj razgovor/);
+ assert.match(accepted.assistantMessage,/Opis profila i ostale jasne izmene su u nacrtu/);
  assert.ok(!JSON.stringify(es).includes('Dodao sam novu bušilicu'));
  assert.equal(JSON.stringify(candidate),before,'historical candidate data is not cleared or mutated');
  const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.ok(!prompt.includes('"tools":["Valjak"]'));assert.ok(!prompt.includes('"vehicles":["Kombi"]'));
- assert.ok(prompt.includes('Do not present old equipment as review/matching evidence'));
+ assert.ok(prompt.includes('never output them or present old equipment as review/matching evidence'));
  assert.ok(!f.calls.some(c=>/rpc_save_worker_ai_review/.test(c.url)));
 });
 
@@ -623,8 +637,8 @@ test('bio-only vehicle claim is quarantined at the exact worker completion and s
  const f=fixture({output}),es=await events(f,{text:'Imam novi kombi.'});
  assert.equal(es.at(-1).kind,'final');assert.equal(completions(f).length,1);
  const accepted=completions(f)[0].body.p_output;
- assert.deepEqual(accepted.patch,{});assert.equal(accepted.safety,'ALLOW');
- assert.match(accepted.assistantMessage,/Alat i vozila ne menjam kroz ovaj razgovor/);
+ assert.deepEqual(accepted.patch,{bio:'Imam novi kombi.'});assert.equal(accepted.safety,'ALLOW');
+ assert.equal(accepted.assistantMessage,output.assistantMessage);
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),accepted.assistantMessage);
  assert.ok(!JSON.stringify(es).includes('Dodao sam novi kombi'));
  assert.ok(!f.calls.some(c=>/rpc_save_worker_ai_review/.test(c.url)));
@@ -636,7 +650,7 @@ test('equipment-only user turn cannot receive a false acknowledgement without an
  const f=fixture({output}),es=await events(f,{text:input});
  const accepted=completions(f)[0].body.p_output;
  assert.deepEqual(accepted.patch,{});
- assert.match(accepted.assistantMessage,/Alat i vozila ne menjam kroz ovaj razgovor/);
+ assert.match(accepted.assistantMessage,/Izmena alata ili vozila nije zabeležena/);
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),accepted.assistantMessage);
  assert.ok(!JSON.stringify(es).includes(output.assistantMessage));
 });
@@ -652,9 +666,8 @@ test('mixed equipment turn preserves independent service, area and calendar oper
    candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:input}]}});
  const es=await events(f,{text:input});assert.equal(es.at(-1).kind,'final');
  const accepted=completions(f)[0].body.p_output;
- assert.deepEqual(accepted.patch,independent);assert.equal(accepted.safety,'ALLOW');
- assert.match(accepted.assistantMessage,/Alat i vozila ne menjam kroz ovaj razgovor/);
- assert.ok(!JSON.stringify(es).includes('novi kombi su u nacrtu'));
+ assert.deepEqual(accepted.patch,{...independent,bio:'Imam novi kombi.'});assert.equal(accepted.safety,'ALLOW');
+ assert.equal(accepted.assistantMessage,output.assistantMessage);
 });
 
 test('offered vehicle repair remains a legitimate service and biography',async()=>{

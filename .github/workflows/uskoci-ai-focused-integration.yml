@@ -31,6 +31,12 @@ jobs:
         run: npm ci
       - name: Check TypeScript source
         run: npx tsc --noEmit
+      - name: Test active Worker Edge logic with synthetic Auth and provider
+        run: |
+          node --test --test-reporter=spec \
+            supabase/proofs/ai/ai_phase_timing.test.mjs \
+            supabase/proofs/ai/v5_worker_edge.test.mjs \
+            supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs
       - name: Test both AI review screens and owned recovery
         run: |
           npm test -- --runInBand --silent --runTestsByPath \
