@@ -431,11 +431,22 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     } catch { if (alive(g)) fail(error('OUTCOME_UNKNOWN')); }
     finally { working = false; if (alive(g)) publish(); }
   }
+  /** Another owner can capture a recovered READY asset while its recovery row is still visible.
+   * Its outbox command owns all retries from that moment. Never create a second
+   * client message ID or cancel the already-captured upload. */
+  function retireRecoveredIfOutboxed(item: RecoveredRecording): boolean {
+    const reserved = options.outbox.getSnapshot().entries.some(entry => entry.command.voice?.assetId === item.assetId);
+    if (!reserved) return false;
+    recovered = recovered.filter(entry => entry.ref.clientRequestId !== item.ref.clientRequestId);
+    fail(null);
+    return true;
+  }
   async function sendRecovered(ref: AgreementUploadRef) {
     const g = generation, item = recovered.find(entry => entry.ref.clientRequestId === ref.clientRequestId);
     if (!item || !options.isCurrent() || working || checkingRecovery || !agreementNow().writable || outboxBusy()) return;
     working = true; publish();
     try {
+      if (retireRecoveredIfOutboxed(item)) return;
       await options.outbox.sendVoice({ agreementVersion: item.ref.agreementVersion, assetId: item.assetId });
       if (!alive(g)) return;
       const stored = options.outbox.getSnapshot().entries.some(entry => entry.command.voice?.assetId === item.assetId);
@@ -449,6 +460,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     if (!item || !options.isCurrent() || working || checkingRecovery) return;
     working = true; publish();
     try {
+      if (retireRecoveredIfOutboxed(item)) return;
       const result = await options.uploads.cancel(item.ref, scope, requestAbort.signal);
       if (!alive(g)) return;
       if (!result.ok || (!result.podatak.attachedMessageId && result.podatak.state !== 'CANCELLED' && result.podatak.state !== 'FAILED')) {

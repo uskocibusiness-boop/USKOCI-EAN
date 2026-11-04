@@ -70,7 +70,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "node --test scripts/product-smoke.test.cjs scripts/ai-review-expiry.test.cjs"
+    "test": "node --test scripts/product-smoke.test.cjs scripts/ai-review-expiry.test.cjs scripts/voice-recovery-ownership.test.cjs"
   },
   "private": true
 }
