@@ -86,12 +86,12 @@ export function composerDraftIssue(draft: ApplicationDraft, need: Pick<PotrebaPr
   const tooMuch = !offers && price === null && count !== null && (total === null || total > MAX_PRICE);
   // The reason under the grey button is an instruction in the one wording the field beside it uses (r6: the price field
   // and the button said the same error in two sentences; the stepper's count line and the button said the same count).
-  const reason = price === 'missing' ? 'Zadatak nema navedenu cenu. Osveži zadatak.'
-    : price === 'empty' ? 'Upiši svoju cenu da pregledaš prijavu.'
-    : price === 'invalid' ? 'Upiši ceo iznos u dinarima, bez tačaka i slova.'
-    : people === 'invalid' ? 'Upiši koliko ljudi dolazi.'
-    : people === 'over' ? need.pokrivenost.preostalo > 0 ? `Smanji broj ljudi na ${need.pokrivenost.preostalo} da pregledaš prijavu.` : 'Sva mesta su popunjena. Osveži zadatak.'
-    : tooMuch ? total === null ? 'Cena za ovaj broj ljudi mora biti najmanje 1 RSD. Proveri broj ljudi.' : 'Ukupan iznos je veći nego što može da se pošalje. Smanji broj ljudi.'
+  const reason = price === 'missing' ? 'Zadatak nema navedenu cenu. Osvežite zadatak.'
+    : price === 'empty' ? 'Unesite Vašu ponuđenu cenu da biste pregledali prijavu.'
+    : price === 'invalid' ? 'Unesite ceo iznos bez tačaka i slova.'
+    : people === 'invalid' ? 'Unesite koliko osoba dolazi.'
+    : people === 'over' ? need.pokrivenost.preostalo > 0 ? `Smanjite broj osoba na ${need.pokrivenost.preostalo} da biste pregledali prijavu.` : 'Sva mesta su popunjena. Osvežite zadatak.'
+    : tooMuch ? total === null ? 'Cena za ovaj broj osoba mora biti najmanje 1 RSD. Proverite broj osoba.' : 'Ukupan iznos je veći nego što može da se pošalje. Smanjite broj osoba.'
     : null;
   return { reason, price, people };
 }
@@ -319,7 +319,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   };
   // Every green action is label-only, as the brand action is drawn everywhere else (r6: two of them carried a glyph).
   const primary = confirmed ? <V2Action label="Otvori moje prijave" onPress={openApplications} style={brandAction} />
-    : uncertain ? <V2Action label="Proveri da li je poslato" onPress={refresh} disabled={busy} style={brandAction} />
+    : uncertain ? <V2Action label="Proverite da li je poslato" onPress={refresh} disabled={busy} style={brandAction} />
     // A known refusal cannot be undone by repeating the same command: the one way on is a new application on fresh terms.
     : reset ? <V2Action label="Sastavi novu prijavu" onPress={reset} disabled={busy} style={brandAction} />
     : pending || busy ? <V2Action label={busy ? 'Slanje…' : 'Pošalji ponovo'} onPress={submit} disabled={busy} loading={busy} style={brandAction} />
@@ -337,11 +337,11 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   const footer = <FlowFooter reason={footReason ?? undefined}>
     {error ? <Surface kind="note" tone="warn">
       <T accessibilityRole="alert" variant="body">{error}</T>
-      {!pending && refreshHelps ? <V2Action label="Osveži zadatak" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noteAction} /> : null}
+      {!pending && refreshHelps ? <V2Action label="Osvežite zadatak" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noteAction} /> : null}
     </Surface> : null}
-    {!locked && !busy && !keyboard && !footReason ? <View accessible accessibilityLabel={`${summary}, ${count !== null ? dolaziOsoba(count) : 'broj ljudi nije upisan'}`} style={s.summaryRow}>
+    {!locked && !busy && !keyboard && !footReason ? <View accessible accessibilityLabel={`${summary}, ${count !== null ? dolaziOsoba(count) : 'broj osoba nije upisan'}`} style={s.summaryRow}>
       <T variant="bodyStrong" style={s.summary}>{summary}</T>
-      <T variant="note" tone="muted">{count !== null ? dolaziOsoba(count) : 'broj ljudi nije upisan'}</T>
+      <T variant="note" tone="muted">{count !== null ? dolaziOsoba(count) : 'broj osoba nije upisan'}</T>
     </View> : null}
     {primary}
     {pendingHelp && !confirmed ? <View style={s.blocked}>
@@ -350,18 +350,18 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
         onPress={action.onPress} disabled={busy} />)}
     </View> : null}
     {/* A task read without its price (or its places) is fixed by a fresh read, so the way to it stands under the grey button. */}
-    {reviewAction && !shownBlock && !error && refreshFixes ? <V2Action label="Osveži zadatak" kind="quiet" compact onPress={refresh} /> : null}
+    {reviewAction && !shownBlock && !error && refreshFixes ? <V2Action label="Osvežite zadatak" kind="quiet" compact onPress={refresh} /> : null}
     {/* A grey button with nothing beside it is a dead end: the reason stands above it, and the way out under it. */}
     {shownBlock?.actionLabel && shownBlock.onAction ? <V2Action kind="quiet" compact label={shownBlock.actionLabel} onPress={shownBlock.onAction} /> : null}
   </FlowFooter>;
-  const sentFacts = <SentFacts hourly={hourly} price={shownPrice} people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} flexible={!exact && !fixed}
+  const sentFacts = <SentFacts hourly={hourly} price={shownPrice} people={count !== null ? osoba(count) : 'Proverite broj osoba'} time={time} flexible={!exact && !fixed}
     proposed={proposedTaskTime} />;
   const noteLeft = NOTE_LIMIT - draft.note.length;
   // The sent receipt ("Etiketa odlazi") is a moment with its own way on right under it, not a form with a foot: it has no pinned footer.
   return <ComposerFrame key={confirmed ? 'receipt' : 'form'} back={back} footer={confirmed ? undefined : footer} info={!confirmed}>
     {/* A real confirmation is the first thing on the resulting screen, not below the old form's task summary. */}
     {confirmed ? <><SentReceipt hourly={hourly} fresh={!confirmedAtMount} price={shownPrice} title={readableTitle(opportunity.naslov)}
-      people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} error={error}
+      people={count !== null ? osoba(count) : 'Proverite broj osoba'} time={time} error={error}
       timeNote={!exact && !fixed ? 'Tačan početak i kraj još nisu dogovoreni.' : proposedTaskTime ? `Vaš predlog · termin zadatka je ${proposedTaskTime}` : null}
       message={draft.note.trim()} actions={<>{primary}<V2Action label="Nazad na zadatak" kind="quiet" onPress={back} /></>} />{afterConfirmation}</>
     : <>
