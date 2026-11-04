@@ -632,7 +632,7 @@ test('new worker equipment edits are dropped without hiding historical signed-re
  assert.ok(!f.calls.some(c=>/rpc_save_worker_ai_review/.test(c.url)));
 });
 
-test('bio-only vehicle claim is quarantined at the exact worker completion and stream boundary',async()=>{
+test('explicitly user-stated vehicle stays in descriptive bio without matching or automatic Save',async()=>{
  const output={assistantMessage:'Dodao sam novi kombi u nacrt profila.',safety:'ALLOW',patch:{bio:'Imam novi kombi.'}};
  const f=fixture({output}),es=await events(f,{text:'Imam novi kombi.'});
  assert.equal(es.at(-1).kind,'final');assert.equal(completions(f).length,1);
@@ -640,8 +640,8 @@ test('bio-only vehicle claim is quarantined at the exact worker completion and s
  assert.deepEqual(accepted.patch,{bio:'Imam novi kombi.'});assert.equal(accepted.safety,'ALLOW');
  assert.equal(accepted.assistantMessage,output.assistantMessage);
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),accepted.assistantMessage);
- assert.ok(!JSON.stringify(es).includes('Dodao sam novi kombi'));
- assert.ok(!f.calls.some(c=>/rpc_save_worker_ai_review/.test(c.url)));
+ assert.ok(JSON.stringify(es).includes('Dodao sam novi kombi'));
+ assert.ok(!f.calls.some(c=>/rpc_save_worker_ai_review|rpc_taxonomy_.*bind|push/.test(c.url)));
 });
 
 for(const input of ['Imam novi kombi.','Имам нови комби.'])
@@ -667,7 +667,9 @@ test('mixed equipment turn preserves independent service, area and calendar oper
  const es=await events(f,{text:input});assert.equal(es.at(-1).kind,'final');
  const accepted=completions(f)[0].body.p_output;
  assert.deepEqual(accepted.patch,{...independent,bio:'Imam novi kombi.'});assert.equal(accepted.safety,'ALLOW');
- assert.equal(accepted.assistantMessage,output.assistantMessage);
+ assert.ok(accepted.assistantMessage.startsWith(output.assistantMessage));
+ assert.match(accepted.assistantMessage,/Za okolna mesta još ne mogu da obećam automatske predloge/);
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),accepted.assistantMessage);
 });
 
 test('offered vehicle repair remains a legitimate service and biography',async()=>{
