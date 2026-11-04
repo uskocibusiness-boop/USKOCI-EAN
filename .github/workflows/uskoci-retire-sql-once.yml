@@ -1,4 +1,5 @@
 name: USKOCI retire verified applied SQL candidates
+# The one-shot inventory does not count its own candidate-name literals as runtime references.
 
 on:
   push:
