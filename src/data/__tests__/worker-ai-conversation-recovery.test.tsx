@@ -556,6 +556,22 @@ it('aligns the one account name before explicit scope and binds the signed new r
   expect(tree.root.findByType('Review' as any).props.review).toEqual(signed);
   expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
 });
+it('backgrounding retires an incomplete mode choice and a retained confirm cannot reach the server',async()=>{
+  mockExplicitModeEnabled=true;
+  const data=reviewed();
+  const pending={...data.review!,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    reviewedServiceModes:[],classificationCandidates:[]};
+  mockApi.read.mockResolvedValue(ok({...data,review:pending}));
+  mockApi.prepare.mockResolvedValue(ok(pending));
+  await render();await click('Potvrdite način rada');
+  const retained=tree.root.findByType('ModeConfirmation' as any).props.onConfirm;
+  await act(async()=>tree.root.findByType('ModeConfirmation' as any).props.onChoice('Montaža','BOTH'));
+  await act(async()=>{for(const listener of [...mockListeners])listener('background');});
+  expect(tree.root.findAllByType('ModeConfirmation' as any)).toHaveLength(0);
+  await act(async()=>retained());
+  expect(mockApi.prepareConfirmed).not.toHaveBeenCalled();
+  expect(mockApi.save).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+});
 it('a legacy review does not claim confirmed matching when classification authority is absent',async()=>{
  const data=reviewed();mockApi.read.mockResolvedValue(ok({...data,review:{...data.review,classificationState:undefined}}));
  await render();expect(shell().props.footerAction).toBeUndefined();

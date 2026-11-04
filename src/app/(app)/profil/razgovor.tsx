@@ -85,14 +85,14 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   // Leaving, or the app going to the background, makes an open question stale (its answer checks canAct), so it goes too.
   const confirmSheet=useConfirmSheet(),retireConfirmation=confirmSheet.close;
   useFocusEffect(useCallback(()=>{const token={};focus.current=token;setLeaving(false);return()=>{
-    if(focus.current===token)focus.current=null;retireConfirmation();abort.current?.abort();abort.current=null;setStream('');
+    if(focus.current===token)focus.current=null;retireConfirmation();setModeSheet(false);abort.current?.abort();abort.current=null;setStream('');
   };},[retireConfirmation]));
   useEffect(()=>{const subscription=AppState.addEventListener('change',state=>{
     // Duplicate native activity notifications are not a return from background.
     // Refreshing here would abort the current reply and unmount the voice composer.
     if(active.current===(state==='active'))return;
     active.current=state==='active';setForeground(active.current);abort.current?.abort();setStream('');
-    if(!active.current)retireConfirmation();
+    if(!active.current){retireConfirmation();setModeSheet(false);}
     if(active.current){setResuming(true);void refreshRef.current().finally(()=>{if(active.current)setResuming(false);});}
   });return()=>{subscription.remove();active.current=false;abort.current?.abort();};},[retireConfirmation]);
   const owns=useCallback(()=>!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision,
@@ -293,7 +293,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     if(!current()||panelScope.current!==renderedPanel)return;
     // Retire immediately, before navigation emits blur. Aborting the local stream is not a
     // server cancellation: the journal stays owned by this turn for readback on return.
-    focus.current=null;setLeaving(true);setMenu(false);setAdding(false);retireConfirmation();
+    focus.current=null;setLeaving(true);setMenu(false);setAdding(false);setModeSheet(false);retireConfirmation();
     voice.controller.cancel('navigation');abort.current?.abort();abort.current=null;setStream('');navigate();
   };
   const back=()=>{
