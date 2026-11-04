@@ -40,9 +40,14 @@ def main():
     recorded=set(tracked)
     group=sorted(p for p in tracked if p.startswith(ART.as_posix()+"/")
                  and "/" not in p[len(ART.as_posix())+1:])
-    image_paths=[p for p in group if p.endswith(".png")]
-    metadata=[p for p in group if p.endswith(".json")]
-    if len(group)!=22 or len(image_paths)!=20 or len(metadata)!=2 or set(metadata)!={
+    retained={
+        "assets/illustrations/uskoci-clock-v1.png",
+        "assets/illustrations/uskoci-messages-v2.png",
+    }
+    removable=[p for p in group if p not in retained]
+    image_paths=[p for p in removable if p.endswith(".png")]
+    metadata=[p for p in removable if p.endswith(".json")]
+    if len(group)!=22 or len(removable)!=20 or len(image_paths)!=18 or len(metadata)!=2 or set(metadata)!={
             "assets/illustrations/MANIFEST.json","assets/illustrations/PROVENANCE.json"}:
         fail("LEGACY_ASSET_INVENTORY_CHANGED "+repr(group))
     if not all(p.startswith("assets/illustrations/uskoci-") for p in image_paths):
@@ -57,7 +62,7 @@ def main():
     references={p:[] for p in image_paths}
     historic_refs={p:[] for p in image_paths}
     for p in tracked:
-        if p in group or p=="scripts/retire_unused_artwork_once.py":
+        if p in removable or p=="scripts/retire_unused_artwork_once.py":
             continue
         suffix=Path(p).suffix.lower()
         if suffix not in SOURCE_SUFFIXES and suffix not in {".md",".txt",".csv"}:
@@ -79,7 +84,7 @@ def main():
     # Additional soft guard against runtime directory enumeration/loaders.
     indirect=[]
     for p in tracked:
-        if p in group or p=="scripts/retire_unused_artwork_once.py":
+        if p in removable or p=="scripts/retire_unused_artwork_once.py":
             continue
         if not p.startswith(("src/","scripts/","config/","plugins/","modules/","tests/","__mocks__/")):
             continue
@@ -87,13 +92,14 @@ def main():
             continue
         source=(ROOT/p).read_text("utf-8")
         if "assets/illustrations" in source or "assets', 'illustrations" in source:
-            if "/natural-v1/" not in source and "natural-v1" not in source:
+            if "/natural-v1/" not in source and "natural-v1" not in source and not any(
+                    Path(keep).name in source for keep in retained):
                 indirect.append(p)
     if indirect:
         fail("POTENTIAL_INDIRECT_ASSET_LOADER "+json.dumps(indirect))
 
     original=[]
-    for p in group:
+    for p in removable:
         current=(ROOT/p).read_bytes()
         ancestor=git("show",BASE+":"+p,raw=True)
         if current!=ancestor:fail("ART_PREIMAGE_DRIFT "+p)
@@ -110,6 +116,7 @@ def main():
         "status":"RETIRED_FROM_ACTIVE_TREE_EXACT_GIT_HISTORY_RECOVERY",
         "reason":"The working renderer reads original natural-v1 WebP, not these legacy large PNGs.",
         "pngFiles":len(image_paths),"metadataFiles":len(metadata),
+        "retainedLegacyPngUsedByActiveUI":sorted(retained),
         "retiredFiles":len(original),"retiredBytes":sum(r["bytes"] for r in original),
         "original":original,
         "scope":{
@@ -124,7 +131,7 @@ def main():
         "# Arhivirane stare PNG ilustracije — 04.11.2026","",
         "Ovo je indeks, NE novi Product/UX master. Stari PNG originali su uklonjeni samo iz aktivnog radnog stabla.",
         "Svi originalni bajtovi ostali su u punoj Git istoriji na commitu "+BASE+".",
-        "Aktivne originalne WebP ilustracije u natural-v1 i ceo aktuelni USKOCI vizuelni sistem ostaju.",
+        "Aktivne WebP ilustracije, dva koristena stara PNG-a (sat i razgovor), i aktuelni USKOCI vizuelni sistem ostaju.",
         "Vraćanje pojedinačnog fajla: git show "+BASE+":PUTANJA > lokalni-fajl",
         "Za plitak klon prvo: git fetch origin "+BASE+".","",
         "| Originalni fajl | Bajtova | SHA-256 |",
@@ -151,15 +158,15 @@ def main():
     )
     plan.write_text(code.replace(header,header+line,1),encoding="utf-8")
 
-    subprocess.run(["git","rm","--",*group],check=True)
+    subprocess.run(["git","rm","--",*removable],check=True)
     out=Path("/tmp/uskoci-r11-artwork")
     out.mkdir(exist_ok=True,parents=True)
     (out/"preflight.json").write_text(json.dumps({
-        "sourceCommit":BASE,"retiredFiles":len(group),
+        "sourceCommit":BASE,"retiredFiles":len(removable),
         "pngFiles":len(image_paths),"bytes":manifest["retiredBytes"],
         "activeReferences":[],"allFilesRecoveredFromCommit":True
     },indent=2)+"\n")
-    print(json.dumps({"retiredFiles":len(group),"oldPng":len(image_paths),
+    print(json.dumps({"retiredFiles":len(removable),"oldPng":len(image_paths),
          "retiredBytes":manifest["retiredBytes"]}))
 
 
