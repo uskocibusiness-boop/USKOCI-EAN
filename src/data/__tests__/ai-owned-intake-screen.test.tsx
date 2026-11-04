@@ -188,6 +188,18 @@ it.each(['PENDING_CLASSIFICATION','STALE_CATALOG','CATALOG_UNAVAILABLE','REVIEW_
     expect(mockSend).not.toHaveBeenCalled();expect(mockRouter.push).not.toHaveBeenCalled();
     expect(text()).not.toContain('Ponovite opis');
   });
+it.each(['PENDING_CLASSIFICATION','REVIEW_REQUIRED'] as const)(
+  'server-accepted %s review reaches the one preview and private Save without another AI turn', async state => {
+    mockLoad.mockResolvedValue(conversation({ facts: completeFacts() }));
+    mockPrepareReview.mockImplementation(async () => ok({ ...currentReview(), classificationState: state, canAccept: true }));
+    await resume();
+    const review = tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledajte zadatak' });
+    expect(review.props.disabled).toBe(false);
+    await act(async () => review.props.onPress());
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka',
+      params: { conversationId: id, intakeReturn: expect.any(String) } });
+    expect(mockSend).not.toHaveBeenCalled();
+  });
 it.each(['BLOCK','REVIEW'] as const)('complete facts do not bypass safety %s',async safety=>{
   mockLoad.mockResolvedValue(conversation({facts:completeFacts(),safety}));await resume();noSummary();
   expect(mockPrepareReview).not.toHaveBeenCalled();expect(mockSend).not.toHaveBeenCalled();

@@ -411,6 +411,21 @@ it.each([false,true])('signed cityless REMOTE refusal can be saved only after a 
  await click('Otvorite sačuvani profil');expect(mockRouter.replace).toHaveBeenCalledWith('/profil/radnik');
 });
 
+it.each(['PENDING_CLASSIFICATION','REVIEW_REQUIRED'] as const)(
+  'a server-accepted %s work profile reaches Save without inventing matching readiness', async state => {
+    const data=reviewed();
+    const signed={...data.review!,activate:false,classificationState:state,reviewedServiceModes:[],classificationCandidates:[]};
+    mockApi.read.mockResolvedValue(ok({...data,review:signed}));
+    await render();
+    expect(shell().props.footerAction.props.label).toBe('Pregledajte radni profil');
+    const calls=mockApi.prepare.mock.calls.length;
+    await act(async()=>shell().props.footerAction.props.onPress());
+    expect(mockApi.prepare).toHaveBeenCalledTimes(calls);
+    expect(tree.root.findByType('Review' as any).props.review).toEqual(signed);
+    expect(action('Sačuvajte profil').props.disabled).toBe(false);
+    expect(mockApi.save).not.toHaveBeenCalled();
+    expect(visibleText()).not.toContain('Zadatke povezujemo sa potvrđenim uslugama');
+  });
 it('a legacy review does not claim confirmed matching when classification authority is absent',async()=>{
  const data=reviewed();mockApi.read.mockResolvedValue(ok({...data,review:{...data.review,classificationState:undefined}}));
  await render();expect(shell().props.footerAction).toBeUndefined();
