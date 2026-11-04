@@ -1,0 +1,60 @@
+name: USKOCI focused AI integration checks
+
+# Fast proof for the isolated Need/Worker integration branch.
+# The canonical full release CI remains mandatory before merging a milestone.
+on:
+  push:
+    branches:
+      - work/uskoci-ai-flow-integration-20261104
+  pull_request:
+    branches:
+      - work/product-cleanup-20261104
+    paths:
+      - src/features/ai/intake/**
+      - src/data/aiNeedV2Production.ts
+      - src/data/aiTaskReviewClientService.ts
+      - src/data/workerAiClientService.ts
+      - src/data/aiTurnIntentJournal.ts
+      - src/data/workerAiTurnIntentJournal.ts
+      - src/data/__tests__/ai-owned-intake-screen.test.tsx
+      - src/data/__tests__/worker-ai-conversation-recovery.test.tsx
+      - src/data/__tests__/ai-task-review-client.test.ts
+      - src/data/__tests__/worker-ai-client.test.ts
+      - src/data/__tests__/ai-turn-intent-journal.test.ts
+      - src/data/__tests__/worker-ai-turn-intent-journal.test.ts
+      - .github/workflows/uskoci-ai-focused-integration.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uskoci-ai-focused-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ai-source-and-screen-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Check TypeScript source
+        run: npx tsc --noEmit
+      - name: Test both AI review screens and owned recovery
+        run: |
+          npm test -- --runInBand --silent --runTestsByPath \
+            src/data/__tests__/ai-owned-intake-screen.test.tsx \
+            src/data/__tests__/worker-ai-conversation-recovery.test.tsx \
+            src/data/__tests__/ai-task-review-client.test.ts \
+            src/data/__tests__/worker-ai-client.test.ts \
+            src/data/__tests__/ai-turn-intent-journal.test.ts \
+            src/data/__tests__/worker-ai-turn-intent-journal.test.ts
