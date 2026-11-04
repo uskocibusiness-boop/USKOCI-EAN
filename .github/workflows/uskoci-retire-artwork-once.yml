@@ -1,0 +1,187 @@
+name: USKOCI archive unused legacy artwork, verified
+
+on:
+  push:
+    branches: [work/r11-prune-old-assets-20261104]
+    paths: [.github/workflows/uskoci-retire-artwork-once.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  verified-cleanup:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN' && github.ref == 'refs/heads/work/r11-prune-old-assets-20261104'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      BASE_SHA: d3fba6e5a52508469daa54f0f5da05f6a8307e5c
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Verify isolated branch and install original pinned runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/work/r11-prune-old-assets-20261104
+          test -z "$(git status --porcelain)"
+          python3 - <<'PY'
+          import os,subprocess
+          delta=set(subprocess.check_output(['git','diff','--name-only',os.environ['BASE_SHA'],'HEAD'],text=True).splitlines())
+          expected={'scripts/retire_unused_artwork_once.py','.github/workflows/uskoci-retire-artwork-once.yml'}
+          if delta!=expected:raise SystemExit('WORKTREE_SCOPE_CHANGED '+str(delta^expected))
+          PY
+          mkdir -p /tmp/uskoci-r11-artwork
+          npm ci > /tmp/uskoci-r11-artwork/npm-ci.log 2>&1
+          ./node_modules/.bin/tsc --noEmit > /tmp/uskoci-r11-artwork/typescript-before.log 2>&1
+      - name: Capture unmodified Android JavaScript and current graphics
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS' > /tmp/uskoci-r11-artwork/android-before.log 2>&1
+          const {spawnSync}=require('node:child_process');
+          const env={...process.env,...require('./eas.json').build.preview.env,
+            EAS_BUILD_PROFILE:'preview',USKOCI_OTA_TARGET:'preview',
+            EXPO_OFFLINE:'1',EXPO_NO_TELEMETRY:'1'};
+          const r=spawnSync(process.execPath,['node_modules/expo/bin/cli','export','--no-bytecode',
+            '--platform','android','--output-dir','/tmp/uskoci-r11-artwork/android-before'],
+            {env,stdio:'inherit'});
+          if(r.error)throw r.error;process.exit(r.status??1);
+          JS
+      - name: Check all references and archive only proven retired assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/retire_unused_artwork_once.py | tee /tmp/uskoci-r11-artwork/retire.log
+          git diff --check
+      - name: Run full mobile regression and selected server/AI contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/tsc --noEmit > /tmp/uskoci-r11-artwork/typescript-after.log 2>&1
+          npm test -- --maxWorkers=2 --silent --json --outputFile /tmp/uskoci-r11-artwork/jest.json > /tmp/uskoci-r11-artwork/jest.log 2>&1
+          node --test --test-reporter=spec scripts/product-audit.test.cjs \
+            supabase/proofs/ai/worker_mode_short_replies.test.mjs \
+            supabase/proofs/ai/worker_mode_declarations.test.mjs \
+            supabase/proofs/ai/single_pass_edge.test.mjs \
+            > /tmp/uskoci-r11-artwork/ai-node.log 2>&1
+          node - <<'JS'
+          const fs=require('node:fs');
+          const j=JSON.parse(fs.readFileSync('/tmp/uskoci-r11-artwork/jest.json','utf8'));
+          if(!j.success||j.numFailedTests||j.numFailedTestSuites)throw Error('MOBILE_REGRESSION');
+          console.log(JSON.stringify({suites:j.numTotalTestSuites,passed:j.numPassedTests,total:j.numTotalTests}));
+          JS
+      - name: Android JS and bundled assets must be identical after retirement
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .expo node_modules/.cache/metro
+          node - <<'JS' > /tmp/uskoci-r11-artwork/android-after.log 2>&1
+          const {spawnSync}=require('node:child_process');
+          const env={...process.env,...require('./eas.json').build.preview.env,
+            EAS_BUILD_PROFILE:'preview',USKOCI_OTA_TARGET:'preview',
+            EXPO_OFFLINE:'1',EXPO_NO_TELEMETRY:'1'};
+          const r=spawnSync(process.execPath,['node_modules/expo/bin/cli','export','--no-bytecode',
+            '--platform','android','--output-dir','/tmp/uskoci-r11-artwork/android-after'],
+            {env,stdio:'inherit'});
+          if(r.error)throw r.error;process.exit(r.status??1);
+          JS
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('/tmp/uskoci-r11-artwork')
+          def manifest(name):
+              base=root/name
+              return {str(f.relative_to(base)):hashlib.sha256(f.read_bytes()).hexdigest()
+                  for f in base.rglob('*') if f.is_file()}
+          before=manifest('android-before');after=manifest('android-after')
+          if not before or before!=after:
+              changed=sorted(set(before)^set(after)|{p for p in before.keys()&after.keys() if before[p]!=after[p]})
+              raise SystemExit('METRO_OUTPUT_CHANGED '+repr(changed[:24]))
+          (root/'android-parity.json').write_text(json.dumps({
+              'androidExportFiles':len(before),'hashEquality':True,
+              'scope':'Expo no-bytecode JS and assets only, not native device or APK'},indent=2)+'\n')
+          print('BITWISE_IDENTICAL_ANDROID_EXPORT',len(before))
+          PY
+      - name: Validate Hermes bytecode export also still works
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS' > /tmp/uskoci-r11-artwork/android-hermes.log 2>&1
+          const {spawnSync}=require('node:child_process');
+          const env={...process.env,...require('./eas.json').build.preview.env,
+            EAS_BUILD_PROFILE:'preview',USKOCI_OTA_TARGET:'preview',
+            EXPO_OFFLINE:'1',EXPO_NO_TELEMETRY:'1'};
+          const r=spawnSync(process.execPath,['node_modules/expo/bin/cli','export',
+            '--platform','android','--output-dir','/tmp/uskoci-r11-artwork/android-hermes'],
+            {env,stdio:'inherit'});
+          if(r.error)throw r.error;process.exit(r.status??1);
+          JS
+      - name: Verify final scope and publish verified structural cleanup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -- scripts/retire_unused_artwork_once.py .github/workflows/uskoci-retire-artwork-once.yml
+          git add -- docs/plan/CODEX_PLAN_RADA.md \
+            docs/continuation/ARHIVIRANA_IZVORNA_ILUSTRACIJA_20261104.json \
+            docs/continuation/ARHIVIRANA_IZVORNA_ILUSTRACIJA_20261104.md
+          git diff --cached --check
+          python3 - <<'PY'
+          import subprocess,os,json,pathlib
+          f=pathlib.Path('docs/continuation/ARHIVIRANA_IZVORNA_ILUSTRACIJA_20261104.json')
+          report=json.loads(f.read_text())
+          deleted={x['path'] for x in report['original']}
+          expected=deleted|{'docs/plan/CODEX_PLAN_RADA.md',str(f),
+              'docs/continuation/ARHIVIRANA_IZVORNA_ILUSTRACIJA_20261104.md'}
+          changed=set(subprocess.check_output(['git','diff','--cached','--name-only',os.environ['BASE_SHA']],text=True).splitlines())
+          if changed!=expected:raise SystemExit('UNEXPECTED_OUTPUTS '+repr(sorted(changed^expected)))
+          remaining=[p for p in subprocess.check_output(['git','ls-files','-z']).split(b'\0') if p]
+          if len(remaining)!=3913-22+2:raise SystemExit('TRACKED_FILE_COUNT_DRIFT '+str(len(remaining)))
+          original=report['original']
+          if report['retiredBytes']<=20000000 or report['pngFiles']!=20:
+              raise SystemExit('ASSET_BUDGET_MISMATCH')
+          j=json.loads(pathlib.Path('/tmp/uskoci-r11-artwork/jest.json').read_text())
+          parity=json.loads(pathlib.Path('/tmp/uskoci-r11-artwork/android-parity.json').read_text())
+          proof={
+              'source':os.environ['BASE_SHA'],'jobSha':os.environ['GITHUB_SHA'],
+              'workflowRun':os.environ['GITHUB_RUN_ID'],'trackedBefore':3913,'trackedAfter':len(remaining),
+              'filesRetired':22,'originalPngFilesRetired':20,'bytesRemoved':report['retiredBytes'],
+              'allOriginalsPinnedInGitHistory':True,'activeConsumerReferences':0,
+              'fullMobileTests':j['numTotalTests'],'mobilePassed':j['numPassedTests'],
+              'androidNoBytecodeEqual':parity['hashEquality'],
+              'androidFilesEqual':parity['androidExportFiles'],
+              'hermesExport':True,'runtimeChanged':False,'serverChanged':False,
+              'remainingWork':'Active AI conversation/persistence and two-account device acceptance still pending',
+              'notProven':'No new APK, no native Android screenshot, no EAS remote build'}
+          pathlib.Path('/tmp/uskoci-r11-artwork/final-proof.json').write_text(json.dumps(proof,indent=2)+'\n')
+          print(json.dumps(proof))
+          PY
+          test "$(git ls-remote origin refs/heads/work/r11-prune-old-assets-20261104 | cut -f1)" = "$GITHUB_SHA"
+          git config user.name "USKOCI safe art cleanup"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(r11): archive unused legacy PNG art, preserve active WebP and Android output"
+          token=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $token" push origin HEAD:refs/heads/work/r11-prune-old-assets-20261104
+          git rev-parse HEAD > /tmp/uskoci-r11-artwork/published-commit.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: uskoci-art-retirement-evidence
+          path: |
+            /tmp/uskoci-r11-artwork/*.json
+            /tmp/uskoci-r11-artwork/*.txt
+            /tmp/uskoci-r11-artwork/*.log
+          retention-days: 14
+          if-no-files-found: warn
