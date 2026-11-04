@@ -93,7 +93,7 @@ export function VoiceBubble({ voice, message, mine, first, last, afterSeparator,
   const active = voice.playback.assetId === glas.assetId;
   const status = active ? voice.playback.status : 'idle';
   const playing = status === 'playing', loading = status === 'loading';
-  const label = playing ? 'Pauziraj glasovnu poruku' : status === 'error' ? 'Ponovo učitaj glasovnu poruku' : 'Preslušaj glasovnu poruku';
+  const label = playing ? 'Pauzirajte glasovnu poruku' : status === 'error' ? 'Ponovo učitajte glasovnu poruku' : 'Preslušajte glasovnu poruku';
   const total = voiceClock(glas.trajanjeMs);
   const position = active && status !== 'error' ? voice.playback.positionMs : 0;
   const share = glas.trajanjeMs > 0 ? Math.max(0, Math.min(1, position / glas.trajanjeMs)) : 0;
