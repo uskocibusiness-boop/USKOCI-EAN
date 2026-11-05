@@ -475,9 +475,9 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         {conversationSummary?.title === title ? null : <T variant="meta" tone="muted">{title}</T>}
         <T variant="note" tone="muted" accessibilityLiveRegion="polite">{loading
           ? 'Tražimo mesto iz razgovora…' : ambiguous
-            ? 'Pronađeno je više mesta. Izaberi ono koje tražiš, pa proveri tačku.' : contextOnly
-              ? 'Tačna tačka nije pronađena. Dodirni pravo mesto na mapi ili ispravi opis.'
-              : initialQuestion ?? 'Dopuni opis mesta ili ga označi na mapi.'}</T>
+            ? 'Pronađeno je više mesta. Izaberite ono koje tražite, pa proverite tačku.' : contextOnly
+              ? 'Tačna tačka nije pronađena. Dodirnite pravo mesto na mapi ili ispravite opis.'
+              : initialQuestion ?? 'Dopunite opis mesta ili ga označite na mapi.'}</T>
         {initialQuery && conversationSummary?.description !== initialQuery
           ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
       </View> : null}
@@ -541,13 +541,13 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
                       ? 'Čitamo adresu za izabrani pin…' : expandedPlace}</T>
                   </View>
                 </View>
-                <T variant="note" tone="muted">Dodirni mapu ili prevuci oznaku ako želiš preciznije mesto.</T>
-                <Button tone="neutral" label={`✓ Potvrdi ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`}
+                <T variant="note" tone="muted">Dodirnite mapu ili prevucite oznaku ako želite preciznije mesto.</T>
+                <Button tone="neutral" label={`✓ Potvrdite ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdite tačku: ${title}`}
                   kind="secondary" style={brandAction} disabled={controlDisabled || !focused || lookup.status === 'LOADING'}
                   onPress={() => { if (confirm()) setExpandedMap(false); }} />
               </> : <>
-                <T variant="bodyStrong" style={editorStyles.fullTitle}>Označi tačno mesto</T>
-                <T variant="note" tone="muted">Uvećaj ulicu po potrebi i dodirni mesto na mapi. Oznaka ostaje privatna dok je ne potvrdiš.</T>
+                <T variant="bodyStrong" style={editorStyles.fullTitle}>Označite tačno mesto</T>
+                <T variant="note" tone="muted">Uvećajte ulicu po potrebi i dodirnite mesto na mapi. Oznaka ostaje privatna dok je ne potvrdite.</T>
               </>}
             </FlowFooter>
           </SafeAreaView>

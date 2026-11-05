@@ -61,27 +61,27 @@ export function SupportNewView({ model, reference, preset, initialTopic, readAgr
   const back = () => navigate(() => router.canGoBack() ? router.back() : router.replace('/podrska'));
   const busy = state.phase === 'LOADING' || state.phase === 'SENDING';
   if (reference === 'INVALID') return <SupportFrame title="Novi zahtev" onBack={back}>
-    <StateView kind="error" title="Kontekst zahteva nije ispravan" body="Ponovo otvori podršku iz zadatka ili Dogovora."
-      primary={{ label: 'Otvori podršku', onPress: () => navigate(() => router.replace('/podrska')) }} />
+    <StateView kind="error" title="Kontekst zahteva nije ispravan" body="Ponovo otvorite podršku iz zadatka ili Dogovora."
+      primary={{ label: 'Otvorite podršku', onPress: () => navigate(() => router.replace('/podrska')) }} />
   </SupportFrame>;
   if (state.receipt) {
     const receipt = state.receipt;
     // Replace, not push: this screen resets on its next focus, so Back from the case would land on an empty form.
-    return <SupportFrame title="Novi zahtev" onBack={back} footer={<SettingsAction label="Otvori zahtev" disabled={busy}
+    return <SupportFrame title="Novi zahtev" onBack={back} footer={<SettingsAction label="Otvorite zahtev" disabled={busy}
       onPress={() => navigate(() => router.replace({ pathname: '/podrska/[id]', params: { id: receipt.caseId } }))} />}>
       <View style={s.receipt}>
         <SuccessMark fresh size={64} />
         <T variant="title" accessibilityRole="header" accessibilityLiveRegion="polite">{`Potvrđen zahtev #${receipt.caseNumber}`}</T>
         <T variant="note" tone="muted">{`Primljeno: ${supportTime(receipt.createdAt)}`}</T>
         {/* Where the answer will be, and nothing about when: no response time is promised. */}
-        <T variant="copy" tone="muted">Odgovor ćeš naći u Podršci.</T>
+        <T variant="copy" tone="muted">Odgovor ćete naći u Podršci.</T>
       </View>
     </SupportFrame>;
   }
   if (state.capabilities && !state.capabilities.canCreate) return <SupportFrame title="Novi zahtev" onBack={back}>
     <SupportRecoveryPanel model={model} receipt={false} />
     <StateView kind="empty" art="info" title="Novi zahtev trenutno nije dostupan ovom nalogu."
-      body="Sačuvane zahteve možeš ponovo da proveriš iz podrške." />
+      body="Sačuvane zahteve možete ponovo da proverite iz podrške." />
   </SupportFrame>;
   if (!model.focused) return <SupportFrame title="Novi zahtev" onBack={back}><SupportLoading /></SupportFrame>;
   return <NewContents key={`${model.accountId}:${model.accountRevision}:${model.incarnationId}:${reference ? `${reference.kind}:${reference.id}:${reference.revision}` : 'NONE'}:${initialTopic ?? ''}`}
@@ -132,15 +132,15 @@ function NewContents({ model, initialReference, initialTopic, preset, readAgreem
   // sends it is not grey: it keeps its words with a spinner. Only its own send spins it: a stop or a replay of an
   // unconfirmed send spins its own button in the panel above, and this one waits grey with its reason (round 5c review).
   const sending = state.phase === 'SENDING' && state.command === 'SEND';
-  const lacking = valid ? null : requiresAgreement && context?.kind !== 'AGREEMENT' ? 'Izaberi Dogovor iznad da bi zahtev mogao da se pošalje.'
-    : topic === 'PUBLICATION_REVIEW' && context?.kind !== 'TASK_REVIEW' ? 'Ovu temu otvaraš iz pregledane odluke o zadatku.'
+  const lacking = valid ? null : requiresAgreement && context?.kind !== 'AGREEMENT' ? 'Izaberite Dogovor iznad da bi zahtev mogao da se pošalje.'
+    : topic === 'PUBLICATION_REVIEW' && context?.kind !== 'TASK_REVIEW' ? 'Ovu temu otvarate iz pregledane odluke o zadatku.'
       : !title.trim() || !body.trim() ? 'Za slanje su potrebni naslov i opis.'
-        : !written ? 'Dopiši šta se desilo pre slanja.' : 'Skrati tekst do dozvoljene dužine.';
+        : !written ? 'Dopišite šta se desilo pre slanja.' : 'Skratite tekst do dozvoljene dužine.';
   const missing = sending || (!disabled && valid) ? null
-    : state.pending ? 'Najpre proveri prethodno slanje.'
+    : state.pending ? 'Najpre proverite prethodno slanje.'
       : state.phase === 'LOADING' ? 'Učitavamo sačuvano stanje…'
         : state.phase === 'ERROR' ? 'Stanje zahteva nije učitano.'
-          : lacking ?? (choosing ? 'Učitavamo tvoje Dogovore…' : null);
+          : lacking ?? (choosing ? 'Učitavamo Vaše Dogovore…' : null);
   // Words the screen wrote itself are not the person's: leaving with only those asks nothing.
   const dirty = (title !== (preset?.title ?? '') && !!title) || (body !== (preset?.body ?? '') && !!body) || !!desired;
   useEffect(() => {

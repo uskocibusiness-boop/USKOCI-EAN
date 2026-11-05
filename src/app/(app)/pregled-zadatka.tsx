@@ -496,7 +496,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const classificationModeMissing = review?.classificationState === 'SERVICE_MODE_CONFIRMATION_REQUIRED';
   const classificationNeedsConversation = classificationModeMissing || review?.classificationState === 'REVIEW_REQUIRED';
   const classificationReason = classificationModeMissing
-    ? 'U razgovoru razjasnite da li se posao radi na lokaciji ili bez dolaska izvršioca.'
+    ? 'U razgovoru razjasnite da li se zadatak obavlja na lokaciji ili bez dolaska izvršioca.'
     : classificationPreparationMessage(review?.classificationState);
   const publishBlocked = !review || disabled || expired || publishedEditUnavailable || !review.canAccept || classificationPending || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves

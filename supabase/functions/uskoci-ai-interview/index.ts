@@ -792,13 +792,26 @@ async function callGemini(
     }] : []),
     ...(locationContext ? [{ text: locationInstruction(locationContext) }] : []),
   ];
-  const systemParts = [...stableParts,
+  // Stable system instruction is 100% invariant across turns to maximize Google TPU prefix caching.
+  const stableSystemParts = [
+    ...stableParts,
     ...(singlePass ? [{text:singlePassTaxonomyInstruction(singlePass.catalog,'NEED_SERVICE')}] : []),
-    ...runtimeParts];
+  ];
   const factSchema = schemaVersion === NEED_FACT_SCHEMA_V2
     ? (locationContext ? locationProviderSchema(v2ProviderSchema(maxProposals)) : v2ProviderSchema(maxProposals))
     : legacyProviderSchema();
   const responseSchema = singlePass ? withSinglePassTaxonomySchema(factSchema) : factSchema;
+
+  const augmentedContents = [
+    ...(runtimeParts.length ? [{
+      role: 'user',
+      parts: [{ text: `[KONTEKST TRENUTNOG ZADATKA I VREMENA]:\n${runtimeParts.map(p => p.text).join('\n')}` }],
+    }, {
+      role: 'model',
+      parts: [{ text: 'Razumeo sam server kontekst zadatka. Nastavljam razgovor po zanatskim smernicama.' }],
+    }] : []),
+    ...contents,
+  ];
 
   let payloadBody: string;
   let cachedContentResource: string | null = null;
@@ -814,19 +827,9 @@ async function callGemini(
   }
 
   if (cachedContentResource) {
-    const cachedContents = [
-      ...(runtimeParts.length ? [{
-        role: 'user',
-        parts: [{ text: `[KONTEKST TRENUTNOG ZADATKA I VREMENA]:\n${runtimeParts.map(p => p.text).join('\n')}` }],
-      }, {
-        role: 'model',
-        parts: [{ text: 'Razumeo sam server kontekst zadatka. Nastavljam razgovor po zanatskim smernicama.' }],
-      }] : []),
-      ...contents,
-    ];
     payloadBody = JSON.stringify({
       cachedContent: cachedContentResource,
-      contents: cachedContents,
+      contents: augmentedContents,
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
@@ -839,8 +842,8 @@ async function callGemini(
     });
   } else {
     payloadBody = JSON.stringify({
-      systemInstruction: { parts: systemParts },
-      contents,
+      systemInstruction: { parts: stableSystemParts },
+      contents: augmentedContents,
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
@@ -1704,8 +1707,7 @@ Deno.serve(async (req: Request) => {
             }))));
       }
       // No raw provider prose escapes before the semantic check and the exact
-      // owned completion receipt. The existing stream still reports acceptance.
-      if (completed.state === 'SUCCEEDED' && !signal.aborted) onText?.(aiTurn.assistantMessage);
+      // owned completion receipt. Deltas were already progressively streamed by streamGeminiTask.
       return locationContext ? response(completed.state === 'SUCCEEDED' ? 200 : completed.state === 'PROCESSING' ? 202 : 409, completion) : turnResponse(completed);
     }
     // Existing LEGACY_TEXT_V1 path remains isolated. V2 never calls this writer.

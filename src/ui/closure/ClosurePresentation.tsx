@@ -26,9 +26,9 @@ export const closureDuration = (n: number) => n % 86400 === 0 ? plural(n / 86400
  * preparation is there to check (round 5c review); without one it is a failure.
  */
 export const closureUnconfirmedCopy = {
-  START: 'Ne znamo da li je zahtev za zatvaranje poslat. Sačuvan je na telefonu; možeš da ga pošalješ ponovo.',
-  PREPARE: 'Ne znamo da li je priprema počela. Možeš da pokušaš ponovo.',
-  CAUGHT: 'Ne znamo stanje zahteva. Proveri ga ponovo.',
+  START: 'Ne znamo da li je zahtev za zatvaranje poslat. Sačuvan je na telefonu; možete da ga pošaljete ponovo.',
+  PREPARE: 'Ne znamo da li je priprema počela. Možete da pokušate ponovo.',
+  CAUGHT: 'Ne znamo stanje zahteva. Proverite ga ponovo.',
 } as const;
 
 /** Where a blocker can be resolved. A blocker with no place of its own is a plain line. */

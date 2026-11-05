@@ -103,7 +103,7 @@ export function withUnresolvedSinglePassReply(turn, built, plan) {
     return turn;
   }
   const question = built?.clarifications?.[0]?.ambiguityPrompt;
-  return { ...turn, assistantMessage: question || 'Razumeo sam detalje zadatka i zabeležio ih u odgovarajuću kategoriju.',
+  return { ...turn, assistantMessage: question || 'Detalji zadatka su zabeleženi u odgovarajuću kategoriju.',
     ...(turn.dialogue ? { dialogue: { ...turn.dialogue, next: question ? 'CLARIFY' : 'ACK', questionKey: 'NONE' } } : {}) };
 }
 

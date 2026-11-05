@@ -13,7 +13,7 @@ import { SettingsAction } from '../../../ui/settings/SettingsPresentation';
 
 type LinkAttempt = { focus: object; timer?: ReturnType<typeof setTimeout> };
 const LINK_OPEN_TIMEOUT_MS = 10000;
-const LINK_UNCONFIRMED = 'Otvaranje dokumenta nije potvrđeno. Pokušaj ponovo.';
+const LINK_UNCONFIRMED = 'Otvaranje dokumenta nije potvrđeno. Pokušajte ponovo.';
 
 export default function PravnaDokumenta() {
   const { user, accountRevision } = useSesija();

@@ -20,7 +20,7 @@ export function decodeServiceHandoff(value) {
       || !Array.from(value.shippingCountries).every(country) || new Set(value.shippingCountries).size !== value.shippingCountries.length)) return null;
   if (local && (!exact(value.localExchange, ['countryCode', 'city']) || !country(value.localExchange.countryCode)
       || typeof value.localExchange.city !== 'string' || Array.from(value.localExchange.city).length < 3 || Array.from(value.localExchange.city).length > 120
-      || value.localExchange.city !== value.localExchange.city.trim() || /[<>\u0000-\u001f\u007f-\u009f\d]/.test(value.localExchange.city))) return null;
+      || value.localExchange.city !== value.localExchange.city.trim() || /[<>\u0000-\u001f\u007f-\u009f]/.test(value.localExchange.city))) return null;
   return { required: true, ...(shipping ? { shippingCountries: value.shippingCountries.slice() } : {}),
     ...(local ? { localExchange: { countryCode: value.localExchange.countryCode, city: value.localExchange.city } } : {}) };
 }

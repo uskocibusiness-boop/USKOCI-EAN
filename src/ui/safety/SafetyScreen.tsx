@@ -127,9 +127,9 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
     {/* This screen is where a person arrives when something has gone wrong with another person, and
         it had no way through to support at all — the only paths in were the profile row and a
         publication review. */}
-    <SettingsGroup title="Imaš drugo pitanje?"><View style={s.section}>
-      <T variant="note" tone="muted">Podrška prima tvoju prijavu. Poseban zahtev otvori samo ako imaš drugo pitanje.</T>
-      <SettingsAction label="Otvori zahtev podršci" kind="quiet"
+    <SettingsGroup title="Imate drugo pitanje?"><View style={s.section}>
+      <T variant="note" tone="muted">Podrška prima Vašu prijavu. Poseban zahtev otvorite samo ako imate drugo pitanje.</T>
+      <SettingsAction label="Otvorite zahtev podršci" kind="quiet"
         onPress={() => router.push('/podrska/novi')} />
     </View></SettingsGroup>
     {confirmation.sheet}

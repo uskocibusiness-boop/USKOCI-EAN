@@ -237,15 +237,15 @@ export function useUrgentActivationActions(props: Props) {
         show(owner, { phase: 'refused', message: 'Uključivanje HITNO uz naplatu još nije dostupno u aplikaciji.', journal: false }); return;
       }
       if (!eligible() || latest.current.need?.revizija !== revision || Date.parse(preview.candidateExpiresAt) <= Date.now()) {
-        show(owner, { phase: 'refused', message: 'Podaci su promenjeni. Ponovo pregledaj uslove za HITNO.', journal: false }); return;
+        show(owner, { phase: 'refused', message: 'Podaci su promenjeni. Ponovo pregledajte uslove za HITNO.', journal: false }); return;
       }
       show(owner, { phase: 'review', message: '', journal: false });
       ask({ title: 'Uključi HITNO?', confirmLabel: 'Uključi HITNO', cancelLabel: 'Odustani',
-        message: `Zadatak dobija oznaku HITNO i potraga se odmah pokreće prema dostupnim radnicima. Oznaka traje najviše ${preview.maxLifetimeMinutes} minuta; trenutna procena isteka je ${expiryText(preview.candidateExpiresAt)}. Rok može biti kraći zbog termina ili roka za prijave. To ne garantuje dolazak radnika.`,
+        message: `Zadatak dobija oznaku HITNO i potraga se odmah pokreće prema dostupnim majstorima i pomagačima. Oznaka traje najviše ${preview.maxLifetimeMinutes} minuta; trenutna procena isteka je ${expiryText(preview.candidateExpiresAt)}. Rok može biti kraći zbog termina ili roka za prijave. To ne garantuje dolazak izvršioca.`,
         onCancel: () => { if (current(owner) && currentView.current.phase === 'review') show(owner, EMPTY); },
         onConfirm: () => submit(owner, revision, preview),
       });
-    } catch { show(owner, { phase: 'error', message: 'Pregled HITNO trenutno nije dostupan. Pokušaj ponovo.', journal: false }); }
+    } catch { show(owner, { phase: 'error', message: 'Pregled HITNO trenutno nije dostupan. Pokušajte ponovo.', journal: false }); }
     finally { if (current(owner)) running.current = false; }
   };
   const check = async () => {

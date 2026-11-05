@@ -141,7 +141,7 @@ function LocationSession({ agreementId, accountId, accountRevision, requesterId,
     {requester ? <V2Action label={granted ? 'Opozovi deljenje lokacije' : 'Podeli lokaciju'}
       kind={granted ? 'destructive' : 'secondary'} disabled={locked} loading={editor.busy} onPress={() => { void setGrant(!granted); }} />
       : granted && !privateData ? <V2Action label="Prikaži privatnu lokaciju" kind="secondary" disabled={locked} loading={editor.busy} onPress={() => { void show(); }} />
-        : !granted && words.ask && onRequestAddress ? <V2Action label="Zatraži adresu" kind="secondary" disabled={locked} onPress={onRequestAddress} /> : null}
+        : !granted && words.ask && onRequestAddress ? <V2Action label="Zatražite adresu" kind="secondary" disabled={locked} onPress={onRequestAddress} /> : null}
     {privateData ? <PrivatePoints key={`${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} value={privateData}
       scope={`${accountId}:${agreementId}:${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} canUse={canUsePrivateMap} /> : null}
     {/* The permission is read when the section opens and when this is pressed: the button says it, so no sentence does (J3). */}

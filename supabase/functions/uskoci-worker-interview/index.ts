@@ -313,9 +313,24 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     && (serviceModeContext?.unresolvedServices?.length ?? 0) === 0 && !pendingWorkerClarificationHint;
   const isWorkerExplicitSkillChange = /(?:dodaj\s+veštinu|dodaj\s+zanat|promeni\s+veštine|ne\s+radim\s+više|ne\s+radim\s+vise)/iu.test(input.text);
   const needsWorkerTree = singlePassActive && (!hasEstablishedSkills || isWorkerExplicitSkillChange);
-  const systemParts=[...stableParts,
+  const stableSystemParts=[...stableParts,
     ...(needsWorkerTree ? [{text:singlePassTaxonomyInstruction(fullCatalog,'WORKER_CAPABILITY')}] : []),
-    ...modeParts,runtimePart,...clarificationPart,...modeContextParts];
+    ...modeParts];
+  const dynamicWorkerParts = [
+    runtimePart,
+    ...clarificationPart,
+    ...modeContextParts,
+  ];
+  const augmentedHistory = [
+    ...(dynamicWorkerParts.length ? [{
+      role: 'user',
+      parts: [{ text: `[KONTEKST MAJSTORA I VREMENA]:\n${dynamicWorkerParts.map(p => p.text).join('\n')}` }],
+    }, {
+      role: 'model',
+      parts: [{ text: 'Razumeo sam server kontekst profila. Nastavljam intervju po zanatskim pravilima.' }],
+    }] : []),
+    ...history,
+  ];
   const interviewSchema=needsWorkerTree ? withSinglePassTaxonomySchema(workerProviderSchema()) : workerProviderSchema();
   const responseSchema=serviceModeContext ? workerServiceModeSchema(interviewSchema) : interviewSchema;
   if (singlePassActive && serviceModeContext)
@@ -335,7 +350,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   const body = cachedContentResource
     ? JSON.stringify({
         cachedContent: cachedContentResource,
-        contents: history,
+        contents: augmentedHistory,
         generationConfig: {
           temperature: 0.2,
           maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
@@ -347,8 +362,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         },
       })
     : JSON.stringify({
-        systemInstruction: { parts: systemParts },
-        contents: history,
+        systemInstruction: { parts: stableSystemParts },
+        contents: augmentedHistory,
         generationConfig: {
           temperature: 0.2,
           maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,

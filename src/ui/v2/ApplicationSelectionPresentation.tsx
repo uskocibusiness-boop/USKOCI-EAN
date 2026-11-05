@@ -511,7 +511,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
         ? <MoneySummary label={candidate.osnovaCene === 'HOURLY' ? 'Satnica po osobi' : 'Ukupna ponuda'} amount={priceWords}
           basis={candidate.osnovaCene === 'HOURLY'
             ? (candidate.pokrivaMesta > 1 && Number.isSafeInteger(candidate.cena?.iznos)
-                ? `Po osobi po satu (${candidate.pokrivaMesta} radnika × ${priceWords} = ${novac(candidate.pokrivaMesta * candidate.cena.iznos)}/h ukupno)`
+                ? `Po osobi po satu (${candidate.pokrivaMesta} pomagača × ${priceWords} = ${novac(candidate.pokrivaMesta * candidate.cena.iznos)}/h ukupno)`
                 : 'Po osobi po satu')
             : `Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} />
         : <FactRow art="money" size="detail" label="Ukupna ponuda" value={priceWords} />}

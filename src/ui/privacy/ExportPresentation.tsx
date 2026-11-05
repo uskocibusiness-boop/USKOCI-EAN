@@ -12,9 +12,9 @@ import { QuietReadState } from '../v2/QuietReadState';
 import { InlineNote, QuietLine } from './InlineNote';
 
 export const exportPreparationCopy: Record<NonNullable<DataExportPreparation['code']>, string> = {
-  POLICY_NOT_READY: 'Priprema kopije trenutno nije dostupna. Tvoj zahtev ostaje zabeležen.',
-  BUSY: 'Kopija se priprema. Proveri stanje kasnije.',
-  RETRY_REQUIRED: 'Priprema nije završena. Proveri stanje pa pokušaj ponovo.',
+  POLICY_NOT_READY: 'Priprema kopije trenutno nije dostupna. Vaš zahtev ostaje zabeležen.',
+  BUSY: 'Kopija se priprema. Proverite stanje kasnije.',
+  RETRY_REQUIRED: 'Priprema nije završena. Proverite stanje pa pokušajte ponovo.',
   NOT_AVAILABLE: 'Ova kopija se ne može sačuvati.',
 };
 
@@ -174,9 +174,9 @@ export function ExportScreenView({ onBack, loading, failure, status, preparation
       // The sentences of a failure end in "Osveži stanje.", so the one retry says the same words.
       : failure ? <StateView kind="error" art="download" title={failure.title} body={failure.body}
         primary={{ label: 'Osveži stanje', onPress: onRefresh, disabled: refreshDisabled }} />
-      : phase === 'NONE' ? <StateView kind="empty" art="download" title="Zatraži kopiju podataka svog naloga i preuzmi je kad bude spremna." />
+      : phase === 'NONE' ? <StateView kind="empty" art="download" title="Zatražite kopiju podataka svog naloga i preuzmite je kad bude spremna." />
       : <>
-        <SettingsGroup title="Tvoja kopija">
+        <SettingsGroup title="Vaša kopija">
           <View style={s.track}>
             <ExportStatusChip phase={phase} />
             <ExportStepper steps={exportSteps(phase, status)} />
@@ -184,7 +184,7 @@ export function ExportScreenView({ onBack, loading, failure, status, preparation
         </SettingsGroup>
         {preparation?.kind === 'NOT_READY' ? <InlineNote tone="warn" alert>{exportPreparationCopy[preparation.code ?? 'NOT_AVAILABLE']}</InlineNote> : null}
         {/* About keeping a copy: said only when there is a copy to keep. */}
-        {phase === 'READY_AVAILABLE' ? <QuietLine art="shield">Izvoz je vezan za tvoj nalog. Čuvaj kopiju na mestu kome samo ti imaš pristup.</QuietLine> : null}
+        {phase === 'READY_AVAILABLE' ? <QuietLine art="shield">Izvoz je vezan za Vaš nalog. Čuvajte kopiju na mestu kome samo Vi imate pristup.</QuietLine> : null}
         {request?.status === 'REQUESTED' || (request?.status === 'READY' && status?.fulfillment && phase !== 'EXPIRED') ? <View>
           {request?.status === 'REQUESTED' ? <ListRow title="Otkaži zahtev" tone="danger" disabled={busy} onPress={onCancel} last /> : null}
           {/* A copy whose availability has run out is not there to withdraw: no command is offered over a file that does not exist. */}

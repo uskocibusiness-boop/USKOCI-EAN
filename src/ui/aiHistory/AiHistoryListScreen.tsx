@@ -26,8 +26,8 @@ export function AiHistoryListScreen({ accountId, accountRevision, focused, initi
   return <Screen kind="detail" background="wash" scroll={false} contentStyle={s.screen}
     header={<AccountHeader title="AI razgovori" onBack={onBack} />}>
     <View style={s.intro}>
-      <T variant="bodyStrong">Tvoji razgovori</T>
-      <T variant="note" tone="muted">Započeti razgovor možeš da nastaviš. Stariji razgovori ostaju odvojeni po nameni.</T>
+      <T variant="bodyStrong">Vaši razgovori</T>
+      <T variant="note" tone="muted">Započeti razgovor možete da nastavite. Stariji razgovori ostaju odvojeni po nameni.</T>
     </View>
     <View accessibilityRole="tablist" style={s.tabs}>
       {purposes.map(purpose => <Press key={purpose} accessibilityRole="tab"
@@ -112,13 +112,13 @@ function HistoryPane({ purpose, accountId, accountRevision, active, onOpen }: {
         ? <View style={s.state} accessibilityLiveRegion="polite" accessibilityState={{ busy: true }}>
             <ActivityIndicator color={sys.color.green} />
             <T variant="bodyStrong">Učitavamo razgovore…</T>
-            <T variant="note" tone="muted">Proveravamo tvoju istoriju.</T>
+            <T variant="note" tone="muted">Proveravamo Vašu istoriju.</T>
           </View>
         : failed ? <HistoryFailure offline={page.phase === 'offline'} onRetry={() => { void load('refresh'); }} />
         : <View style={s.state}>
             <Glyph name={purpose === 'NEED_INTAKE' ? 'messages' : 'profile'} size={32} tone="green" />
             <T variant="bodyStrong">Ovde još nema razgovora.</T>
-            <T variant="note" tone="muted">Kada započneš razgovor, pojaviće se ovde.</T>
+            <T variant="note" tone="muted">Kada započnete razgovor, pojaviće se ovde.</T>
           </View>}
       ListFooterComponent={hasRows ? <View style={s.footer}>
         {failed ? <HistoryFailure offline={page.phase === 'offline'} compact onRetry={() => {
@@ -156,8 +156,8 @@ function HistoryFailure({ offline, compact = false, onRetry }: { offline: boolea
   return <View style={[s.state, compact && s.compactState]} accessibilityLiveRegion="polite">
     <Glyph name={offline ? 'remote' : 'info'} size={24} tone="warn" />
     <T variant="bodyStrong">{offline ? 'Nema veze sa serverom.' : 'Istorija trenutno nije dostupna.'}</T>
-    <T variant="note" tone="muted">{offline ? 'Proveri vezu i pokušaj ponovo.' : 'Pokušaj ponovo malo kasnije.'}</T>
-    <V2Action label="Pokušaj ponovo" onPress={onRetry} style={s.retry} />
+    <T variant="note" tone="muted">{offline ? 'Proverite vezu i pokušajte ponovo.' : 'Pokušajte ponovo malo kasnije.'}</T>
+    <V2Action label="Pokušajte ponovo" onPress={onRetry} style={s.retry} />
   </View>;
 }
 

@@ -47,13 +47,13 @@ INSERT INTO private.work_taxonomy_categories (
   id, canonical_key, label, parent_id, state, source, catalog_version
 ) VALUES
   ('00000000-0000-4000-8000-000000000011'::uuid, private.taxonomy_normalize_v1('Majstori i zanatski radovi'), 'Majstori i zanatski radovi', '00000000-0000-4000-8000-000000000001'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
-  ('00000000-0000-4000-8000-000000000012'::uuid, private.taxonomy_normalize_v1('Fizicki poslovi, rusenje i gradjevinska ispomoc'), 'Fizički poslovi, rušenje i građevinska ispomoć', '00000000-0000-4000-8000-000000000001'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
+  ('00000000-0000-4000-8000-000000000012'::uuid, private.taxonomy_normalize_v1('Fizicka pomoc, rusenje i gradjevinska ispomoc'), 'Fizička pomoć, rušenje i građevinska ispomoć', '00000000-0000-4000-8000-000000000001'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000013'::uuid, private.taxonomy_normalize_v1('Selidbe, transport i vozila'), 'Selidbe, transport i vozila', '00000000-0000-4000-8000-000000000001'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000014'::uuid, private.taxonomy_normalize_v1('Tehnika i kucni aparati'), 'Tehnika i kućni aparati', '00000000-0000-4000-8000-000000000001'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000015'::uuid, private.taxonomy_normalize_v1('Ciscenje i odrzavanje prostora'), 'Čišćenje i održavanje prostora', '00000000-0000-4000-8000-000000000001'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000016'::uuid, private.taxonomy_normalize_v1('Dvoriste, basta i teren'), 'Dvorište, bašta i teren', '00000000-0000-4000-8000-000000000001'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000017'::uuid, private.taxonomy_normalize_v1('Potrcko, svakodnevna pomoc i briga'), 'Potrčko, svakodnevna pomoć i briga', '00000000-0000-4000-8000-000000000001'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
-  ('00000000-0000-4000-8000-000000000018'::uuid, private.taxonomy_normalize_v1('Casovi, digitalne i poslovne usluge'), 'Časovi, digitalne i poslovne usluge', '00000000-0000-4000-8000-000000000001'::uuid, 'ESTABLISHED', 'SYSTEM', 15)
+  ('00000000-0000-4000-8000-000000000018'::uuid, private.taxonomy_normalize_v1('Casovi, digitalne i administrativne usluge'), 'Časovi, digitalne i administrativne usluge', '00000000-0000-4000-8000-000000000001'::uuid, 'ESTABLISHED', 'SYSTEM', 15)
 ON CONFLICT (id) DO UPDATE SET
   canonical_key = EXCLUDED.canonical_key,
   label = EXCLUDED.label,
@@ -91,8 +91,8 @@ INSERT INTO private.work_taxonomy_categories (
   ('00000000-0000-4000-8000-000000000109'::uuid, private.taxonomy_normalize_v1('Krovopokrivacki i limarski radovi'), 'Krovopokrivački i limarski radovi', '00000000-0000-4000-8000-000000000011'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000110'::uuid, private.taxonomy_normalize_v1('Sitne kucne popravke (Hausmajstor)'), 'Sitne kućne popravke (Hausmajstor)', '00000000-0000-4000-8000-000000000011'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
 
-  -- Stub 2: Fizički poslovi, rušenje i građevinska ispomoć
-  ('00000000-0000-4000-8000-000000000201'::uuid, private.taxonomy_normalize_v1('Univerzalni fizicki radnik (ispomoc na dan)'), 'Univerzalni fizički radnik (ispomoć na dan)', '00000000-0000-4000-8000-000000000012'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
+  -- Stub 2: Fizička pomoć, rušenje i građevinska ispomoć
+  ('00000000-0000-4000-8000-000000000201'::uuid, private.taxonomy_normalize_v1('Univerzalni fizicki pomocnik (ispomoc na dan)'), 'Univerzalni fizički pomoćnik (ispomoć na dan)', '00000000-0000-4000-8000-000000000012'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000202'::uuid, private.taxonomy_normalize_v1('Rusenje, stemovanje i razbijanje'), 'Rušenje, štemovanje i razbijanje', '00000000-0000-4000-8000-000000000012'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000203'::uuid, private.taxonomy_normalize_v1('Utovar, istovar i pretovar materijala'), 'Utovar, istovar i pretovar materijala', '00000000-0000-4000-8000-000000000012'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000204'::uuid, private.taxonomy_normalize_v1('Nosenje teskog tereta na sprat'), 'Nošenje teškog tereta na sprat', '00000000-0000-4000-8000-000000000012'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
@@ -131,7 +131,7 @@ INSERT INTO private.work_taxonomy_categories (
   ('00000000-0000-4000-8000-000000000704'::uuid, private.taxonomy_normalize_v1('Pomoc i nega starijih lica'), 'Pomoć i nega starijih lica', '00000000-0000-4000-8000-000000000017'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000705'::uuid, private.taxonomy_normalize_v1('Briga o kucnim ljubimcima'), 'Briga o kućnim ljubimcima', '00000000-0000-4000-8000-000000000017'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
 
-  -- Stub 8: Časovi, digitalne i poslovne usluge
+  -- Stub 8: Časovi, digitalne i administrativne usluge
   ('00000000-0000-4000-8000-000000000801'::uuid, private.taxonomy_normalize_v1('Privatni casovi i poducavanje'), 'Privatni časovi i podučavanje', '00000000-0000-4000-8000-000000000018'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000802'::uuid, private.taxonomy_normalize_v1('Casovi stranih jezika'), 'Časovi stranih jezika', '00000000-0000-4000-8000-000000000018'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
   ('00000000-0000-4000-8000-000000000803'::uuid, private.taxonomy_normalize_v1('Izrada i odrzavanje web sajtova'), 'Izrada i održavanje web sajtova', '00000000-0000-4000-8000-000000000018'::uuid, 'ESTABLISHED', 'SYSTEM', 15),
@@ -159,7 +159,7 @@ INSERT INTO private.work_taxonomy_category_modes (category_id, execution_scope, 
   ('00000000-0000-4000-8000-000000000108'::uuid, 'ON_SITE', 'V15_SEED'),
   ('00000000-0000-4000-8000-000000000109'::uuid, 'ON_SITE', 'V15_SEED'),
   ('00000000-0000-4000-8000-000000000110'::uuid, 'ON_SITE', 'V15_SEED'),
-  -- Fizički poslovi
+  -- Fizička pomoć
   ('00000000-0000-4000-8000-000000000201'::uuid, 'ON_SITE', 'V15_SEED'),
   ('00000000-0000-4000-8000-000000000202'::uuid, 'ON_SITE', 'V15_SEED'),
   ('00000000-0000-4000-8000-000000000203'::uuid, 'ON_SITE', 'V15_SEED'),
@@ -255,9 +255,10 @@ INSERT INTO private.work_taxonomy_aliases (category_id, locale, label) VALUES
   ('00000000-0000-4000-8000-000000000106'::uuid, 'sr-RS', 'montaza namestaja'),
   ('00000000-0000-4000-8000-000000000106'::uuid, 'sr-RS', 'ikea montaza'),
   ('00000000-0000-4000-8000-000000000106'::uuid, 'sr-RS', 'sklapanje ormara'),
-  -- Fizički poslovi
-  ('00000000-0000-4000-8000-000000000201'::uuid, 'sr-RS', 'fizicki poslovi'),
-  ('00000000-0000-4000-8000-000000000201'::uuid, 'sr-RS', 'radnik na dan'),
+  -- Fizička pomoć
+  ('00000000-0000-4000-8000-000000000201'::uuid, 'sr-RS', 'fizicka pomoc'),
+  ('00000000-0000-4000-8000-000000000201'::uuid, 'sr-RS', 'fizicki pomocnik'),
+  ('00000000-0000-4000-8000-000000000201'::uuid, 'sr-RS', 'pomocnik na dan'),
   ('00000000-0000-4000-8000-000000000201'::uuid, 'sr-RS', 'pomocni radnik'),
   ('00000000-0000-4000-8000-000000000202'::uuid, 'sr-RS', 'rusenje zida'),
   ('00000000-0000-4000-8000-000000000202'::uuid, 'sr-RS', 'stemovanje betona'),

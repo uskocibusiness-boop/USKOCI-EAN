@@ -4,8 +4,8 @@
  * the section offers "Zatraži adresu", which takes them to Poruke with the question already written (never sent for them).
  */
 
-/** The question "Zatraži adresu" writes into the conversation's draft; the person reads it and sends it. */
-export const ADDRESS_REQUEST_TEXT = 'Možeš li da podeliš tačnu adresu?';
+/** The question "Zatražite adresu" writes into the conversation's draft; the person reads it and sends it. */
+export const ADDRESS_REQUEST_TEXT = 'Možete li da podelite tačnu adresu?';
 
 /**
  * How the address is said to each side while the Dogovor is agreed, from what the grant says. The requester owns the address:
@@ -14,7 +14,7 @@ export const ADDRESS_REQUEST_TEXT = 'Možeš li da podeliš tačnu adresu?';
  */
 export type AddressWords = { title: string; ask: boolean };
 export function addressWords({ requester, granted }: { requester: boolean; granted: boolean }): AddressWords {
-  if (requester) return { title: granted ? 'Adresa je podeljena u ovom Dogovoru.' : 'Podeli adresu kad budete spremni.', ask: false };
-  return granted ? { title: 'Adresa je podeljena. Možeš da je pogledaš.', ask: false }
+  if (requester) return { title: granted ? 'Adresa je podeljena u ovom Dogovoru.' : 'Podelite adresu kada budete spremni.', ask: false };
+  return granted ? { title: 'Adresa je podeljena. Možete da je pogledate.', ask: false }
     : { title: 'Adresa još nije podeljena.', ask: true };
 }

@@ -15,14 +15,14 @@ export function AgreementCompletionReview({ agreement, worker, confirm, back }: 
 }) {
   const other = agreement.ucesnici.find(person => !person.viSte);
   return <ProductSheet title="Pregled završetka" closeLabel="Nazad na Dogovor" onClose={back}
-    footer={() => <V2Action label={worker ? 'Da, zadatak je gotov' : 'Da, potvrdi završetak'} onPress={confirm} style={brandAction} />}>
+    footer={() => <V2Action label={worker ? 'Da, zadatak je gotov' : 'Da, potvrdite završetak'} onPress={confirm} style={brandAction} />}>
     {() => <>
         <View style={s.intro}>
-          <T accessibilityRole="header" variant="title" style={s.title}>{worker ? 'Zadatak je gotov?' : 'Potvrdi završetak'}</T>
+          <T accessibilityRole="header" variant="title" style={s.title}>{worker ? 'Zadatak je gotov?' : 'Potvrdite završetak'}</T>
           {/* One sentence each (J5): what the other side gets to do, or what is being confirmed. What follows is on the page they return to. */}
           <T variant="body" tone="muted">{worker
             ? 'Druga strana će dobiti zahtev da potvrdi završetak ili prijavi problem.'
-            : 'Potvrđuješ da je zadatak obavljen po prihvaćenim uslovima.'}</T>
+            : 'Potvrđujete da je zadatak obavljen po prihvaćenim uslovima.'}</T>
         </View>
         <View style={s.terms}>
           {/* No eyebrow over the title ("Prihvaćeni uslovi"): the facts under it are the accepted terms, and say so in their own labels. */}

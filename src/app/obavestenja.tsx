@@ -115,8 +115,8 @@ export default function Obavestenja() {
     {ingress.phase ? <View style={styles.opening} accessibilityLiveRegion="polite">
       {ingress.phase === 'loading' ? <View style={styles.openingLine}><ActivityIndicator color={sys.color.green} />
         <T variant="copy">Otvaramo obaveštenje…</T></View> : <>
-        <T variant="copy" accessibilityRole="alert">{ingress.phase === 'error' ? 'Nismo uspeli da otvorimo obaveštenje. Proveri vezu i pokušaj ponovo.' : 'Ovo obaveštenje više nije dostupno.'}</T>
-        {ingress.phase === 'error' ? <V2Action label="Pokušaj ponovo" onPress={ingress.retry} compact /> : null}
+        <T variant="copy" accessibilityRole="alert">{ingress.phase === 'error' ? 'Nismo uspeli da otvorimo obaveštenje. Proverite vezu i pokušajte ponovo.' : 'Ovo obaveštenje više nije dostupno.'}</T>
+        {ingress.phase === 'error' ? <V2Action label="Pokušajte ponovo" onPress={ingress.retry} compact /> : null}
       </>}
       <V2Action label="Prikaži obaveštenja" kind="quiet" onPress={ingress.cancel} compact />
     </View> : null}

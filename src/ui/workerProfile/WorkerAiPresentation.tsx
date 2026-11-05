@@ -192,13 +192,13 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         <Fact art="pin">{workerAreasLabel(p.workAreas)}</Fact>
         <T testID="worker-area-scope-note" variant="note" tone="muted">{p.workAreas.some(a=>a.kind==='RADIUS')
           ?'Domet se računa od centra navedenog mesta. Kućna adresa nije potrebna.'
-          :'Područje dolaska za poslove na lokaciji. Poslovi na daljinu se proveravaju zasebno.'}</T>
+          :'Područje dolaska za zadatke na lokaciji. Zadaci na daljinu se proveravaju zasebno.'}</T>
       </>:<>{place||onSite?<Fact art="pin" quiet={!place}>{place
         ?onSite
           ?`${place} · do ${p.location.radiusKm} km${point?'':' (za okolna mesta potvrdite centar)'}`
           :`${place} · grad profila`
         :EMPTY}</Fact>:null}
-      {remote?<T variant="note" tone="muted">Posao radite bez dolaska kod naručioca: onlajn ili kod sebe.</T>:null}
+      {remote?<T variant="note" tone="muted">Zadatak radite bez dolaska kod domaćina: onlajn ili kod sebe.</T>:null}
       {onSite&&point?<ResolvedPinMap coarse disabled height={220} position={point}
         scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}

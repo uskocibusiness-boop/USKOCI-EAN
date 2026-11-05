@@ -23,7 +23,7 @@ const publicInboxCopies = Object.freeze([
  ['Izmena nije prihvaćena', 'Predlog izmene Dogovora nije prihvaćen.'],
  ['Dogovor je otkazan', 'Otvori Dogovor da vidiš trenutno stanje.'],
  ['Status Dogovora je promenjen', 'Otvori Dogovor da vidiš sledeći korak.'],
- ['Potvrdi završetak', 'Druga strana je označila posao kao završen.'],
+ ['Potvrdi završetak', 'Druga strana je označila zadatak kao završen.'],
  ['Nova poruka u Dogovoru', 'Imaš novu poruku.'],
  ['Podaci Dogovora su dostupni', 'Otvori Dogovor da vidiš podatke kojima sada imaš pristup.'],
  ['Oporavak naloga', 'Otvoren je postupak oporavka naloga.'],
