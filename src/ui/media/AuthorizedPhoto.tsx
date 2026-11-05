@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
-import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, AppState, View, type StyleProp, type ViewStyle } from 'react-native';
 import { mediaClientService } from '../../data/mediaClientService';
 export { mediaAssetId } from '../../data/mediaAssetId';
 import { sesijaSada, useSesija } from '../../store/sesija';
@@ -12,6 +12,16 @@ import { sys } from '../system/tokens';
 // Bounded in-memory representation; no signed URL or persistent image cache.
 import { jpegDataUri } from './jpegDataUri';
 import { ownPhotoCache } from './ownPhotoCache';
+
+const inMemoryPhotoCache = new Map<string, { uri: string; at: number }>();
+const MAX_CACHE_ENTRIES = 32;
+const CACHE_TTL_MS = 15 * 60 * 1000;
+
+if (typeof AppState?.addEventListener === 'function') {
+  AppState.addEventListener('change', (state) => {
+    if (state !== 'active') inMemoryPhotoCache.clear();
+  });
+}
 
 type PhotoAttempt = { visit: object; binding: string; abort: AbortController; phase: 'loading' | 'image' | 'failed' };
 type PhotoState = { attempt: PhotoAttempt; uri: string | null } | null;
@@ -55,6 +65,11 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
     // The person's own photograph, when it is remembered under this exact key, is the answer: nothing is read. Only a press on "Pokušaj ponovo" asks again.
     const known = scope && !retry ? ownPhotoCache.image(scope, profileKey, p.assetId) : undefined;
     if (known) { attempt.phase = 'image'; setState({ attempt, uri: known }); return; }
+    const sessionKnown = inMemoryPhotoCache.get(binding);
+    const sessionFresh = sessionKnown && (Date.now() - sessionKnown.at < CACHE_TTL_MS);
+    if (sessionFresh && !retry) {
+      attempt.phase = 'image'; setState({ attempt, uri: sessionKnown.uri }); return;
+    }
     const mark = scope ? ownPhotoCache.mark() : 0;
     setState({ attempt, uri: null });
     void (async () => {
@@ -65,23 +80,40 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
         if (!current(attempt)) return;
         if (!result.ok) { fail(attempt); return; }
         const uri = jpegDataUri(result.podatak.bytes);
+        if (inMemoryPhotoCache.size >= MAX_CACHE_ENTRIES) {
+          const oldestKey = inMemoryPhotoCache.keys().next().value;
+          if (oldestKey) inMemoryPhotoCache.delete(oldestKey);
+        }
+        inMemoryPhotoCache.set(binding, { uri, at: Date.now() });
         if (scope) ownPhotoCache.rememberImage(scope, profileKey, p.assetId, uri, mark);
         attempt.phase = 'image'; setState({ attempt, uri });
       } catch { fail(attempt); }
     })();
   }, [binding, current, fail, ownsVisit, scope, profileKey, p.assetId, p.needId, p.profileId, p.caseId, p.agreementId, p.messageId]);
   useFocusEffect(useCallback(() => {
-    const visit = {}; active.current = visit; setState(null); read(visit);
+    const visit = {}; active.current = visit;
+    const sessionKnown = inMemoryPhotoCache.get(binding);
+    const sessionFresh = sessionKnown && (Date.now() - sessionKnown.at < CACHE_TTL_MS);
+    if (sessionFresh) {
+      const attempt: PhotoAttempt = { visit, binding, abort: new AbortController(), phase: 'image' };
+      request.current = attempt;
+      setState({ attempt, uri: sessionKnown.uri });
+    } else {
+      setState(null);
+      read(visit);
+    }
     return () => {
       if (active.current !== visit) return;
-      active.current = null; request.current?.abort.abort(); request.current = null; setState(null);
+      active.current = null; request.current?.abort.abort(); request.current = null;
     };
-  }, [read]));
+  }, [binding, read]));
   const shown = state && current(state.attempt) ? state : null;
   // Until this visit has decided anything (the very first render, or a screen that is out of focus) the person's own remembered picture of this exact key
   // stands in for it. The key holds the account, its revision, the profile and the asset, so it can never be another face.
   const remembered = scope && !shown ? ownPhotoCache.image(scope, profileKey, p.assetId) : undefined;
-  const uri = shown ? shown.attempt.phase === 'image' ? shown.uri : null : remembered ?? null;
+  const sessionCached = inMemoryPhotoCache.get(binding);
+  const sessionFresh = sessionCached && (Date.now() - sessionCached.at < CACHE_TTL_MS);
+  const uri = shown ? shown.attempt.phase === 'image' ? shown.uri : null : remembered ?? (sessionFresh ? sessionCached.uri : null);
   const image = uri ? <Image source={{ uri }} accessibilityLabel={p.label}
     accessible={!p.open} contentFit={p.contentFit ?? 'contain'} cachePolicy="none" recyclingKey={binding}
     onError={() => { if (shown) fail(shown.attempt); }} transition={0} style={{ width: '100%', height: '100%' }} /> : null;

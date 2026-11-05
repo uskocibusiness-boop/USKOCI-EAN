@@ -31,7 +31,7 @@ export function singlePassTaxonomyInstruction(catalog, purpose) {
     : 'Classify one effective service using typed task_geography, not city alone. Handoff/location/time/price stay in facts, not taxonomy metadata. Unknown mode: ask about execution and return no decision. ';
   if (!catalog?.verifiedComplete) return rules + scope
     + 'Catalog unavailable: taxonomyDecisions=[]; keep useful facts, do not assume missing categories or promise classification readiness.';
-  return rules + scope + `Complete server catalog, version ${catalog.catalogVersion}. JSONL nodes in parent-first order; parentId=null is a root, isLeaf identifies a service. Use only these existing IDs:\n`
+  return rules + scope + `Complete server catalog, version ${catalog.catalogVersion}. Indented tree nodes: [categoryId LEAF MODES] label ~ aliases. Indentation defines the hierarchy. Use only these existing IDs:\n`
     + formatFullCatalogHierarchy(catalog);
 }
 

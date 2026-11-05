@@ -15,6 +15,7 @@ import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceMod
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
 import { loadFullCatalogTree, buildWorkerFullTreeTaxonomyProposals, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
+import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>Deno.env.get(key));
@@ -282,16 +283,14 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   let fullCatalog: Awaited<ReturnType<typeof loadFullCatalogTree>> | null = null;
   let pendingWorkerClarificationHint: any = null;
   if (singlePassActive) {
-    [fullCatalog, pendingWorkerClarificationHint] = await Promise.all([
-      measureAiPhase('WORKER_FULL_CATALOG', () => loadFullCatalogTree(
-        (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? research!.signal, t ?? 2500),
-        research.signal)).catch(() => null),
-      fetchUnconsumedClarificationHint(
-        (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? req.signal, t ?? 2500),
-        input.conversationId,
-        context.revision
-      ).catch(() => null),
-    ]);
+    fullCatalog = await measureAiPhase('WORKER_FULL_CATALOG', () => loadFullCatalogTree(
+      (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? research!.signal, t ?? 2500),
+      research.signal)).catch(() => null);
+    pendingWorkerClarificationHint = await fetchUnconsumedClarificationHint(
+      null,
+      input.conversationId,
+      context.revision
+    ).catch(() => null);
   }
   let serviceModeContext: ReturnType<typeof readWorkerServiceModeContext> | null = null;
   if (singlePassActive) {
@@ -310,15 +309,56 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   const clarificationPart = pendingWorkerClarificationHint?.ambiguityPrompt ? [{
     text: `Ranije je nedostajalo razjašnjenje: „${pendingWorkerClarificationHint.ambiguityPrompt}“. Najpre proveri da li ga je korisnik već dao u ovoj poruci. Pitaj samo ako ta poslovna činjenica još nedostaje.`
   }] : [];
+  const hasEstablishedSkills = Array.isArray(context.candidate?.skills) && context.candidate.skills.length > 0
+    && (serviceModeContext?.unresolvedServices?.length ?? 0) === 0 && !pendingWorkerClarificationHint;
+  const isWorkerExplicitSkillChange = /(?:dodaj\s+veštinu|dodaj\s+zanat|promeni\s+veštine|ne\s+radim\s+više|ne\s+radim\s+vise)/iu.test(input.text);
+  const needsWorkerTree = singlePassActive && (!hasEstablishedSkills || isWorkerExplicitSkillChange);
   const systemParts=[...stableParts,
-    ...(singlePassActive ? [{text:singlePassTaxonomyInstruction(fullCatalog,'WORKER_CAPABILITY')}] : []),
+    ...(needsWorkerTree ? [{text:singlePassTaxonomyInstruction(fullCatalog,'WORKER_CAPABILITY')}] : []),
     ...modeParts,runtimePart,...clarificationPart,...modeContextParts];
-  const interviewSchema=singlePassActive ? withSinglePassTaxonomySchema(workerProviderSchema()) : workerProviderSchema();
+  const interviewSchema=needsWorkerTree ? withSinglePassTaxonomySchema(workerProviderSchema()) : workerProviderSchema();
   const responseSchema=serviceModeContext ? workerServiceModeSchema(interviewSchema) : interviewSchema;
   if (singlePassActive && serviceModeContext)
     responseSchema.required=[...(responseSchema.required ?? []),'serviceModeChangesJson'];
-  const body=JSON.stringify({systemInstruction:{parts:systemParts},contents:history,
-    generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema}});
+  let cachedContentResource: string | null = null;
+  if (needsWorkerTree && fullCatalog?.catalogVersion) {
+    cachedContentResource = await getOrCreateGeminiContextCache({
+      geminiApiKey: key,
+      catalogVersion: fullCatalog.catalogVersion,
+      catalog: fullCatalog,
+      model,
+      signal: research?.signal,
+      purpose: 'WORKER_CAPABILITY',
+    });
+  }
+
+  const body = cachedContentResource
+    ? JSON.stringify({
+        cachedContent: cachedContentResource,
+        contents: history,
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
+          responseMimeType: 'application/json',
+          responseSchema,
+          thinkingConfig: {
+            thinkingBudget: 0,
+          },
+        },
+      })
+    : JSON.stringify({
+        systemInstruction: { parts: systemParts },
+        contents: history,
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
+          responseMimeType: 'application/json',
+          responseSchema,
+          thinkingConfig: {
+            thinkingBudget: 0,
+          },
+        },
+      });
   if (new TextEncoder().encode(body).byteLength>AI_TEST_LIMITS.llmRequestBytes) { try { await fail(); } catch {} return json(413,{code:'WORKER_AI_CONTEXT_TOO_LARGE'}); }
   try {
     if (research.signal.aborted || research.remainingMs() <= 0) throw new Error('WORKER_AI_CANCELLED');
@@ -355,7 +395,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         let taxonomyDecisions: any[] = [];
         try {
           const providerOutput = JSON.parse(raw);
-          const extracted = singlePassActive ? takeSinglePassTaxonomy(providerOutput) : {output:providerOutput,decisions:[]};
+          const extracted = (singlePassActive && needsWorkerTree) ? takeSinglePassTaxonomy(providerOutput) : {output:providerOutput,decisions:[]};
           taxonomyDecisions = extracted.decisions;
           const {availabilityChange,...parsed} = extracted.output;
           // Provider must explicitly decide about the calendar. Null means no

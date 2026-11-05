@@ -82,20 +82,22 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
       <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak ${title}`} accessibilityValue={{ text: spoken }}
         accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} onPressIn={lift.give} onPressOut={lift.settle} haptic="select" scaleTo={1}
         style={recordBody}>
-        {drawnChip || urgent ? <View style={s.top}>
-          {/* The card is heard once, as one sentence (`taskSpoken`); its chip and badge are not stops of their own. */}
-          {drawnChip ? <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-            <StatusChip status={drawnChip.status} detail={drawnChip.detail} /></View> : <View style={s.grow} />}
-          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><NeedUrgencyBadge urgency={item.urgency} now={urgencyNow} /></View>
-        </View> : null}
-        <T variant="heading" numberOfLines={2}>{title}</T>
-        <View style={s.facts}>
-          <TaskDecisionValue need={item} size="card" />
-          <FactRow art={place.remote ? 'remote' : 'pin'} value={place.text} />
-          <FactRow art="calendar" value={schedule} />
-          {people ? <FactRow art="users" value={people} /> : null}
+        <View pointerEvents="none">
+          {drawnChip || urgent ? <View style={s.top}>
+            {/* The card is heard once, as one sentence (`taskSpoken`); its chip and badge are not stops of their own. */}
+            {drawnChip ? <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+              <StatusChip status={drawnChip.status} detail={drawnChip.detail} /></View> : <View style={s.grow} />}
+            <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><NeedUrgencyBadge urgency={item.urgency} now={urgencyNow} /></View>
+          </View> : null}
+          <T variant="heading" numberOfLines={2}>{title}</T>
+          <View style={s.facts}>
+            <TaskDecisionValue need={item} size="card" />
+            <FactRow art={place.remote ? 'remote' : 'pin'} value={place.text} />
+            <FactRow art="calendar" value={schedule} />
+            {people ? <FactRow art="users" value={people} /> : null}
+          </View>
+          {sentence ? <T variant="note" tone="muted">{sentence}</T> : null}
         </View>
-        {sentence ? <T variant="note" tone="muted">{sentence}</T> : null}
       </Press>
       {foot ? <RecordFoot label={foot} tone="muted" accessibilityLabel={`Pogledajte prijave, ${foot}. Zadatak: ${title}`} accessibilityHint="Otvara prijave za izbor."
         disabled={disabled} onPress={onApplications!} onPressIn={lift.give} onPressOut={lift.settle} /> : null}

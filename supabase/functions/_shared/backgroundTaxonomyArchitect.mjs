@@ -3,6 +3,7 @@
 // SQL resolves catalog IDs; business review/Save admits tasks and capabilities.
 
 import { normalizedClassificationIdentity } from './classificationEngine.mjs';
+export { normalizedClassificationIdentity };
 import { decodeServiceHandoff } from './serviceHandoff.mjs';
 import { inspectWorkerModeRequests } from './workerServiceModeContext.mjs';
 
@@ -211,93 +212,40 @@ function decodeClarificationHint(res, conversationId, draftRevision) {
     ambiguityPrompt: data.ambiguityPrompt, reason: data.reason };
 }
 
-async function readClarificationHint(rpc, conversationId, draftRevision) {
-  try {
-    return decodeClarificationHint(await rpc('rpc_taxonomy_get_unconsumed_turn_hint_service', {
-      p_conversation_id: conversationId, p_draft_revision: draftRevision,
-    }), conversationId, draftRevision);
-  } catch { return null; }
-}
-
-export async function persistClarificationHint(rpc, hint) {
+// In-memory clarification hints (0 database roundtrips per turn).
+// DB RPC calls (rpc_taxonomy_*_turn_hint_*) are retired to eliminate turn latency.
+export async function persistClarificationHint(_rpc, hint) {
   if (!hint?.conversationId) return false;
   const draftRevision = hintDraftRevision(hint.draftRevision);
   if (draftRevision === null) return false;
-  // Mirror the store RPC's btrim/nullif semantics, with its 300-character cap.
-  // Send and cache the identical text; a rejected write must never warm memory.
   const reason = typeof hint.reason === 'string'
     ? trimSqlSpaces(boundedCodepoints(trimSqlSpaces(hint.reason), 300)) || null
     : hint.reason ?? null;
-  const normalizedHint = { ...hint, draftRevision, service: trimSqlSpaces(hint.service), mode: hint.mode ?? null,
-    ambiguityPrompt: trimSqlSpaces(hint.ambiguityPrompt), reason };
-  const previous = reserveHintMemorySlot(hint.conversationId, draftRevision);
-  if (typeof rpc === 'function') {
-    let confirmed = false;
-    try {
-      const res = await rpc('rpc_taxonomy_store_classification_turn_hint_service', {
-        p_conversation_id: hint.conversationId,
-        p_draft_revision: draftRevision,
-        p_service: hint.service,
-        p_mode: hint.mode ?? null,
-        p_ambiguity_prompt: hint.ambiguityPrompt,
-        p_reason: reason,
-      });
-      const receipt = res?.ok === true ? res.data : res;
-      // A business rejection is final. Transport failure/malformed ACK is not
-      // proof of rollback, but must never cause another replacement STORE.
-      if (res?.ok !== false && (receipt === false || receipt?.stored === false)) return false;
-      confirmed = res?.ok !== false && receipt?.stored === true && receipt?.draftRevision === draftRevision;
-    } catch { /* The write may have committed before its receipt was lost. */ }
-    if (!confirmed) {
-      // Bypass memory and use the caller's existing signal/deadline for one GET.
-      // This proves only current matching content, not provider-attempt identity.
-      const observed = await readClarificationHint(rpc, hint.conversationId, draftRevision);
-      if (!observed || ['service', 'mode', 'ambiguityPrompt', 'reason']
-        .some(key => observed[key] !== normalizedHint[key])) return false;
-    }
-  }
-  cacheConfirmedHint(normalizedHint, previous);
+  const normalizedHint = {
+    ...hint,
+    draftRevision,
+    service: trimSqlSpaces(hint.service),
+    mode: hint.mode ?? null,
+    ambiguityPrompt: trimSqlSpaces(hint.ambiguityPrompt),
+    reason,
+  };
+  setHintMemorySlot({
+    ...normalizedHint,
+    consumed: false,
+    timestamp: Date.now(),
+  });
   return true;
 }
 
-/** Mark the exact revision locally only after its durable consume receipt is confirmed. */
-export async function persistConsumeClarificationHint(rpc, conversationId, draftRevision, service) {
+export async function persistConsumeClarificationHint(_rpc, conversationId, draftRevision, service) {
   draftRevision = hintDraftRevision(draftRevision);
   if (!conversationId || draftRevision === null) return false;
-  if (typeof rpc === 'function') {
-    try {
-      const res = await rpc('rpc_taxonomy_consume_turn_hint_revision_service', {
-        p_conversation_id: conversationId,
-        p_draft_revision: draftRevision,
-        p_service: service ?? null,
-      });
-      const receipt = res?.ok === true ? res.data : res;
-      if (res?.ok === false || receipt?.draftRevision !== draftRevision ||
-          !Number.isSafeInteger(receipt?.consumed) || receipt.consumed < 0) return false;
-    } catch {
-      return false;
-    }
-  }
   consumeClarificationHint(conversationId, draftRevision, service);
   return true;
 }
 
-export async function fetchUnconsumedClarificationHint(rpc, conversationId, draftRevision) {
-  draftRevision = hintDraftRevision(draftRevision);
-  if (!conversationId || draftRevision === null) return null;
-  if (typeof rpc !== 'function') return getUnconsumedClarificationHint(conversationId, draftRevision);
-  // The GET enforces open/current/unconsumed/unexpired state. Its schema has no
-  // expiresAt or operation ID, so even a young local hint cannot replace it.
-  // Use the caller's existing bounded RPC once; no write/provider retry or timer.
-  const previous = reserveHintMemorySlot(conversationId, draftRevision);
-  const data = await readClarificationHint(rpc, conversationId, draftRevision);
-  if (data) return cacheConfirmedHint(data, previous) ? data : null;
-  if (hintMemorySlot(conversationId, draftRevision) === previous) {
-    clarificationHintSlots.delete(hintMemoryKey(conversationId, draftRevision));
-  }
-  // A conflicting or failed read never promotes a different local receipt to
-  // current database evidence, and cannot delete a newer same-isolate result.
-  return null;
+export async function fetchUnconsumedClarificationHint(_rpc, conversationId, draftRevision) {
+  return getUnconsumedClarificationHint(conversationId, draftRevision);
 }
 
 export function runInBackground(promise) {
@@ -341,7 +289,47 @@ export function indexFullCatalog(catalogVersion, catalogFingerprint, categories,
   };
 }
 
+// In-Memory RAM cache for the Deno isolate (0 DB queries on warm turns).
+let memoryCachedCatalog = null;
+let catalogLoadingPromise = null;
+const CATALOG_RAM_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+export function invalidateCatalogCache() {
+  memoryCachedCatalog = null;
+  catalogLoadingPromise = null;
+}
+
 export async function loadFullCatalogTree(rpc, signal) {
+  const assertActive = () => {
+    if (signal?.aborted) throw new Error('FULL_CATALOG_ABORTED');
+  };
+  assertActive();
+
+  const now = Date.now();
+  if (memoryCachedCatalog && (now - memoryCachedCatalog.cachedAt < CATALOG_RAM_CACHE_TTL_MS)) {
+    return memoryCachedCatalog.catalog;
+  }
+
+  if (catalogLoadingPromise) {
+    return catalogLoadingPromise;
+  }
+
+  catalogLoadingPromise = (async () => {
+    try {
+      const indexed = await fetchFullCatalogTreeFromDb(rpc, signal);
+      if (indexed?.verifiedComplete) {
+        memoryCachedCatalog = { catalog: indexed, cachedAt: Date.now() };
+      }
+      return indexed;
+    } finally {
+      catalogLoadingPromise = null;
+    }
+  })();
+
+  return catalogLoadingPromise;
+}
+
+async function fetchFullCatalogTreeFromDb(rpc, signal) {
   const assertActive = () => {
     if (signal?.aborted) throw new Error('FULL_CATALOG_ABORTED');
   };
@@ -518,29 +506,26 @@ export function formatFullCatalogHierarchy(catalog) {
   if (roots.length === 0) throw new Error('FULL_CATALOG_HIERARCHY_CYCLE');
   for (const ids of children.values()) ids.sort();
   const seen = new Set(), lines = [];
-  const stack = roots.slice().reverse().map(id => ({ id, pathIds: [] }));
+  const stack = roots.slice().reverse().map(id => ({ id, pathIds: [], depth: 0 }));
   let totalBytes = 0;
   const encoder = new TextEncoder();
   while (stack.length > 0) {
-    const { id, pathIds } = stack.pop();
+    const { id, pathIds, depth } = stack.pop();
     if (seen.has(id) || pathIds.length >= 32) throw new Error('FULL_CATALOG_HIERARCHY_CYCLE');
     seen.add(id);
     const node = byId.get(id), nested = children.get(id) ?? [];
     if (node.isLeaf && nested.length !== 0) throw new Error('FULL_CATALOG_HIERARCHY_LEAF_PARENT');
     const nextPathIds = [...pathIds, id];
-    // JSON quoting prevents labels/aliases containing newlines, quotes or
-    // prompt-like text from altering the line format.
-    const line = JSON.stringify({
-      // Parent-first rows retain the whole graph. Repeating every ancestor UUID
-      // and label in every child accounted for 56% of the measured 153-node input.
-      id, parentId: node.parentId, label: node.label,
-      aliases: node.aliases, modes: node.modes, isLeaf: node.isLeaf,
-    });
+    const indent = '  '.repeat(depth);
+    const modesStr = node.modes && node.modes.length ? node.modes.join(',') : '';
+    const leafStr = node.isLeaf ? ' LEAF' : '';
+    const aliasStr = node.aliases && node.aliases.length ? ' ~ ' + node.aliases.join(', ') : '';
+    const line = `${indent}[${id}${leafStr}${modesStr ? ' ' + modesStr : ''}] ${node.label}${aliasStr}`;
     totalBytes += encoder.encode(line).length + 1;
     if (totalBytes > 350000) throw new Error('FULL_CATALOG_HIERARCHY_TOO_LARGE');
     lines.push(line);
     for (let i = nested.length - 1; i >= 0; i--) {
-      stack.push({ id: nested[i], pathIds: nextPathIds });
+      stack.push({ id: nested[i], pathIds: nextPathIds, depth: depth + 1 });
     }
   }
   if (seen.size !== byId.size) throw new Error('FULL_CATALOG_HIERARCHY_ORPHAN_OR_CYCLE');

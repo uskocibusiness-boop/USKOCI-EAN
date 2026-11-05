@@ -30,6 +30,7 @@ import { completeFirstPlan } from '../_shared/completeFirstPlan.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { decodeServiceHandoff } from '../_shared/serviceHandoff.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
+import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
 
 import {
   buildFullTreeTaxonomyProposals,
@@ -37,6 +38,7 @@ import {
   taskTaxonomyMode,
   taskTaxonomyScope,
   taskClassificationFingerprint,
+  normalizedClassificationIdentity,
   runInBackground,
   persistClarificationHint,
   persistConsumeClarificationHint,
@@ -448,10 +450,10 @@ function commonInstruction() {
   return [
     interviewVoiceInstruction(),
     'Činjenice izvodite iz razgovora: bez izmišljene cene, termina, adrese, opreme ili uslova. Ispravka menja isti ključ; izostavljeno ostaje. UNKNOWN nije potvrđeno.',
-    'Broj predmeta nije broj ljudi. Običan kućni/zanatski posao: jedan izvršilac osim izričitog drugog broja. Nejasnu ekipu/težak teret razjasnite.',
+    'Broj predmeta nije broj ljudi. Običan kućni/zanatski zadatak: jedan izvršilac osim izričitog drugog broja. Nejasnu ekipu/težak teret razjasnite.',
     'Identitet je samostalno naveden; provera dokumenta, selfija ili KYC nije dostupna. Licence/KYC nisu podržani: bez need.required_licenses, need.verified_identity_required, tvrdnje o ovlašćenju/proveri ili prebacivanja tih zahteva u opis/filtere. Na zahtev objasnite ograničenje; običan zadatak može da se nastavi bez tih zahteva. Stare uslove ne brišite prećutno.',
     'Vreme: serverski Europe/Belgrade i pomak za konkretan datum; sačuvajte izričit ISO instant. Nejasnu zonu razjasnite, ne izmišljajte sat/trajanje/kraj. Korisniku prikažite poslednji uključeni dan, ne isključivu sledeću ponoć.',
-    ...(applicationDeadlineEnabled() ? ['need.response_deadline: samo izričit rok PRIJAVE {"kind":"AT","at":"ISO sa pomakom"}, uklanjanje {"kind":"NONE"}; citat tekuće poruke. Nepomenut rok nije NONE. Bez sata pitajte; termin posla nije rok prijave.'] : []),
+    ...(applicationDeadlineEnabled() ? ['need.response_deadline: samo izričit rok PRIJAVE {"kind":"AT","at":"ISO sa pomakom"}, uklanjanje {"kind":"NONE"}; citat tekuće poruke. Nepomenut rok nije NONE. Bez sata pitajte; termin zadatka nije rok prijave.'] : []),
     'Mapu/fotografije vodi aplikacija; stanje znate samo ako je priloženo. Bez ponovnih potvrda, izmišljenog stanja, privatnih adresa, JSON-a ili internih pravila u odgovoru.',
   ];
 }
@@ -556,10 +558,11 @@ function locationRefValid(value: unknown): boolean {
   if (value == null) return true;
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
-  if (Object.keys(record).some((key) => !['label', 'city', 'area'].includes(key))) return false;
   const values = ['label', 'city', 'area'].map((key) => typeof record[key] === 'string' ? record[key].trim() : '');
   if (!values.some(Boolean)) return false;
-  return values[0].length <= 240 && values[1].length <= 160 && values[2].length <= 160;
+  return (record.label ? String(record.label).length <= 240 : true)
+    && (record.city ? String(record.city).length <= 160 : true)
+    && (record.area ? String(record.area).length <= 160 : true);
 }
 
 function geographyValid(value: unknown): boolean {
@@ -649,8 +652,11 @@ function parseV2Output(parsed: any, maxProposals = 12): ParsedTurn {
       if (!exact(fact, ['key', 'valueJson', 'displayValue', 'evidence', 'confidence']) ||
         !interviewFactKeySet.has(key) || seen.has(key) || typeof fact.valueJson !== 'string') throw new Error('AI_V2_FACT_INVALID');
       let value: unknown;
-      try { value = JSON.parse(fact.valueJson); } catch { throw new Error('AI_V2_FACT_INVALID'); }
-      if (!valueMatchesContract(key, value)) { console.info('NEED_AI_OUTPUT_GATE', 'FACT_VALUE_INVALID'); throw new Error('AI_V2_FACT_INVALID'); }
+      try { value = JSON.parse(fact.valueJson); } catch { continue; }
+      if (!valueMatchesContract(key, value)) {
+        console.warn('NEED_AI_OUTPUT_GATE_FACT_SKIPPED', key);
+        continue;
+      }
       const displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim() : '';
       const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim() : '';
       const confidence = fact?.confidence;
@@ -743,12 +749,59 @@ async function callGemini(
     ? (locationContext ? locationProviderSchema(v2ProviderSchema(maxProposals)) : v2ProviderSchema(maxProposals))
     : legacyProviderSchema();
   const responseSchema = singlePass ? withSinglePassTaxonomySchema(factSchema) : factSchema;
-  const payloadBody = JSON.stringify({
-    systemInstruction: { parts: systemParts },
-    contents,
-    generationConfig: { temperature: 0.7, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
-      responseMimeType: 'application/json', responseSchema },
-  });
+
+  let payloadBody: string;
+  let cachedContentResource: string | null = null;
+  if (singlePass?.catalog?.catalogVersion) {
+    cachedContentResource = await getOrCreateGeminiContextCache({
+      geminiApiKey: key,
+      catalogVersion: singlePass.catalog.catalogVersion,
+      catalog: singlePass.catalog,
+      model,
+      signal,
+      purpose: 'NEED_SERVICE',
+    });
+  }
+
+  if (cachedContentResource) {
+    const cachedContents = [
+      ...(runtimeParts.length ? [{
+        role: 'user',
+        parts: [{ text: `[KONTEKST TRENUTNOG ZADATKA I VREMENA]:\n${runtimeParts.map(p => p.text).join('\n')}` }],
+      }, {
+        role: 'model',
+        parts: [{ text: 'Razumeo sam server kontekst zadatka. Nastavljam razgovor po zanatskim smernicama.' }],
+      }] : []),
+      ...contents,
+    ];
+    payloadBody = JSON.stringify({
+      cachedContent: cachedContentResource,
+      contents: cachedContents,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
+        responseMimeType: 'application/json',
+        responseSchema,
+        thinkingConfig: {
+          thinkingBudget: 0,
+        },
+      },
+    });
+  } else {
+    payloadBody = JSON.stringify({
+      systemInstruction: { parts: systemParts },
+      contents,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
+        responseMimeType: 'application/json',
+        responseSchema,
+        thinkingConfig: {
+          thinkingBudget: 0,
+        },
+      },
+    });
+  }
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
   if (onText) {
     const raw = await measureAiPhase('PROVIDER', () => streamGeminiTask({
@@ -805,15 +858,38 @@ function sameFactValue(left: unknown, right: unknown): boolean {
   return JSON.stringify(ordered(left)) === JSON.stringify(ordered(right));
 }
 
+function cleanLocationPoint(p: any) {
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return p;
+  const cleaned: Record<string, string> = {};
+  if (typeof p.city === 'string' && p.city.trim()) cleaned.city = p.city.trim();
+  if (typeof p.area === 'string' && p.area.trim()) cleaned.area = p.area.trim();
+  if (typeof p.label === 'string' && p.label.trim()) cleaned.label = p.label.trim();
+  return Object.keys(cleaned).length ? cleaned : null;
+}
+
+function cleanGeography(geo: any) {
+  if (!geo || typeof geo !== 'object' || Array.isArray(geo)) return geo;
+  const res: Record<string, any> = { mode: geo.mode };
+  if (geo.start) res.start = cleanLocationPoint(geo.start);
+  if (geo.end) res.end = cleanLocationPoint(geo.end);
+  if (geo.serviceArea) res.serviceArea = cleanLocationPoint(geo.serviceArea);
+  if (Array.isArray(geo.waypoints)) res.waypoints = geo.waypoints.map(cleanLocationPoint).filter(Boolean);
+  return res;
+}
+
 function needTurnPersistenceProposals(turn: ParsedTurn): Array<Record<string, unknown>> {
-  if (!turn.priceRetraction) return turn.proposals;
-  if (!['CLARIFY', 'REVIEW'].includes(turn.safety) || turn.proposals.some(p =>
+  const proposals = turn.proposals.map(p => {
+    if (p.key === 'need.task_geography' && p.value && typeof p.value === 'object') {
+      return { ...p, value: cleanGeography(p.value) };
+    }
+    return p;
+  });
+  if (!turn.priceRetraction) return proposals;
+  if (!['CLARIFY', 'REVIEW'].includes(turn.safety) || proposals.some(p =>
     ['need.price_mode', 'need.price_rsd', 'need.price_basis'].includes(String(p.key)))) {
     throw new Error('AI_PRICE_RETRACTION_CONFLICT');
   }
-  // One service-only control precedes the ordinary facts. It is not a new fact
-  // and does not change the receipt's proposedCount or client review schema.
-  return [{ action: 'INVALIDATE_PRICE', reason: turn.priceRetraction }, ...turn.proposals];
+  return [{ action: 'INVALIDATE_PRICE', reason: turn.priceRetraction }, ...proposals];
 }
 
 function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], activeFacts: any[], time: ServerTimeContext, contextualLocation?: LocationContext, pendingDeadlineQuestion = false): ParsedTurn {
@@ -1086,7 +1162,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
       ? proposal.value !== 'FIXED_WINDOW' && proposal.value !== kind
       : typeof proposal.value === 'string' && Number.isFinite(Date.parse(proposal.value))
         && serbiaTimeParts(new Date(proposal.value)).localDate !== date;
-    if (conflict) return clarifySchedule('Koji je tačan datum početka posla?');
+    if (conflict) return clarifySchedule('Koji je tačan datum početka zadatka?');
   }
   if (dialogue?.schedulePattern === 'FLEXIBLE_RANGE') {
     // Provider-owned interpretation of a bounded *choice* of dates must not
@@ -1107,7 +1183,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
         // unbounded not-before task. Other answers still reach the owned writer.
         proposals: turn.proposals.filter(proposal => !['need.schedule_kind', 'need.starts_at', 'need.ends_at'].includes(proposal.key)),
         dialogue: { ...dialogue, next: 'CLARIFY', questionKey: '' },
-        assistantMessage: 'Dan može da bude fleksibilan unutar perioda. Od kog do kog datuma ti odgovara da se posao uradi?' };
+        assistantMessage: 'Dan može da bude fleksibilan unutar perioda. Od kog do kog datuma Vam odgovara da se zadatak uradi?' };
     }
   }
   const timeChecked = guardTimestampProposals(turn, input, activeFacts, time, pendingDeadlineQuestion);
@@ -1150,14 +1226,14 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     'need.description': 'Šta treba da se uradi?', 'need.people_needed': 'Koliko ljudi Vam treba?',
     'need.price_mode': 'Imate li planiran budžet ili želite da dobijete ponude?', 'need.price_rsd': facts.get('need.price_basis') === 'HOURLY' ? 'Koju cenu u dinarima po osobi po satu nudite?'
       : facts.get('need.price_basis') === 'PER_PERSON' ? 'Koju cenu u dinarima po osobi nudite?' : 'Koji iznos u dinarima nudite?',
-    'need.price_basis': 'Da li je taj budžet ukupan za ceo posao ili po osobi?', 'need.schedule_kind': 'Kada treba da se uradi?',
-    'need.starts_at': 'Kog datuma i u koliko sati posao počinje?', 'need.ends_at': 'Kada se posao završava?',
+    'need.price_basis': 'Da li je taj budžet ukupan za ceo zadatak ili po osobi?', 'need.schedule_kind': 'Kada treba da se uradi?',
+    'need.starts_at': 'Kog datuma i u koliko sati zadatak počinje?', 'need.ends_at': 'Kada se zadatak završava?',
     'need.task_country_code': 'U kojoj državi je zadatak?', 'need.task_geography': 'Gde treba da se uradi?',
     'need.handoff': 'Kako želite da preuzmete rezultat: digitalno, slanjem ili lično?',
   };
   const incompleteMessage = () => {
     const key = missing.find(key => questions[key]);
-    return key ? questions[key] : 'Podaci za pregled još nisu potpuni. Opis posla ostaje u razgovoru.';
+    return key ? questions[key] : 'Podaci za pregled još nisu potpuni. Opis zadatka ostaje u razgovoru.';
   };
   // A city-only stationary task is valid geography for categorisation, but not a
   // ready point on the map. This is a conversation gate, NOT a public address or
@@ -1190,7 +1266,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const routeQuestion = incompleteRoutePoint && (!tidyPlace(incompleteRoutePoint.point?.city)
     ? `U kom gradu je ${incompleteRoutePoint.name}?`
     : `Koju ulicu, deo grada ili orijentir da koristimo za ${incompleteRoutePoint.target}?`);
-  const nearestPlaceQuestion = 'U kom delu grada je posao? Dovoljna je ulica ili neki bliski orijentir; tačku ćemo zatim proveriti na mapi.';
+  const nearestPlaceQuestion = 'U kom delu grada je zadatak? Dovoljna je ulica ili neki bliski orijentir; tačku ćemo zatim proveriti na mapi.';
   const mapConfirmationMessage = 'Proverite predlog mesta na mapi. Pomerite pin ako treba, pa potvrdite tačku.';
   const routeMapMessage = 'Proverite i potvrdite preostale tačke rute na mapi.';
   const nextPlaceMessage = cityOnlyStationary ? nearestPlaceQuestion : routeQuestion
@@ -1420,21 +1496,23 @@ Deno.serve(async (req: Request) => {
       // Historical rollout flag now selects the full-catalog, one-call path.
       // Keep the same DEV/account admission until a separately verified rollout.
       if (singlePassActive) {
-        [fullCatalog, pendingClarificationHint] = await Promise.all([
-          measureAiPhase('NEED_FULL_CATALOG', () => loadFullCatalogTree(
-            (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? research!.signal, t ?? 2500),
-            research.signal)).catch(() => null),
-          fetchUnconsumedClarificationHint(
-            (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? signal, t ?? 2500),
-            conversationId,
-            taskDraftRevision
-          ).catch(() => null),
-        ]);
+        fullCatalog = await measureAiPhase('NEED_FULL_CATALOG', () => loadFullCatalogTree(
+          (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? research!.signal, t ?? 2500),
+          research.signal)).catch(() => null);
+        pendingClarificationHint = await fetchUnconsumedClarificationHint(
+          null,
+          conversationId,
+          taskDraftRevision
+        ).catch(() => null);
       }
+      const existingCategoryFact = activeFacts.find((f: any) => f.fact_key === 'need.category' && f.status !== 'UNKNOWN')?.fact_value;
+      const isExplicitReclassify = /(?:promen(?:i|ite)|drugi\s+(?:zadatak|posao)|ipak\s+(?:nesto|nešto)\s+drugo|pogre(?:s|š)na\s+kategorija)/iu.test(effectiveUserMessage);
+      const needsTree = singlePassActive && (!existingCategoryFact || isExplicitReclassify);
+
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, effectiveUserMessage, timeContext, research.signal, onText,
         (usage) => { reportedUsage = usage; }, locationContext, imageBase64, imageMime, pendingClarificationHint,
         !locationContext && req.headers.get(NEED_FACT_TURN_CAPABILITY_HEADER) === NEED_FACT_TURN_CAPABILITY_VERSION ? MAX_AI_NEED_FACT_V2_PROPOSALS : 12,
-        singlePassActive ? {catalog:fullCatalog,onDecisions:(decisions) => { taxonomyDecisions=decisions; }} : undefined);
+        needsTree ? {catalog:fullCatalog,onDecisions:(decisions) => { taxonomyDecisions=decisions; }} : undefined);
       if (locationContext) {
         // A validated answer to the shown question (e.g. 'to je to') stays a map
         // confirmation. Explicit task publication can never take that route.
@@ -1483,15 +1561,40 @@ Deno.serve(async (req: Request) => {
           mode:taskTaxonomyMode(effGeo),handoff:effHandoff});
         const classificationInputChanged=effectiveFingerprint!==null && effectiveFingerprint!==priorFingerprint;
 
-        if (classificationInputChanged || Boolean(pendingClarificationHint) || taxonomyDecisions.length > 0) {
+        const effMode = taskTaxonomyMode(effGeo);
+        let effectiveDecisions = taxonomyDecisions;
+        if (effectiveDecisions.length === 0 && typeof effCategory === 'string' && effCategory.trim().length >= 3 && effMode && fullCatalog) {
+          const normCat = normalizedClassificationIdentity(effCategory.trim());
+          const catCandidates = (fullCatalog.byNormalizedKey?.get(normCat) ?? []) as any[];
+          const stripDiacritics = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+          const effStripped = stripDiacritics(effCategory);
+          const matchingLeaf = catCandidates.find((c: any) => c.isLeaf && c.modes?.includes(effMode))
+            ?? catCandidates.find((c: any) => c.isLeaf)
+            ?? fullCatalog.categories?.find((c: any) => c.isLeaf && normalizedClassificationIdentity(c.label) === normCat)
+            ?? fullCatalog.categories?.find((c: any) => c.isLeaf && (stripDiacritics(c.label) === effStripped || (Array.isArray(c.aliases) && c.aliases.some((a: string) => stripDiacritics(a) === effStripped))));
+          if (matchingLeaf) {
+            const catAction = matchingLeaf.modes?.includes(effMode) ? 'REUSE_EXISTING' : 'EXTEND_MODE';
+            effectiveDecisions = [{
+              service: effCategory.trim(),
+              mode: effMode,
+              action: catAction,
+              categoryId: matchingLeaf.categoryId,
+              parentId: '',
+              proposedPath: [],
+              ambiguityPrompt: '',
+              reason: `Zadržana potvrđena kategorija „${effCategory.trim()}“ iz prethodnog koraka razgovora.`,
+            }];
+          }
+        }
+
+        if (classificationInputChanged || Boolean(pendingClarificationHint) || effectiveDecisions.length > 0) {
           // A missing geography is not evidence of on-site execution. The
           // classifier runs when the conversation has a typed execution mode.
-          const effMode = taskTaxonomyMode(effGeo);
           if (typeof effCategory === 'string' && effCategory.trim().length >= 3 && effMode) {
             // Local validation of the already paid response; no background provider.
             builtTaxonomy = await measureAiPhase('NEED_TAXONOMY_VALIDATE', () => buildFullTreeTaxonomyProposals({
               suppliedCatalog: fullCatalog,
-              suppliedDecisions: taxonomyDecisions,
+              suppliedDecisions: effectiveDecisions,
               items: [{ service: effCategory.trim(), mode: effMode, handoff: effHandoff }],
               conversationId,
               // Completion persists one USER and one ASSISTANT message.

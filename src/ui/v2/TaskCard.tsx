@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import type { StanjePotrebe } from '../../contracts/projections';
 import type { MarketplaceItem } from '../../data/marketplaceView';
 import { Surface } from '../system/Surface';
@@ -34,7 +34,9 @@ function TaskCardBase({ item, onOpen, relation, sectionSays, portrait, style }: 
 }) {
   const model = useTaskRecord(item, relation, sectionSays);
   return <Surface kind="record" onPress={onOpen} style={style} accessibilityLabel={`Otvori zadatak ${model.title}. ${model.spoken}`}>
-    <TaskRecordBody model={model} portrait={portrait} />
+    <View pointerEvents="none">
+      <TaskRecordBody model={model} portrait={portrait} />
+    </View>
   </Surface>;
 }
 export const TaskCard = memo(TaskCardBase);

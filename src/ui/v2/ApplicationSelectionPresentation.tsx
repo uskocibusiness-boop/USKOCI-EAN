@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { readableTitle } from '../../data/needDetailPresentation';
+import { novac } from '../../lib/novac';
 import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija } from '../../contracts/projections';
@@ -507,8 +508,12 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
         {blocked ? <V2Action label="Osvežite prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noteAction} /> : null}
       </View>
       {value.kind === 'amount'
-        ? <MoneySummary label={candidate.osnovaCene === 'HOURLY' ? 'Satnica' : 'Ukupna ponuda'} amount={priceWords}
-          basis={candidate.osnovaCene === 'HOURLY' ? 'Po osobi po satu' : `Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} />
+        ? <MoneySummary label={candidate.osnovaCene === 'HOURLY' ? 'Satnica po osobi' : 'Ukupna ponuda'} amount={priceWords}
+          basis={candidate.osnovaCene === 'HOURLY'
+            ? (candidate.pokrivaMesta > 1 && Number.isSafeInteger(candidate.cena?.iznos)
+                ? `Po osobi po satu (${candidate.pokrivaMesta} radnika × ${priceWords} = ${novac(candidate.pokrivaMesta * candidate.cena.iznos)}/h ukupno)`
+                : 'Po osobi po satu')
+            : `Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} />
         : <FactRow art="money" size="detail" label="Ukupna ponuda" value={priceWords} />}
       <Surface kind="panel" variant="tinted" tone="wash" density="comfortable" style={s.offerFacts}>
         <FactRow art="users" size="detail" label="Dolazi" value={osoba(candidate.pokrivaMesta)} />
