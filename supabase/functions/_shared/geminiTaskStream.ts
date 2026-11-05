@@ -103,7 +103,13 @@ export function geminiRequestBody(raw: string): string {
   delete generation.responseMimeType;
   delete generation.responseSchema;
   delete generation.responseFormat;
-  generation.thinkingConfig = { thinkingLevel: 'low' };
+  const incomingThinking = generation.thinkingConfig;
+  delete generation.thinkingConfig;
+  if (incomingThinking && typeof incomingThinking === 'object' && !Array.isArray(incomingThinking)) {
+    generation.thinkingConfig = incomingThinking;
+  } else {
+    generation.thinkingConfig = { thinkingBudget: 0 };
+  }
   if (specifiedTemperature !== undefined) {
     generation.temperature = specifiedTemperature;
   }

@@ -586,6 +586,53 @@ function geographyValid(value: unknown): boolean {
   return false;
 }
 
+function normalizeAiGeographyProposal(val: unknown): unknown {
+  if (!val || typeof val !== 'object' || Array.isArray(val)) return val;
+  const raw = val as Record<string, any>;
+  const mode = (typeof raw.mode === 'string' && GEOGRAPHY_MODES.has(raw.mode.toUpperCase()))
+    ? raw.mode.toUpperCase()
+    : 'STATIONARY';
+
+  if (mode === 'REMOTE') return { mode: 'REMOTE' };
+
+  let start = raw.start;
+  if (!start && (raw.city || raw.area || raw.label)) {
+    start = {
+      city: typeof raw.city === 'string' ? raw.city.trim() : '',
+      area: typeof raw.area === 'string' ? raw.area.trim() : '',
+      label: typeof raw.label === 'string' ? raw.label.trim() : '',
+    };
+  } else if (start && typeof start === 'object' && !Array.isArray(start)) {
+    start = {
+      city: typeof start.city === 'string' ? start.city.trim() : '',
+      area: typeof start.area === 'string' ? start.area.trim() : '',
+      label: typeof start.label === 'string' ? start.label.trim() : '',
+    };
+  }
+
+  if (mode === 'STATIONARY') {
+    if (start && (start.city || start.area || start.label)) {
+      return { mode: 'STATIONARY', start };
+    }
+  }
+
+  if (mode === 'POINT_TO_POINT') {
+    let end = raw.end;
+    if (end && typeof end === 'object' && !Array.isArray(end)) {
+      end = {
+        city: typeof end.city === 'string' ? end.city.trim() : '',
+        area: typeof end.area === 'string' ? end.area.trim() : '',
+        label: typeof end.label === 'string' ? end.label.trim() : '',
+      };
+    }
+    if (start && end) {
+      return { mode: 'POINT_TO_POINT', start, end };
+    }
+  }
+
+  return val;
+}
+
 function valueMatchesContract(key: string, value: unknown): boolean {
   if (!isNeedFactV2Key(key)) return false;
   const definition = NEED_FACT_V2_DEFINITIONS[key];
@@ -653,8 +700,11 @@ function parseV2Output(parsed: any, maxProposals = 12): ParsedTurn {
         !interviewFactKeySet.has(key) || seen.has(key) || typeof fact.valueJson !== 'string') throw new Error('AI_V2_FACT_INVALID');
       let value: unknown;
       try { value = JSON.parse(fact.valueJson); } catch { continue; }
+      if (key === 'need.task_geography') {
+        value = normalizeAiGeographyProposal(value);
+      }
       if (!valueMatchesContract(key, value)) {
-        console.warn('NEED_AI_OUTPUT_GATE_FACT_SKIPPED', key);
+        console.warn('NEED_AI_OUTPUT_GATE_FACT_SKIPPED', key, JSON.stringify(value));
         continue;
       }
       const displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim() : '';
@@ -813,10 +863,10 @@ async function callGemini(
   const providerResponse = await boundedJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     { method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' }, body: geminiRequestBody(payloadBody) },
-    131072, 30000, signal, true,
+    131072, 30000, signal, false,
   );
   if (!providerResponse.ok) {
-    console.error('GEMINI_GENERATE_FAILED', providerResponse.status);
+    console.error('GEMINI_GENERATE_FAILED', providerResponse.status, JSON.stringify(providerResponse.data));
     if (providerResponse.status === 402) throw new GeminiCreditsUnavailableError();
     throw new Error('PROVIDER_HTTP_FAILED');
   }

@@ -82,7 +82,9 @@ async function main() {
     if (review?.facts) {
       for (const f of review.facts) {
         if (f.status !== 'UNKNOWN') {
-          console.log(`  • ${f.fact_key}: ${JSON.stringify(f.fact_value)}`);
+          const k = f.key ?? f.fact_key ?? f.id;
+          const v = f.value ?? f.fact_value ?? f.displayValue;
+          console.log(`  • ${k}: ${JSON.stringify(v)}`);
         }
       }
     } else {
@@ -93,12 +95,15 @@ async function main() {
 
   // TURN 1: Novi, egzotičan zadatak sa emocijom
   await sendTurn(1, 'Ćao druže! Treba mi neko da mi pomogne oko menjanja i skupljanja sličica za svetsko prvenstvo.');
+  await new Promise(r => setTimeout(r, 1500));
 
   // TURN 2: Lokacija, termin, novac
   await sendTurn(2, 'Ja sam u Novom Sadu kod Spensa. Voleo bih sutra u 17h ako neko može da uskoči, platio bih 1500 dinara.');
+  await new Promise(r => setTimeout(r, 1500));
 
   // TURN 3: Promena i prelazak na online/daljinu
   await sendTurn(3, 'A reci mi, ako se javi neko iz drugog grada, možemo li to da odradimo online preko video poziva i da pošaljemo sličice poštom?');
+  await new Promise(r => setTimeout(r, 1500));
 
   // TURN 4: Završetak i potvrda
   await sendTurn(4, 'Super, to je to, sve mi odgovara!');
