@@ -60,7 +60,7 @@ export default function Prijava() {
       const opportunity = liveOpportunity ?? session.pending?.opportunity;
       const need = liveNeed ?? session.pending?.need;
       const profile = liveProfile ?? session.pending?.profile;
-      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proverite zadatak i radni profil.' };
+      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proverite zadatak i svoj profil.' };
       if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
       session.notice = null;
       if (!session.pending && user?.id) {
@@ -220,11 +220,11 @@ export default function Prijava() {
   const priceBasisReview = pending?.result?.ok === false && pending.result.kod === 'APPLICATION_PRICE_BASIS_REVIEW_REQUIRED';
   const pendingHelp = priceBasisReview ? {
     lines: ['Sačuvana prijava ostaje na telefonu dok proveravate postojeće prijave.'],
-    actions: [{ label: 'Otvori moje prijave', onPress: () => { if (current()) router.push('/moje-prijave'); } }],
+    actions: [{ label: 'Otvorite moje prijave', onPress: () => { if (current()) router.push('/moje-prijave'); } }],
   } : pending && !data.receipt && (!refusal || guidance) ? {
-    lines: guidance?.messages.length ? guidance.messages : ['Vaša prijava ostaje sačuvana dok proveravate radni profil.'],
+    lines: guidance?.messages.length ? guidance.messages : ['Vaša prijava ostaje sačuvana dok proveravate profil majstora.'],
     actions: [
-      ...((!refusal || guidance?.profile) ? [{ label: 'Dopuni radni profil', onPress: () => { if (current()) router.push('/profil/radnik'); } }] : []),
+      ...((!refusal || guidance?.profile) ? [{ label: 'Dopunite profil majstora', onPress: () => { if (current()) router.push('/profil/radnik'); } }] : []),
       ...(guidance?.calendar ? [{ label: 'Otvori raspored', onPress: () => { if (current()) router.push('/raspored'); } }] : []),
     ],
   } : null;
@@ -248,7 +248,7 @@ export default function Prijava() {
     canSubmit={!session.journalRecovery && data.profile.stanje === 'ACTIVE' && data.opportunity.primaNovePrijave === true}
     // The same two facts that decide canSubmit, said in words with the way out (owner's rule: a grey button has a reason beside it).
     blocked={data.profile.stanje !== 'ACTIVE'
-      ? { reason: 'Radni profil još nije aktivan — bez njega ponuda ne može da se pošalje.', actionLabel: 'Dopuni radni profil',
+      ? { reason: 'Profil majstora još nije aktivan — bez njega ponuda ne može da se pošalje.', actionLabel: 'Dopunite profil majstora',
         onAction: () => { if (current()) router.push('/profil/radnik'); } }
       // A task that closed under the draft is a dead end without a way on (r6): the other tasks are it. Back stays the
       // header's arrow, so the way on is not "Nazad na zadatak" a second time.

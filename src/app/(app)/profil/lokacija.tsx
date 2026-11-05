@@ -193,19 +193,19 @@ function WorkerPointConfirmation({ expectedProfileId }: { expectedProfileId: str
     ? <StateView kind="error" title="Područje rada nije učitano" body={editor.error} primary={{ label: 'Pokušaj ponovo', onPress: refresh }} />
     : <QuietReadState art="map" title="Učitavamo područje rada…"
       body="Proveravamo sačuvani grad i približnu tačku pre potvrde na mapi." />);
-  if (!expectedProfileId || location.profileId !== expectedProfileId) return frame(<StateView kind="error" title="Otvori mapu iz svog radnog profila"
+  if (!expectedProfileId || location.profileId !== expectedProfileId) return frame(<StateView kind="error" title="Otvorite mapu iz svog profila"
     primary={{ label: 'Nazad na profil', onPress: leave.back }} />);
   const modeNotice = modes.view.kind === 'loading'
     ? admittedScope.current === mapScope
       ? <View accessibilityLiveRegion="polite"><T variant="note" tone="muted">Proveravamo način rada…</T></View>
       : <QuietReadState art="map" title="Proveravamo način rada…"
-        body="Mapa će biti dostupna kada potvrdimo rad na lokaciji u tvom profilu." />
-    : modes.view.kind === 'unavailable' ? <StateView kind="error" title="Način rada nije učitan" primary={{ label: 'Pokušaj ponovo', onPress: refresh }} />
-      : !eligible ? <StateView kind="empty" title={modes.view.kind === 'confirmed' ? 'Za rad na daljinu mapa nije potrebna' : 'Prvo potvrdi način rada u razgovoru'}
+        body="Mapa će biti dostupna kada potvrdite rad na lokaciji u svom profilu." />
+    : modes.view.kind === 'unavailable' ? <StateView kind="error" title="Način rada nije učitan" primary={{ label: 'Pokušajte ponovo', onPress: refresh }} />
+      : !eligible ? <StateView kind="empty" title={modes.view.kind === 'confirmed' ? 'Za rad na daljinu mapa nije potrebna' : 'Prvo potvrdite način rada u razgovoru'}
         primary={{ label: 'Nazad na profil', onPress: leave.back }} /> : null;
   if (modeNotice && admittedScope.current !== mapScope) return frame(modeNotice);
-  if (!location.city.trim() || !location.operatingCountryCode) return frame(<StateView kind="empty" title="Dopuni područje kroz razgovor"
-    body="Na radnom profilu izaberi „Gde“ i navedi grad u kom radiš. Zatim potvrdi njegov približan centar."
+  if (!location.city.trim() || !location.operatingCountryCode) return frame(<StateView kind="empty" title="Dopunite područje kroz razgovor"
+    body="Na profilu izaberite „Gde“ i navedite grad u kom radite. Zatim potvrdite njegov približan centar."
     primary={{ label: 'Nazad na profil', onPress: leave.back }} />);
   return <WorkerLocationForm pointOnly location={location} busy={editor.busy || !eligible} uncertain={editor.uncertain}
     onDirtyChange={setDirty} reading={editor.loading} saved={editor.saved} error={editor.error} onRetry={refresh}

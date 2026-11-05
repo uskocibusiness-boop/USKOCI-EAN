@@ -72,9 +72,9 @@ export const OFFERS_INFO = {
  */
 export function TaskPlacePrivacy() {
   return <View style={s.withInfo}>
-    <View style={s.grow}><FactRow art="lock" value="Tačnu adresu naručilac deli u Dogovoru" /></View>
+    <View style={s.grow}><FactRow art="lock" value="Tačnu adresu domaćin deli u Dogovoru" /></View>
     <View style={s.infoSlot}>
-      <InfoButton title="Ko vidi adresu" lines={['Na mapi se vidi približno područje, ne tačna adresa.', 'U Dogovoru naručilac bira kome deli tačnu adresu i privatne napomene. Izbor prijave sam po sebi ne otkriva adresu.']} />
+      <InfoButton title="Ko vidi adresu" lines={['Na mapi se vidi približno područje, ne tačna adresa.', 'U Dogovoru domaćin bira kome deli tačnu adresu i privatne napomene. Izbor prijave sam po sebi ne otkriva adresu.']} />
     </View>
   </View>;
 }

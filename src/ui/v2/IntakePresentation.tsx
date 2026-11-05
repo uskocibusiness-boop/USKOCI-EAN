@@ -409,7 +409,9 @@ export function IntakePresentation(props: Props) {
   const completeProposal = completeDraftProposal(conversation.facts) && !!place && gap.done === gap.total;
   const readyForReview = completeProposal && open && reviewContentReady && (props.reviewReady ?? props.canReview) && conversation.safety === 'ALLOW'
     && !stillNeededText && !hiddenMissing && !needsPoint && !busy && !pending && !props.error;
-  const showSummary = readyForReview || (completed && completeProposal && conversation.safety !== 'BLOCK' && !busy && !pending && !props.error);
+  const hasDraftFacts = Object.keys(conversation.facts).length > 0;
+  const showSummary = (hasDraftFacts || readyForReview || (completed && completeProposal))
+    && conversation.safety !== 'BLOCK' && !props.error;
   // Current facts belong in the final card and the explicit full review. Decorating
   // old replies with today's fact values repeated the summary and rewrote history.
   // The assistant's own end of a conversation about a task that already exists says "objava", which an edit is not (the owner's phone, 8 Oct 2026).

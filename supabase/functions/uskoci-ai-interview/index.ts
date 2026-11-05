@@ -869,7 +869,7 @@ async function callGemini(
     131072, 30000, signal, false,
   );
   if (!providerResponse.ok) {
-    console.error('GEMINI_GENERATE_FAILED', providerResponse.status, JSON.stringify(providerResponse.data));
+    console.error('GEMINI_GENERATE_FAILED', providerResponse.status);
     if (providerResponse.status === 402) throw new GeminiCreditsUnavailableError();
     throw new Error('PROVIDER_HTTP_FAILED');
   }

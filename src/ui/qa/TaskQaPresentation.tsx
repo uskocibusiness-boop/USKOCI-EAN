@@ -17,7 +17,7 @@ export type Question=OwnerPreselectionQuestion|PublicPreselectionQa;
 type Recovery={kind:'TEXT'|'DISPOSITION';absent:boolean;canCancel:boolean};
 /** `answeringId` is the question the text answers: its row says "Odgovaraš" instead of offering its actions. */
 type Composer={answering:string|null;answeringId?:string|null;revisionChanged:boolean;maxChars:number|null};
-/** Why the viewer cannot ask, with the way forward when the app has one ("Dopuni radni profil"). */
+/** Why the viewer cannot ask, with the way forward when the app has one ("Dopunite profil majstora"). */
 export type CannotAsk={text:string;action?:{label:string;onPress:()=>void}};
 export type TaskQaPresentationProps={
   title:string|null;mode:'OWNER'|'PUBLIC'|null;loaded:boolean;busy:boolean;message:string;

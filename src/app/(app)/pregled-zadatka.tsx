@@ -591,7 +591,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   });
   const identityBlock = unavailableIdentityFact ? <View style={s.identity}>
     <T variant="meta" tone="muted">{IDENTITY_VERIFICATION_UNAVAILABLE_COPY}</T>
-    <T variant="body">Ovaj zadatak traži uslov koji aplikacija ne može da proverite. Uklonite uslov da bi zadatak mogao da se objavi.</T>
+    <T variant="body">Ovaj zadatak traži uslov koji aplikacija ne može da proveri. Uklonite uslov da bi zadatak mogao da se objavi.</T>
     {!command && unavailableIdentityFact.id ? <V2Action label="Uklonite uslov i nastavite" kind="quiet"
       disabled={quietEdit} onPress={removeUnavailableIdentityRequirement} /> : null}
   </View> : null;

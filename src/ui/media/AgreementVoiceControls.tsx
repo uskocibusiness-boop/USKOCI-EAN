@@ -60,6 +60,12 @@ export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }
     if (recording && !wasRecording.current) tick('gestureStart');
     wasRecording.current = recording;
   }, [recording]);
+  useEffect(() => {
+    if (!capturing && held.current) {
+      held.current = false;
+      lift.settle();
+    }
+  }, [capturing, lift]);
   // Called off by dragging away or by the system taking the touch: the recording is dropped, and that is felt as a refusal.
   const cancel = () => { if (held.current) { held.current = false; lift.settle(); tick('cancel'); void voice.cancel(); } };
   return <MicTarget accessible accessibilityRole="button" accessibilityLabel={label}

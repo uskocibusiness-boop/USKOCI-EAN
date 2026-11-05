@@ -62,7 +62,7 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
     </Press>
     <View testID="worker-understood-services" style={s.previewFacts}>
       {shownSkills.map(service=>{
-        const scopes=modes.filter(item=>item.service===service).map(item=>item.mode==='ON_SITE'?'Kod naručioca':'Bez dolaska kod naručioca');
+        const scopes=modes.filter(item=>item.service===service).map(item=>item.mode==='ON_SITE'?'Kod domaćina':'Bez dolaska kod domaćina');
         const handoff=scopes.length&&verifiedReview?.classificationState==='READY'
           ?serviceHandoffText(verifiedReview.classificationCandidates?.find(item=>item.service===service&&item.mode==='REMOTE')?.handoff):null;
         return <View key={service} style={s.service}>

@@ -46,15 +46,15 @@ export function decodeHomeAttention(raw: unknown): HomeAttentionPreview | null {
       if (!sameId(row.applicationId, id) || row.agreementId !== null || row.applicationCount !== null || c.activeApplications < 1) return null;
       const stale = reason === 'APPLICATION_STALE';
       rows.push({ id: `application:${id}:${stale ? 'stale' : 'attention'}`,
-        title: stale ? 'Zadatak je izmenjen' : 'Prijava traži tvoju pažnju',
+        title: stale ? 'Zadatak je izmenjen' : 'Prijava traži Vašu pažnju',
         taskTitle: row.taskTitle,
-        detail: stale ? 'Pregledaj izmene pre odluke o prijavi.' : 'Otvori svoju prijavu.',
+        detail: stale ? 'Pregledajte izmene pre odluke o prijavi.' : 'Otvorite svoju prijavu.',
         target: { kind: 'APPLICATION', applicationId: id } });
     } else {
       if (taskId !== id || row.agreementId !== null || row.applicationId !== null || c.ownActiveTasks < 1
           || !Number.isSafeInteger(row.applicationCount) || (row.applicationCount as number) < 1) return null;
       rows.push({ id: `need:${id}:applications`, title: prijava(row.applicationCount as number),
-        taskTitle: row.taskTitle, detail: 'Čeka tvoj izbor.', target: { kind: 'CANDIDATES', needId: id } });
+        taskTitle: row.taskTitle, detail: 'Čeka Vaš izbor.', target: { kind: 'CANDIDATES', needId: id } });
     }
   }
   // EX-04 S3 (RC-03): the rating aggregate is optional (an older server has none) and strict when it is there: a count, and the id exactly when the count is one.

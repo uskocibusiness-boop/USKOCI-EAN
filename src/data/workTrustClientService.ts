@@ -106,9 +106,9 @@ export const RECEIVED_REVIEWS_PAGE_SIZE = 20;
 export const RECEIVED_REVIEWS_PAGE_MAX = 50;
 
 const errors: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
-  ACCOUNT_CLOSING: 'Ovo ne možeš da vidiš dok se tvoj nalog zatvara.',
-  INVALID_PAGE: 'Ocene se nisu učitale kako treba. Pokušaj ponovo.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.',
+  ACCOUNT_CLOSING: 'Ovo ne možete da vidite dok se Vaš nalog zatvara.',
+  INVALID_PAGE: 'Ocene se nisu učitale kako treba. Pokušajte ponovo.',
   PROFILE_ID_REQUIRED: 'Profil nije dostupan.',
 };
 

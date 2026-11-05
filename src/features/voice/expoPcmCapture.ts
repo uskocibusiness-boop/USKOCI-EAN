@@ -77,9 +77,9 @@ export function createExpoPcmCapture(): NativePcmModule {
       try { session.stream?.release(); } catch (error) { failure ??= error; }
       // Native stop changes isStreaming before releasing AudioRecord. A first
       // failure therefore cannot be certified safe by a later idempotent stop.
-      if (failure) throw failure;
       session.stream = null;
       if (active === session) active = null;
+      if (failure) throw failure;
     })();
     return session.stopping;
   }

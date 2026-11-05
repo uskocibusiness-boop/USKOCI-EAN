@@ -131,8 +131,8 @@ function ProfileLink({ label, subtitle, detail, attention, settings, disabled, o
       accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} haptic="select" scaleTo={sys.motion.scale.row} style={s.linkPrimary}>
       {content}
     </Press>
-    <Press accessibilityRole="button" accessibilityLabel="Osveži radni profil"
-      accessibilityHint="Ponovo učitava stanje radnog profila." accessibilityState={{ disabled }}
+    <Press accessibilityRole="button" accessibilityLabel="Osvežite profil majstora"
+      accessibilityHint="Ponovo učitava stanje profila majstora." accessibilityState={{ disabled }}
       disabled={disabled} onPress={onRetry} haptic="select" scaleTo={sys.motion.scale.row} style={s.retryWork}>
       <Glyph name="refresh" size={20} tone={disabled ? 'muted' : 'ink'} />
     </Press>

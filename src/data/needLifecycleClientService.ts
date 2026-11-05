@@ -3,21 +3,21 @@ import type { Ishod } from './ports';
 import { failure, positiveInteger, readReceipt, record, sameId, uuid } from './serverReceipt';
 
 const LIFECYCLE_COPY: Readonly<Record<string, string>> = {
-  ACCOUNT_CLOSING: 'Ovo ne možeš da uradiš dok se tvoj nalog zatvara.',
-  NEED_COMMAND_INVALID_INPUT: 'Ponovo otvori zadatak da vidiš najnovije podatke.',
-  NEED_CANCELLATION_REQUIRES_AGREEMENT_FLOW: 'Zadatak već ima Dogovor. Otkaži Dogovor, a ne zadatak.',
+  ACCOUNT_CLOSING: 'Ovo ne možete da uradite dok se Vaš nalog zatvara.',
+  NEED_COMMAND_INVALID_INPUT: 'Ponovo otvorite zadatak da vidite najnovije podatke.',
+  NEED_CANCELLATION_REQUIRES_AGREEMENT_FLOW: 'Zadatak već ima Dogovor. Otkažite Dogovor, a ne zadatak.',
   NEED_NOT_CANCELLABLE: 'Ovaj zadatak više ne može da se otkaže.',
   NEED_NOT_DELETABLE_DRAFT: 'Samo neobjavljen nacrt može da se obriše.',
-  DRAFT_MEDIA_CLEANUP_REQUIRED: 'Ukloni fotografije iz nacrta pre brisanja.',
-  DRAFT_HAS_AUTHORITATIVE_HISTORY: 'Ovaj nacrt ima istoriju i ne može da se obriše. Možeš da otkažeš zadatak.',
-  STALE_REVIEW_REQUIRED: 'Zadatak je u međuvremenu promenjen. Osveži ekran pa pokušaj ponovo.',
-  NEED_NOT_FOUND: 'Ovaj zadatak više ne postoji. Vrati se na zadatke.', FORBIDDEN: 'Ovo nije tvoj zadatak.',
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  DRAFT_MEDIA_CLEANUP_REQUIRED: 'Uklonite fotografije iz nacrta pre brisanja.',
+  DRAFT_HAS_AUTHORITATIVE_HISTORY: 'Ovaj nacrt ima istoriju i ne može da se obriše. Možete da otkažete zadatak.',
+  STALE_REVIEW_REQUIRED: 'Zadatak je u međuvremenu promenjen. Osvežite ekran pa pokušajte ponovo.',
+  NEED_NOT_FOUND: 'Ovaj zadatak više ne postoji. Vratite se na zadatke.', FORBIDDEN: 'Ovo nije Vaš zadatak.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.',
 };
 export const knownNeedLifecycleRefusal = (kod: string) => Object.prototype.hasOwnProperty.call(LIFECYCLE_COPY, kod);
 function invalidInput(needId: string, revision: number, reason: string): Ishod<never> | null {
   return uuid(needId) && positiveInteger(revision) && typeof reason === 'string' && Array.from(reason).length <= 500 ? null
-    : failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvori zadatak da vidiš najnovije podatke.');
+    : failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvorite zadatak da vidite najnovije podatke.');
 }
 
 /** Revision-bound terminal commands. No defaults may manufacture a server outcome. */

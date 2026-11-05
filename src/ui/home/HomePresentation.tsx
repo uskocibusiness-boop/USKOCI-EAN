@@ -357,8 +357,8 @@ export function HomePresentation(p: HomePresentationProps) {
       <WorkProfileReadState state={p.workProfileRead} />
       {availabilityShown ? <AvailableNowRow control={p.availableNow!} last={!setupProfile} /> : null}
       {/* R20: until the work profile exists, one row says what it is for and opens its conversation. */}
-      {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesite radni profil" subtitle="Dobijate zadatke koji Vam odgovaraju."
-        onPress={() => p.onOpen({ kind: 'WORKER_PROFILE' })} last accessibilityLabel="Podesite radni profil. Dobijate zadatke koji Vam odgovaraju." /> : null}
+      {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesite profil majstora" subtitle="Dobijate zadatke koji Vam odgovaraju."
+        onPress={() => p.onOpen({ kind: 'WORKER_PROFILE' })} last accessibilityLabel="Podesite profil majstora. Dobijate zadatke koji Vam odgovaraju." /> : null}
     </View>
     {p.loading && !home ? <HomeInitialLoading /> : null}
     {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}

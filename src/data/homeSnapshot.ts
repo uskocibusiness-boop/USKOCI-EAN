@@ -196,18 +196,18 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
   const attention: HomeAttention[] = serverAttention
     ? serverAttention.kind === 'known' ? serverAttention.value.rows : [] : [
     ...(agreements ?? []).filter(row => row.stanje === 'AWAITING_REQUESTER' && mySide(row) === 'narucilac').map(row => ({
-      id: `agreement:${row.id}:confirm`, title: 'Potvrdi završetak', detail: `${row.naslov} · završetak je označen i čeka tvoju potvrdu`,
+      id: `agreement:${row.id}:confirm`, title: 'Potvrdi završetak', detail: `${row.naslov} · završetak je označen i čeka Vašu potvrdu`,
       target: { kind: 'AGREEMENT' as const, agreementId: row.id } })),
     ...(agreements ?? []).filter(row => activeAgreement(row) && row.problemOtvoren).map(row => ({
       id: `agreement:${row.id}:problem`, title: 'Prijavljen je problem', detail: `${row.naslov} · automatski završetak je zaustavljen`,
       target: { kind: 'AGREEMENT' as const, agreementId: row.id } })),
     ...(applications ?? []).filter(row => activeApplication(row) && needsMe(row)).map(row => ({
       id: `application:${row.prijavaId}:${staleApplication(row) ? 'stale' : 'attention'}`,
-      title: staleApplication(row) ? 'Zadatak je izmenjen' : 'Prijava traži tvoju pažnju',
-      detail: staleApplication(row) ? `${row.naslov} · pregledaj izmene pre nego što odlučiš o prijavi` : `${row.naslov} · otvori svoju prijavu`,
+      title: staleApplication(row) ? 'Zadatak je izmenjen' : 'Prijava traži Vašu pažnju',
+      detail: staleApplication(row) ? `${row.naslov} · pregledajte izmene pre nego što odlučite o prijavi` : `${row.naslov} · otvorite svoju prijavu`,
       target: { kind: 'APPLICATION' as const, applicationId: row.prijavaId } })),
     ...(needs ?? []).filter(hasNeedAttention).map(row => ({
-      id: `need:${row.id}:applications`, title: prijava(row.brojPrijavaZaIzbor!), detail: `${row.naslov} · čeka tvoj izbor`,
+      id: `need:${row.id}:applications`, title: prijava(row.brojPrijavaZaIzbor!), detail: `${row.naslov} · čeka Vaš izbor`,
       target: { kind: 'CANDIDATES' as const, needId: row.id } })),
   ];
 

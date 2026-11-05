@@ -8,17 +8,17 @@ const STATUSES: ReadonlySet<string> = new Set(['REQUESTED', 'PROCESSING', 'READY
 const TERMINAL: ReadonlySet<string> = new Set(['READY', 'FAILED', 'EXPIRED']);
 const INVALID = 'DATA_EXPORT_INVALID_RESPONSE';
 const EXPORT_COPY: Readonly<Record<string, string>> = {
-  DATA_EXPORT_REQUEST_ALREADY_OPEN: 'Zahtev za izvoz tvojih podataka je već u toku.',
+  DATA_EXPORT_REQUEST_ALREADY_OPEN: 'Zahtev za izvoz Vaših podataka je već u toku.',
   // PKG-029d (deep read 6.2): without a published retention policy no export can be delivered, and the
   // server now says so instead of accepting a request nothing would fulfil.
   DATA_EXPORT_POLICY_NOT_READY: 'Izvoz podataka još nije dostupan: pravila čuvanja podataka još nisu objavljena.',
   DATA_EXPORT_REQUEST_NOT_CANCELLABLE: 'Ovaj zahtev više ne može da se otkaže.',
   DATA_EXPORT_REQUEST_NOT_FOUND: 'Zahtev nije pronađen.',
-  INVALID_CLIENT_REQUEST_ID: 'Zahtev trenutno nije mogao da se zabeleži. Pokušaj ponovo.',
+  INVALID_CLIENT_REQUEST_ID: 'Zahtev trenutno nije mogao da se zabeleži. Pokušajte ponovo.',
   INVALID_RECEIPT_ID: 'Zahtev nije pronađen.',
-  AUTH_REQUIRED: 'Prijavi se da zatražiš izvoz podataka.',
-  DATA_EXPORT_NOT_AVAILABLE: 'Izvoz trenutno nije dostupan. Učitaj trenutno stanje.',
-  DATA_EXPORT_ARTIFACT_STALE: 'Izvoz je promenjen. Učitaj trenutno stanje.',
+  AUTH_REQUIRED: 'Prijavite se da zatražite izvoz podataka.',
+  DATA_EXPORT_NOT_AVAILABLE: 'Izvoz trenutno nije dostupan. Učitajte trenutno stanje.',
+  DATA_EXPORT_ARTIFACT_STALE: 'Izvoz je promenjen. Učitajte trenutno stanje.',
 };
 
 export { DATA_EXPORT_MAX_BYTES } from '../contracts/dataExport';

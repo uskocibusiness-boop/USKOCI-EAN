@@ -175,15 +175,15 @@ export function AgendaScreen({ selected, today, schedule, list, availability = n
   // The words under the controls when only what the schedule says is shown: the Dogovori did not load (it can be tried again) or came
   // without saying whether they have an exact term (trying again would not change that).
   const notice = partial ? <View style={s.partial}>
-    <View style={s.partialLines}><T variant="note" tone="muted">{nothing ? 'Nema termina u kojima uskačeš.' : 'Učitani su samo termini u kojima uskačeš.'}</T></View>
-    {dogovoriFailed ? <V2Action label="Pokušaj ponovo" kind="quiet" compact onPress={onRetryList} /> : null}
+    <View style={s.partialLines}><T variant="note" tone="muted">{nothing ? 'Nema termina u kojima uskačete.' : 'Učitani su samo termini u kojima uskačete.'}</T></View>
+    {dogovoriFailed ? <V2Action label="Pokušajte ponovo" kind="quiet" compact onPress={onRetryList} /> : null}
   </View> : dogovoriPending && !nothing ? <View accessibilityLiveRegion="polite" style={s.partial}>
-    <T variant="note" tone="muted">Još učitavamo tvoje Dogovore. Za sada se vide termini u kojima uskačeš.</T>
+    <T variant="note" tone="muted">Još učitavamo Vaše Dogovore. Za sada se vide termini u kojima uskačete.</T>
   </View> : null;
   // Never say a view is empty before every read it depends on has settled.
   const waiting = schedule.state === 'loading' || (ready && (!chosenKnown || (nothing && list.state === 'loading')));
   const failed = schedule.state === 'error' ? <StateView kind="error" art="calendar" title="Raspored nije učitan."
-    body={schedule.message ?? 'Proveri vezu pa pokušaj ponovo.'} primary={{ label: 'Pokušaj ponovo', onPress: onRetry, disabled: retrying }} /> : null;
+    body={schedule.message ?? 'Proverite vezu pa pokušajte ponovo.'} primary={{ label: 'Pokušajte ponovo', onPress: onRetry, disabled: retrying }} /> : null;
   const stateOf = failed ?? (waiting ? LOADING : null);
 
   const stripDays = useMemo<StripDay[]>(() => days.map(day => {

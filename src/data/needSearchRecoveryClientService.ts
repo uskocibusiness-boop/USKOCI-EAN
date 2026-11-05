@@ -6,21 +6,21 @@ import { failure, readReceipt, uuid, type ReceiptAccount } from './serverReceipt
 
 /** EX-06E R3 is applied on canonical DEV. Production must receive the same verified migration before release. */
 export const SEARCH_RECOVERY_ERRORS: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.',
   NEED_NOT_FOUND: 'Zadatak nije dostupan.',
-  NEED_NOT_OWNED: 'Ovo nije tvoj zadatak.',
+  NEED_NOT_OWNED: 'Ovo nije Vaš zadatak.',
   ACCOUNT_CLOSING: 'Potraga ne može da se otvori dok je zatvaranje naloga u toku.',
-  STALE_REVIEW_REQUIRED: 'Zadatak je promenjen. Pregledaj aktuelno stanje.',
-  STALE_SEARCH_STATE: 'Odluka o potrazi je u međuvremenu promenjena. Pregledaj aktuelno stanje.',
+  STALE_REVIEW_REQUIRED: 'Zadatak je promenjen. Pregledajte aktuelno stanje.',
+  STALE_SEARCH_STATE: 'Odluka o potrazi je u međuvremenu promenjena. Pregledajte aktuelno stanje.',
   NO_REMAINING_SEARCH: 'Sva potrebna mesta su već dogovorena.',
-  REMAINING_SEARCH_ALREADY_OPEN: 'Potraga je već otvorena. Osveži prikaz.',
+  REMAINING_SEARCH_ALREADY_OPEN: 'Potraga je već otvorena. Osvežite prikaz.',
   NEED_REMAINING_SEARCH_NOT_REOPENABLE: 'Ovaj zadatak više ne može da nastavi potragu.',
-  REMAINING_SEARCH_REOPEN_WINDOW_CLOSED: 'Vreme za ovu potragu je prošlo. Proveri zadatak i svoje Dogovore.',
-  IDEMPOTENCY_KEY_REUSED: 'Zahtev ne odgovara ranijoj radnji. Pregledaj aktuelno stanje.',
-  SEARCH_CLOSURE_WITNESS_REQUIRED: 'Ponovo učitaj stanje potrage.',
-  SEARCH_RECEIPT_INPUT_INVALID: 'Prethodni zahtev nije potpun. Osveži prikaz.',
-  CLIENT_REQUEST_ID_INVALID: 'Zahtev nije ispravan. Ponovo otvori zadatak.',
-  NEED_ID_REVISION_REQUIRED: 'Ponovo otvori zadatak.',
+  REMAINING_SEARCH_REOPEN_WINDOW_CLOSED: 'Vreme za ovu potragu je prošlo. Proverite zadatak i svoje Dogovore.',
+  IDEMPOTENCY_KEY_REUSED: 'Zahtev ne odgovara ranijoj radnji. Pregledajte aktuelno stanje.',
+  SEARCH_CLOSURE_WITNESS_REQUIRED: 'Ponovo učitajte stanje potrage.',
+  SEARCH_RECEIPT_INPUT_INVALID: 'Prethodni zahtev nije potpun. Osvežite prikaz.',
+  CLIENT_REQUEST_ID_INVALID: 'Zahtev nije ispravan. Ponovo otvorite zadatak.',
+  NEED_ID_REVISION_REQUIRED: 'Ponovo otvorite zadatak.',
 };
 
 export const knownSearchRecoveryRefusal = (code: string) =>

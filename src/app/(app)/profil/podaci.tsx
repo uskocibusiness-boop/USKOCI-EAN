@@ -98,15 +98,15 @@ function OwnedPersonalProfile() {
         })} />
       {showWorkNameRepair ? <WorkNameNotice retrying={retrying} onRetry={() => { void retryWorkName(); }} /> : null}
       {/* "O meni" is the work profile's text, written where the work profile is: its editor opens on that part. */}
-      {dirty?<T variant="note" tone="muted">Sačuvaj ime pre izmene radnog profila.</T>:null}
+      {dirty?<T variant="note" tone="muted">Sačuvajte ime pre izmene profila majstora.</T>:null}
       <ProfileFactRows about={about} city={city} onAbout={() => editWithAi('identity')} onCity={() => editWithAi('area')}
         disabled={dirty||editor.busy||editor.uncertain||retrying} />
       <VisibilityNote />
     </>
       : editor.error && !editor.loading ? <StateView kind="error" title="Profil nije učitan" body={editor.error}
-        primary={{ label: 'Proveri sačuvane podatke', onPress: check, disabled: editor.busy || editor.loading }} />
+        primary={{ label: 'Proverite sačuvane podatke', onPress: check, disabled: editor.busy || editor.loading }} />
         : <QuietReadState art="person" title="Učitavamo lične podatke…"
-          body="Proveravamo sačuvano ime pre nego što omogućiš izmene." />}
+          body="Proveravamo sačuvano ime pre nego što omogućite izmene." />}
     {leave.sheet}
   </SettingsScreen>;
 }

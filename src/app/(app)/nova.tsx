@@ -346,7 +346,20 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
         } else {
           // The answer can introduce a location AND ask the next question. Wait for its canonical facts before presenting it;
           // otherwise that next question flashes above the map. Worker-profile streaming has no such location phase.
-          result = await aiNeedV2Izvor.sendMessage(id, command.body ?? '', command.id, { signal: abort.signal, onText: () => {} }, command.image);
+          result = await aiNeedV2Izvor.sendMessage(
+            id,
+            command.body ?? '',
+            command.id,
+            {
+              signal: abort.signal,
+              onText: (delta) => {
+                if (isCurrent() && !abort.signal.aborted) {
+                  setStreamingText((prev) => prev + delta);
+                }
+              },
+            },
+            command.image,
+          );
           if (result.ok && result.podatak.state === 'SUCCEEDED' && isCurrent() && request.current === command && !abort.signal.aborted)
             turnRoles.current[result.podatak.receipt.assistantMessageId] = 'ordinary';
         }

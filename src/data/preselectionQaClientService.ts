@@ -16,18 +16,18 @@ const QA_COPY: Readonly<Record<string, string>> = {
   OFF_PLATFORM_LINK_NOT_PUBLIC: PUBLIC_FLOOR_COPY, SOCIAL_HANDLE_NOT_PUBLIC: PUBLIC_FLOOR_COPY,
   STALE_NEED_REVISION: STALE_COPY, QUESTION_STALE_AFTER_NEED_REVISION: STALE_COPY,
   NEED_NOT_FOUND: 'Zadatak nije pronađen.', NEED_NOT_PUBLIC: 'Zadatak više nije javan.',
-  REQUESTER_CANNOT_ASK_OWN_TASK: 'Ne možeš postaviti pitanje na sopstveni zadatak.',
-  ACTIVE_WORKER_REQUIRED: 'Dopuni radni profil da postaviš pitanje.',
-  RU4B_MATERIAL_REQUIRES_RU4_EDIT: 'Ovaj odgovor menja zadatak. Izmeni zadatak umesto odgovora.',
+  REQUESTER_CANNOT_ASK_OWN_TASK: 'Ne možete postaviti pitanje na sopstveni zadatak.',
+  ACTIVE_WORKER_REQUIRED: 'Dopunite profil majstora da postavite pitanje.',
+  RU4B_MATERIAL_REQUIRES_RU4_EDIT: 'Ovaj odgovor menja zadatak. Izmenite zadatak umesto odgovora.',
   QUESTION_NOT_FOUND: 'Pitanje nije pronađeno.', QUESTION_NOT_ANSWERABLE: 'Na ovo pitanje više ne može da se odgovori.',
-  QUESTION_NOT_PENDING: 'Ovo pitanje je već obrađeno.', NOT_NEED_OWNER: 'Ovo nije tvoj zadatak.',
+  QUESTION_NOT_PENDING: 'Ovo pitanje je već obrađeno.', NOT_NEED_OWNER: 'Ovo nije Vaš zadatak.',
   RU4B_DISPOSITION_INVALID: 'Radnja nije prepoznata.',
-  IDEMPOTENCY_KEY_REUSED: 'Radnja nije mogla da se ponovi sa istim zahtevom. Pokušaj ponovo.',
-  REQUEST_ID_REQUIRED: 'Radnja trenutno nije mogla da se zabeleži. Pokušaj ponovo.',
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  IDEMPOTENCY_KEY_REUSED: 'Radnja nije mogla da se ponovi sa istim zahtevom. Pokušajte ponovo.',
+  REQUEST_ID_REQUIRED: 'Radnja trenutno nije mogla da se zabeleži. Pokušajte ponovo.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.',
 };
 function invalidRequestId() { return failure('REQUEST_ID_INVALID', QA_COPY.REQUEST_ID_REQUIRED); }
-function invalidInput() { return failure('QA_INVALID_INPUT', 'Ponovo otvori zadatak i pregledaj aktuelne podatke.'); }
+function invalidInput() { return failure('QA_INVALID_INPUT', 'Ponovo otvorite zadatak i pregledajte aktuelne podatke.'); }
 function status(value: unknown): value is PreselectionQuestionStatus {
   return value === 'PENDING_ANSWER' || value === 'ANSWERED_PUBLIC' || value === 'IGNORED' || value === 'REPORTED';
 }

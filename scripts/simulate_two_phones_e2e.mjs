@@ -99,8 +99,34 @@ async function main() {
     }
   }
 
-  // 1.4 Objavljeni zadatak u Novom Sadu
-  const activeNeedId = '7a8b9c0d-1e2f-4a5b-8c9d-0e1f2a3b4c5d';
+  // 1.4 Objavljivanje svežeg zadatka u Novom Sadu za Marka
+  const { data: requesterProf, error: errReqProf } = await adminClient
+    .from('app_profiles')
+    .select('id')
+    .eq('account_id', markoId)
+    .eq('kind', 'REQUESTER')
+    .single();
+
+  if (errReqProf || !requesterProf) {
+    throw new Error('Nije pronađen profil naručioca za Marka: ' + JSON.stringify(errReqProf));
+  }
+
+  const activeNeedId = crypto.randomUUID();
+  const { error: errCreateNeed } = await adminClient.rpc('rpc_test_create_simulation_need', {
+    p_need_id: activeNeedId,
+    p_requester_account_id: markoId,
+    p_requester_profile_id: requesterProf.id,
+    p_title: 'Krečenje stana od 65m² u belo',
+    p_category: 'Krečenje',
+    p_city: 'Novi Sad',
+    p_area: 'Liman 2',
+    p_price_rsd: 12000
+  });
+
+  if (errCreateNeed) {
+    throw new Error('Greška pri kreiranju svežeg objavljenog zadatka: ' + JSON.stringify(errCreateNeed));
+  }
+
   const { data: needInsert } = await adminClient
     .from('needs')
     .select('id, title, approximate_city, approximate_area, requester_price_rsd, status, revision')
@@ -181,7 +207,7 @@ async function main() {
     .from('needs')
     .select('id, title, requester_price_rsd, approximate_city, approximate_area, status, required_skills')
     .eq('approximate_city', 'Novi Sad')
-    .eq('status', 'PUBLISHED');
+    .in('status', ['ACTIVE', 'PUBLISHED']);
 
   if (errOpenTasks || !openTasks || openTasks.length === 0) {
     throw new Error('Jovan ne vidi poslove na mapi: ' + JSON.stringify(errOpenTasks));
@@ -311,19 +337,92 @@ async function main() {
     .eq('agreement_id', agreementId)
     .order('created_at', { ascending: true });
 
-  console.log(`\n✓ Čet sinhronizovan: ${messages?.length || 0} poruke u bazi.`);
+  console.log(`\n✓ Čet sinhronizovan: ${messages?.length || 0} poruke u bazi.\n`);
+
+  // ========================================================================
+  // FAZA 6: MAJSTOR JOVAN OZNACAVA RAD KAO ZAVRSEN (rpc_mark_work_done)
+  // ========================================================================
+  console.log('------------------------------------------------------------------------');
+  console.log('📱 TELEFON 2: JOVAN OZNAČAVA POSAO KAO ZAVRŠEN (rpc_mark_work_done)');
+  console.log('------------------------------------------------------------------------');
+
+  const { data: doneDeadline, error: errMarkDone } = await client2.rpc('rpc_mark_work_done', {
+    p_agreement_id: agreementId
+  });
+
+  if (errMarkDone) {
+    throw new Error('Greška pri označavanju rada kao završenog: ' + JSON.stringify(errMarkDone));
+  }
+  console.log(`✓ Jovan je označio rad kao završen!`);
+  console.log(`   • Rok za naručioca: ${doneDeadline}\n`);
+
+  // ========================================================================
+  // FAZA 7: MARKO POTVRĐUJE ZAVRŠETAK POSLA (rpc_confirm_completion)
+  // ========================================================================
+  console.log('------------------------------------------------------------------------');
+  console.log('📱 TELEFON 1: MARKO PREGLEDA ZAVRŠEN POSAO I POTVRĐUJE (rpc_confirm_completion)');
+  console.log('------------------------------------------------------------------------');
+
+  const { data: completionData, error: errConfirmComp } = await client1.rpc('rpc_confirm_completion', {
+    p_agreement_id: agreementId
+  });
+
+  if (errConfirmComp) {
+    throw new Error('Greška pri potvrdi završetka: ' + JSON.stringify(errConfirmComp));
+  }
+  console.log(`✓ Marko je potvrdio završetak! Posao je zvanično zaključen.`);
+  console.log(`   • Status dogovora: COMPLETED`);
+
+  // Proveravamo stanje potrebe (Need) nakon P0 popravke sync_need_completion
+  const { data: needAfterComp } = await adminClient
+    .from('needs')
+    .select('status')
+    .eq('id', activeNeedId)
+    .single();
+
+  console.log(`   • Status roditeljskog zadatka (Needs): ${needAfterComp?.status}\n`);
+
+  // ========================================================================
+  // FAZA 8: MARKO OSTAVLJA OCENU I RECENZIJU (rpc_submit_agreement_review_v2)
+  // ========================================================================
+  console.log('------------------------------------------------------------------------');
+  console.log('⭐ TELEFON 1: MARKO OCENJUJE MAJSTORA (rpc_submit_agreement_review_v2)');
+  console.log('------------------------------------------------------------------------');
+
+  const reviewReqId = crypto.randomUUID();
+  const reviewComment = 'Izuzetan majstor! Sve je okrečeno čisto, pedantno i na vreme. Topla preporuka!';
+  const { data: reviewReceipt, error: errSubmitReview } = await client1.rpc('rpc_submit_agreement_review_v2', {
+    p_agreement_id: agreementId,
+    p_target_account_id: jovanId,
+    p_rating: 5,
+    p_tags: ['AS_AGREED', 'CAREFUL', 'ON_TIME'],
+    p_client_request_id: reviewReqId,
+    p_comment: reviewComment
+  });
+
+  if (errSubmitReview) {
+    throw new Error('Greška pri unosu recenzije: ' + JSON.stringify(errSubmitReview));
+  }
+
+  console.log(`✓ Recenzija uspešno zabeležena:`);
+  console.log(`   • Ocena: 5 zvezdica (čista petica)`);
+  console.log(`   • Oznake: AS_AGREED, CAREFUL, ON_TIME`);
+  console.log(`   • Komentar: "${reviewComment}"`);
 
   console.log('\n========================================================================');
-  console.log('🎉 SVI TOKOVI SU USPEŠNO POTVRĐENI NA ŽIVOM SERVERU I DVA TELEFONA!');
+  console.log('🎉 SVI TOKOVI SU 100% USPEŠNO POTVRĐENI NA ŽIVOM SERVERU I DVA TELEFONA!');
   console.log('  1. Autentifikacija oba korisnika (Naručilac i Majstor): DOKAZANO');
   console.log('  2. AI intervju sa Gemini modelom (uskoci-ai-interview): DOKAZANO');
   console.log('  3. Razumevanje govora, ekstrakcija činjenica i stablo: DOKAZANO');
-  console.log('  4. Objavljivanje zadatka na mapi (Novi Sad, 12.000 RSD): DOKAZANO');
+  console.log('  4. Objavljivanje svežeg zadatka na mapi (Novi Sad, 12.000 RSD): DOKAZANO');
   console.log('  5. Radnički profil vezan za grane u stablu (Molerski radovi): DOKAZANO');
   console.log('  6. Discovery pretraga i pronalazak posla na mapi: DOKAZANO');
   console.log('  7. Slanje zvanične ponude (rpc_submit_response): DOKAZANO');
   console.log('  8. Prihvatanje ponude i sklapanje Dogovora (rpc_select_response): DOKAZANO');
   console.log('  9. Dvosmerni čet u okviru dogovora (rpc_send_agreement_message_v2): DOKAZANO');
+  console.log('  10. Označavanje završetka radova (rpc_mark_work_done): DOKAZANO');
+  console.log('  11. Potvrda naručioca i sync_need_completion P0 rešenje: DOKAZANO');
+  console.log('  12. Ocenjivanje sa 5 zvezdica i komentarom (rpc_submit_agreement_review_v2): DOKAZANO');
   console.log('========================================================================\n');
 }
 

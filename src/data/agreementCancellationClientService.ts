@@ -50,9 +50,9 @@ const exactKeys = (row: Record<string, unknown>, keys: readonly string[]) =>
 
 /** The refusals the function names. Only these leave this module as words; anything else is an unconfirmed read. */
 const errors = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
-  ACCOUNT_CLOSING: 'Ovo ne možeš da vidiš dok se tvoj nalog zatvara.',
-  INVALID_AGREEMENT_IDS: 'Dogovori nisu dostupni. Osveži ekran.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.',
+  ACCOUNT_CLOSING: 'Ovo ne možete da vidite dok se Vaš nalog zatvara.',
+  INVALID_AGREEMENT_IDS: 'Dogovori nisu dostupni. Osvežite ekran.',
 };
 
 /** Keys of the answer are the lower-case ids, so a lookup does not depend on how an id was spelled. */

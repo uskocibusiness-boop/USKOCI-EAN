@@ -28,9 +28,9 @@ import { GROUP_READING_POSITION, useGroupReading } from './useGroupReading';
 type Group = NonNullable<NonNullable<GroupState['context']>['group']>;
 type Member = Group['members'][number];
 /** The one sentence a finished group conversation says where the pill would be (the same as a closed Dogovor's, in the group's word). */
-export const GROUP_CLOSED_SENTENCE = 'Razgovor je završen. Poruke možeš samo da čitaš.';
+export const GROUP_CLOSED_SENTENCE = 'Razgovor je završen. Poruke možete samo da čitate.';
 // The management block is the requester's alone, so a finish that waits on the requester waits on the person reading it.
-const status = (value: string) => ({ CONFIRMED: 'Važeći Dogovor', AWAITING_REQUESTER: 'Čeka tvoju potvrdu završetka', COMPLETED: 'Završen', CANCELLED: 'Otkazan' }[value] ?? 'Dogovor');
+const status = (value: string) => ({ CONFIRMED: 'Važeći Dogovor', AWAITING_REQUESTER: 'Čeka Vašu potvrdu završetka', COMPLETED: 'Završen', CANCELLED: 'Otkazan' }[value] ?? 'Dogovor');
 /** The counter appears only near the limit, as in Poruke. */
 const LIMIT = 2000, NEAR = 1800;
 
@@ -132,30 +132,30 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
     {group ? <>
       {ownAgreementId ? <Press testID="group-task-anchor" accessibilityRole="button"
         accessibilityLabel={`Otvori svoj Dogovor: ${group.title}`}
-        accessibilityHint="Otvara tvoje pojedinačne uslove uz ovaj zadatak."
+        accessibilityHint="Otvara Vaše pojedinačne uslove uz ovaj zadatak."
         accessibilityState={{ disabled: !ready }} disabled={!ready}
         haptic="select" scaleTo={sys.motion.scale.row} hitSlop={0} style={s.taskAnchor}
         onPress={ready ? () => p.onOpenAgreement(ownAgreementId) : undefined}>
         <T variant="meta" tone="muted">Zadatak</T>
         <View style={s.taskRow}><T variant="bodyStrong" style={s.taskTitle}>{group.title}</T>
-          <T variant="meta" tone={ready ? 'green' : 'muted'}>Tvoj Dogovor ›</T></View>
+          <T variant="meta" tone={ready ? 'green' : 'muted'}>Vaš Dogovor ›</T></View>
       </Press> : <View testID="group-task-anchor" style={s.taskAnchor}>
         <T variant="meta" tone="muted">Zadatak</T>
         <T variant="bodyStrong" style={s.taskTitle}>{group.title}</T>
       </View>}
       <T variant="note" tone="muted">{p.onPrivate
-        ? 'Cenu, lične uslove i probleme dogovori privatno.'
-        : 'Poruke vide svi učesnici. Cenu, lične uslove i probleme dogovori privatno.'}</T>
+        ? 'Cenu, lične uslove i probleme dogovorite privatno.'
+        : 'Poruke vide svi učesnici. Cenu, lične uslove i probleme dogovorite privatno.'}</T>
       {/* A finished conversation says so once, where the pill would be. */}
       {!group.terminal && !group.canSend ? <T variant="meta" tone="muted">Dostupna istorija razgovora</T> : null}
     </> : ready ? <StateView kind="empty" art="users" title="Grupni razgovor još nije otvoren"
-      body="Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe. Tvoj privatni Dogovor je i dalje dostupan." /> : null}
+      body="Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe. Vaš privatni Dogovor je i dalje dostupan." /> : null}
     {state.message && state.phase !== 'UNKNOWN' && state.phase !== 'CONFIRMED' && (state.phase !== 'ERROR' || olderUnavailable) ? <T variant="copy" accessibilityRole={state.phase === 'ERROR' ? 'alert' : undefined}
       accessibilityLiveRegion="polite">{state.message}</T> : null}
     {state.before ? <V2Action label={olderUnavailable ? 'Ponovo učitaj starije poruke' : 'Starije poruke'} kind="quiet" disabled={!ready && !olderUnavailable} onPress={older} /> : null}
     {/* Visibility comes from immutable per-message server grants. */}
     {ready && group && state.messages.length === 0 ? <StateView kind="empty" art="chat" title="Još nema poruka"
-      body={group.canSend ? 'Dogovorite zajedničke detalje ovde. Napiši prvu poruku.' : 'Ovde još nema poruka koje možeš da pročitaš.'} /> : null}
+      body={group.canSend ? 'Dogovorite zajedničke detalje ovde. Napišite prvu poruku.' : 'Ovde još nema poruka koje možete da pročitate.'} /> : null}
     {/* New messages also arrive through foreground incremental reads; a screen reader cannot easily pull: as in
         Poruke the refresh is also a quiet action at the head of the thread, centred, under the empty state's words when
         there is none, and never on a finished conversation, where nothing new can arrive. */}
@@ -212,7 +212,7 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
         />
       {/* Keep read and send recovery next to the composer even when the reader is scrolled into older history. */}
       {state.syncUnavailable ? <View testID="group-sync-unavailable" style={[s.stack,s.gutter]} accessibilityLiveRegion="polite">
-        <T variant="note" tone="muted">Nove poruke trenutno ne stižu. Prikazane poruke i tvoj tekst su sačuvani na ovom ekranu. Pokušavamo ponovo.</T>
+        <T variant="note" tone="muted">Nove poruke trenutno ne stižu. Prikazane poruke i Vaš tekst su sačuvani na ovom ekranu. Pokušavamo ponovo.</T>
         <V2Action label="Proveri nove poruke" kind="quiet" compact onPress={p.onRefresh} />
       </View> : null}
       {progress ? <View testID="group-conversation-progress" style={[s.stack, s.gutter]} accessibilityLiveRegion="polite">

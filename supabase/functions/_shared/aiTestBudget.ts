@@ -2,8 +2,8 @@
 export const AI_TEST_LIMITS = Object.freeze({
   // Per model call, including the complete catalog and owned conversation.
   // Keep request/output limits and pre-dispatch cost admission on every path.
-  llmRequestBytes: 262144,
-  llmMaxOutputTokens: 8192,
+  llmRequestBytes: 10485760,
+  llmMaxOutputTokens: 2048,
   llmReservationMicrousd: 250000,
   speechPcmBytes: 3840000,
   speechMaxOutputTokens: 8192,

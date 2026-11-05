@@ -116,9 +116,9 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, safety, tru
         {safety ? <View>
           {/* A command with its words in red and its arrow: it opens the report, so the row says where it goes. */}
           <ListRow leading={<FactArt kind="shield" size={32} muted />} title={safety.busy ? 'Otvaramo…' : SAFETY_LABEL} tone="danger" arrow last
-            subtitle="Osoba koju prijavljuješ ne vidi prijavu." disabled={safety.busy} onPress={safety.onPress}
+            subtitle="Osoba koju prijavljujete ne vidi prijavu." disabled={safety.busy} onPress={safety.onPress}
             accessibilityLabel={`${SAFETY_LABEL}: ${name}`}
-            accessibilityHint="Otvara prijavu ili blokiranje osobe. Osoba koju prijavljuješ ne vidi tvoju prijavu." />
+            accessibilityHint="Otvara prijavu ili blokiranje osobe. Osoba koju prijavljujete ne vidi Vašu prijavu." />
           {safety.error ? <T accessibilityRole="alert" accessibilityLiveRegion="polite" variant="note" tone="danger">{safety.error}</T> : null}
         </View> : null}
       </View>}

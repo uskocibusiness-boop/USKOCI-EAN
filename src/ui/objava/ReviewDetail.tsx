@@ -154,7 +154,7 @@ function Publisher({ person }: { person: DetailPerson }) {
   if (!name) return null;
   const trust = publisherTrust(person.rating, person.reviewCount);
   return <>
-    <Section title="Naručilac">
+    <Section title="Domaćin">
       <ListRow title={name} subtitle={trust.text} last
         leading={person.photo?.(person.profileId, 40) ?? <Avatar initials={inicijali(name)} size={40} />}
         accessibilityLabel={[name, publisherRatingLine(person.rating, person.reviewCount)].join(', ')}

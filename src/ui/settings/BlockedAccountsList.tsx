@@ -43,7 +43,7 @@ export function BlockedAccountsList({ data, loading, busy, error, uncertain, cur
     </View> : null}
     {!data ? error
       ? <StateView kind="error" title="Lista nije učitana" body={error} primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: reading }} />
-      : <QuietReadState title="Učitavamo blokirane osobe" body="Proveravamo tvoju listu pre prikaza." art="lock" /> : null}
+      : <QuietReadState title="Učitavamo blokirane osobe" body="Proveravamo Vašu listu pre prikaza." art="lock" /> : null}
     {/* Nobody blocked is the good case. It says how a block happens, since nothing on this screen can start one, and it has no button:
         the screen is read again by pulling it, and a "Proveri ponovo" that only looked again was the one action of an empty screen. */}
     {firstWithMore ? <StateView kind="empty" art="shield" title="Na ovoj stranici nema više osoba." /> : null}
@@ -51,7 +51,7 @@ export function BlockedAccountsList({ data, loading, busy, error, uncertain, cur
       ? <StateView kind="empty" art="shield" title="Na ovoj stranici nema više osoba."
           quiet={{ label: 'Početak liste', onPress: () => onPage(null), disabled: busy }} />
       : <StateView kind="empty" art="shield" title="Nema blokiranih osoba."
-          body="Osobu blokiraš ili prijaviš sa njenog profila, iz zadatka ili iz Dogovora." /> : null}
+          body="Osobu blokirate ili prijavite sa njenog profila, iz zadatka ili iz Dogovora." /> : null}
     {items.length ? <SettingsGroup>{items.map((item, index) => {
       const name = blockedName(item);
       return <SettingsPersonRow key={item.targetAccountId} name={name} initials={inicijali(item.displayName)} last={index === items.length - 1}

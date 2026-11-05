@@ -65,23 +65,23 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
   if (state.reason === 'TASK_NOT_OPEN') return null;
   if (state.reason === 'ACCOUNT_CLOSING') return {
     title: 'Potraga nije dostupna',
-    detail: 'Zatvaranje naloga je u toku. Postojeće Dogovore možeš da proveriš.',
+    detail: 'Zatvaranje naloga je u toku. Postojeće Dogovore možete da proverite.',
     art: 'users',
     quiet: true,
     primary: state.activeAgreementCount ? { label: 'Otvori moje Dogovore', action: 'AGREEMENTS' } : null,
   };
   if (state.awaitingConfirmationCount || state.openProblemCount) return {
-    title: state.openProblemCount ? 'Dogovor traži tvoju pažnju' : 'Potvrdi završetak zadatka',
-    detail: state.openProblemCount ? 'Prvo proveri prijavljeni problem u Dogovoru.'
-      : 'Završetak je označen. Proveri Dogovor pre sledećeg koraka.',
+    title: state.openProblemCount ? 'Dogovor traži Vašu pažnju' : 'Potvrdite završetak zadatka',
+    detail: state.openProblemCount ? 'Prvo proverite prijavljeni problem u Dogovoru.'
+      : 'Završetak je označen. Proverite Dogovor pre sledećeg koraka.',
     art: 'users',
     quiet: false,
     primary: { label: 'Otvori moje Dogovore', action: 'AGREEMENTS' },
   };
   if (!state.searchTimeAdmitted) return {
     title: 'Vreme za potragu je prošlo',
-    detail: state.activeAgreementCount ? 'Postojeći Dogovori ostaju. Proveri njihove termine i sledeći korak.'
-      : 'Proveri zadatak. Novi termin se ne određuje automatski.',
+    detail: state.activeAgreementCount ? 'Postojeći Dogovori ostaju. Proverite njihove termine i sledeći korak.'
+      : 'Proverite zadatak. Novi termin se ne određuje automatski.',
     art: 'clock',
     quiet: true,
     primary: state.agreementCount ? { label: 'Otvori moje Dogovore', action: 'AGREEMENTS' } : null,

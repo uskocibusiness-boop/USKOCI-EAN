@@ -22,7 +22,7 @@ import { field, sys } from '../system/tokens';
 const supportLabels = {
   // The five states of a request, in the words of its chip (the same on the list and on the request). A request nobody has taken
   // up yet "čeka pregled": it says no more than is true, and it does not say that somebody is already working on it.
-  RECEIVED: 'Čeka pregled', IN_REVIEW: 'U obradi', WAITING_FOR_AUTHOR: 'Čeka tvoju dopunu',
+  RECEIVED: 'Čeka pregled', IN_REVIEW: 'U obradi', WAITING_FOR_AUTHOR: 'Čeka Vašu dopunu',
   DECIDED: 'Odgovoreno', CLOSED: 'Zatvoren',
   SERVICE: 'USKOČI podrška', TASK: 'Pomoć oko zadatka', LEGAL_PRIVACY: 'Sadržaj i privatnost', SAFETY: 'Privatna bezbednosna prijava',
   TECHNICAL: 'Tehnička pomoć', SERVICE_COMPLAINT: 'Reklamacija na USKOČI uslugu', OTHER: 'Drugo',
@@ -90,7 +90,7 @@ export function SupportLoading() {
 }
 export function SupportPrivacy({ safety = false }: { safety?: boolean }) {
   return <QuietLine art="shield">{safety
-    ? 'Ovaj predmet je privatan. Prijavljena osoba i grupa ne dobijaju sadržaj tvoje prijave.'
+    ? 'Ovaj predmet je privatan. Prijavljena osoba i grupa ne dobijaju sadržaj Vaše prijave.'
     : 'Zahtev vide podnosilac i posebno ovlašćeni operater. Sadržaj se ne prosleđuje drugoj strani u saradnji.'}</QuietLine>;
 }
 export function SupportField({ label, value, onChange, maximum, disabled = false, multiline = false, optional = false }: {

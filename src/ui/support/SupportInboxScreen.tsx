@@ -77,14 +77,14 @@ export function SupportInboxView({ model, mode, onMode }: {
     {state.phase === 'LOADING' && !kept ? <SupportLoading />
       : state.phase === 'ERROR' ? <StateView kind="error" art="chat" title="Zahtevi nisu učitani" body={state.message ?? undefined}
         primary={{ label: 'Pokušaj ponovo', onPress: reload, disabled: busy }} />
-      : inbox ? <SettingsGroup title={mode === 'OWN' ? 'Tvoji zahtevi' : 'Zahtevi'}>
+      : inbox ? <SettingsGroup title={mode === 'OWN' ? 'Vaši zahtevi' : 'Zahtevi'}>
         {inbox.cases.length ? inbox.cases.map((item, index) => <SupportCaseRow key={item.id} topic={supportLabel(item.topic)} status={item.status}
           channel={item.channel} time={supportTime(item.updatedAt)} caseNumber={item.caseNumber} unread={item.unread}
           last={index === inbox.cases.length - 1} disabled={locked}
           onPress={() => navigate(() => router.push({ pathname: '/podrska/[id]', params: { id: item.id } }))} />)
           : mode === 'OWN'
             // One line and no action of its own: the green "Novi zahtev" below is the screen's one way forward.
-            ? <StateView kind="empty" art="chat" compact title="Nema tvojih zahteva." />
+            ? <StateView kind="empty" art="chat" compact title="Nema Vaših zahteva." />
             : <StateView kind="empty" art="chat" title="Nema zahteva na ovoj stranici." />}
         {cursors.length > 1 || inbox.nextBeforeCaseNumber ? <View style={supportStyles.pager}>
           {cursors.length > 1 ? <SettingsAction label="Prethodna stranica" kind="quiet" disabled={busy}
