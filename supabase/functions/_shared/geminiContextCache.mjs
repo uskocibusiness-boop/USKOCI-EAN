@@ -1,5 +1,5 @@
 // USKOCI Gemini Context Cache Manager.
-// Manages Google Gemini cachedContents for the 155-category taxonomy, craft matrix,
+// Manages Google Gemini cachedContents for the V15 clean taxonomy, craft matrix,
 // and dispatch doctrine. Enables 1s turn latency and 80% token cost reduction.
 
 import { interviewVoiceInstruction } from './interviewVoiceInstruction.mjs';
@@ -17,7 +17,7 @@ const activeCacheHandles = new Map();
  * 2. Service execution scope (ON_SITE vs REMOTE)
  * 3. Craft question matrix (grouped inquiries for transport, painting, plumbing, etc.)
  * 4. Few-shot craft synthesis examples
- * 5. Complete compact taxonomy hierarchy with 155 nodes, modes, and aliases
+ * 5. Complete compact taxonomy hierarchy with clean nodes, modes, and aliases
  */
 export function buildUskociCachedKnowledge(catalog, purpose = 'NEED_SERVICE') {
   const parts = [
@@ -35,7 +35,7 @@ export function buildUskociCachedKnowledge(catalog, purpose = 'NEED_SERVICE') {
   if (catalog?.verifiedComplete && Array.isArray(catalog.categories)) {
     parts.push(
       '',
-      `=== KOMPLETNO STABLO KATEGORIJA USKOCI (Verzija kataloga: ${catalog.catalogVersion}, 155 čvorova) ===`,
+      `=== KOMPLETNO STABLO KATEGORIJA USKOCI (Verzija kataloga: ${catalog.catalogVersion}, ${catalog.categories.length} čvorova) ===`,
       'Stablo je hijerarhijski uvučeno: [categoryId LEAF MODES] naziv ~ narodni_sinonimi.',
       'Za potrebe klasifikacije koristite isključivo ove postojeće ID-jeve:',
       formatFullCatalogHierarchy(catalog)
