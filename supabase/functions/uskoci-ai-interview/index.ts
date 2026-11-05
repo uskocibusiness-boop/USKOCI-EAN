@@ -499,7 +499,7 @@ function needFinishContext(activeFacts: any[], finishPresentation: boolean) {
   const description = known.get('need.description');
   const missingPresentation = ['need.title', 'need.category'].filter(key => !known.has(key));
   return (finishPresentation && missingPresentation.length && typeof description === 'string' && description.trim() ? [
-      `Završetak istog zadatka. Iz postojećeg need.description u serverskim činjenicama dopunite samo ${missingPresentation.join(', ')}; evidence je doslovan isečak tog opisa, ne Sinteza/komanda završetka. Bez izmene drugih vrednosti/uslova. dialogue: taskRelation CONTINUE, priceUnit UNSPECIFIED, schedulePattern UNSPECIFIED. Nejasan posao razjasnite, bez rezervne kategorije.`,
+      `Završetak istog zadatka. Iz postojećeg need.description u serverskim činjenicama dopunite samo ${missingPresentation.join(', ')}; evidence je doslovan isečak tog opisa, ne Sinteza/komanda završetka. Bez izmene drugih vrednosti/uslova. dialogue: taskRelation CONTINUE, priceUnit UNSPECIFIED, schedulePattern UNSPECIFIED. Nejasan zadatak razjasnite, bez rezervne kategorije.`,
     ] : []).join(' ');
 }
 
@@ -753,7 +753,7 @@ async function callGemini(
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
     parts: [{ text: String(row.body ?? '').slice(0, 4000) }],
   }));
-  const userParts: any[] = [{ text: text || 'Ovo je fotografija kvara odnosno posla. Molim te analiziraj sliku i predloži opis ili detalje zadatka.' }];
+  const userParts: any[] = [{ text: text || 'Ovo je fotografija zadatka. Molim Vas analizirajte sliku i predložite opis ili detalje zadatka.' }];
   if (imageBase64 && imageMime) {
     userParts.push({
       inlineData: {
@@ -1089,10 +1089,10 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const withheldUnitFacts = new Set(['need.price_mode', 'need.price_rsd', 'need.price_basis', 'need.title', 'need.description',
     ...(repeated ? ['need.schedule_kind', 'need.starts_at', 'need.ends_at'] : [])]);
   const unitMessage = repeated
-    ? 'Odvojene smene još ne možemo da sačuvamo kao jedan zadatak. Koji pojedinačni termin želiš da dogovoriš?'
+    ? 'Odvojene termine još ne možemo da sačuvamo kao jedan zadatak. Koji pojedinačni termin želite da dogovorite?'
     : hourlyMismatch
-      ? `${hourlyRetraction ? 'Prethodna cena više nije potvrđena. ' : ''}Satnica se čuva po osobi po satu. Koji iznos u RSD po osobi po satu želiš da postaviš?`
-      : 'Dnevnica još nije podržana. Koji iznos u RSD želiš za ceo posao, ukupno ili po osobi?';
+      ? `${hourlyRetraction ? 'Prethodna cena više nije potvrđena. ' : ''}Satnica se čuva po osobi po satu. Koji iznos u RSD po osobi po satu želite da postavite?`
+      : 'Dnevnica još nije podržana. Koji iznos u RSD želite za ceo zadatak, ukupno ili po osobi?';
   if (turn.safety === 'REVIEW') {
     // Keep a policy-review decision intact while preventing a mismatched price
     // from reaching its writer. This branch intentionally does not downgrade it.
@@ -1159,7 +1159,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     turn = { ...turn, safety: headcount ? turn.safety : 'CLARIFY',
       proposals: withoutUnsupportedPrice(turn.proposals),
       assistantMessage: falsePriceClaim
-        ? headcount ? 'Razumem koliko ljudi ti treba.' : 'Na šta se odnosi broj koji si naveo?'
+        ? headcount ? 'Razumem koliko Vam izvršilaca treba.' : 'Na šta se odnosi broj koji ste naveli?'
         : turn.assistantMessage };
     dialogue = turn.dialogue;
   }
@@ -1193,7 +1193,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     const wrongStart = typeof start === 'string' && Number.isFinite(Date.parse(start))
       && serbiaTimeParts(new Date(start)).localDate !== expectedDate;
     if (wrongKind || wrongStart) return clarifySchedule(
-      `Da razjasnimo termin: misliš na ${expectedDate.split('-').reverse().join('.')}?`);
+      `Da razjasnimo termin: mislite li na ${expectedDate.split('-').reverse().join('.')}?`);
   }
   // Validate an explicit source/value contradiction even inside a full sentence.
   // This is evidence consistency, not interpretation of negation or alternatives:
@@ -1399,7 +1399,7 @@ Deno.serve(async (req: Request) => {
   }
   if (!isUuid(conversationId)) return response(400, { code: 'CONVERSATION_ID_INVALID', message: 'Nacrt Zadatka nije ispravan.' });
   if ((!text && !imageBase64) || text.length > 4000) return response(400, { code: 'MESSAGE_INVALID', message: 'Unesite poruku do 4.000 znakova ili fotografiju.' });
-  const effectiveUserMessage = text || (imageBase64 ? 'Poslao sam fotografiju posla.' : '');
+  const effectiveUserMessage = text || (imageBase64 ? 'Poslao sam fotografiju zadatka.' : '');
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
   if (!supabaseUrl || !anonKey) return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
