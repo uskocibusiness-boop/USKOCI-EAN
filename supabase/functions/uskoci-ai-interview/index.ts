@@ -1376,7 +1376,7 @@ Deno.serve(async (req: Request) => {
   const authorization = req.headers.get('Authorization') ?? '';
   if (!/^Bearer [^\s]+$/.test(authorization)) return response(401, { code: 'AUTH_REQUIRED', message: 'Prijavite se da biste nastavili.' });
   let body: any;
-  try { body = (await boundedJson(req, {}, 8388608, 15000, req.signal)).data; }
+  try { body = (await boundedJson(req, {}, 10485760, 15000, req.signal)).data; }
   catch { return response(400, { code: 'INVALID_JSON', message: 'Zahtev nije ispravan.' }); }
   if (!object(body) || Object.keys(body).some(key => !['conversationId', 'text', 'clientRequestId', 'mode', 'locationContext', 'imageBase64', 'imageMime'].includes(key)))
     return response(400, { code: 'REQUEST_INVALID', message: 'Zahtev nije ispravan.' });

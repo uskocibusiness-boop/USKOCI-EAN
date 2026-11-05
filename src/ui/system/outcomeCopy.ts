@@ -48,9 +48,9 @@ export const OUTCOME = {
    */
   uncertain: { title: 'Ne znamo da li je uspelo', copy: 'Odgovor nije stigao.', action: OUTCOME_ACTION.check },
   /** The phone has no connection. */
-  offline: { title: 'Nema internet veze', copy: 'Uključi Wi-Fi ili mobilne podatke.', action: OUTCOME_ACTION.retry },
+  offline: { title: 'Nema internet veze', copy: 'Uključite Wi-Fi ili mobilne podatke.', action: OUTCOME_ACTION.retry },
   /** The connection is there; the service is not answering. It is not the person's phone, and the words say so. */
-  unavailable: { title: 'Usluga trenutno nije dostupna', copy: 'Nije do tvog telefona. Sačekaj malo.', action: OUTCOME_ACTION.retry },
+  unavailable: { title: 'Usluga trenutno nije dostupna', copy: 'Nije do Vašeg telefona. Sačekajte malo.', action: OUTCOME_ACTION.retry },
 } as const satisfies Record<string, OutcomeWords>;
 
 /** While a check is running: the one sentence the screen reader hears and the button's busy state stands for. */
@@ -63,7 +63,7 @@ export const CHECKING = 'Proveravamo…';
  * `OUTCOME.unavailable` instead; until then this is the honest line, and its sentence names the one thing a person can check.
  */
 export function cannotLoad(what: string): OutcomeWords {
-  return { title: `Ne možemo da učitamo ${what}`, copy: 'Proveri vezu.', action: OUTCOME_ACTION.retry };
+  return { title: `Ne možemo da učitamo ${what}`, copy: 'Proverite vezu.', action: OUTCOME_ACTION.retry };
 }
 
 /**

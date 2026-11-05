@@ -14,14 +14,13 @@ security definer
 set search_path to 'pg_catalog'
 as $$
 declare
-  v_category_id uuid := '548c7d65-6c20-4a75-9880-9a0244027624';
+  v_category_id uuid := '00000000-0000-4000-8000-000000000103';
   v_start timestamptz := now() + ((round(random() * 50 + 10))::text || ' days')::interval;
   v_end timestamptz := v_start + interval '4 hours';
 begin
-  -- Release any stale blocking calendar events for test worker accounts
-  update private.worker_calendar_events
-     set state = 'RELEASED'
-   where state = 'BLOCKING';
+  if coalesce(auth.jwt()->>'role', '') <> 'service_role' and current_user not in ('postgres', 'service_role') then
+    raise exception 'SERVICE_ROLE_REQUIRED' using errcode = '42501';
+  end if;
 
   perform set_config('uskoci.need_lifecycle', 'PUBLISH', true);
   perform set_config('uskoci.need_region', 'CONFIRMED_REVIEW', true);
@@ -45,6 +44,6 @@ begin
 end;
 $$;
 
-revoke all on function public.rpc_test_create_simulation_need(uuid,uuid,uuid,text,text,text,text,integer) from public, anon;
-grant execute on function public.rpc_test_create_simulation_need(uuid,uuid,uuid,text,text,text,text,integer) to service_role, authenticated;
+revoke all on function public.rpc_test_create_simulation_need(uuid,uuid,uuid,text,text,text,text,integer) from public, anon, authenticated;
+grant execute on function public.rpc_test_create_simulation_need(uuid,uuid,uuid,text,text,text,text,integer) to service_role;
 comment on function public.rpc_test_create_simulation_need is 'Test helper to create fresh published needs for live end-to-end simulations.';
