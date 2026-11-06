@@ -69,7 +69,16 @@ function Thread({ ready, disabled, now, onAsk, onAnswer, onOpenAll }: Pick<TaskQ
       <Row item={item} viewer={ready.viewer} canAnswer={ready.canAnswer} disabled={disabled} now={now} onAnswer={onAnswer} />
     </Fragment>)}</View>
       // A thread kept out because the task changed must not read as a task nobody asked about.
-      : <T variant="copy" tone="muted">{ready.olderVersion ? 'Zadatak je izmenjen. Ranija pitanja pripadaju starijoj verziji.' : ready.viewer === 'PUBLIC' ? 'Još nema objavljenih odgovora.' : 'Još nema pitanja.'}</T>}
+      : <View style={s.emptyRow}>
+        <FactArt kind="chat" size={28} />
+        <T variant="copy" tone="muted" style={s.emptyCopy}>
+          {ready.olderVersion
+            ? 'Zadatak je izmenjen. Ranija pitanja pripadaju starijoj verziji.'
+            : ready.viewer === 'PUBLIC'
+              ? 'Još nema javnih pitanja o zadatku. Ako Vam nešto nije jasno, postavite pitanje ispod.'
+              : 'Još nema javnih pitanja o zadatku. Kada neko postavi pitanje, ovde ćete moći da odgovorite.'}
+        </T>
+      </View>}
     {ready.shown.length && ready.olderVersion ? <T variant="note" tone="muted">Neka ranija pitanja pripadaju starijoj verziji zadatka.</T> : null}
     {ready.all > ready.shown.length ? <Press accessibilityRole="button" accessibilityLabel={`Prikaži sva pitanja (${ready.all})`}
       accessibilityState={{ disabled }} disabled={disabled} onPress={onOpenAll} haptic="select" scaleTo={sys.motion.scale.row} style={s.more}>
@@ -128,6 +137,8 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.md, rowGap: sys.space.xs },
   title: { color: sys.color.ink },
   loading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: sys.space.sm },
+  emptyRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.xs },
+  emptyCopy: { flex: 1, minWidth: 0 },
   trouble: { gap: sys.space.xs, alignItems: 'flex-start' },
   // A question is a bare item on the page, parted from the next by a line of 1 dp (`rule`): the thread is one list, not a stack of cards.
   item: { gap: sys.space.sm, paddingVertical: sys.space.md },

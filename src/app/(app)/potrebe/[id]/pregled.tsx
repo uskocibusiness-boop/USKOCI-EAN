@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { STANJA_POTREBE, type PotrebaProjekcija } from '../../../../contracts/projections';
 import type { Ishod } from '../../../../data/ports';
 import { aiNeedV2Izvor } from '../../../../data';
+import { ownProfileClientService, type OwnProfileIdentity } from '../../../../data/ownProfileClientService';
+import { reviewsClientService, type AccountReputation } from '../../../../data/reviewsClientService';
 import { failure, positiveInteger, sameId, uuid } from '../../../../data/serverReceipt';
 import { knownRemainingSearchRefusal, ru4Production } from '../../../../data/ru4Production';
 import { knownSearchRecoveryRefusal, needSearchRecoveryClientService } from '../../../../data/needSearchRecoveryClientService';
@@ -12,17 +14,24 @@ import { retainRemainingSearchCloseAttempt, type RemainingSearchCloseAttempt } f
 import { needPublicationReadiness, type NeedPublicationReadiness } from '../../../../data/needPublicationReadiness';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { NeedPresentation } from '../../../../ui/v2/NeedPresentation';
+import { TaskDecisionPublisher } from '../../../../ui/v2/detail/TaskDecision';
+import { taskShareMessage } from '../../../../ui/v2/detail/taskShare';
 import { missingPeople, noApplicationsHelp } from '../../../../ui/v2/ownTaskOverview';
 import { UrgentActivationActions, useUrgentActivationActions } from '../../../../ui/v2/UrgentActivationActions';
 import { LocationMapPreview } from '../../../../ui/location/LocationMapPreview';
-import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
+import { NeedPhotos, ProfilePhoto } from '../../../../ui/media/ContextPhotos';
 import { NeedLifecycleActions, needLifecycleEntries, type NeedLifecycleMenu } from '../../../../ui/needs/NeedLifecycleActions';
 import { NeedSearchRecoveryController, initialSearchRecoveryView } from '../../../../ui/needs/NeedSearchRecoveryController';
 import { NeedSearchRecoverySection } from '../../../../ui/needs/NeedSearchRecoverySection';
 import { needSearchRecoveryCopy, type SearchRecoveryAction } from '../../../../ui/needs/needSearchRecoveryCopy';
+import { ratingText } from '../../../../ui/profile/ProfileFigures';
+import { usePublicWorkTrust } from '../../../../ui/profile/usePublicWorkTrust';
+import { publicTrustFacts } from '../../../../ui/profile/workTrustModel';
 import type { SheetAction } from '../../../../ui/system/ActionSheet';
+import { Avatar } from '../../../../ui/system/Avatar';
 import { TaskQaInline } from '../../../../ui/qa/TaskQaInline';
 import { useTaskQaInline } from '../../../../ui/qa/useTaskQaInline';
+import { inicijali } from '../../../../lib/inicijali';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { plural } from '../../../../ui/system/plural';
 import { useConfirmSheet } from '../../../../ui/system/ConfirmSheet';
@@ -114,6 +123,26 @@ function OwnedNeed({ id }: { id: string }) {
   // private and nobody can have asked about it, so it reads nothing.
   const publicNeedId = potreba && potreba.stanje !== 'NACRT' ? potreba.id : null;
   const questions = useTaskQaInline(publicNeedId, potreba?.revizija ?? null);
+  const [ownerIdentity, setOwnerIdentity] = useState<OwnProfileIdentity | null>(null);
+  const [ownerReputation, setOwnerReputation] = useState<AccountReputation | null>(null);
+  useEffect(() => {
+    if (!accountId) {
+      setOwnerIdentity(null);
+      setOwnerReputation(null);
+      return;
+    }
+    let alive = true;
+    void ownProfileClientService.read(accountId, 'narucilac').then(res => {
+      if (alive) setOwnerIdentity(res);
+    }, () => {});
+    void reviewsClientService.reputation(accountId).then(res => {
+      if (alive && res.ok) setOwnerReputation(res.podatak);
+    }, () => {});
+    return () => { alive = false; };
+  }, [accountId, accountRevision, lifecycle]);
+  const ownerTrust = usePublicWorkTrust(ownerIdentity?.profileId ?? null);
+  const ownerReliability = publicTrustFacts(ownerTrust)?.reliability;
+  const ownerReliabilityPercent = ownerReliability?.kind === 'percent' ? ownerReliability.percent : null;
   // A draft is told why it cannot be published, by the gate that decides it rather than by a
   // guess. Read-only: it reports, and the server decides again when publishing is attempted.
   const [readiness, setReadiness] = useState<NeedPublicationReadiness | null>(null);
@@ -311,17 +340,35 @@ function OwnedNeed({ id }: { id: string }) {
     if (potreba && canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id, own: '1', ...(questionId ? { questionId } : {}) } }));
   };
 
+  const ownerDisplayName = ownerIdentity?.ime?.trim() ? `${ownerIdentity.ime.trim()} (Vi)` : 'Vi (Domaćin zadatka)';
+  const ownerRating = ownerReputation && typeof ownerReputation.averageRating === 'number' && Number.isFinite(ownerReputation.averageRating)
+    ? ratingText(ownerReputation.averageRating)
+    : null;
+  const ownerReviewCount = ownerReputation && typeof ownerReputation.reviewCount === 'number'
+    ? ownerReputation.reviewCount
+    : null;
+  const ownerAvatar = <Avatar initials={inicijali(ownerIdentity?.ime)} size={56} />;
+
   return <><NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
     photos={potreba ? <NeedPhotos needId={potreba.id} owned /> : undefined}
     map={potreba?.priblizno && !ucitava && !greska
       ? <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: potreba.priblizno.lat, longitude: potreba.priblizno.lng }]} coarse height={184}
         scopeKey={`potreba:${potreba.id}:${potreba.revizija}:${potreba.priblizno.lat}:${potreba.priblizno.lng}`} />
       : undefined}
-    // The section of questions is drawn only when it has something to say: a question that was asked (or one of an earlier version), or a read that failed.
-    // Reading, and "Još nema pitanja." on one's own task (nobody can ask the owner anything else), would be a heading over nothing (owner, 8 Oct 2026).
-    qaAction={potreba && publicNeedId && (questions.state.phase === 'error' || (questions.state.phase === 'ready' && (questions.state.shown.length > 0 || questions.state.olderVersion)))
+    publisher={potreba && !ucitava && !greska ? <TaskDecisionPublisher
+      name={ownerDisplayName}
+      rating={ownerRating}
+      count={ownerReviewCount}
+      reliabilityPercent={ownerReliabilityPercent}
+      initials={inicijali(ownerIdentity?.ime)}
+      photo={ownerIdentity?.profileId ? <ProfilePhoto profileId={ownerIdentity.profileId} size={56} fallback={ownerAvatar} own /> : ownerAvatar}
+      onPress={() => { if (canAct()) navigate(() => router.navigate('/profil')); }}
+      disabled={!canAct()}
+    /> : undefined}
+    qaAction={potreba && publicNeedId && questions.state.phase !== 'idle'
       ? <TaskQaInline key={`${accountId}:${accountRevision}:${potreba.id}`} state={questions.state}
         disabled={!canAct()} onRetry={questions.retry} onAsk={() => openQuestions()} onAnswer={openQuestions} onOpenAll={() => openQuestions()} /> : undefined}
+    onShare={potreba && potreba.stanje !== 'NACRT' ? () => { void Share.share({ message: taskShareMessage(potreba) }, { dialogTitle: 'Podeli zadatak' }).catch(() => {}); } : undefined}
     lifecycleActions={uuid(id) ? <>
       <UrgentActivationActions control={urgent} />
       <NeedLifecycleActions need={potreba} needId={id} menu={lifecycleMenu}

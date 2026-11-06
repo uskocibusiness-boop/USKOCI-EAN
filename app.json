@@ -21,8 +21,7 @@
       "versionCode": 36,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/brand/app-icon/android-icon-foreground.png",
-        "monochromeImage": "./assets/brand/app-icon/android-icon-monochrome.png"
+        "foregroundImage": "./assets/brand/app-icon/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false
     },

@@ -4,9 +4,10 @@ import type { PotrebaProjekcija } from '../../contracts/projections';
 import { starost } from '../../lib/starost';
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
 import { needGeographyRows, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
-import { DetailDescription, DetailRoute, routeAddsToArea, ProductHeader, useDetailScrollTitle } from '../product/ProductDetails';
+import { DetailDescription, DetailRoute, routeAddsToArea, ProductHeader, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
 import type { SheetAction } from '../system/ActionSheet';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { FlowFooter } from '../system/FlowFooter';
 import { Glyph } from '../system/Glyph';
 import { layout } from '../system/layout';
 import { ListRow } from '../system/ListRow';
@@ -59,6 +60,10 @@ export type NeedPresentationProps = {
   /** One contextual action may temporarily outrank applications/Dogovori; it never adds a second primary button. */
   primaryOverride?: { label: string; accessibilityLabel?: string; disabled?: boolean; arrow?: boolean; onPress: () => void };
   qaAction?: ReactNode;
+  /** The owner's publisher card ("Objavio"), matching the public task detail view. */
+  publisher?: ReactNode;
+  /** Hands the task to the system's share sheet from the "···" menu. */
+  onShare?: () => void;
   /**
    * What the screen read about the search for the missing places, and whether its own section about it is on the screen. The
    * page says "Dogovor je otkazan" only from this (see `ownTaskOverview`); without it the page says what the task itself shows.
@@ -138,108 +143,128 @@ export function NeedPresentation(props: NeedPresentationProps) {
   // draft R3, rule J15), unless the green action already opens the conversation (a draft held back for its place): then it is that action and is not drawn twice.
   const editable = usable && (draft || canEdit) && primary?.kind !== 'EDIT' && !help?.actions.includes('EDIT');
   const editableDraftDeletion = usable && draft && !!props.onDeleteDraft;
-  const editControl = editable || editableDraftDeletion ? <View style={s.headerActions}>
+
+  // Lifecycle actions, sharing, and closing remaining search sit cleanly in the header "···" menu.
+  const agreementsOffered = !!overview && (overview.rows.agreements || overview.primary?.kind === 'AGREEMENTS');
+  const entries = (props.lifecycleMenu ?? []).filter(entry => !(entry.key === 'agreements' && (agreementsOffered || !!props.onAgreements))
+    && !(entry.key === 'delete-draft' && !!props.onDeleteDraft));
+  const menuActions: SheetAction[] = usable && need ? [
+    ...(props.onShare && !draft ? [{ key: 'share', label: 'Podeli zadatak', icon: 'send' as const, onPress: props.onShare }] : []),
+    ...entries.map(entry => ({
+      key: entry.key,
+      label: entry.label,
+      icon: entry.icon,
+      subtitle: entry.subtitle,
+      reason: entry.reason,
+      hint: entry.hint,
+      destructive: !!entry.destructive,
+      disabled: !!entry.disabled,
+      onPress: entry.onPress,
+    })),
+    ...(canCloseRemaining ? [{
+      key: 'close-remaining',
+      label: 'Ne traži više nikoga',
+      icon: 'users' as const,
+      destructive: true,
+      disabled: false,
+      onPress: props.onCloseRemaining,
+    }] : []),
+  ] : [];
+  const menu = useDetailMenu(menuActions, { disabled: busy });
+
+  const editControl = editable || editableDraftDeletion || menu.button ? <View style={s.headerActions}>
     {editable ? <ChromeIconButton label={draft ? 'Izmeni nacrt' : 'Izmeni zadatak'} glyph="edit"
       hint="Otvara izmenu kroz razgovor." disabled={busy} onPress={props.onEdit} /> : null}
     {editableDraftDeletion ? <ChromeIconButton label="Obriši nacrt" glyph="trash" tone="danger"
       hint="Otvara potvrdu brisanja nacrta." disabled={busy} onPress={props.onDeleteDraft!} /> : null}
+    {menu.button}
   </View> : undefined;
 
-  // What ends or removes something, or is done once in a long while, as rows at the end of the page: the lifecycle's own ways in, the close of the
-  // search for the rest. Draft deletion has one entry in the header. A way to Dogovori is not drawn twice.
-  const agreementsOffered = !!overview && (overview.rows.agreements || overview.primary?.kind === 'AGREEMENTS');
-  const entries = (props.lifecycleMenu ?? []).filter(entry => !(entry.key === 'agreements' && (agreementsOffered || !!props.onAgreements))
-    && !(entry.key === 'delete-draft' && !!props.onDeleteDraft));
-  const rows: { key: string; label: string; icon: FactArtKind; destructive: boolean; disabled: boolean; onPress: () => void }[] = usable && need ? [
-    ...entries.map(entry => ({ key: entry.key, label: entry.label, icon: entry.icon, destructive: !!entry.destructive, disabled: !!entry.disabled, onPress: entry.onPress })),
-    ...(canCloseRemaining ? [{ key: 'close-remaining', label: 'Ne traži više nikoga', icon: 'users' as const, destructive: true, disabled: false, onPress: props.onCloseRemaining }] : []),
-  ].sort((a, b) => Number(a.destructive) - Number(b.destructive)) : [];
+  const hasFooterContent = usable && !!(overview?.notice || overview?.line || overview?.note || green);
+  const foot = hasFooterContent ? <FlowFooter>
+    <TaskStateBlock testID="own-task-state" notice={overview?.notice} line={overview?.line} applicants={overview?.applicants} faces={props.applicantFaces}
+      note={overview?.note} primary={green} busy={busy} />
+  </FlowFooter> : null;
 
   const scrollTitle = useDetailScrollTitle();
-  return <Screen kind="detail" header={<ProductHeader back={props.onBack} title={need ? readableTitle(need.naslov) : undefined}
-    titleVisible={scrollTitle.titleVisible} right={editControl} />} onScroll={scrollTitle.onScroll}>
-    {/* The lifecycle's recovery stays on the screen whatever the read is doing: a retained command is checked, and its
-        outcome shown, even while the task loads or cannot be read. */}
-    {loading && !need ? <View style={s.state}>
-      <QuietReadState art="tasks" title="Učitavamo zadatak…" body="Proveravamo stanje zadatka i sačuvane radnje." />
-      {props.lifecycleActions}
-    </View>
-      : !need ? <>
-        <StateView kind="error" art="tasks" title="Zadatak nije dostupan" body={error ?? 'Pokušaj ponovo.'}
-          primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
+  return <>
+    <Screen kind="detail" header={<ProductHeader back={props.onBack} title={need ? readableTitle(need.naslov) : undefined}
+      titleVisible={scrollTitle.titleVisible} right={editControl} />} footer={foot} onScroll={scrollTitle.onScroll}>
+      {/* The lifecycle's recovery stays on the screen whatever the read is doing: a retained command is checked, and its
+          outcome shown, even while the task loads or cannot be read. */}
+      {loading && !need ? <View style={s.state}>
+        <QuietReadState art="tasks" title="Učitavamo zadatak…" body="Proveravamo stanje zadatka i sačuvane radnje." />
         {props.lifecycleActions}
-      </> : <>
-        <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
-          {/* ONE state, in the owner's eight words (the chip every list of tasks wears); then the name. People never see a category
-              (owner decision 2026-09-21); the server reads kinds of work only to match. */}
-          {overview?.chip || need.urgency ? <View style={s.badgeRow}>
-            {overview?.chip ? <StatusChip status={overview.chip.status} detail={overview.chip.detail} /> : null}
-            {need.urgency ? <NeedUrgencyBadge urgency={need.urgency} /> : null}
-          </View> : null}
-          <TaskDecisionTitle prominent onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
-        </View>
-        {loading || error ? <Surface kind="note"><View accessibilityLiveRegion="polite" style={s.notice}>
-          <T variant="note" tone="muted">{loading ? 'Osvežavamo podatke…' : 'Vidiš starije podatke.'}</T>
-          {error && !loading ? <T variant="note" tone="danger" accessibilityRole="alert">{error}</T> : null}
-          {error && !loading ? <V2Action label={OUTCOME_ACTION.refresh} accessibilityLabel="Osveži zadatak" kind="quiet" compact onPress={props.onRefresh} style={s.noticeAction} /> : null}
-        </View></Surface> : null}
-        {/* A draft the publish gate refuses says why, once, where the owner reads first. */}
-        {blocked ? <Surface kind="note" tone="warn"><View accessibilityLiveRegion="polite" style={s.notice}>
-          <T variant="bodyStrong" style={s.warnTitle}>{blocked.title}</T>
-          <T variant="note" style={s.ink}>{blocked.detail}</T>
-          {/* What only time or the server can mend has no green action: the owner can read again, and the page says why it waits. */}
-          {overview?.waits ? <V2Action label={OUTCOME_ACTION.refresh} accessibilityLabel="Osveži zadatak" kind="quiet" compact disabled={busy} onPress={props.onRefresh} style={s.noticeAction} /> : null}
-        </View></Surface> : null}
-        {/* What happened to a cancel or a delete the owner sent is said where they read first: the check, the command running, its
-            uncertain, confirmed or refused outcome. It draws nothing while there is nothing to say. */}
-        {props.lifecycleActions}
-        <TaskDetailSummary need={need} audience="owner" draft={draft} place={remote ? 'Na daljinu' : need.podrucjeTekst} remote={remote}
-          people={draft ? `Treba ${osoba(need.pokrivenost.ukupno)}` : undefined} />
-        {/* Current applications and the next action share one block; they do not turn the task's budget into an agreed amount. */}
-        <TaskStateBlock testID="own-task-state" notice={overview?.notice} line={overview?.line} applicants={overview?.applicants} faces={props.applicantFaces}
-          note={overview?.note} primary={green} busy={busy} />
-        {/* A published task nobody has applied to for a day: the real ways to change it, each one row of one section (R16). Never a
-            sentence about how many people would have applied, only what is true of this task. */}
-        {help ? <Section title={help.sentence.replace(/\.$/, '')}>
-          {help.actions.map((action, index) => <ListRow key={action} leading={action === 'EDIT' ? <Glyph name="edit" size={24} /> : <FactArt kind={HELP_ROW[action].art} size={32} />}
-            title={NO_APPLICATIONS_HELP_LABEL[action]} subtitle={HELP_ROW[action].subtitle} accessibilityLabel={NO_APPLICATIONS_HELP_LABEL[action]}
-            disabled={busy} last={index === help.actions.length - 1} onPress={() => props.onWaitingHelp?.(action)} />)}
-        </Section> : null}
-        {/* Quiet ways in that the green action does not already offer. The applications row is not drawn for an empty list (it led
-            nowhere), nor beside a green button that opens the same list. */}
-        {overview && (overview.rows.applications || overview.rows.agreements) ? <Section>
-          {overview.rows.applications && counted ? <ListRow leading={<FactArt kind="applications" size={32} />} title="Prijave" subtitle={counted.text}
-            accessibilityLabel={`Otvori prijave. ${counted.text}`} disabled={busy || !usable} last={!overview.rows.agreements} onPress={props.onCandidates}
-            trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : undefined} /> : null}
-          {overview.rows.agreements ? <ListRow leading={<FactArt kind="agreements" size={32} role="confirmed" />} title="Moji Dogovori"
-            accessibilityLabel="Moji Dogovori" disabled={busy || !usable} last onPress={props.onAgreements!} /> : null}
-        </Section> : null}
-        {need.opis ? <Section title="O zadatku"><DetailDescription text={need.opis} /></Section> : null}
-        {props.photos}
-        <TaskDecisionRequirements rows={requirements} />
-        {/* The questions people asked about this task and what the owner answered, where the work itself is read, in the
-            same place a stranger finds them (owner, 2026-10-07). The route builds the section: it owns the reads. */}
-        {props.qaAction}
-        {/* A stranger saw this Task on a map before its owner did: the public projection carried the point and the owner's own read never
-            asked for it. Same coarse pair, same map, one section; the one line under the map is what is private, a fact with who sees what behind its ⓘ. */}
-        {!remote && (props.map || route.length) ? <Section title="Mesto zadatka">
-          <View style={s.place}>
-            {props.map}
-            <TaskPlacePrivacy />
-            {route.length ? <DetailRoute rows={route} /> : null}
+      </View>
+        : !need ? <>
+          <StateView kind="error" art="tasks" title="Zadatak nije dostupan" body={error ?? 'Pokušaj ponovo.'}
+            primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
+          {props.lifecycleActions}
+        </> : <>
+          <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
+            {/* ONE state, in the owner's eight words (the chip every list of tasks wears); then the name. People never see a category
+                (owner decision 2026-09-21); the server reads kinds of work only to match. */}
+            {overview?.chip || need.urgency ? <View style={s.badgeRow}>
+              {overview?.chip ? <StatusChip status={overview.chip.status} detail={overview.chip.detail} /> : null}
+              {need.urgency ? <NeedUrgencyBadge urgency={need.urgency} /> : null}
+            </View> : null}
+            <TaskDecisionTitle prominent onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
           </View>
-        </Section> : null}
-        {/* When it went live, quietly, after everything the page says about the task and before what ends it. */}
-        {age ? <T testID="own-task-age" variant="note" tone="muted">{`Objavljen ${age.charAt(0).toLocaleLowerCase('sr-Latn-RS')}${age.slice(1)}`}</T> : null}
-        {/* What ends or removes something stands at the end of the page, on the screen and not behind a "···" (rule J15, the owner's "nema lakog
-            otkazivanja"): a row each, the red ones last. Each keeps its own question before it acts; the page only opens the door. */}
-        {rows.length ? <Section>
-          {rows.map((row, index) => <ListRow key={row.key} leading={row.key === 'delete-draft' ? <Glyph name="trash" size={24} tone="danger" />
-            : row.key === 'cancel' ? <Glyph name="cancel" size={24} tone="danger" /> : <FactArt kind={row.icon} size={32} />} title={row.label} accessibilityLabel={row.label}
-            tone={row.destructive ? 'danger' : 'default'} disabled={busy || row.disabled} last={index === rows.length - 1} onPress={row.onPress} />)}
-        </Section> : null}
-      </>}
-  </Screen>;
+          {loading || error ? <Surface kind="note"><View accessibilityLiveRegion="polite" style={s.notice}>
+            <T variant="note" tone="muted">{loading ? 'Osvežavamo podatke…' : 'Vidiš starije podatke.'}</T>
+            {error && !loading ? <T variant="note" tone="danger" accessibilityRole="alert">{error}</T> : null}
+            {error && !loading ? <V2Action label={OUTCOME_ACTION.refresh} accessibilityLabel="Osveži zadatak" kind="quiet" compact onPress={props.onRefresh} style={s.noticeAction} /> : null}
+          </View></Surface> : null}
+          {/* A draft the publish gate refuses says why, once, where the owner reads first. */}
+          {blocked ? <Surface kind="note" tone="warn"><View accessibilityLiveRegion="polite" style={s.notice}>
+            <T variant="bodyStrong" style={s.warnTitle}>{blocked.title}</T>
+            <T variant="note" style={s.ink}>{blocked.detail}</T>
+            {/* What only time or the server can mend has no green action: the owner can read again, and the page says why it waits. */}
+            {overview?.waits ? <V2Action label={OUTCOME_ACTION.refresh} accessibilityLabel="Osveži zadatak" kind="quiet" compact disabled={busy} onPress={props.onRefresh} style={s.noticeAction} /> : null}
+          </View></Surface> : null}
+          {/* What happened to a cancel or a delete the owner sent is said where they read first: the check, the command running, its
+              uncertain, confirmed or refused outcome. It draws nothing while there is nothing to say. */}
+          {props.lifecycleActions}
+          <TaskDetailSummary need={need} audience="owner" draft={draft} place={remote ? 'Na daljinu' : need.podrucjeTekst} remote={remote}
+            people={draft ? `Treba ${osoba(need.pokrivenost.ukupno)}` : undefined} />
+          {/* A published task nobody has applied to for a day: the real ways to change it, each one row of one section (R16). Never a
+              sentence about how many people would have applied, only what is true of this task. */}
+          {help ? <Section title={help.sentence.replace(/\.$/, '')}>
+            {help.actions.map((action, index) => <ListRow key={action} leading={action === 'EDIT' ? <Glyph name="edit" size={24} /> : <FactArt kind={HELP_ROW[action].art} size={32} />}
+              title={NO_APPLICATIONS_HELP_LABEL[action]} subtitle={HELP_ROW[action].subtitle} accessibilityLabel={NO_APPLICATIONS_HELP_LABEL[action]}
+              disabled={busy} last={index === help.actions.length - 1} onPress={() => props.onWaitingHelp?.(action)} />)}
+          </Section> : null}
+          {/* Quiet ways in that the green action does not already offer. The applications row is not drawn for an empty list (it led
+              nowhere), nor beside a green button that opens the same list. */}
+          {overview && (overview.rows.applications || overview.rows.agreements) ? <Section>
+            {overview.rows.applications && counted ? <ListRow leading={<FactArt kind="applications" size={32} />} title="Prijave" subtitle={counted.text}
+              accessibilityLabel={`Otvori prijave. ${counted.text}`} disabled={busy || !usable} last={!overview.rows.agreements} onPress={props.onCandidates}
+              trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : undefined} /> : null}
+            {overview.rows.agreements ? <ListRow leading={<FactArt kind="agreements" size={32} role="confirmed" />} title="Moji Dogovori"
+              accessibilityLabel="Moji Dogovori" disabled={busy || !usable} last onPress={props.onAgreements!} /> : null}
+          </Section> : null}
+          {need.opis ? <Section title="O zadatku"><DetailDescription text={need.opis} /></Section> : null}
+          {props.photos}
+          <TaskDecisionRequirements rows={requirements} />
+          {props.publisher}
+          {/* The questions people asked about this task and what the owner answered, where the work itself is read, in the
+              same place a stranger finds them (owner, 2026-10-07). The route builds the section: it owns the reads. */}
+          {props.qaAction}
+          {/* A stranger saw this Task on a map before its owner did: the public projection carried the point and the owner's own read never
+              asked for it. Same coarse pair, same map, one section; the one line under the map is what is private, a fact with who sees what behind its ⓘ. */}
+          {!remote && (props.map || route.length) ? <Section title="Mesto zadatka">
+            <View style={s.place}>
+              {props.map}
+              <TaskPlacePrivacy />
+              {route.length ? <DetailRoute rows={route} /> : null}
+            </View>
+          </Section> : null}
+          {/* When it went live, quietly, after everything the page says about the task. */}
+          {age ? <T testID="own-task-age" variant="note" tone="muted">{`Objavljen ${age.charAt(0).toLocaleLowerCase('sr-Latn-RS')}${age.slice(1)}`}</T> : null}
+        </>}
+    </Screen>
+    {menu.sheet}
+  </>;
 }
 
 const s = StyleSheet.create({

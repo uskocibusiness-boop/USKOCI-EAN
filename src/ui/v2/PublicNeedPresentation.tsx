@@ -8,10 +8,8 @@ import { vreme } from '../../lib/vreme';
 import { DetailDescription, DetailRoute, routeAddsToArea, ProductFooterAction, ProductHeader,
   productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
 import type { SheetAction } from '../system/ActionSheet';
-import { FactArt } from '../system/FactArt';
 import { FactRow } from '../system/FactRow';
 import { FlowFooter } from '../system/FlowFooter';
-import { ListRow } from '../system/ListRow';
 import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
 import { Screen } from '../system/Screen';
 import { Section } from '../system/Section';
@@ -93,12 +91,19 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   const deadline = canApply && typeof need?.rokZaPrijaveIso === 'string' ? vreme(need.rokZaPrijaveIso) : null;
   const scrollTitle = useDetailScrollTitle();
   const urgencyNow = useUrgencyClock([need?.urgency]);
-  // Only sharing is rare enough for "···". Reporting or blocking the person is a way out that a person must find at once, so it is a row of the page (rule J15),
-  // and it names the person: on a screen whose action is "Pošalji prijavu", a bare "Prijavi" reads as "apply" (review of step 5b). My own task has nobody to report.
-  const rare: SheetAction[] = [
-    ...(ready && onShare ? [{ key: 'share', label: 'Podeli', icon: 'send' as const, onPress: onShare }] : []),
-  ];
+  // Sharing and reporting/blocking sit cleanly in the header "···" menu (as well as inside the publisher's profile sheet).
   const reportable = ready && !!safety && relation.kind !== 'OWNER';
+  const rare: SheetAction[] = [
+    ...(ready && onShare ? [{ key: 'share', label: 'Podeli zadatak', icon: 'send' as const, onPress: onShare }] : []),
+    ...(reportable ? [{
+      key: 'report-or-block',
+      label: 'Prijavi ili blokiraj osobu',
+      icon: 'shield' as const,
+      destructive: true,
+      disabled: busy || !!safety?.busy,
+      onPress: safety!.onPress,
+    }] : []),
+  ];
   const menu = useDetailMenu(rare, { disabled: busy });
   const status = ready ? relationStatus(relation) : null;
   const urgent = !!need?.urgency && ready;
@@ -163,9 +168,6 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
             {route.length ? <DetailRoute rows={route} /> : null}
           </View>
         </Section> : null}
-        {/* Reporting or blocking the person who posted the task: at the end of the page, in red, and not only behind "···" (rule J15). */}
-        {reportable ? <Section><ListRow leading={<FactArt kind="shield" size={32} />} title="Prijavi ili blokiraj osobu" accessibilityLabel="Prijavi ili blokiraj osobu"
-          tone="danger" disabled={busy || !!safety?.busy} last onPress={safety!.onPress} /></Section> : null}
       </> : null}
     </Screen>
     {menu.sheet}
