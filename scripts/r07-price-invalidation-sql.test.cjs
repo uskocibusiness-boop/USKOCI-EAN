@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const sql=fs.readFileSync(path.join(__dirname,'..','supabase','operations','dev-alpha','r07a_currency_invalidation_20261107.sql'),'utf8');
+const sql=fs.readFileSync(path.join(__dirname,'..','scripts','sql','r07a_currency_invalidation_20261107.sql'),'utf8');
 test('currency SQL candidate is fenced to the reviewed writer',()=>{
  assert.match(sql,/R07A_WRITER_SOURCE_DRIFT/);
  assert.match(sql,/db25bcbffbef1d0947c53defb1a6cb05/);
