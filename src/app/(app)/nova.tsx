@@ -6,6 +6,7 @@ import type { AiNeedTurnRecovery, AiNeedTurnStatus, AiNeedV2Conversation } from 
 import { aiNeedV2Izvor } from '../../data';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope } from '../../data/aiTaskReviewClientService';
 import { aiTurnIntentJournal } from '../../data/aiTurnIntentJournal';
+import { isExplicitWorkerOffer, stageWorkerText } from '../../data/aiRoleHandoff';
 import { locationDialogueEnabled, resolveLocationDialogue } from '../../data/locationDialogueClientService';
 import type { LocationDialogueRequest } from '../../contracts/locationDialogue';
 import type { LocationReplyLease, LocationReplyPrompt } from '../../ui/location/ConversationPointAsk';
@@ -55,6 +56,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
   const [openRequestId] = useState(noviUuidZahtevId);
   const conversation = useRef<string | null>(resumeId ?? null);
   const request = useRef<PendingTurn | null>(null), abandoning = useRef(false);
+  const roleOfferPrompted = useRef<string | null>(null);
   const preparedReview = useRef<{ key: string; review: AiTaskReviewEnvelope } | null>(null);
   // The data layer's sentence for the last send it could not prove delivered: the status line says that once (`conversationErrorLine`).
   const unconfirmedSend = useRef<string | null>(null);
@@ -294,6 +296,26 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
 
   const submitTurn = async (body: string, submittedDraft: SubmittedDraft | null = null, pointLease: LocationReplyLease | null = null, image?: { base64: string; mimeType: string }) => {
     if (!canAct() || !canSubmit || (!body && !image) || (pointLease && !pointLease.isCurrent())) { pointLease?.cancel(); return; }
+    // A worker OFFER is not a Need. Do not create a task AI turn for an explicit offer:
+    // ask the user first, preserve the unsent text by account/token, and never auto-Save.
+    // An ambiguous mixed need/offer is left to the AI; the user can cancel and send as a task.
+    if (!pointLease && !image && !request.current && roleOfferPrompted.current !== body && isExplicitWorkerOffer(body)) {
+      roleOfferPrompted.current = body;
+      confirmation.ask({
+        title: 'Želite da ponudite svoje usluge?',
+        message: 'Za poslove koje Vi nudite postoji AI asistent za radni profil. Vaš tekst će Vas tamo sačekati za proveru; ništa se neće automatski poslati ni objaviti.',
+        cancelLabel: 'Ipak napravite zadatak',
+        confirmLabel: 'Otvorite radni profil',
+        onConfirm: () => {
+          if (!canAct() || request.current || !accountId || voice.controller.getSnapshot().phase !== 'IDLE') return;
+          const token = noviUuidZahtevId();
+          if (!stageWorkerText({ token, text: body, accountId, accountRevision })) return;
+          navigate(() => router.push({ pathname: '/profil/razgovor',
+            params: { entryKey: noviUuidZahtevId(), roleHandoff: token } }));
+        },
+      });
+      return;
+    }
     // Context remains attached to the original request key, including in-memory safe retries. A restored journal id
     // has no context/lease and can only recover its receipt; it cannot replay a confirmation against a new map.
     locationFlight.current = pointLease;
