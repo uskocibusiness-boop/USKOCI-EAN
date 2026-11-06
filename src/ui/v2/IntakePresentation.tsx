@@ -433,6 +433,7 @@ export function IntakePresentation(props: Props) {
       setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1, messageId: conversation.messages.at(-1)?.id }));
     } });
   if (hasConversation) menu.push({ key: 'refresh', label: 'Osvežite razgovor', icon: 'check', disabled: props.readbackDisabled || editingPlace, onPress: outsidePlace(props.onRefresh) });
+  if (props.onRestart) menu.push({ key: 'restart', label: 'Novi razgovor', icon: 'chat', disabled: props.restartDisabled || editingPlace, onPress: outsidePlace(props.onRestart) });
   if (props.onNewTask) menu.push({ key: 'new', label: 'Novi zadatak', icon: 'tasks', disabled: props.newTaskDisabled, onPress: props.onNewTask });
   if (props.showAbandon) menu.push({ key: 'abandon', label: props.abandonLabel, icon: 'chat', destructive: true,
     disabled: props.abandonDisabled, subtitle: 'Povratak čuva razgovor. Napušten razgovor više ne možete da nastavite.', onPress: props.onAbandon });

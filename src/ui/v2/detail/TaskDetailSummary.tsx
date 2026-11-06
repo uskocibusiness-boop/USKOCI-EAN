@@ -16,26 +16,21 @@ export function TaskDetailSummary({ need, audience, place, remote, people, peopl
   /** A draft describes its requirement; no selection has happened yet. */
   draft?: boolean;
 }) {
-  const priced = need.rezimCene !== 'OFFERS' && !!need.ponudjenaCena;
   // Mode already has its own fact. Preserve every typed time bound and the task's timezone,
   // while letting the schedule formatter describe only flexibility for this remote mode.
   const time = remote && need.schedule?.kind === 'REMOTE_ANYTIME'
     ? needScheduleText({ ...need.schedule, kind: 'FLEXIBLE' }, need.taskTimezone)
     : audience === 'worker' && need.schedule ? needScheduleText(need.schedule, need.taskTimezone) : need.vremeTekst;
-  const value = <TaskDecisionValue need={need} size="summary" offersInfo={OFFERS_INFO[audience]} />;
-  return <View style={s.summary}>
-    {draft ? <FactRow art="users" value={people ?? 'Potrebni izvršioci'} note={peopleNote} />
+  return <Surface kind="panel" variant="outlined" density="comfortable" style={s.facts}>
+    <TaskDecisionValue need={need} size="detail" offersInfo={OFFERS_INFO[audience]} />
+    <FactRow size="detail" art={remote ? 'remote' : 'pin'} value={place} />
+    <FactRow size="detail" art="calendar" value={time} />
+    {draft ? (people ? <FactRow size="detail" art="users" value={people} note={peopleNote} /> : null)
       : <TaskCapacity capacity={need.pokrivenost} note={[people, peopleNote].filter(Boolean).join(' · ')} />}
-    {priced ? value : <Surface kind="panel" variant="tinted" tone="info" density="comfortable">{value}</Surface>}
-    <Surface kind="panel" variant="outlined" density="comfortable" style={s.facts}>
-      <FactRow size="detail" label="Termin" art="calendar" value={time} />
-      <FactRow size="detail" label={remote ? 'Način rada' : audience === 'worker' ? 'Približno mesto' : 'Mesto'}
-        art={remote ? 'remote' : 'pin'} value={place} />
-    </Surface>
-  </View>;
+  </Surface>;
 }
 
 const s = StyleSheet.create({
   summary: { gap: sys.space.base },
-  facts: { flexDirection: 'column', gap: sys.space.lg },
+  facts: { flexDirection: 'column', gap: sys.space.md },
 });

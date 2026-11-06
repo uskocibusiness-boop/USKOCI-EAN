@@ -173,19 +173,16 @@ export function VoiceNotice(p: VoiceInput & { tapToTalk?: boolean; hint?: string
   const active = voiceActive(state), listening = state.phase === 'LISTENING';
   if (active || state.phase === 'FINALIZING') {
     const words = [state.finalText, state.interimText].filter(Boolean).join(' ');
-    const line = listening ? reader || p.tapToTalk
-      ? reviewing(state, reader) ? 'Slušamo… Zaustavite, pregledajte tekst i izaberite Pošaljite.' : 'Slušamo… Dodirnite mikrofon da pošaljete.'
-      : reviewing(state, reader) ? 'Slušamo… Pustite za pregled, povucite nagore da odustanete.'
-        : 'Slušamo… Pustite da pošaljete, povucite nagore da odustanete.'
-      : state.phase === 'FINALIZING' ? 'Prepoznajemo govor…' : PHASE_WORDS[state.phase] ?? '';
+    const line = listening ? (reader || p.tapToTalk ? 'Slušamo… Dodirnite za slanje' : 'Slušamo… Pustite za slanje')
+      : state.phase === 'FINALIZING' ? 'Šaljemo poruku…' : PHASE_WORDS[state.phase] ?? '';
     return <View testID="voice-notice" style={s.notice}>
-      {words ? <View style={s.heardBubble}>
-        <T testID="voice-live-transcript" selectable numberOfLines={3} style={s.heard}>{words}</T>
+      {listening && words ? <View style={s.heardBubble}>
+        <T testID="voice-live-transcript" selectable numberOfLines={2} style={s.heard}>{words}</T>
       </View> : null}
       <View style={s.noticeRow}>
         {listening && state.audioLevel !== null ? <Levels level={state.audioLevel} /> : null}
-        <T accessibilityLiveRegion="polite" variant="note" style={[s.noticeText, listening && s.noticeLive]}>{line}</T>
-        {active ? <V2Action tone="neutral" kind="quiet" compact label="Otkažite govor" onPress={() => p.controller.cancel('gesture')} /> : null}
+        <T accessibilityLiveRegion="polite" variant="note" numberOfLines={1} style={[s.noticeText, listening && s.noticeLive]}>{line}</T>
+        {active ? <V2Action tone="neutral" kind="quiet" compact label="Otkaži" onPress={() => p.controller.cancel('gesture')} /> : null}
       </View>
     </View>;
   }

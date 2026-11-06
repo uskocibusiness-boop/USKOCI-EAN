@@ -561,11 +561,16 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       </>:null}
       {data.saved?<V2Action label="Otvorite sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:null}
     </>}/>{confirmSheet.sheet}
-    {menu?<ActionSheet label="Izmene kroz razgovor" onClose={()=>setMenu(false)} actions={[
+    {menu?<ActionSheet label="Opcije razgovora" onClose={()=>setMenu(false)} actions={[
       {key:'identity',label:'O meni',icon:'document',disabled:!enabled||!writable,subtitle:unavailableNow,
         onPress:()=>correctPart('identity')},
       {key:'time',label:'Raspored i dostupnost',icon:'calendar',disabled:!enabled||!writable,subtitle:unavailableNow,
         onPress:()=>correctPart('time')},
+      {key:'restart',label:'Novi razgovor',icon:'chat',disabled:!canAct()||voiceBusy,subtitle:unavailableNow,
+        onPress:restart},
+      ...(data.status==='OPEN'?[{key:'abandon',label:'Napustite razgovor',icon:'chat' as const,destructive:true,
+        disabled:!enabled,subtitle:unavailableNow??'Povratak čuva razgovor. Napušten razgovor više ne možete da nastavite.',
+        onPress:abandon}]:[]),
     ]}/>:null}
     {adding?<ActionSheet label="Dodajte podatke" onClose={()=>setAdding(false)} actions={([
       ['skills','tasks'],['area','pin'],['time','clock'],

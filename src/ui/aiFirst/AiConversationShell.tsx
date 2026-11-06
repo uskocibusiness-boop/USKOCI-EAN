@@ -5,7 +5,7 @@ import Animated, { Easing as ReanimatedEasing, FadeInDown } from 'react-native-r
 import { T } from '../Text';
 import { withInter } from '../interFont';
 import { Press } from '../Press';
-import { ScreenChrome } from '../system/ScreenChrome';
+import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
 import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
 import { Glyph } from '../system/Glyph';
 import { layout } from '../system/layout';
@@ -250,16 +250,20 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const cardAtEnd = p.cardPlacement ? p.cardPlacement === 'end' || p.cardPlacement === 'beforeLatestReply' : true;
   const cardBeforeReply = p.cardPlacement === 'beforeLatestReply' && !!replyKey.current;
   const pinned = p.card(compact);
+  const finalizingSpeech = p.voice?.state.phase === 'FINALIZING'
+    ? [p.voice.state.finalText, p.voice.state.interimText].filter(Boolean).join(' ').trim()
+    : '';
+  const shownSentMessage = p.sentMessage || (finalizingSpeech ? finalizingSpeech : null);
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => { setKeyboard(true); followAfterLayout(); });
     const hide = Keyboard.addListener('keyboardDidHide', () => { setKeyboard(false); followAfterLayout(); });
     return () => { show.remove(); hide.remove(); cancelFollow(); };
   }, [cancelFollow, followAfterLayout]);
   useEffect(() => {
-    if (p.sentMessage) {
+    if (shownSentMessage) {
       latest(true);
     }
-  }, [p.sentMessage]);
+  }, [shownSentMessage]);
   const phase = p.voice?.state.phase ?? 'IDLE';
   // The advice after a tap goes as soon as the microphone does anything.
   useEffect(() => { if (phase !== 'IDLE') setHoldHint(false); }, [phase]);
@@ -340,7 +344,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const privacy = () => notice.ask({ title: 'Govorni unos i privatnost', message: VOICE_PROCESSING_NOTICE, confirmLabel: 'U redu', cancelLabel: null });
 
   const last = p.messages.at(-1);
-  const welcomeShown = p.messages.length === 0 && !p.sentMessage && !p.pending && !p.busy && !p.streamingText;
+  const welcomeShown = p.messages.length === 0 && !shownSentMessage && !p.pending && !p.busy && !p.streamingText && !p.introMessage;
   const compactWelcome = keyboard || inputFocused;
   const reviewedTextShown = !voiceMode && !p.pending && !p.busy && !!transcriptReview && transcriptReview.key === p.conversationKey
     && transcriptReview.value === p.value && hasText;
@@ -348,6 +352,12 @@ export function AiConversationShell(p: AiConversationShellProps) {
   // History notes are not messages: no entrance, no speaker, and nothing about them is docked outside the thread.
   const notes = p.threadNotes ?? [], anchored = new Set(p.messages.map(message => message.id));
   const drawNote = (note: ConversationNote) => <View key={`note:${note.key}`} testID="ai-thread-note">{note.node}</View>;
+  const headerRight = p.onOptions
+    ? <ChromeIconButton label="Opcije razgovora" glyph="more" quiet onPress={() => { Keyboard.dismiss(); p.onOptions?.(); }} />
+    : p.newConversation
+      ? <ChromeIconButton label="Novi razgovor" glyph="refresh" quiet disabled={p.newConversation.disabled}
+          onPress={() => { if (!p.newConversation?.disabled) { Keyboard.dismiss(); p.newConversation?.onPress(); } }} />
+      : undefined;
 
   return <DraftDisclosure.Provider value={{ expanded, toggle: () => setDisclosure({ key: p.conversationKey, expanded: !expanded }) }}>
   {/* A closed conversation can keep its next action in the scroll. Without a composer/footer,
@@ -357,7 +367,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         Padding uses the measured overlap; a genuinely resized window contributes
         zero overlap, so it does not subtract the keyboard height a second time. */}
     <KeyboardAvoidingView style={s.flex} behavior="padding">
-      <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title} />
+      <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title} right={headerRight} />
       {/* Before the first word there is no draft to pin, and an empty card pushed the one invitation on the screen
           below the fold. The caller returns null until it has something. */}
       {pinned && !inlineSummary && !cardAtEnd ? <ScrollView testID="ai-pinned-card" style={[s.cardArea,
@@ -459,11 +469,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
           ...notes.filter(note => note.afterMessageId === null || !anchored.has(note.afterMessageId)).map(drawNote)]}
         {/* Until the server read brings it back, what was said is still what was said: present, readable, and visibly
             not yet part of the record. */}
-        {p.sentMessage ? <View accessibilityLabel={`Vi, šalje se: ${p.sentMessage}`} style={[s.person, s.sending]}>
-          <T selectable style={s.personText}>{p.sentMessage}</T>
+        {shownSentMessage ? <View accessibilityLabel={`Vi, šalje se: ${shownSentMessage}`} style={[s.person, s.sending]}>
+          <T selectable style={s.personText}>{shownSentMessage}</T>
         </View> : null}
         {p.streamingText ? <View accessibilityLabel={`USKOČI, odgovor u pripremi: ${p.streamingText}`} accessibilityLiveRegion="none" style={s.assistant}>
-          {p.sentMessage || !last?.fromAi ? <Mark /> : null}<T selectable style={p.questionFocus ? s.question : s.answer}>{p.streamingText}</T>
+          {shownSentMessage || !last?.fromAi ? <Mark /> : null}<T selectable style={p.questionFocus ? s.question : s.answer}>{p.streamingText}</T>
           <T variant="note" tone="muted">Odgovor u pripremi · podaci još nisu potvrđeni</T></View> : null}
         {/* Three dots are what a person waiting for an answer already understands; they stop under reduced motion. */}
         {p.busy && !p.streamingText && p.busyLabel ? <View testID="ai-command-progress"
@@ -481,24 +491,6 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {p.actions ? <View style={s.actions}>{p.actions}</View> : null}
         {p.draftCue ? <View testID="ai-draft-cue" style={s.draftCue}>{p.draftCue}</View> : null}
         {pinned && cardAtEnd && !cardBeforeReply ? <View testID="ai-end-card">{pinned}</View> : null}
-        {p.onOptions || p.newConversation || p.exitAction ? <View testID="ai-conversation-management" style={s.management}>
-        {p.onOptions ? <View style={s.conversationTools}>
-          <Press testID="ai-conversation-options" accessibilityRole="button" accessibilityLabel="Opcije razgovora"
-            onPress={() => { Keyboard.dismiss(); p.onOptions?.(); }} haptic="select" style={s.newConversation}>
-            <T variant="note" tone="muted">Opcije razgovora</T><Glyph name="caret-down" size={16} tone="muted" />
-          </Press>
-        </View> : null}
-        {p.newConversation ? <View style={s.conversationTools}>
-          <Press testID="ai-new-conversation" accessibilityRole="button"
-            accessibilityLabel="Novi razgovor" accessibilityHint="Otvara potvrdu pre početka novog razgovora."
-            accessibilityState={{ disabled: !!p.newConversation.disabled }} disabled={p.newConversation.disabled}
-            onPress={() => { if (p.newConversation?.disabled) return; Keyboard.dismiss(); p.newConversation?.onPress(); }}
-            haptic={p.newConversation.disabled ? 'none' : 'select'} style={s.newConversation}>
-            <T variant="note" style={p.newConversation.disabled ? s.newConversationDisabled : s.newConversationText}>Novi razgovor</T>
-          </Press>
-        </View> : null}
-        {p.exitAction}
-        </View> : null}
         </View>
       </ScrollView>
       {/* This control gets its own measured row. An overlay hid the expanded draft/review on small screens;
@@ -539,22 +531,6 @@ export function AiConversationShell(p: AiConversationShellProps) {
             answer arriving, so no line is docked above the composer for it. */}
         {sendReason && voiceIdle && !p.status && !(p.pending && p.busy) ? <T testID="ai-send-reason" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
           variant="note" tone="muted" style={s.reason}>{sendReason}</T> : null}
-        {p.voice && voiceMode ? <View style={s.inputPreferences}>
-          <Press testID="ai-voice-review" accessibilityRole="checkbox" accessibilityLabel="Pregledajte pre slanja"
-            accessibilityState={{ checked: reader || reviewFirst, disabled: modeBlocked || reader }} disabled={modeBlocked || reader}
-            accessibilityHint={reader ? 'Uz čitač ekrana tekst se uvek pregleda pre slanja.' : modeBlocked ? modeReason : 'Važi za govor, sa držanjem i bez držanja.'}
-            onPress={() => { if (canSwitch() && !reader) setReviewFirst(value => !value); }} haptic="select" style={s.preference}>
-            <View style={[s.reviewBox, (reader || reviewFirst) && s.reviewBoxOn]}>{reader || reviewFirst ? <Glyph name="check" size={14} tone="onGreen" /> : null}</View>
-            <T variant="note" style={s.preferenceText}>Pregledajte pre slanja</T>
-          </Press>
-          {voiceMode && !reader ? <Press testID="ai-voice-gesture" accessibilityRole="button"
-            accessibilityLabel={tapToTalk ? 'Koristite držanje mikrofona' : 'Govorite bez držanja'}
-            accessibilityHint={modeBlocked ? modeReason : 'Menja gest. Izbor pregleda pre slanja ostaje isti.'}
-            accessibilityState={{ disabled: modeBlocked }} disabled={modeBlocked} haptic="select" style={s.gestureChoice}
-            onPress={() => { if (canSwitch()) { setTapToTalk(value => !value); setHoldHint(false); } }}>
-            <T variant="note" tone="green">{tapToTalk ? 'Koristite držanje' : 'Bez držanja'}</T>
-          </Press> : null}
-        </View> : null}
         {reviewedTextShown ? <View testID="ai-transcript-review" style={s.transcriptReview} accessibilityLiveRegion="polite">
           <Glyph name="mic" size={18} tone="green" />
           <T variant="note" style={s.preferenceText}>Proverite prepoznate reči, pa pošaljite poruku.</T>
@@ -608,9 +584,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
             <Glyph name="keyboard" size={26} tone={modeBlocked ? 'muted' : 'ink'} />
           </Press> : null}
         </View>
-        {voiceMode && voiceIdle ? <T testID={hasText ? 'ai-retained-draft' : 'ai-voice-instruction'} variant="note" tone="muted" style={s.voicePrompt}>
-          {hasText ? 'Neposlata poruka čeka u tastaturi.' : reader || tapToTalk ? 'Dodirnite za početak i kraj govora.'
-            : reviewFirst ? 'Držite za govor, pustite za pregled.' : 'Držite za govor, pustite za slanje.'}
+        {voiceMode && voiceIdle && hasText ? <T testID="ai-retained-draft" variant="note" tone="muted" style={s.voicePrompt}>
+          Neposlata poruka čeka u tastaturi.
         </T> : null}
         </>}
       </SafeAreaView>}
