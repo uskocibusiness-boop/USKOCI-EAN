@@ -156,7 +156,7 @@ BEGIN
     SELECT 1 FROM pg_catalog.pg_proc p
       JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
      WHERE n.nspname='public' AND p.proname='rpc_ai_apply_interview_turn_v2_service'
-       AND pg_catalog.position('INVALIDATE_PRICE' in pg_catalog.pg_get_functiondef(p.oid)) > 0
+       AND pg_catalog.strpos(pg_catalog.pg_get_functiondef(p.oid),'INVALIDATE_PRICE') > 0
        AND NOT pg_catalog.has_function_privilege('anon',p.oid,'EXECUTE')
        AND NOT pg_catalog.has_function_privilege('authenticated',p.oid,'EXECUTE')
        AND pg_catalog.has_function_privilege('service_role',p.oid,'EXECUTE')
