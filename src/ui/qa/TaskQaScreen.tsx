@@ -211,8 +211,8 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile,initialQuestionId}:{
     canRetryRead={!!needId&&!!accountId} material={material}
     recovery={intent?{kind:intent.type==='DISPOSITION'?'DISPOSITION':'TEXT',absent,canCancel:!!classification?.canCancel}:null}
     cannotAsk={context?.mode==='PUBLIC'&&!context.canAsk?(!context.activeWorker
-      ?{text:'Za postavljanje pitanja potreban je aktivan profil uskočera.',
-        ...(onWorkerProfile?{action:{label:'Dopunite profil uskočera',onPress:()=>leave(onWorkerProfile,true)}}:{})}
+      ?{text:'Za postavljanje pitanja potreban je aktivan profil za uskakanje.',
+        ...(onWorkerProfile?{action:{label:'Dopunite profil za uskakanje',onPress:()=>leave(onWorkerProfile,true)}}:{})}
       :context.ratePolicyState==='NOT_READY'?{text:'Slanje novih pitanja trenutno nije dostupno. Objavljeni odgovori ostaju vidljivi.'}
         :{text:'Pitanja za ovu verziju zadatka trenutno nisu dostupna.'}):null}
     composer={!intent&&(target||context?.canAsk)?{answering:target?target.questionText:null,answeringId:target?.questionId??null,revisionChanged:!!target&&target.needRevision!==context?.needRevision,

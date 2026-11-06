@@ -32,7 +32,7 @@ import { type WorkerAiPart } from './workerProfileFacts';
  * sentence there, and hiding the whole footer made the tap look dead. Any other footer (the area confirmation, the AI
  * review) steps aside whole, because nothing in it answers a tap made while typing.
  */
-export function WorkerProfileFrame({ back, children, footer, title = 'Profil uskočera', backLabel = 'Nazad', scrollRef, onScroll, onScrollBeginDrag, right, tone }: {
+export function WorkerProfileFrame({ back, children, footer, title = 'Profil za uskakanje', backLabel = 'Nazad', scrollRef, onScroll, onScrollBeginDrag, right, tone }: {
   back: () => void; children: ReactNode; footer?: ReactNode; title?: string; backLabel?: string;
   scrollRef?: RefObject<ScrollView | null>; onScroll?: ScrollViewProps['onScroll']; onScrollBeginDrag?: ScrollViewProps['onScrollBeginDrag'];
   /** At most one control in the bar's right place: the "ⓘ" with what the profile does with its data (`HeaderInfo`). */ right?: ReactNode;
@@ -84,8 +84,8 @@ export function WorkerProfileStatus({ loading, error, retry, recoverCorrupt, con
     : <StateView kind="error" art="chat" title="Razgovor nije dostupan" body={error ?? undefined}
       primary={{ label: 'Ponovo učitajte razgovor', onPress: retry }}
       quiet={recoverCorrupt ? {label:'Oporavite lokalni zapis',onPress:recoverCorrupt}:undefined} />;
-  if (loading) return <QuietReadState art="person" title="Učitavamo profil uskočera…" body="Proveravamo sačuvane veštine i dostupnost." />;
-  return <StateView kind="error" title="Profil uskočera nije dostupan" body={error ?? undefined}
+  if (loading) return <QuietReadState art="person" title="Učitavamo profil za uskakanje…" body="Proveravamo sačuvane veštine i dostupnost." />;
+  return <StateView kind="error" title="Profil za uskakanje nije dostupan" body={error ?? undefined}
     primary={{ label: 'Ponovo učitajte profil', onPress: retry }} />;
 }
 
@@ -146,7 +146,7 @@ function ActivationStatus({ status, checks, readyToActivate, disabled, navigate 
   const draft = status === 'DRAFT';
   return <View style={s.status}>
     <View style={s.titleLine}><View style={s.dot} />
-      <T variant="bodyStrong" style={[s.grow, s.ink]}>{draft ? 'Profil uskočera je još nacrt' : 'Profil uskočera još nije podešen'}</T></View>
+      <T variant="bodyStrong" style={[s.grow, s.ink]}>{draft ? 'Profil za uskakanje je još nacrt' : 'Profil za uskakanje još nije podešen'}</T></View>
     <T variant="note" tone="muted">{draft ? 'Dok je nacrt, zadaci Vam se ne nude.' : 'Bez njega ne možete da se prijavite na zadatak.'}</T>
     {checks ? <View style={s.checklist}>{CHECKS.map(([key, label]) => <View key={key} accessible
       accessibilityLabel={`${label}: ${checks[key] ? 'spremno' : 'nedostaje'}`} style={s.checkItem}>
