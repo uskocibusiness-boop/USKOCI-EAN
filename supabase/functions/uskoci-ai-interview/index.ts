@@ -478,12 +478,13 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
   return [
     'TASK INTAKE: ONE concrete job. Prioritize missing scope, execution/place, time, price/offers. As soon as required facts are known, set dialogue.next=REVIEW and stop optional questions without waiting for a finish phrase; this is only an intent, server review and Publish remain separate. Use the declared schema.',
     ...commonInstruction(),
+    'ROLE BOUNDARY: You create a task that someone ELSE needs done, not a list of services this person offers. If their message clearly says they offer their own work, do not ask for a customer task deadline, tools or price: return an ANSWER, no fact proposals, and politely explain that the separate AI assistant for the radni profil can help. The app offers the actual switch; never claim navigation or Save happened. If they both offer and request work, ask just one question to clarify the intent. Address users formally with Vi/Vam/Vas.',
     'Scope: ask only relevant distinctions (wall/floor area, load/access, lesson subject/level, route, digital deliverable). Unknown optional details can remain for agreement. Capture ALL distinct details already stated in this turn and confirmed history: stairs/no lift, size/fragility, access, material, route, equipment needs and limits. Preserve them as accurate need.description/need.critical_conditions or private access_notes as appropriate; never invent missing details or ask again for ones supplied. Draft a short need.title and clear need.description retaining scope/materials/limits, excluding uncertain execution, private addresses and duplicated price/dates. Corrections remove stale claims, not unrelated detail or typed facts.',
     'need.people_needed: positive integer (1..50). Default to 1 for standard individual work (majstor, popravka, časovi, moler, čišćenje, prevoz, servis). Only ask about people count or propose >1 if the task inherently requires a team (heavy moving, construction crew) or if user explicitly mentions multiple workers/people. If user does not mention people count, propose need.people_needed=1.',
     'need.category: internal natural action+object, no path/place/price/date/quantity or generic fallback. Derive from clear work: room size does not change service; painting a car does. facts contains only new/changed schema keys; valueJson is a JSON-encoded value of its registered type. evidence: short verbatim USER quote; title/description synthesis may use "Sinteza potvrđenih činjenica i razgovora". An acknowledgement alone is not a fact update.',
     'dialogue.next: ASK=one missing fact with questionKey; CLARIFY=ambiguity, including known description; ACK=correction without question; ANSWER=explanation; REVIEW=business essentials clear, an internal intent only. Non-ASK questionKey=NONE.',
     'Finish-only adds no conditions or changed values. Only missing title/category may derive from clear saved description, with its literal excerpt as evidence. taskRelation CONTINUE=initial/same task; DIFFERENT_TASK=explicit separate task, keep this draft and direct to Novi zadatak; UNCLEAR=ask intent. Replacing the work in this draft requires deciding which old price/time/place remain; until clear use CONTINUE/CLARIFY, facts [], one question. Never silently transfer/erase terms.',
-    'Price: MY_PRICE needs a positive integer amount in need.price_rsd; OFFERS requests offers. If user specifies EUR/evri (e.g. 50 evra or 50€), store the exact stated amount (50) and format displayValue as "50 €" (do NOT convert to RSD, preserve stated EUR currency). If user says dinari, RSD, or enters a bare positive integer without currency (e.g. 3000), default to RSD. need.price_basis (MY_PRICE): TOTAL=whole job, PER_PERSON=each person, HOURLY=each person/hour. Store the unit amount, not people×hours. Honor explicit units; clarify ambiguous multi-person/team-hour amounts, never divide them. Day rates unsupported. TOTAL partial-team price=round(total × offered people / requested people), explain only on request.',
+    'Price: MY_PRICE needs a positive integer amount in need.price_rsd; OFFERS requests offers. If user specifies EUR/evri/€ (e.g. 50 evra or 50€), NEVER put its numeral in need.price_rsd: only whole RSD is supported. Do not convert it or claim EUR was saved. Ask for a user-confirmed amount in RSD while preserving independent scope/place/time/people details. If user says dinari, RSD, or enters a bare positive integer without currency (e.g. 3000), default to RSD. need.price_basis (MY_PRICE): TOTAL=whole job, PER_PERSON=each person, HOURLY=each person/hour. Store the unit amount, not people×hours. Honor explicit units; clarify ambiguous multi-person/team-hour amounts, never divide them. Day rates unsupported. TOTAL partial-team price=round(total × offered people / requested people), explain only on request.',
     'dialogue.priceUnit reports stated unit: WHOLE_JOB / PER_HOUR / PER_TEAM_HOUR / PER_DAY, otherwise UNSPECIFIED; do not substitute a calculated total.',
     'need.schedule_kind: FIXED_WINDOW=known start date/time, ends_at only if stated and later; TODAY_FLEXIBLE/TOMORROW_FLEXIBLE=no fixed hour; WEEK_FLEXIBLE=this calendar week; REMOTE_ANYTIME=truly unrestricted remote time; FLEXIBLE=explicit bounded choice. A choice within dates is neither unrestricted nor booking every day. Store starts_at/ends_at; whole dates use first local midnight to exclusive midnight after last date, with each bound’s DST offset. Next week uses server nextCalendarWeek. Preserve pending bounds; ask missing boundary, never invent one from an earliest start/latest deadline.',
     'dialogue.schedulePattern: FLEXIBLE_RANGE=bounded choice, even while clarifying; SINGLE=one continuous time or today/tomorrow/this week; REPEATED=separate days/shifts; otherwise UNSPECIFIED. Do not claim unsupported repeated schedules saved.',
@@ -1021,22 +1022,20 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     && (currentBareAmount && previousAskedPrice
       || priceClauses.some(clause => priceWords.test(clause) && /\d/u.test(clause)
         && !hasAmountIn(clause, dinarUnit) && !hasAmountIn(clause, euroUnit)));
-  // A model can acknowledge a requested price change without proposing a
-  // replacement fact. An explicit EUR amount or bare-price correction still
-  // needs clarification even when the model only returns ACK.
-  const unsupportedEuroWithoutPriceFact = false;
-  // Natural currency support: Bare numbers default to RSD; EUR amounts are preserved as EUR.
-  const isEuroStated = euroPriceProposed || priceClauses.some(clause => hasAmountIn(clause, euroUnit));
-  if (priceProposal) {
-    if (isEuroStated) {
-      priceProposal.displayValue = `${proposedAmount} €`;
-    } else if (!priceProposal.displayValue || priceProposal.displayValue === `${proposedAmount}`) {
-      priceProposal.displayValue = `${proposedAmount} RSD`;
-    }
-  }
-  const unsupportedPrice = explicitOffers && !!priceProposal;
-  const priceRetraction = undefined;
-  const priceMessage = '';
+  // Only a user-stated, task-price EUR amount may invalidate earlier RSD
+  // consent. Never let Gemini's display text or fabricated evidence invent
+  // currency. Independent task details are retained.
+  const euroFromUser = euroFollowup || priceClauses.some(clause => hasAmountIn(clause, euroUnit));
+  const isEuroStated = euroFromUser || euroPriceProposed;
+  if (priceProposal && !isEuroStated
+    && (!priceProposal.displayValue || priceProposal.displayValue === `${proposedAmount}`))
+    priceProposal.displayValue = `${proposedAmount} RSD`;
+  const unsupportedPrice = explicitOffers && !!priceProposal || isEuroStated && !explicitOffers;
+  const priceRetraction = euroFromUser && activeRsdPrice && !explicitOffers
+    ? 'UNSUPPORTED_CURRENCY' as const : undefined;
+  const priceMessage = isEuroStated
+    ? 'Iznos u evrima ne mogu da sačuvam kao dinare. Koji iznos u RSD želite da unesete?'
+    : '';
   const offerMessage = explicitOffers && !!priceProposal
     ? 'Razumem, tražite ponude.'
     : '';
@@ -1101,7 +1100,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     // from reaching its writer. This branch intentionally does not downgrade it.
     let filtered = unsupportedPrice || spuriousNumericPriceProposal ? { ...turn, priceRetraction, proposals: withoutUnsupportedPrice(turn.proposals),
       assistantMessage: spuriousNumericPriceProposal
-        ? 'Ovaj zahtev treba dodatno proveriti. Predlog cene nije potkrepljen tvojom porukom.'
+        ? 'Ovaj zahtev treba dodatno proveriti. Predlog cene nije potkrepljen Vašom porukom.'
         : explicitOffers ? `Ovaj zahtev treba dodatno proveriti. ${offerMessage}`
           : `Ovaj zahtev treba dodatno proveriti. ${priceMessage}` } : turn;
     if (unitPrice || repeated) filtered = { ...filtered,

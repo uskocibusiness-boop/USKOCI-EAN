@@ -70,7 +70,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "node --test scripts/product-smoke.test.cjs scripts/ai-review-expiry.test.cjs scripts/voice-recovery-ownership.test.cjs scripts/context-cache-matrix.test.cjs scripts/taxonomy-compact-bypass.test.cjs scripts/ai-role-handoff.test.cjs"
+    "test": "node --test scripts/product-smoke.test.cjs scripts/ai-review-expiry.test.cjs scripts/voice-recovery-ownership.test.cjs scripts/context-cache-matrix.test.cjs scripts/taxonomy-compact-bypass.test.cjs scripts/ai-role-handoff.test.cjs scripts/need-currency-guard.test.cjs"
   },
   "private": true
 }
