@@ -239,6 +239,31 @@ export function AiConversationShell(p: AiConversationShellProps) {
     });
   }, [cancelFollow]);
   const reduced = useReducedMotion();
+  const rawStream = p.streamingText ?? '';
+  const [smoothStream, setSmoothStream] = useState(rawStream);
+  useEffect(() => {
+    if (!rawStream || reduced) {
+      setSmoothStream(rawStream);
+      return;
+    }
+    let frame: number | null = null;
+    const step = () => {
+      frame = null;
+      setSmoothStream(current => {
+        if (!rawStream.startsWith(current) || current.length >= rawStream.length) return rawStream;
+        const remaining = rawStream.length - current.length;
+        const advance = remaining > 48 ? Math.ceil(remaining * 0.28) : remaining > 16 ? 4 : remaining > 6 ? 2 : 1;
+        let nextEnd = Math.min(rawStream.length, current.length + advance);
+        while (nextEnd < rawStream.length && /[\uD800-\uDBFF]/.test(rawStream[nextEnd - 1]!)) nextEnd++;
+        const next = rawStream.slice(0, nextEnd);
+        if (next.length < rawStream.length) frame = requestAnimationFrame(step);
+        return next;
+      });
+    };
+    frame = requestAnimationFrame(step);
+    return () => { if (frame !== null) cancelAnimationFrame(frame); };
+  }, [rawStream, reduced]);
+  const displayedStream = !rawStream ? '' : reduced ? rawStream : (smoothStream || rawStream.slice(0, Math.min(2, rawStream.length)));
   const notice = useConfirmSheet({ reduced });
   const arrival = useConversationArrival(p);
   const compact = keyboard || height < 760 || textScale >= 1.3 || p.pending;
@@ -472,18 +497,20 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {shownSentMessage ? <View accessibilityLabel={`Vi, šalje se: ${shownSentMessage}`} style={[s.person, s.sending]}>
           <T selectable style={s.personText}>{shownSentMessage}</T>
         </View> : null}
-        {p.streamingText ? <View accessibilityLabel={`USKOČI, odgovor u pripremi: ${p.streamingText}`} accessibilityLiveRegion="none" style={s.assistant}>
-          {shownSentMessage || !last?.fromAi ? <Mark /> : null}<T selectable style={p.questionFocus ? s.question : s.answer}>{p.streamingText}</T>
-          <T variant="note" tone="muted">Odgovor u pripremi · podaci još nisu potvrđeni</T></View> : null}
+        {displayedStream ? <View accessibilityLabel={`USKOČI, Odgovor u pripremi · podaci još nisu potvrđeni: ${displayedStream}`} accessibilityLiveRegion="none" style={s.assistant}>
+          {shownSentMessage || !last?.fromAi ? <Mark /> : null}
+          <T selectable style={p.questionFocus ? s.question : s.answer}>{displayedStream}</T>
+        </View> : null}
         {/* Three dots are what a person waiting for an answer already understands; they stop under reduced motion. */}
-        {p.busy && !p.streamingText && p.busyLabel ? <View testID="ai-command-progress"
+        {p.busy && !displayedStream && p.busyLabel ? <View testID="ai-command-progress"
           accessibilityLiveRegion="polite" accessibilityLabel={p.busyLabel} style={s.commandProgress}>
           <T variant="note" tone="muted">{p.busyLabel}</T>
         </View> : null}
-        {p.busy && !p.streamingText && !p.busyLabel ? <View accessibilityLiveRegion="polite" accessibilityLabel="USKOČI piše odgovor" style={s.assistant}>
-          <View style={s.typing}><View importantForAccessibility="no-hide-descendants"><AiAssistantArt size={44} animated={false} /></View>
-            <View style={s.progressCopy}><T variant="bodyStrong">Stiže odgovor…</T>
-              <View style={s.dots}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View></View></View>
+        {p.busy && !displayedStream && !p.busyLabel ? <View accessibilityLiveRegion="polite" accessibilityLabel="USKOČI piše odgovor" style={s.assistant}>
+          {shownSentMessage || !last?.fromAi ? <Mark /> : null}
+          <View style={s.typing}>
+            <View style={s.dots}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View>
+          </View>
         </View> : null}
         {p.context && !inlineContext ? <View ref={interactiveContext} collapsable={false} testID="ai-task-context" onLayout={revealContext}>{p.context}</View> : null}
         {/* Recovery belongs to scrollable content, not a second fixed footer. */}

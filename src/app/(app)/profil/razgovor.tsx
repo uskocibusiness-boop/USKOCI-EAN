@@ -241,9 +241,11 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
         if(!current())return unavailable();
         // Always read the canonical candidate. An exact success skips only
         // duplicate status recovery; lost responses never resend the model call.
-        const result=await read(sent.ok?sent.podatak:undefined);if(!current())return unavailable();
+        const result=await read(sent.ok?sent.podatak:undefined);
+        if(current())setStream('');
+        if(!current())return unavailable();
         return result.ok?result:sent.ok?result:sent;
-      }finally{if(abort.current===controller)abort.current=null;if(current())setStream('');}
+      }finally{if(abort.current===controller)abort.current=null;}
     });
   };
   const keepTranscript=(text:string)=>{

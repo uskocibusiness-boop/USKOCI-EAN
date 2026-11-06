@@ -78,13 +78,24 @@ export function assistantPrefix(input: string): string {
  * enum, nullable and numeric bounds are forwarded unchanged. */
 const wireUnsupportedKeywords = new Set(['additionalProperties', 'maxItems', 'minItems']);
 
-function providerSchema(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(providerSchema);
+function providerSchema(value: unknown, isRoot = true): unknown {
+  if (Array.isArray(value)) return value.map(item => providerSchema(item, false));
   if (!value || typeof value !== 'object') return value;
   const result: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
     if (wireUnsupportedKeywords.has(key)) continue;
-    result[key] = providerSchema(item);
+    result[key] = providerSchema(item, false);
+  }
+  if (isRoot && result.type === 'OBJECT' && result.properties && typeof result.properties === 'object' && !Array.isArray(result.properties)) {
+    const propKeys = Object.keys(result.properties as Record<string, unknown>);
+    if (propKeys.includes('assistantMessage') && !Array.isArray(result.propertyOrdering)) {
+      const priority = ['assistantMessage', 'safety', 'dialogue', 'availabilityChange', 'patch', 'facts', 'locationDecision', 'serviceModeChangesJson', 'taxonomyDecisions'];
+      const ordered = [
+        ...priority.filter(k => propKeys.includes(k)),
+        ...propKeys.filter(k => !priority.includes(k)),
+      ];
+      result.propertyOrdering = ordered;
+    }
   }
   return result;
 }

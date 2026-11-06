@@ -364,7 +364,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
             turnRoles.current[result.podatak.receipt.assistantMessageId] = 'ordinary';
         }
       } finally {
-        if (streamAbort.current === abort) { streamAbort.current = null; if (isCurrent()) setStreamingText(''); }
+        if (streamAbort.current === abort) streamAbort.current = null;
       }
       if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
       unconfirmedSend.current = !result.ok && result.kod === SEND_UNCONFIRMED_CODE ? result.poruka : null;
@@ -374,6 +374,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
         // existing read-only recovery path. Never resend or synthesize an AI answer.
         if (result.kod === SEND_UNCONFIRMED_CODE || result.kod === 'AI_SERVICE_UNAVAILABLE') {
           const checked = await read();
+          if (isCurrent()) setStreamingText('');
           if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
           if (checked.ok && (checked.podatak.turn?.state === 'SUCCEEDED'
             || checked.podatak.turn?.state === 'PROCESSING')) {
@@ -381,9 +382,12 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
             return checked;
           }
         }
+        if (isCurrent()) setStreamingText('');
         return result;
       }
-      return read(result.podatak);
+      const nextRead = await read(result.podatak);
+      if (isCurrent()) setStreamingText('');
+      return nextRead;
     }); } finally {
       if (sendFlight.current === flight) sendFlight.current = null;
       pointLease?.cancel();
