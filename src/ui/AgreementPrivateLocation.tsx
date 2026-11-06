@@ -110,20 +110,26 @@ function LocationSession({ agreementId, accountId, accountRevision, requesterId,
     // Retire map actions as soon as a refresh/readback starts, before its loading render.
     intent.current = {};
     if (!appActive()) return invalid();
-    const cached = await readCachedLocation(accountId, agreementId, requesterId, workerId);
+    // A cached EXACT address is never authority. Read the CURRENT signed grant
+    // first; failed/denied reads cannot be converted to success by local storage.
     const result = await source.lokacijskaDozvola(agreementId);
     if (!result.ok) {
-      if (cached && appActive()) return { ok: true, podatak: cached };
+      await clearCachedAgreementLocation(accountId, agreementId);
       return result;
     }
     const state = result.podatak;
     if (!appActive() || state.agreementId !== agreementId || state.accountId !== accountId || state.grants.length > 1
-      || state.grants.some(grant => grant.ownerAccountId !== requesterId || grant.recipientAccountId !== workerId)) return invalid();
+      || state.grants.some(grant => grant.ownerAccountId !== requesterId || grant.recipientAccountId !== workerId)) {
+      await clearCachedAgreementLocation(accountId, agreementId);
+      return invalid();
+    }
     const latestGrant = state.grants[0];
     if (!activeGrant(latestGrant)) {
       await clearCachedAgreementLocation(accountId, agreementId);
       return { ok: true, podatak: { state, revealed: null } };
     }
+    const cached = await readCachedLocation(accountId, agreementId, requesterId, workerId);
+    if (!appActive()) return invalid();
     const retainedReveal = cached?.revealed && cached.revealed.grantId === latestGrant.id
       && Date.parse(cached.revealed.grantedAt) === Date.parse(latestGrant.grantedAt)
       ? cached.revealed
