@@ -462,8 +462,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {p.sentMessage ? <View accessibilityLabel={`Vi, šalje se: ${p.sentMessage}`} style={[s.person, s.sending]}>
           <T selectable style={s.personText}>{p.sentMessage}</T>
         </View> : null}
-        {p.streamingText ? <View accessibilityLabel={`USKOČI: ${p.streamingText}`} accessibilityLiveRegion="none" style={s.assistant}>
-          {p.sentMessage || !last?.fromAi ? <Mark /> : null}<T selectable style={p.questionFocus ? s.question : s.answer}>{p.streamingText}</T></View> : null}
+        {p.streamingText ? <View accessibilityLabel={`USKOČI, odgovor u pripremi: ${p.streamingText}`} accessibilityLiveRegion="none" style={s.assistant}>
+          {p.sentMessage || !last?.fromAi ? <Mark /> : null}<T selectable style={p.questionFocus ? s.question : s.answer}>{p.streamingText}</T>
+          <T variant="note" tone="muted">Odgovor u pripremi · podaci još nisu potvrđeni</T></View> : null}
         {/* Three dots are what a person waiting for an answer already understands; they stop under reduced motion. */}
         {p.busy && !p.streamingText && p.busyLabel ? <View testID="ai-command-progress"
           accessibilityLiveRegion="polite" accessibilityLabel={p.busyLabel} style={s.commandProgress}>

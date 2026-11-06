@@ -20,7 +20,7 @@ declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:
 
 const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>Deno.env.get(key));
 
-const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info',
+const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info,x-uskoci-worker-preview-stream',
   'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status,
   headers: { ...cors, 'Content-Type': 'application/json' } });
@@ -393,6 +393,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       ||t.retryAllowed!==false||t.authoritative!==true||(dispatched.dispatched&&t.state!=='PROCESSING')) throw new Error('WORKER_AI_INVALID');
     if (!dispatched.dispatched) { research.dispose(); return json(200,t); }
   } catch { await fail(); return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
+  // Versioned opt-in: older APKs retain completed-only text instead of an unverified preview.
+  const previewStream=req.headers.get('x-uskoci-worker-preview-stream')==='v1';
   const abort=new AbortController(),stop=()=>{abort.abort();research?.dispose();}; req.signal.addEventListener('abort',stop,{once:true}); if(req.signal.aborted)stop();
   const encoder=new TextEncoder(); let sequence=0;
   const stream=new ReadableStream<Uint8Array>({
@@ -437,10 +439,11 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
 
       try {
         send('accepted');
-        // A single provider response carries dialogue, business changes and
-        // private classification. Prose is released only after durable completion.
+        // Preview deltas are not saved facts. The signed SQL completion and owned readback
+        // still establish the final message; this never starts a second provider call.
         const raw=await measureAiPhase('PROVIDER', () => streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-          key,body,signal:research!.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000}));
+          key,body,signal:research!.signal,onText:delta=>{if(previewStream&&!abort.signal.aborted)send('text_delta',{text:delta});},
+          onUsage:value=>{usage.value=value;},timeoutMs:30000}));
         const {output: preparedOutput,serviceModeChangesJson,taxonomyDecisions} = analyzeOutput(raw);
         let output = preparedOutput;
         research!.dispose();
@@ -536,7 +539,12 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
                 if (!stored) { try { console.warn('WORKER_TAXONOMY_HINT_STORE', 'UNAVAILABLE'); } catch { /* Nonfatal diagnostics. */ } }
               }))));
         }
-        if(!abort.signal.aborted){send('text_delta',{text:output.assistantMessage});send('final',{turn});}
+        if(!abort.signal.aborted){
+          // Legacy clients keep their completed-only text; opt-in clients already
+          // received provisional deltas and replace them with the owned readback.
+          if(!previewStream)send('text_delta',{text:output.assistantMessage});
+          send('final',{turn});
+        }
       } catch (error) { await fail(); if(!abort.signal.aborted) { try { send('safe_error',{code:
         req.headers.get(AI_DIAGNOSTICS_HEADER)===AI_DIAGNOSTICS_VERSION && error instanceof GeminiCreditsUnavailableError
           ? AI_CREDITS_UNAVAILABLE : 'AI_TURN_NOT_CONFIRMED'}); } catch {} } }

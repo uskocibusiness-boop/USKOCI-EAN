@@ -149,3 +149,25 @@ test('signed task readiness follows the server handoff projection',async t=>{
     assert.notEqual(mod.exports.taskReadinessKey(f.conversation),key);
   });
 });
+
+
+test('Worker Gemini text streaming is opt-in and never bypasses signed persistence',()=>{
+  const edge=fs.readFileSync(path.join(root,'supabase/functions/uskoci-worker-interview/index.ts'),'utf8');
+  const transport=fs.readFileSync(path.join(root,'src/data/aiNeedTurnStream.ts'),'utf8');
+  const shell=fs.readFileSync(path.join(root,'src/ui/aiFirst/AiConversationShell.tsx'),'utf8');
+  const workerRoute=fs.readFileSync(path.join(root,'src/app/(app)/profil/razgovor.tsx'),'utf8');
+  const needRoute=fs.readFileSync(path.join(root,'src/app/(app)/nova.tsx'),'utf8');
+  assert.ok(transport.includes("'x-uskoci-worker-preview-stream': 'v1'"));
+  assert.ok(edge.includes("req.headers.get('x-uskoci-worker-preview-stream')==='v1'"));
+  assert.ok(edge.includes('x-client-info,x-uskoci-worker-preview-stream'));
+  const provider=edge.indexOf("const raw=await measureAiPhase('PROVIDER'");
+  const preview=edge.indexOf("send('text_delta',{text:delta})",provider);
+  const signed=edge.indexOf("const completionRpc=",provider);
+  assert.ok(provider>=0 && preview>provider && signed>preview,'preview precedes authoritative SQL completion');
+  assert.ok(edge.includes("if(previewStream&&!abort.signal.aborted)"));
+  assert.ok(edge.includes("if(!previewStream)send('text_delta',{text:output.assistantMessage});"));
+  assert.ok(edge.includes("send('final',{turn});"));
+  assert.ok(workerRoute.includes('setStream(value=>value+delta)'));
+  assert.ok(needRoute.includes('setStreamingText((prev) => prev + delta)'));
+  assert.ok(shell.includes('Odgovor u pripremi · podaci još nisu potvrđeni'));
+});

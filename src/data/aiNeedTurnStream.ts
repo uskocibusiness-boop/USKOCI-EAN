@@ -65,7 +65,7 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     const response = await expoFetch(input.url + '/functions/v1/' + (input.endpoint ?? 'uskoci-ai-interview'), {
       method: 'POST', signal: abort.signal, redirect: 'error',
       headers: { Authorization: 'Bearer ' + input.accessToken, apikey: input.anonKey, 'Content-Type': 'application/json', Accept: 'text/event-stream', [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION,
-        ...(input.endpoint === 'uskoci-worker-interview' ? {} : { [NEED_FACT_TURN_CAPABILITY_HEADER]: NEED_FACT_TURN_CAPABILITY_VERSION }) },
+        ...(input.endpoint === 'uskoci-worker-interview' ? { 'x-uskoci-worker-preview-stream': 'v1' } : { [NEED_FACT_TURN_CAPABILITY_HEADER]: NEED_FACT_TURN_CAPABILITY_VERSION }) },
       body: JSON.stringify({
         conversationId: input.conversationId,
         text: input.text,
