@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { AppState, StyleSheet, View } from 'react-native';
 import type { DogovorProjekcija } from '../contracts/projections';
@@ -24,6 +25,44 @@ type Snapshot = { state: LocationGrantState; revealed: ExactLocationReveal | nul
 const activeGrant = (grant: LocationGrant | undefined) => !!grant && grant.status === 'GRANTED'
   && (grant.expiresAt === null || Date.parse(grant.expiresAt) > Date.now());
 const invalid = (): Ishod<never> => ({ ok: false, kod: 'LOCATION_SCOPE_CHANGED', poruka: 'Dozvola za lokaciju je promenjena. Osvežite prikaz.' });
+const locationCacheKey = (accountId: string, agreementId: string) => `uskoci:agreement-location:v1:${accountId}:${agreementId}`;
+
+async function readCachedLocation(accountId: string, agreementId: string, requesterId: string, workerId: string): Promise<Snapshot | null> {
+  try {
+    const raw = await AsyncStorage.getItem(locationCacheKey(accountId, agreementId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Snapshot;
+    const grant = parsed?.state?.grants?.[0];
+    const revealed = parsed?.revealed;
+    if (!parsed?.state || parsed.state.agreementId !== agreementId || parsed.state.accountId !== accountId
+      || !grant || !activeGrant(grant) || grant.ownerAccountId !== requesterId || grant.recipientAccountId !== workerId
+      || !revealed || revealed.agreementId !== agreementId || revealed.grantId !== grant.id
+      || (revealed.expiresAt !== null && Date.parse(revealed.expiresAt) <= Date.now())) {
+      await AsyncStorage.removeItem(locationCacheKey(accountId, agreementId)).catch(() => undefined);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function writeCachedLocation(accountId: string, agreementId: string, snapshot: Snapshot): Promise<void> {
+  try {
+    await AsyncStorage.setItem(locationCacheKey(accountId, agreementId), JSON.stringify(snapshot));
+  } catch {
+    // Ignore storage quota errors; live view still works.
+  }
+}
+
+export async function clearCachedAgreementLocation(accountId: string | undefined, agreementId: string): Promise<void> {
+  if (!accountId) return;
+  try {
+    await AsyncStorage.removeItem(locationCacheKey(accountId, agreementId));
+  } catch {
+    // Ignore storage removal errors.
+  }
+}
 
 /** Unmount the private session on background, account, revision, participant or terminal state changes. */
 export function AgreementPrivateLocation({ agreement, enabled, onRequestAddress }: Props) {
@@ -40,17 +79,23 @@ export function AgreementPrivateLocation({ agreement, enabled, onRequestAddress 
   const me = agreement.ucesnici.find(party => party.viSte && party.id === session.user?.id);
   const requester = agreement.ucesnici.find(party => party.uloga === 'narucilac');
   const worker = agreement.ucesnici.find(party => party.uloga === 'uskocer');
-  const visible = enabled && foreground && me && requester && worker && requester.id !== worker.id
+  const activeState = agreement.stanje === 'CONFIRMED' || agreement.stanje === 'AWAITING_REQUESTER';
+  useEffect(() => {
+    if (!activeState && session.user?.id) {
+      void clearCachedAgreementLocation(session.user.id, agreement.id);
+    }
+  }, [activeState, session.user?.id, agreement.id]);
+  const visible = foreground && me && requester && worker && requester.id !== worker.id
     && agreement.rezim !== 'DALJINSKI' && agreement.kontakt.lokacijaPostoji
-    && (agreement.stanje === 'CONFIRMED' || agreement.stanje === 'AWAITING_REQUESTER');
+    && activeState;
   if (!visible) return null;
   return <LocationSession key={`${session.user!.id}:${session.accountRevision}:${agreement.id}:${agreement.verzija}:${agreement.stanje}:${requester.id}:${worker.id}`}
     agreementId={agreement.id} accountId={session.user!.id} accountRevision={session.accountRevision}
-    requesterId={requester.id} workerId={worker.id} appActive={appActive} onRequestAddress={onRequestAddress} />;
+    requesterId={requester.id} workerId={worker.id} enabled={enabled} appActive={appActive} onRequestAddress={onRequestAddress} />;
 }
 
-function LocationSession({ agreementId, accountId, accountRevision, requesterId, workerId, appActive, onRequestAddress }: {
-  agreementId: string; accountId: string; accountRevision: number; requesterId: string; workerId: string; appActive: () => boolean;
+function LocationSession({ agreementId, accountId, accountRevision, requesterId, workerId, enabled, appActive, onRequestAddress }: {
+  agreementId: string; accountId: string; accountRevision: number; requesterId: string; workerId: string; enabled: boolean; appActive: () => boolean;
   onRequestAddress?: () => void;
 }) {
   const source = useIzvor();
@@ -65,12 +110,25 @@ function LocationSession({ agreementId, accountId, accountRevision, requesterId,
     // Retire map actions as soon as a refresh/readback starts, before its loading render.
     intent.current = {};
     if (!appActive()) return invalid();
+    const cached = await readCachedLocation(accountId, agreementId, requesterId, workerId);
     const result = await source.lokacijskaDozvola(agreementId);
-    if (!result.ok) return result;
+    if (!result.ok) {
+      if (cached && appActive()) return { ok: true, podatak: cached };
+      return result;
+    }
     const state = result.podatak;
     if (!appActive() || state.agreementId !== agreementId || state.accountId !== accountId || state.grants.length > 1
       || state.grants.some(grant => grant.ownerAccountId !== requesterId || grant.recipientAccountId !== workerId)) return invalid();
-    return { ok: true, podatak: { state, revealed: null } };
+    const latestGrant = state.grants[0];
+    if (!activeGrant(latestGrant)) {
+      await clearCachedAgreementLocation(accountId, agreementId);
+      return { ok: true, podatak: { state, revealed: null } };
+    }
+    const retainedReveal = cached?.revealed && cached.revealed.grantId === latestGrant.id
+      && Date.parse(cached.revealed.grantedAt) === Date.parse(latestGrant.grantedAt)
+      ? cached.revealed
+      : null;
+    return { ok: true, podatak: { state, revealed: retainedReveal } };
   }, [source, agreementId, accountId, requesterId, workerId, appActive]);
   const editor = useOwnedEditor(read);
   const grant = editor.data?.state.grants[0];
@@ -98,6 +156,7 @@ function LocationSession({ agreementId, accountId, accountRevision, requesterId,
   const setGrant = (allow: boolean) => editor.save(async () => {
     intent.current = {};
     if (!appActive()) return invalid();
+    if (!allow) await clearCachedAgreementLocation(accountId, agreementId);
     const result = await (allow ? source.podeliTacnuLokaciju(agreementId) : source.opoziviTacnuLokaciju(agreementId));
     if (!result.ok) return result;
     if (!mounted.current || !appActive()) return invalid();
@@ -118,15 +177,17 @@ function LocationSession({ agreementId, accountId, accountRevision, requesterId,
       || value.grantId !== latest.id || Date.parse(value.grantedAt) !== Date.parse(latest.grantedAt)
       || (value.expiresAt === null ? latest.expiresAt !== null
         : latest.expiresAt === null || Date.parse(value.expiresAt) !== Date.parse(latest.expiresAt))) return invalid();
-    return { ok: true, podatak: { ...current.podatak, revealed: value } };
+    const nextSnapshot: Snapshot = { ...current.podatak, revealed: value };
+    await writeCachedLocation(accountId, agreementId, nextSnapshot);
+    return { ok: true, podatak: nextSnapshot };
   });
-  const locked = editor.loading || editor.busy || editor.uncertain || !editor.data;
+  const locked = !enabled || editor.loading || editor.busy || editor.uncertain || !editor.data;
   // How long the access lasts, when the read says so: a grant with an end names it; one without lasts until it is
   // revoked or the Dogovor ends (this section closes then).
   const requester = accountId === requesterId;
   const lasts = !granted ? null : grant?.expiresAt ? `Važi do ${vreme(grant.expiresAt)}.`
     // Only the requester can revoke, so each side is told who can end it.
-    : requester ? 'Važi dok je ne opozoveš ili dok se Dogovor ne završi.' : 'Važi dok je druga strana ne opozove ili dok se Dogovor ne završi.';
+    : requester ? 'Važi dok je ne opozovete ili dok se Dogovor ne završi.' : 'Važi dok je druga strana ne opozove ili dok se Dogovor ne završi.';
   // The section above carries the title ("Kontakt i mesto"); this part starts with the state of the access, in the words of the one list
   // (idea R03): the side that owns the address is told to share it when they are ready, the side that does not is told it is not shared
   // and given the one way to ask for it. The grant, its lease and its readback below are exactly what they were.

@@ -28,7 +28,7 @@ const STATE_WORD: Record<StanjeProfila, string> = { ACTIVE: 'Aktivan', DRAFT: 'N
 export function workProfileSummary(profile: WorkProfileFacts | null, executionModes?: WorkerExecutionModeView): string | undefined {
   if (!profile) return 'Još nije podešen';
   if (profile.stanje === null || STATE_WORD[profile.stanje] === undefined) return undefined;
-  if (profile.stanje === 'SUSPENDED') return `${STATE_WORD.SUSPENDED}. Obrati se podršci.`;
+  if (profile.stanje === 'SUSPENDED') return `${STATE_WORD.SUSPENDED}. Obratite se podršci.`;
   const skills = (profile.vestine ?? []).map(skill => skill.trim()).filter(Boolean);
   const city = profile.grad?.trim() ? cityLabel(profile.grad) : '';
   const radius = typeof profile.radijusKm === 'number' && Number.isFinite(profile.radijusKm) && profile.radijusKm > 0 ? `${profile.radijusKm} km` : '';

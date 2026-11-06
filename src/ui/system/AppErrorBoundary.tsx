@@ -24,10 +24,10 @@ export function AppErrorBoundary({ error, retry }: ErrorBoundaryProps) {
     <View style={s.body}>
       <View accessible accessibilityRole="image" accessibilityLabel="USKOČI"><BrandMark size={56} /></View>
       <T accessibilityRole="header" variant="title" style={s.title}>Ovaj ekran se nije otvorio</T>
-      <T variant="body" tone="muted" style={s.center}>Pokušaj ponovo. Ako se ponovi, vrati se na početak aplikacije.</T>
+      <T variant="body" tone="muted" style={s.center}>Pokušajte ponovo. Ako se ponovi, vratite se na početak aplikacije.</T>
     </View>
     <View style={s.actions}>
-      <V2Action label="Pokušaj ponovo" kind="primary" onPress={() => { void retry(); }} style={brandAction} />
+      <V2Action label="Pokušajte ponovo" kind="primary" onPress={() => { void retry(); }} style={brandAction} />
       <V2Action label="Na početak" kind="quiet" onPress={home} />
     </View>
   </SafeAreaView>;

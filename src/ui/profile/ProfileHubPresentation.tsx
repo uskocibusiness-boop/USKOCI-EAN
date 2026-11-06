@@ -73,7 +73,7 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
       <Avatar initials={null} size={PROFILE_AVATAR} />
       <T variant="bodyStrong" style={s.center}>Profil trenutno nije dostupan.</T>
       <T variant="note" tone="muted" style={s.center}>Proverite vezu pa pokušajte ponovo.</T>
-      <View style={s.retry}><SettingsAction label="Pokušaj ponovo" kind="secondary" onPress={identity.retry} /></View>
+      <View style={s.retry}><SettingsAction label="Pokušajte ponovo" kind="secondary" onPress={identity.retry} /></View>
     </View> : <View key="ready" testID="profile-identity" accessible={false}
       accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={s.identity}>
       {/* The photo itself opens the photo screen; the small camera badge says so without a second control. */}
@@ -95,11 +95,11 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
       {identity.reputation || workSummary || stats ? <View style={s.figures}>
         <FigureRow testID="profile-figures">{identity.reputation}{workSummary}{stats}</FigureRow>
       </View> : null}
-      {onViewPublic ? <V2Action label="Pogledaj javni profil" tone="neutral" disabled={busy} onPress={onViewPublic}
+      {onViewPublic ? <V2Action label="Pogledajte javni profil" tone="neutral" disabled={busy} onPress={onViewPublic}
         style={s.publicButton} labelStyle={s.linkTitle} /> : null}
     </View>}
 
-    <ProfileLink label="Radni profil" subtitle="Usluge, područje i dostupnost" detail={capabilityDetail}
+    <ProfileLink label="Profil majstora" subtitle="Usluge, područje i dostupnost" detail={capabilityDetail}
       attention={capabilityNeedsAttention} disabled={busy} onPress={go('/profil/radnik')}
       onRetry={capabilityError ? onRetryCapability : undefined} />
     <ProfileLink label="Moje prijave" subtitle="Pogledajte status i odgovore" disabled={busy} onPress={go('/moje-prijave')} />
@@ -108,7 +108,7 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
     <ProfileLink label="Moj raspored" subtitle="Dogovori i dostupnost" disabled={busy} onPress={go('/raspored')} />
     {/* The prototype's generic activity card becomes the actual published-task destination.
         Finished collaborations remain reachable through their live figure above. */}
-    <ProfileLink label="Moji zadaci" subtitle="Vaše objave i izbor izvršilaca" disabled={busy} onPress={go('/potrebe')} />
+    <ProfileLink label="Moji zadaci" subtitle="Vaše objave i izbor majstora" disabled={busy} onPress={go('/potrebe')} />
     {sheet}
   </Screen>;
 }

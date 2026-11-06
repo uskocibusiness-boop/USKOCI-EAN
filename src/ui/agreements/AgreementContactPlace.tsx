@@ -1,8 +1,9 @@
+import { useEffect, type ReactNode } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import type { ReactNode } from 'react';
 import type { DogovorProjekcija } from '../../contracts/projections';
+import { useSesija } from '../../store/sesija';
 import { T } from '../Text';
-import { AgreementPrivateLocation } from '../AgreementPrivateLocation';
+import { AgreementPrivateLocation, clearCachedAgreementLocation } from '../AgreementPrivateLocation';
 import { FactArt } from '../system/FactArt';
 import { ListRow } from '../system/ListRow';
 import { Section } from '../system/Section';
@@ -31,8 +32,14 @@ export function AgreementContactPlace({
   onRequestAddress?: () => void;
   locationSlot?: ReactNode;
 }) {
+  const session = useSesija();
   const active = agreement.stanje === 'CONFIRMED' || agreement.stanje === 'AWAITING_REQUESTER';
   const physical = agreement.rezim !== 'DALJINSKI' && agreement.kontakt.lokacijaPostoji;
+  useEffect(() => {
+    if (!active && session.user?.id) {
+      void clearCachedAgreementLocation(session.user.id, agreement.id);
+    }
+  }, [active, session.user?.id, agreement.id]);
 
   const rows: ((last: boolean) => ReactNode)[] = [
     last => (

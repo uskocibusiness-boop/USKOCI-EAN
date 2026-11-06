@@ -222,9 +222,15 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   const writable = enabled && dogovor?.chatDostupan === true;
   const groupModel = useGroupContext(id, enabled && !!dogovor && dogovor.pokrivenost.ukupno > 1
     && dogovor.ucesnici.some(party => party.viSte && party.id === accountId));
-  const refreshIncoming = useCallback(() => messages.refresh('silent'), [messages.refresh]);
+  const refreshIncoming = useCallback(async () => {
+    if (tabRef.current === 'poruke') {
+      await messages.refresh('silent');
+    } else {
+      await workspace.refresh();
+    }
+  }, [messages.refresh, workspace.refresh]);
   useAgreementIncomingRefresh({ accountId, accountRevision, agreementId: id, source: izvor,
-    enabled: enabled && tab === 'poruke' && dogovor?.chatDostupan === true
+    enabled: enabled && !!dogovor && (tab === 'pregled' || dogovor.chatDostupan === true)
       && dogovor.ucesnici.some(party => party.viSte && party.id === accountId),
     refresh: refreshIncoming });
   const { model: outbox, state: outboxState } = useAgreementOutbox(accountId, id, writable);
