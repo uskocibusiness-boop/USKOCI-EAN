@@ -1361,10 +1361,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     if (indexes.length) visibleRangeRef.current?.(Math.min(...indexes), Math.max(...indexes));
   }, []);
   useEffect(() => { setPortraitIds(new Set()); }, [props.scopeKey]);
-  const showPortraits = focused && !cardShown && sheetIndex === SNAP.full;
+  const showPortraits = focused && !cardShown && sheetIndex > SNAP.peek;
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
     <DiscoveryRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} relation={relation(item)} onOpen={openItem}
-      portraitVisible={showPortraits && portraitIds.has(item.id)}
+      portraitVisible={showPortraits && (portraitIds.has(item.id) || index < 6)}
       section={sectionsRef.current.get(index)} />, [relation, openItem, showPortraits, portraitIds]);
 
   // The count says what is listed, honestly: under a map area, the area's tasks and, apart, those with no point at all;

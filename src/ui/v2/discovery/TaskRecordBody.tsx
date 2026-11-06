@@ -8,7 +8,7 @@ import { displaysUrgent } from '../../../lib/needUrgency';
 import { T } from '../../Text';
 import { Avatar } from '../../system/Avatar';
 import { FactArt } from '../../system/FactArt';
-import { Glyph, type GlyphName } from '../../system/Glyph';
+import { FACT_ROW_ART, FactRow } from '../../system/FactRow';
 import { layout } from '../../system/layout';
 import { useLayoutClass } from '../../system/textScale';
 import { sys } from '../../system/tokens';
@@ -87,7 +87,7 @@ export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation
   const schedule = item.schedule ? needScheduleText(place.remote && item.schedule.kind === 'REMOTE_ANYTIME'
     ? { ...item.schedule, kind: 'FLEXIBLE' } : item.schedule, item.taskTimezone) : item.vremeTekst;
   const requirement = taskRequirement(item);
-  const publisher = !ownerView && 'narucilacIme' in item && typeof item.narucilacIme === 'string' ? item.narucilacIme.trim() : '';
+  const publisher = 'narucilacIme' in item && typeof item.narucilacIme === 'string' ? item.narucilacIme.trim() : '';
   const person = publisher && 'narucilacIme' in item ? { name: publisher, rating: item.narucilacOcena, count: item.narucilacBrojOcena } : null;
   const age = useTaskAge(item.id);
   const audience = ownerView ? 'owner' : 'worker';
@@ -106,44 +106,34 @@ function spokenWithOffers(spoken: string, value: TaskValue, word: string): strin
 }
 
 /** Budget is prominent and separate from the quieter facts. It never claims payment. */
-function ValueRow({ model, mapPreview = false }: { model: TaskRecordModel; mapPreview?: boolean }) {
+function ValueRow({ model }: { model: TaskRecordModel; mapPreview?: boolean }) {
   const { value } = model;
   if (value.kind !== 'amount') return <View style={s.offerRow}>
-    <FactArt kind="money" size={mapPreview ? 28 : 24} cut="art" />
+    <View style={s.valueArt}><FactArt kind={value.kind === 'offers' ? 'offers' : 'money'} size={FACT_ROW_ART} /></View>
     <T variant="bodyStrong">{value.kind === 'offers' ? model.offersWord : VALUE_WORDS[value.kind]}</T>
   </View>;
-  const budget = <View style={[s.valueRow, mapPreview && s.previewBudget]}>
-    <T variant="meta" tone="muted">Budžet</T>
+  return <View style={s.valueWithArt}>
+    <View style={s.valueArt}><FactArt kind="money" size={FACT_ROW_ART} /></View>
     <View style={s.valueCopy}>
-      <T variant="priceSmall" style={s.amount}>{value.amount}</T>
+      <T variant="priceRow" style={s.amount}>{value.amount}</T>
       {value.basis ? <T variant="note" tone="muted">{value.basis}</T> : null}
     </View>
-  </View>;
-  return <View style={s.valueWithArt}><FactArt kind="money" size={mapPreview ? 28 : 24} cut="art" />{budget}</View>;
-}
-
-/** Quiet supporting symbols leave the task, budget and person as the visual anchors. */
-function RecordFact({ icon, value, testID }: { icon: GlyphName; value: string; testID?: string }) {
-  return <View testID={testID} style={s.fact}>
-    <Glyph name={icon} size={20} tone="muted" />
-    <T variant="note" tone="muted" style={s.factCopy}>{value}</T>
   </View>;
 }
 
 /** Who posted it: the one avatar (or the authorized photo the list supplies), the name, and the honest rating with how old the task is. */
-function Person({ model, portrait, mapPreview = false }: { model: TaskRecordModel; portrait?: ReactNode; mapPreview?: boolean }) {
+function Person({ model, portrait }: { model: TaskRecordModel; portrait?: ReactNode; mapPreview?: boolean }) {
   const { person, age } = model;
   if (!person) return null;
   const trust = ratingWords(person.rating, person.count);
   return <View style={s.person}>
     <View style={s.face}>{portrait ?? <Avatar initials={inicijali(person.name)} size={40} />}</View>
     <View style={s.personText}>
-      {mapPreview ? <T variant="meta" tone="muted">Objavljivač</T> : null}
-      <T variant={mapPreview ? 'bodyStrong' : 'note'} style={s.name}>{person.name}</T>
+      <T variant="note" style={s.name}>{person.name}</T>
       {trust || age ? <View style={s.trustRow}>
         {trust ? <View style={s.rating}>
           {trust.star ? <FactArt kind="star" size={16} /> : null}
-          <T variant="note" tone={mapPreview ? 'ink' : 'muted'} style={s.trust}>{trust.text}</T>
+          <T variant="note" tone="muted" style={s.trust}>{trust.text}</T>
         </View> : null}
         {age ? <T variant="note" tone="muted">{trust ? `· ${age}` : age}</T> : null}
       </View> : null}
@@ -155,21 +145,18 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false, mapPrevi
   model: TaskRecordModel; portrait?: ReactNode;
   /** The pin's card has a round × in its top-right corner: the first row keeps clear of it. */
   clearOfClose?: boolean;
-  /** A selected pin uses the same facts as a list record, with a map illustration and publisher in the first scan. */
+  /** A selected pin uses the same facts and layout as a list record. */
   mapPreview?: boolean;
 }) {
   const { stacked } = useLayoutClass();
   // Longer application states keep the value's full width, including at the phone's 1.15 text scale.
   const stackedValue = stacked || (!!model.mark && model.audience === 'worker');
   const head = !!model.head || model.urgent;
-  const first = clearOfClose && !mapPreview ? s.clearOfClose : undefined;
+  const first = clearOfClose ? s.clearOfClose : undefined;
   return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[s.body, mapPreview && s.mapBody]}>
-    {mapPreview ? <View testID="task-face-map-head" style={[s.mapHead, clearOfClose && s.clearOfClose]}>
-      <FactArt kind="map" size={32} cut="art" />
-      <T variant="meta" style={s.mapEyebrow}>ZADATAK NA MAPI</T>
-    </View> : null}
     {head ? <View style={first}><CardStatus status={model.head} urgency={model.urgency} now={model.urgencyNow} /></View> : null}
-    <View style={head ? undefined : first}><T variant="cardTitle" style={[s.title, mapPreview && s.mapTitle]}>{model.title}</T></View>
+    <View style={head ? undefined : first}><T variant="cardTitle" style={s.title}>{model.title}</T></View>
+    <View style={s.facts}>
       {/* Only the short ownership mark shares this row; application states follow the complete value. */}
       <View testID="task-face-value" style={[s.valueLine, stackedValue && s.valueLineStacked]}>
         <View style={s.valueMain}><ValueRow model={model} mapPreview={mapPreview} /></View>
@@ -177,50 +164,39 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false, mapPrevi
           <CardStatusLine text={model.mark.text} tone={model.mark.quiet ? 'muted' : 'green'} />
         </View> : null}
       </View>
-    {mapPreview && model.person ? <View testID="task-face-foot" style={[s.foot, s.mapFoot]}>
-      <Person model={model} portrait={portrait} mapPreview />
-    </View> : null}
-    <View style={s.facts}>
-      <RecordFact icon={model.place.remote ? 'remote' : 'location'} value={model.distance ? `${model.place.text} · ${model.distance}` : model.place.text} />
-      <RecordFact icon="calendar" value={model.schedule} />
-      {model.requirement ? <RecordFact icon={model.requirement.kind === 'condition' ? 'info' : model.requirement.kind} value={model.requirement.text} /> : null}
-      {model.capacity ? <RecordFact testID="task-face-capacity" icon="people" value={model.capacity.text} /> : null}
+      <FactRow art={model.place.remote ? 'remote' : 'pin'} value={model.distance ? `${model.place.text} · ${model.distance}` : model.place.text} />
+      <FactRow art="calendar" value={model.schedule} />
+      {model.requirement ? <FactRow art={model.requirement.kind === 'condition' ? 'info' : model.requirement.kind} value={model.requirement.text} /> : null}
+      {model.capacity ? <FactRow testID="task-face-capacity" art="users" value={model.capacity.text} /> : null}
     </View>
-    {/* The 361 dp / 1.15 native review showed capacity squeezing the name and rating into a narrow column.
-        Capacity is now a fact; the publisher always has the full remaining width, with no name truncation. */}
-    {!mapPreview && model.person ? <View testID="task-face-foot" style={s.foot}>
-      <Person model={model} portrait={portrait} />
+    {/* Capacity is a fact; the publisher always stands at the bottom with the full width, photo, name and rating. */}
+    {model.person ? <View testID="task-face-foot" style={[s.foot, mapPreview && s.mapFoot]}>
+      <Person model={model} portrait={portrait} mapPreview={mapPreview} />
     </View> : null}
   </View>;
 }
 
 const s = StyleSheet.create({
-  // Between the parts of a face: 12. Inside a part: 4.
+  // Between the parts of a face: 12. Inside the facts group: 4, matching OwnTaskCard and DraftCard.
   body: { gap: sys.space.md },
   mapBody: { gap: sys.space.sm },
-  mapHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  mapEyebrow: { color: sys.color.green, fontWeight: '700', letterSpacing: 0.6 },
-  facts: { gap: sys.space.sm },
-  fact: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
-  factCopy: { flex: 1, minWidth: 0 },
+  facts: { gap: sys.space.xs },
   // The ownership mark can share the value row; longer relation states have a separate line.
   valueLine: { flexDirection: 'row', alignItems: 'flex-start', columnGap: sys.space.md },
   valueLineStacked: { flexDirection: 'column', alignItems: 'stretch', rowGap: sys.space.xs },
   valueMain: { flex: 1, minWidth: 0 },
-  mark: { flexShrink: 1, maxWidth: '46%', minHeight: sys.touch.min, justifyContent: 'center' },
+  mark: { flexShrink: 1, maxWidth: '46%', minHeight: FACT_ROW_ART, justifyContent: 'center' },
   markStacked: { maxWidth: '100%', minHeight: 0, alignSelf: 'flex-start' },
   title: { color: sys.color.ink },
-  mapTitle: { textAlign: 'center' },
   // The first row keeps one chrome control (the pin card's close) clear on the right, and is as high as it.
   // The close is 48 tall and stands 8 in from the card's edge, the face 16: so the first row is as high as what is left of it, 40.
   clearOfClose: { marginRight: layout.touch, minHeight: layout.touch - sys.space.sm },
-  valueRow: { gap: sys.space.xs },
-  valueWithArt: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  previewBudget: { flex: 1, minWidth: 0 },
-  offerRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  valueCopy: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm },
+  valueArt: { width: FACT_ROW_ART, height: FACT_ROW_ART },
+  valueWithArt: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: FACT_ROW_ART },
+  offerRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: FACT_ROW_ART },
+  valueCopy: { flex: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm },
   amount: { color: sys.color.money, flexShrink: 1 },
-  foot: { alignSelf: 'stretch', paddingTop: sys.space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
+  foot: { alignSelf: 'stretch', paddingTop: sys.space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center' },
   mapFoot: { paddingTop: sys.space.sm, justifyContent: 'flex-start' },
   person: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   face: { width: 40, height: 40, borderRadius: sys.radius.pill, overflow: 'hidden', flexShrink: 0 },

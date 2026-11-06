@@ -238,13 +238,9 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   // The pictures the draft has facts for, and where each lands: a picture that is new to the conversation's memory arrives once, in its place.
   const lands = (kind: DraftSticker, index: number, child: ReactNode) => <Appear key={kind} index={index} animate={!!appear && appear.isNew(kind)} from="above">{child}</Appear>;
   return <Surface kind="panel" testID="intake-task-summary" style={[s.card, compact && s.cardCompact]}>
-    <View testID="intake-draft-head" accessible accessibilityLabel={spoken} style={s.cardHeaderRow}>
-      <FactArt kind="tasks" size={28} cut="art" />
-      <View style={{ flex: 1, gap: 2 }}>
-        <T variant="meta" style={s.cardHeaderBadge}>USKOČI · PREDLOG ZADATKA</T>
-        <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={final ? 0 : compact || locationEditing ? 1 : 2}
-          style={[s.compactTitle, !summary.title && s.titleEmpty]} />
-      </View>
+    <View testID="intake-draft-head" accessible accessibilityLabel={spoken}>
+      <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={final ? 0 : compact || locationEditing ? 1 : 2}
+        style={[s.compactTitle, !summary.title && s.titleEmpty]} />
     </View>
     {summary.service ? <T testID="intake-recognized-service" variant="note" tone="muted">{`Prepoznata usluga: ${summary.service}`}</T> : null}
     {facts ? final

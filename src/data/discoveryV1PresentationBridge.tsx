@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { DiscoveryPresentation, type DiscoveryPresentationProps, type DiscoveryV1PresentationSeam } from '../ui/v2/DiscoveryPresentation';
 import type { SearchDraft } from '../ui/v2/discovery/DiscoverySearchPanel';
 import type { DiscoveryV1ScreenSnapshot } from './discoveryV1ScreenSession';
-import { discoveryV1ApplyOverlays, type DiscoveryV1OverlaySnapshot } from './discoveryV1OverlayOwner';
+import { discoveryV1ApplyOverlayItem, discoveryV1ApplyOverlays, type DiscoveryV1OverlaySnapshot } from './discoveryV1OverlayOwner';
 import type { DiscoveryV1MapMarker } from './discoveryV1MarketplaceAdapter';
 import { pointKey, type MarketplaceView, type PublicBounds } from './marketplaceView';
 import type { DiscoveryV1SearchSnapshot } from './discoveryV1SearchOwner';
@@ -55,15 +55,17 @@ export function discoveryV1PresentationBridgeModel(snapshot: DiscoveryV1ScreenSn
   search?: DiscoveryV1SearchSnapshot): DiscoveryV1PresentationBridgeModel {
   if (!snapshot.active || !snapshot.view) throw new Error('DISCOVERY_V1_PRESENTATION_INACTIVE');
   const items = discoveryV1ApplyOverlays(snapshot.wireItems, overlay);
-  const peek = snapshot.peek?.kind === 'TASK'
-    ? { key: 'task:' + snapshot.peek.item.id, item: snapshot.peek.item, place: [] as const,
-      priceUnverified: snapshot.exactTaskId !== snapshot.peek.item.id }
+  const peekItem = snapshot.peek?.kind === 'TASK' ? discoveryV1ApplyOverlayItem(snapshot.peek.item, overlay) : null;
+  const peek = snapshot.peek?.kind === 'TASK' && peekItem
+    ? { key: 'task:' + peekItem.id, item: peekItem, place: [] as const,
+      priceUnverified: snapshot.exactTaskId !== peekItem.id }
     : snapshot.peek?.kind === 'PLACE'
-      ? { key: 'place:' + snapshot.peek.point.lat + ':' + snapshot.peek.point.lng, item: null, place: snapshot.peek.items,
+      ? { key: 'place:' + snapshot.peek.point.lat + ':' + snapshot.peek.point.lng, item: null,
+        place: snapshot.peek.items.map(row => discoveryV1ApplyOverlayItem(row, overlay)),
         placeTotalCount: snapshot.peek.totalCount, priceUnverified: snapshot.verifiedPlaceKey !== pointKey(snapshot.peek.point) }
       : null;
-  const selectedTask = snapshot.peek?.kind === 'TASK' && snapshot.exactTaskId === snapshot.peek.item.id
-    ? { key: 'task:' + snapshot.peek.item.id, item: snapshot.peek.item } : null;
+  const selectedTask = snapshot.peek?.kind === 'TASK' && peekItem && snapshot.exactTaskId === peekItem.id
+    ? { key: 'task:' + peekItem.id, item: peekItem } : null;
   return {
     items,
     relations: overlay.relations ?? undefined,

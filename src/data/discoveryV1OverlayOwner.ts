@@ -2,6 +2,7 @@ import type { JavniProfilProjekcija, NeedUrgencyProjection, PrilikaProjekcija } 
 import type { Izvor } from './ports';
 import type { DiscoveryV1Item } from './discoveryV1Contract';
 import { discoveryV1EnrichmentTargets, discoveryV1Opportunities } from './discoveryV1MarketplaceAdapter';
+import { mediaAssetId } from './mediaAssetId';
 import { publicProfileClientService } from './publicProfileClientService';
 import { readNeedUrgencies } from './needUrgencyClientService';
 import type { TaskRelation, TaskRelationIndex } from './taskRelation';
@@ -68,6 +69,17 @@ type Overlaid = PrilikaProjekcija & { revision: number };
  * commit used to build every row anew, which also re-rendered every memoised list row. Nothing may mutate what this returns.
  */
 const overlaid = new WeakMap<Overlaid, { profile: JavniProfilProjekcija | undefined; urgency: NeedUrgencyProjection | undefined; value: Overlaid }>();
+export function discoveryV1ApplyOverlayItem(item: Overlaid, overlay: DiscoveryV1OverlaySnapshot, admitted = true): Overlaid {
+  const profile = overlay.profiles.get(item.narucilacProfilId), urgency = admitted ? overlay.urgency.get(item.id) : undefined;
+  if (!profile && !urgency) return item;
+  const known = overlaid.get(item);
+  if (known && known.profile === profile && known.urgency === urgency) return known.value;
+  const value = { ...item, ...(urgency ? { urgency } : {}), narucilacIme: profile?.ime ?? '',
+    narucilacOcena: formatRating(profile), narucilacBrojOcena: reviewCount(profile),
+    narucilacAvatarId: profile?.avatarPutanja ? mediaAssetId(profile.avatarPutanja) : null };
+  overlaid.set(item, { profile, urgency, value });
+  return value;
+}
 /** The rows with what the overlay knows about them; a row it has no answer for (not admitted, or not yet answered) stays bare. */
 export function discoveryV1ApplyOverlays(items: readonly DiscoveryV1Item[], overlay: DiscoveryV1OverlaySnapshot)
   : (PrilikaProjekcija & { revision: number })[] {
@@ -79,7 +91,8 @@ export function discoveryV1ApplyOverlays(items: readonly DiscoveryV1Item[], over
     const known = overlaid.get(item);
     if (known && known.profile === profile && known.urgency === urgency) return known.value;
     const value = { ...item, ...(urgency ? { urgency } : {}), narucilacIme: profile?.ime ?? '',
-      narucilacOcena: formatRating(profile), narucilacBrojOcena: reviewCount(profile), narucilacAvatarId: null };
+      narucilacOcena: formatRating(profile), narucilacBrojOcena: reviewCount(profile),
+      narucilacAvatarId: profile?.avatarPutanja ? mediaAssetId(profile.avatarPutanja) : null };
     overlaid.set(item, { profile, urgency, value });
     return value;
   });
