@@ -54,7 +54,7 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   const reader = useVoiceScreenReader();
   const reduced = useReducedMotion();
   const pulseAnim = useRef(new Animated.Value(0)).current;
-  const gesture = useRef<string | null>(null), startY = useRef(0);
+  const gesture = useRef<string | null>(null), startX = useRef(0), startY = useRef(0);
   const gestureTap = useRef(false);
   // Gesture and delivery are independent. A held recording can be reviewed; a tapped
   // recording can auto-send. Screen readers always retain the explicit review step.
@@ -125,12 +125,12 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
     accessibilityActions={explicit ? undefined : [{ name: 'activate' }]}
     onAccessibilityAction={explicit ? undefined : event => { if (event.nativeEvent.actionName === 'activate' && !blocked) p.onTooShort?.(); }}
     onStartShouldSetResponder={explicit ? undefined : () => !blocked}
-    onResponderGrant={explicit ? undefined : event => { startY.current = event.nativeEvent.pageY; begin(); }}
+    onResponderGrant={explicit ? undefined : event => { startX.current = event.nativeEvent.pageX ?? 0; startY.current = event.nativeEvent.pageY; begin(); }}
     onResponderRelease={explicit ? undefined : release}
     onResponderTerminate={explicit ? undefined : cancel}
     onResponderTerminationRequest={explicit ? undefined : () => true}
     onPress={explicit ? () => gesture.current ? release() : begin() : undefined}
-    onResponderMove={explicit ? undefined : event => { if (gesture.current && startY.current - event.nativeEvent.pageY > 70) cancel(); }}
+    onResponderMove={explicit ? undefined : event => { if (gesture.current && (startY.current - event.nativeEvent.pageY > 70 || Math.abs(startX.current - (event.nativeEvent.pageX ?? startX.current)) > 70)) cancel(); }}
     style={[s.target, { width: targetSize, height: targetSize }]}>
     <View style={[s.micCircle, { width: targetSize - 4, height: targetSize - 4 }, targetSize === 60 && s.micPrimary, targetSize === 64 && s.mic64, listening && s.micListening, waiting && s.micWaiting]}>
       {listening && !reduced && targetSize === 64 ? (

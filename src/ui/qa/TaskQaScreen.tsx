@@ -83,15 +83,15 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile,initialQuestionId}:{
     if(['CANCELLED','REJECTED','STALE'].includes(s.state)) {
       await qaIntentJournal.clear(accountId!,i.needId,i.clientRequestId);if(!live(token))return 'UNKNOWN';
       setIntent(null);setAbsent(false);setClassification(null);setMaterial(s.materiality==='MATERIAL');
-      setReceipt(s.state==='CANCELLED'&&s.safeReasonCodes.includes('QA_PROCESSING_FAILED')?'Provera teksta nije uspela. Tekst nije poslat. Možeš da ga pošalješ ponovo.'
+      setReceipt(s.state==='CANCELLED'&&s.safeReasonCodes.includes('QA_PROCESSING_FAILED')?'Provera teksta nije uspela. Tekst nije poslat. Možete da ga pošaljete ponovo.'
         :s.state==='CANCELLED'?'Slanje je otkazano. Tekst neće biti objavljen naknadno.'
-        :s.state==='STALE'?'Zadatak ili pravila su promenjeni. Pregledaj aktuelna pitanja pre novog slanja.'
-         :s.materiality==='MATERIAL'?'Odgovor menja uslove zadatka. Izmeni zadatak kroz pregled i objavu.'
-          :s.safeReasonCodes.some(c=>['QA_ACCOUNT_DAILY_LIMIT','QA_TASK_DAILY_LIMIT','QA_ASK_COOLDOWN'].includes(c))?'Dostignuto je ograničenje slanja pitanja. Pokušaj kasnije.'
+        :s.state==='STALE'?'Zadatak ili pravila su promenjeni. Pregledajte aktuelna pitanja pre novog slanja.'
+         :s.materiality==='MATERIAL'?'Odgovor menja uslove zadatka. Izmenite zadatak kroz pregled i objavu.'
+          :s.safeReasonCodes.some(c=>['QA_ACCOUNT_DAILY_LIMIT','QA_TASK_DAILY_LIMIT','QA_ASK_COOLDOWN'].includes(c))?'Dostignuto je ograničenje slanja pitanja. Pokušajte kasnije.'
            :s.safeReasonCodes.includes('QA_DUPLICATE_QUESTION')?'Isto pitanje je već postavljeno za ovu verziju zadatka.'
-            :s.outcome==='CLARIFY'?'Tekst treba jasnije da opiše pitanje ili odgovor. Doradi ga pre novog slanja.'
+            :s.outcome==='CLARIFY'?'Tekst treba jasnije da opiše pitanje ili odgovor. Doradite ga pre novog slanja.'
              :s.outcome==='REVIEW'?'Predloženi tekst trenutno nije odobren za javnu objavu.'
-              :'Predloženi tekst nije objavljen. Pregledaj ga pre novog slanja.');
+              :'Predloženi tekst nije objavljen. Pregledajte ga pre novog slanja.');
       return 'TERMINAL';
     }
     if(s.state==='PROCESSING'){say('Prethodno slanje se još proverava. Sačekaj ishod ili odustani od ovog slanja.','info');return 'UNKNOWN';}
@@ -211,8 +211,8 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile,initialQuestionId}:{
     canRetryRead={!!needId&&!!accountId} material={material}
     recovery={intent?{kind:intent.type==='DISPOSITION'?'DISPOSITION':'TEXT',absent,canCancel:!!classification?.canCancel}:null}
     cannotAsk={context?.mode==='PUBLIC'&&!context.canAsk?(!context.activeWorker
-      ?{text:'Za postavljanje pitanja potreban je aktivan profil majstora.',
-        ...(onWorkerProfile?{action:{label:'Dopunite profil majstora',onPress:()=>leave(onWorkerProfile,true)}}:{})}
+      ?{text:'Za postavljanje pitanja potreban je aktivan profil uskočera.',
+        ...(onWorkerProfile?{action:{label:'Dopunite profil uskočera',onPress:()=>leave(onWorkerProfile,true)}}:{})}
       :context.ratePolicyState==='NOT_READY'?{text:'Slanje novih pitanja trenutno nije dostupno. Objavljeni odgovori ostaju vidljivi.'}
         :{text:'Pitanja za ovu verziju zadatka trenutno nisu dostupna.'}):null}
     composer={!intent&&(target||context?.canAsk)?{answering:target?target.questionText:null,answeringId:target?.questionId??null,revisionChanged:!!target&&target.needRevision!==context?.needRevision,

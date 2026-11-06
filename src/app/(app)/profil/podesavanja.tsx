@@ -46,7 +46,7 @@ export default function Podesavanja() {
     if (!visit || visit.busy || logoutQuestion.current || !owns(visit)) return;
     const scope = visit; logoutQuestion.current = scope;
     confirmation.ask({ title: 'Odjaviti se?',
-      message: 'Ako se odjaviš, neposlate poruke u Dogovorima i lokalni glasovni snimci možda više neće biti dostupni na ovom uređaju.',
+      message: 'Ako se odjavite, neposlate poruke u Dogovorima i lokalni glasovni snimci možda više neće biti dostupni na ovom uređaju.',
       confirmLabel: 'Odjavi se', cancelLabel: 'Ostani prijavljen', tone: 'danger',
       onCancel: () => { if (logoutQuestion.current === scope) logoutQuestion.current = null; },
       onConfirm: () => { if (logoutQuestion.current !== scope || !owns(scope)) return;

@@ -21,6 +21,7 @@ export function ApplicationServiceOffer({ input, openProfile }: {
   const [alreadyPresent, setAlreadyPresent] = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
   const mounted = useRef(false);
+  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const current = (generation: number) => mounted.current && owner.focused && owner.generation === generation
     && applicationServiceAccountCurrent(owner.input);
 
@@ -43,7 +44,9 @@ export function ApplicationServiceOffer({ input, openProfile }: {
       // submit another application or repeat a model request after a lost reply.
       for (let attempt = 0; attempt < 4 && result.ok && result.podatak.state === 'SAVED'; attempt++) {
         if (!current(generation)) return;
-        await new Promise<void>(resolve => setTimeout(resolve, 1200));
+        await new Promise<void>(resolve => {
+          pollTimer.current = setTimeout(() => { pollTimer.current = null; resolve(); }, 1200);
+        });
         if (!current(generation)) return;
         result = await applicationServiceClientService.read(owner.input);
       }
@@ -70,7 +73,10 @@ export function ApplicationServiceOffer({ input, openProfile }: {
     mounted.current = true; owner.focused = true; owner.generation++;
     // The same response ID locates a prepared/saved result after cold start.
     void act(false);
-    return () => { owner.focused = false; owner.generation++; mounted.current = false; };
+    return () => {
+      if (pollTimer.current !== null) { clearTimeout(pollTimer.current); pollTimer.current = null; }
+      owner.focused = false; owner.generation++; mounted.current = false;
+    };
     // Owner identity, not a render or state update, opens this read.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [owner]));

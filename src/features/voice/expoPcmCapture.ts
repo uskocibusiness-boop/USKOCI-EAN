@@ -75,6 +75,8 @@ export function createExpoPcmCapture(): NativePcmModule {
       try { await session.starting; } catch { /* startup failure still needs release */ }
       try { session.stream?.stop(); } catch (error) { failure ??= error; }
       try { session.stream?.release(); } catch (error) { failure ??= error; }
+      try { await setAudioModeAsync({ allowsRecording: false, interruptionMode: 'doNotMix', playsInSilentMode: true,
+        shouldPlayInBackground: false, allowsBackgroundRecording: false }); } catch { /* best-effort session reset */ }
       // Native stop changes isStreaming before releasing AudioRecord. A first
       // failure therefore cannot be certified safe by a later idempotent stop.
       session.stream = null;

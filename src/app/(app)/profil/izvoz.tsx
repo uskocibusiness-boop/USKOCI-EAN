@@ -125,7 +125,7 @@ function OwnedExport() {
   };
   const revoke = () => {
     if (!request || request.status !== 'READY' || !artifact) return;
-    ask('Opozovi kopiju?', 'Kopija više neće biti dostupna za preuzimanje. Već sačuvani fajlovi na tvom uređaju ostaju kod tebe.', 'Opozovi kopiju', async () => {
+    ask('Opozovi kopiju?', 'Kopija više neće biti dostupna za preuzimanje. Već sačuvani fajlovi na vašem uređaju ostaju kod vas.', 'Opozovi kopiju', async () => {
       await editor.save(async () => { const result = await exports.revokeExport(request.receiptId);
         if (!current()) return changed(); if (!result.ok) return result;
         if (!sameId(result.podatak.receiptId, request.receiptId) || result.podatak.revoked !== true) return changed();

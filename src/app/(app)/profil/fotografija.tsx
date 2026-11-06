@@ -101,8 +101,8 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
         if (resolved && !discarded) ownPhotoCache.forget();
         if (!(await replaceAvatarIntent(key, stored, null, current)) || !current()) return changed();
         intent.current = null; storedIntent.current = null; bytes.current = null; asset = null;
-        setNotice(alreadyApplied ? 'Fotografija je već sačuvana na profilu. Ako želiš da je ukloniš, izaberi „Ukloni fotografiju profila“.'
-          : discarded ? 'Izabrana fotografija je odbačena.' : resolved ? 'Fotografija profila je sačuvana.' : 'Fotografija nije dodata. Možeš izabrati drugu.');
+        setNotice(alreadyApplied ? 'Fotografija je već sačuvana na profilu. Ako želite da je uklonite, izaberite „Ukloni fotografiju profila“.'
+          : discarded ? 'Izabrana fotografija je odbačena.' : resolved ? 'Fotografija profila je sačuvana.' : 'Fotografija nije dodata. Možete izabrati drugu.');
       }
       return { ok: true, podatak: { profile: profile.podatak, asset, intent: intent.current } };
     } catch { return failure('MEDIA_READ_UNCONFIRMED', 'Ne znamo da li je fotografija sačuvana. Proveri to.'); }
@@ -235,7 +235,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
       if (router.canGoBack()) router.back(); else router.replace('/profil'); }}
     onLibrary={() => { void pick('LIBRARY'); }} onCamera={() => { void pick('CAMERA'); }}
     // Removing the public photo asks first; clear() keeps all its guards, which run when the answer is given.
-    onRemove={() => confirm.ask({ title: 'Ukloniti fotografiju profila?', message: 'Profil ostaje bez fotografije dok ne izabereš novu.',
+    onRemove={() => confirm.ask({ title: 'Ukloniti fotografiju profila?', message: 'Profil ostaje bez fotografije dok ne izaberete novu.',
       confirmLabel: 'Ukloni fotografiju', tone: 'danger', onConfirm: () => { void clear(); } })}
     onApply={() => { void apply(); }} onDiscard={() => { void discard(); }} onRetry={() => { void retry(); }}
     onCheck={() => { if (current()) { setPickError(null); void editor.refresh(); } }} sheet={confirm.sheet} />;

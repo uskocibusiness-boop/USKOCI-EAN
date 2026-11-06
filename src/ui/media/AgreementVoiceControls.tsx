@@ -43,7 +43,7 @@ export function AgreementVoiceMessage({ voice, message }: { voice: AgreementVoic
 }
 
 export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }) {
-  const held = useRef(false), startY = useRef(0);
+  const held = useRef(false), startX = useRef(0), startY = useRef(0);
   const lift = usePressLift(sys.motion.scale.button);
   const state = voice.recording;
   const capturing = state.phase === 'requesting' || state.phase === 'recording';
@@ -75,7 +75,7 @@ export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }
     onStartShouldSetResponder={voice.screenReader ? undefined : () => !disabled}
     onResponderGrant={voice.screenReader ? undefined : event => {
       if (disabled || held.current) return;
-      held.current = true; startY.current = event.nativeEvent.pageY; lift.give(); void voice.begin();
+      held.current = true; startX.current = event.nativeEvent.pageX ?? 0; startY.current = event.nativeEvent.pageY; lift.give(); void voice.begin();
     }}
     onResponderRelease={voice.screenReader ? undefined : () => {
       if (!held.current) return;
@@ -84,7 +84,7 @@ export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }
     onResponderTerminate={voice.screenReader ? undefined : cancel}
     onResponderTerminationRequest={voice.screenReader ? undefined : () => true}
     onResponderMove={voice.screenReader ? undefined : event => {
-      if (held.current && startY.current - event.nativeEvent.pageY > 70) cancel();
+      if (held.current && (startY.current - event.nativeEvent.pageY > 70 || Math.abs(startX.current - (event.nativeEvent.pageX ?? startX.current)) > 70)) cancel();
     }}
     onPress={voice.screenReader ? () => { if (capturing) tick('gestureEnd'); void (capturing ? voice.release() : voice.begin()); } : undefined}
     style={[s.mic, capturing && s.primary, disabled && s.disabled, !voice.screenReader && lift.style]}>

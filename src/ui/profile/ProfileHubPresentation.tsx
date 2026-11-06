@@ -99,7 +99,7 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
         style={s.publicButton} labelStyle={s.linkTitle} /> : null}
     </View>}
 
-    <ProfileLink label="Profil majstora" subtitle="Usluge, područje i dostupnost" detail={capabilityDetail}
+    <ProfileLink label="Profil uskočera" subtitle="Usluge, područje i dostupnost" detail={capabilityDetail}
       attention={capabilityNeedsAttention} disabled={busy} onPress={go('/profil/radnik')}
       onRetry={capabilityError ? onRetryCapability : undefined} />
     <ProfileLink label="Moje prijave" subtitle="Pogledajte status i odgovore" disabled={busy} onPress={go('/moje-prijave')} />
@@ -108,7 +108,7 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
     <ProfileLink label="Moj raspored" subtitle="Dogovori i dostupnost" disabled={busy} onPress={go('/raspored')} />
     {/* The prototype's generic activity card becomes the actual published-task destination.
         Finished collaborations remain reachable through their live figure above. */}
-    <ProfileLink label="Moji zadaci" subtitle="Vaše objave i izbor majstora" disabled={busy} onPress={go('/potrebe')} />
+    <ProfileLink label="Moji zadaci" subtitle="Vaše objave i izbor uskočera" disabled={busy} onPress={go('/potrebe')} />
     {sheet}
   </Screen>;
 }
@@ -131,8 +131,8 @@ function ProfileLink({ label, subtitle, detail, attention, settings, disabled, o
       accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} haptic="select" scaleTo={sys.motion.scale.row} style={s.linkPrimary}>
       {content}
     </Press>
-    <Press accessibilityRole="button" accessibilityLabel="Osvežite profil majstora"
-      accessibilityHint="Ponovo učitava stanje profila majstora." accessibilityState={{ disabled }}
+    <Press accessibilityRole="button" accessibilityLabel="Osvežite profil uskočera"
+      accessibilityHint="Ponovo učitava stanje profila uskočera." accessibilityState={{ disabled }}
       disabled={disabled} onPress={onRetry} haptic="select" scaleTo={sys.motion.scale.row} style={s.retryWork}>
       <Glyph name="refresh" size={20} tone={disabled ? 'muted' : 'ink'} />
     </Press>
