@@ -97,7 +97,10 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs');
           const {assertDevBuildContract} = require('./scripts/build-contract.cjs');
-          const config = require('./eas.json').build.preview.env;
+          // The QA APK is deliberately a DIFFERENT package from the dedicated push-proof preview.
+          // Never inherit Firebase enrollment/proof flags from the shared EAS preview profile.
+          const config = { ...require('./eas.json').build.preview.env,
+            USKOCI_PUSH_PROOF_BUILD: '0', EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL: '0' };
           if (Object.keys(config).some(name => !/^\w+$/.test(name))) throw new Error('INVALID_PREVIEW_KEY');
           const env = {...process.env, ...config};
           assertDevBuildContract(env);
@@ -113,7 +116,9 @@ jobs:
           fs.writeFileSync('app.json', JSON.stringify(src, null, 2) + '\n');
           NODE
           node - <<'NODE'
-          Object.assign(process.env,require('./eas.json').build.preview.env);
+          Object.assign(process.env, require('./eas.json').build.preview.env, {
+            USKOCI_PUSH_PROOF_BUILD: '0', EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL: '0',
+          });
           const expo=require('./app.config.js')({config: require('./app.json').expo});
           if(expo.android.package!=='rs.uskoci.preview.qa'||expo.extra?.uskociBuild?.backendTarget!=='canonical'||expo.runtimeVersion!=='uskoci-v1-preview-r1') throw Error('QA_BUILD_IDENTITY_INVALID');
           if (expo.android.googleServicesFile) throw Error('QA_MUST_HAVE_NO_FIREBASE');
