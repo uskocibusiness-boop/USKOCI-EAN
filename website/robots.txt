@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /
+# Staging only until public legal release
