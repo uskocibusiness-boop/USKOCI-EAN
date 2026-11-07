@@ -32,23 +32,26 @@ export type AgreementMenuInput = {
 };
 
 export type AgreementMenuCommands = {
+  onOpenTask?: () => void;
   onChange: () => void; onCancel: () => void; onLocation: () => void; onProblem: () => void; onSafety: () => void;
 };
 
 /** Why a row is grey: the page is reading or saving something. */
-export const MENU_WAIT_REASON = 'Sačekaj da se Dogovor osveži.';
+export const MENU_WAIT_REASON = 'Sačekajte da se Dogovor osveži.';
 
 export function agreementMenuActions(input: AgreementMenuInput, commands: AgreementMenuCommands): SheetAction[] {
   if (!input.party) return [];
   const off = !input.enabled;
   const live = { disabled: off, reason: off ? MENU_WAIT_REASON : undefined };
   const rows: SheetAction[] = [];
-  if (input.active && input.canChange) rows.push({ key: 'change', label: 'Izmeni uslove', icon: 'document', onPress: commands.onChange, ...live });
-  if (input.active && input.requester && input.hasLocation) {
-    // The share state is read inside the section it opens, so the entry takes the person there instead of guessing.
-    rows.push({ key: 'location', label: 'Podeli lokaciju', icon: 'pin', onPress: commands.onLocation, hint: 'Otvara odeljak Komunikacija i mesto.', ...live });
+  if (commands.onOpenTask) {
+    rows.push({ key: 'task', label: 'Otvori izvorni zadatak', icon: 'tasks', onPress: commands.onOpenTask, ...live });
   }
-  if (input.active && input.problemFree) rows.push({ key: 'problem', label: 'Prijavi problem', icon: 'alert', onPress: commands.onProblem, ...live });
+  if (input.active && input.canChange) rows.push({ key: 'change', label: 'Promeni termin ili uslove', icon: 'calendar', onPress: commands.onChange, ...live });
+  if (input.active && input.requester && input.hasLocation) {
+    rows.push({ key: 'location', label: 'Tačna adresa i lokacija', icon: 'pin', onPress: commands.onLocation, hint: 'Otvara odeljak Tačna adresa i lokacija.', ...live });
+  }
+  if (input.active && input.problemFree) rows.push({ key: 'problem', label: 'Prijavi problem u Dogovoru', icon: 'alert', onPress: commands.onProblem, ...live });
   if (input.active && input.canChange) {
     rows.push({ key: 'cancel', label: 'Otkaži Dogovor', icon: 'tasks', destructive: true, onPress: commands.onCancel, ...live });
   }

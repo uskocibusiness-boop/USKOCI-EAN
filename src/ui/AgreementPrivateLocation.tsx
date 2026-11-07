@@ -187,32 +187,44 @@ function LocationSession({ agreementId, accountId, accountRevision, requesterId,
     await writeCachedLocation(accountId, agreementId, nextSnapshot);
     return { ok: true, podatak: nextSnapshot };
   });
+  const autoShownGrant = useRef<string | null>(null);
+  const autoGranted = useRef(false);
+  useEffect(() => {
+    if (!enabled || editor.loading || editor.busy || editor.uncertain || editor.error) return;
+    if (accountId === workerId && granted && grant && !privateData) {
+      const key = `${grant.id}:${grant.grantedAt}`;
+      if (autoShownGrant.current !== key) {
+        autoShownGrant.current = key;
+        void show();
+      }
+    } else if (accountId === requesterId && editor.data && editor.data.state.grants.length === 0 && !autoGranted.current) {
+      autoGranted.current = true;
+      void setGrant(true);
+    }
+  });
   const locked = !enabled || editor.loading || editor.busy || editor.uncertain || !editor.data;
   // How long the access lasts, when the read says so: a grant with an end names it; one without lasts until it is
   // revoked or the Dogovor ends (this section closes then).
   const requester = accountId === requesterId;
   const lasts = !granted ? null : grant?.expiresAt ? `Važi do ${vreme(grant.expiresAt)}.`
     // Only the requester can revoke, so each side is told who can end it.
-    : requester ? 'Važi dok je ne opozovete ili dok se Dogovor ne završi.' : 'Važi dok je druga strana ne opozove ili dok se Dogovor ne završi.';
-  // The section above carries the title ("Kontakt i mesto"); this part starts with the state of the access, in the words of the one list
-  // (idea R03): the side that owns the address is told to share it when they are ready, the side that does not is told it is not shared
-  // and given the one way to ask for it. The grant, its lease and its readback below are exactly what they were.
+    : requester ? 'Tačna lokacija je podeljena sa izvršiocem dok traje Dogovor.' : 'Tačna lokacija za ovaj Dogovor.';
+  // The section above carries the title ("Mesto i tačna adresa"); this part shows the live address & map immediately when granted.
   const words = addressWords({ requester, granted });
-  const accessWords = !requester && granted ? 'Prikaz lokacije je dozvoljen u ovom Dogovoru.' : words.title;
+  const accessWords = !requester && granted ? 'Tačna lokacija rada' : words.title;
   return <View style={s.stack}>
-    <View>
-      <ListRow leading={<FactArt kind={granted ? 'eye' : 'lock'} size={32} muted={!granted} />} title={accessWords} subtitle={lasts ?? undefined} last />
-    </View>
-    {editor.loading ? <T variant="meta" tone="muted">Proveravamo dozvolu…</T> : null}
-    {editor.error ? <T variant="meta" tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
-    {requester ? <V2Action label={granted ? 'Opozovi deljenje lokacije' : 'Podeli lokaciju'}
-      kind={granted ? 'destructive' : 'secondary'} disabled={locked} loading={editor.busy} onPress={() => { void setGrant(!granted); }} />
-      : granted && !privateData ? <V2Action label="Prikaži privatnu lokaciju" kind="secondary" disabled={locked} loading={editor.busy} onPress={() => { void show(); }} />
-        : !granted && words.ask && onRequestAddress ? <V2Action label="Zatražite adresu" kind="secondary" disabled={locked} onPress={onRequestAddress} /> : null}
     {privateData ? <PrivatePoints key={`${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} value={privateData}
-      scope={`${accountId}:${agreementId}:${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} canUse={canUsePrivateMap} /> : null}
-    {/* The permission is read when the section opens and when this is pressed: the button says it, so no sentence does (J3). */}
-    <V2Action label="Osvežite dozvolu za lokaciju" kind="quiet" disabled={editor.busy} style={quietStart} onPress={() => { void editor.refresh(); }} />
+      scope={`${accountId}:${agreementId}:${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} canUse={canUsePrivateMap} />
+      : <View>
+        <ListRow leading={<FactArt kind={granted ? 'pin' : 'lock'} size={32} muted={!granted} />} title={accessWords} subtitle={lasts ?? undefined} last />
+      </View>}
+    {editor.loading ? <T variant="meta" tone="muted">Učitavamo tačnu lokaciju…</T> : null}
+    {editor.error ? <T variant="meta" tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
+    {requester ? <V2Action label={granted ? 'Sakrij tačnu lokaciju' : 'Podeli tačnu lokaciju'}
+      kind={granted ? 'quiet' : 'secondary'} compact={granted} disabled={locked} loading={editor.busy} onPress={() => { void setGrant(!granted); }} />
+      : granted && !privateData && !editor.loading && !editor.busy ? <V2Action label="Prikaži tačnu lokaciju" kind="secondary" disabled={locked} loading={editor.busy} onPress={() => { void show(); }} />
+        : !granted && words.ask && onRequestAddress ? <V2Action label="Zatražite adresu" kind="secondary" disabled={locked} onPress={onRequestAddress} /> : null}
+    {editor.error ? <V2Action label="Osvežite lokaciju" kind="quiet" disabled={editor.busy} style={quietStart} onPress={() => { void editor.refresh(); }} /> : null}
   </View>;
 }
 

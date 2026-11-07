@@ -5,7 +5,7 @@ import { readableTitle } from '../../data/needDetailPresentation';
 import { T } from '../Text';
 import { AgreementPeople, AgreementTerms, agreementTaskPlace, isGroupAgreement } from '../v2/AgreementPresentation';
 import { AgreementContactPlace } from './AgreementContactPlace';
-import { AgreementActions, AgreementDangerActions, AgreementHead, AgreementLinks, AgreementTermNote } from './AgreementOverviewParts';
+import { AgreementHead, AgreementTermNote, type OwnerCapacitySummary } from './AgreementOverviewParts';
 import type { AgreementSteps } from './AgreementSteps';
 import type { AgreementInfo, AgreementStep } from './AgreementWorkspace';
 
@@ -42,6 +42,8 @@ export type AgreementOverviewProps = {
   /** Fresh group roster follows the next action and explicitly individual accepted conditions. */
   groupReady?: boolean;
   privatePartyName?: string;
+  /** Owner's live task capacity (e.g. 2 of 4 filled, open candidates to pick more people). */
+  ownerCapacity?: OwnerCapacitySummary | null;
   /** Replaces the private location of the place section. For a gallery that must read nothing; the route leaves it out. */
   location?: ReactNode;
   /**
@@ -61,25 +63,27 @@ export type AgreementOverviewProps = {
   };
 };
 
-export function AgreementOverview({ agreement, step, steps, info, headExtra, party, enabled, concealed = false, problem, group, groupReady = false, privatePartyName, location, on }: AgreementOverviewProps) {
+export function AgreementOverview({ agreement, step, steps, info, headExtra, party: _party, enabled, concealed = false, problem, group, groupReady = false, privatePartyName, ownerCapacity, location, on }: AgreementOverviewProps) {
   const title = readableTitle(agreement.naslov);
   const ownRole = agreement.ucesnici.find(person => person.viSte)?.uloga;
-  const roleLabel = ownRole === 'narucilac' ? 'Vi objavljujete' : ownRole === 'uskocer' ? 'Vi uskačete' : undefined;
+  const roleLabel = ownRole === 'narucilac' ? 'Vi objavljujete zadatak' : ownRole === 'uskocer' ? 'Vi uskačete na zadatak' : undefined;
   // These seats belong to this accepted bilateral Dogovor. Other collaborations and whether applications remain open
   // cannot be inferred from this projection, even when its source task needs more people.
   const coverage = agreement.pokrivenost;
   const coverageLine = coverage.ukupno > 1 && coverage.popunjeno > 0 && coverage.ukupno >= coverage.popunjeno
     ? `Obuhvat ovog Dogovora: ${coverage.popunjeno} od ${coverage.ukupno} traženih mesta` : undefined;
-  const link = (command: (() => void) | undefined) => command ? { disabled: !enabled, onPress: command } : undefined;
+  const place = agreementTaskPlace(agreement);
   return <>
-    {groupReady ? <T variant="pageTitle" accessibilityRole="header">{title}</T> : null}
+    {groupReady && !on.openTask ? <T variant="pageTitle" accessibilityRole="header">{title}</T> : null}
     {groupReady ? <T variant="heading" accessibilityRole="header">{privatePartyName ? `Vaš Dogovor: ${privatePartyName}` : 'Vaš pojedinačni Dogovor'}</T> : null}
     <AgreementHead title={title} roleLabel={roleLabel} coverageLine={coverageLine} showTitle={!groupReady}
+      taskCard={on.openTask ? { onPress: on.openTask, disabled: !enabled, place } : undefined}
+      ownerCapacity={ownerCapacity}
       step={step} steps={steps} info={info}>{headExtra}</AgreementHead>
     {on.proposeTerm ? <AgreementTermNote disabled={!enabled} onPropose={on.proposeTerm} /> : null}
     {problem?.note}
     {problem?.exits}
-    <AgreementTerms agreement={agreement} />
+    <AgreementTerms agreement={agreement} onProposeTerm={on.openChange ? () => { if (enabled) on.openChange!(); } : undefined} />
     {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
     {isGroupAgreement(agreement) && !groupReady ? <AgreementPeople agreement={agreement} /> : null}
     {/* The real next step and accepted personal terms stay ahead of a potentially long roster.
@@ -88,14 +92,7 @@ export function AgreementOverview({ agreement, step, steps, info, headExtra, par
     {/* Communication stays in-app; the private location keeps its separate grant. */}
     <AgreementContactPlace agreement={agreement} enabled={enabled} concealed={concealed}
       locationSlot={location} onLayout={on.placeLayout} onOpenMessages={on.openMessages} onRequestAddress={on.requestAddress} />
-    <AgreementLinks
-      task={on.openTask ? { title, place: agreementTaskPlace(agreement), ...link(on.openTask)! } : undefined}
-      application={link(on.openApplication)} history={agreement.hronologija} />
-    <AgreementActions change={link(on.openChange)} problem={link(on.openProblem)} />
-    {/* The form that reports a problem takes the place of its row. It stands on its own as a child of the page's scroll, so the place it
-        reports (`problemLayout`) is the scroll's own, and the red actions come after it. */}
+    {/* The form that reports a problem opens when chosen from the menu or action. */}
     {problem?.form ? <View onLayout={on.problemLayout}>{problem.form}</View> : null}
-    {/* While the ways on after a problem are drawn, "Otkaži Dogovor" is theirs: one place for one action (J1). */}
-    <AgreementDangerActions cancel={problem?.exits ? undefined : link(on.openCancel)} safety={link(on.openSafety)} />
   </>;
 }

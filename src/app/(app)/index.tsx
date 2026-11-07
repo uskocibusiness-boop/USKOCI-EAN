@@ -57,20 +57,21 @@ function Home() {
     const retireRetry = () => { if (retrying.current === retry) retrying.current = null; };
     signal.addEventListener('abort', retireRetry, { once: true });
     try {
-      // Application totals come from one bounded page, not the whole history.
-      // Tasks and Agreements still need their complete projections for drafts/appointments.
-      const [needs, applications, agreements, attention] = await Promise.all([
+      // Application totals and preview items come from one bounded page, not the whole history.
+      // Tasks, Agreements and Opportunities for Home provide rich horizontal card carousels.
+      const [needs, applications, agreements, attention, opportunities] = await Promise.all([
         readHomeSection(readSignal => source.mojePotrebe({ includeUrgency: false, signal: readSignal }), signal),
         readHomeSection(async () => {
-          const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 1, cursor: null });
+          const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 6, cursor: null });
           if (!page.counts) throw new Error('HOME_APPLICATION_COUNTS_UNAVAILABLE');
-          return page.counts;
+          return { counts: page.counts, items: page.items };
         }, signal),
         readHomeSection(readSignal => source.mojiDogovori({ signal: readSignal }), signal),
-        readHomeSection(() => source.paznjaZaPocetnu(), signal)]);
+        readHomeSection(() => source.paznjaZaPocetnu(), signal),
+        readHomeSection(readSignal => source.prilikeZaPocetnu({ signal: readSignal }), signal)]);
       // Every failed read is unavailable, never an account with nothing in it.
       if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
-      return { needs, applications, agreements, attention };
+      return { needs, applications, agreements, attention, opportunities };
     } finally { signal.removeEventListener('abort', retireRetry); }
   }, [source]);
   const resource = useFocusedResource(load, KEEP_LAST_READ);
@@ -91,6 +92,7 @@ function Home() {
   };
   const open = (target: HomeTarget) => navigate(() => {
     if (target.kind === 'NEED') router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id: target.needId } });
+    else if (target.kind === 'OPPORTUNITY') router.navigate({ pathname: '/prilike/[id]', params: { id: target.needId } });
     else if (target.kind === 'CANDIDATES') router.navigate({ pathname: '/potrebe/[id]/kandidati', params: { id: target.needId } });
     else if (target.kind === 'AGREEMENT') router.navigate({ pathname: '/dogovor/[id]', params: { id: target.agreementId } });
     // R02: the form of Izmene Dogovora that proposes a term, the same one its "···" menu opens ("Izmeni uslove").

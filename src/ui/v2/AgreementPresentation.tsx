@@ -157,10 +157,14 @@ export function termValue(a: Pick<DogovorProjekcija, 'vremeTekst' | 'stanje'>): 
  * remains a sentence; it must never look like a zero price or payment receipt.
  * Compact chat keeps its smaller context without another amount panel.
  */
-export function AgreementTerms({ agreement: a, compact = false }: { agreement: DogovorProjekcija; compact?: boolean }) {
+export function AgreementTerms({ agreement: a, compact = false, onProposeTerm }: { agreement: DogovorProjekcija; compact?: boolean; onProposeTerm?: () => void }) {
   const people = osoba(a.pokrivenost.popunjeno);
+  const ownRole = a.ucesnici.find(person => person.viSte)?.uloga;
   const hourly = a.osnovaCene === 'HOURLY';
-  const priceLabel = hourly ? 'Dogovorena satnica' : a.osnovaCene === 'TOTAL' ? 'Dogovoreno ukupno' : 'Sačuvani iznos';
+  const priceLabel = ownRole === 'uskocer'
+    ? (hourly ? 'Vaša dogovorena satnica' : a.osnovaCene === 'TOTAL' ? 'Vaša dogovorena zarada' : 'Sačuvani iznos')
+    : (hourly ? 'Dogovorena satnica' : a.osnovaCene === 'TOTAL' ? 'Dogovoreni iznos ove saradnje' : 'Sačuvani iznos');
+  const sectionTitle = ownRole === 'uskocer' ? 'Vaši dogovoreni uslovi' : 'Dogovoreni uslovi';
   const priceUnit = applicationPriceBasisText(a.osnovaCene);
   const scope = a.prihvacenObim;
   const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
@@ -183,7 +187,8 @@ export function AgreementTerms({ agreement: a, compact = false }: { agreement: D
     </View>;
   }
   const price = /\d/.test(amount);
-  return <Section title="Uslovi">
+  const termActionLabel = isNoTermText(a.vremeTekst) ? 'Postavi termin' : 'Promeni termin';
+  return <Section title={sectionTitle} action={onProposeTerm ? { label: termActionLabel, onPress: onProposeTerm } : undefined}>
     {a.verzija > 1 ? <T variant="meta" tone="muted" style={s.changedNote}>Uslovi su izmenjeni.</T> : null}
     <View style={s.acceptedFacts}>
       {price ? <MoneySummary label={priceLabel} amount={amount} basis={priceUnit} />

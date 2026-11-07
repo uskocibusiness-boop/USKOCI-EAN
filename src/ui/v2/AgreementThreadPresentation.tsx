@@ -91,15 +91,10 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
             <T variant="meta" tone="muted" numberOfLines={1}>{title}</T>
           </View>
         </Press>
-        <Press accessibilityRole="button" accessibilityLabel={`Uslovi Dogovora: ${title}${waiting ? `. ${waiting}` : ''}`}
-          accessibilityHint="Otvara pregled prihvaćenih uslova i narednih koraka." onPress={onOverview} haptic="select" hitSlop={0} style={s.overview}>
-          {waiting ? <View style={s.dot} /> : null}
-          <T variant="note" tone="green">Uslovi</T>
-        </Press>
-        {onMore ? <ChromeIconButton glyph="more" label="Više radnji" hint="Izmena uslova, deljenje broja, prijava problema, otkazivanje, blokiranje osobe"
+        {onMore ? <ChromeIconButton glyph="more" label="Više radnji" hint="Izmena uslova, tačna lokacija, prijava problema, otkazivanje, blokiranje osobe"
           onPress={onMore} /> : null}
       </View>
-      <View testID="agreement-thread-tabs" style={s.hiddenTabs} accessibilityElementsHidden={true} importantForAccessibility="no-hide-descendants"><AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} /></View>
+      <View testID="agreement-thread-tabs" style={s.tabs}><AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} /></View>
       {waiting ? <View style={s.waitingRow}><T variant="note" style={s.waiting}>{waiting}</T></View> : null}
     </>}
     {channels ? <View style={s.tabs}>{channels}</View> : null}

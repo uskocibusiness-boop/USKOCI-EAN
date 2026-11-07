@@ -16,11 +16,14 @@ import { WorkspaceFooter, agreementNextStep, agreementQuietLine, agreementStepsI
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
 import { AgreementOverview } from '../../ui/agreements/AgreementOverview';
 import { ADDRESS_REQUEST_TEXT } from '../../ui/agreements/agreementContactModel';
-import { AgreementProblemExits, AgreementStatusView, AgreementProblemForm, AgreementProblemNote, AgreementProblemUnknown, overviewContent } from '../../ui/agreements/AgreementOverviewParts';
+import { AgreementProblemExits, AgreementStatusView, AgreementProblemForm, AgreementProblemNote, AgreementProblemUnknown, overviewContent, type OwnerCapacitySummary } from '../../ui/agreements/AgreementOverviewParts';
 import { cancellationDetailsOf } from '../../ui/agreements/agreementListModel';
 import { agreementMenuActions } from '../../ui/agreements/agreementMenu';
 import type { OwnRating } from '../../ui/agreements/agreementStepsModel';
 import { ProductHeader } from '../../ui/product/ProductDetails';
+import { ChromeIconButton } from '../../ui/system/ScreenChrome';
+import type { NeedSearchState } from '../../contracts/needSearchRecovery';
+import { needSearchRecoveryClientService } from '../../data/needSearchRecoveryClientService';
 import { useIzvor } from '../../store/uloga';
 import { useAgreementHistory } from '../../hooks/useAgreementHistory';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
@@ -211,6 +214,16 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       .then(result => { if (live && result.ok) setCancellation(cancellationOf(result.podatak, id)); }).catch(() => undefined);
     return () => { live = false; };
   }, [cancelled, id, accountId, accountRevision]);
+  const ownerNeedId = dogovor?.ucesnici.some(p => p.viSte && p.id === accountId && p.uloga === 'narucilac')
+    ? dogovor.izvor?.zadatakId ?? null : null;
+  const [ownerSearchState, setOwnerSearchState] = useState<NeedSearchState | null>(null);
+  useEffect(() => {
+    if (!ownerNeedId) { setOwnerSearchState(null); return; }
+    let live = true;
+    void needSearchRecoveryClientService.read(ownerNeedId, { accountId, accountRevision })
+      .then(result => { if (live && result.ok) setOwnerSearchState(result.podatak); }).catch(() => undefined);
+    return () => { live = false; };
+  }, [ownerNeedId, accountId, accountRevision, dogovor?.verzija]);
   // The adapter can only say "Ja" or "Sagovornik"; the workspace knows who the other person is, and a bubble
   // carries that name the way the header above it already does.
   const namedMessages = useMemo(() => (messages.data ?? []).map(message => {
@@ -454,10 +467,26 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   const reportNoShow = () => {
     if (formCurrent()) router.push({ pathname: '/podrska/novi', params: { contextKind: 'AGREEMENT', contextId: id.toLowerCase(), contextRevision: String(dogovor.verzija), topic: 'NO_SHOW' } });
   };
-  // The conversation's "···" (T3c): the overview shows every one of these as a row of the page (J15), so the menu is for the person who is in Poruke.
+  const openTask = me && dogovor.izvor?.zadatakId ? () => {
+    const needId = dogovor.izvor?.zadatakId;
+    if (!needId || !formCurrent()) return;
+    router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } } : { pathname: '/prilike/[id]', params: { id: needId } });
+  } : undefined;
+  const ownerCapacity: OwnerCapacitySummary | null = requester && ownerSearchState && ownerSearchState.requiredSlots > 1 ? {
+    coveredSlots: ownerSearchState.coveredSlots,
+    requiredSlots: ownerSearchState.requiredSlots,
+    missingSlots: ownerSearchState.missingSlots,
+    disabled: !enabled,
+    onOpenCandidates: () => {
+      if (!formCurrent()) return;
+      router.push({ pathname: '/potrebe/[id]/kandidati', params: { id: ownerSearchState.needId } });
+    },
+  } : null;
+  // The Dogovor's "···" menu, reachable from both Pregled and Poruke.
   const menuActions = agreementMenuActions({ party: !!me, hasOther: !!other, active, requester, canChange,
     hasLocation: dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji,
     problemFree: !dogovor.problemOtvoren && !report, enabled }, {
+    onOpenTask: openTask,
     onChange: () => toChanges('propose'), onCancel: () => toChanges('cancel'),
     onLocation: () => scrollToAnchor('place'),
     onProblem: openProblemForm,
@@ -488,11 +517,6 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     : null;
   /** A Dogovor with no term at all, agreed and with nothing else waiting: it says what is still to do, and where (R02). */
   const needsTerm = dogovor.stanje === 'CONFIRMED' && isNoTermText(dogovor.vremeTekst) && !!me && canChange && !changeWaits && !dogovor.problemOtvoren;
-  const openTask = me && dogovor.izvor?.zadatakId ? () => {
-    const needId = dogovor.izvor?.zadatakId;
-    if (!needId || !formCurrent()) return;
-    router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } } : { pathname: '/prilike/[id]', params: { id: needId } });
-  } : undefined;
 
   const openPrivateConversation = (targetId: string) => {
     if (!formCurrent() || !groupModel.current() || !groupModel.context
@@ -530,11 +554,14 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
           outbox, state: outboxState, photos,
           voiceScope: { accountId, accountRevision, agreementId: id, version: dogovor.verzija, isCurrent: chatCurrent },
           support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
-        {other ? <AgreementPersonBar person={other} back={backToAgreements} />
-          : <ProductHeader back={backToAgreements} title="Dogovor" />}
+        {other ? <AgreementPersonBar person={other} back={backToAgreements}
+          right={menuActions.length ? <ChromeIconButton glyph="more" label="Opcije Dogovora" onPress={() => { if (ownsAccount()) setMenuOpen(true); }} /> : undefined} />
+          : <ProductHeader back={backToAgreements} title="Dogovor"
+            right={menuActions.length ? <ChromeIconButton glyph="more" label="Opcije Dogovora" onPress={() => { if (ownsAccount()) setMenuOpen(true); }} /> : undefined} />}
         <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
         <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" contentContainerStyle={overviewContent}>
           <AgreementOverview agreement={dogovor} step={nextStep} info={stepsInfo} party={!!me} enabled={enabled} concealed={resumeRequired}
+            ownerCapacity={ownerCapacity}
             steps={{ state: dogovor.stanje, ownRating: dogovor.ownRating, cancellation: cancelled ? cancellationDetailsOf(cancellation, other?.ime) : null }}
             headExtra={<>
               {active && me && !radnje ? <View style={s.stack}>
@@ -548,8 +575,8 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
                   <T variant="bodyStrong" style={s.ink}>{`→ ${change.predlog}`}</T>
                 </View>)}
                 {pendingChange?.razlog ? <T variant="note" tone="muted">Razlog: {pendingChange.razlog}</T> : null}
-                {pendingChange?.mozeOdgovoriti ? null
-                  : <V2Action label="Pogledajte predlog" kind="quiet" disabled={!enabled} onPress={openChanges} />}
+                <V2Action label={pendingChange?.mozeOdgovoriti ? 'Pregledajte i odgovorite na predlog' : 'Pogledajte predlog'}
+                  kind={pendingChange?.mozeOdgovoriti ? 'secondary' : 'quiet'} compact disabled={!enabled} onPress={openChanges} />
               </View> : null}
             </>}
             problem={{ note: problemNote, exits: problemExits, form: problemForm }}

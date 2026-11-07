@@ -24,15 +24,15 @@ function StandaloneEntry(props: Props) {
 }
 function GroupEntry({ agreementId, model, onPrivate }: Props & { model: GroupContextModel }) {
   const context = model.context, group = context?.group;
-  if (!context || !group) return model.error ? <Section title="Učesnici zadatka">
-    <T variant="note" tone="muted" accessibilityLiveRegion="polite">Učesnici trenutno nisu učitani.</T>
-    <V2Action label="Ponovo učitaj učesnike" kind="quiet" onPress={model.refresh} />
+  if (!context || !group) return model.error ? <Section title="Članovi Dogovora">
+    <T variant="note" tone="muted" accessibilityLiveRegion="polite">Članovi trenutno nisu učitani.</T>
+    <V2Action label="Ponovo učitajte članove" kind="quiet" onPress={model.refresh} />
   </Section> : context?.available === false
-    ? <T variant="meta" tone="muted">Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe.</T>
-    : <Section title="Učesnici zadatka">
+    ? null
+    : <Section title="Članovi Dogovora">
       <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: sys.space.sm }}>
         <FactArt kind="users" size={32} />
-        <T variant="note" tone="muted">Učitavamo učesnike…</T>
+        <T variant="note" tone="muted">Učitavamo članove Dogovora…</T>
       </View>
     </Section>;
   const choices = privateConversationChoices(context);
@@ -50,26 +50,34 @@ function GroupEntry({ agreementId, model, onPrivate }: Props & { model: GroupCon
     if (!model.current() || !choices.some(choice => choice.id === id)) return;
     if (onPrivate) onPrivate(id); else router.push({ pathname: '/dogovor/[id]', params: { id, tab: 'poruke' } });
   };
-  return <Section title="Učesnici zadatka">
+  const openMemberAgreement = (id: string) => {
+    if (!model.current() || !choices.some(choice => choice.id === id)) return;
+    router.push({ pathname: '/dogovor/[id]', params: { id } });
+  };
+  return <Section title="Članovi Dogovora">
     <View>{group.members.map((member, index) => <ListRow key={member.accountId} title={member.displayName}
-      subtitle={`${member.accountId === context.accountId ? 'Ti · ' : ''}${member.role === 'REQUESTER' ? 'Traži pomoć' : 'Uskače'}`}
+      subtitle={`${member.accountId === context.accountId ? 'Vi · ' : ''}${member.role === 'REQUESTER' ? 'Vlasnik zadatka' : 'Uskače na zadatak'}`}
       leading={<ProfilePhoto profileId={member.profileId} size={40} fallback={<Avatar initials={inicijali(member.displayName)} size={40} />} />}
-      trailing={byMember.has(member.accountId) ? <View style={{ gap: sys.space.xs }}>
-        {byMember.get(member.accountId)!.map(choice =>
-          <V2Action key={choice.id} label={byMember.get(member.accountId)!.length > 1 ? `Privatno · ${choices.indexOf(choice) + 1}` : 'Privatno'}
-            accessibilityLabel={`Privatno: ${choice.name}`} kind="quiet" compact onPress={() => openPrivate(choice.id)} />)}
+      trailing={byMember.has(member.accountId) ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.xs }}>
+        {byMember.get(member.accountId)!.map(choice => <View key={choice.id} style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.xs }}>
+          {group.role === 'REQUESTER' && choice.id.toLowerCase() !== agreementId.toLowerCase() ? (
+            <V2Action label="Dogovor" accessibilityLabel={`Otvori Dogovor: ${choice.name}`} kind="secondary" compact onPress={() => openMemberAgreement(choice.id)} />
+          ) : null}
+          <V2Action label={byMember.get(member.accountId)!.length > 1 ? `Poruka · ${choices.indexOf(choice) + 1}` : 'Poruka'}
+            accessibilityLabel={`Privatna poruka: ${choice.name}`} kind="quiet" compact onPress={() => openPrivate(choice.id)} />
+        </View>)}
       </View> : undefined}
       faceSlot last={index === group.members.length - 1} />)}</View>
     {!group.members.length ? <T variant="meta" tone="muted">Prikazana je ranije dostupna istorija razgovora.</T> : null}
-    <View style={{ gap: sys.space.sm }}>
-      <V2Action label={`Grupni razgovor${group.unreadCount > 0 ? ` · ${neprocitanih(group.unreadCount)}` : ''}`} onPress={() => {
+    <View style={{ gap: sys.space.sm, paddingTop: sys.space.sm }}>
+      <V2Action label={`Kolektivni razgovor svih članova${group.unreadCount > 0 ? ` · ${neprocitanih(group.unreadCount)}` : ''}`} onPress={() => {
         if (model.current()) router.push({ pathname: '/dogovor/[id]/grupa', params: { id: agreementId } });
       }} />
-      <T variant="meta" tone="muted">Zajedničke poruke vide svi učesnici. Privatne vidi samo osoba kojoj pišeš.</T>
+      <T variant="meta" tone="muted">Poruke u kolektivnom razgovoru vide svi članovi zadatka, dok privatnu poruku vidi samo osoba kojoj pišete.</T>
       {choices.filter(choice => !memberFor(choice.id)).map(choice => <V2Action key={choice.id} label={`Privatno: ${choice.name}`} kind="quiet" compact onPress={() => openPrivate(choice.id)} />)}
       {group.managementNextId ? <V2Action label={model.loadingMore ? 'Učitavamo razgovore…' : 'Još privatnih razgovora'} kind="quiet"
         disabled={model.loadingMore} onPress={() => void model.more()} /> : null}
-      {model.error ? <T variant="meta" tone="muted">Nisu učitani svi privatni razgovori. Pokušaj ponovo.</T> : null}
+      {model.error ? <T variant="meta" tone="muted">Nisu učitani svi privatni razgovori. Pokušajte ponovo.</T> : null}
     </View>
   </Section>;
 }

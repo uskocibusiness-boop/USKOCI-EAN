@@ -38,23 +38,76 @@ export const overviewContent = { paddingHorizontal: layout.gutter, paddingTop: s
  * the dot, the state, the next step — and the four steps of its way. When the next step waits for me, it is one tinted note.
  * `steps` is the step bar's own props, so the same state is read in one place (`agreementStepModel`).
  */
-export function AgreementHead({ title, roleLabel, coverageLine, step, steps, info, children, showTitle = true }: {
+export type OwnerCapacitySummary = {
+  coveredSlots: number;
+  requiredSlots: number;
+  missingSlots: number;
+  onOpenCandidates?: () => void;
+  disabled?: boolean;
+};
+
+export function AgreementHead({ title, roleLabel, coverageLine, step, steps, info, children, showTitle = true, taskCard, ownerCapacity }: {
   /** The work's title, readable ("Prenos ormana do kombija"). */
   title: string; roleLabel?: string; coverageLine?: string; step: AgreementStep; steps: ComponentProps<typeof AgreementSteps>;
   /** A group overview already names the task above its roster; its private state must not repeat that title. */
   showTitle?: boolean;
   /** How the Dogovor goes, behind an "ⓘ" at the end of the state's line: the screen says one sentence, the rest is one tap away. */
   info?: AgreementInfo | null;
+  /** Clickable card at the top that opens the full original task detail view. */
+  taskCard?: { onPress: () => void; disabled?: boolean; place?: string };
+  /** Live capacity summary for the task owner (e.g. 2/4 filled, 2 more needed -> open applications). */
+  ownerCapacity?: OwnerCapacitySummary | null;
   /** What a waiting step is about: the lines of a proposal, the way to read permissions again. Inside the step. */
   children?: ReactNode;
 }) {
   // Only an authoritatively completed collaboration with my saved rating has no
   // next step left. A pending-change/recovery heading still takes precedence.
   const completedAndRated = steps.state === 'COMPLETED' && steps.ownRating === 'GIVEN' && step.status === 'task.completed';
+  const missingWord = ownerCapacity && ownerCapacity.missingSlots > 0
+    ? ownerCapacity.missingSlots === 1 ? '1 osoba' : ownerCapacity.missingSlots < 5 ? `${ownerCapacity.missingSlots} osobe` : `${ownerCapacity.missingSlots} osoba`
+    : null;
   return <View style={s.head}>
-    {roleLabel ? <T variant="meta" style={s.roleLabel}>{roleLabel}</T> : null}
-    {showTitle ? <T accessibilityRole="header" variant="pageTitle" style={s.title}>{title}</T> : null}
-    {coverageLine ? <T testID="agreement-individual-coverage" variant="note" tone="muted">{coverageLine}</T> : null}
+    {taskCard ? (
+      <Surface kind="record" onPress={taskCard.disabled ? undefined : taskCard.onPress}
+        accessibilityLabel={`Otvori originalni zadatak: ${title}`}
+        accessibilityHint="Otvara detaljni prikaz originalnog zadatka.">
+        <View style={s.taskCardRow}>
+          <FactArt kind="tasks" size={32} />
+          <View style={s.taskCardCopy}>
+            {roleLabel ? <T variant="meta" style={s.roleLabel}>{roleLabel}</T> : null}
+            <T variant="heading" style={s.title}>{title}</T>
+            <T variant="note" tone="muted">{taskCard.place ? `${taskCard.place} · Pogledajte originalni zadatak` : 'Pogledajte originalni zadatak'}</T>
+            {coverageLine ? <T testID="agreement-individual-coverage" variant="meta" tone="muted">{coverageLine}</T> : null}
+          </View>
+          <Glyph name="caret-right" size={20} tone="muted" />
+        </View>
+      </Surface>
+    ) : (
+      <>
+        {roleLabel ? <T variant="meta" style={s.roleLabel}>{roleLabel}</T> : null}
+        {showTitle ? <T accessibilityRole="header" variant="pageTitle" style={s.title}>{title}</T> : null}
+        {coverageLine ? <T testID="agreement-individual-coverage" variant="note" tone="muted">{coverageLine}</T> : null}
+      </>
+    )}
+    {ownerCapacity ? (
+      <Surface kind="note" style={s.capacityCard}>
+        <View style={s.taskCardRow}>
+          <FactArt kind="users" size={28} />
+          <View style={s.taskCardCopy}>
+            <T variant="bodyStrong" style={s.capacityTitle}>
+              {`Popunjeno ${ownerCapacity.coveredSlots} od ${ownerCapacity.requiredSlots} mesta na zadatku`}
+            </T>
+            <T variant="note" tone="muted">
+              {missingWord ? `Još ${missingWord} nedostaje za pun kapacitet.` : 'Sva tražena mesta na zadatku su popunjena.'}
+            </T>
+          </View>
+        </View>
+        {missingWord && ownerCapacity.onOpenCandidates ? (
+          <V2Action label="Pogledajte prijave i odaberite još ljudi" kind="secondary" compact
+            disabled={ownerCapacity.disabled} onPress={ownerCapacity.onOpenCandidates} />
+        ) : null}
+      </Surface>
+    ) : null}
     <NextStepCard tone={step.tone} status={step.status} title={completedAndRated ? 'Završen · ocena sačuvana' : step.title}
       body={completedAndRated ? null : step.body} aside={info ? <InfoButton title={info.title} lines={info.lines} /> : undefined}>{children}</NextStepCard>
     {!completedAndRated ? <View style={s.steps}><AgreementSteps {...steps} /></View> : null}
@@ -262,6 +315,10 @@ export function AgreementStatusView({ loading = false, error = false, retry, bac
 const s = StyleSheet.create({
   // The title, the state and the steps: 12 apart, and the steps 16 under the state's words (the 12 and 4 more) so the bar stands apart from them.
   head: { gap: sys.space.md },
+  taskCardRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  taskCardCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  capacityCard: { gap: sys.space.md },
+  capacityTitle: { color: sys.color.ink },
   steps: { marginTop: sys.space.xs },
   title: { color: sys.color.ink },
   roleLabel: { color: sys.color.green, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },

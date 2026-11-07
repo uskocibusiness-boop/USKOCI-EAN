@@ -31,8 +31,8 @@ export type HomeSection<T> = { kind: 'known'; value: T } | { kind: 'unavailable'
  */
 export type HomeWorkProfileRead = Pick<RadnikProfilProjekcija, 'stanje' | 'dostupanOdmah'>;
 export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>;
-  /** Production reads exact aggregate counts; full arrays remain the legacy proof/gallery adapter. */
-  applications: HomeSection<MojaPrijavaProjekcija[] | ApplicationCounts>;
+  /** Production reads exact aggregate counts (and optional first-page items); full arrays remain the legacy proof/gallery adapter. */
+  applications: HomeSection<MojaPrijavaProjekcija[] | ApplicationCounts | { counts: ApplicationCounts; items: MojaPrijavaProjekcija[] }>;
   agreements: HomeSection<DogovorProjekcija[]>; workerProfile?: HomeSection<HomeWorkProfileRead | null>;
   opportunities?: HomeSection<PrilikaProjekcija[]>; };
 export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'; needId: string }
@@ -42,7 +42,9 @@ export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'
   /** The other side proposed a change of the terms and it waits for my answer: the row opens that proposal. */
   | { kind: 'AGREEMENT_CHANGE'; agreementId: string }
   /** R20: the work profile still has to be set up. The row opens its conversation. */
-  | { kind: 'WORKER_PROFILE' };
+  | { kind: 'WORKER_PROFILE' }
+  /** Prilika za Vas on Početna: opens the public task detail view. */
+  | { kind: 'OPPORTUNITY'; needId: string };
 export type HomeAttention = { id: string; title: string; detail: string; target: HomeTarget;
   /** Structured by the live attention decoder. Legacy proof/gallery rows retain their combined detail. */
   taskTitle?: string };
@@ -94,6 +96,11 @@ export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; 
   workerProfile?: HomeSection<HomeWorkProfile>;
   /** The two front doors. A side that could not be read is unavailable, never zero. */
   mine: { tasks: HomeSection<OwnedTaskCounts>; applications: HomeSection<ApplicationCounts> };
+  /** Card carousel projections for Početna (Prilike za Vas, Vaši objavljeni zadaci, Vaše prijave, Aktuelni dogovori). */
+  opportunityItems?: PrilikaProjekcija[];
+  ownTaskItems?: PotrebaProjekcija[];
+  applicationItems?: MojaPrijavaProjekcija[];
+  agreementItems?: DogovorProjekcija[];
   partial: boolean; attentionState?: 'known' | 'unavailable';
   /** Every read answered and this account has no task, no application, no Dogovor and nothing waiting. */
   firstRun: boolean;
@@ -190,9 +197,18 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
   phoneZone: string | undefined = zonaTelefona()): HomeSnapshot {
   const needs = reads.needs.kind === 'known' ? reads.needs.value : null;
   const applicationRead = reads.applications.kind === 'known' ? reads.applications.value : null;
-  const applications = Array.isArray(applicationRead) ? applicationRead : null;
-  const applicationTotals = Array.isArray(applicationRead) ? applicationCounts(applicationRead) : applicationRead;
+  const applications = Array.isArray(applicationRead)
+    ? applicationRead
+    : applicationRead && 'items' in applicationRead
+      ? applicationRead.items
+      : null;
+  const applicationTotals = Array.isArray(applicationRead)
+    ? applicationCounts(applicationRead)
+    : applicationRead && 'counts' in applicationRead
+      ? applicationRead.counts
+      : applicationRead;
   const agreements = reads.agreements.kind === 'known' ? reads.agreements.value : null;
+  const opportunities = reads.opportunities?.kind === 'known' ? reads.opportunities.value : null;
 
   // A blocked completion first, then an open problem, then a changed task under my application,
   // then my own tasks with applications to choose from. One identity per subject and reason.
@@ -274,6 +290,14 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
   const ratingsKnown = !!serverRatings || agreements !== null && !agreements.some(row => row.stanje === 'COMPLETED' && row.stanjeProvereOcene === 'UNAVAILABLE');
   const partial = !ratingsKnown || serverAttention?.kind === 'unavailable' || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable');
 
+  const opportunityItems = opportunities ? opportunities.slice(0, 6) : undefined;
+  const ownTaskItems = needs
+    ? needs.filter(row => ['OBJAVLJENA', 'U_IZBORU', 'DOGOVORENA', 'U_TOKU'].includes(row.stanje)
+      || (row.stanje === 'NACRT' && readableTitle(row.naslov) && draftIsFresh(row.azurirano, now))).slice(0, 6)
+    : undefined;
+  const applicationItems = applications ? applications.slice(0, 6) : undefined;
+  const agreementItems = agreements ? ordered.map(entry => entry.row).slice(0, 6) : undefined;
+
   return {
     attention: attention.slice(0, HOME_ATTENTION_LIMIT), attentionMore: serverAttention
       ? serverAttention.kind === 'known' ? serverAttention.value.more : 0 : Math.max(0, attention.length - HOME_ATTENTION_LIMIT),
@@ -284,6 +308,10 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       more: Math.max(0, activeAgreements.length - HOME_AGREEMENT_LIMIT), ...(quietLine ? { quietLine } : {}) } } : { kind: 'unavailable' },
     mine: { tasks: needs ? { kind: 'known', value: ownedTaskCounts(needs) } : { kind: 'unavailable' },
       applications: applicationTotals ? { kind: 'known', value: applicationTotals } : { kind: 'unavailable' } },
+    ...(opportunityItems ? { opportunityItems } : {}),
+    ...(ownTaskItems ? { ownTaskItems } : {}),
+    ...(applicationItems ? { applicationItems } : {}),
+    ...(agreementItems ? { agreementItems } : {}),
     partial,
     firstRun: !partial && !attention.length && !needs?.length && !applicationTotals?.total && !agreements?.length,
     ratingsDue: serverRatings ? serverRatings.due : ratingsKnown ? due.length : null,

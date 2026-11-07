@@ -1,13 +1,10 @@
 import { useEffect, type ReactNode } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { View, type LayoutChangeEvent } from 'react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { useSesija } from '../../store/sesija';
 import { T } from '../Text';
 import { AgreementPrivateLocation, clearCachedAgreementLocation } from '../AgreementPrivateLocation';
-import { FactArt } from '../system/FactArt';
-import { ListRow } from '../system/ListRow';
 import { Section } from '../system/Section';
-import { sys } from '../system/tokens';
 
 /**
  * "Komunikacija i mesto" (Usklađeno sa nalogom vlasnika o privatnosti):
@@ -41,42 +38,25 @@ export function AgreementContactPlace({
     }
   }, [active, session.user?.id, agreement.id]);
 
-  const rows: ((last: boolean) => ReactNode)[] = [
-    last => (
-      <ListRow
-        key="messages"
-        leading={<FactArt kind="chat" size={32} />}
-        title="Poruke u aplikaciji"
-        subtitle="Sva komunikacija i dogovori vode se bezbedno u aplikaciji."
-        last={last}
-        accessibilityLabel="Poruke u aplikaciji"
-        onPress={onOpenMessages}
+  if (!physical) return null;
+
+  const tail = active ? (
+    locationSlot ?? (
+      <AgreementPrivateLocation
+        agreement={agreement}
+        enabled={enabled && !concealed}
+        onRequestAddress={onRequestAddress}
       />
-    ),
-  ];
-
-  const tail = physical ? (
-    active ? (
-      locationSlot ?? (
-        <AgreementPrivateLocation
-          agreement={agreement}
-          enabled={enabled && !concealed}
-          onRequestAddress={onRequestAddress}
-        />
-      )
-    ) : (
-      <T variant="note" tone="muted">
-        Pristup lokaciji je zatvoren kada se Dogovor završi ili otkaže.
-      </T>
     )
-  ) : null;
-
-  const title = agreement.rezim === 'DALJINSKI' ? 'Komunikacija' : 'Komunikacija i mesto';
+  ) : (
+    <T variant="note" tone="muted">
+      Pristup tačnoj lokaciji je zatvoren kada se Dogovor završi ili otkaže.
+    </T>
+  );
 
   return (
     <View testID="agreement-contact-place" onLayout={onLayout}>
-      <Section title={title}>
-        <View>{rows.map((row, index) => row(index === rows.length - 1))}</View>
+      <Section title="Tačna adresa i lokacija">
         {tail}
       </Section>
     </View>

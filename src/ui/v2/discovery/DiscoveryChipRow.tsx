@@ -13,7 +13,7 @@ export type QuickChip = { key: string; label: string; selected: boolean; onPress
 /** Which tasks the list is about: every open task, or only the ones that match the person's own work profile. */
 export type ScopeKey = 'all' | 'forMe';
 /** The one word of the scope that is a capsule: on, the list is about the tasks that fit the person's own work profile. */
-export const FOR_ME = 'Za mene';
+export const FOR_ME = 'Za Vas';
 
 /**
  * The one row of capsules over the map, under the primary Filteri control (UX plan 2.13 and section P; the owner's phone of 7 and 8 Oct

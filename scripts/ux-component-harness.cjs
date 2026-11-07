@@ -26,18 +26,26 @@ function createHarness(extra = {}, timerModules = {}) {
     'src/ui/system/Appear.tsx': { Appear:host('Appear'), useAppear:()=>({settle:()=>{},isNew:()=>false}) },
     'src/ui/system/textScale.ts': { useLayoutClass:()=>({stacked:false,wide:true}) },
     'src/ui/system/usePullRefresh.ts': { usePullRefresh:(fn,refreshing)=>({onRefresh:fn,refreshing}) },
-    'src/ui/system/tokens.ts': { sys:{color:{},space:{},radius:{},motion:{scale:{row:1,button:1}},type:{heading:{lineHeight:24}},touch:{min:48}},brandAction:{},profileLift:{} },
+    'src/ui/system/tokens.ts': { sys:{color:{},space:{},radius:{},motion:{scale:{row:1,button:1},easeOut:[0,0,1,1],press:100,spring:{}},type:{heading:{lineHeight:24}},touch:{min:48}},brandAction:{},profileLift:{} },
     'src/ui/system/layout.ts': { layout:{group:16,rowMin:48,gutter:20,touch:48},ruleWidth:1 },
-    ...Object.fromEntries(['Avatar','FactArt','ScreenHeader','ListRow','Screen','Section','Surface','Glyph','ChromeIconButton'].map(n=>['src/ui/system/'+n+'.tsx',ui([n])])),
+    'react-native-reanimated': { default:{View:'AnimatedView'}, Easing:{bezier:()=>()=>0}, ReduceMotion:{System:'system'}, useSharedValue:v=>({get:()=>v,set:()=>{}}), useAnimatedStyle:()=>({}), withTiming:v=>v, withSpring:v=>v },
+    'src/ui/system/usePressLift.ts': { usePressLift:()=>({style:{},give:()=>{},settle:()=>{}}) },
+    ...Object.fromEntries(['Avatar','FactArt','ScreenHeader','ListRow','Screen','Section','Surface','Glyph','ChromeIconButton','Segmented'].map(n=>['src/ui/system/'+n+'.tsx',ui([n])])),
     'src/ui/Press.tsx':ui(['Press']), 'src/ui/Text.tsx':ui(['T']), 'src/ui/v2/V2Action.tsx':ui(['V2Action']),
     'src/ui/settings/SettingsPresentation.tsx':ui(['SettingsGroup','SettingsRow']),
     'src/ui/profile/AccountHeader.tsx':ui(['AccountHeader']),
     'src/ui/home/HomeLaunchArt.tsx':ui(['HomeLaunchArt']),
     'src/ui/home/HowItWorks.tsx':ui(['HowItWorks']),
+    'src/ui/v2/TaskCard.tsx':ui(['TaskCard']),
+    'src/ui/v2/TaskPublisherPortrait.tsx':ui(['TaskPublisherPortrait']),
+    'src/ui/v2/OwnTaskCard.tsx':ui(['OwnTaskCard']),
+    'src/ui/v2/ApplicationFace.tsx':ui(['ApplicationCard']),
+    'src/ui/agreements/AgreementListCard.tsx':ui(['AgreementRow','AgreementTaskRow']),
     ...extra,
   };
   const cache = new Map();
-  function load(rel) {
+  function load(rawRel) {
+    const rel = rawRel.replace(/\\/g, '/');
     if (Object.hasOwn(stubs,rel)) return stubs[rel];
     if (cache.has(rel)) return cache.get(rel).exports;
     const filename = path.join(ROOT,rel);

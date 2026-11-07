@@ -11,6 +11,7 @@ import { Glyph } from '../system/Glyph';
 import { layout } from '../system/layout';
 import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
 import { ScreenHeader } from '../system/ScreenHeader';
+import { Segmented } from '../system/Segmented';
 import { zadataka } from '../system/plural';
 import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
@@ -229,6 +230,16 @@ export function AgreementCollectionPresentation(props: Props) {
       : props.header ?? <ScreenHeader title="Dogovori" showTitle onProfile={props.onProfile}
         right={<>{searchControl}<ChromeIconButton glyph="calendar" label="Raspored" onPress={props.onCalendar} /></>} />}
     <View style={s.controls}>
+      {settledRead && items.length > 0 ? <View style={s.sectionTabs}>
+        <Segmented
+          options={[
+            { key: 'active', label: 'Aktivni' },
+            { key: 'history', label: 'Prethodne saradnje' },
+          ]}
+          value={section}
+          onChange={next => { props.onSection(next); props.onConfirmationOnly(false); }}
+        />
+      </View> : null}
       {search.open ? <View style={s.search}>
         <SearchField testID="agreement-search-input" label="Pretraga Dogovora" placeholder="Zadatak, osoba ili mesto" clearLabel="Obrišite pretragu"
           value={search.query} onChangeText={search.onChange} autoFocus maxLength={AGREEMENT_SEARCH_MAX_LENGTH} returnKeyType="search" onSubmit={() => Keyboard.dismiss()} />
@@ -277,6 +288,7 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   // Local rhythm keeps all controls visible while bringing the first task closer; touch targets retain their full height.
   search: { gap: sys.space.sm, paddingVertical: sys.space.sm },
+  sectionTabs: { paddingBottom: sys.space.xs },
   controls: { paddingHorizontal: layout.gutter, paddingTop: sys.space.xs },
   refreshNotice: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm },
   refreshAction: { minHeight: layout.touch, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
