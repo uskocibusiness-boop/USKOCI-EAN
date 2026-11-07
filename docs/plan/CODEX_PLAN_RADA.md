@@ -1,5 +1,33 @@
 # USKOČI — jedinstveni plan dovršavanja proizvoda i objavljivanja
 
+<!-- USKOCI_UX_QA48_FOLLOWUP_20261107 -->
+## Aktuelni izvršni checkpoint — 07.11.2026: popravke posle UX pregleda QA48
+
+Nastavljeno na istoj grani od `f9e13ed5020a786ba6e0963dfd5de87eba3e3245`, bez resetovanja. Product/UX master i zaključane odluke nisu menjani. Stvarni subagenti nisu bili dostupni; rad je izvršen sekvencijalno.
+
+**Source:** `ef6f6d2e7775344707153c7f6bbfbe5e592a9c79`. **QA51:** [run 42417509682](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42417509682), **761/761 aktivnih testova PASS**, TypeScript i migracioni integritet PASS, Android build PASS. Artefakt: [uskoci-isolated-qa-apk-51](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42417509682/artifacts/13592692153). Ovo je dokaz CI izgradnje i objavljenog artefakta, **ne instalacija, native E2E ili nezavisan pregled preuzetih APK bajtova**.
+
+| Nalaz | Popravka i potvrda | Granica |
+| --- | --- | --- |
+| UX01 — SOURCE IMPLEMENTIRANO / TESTIRANO | Prekid čekanja pri izlasku više ne ostavlja dodavanje usluge zauzetim; povratak pokreće samo proveru, nikad ponovni upis. | 11 testova; native blur/restart nije potvrđen. |
+| UX02 — SOURCE IMPLEMENTIRANO / TESTIRANO | Preview/QA koristi postojeći P6 čitač i kapsulu Za mene; lista/mapa čuvaju isti filter/anchor, REMOTE nema lažnu geografiju, publication handoff ostaje zaseban. | 16 novih testova i postojeći R05 paket; produkcija ostaje isključena, novi ordinary Auth/native prihvat nije izvršen. |
+| UX03 — DELIMIČNO — SOURCE IMPLEMENTIRANO / TESTIRANO | Mrtav tekst za dodatne obaveze zamenjen je prolaznim panelom sa učitanim akcijama, svim poznatim dodatnim predlozima i direktnim ulazima u tri postojeća domena. | 9 testova; postojeći server šalje samo 3 stavke. Panel otvoreno prikazuje broj neprikazanih obaveza; puni paginirani spisak nije završen. |
+| UX04 — SOURCE IMPLEMENTIRANO / TESTIRANO | Radni profil čita i prikazuje sačuvane dane, sate, period, pauzirana pravila i posebne prozore u njihovoj vremenskoj zoni, bez AI poziva. | 13 testova vlasništva, kasnih rezultata i UI stanja; novi hosted/native prihvat nije izvršen. |
+| UX05 — SOURCE IMPLEMENTIRANO / TESTIRANO | Raspored vodi na Prethodne saradnje; stara /arhiva adresa je kompatibilno preusmeravanje u Dogovore, bez tri paralelna privatna čitanja. | Stari link ostaje; nema brisanja istorijskih podataka. Native Back treba proveriti. |
+| UX06 — SOURCE IMPLEMENTIRANO / TESTIRANO | Dogovori imaju pretragu po naslovu, drugoj osobi i već prikazanom mestu, latinicom/ćirilicom; uloga, ishod, grupa, pogođeni član i scroll kontekst očuvani. | 18 testova; ne indeksiraju se tačna adresa, telefon, koordinate, poruke ili skriveni ID-jevi. Native tastatura/Back ostaju. |
+| UX07 — SOURCE IMPLEMENTIRANO / TESTIRANO | Filter kaže Sa navedenom cenom; MY_PRICE, iznos, osnovica, valuta i broj ljudi nisu promenjeni. | Zajedno sa UX05/08 šest ciljanih testova navigacije/tekstova; vizuelni native prihvat ostaje. |
+| UX08 — SOURCE IMPLEMENTIRANO / TESTIRANO | Pregledani aktivni ulazi koriste Radni profil; uklonjeni su naziv profil majstora i neformalni imperativi u pregledanim Auth/prijava/podrška/profil tekstovima. | Ograničen pregled konkretnih aktivnih tekstova, ne tvrdnja da je svaki istorijski tekst projekta usklađen. |
+
+**Dokazi:** [izvršeni lokalni testovi i tačne datoteke](proofs/ux-fixes-20261107.json), [CI vezivanje](proofs/ux-fixes-ci-20261107.json). Novi testovi su u aktivnom npm test paketu. Raniji lokalni pokušaj šire regresije sa nedostajućim SDK/SQL paketima nije proglašen prolazom; pun paket je izvršen u ovom CI-u.
+
+**DEV i granice:** u ovom UX krugu nema SQL migracije, Edge deploy-a, poslovnog upisa niti plaćenog AI poziva. Proveren je metadata digest postojećeg P6 čitača; preview/QA sada koristi taj već objavljeni čitač, dok je produkcioni flag ostao isključen. To nije novi ordinary-Auth ili native dokaz.
+
+**Otvoreno:** UX03 potpun serverski spisak obaveza i dalje zahteva autorizovani paginirani reader; sadašnji panel iskreno označava neprikazane stavke. Opoziv legacy ključa, odobrena retention/export politika, AI budžet, pozitivni više-korisnički scenariji i native kamera/mikrofon/mapa/push ostaju otvoreni kao u prethodnom checkpoint-u. Beta i produkcija nisu odobrene.
+
+**Sledeće:** nezavisno proveriti ovaj APK i ekran-po-ekran native prihvat. Za UX03 završiti bounded account-owned paginaciju bez promene poslovnih writer-a. Zatim nastaviti preostale P0/R07/R09/R10 kapije.
+
+---
+
 ## Aktuelni izvršni checkpoint — 07.11.2026: oporavak posle restart-a, obračun AI-ja i izvoz područja rada
 
 Nastavak je počeo sa ponovo potvrđenog lokalnog i GitHub HEAD-a `94f2801db54bcbd7cb294cda983e048cd5885939`, bez otvorenih izmena u ovoj radnoj kopiji. Grana ostaje `work/uskoci-cist-proizvod-20261104`. Nasleđeni runtime `ce1ad5e4d21b20bd21901ba42ad4e822843e3916` ima potvrđen **QA47 / 42388770988, 581/581, TypeScript, 209 SQL / 33 provere i izgrađen APK**. Tri stvarna stručna agenta radila su po odvojenim fajlovima; koordinator je pregledao kandidate, primenio DEV promene i proverio njihove stvarne postimage-e. Product/UX master, navigacija i zaključane poslovne odluke nisu menjani.

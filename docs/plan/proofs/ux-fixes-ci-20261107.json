@@ -1,0 +1,17 @@
+{
+  "schema": "USKOCI_UX_CI_CHECKPOINT_V1",
+  "source": "ef6f6d2e7775344707153c7f6bbfbe5e592a9c79",
+  "run": 42417509682,
+  "number": 51,
+  "artifact": 13592692153,
+  "tests": 761,
+  "typescript": "PASS",
+  "migrationIntegrity": "PASS",
+  "androidBuild": "PASS",
+  "native": false,
+  "independentlyDownloadedApk": false,
+  "devDeploy": false,
+  "paidAiCalls": 0,
+  "proof": "docs/plan/proofs/ux-fixes-20261107.json",
+  "sourceBase": "f9e13ed5020a786ba6e0963dfd5de87eba3e3245"
+}
