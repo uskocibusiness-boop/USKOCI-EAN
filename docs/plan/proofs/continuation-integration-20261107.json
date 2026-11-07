@@ -31,8 +31,51 @@
     "edgeProof": "r01-modern-key-dev-20261107.json"
   },
   "sourceBoundaries": [
-    "All source changes are tested and ready for the integrated CI build. QA46 proves only the earlier weekly checkpoint.",
+    "All integrated runtime source changes are verified by QA47 for ce1ad5e4d21b20bd21901ba42ad4e822843e3916. Later documentation-only commits preserve exactly the same runtime source.",
     "Legacy key retirement, legal retention policy and native acceptance remain open.",
     "R07 ordinary Auth proof uses only existing TEST objects; three-actor concurrency and cold restart are not claimed."
-  ]
+  ],
+  "finalizedAt": "2026-11-07T16:20:33.468643+00:00",
+  "integratedSource": "ce1ad5e4d21b20bd21901ba42ad4e822843e3916",
+  "integratedTree": "83b74cfd1f2a1ef87dd0b7bb1b560e4dd3f5d0c0",
+  "ci": {
+    "runId": 42388770988,
+    "runNumber": 47,
+    "conclusion": "success",
+    "activeTestsPassed": 581,
+    "typescript": "PASS",
+    "physicalSqlFiles": 209,
+    "migrationChecksPassed": 33,
+    "androidBuild": "PASS",
+    "proof": "qa47-readback-20261107.json"
+  },
+  "apk": {
+    "artifactId": 13580554734,
+    "artifactName": "uskoci-isolated-qa-apk-47",
+    "bytes": 83356059,
+    "sha256": "8d668638865787b0df27bb7ba412acb5742a63a5fca878178c1678a30b68d5a6",
+    "source": "ce1ad5e4d21b20bd21901ba42ad4e822843e3916",
+    "nativeInstalled": false,
+    "delivery": {
+      "filename": "USKOCI-QA-ce1ad5e4d.apk",
+      "libraryFileId": "libfile_880293037a2c819189ec82b41372c7ea",
+      "status": "SAVED",
+      "installedOnDevice": false
+    }
+  },
+  "r10Proof": "r10-policy-blockers-20261107.json",
+  "ciConsumerProof": "r01-ci-consumers-20261107.json",
+  "finalStatusReadback": {
+    "queryScope": "read-only readiness predicates and migration count",
+    "migrationCount": 344,
+    "retentionAiSourceReady": false,
+    "exportPolicyBindingIsNull": true,
+    "recordedAt": "2026-11-07T16:20:06.956835+00:00"
+  },
+  "independentCheckpointReview": {
+    "status": "PASS",
+    "crossChecks": 10,
+    "scope": "source/tree/run, tests/migration counts, APK hash/bytes/artifact and native=false; existing proof links",
+    "metadataCorrections": "QA46 and QA47 workflow hash corrected to exact Git blob bytes; prior scratch copies had one extra trailing LF. CI and APK evidence unchanged."
+  }
 }

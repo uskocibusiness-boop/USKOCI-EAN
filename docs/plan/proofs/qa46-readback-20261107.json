@@ -121,13 +121,28 @@
     "signature.txt": "d3f9e564daa1f8874b2fa80116e8ff75f72412c8b88087cc3d0815861751d3d4",
     "SHA256SUMS.txt": "6cbd234343e2a03034565058738e87d3b99b02ef4a037d518f119539677dfc18"
   },
-  "workflowSha256": "6b304ab0551ddb304e977058a0d5e45ceac6845161c7f2abed47bd4e7210185d",
+  "workflowSha256": "a92433613716f0f16bf52ac73e17716bff961ec822abbcbd0ab9f2d43e831646",
   "boundaries": [
     "This evidence applies only to source b56f0e52db99256cdfb6988567edc0e7d597849c and QA APK 46. It does not prove later integrated R07 selection recovery or budget/security source changes.",
     "476 active tests and 207 physical migration files are CI source checks, not all historical tests and not the live DEV migration ledger count.",
     "APK file, embedded source/config, ABI and digests were independently read. SDK and certificate verification are preserved CI aapt/apksigner evidence tied to the exact artifact bytes.",
     "No installed Android two-user E2E, camera, microphone, map, permission dialog or actual push delivery acceptance was performed.",
     "No production backend, production signing, Google Play AAB or public release is established.",
-    "The bounded decoded-Hermes scan is not a complete native binary security audit and does not establish legacy server key revocation."
-  ]
+    "The bounded decoded-Hermes scan is not a complete native binary security audit and does not establish legacy server key revocation.",
+    "workflowSha256 is corrected to the exact tracked b56 Git blob bytes. The prior SHA described the scratch text copy with one added trailing LF; CI commands and all run/APK evidence are unchanged."
+  ],
+  "workflowByteEvidence": {
+    "correctedAt": "2026-11-07T16:19:22.739917+00:00",
+    "sourceCommit": "b56f0e52db99256cdfb6988567edc0e7d597849c",
+    "path": ".github/workflows/uskoci-qa-apk.yml",
+    "gitBlobSha1": "85ad80d8ef0faec3166be631e770f23ab23e68c3",
+    "trackedBytes": 11525,
+    "previouslyRetrievedGithubUtf8TextMatchesLocalGitBlobBytes": true,
+    "trackedTrailingLfCount": 1,
+    "previouslyReportedSha256": "6b304ab0551ddb304e977058a0d5e45ceac6845161c7f2abed47bd4e7210185d",
+    "scratchBytes": 11526,
+    "scratchTrailingLfCount": 2,
+    "difference": "The locally saved text evidence had one extra trailing LF introduced when writing it with apply_patch. The original GitHub text fetched during QA46 verification re-encoded as UTF-8 matches the pinned b56 Git blob exactly. No GitHub text normalization or workflow command change was found.",
+    "testOrBuildRerunPerformed": false
+  }
 }
