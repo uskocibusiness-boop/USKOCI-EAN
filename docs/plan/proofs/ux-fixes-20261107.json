@@ -7,7 +7,7 @@
   "createdAt": "2026-11-07T20:56:10.880665+00:00",
   "minimumExpectedActiveTests": 761,
   "sourceFileSha256": {
-    ".github/workflows/uskoci-qa-apk.yml": "69b23ab0e289ef70bf6a066f05945d6a70ffbcabead12be84383f94b4c36269e",
+    ".github/workflows/uskoci-qa-apk.yml": "c9aca10ecbbdce276106323968b562a48515f6923624dcee9c8ba73b9a8922b4",
     "eas.json": "0b9e544ebfae0834ba695a5422f0158866787c8812d1b2dbacc4d35b50fe3b59",
     "package.json": "3c05a84408da81ae4835b5cc65ff5a1c1835384ca76ef51789c94d9dd5bc8944",
     "scripts/record-ux-checkpoint.cjs": "f78e9a8ebf929de57129e4203a989e39a94917bfd52113997237ed765fd50d26",

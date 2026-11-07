@@ -91,9 +91,17 @@ jobs:
           node - <<'NODE'
           const fs = require('node:fs');
           const tap = fs.readFileSync(process.env.RUNNER_TEMP + '/uskoci-checks/tests.tap', 'utf8');
-          const tests = tap.match(/^# tests (\d+)$/m), failed = tap.match(/^# fail (\d+)$/m);
-          if (!tests || !failed || failed[1] !== '0') throw Error('UX_TEST_EVIDENCE_INVALID');
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'ux_tests=' + tests[1] + '\n');
+          // Node 22 emits TAP '# tests'; Node 24's default reporter emits 'ℹ tests'.
+          // Accept exactly one complete summary, never infer success from a substring.
+          const stat = label => {
+            const rows = [...tap.matchAll(new RegExp('^(?:#|ℹ) ' + label + ' (\\d+)\\r?$', 'gm'))];
+            return rows.length === 1 ? Number(rows[0][1]) : null;
+          };
+          const tests = stat('tests'), passed = stat('pass'), failed = stat('fail'),
+            skipped = stat('skipped'), todo = stat('todo');
+          if (!Number.isSafeInteger(tests) || tests < 761 || passed !== tests || failed !== 0
+            || skipped !== 0 || todo !== 0) throw Error('UX_TEST_EVIDENCE_INVALID');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'ux_tests=' + tests + '\n');
           NODE
       - name: Upload source check results
         if: always()
