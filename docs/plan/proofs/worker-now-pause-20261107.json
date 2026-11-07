@@ -1,0 +1,41 @@
+{
+  "schema": "USKOCI_WORKER_NOW_PAUSE_V1",
+  "date": "2026-11-07",
+  "repo": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "productDecision": {
+    "availableNow": "PAUSED_RETAIN_LEGACY_DATA",
+    "taskUrgent": "UNCHANGED",
+    "weeklyRules": "UNCHANGED",
+    "datedWindows": "UNCHANGED",
+    "crewApplicationInput": "APPLICANT_SPECIFIES_NUMBER_INCLUDING_SELF_IF_PARTICIPATING"
+  },
+  "githubRuntimeCommit": "b4ea43649fbaca7a6249dcd17938ade57e2dd92a",
+  "localTargetedTests": {
+    "pass": 84,
+    "fail": 0,
+    "scope": "Worker intent, Edge integration, Home pause, applicant count; not full Android/native acceptance"
+  },
+  "dev": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "migrationVersion": "20261107221346",
+    "migrationName": "worker_now_paused_20261107",
+    "migrationBytes": 2816,
+    "migrationMd5": "4e927aa896e0d82668e1a931e3a98aec",
+    "migrationSha256": "be4f9d30459b1e727ca1c37d446a682516c6ac3908c0914a7e25d6397d51ce8d",
+    "ledgerMigrationsAfter": 347,
+    "timeTierOldMd5": "a845d98b624ae4ac8ec33159beb8bb17",
+    "timeTierNewMd5": "880f4b79ca70084cfe2a4ef89435f05e",
+    "nowReferencesAfter": 0,
+    "edgeFunction": "uskoci-worker-interview",
+    "edgeVersion": 146,
+    "edgeReadback": true
+  },
+  "boundaries": [
+    "No stored availableNow values or weekly/date calendar rows were erased or rewritten.",
+    "No paid AI calls or budget changes were made.",
+    "No native Android E2E is claimed.",
+    "Time tier keeps dated/weekly scheduling; immediate preference alone no longer authorizes a match.",
+    "This document proves tracked DEV/GitHub changes, not a production release."
+  ]
+}

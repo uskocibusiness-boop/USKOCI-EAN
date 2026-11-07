@@ -29,6 +29,7 @@ RECOVERY_EXPORT_FILES = [
     "20261107165358_r08_cancellation_reason_readback_20261107.sql",
     "20261107165752_r10_work_areas_projection_20261107.sql",
 ]
+WORKER_NOW_PAUSE_FILES = ["20261107221346_worker_now_paused_20261107.sql"]
 
 
 # Frozen catalog facts extracted from archived receipts and dated read-only captures.
@@ -54,6 +55,8 @@ CATALOG_EVIDENCE_SHA256 = {
         '8307cbcb788b3dde1024803b150986450562674673853dc6da093a8b5e33dd99',
     'inline:dev_forward_catalog_20261107_recovery_export':
         'bcaa5500439d81ff1c5f05573719081afcf133b2d2e59fba5ba1300ea0e0e425',
+    'inline:dev_forward_catalog_20261107_worker_now_pause':
+        'eba98ebf85150636dae3ce0fcc16d59ff82b0b36cf4a23189300d4b840798bab',
 }
 
 
@@ -357,7 +360,22 @@ def main() -> None:
         earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names
         if earlier_names and recovery_export_names[0] <= earlier_names[-1]:
             fail("Nov-7 recovery/export is not strictly after the previous forward records")
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names != disk_names:
+    now_pause_section = metadata.get("forward_execution_20261107_now_pause")
+    now_pause_names = []
+    if now_pause_section:
+        now_pause_names = check_physical_suffix(
+            now_pause_section, manifest_map, load_catalog_evidence(now_pause_section),
+        )
+        if now_pause_names != WORKER_NOW_PAUSE_FILES or any(
+            row.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+            or row.get("version") != row.get("live_version")
+            for row in now_pause_section.get("entries", [])
+        ):
+            fail("Nov-7 worker now pause requires one exact ledger-version record")
+        earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names
+        if earlier_names and now_pause_names[0] <= earlier_names[-1]:
+            fail("Nov-7 worker now pause does not follow previous migrations")
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"

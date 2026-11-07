@@ -154,7 +154,8 @@ class ArchivedCatalogEvidenceTests(unittest.TestCase):
             "physical_suffix_reconciliation_20261107", "forward_readmission_20261107",
             "forward_readmission_20261107_r08", "forward_readmission_20261107_r01",
             "forward_readmission_20261107_r08_reviews", "forward_readmission_20261107_r05",
-            "forward_execution_20261107_continuation", "forward_execution_20261107_recovery_export")]
+            "forward_execution_20261107_continuation", "forward_execution_20261107_recovery_export",
+            "forward_execution_20261107_now_pause")]
 
     def test_missing_or_unrecognized_archived_evidence_fails_closed(self):
         for original in self.sections:

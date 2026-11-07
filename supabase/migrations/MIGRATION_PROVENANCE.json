@@ -4326,5 +4326,44 @@
         }
       ]
     }
+  },
+  "forward_execution_20261107_now_pause": {
+    "observed_at_utc": "2026-11-07",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "Owner-requested temporary pause of worker instant-availability signal only; no urgent Need or weekday/date policy changes.",
+    "evidence": "inline:dev_forward_catalog_20261107_worker_now_pause",
+    "entries": [
+      {
+        "file": "20261107221346_worker_now_paused_20261107.sql",
+        "version": "20261107221346",
+        "name": "worker_now_paused_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107221346",
+        "live_name": "worker_now_paused_20261107",
+        "live_recorded_md5": "4e927aa896e0d82668e1a931e3a98aec",
+        "live_recorded_sha256": "be4f9d30459b1e727ca1c37d446a682516c6ac3908c0914a7e25d6397d51ce8d",
+        "raw_md5": "4e927aa896e0d82668e1a931e3a98aec",
+        "raw_sha256": "be4f9d30459b1e727ca1c37d446a682516c6ac3908c0914a7e25d6397d51ce8d",
+        "raw_bytes": 2816,
+        "source": "scripts/sql/worker_now_paused_20261107.sql"
+      }
+    ],
+    "catalog_evidence": {
+      "source_base_commit": "b4ea43649fbaca7a6249dcd17938ade57e2dd92a",
+      "observed_at_utc": "2026-11-07",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "method": "Exact post-apply canonical DEV ledger readback (one SQL statement); only private.worker_need_time_tier_v1 contains eight read-only availableNow matches, replaced by disabled guards. Existing rows, calendar rules, dates, task urgency, writer definitions, ACL and owned profile values are preserved.",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261107221346",
+          "name": "worker_now_paused_20261107",
+          "statement_count": 1,
+          "joined_md5": "4e927aa896e0d82668e1a931e3a98aec",
+          "joined_sha256": "be4f9d30459b1e727ca1c37d446a682516c6ac3908c0914a7e25d6397d51ce8d",
+          "joined_bytes": 2816
+        }
+      ]
+    }
   }
 }
