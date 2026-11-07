@@ -18,6 +18,10 @@ function normalized(text: string): string {
   const latin = Array.from(text.toLocaleLowerCase('sr'), char => CYRILLIC[char] ?? char).join('').replace(/đ/g, 'dj');
   return latin.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 }
+// Reuse the same bounded predicates for an offer and its explicit withdrawal.
+const OFFER_PREDICATE = 'nudim|pruzam|pozelim da ponudim|zelim da (?:nudim|ponudim|pruzam|radim|se bavim)|hocu da (?:nudim|ponudim|pruzam|radim|se bavim)|(?:hteo|htela|zeleo|zelela|voleo|volela) bih da (?:nudim|ponudim|radim)|ja mogu da (?:radim|pruzam|pomognem)|radim kao|bavim se|drzim (?:privatne |online |onlajn )?casove|dajem (?:privatne )?casove';
+const POSITIVE_OFFER = new RegExp('(?:^| )(?:' + OFFER_PREDICATE + ')(?: |$)');
+const NEGATED_OFFER = new RegExp('(?:^| )(?:ne|nisam|necu(?: da)?) (?:' + OFFER_PREDICATE + ')(?: |$)');
 /** High-confidence only. Mixed/ambiguous messages remain with the AI for clarification.
  * This is an offer to SWITCH, not automatic routing or semantic classification.
  */
@@ -25,11 +29,12 @@ export function isExplicitWorkerOffer(text: string): boolean {
   if (typeof text !== 'string' || !text.trim() || text.length > MAX_TEXT) return false;
   const t = normalized(text);
   if (!t) return false;
-  // This shortcut must not answer a question or resolve a negation/correction.
-  // Leave those messages in the conversation; they need semantic context.
-  if (/[?？]/.test(text) || /(?:^| )(?:ne|nisam|necu|da li|je li|jel|kako|gde|sta|zasto|mogu li|smem li)(?: |$)/.test(t)) return false;
+  // Questions stay in the conversation. Negating the offer itself also needs
+  // clarification, while a separate limit (no loading/weekends) stays in its draft.
+  if (/[?？]/.test(text) || /(?:^| )(?:da li|je li|jel|kako|gde|sta|zasto|mogu li|smem li)(?: |$)/.test(t)) return false;
   if (/(?:^| )(?:treba mi|potreban mi|potrebna mi|potrebni su mi|trebaju mi|trazim nekog|trazim nekoga|trazim radnika|trazim radnike|trazim majstora|trazim pomoc|neko da mi|da mi neko|ako mi neko|zelim da mi neko|hocu da mi neko)(?: |$)/.test(t)) return false;
-  return /(?:^| )(?:nudim|pruzam|pozelim da ponudim|zelim da (?:nudim|ponudim|pruzam|radim|se bavim)|hocu da (?:nudim|ponudim|pruzam|radim|se bavim)|(?:hteo|htela|zeleo|zelela|voleo|volela) bih da (?:nudim|ponudim|radim)|ja mogu da (?:radim|pruzam|pomognem)|radim kao|bavim se|drzim (?:privatne |online |onlajn )?casove|dajem (?:privatne )?casove)(?: |$)/.test(t);
+  if (NEGATED_OFFER.test(t)) return false;
+  return POSITIVE_OFFER.test(t);
 }
 /** Caller owns its authenticated session and explicit navigation gesture. */
 export function stageWorkerText(input: AiRoleOwner & { token: string; text: string }, now = Date.now()): boolean {

@@ -192,9 +192,26 @@
     "new_reader_anon_execute": false,
     "new_reader_authenticated_and_service_execute": true,
     "actual_user_data_mutation_tests": false,
-    "postgrest_schema_cache_checked": false,
+    "postgrest_schema_cache_checked": true,
     "two_ordinary_user_e2e": false,
     "native_e2e": false,
-    "full_canonical_database_replay": false
+    "full_canonical_database_replay": false,
+    "postgrest_schema_cache_scope": "Only the new receipt reader: anonymous routing and EXECUTE denial.",
+    "postgrest_authenticated_invocation_checked": false
+  },
+  "postgrest_anonymous_probe": {
+    "observed_at_utc": "2026-11-07T10:26:59.102392+00:00",
+    "method": "POST",
+    "rpc": "rpc_read_response_submit_result",
+    "credential_class": "Existing public preview publishable key; no user JWT, service role, or administrator credential.",
+    "synthetic_inputs_only": true,
+    "http_status": 401,
+    "sqlstate": "42501",
+    "schema_resolution_confirmed": true,
+    "execute_denial_for_named_reader_confirmed": true,
+    "authenticated_reader_invocation_tested": false,
+    "business_write_attempted": false,
+    "private_response_content_persisted": false,
+    "interpretation": "Expected anonymous PostgreSQL insufficient_privilege response; proves routing/schema resolution and denied anonymous EXECUTE only. It does not prove authenticated owner isolation or two-account/native E2E."
   }
 }

@@ -37,7 +37,12 @@ for (const [input, expected] of [
   ['Ne želim da radim kao moler', false],
   ['Не желим да радим као молер', false],
   ['Više ne držim časove francuskog', false],
-  ['Nudim prevoz, ne radim utovar', false],
+  ['Nudim prevoz, ne radim utovar', true],
+  ['Нудим превоз, не радим утовар', true],
+  ['Držim časove, ne radim vikendom', true],
+  ['Nudim prevoz, nisam slobodan nedeljom', true],
+  ['Nudim prevoz, ali ipak ne želim da nudim prevoz', false],
+  ['Neću da nudim prevoz', false],
   ['Radim kao pomoćnik pri selidbi, nemam kombi', true],
   ['Držim onlajn časove francuskog', true],
   ['Ćao.', false], ['Da.', false], ['Ne.', false], ['To je to.', false],
@@ -64,4 +69,11 @@ test('mixed intent cannot be transferred', () => {
 test('questions and negated offers cannot stage a role switch', () => {
   for (const text of ['Da li ovde mogu da nudim prevoz?', 'Ne želim da radim kao moler'])
     assert.equal(stageWorkerText({ ...owner, token, text }, 1000), false);
+});
+
+test('a service limit is preserved in the one-use unsent draft', () => {
+  const text = 'Nudim prevoz, ne radim utovar';
+  assert.equal(stageWorkerText({ ...owner, token, text }, 1000), true);
+  assert.equal(takeWorkerText({ ...owner, token }, 1001), text);
+  assert.equal(takeWorkerText({ ...owner, token }, 1002), null);
 });
