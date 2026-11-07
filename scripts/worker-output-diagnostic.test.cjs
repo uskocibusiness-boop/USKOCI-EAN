@@ -110,6 +110,59 @@ test('Worker diagnostic: valid seven-day correction still completes once with it
   privateLogsAbsent(result);
 });
 
+test('Worker provider request requires all operation lists and records supplied hours before offering review', async () => {
+  const result=await run(weeklyOutput());
+  const request=result.calls.find(call=>call.name.endsWith(':streamGenerateContent')).args;
+  const availability=request.generationConfig.responseSchema.properties.patch.properties.availability;
+  assert.deepEqual(availability.required,['ruleChanges','windowsUpsert','windowIdsRemove']);
+  assert.equal(availability.nullable,true);
+  const instruction=request.systemInstruction.parts.map(part=>part.text).join('\n');
+  assert.match(instruction,/optional to ask for, never optional to record/);
+  assert.match(instruction,/removing the old window alone does not implement the weekly request/);
+  assert.match(availability.properties.ruleChanges.description,/Recurring hours belong here/);
+  assert.equal(result.calls.filter(call=>call.name.endsWith(':streamGenerateContent')).length,1);
+  privateLogsAbsent(result);
+});
+
+test('Worker recorded missing weekly operation and schema-shaped empty replacement both remain fail-closed', async () => {
+  const oldWindow='00000000-0000-4000-8000-000000000012';
+  const text='Dostupan sam svakog dana od 8 do 22. Uklonite prethodno pogrešan termin samo za danas.';
+  for(const calendar of [
+    {windowsUpsert:[],windowIdsRemove:[oldWindow]},
+    {ruleChanges:[],windowsUpsert:[],windowIdsRemove:[oldWindow]},
+  ]) {
+    const result=await handlerHarness('WORKER',text,providerWorker('WORKER_AVAILABILITY',text,{
+      patch:{bio:'Radim lekturu.',availability:calendar},
+      availabilityChange:{kind:'PATCH',scope:'MIXED',evidence:text},
+      taxonomyDecisions:[],serviceModeChangesJson:'[]',
+    }),{singlePass:true,skills:['Lektura tekstova']}).run();
+    assert.equal(result.events.at(-1).kind,'final');
+    assert.equal(result.writes.length,1);
+    assert.equal(result.writes[0].args.p_output.safety,'CLARIFY');
+    assert.deepEqual(result.writes[0].args.p_output.patch,{bio:'Radim lekturu.'},'the prior dated window is not removed');
+    assert.ok(result.logs.some(row=>row[0]==='WORKER_AVAILABILITY_GUARD'&&row[1]==='RECURRENCE_SHAPE_MISMATCH'));
+    assert.equal(result.calls.filter(call=>call.name.endsWith(':streamGenerateContent')).length,1,'no repair model call');
+    privateLogsAbsent(result);
+  }
+});
+
+test('Worker full daily correction carries the rule and requested dated removal together without toggling now', async () => {
+  const text='Доступан сам сваког дана од 8 до 22. Уклоните претходни погрешан термин само за данас.';
+  const calendar={ruleChanges:AVAILABILITY.ruleChanges,windowsUpsert:[],
+    windowIdsRemove:['00000000-0000-4000-8000-000000000012']};
+  const result=await handlerHarness('WORKER',text,providerWorker('WORKER_AVAILABILITY',text,{
+    patch:{availability:calendar},availabilityChange:{kind:'PATCH',scope:'MIXED',evidence:text},
+    taxonomyDecisions:[],serviceModeChangesJson:'[]',
+  }),{singlePass:true,skills:['Lektura tekstova']}).run();
+  assert.equal(result.events.at(-1).kind,'final');
+  assert.equal(result.writes.length,1);
+  assert.equal(result.writes[0].args.p_output.safety,'ALLOW');
+  assert.deepEqual(result.writes[0].args.p_output.patch.availability,calendar);
+  assert.equal(Object.hasOwn(result.writes[0].args.p_output.patch.availability,'availableNow'),false);
+  assert.equal(result.calls.filter(call=>call.name.endsWith(':streamGenerateContent')).length,1);
+  privateLogsAbsent(result);
+});
+
 test('Worker diagnostic: a pure question still freezes irrelevant invalid patch before output admission', async () => {
   const question = 'Kako da promenim raspored? ' + PRIVATE;
   const output = providerWorker('QUESTION', question, { assistantMessage: PRIVATE,

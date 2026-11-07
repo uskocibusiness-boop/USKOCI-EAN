@@ -45,6 +45,19 @@ test('provider requires the temporal scope without changing the writer patch con
     ['timezone','availableNow','ruleChanges','windowsUpsert','windowIdsRemove']);
 });
 
+test('provider must decide all calendar operation lists, without inventing scalar changes',()=>{
+  const schema=plain(sandbox.exports.workerProviderSchema());
+  const availability=schema.properties.patch.properties.availability;
+  assert.equal(availability.nullable,true,'no change or incomplete intent can still use null');
+  assert.deepEqual(availability.required,['ruleChanges','windowsUpsert','windowIdsRemove']);
+  for(const key of availability.required) assert.equal(availability.properties[key].type,'ARRAY');
+  assert.equal(availability.required.includes('timezone'),false,'unchanged timezone remains absent');
+  assert.equal(availability.required.includes('availableNow'),false,'weekly hours cannot require a now toggle');
+  const deletionOnly={windowsUpsert:[],windowIdsRemove:[existingWindow.id]};
+  assert.deepEqual(availability.required.filter(key=>!Object.hasOwn(deletionOnly,key)),['ruleChanges'],
+    'the recorded hosted missing-weekly-list output is no longer schema-compliant');
+});
+
 test('everyday plus immediate availability retains seven weekdays, local hours, timezone and explicit now',()=>{
   const av={timezone:'Europe/Belgrade',ruleChanges:[rule()],availableNow:true};
   const input=output(av),before=structuredClone(input),owned=context(),prior=structuredClone(owned);
@@ -85,6 +98,22 @@ test('ordinary weekday recurring schedule and targeted removal remain valid',()=
   }
 });
 
+test('weekend and separated weekly intervals retain the declared days and exact hours',()=>{
+  for(const [text,changes] of [
+    ['Vikendom mogu od 10 do 14.',[rule([0,6],{startTime:'10:00',endTime:'14:00'})]],
+    ['Radnim danima mogu od 8 do 12 i od 16 do 20.',[
+      rule([1,2,3,4,5],{startTime:'08:00',endTime:'12:00'}),
+      rule([1,2,3,4,5],{startTime:'16:00',endTime:'20:00'}),
+    ]],
+  ]) {
+    const availability={ruleChanges:changes,windowsUpsert:[],windowIdsRemove:[]};
+    const input=output(availability),owned=context(),prior=structuredClone(owned);
+    assert.equal(run(input,plan('WEEKLY',text),owned,text),input);
+    assert.deepEqual(input.patch.availability,availability);
+    assert.deepEqual(owned,prior,'the proposal cannot erase existing saved rules or exceptions');
+  }
+});
+
 test('daily wording with an exception does not force the excepted day into an available week',()=>{
   const text='Dostupan sam svakog dana osim nedelje od 8 do 22.';
   const input=output({ruleChanges:[rule([1,2,3,4,5,6])]});
@@ -100,6 +129,17 @@ test('dated window remains dated, without manufacturing a weekly schedule',()=>{
   const text='Danas mogu od 8 do 22.',input=output({windowsUpsert:[window()]});
   assert.equal(run(input,plan('DATED',text),context(),text),input);
   denied(run(output({ruleChanges:[rule()]}),plan('DATED',text),context(),text));
+});
+
+test('tomorrow and a dated unavailable exception keep their offsets and do not change weekly or now settings',()=>{
+  for(const [text,state] of [['Sutra mogu od 8 do 22.','AVAILABLE'],['Sutra ne mogu od 8 do 22.','UNAVAILABLE']]) {
+    const availability={ruleChanges:[],windowsUpsert:[{...window(),startsAt:'2026-11-08T08:00:00+01:00',
+      endsAt:'2026-11-08T22:00:00+01:00',state,label:'Sutra'}],windowIdsRemove:[]};
+    const input=output(availability);
+    assert.equal(run(input,plan('DATED',text),context(),text),input);
+    assert.deepEqual(input.patch.availability,availability);
+    assert.equal(Object.hasOwn(input.patch.availability,'availableNow'),false);
+  }
 });
 
 test('explicit cancellation of an owned date exception retains its ID',()=>{
@@ -130,6 +170,15 @@ test('a current explicit correction can combine weekly hours and deletion of the
   const text='Dostupan sam svakog dana od 8 do 22. Uklonite prethodno pogrešan termin samo za danas.';
   const input=output({ruleChanges:[rule()],windowIdsRemove:[existingWindow.id]});
   assert.equal(run(input,plan('MIXED',text),context(),text),input);
+});
+
+test('explicit empty operation arrays preserve no-op behavior and never erase the old calendar',()=>{
+  const owned=context(),before=structuredClone(owned);
+  const availability={ruleChanges:[],windowsUpsert:[],windowIdsRemove:[]};
+  const input=output(availability);
+  assert.equal(run(input,plan('NONE','','NONE'),owned,'Hvala.'),input);
+  assert.deepEqual(owned,before);
+  denied(run(output(availability),plan('WEEKLY',current),owned,current));
 });
 
 test('historic evidence cannot authorize a new calendar edit after the person changes the subject',()=>{
