@@ -4,7 +4,7 @@
 
 Ovo je aktuelni izvršni presek; datirani odeljci ispod su istorija. Autoritet ostaju poslednja odluka vlasnika, Product/UX master i ovaj plan. Grana je `work/uskoci-cist-proizvod-20261104`. Ovaj krug je preuzeo i ponovo proverio HEAD `20903892d7f5def28ce33a15027918e5ca19c342`, sa runtime osnovom [`38d8e048`](https://github.com/uskocibusiness-boop/USKOCI-EAN/commit/38d8e0481dbfc359766dac2d42b7b8147cab9888) i uspešnim QA #44. Četiri stvarno dostupna agenta radila su po odvojenom vlasništvu fajlova; koordinator je pregledao integraciju. Nema novog mastera, dizajn sistema, taba ili vraćenog arhivskog stabla.
 
-**Source checkpoint ovog kruga:** source je implementiran i lokalno testiran; GitHub/CI potvrda dodaje se tek posle stvarnog slanja. Product/UX master nije menjan. Deployment receipts vezuju bazni commit i tačne SHA-256 svakog paketa; to nije tvrdnja da je bazni commit sadržao kasniji kod.
+**Source / CI checkpoint — ponovo provereno 07.11.2026. u 15:18 UTC:** objedinjeni source `833885296d6e4bad0e49acb58ac72a247df911aa` jeste aktuelni GitHub HEAD. QA #45 / run `42373442734` je SUCCESS: 469/469 aktivnih testova, TypeScript, 207 migracionih fajlova + 31 provera i Android build PASS. APK artefakt je preuzet; ZIP i APK SHA-256 nezavisno provereni. Product/UX master nije menjan. Ovo je **CI POTVRĐENO / BUILD POTVRĐENO**, bez native E2E ili dozvole za izdanje. [Trajan dokaz](proofs/qa45-readback-20261107.json).
 
 ### P0 koji i dalje blokira spoljnu betu
 
@@ -40,7 +40,7 @@ Read-only pregled nije našao njegov fingerprint u tri Vault zapisa, cron komand
 | Migracioni integritet | **207 fizičkih fajlova + 31/31 Python provera PASS** nakon R08 review i R05 kopija. Istorijski bajtovi/hash-evi nisu menjani; svaka nova primena ima novu forward provenance celinu. To nije puni čist PG17 replay ni zatvoren istorijski R01 strict parity. |
 | Dva naloga | **ORDINARY AUTH/API E2E POTVRĐENO za opisani HOURLY tok.** Samo dva postojeća odvojena QA naloga, izolovana u TEST svetu službenim setup-om; poslovne radnje izvršene njihovim običnim JWT-ovima. To nisu dva telefona niti administratorski simulator. |
 | AI vreme i trošak | Tačno **6/6 ograničenih operacija**, 45.509 tokena, interni settlement **43.755µUSD (0,043755USD)**, ne račun providera. Jedan FAILED zahtev (#4); #6 tehnički SUCCEEDED nije uspešna željena promena. Trošak #4 je ostao MEASURED, providerDispatched=true, retryAllowed=false. Need prvi API delta10,888s /3,544s posle accepted, final17,944s; to nije native visible latency. Worker#6 provider4.170ms/completion530ms. Nema p95 ili obećanja jedne sekunde. |
-| GitHub / APK / native | Novi source još nema CI/APK potvrdu. Poslednji dokaz ostaje QA44 iz `38d8e048`; nije ovaj novi runtime. Nema instalacije, 360 dp/1,3×, TalkBack, offline/revoke, stvarnog audio ili push ticket/receipt prihvata. |
+| GitHub / APK / native | **QA45 / 42373442734 SUCCESS** za source `833885296d6e4bad0e49acb58ac72a247df911aa`; 469/469, TypeScript, migracioni integritet i Android build PASS. Artefakt/APK digest nezavisno provereni. Nema instalacije, 360 dp/1,3×, TalkBack, offline/revoke, stvarnog audio ili push ticket/receipt prihvata. |
 
 ### Stvarno DEV stanje
 
@@ -69,7 +69,9 @@ Ranije potvrđene R06 first-plan/dispatch i R07 snapshot migracije ostaju; R07a 
 | **P1 — R09/R11** | Native glas/kamera/mapa, 6 fotografija, push, 360 dp/uvećan tekst/TalkBack i potpuni ekran po ekran prihvat. | Fizički uređaji ili emulator uz isti APK; za push odgovarajući potpisani preview/Firebase, ne izolovani QA paket. |
 | **P0 — R12 javno izdanje** | Stvarni produkcioni backend, potpis/AAB, Play Console i pravni/trader status nisu potvrđeni; pravne putanje sajta su u poslednjoj proveri 404. | Vlasnikovi operaterski podaci/odobrenje, stvarne dostupne stranice, kontinuitet paketa/potpisa, potom kontrolisani test track. Ne izdavati prema DEV-u. |
 
-Poslednji raniji APK dokaz: [QA44/42364208816](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42364208816), artifact 13571229083, rok 14.11.2026. u 10:48:42 UTC; source `38d8e048`, SHA-256 APK `a3169e94385ceb2e140acff231fe6e0ee0d3a173ebd94f5c374d69b4f14777fe`, 83.317.539 bajta, ARM64, `rs.uskoci.preview.qa`, embedded JS, OTA off, DEV, testni v2 potpis, min SDK 24 / target 36. To ostaje **BUILD SUCCESS**, bez instalacije ili native E2E. Novi rezultat će zameniti ovaj aktuelni build zapis tek posle stvarne provere.
+**Poslednji potvrđeni APK:** [QA45/42373442734](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42373442734), artifact `13575177112` / `uskoci-isolated-qa-apk-45`, rok 14.11.2026. u 12:58:31 UTC; source `833885296`, SHA-256 APK `4ef8e7a1bf15f577b08a5334e5c7ff5f6be11046e66dd0ac20a00aff52f5d04e`, **83.345.039 bajta**, ARM64, `rs.uskoci.preview.qa`, embedded JS, OTA off, DEV, testni potpis, min SDK 24 / target 36. Ovo je **BUILD SUCCESS**, bez instalacije ili native E2E. QA44 je istorijski dokaz prethodne verzije.
+
+**Kontinuitet radne kopije:** prethodni staged rad poređen je sa novim checkout-om po celom index stablu: nema razlike, sve je već sačuvano u `8338852`. Stara kopija nije menjana. Novi rad ide iz zasebne kopije istog HEAD-a. `docs/continuation/NASTAVAK_RADA.md` i Bridge nisu u sadašnjem čistom stablu; stariji linkovi u §12 ostaju istorijski pokazivači, ne razlog da se vrati povučeno stablo. Aktuelni ulaz je početak ovog plana, Product/UX kanon i receipts u `scripts/`.
 
 Nema izmišljenog procenta niti proglašenja cele aplikacije završenom. Ovaj krug ne odobrava spoljnu betu ili javno izdanje.
 
@@ -3615,6 +3617,8 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 <!-- EXECUTION-UPDATE-BEGIN: ledger-20261028 -->
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
+
+**Napomena kontinuiteta 07.11.2026:** najnoviji izvršni checkpoint je na početku ovog dokumenta. Donji datirani zapisi su istorija; QA45/`8338852` ima novu CI/build potvrdu. [Ponovljeni readback](proofs/qa45-readback-20261107.json).
 
 #### R11 — izdvojena zajednicka AI intake pravila, 04.11.2026.
 
