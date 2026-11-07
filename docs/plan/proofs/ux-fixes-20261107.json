@@ -27,7 +27,7 @@
     "src/app/auth.tsx": "a0c81ea616cd5e4b745011b70327a78ff1f36c0be23b7cd11d2395dc5c9f3a9b",
     "src/data/homeAttentionClientService.ts": "503e5f4c09cf73ea7a242476ad223dbaa5c04db5a8eba4bfaa319f312f6d03cd",
     "src/data/homeSnapshot.ts": "5aa2df949466699e0bf09b3d6c9400712e4da84df5c8376ff57dbb93e2d93084",
-    "src/hooks/useWorkerAvailability.ts": "d57cd4fba056c5fbd3abf6e602da068d2cf42547786c5aa1d125eaedf8b48a15",
+    "src/hooks/useWorkerAvailability.ts": "328895bbf5c271d93f4a801310a74bb2ec03f1318b599b700ac2bda2e3359dcb",
     "src/ui/agreements/AgreementListCard.tsx": "6a92cbf2cbb3da6ae30baf49a4108a12db74939dc61018d4fa6f047ebd1ac8ab",
     "src/ui/agreements/agreementSearch.ts": "4ccca909d313ac6498a246195adc7ab9949aba900acbcaf28139ba8e7fb5af77",
     "src/ui/agreements/optionalReadScope.ts": "7b603aab87ebb2854508283878cc9125c95ee12ad9cfb31d9902676a979bd90f",

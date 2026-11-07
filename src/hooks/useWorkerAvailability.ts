@@ -5,7 +5,8 @@ import type { WorkerAvailability } from '../contracts/workerAvailability';
 import { workerAvailabilityClientService } from '../data/workerAvailabilityClientService';
 import { sesijaSada, useSesija } from '../store/sesija';
 
-export type WorkerAvailabilityView = { kind: 'loading' | 'unavailable' }
+export type WorkerAvailabilityView = { kind: 'loading' }
+  | { kind: 'unavailable' }
   | { kind: 'ready'; value: WorkerAvailability };
 
 /** The saved profile reads the existing owned receipt; no AI turn or profile write.
