@@ -1,6 +1,6 @@
 # USKOČI — jedinstveni plan dovršavanja proizvoda i objavljivanja
 
-## Aktuelni izvršni checkpoint — 07.11.2026: cena, oporavak i DEV readback
+## Aktuelni izvršni checkpoint — 07.11.2026: cena, oporavak, DEV i QA APK
 
 Ovaj odeljak je aktuelni izvršni presek. Stariji datirani odeljci ispod ostaju istorija. Autoritet je poslednja komanda vlasnika od 07.11, zatim važeći Product/UX master i ovaj plan. Jedina aktivna grana ostaje `work/uskoci-cist-proizvod-20261104`; Product/UX master, četiri taba i identitet proizvoda nisu menjani. Pri preuzimanju je stvarni HEAD i dalje bio `259b451ae8963d1173466103c191b3c8be98fc55`, QA #42 SUCCESS. Nije vraćeno istorijsko QA/operations stablo.
 
@@ -25,8 +25,12 @@ Ovaj odeljak je aktuelni izvršni presek. Stariji datirani odeljci ispod ostaju 
 | R07 | 25 SQL scenarija; 19 klijentskih semantičkih, 16 Agreement, 16 receipt i 20 journal/recovery provera. TOTAL, PER_PERSON, HOURLY, OFFERS, delimično pokriće, nedeljiva prijava, nepoznata osnovica i promenjeni uslovi provereni. Brojevi su delovi aktivnih 256, ne dodatni zbir. |
 | R06 | 17 first-plan + 12 dispatch-retention + 9 classification-feedback + 12 stream renderer provera. Stari source reprodukuje oba ciljana streaming kvara; novi prolazi. Nema novog Gemini poziva ili merenja stvarnog provider odziva/troška. |
 | Migracioni integritet | **203 fizička fajla + 23/23 testa PASS.** Ista provera dodata je u aktivni QA workflow. Ovo nije čisti PG17 replay niti zatvoren R01 strict parity. |
-| CI i Android | **CI SOURCE VERIFIED, APK BUILD U TOKU:** [QA #44 / 42364208816](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42364208816), source `38d8e048`. Preuzeti checks artifact `13570942413`: 256/256 + TypeScript + 203/23 PASS; ZIP SHA-256 `ad3c920de85f04d84026ee954fbc400c5b98eac9f8a0bfa33c88e2b316bfdca9`. Prethodni QA #43 iz `0221ae25` nije prihvat konačnog APK-a. |
+| CI i Android | **CI VERIFIED / APK BUILD VERIFIED:** [QA #44 / 42364208816](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42364208816) **SUCCESS**, source `38d8e048`. Preuzeti checks artifact `13570942413`: 256/256 + TypeScript + 203/23 PASS; ZIP SHA-256 `ad3c920de85f04d84026ee954fbc400c5b98eac9f8a0bfa33c88e2b316bfdca9`. Konačni APK artifact `13571229083` preuzet i nezavisno proveren. QA #43 iz `0221ae25` otkazan je zbog novijeg izvora i nije prihvat konačnog APK-a. |
 | Native / stvarni korisnici | **NIJE POTVRĐENO:** instalacija novog APK-a, dva obična Auth naloga, 360dp/1,3×, TalkBack, logout/revoke/offline, push ticket/receipt i puni AI→Save→Publish→Application→Agreement tok. Renderer nije screenshot telefona. |
+
+**Nezavisno proveren QA APK:** artifact `uskoci-isolated-qa-apk-44` / `13571229083`, rok čuvanja **14.11.2026. u 10:48:42 UTC**. ZIP ima 48.774.492 bajta, SHA-256 `6c02968e132e3aa7cab023b9f2a53bbaa228debf97a4c6d87d5274caba79b0b4`. `USKOCI-QA-38d8e0481.apk` ima **83.317.539 bajtova**, SHA-256 `a3169e94385ceb2e140acff231fe6e0ee0d3a173ebd94f5c374d69b4f14777fe`. Stvarni binarni manifest i ugrađena konfiguracija potvrđuju `rs.uskoci.preview.qa`, **min SDK 24 / target i compile SDK 36**, OTA `false` / `NEVER`, kanonski DEV i izvor `38d8e0481dbfc359766dac2d42b7b8147cab9888`. Paket sadrži ARM64 biblioteke, JS bundle od 13.901.160 bajtova, 7 DEX fajlova i postojeći native patch marker. CI `apksigner` potvrđuje v2 testni Android Debug potpis na istim preuzetim bajtovima. Ovo nije originalni preview/Play potpis, AAB, instalacija ili push dokaz.
+
+**R12 — sveža provera pravila:** [Android Developers](https://developer.android.com/google/play/requirements/target-sdk) i [Play Console Help](https://support.google.com/googleplay/android-developer/answer/11926878?hl=en), ponovo pročitani 07.11.2026, navode API 36+ za nove telefonske aplikacije i ažuriranja od 31.08.2026. Ovaj QA APK stvarno cilja API 36; `versionCode=36` nije korišćen kao SDK dokaz. Produkcioni AAB i ostali Play uslovi ostaju zaseban neprihvaćen korak.
 
 **DEV SQL VERIFIED — kanonski projekat `leqcwgzvjsxugfgzdmth`, 338 ledger migracija:**
 
