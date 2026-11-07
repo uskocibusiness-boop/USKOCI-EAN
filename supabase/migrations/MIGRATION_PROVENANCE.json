@@ -4264,5 +4264,67 @@
         }
       ]
     }
+  },
+  "forward_execution_20261107_recovery_export": {
+    "observed_at_utc": "2026-11-07",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "Complete existing cancellation-reason readback and preserve own-account Worker workAreas in existing live/archive projections; no business writer or legal policy activation.",
+    "evidence": "inline:dev_forward_catalog_20261107_recovery_export",
+    "entries": [
+      {
+        "file": "20261107165358_r08_cancellation_reason_readback_20261107.sql",
+        "version": "20261107165358",
+        "name": "r08_cancellation_reason_readback_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107165358",
+        "live_name": "r08_cancellation_reason_readback_20261107",
+        "live_recorded_md5": "5ff443353ad37f3f20802bb008aee043",
+        "live_recorded_sha256": "4f28d8817ec498687db4bd8c329cc67d2893559e075182b42e54e77fc6821e46",
+        "raw_md5": "5ff443353ad37f3f20802bb008aee043",
+        "raw_sha256": "4f28d8817ec498687db4bd8c329cc67d2893559e075182b42e54e77fc6821e46",
+        "raw_bytes": 8429,
+        "source": "scripts/sql/r08_cancellation_reason_readback_20261107.sql"
+      },
+      {
+        "file": "20261107165752_r10_work_areas_projection_20261107.sql",
+        "version": "20261107165752",
+        "name": "r10_work_areas_projection_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107165752",
+        "live_name": "r10_work_areas_projection_20261107",
+        "live_recorded_md5": "91229e976a7a1d37687ea588e295e400",
+        "live_recorded_sha256": "d269d4eedb38a8727f44162cc6e8640a8dc34d2d52a60b72bc86efa1dee28074",
+        "raw_md5": "91229e976a7a1d37687ea588e295e400",
+        "raw_sha256": "d269d4eedb38a8727f44162cc6e8640a8dc34d2d52a60b72bc86efa1dee28074",
+        "raw_bytes": 16509,
+        "source": "scripts/sql/r10_work_areas_projection_20261107.sql"
+      }
+    ],
+    "catalog_evidence": {
+      "source_base_commit": "94f2801db54bcbd7cb294cda983e048cd5885939",
+      "observed_at_utc": "2026-11-07",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "method": "Exact post-apply ledger readback for two guarded forward migrations. R08 changes only the cancellation-reason read-only helper. R10 adds a private tolerant workAreas export adapter and updates the existing candidate projector and dynamic dependency digest. Existing metadata is guarded; policy, legal approvals and source readiness pins remain unchanged. No historical SQL rewrite.",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261107165358",
+          "name": "r08_cancellation_reason_readback_20261107",
+          "statement_count": 1,
+          "joined_md5": "5ff443353ad37f3f20802bb008aee043",
+          "joined_sha256": "4f28d8817ec498687db4bd8c329cc67d2893559e075182b42e54e77fc6821e46",
+          "joined_bytes": 8429
+        },
+        {
+          "version": "20261107165752",
+          "name": "r10_work_areas_projection_20261107",
+          "statement_count": 1,
+          "joined_md5": "91229e976a7a1d37687ea588e295e400",
+          "joined_sha256": "d269d4eedb38a8727f44162cc6e8640a8dc34d2d52a60b72bc86efa1dee28074",
+          "joined_bytes": 16509
+        }
+      ]
+    }
   }
 }

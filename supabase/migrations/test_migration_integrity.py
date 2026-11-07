@@ -154,7 +154,7 @@ class ArchivedCatalogEvidenceTests(unittest.TestCase):
             "physical_suffix_reconciliation_20261107", "forward_readmission_20261107",
             "forward_readmission_20261107_r08", "forward_readmission_20261107_r01",
             "forward_readmission_20261107_r08_reviews", "forward_readmission_20261107_r05",
-            "forward_execution_20261107_continuation")]
+            "forward_execution_20261107_continuation", "forward_execution_20261107_recovery_export")]
 
     def test_missing_or_unrecognized_archived_evidence_fails_closed(self):
         for original in self.sections:
@@ -378,6 +378,34 @@ class Nov7ContinuationTests(unittest.TestCase):
                              (self.root.parent.parent / row["source"]).read_bytes())
 
     def test_changed_ledger_identity_or_bytes_cannot_keep_a_live_claim(self):
+        for index in range(2):
+            for key in ("live_version", "live_name", "live_recorded_sha256", "raw_md5", "raw_bytes"):
+                with self.subTest(index=index, key=key):
+                    section = copy.deepcopy(self.section)
+                    section["entries"][index][key] = "INVALID"
+                    with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                        check_physical_suffix(section, self.manifest, self.evidence)
+
+
+class Nov7RecoveryExportTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).parent
+        self.section = json.loads((self.root / "MIGRATION_PROVENANCE.json").read_text())["forward_execution_20261107_recovery_export"]
+        self.evidence = load_catalog_evidence(self.section)
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (self.root / "MD5_MANIFEST.txt").read_text().splitlines())
+
+    def test_both_forward_files_match_the_applied_ledger_and_reviewed_candidates(self):
+        self.assertEqual(check_physical_suffix(self.section, self.manifest, self.evidence), [
+            "20261107165358_r08_cancellation_reason_readback_20261107.sql",
+            "20261107165752_r10_work_areas_projection_20261107.sql",
+        ])
+        for row in self.section["entries"]:
+            self.assertEqual(row["version"], row["live_version"])
+            self.assertEqual((self.root / row["file"]).read_bytes(),
+                             (self.root.parent.parent / row["source"]).read_bytes())
+
+    def test_changed_live_identity_or_bytes_cannot_retain_a_confirmed_claim(self):
         for index in range(2):
             for key in ("live_version", "live_name", "live_recorded_sha256", "raw_md5", "raw_bytes"):
                 with self.subTest(index=index, key=key):

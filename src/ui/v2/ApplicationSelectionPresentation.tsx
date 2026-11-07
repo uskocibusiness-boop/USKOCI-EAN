@@ -5,7 +5,7 @@ import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija } from '../../contracts/projections';
 import type { Ishod } from '../../data/ports';
-import type { SelectionAgreementStatus } from '../../data/applicationSelectionClientService';
+import type { SelectionAgreementStatus, SelectionReceipt } from '../../data/applicationSelectionClientService';
 import type { PublicWorkTrust } from '../../data/workTrustClientService';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
@@ -54,6 +54,35 @@ export function SelectionUnavailable({ loading, message, retry, back }: { loadin
   return <Screen kind="detail" header={<ProductHeader backLabel="Nazad na zadatak" title="Prijave" back={back} />}>
     {loading ? <QuietReadState art="applications" title="Učitavamo prijave…" body="Proveravamo ko se prijavio i koliko mesta je još dostupno." />
       : <StateView kind="error" title={title} body={body ?? undefined} primary={retry ? { label: 'Pokušajte ponovo', onPress: retry } : undefined} />}
+  </Screen>;
+}
+/** A cold-restored command has no retained private offer. Its exact receipt is
+ * still useful without that snapshot; absence never invents new terms or a new
+ * selection. Resend is the previously confirmed immutable command only. */
+export function SelectionRecoveryPresentation({ receipt, busy, uncertain, refresh, resend, back, openAgreement, error, reset }: {
+  receipt: SelectionReceipt | null; busy: boolean; uncertain: boolean; refresh: () => void;
+  resend: () => void | Promise<unknown>; back: () => void; openAgreement: () => void; error: string | null; reset?: () => void;
+}) {
+  const statuses: Record<SelectionAgreementStatus, string> = {
+    CONFIRMED: 'Dogovor je pronađen. Otvorite ga da vidite aktuelne uslove saradnje.',
+    CANCELLED: 'Izbor je bio sačuvan, a saradnja je u međuvremenu otkazana. Otvorite Dogovor za detalje.',
+    COMPLETED: 'Izbor je bio sačuvan, a saradnja je u međuvremenu završena. Otvorite Dogovor za detalje.',
+    SUPERSEDED: 'Izbor je bio sačuvan. Ovaj Dogovor više nije aktuelan; otvorite ga da vidite detalje.',
+  };
+  const primary = receipt ? { label: 'Otvorite Dogovor', onPress: openAgreement }
+    : reset ? { label: 'Pregledajte prijave', onPress: reset }
+    : uncertain ? { label: 'Proverite da li je izabrano', onPress: refresh }
+    : { label: 'Pošaljite isti izbor ponovo', onPress: () => { void resend(); } };
+  const quiet = !reset && ((!receipt && !uncertain) || (receipt && error))
+    ? { label: 'Proverite ponovo', onPress: refresh, disabled: busy } : undefined;
+  const body = receipt ? (receipt.agreementStatus ? statuses[receipt.agreementStatus] : statuses.CONFIRMED)
+    : reset ? 'Prethodni izbor je odbijen. Pregledajte aktuelne prijave pre novog izbora.'
+    : uncertain ? 'Prethodni zahtev je sačuvan na ovom telefonu. Proverite da li je izbor stigao; provera ga ne šalje ponovo.'
+    : 'Potvrda izbora još nije pronađena. Možete proveriti ponovo ili izričito poslati isti ranije potvrđeni izbor, bez promene prijave ili uslova.';
+  return <Screen kind="detail" header={<ProductHeader backLabel="Nazad na zadatak" title="Prethodni izbor" back={back} />}>
+    <StateView kind={receipt ? 'empty' : 'uncertain'} art={receipt ? 'agreements' : 'info'}
+      title={receipt ? 'Izbor je sačuvan' : reset ? 'Izbor nije prihvaćen' : 'Proverite prethodni izbor'}
+      body={error ? `${body} ${error}` : body} primary={{ ...primary, disabled: busy, busy }} quiet={quiet} />
   </Screen>;
 }
 /** `loading` is this action's own write in flight: the button keeps its green and its words, with a spinner. */

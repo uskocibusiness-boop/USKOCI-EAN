@@ -5,6 +5,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { KandidatProjekcija, PotrebaProjekcija } from '../../../../contracts/projections';
 import type { Ishod, Izvor, IzborKomanda } from '../../../../data/ports';
 import { boundedApplicationSelectionRead, conclusiveSelectionRefusal, readSelectedAgreement, readSelectionResult, type SelectionReceipt } from '../../../../data/applicationSelectionClientService';
+import { selectionCommandJournal } from '../../../../data/selectionCommandJournal';
 import { ownProfileClientService } from '../../../../data/ownProfileClientService';
 import { workTrustClientService } from '../../../../data/workTrustClientService';
 import type { CandidatesPageRequest } from '../../../../data/candidatesPage';
@@ -17,16 +18,18 @@ import { noviZahtevId } from '../../../../lib/idempotencija';
 import { uuid, type ReceiptAccount } from '../../../../data/serverReceipt';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
-import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable, type CandidatesPaging, type CandidateSort } from '../../../../ui/v2/ApplicationSelectionPresentation';
+import { CandidateListPresentation, CandidateSelectionPresentation, SelectionRecoveryPresentation, SelectionUnavailable, type CandidatesPaging, type CandidateSort } from '../../../../ui/v2/ApplicationSelectionPresentation';
 import { useSafetyEntry } from '../../../../ui/safety/useSafetyEntry';
 import { Avatar, type AvatarSize } from '../../../../ui/system/Avatar';
 type Receipt = SelectionReceipt;
-type Pending = { command: IzborKomanda; need: PotrebaProjekcija; candidate: KandidatProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
-type Loaded = { need: PotrebaProjekcija; candidates: KandidatProjekcija[]; receipt: Receipt | null };
+type Pending = { command: IzborKomanda; need: PotrebaProjekcija | null; candidate: KandidatProjekcija | null; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
+type Loaded = { need: PotrebaProjekcija | null; candidates: KandidatProjekcija[]; receipt: Receipt | null };
 type Viewed = { state: 'PENDING' | 'CONFIRMED' | 'UNCONFIRMED' };
 const NO_ROWS: KandidatProjekcija[] = [];
 /** One sentence for the one refusal: the task changed between two reads, so the applications read before it are not the applications of what it is now. */
 const STALE_REVIEW_MESSAGE = 'Zadatak se upravo promenio. Učitajte prijave ponovo.';
+const NOT_SAVED_ON_DEVICE = 'Izbor nije poslat jer zahtev nije pouzdano sačuvan na telefonu. Proverite stanje pre ponovnog pokušaja.';
+const NOT_RETIRED_ON_DEVICE = 'Izbor je potvrđen, ali zapis na telefonu još nije uklonjen. Možete otvoriti Dogovor ili ponoviti proveru.';
 
 /** Reconcile only the immutable pending intent. A refreshed candidate list is
  * not a command receipt, and this helper never calls the selection writer. */
@@ -37,6 +40,12 @@ async function recoverPendingSelection(command: IzborKomanda, account: ReceiptAc
   if (!current()) return stale();
   if (!result.ok) return result;
   return { ok: true, podatak: result.podatak.state === 'CONFIRMED' ? result.podatak.receipt : null };
+}
+async function retirePendingSelection(command: IzborKomanda, accountId: string, current: () => boolean): Promise<boolean> {
+  try {
+    const retired = await selectionCommandJournal.clear({ version: 1, accountId, needId: command.potrebaId, command }, current);
+    return current() && retired;
+  } catch { return false; }
 }
 
 /**
@@ -81,7 +90,7 @@ export default function Kandidati() {
   const { user, accountRevision } = useSesija();
   const session = useMemo(() => ({ pending: null as Pending | null, viewed: new Map<string, Viewed>(), navigated: false,
     active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive', focused: false,
-    focusToken: 0, readRevision: 0, reading: false, compare: false, hardReload: false,
+    focusToken: 0, readRevision: 0, reading: false, compare: false, hardReload: false, resetting: false, notice: null as string | null,
     targetHandled: false, targetMissing: false, targetIncomplete: false }), [id, focusId, izvor, user?.id, accountRevision]);
   const [, render] = useState(0), [resume, setResume] = useState(0);
   const currentAccount = useCallback(() => !!user?.id && sesijaSada().user?.id === user.id &&
@@ -129,6 +138,20 @@ export default function Kandidati() {
       const stillCurrent = () => generation === session.readRevision && token === session.focusToken && session.focused && session.active && currentAccount();
       if (!stillCurrent() || !user?.id)
         return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
+      session.notice = null;
+      if (!session.pending) {
+        // Recover the exact old identity before any current task/list read. A
+        // new mount, Auth session or candidate revision never allocates a key.
+        try {
+          const stored = await selectionCommandJournal.load(user.id, id, stillCurrent);
+          if (!stillCurrent() || session.pending) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvorite prijave.' };
+          if (stored.state === 'CORRUPT') return { ok: false, kod: 'SELECTION_COMMAND_JOURNAL_INVALID',
+            poruka: 'Sačuvani izbor na telefonu nije moguće pročitati. Proverite svoje Dogovore; novi izbor još nije otvoren.' };
+          if (stored.state === 'PRESENT') session.pending = { command: stored.record.command, need: null, candidate: null,
+            result: null, inFlight: false, reconciled: false };
+        } catch { return { ok: false, kod: 'SELECTION_COMMAND_JOURNAL_READ_FAILED',
+          poruka: 'Ne možemo da proverimo sačuvani izbor na telefonu. Pokušajte ponovo.' }; }
+      }
       const request = session.pending;
       let selectionChecked = false;
       if (request && !request.inFlight) {
@@ -140,25 +163,48 @@ export default function Kandidati() {
         if (!recovered.ok) return recovered;
         selectionChecked = true;
         if (recovered.podatak) {
+          const retired = await retirePendingSelection(request.command, user.id,
+            () => stillCurrent() && session.pending === request && !request.inFlight);
+          if (!stillCurrent() || session.pending !== request) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvorite prijave.' };
+          if (!retired) session.notice = NOT_RETIRED_ON_DEVICE;
           request.result = { ok: true, podatak: recovered.podatak }; request.reconciled = true;
           return { ok: true, podatak: { need: request.need, candidates: NO_ROWS, receipt: recovered.podatak } };
         }
       }
-      const [need, candidates] = await boundedApplicationSelectionRead(Promise.all([izvor.potreba(id),
+      // An unavailable or changed list cannot replace a saved request with a
+      // new choice. The recovery-only view does not invent its old offer.
+      const recoveryOnly = (message: string): Ishod<Loaded> => {
+        if (!stillCurrent() || session.pending !== request || !request || !selectionChecked || request.inFlight)
+          return { ok: false, kod: 'READ_FAILED', poruka: message };
+        request.reconciled = true; session.notice = message;
+        return { ok: true, podatak: { need: null, candidates: NO_ROWS, receipt: null } };
+      };
+      let need: PotrebaProjekcija | null, candidates: KandidatProjekcija[];
+      try { [need, candidates] = await boundedApplicationSelectionRead(Promise.all([izvor.potreba(id),
         // Paged: the first page of the set is the read (the rows live in the pager); a page that did not arrive is a read that failed, like the whole list.
         pager ? pager.reload(hard ? 'keep' : 'auto').then(fresh => { if (!fresh) throw new Error('CANDIDATES_PAGE_NOT_READ'); return pager.snapshot().items as KandidatProjekcija[]; })
-          : izvor.prijaveZaPotrebu(id)]));
-      if (!need) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Ovaj zadatak više nije dostupan. Vratite se na zadatke.' };
+          : izvor.prijaveZaPotrebu(id)])); }
+      catch { return recoveryOnly('Prijave trenutno nisu učitane. Sačuvani izbor ostaje isti; možete proveriti njegov ishod.'); }
+      if (!need) return request ? recoveryOnly('Zadatak trenutno nije dostupan. Proverite ishod prethodnog izbora.')
+        : { ok: false, kod: 'UNAVAILABLE', poruka: 'Ovaj zadatak više nije dostupan. Vratite se na zadatke.' };
       // RPC needRevision is the current Need revision for every row, including
       // STALE. Its separate responseNeedRevision is the older submitted snapshot.
       // Never combine independent reads from different current Need revisions.
-      if (candidates.some(k => k.potrebaRevizija !== need.revizija)) return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: STALE_REVIEW_MESSAGE };
+      if (candidates.some(k => k.potrebaRevizija !== need!.revizija)) return request ? recoveryOnly(STALE_REVIEW_MESSAGE)
+        : { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: STALE_REVIEW_MESSAGE };
       if (!stillCurrent() || session.pending !== request)
         return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
       if (request && selectionChecked && !request.inFlight) {
         // No saved receipt is only a snapshot observation. The old request stays
         // frozen; a separate explicit retry reuses exactly this original key.
         request.reconciled = true;
+        // Show a restored offer only when this read proves all its original
+        // identity fields. New price/terms never fill an old reviewed snapshot.
+        if (!request.need && need.revizija === request.command.potrebaRevizija) {
+          const exact = candidates.find(k => k.prijavaId === request.command.prijavaId && k.verzija === request.command.prijavaVerzija
+            && k.hash === request.command.prijavaHash && k.pokrivaMesta === request.command.mesta);
+          if (exact) { request.need = need; request.candidate = exact; }
+        }
       }
       const result = session.pending?.result;
       return { ok: true, podatak: { need, candidates: pager ? NO_ROWS : candidates, receipt: result?.ok ? result.podatak : null } };
@@ -169,14 +215,14 @@ export default function Kandidati() {
   // The applications on screen: the whole list's rows, or (paged) what the pager holds for this task.
   const shownRows = paged ? paged.rows : data?.candidates ?? NO_ROWS;
   const pending = session.pending;
-  const candidate = pending?.candidate ?? (opened?.data === data ? opened.candidate : null);
+  const candidate = pending ? pending.candidate : (opened?.data === data ? opened.candidate : null);
   // F05: a candidate is a person; the server resolves the safety target before bezbednost opens.
   const safety = useSafetyEntry(candidate?.radnikProfilId, { needId: id ?? null });
   // Your own name and photo for "Dogovoreno!", read while an offer is open (see `useOwnIdentity`).
   const own = useOwnIdentity(!!candidate, user?.id);
   const focusToken = session.focusToken, readRevision = session.readRevision;
   const current = () => session.focused && session.active && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
-  const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) {
+  const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight && !session.resetting) {
     if (session.targetMissing) { session.targetMissing = false; session.targetIncomplete = false; session.targetHandled = false; }
     session.hardReload = true; void editor.refresh();
   } };
@@ -193,21 +239,66 @@ export default function Kandidati() {
   // The offer's confirmation waits on the returned command; every guard below still decides alone whether it runs.
   const choose = () => {
     const k = candidate;
-    if (!current() || session.pending?.inFlight || !data || !k || (!pending && (!k.mozeIzabrati || k.stanje !== 'SELECTABLE' || k.potrebaRevizija !== data.need.revizija))) return;
+    const accountId = user?.id;
+    if (!current() || !accountId || session.pending?.inFlight || session.resetting || session.reading || editor.uncertain || !data
+      || (session.pending && (!session.pending.reconciled || session.pending.result?.ok ||
+        (session.pending.result && conclusiveSelectionRefusal(session.pending.result))))
+      || (!session.pending && (!data.need || !k || !k.mozeIzabrati || k.stanje !== 'SELECTABLE' || k.potrebaRevizija !== data.need.revizija))) return;
     return editor.save(async () => {
-      if (!session.pending) session.pending = { need: data.need, candidate: k, result: null, inFlight: false, reconciled: false,
-        command: Object.freeze({ potrebaId: data.need.id, potrebaRevizija: data.need.revizija, prijavaId: k.prijavaId,
-          prijavaVerzija: k.verzija, prijavaHash: k.hash, mesta: k.pokrivaMesta, clientRequestId: noviZahtevId('izbor') }) };
+      if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvorite prijave.' };
+      if (!session.pending) {
+        if (!data.need || !k) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvorite prijave.' };
+        session.pending = { need: data.need, candidate: k, result: null, inFlight: false, reconciled: false,
+          command: Object.freeze({ potrebaId: data.need.id, potrebaRevizija: data.need.revizija, prijavaId: k.prijavaId,
+            prijavaVerzija: k.verzija, prijavaHash: k.hash, mesta: k.pokrivaMesta, clientRequestId: noviZahtevId('izbor') }) };
+      }
       const request = session.pending;
       request.inFlight = true; request.reconciled = false;
       let result: Ishod<Receipt>;
-      try { result = await izvor.izaberiPrijavu(request.command); }
+      const ownsWrite = () => current() && session.pending === request;
+      try {
+        try {
+          await selectionCommandJournal.save({ version: 1, accountId, needId: request.command.potrebaId, command: request.command }, ownsWrite);
+        } catch (error) {
+          // Another retained screen's unresolved record must be loaded instead
+          // of being overwritten by this screen's newly allocated request.
+          if (ownsWrite() && error instanceof Error && ['SELECTION_COMMAND_UNRESOLVED', 'SELECTION_COMMAND_PAYLOAD_CHANGED',
+            'SELECTION_COMMAND_JOURNAL_INVALID'].includes(error.message)) session.pending = null;
+          result = { ok: false, kod: 'SELECTION_COMMAND_NOT_SAVED', poruka: NOT_SAVED_ON_DEVICE };
+          request.result = result;
+          return result;
+        }
+        if (!ownsWrite()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvorite prijave.' };
+        result = await izvor.izaberiPrijavu(request.command);
+        if (result.ok && ownsWrite()) {
+          const retired = await retirePendingSelection(request.command, accountId, ownsWrite);
+          if (ownsWrite()) session.notice = retired ? null : NOT_RETIRED_ON_DEVICE;
+        }
+      }
       catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ne znamo da li je izbor sačuvan. Izaberite „Proverite da li je izabrano“.' }; }
       finally { request.inFlight = false; }
       request.result = result;
       if (session.focused && session.active && currentAccount()) render(v => v + 1);
       return result.ok ? { ok: true, podatak: { ...data, receipt: result.podatak } } : result;
     }, { settledFailure: conclusiveSelectionRefusal });
+  };
+  const resetPending = async () => {
+    const request = session.pending, accountId = user?.id;
+    if (!current() || !accountId || editor.busy || session.reading || session.resetting || !request || request.inFlight
+      || (!request.result?.ok && !(request.result && conclusiveSelectionRefusal(request.result)))) return;
+    const outcome = request.result;
+    const ownsReset = () => current() && session.pending === request && request.result === outcome && !request.inFlight;
+    session.resetting = true; render(value => value + 1);
+    try {
+      const retired = await retirePendingSelection(request.command, accountId, ownsReset);
+      if (!ownsReset()) return;
+      if (!retired) { session.notice = 'Zapis prethodnog izbora nije uklonjen sa telefona. Pokušajte ponovo pre novog izbora.'; return; }
+      session.pending = null; session.notice = null; setOpened(null); void editor.refresh();
+    } finally { session.resetting = false; if (current()) render(value => value + 1); }
+  };
+  const openAgreement = () => {
+    if (!current() || !data?.receipt || session.navigated) return;
+    session.navigated = true; router.replace({ pathname: '/dogovor/[id]', params: { id: data.receipt.dogovorId } });
   };
   const openOffer = (k: KandidatProjekcija) => {
     if (!current() || session.navigated || session.reading || editor.busy || editor.loading || !data ||
@@ -257,7 +348,7 @@ export default function Kandidati() {
   };
   // One function per offer, read revision and account (it was a new one on every render, and the Dogovor link of an
   // offer already chosen was read again on each, e.g. when the viewed mark came back). Every check stays inside it.
-  const needId = data?.need.id, chosenId = candidate?.prijavaId;
+  const needId = data?.need?.id, chosenId = candidate?.prijavaId;
   const readAgreement = useCallback(async (): Promise<Ishod<{ dogovorId: string | null }>> => {
     if (!needId || !chosenId || !current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvorite prijavu.' };
     const result = await readSelectedAgreement(needId, chosenId);
@@ -267,7 +358,7 @@ export default function Kandidati() {
   }, [needId, chosenId, focusToken, readRevision, user?.id, accountRevision, session]);
   // Paged: a later page may have been read after the task changed under the first one. Applications of two revisions are never shown together: the same refusal the whole list makes,
   // unless a choice is already being decided (its sheet is what matters then).
-  const mixed = !!paged && !!data && !pending && paged.rows.some(k => k.potrebaRevizija !== data.need.revizija);
+  const mixed = !!paged && !!data?.need && !pending && paged.rows.some(k => k.potrebaRevizija !== data.need!.revizija);
   // Keep one coherent, same-account snapshot while the independent task/page reads settle.
   // A newer page must not appear beside an older task's capacity or revision.
   const retained = useRef<{ session: typeof session; rows: typeof shownRows; paging: CandidatesPaging | undefined } | null>(null);
@@ -276,6 +367,12 @@ export default function Kandidati() {
   if (!session.focused || !session.active || !data || (mixed && !editor.loading))
     return <SelectionUnavailable loading={!session.focused || !session.active || editor.loading}
       message={mixed ? STALE_REVIEW_MESSAGE : editor.error ?? 'Prijave nisu dostupne.'} retry={refresh} back={back} />;
+  const refusal = pending?.result && conclusiveSelectionRefusal(pending.result) ? pending.result : null;
+  if (pending && (!data.need || !pending.need || !candidate || session.notice)) return <SelectionRecoveryPresentation
+    receipt={data.receipt} busy={editor.busy || !!pending.inFlight || session.resetting || editor.loading}
+    uncertain={editor.uncertain || (!pending.reconciled && !refusal && !data.receipt)} refresh={refresh} resend={choose} back={back} openAgreement={openAgreement}
+    error={session.notice ?? editor.error ?? refusal?.poruka ?? null} reset={refusal && !editor.uncertain ? resetPending : undefined} />;
+  if (!data.need) return <SelectionUnavailable loading={editor.loading} message="Prijave nisu dostupne." retry={refresh} back={back} />;
   // Step 7 (2026-09-24): the list stays under an opened offer, which is a sheet over it; closing the sheet is `back`.
   const list = data.receipt?.agreementStatus ? null : <CandidateListPresentation need={data.need} candidates={snapshot?.rows ?? shownRows} back={back} refresh={refresh} paging={snapshot ? snapshot.paging : paged?.paging}
     refreshing={editor.loading}
@@ -286,7 +383,6 @@ export default function Kandidati() {
     onSort={sort => { if (current()) setSorted({ scope: sortScope, sort }); }}
     comparison={session.compare} onComparison={compare => { if (current()) { session.compare = compare; render(value => value + 1); } }} photo={photo} viewed={viewed} />;
   if (!candidate || (editor.loading && !data.receipt?.agreementStatus)) return list;
-  const refusal = pending?.result && conclusiveSelectionRefusal(pending.result) ? pending.result : null;
   return <>{list}<CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
     photo={photo(candidate, 56)} safety={safety} viewed={viewed.has(candidate.prijavaId)}
     // "Dogovoreno!": the two faces at 72. Yours is your own photo, through the path the header's avatar takes, else the letters of your own name (the drawn
@@ -312,21 +408,11 @@ export default function Kandidati() {
       const result = await workTrustClientService.publicTrust(profileId, { accountId: user.id, accountRevision });
       return current() && result.ok ? result.podatak.trust : null;
     }}
-    choose={choose} busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt && !refusal)} refresh={refresh}
+    choose={choose} busy={editor.busy || !!pending?.inFlight || session.resetting} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt && !refusal)} refresh={refresh}
     error={editor.error ?? refusal?.poruka ?? (pending && !data.receipt && !editor.uncertain ? 'Potvrda izbora još nije stigla. Možete proveriti ponovo ili izričito poslati isti izbor.'
       : session.viewed.get(candidate.prijavaId)?.state === 'UNCONFIRMED'
         ? 'Ponuda je otvorena, ali nismo zabeležili da je pogledana. Zatvorite je i otvorite ponovo.' : null)}
-    chooseNext={() => {
-      if (!current() || editor.busy) return;
-      session.pending = null;
-      setOpened(null);
-      void editor.refresh();
-    }}
-    confirmed={!!data.receipt} confirmedStatus={data.receipt?.agreementStatus} openAgreement={() => {
-      if (!current() || !data.receipt || session.navigated) return;
-      session.navigated = true; router.replace({ pathname: '/dogovor/[id]', params: { id: data.receipt.dogovorId } });
-    }} reset={refusal && !editor.uncertain ? () => {
-      if (!current() || editor.busy || !pending || pending.inFlight || session.pending !== pending || !pending.result || pending.result.ok) return;
-      session.pending = null; setOpened(null); void editor.refresh();
-    } : undefined} /></>;
+    chooseNext={resetPending}
+    confirmed={!!data.receipt} confirmedStatus={data.receipt?.agreementStatus} openAgreement={openAgreement}
+    reset={refusal && !editor.uncertain ? resetPending : undefined} /></>;
 }

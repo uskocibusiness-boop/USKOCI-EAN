@@ -25,6 +25,10 @@ CONTINUATION_FILES = [
     "20261107152928_r06_budget_accounting_20261107.sql",
     "20261107153455_r07_selection_recovery_20261107.sql",
 ]
+RECOVERY_EXPORT_FILES = [
+    "20261107165358_r08_cancellation_reason_readback_20261107.sql",
+    "20261107165752_r10_work_areas_projection_20261107.sql",
+]
 
 
 # Frozen catalog facts extracted from archived receipts and dated read-only captures.
@@ -48,6 +52,8 @@ CATALOG_EVIDENCE_SHA256 = {
         '7aaaf62031b73f0eaa1ce85758503164989aedc4ca67c9f7dda0317cbdbd6e80',
     'inline:dev_forward_catalog_20261107_continuation':
         '8307cbcb788b3dde1024803b150986450562674673853dc6da093a8b5e33dd99',
+    'inline:dev_forward_catalog_20261107_recovery_export':
+        'bcaa5500439d81ff1c5f05573719081afcf133b2d2e59fba5ba1300ea0e0e425',
 }
 
 
@@ -336,7 +342,22 @@ def main() -> None:
         earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names
         if earlier_names and continuation_names[0] <= earlier_names[-1]:
             fail("Nov-7 continuation is not strictly after the previous forward records")
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names != disk_names:
+    recovery_export_section = metadata.get("forward_execution_20261107_recovery_export")
+    recovery_export_names = []
+    if recovery_export_section:
+        recovery_export_names = check_physical_suffix(
+            recovery_export_section, manifest_map, load_catalog_evidence(recovery_export_section),
+        )
+        if recovery_export_names != RECOVERY_EXPORT_FILES or any(
+            item.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+            or item.get("version") != item.get("live_version")
+            for item in recovery_export_section.get("entries", [])
+        ):
+            fail("Nov-7 recovery/export requires the two exact reviewed ledger-version records")
+        earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names
+        if earlier_names and recovery_export_names[0] <= earlier_names[-1]:
+            fail("Nov-7 recovery/export is not strictly after the previous forward records")
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -439,6 +460,7 @@ def main() -> None:
         f"r08_reviews_forward={len(r08_reviews_names)} "
         f"r05_forward={len(r05_names)} "
         f"continuation_forward={len(continuation_names)} "
+        f"recovery_export_forward={len(recovery_export_names)} "
         "191500=RECORDED_STATEMENT_RECONSTRUCTION "
         "exact_byte_mirror=false "
         "participant_contract=PASS"

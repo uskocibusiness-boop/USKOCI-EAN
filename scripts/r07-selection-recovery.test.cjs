@@ -1,109 +1,15 @@
 'use strict';
-// Execute the actual adapter, Candidates read/choose callbacks and recovery CTA
-// expressions. Only RPC transport, account state and native rendering are seams.
-// This is not an installed Android UI or hosted Auth test.
+// Actual adapter and route callbacks with isolated RPC/storage/account seams.
+// No installed Android or hosted Auth claim is made here.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const ts = require('typescript');
-const ROOT = path.resolve(__dirname,'..');
-const ROUTE = 'src/app/(app)/potrebe/[id]/kandidati.tsx';
-const ID = n => `00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-const ownerId=ID(1),needId=ID(2),responseId=ID(3),agreementId=ID(4);
-const command = (patch={}) => Object.freeze({potrebaId:needId,potrebaRevizija:3,prijavaId:responseId,
-  prijavaVerzija:2,prijavaHash:'a'.repeat(64),mesta:2,clientRequestId:'r07-selection-original',...patch});
-const found = (patch={}) => ({schema:'SELECTION_RESULT_V1',authoritative:true,found:true,result:{
-  agreementId,agreementStatus:'CONFIRMED',needId,needRevision:3,responseId,responseVersion:2,
-  contentHash:'a'.repeat(64),coveredSlots:2,clientRequestId:'r07-selection-original',...patch,
-}});
-const absent={schema:'SELECTION_RESULT_V1',authoritative:true,found:false,result:null};
-function compile(source,fileName='test.ts') {
-  const output=ts.transpileModule(source,{fileName,reportDiagnostics:true,compilerOptions:{
-    module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}});
-  assert.deepEqual((output.diagnostics??[]).filter(d=>d.category===ts.DiagnosticCategory.Error),[]);
-  return output.outputText;
-}
-function evaluate(source,environment,fileName) {
-  const module={exports:{}};
-  new Function('module',...Object.keys(environment),compile(source,fileName))(module,...Object.values(environment));
-  return module.exports;
-}
-function harness(wireResult=found()) {
-  const account={accountId:ownerId,accountRevision:1};
-  const auth={user:{id:ownerId},accountRevision:1};
-  const need={id:needId,revizija:4};
-  const candidate={prijavaId:responseId,potrebaRevizija:4,stanje:'SELECTED',mozeIzabrati:false,
-    verzija:2,hash:'a'.repeat(64),pokrivaMesta:2};
-  const original={ok:false,kod:'APPLICATION_SELECTION_UNCONFIRMED',poruka:'Ishod nije potvrđen.'};
-  const session={readRevision:0,focusToken:1,reading:false,navigated:false,hardReload:false,
-    focused:true,active:true,pending:{command:command(),candidate,need:{...need,revizija:3},result:original,inFlight:false,reconciled:false}};
-  const calls=[],sourceCalls=[];
-  const control={hook:null,sourceHook:null,readResult:wireResult,selectError:null,selectThrows:false,saveOptions:null,sourceThrows:false};
-  const wire={async rpc(name,args) {
-    calls.push({name,args});
-    if(control.hook) await control.hook(name,args);
-    if(name==='rpc_read_selection_result') return {data:structuredClone(control.readResult),error:null};
-    if(name==='rpc_select_response') {
-      if(control.selectThrows) throw new Error('connection ended after server commit');
-      return control.selectError?{data:null,error:control.selectError}:{data:agreementId,error:null};
-    }
-    throw new Error('Unexpected RPC '+name);
-  }};
-  const stubs={
-    'src/data/supabaseClient.ts':{supabaseKlijent:()=>wire},
-    'src/store/sesija.ts':{sesijaSada:()=>auth},
-  };
-  const cache=new Map();
-  function load(relative) {
-    if(stubs[relative])return stubs[relative];
-    if(cache.has(relative))return cache.get(relative).exports;
-    const filename=path.join(ROOT,relative),module={exports:{}};cache.set(relative,module);
-    const requireLocal=specifier=>{
-      if(!specifier.startsWith('.'))return require(specifier);
-      const base=path.resolve(path.dirname(filename),specifier);
-      const resolved=['','.ts','.tsx','.js','/index.ts'].map(s=>base+s).find(p=>fs.existsSync(p)&&fs.statSync(p).isFile());
-      assert.ok(resolved,relative+': '+specifier);
-      return load(path.relative(ROOT,resolved).replaceAll(path.sep,'/'));
-    };
-    new Function('require','module','exports',compile(fs.readFileSync(filename,'utf8'),filename))(requireLocal,module,module.exports);
-    return module.exports;
-  }
-  const service=load('src/data/applicationSelectionClientService.ts');
-  const source=ts.createSourceFile(ROUTE,fs.readFileSync(path.join(ROOT,ROUTE),'utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
-  const helper=source.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='recoverPendingSelection');
-  const component=source.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='Kandidati');
-  assert.ok(helper&&component);
-  let readNode,chooseNode;
-  function visit(n) {
-    if(ts.isVariableDeclaration(n)&&n.name.getText(source)==='read'&&ts.isCallExpression(n.initializer))readNode=n.initializer.arguments[0];
-    if(ts.isVariableDeclaration(n)&&n.name.getText(source)==='choose')chooseNode=n.initializer;
-    ts.forEachChild(n,visit);
-  }
-  visit(component);assert.ok(readNode&&chooseNode);
-  const currentAccount=()=>auth.user?.id===ownerId&&auth.accountRevision===1;
-  const izvor={
-    async potreba(){sourceCalls.push('need');if(control.sourceHook)await control.sourceHook();if(control.sourceThrows)throw new Error('task unavailable');return need;},
-    async prijaveZaPotrebu(){sourceCalls.push('candidates');if(control.sourceThrows)throw new Error('candidates unavailable');return [candidate];},
-    izaberiPrijavu:service.applicationSelectionClientService.izaberiPrijavu,
-  };
-  const read=evaluate(helper.getText(source)+'\nmodule.exports = '+readNode.getText(source)+';',{
-    session,id:needId,izvor,pager:null,boundedApplicationSelectionRead:service.boundedApplicationSelectionRead,
-    readSelectionResult:service.readSelectionResult,currentAccount,user:auth.user,accountRevision:1,
-    NO_ROWS:[],STALE_REVIEW_MESSAGE:'stale',
-  });
-  const choose=evaluate('module.exports = '+chooseNode.getText(source)+';',{
-    session,candidate,pending:session.pending,current:()=>currentAccount()&&session.focused&&session.active,
-    data:{need,candidates:[candidate],receipt:null},izvor,render:()=>{},currentAccount,
-    noviZahtevId:()=>{throw new Error('An unknown pending selection must not get a new key');},
-    conclusiveSelectionRefusal:service.conclusiveSelectionRefusal,
-    editor:{async save(work,options){control.saveOptions=options;return work();}},
-  });
-  return {account,auth,need,candidate,session,calls,sourceCalls,control,service,read,choose,original};
-}
+const { ROOT, ROUTE, ID, agreementId, command, found, absent, compile, evaluate, harness } = require('./r07-selection-recovery-harness.cjs');
 
 test('a lost selection reply is recovered from its exact receipt without a second writer call',async()=>{
-  const h=harness();h.control.selectThrows=true;
+  const h=harness();h.control.selectThrows=true;h.session.pending.reconciled=true;
   await h.choose();assert.equal(h.session.pending.result.ok,false);
   const originalCommand=h.session.pending.command;
   const result=await h.read();
@@ -197,7 +103,7 @@ test('terminal Agreement state from the reader is preserved for honest recovery 
 test('last-place and stale-review refusals settle only with the real selection SQLSTATE',async()=>{
   for(const [message,code] of [['OVERFILL','P0001'],['NEED_NOT_OPEN','P0001'],
     ['STALE_REVIEW_REQUIRED','P0001'],['APPLICATION_PRICE_BASIS_REVIEW_REQUIRED','PT409']]) {
-    const h=harness();h.control.selectError={message,code};
+    const h=harness();h.control.selectError={message,code};h.session.pending.reconciled=true;
     const outcome=await h.choose();
     assert.equal(h.service.conclusiveSelectionRefusal(outcome),true);
     assert.equal(h.control.saveOptions.settledFailure(outcome),true);
@@ -208,7 +114,7 @@ test('last-place and stale-review refusals settle only with the real selection S
 test('a bare rejection message, ID collision or concurrency failure remains unknown',async()=>{
   for(const error of [{message:'OVERFILL'},{message:'OVERFILL',code:'40001'},
     {message:'IDEMPOTENCY_KEY_REUSED',code:'22023'},{message:'serialization failure',code:'40001'}]) {
-    const h=harness();h.control.selectError=error;
+    const h=harness();h.control.selectError=error;h.session.pending.reconciled=true;
     const outcome=await h.choose();
     assert.equal(outcome.ok,false);assert.equal(h.service.conclusiveSelectionRefusal(outcome),false);
     assert.equal(h.control.saveOptions.settledFailure(outcome),false);

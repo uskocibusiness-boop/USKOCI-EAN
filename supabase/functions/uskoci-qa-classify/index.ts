@@ -1,6 +1,7 @@
 import { decodeQaSubmissionStatus, type QaSubmissionStatus } from '../../../src/contracts/qaSubmission.ts';
 import { qaTextHash } from '../../../src/lib/qaTextHash.ts';
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
+import { geminiUsage } from '../_shared/geminiTaskStream.ts';
 import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 declare const Deno: { env: { get(name: string): string | undefined }; serve(handler: (r: Request) => Promise<Response>): void };
 type Row = Record<string, unknown>;
@@ -15,7 +16,7 @@ const hash = (v: unknown) => typeof v === 'string' && /^[a-f0-9]{64}$/.test(v);
 const text = (v: unknown, max: number): v is string => typeof v === 'string' && !!v.trim() && Array.from(v).length <= max;
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info', 'Access-Control-Allow-Methods': 'POST,OPTIONS' };
 const response = (status: number, data: unknown) => new Response(JSON.stringify(data), { status, headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
-const failure = (status: number, code = 'QA_CLASSIFICATION_UNCONFIRMED') => response(status, { code, message: 'Proveri ishod pitanja pre ponovnog slanja.' });
+const failure = (status: number, code = 'QA_CLASSIFICATION_UNCONFIRMED') => response(status, { code, message: 'Proverite ishod pitanja pre ponovnog slanja.' });
 async function json(input: Request | Response, max: number, signal: AbortSignal): Promise<unknown> {
   const size = input.headers.get('content-length');
   if (size !== null && (!/^\d+$/.test(size) || Number(size) > max)) throw new Error('QA_BODY_INVALID');
@@ -199,11 +200,25 @@ export async function handleQaClassification(req: Request): Promise<Response> {
             ruleIds: { type: 'array', items: { type: 'string', enum: context.policy.rules.map(r => r.ruleId) } },
             safeReasonCodes: { type: 'array', items: { type: 'string', enum: [...new Set(context.policy.rules.flatMap(r => r.safeReasonCodes))] } } } } } });
       if (new TextEncoder().encode(payload).length > AI_TEST_LIMITS.llmRequestBytes) return failure(503);
-      const budget = await reserveAiTestBudget({ supabaseUrl: url, serviceRoleKey: service, accountId, operationId: status.classificationId, kind: 'LLM', signal });
+      const providerOperationId = status.classificationId;
+      const budget = await reserveAiTestBudget({ supabaseUrl: url, serviceRoleKey: service, accountId, operationId: providerOperationId, kind: 'LLM', signal });
       if (!budget.admitted || budget.replay) return failure(503, 'QA_TEST_BUDGET_NOT_ADMITTED');
       if (await serviceRpc('rpc_dispatch_qa_classification_service', dispatchArgs) !== true) return failure(409);
       const provider = row(await fetchWithin('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': providerKey }, body: payload }, 30000, signal));
+      // A paid answer still has a cost when its semantic output is refused or
+      // the caller disconnects. Record only complete provider usage, once, for
+      // the same reserved operation; missing/invalid usage keeps its hold.
+      const usage = geminiUsage(provider?.usageMetadata);
+      if (usage) {
+        const accounting = fetchWithin(url + '/rest/v1/rpc/rpc_ai_test_record_usage_service', {
+          method: 'POST', headers: supabaseServiceHeaders(service, { 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ p_operation_id: providerOperationId, p_model: 'gemini-3.8-flash',
+            p_prompt_tokens: usage.promptTokens, p_output_tokens: usage.outputTokens, p_total_tokens: usage.totalTokens }),
+        }, 5000).catch(() => undefined);
+        const runtime = (globalThis as unknown as { EdgeRuntime?: { waitUntil(promise: Promise<unknown>): void } }).EdgeRuntime;
+        if (runtime?.waitUntil) runtime.waitUntil(accounting); else await accounting;
+      }
       const candidates = provider?.candidates, candidate = Array.isArray(candidates) && candidates.length === 1 ? row(candidates[0]) : null;
       const content = row(candidate?.content), parts = content?.parts;
       if (!candidate || candidate.finishReason !== 'STOP' || !Array.isArray(parts)) return failure(502);
