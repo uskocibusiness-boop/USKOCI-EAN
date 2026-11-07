@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "kind": "R10_HISTORICAL_SOURCE_RECONSTRUCTION_BOUNDARY",
+  "status": "IZOLOVANE 88 KONTROLE POTVRĐENE; REKONSTRUKCIJA ZAUSTAVLJENA PRE PRIHVATANJA 99/108",
+  "completed_at_utc": "2026-11-07T17:28:23.453985+00:00",
+  "source_head_at_recording": "bc9dab1c4cf2ab07e5cd088b57f4465d283604e0",
+  "lineage_proof": {
+    "path": "docs/plan/proofs/r10-source-baseline-lineage-20261107.json",
+    "sha256": "c4a8852addc4805e7d5c98e7408302a2260cb0559f4b95c45586f4fc34ababf0",
+    "preserved_unchanged": true
+  },
+  "scope": "Pokušaj samo istorijske rekonstrukcije 88→99→108 iz navedenih Git artefakata u scratch-u. Nema novog audita aplikacije, promena runtime koda, DEV SQL poziva, pinova ili pravnih politika u ovom pokušaju.",
+  "controls": {
+    "status": "STOPPED_AT_UNMATCHED_88_TO_99_CONTROL",
+    "archive_commit": "de7fbe540aab919cf8bb5d14a08bc20f3ede433e",
+    "baseline_88": {
+      "program_digest": "2fe2edc126edc9a9b08b4e3cfce758ff928c99d377a0df3b04bd49961cc4a078",
+      "source_digest": "0579191d8ef6ef2d9625569cd64e65ad1398c4e9cc176404beff253a10853431",
+      "source_members": 88,
+      "program_members": 130,
+      "schema_digest": "1069d77d36abfccc4e0f5a894ea3314b701c122401ed6d6c9333723f29b2950a",
+      "schema_relations": 126
+    },
+    "location_99": {
+      "program_digest": "3f8a9adbde13bf39e01131e0344cd7024ba71204973d78d3f0abe655aa9f63b2",
+      "source_digest": "4353e99a0832e8473fc7349fbe4fb9e600914a99edefafbbbaaab1008d0da747",
+      "source_members": 99,
+      "program_members": 141
+    },
+    "expected_location_99": {
+      "source_digest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+      "program_digest": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f"
+    },
+    "source_digest_matches": false,
+    "program_digest_matches": false,
+    "source_using_recorded_program_component_diagnostic_only": "3377948332f2f974341b59aabfa0264b9e582c341249edb6b3bb8118a8825cdc",
+    "location_candidate_sha256": "e4a44a9bba6de1d671aa0698a1a9fa45685a7054f17c8d3dcc68c6ddc8a13b61",
+    "literal_function_bodies_verified_against_application_receipt": [
+      "private.ai_claim_need_turn_context_v1(uuid,uuid,uuid,text,jsonb)",
+      "private.ai_location_context_valid(jsonb)",
+      "private.ai_location_request_hash(uuid,text,jsonb)",
+      "private.ai_location_review_matches(uuid,jsonb)",
+      "private.ai_location_turn_document(uuid,uuid,uuid)",
+      "private.ai_need_turn_status(uuid,uuid,uuid)",
+      "private.closure_erasure_program_digest_v5()",
+      "private.closure_source_digest_v5()",
+      "public.rpc_ai_claim_need_location_turn_v1_service(uuid,uuid,uuid,text,jsonb)",
+      "public.rpc_ai_claim_need_turn_v2_service(uuid,uuid,uuid,text)",
+      "public.rpc_ai_complete_need_location_turn_v1_service(uuid,uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)",
+      "public.rpc_ai_read_need_location_turn_v1(uuid,uuid)",
+      "public.rpc_ai_read_need_location_turn_v1_service(uuid,uuid,uuid)"
+    ],
+    "additional_receipt_functions_outside_digest": [
+      "private.need_location_review_document(uuid)",
+      "private.retention_ai_source_ready()",
+      "public.rpc_ai_complete_need_turn_v2_service(uuid,uuid,uuid,uuid,text,text,text,jsonb)"
+    ],
+    "database_calls": 0,
+    "database_mutations": 0,
+    "runtime_function_execution": false
+  },
+  "independent_local_checks": {
+    "postgres_jsonb_serialization": {
+      "method": "Izolovani PGlite računa isti jsonb_build_object/jsonb_agg program dokument nad pokušajem metapodataka; SHA računa Node crypto. Nema aplikacionih tabela ili poslovnih poziva.",
+      "program_document_sha256": "3f8a9adbde13bf39e01131e0344cd7024ba71204973d78d3f0abe655aa9f63b2",
+      "matches_python_jsonb_representation": true
+    },
+    "exact_location_sql_parser": {
+      "literal_create_functions": 13,
+      "body_md5_and_six_record_fields_match_historical_receipt": true,
+      "compared_fields": [
+        "body_md5",
+        "config",
+        "definer",
+        "volatility",
+        "language",
+        "args"
+      ],
+      "differences": [],
+      "strict_true_functions": [],
+      "dependency_validation_enabled": false,
+      "business_function_execution": 0,
+      "limitation": "SET check_function_bodies=false služi samo parser/pg_proc metapodacima. Ovo nije prihvat izvršavanja funkcija, njihove autorizacije ili closure toka."
+    }
+  },
+  "earliest_unaccepted_transition": {
+    "name": "AI-location 88→99, pre push 99→108",
+    "exact_source_delta_available": true,
+    "literal_function_body_checks": 13,
+    "historical_receipt_function_records": 17,
+    "full_per_object_99_postimage_found_in_checked_inputs": false,
+    "program_source_inventory_expected": 99,
+    "program_source_inventory_reconstructed": 99,
+    "program_function_metadata_rows_reconstructed": 141,
+    "preserved_catalog_identifiers": "Koristi samo sirove string OID identitete iz starog 88 inventara. Ne koristi današnji DEV, nasumične OID vrednosti niti OID vrednosti izolovanog PGlite-a za izračunavanje istorijskog pina.",
+    "derived_metadata_limit": "Za 11 novododatih source članova korišćeni su: tačna SQL definicija; istorijski receipt imena vlasnika/jezika, ACL, config, volatility/definer i body MD5; postojeća istorijska mapa tipova/uloga/jezika. Receipt nema kompletnu sirovu pg_proc postimage projekciju (npr. raw owner/language/argument/result OID i strict u jednom snapshot-u). Ta izvedena reprezentacija nije prihvaćena jer oba kontrolna hasha nisu reprodukovana.",
+    "cannot_attribute_mismatch_to_raw_oid_alone": true,
+    "reason": "Čak source-dijagnostika sa zabeleženim program digest-om daje 3377948332f2f974341b59aabfa0264b9e582c341249edb6b3bb8118a8825cdc umesto 3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23. To je zaseban dokaz da ne treba tvrditi da je problem samo katalog OID razlika.",
+    "next_108_attempted": false,
+    "expected_pin_0201_reproduced": false,
+    "stop_reason": "Prelaz 88→99 nije nezavisno reprodukovan. Nema promene očekivanih vrednosti da bi provera prošla, niti nastavka preko neusaglašenog prethodnika."
+  },
+  "interpretation": {
+    "no_historical_migration_defect_claim": true,
+    "no_claim_that_all_git_or_external_backups_were_searched": true,
+    "no_accepted_148_168_delta_classification": true,
+    "next_precise_evidence": "Pribaviti tačan sačuvan posle-snimak prihvaćenog 99 program/source inventara (sve ulazne signature/body hash-eve i metadata projekciju), ciljanim produbljenjem istorijskog Git pregleda ili pronalaženjem odgovarajuće rezervne kopije; alternativno nezavisno razrešiti ovu konkretnu reprodukciju na već sačuvanim istorijskim artefaktima. Ne nadomeštati nedostajuće podatke današnjim stanjem i ne prepisivati pin. Tek posle tačnih 99 kontrola nastaviti već lociranu push deltu 99→108.",
+    "product_retention_or_export_ready": false
+  },
+  "activity": {
+    "dev_queries": 0,
+    "dev_writes": 0,
+    "policy_or_pin_changes": 0,
+    "provider_calls": 0,
+    "ordinary_account_business_requests": 0,
+    "native_checks": 0,
+    "runtime_source_edits": 0
+  },
+  "inputs": [
+    {
+      "commit": "de7fbe540aab919cf8bb5d14a08bc20f3ede433e",
+      "path": "supabase/proofs/push_single_target/promotion/expected-prelocation-surface.json",
+      "git_blob": "2e784b9654ddc9c40050465abb21b25505c2779b",
+      "sha256": "aab109d29fffce55d4fba596ab9d7cc7eb10678ffb128f1bfb1d8e2ac958fc5d",
+      "bytes": 363185
+    },
+    {
+      "commit": "de7fbe540aab919cf8bb5d14a08bc20f3ede433e",
+      "path": "supabase/proofs/push_single_target/promotion/cert-surface-diagnostic.mjs",
+      "git_blob": "0637e8dde9d7fd8c173353f29e32443b068f980c",
+      "sha256": "cc1bb91cdf459f21119a1c5a47e9ba6cf899cf630222bac789d88d5859fd3686",
+      "bytes": 11255
+    },
+    {
+      "commit": "de7fbe540aab919cf8bb5d14a08bc20f3ede433e",
+      "path": "supabase/candidates/ai-location-01-20261002/location_reply_candidate.sql",
+      "git_blob": "1c0318c2d9b206d41d63db1a101a041f6d6e415a",
+      "sha256": "e4a44a9bba6de1d671aa0698a1a9fa45685a7054f17c8d3dcc68c6ddc8a13b61",
+      "bytes": 40209
+    },
+    {
+      "commit": "de7fbe540aab919cf8bb5d14a08bc20f3ede433e",
+      "path": "supabase/candidates/ai-location-01-20261002/before-sql/private.closure_erasure_program_digest_v5.sql",
+      "git_blob": "0e53ebdbee7ea72bb10a3c0c44e1923e67071756",
+      "sha256": "4155c6a9dcfbe0e0a1aa5cfeddb78db03161d684530fcc4c63a78aa77c61217d",
+      "bytes": 6081
+    },
+    {
+      "commit": "de7fbe540aab919cf8bb5d14a08bc20f3ede433e",
+      "path": "supabase/operations/dev-alpha/ledger/20261002_ai_location_01_application.receipt.json",
+      "git_blob": "5778af40e09a4a69e43cd523b7247e0df442794b",
+      "sha256": "abd8697e14968bea8ed840e52459939e40b46a16834dfe3bb4e27c775368cebc",
+      "bytes": 13189
+    }
+  ],
+  "reproduction": {
+    "language": "Python 3 and Node/PGlite",
+    "expected_main_exit_code": 1,
+    "expected_assertion": "HISTORICAL_99_SOURCE_NOT_REPRODUCED",
+    "notes": "Sačuvani kod je dijagnostički dokaz, nije deo aktivnog paketa testova. Glavni Python čita tačne Git blobove, zapisuje kontrolni rezultat i prekida na nepoklopljenom 99 source-u. PGlite pomoćnici rade samo lokalno; njihovi ulazni 13 CREATE fragmenti su isključivo literalni blokovi iz već hash-povanog location SQL-a, izdvojeni istim CREATE regex-om iz glavnog reproduktora.",
+    "scripts": [
+      {
+        "name": "r10-reconstruct-source.py",
+        "sha256": "45cecef611cab94569f8782b0ace512778e44ec2a8217ba89ff7bb4d06ab5a9c",
+        "source": "import csv\nimport hashlib\nimport json\nimport re\nimport subprocess\nfrom pathlib import Path\n\nREPO = Path('/workspace/scratch/01f9acde8f88/USKOCI-EAN')\nROOT = REPO.parent\nARCHIVE = 'de7fbe540aab919cf8bb5d14a08bc20f3ede433e'\nBASE = 'supabase/proofs/push_single_target/'\n\n\ndef blob(path):\n    return subprocess.check_output(['git', 'show', ARCHIVE + ':' + path], cwd=REPO)\n\n\ndef text(path):\n    return blob(path).decode()\n\n\ndef read(path):\n    return json.loads(blob(path))\n\n\ndef sha(value):\n    return hashlib.sha256(value.encode() if isinstance(value, str) else value).hexdigest()\n\n\ndef pgjson(value):\n    if isinstance(value, dict):\n        keys = sorted(value, key=lambda k: (len(k.encode()), k.encode()))\n        return '{' + ', '.join(json.dumps(k, ensure_ascii=False) + ': ' + pgjson(value[k]) for k in keys) + '}'\n    if isinstance(value, list):\n        return '[' + ', '.join(pgjson(item) for item in value) + ']'\n    return json.dumps(value, ensure_ascii=False, separators=(',', ':'), allow_nan=False)\n\n\ndef digests(surface):\n    functions = sorted(surface['functions'], key=lambda item: item['signature'])\n    program = {\n        'functions': [dict(\n            signature=f['signature'], source=f['bodyMd5'], owner=f['ownerOid'],\n            acl=f['acl'], definer=f['definer'], strict=f['strict'],\n            volatility=f['volatility'], language=f['languageOid'], config=f['config'],\n            args=f['argsOid'], result=f['resultOid'],\n        ) for f in functions if f['programMember']],\n        'tables': [[t['table'], t['ownerOid'], t['acl'], t['rls'], t['forceRls']]\n                   for t in sorted(surface['programTables'], key=lambda item: item['table'])],\n        'triggerState': surface['triggerState'],\n    }\n    program_digest = sha(pgjson(program))\n    components = surface['components']\n    roster = '\\n'.join(f['signature'] + ':' + f['bodyMd5'] for f in functions if f['sourceMember'])\n    source_digest = sha(':'.join([components['schemaDigest'], program_digest,\n                                 components['invalidationSurface'], components['voiceSurface'], roster]))\n    return {'program_digest': program_digest, 'source_digest': source_digest,\n            'source_members': sum(f['sourceMember'] for f in functions),\n            'program_members': sum(f['programMember'] for f in functions)}\n\n\nCREATE = re.compile(\n    r'\\bcreate\\s+(?:or\\s+replace\\s+)?function\\s+(?P<name>(?:private|public)\\.\\w+)'\n    r'\\s*\\((?P<args>.*?)\\)\\s+returns\\s+(?P<result>\\w+)\\s+(?P<attrs>.*?)'\n    r'\\bas\\s+(?P<tag>\\$[a-zA-Z0-9_]*\\$)(?P<body>.*?)(?P=tag)', re.I | re.S)\n\n\ndef parse_creates(sql):\n    return {m.group('name'): m.groupdict() for m in CREATE.finditer(sql)}\n\n\ndef source_members(body):\n    array = re.search(r'unnest\\(array\\[(.*?)\\]\\)\\s+signature', body, re.S | re.I).group(1)\n    return set(re.findall(\"'((?:''|[^'])*)'\", array))\n\n\ndef program_members(body):\n    array = re.search(r\"from unnest\\('\\{(.*?)\\}'::text\\[\\]\\) x\\)\", body, re.S | re.I).group(1)\n    return set(next(csv.reader([array])))\n\n\nsurface = read(BASE + 'promotion/expected-prelocation-surface.json')\nbaseline = digests(surface)\nbaseline['schema_digest'] = sha(pgjson(surface['schemaTables']))\nbaseline['schema_relations'] = len(surface['schemaTables'])\nassert baseline['schema_digest'] == surface['components']['schemaDigest']\nassert baseline['source_digest'] == surface['projectedSourceDigest']\nassert baseline['program_digest'] == surface['projectedProgramDigest']\nassert baseline['source_members'] == 88\nprint('BASELINE_88', json.dumps(baseline))\n\n# OIDs are historical catalog identities, preserved as JSON strings as in the capture.\n# No IDs are supplied from today's DEV database or a disposable database.\ntypes, owners, languages = {}, {}, {}\nfor f in surface['functions']:\n    for name, oid in zip(f['args'], f['argsOid'].split()):\n        assert name not in types or types[name] == oid\n        types[name] = oid\n    assert f['result'] not in types or types[f['result']] == f['resultOid']\n    types[f['result']] = f['resultOid']\n    assert f['owner'] not in owners or owners[f['owner']] == f['ownerOid']\n    assert f['language'] not in languages or languages[f['language']] == f['languageOid']\n    owners[f['owner']] = f['ownerOid']\n    languages[f['language']] = f['languageOid']\n\nlocation_path = 'supabase/candidates/ai-location-01-20261002/location_reply_candidate.sql'\nlocation = parse_creates(text(location_path))\n(ROOT / 'r10-location-create-fixture.json').write_text(json.dumps(\n    [match.group(0) + ';' for match in CREATE.finditer(text(location_path))]\n) + '\\n')\nlocation_receipt = read('supabase/operations/dev-alpha/ledger/20261002_ai_location_01_application.receipt.json')\nassert sha(blob(location_path)) == location_receipt['migration']['sha256']\nsource = source_members(location['private.closure_source_digest_v5']['body'])\nprogram = program_members(location['private.closure_erasure_program_digest_v5']['body'])\nprior_program = program_members(text('supabase/candidates/ai-location-01-20261002/before-sql/private.closure_erasure_program_digest_v5.sql'))\ntriggers = {f['signature'] for f in surface['functions'] if f['programMember'] and f['signature'] not in prior_program}\nfunctions = {f['signature']: f for f in surface['functions']}\nverified_bodies = []\noutside_digest_receipt_functions = []\nfor f in location_receipt['functions']:\n    args = [item.strip().split(' ', 1)[1] for item in f['args'].split(',') if item.strip()]\n    signature = f['function_name'] + '(' + ','.join(args) + ')'\n    old = functions.get(signature)\n    create = location.get(f['function_name'])\n    if not old and signature not in source and signature not in program and signature not in triggers:\n        outside_digest_receipt_functions.append(signature)\n        continue\n    if create:\n        assert hashlib.md5(create['body'].encode()).hexdigest() == f['body_md5'], signature\n        strict = bool(re.search(r'\\bstrict\\b', create['attrs'], re.I))\n        result_type = create['result']\n        verified_bodies.append(signature)\n    elif old:\n        strict, result_type = old['strict'], old['result']\n    else:\n        raise AssertionError('MISSING_HISTORICAL_FUNCTION_METADATA:' + signature)\n    if not old:\n        old = dict(signature=signature, ownerOid=owners[f['owner']], languageOid=languages[f['language']],\n                   argsOid=' '.join(types[t] for t in args), resultOid=types[result_type])\n        functions[signature] = old\n    old.update(bodyMd5=f['body_md5'], actualBodyMd5=f['body_md5'], owner=f['owner'], language=f['language'],\n               args=args, result=result_type, acl=f['acl'], config=f['proconfig'], strict=strict,\n               volatility=f['provolatile'], definer=f['prosecdef'], ownerOid=owners[f['owner']],\n               languageOid=languages[f['language']], argsOid=' '.join(types[t] for t in args),\n               resultOid=types[result_type])\nfor signature, f in functions.items():\n    f.update(sourceMember=signature in source, programMember=signature in program or signature in triggers)\nsurface['functions'] = list(functions.values())\nlocation_result = digests(surface)\nprint('LOCATION_99', json.dumps(location_result))\nassert location_result['source_members'] == 99\nassert len(verified_bodies) == 13\nroster = '\\n'.join(f['signature'] + ':' + f['bodyMd5']\n                   for f in sorted(surface['functions'], key=lambda f: f['signature']) if f['sourceMember'])\ncomponents = surface['components']\ndiagnostic_source = sha(':'.join([components['schemaDigest'], location_receipt['programDigest'],\n                                 components['invalidationSurface'], components['voiceSurface'], roster]))\n(ROOT / 'r10-reconstructed99-attempt.json').write_text(json.dumps(surface, ensure_ascii=False, indent=2) + '\\n')\n(ROOT / 'r10-reconstruction-control-results.json').write_text(json.dumps({\n    'status': 'STOPPED_AT_UNMATCHED_88_TO_99_CONTROL',\n    'archive_commit': ARCHIVE,\n    'baseline_88': baseline,\n    'location_99': location_result,\n    'expected_location_99': dict(source_digest=location_receipt['digest'], program_digest=location_receipt['programDigest']),\n    'source_digest_matches': location_result['source_digest'] == location_receipt['digest'],\n    'program_digest_matches': location_result['program_digest'] == location_receipt['programDigest'],\n    'source_using_recorded_program_component_diagnostic_only': diagnostic_source,\n    'location_candidate_sha256': sha(blob(location_path)),\n    'literal_function_bodies_verified_against_application_receipt': verified_bodies,\n    'additional_receipt_functions_outside_digest': outside_digest_receipt_functions,\n    'database_calls': 0, 'database_mutations': 0, 'runtime_function_execution': False,\n}, ensure_ascii=False, indent=2) + '\\n')\nassert location_result['source_digest'] == location_receipt['digest'], 'HISTORICAL_99_SOURCE_NOT_REPRODUCED'\nassert location_result['program_digest'] == location_receipt['programDigest'], 'HISTORICAL_99_PROGRAM_NOT_REPRODUCED'\n"
+      },
+      {
+        "name": "r10-location-create-metadata.cjs",
+        "sha256": "1c78f858fa42e3f7ccd1c2a080c741077ea49e8d4a2e6df21f7ce3bbbe171831",
+        "source": "const { PGlite } = require('/workspace/scratch/01f9acde8f88/USKOCI-EAN/node_modules/@electric-sql/pglite');\nconst fs = require('node:fs');\n(async () => {\n  const db = new PGlite();\n  await db.exec('CREATE SCHEMA private; SET check_function_bodies=false;');\n  const statements = JSON.parse(fs.readFileSync('/workspace/scratch/01f9acde8f88/r10-location-create-fixture.json','utf8'));\n  for (const sql of statements) await db.exec(sql);\n  const { rows } = await db.query(`SELECT n.nspname||'.'||p.proname AS function_name,\n     pg_get_function_identity_arguments(p.oid) AS args, format_type(p.prorettype,NULL) AS result,\n     p.proisstrict AS strict,p.prosecdef AS definer,p.provolatile AS volatility,\n     p.proconfig AS config,l.lanname AS language,md5(p.prosrc) AS body_md5\n     FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace\n     JOIN pg_language l ON l.oid=p.prolang WHERE n.nspname='private' OR\n       (n.nspname='public' AND p.proname LIKE 'rpc_ai_%') ORDER BY n.nspname,p.proname`);\n  fs.writeFileSync('/workspace/scratch/01f9acde8f88/r10-location-parser-metadata.json',JSON.stringify(rows,null,2)+'\\n');\n  console.log(JSON.stringify({functions_created:rows.length,strict_true:rows.filter(x=>x.strict).map(x=>x.function_name),business_functions_executed:0}));\n  await db.close();\n})().catch(e => {console.error(e.message);process.exitCode=1;});\n"
+      },
+      {
+        "name": "r10-program-json-check.cjs",
+        "sha256": "81fbe89fe85049bd3f3beb10cc3ac76a5a2caa9399f17ee98c4045467f24a1dd",
+        "source": "const { PGlite } = require('/workspace/scratch/01f9acde8f88/USKOCI-EAN/node_modules/@electric-sql/pglite');\nconst fs = require('node:fs');\nconst { createHash } = require('node:crypto');\n(async () => {\n const db = new PGlite();\n const input = fs.readFileSync('/workspace/scratch/01f9acde8f88/r10-reconstructed99-attempt.json','utf8');\n const {rows} = await db.query(`WITH d(data) AS (VALUES ($1::jsonb)) SELECT jsonb_build_object(\n 'functions',(select jsonb_agg(jsonb_build_object('signature',f->'signature','source',f->'bodyMd5','owner',f->'ownerOid','acl',f->'acl','definer',f->'definer','strict',f->'strict','volatility',f->'volatility','language',f->'languageOid','config',f->'config','args',f->'argsOid','result',f->'resultOid') order by f->>'signature') from jsonb_array_elements(data->'functions')f where(f->>'programMember')::boolean),\n 'tables',(select jsonb_agg(jsonb_build_array(t->'table',t->'ownerOid',t->'acl',t->'rls',t->'forceRls') order by t->>'table') from jsonb_array_elements(data->'programTables')t),\n 'triggerState',data->'triggerState')::text AS document FROM d`,[input]);\n const sha = createHash('sha256').update(rows[0].document).digest('hex');\n fs.writeFileSync('/workspace/scratch/01f9acde8f88/r10-attempt99-program-document.json',rows[0].document);\n console.log(JSON.stringify({pglite_program_document_sha256:sha}));\n await db.close();\n})().catch(e => { console.error(e.message);process.exitCode=1; });\n"
+      }
+    ],
+    "steps": [
+      "Izdvojiti tri scripts[].source teksta u isto scratch okruženje; očekivani repo path je naveden u glavnom Python reproduktoru.",
+      "Pokrenuti Python reproduktor: očekivan exit1/HISTORICAL_99_SOURCE_NOT_REPRODUCED; kontrolni rezultati i 13 CREATE fixture fragmenti ostaju sačuvani.",
+      "Pokrenuti lokalni r10-location-create-metadata.cjs i uporediti šest navedenih polja svih13 redova sa hash-povanim application receipt-om.",
+      "Pokrenuti r10-program-json-check.cjs: njegov program_document_sha256 mora biti3f8a9adbde13bf39e01131e0344cd7024ba71204973d78d3f0abe655aa9f63b2."
+    ]
+  },
+  "component_continuity_addendum": {
+    "checked_at_utc": "2026-11-07T17:33:04.906781+00:00",
+    "previous_draft_sha256": "4722b5f4b58e23f551ba0f07cf4b02e8a711711a3ad9c2fedf64849ce734b980",
+    "review_question": "Da li je razlika88→99 nastala zbog pogrešnog prenošenja starih schemaDigest/invalidationSurface/voiceSurface komponenti, naročito indirektne zavisnosti Need complete writera?",
+    "result": "Konkretna hipoteza proverena; navedene komponente su već direktno zabeležene u post-location capture-u i AI-location delta ne menja njihove ulaze. Zasebne99 program/source razlike ostaju nerazrešene.",
+    "actual_post_location_components": {
+      "schemaDigest": "1069d77d36abfccc4e0f5a894ea3314b701c122401ed6d6c9333723f29b2950a",
+      "sourceDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+      "voiceSurface": "f44e5c0ee1b90929636a55ac813b2b6bfd4768f0e857d0bae13db24172a4373a",
+      "programDigest": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+      "invalidationSurface": "fa88193b4d41d5d1e6c8c46f4a0c5d30823e34eceff15d68fbad46f08fa20af4"
+    },
+    "capture_semantics": {
+      "source_path": "supabase/proofs/push_single_target/promotion/cert-surface-diagnostic.mjs",
+      "method": "diagnosticSql vraća components direktnim pozivima closure_schema_digest_v5_139, closure_erasure_program_digest_v5, agreement_invalidation_surface_v1, agreement_voice_surface_v1 i closure_source_digest_v5. Projektuje samo dva source/program tela i odgovarajuće liste funkcija; components nisu projektovani na pre-location vrednosti.",
+      "actual_post_source_digest_matches_location_receipt": true,
+      "actual_post_program_digest_matches_location_receipt": true
+    },
+    "invalidation": {
+      "exact_functions": [
+        "private.agreement_invalidation_cleanup_v1()",
+        "private.agreement_invalidation_surface_v1()",
+        "private.agreement_message_invalidate_v1()",
+        "public.rpc_agreement_invalidation_visible_v1(uuid)"
+      ],
+      "other_inputs": [
+        "pg_policies za public.agreement_invalidations_v1",
+        "pg_publication_tables za public.agreement_invalidations_v1 i public.agreement_messages",
+        "puballtables/pubinsert/pubupdate/pubdelete/pubtruncate za supabase_realtime"
+      ],
+      "need_complete_writer_in_inventory": false,
+      "ai_location_touched_input_overlap": []
+    },
+    "voice": {
+      "inputs": [
+        "storage.buckets red agreement-voice i njegova javnost/ograničenja",
+        "storage.objects restriktivne ili agreement-voice politike",
+        "storage.objects RLS i FORCE RLS zastavice"
+      ],
+      "ai_location_touched_input_overlap": []
+    },
+    "schema": {
+      "definition_body_md5": "988b9d3ab9c0dc7341cd30a391184e40",
+      "inputs": "Sve public/private r/p relacije i storage.objects: kolone/tip/nullability, constraint definicije, trigger definicije i direktna trigger-function tela.",
+      "delta_review": "AI-location menja 13 literalnih funkcija sa rezultatima jsonb/boolean/text, ne trigger; jedini CREATE TABLE je privremena tabela izvan obuhvata. Nema relacijskog/Storage/policy/publication DDL u toj delti. Dinamički EXECUTE koraci vraćaju/ponovo postavljaju samo source/program definicije i menjaju retention literal. Certificate row vrednosti nisu ulaz u schema digest.",
+      "known_schema_control_reproduced": true
+    },
+    "definition_hash_checks": [
+      {
+        "path": "supabase/candidates/messages-inbox-01-20261003/baseline/function-9.json",
+        "sha256": "2a570e27d6c05db8b925365315e15638e4685e2d32a32e2a27fe30bbb4d5dcf8",
+        "signature": "private.agreement_invalidation_surface_v1()",
+        "recorded_body_md5": "a362fcc11419703eb07f07b4f82eebdb",
+        "computed_definition_body_md5": "a362fcc11419703eb07f07b4f82eebdb",
+        "projected_surface_body_md5": "a362fcc11419703eb07f07b4f82eebdb",
+        "all_body_pins_equal": true
+      },
+      {
+        "path": "supabase/candidates/messages-inbox-01-20261003/baseline/function-11.json",
+        "sha256": "3737874beb499a00ca3cb048e538e7167749a6851d17e8047304ef5ef16ab60e",
+        "signature": "private.agreement_voice_surface_v1()",
+        "recorded_body_md5": "b697d12234198c95815257d7ce73f147",
+        "computed_definition_body_md5": "b697d12234198c95815257d7ce73f147",
+        "projected_surface_body_md5": "b697d12234198c95815257d7ce73f147",
+        "all_body_pins_equal": true
+      }
+    ],
+    "additional_git_inputs": [
+      {
+        "commit": "de7fbe540aab919cf8bb5d14a08bc20f3ede433e",
+        "path": "supabase/proofs/push_single_target/promotion/expected-invalidation-surface.json",
+        "git_blob": "81d4b554c7957383d623335a1249af2ab5fec526",
+        "sha256": "95b19f2a9455e3e18afc67347645e54810399dcd9c72f473671bf1ce57ab22ba",
+        "bytes": 9370
+      },
+      {
+        "commit": "de7fbe540aab919cf8bb5d14a08bc20f3ede433e",
+        "path": "supabase/candidates/messages-inbox-01-20261003/baseline/function-9.json",
+        "git_blob": "a345ca281bc8cabe129928d9074545f18cbadd21",
+        "sha256": "2a570e27d6c05db8b925365315e15638e4685e2d32a32e2a27fe30bbb4d5dcf8",
+        "bytes": 1564
+      },
+      {
+        "commit": "de7fbe540aab919cf8bb5d14a08bc20f3ede433e",
+        "path": "supabase/candidates/messages-inbox-01-20261003/baseline/function-11.json",
+        "git_blob": "1a9480c1511593ba9a5d4dc92dc56dd17d120bde",
+        "sha256": "3737874beb499a00ca3cb048e538e7167749a6851d17e8047304ef5ef16ab60e",
+        "bytes": 1292
+      },
+      {
+        "commit": "de7fbe540aab919cf8bb5d14a08bc20f3ede433e",
+        "path": "supabase/proofs/push_single_target/promotion/live-preflight-capture.json",
+        "git_blob": "ecef7d9405acbf5b9a4a43a96c3addbc55e53495",
+        "sha256": "ecd493237c8dd6e364d16aaf5b50c57588529e78706fff3c7fe1bf0aec07c427",
+        "bytes": 97066
+      }
+    ],
+    "boundaries": {
+      "prior_controls_preserved": true,
+      "original_lineage_proof_preserved": true,
+      "cloud_queries": 0,
+      "cloud_writes": 0,
+      "runtime_edits": 0,
+      "continued_99_to_108": false,
+      "new_pin_or_legal_policy_admitted": false
+    }
+  }
+}

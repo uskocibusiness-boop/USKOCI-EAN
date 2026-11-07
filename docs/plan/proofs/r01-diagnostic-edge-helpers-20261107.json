@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "kind": "R01_ACTIVE_DIAGNOSTIC_EDGE_HELPERS_READ_ONLY",
+  "project_ref": "leqcwgzvjsxugfgzdmth",
+  "observed_at_utc": "2026-11-07 17:45:06.05229+00",
+  "status": "DEV SOURCE POTVRĐENO — SVE TRI DIJAGNOSTIČKE RUTE SU UGAŠENE",
+  "scope": "Uska provera stvarnih objavljenih paketa tri dijagnostičke funkcije i njihovih literalnih source/cron/SQL pozivalaca. Nijedna od funkcija nije pozvana.",
+  "inventory_interpretation": "ACTIVE označava da je ruta registrovana i njen paket objavljen. Ova tri dijagnostička paketa sadrže samo statičan HTTP410 odgovor. Ona su zasebna od 12 aplikacionih Edge paketa iz R01 migracije ključeva; ne predstavljaju još tri aktivna AI/env servisa.",
+  "functions": [
+    {
+      "slug": "sbfenv",
+      "version": 10,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18",
+      "files": [
+        {
+          "path": "index.ts",
+          "sha256": "93fb71b6c764fee788aa05b67821a7f8505e2317ec4cec6e9ee905a3ce3b3bc2",
+          "bytes": 369
+        }
+      ],
+      "source_guard": {
+        "http_response_status": 410,
+        "unconditional_single_static_response": true,
+        "disabled_code_marker": true,
+        "request_body_or_header_used": false,
+        "imports": 0,
+        "network_calls": 0,
+        "env_access": false,
+        "dynamic_execution": false,
+        "embedded_privileged_or_provider_key_pattern": false
+      },
+      "actual_http_invocation_performed": false
+    },
+    {
+      "slug": "uskoci-gemini-schema-smoke",
+      "version": 11,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72",
+      "files": [
+        {
+          "path": "index.ts",
+          "sha256": "5776725353f8fe8e1000c1b0cb67d5fa25f45abb0126dc8a58d43795d615eb75",
+          "bytes": 263
+        }
+      ],
+      "source_guard": {
+        "http_response_status": 410,
+        "unconditional_single_static_response": true,
+        "disabled_code_marker": true,
+        "request_body_or_header_used": false,
+        "imports": 0,
+        "network_calls": 0,
+        "env_access": false,
+        "dynamic_execution": false,
+        "embedded_privileged_or_provider_key_pattern": false
+      },
+      "actual_http_invocation_performed": false
+    },
+    {
+      "slug": "uskoci-gemini-provider-probe-dev",
+      "version": 12,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0",
+      "files": [
+        {
+          "path": "index.ts",
+          "sha256": "2f12bd21f5a6b549826b8293cba14419d1f6b6e986e59a3f9c9bacbec13fc210",
+          "bytes": 183
+        }
+      ],
+      "source_guard": {
+        "http_response_status": 410,
+        "unconditional_single_static_response": true,
+        "disabled_code_marker": true,
+        "request_body_or_header_used": false,
+        "imports": 0,
+        "network_calls": 0,
+        "env_access": false,
+        "dynamic_execution": false,
+        "embedded_privileged_or_provider_key_pattern": false
+      },
+      "actual_http_invocation_performed": false
+    }
+  ],
+  "source_review": {
+    "method": "get_edge_function readback svih datoteka (po jedan index.ts); strukturna kontrola jednog Deno.serve handlera, jednog statičnog Response izraza, neupotrebljenog request parametra, odsustva grana/importa/env/mrežnih/dinamičkih poziva. SHA-256 je izračunat nad vraćenim UTF-8 bajtovima; SHA implementacija prošla je standardnu abc kontrolu.",
+    "full_source_or_secret_values_in_proof": false,
+    "ordinary_jwt_consequence": "Iz pročitanog handlera običan JWT ne može otvoriti env sadržaj, koristiti legacy service-role vrednost ili pokrenuti provider. Handler daje isti statičan odgovor bez čitanja zahteva. Ovo je dokaz objavljenog source-a, ne rezultat HTTP probe.",
+    "additional_operator_gate_required_for_current_disabled_body": false,
+    "legacy_supabase_key_dependency": false,
+    "provider_cost_path_present": false
+  },
+  "callers": {
+    "repository_paths": [
+      ".github",
+      "scripts",
+      "src",
+      "supabase",
+      "eas.json",
+      "app.config.js"
+    ],
+    "repository_search": "rg --hidden --fixed-strings za tri tačna slug-a; isključeni node_modules i receipt/preimage/dependency JSON dokazi.",
+    "repository_literal_matches": [],
+    "repository_search_exit_code": 1,
+    "repository_search_errors": [],
+    "hosted_metadata_aggregates": [
+      {
+        "slug": "sbfenv",
+        "active_cron_literal_callers": 0,
+        "all_cron_literal_callers": 0,
+        "sql_function_literal_callers": 0,
+        "observed_at_utc": "2026-11-07 17:45:06.038151+00"
+      },
+      {
+        "slug": "uskoci-gemini-provider-probe-dev",
+        "active_cron_literal_callers": 0,
+        "all_cron_literal_callers": 0,
+        "sql_function_literal_callers": 0,
+        "observed_at_utc": "2026-11-07 17:45:06.045255+00"
+      },
+      {
+        "slug": "uskoci-gemini-schema-smoke",
+        "active_cron_literal_callers": 0,
+        "all_cron_literal_callers": 0,
+        "sql_function_literal_callers": 0,
+        "observed_at_utc": "2026-11-07 17:45:06.05229+00"
+      }
+    ],
+    "limit": "Nema literalnog pozivaoca u proverenom obuhvatu. Ovo ne tvrdi da su pregledani svi spoljni ručni alati, druga Git istorija ili dinamički sastavljeni URL-ovi."
+  },
+  "actions": {
+    "edge_function_invocations": 0,
+    "provider_calls": 0,
+    "deploys": 0,
+    "dev_mutations": 0,
+    "env_mutations": 0,
+    "secret_values_read_or_printed": 0,
+    "business_rows_read": 0
+  },
+  "conclusion": "Nije pronađen novi P0 put kroz ove tri sada objavljene dijagnostičke funkcije. One ne čitaju ugrađene legacy ključeve i ne predstavljaju dodatnog potrošača koji treba migrirati pre njihovog opoziva.",
+  "limits": [
+    "Nije izvedena HTTP/runtime proba, u skladu sa zadatkom.",
+    "Ova kontrola ne opoziva istorijski privilegovani ključ i ne zatvara postojeću R01 administrativnu blokadu.",
+    "Ova kontrola ne menja R10 pravne/retention gate-ove ili status native prihvata."
+  ]
+}

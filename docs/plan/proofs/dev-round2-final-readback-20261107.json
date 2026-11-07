@@ -1,0 +1,119 @@
+{
+  "budget": {
+    "enabled": true,
+    "singleton": true,
+    "ceiling_microusd": 5000000,
+    "price_valid_until": "2027-01-01T00:00:00+00:00",
+    "reserved_microusd": 65486681,
+    "reservation_cap_enforced": true
+  },
+  "project": "leqcwgzvjsxugfgzdmth",
+  "checked_at": "2026-11-07T17:42:16.186695+00:00",
+  "ledger_count": 346,
+  "reservations": {
+    "count": 2324,
+    "unsettled_count": 221,
+    "settled_microusd": 10386681,
+    "unsettled_max_microusd": 55100000
+  },
+  "latest_migration": "20261107165752",
+  "active_test_accounts": 12,
+  "retention_source_ready": false,
+  "export_policy_binding_is_null": true,
+  "edge_functions": [
+    {
+      "name": "uskoci-ai-interview",
+      "version": 193,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "uskoci-location-search",
+      "version": 32,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    },
+    {
+      "name": "uskoci-publication-evaluate",
+      "version": 30,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    },
+    {
+      "name": "uskoci-data-export-worker",
+      "version": 29,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "uskoci-data-export-download",
+      "version": 29,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "version": 145,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "uskoci-speech-session",
+      "version": 31,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    },
+    {
+      "name": "uskoci-qa-classify",
+      "version": 29,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    },
+    {
+      "name": "uskoci-push-transport",
+      "version": 45,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "uskoci-media",
+      "version": 30,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    },
+    {
+      "name": "uskoci-account-closure-worker",
+      "version": 19,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "uskoci-taxonomy-postsave-worker",
+      "version": 14,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "sbfenv",
+      "version": 10,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    },
+    {
+      "name": "uskoci-gemini-schema-smoke",
+      "version": 11,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    },
+    {
+      "name": "uskoci-gemini-provider-probe-dev",
+      "version": 12,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    }
+  ],
+  "runtime_source": "bc9dab1c4cf2ab07e5cd088b57f4465d283604e0",
+  "public_beta_authorized": false,
+  "native_acceptance": false,
+  "paid_ai_calls_by_this_round": 0
+}
