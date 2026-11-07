@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { workerAreasLabel } from '../../contracts/workerAreas';
+import { WORKER_AVAILABLE_NOW_ENABLED } from '../../contracts/workerNowFeature';
 import { serviceHandoffText } from '../../contracts/serviceHandoff';
 import { StyleSheet, View } from 'react-native';
 import type { WorkerAiProfile, WorkerAiReview } from '../../data/workerAiClientService';
@@ -77,14 +78,14 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
         :place?<PreviewFact art="pin">{onSite
         ?`${place} · do ${profile.location.radiusKm} km${displayedPinPosition(profile.location.approximatePosition,true)?'':' (za okolna mesta potvrdite centar)'}`
         :`Grad profila: ${place}`}</PreviewFact>:null}
-      {profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
+      {WORKER_AVAILABLE_NOW_ENABLED && profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
       {!modes.length&&profile.skills.length?<T testID="worker-understood-pending" variant="note" tone="muted">Način rada i predaju proveravamo u pregledu.</T>:null}
     </View>
     {pending||resumed?<T testID="worker-draft-review-note" variant="note" tone="muted">{pending
       ?'Prethodno zabeleženo. Čekamo odgovor na poslednju poruku.'
       :'Nastavljen nacrt. Sačuvani profil ostaje isti do pregleda i čuvanja.'}</T>:null}
     {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
-        {!profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
+        {WORKER_AVAILABLE_NOW_ENABLED && !profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
         {profile.availability.rules.length||profile.availability.windows.length?<PreviewFact art="calendar">{schedule}</PreviewFact>:null}
       </View>:null}
     {showReview&&!reviewInFooter?<View style={s.reviewAction}>
@@ -207,7 +208,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       </>}
     </ReviewGroup>
     <ReviewGroup part="time">
-      <Fact art="clock">{p.availability.availableNow?'Mogu odmah':'Mogu odmah: isključeno'}</Fact>
+      {WORKER_AVAILABLE_NOW_ENABLED ? <Fact art="clock">{p.availability.availableNow?'Mogu odmah':'Mogu odmah: isključeno'}</Fact> : null}
       {p.availability.rules.length?<View style={s.scheduleGroup}>
         <T variant="bodyStrong">Redovna nedelja</T>
         {p.availability.rules.map(rule=><Row key={rule.id} quiet={!rule.active}

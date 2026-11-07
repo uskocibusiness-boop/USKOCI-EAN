@@ -1,4 +1,5 @@
 import type { WorkerAiProfile } from '../../data/workerAiClientService';
+import { WORKER_AVAILABLE_NOW_ENABLED } from '../../contracts/workerNowFeature';
 
 /**
  * What the worker profile may SAY about itself (owner, 2026-10-07: the profile text says truthfully what its data is used for).
@@ -33,7 +34,7 @@ export const FOR_ME_SWITCH_EXISTS = true;
  * same thing twice). One name for the one status, everywhere: "Mogu odmah" (J2). A row says its state only when it has one: with the
  * status off there is nothing to say under "Dostupnost" (the sentence "Pogledaj i uredi dostupnost" only described the row).
  */
-export const availabilityRowDetail = (availableNow: boolean): string | undefined => availableNow ? 'Mogu odmah' : undefined;
+export const availabilityRowDetail = (availableNow: boolean): string | undefined => WORKER_AVAILABLE_NOW_ENABLED && availableNow ? 'Mogu odmah' : undefined;
 
 /** How many kinds of work the card others see names before it says how many more. */
 export const SKILLS_IN_CARD = 3;
@@ -67,7 +68,7 @@ export function capturedParts(profile: WorkerAiProfile): CapturedPart[] {
     { key: 'skills', label: 'Usluge', done: profile.skills.length > 0 },
     // Activation needs a country and a city (rpc_complete_worker_profile), so a place is captured only when both are there.
     { key: 'area', label: 'Područje', done: !!place.operatingCountryCode && place.city.trim().length > 0 },
-    { key: 'time', label: 'Vreme', done: week.availableNow || week.rules.length > 0 || week.windows.length > 0 },
+    { key: 'time', label: 'Vreme', done: (WORKER_AVAILABLE_NOW_ENABLED && week.availableNow) || week.rules.length > 0 || week.windows.length > 0 },
   ];
 }
 
@@ -108,7 +109,7 @@ export function profileEffects(forMeSwitchExists: boolean = FOR_ME_SWITCH_EXISTS
 }
 
 /** The sentence about a team of more than one person, which is said in the offer and nowhere in the profile. */
-export const PEOPLE_COUNT_NOTE = 'Ako za neki zadatak obezbeđujete više ljudi, njihov broj navodite u toj ponudi.';
+export const PEOPLE_COUNT_NOTE = 'Pri prijavi na zadatak navodite koliko ljudi obezbeđujete, uključujući sebe ako učestvujete.';
 
 /**
  * What stands behind the "ⓘ" in the bar of the work profile (owner's phone, 8 Oct 2026: too much explaining text on the screen; analysis rule J5).

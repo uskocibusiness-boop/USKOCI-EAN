@@ -89,8 +89,8 @@ export function composerDraftIssue(draft: ApplicationDraft, need: Pick<PotrebaPr
   const reason = price === 'missing' ? 'Zadatak nema navedenu cenu. Osvežite zadatak.'
     : price === 'empty' ? 'Unesite Vašu ponuđenu cenu da biste pregledali prijavu.'
     : price === 'invalid' ? 'Unesite ceo iznos bez tačaka i slova.'
-    : people === 'invalid' ? 'Unesite koliko osoba dolazi.'
-    : people === 'over' ? need.pokrivenost.preostalo > 0 ? `Smanjite broj osoba na ${need.pokrivenost.preostalo} da biste pregledali prijavu.` : 'Sva mesta su popunjena. Osvežite zadatak.'
+    : people === 'invalid' ? 'Unesite koliko ljudi obezbeđujete.'
+    : people === 'over' ? need.pokrivenost.preostalo > 0 ? `Možete da obezbedite najviše ${need.pokrivenost.preostalo} ljudi za ovaj zadatak.` : 'Sva mesta su popunjena. Osvežite zadatak.'
     : tooMuch ? total === null ? 'Cena za ovaj broj osoba mora biti najmanje 1 RSD. Proverite broj osoba.' : 'Ukupan iznos je veći nego što može da se pošalje. Smanjite broj osoba.'
     : null;
   return { reason, price, people };
@@ -389,9 +389,10 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
           <T variant="note" tone="muted">Za sve izvršioce koje prijavljujete.</T>
         </View>
       </Section> : <FixedPrice need={need} />}
-      <Section title="Koliko vas dolazi">
+      <Section title="Koliko ljudi obezbeđujete">
         <ApplicationPeopleInput value={draft.people} maximum={left} disabled={disabled}
           onChange={people => change({ ...draft, people })} help={placesText(need.pokrivenost, 'worker').text} />
+        <T variant="note" tone="muted">Uključite i sebe ako dolazite. Možete obezbediti jednog ili više ljudi, najviše koliko slobodnih mesta zadatak ima.</T>
       </Section>
       <Section title="Termin zadatka">
         <View testID="composer-term">

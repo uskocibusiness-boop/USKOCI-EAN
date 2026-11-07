@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, RefreshControl, StyleSheet, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
+import { WORKER_AVAILABLE_NOW_ENABLED } from '../../contracts/workerNowFeature';
 import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeAttention, HomeRaspored, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
@@ -300,7 +301,7 @@ export function HomePresentation(p: HomePresentationProps) {
   const applicationsDetail = home ? applicationsLine(home.mine.applications) : p.error ? 'Trenutno nedostupno' : null;
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
   const setupProfile = !!profile && (profile.state === 'NONE' || profile.state === 'DRAFT');
-  const availabilityShown = !!profile && profile.state === 'ACTIVE' && !!p.availableNow;
+  const availabilityShown = WORKER_AVAILABLE_NOW_ENABLED && !!profile && profile.state === 'ACTIVE' && !!p.availableNow;
   // The rows of "Čeka Vas", in the order they are drawn, so only the last one has no divider. At most WAITING_LIMIT of them (the server's
   // things first, then what the phone itself found, then the ratings); what does not fit is counted in the line under them, together with
   // what the server and the phone already said they left out. With no appointment ahead the first of them is the one record of the screen

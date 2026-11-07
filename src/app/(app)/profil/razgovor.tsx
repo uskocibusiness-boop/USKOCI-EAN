@@ -542,7 +542,6 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   // worth reviewing, not proof of completion, consent or activation readiness.
   const hasProfileContent = data.candidate.skills.length > 0 || data.candidate.bio.trim().length > 0
     || data.candidate.location.city.trim().length > 0 || (data.candidate.workAreas?.length ?? 0) > 0
-    || data.candidate.availability.availableNow
     || data.candidate.availability.rules.length > 0 || data.candidate.availability.windows.length > 0;
   const readyToReview=!reviewNeedsRestart&&workerReviewReady(data);
   const preparationProblem=preparationIssue?.conversationId===data.conversationId&&preparationIssue.revision===data.revision

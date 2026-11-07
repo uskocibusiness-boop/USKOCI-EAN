@@ -16,7 +16,7 @@ const compiled=ts.transpileModule(picked.map(node=>node.getText(parsed)).join('\
 assert.deepEqual(compiled.diagnostics,[]);
 const diagnostics=[];
 const sandbox={exports:{},console:{info:(...args)=>diagnostics.push(args)},
-  withConversationIntentSchema:schema=>schema,workerAreaRequestSchema:{},workerServiceChangesSchema:{}};
+  withConversationIntentSchema:schema=>schema,workerAreaRequestSchema:{},workerServiceChangesSchema:{},WORKER_AVAILABLE_NOW_ENABLED:false};
 vm.runInNewContext(compiled.outputText+'\nthis.runGuard=guardAvailabilityChange;',sandbox,{timeout:1000});
 const run=sandbox.runGuard,plain=value=>JSON.parse(JSON.stringify(value));
 const existingRule={id:'00000000-0000-4000-8000-000000000011',weekdays:[1,3],startTime:'10:00',endTime:'12:00',
@@ -40,9 +40,9 @@ function denied(value){assert.equal(value.safety,'CLARIFY');assert.equal(Object.
 test('provider requires the temporal scope without changing the writer patch contract',()=>{
   const schema=plain(sandbox.exports.workerProviderSchema()),intent=schema.properties.availabilityChange;
   assert.deepEqual(intent.required,['kind','scope','evidence']);
-  assert.deepEqual(intent.properties.scope.enum,['NONE','WEEKLY','DATED','NOW','MIXED']);
+  assert.deepEqual(intent.properties.scope.enum,['NONE','WEEKLY','DATED','MIXED']);
   assert.deepEqual(Object.keys(schema.properties.patch.properties.availability.properties),
-    ['timezone','availableNow','ruleChanges','windowsUpsert','windowIdsRemove']);
+    ['timezone','ruleChanges','windowsUpsert','windowIdsRemove']);
 });
 
 test('provider must decide all calendar operation lists, without inventing scalar changes',()=>{
@@ -58,12 +58,14 @@ test('provider must decide all calendar operation lists, without inventing scala
     'the recorded hosted missing-weekly-list output is no longer schema-compliant');
 });
 
-test('everyday plus immediate availability retains seven weekdays, local hours, timezone and explicit now',()=>{
+test('paused now toggle is refused even when the user also stated a valid weekly schedule',()=>{
   const av={timezone:'Europe/Belgrade',ruleChanges:[rule()],availableNow:true};
   const input=output(av),before=structuredClone(input),owned=context(),prior=structuredClone(owned);
-  assert.equal(run(input,plan('MIXED',current),owned,current),input);
+  denied(run(input,plan('MIXED',current),owned,current));
   assert.deepEqual(input,before);assert.deepEqual(owned,prior);
-  assert.equal(input.patch.availability.ruleChanges[0].value.endsOn,null);
+  const text='Dostupan sam svakog dana od 8 do 22 časa po vremenu Beograda.';
+  const weekly=output({ruleChanges:[rule()],windowsUpsert:[],windowIdsRemove:[]});
+  assert.equal(run(weekly,plan('WEEKLY',text),context(),text),weekly);
 });
 
 test('known live regression: WEEKLY cannot become one AVAILABLE window today',()=>{
@@ -148,10 +150,11 @@ test('explicit cancellation of an owned date exception retains its ID',()=>{
   assert.deepEqual(input.patch.availability.windowIdsRemove,[existingWindow.id]);
 });
 
-test('explicit immediate availability toggle needs no fabricated hours or dates',()=>{
+test('paused immediate availability refuses both ON and OFF without changing stored legacy state',()=>{
   for(const [text,value,previous] of [['Mogu odmah.',true,false],['Trenutno nisam dostupan.',false,true]]) {
     const owned=context();owned.candidate.availability.availableNow=previous;
-    const input=output({availableNow:value});assert.equal(run(input,plan('NOW',text),owned,text),input);
+    denied(run(output({availableNow:value}),plan('NOW',text),owned,text));
+    assert.equal(owned.candidate.availability.availableNow,previous);
   }
 });
 

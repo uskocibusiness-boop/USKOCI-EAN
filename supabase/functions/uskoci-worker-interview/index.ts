@@ -4,6 +4,7 @@ import { taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION } from '../../../src/contracts/aiAvailability.ts';
 import { decodeWorkerAreas } from '../../../src/contracts/workerAreas.ts';
+import { WORKER_AVAILABLE_NOW_ENABLED } from '../../../src/contracts/workerNowFeature.ts';
 // Distinct owned WORKER_PROFILE_V1 proposals. No task facts or canonical writes.
 import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.mjs';
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
@@ -82,12 +83,12 @@ export function workerProviderSchema() {
   return withConversationIntentSchema(obj({ assistantMessage: string, safety: { type: 'STRING', enum: ['ALLOW','CLARIFY','REVIEW','BLOCK'],
     description:'Use shared safety rules. REVIEW means a safety concern, never profile preview.' },
     availabilityChange: obj({ kind: { type: 'STRING', enum: ['NONE','PATCH','CLARIFY'] },
-      scope: { type: 'STRING', enum: ['NONE','WEEKLY','DATED','NOW','MIXED'] }, evidence: string }, ['kind','scope','evidence']),
+      scope: { type: 'STRING', enum: WORKER_AVAILABLE_NOW_ENABLED ? ['NONE','WEEKLY','DATED','NOW','MIXED'] : ['NONE','WEEKLY','DATED','MIXED'] }, evidence: string }, ['kind','scope','evidence']),
     serviceChanges: workerServiceChangesSchema,
     patch: obj({ displayName: string, bio: string,
       location: obj({ operatingCountryCode: string, city: string, radiusKm: integer }),
       areaRequests: workerAreaRequestSchema,
-      availability: {...obj({ timezone: string, availableNow: boolean,
+      availability: {...obj({ timezone: string, ...(WORKER_AVAILABLE_NOW_ENABLED ? { availableNow: boolean } : {}),
         ruleChanges: array(obj({ ruleId: { ...nullableString, description:'null adds a new rule; otherwise use the owned rule ID being changed.' },
           weekdays: array(integer, 'Target weekdays: Sunday=0 through Saturday=6. Every day=[0,1,2,3,4,5,6], weekdays=[1,2,3,4,5], weekend=[0,6].'),
           value: { ...rule, nullable: true, description:'Complete local hours for the targeted days; null only removes explicitly requested days from an owned rule.' } }, ['ruleId','weekdays','value']),
@@ -96,7 +97,7 @@ export function workerProviderSchema() {
           ['id','startsAt','endsAt','state','label']), 'Only particular dates, such as today/tomorrow or an exception; [] preserves all dated windows.'),
         windowIdsRemove: array(string, 'Only owned dated-window IDs whose removal the current user explicitly requested; otherwise [].')
       }, ['ruleChanges','windowsUpsert','windowIdsRemove']), nullable:true,
-        description:'PATCH: emit all three operation arrays; [] preserves that part of the calendar. Omit unchanged timezone/availableNow. NONE/CLARIFY uses null. REVIEW/BLOCK cannot propose changes.'}
+        description:'PATCH: emit all three operation arrays; [] preserves that part of the calendar. Omit unchanged timezone. The optional available-now mode is paused and must not be proposed. NONE/CLARIFY uses null. REVIEW/BLOCK cannot propose changes.'}
       }, ['availability']) }, ['assistantMessage','safety','patch','availabilityChange','serviceChanges']));
 }
 
@@ -110,9 +111,19 @@ function guardAvailabilityChange(output: Record<string,any>, intent: unknown, co
   if (!plan || !(keys(plan,['kind','scope','evidence']) || oldNone) || !['NONE','PATCH','CLARIFY'].includes(plan.kind)
       || !['NONE','WEEKLY','DATED','NOW','MIXED'].includes(oldNone?'NONE':plan.scope)
       || typeof plan.evidence!=='string' || plan.evidence.length>1000) throw new Error('WORKER_AI_OUTPUT_INVALID');
-  if (!['ALLOW','CLARIFY'].includes(output.safety)) return output;
   const scope=oldNone?'NONE':plan.scope;
   const av=object(output.patch.availability), prior=context.candidate.availability;
+  // Paused by owner: even a legacy or malformed provider result must never
+  // reactivate a now-toggle. The weekly/date schedule remains independent.
+  // Remove the untrusted availability proposal without falsely acknowledging it.
+  if (!WORKER_AVAILABLE_NOW_ENABLED && (scope === 'NOW' || (av && Object.hasOwn(av,'availableNow')))) {
+    const { availability: _paused, ...independent }=output.patch;
+    return { ...output, patch: independent,
+      safety: output.safety==='ALLOW'?'CLARIFY':output.safety,
+      assistantMessage: output.safety==='REVIEW'||output.safety==='BLOCK' ? output.assistantMessage
+        : 'Opcija „Dostupan sada“ trenutno nije uključena. Možete navesti dane i sate redovnog rada ili poseban termin. Ostali jasni podaci ostaju u nacrtu.' };
+  }
+  if (!['ALLOW','CLARIFY'].includes(output.safety)) return output;
   const weekly=!!av && Array.isArray(av.ruleChanges) && av.ruleChanges.length>0;
   const dated=!!av && ['windowsUpsert','windowIdsRemove'].some(k=>Array.isArray(av[k])&&av[k].length>0);
   const now=!!av && typeof av.availableNow==='boolean';
@@ -221,7 +232,7 @@ function workerRuntimeContext(context: Record<string, any>, now: string) {
     kind: area.kind, countryCode: area.countryCode, city: area.city, radiusKm: area.radiusKm,
   })) : undefined;
   const availabilityForModel = availability ? {
-    timezone: availability.timezone, availableNow: availability.availableNow,
+    timezone: availability.timezone, ...(WORKER_AVAILABLE_NOW_ENABLED ? {availableNow: availability.availableNow} : {}),
     rules: availability.rules, windows: availability.windows,
   } : availability;
   const personalCandidate = { displayName, bio, skills, location: locationForModel,
@@ -239,8 +250,8 @@ Priorities: offered services, genuinely unclear execution, ON_SITE territory, re
 Modes/handoff use per-service metadata, not extra patch fields/skills. No home city/address/GPS interview; REMOTE-only needs no city. Country is not inferred from language. Do not ask for equipment inventory, licenses, certificates or permanent team capacity. The legacy tools/vehicles arrays remain read-only and private: never output them or present old equipment as review/matching evidence. Only explicitly user-stated vehicle, capacity and tool facts relevant to their work belong in bio as descriptive claims; retain exact numbers and units, including stated limits or absence. Ownership never adds a service or mode and these details never delay readiness. Do not invent experience, verification, ratings, priority or legal eligibility.
 ON_SITE patch.areaRequests is a COMPLETE list (max 5), preserving untouched areas. COUNTRY/RS: query="", radiusKm=null. CITY: nominative locality, radiusKm=null. RADIUS: locality + explicit 1–200 km. Novi Sad i Beograd = two CITY areas; i okolina needs km. Server resolves places: no coordinates/sourceRef/workAreas or simultaneous legacy patch.location. Unsupported region/cross-border scope: explain and ask Serbian cities/all Serbia; never silently narrow or substitute a giant radius. Search radius changes do not remove service areas.
 bio is an optional introduction/limits, never a matching filter. If absent and the person has named real services, draft a concise 2–3 sentence bio in the SAME patch from user-provided facts, without another question or model call; the owner can edit it at signed review before Save. Do not invent experience, credentials, equipment, clients, reliability or promises. Preserve unrelated existing bio when adding explicit work details or correcting service/mode/territory/equipment facts; replace only the corrected claim, never append a duplicate or retain its stale value. Keep unchanged territory sentences verbatim and separate when adding unrelated details; a territory correction still changes those sentences. Omit unchanged bio. Acknowledge a descriptive change only when the SAME patch.bio records it or the current bio already contains that exact fact; an empty patch can ask a natural follow-up, never claim an unrecorded change. A missing bio never delays readiness.
-Required availabilityChange {kind,scope,evidence}: kind NONE + scope NONE + empty evidence for no change; PATCH + verbatim CURRENT USER quote + matching operations; CLARIFY + the relevant scope + CURRENT USER quote + availability=null for incomplete intent. scope WEEKLY=recurring ruleChanges or an explicit calendar timezone correction, DATED=windowsUpsert/windowIdsRemove for particular dates, NOW=availableNow, MIXED=two or more of those channels. Omit unchanged scalar fields; never toggle availableNow without current explicit intent. An earlier USER message cannot authorize a new calendar edit. Retain partial days/times and ask only what is missing. Weekdays 15–19/weekends off = rule [1,2,3,4,5], not another question. Every day/svakog dana/сваког дана = rule weekdays [0,1,2,3,4,5,6]; preserve the stated local hours and authoritative timezone. A weekly statement MUST NOT become one dated window today. “Dostupan sam svakog dana od 8 do 22 po vremenu Beograda. Trenutno sam dostupan.” is MIXED: ruleChanges for all seven days 08:00–22:00 Europe/Belgrade, plus availableNow=true. Never manufacture a fixed end date for an ongoing weekly rule. Existing unrelated rules/windows remain; remove a prior wrong dated window only when this CURRENT correction requests it, using its owned ID. Never acknowledge a change without its operation.
-Calendar: a non-null availability always includes ruleChanges, windowsUpsert and windowIdsRemove; [] means no operations, not deletion. Preserve untouched rules/days/exceptions and separate daily intervals. ruleChanges uses existing ruleId (null=new), targeted weekdays (Sunday=0), value (null=remove those days). Changing Monday in a Mon/Wed rule targets [1] with that ID; server keeps Wednesday. Adding a weekly rule does not require removing an old dated window. If the user requests both, emit both operations together; removing the old window alone does not implement the weekly request. windowsUpsert: dated AVAILABLE/UNAVAILABLE; windowIdsRemove: explicitly removed IDs only. No invented IDs, whole-calendar overwrite or unrequested timezone change. Timestamps need offsets; clarify ambiguity. availableNow requires stated intent; server owns expiry, exceptions do not toggle it.`;
+Required availabilityChange {kind,scope,evidence}: kind NONE + scope NONE + empty evidence for no change; PATCH + verbatim CURRENT USER quote + matching operations; CLARIFY + the relevant scope + CURRENT USER quote + availability=null for incomplete intent. scope WEEKLY=recurring ruleChanges or an explicit calendar timezone correction, DATED=windowsUpsert/windowIdsRemove for particular dates, MIXED=both WEEKLY and DATED together. Omit unchanged scalar fields. ${WORKER_AVAILABLE_NOW_ENABLED ? 'NOW=availableNow with explicit current intent; MIXED may include NOW.' : 'The optional Dostupan sada / Mogu odmah toggle is temporarily disabled: never ask about, propose, set, announce as saved or infer availableNow; a user mentioning only immediate availability gets a brief explanation and may instead give regular days/hours. Task HITNO is a separate task property.'} An earlier USER message cannot authorize a new calendar edit. Retain partial days/times and ask only what is missing. Weekdays 15–19/weekends off = rule [1,2,3,4,5], not another question. Every day/svakog dana/сваког дана = rule weekdays [0,1,2,3,4,5,6]; preserve the stated local hours and authoritative timezone. A weekly statement MUST NOT become one dated window today. ${WORKER_AVAILABLE_NOW_ENABLED ? '“Dostupan sam svakog dana od 8 do 22 po vremenu Beograda. Trenutno sam dostupan.” is MIXED: seven weekdays and explicit availableNow=true.' : '“Dostupan sam svakog dana od 8 do 22. Trenutno sam dostupan.” updates only the recurring seven-day schedule when it is unambiguous; immediate status is unavailable, never changed or acknowledged.'} Never manufacture a fixed end date for an ongoing weekly rule. Existing unrelated rules/windows remain; remove a prior wrong dated window only when this CURRENT correction requests it, using its owned ID. Never acknowledge a change without its operation.
+Calendar: a non-null availability always includes ruleChanges, windowsUpsert and windowIdsRemove; [] means no operations, not deletion. Preserve untouched rules/days/exceptions and separate daily intervals. ruleChanges uses existing ruleId (null=new), targeted weekdays (Sunday=0), value (null=remove those days). Changing Monday in a Mon/Wed rule targets [1] with that ID; server keeps Wednesday. Adding a weekly rule does not require removing an old dated window. If the user requests both, emit both operations together; removing the old window alone does not implement the weekly request. windowsUpsert: dated AVAILABLE/UNAVAILABLE; windowIdsRemove: explicitly removed IDs only. No invented IDs, whole-calendar overwrite or unrequested timezone change. Timestamps need offsets; clarify ambiguity. ${WORKER_AVAILABLE_NOW_ENABLED ? 'availableNow requires stated intent; server owns expiry, exceptions do not toggle it.' : 'The paused availableNow field must never appear in output; exceptions do not toggle an immediate status.'}`;
 }
 
 // Exact finish-only utterances, not a substring detector: a negation, quoted

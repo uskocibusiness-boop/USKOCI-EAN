@@ -14,7 +14,7 @@ export function applicationPeopleCount(value: string): number | null {
 }
 
 /** The same editable count in a new application and a changed one. Never clamp a typed draft silently. */
-export function ApplicationPeopleInput({ value, maximum, disabled, onChange, label = 'Koliko ljudi dolazi', help }: {
+export function ApplicationPeopleInput({ value, maximum, disabled, onChange, label = 'Broj ljudi koje obezbeđujete', help }: {
   value: string; maximum: number; disabled: boolean; onChange: (value: string) => void; label?: string; help: string;
 }) {
   const [focused, setFocused] = useState(false);
@@ -22,7 +22,7 @@ export function ApplicationPeopleInput({ value, maximum, disabled, onChange, lab
   const count = applicationPeopleCount(value);
   const error = maximum < 1 ? 'Sva mesta su popunjena. Osvežite zadatak.'
     : count === null ? `Unesite ceo broj od 1 do ${maximum}.`
-    : count > maximum ? `Možete da prijavite najviše ${maximum}.` : null;
+    : count > maximum ? `Možete da obezbedite najviše ${maximum} ljudi za ovaj zadatak.` : null;
   const step = (next: number) => {
     onChange(String(next));
     AccessibilityInfo.announceForAccessibility(dolaziOsoba(next));

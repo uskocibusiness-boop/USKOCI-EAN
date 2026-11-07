@@ -456,7 +456,7 @@ test('Worker actual Edge: a recurring statement cannot become today-only availab
   }
 });
 
-test('Worker actual Edge: weekly hours and current availability survive the same one-call MIXED plan with every day preserved', async () => {
+test('Worker actual Edge: paused now toggle is rejected without changing weekly or current saved data', async () => {
   const text = 'Dostupan sam svakog dana od 8 do 22 po vremenu Beograda. Trenutno sam dostupan.';
   const availability = { timezone: 'Europe/Belgrade', availableNow: true, ruleChanges: [{ ruleId: null,
     weekdays: [0, 1, 2, 3, 4, 5, 6], value: { startTime: '08:00', endTime: '22:00', startsOn: '2026-11-07',
@@ -465,11 +465,12 @@ test('Worker actual Edge: weekly hours and current availability survive the same
     patch: { availability }, availabilityChange: { kind: 'PATCH', scope: 'MIXED', evidence: text },
   }), { skills: ['Lektura tekstova'] }).run();
   assert.equal(result.events.at(-1)?.kind, 'final', JSON.stringify({ events: result.events, logs: result.logs }));
-  assert.deepEqual(result.writes[0].args.p_output.patch, { availability });
-  assert.equal(result.writes[0].args.p_output.safety, 'ALLOW');
+  assert.deepEqual(result.writes[0].args.p_output.patch, {}, 'The paused immediate feature cannot change any calendar facts');
+  assert.equal(result.writes[0].args.p_output.safety, 'CLARIFY');
   assert.equal(result.calls.filter(call => /streamGenerateContent/.test(call.name)).length, 1);
   const request = result.calls.find(call => /streamGenerateContent/.test(call.name)).args;
   assert.ok(request.generationConfig.responseSchema.properties.availabilityChange.required.includes('scope'));
+  assert.ok(!request.generationConfig.responseSchema.properties.availabilityChange.properties.scope.enum.includes('NOW'));
 });
 
 test('Worker actual Edge: historical availability evidence cannot authorize a new calendar change', async () => {

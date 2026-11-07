@@ -27,3 +27,17 @@ test('UX03 overflow button actually opens the panel and leaving Home removes it'
  await RTR.act(async()=>retainedOpen());
  await RTR.act(async()=>r.update(React.createElement(C,props)));assert.equal(nodes(r,n=>n.type==='HomeWaitingPanel').length,0);await unmount(r);
 });
+test('owner pause: Home hides the legacy immediate-availability control even if its saved value is true',async()=>{
+ const mocks=createHarness();mocks.stubs['src/ui/home/HomeWaitingPanel.tsx']={HomeWaitingPanel:mocks.host('HomeWaitingPanel')};
+ const {composeHome}=mocks.load('src/data/homeSnapshot.ts');
+ const snapshot=composeHome({needs:{kind:'known',value:[]},applications:{kind:'known',value:[]},agreements:{kind:'known',value:[]},workerProfile:{kind:'known',value:{stanje:'ACTIVE',dostupanOdmah:true}}},
+   {kind:'known',value:{rows:[],more:0,asOf:'2026-11-07T12:00:00Z',ratings:{due:0,agreementId:null}}});
+ const C=mocks.load('src/ui/home/HomePresentation.tsx').HomePresentation,noop=()=>{};
+ const r=await mount(C,{home:snapshot,loading:false,refreshing:false,error:false,
+   onPublish:noop,onEarn:noop,onProfile:noop,onOpen:noop,onRatings:noop,
+   onMyTasks:noop,onMyApplications:noop,onRefresh:noop,
+   availableNow:{value:true,onEdit:()=>{throw Error('PAUSED_NOW_CONTROL_MUST_NOT_OPEN')}}});
+ assert.equal(nodes(r,n=>n.type==='ListRow'&&n.props.title==='Dostupnost').length,0);
+ assert.equal(nodes(r,n=>n.type==='T'&&typeof n.children?.[0]==='string'&&n.children.some(part=>typeof part==='string'&&part.includes('Mogu odmah'))).length,0);
+ await unmount(r);
+});
