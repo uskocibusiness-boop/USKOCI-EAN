@@ -4365,5 +4365,44 @@
         }
       ]
     }
+  },
+  "forward_execution_20261107_now_schedule_fit_pause": {
+    "observed_at_utc": "2026-11-07",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "Remove a second time-matching shortcut driven by paused worker available_now; preserve accepted agreements and calendar facts.",
+    "evidence": "inline:dev_forward_catalog_20261107_now_schedule_fit",
+    "entries": [
+      {
+        "file": "20261107222231_worker_now_schedule_fit_paused_20261107.sql",
+        "version": "20261107222231",
+        "name": "worker_now_schedule_fit_paused_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107222231",
+        "live_name": "worker_now_schedule_fit_paused_20261107",
+        "live_recorded_md5": "4ccd86c471635436e7a3125f6ada1036",
+        "live_recorded_sha256": "2e3afeb7d20ec2877ac8c45bde484ef70a28880a9ce25fd72dff52b9da485e59",
+        "raw_md5": "4ccd86c471635436e7a3125f6ada1036",
+        "raw_sha256": "2e3afeb7d20ec2877ac8c45bde484ef70a28880a9ce25fd72dff52b9da485e59",
+        "raw_bytes": 2807,
+        "source": "scripts/sql/worker_now_schedule_fit_paused_20261107.sql"
+      }
+    ],
+    "catalog_evidence": {
+      "source_base_commit": "b4ea43649fbaca7a6249dcd17938ade57e2dd92a",
+      "observed_at_utc": "2026-11-07",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "method": "Exact subsequent DEV ledger readback to remove a second instant-availability bypass in private.schedule_fit without changing fixed-window weekly/date eligibility, owner/ACL or stored flags.",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261107222231",
+          "name": "worker_now_schedule_fit_paused_20261107",
+          "statement_count": 1,
+          "joined_md5": "4ccd86c471635436e7a3125f6ada1036",
+          "joined_sha256": "2e3afeb7d20ec2877ac8c45bde484ef70a28880a9ce25fd72dff52b9da485e59",
+          "joined_bytes": 2807
+        }
+      ]
+    }
   }
 }

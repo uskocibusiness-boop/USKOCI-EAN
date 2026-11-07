@@ -1,0 +1,18 @@
+{
+  "schema": "USKOCI_WORKER_NOW_MATCHING_CLOSURE_V1",
+  "date": "2026-11-07",
+  "owner_decision": "Temporarily hide worker available-now; preserve task urgency, ordinary calendar and application crew count.",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "sourceCommit": "b4ea43649fbaca7a6249dcd17938ade57e2dd92a",
+  "devProject": "leqcwgzvjsxugfgzdmth",
+  "migration": "20261107222231_worker_now_schedule_fit_paused_20261107.sql",
+  "ledgerSha256": "2e3afeb7d20ec2877ac8c45bde484ef70a28880a9ce25fd72dff52b9da485e59",
+  "preimageFunctionMd5": "e29a7bade1437e3f2067924b5179ddfd",
+  "postimageFunctionMd5": "e53585680ab72bb64a741403f7a78d35",
+  "companionTimeTierMd5": "880f4b79ca70084cfe2a4ef89435f05e",
+  "totalDevLedger": 348,
+  "workerAiEdgeVersion": 146,
+  "preserved": "Existing saved availability flags, weekly rules and dated windows were not rewritten.",
+  "nativeAcceptance": false,
+  "productionChanged": false
+}
