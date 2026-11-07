@@ -21,6 +21,10 @@ R01_PROJECTION_FILE = "20261107114458_r01_needs_projection_20261107.sql"
 R01_PROJECTION_SHA256 = "f79cebd5df556a4f8c107c5696702cd42bbd3d9d38b003cd6c3487d561cc5fa3"
 R05_DISCOVERY_FILE = "20261107121943_r05_discovery_contract_20261107.sql"
 R05_DISCOVERY_SHA256 = "086f8f269d2c2bd67ff3037dcc41b7f38e0e1eaf34648639f82b4aec1bf9cc5d"
+CONTINUATION_FILES = [
+    "20261107152928_r06_budget_accounting_20261107.sql",
+    "20261107153455_r07_selection_recovery_20261107.sql",
+]
 
 
 # Frozen catalog facts extracted from archived receipts and dated read-only captures.
@@ -42,6 +46,8 @@ CATALOG_EVIDENCE_SHA256 = {
         '742adf3ee6c68c7358c5070e3d78e6a9a225a38f8274e506d69ef1dc82a8548f',
     'inline:dev_forward_catalog_20261107_r05':
         '7aaaf62031b73f0eaa1ce85758503164989aedc4ca67c9f7dda0317cbdbd6e80',
+    'inline:dev_forward_catalog_20261107_continuation':
+        '8307cbcb788b3dde1024803b150986450562674673853dc6da093a8b5e33dd99',
 }
 
 
@@ -315,7 +321,22 @@ def main() -> None:
         earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names
         if earlier_names and r05_names[0] <= earlier_names[-1]:
             fail("R05 readmission is not strictly after the previous forward records")
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names != disk_names:
+    continuation_section = metadata.get("forward_execution_20261107_continuation")
+    continuation_names = []
+    if continuation_section:
+        continuation_names = check_physical_suffix(
+            continuation_section, manifest_map, load_catalog_evidence(continuation_section),
+        )
+        if continuation_names != CONTINUATION_FILES or any(
+            item.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+            or item.get("version") != item.get("live_version")
+            for item in continuation_section.get("entries", [])
+        ):
+            fail("Nov-7 continuation requires the two exact reviewed ledger-version records")
+        earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names
+        if earlier_names and continuation_names[0] <= earlier_names[-1]:
+            fail("Nov-7 continuation is not strictly after the previous forward records")
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -417,6 +438,7 @@ def main() -> None:
         f"r01_forward={len(r01_names)} "
         f"r08_reviews_forward={len(r08_reviews_names)} "
         f"r05_forward={len(r05_names)} "
+        f"continuation_forward={len(continuation_names)} "
         "191500=RECORDED_STATEMENT_RECONSTRUCTION "
         "exact_byte_mirror=false "
         "participant_contract=PASS"

@@ -87,6 +87,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   // silently turn a deliberate "keep draft" back into activation.
   const activationChoice=useRef<{conversationId:string;activate:boolean}|null>(null);
   const [preparationIssue,setPreparationIssue]=useState<{conversationId:string;revision:number;message:string}|null>(null);
+  const [turnIssue,setTurnIssue]=useState<{conversationId:string;message:string}|null>(null);
   // Leaving, or the app going to the background, makes an open question stale (its answer checks canAct), so it goes too.
   const confirmSheet=useConfirmSheet(),retireConfirmation=confirmSheet.close;
   useFocusEffect(useCallback(()=>{const token={};focus.current=token;setLeaving(false);return()=>{
@@ -169,6 +170,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     if(result.ok&&!cid.current){cid.current=result.podatak.conversationId;router.setParams({conversationId:cid.current});}
     if(result.ok){
       const snapshot=result.podatak;
+      setTurnIssue(null);
       setPreparationIssue(null);
       if(snapshot.status==='OPEN'&&!snapshot.saved&&!snapshot.stale&&snapshot.safety==='ALLOW'
         &&snapshot.candidate.skills.length>0&&!pending.current
@@ -240,7 +242,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const rename=(snapshot:WorkerAiSnapshot):WorkerAiPatch|null=>accountName&&snapshot.candidate.displayName.trim()!==accountName?{displayName:accountName}:null;
   const send=async(body:string,submittedDraft:SubmittedDraft|null=null)=>{
     if(!canAct()||!writable||awaiting||!data||!body.trim()||(pending.current&&!recovery?.retryAllowed))return;
-    setRoleSuggestion(null);
+    setRoleSuggestion(null);setTurnIssue(null);
     await editor.save(async()=>{
       // Name alignment changes the signed candidate revision. Do it before a
       // new AI turn captures classification, never between that capture and review.
@@ -279,6 +281,13 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
         }
         if(current())setStream('');
         if(!current())return unavailable();
+        // Reading the conversation may succeed after the AI refused this turn
+        // (for example, the budget gate). Keep that readback AND its refusal.
+        // Only this exact turn's canonical progress/success can supersede a lost reply.
+        const recovered=result.ok?result.podatak.turn:null;
+        const reconciled=recovered?.clientRequestId===command.id
+          &&(recovered.state==='SUCCEEDED'||recovered.state==='PROCESSING');
+        if(result.ok&&!sent.ok&&!reconciled)setTurnIssue({conversationId:result.podatak.conversationId,message:sent.poruka});
         return result.ok?result:sent.ok?result:sent;
       }finally{if(abort.current===controller)abort.current=null;}
     });
@@ -539,6 +548,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const preparationProblem=preparationIssue?.conversationId===data.conversationId&&preparationIssue.revision===data.revision
     ?preparationIssue.message:!readyToReview&&data.review&&!data.saved&&Date.parse(data.review.expiresAt)<=Date.now()
       ?'Pregled više nije aktuelan. Proverite razgovor pre nastavka.':null;
+  const conversationError=editor.error??(turnIssue?.conversationId===data.conversationId?turnIssue.message:null);
   // The "+" selects a topic for the same conversation. Only an explicit message changes the proposal.
   const openPart=(next:WorkerAiPart)=>{
     if(!canAct()||!enabled||!writable)return;
@@ -580,13 +590,13 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       void send(input.trim(),{value:input,revision:draftRevision.current});}} onBack={back} onOptions={writable?()=>{if(current()&&panelScope.current===renderedPanel)setMenu(true);}:undefined}
     // A fragment is truthy even when empty, which drew an empty recovery panel in the thread; the slot is filled only
     // when there is something to say.
-    status={statusCopy||editor.error||activationRequest||lastGoodUnverified||(!editor.busy&&preparationProblem)?<>{pending.current&&!editor.busy?<T variant="bodyStrong">{canRetry?'Poruka čeka ponovni pokušaj':turn?.state==='PROCESSING'?'Poruka je u obradi':'Ishod nije potvrđen'}</T>:null}
+    status={statusCopy||conversationError||activationRequest||lastGoodUnverified||(!editor.busy&&preparationProblem)?<>{pending.current&&!editor.busy?<T variant="bodyStrong">{canRetry?'Poruka čeka ponovni pokušaj':turn?.state==='PROCESSING'?'Poruka je u obradi':'Ishod nije potvrđen'}</T>:null}
       {statusCopy?<T variant="meta" tone="muted">{statusCopy}</T>:null}
       {!editor.busy&&preparationProblem?<T variant="meta" tone="muted">{preparationProblem}</T>:null}
       {pending.current&&!editor.busy?<T variant="note" tone="muted">Provera ne šalje novu poruku.</T>:null}
       {activationRequest&&writable&&!data.saved?<T variant="note" tone="muted">Pregledajte podatke pre aktivacije. Ako imate nezavršen predlog, i njegove izmene ulaze u pregled. Profil postaje aktivan tek kada potvrdite.</T>:null}
       {lastGoodUnverified?<T accessibilityRole="alert" variant="note" tone="muted">{lastGoodCopy}</T>:null}
-      {editor.error?<T accessibilityRole="alert" variant="meta" tone="danger">{editor.error}</T>:null}</>:undefined}
+      {conversationError?<T accessibilityRole="alert" variant="meta" tone="danger">{conversationError}</T>:null}</>:undefined}
     // The shell draws the microphone, its notice and voice mode from this one controller; every transcript comes back
     // through `onTranscript` above.
     voice={writable?{controller:voice.controller,state:voice.state,disabled:!enabled||!!pending.current,onKeepText:keepTranscript}:undefined}
@@ -597,7 +607,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
           disabled={!enabled||!!input.trim()} onPress={openSuggestedNeed}/>
       </>:null}
       {/* After a save the only next step is the saved profile; a second "check" button beside it read as unfinished. */}
-      {(pending.current||awaiting||editor.uncertain||editor.error||preparationProblem)&&!data.saved?<V2Action tone="neutral" label="Proverite razgovor" disabled={editor.busy||editor.loading||voiceBusy}
+      {(pending.current||awaiting||editor.uncertain||conversationError||preparationProblem)&&!data.saved?<V2Action tone="neutral" label="Proverite razgovor" disabled={editor.busy||editor.loading||voiceBusy}
         onPress={()=>{
           // The ready-card gate hides the old name-alignment entry. After the
           // account name is supplied, explicit recovery uses the same guarded

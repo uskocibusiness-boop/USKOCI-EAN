@@ -67,7 +67,7 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
       void ready.catch(() => undefined);
       let finalResolve: (result: FinalTranscript) => void = () => {};
       const final = new Promise<FinalTranscript>(resolve => { finalResolve = resolve; });
-      let terminalReceived = false;
+      let terminalReceived = false, serviceReady = false;
       const stopCapture = () => {
         if (captureStopped) return;
         captureStopped = true;
@@ -133,7 +133,7 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
             const message = decodeSpeechEvent(raw, input.session.conversationId, operationId, expectedSequence);
             if (!message) { fail(); return; }
             expectedSequence++;
-            if (message.kind === 'ready') { readyResolve(); return; }
+            if (message.kind === 'ready') { serviceReady = true; readyResolve(); return; }
             if (message.kind === 'segment') { input.onEvent({ kind: 'segment', index: message.index, final: message.final, text: message.text }); return; }
             if (message.kind === 'error') {
               // Only a validated service refusal gets this message; it does not establish a billing cause.
@@ -143,8 +143,12 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
             terminalReceived = true;
             finalResolve(message.text.trim() ? { kind: 'final', text: message.text } : { kind: 'incomplete' });
           };
-          socket.onerror = () => fail('SPEECH_CONNECTION_FAILED');
-          socket.onclose = () => { if (!terminalReceived && !disposed) fail('SPEECH_CONNECTION_FAILED'); };
+          // A refused upgrade (including budget admission) has no usable speech
+          // session yet. Native WebSocket does not expose a trustworthy HTTP body;
+          // describe availability, without inferring a billing or network cause.
+          const connectionFailure = () => fail(serviceReady ? 'SPEECH_CONNECTION_FAILED' : 'SPEECH_UNAVAILABLE');
+          socket.onerror = connectionFailure;
+          socket.onclose = () => { if (!terminalReceived && !disposed) connectionFailure(); };
           await ready;
           if (disposed || !input.canCapture()) { dispose(); return; }
           subscriptions.push(module.addListener('pcm', event => {

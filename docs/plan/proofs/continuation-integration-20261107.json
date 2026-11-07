@@ -1,0 +1,38 @@
+{
+  "schema": "USKOCI_CONTINUATION_INTEGRATION_V1",
+  "capturedAt": "2026-11-07T15:53:45.345465+00:00",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "inheritedCommit": "833885296d6e4bad0e49acb58ac72a247df911aa",
+  "weeklyCheckpoint": "b56f0e52db99256cdfb6988567edc0e7d597849c",
+  "activeTests": {
+    "command": "npm test",
+    "passed": 581,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "logSha256": "3dbb0a5b66863abf96f91eb4612d99826b5ce69c62f99fc2882adf22cb47abb3"
+  },
+  "migrationIntegrity": {
+    "physicalSqlFiles": 209,
+    "pythonTestsPassed": 33,
+    "historicalSqlRewritten": false
+  },
+  "typescript": "PASS",
+  "diffCheck": "PASS",
+  "newPaidProviderCalls": 0,
+  "nativeConfirmed": false,
+  "dev": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "migrationCount": 344,
+    "budgetEnforced": true,
+    "existingBudgetMicrousd": 5000000,
+    "preservedAccountingMicrousd": 65486681,
+    "preservedReservations": 2324,
+    "edgeProof": "r01-modern-key-dev-20261107.json"
+  },
+  "sourceBoundaries": [
+    "All source changes are tested and ready for the integrated CI build. QA46 proves only the earlier weekly checkpoint.",
+    "Legacy key retirement, legal retention policy and native acceptance remain open.",
+    "R07 ordinary Auth proof uses only existing TEST objects; three-actor concurrency and cold restart are not claimed."
+  ]
+}

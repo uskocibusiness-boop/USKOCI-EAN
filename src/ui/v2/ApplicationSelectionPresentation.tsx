@@ -5,6 +5,7 @@ import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija } from '../../contracts/projections';
 import type { Ishod } from '../../data/ports';
+import type { SelectionAgreementStatus } from '../../data/applicationSelectionClientService';
 import type { PublicWorkTrust } from '../../data/workTrustClientService';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
@@ -52,7 +53,7 @@ export function SelectionUnavailable({ loading, message, retry, back }: { loadin
   const [title, body] = splitFirstSentence(message);
   return <Screen kind="detail" header={<ProductHeader backLabel="Nazad na zadatak" title="Prijave" back={back} />}>
     {loading ? <QuietReadState art="applications" title="Učitavamo prijave…" body="Proveravamo ko se prijavio i koliko mesta je još dostupno." />
-      : <StateView kind="error" title={title} body={body ?? undefined} primary={retry ? { label: 'Pokušaj ponovo', onPress: retry } : undefined} />}
+      : <StateView kind="error" title={title} body={body ?? undefined} primary={retry ? { label: 'Pokušajte ponovo', onPress: retry } : undefined} />}
   </Screen>;
 }
 /** `loading` is this action's own write in flight: the button keeps its green and its words, with a spinner. */
@@ -192,7 +193,7 @@ export function sortCandidates(candidates: readonly KandidatProjekcija[], sort: 
 function TaskBrief({ need, open }: { need: PotrebaProjekcija; open?: () => void }) {
   const title = readableTitle(need.naslov);
   return <View style={s.taskBrief}>
-    {open ? <ListRow title={title} last accessibilityLabel={`Otvori zadatak: ${title}`} onPress={open} />
+    {open ? <ListRow title={title} last accessibilityLabel={`Otvorite zadatak: ${title}`} onPress={open} />
       : <T variant="heading" accessibilityRole="header">{title}</T>}
     <TaskCapacity capacity={need.pokrivenost} />
   </View>;
@@ -294,8 +295,8 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const selectable = candidates.filter(k => k.stanje === 'SELECTABLE' && k.mozeIzabrati === true).length;
   const counts = `${prijava(known ? candidates.length : paging?.total ?? candidates.length)}${known && selectable !== candidates.length ? ` · ${selectable} za izbor` : ''}`;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ProductHeader backLabel={compare ? 'Nazad na prijave' : 'Nazad na zadatak'} title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back}
-      right={candidates.length > 1 ? <V2Action label={compare ? 'Prikaži listu' : 'Uporedi'} kind="quiet" compact onPress={() => setCompare(!compare)} /> : undefined} />
+    <ProductHeader backLabel={compare ? 'Nazad na prijave' : 'Nazad na zadatak'} title={compare ? 'Uporedite prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back}
+      right={candidates.length > 1 ? <V2Action label={compare ? 'Prikažite listu' : 'Uporedite'} kind="quiet" compact onPress={() => setCompare(!compare)} /> : undefined} />
     <View style={s.grow}>
       <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={rows} keyExtractor={candidateKey} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
         refreshing={pull.refreshing} onRefresh={pull.onRefresh}
@@ -323,7 +324,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
           </Surface> : null}
           {!known && compare ? <View accessibilityLiveRegion="polite" style={s.notes}>
             <T variant="note" tone="muted">Poredite učitane prijave. Još nisu prikazane sve prijave.</T>
-            {paging?.moreError ? <V2Action label="Učitaj preostale prijave" kind="quiet" compact onPress={paging.onLoadMore} />
+            {paging?.moreError ? <V2Action label="Učitajte preostale prijave" kind="quiet" compact onPress={paging.onLoadMore} />
               : paging?.loadingMore ? <T variant="meta" tone="muted">Učitavamo preostale…</T> : null}
           </View> : null}
         </View>}
@@ -335,12 +336,12 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
           {!refreshing && paging && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.pagingFoot}>
             {paging.moreError ? <>
               <T variant="note" tone="muted">Ne možemo da učitamo ostale prijave.</T>
-              <V2Action label="Pokušaj ponovo" kind="quiet" onPress={paging.onLoadMore} />
+              <V2Action label="Pokušajte ponovo" kind="quiet" onPress={paging.onLoadMore} />
             </> : paging.loadingMore ? <T variant="note" tone="muted">Učitavamo još prijava…</T>
-              : <V2Action label="Prikaži još" kind="quiet" onPress={paging.onLoadMore} />}</View> : null}
+              : <V2Action label="Prikažite još" kind="quiet" onPress={paging.onLoadMore} />}</View> : null}
         </View> : null} />
     </View>
-    {sorting && candidates.length > 1 && known ? <ProductSheet title="Redosled prijava" closeLabel="Zatvori izbor redosleda" onClose={() => setSorting(false)}>
+    {sorting && candidates.length > 1 && known ? <ProductSheet title="Redosled prijava" closeLabel="Zatvorite izbor redosleda" onClose={() => setSorting(false)}>
       {dismiss => <View accessibilityRole="radiogroup" style={s.sortOptions}>
         {SORTS.map(option => <ChoiceRow key={option} kind="radio" label={SORT_LABEL[option]} checked={sort === option} onPress={() => { choose(option); dismiss(); }} />)}
       </View>}
@@ -359,9 +360,9 @@ function SelectedAgreementAction({ load, open }: { load: () => Promise<Ishod<{ d
     } catch { if (request.current === generation) setState({ loading: false, id: null }); }
   };
   useEffect(() => { void read(); return () => { request.current++; }; }, [load]);
-  if (state.id) return <BrandAction label="Otvori Dogovor" onPress={() => { if (state.id) open(state.id); }} />;
+  if (state.id) return <BrandAction label="Otvorite Dogovor" onPress={() => { if (state.id) open(state.id); }} />;
   return <><T variant="meta" tone="muted" style={s.center}>{state.loading ? 'Proveravamo Dogovor uz ovu prijavu…' : 'Veza sa Dogovorom trenutno nije dostupna.'}</T>
-    <V2Action label="Proveri Dogovor" onPress={() => { if (!state.loading) void read(); }} loading={state.loading} /></>;
+    <V2Action label="Proverite Dogovor" onPress={() => { if (!state.loading) void read(); }} loading={state.loading} /></>;
 }
 
 /** The words that stand before the one choice that forms the Dogovor, while it is retried; the question itself is `CHOICE_QUESTION`. */
@@ -394,7 +395,7 @@ const CHOOSE_LABEL = 'Izaberite kandidata';
  * Closing the sheet is the screen's Back: it returns to the list, or, once a choice was made, leaves as Back always did.
  * Nothing closes it while the choice runs.
  */
-export function CandidateSelectionPresentation({ need, candidate, back, chooseNext, publicProfile, publicTrust, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety, photo, ownFace, themFace, viewed = false }: {
+export function CandidateSelectionPresentation({ need, candidate, back, chooseNext, publicProfile, publicTrust, choose, busy, pending, uncertain, refresh, error, confirmed, confirmedStatus, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety, photo, ownFace, themFace, viewed = false }: {
   need: PotrebaProjekcija; candidate: KandidatProjekcija; back: () => void;
   /** In multi-worker tasks: return to the candidate list to select the next helper. */
   chooseNext?: () => void;
@@ -404,6 +405,8 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
   /** The route's one choice. A returned promise keeps the confirmation busy until the command settles. */
   choose: () => void | Promise<unknown>;
   busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void; error: string | null; confirmed: boolean;
+  /** Present only after exact readback; it may describe a now-terminal cooperation. */
+  confirmedStatus?: SelectionAgreementStatus;
   openAgreement: () => void; reset?: () => void;
   readAgreement: () => Promise<Ishod<{ dogovorId: string | null }>>; openLinkedAgreement: (id: string) => void;
   publicPhoto?: (profileId: string, size?: number) => ReactNode;
@@ -461,15 +464,29 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
   const selected = candidate.stanje === 'SELECTED' && !pending;
   // An offer that cannot be chosen has no green action; the note says so and carries the one thing to do about it.
   const blocked = !candidate.mozeIzabrati && !pending && !confirmed && !selected;
-  const primary = confirmed ? <BrandAction label="Otvori Dogovor" onPress={openAgreement} />
+  const primary = confirmed ? <BrandAction label="Otvorite Dogovor" onPress={openAgreement} />
     : selected ? <SelectedAgreementAction load={readAgreement} open={openLinkedAgreement} />
     : busy ? <BrandAction label="Povezivanje…" onPress={() => { void choose(); }} disabled loading />
     : uncertain ? <BrandAction label="Proverite da li je izabrano" onPress={refresh} disabled={busy} />
+    : reset ? <BrandAction label="Pregledajte prijave" onPress={reset} />
     : pending ? <BrandAction label="Pošaljite izbor ponovo" onPress={() => { void choose(); }} />
     : candidate.mozeIzabrati ? <BrandAction label={CHOOSE_LABEL} onPress={askToChoose} />
     : null;
-  const quiet = reset ? <V2Action label="Pregledajte prijave" kind="quiet" onPress={reset} disabled={busy} /> : null;
+  const quiet = pending && !confirmed && !uncertain && !reset
+    ? <V2Action label="Proverite ponovo" kind="quiet" onPress={refresh} disabled={busy} /> : null;
   const priceWords = value.kind === 'amount' ? value.amount : UNPRICED;
+  if (confirmed && confirmedStatus) {
+    const statusCopy: Record<SelectionAgreementStatus, string> = {
+      CONFIRMED: 'Dogovor je pronađen. Otvorite ga da vidite aktuelne uslove saradnje.',
+      CANCELLED: 'Izbor je bio sačuvan, a saradnja je u međuvremenu otkazana. Otvorite Dogovor za detalje.',
+      COMPLETED: 'Izbor je bio sačuvan, a saradnja je u međuvremenu završena. Otvorite Dogovor za detalje.',
+      SUPERSEDED: 'Izbor je bio sačuvan. Ovaj Dogovor više nije aktuelan; otvorite ga da vidite detalje.',
+    };
+    return <ProductSheet title="Izbor je sačuvan" onClose={back} closeLabel="Nazad na zadatak" footer={() => primary}>
+      {() => <View style={s.offerContent}><T variant="heading">{readableTitle(need.naslov)}</T>
+        <T variant="body" accessibilityRole="alert">{statusCopy[confirmedStatus]}</T></View>}
+    </ProductSheet>;
+  }
   // "Dogovoreno!" (owner's pick of 2026-10-08, "Susret dva lica"): once the Dogovor is made the offer is not what the person needs to see, so
   // the sheet gives way to the moment, a whole screen with two faces, the task's title, the word, three rows and the one green way on, which
   // is this sheet's own `Otvori Dogovor` with every guard it had. Fresh only when the choice was confirmed while this sheet was open: reopened
@@ -496,7 +513,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
   // The person's name is the sheet's title (review r4 rk item 3): a real heading for a screen reader, and the sheet's own
   // visible × beside it, which a sighted person on iOS had no way to find before (only the handle, a tap outside and
   // Android Back closed it). The row under it keeps the picture and the rating, and opens the public profile.
-  return <ProductSheet title={candidate.ime} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvori prijavu'}
+  return <ProductSheet title={candidate.ime} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvorite prijavu'}
     backdropHint={pending ? 'Vraća na zadatak.' : 'Zatvara prijavu i vraća na prijave.'} dismissible={!busy} onClose={back}
     footer={primary || quiet ? () => <>{primary}{quiet}</> : undefined}>
     {() => <View style={s.offerContent}>

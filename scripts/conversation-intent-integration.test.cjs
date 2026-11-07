@@ -264,7 +264,7 @@ function handlerHarness(domain, text, providerOutput, options = {}) {
     SUPABASE_ANON_KEY: 'public-fixture', SUPABASE_SERVICE_ROLE_KEY: 'server-fixture',
     GEMINI_API_KEY: 'provider-fixture', GEMINI_MODEL: 'gemini-3.8-flash', AI_PROVIDER: 'gemini',
     USKOCI_GEMINI_PAID_TEST_ENABLED: 'true', USKOCI_TAXONOMY_DUAL_GEMINI: String(singlePass),
-    USKOCI_TAXONOMY_ROLLOUT_SCOPE: 'DEV', USKOCI_TAXONOMY_ALLOWED_PROJECT_REF: 'leqcwgzvjsxugfgzdmth' };
+    USKOCI_TAXONOMY_ROLLOUT_SCOPE: 'DEV', USKOCI_TAXONOMY_ALLOWED_PROJECT_REF: 'leqcwgzvjsxugfgzdmth', ...options.env };
   const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } });
   const processing = domain === 'NEED' ? needTurn({ state: 'PROCESSING', receipt: null }) : workerTurn({ state: 'PROCESSING' });
   const candidate = { displayName: 'QA Fixture', bio: '', skills: options.skills ?? [],
@@ -274,8 +274,8 @@ function handlerHarness(domain, text, providerOutput, options = {}) {
   const fetchMock = async (url, init = {}) => {
     const parsed = new URL(String(url)), name = parsed.pathname.split('/').at(-1);
     const args = typeof init.body === 'string' ? JSON.parse(init.body) : null;
-    calls.push({ url: parsed.origin + parsed.pathname, name, args });
-    if (parsed.pathname === '/auth/v1/user') return json({ id: ACCOUNT });
+    calls.push({ url: parsed.origin + parsed.pathname, name, args, headers: new Headers(init.headers) });
+    if (parsed.pathname === '/auth/v1/user') return options.authDenied ? json({}, 401) : json({ id: ACCOUNT });
     if (parsed.pathname === '/rest/v1/ai_conversations') return json([{ id: CONVERSATION, account_id: ACCOUNT, fact_schema_version: 'NEED_FACT_V2', status: 'OPEN' }]);
     if (parsed.hostname === 'generativelanguage.googleapis.com') {
       assert.equal(calls.filter(call => call.url.startsWith(parsed.origin)).length, 1, 'A single request cannot invoke a second model');

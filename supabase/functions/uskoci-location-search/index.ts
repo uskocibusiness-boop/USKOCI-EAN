@@ -5,6 +5,7 @@
  * Reverse: https://docs.locationiq.com/reference/reverse-api (lat/lon, query key).
  * place_id is an opaque, nonpersistent provider hint, not a durable place identity.
  */
+import { readSupabasePublishableKey } from '../_shared/supabaseKeys.mjs';
 export {};
 // Keep the Edge entry in the native repository's strict TypeScript check without
 // adding ambient Deno globals to the Expo compilation.
@@ -249,7 +250,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!body || typeof country !== 'string' || !/^[A-Z]{2}$/.test(country)
         || (reverse ? !only(body, ['mode', 'position', 'countryCode']) || !validPosition : !only(body, ['text', 'countryCode']) || !text)) throw new Rejected(400, 'INVALID_QUERY');
       failureStage = 'CONFIG'; failureReason = 'CONFIG_UNAVAILABLE';
-      const supabaseUrl = Deno.env.get('SUPABASE_URL'), anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+      const supabaseUrl = Deno.env.get('SUPABASE_URL'), anonKey = readSupabasePublishableKey(name => Deno.env.get(name));
       if (!supabaseUrl || !anonKey) throw new Rejected(503, 'SERVER_CONFIG_ERROR');
       const authenticatedHeaders = { apikey: anonKey, Authorization: authorization, Accept: 'application/json' };
       const fetchBound = async (url: string | URL, init: RequestInit): Promise<Response> => {

@@ -50,7 +50,7 @@ function loadSources(overrides, globals) {
     const filename = path.join(ROOT, name), source = overrides[name] ?? fs.readFileSync(filename, 'utf8');
     const key = name + '\0' + source;
     if (!compiled.has(key)) {
-      const result = ts.transpileModule(source, { fileName: filename, reportDiagnostics: true,
+      const result = ts.transpileModule(source, { fileName: filename.replace(/\.mjs$/, '.ts'), reportDiagnostics: true,
         compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
       assert.deepEqual((result.diagnostics ?? []).filter(d => d.category === ts.DiagnosticCategory.Error), []);
       compiled.set(key, result.outputText);

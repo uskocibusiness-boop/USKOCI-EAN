@@ -4202,5 +4202,67 @@
         }
       ]
     }
+  },
+  "forward_execution_20261107_continuation": {
+    "observed_at_utc": "2026-11-07",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "Two guarded forward migrations: truthful AI budget accounting with the existing 5 USD admission ceiling enforced, and an authenticated read-only selection recovery result bound to the original request and current session. Business history is preserved.",
+    "evidence": "inline:dev_forward_catalog_20261107_continuation",
+    "entries": [
+      {
+        "file": "20261107152928_r06_budget_accounting_20261107.sql",
+        "version": "20261107152928",
+        "name": "r06_budget_accounting_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107152928",
+        "live_name": "r06_budget_accounting_20261107",
+        "live_recorded_md5": "092e24021a33ec79119ae11a56cab287",
+        "live_recorded_sha256": "9b5be47adabafd24b6ad60c76f5f86b28385ca790fcb4730f94a20225ffad370",
+        "raw_md5": "092e24021a33ec79119ae11a56cab287",
+        "raw_sha256": "9b5be47adabafd24b6ad60c76f5f86b28385ca790fcb4730f94a20225ffad370",
+        "raw_bytes": 22519,
+        "source": "scripts/sql/r06_budget_accounting_20261107.sql"
+      },
+      {
+        "file": "20261107153455_r07_selection_recovery_20261107.sql",
+        "version": "20261107153455",
+        "name": "r07_selection_recovery_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107153455",
+        "live_name": "r07_selection_recovery_20261107",
+        "live_recorded_md5": "db1ca71ebfeea07af1aafa33d2035e1f",
+        "live_recorded_sha256": "b29efe20f41cbf1c5521c8de85d3662b2d33fe85d01d3ca86739a51380edfc50",
+        "raw_md5": "db1ca71ebfeea07af1aafa33d2035e1f",
+        "raw_sha256": "b29efe20f41cbf1c5521c8de85d3662b2d33fe85d01d3ca86739a51380edfc50",
+        "raw_bytes": 8392,
+        "source": "scripts/sql/r07_selection_recovery_20261107.sql"
+      }
+    ],
+    "catalog_evidence": {
+      "source_base_commit": "b56f0e52db99256cdfb6988567edc0e7d597849c",
+      "observed_at_utc": "2026-11-07",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "method": "Read-only post-apply ledger captures. Both complete one-statement SQL bodies match their reviewed candidates and physical files byte for byte. R06 preserves existing accounting and permissions; R07 adds only the exact authenticated selection reader while its writer and current-authority dependencies remain unchanged. No historical rewrite or native acceptance claim.",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261107152928",
+          "name": "r06_budget_accounting_20261107",
+          "statement_count": 1,
+          "joined_md5": "092e24021a33ec79119ae11a56cab287",
+          "joined_sha256": "9b5be47adabafd24b6ad60c76f5f86b28385ca790fcb4730f94a20225ffad370",
+          "joined_bytes": 22519
+        },
+        {
+          "name": "r07_selection_recovery_20261107",
+          "version": "20261107153455",
+          "joined_md5": "db1ca71ebfeea07af1aafa33d2035e1f",
+          "joined_bytes": 8392,
+          "joined_sha256": "b29efe20f41cbf1c5521c8de85d3662b2d33fe85d01d3ca86739a51380edfc50",
+          "statement_count": 1
+        }
+      ]
+    }
   }
 }

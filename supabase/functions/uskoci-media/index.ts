@@ -4,6 +4,7 @@ import * as magick from 'npm:@imagemagick/magick-wasm@0.0.43';
 import { configureImageLimits, sanitizeImage } from '../_shared/mediaImageSanitizer.mjs';
 import { inspectVoiceM4a } from '../_shared/voiceM4a.mjs';
 import { createMediaUploadAdmission } from '../_shared/mediaUploadAdmission.mjs';
+import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 declare const Deno:{env:{get(name:string):string|undefined};readFile(path:string|URL):Promise<Uint8Array>;serve(fn:(req:Request)=>Promise<Response>):void};
 type Row=Record<string,any>;
 const row=(v:unknown):Row|null=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as Row:null;
@@ -118,16 +119,16 @@ function voiceTransfer(raw:unknown,accountId:string,agreementId:string,version:n
 export async function handleMedia(req:Request):Promise<Response>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
  if(req.method!=='POST')return json(405,{code:'METHOD_NOT_ALLOWED'});
- const authorization=req.headers.get('authorization')??'',base=Deno.env.get('SUPABASE_URL')??'',anon=Deno.env.get('SUPABASE_ANON_KEY')??'',service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??'';
+ const authorization=req.headers.get('authorization')??'',base=Deno.env.get('SUPABASE_URL')??'',anon=readSupabasePublishableKey(name=>Deno.env.get(name))??'',service=readSupabaseServiceKey(name=>Deno.env.get(name))??'';
  if(!/^Bearer [^\s]+$/.test(authorization)||authorization.length>16384)return json(401,{code:'AUTH_REQUIRED'});
  let url:URL;try{url=new URL(base);if(url.protocol!=='https:'||url.username||url.password||url.pathname!=='/'||url.search||url.hash||!anon||!service)throw new Error();}catch{return json(503,{code:'MEDIA_UNAVAILABLE'});}
  const abort=new AbortController(),stop=()=>abort.abort();let timer=setTimeout(stop,25000);req.signal.addEventListener('abort',stop,{once:true});if(req.signal.aborted)stop();
  const fetchBound=(path:string,init:RequestInit)=>fetch(path,{...init,redirect:'error',signal:abort.signal});
  const userHeaders={apikey:anon,Authorization:authorization,'Content-Type':'application/json'};
- const serviceHeaders={apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'};
+ const serviceHeaders=supabaseServiceHeaders(service,{'Content-Type':'application/json'});
  const rpc=async(name:string,args:Row,maxBytes=32768)=>{const r=await fetchBound(url.origin+'/rest/v1/rpc/'+name,{method:'POST',headers:serviceHeaders,body:JSON.stringify(args)});
   const v=parse(await bytes(r,maxBytes,abort.signal));if(!r.ok){const code=row(v)?.message;if(safeCodes.includes(code))throw new Safe(code,code==='MEDIA_NOT_FOUND'?403:code==='MEDIA_RATE_LIMITED'?429:409);throw new Error('MEDIA_RPC_FAILED');}return v;};
- const objectBytes=async(path:string,expected:string,size:number,strictMime=false)=>{const r=await fetchBound(url.origin+'/storage/v1/object/profile-media/'+path,{headers:{apikey:service,Authorization:'Bearer '+service}});
+ const objectBytes=async(path:string,expected:string,size:number,strictMime=false)=>{const r=await fetchBound(url.origin+'/storage/v1/object/profile-media/'+path,{headers:supabaseServiceHeaders(service)});
   if(!r.ok||(strictMime&&r.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='image/jpeg'))throw new Error('STORAGE_UNCONFIRMED');const b=await bytes(r,5242880,abort.signal);if(b.length!==size||await digest(b)!==expected)throw new Error('STORAGE_UNCONFIRMED');return b;};
  let releaseAdmission:(()=>void)|null=null;
  try{
@@ -137,7 +138,7 @@ export async function handleMedia(req:Request):Promise<Response>{
   if(op?.startsWith('agreement-voice-')){
    // Voice messages (B1-c). The original bytes ARE the stored bytes: one validated self-contained mono AAC-LC M4A, no transcoding, never a URL.
    const sessionId=supportSession(authorization,aid,url.origin);
-   const voiceBytes=async(path:string,expected:string,size:number)=>{const r=await fetchBound(url.origin+'/storage/v1/object/agreement-voice/'+path,{headers:{apikey:service,Authorization:'Bearer '+service}});
+   const voiceBytes=async(path:string,expected:string,size:number)=>{const r=await fetchBound(url.origin+'/storage/v1/object/agreement-voice/'+path,{headers:supabaseServiceHeaders(service)});
     if(!r.ok||r.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='audio/mp4')throw new Error('STORAGE_UNCONFIRMED');
     const b=await bytes(r,VOICE_MAX,abort.signal);if(b.length!==size||await digest(b)!==expected)throw new Error('STORAGE_UNCONFIRMED');return b;};
    if(op==='agreement-voice-read'){
@@ -204,7 +205,7 @@ export async function handleMedia(req:Request):Promise<Response>{
     if(t.receipt.state!=='STAGED'||t.sha256!==sha256||t.byteSize!==input.length||t.durationMs!==info.durationMs)throw new Error('INVALID_VOICE_STAGE');
     t=await call('DISPATCH');if(!t.acquired)return json(200,t.receipt);
     if(t.receipt.state!=='STAGED'||t.dispatchState!=='DISPATCHING'||t.sha256!==sha256||t.byteSize!==input.length)throw new Error('INVALID_VOICE_DISPATCH');
-    const posted=await fetchBound(url.origin+'/storage/v1/object/agreement-voice/'+t.path,{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'audio/mp4','x-upsert':'false'},body:new Uint8Array(input)});
+    const posted=await fetchBound(url.origin+'/storage/v1/object/agreement-voice/'+t.path,{method:'POST',headers:supabaseServiceHeaders(service,{'Content-Type':'audio/mp4','x-upsert':'false'}),body:new Uint8Array(input)});
     void posted.body?.cancel();
     // 4xx is a definitive rejected write; a timeout or 5xx stays DISPATCHING so a later closure cannot mistake an unknown upstream write for quiescence.
     if(!posted.ok&&posted.status!==409){if(posted.status>=400&&posted.status<500)await call('SETTLE',{sha256,outcome:'REJECTED'});throw new Error('VOICE_STORAGE_UNCONFIRMED');}
@@ -273,7 +274,7 @@ export async function handleMedia(req:Request):Promise<Response>{
      if(t.receipt.state!=='STAGED'||t.sha256!==sha256||t.byteSize!==clean.bytes.length)throw new Error('INVALID_PHOTO_STAGE');
      t=await call('DISPATCH');if(!t.acquired)return json(200,t.receipt);
      if(t.receipt.state!=='STAGED'||t.dispatchState!=='DISPATCHING'||t.sha256!==sha256||t.byteSize!==clean.bytes.length)throw new Error('INVALID_PHOTO_DISPATCH');
-     const posted=await fetchBound(url.origin+'/storage/v1/object/profile-media/'+t.path,{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'image/jpeg','x-upsert':'false'},body:new Uint8Array(clean.bytes)});
+     const posted=await fetchBound(url.origin+'/storage/v1/object/profile-media/'+t.path,{method:'POST',headers:supabaseServiceHeaders(service,{'Content-Type':'image/jpeg','x-upsert':'false'}),body:new Uint8Array(clean.bytes)});
      void posted.body?.cancel();
      if(!posted.ok&&posted.status!==409){if(posted.status>=400&&posted.status<500)await call('SETTLE',{sha256,outcome:'REJECTED'});throw new Error('PHOTO_STORAGE_UNCONFIRMED');}
      const stored=await objectBytes(t.path,sha256,t.byteSize,true);stored.fill(0);t=await call('SETTLE',{sha256,outcome:'STORED'});return json(200,t.receipt);
@@ -381,7 +382,7 @@ export async function handleMedia(req:Request):Promise<Response>{
     p_sha256:await digest(sanitized.bytes),p_width:sanitized.width,p_height:sanitized.height,p_byte_size:sanitized.bytes.length}))??{};
    if(!hash(staged.sha256)||staged.path!==`${aid}/v5/${a.assetId}/${staged.sha256}.jpg`||staged.byteSize!==sanitized.bytes.length)throw new Error('INVALID_STAGE');
    const dispatch=await rpc('rpc_dispatch_media_upload_service',{p_account_id:aid,p_asset_id:a.assetId,p_attempt_id:claim.attemptId});if(dispatch!==true)throw new Error('DISPATCH_UNKNOWN');
-   const stored=await fetchBound(url.origin+'/storage/v1/object/profile-media/'+staged.path,{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'image/jpeg','x-upsert':'false'},body:new Uint8Array(sanitized.bytes).buffer});
+   const stored=await fetchBound(url.origin+'/storage/v1/object/profile-media/'+staged.path,{method:'POST',headers:supabaseServiceHeaders(service,{'Content-Type':'image/jpeg','x-upsert':'false'}),body:new Uint8Array(sanitized.bytes).buffer});
    sanitized.bytes.fill(0);
    if(!stored.ok&&stored.status!==409){
     // 4xx is a definitive rejected write. Timeouts/5xx remain DISPATCHING: an

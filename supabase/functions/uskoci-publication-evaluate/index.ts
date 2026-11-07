@@ -4,6 +4,7 @@
  * Approved Gemini with the shared controlled test budget; no provider fallback.
  */
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
+import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 import { geminiUsage } from '../_shared/geminiTaskStream.ts';
 declare const Deno: {
   env: { get(name: string): string | undefined };
@@ -273,7 +274,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const needId = input.needId.toLowerCase(), revision = input.expectedRevision;
       const acceptedReviewId = typeof input.acceptedReviewId === 'string' ? input.acceptedReviewId.toLowerCase() : null;
       requested = { needId, revision };
-      const configuredUrl = Deno.env.get('SUPABASE_URL'), anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+      const configuredUrl = Deno.env.get('SUPABASE_URL'), anonKey = readSupabasePublishableKey(name => Deno.env.get(name));
       if (!configuredUrl || !anonKey) throw new Rejected(503, 'EVALUATOR_UNAVAILABLE');
       const base = new URL(configuredUrl);
       if (base.protocol !== 'https:' || base.username || base.password || base.search || base.hash || !['', '/'].includes(base.pathname)) throw new Rejected(503, 'EVALUATOR_UNAVAILABLE');
@@ -305,12 +306,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!ctx) throw new Error('INVALID_CONTEXT');
       // Read provider and service credentials only after an owned, current,
       // reviewed executable policy and canonical prerequisites are admitted.
-      const providerKey = Deno.env.get('GEMINI_API_KEY'), model = Deno.env.get('GEMINI_MODEL'), serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      const providerKey = Deno.env.get('GEMINI_API_KEY'), model = Deno.env.get('GEMINI_MODEL'), serviceKey = readSupabaseServiceKey(name => Deno.env.get(name));
       if (!providerKey || !serviceKey || Deno.env.get('AI_PROVIDER')!=='gemini' || model!=='gemini-3.8-flash'
         || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED')!=='true') return notReady(needId, revision, 'EVALUATOR_UNAVAILABLE');
       const refs=ctx.providerNeed.publicMediaRefs as string[];
       if(refs.length&&Deno.env.get('USKOCI_GEMINI_IMAGE_REVIEW_ENABLED')!=='true')return notReady(needId,revision,'PUBLIC_MEDIA_NOT_READY');
-      const serviceHeaders = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' };
+      const serviceHeaders = supabaseServiceHeaders(serviceKey, { 'Content-Type': 'application/json' });
       let reviewAttemptId: string | null = null;
       if (acceptedReviewId) {
         const claimed = await fetchBound(`${base.origin}/rest/v1/rpc/rpc_claim_ai_task_review_evaluation_service`, {
@@ -422,7 +423,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!evaluated) return reviewAttemptId ? reviewComplete(null, 'EVALUATOR_INVALID_RESPONSE') : notReady(needId, revision, 'EVALUATOR_INVALID_RESPONSE');
       if (reviewAttemptId) return reviewComplete(evaluated, null);
       const stored = await fetchBound(`${base.origin}/rest/v1/rpc/rpc_record_need_publication_decision_service`, {
-        method: 'POST', headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+        method: 'POST', headers: supabaseServiceHeaders(serviceKey, { 'Content-Type': 'application/json' }),
         body: JSON.stringify({ p_need_id: needId, p_expected_revision: revision, p_policy_id: ctx.binding.policyId,
           p_jurisdiction: ctx.binding.jurisdiction, p_outcome: evaluated.outcome, p_rule_ids: evaluated.ruleIds,
           p_decision_source: 'PUBLICATION_EVALUATOR_V1', p_safe_reason_codes: evaluated.safeReasonCodes,

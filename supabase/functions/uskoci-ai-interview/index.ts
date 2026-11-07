@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
+import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 import { taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../../../src/contracts/aiAvailability.ts';
@@ -1416,7 +1417,7 @@ Deno.serve(async (req: Request) => {
   if ((!text && !imageBase64) || text.length > 4000) return response(400, { code: 'MESSAGE_INVALID', message: 'Unesite poruku do 4.000 znakova ili fotografiju.' });
   const effectiveUserMessage = text || (imageBase64 ? 'Poslao sam fotografiju zadatka.' : '');
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  const anonKey = readSupabasePublishableKey(name => Deno.env.get(name)) ?? '';
   if (!supabaseUrl || !anonKey) return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
   let accountId: string;
   try {
@@ -1442,7 +1443,7 @@ Deno.serve(async (req: Request) => {
   let retirementStarted = false;
   let serviceRoleKey = '';
   const rpc = (name: string, args: Record<string, unknown>, signal?: AbortSignal, timeout = 8000) => boundedJson(supabaseUrl + '/rest/v1/rpc/' + name, {
-    method: 'POST', headers: { apikey: serviceRoleKey, Authorization: 'Bearer ' + serviceRoleKey, 'Content-Type': 'application/json' },
+    method: 'POST', headers: supabaseServiceHeaders(serviceRoleKey, { 'Content-Type': 'application/json' }),
     body: JSON.stringify(args),
   }, 524288, timeout, signal);
   const identityArgs = () => ({ p_account_id: accountId, p_conversation_id: conversationId, p_client_request_id: requestId });
@@ -1475,7 +1476,7 @@ Deno.serve(async (req: Request) => {
     } else if (!exact(body, ['conversationId', 'text']) || rows[0].status !== 'OPEN') {
       return response(409, { code: 'CONVERSATION_NOT_OPEN', message: 'Ovaj razgovor više nije otvoren.' });
     }
-    serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    serviceRoleKey = readSupabaseServiceKey(name => Deno.env.get(name)) ?? '';
     if (!serviceRoleKey) return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
     let history: any[], activeFacts: any[];
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {

@@ -1,4 +1,5 @@
 /** Private export transport. No response bodies, credentials or object paths are logged. */
+import { isSupabaseServiceRequest, readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from './supabaseKeys.mjs';
 declare const Deno: { env: { get(name: string): string | undefined } };
 export const MAX_BYTES = 8 * 1024 * 1024;
 export const BUCKET = 'data-export-artifacts';
@@ -89,43 +90,33 @@ export function reserve(accountId: string) {
   value.busy = true; value.count++; value.last = now;
   return () => { value.busy = false; };
 }
-/** Constant-time equality of a presented credential and the server key. */
-function sameKey(presented: string, key: string) {
-  const actual = new TextEncoder().encode(presented), expected = new TextEncoder().encode(key);
-  let difference = actual.length ^ expected.length;
-  for (let i = 0; i < Math.max(actual.length, expected.length); i++) difference |= (actual[i] ?? 0) ^ (expected[i] ?? 0);
-  actual.fill(0); expected.fill(0); return difference === 0;
-}
 export class Transport {
   readonly base: string;
   readonly authorization: string;
-  private readonly apikey: string;
+  private readonly incoming: Headers;
   private readonly anon: string;
   constructor(readonly signal: AbortSignal, req: Request) {
-    const raw = Deno.env.get('SUPABASE_URL'), anon = Deno.env.get('SUPABASE_ANON_KEY');
+    const raw = Deno.env.get('SUPABASE_URL'), anon = readSupabasePublishableKey(name => Deno.env.get(name));
     if (!raw || !anon) throw new Rejected(503, 'EXPORT_UNAVAILABLE');
     const url = new URL(raw);
     if (url.username || url.password || url.search || url.hash || !['', '/'].includes(url.pathname)
       || (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]', 'kong'].includes(url.hostname)))) throw new Rejected(503, 'EXPORT_UNAVAILABLE');
     this.base = url.origin; this.anon = anon; this.authorization = req.headers.get('authorization') ?? '';
-    this.apikey = req.headers.get('apikey') ?? '';
+    this.incoming = new Headers(req.headers);
     // A person comes with a Bearer session token. The scheduled tick comes with the server key on `apikey`: on a
     // project whose server key is a secret key (sb_secret_), a Bearer that is not a JWT never passes the gateway.
-    if (!/^Bearer [A-Za-z0-9._~-]{16,4096}$/.test(this.authorization) && !this.presentsServiceKey()) throw new Rejected(401, 'AUTH_REQUIRED');
+    const session = /^Bearer [A-Za-z0-9._~-]{16,4096}$/.test(this.authorization) && !this.authorization.startsWith('Bearer sb_');
+    if (!session && !this.isInternal()) throw new Rejected(401, 'AUTH_REQUIRED');
   }
-  private service() { const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); if (!key) throw new Rejected(503, 'EXPORT_UNAVAILABLE'); return key; }
-  private presentsServiceKey() { const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); return !!key && sameKey(this.apikey, key); }
-  /** The server key, on `apikey` or as the Bearer token. Both are compared, so the time taken does not say which. */
-  isInternal() {
-    const key = this.service();
-    const bearer = sameKey(this.authorization.startsWith('Bearer ') ? this.authorization.slice(7) : '', key), apikey = sameKey(this.apikey, key);
-    return bearer || apikey;
-  }
+  private service() { const key = readSupabaseServiceKey(name => Deno.env.get(name)); if (!key) throw new Rejected(503, 'EXPORT_UNAVAILABLE'); return key; }
+  isInternal() { return isSupabaseServiceRequest(this.incoming, name => Deno.env.get(name)); }
   async request(path: string, init: RequestInit, service = false) {
     if (this.signal.aborted || !path.startsWith('/') || path.includes('..') || path.startsWith('//')) throw new Rejected(503, 'EXPORT_UNAVAILABLE');
     const key = service ? this.service() : this.anon;
+    const headers = new Headers(service ? supabaseServiceHeaders(key, init.headers) : init.headers);
+    if (!service) { headers.set('apikey', key); headers.set('authorization', this.authorization); }
     const response = await fetch(this.base + path, { ...init, signal: this.signal, redirect: 'error', cache: 'no-store', credentials: 'omit',
-      headers: { ...init.headers, apikey: key, Authorization: service ? `Bearer ${key}` : this.authorization } });
+      headers });
     if (this.signal.aborted) { void response.body?.cancel().catch(() => undefined); throw new Rejected(503, 'EXPORT_UNAVAILABLE'); }
     return response;
   }

@@ -62,7 +62,7 @@ function request(kind = 'TASK', options = {}) {
   return { method: 'POST', headers, body: stream, signal: controller.signal, controller, key, kind, stream };
 }
 function harness(options = {}) {
-  const timer = clock(), calls = [], records = new Map(), storage = new Map(), posts = [], sanitizerInputs = [], sanitizerOutputs = [];
+  const timer = clock(), calls = [], requests = [], records = new Map(), storage = new Map(), posts = [], sanitizerInputs = [], sanitizerOutputs = [];
   const config = { full: false, ...options };
   let handler;
   const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
@@ -86,6 +86,7 @@ function harness(options = {}) {
     const url = new URL(raw); assert.equal(url.origin, ORIGIN, 'No external request escapes this fixture');
     if (init.signal?.aborted) throw new Error('synthetic aborted fetch');
     const headers = new Headers(init.headers);
+    requests.push({ path: url.pathname, method: init.method ?? 'GET', headers });
     if (url.pathname === '/auth/v1/user') {
       calls.push({ name: 'auth' }); return config.authDenied ? json({}, 401) : json({ id: actualOwner(headers.get('authorization')) });
     }
@@ -154,7 +155,7 @@ function harness(options = {}) {
     ImageMagick: { read(_input, _settings, callback) { return callback({ width: 16, height: 16, profileNames: [], attributeNames: [],
       autoOrient() {}, alpha() {}, strip() {}, write(_format, cb) { const output = new Uint8Array(SAMPLE); sanitizerOutputs.push(output); return cb(output); } }); } },
   };
-  const globals = { Deno: { env: { get: name => ({ SUPABASE_URL: ORIGIN, SUPABASE_ANON_KEY: 'public-fixture', SUPABASE_SERVICE_ROLE_KEY: 'service-fixture' })[name] },
+  const globals = { Deno: { env: { get: name => ({ SUPABASE_URL: ORIGIN, SUPABASE_ANON_KEY: 'public-fixture', SUPABASE_SERVICE_ROLE_KEY: 'service-fixture', ...config.env })[name] },
     readFile: async () => new Uint8Array(), serve: fn => { handler = fn; } },
     fixtureImportMeta: { resolve: () => 'file:///synthetic-magick.wasm' }, fetch: network, crypto: webcrypto,
     setTimeout: timer.setTimeout, clearTimeout: timer.clearTimeout };
@@ -180,7 +181,7 @@ function harness(options = {}) {
     return mod.exports;
   };
   load(ENTRY); assert.equal(typeof handler, 'function');
-  return { handler, timer, calls, records, storage, posts, config, sanitizerInputs, sanitizerOutputs,
+  return { handler, timer, calls, requests, records, storage, posts, config, sanitizerInputs, sanitizerOutputs,
     pending: () => calls.filter(c => /(?:claim_media|upload_service)/.test(c.name)),
     decode: async req => { const r = await handler(req); return { status: r.status, body: await r.json() }; } };
 }

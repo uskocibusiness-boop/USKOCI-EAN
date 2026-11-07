@@ -3,6 +3,7 @@
  * No logs: Expo error messages can contain transport addresses.
  */
 import { notificationPushCopy } from '../_shared/pushNotificationCopy.mjs';
+import { isSupabaseServiceRequest, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 declare const Deno: { env: { get(name: string): string | undefined }; serve(handler: (req: Request) => Promise<Response>): void };
 export {};
 type Row = Record<string, unknown>;
@@ -12,18 +13,6 @@ const uuid = (x: unknown): x is string => typeof x === 'string' && /^[0-9a-f]{8}
 const ticket = (x: unknown): x is string => typeof x === 'string' && /^[A-Za-z0-9_-]{1,200}$/.test(x);
 const live = (x: unknown): x is string => typeof x === 'string' && Number.isFinite(Date.parse(x)) && Date.parse(x) > Date.now();
 const json = (x: unknown, status = 200) => new Response(JSON.stringify(x), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
-const sameKey = (presented: string, key: string) => {
- const a = new TextEncoder().encode(presented), b = new TextEncoder().encode(key); let d = a.length ^ b.length;
- for (let i = 0; i < Math.max(a.length, b.length); i++) d |= (a[i] ?? 0) ^ (b[i] ?? 0);
- a.fill(0); b.fill(0); return d === 0;
-};
-// The server key, on `apikey` (how the scheduled tick sends it: a secret key, sb_secret_, is not a JWT and never
-// passes the gateway as a Bearer) or as the Bearer token. Both are compared, so the time taken does not say which.
-const fromService = (req: Request, key: string) => {
- const authorization = req.headers.get('authorization') ?? '';
- const bearer = sameKey(authorization.startsWith('Bearer ') ? authorization.slice(7) : '', key), apikey = sameKey(req.headers.get('apikey') ?? '', key);
- return bearer || apikey;
-};
 class Invalid extends Error {}
 let running = false;
 async function request(url: string, init: RequestInit & { signal: AbortSignal }): Promise<Response> {
@@ -66,8 +55,8 @@ function expoResult(value: unknown, receipt: boolean): { result: Result; ticketI
 }
 Deno.serve(async req => {
  if (req.method !== 'POST') return json({ code: 'METHOD_NOT_ALLOWED' }, 405);
- const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
- if (!service || !fromService(req, service)) return json({ code: 'FORBIDDEN' }, 403);
+ const service = readSupabaseServiceKey(name => Deno.env.get(name));
+ if (!service || !isSupabaseServiceRequest(req.headers, name => Deno.env.get(name))) return json({ code: 'FORBIDDEN' }, 403);
  // A disabled tick performs no DB/provider IO; a service-only probe may
  // record its actual disabled state without claiming work or reading Expo keys.
  const enabled = Deno.env.get('EXPO_PUSH_TRANSPORT_ENABLED') === 'true';
@@ -93,7 +82,7 @@ Deno.serve(async req => {
   async function rpc(name: 'rpc_claim_push_transport' | 'rpc_begin_push_send' | 'rpc_complete_push_transport' | 'rpc_record_push_readiness' | 'rpc_claim_push_single_target' | 'rpc_claim_push_single_target_receipt', args: Row) {
    if (signal.aborted) throw new Invalid();
    const result = await request(`${base.origin}/rest/v1/rpc/${name}`, { method: 'POST', redirect: 'error', signal,
-    headers: { apikey: service!, Authorization: `Bearer ${service}`, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+    headers: supabaseServiceHeaders(service!, { 'Content-Type': 'application/json' }), body: JSON.stringify(args) });
    if (!result.ok) { void result.body?.cancel().catch(() => undefined); throw new Invalid(); }
    return read(result.body, 16384, signal);
   }

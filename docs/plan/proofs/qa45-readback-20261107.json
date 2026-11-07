@@ -88,5 +88,14 @@
     "CI and APK build proof only; no installed two-device Android E2E",
     "No production AAB/signing/backend/store release",
     "No legacy-key revocation in this initial checkpoint"
-  ]
+  ],
+  "boundedPackagedAssetScan": {
+    "bundledHermesFile": true,
+    "decodedHermesStrings": true,
+    "serviceRoleJwtFound": false,
+    "modernSecretLiteralFound": false,
+    "literalPrefixCount": 1,
+    "rawStringBufferPrefixFalsePositiveResolved": true,
+    "nativeBinaryFullAudit": false
+  }
 }

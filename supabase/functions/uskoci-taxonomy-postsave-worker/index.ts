@@ -9,6 +9,7 @@ const devTaxonomyFlagP1=(name:string):boolean=>{
  * Successful catalog admission never itself schedules push or grants skills.
  */
 import { processTaxonomyPostSaveTick } from '../_shared/taxonomyPostSaveWorker.mjs';
+import { isSupabaseServiceRequest, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 declare const Deno: { env: { get(name: string): string | undefined };
   serve(handler: (request: Request) => Promise<Response>): void };
 type RpcArgs = Record<string, unknown>;
@@ -17,12 +18,6 @@ class Unavailable extends Error { retryable: boolean; constructor(retryable=fals
 } }
 const json = (data:unknown,status=200)=>new Response(JSON.stringify(data),{
  status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
-const sameKey=(provided:string,expected:string)=>{
- const a=new TextEncoder().encode(provided),b=new TextEncoder().encode(expected);
- let mismatch=a.length^b.length;
- for(let i=0;i<Math.max(a.length,b.length);i++)mismatch|=(a[i]??0)^(b[i]??0);
- a.fill(0);b.fill(0);return mismatch===0;
-};
 async function boundedJson(response:Response,signal:AbortSignal):Promise<unknown>{
  const maxBytes=32768;
  let reader:ReadableStreamDefaultReader<Uint8Array>|undefined;
@@ -67,12 +62,8 @@ async function boundedJson(response:Response,signal:AbortSignal):Promise<unknown
 let running=false;
 Deno.serve(async request=>{
  if(request.method!=='POST')return json({code:'METHOD_NOT_ALLOWED'},405);
- const secret=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
- const bearer=request.headers.get('authorization')??'';
- if(!secret||secret.length<24||!(
-   sameKey(request.headers.get('apikey')??'',secret)||
-   sameKey(bearer.startsWith('Bearer ')?bearer.slice(7):'',secret)
- ))return json({code:'FORBIDDEN'},403);
+ const secret=readSupabaseServiceKey(name=>Deno.env.get(name));
+ if(!secret||secret.length<24||!isSupabaseServiceRequest(request.headers,name=>Deno.env.get(name)))return json({code:'FORBIDDEN'},403);
  // Separate, double-gated release: default OFF even if deployed accidentally.
  if(!devTaxonomyFlagP1('USKOCI_TAXONOMY_POSTSAVE_WORKER_ENABLED')||
    !devTaxonomyFlagP1('USKOCI_TAXONOMY_CATALOG_ONLY_ACK'))
@@ -108,7 +99,7 @@ Deno.serve(async request=>{
    try{
     response=await fetch(origin+'/rest/v1/rpc/'+name,{
      method:'POST',redirect:'error',signal:controller.signal,
-     headers:{apikey:secret,Authorization:'Bearer '+secret,'Content-Type':'application/json'},
+     headers:supabaseServiceHeaders(secret,{'Content-Type':'application/json'}),
      body:JSON.stringify(args),
     });
    }catch{throw new Unavailable(true);}

@@ -1,5 +1,6 @@
 // Native authenticated bounded audio proxy. Provider key never leaves this Edge boundary.
 import { releaseUnusedAiTestReservation, reserveAiTestBudget, settleAiTestAudio } from '../_shared/aiTestBudget.ts';
+import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 import { bridgeSpeech } from './proxy.ts';
 // Supabase Edge background lifetimes are runtime-owned; no silent TypeScript escape.
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
@@ -50,8 +51,8 @@ Deno.serve(async (req: Request) => {
   const operationId = url.searchParams.get('operationId')?.toLowerCase();
   if ([...url.searchParams.keys()].length !== 2 || !uuid(conversationId) || !uuid(operationId)) return deny(400, 'SPEECH_REQUEST_INVALID');
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const anonKey = readSupabasePublishableKey(name => Deno.env.get(name)) ?? '';
+  const serviceRoleKey = readSupabaseServiceKey(name => Deno.env.get(name)) ?? '';
   const providerKey = Deno.env.get('GEMINI_API_KEY') ?? '';
   // Named operator acknowledgement of the approved paid service; no free-tier/personal-data assumption.
   // Owner-approved controlled short probes with an internal reservation budget.
@@ -71,7 +72,7 @@ Deno.serve(async (req: Request) => {
       || conversation.status !== 'OPEN' || !['NEED_INTAKE','PROFILE'].includes(conversation.purpose)) return deny(404, 'CONVERSATION_NOT_FOUND');
     if (conversation.purpose === 'PROFILE') {
       const context = await readBounded(supabaseUrl + '/rest/v1/rpc/rpc_read_worker_ai_context_service',
-        { apikey: serviceRoleKey, Authorization: 'Bearer ' + serviceRoleKey, 'Content-Type': 'application/json' }, req.signal, 524288,
+        supabaseServiceHeaders(serviceRoleKey, { 'Content-Type': 'application/json' }), req.signal, 524288,
         { p_account_id: account.id, p_conversation_id: conversationId });
       if (context?.schemaVersion !== 'WORKER_PROFILE_V1' || context.accountId !== account.id || context.conversationId !== conversationId
         || context.status !== 'OPEN' || context.stale !== false || !['ALLOW','CLARIFY'].includes(context.safety)) {

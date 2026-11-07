@@ -1,4 +1,5 @@
 // Shared V5 controlled-provider test budget. No retries or refunds after uncertain I/O.
+import { supabaseServiceHeaders } from './supabaseKeys.mjs';
 export const AI_TEST_LIMITS = Object.freeze({
   // Per model call, including the complete catalog and owned conversation.
   // Keep request/output limits and pre-dispatch cost admission on every path.
@@ -45,7 +46,7 @@ export async function reserveAiTestBudget(input: {
     assertActive();
     const response = await Promise.race([fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_budget_reserve_service', {
       method: 'POST', redirect: 'error', signal: abort.signal,
-      headers: { 'Content-Type': 'application/json', apikey: input.serviceRoleKey, Authorization: 'Bearer ' + input.serviceRoleKey },
+      headers: supabaseServiceHeaders(input.serviceRoleKey, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({ p_account_id: input.accountId, p_operation_id: input.operationId, p_kind: input.kind,
         p_max_cost_microusd: input.kind === 'LLM' ? AI_TEST_LIMITS.llmReservationMicrousd : AI_TEST_LIMITS.speechReservationMicrousd }),
     }),cancelled]);
@@ -109,7 +110,7 @@ args: Record<string, unknown>): Promise<Record<string, unknown>> {
   try {
     const request = fetch(input.supabaseUrl + '/rest/v1/rpc/' + rpc, {
       method: 'POST', redirect: 'error', signal: abort.signal,
-      headers: { 'Content-Type': 'application/json', apikey: input.serviceRoleKey, Authorization: 'Bearer ' + input.serviceRoleKey },
+      headers: supabaseServiceHeaders(input.serviceRoleKey, { 'Content-Type': 'application/json' }),
       body: JSON.stringify(args),
     }).then(response => {
       if (abort.signal.aborted || !response.ok || response.redirected || !response.body) {

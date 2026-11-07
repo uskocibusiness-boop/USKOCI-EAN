@@ -1,4 +1,5 @@
 import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
+import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 import { taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION } from '../../../src/contracts/aiAvailability.ts';
@@ -258,7 +259,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   const startedAt = Date.now();
   if (req.method === 'OPTIONS') return new Response(null,{ status:204,headers:cors });
   if (req.method !== 'POST') return json(405,{code:'METHOD_NOT_ALLOWED'});
-  const url = Deno.env.get('SUPABASE_URL') ?? '', anon = Deno.env.get('SUPABASE_ANON_KEY') ?? '', service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const url = Deno.env.get('SUPABASE_URL') ?? '', anon = readSupabasePublishableKey(name => Deno.env.get(name)) ?? '', service = readSupabaseServiceKey(name => Deno.env.get(name)) ?? '';
   const key = Deno.env.get('GEMINI_API_KEY') ?? '', model = Deno.env.get('GEMINI_MODEL') ?? '';
   const authorization = req.headers.get('Authorization') ?? '';
   if (!authorization.startsWith('Bearer ') || authorization.length>16384) return json(401,{code:'AUTH_REQUIRED'});
@@ -280,7 +281,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     account=authenticated.data.id;
   } catch { return json(503,{code:'AUTH_UNAVAILABLE'}); }
   const requestRpc=(name:string,args:Record<string,unknown>,signal:AbortSignal,timeout:number)=>
-    boundedJson(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify(args)},524288,timeout,signal);
+    boundedJson(url+'/rest/v1/rpc/'+name,{method:'POST',headers:supabaseServiceHeaders(service,{'Content-Type':'application/json'}),body:JSON.stringify(args)},524288,timeout,signal);
   const rpc=async(name:string,args:Record<string,unknown>,signal=req.signal,timeout=8000)=> {
     const result=await requestRpc(name,args,signal,timeout);
     if (!result.ok) throw new Error('WORKER_AI_RPC_FAILED'); return result.data;

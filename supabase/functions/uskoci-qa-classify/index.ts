@@ -1,6 +1,7 @@
 import { decodeQaSubmissionStatus, type QaSubmissionStatus } from '../../../src/contracts/qaSubmission.ts';
 import { qaTextHash } from '../../../src/lib/qaTextHash.ts';
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
+import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 declare const Deno: { env: { get(name: string): string | undefined }; serve(handler: (r: Request) => Promise<Response>): void };
 type Row = Record<string, unknown>;
 const row = (v: unknown): Row | null => !!v && typeof v === 'object' && !Array.isArray(v) ? v as Row : null;
@@ -157,7 +158,7 @@ export async function handleQaClassification(req: Request): Promise<Response> {
       || !Number.isInteger(body.needRevision) || Number(body.needRevision) < 1 || Number(body.needRevision) > 2147483647
       || (body.type === 'ASK' ? body.questionId !== null : !uuid(body.questionId)) || !text(body.text, body.type === 'ASK' ? 500 : 1000)) return failure(400, 'QA_INPUT_INVALID');
     const type = body.type as 'ASK' | 'ANSWER', input = body.text.trim();
-    const url = Deno.env.get('SUPABASE_URL'), anon = Deno.env.get('SUPABASE_ANON_KEY'), service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const url = Deno.env.get('SUPABASE_URL'), anon = readSupabasePublishableKey(name => Deno.env.get(name)), service = readSupabaseServiceKey(name => Deno.env.get(name));
     if (!url || !anon || !service) return failure(503);
     const auth = row(await fetchJson(url + '/auth/v1/user', { headers: { apikey: anon, Authorization: authorization } }, signal, 65536));
     if (!uuid(auth?.id) || auth.role !== 'authenticated') return failure(401, 'AUTH_REQUIRED');
@@ -165,7 +166,7 @@ export async function handleQaClassification(req: Request): Promise<Response> {
     const args = { p_account_id: accountId, p_type: type, p_need_id: needId, p_need_revision: body.needRevision,
       p_question_id: body.questionId, p_text: input, p_client_request_id: key };
     const serviceRpc = (name: string, data: Row) => fetchJson(url + '/rest/v1/rpc/' + name, { method: 'POST',
-      headers: { apikey: service, Authorization: 'Bearer ' + service, 'Content-Type': 'application/json' }, body: JSON.stringify(data) }, signal, 262144);
+      headers: supabaseServiceHeaders(service, { 'Content-Type': 'application/json' }), body: JSON.stringify(data) }, signal, 262144);
     const value = exact(await serviceRpc('rpc_claim_qa_classification_service', args), ['status', 'claim']);
     const inputHash = qaTextHash(input);
     const decode = (raw: unknown) => { const s = decodeQaSubmissionStatus(raw, accountId, needId, key);
@@ -183,7 +184,7 @@ export async function handleQaClassification(req: Request): Promise<Response> {
         // Metadata only, independent of caller/deadline. SQL preserves a completed
         // classification/publication and never permits another dispatch for this key.
         try { await fetchWithin(url + '/rest/v1/rpc/rpc_fail_qa_classification_service', { method: 'POST',
-          headers: { apikey: service, Authorization: 'Bearer ' + service, 'Content-Type': 'application/json' },
+          headers: supabaseServiceHeaders(service, { 'Content-Type': 'application/json' }),
           body: JSON.stringify(dispatchArgs) }, 5000); } catch { /* Durable sweep/readback remains authoritative. */ }
       };
       const context = providerContext(claim.context, type); if (!context) return failure(502);
