@@ -4,7 +4,7 @@
 
 Ovo je aktuelni nastavak istog plana i grane `work/uskoci-cist-proizvod-20261104`; donji checkpoint istog dana je prethodni razvojni krug. Nasleđen je i nezavisno potvrđen objedinjeni source `833885296d6e4bad0e49acb58ac72a247df911aa`. Cela prethodna staged kopija odgovara tom Git stablu; nije izgubljena niti resetovana. Rad je nastavljen u zasebnoj kopiji uz tri stvarna stručna agenta i koordinatorski pregled, bez promene Product/UX mastera.
 
-**Kontinuitet Git/CI:** QA45 / `42373442734` je ponovo potvrđen kao SUCCESS, 469 aktivnih testova i stvaran APK; ranija tvrdnja „source nema CI/APK“ ispravljena je commit-om `0c5a6eae961a6d98b403a67bbecf5f33cedc7146`. Ispravka Worker ugovora sačuvana je u `b56f0e52db99256cdfb6988567edc0e7d597849c`; QA46 / [`42386138550`](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42386138550) je SUCCESS sa **476/476**, TypeScript i Android build PASS. Ovaj poslednji APK još ne sadrži dodatne source izmene opisane ispod; njihov objedinjeni CI/APK tek sledi. [QA45 dokaz](proofs/qa45-readback-20261107.json), [QA46 dokaz](proofs/qa46-readback-20261107.json).
+**Kontinuitet Git/CI:** QA45 / `42373442734` je ponovo potvrđen kao SUCCESS, 469 aktivnih testova i stvaran APK; ranija tvrdnja „source nema CI/APK“ ispravljena je commit-om `0c5a6eae961a6d98b403a67bbecf5f33cedc7146`. Ispravka Worker ugovora sačuvana je u `b56f0e52db99256cdfb6988567edc0e7d597849c`; QA46 / [`42386138550`](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42386138550) je SUCCESS sa **476/476**, TypeScript i Android build PASS. Objedinjeni novi source sačuvan je kao [`ce1ad5e4d21b20bd21901ba42ad4e822843e3916`](https://github.com/uskocibusiness-boop/USKOCI-EAN/commit/ce1ad5e4d21b20bd21901ba42ad4e822843e3916), tačno stablo `83b74cfd1f2a1ef87dd0b7bb1b560e4dd3f5d0c0`. QA47 / [run42388770988](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42388770988) je pokrenut i još nema konačan build rezultat; QA46 ne dokazuje ove kasnije izmene. [QA45 dokaz](proofs/qa45-readback-20261107.json), [QA46 dokaz](proofs/qa46-readback-20261107.json).
 
 ### Šta je sada stvarno popravljeno
 
@@ -25,7 +25,7 @@ Kanonski DEV `leqcwgzvjsxugfgzdmth` ima **344** ledger migracije. Dve nove forwa
 - `20261107152928_r06_budget_accounting_20261107` — obračun i aktivan postojeći plafon, sve 2324 rezervacije i iznosi sačuvani.
 - `20261107153455_r07_selection_recovery_20261107` — uski authenticated read-only rezultat izbora; postojeći writer i proverene zavisnosti očuvani.
 
-**Edge posle punog readback-a 15:48 UTC:** Need193, Worker145, Speech31, Media30, Push45, publication30, QA28, taxonomy14, export-worker29, export-download29, closure19, location32; svi ACTIVE, postojeće verify_jwt postavke očuvane. Worker144 je međukorak nedeljnog ugovora,145 dodaje samo pripremljeni auth transport. Hosted auth/cron prihvat novog transporta vodi se zasebno od samog deploy-a.
+**Edge posle punog readback-a 15:48 UTC:** Need193, Worker145, Speech31, Media30, Push45, publication30, QA28, taxonomy14, export-worker29, export-download29, closure19, location32; svi ACTIVE, postojeće verify_jwt postavke očuvane. Worker144 je međukorak nedeljnog ugovora,145 dodaje samo pripremljeni auth transport. Zaseban hosted prihvat: **26 HTTP provera** (dva obična TEST identiteta i 24 read/negativna zahteva), bez ponavljanja, novih AI rezervacija ili poslovnih writer poziva. Postojeći Need/Worker dokumenti isti pre/posle; task/profile media liste rade, ali su prazne i nisu dokaz Storage bajtova. Lažno compatibility zaglavlje ne daje interno ovlašćenje. [Auth receipt](proofs/r01-runtime-auth-20261107.json). Prirodni Push45 i taxonomy14 pozivi vraćaju200; tri cron posla imaju po9/9 uspešnih izvršavanja. Zabeleženi taxonomy/push/media servisni RPC pozivi koriste moderni secret apikey bez legacy service Bearer-a. Ovo nije dokaz push isporuke ili svih env mapa. [Cron/policy dokaz](proofs/post-deploy-cron-policy-20261107.json).
 
 **Poslednji potvrđeni APK u ovom trenutku:** QA46 / `42386138550`, artifact `13580385852` / `uskoci-isolated-qa-apk-46`; source `b56f0e52d`, **83.345.039 bajta**, SHA-256 `4da23f1b48f955696b718b227adaef904d4d969355bfe13364ffd56e87c324f1`. Paket `rs.uskoci.preview.qa`, arm64-v8a, min24/target36, ugrađen JS, OTA isključen, kanonski DEV, Expo debug potpis. Artefakt čuvan do 14.11.2026. u 15:43:10 UTC. Ovo nije produkcioni AAB niti dva fizička telefona. Novi integrisani build ne sme biti pripisan ovom APK-u.
 
@@ -35,7 +35,7 @@ Kanonski DEV `leqcwgzvjsxugfgzdmth` ima **344** ledger migracije. Dve nove forwa
 - **P0 R10:** `retention_ai_source_ready()=false`, export policy binding NULL; pravne putanje privatnosti/uslova/brisanja i dalje 404 u novoj proveri. Nisu izmišljene pravne odluke niti retention spremnost. Potrebna je stvarno odobrena politika/operater i dostupne pravne stranice.
 - **AI dostupnost/trošak:** limit sada radi, ali nije odobren novi budžet. Najpre usaglasiti stvarnu potrošnju i preostale nepoznate ishode; novu malu hosted weekly probu raditi samo uz odgovarajuću stvarnu budžetsku odluku, bez nuliranja istorije.
 - **P1 i native:** cold restart nepoznatog izbora, prava konkurencija poslednjeg mesta, sve cenovne/geografske kombinacije, blokirani/closing cancellation reason, stvarna kamera/mikrofon/mapa/push i S01–S18 prihvat ostaju odvojeni otvoreni poslovi. Uređaj/emulator nije dostupan.
-- **Neposredni nastavak:** objaviti objedinjeni provereni source, potvrditi novi CI/APK, dopuniti ovaj isti checkpoint njegovim tačnim SHA/run/artefaktom i završiti ograničene hosted auth/cron provere. Beta i javno izdanje nisu odobreni.
+- **Neposredni nastavak:** potvrditi konačan rezultat QA47 za sačuvani `ce1ad5e`, nezavisno proveriti novi APK i dopuniti ovaj isti checkpoint njegovim artefaktom. Hosted auth/cron provere su završene u gore navedenom obimu. Beta i javno izdanje nisu odobreni.
 
 ## Prethodni izvršni checkpoint — 07.11.2026: dva naloga, novac, AI, ocene i pristup
 
@@ -3656,7 +3656,7 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
 
-**Napomena kontinuiteta 07.11.2026:** najnoviji izvršni checkpoint „kontrolisani nastavak, budžet i oporavak izbora“ je na početku ovog dokumenta. Donji datirani zapisi su istorija. QA45/`8338852` i QA46/`b56f0e5` imaju potvrdu; novi integrisani source, DEV344/Worker145 i preostale kapije vode se isključivo u gornjem checkpoint-u. [QA46 readback](proofs/qa46-readback-20261107.json).
+**Napomena kontinuiteta 07.11.2026:** najnoviji izvršni checkpoint „kontrolisani nastavak, budžet i oporavak izbora“ je na početku ovog dokumenta. Donji datirani zapisi su istorija. QA45/`8338852` i QA46/`b56f0e5` imaju potvrdu; integrisani source `ce1ad5e` ima pokrenut QA47, a DEV344/Worker145 i preostale kapije vode se isključivo u gornjem checkpoint-u. [QA46 readback](proofs/qa46-readback-20261107.json).
 
 #### R11 — izdvojena zajednicka AI intake pravila, 04.11.2026.
 
