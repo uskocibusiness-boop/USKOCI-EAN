@@ -142,7 +142,7 @@
     <header>
       <span class="badge">Zvanični pravni akt o privatnosti</span>
       <h1>Politika privatnosti platforme USKOČI</h1>
-      <p class="meta">Verzija: 1.0 · Datum stupanja na snagu: 8. novembar 2026. godine · Usklađeno sa: ZZPL RS, EU GDPR i Google Play Store pravilima</p>
+      <p class="meta">Verzija: 1.0 · Datum stupanja na snagu: 8. novembar 2026. godine · Usklađeno sa: ZZPL RS, EU GDPR, Apple App Store i Google Play Store pravilima</p>
     </header>
 
     <div class="highlight-box">
@@ -166,45 +166,53 @@
       <li><strong>Podaci o registraciji naloga:</strong> Broj mobilnog telefona (koristi se za SMS jednokratnu šifru pri prijavi), Vaše ime ili ime radnje/firme.</li>
       <li><strong>Podaci o zadatku (Naručilac):</strong> Naslov zadatka, kategorija posla, detaljan opis, ponuđena cena, željeni termin rada, okvirna lokacija (grad/naselje/opština).</li>
       <li><strong>Osetljivi podaci o lokaciji zadatka:</strong> Tačna ulica i kućni broj, broj stana, sprat, interfon i napomena za prilaz. Ovi podaci se čuvaju u zaštićenoj šemi baze i <strong>otkrivaju se isključivo Uskočeru sa kojim je sklopljen Dogovor</strong>.</li>
-      <li><strong>Radni profil (Uskočer):</strong> Veštine, dostupnost za rad (dani i sati), radni radijus (gradovi/opštine), opis iskustva i prosečna satnica.</li>
+      <li><strong>Profil veština i dostupnost (Uskočer):</strong> Veštine, slobodno vreme / dostupnost kada korisnik želi da uskoči na zadatke (dani i časovni intervali), radijus kretanja (gradovi/opštine), opis iskustva i okvirna željena naknada. <em>Napomena:</em> Uskočer nema radno vreme niti radni odnos, a evidencija dostupnosti služi isključivo za filtriranje i prikazivanje zadataka koji odgovaraju njegovom slobodnom vremenu.</li>
       <li><strong>Komunikacija i poruke:</strong> Tekstualne poruke, glasovne audio poruke i fotografije razmenjene između Naručioca i Uskočera u okviru in-app četa.</li>
       <li><strong>Ocene i recenzije:</strong> Ocene saradnje, opis iskustva i zabeležena pouzdanost izvršenja.</li>
     </ul>
 
-    <h3>B. Dozvole na mobilnom uređaju (Google Play Store deklaracija)</h3>
+    <h3>B. Dozvole na mobilnom uređaju (Apple iOS i Android Google Play deklaracije)</h3>
     <div class="table-container">
       <table>
         <thead>
           <tr>
             <th>Dozvola na telefonu</th>
-            <th>Tehnički naziv dozvole</th>
+            <th>Tehnički naziv dozvole (Android / iOS)</th>
             <th>Svrha korišćenja u aplikaciji</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><strong>Lokacija uređaja</strong></td>
-            <td><code>ACCESS_FINE_LOCATION</code><br><code>ACCESS_COARSE_LOCATION</code></td>
+            <td><code>ACCESS_FINE_LOCATION</code><br><code>ACCESS_COARSE_LOCATION</code><br><em>iOS:</em> <code>NSLocationWhenInUseUsageDescription</code></td>
             <td>Prikaz zadataka i Uskočera u Vašoj neposrednoj blizini na Mapi, sortiranje po udaljenosti. Koristi se <strong>isključivo dok je aplikacija u prvom planu</strong> uz Vašu izričitu dozvolu. Ne pratimo kretanje u pozadini.</td>
           </tr>
           <tr>
             <td><strong>Mikrofon / Audio</strong></td>
-            <td><code>RECORD_AUDIO</code></td>
+            <td><code>RECORD_AUDIO</code><br><em>iOS:</em> <code>NSMicrophoneUsageDescription</code></td>
             <td>Snimanje glasovnih poruka u četu kada držite dugme mikrofona, i opcioni glasovni razgovor sa AI asistentom za popunjavanje zadatka. Nikada ne snima u pozadini.</td>
           </tr>
           <tr>
             <td><strong>Kamera / Fotografije</strong></td>
-            <td><code>CAMERA</code><br><code>READ_MEDIA_IMAGES</code></td>
+            <td><code>CAMERA</code><br><code>READ_MEDIA_IMAGES</code><br><em>iOS:</em> <code>NSCameraUsageDescription</code> / <code>NSPhotoLibraryUsageDescription</code></td>
             <td>Fotografisanje kvara, predmeta rada, gotovog zadatka ili postavljanje profilne slike. Pristupa se isključivo fotografijama koje sami odaberete.</td>
           </tr>
           <tr>
             <td><strong>Notifikacije</strong></td>
-            <td><code>POST_NOTIFICATIONS</code></td>
+            <td><code>POST_NOTIFICATIONS</code><br><em>iOS:</em> <code>UserNotifications Framework</code></td>
             <td>Slanje važnih sistemskih obaveštenja (nova prijava na zadatak, prihvaćen Dogovor, nova poruka od saradnika, podsetnik na termin).</td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <h3>C. Zaštita privatnosti na Apple iOS platformi (Apple App Store Guideline 5.1)</h3>
+    <p>U skladu sa strogim pravilima kompanije Apple Inc. za aplikacije na iOS operativnom sistemu:</p>
+    <ul>
+      <li><strong>Nepostojanje praćenja (App Tracking Transparency):</strong> Aplikacija USKOČI ne prikuplja niti deli IDFA (Identifier for Advertisers) identifikatore, ne sadrži oglasne SDK biblioteke i ne prati korisnike kroz tuđe aplikacije i veb sajtove.</li>
+      <li><strong>Apple Privacy Manifest:</strong> Zahtevani fajl privatnosti (<code>PrivacyInfo.xcprivacy</code>) ugrađen je u aplikaciju sa precizno deklarisanim API funkcijama u skladu sa zahtevima App Store Connect-a.</li>
+      <li><strong>Ispunjenje zahteva za brisanje naloga (Apple Guideline 5.1.5):</strong> Korisnicima iPhone uređaja omogućeno je trenutačno i trajno brisanje naloga u samoj aplikaciji, kao i putem eksternog veb linka.</li>
+    </ul>
 
     <h2>3. SVRHA OBRADE I PRAVNI OSNOV (Član 12. ZZPL / Član 6. GDPR)</h2>
     <ul>
@@ -256,7 +264,7 @@
     <p>Na svaki uredan zahtev odgovorićemo bez odlaganja, a najkasnije u roku od 30 dana od dana prijema zahteva u skladu sa ZZPL-om.</p>
 
     <footer>
-      <p>© 2026 USKOČI. Sva prava zadržana. Usklađeno sa zakonima Republike Srbije i Google Play smernicama.</p>
+      <p>© 2026 USKOČI. Sva prava zadržana. Usklađeno sa zakonima Republike Srbije, Apple App Store i Google Play smernicama.</p>
       <p>Povezani dokumenti: <a href="https://uskoci.rs/uslovi-koriscenja">Uslovi korišćenja</a> · <a href="https://uskoci.rs/brisanje-naloga">Brisanje naloga i podataka</a></p>
     </footer>
   </div>

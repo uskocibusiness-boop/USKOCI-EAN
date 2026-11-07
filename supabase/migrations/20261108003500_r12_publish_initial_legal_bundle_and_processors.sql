@@ -17,7 +17,7 @@ values
   (
     'TERMS',
     'v1.0-20261108',
-    '1414c4f467bf8dc403c809f909908400e4931746574c35922b14dda38d0a5be8',
+    'ea1a97627894b76461aff365d4df47e3bda6ac0af418ad31e93c54362e65cea8',
     'https://uskoci.rs/uslovi-koriscenja',
     statement_timestamp(),
     statement_timestamp(),
@@ -26,7 +26,7 @@ values
   (
     'PRIVACY',
     'v1.0-20261108',
-    'd73638610dba7c651ff7d3716ffa392e1c2af337a7b3554febba60487c8c84ce',
+    '7ea5711378d724ac92e5d2b7779ee06369ae6652a7d5f3c49e2c47a7cfbd38ef',
     'https://uskoci.rs/politika-privatnosti',
     statement_timestamp(),
     statement_timestamp(),
