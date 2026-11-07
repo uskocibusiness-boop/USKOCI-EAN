@@ -25,8 +25,10 @@ export function isExplicitWorkerOffer(text: string): boolean {
   if (typeof text !== 'string' || !text.trim() || text.length > MAX_TEXT) return false;
   const t = normalized(text);
   if (!t) return false;
+  // This shortcut must not answer a question or resolve a negation/correction.
+  // Leave those messages in the conversation; they need semantic context.
+  if (/[?？]/.test(text) || /(?:^| )(?:ne|nisam|necu|da li|je li|jel|kako|gde|sta|zasto|mogu li|smem li)(?: |$)/.test(t)) return false;
   if (/(?:^| )(?:treba mi|potreban mi|potrebna mi|potrebni su mi|trebaju mi|trazim nekog|trazim nekoga|trazim radnika|trazim radnike|trazim majstora|trazim pomoc|neko da mi|da mi neko|ako mi neko|zelim da mi neko|hocu da mi neko)(?: |$)/.test(t)) return false;
-  if (/(?:^| )(?:ne nudim|ne pruzam|ne zelim da nudim|ne mogu da ponudim|nisam nudim)(?: |$)/.test(t)) return false;
   return /(?:^| )(?:nudim|pruzam|pozelim da ponudim|zelim da (?:nudim|ponudim|pruzam|radim|se bavim)|hocu da (?:nudim|ponudim|pruzam|radim|se bavim)|(?:hteo|htela|zeleo|zelela|voleo|volela) bih da (?:nudim|ponudim|radim)|ja mogu da (?:radim|pruzam|pomognem)|radim kao|bavim se|drzim (?:privatne |online |onlajn )?casove|dajem (?:privatne )?casove)(?: |$)/.test(t);
 }
 /** Caller owns its authenticated session and explicit navigation gesture. */

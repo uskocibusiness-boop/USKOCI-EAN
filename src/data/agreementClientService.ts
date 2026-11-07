@@ -52,9 +52,16 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
   const terms = raw.terms ?? {};
   if (terms.priceBasis != null && terms.priceBasis !== 'TOTAL' && terms.priceBasis !== 'HOURLY')
     throw new Error('AGREEMENT_PRICE_BASIS_INVALID');
+  if (Object.prototype.hasOwnProperty.call(terms, 'currency') && terms.currency !== 'RSD')
+    throw new Error('AGREEMENT_CURRENCY_INVALID');
   const acceptedTerms = record(raw.terms);
-  const total = Number(raw.requiredSlots ?? 1);
-  const covered = Math.max(0, Math.min(total, Number(terms.covered_slots ?? 1)));
+  const covered = terms.covered_slots;
+  if (!positiveInteger(covered) || covered > 50 || (terms.required_slots != null
+    && (!positiveInteger(terms.required_slots) || terms.required_slots > 50 || terms.required_slots < covered)))
+    throw new Error('AGREEMENT_COVERAGE_INVALID');
+  // Both counts belong to the accepted version. A later task edit cannot shrink
+  // this party's team; older terms without the original task count keep it unknown.
+  const total = terms.required_slots ?? 0;
 
   // pkg024a: the read names each side's public profile as well as its account. An account id is
   // not a profile id, so a missing or malformed key stays null rather than becoming a wrong read.
@@ -88,7 +95,9 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
   const mode = raw.executionMode;
   const status = raw.status as DogovorProjekcija['stanje'];
   const amount = Number(terms.price_rsd ?? 0);
-  const currency = String(terms.currency ?? 'RSD');
+  // The historic field is explicitly price_rsd. Omission of a redundant currency
+  // key does not erase that known unit; an explicit contradictory unit is refused above.
+  const currency = 'RSD';
   // A missing, zero or unreadable agreed amount never reads as "0 RSD" (plan step 0, 2026-09-23): the projection
   // keeps its shape with an empty `prikaz`, and every screen says that in words instead of drawing an amount.
   const agreedAmount = Number.isFinite(amount) && amount > 0;
@@ -99,7 +108,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     naslov: raw.title ?? '',
     stanje: status,
     cena: agreedAmount ? novac(amount, currency) : { iznos: 0, valuta: currency, prikaz: '' },
-    ...(terms.priceBasis == null ? {} : { osnovaCene: terms.priceBasis }),
+    osnovaCene: terms.priceBasis ?? null,
     // Parent task edits cannot silently change an already accepted Agreement.
     vremeTekst: acceptedSchedule(terms),
     ...(acceptedTerms ? {
@@ -186,7 +195,7 @@ function pendingChangeSummary(raw: Record<string, unknown>, actions: ServerActio
     ? decodePendingProposal(actions.pendingChanges[0], raw.id, raw.currentVersion, raw.requesterAccountId, raw.workerAccountId) : null;
   const accepted = decodeChangeTerms(raw.terms);
   if (!proposal || !proposal.termsAvailable || !accepted
-    || (proposal.terms.priceBasis ?? 'TOTAL') !== (accepted.priceBasis ?? 'TOTAL')) return null;
+    || proposal.terms.priceBasis !== accepted.priceBasis || proposal.terms.coveredSlots !== accepted.coveredSlots) return null;
   const proposed = proposal.terms, mine = sameId(proposal.proposedBy, uid);
   const window = (terms: AgreementChangeTerms) => acceptedSchedule({ proposed_start_at: terms.startsAt, proposed_end_at: terms.endsAt });
   const izmene: PredlogIzmeneSazetak['izmene'] = [];
@@ -303,7 +312,8 @@ export const agreementProblemService = {
 /** Selective admission from saved M05 commit60a3ce68, with source113 action
  * snapshot and bounds. PR101 safe errors and legacy message refusal stay intact. */
 export type AgreementChangeTerms = {
-  priceRsd: number; priceBasis?: 'TOTAL' | 'HOURLY'; currency: 'RSD'; scopeNote: string | null; startsAt: string | null; endsAt: string | null;
+  priceRsd: number; priceBasis: 'TOTAL' | 'HOURLY'; currency: 'RSD'; coveredSlots: number;
+  scopeNote: string | null; startsAt: string | null; endsAt: string | null;
 };
 export type AgreementChangeProposal = {
   proposalId: string; agreementId: string; baseVersion: number; proposedBy: string;
@@ -408,7 +418,9 @@ function respondChange(proposalId: string, accept: boolean) {
 function decodeChangeTerms(raw: unknown): AgreementChangeTerms | null {
   const terms = record(raw);
   if (!terms || !positiveInteger(terms.price_rsd) ||
-    (terms.priceBasis != null && terms.priceBasis !== 'TOTAL' && terms.priceBasis !== 'HOURLY') ||
+    (terms.priceBasis !== 'TOTAL' && terms.priceBasis !== 'HOURLY') ||
+    !positiveInteger(terms.covered_slots) || terms.covered_slots > 50 ||
+    (terms.required_slots != null && (!positiveInteger(terms.required_slots) || terms.required_slots > 50 || terms.required_slots < terms.covered_slots)) ||
     (terms.scope_note != null && (typeof terms.scope_note !== 'string' || Array.from(terms.scope_note).length > 4000)) ||
     (Object.prototype.hasOwnProperty.call(terms, 'currency') && terms.currency !== 'RSD')) return null;
   const start = terms.proposed_start_at ?? null, end = terms.proposed_end_at ?? null;
@@ -416,7 +428,8 @@ function decodeChangeTerms(raw: unknown): AgreementChangeTerms | null {
     const s = calendarInstant(start), e = calendarInstant(end);
     if ((s === undefined) !== (e === undefined) || s === null || e === null || s >= e) return null;
   }
-  return { priceRsd: terms.price_rsd, ...(terms.priceBasis == null ? {} : { priceBasis: terms.priceBasis }), currency: 'RSD', scopeNote: terms.scope_note as string | null ?? null,
+  return { priceRsd: terms.price_rsd, priceBasis: terms.priceBasis, currency: 'RSD', coveredSlots: terms.covered_slots,
+    scopeNote: terms.scope_note as string | null ?? null,
     startsAt: start as string | null, endsAt: end as string | null };
 }
 /** The workspace owns both pending rows and capability truth. One bounded
@@ -435,8 +448,10 @@ function decodeChangeWorkspace(raw: unknown, agreementId: string, accountId: str
   for (const item of actions.pendingChanges) {
     const proposal = decodePendingProposal(item, agreementId, row.currentVersion, row.requesterAccountId, row.workerAccountId);
     if (!proposal || accepted && proposal.termsAvailable
-      && (proposal.terms.priceBasis ?? 'TOTAL') !== (accepted.priceBasis ?? 'TOTAL')) return null;
-    proposals.push(proposal);
+      && (proposal.terms.priceBasis !== accepted.priceBasis || proposal.terms.coveredSlots !== accepted.coveredSlots)) return null;
+    // An unreadable accepted unit cannot become TOTAL by accepting a later
+    // proposal. Keep the identity so a party may still reject or withdraw it.
+    proposals.push(accepted ? proposal : { ...proposal, termsAvailable: false, terms: null });
   }
   // The same two name fields the Dogovor projection reads (mapAgreement); a missing or blank one is null, never a label.
   const counterpart = sameId(row.requesterAccountId, accountId) ? row.workerName : row.requesterName;
@@ -447,7 +462,7 @@ function decodeChangeWorkspace(raw: unknown, agreementId: string, accountId: str
     counterpartName: typeof counterpart === 'string' && counterpart.trim() ? counterpart.trim() : null,
     terms: accepted, proposals,
     actions: { agreementId, agreementVersion: row.currentVersion, accountId, authoritative: true,
-      canProposeChange: actions.canProposeChange, canRespondChange: actions.canRespondChange,
+      canProposeChange: actions.canProposeChange && accepted !== null, canRespondChange: actions.canRespondChange,
       canWithdrawChange: actions.canWithdrawChange, canMarkWorkDone: actions.canMarkWorkDone,
       canConfirmCompletion: actions.canConfirmCompletion, canCancel: actions.canCancel } };
 }
@@ -554,7 +569,10 @@ export const agreementChangeService = {
     if (sameId(proposal.proposedBy, owner.accountId)) return failure('PROPOSER_CANNOT_RESPOND', changeErrors.PROPOSER_CANNOT_RESPOND);
     if (proposal.status !== 'PENDING' && !(accept && proposal.status === 'ACCEPTED') && !(!accept && proposal.status === 'REJECTED'))
       return failure('PROPOSAL_NOT_PENDING', changeErrors.PROPOSAL_NOT_PENDING);
-    if (accept && (!proposal.termsAvailable || !proposal.terms || !positiveInteger(proposal.baseVersion + 1)))
+    if (accept && (!proposal.termsAvailable || !proposal.terms || !positiveInteger(proposal.baseVersion + 1)
+      || !positiveInteger(proposal.terms.priceRsd) || proposal.terms.currency !== 'RSD'
+      || (proposal.terms.priceBasis !== 'TOTAL' && proposal.terms.priceBasis !== 'HOURLY')
+      || !positiveInteger(proposal.terms.coveredSlots) || proposal.terms.coveredSlots > 50))
       return failure('CHANGE_TERMS_INVALID', changeErrors.CHANGE_TERMS_INVALID);
     const proposalId = proposal.proposalId, expectedVersion = proposal.baseVersion + (accept ? 1 : 0);
     return readOwnedResult({ ...changeOptions, account: owner, write: true,

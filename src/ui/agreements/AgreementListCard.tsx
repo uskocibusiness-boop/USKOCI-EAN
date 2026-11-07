@@ -5,7 +5,7 @@ import { readableTitle } from '../../data/needDetailPresentation';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { NeedSearchState } from '../../contracts/needSearchRecovery';
 import { cancellationOf, type AgreementCancellation, type AgreementCancellations } from '../../data/agreementCancellationClientService';
-import { BEZ_IZNOSA } from '../../lib/novac';
+import { applicationPriceBasisText, BEZ_IZNOSA } from '../../lib/novac';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { ProfilePhoto } from '../media/ContextPhotos';
@@ -48,7 +48,7 @@ function AcceptedAmount({ item }: { item: DogovorProjekcija }) {
   const amount = item.cena.prikaz;
   if (!amount) return <T variant="note" tone="muted">{BEZ_IZNOSA}</T>;
   return <View style={s.amountBlock}>
-    <T variant="meta" tone="muted">{item.osnovaCene === 'HOURLY' ? 'Satnica po osobi po satu' : item.izmenaCeka ? 'Važeći iznos ove saradnje' : 'Cena ove saradnje'}</T>
+    <T variant="meta" tone="muted">{item.osnovaCene === 'HOURLY' ? 'Satnica po osobi po satu' : item.osnovaCene === 'TOTAL' ? item.izmenaCeka ? 'Važeći iznos ove saradnje' : 'Cena ove saradnje' : 'Osnovica cene nije potvrđena'}</T>
     <T variant="priceRow" style={s.amount}>{amount}</T>
   </View>;
 }
@@ -108,7 +108,7 @@ function AgreementCard({ item, now, stale = false, cancellation, capacity, onOpe
   // The rating foot is its own press only when the route hands over where it goes; otherwise it stays inside the body.
   const rateAside = attention?.kind === 'rate' && onRate ? attention : null;
   const footInside = attention && !rateAside ? attention : null;
-  const spoken = [name, role, `${agreementChipWord(chip)}${changed ? `, ${changed}` : ''}`, when, term.zone, amount ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ${item.osnovaCene === 'HOURLY' ? 'po osobi po satu' : 'za ovu saradnju'}` : BEZ_IZNOSA, place, people,
+  const spoken = [name, role, `${agreementChipWord(chip)}${changed ? `, ${changed}` : ''}`, when, term.zone, amount ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ${applicationPriceBasisText(item.osnovaCene)}` : BEZ_IZNOSA, place, people,
     cancelledLine, ownProposal ? 'Vaša izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null]
     .filter((part): part is string => !!part).join(', ');
   // The one Avatar: a missing name (an empty string since 2026-09-24) draws the person, never an empty disc or a dash.
@@ -240,7 +240,7 @@ function AgreementCollaborator({ item, taskTitle, now, stale = false, cancellati
   const place = item.rezim === 'DALJINSKI' ? 'Na daljinu' : item.putanjaTekst || 'Mesto nije navedeno';
   const cancelled = item.stanje === 'CANCELLED' ? cancellationDetailsOf(cancellation, other?.ime) : null;
   const spoken = [agreementChipWord(chip), item.verzija > 1 ? 'izmenjeni uslovi' : null, when, term.zone,
-    item.cena.prikaz ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ${item.osnovaCene === 'HOURLY' ? 'po osobi po satu' : 'za ovu saradnju'}` : amount, place, people, attention?.title,
+    item.cena.prikaz ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ${applicationPriceBasisText(item.osnovaCene)}` : amount, place, people, attention?.title,
     cancelled ? cancellationLine(cancelled, now) : null,
     item.izmenaCeka?.mojPredlog ? 'Vaša izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null].filter(Boolean).join(', ');
   const initials = <Avatar initials={other?.inicijali} size={AVATAR} />;

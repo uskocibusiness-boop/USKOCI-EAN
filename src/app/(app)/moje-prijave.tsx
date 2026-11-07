@@ -79,7 +79,7 @@ function observed(pending: Pending, row: ApplicationCommandState) {
   return pending.result === 'receipt' && row.version === pending.row.prijavaVerzija + 1 &&
     row.submittedNeedRevision === pending.row.potrebaRevizija &&
     row.priceRsd === (update ? update.cenaRsd : pending.row.cena.iznos) &&
-    (row.priceBasis ?? 'TOTAL') === pending.expectedPriceBasis &&
+    row.priceBasis === pending.expectedPriceBasis &&
     row.coveredSlots === (update ? update.pokrivenaMesta : pending.row.pokrivaMesta) &&
     row.scopeNote === (update ? update.napomena : pending.row.napomena) &&
     (!update || sameInstant(row.proposedStartAt, update.predlozeniPocetak) && sameInstant(row.proposedEndAt, update.predlozeniKraj));
@@ -239,7 +239,7 @@ export default function MojePrijave() {
           const version = pending.intent.kind === 'withdraw' ? receipt?.verzija : receipt?.version;
           result = positiveInteger(version) && version === pending.row.prijavaVerzija + (withdrawal(pending) ? 0 : 1) &&
             status === (withdrawal(pending) ? 'WITHDRAWN' : 'SUBMITTED') &&
-            (withdrawal(pending) || (receipt.priceBasis ?? 'TOTAL') === pending.expectedPriceBasis) ? { ok: true, podatak: null } : unknown();
+            (withdrawal(pending) || receipt.priceBasis === pending.expectedPriceBasis) ? { ok: true, podatak: null } : unknown();
         }
       } catch { result = unknown(); }
       finally { pending.inFlight = false; }
@@ -263,6 +263,10 @@ export default function MojePrijave() {
     const stale = p.stanje === 'STALE_REVIEW_REQUIRED';
     if (stale && session.expanded !== p.prijavaId || !stale && (action !== 'WITHDRAW' || !p.mozePovuci)) return;
     const draft = session.draft ? pricedOffer(session.draft) : null;
+    if (action === 'KEEP' && p.osnovaCene !== 'TOTAL' && p.osnovaCene !== 'HOURLY') {
+      session.message = 'Osnovica ranije cene nije potvrđena. Pregledajte cenu i broj ljudi, pa potvrdite ažuriranu prijavu.';
+      render(v => v + 1); return;
+    }
     if (action === 'UPDATE') {
       if (!draft) return;
       if (session.draftFor !== identity(p)) { session.message = 'Prijava se promenila tokom uređivanja. Sačuvajte svoj tekst, pa započnite novi pregled.';

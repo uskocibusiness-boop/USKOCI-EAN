@@ -29,7 +29,7 @@
         "EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW": "true",
         "EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW": "true",
         "EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES": "true",
-        "EXPO_PUBLIC_SUPPORT_EMAIL": "podrska@uskoci.rs",
+        "EXPO_PUBLIC_SUPPORT_EMAIL": "uskocibusiness@gmail.com",
         "EXPO_PUBLIC_D12_REVIEW_COMMENT": "1",
         "EXPO_PUBLIC_P6_MIN_BUDGET_FILTER": "1",
         "USKOCI_PUSH_PROOF_BUILD": "1",
@@ -45,10 +45,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://leqcwgzvjsxugfgzdmth.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW",
         "EXPO_PUBLIC_USE_FAKE_SOURCE": "0",
-        "EXPO_PUBLIC_SUPPORT_EMAIL": "podrska@uskoci.rs",
+        "EXPO_PUBLIC_SUPPORT_EMAIL": "uskocibusiness@gmail.com",
         "EXPO_PUBLIC_D12_REVIEW_COMMENT": "1",
         "EXPO_PUBLIC_P6_MIN_BUDGET_FILTER": "1",
         "EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL": "uskociapp://oporavak",
@@ -62,7 +60,6 @@
         "EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW": "true",
         "EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW": "true",
         "EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES": "true",
-        "USKOCI_ALLOW_STORE_BUILD": "true",
         "USKOCI_OTA_TARGET": "production"
       },
       "channel": "production"

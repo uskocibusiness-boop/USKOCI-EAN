@@ -144,7 +144,9 @@ export function MyApplicationsPresentation(props: Props) {
           <T accessibilityRole="header" variant="heading">{props.draftStale ? 'Nesačuvan unos prijave' : 'Trenutni uslovi zadatka'}</T>
           {props.draftStale ? <T accessibilityRole="alert" variant="body">Prijava se promenila tokom uređivanja. Vaš unos je sačuvan na ovom ekranu, ali ga ne možete poslati. Kopirajte tekst koji želite da zadržite, pa započnite novi pregled.</T>
             : <><T variant="body">{p.opis || 'Dodatni opis nije naveden.'}</T>
-              <T variant="note" tone="muted">Prijava je poslata pre nego što je zadatak izmenjen. Ako je zadržite, ostaju ponuđena cena, obim, termin i napomena.</T></>}
+              <T variant="note" tone="muted">{p.osnovicaZaProveru
+                ? 'Uz raniju cenu nije potvrđen način obračuna. Pregledajte iznos, osnovicu i broj ljudi, pa potvrdite ažuriranu prijavu.'
+                : 'Prijava je poslata pre nego što je zadatak izmenjen. Ako je zadržite, ostaju ponuđena cena, obim, termin i napomena.'}</T></>}
         {props.editingLoading ? <ActivityIndicator accessibilityLabel="Učitavanje sačuvanog termina" color={sys.color.green} /> : null}
         {draft ? <View style={s.fields}>
           <T accessibilityRole="header" variant="heading">Izmenite svoju prijavu</T>
@@ -162,12 +164,12 @@ export function MyApplicationsPresentation(props: Props) {
           <TextInput accessibilityLabel="Napomena uz ponudu" value={draft.note} multiline editable={!disabled} onChangeText={note => props.onChange({ ...draft, note })} style={[s.input, s.multiline]} />
           <T variant="note" tone="muted">Ponuđeni termin ostaje nepromenjen: {draft.start || draft.end
             ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, p.zadatak?.vremenskaZona || deviceZone()) : 'Nije naveden u prijavi.'}</T>
-          <V2Action label="Sačuvaj izmenjenu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled || props.draftStale || invalidPeople || invalidFixedPrice} style={brandAction} />
+          <V2Action label="Potvrdite ažuriranu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled || props.draftStale || invalidPeople || invalidFixedPrice} style={brandAction} />
           <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
         </View> : <View>
           {/* The sentence above says what keeping keeps; each row says what it does by its name, and no row explains itself (J4). */}
-          <ListRow title="Zadrži prijavu" accessibilityLabel="Zadrži prijavu" onPress={() => props.onKeep(p)} disabled={disabled} />
-          <ListRow title="Izmeni prijavu" accessibilityLabel="Izmeni prijavu" onPress={() => props.onEdit(p)} disabled={disabled} />
+          {p.osnovaCene === 'TOTAL' || p.osnovaCene === 'HOURLY' ? <ListRow title="Zadržite prijavu" accessibilityLabel="Zadržite prijavu" onPress={() => props.onKeep(p)} disabled={disabled} /> : null}
+          <ListRow title="Pregledajte i izmenite prijavu" accessibilityLabel="Pregledajte i izmenite prijavu" onPress={() => props.onEdit(p)} disabled={disabled} />
           <ListRow title="Povuci izmenjenu prijavu" tone="danger" accessibilityLabel="Povuci izmenjenu prijavu" onPress={() => props.onWithdraw(p)} disabled={disabled} />
         </View>}
         <V2Action label="Zatvori pregled izmena" onPress={props.onClose} disabled={props.busy || props.pending} kind="quiet" style={s.quietLeft} />

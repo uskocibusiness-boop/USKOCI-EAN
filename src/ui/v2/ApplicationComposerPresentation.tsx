@@ -3,7 +3,7 @@ import { AccessibilityInfo, Animated, Keyboard, StyleSheet, TextInput, View } fr
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { fixedApplicationPrice, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { calendarInstant } from '../../lib/calendarTime';
-import { novac } from '../../lib/novac';
+import { applicationPriceBasisText, novac } from '../../lib/novac';
 import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { FactArt } from '../system/FactArt';
@@ -164,10 +164,11 @@ function TaskHead({ opportunity, showTerms = true }: { opportunity: PrilikaProje
  * What was sent (or saved to be checked), as read-only facts: never a greyed form. A time the worker proposed says so,
  * with the task's own window beside it (`proposed`), the same word the composer's Termin row uses; otherwise nothing.
  */
-function SentFacts({ price, hourly, people, time, flexible, proposed }: { price: string | null; hourly: boolean; people: string; time: string; flexible: boolean; proposed: string | null }) {
+function SentFacts({ price, basis, people, time, flexible, proposed }: { price: string | null; basis: 'TOTAL' | 'HOURLY' | null; people: string; time: string; flexible: boolean; proposed: string | null }) {
   const timeNote = flexible ? 'Tačan početak i kraj još nisu dogovoreni.' : proposed ? `Vaš predlog · termin zadatka je ${proposed}` : null;
   return <View style={s.reviewBody}>
-    {price ? <MoneySummary label={hourly ? "Satnica" : "Ukupna ponuda"} amount={price} basis={hourly ? "Po osobi po satu" : "Za sve ljude iz Vaše prijave"} />
+    {price ? <MoneySummary label={basis === "HOURLY" ? "Satnica" : basis === "TOTAL" ? "Ukupna ponuda" : "Ponuđeni iznos"} amount={price}
+      basis={basis === "TOTAL" ? "Za sve ljude iz Vaše prijave" : applicationPriceBasisText(basis)} />
       : <FactRow art="money" label="Ukupna ponuda" value="Proverite unetu cenu" size="detail" />}
     <Surface kind="panel" variant="tinted" tone="wash" density="comfortable" style={s.reviewBody}>
       <FactRow art="users" label="Ljudi" value={people} size="detail" />
@@ -256,7 +257,7 @@ function SentReceipt({ fresh, price, hourly, title, people, time, timeNote, mess
 
 /** A new application follows the task's term; historical frozen commands may still show an old proposed term in their receipt. */
 export function ApplicationComposerPresentation({ applicationPriceBasis, need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, pendingHelp, refreshHelps = true, initialSheet, afterConfirmation }: {
-  applicationPriceBasis?: 'TOTAL' | 'HOURLY';
+  applicationPriceBasis?: 'TOTAL' | 'HOURLY' | null;
   need: PotrebaProjekcija; opportunity: PrilikaProjekcija; draft: ApplicationDraft; change: (value: ApplicationDraft) => void;
   submit: () => void; back: () => void; busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void;
   error: string | null; confirmed: boolean; openApplications: () => void; canSubmit: boolean; reset?: () => void;
@@ -306,7 +307,8 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   const shownPrice = price !== null ? novac(price) : null;
   const issue = composerDraftIssue(draft, need);
   const offers = opportunity.rezimCene !== 'MY_PRICE';
-  const hourly = applicationPriceBasis === undefined ? !offers && need.osnovaCene === 'HOURLY' : applicationPriceBasis === 'HOURLY';
+  const priceBasis = applicationPriceBasis === undefined ? !offers && need.osnovaCene === 'HOURLY' ? 'HOURLY' : 'TOTAL' : applicationPriceBasis;
+  const hourly = priceBasis === 'HOURLY';
   const left = need.pokrivenost.preostalo;
   const shownBlock = !canSubmit && !confirmed && !pending && blocked ? blocked : null;
   // The footer's last branch: nothing sent, nothing uncertain, nothing in flight, so "Pregledaj prijavu" is the action.
@@ -327,7 +329,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   // A reason that names a fresh read of the task has the read under it: the task without its price, or without the
   // places this application would take, including a proportional share of a TOTAL budget.
   const refreshFixes = issue.price === 'missing' || (issue.people === 'over' && left < 1);
-  const summary = shownPrice ? `${shownPrice} ${hourly ? "po osobi po satu" : "ukupno"}`
+  const summary = shownPrice ? `${shownPrice} ${applicationPriceBasisText(priceBasis)}`
     : offers ? draft.price === '' ? 'Cena još nije upisana' : 'Cena nije ispravna'
     : issue.price === 'missing' ? 'Cena nije navedena' : 'Cena zavisi od broja ljudi';
 
@@ -354,7 +356,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
     {/* A grey button with nothing beside it is a dead end: the reason stands above it, and the way out under it. */}
     {shownBlock?.actionLabel && shownBlock.onAction ? <V2Action kind="quiet" compact label={shownBlock.actionLabel} onPress={shownBlock.onAction} /> : null}
   </FlowFooter>;
-  const sentFacts = <SentFacts hourly={hourly} price={shownPrice} people={count !== null ? osoba(count) : 'Proverite broj osoba'} time={time} flexible={!exact && !fixed}
+  const sentFacts = <SentFacts basis={priceBasis} price={shownPrice} people={count !== null ? osoba(count) : 'Proverite broj osoba'} time={time} flexible={!exact && !fixed}
     proposed={proposedTaskTime} />;
   const noteLeft = NOTE_LIMIT - draft.note.length;
   // The sent receipt ("Etiketa odlazi") is a moment with its own way on right under it, not a form with a foot: it has no pinned footer.
@@ -382,7 +384,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
               onFocus={() => setFocused('price')} onBlur={() => setFocused(null)}
               accessibilityHint={issue.price === 'invalid' ? 'Unesite ceo iznos, bez tačaka i slova.' : undefined}
               onChangeText={value => { if (!disabled) change({ ...draft, price: value }); }} />
-            <T variant="bodyStrong" tone="muted" accessible={false}>{need.ponudjenaCena?.valuta === 'EUR' ? '€' : 'RSD'}</T>
+            <T variant="bodyStrong" tone="muted" accessible={false}>RSD</T>
           </View>
           <T variant="note" tone="muted">Za sve izvršioce koje prijavljujete.</T>
         </View>

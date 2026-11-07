@@ -17,7 +17,7 @@ import { Section } from '../system/Section';
 import { Segmented } from '../system/Segmented';
 import { sys } from '../system/tokens';
 import { osoba } from '../system/plural';
-import { BEZ_IZNOSA } from '../../lib/novac';
+import { applicationPriceBasisText, BEZ_IZNOSA } from '../../lib/novac';
 import { T } from '../Text';
 
 export type AgreementTab = 'pregled' | 'poruke';
@@ -75,7 +75,7 @@ export function agreementTerm({ vremeTekst, stanje }: Pick<DogovorProjekcija, 'v
  * on a 1:1 Dogovor the bar already names the one other person (round-1 critique A13).
  */
 export const isGroupAgreement = (agreement: Pick<DogovorProjekcija, 'pokrivenost' | 'ucesnici'>) =>
-  agreement.pokrivenost.ukupno > 1 || agreement.ucesnici.length > 2;
+  agreement.pokrivenost.ukupno > 1 || agreement.pokrivenost.popunjeno > 1 || agreement.ucesnici.length > 2;
 
 /** How many people this Dogovor covers, said only when it is not the one person the bar already shows (A13). */
 export const agreementPeople = (agreement: Pick<DogovorProjekcija, 'pokrivenost'>): string | null =>
@@ -160,6 +160,8 @@ export function termValue(a: Pick<DogovorProjekcija, 'vremeTekst' | 'stanje'>): 
 export function AgreementTerms({ agreement: a, compact = false }: { agreement: DogovorProjekcija; compact?: boolean }) {
   const people = osoba(a.pokrivenost.popunjeno);
   const hourly = a.osnovaCene === 'HOURLY';
+  const priceLabel = hourly ? 'Dogovorena satnica' : a.osnovaCene === 'TOTAL' ? 'Dogovoreno ukupno' : 'Sačuvani iznos';
+  const priceUnit = applicationPriceBasisText(a.osnovaCene);
   const scope = a.prihvacenObim;
   const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
   if (compact) {
@@ -168,7 +170,7 @@ export function AgreementTerms({ agreement: a, compact = false }: { agreement: D
     return <View style={s.facts}>
       <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} />
       <AgreementFact art="calendar" label="Termin" value={term.line} note={term.zone} />
-      <AgreementFact art="money" label={amount ? hourly ? 'Dogovorena satnica' : 'Dogovoreno ukupno' : 'Cena'} value={amount || BEZ_IZNOSA} basis={amount ? hourly ? 'po osobi po satu' : 'ukupno' : null} money={/\d/.test(amount)} />
+      <AgreementFact art="money" label={amount ? priceLabel : 'Cena'} value={amount || BEZ_IZNOSA} basis={amount ? priceUnit : null} money={/\d/.test(amount)} />
       {compactPeople ? <AgreementFact art="users" label="Ljudi" value={compactPeople} /> : null}
       {scope ? longScope(scope)
         ? <Disclosure label="Obim zadatka" hint="Prihvaćeni opis zadatka" art="document">
@@ -184,7 +186,7 @@ export function AgreementTerms({ agreement: a, compact = false }: { agreement: D
   return <Section title="Uslovi">
     {a.verzija > 1 ? <T variant="meta" tone="muted" style={s.changedNote}>Uslovi su izmenjeni.</T> : null}
     <View style={s.acceptedFacts}>
-      {price ? <MoneySummary label={hourly ? "Dogovorena satnica" : "Dogovoreno ukupno"} amount={amount} basis={hourly ? "Po osobi po satu" : "Za ovu saradnju"} />
+      {price ? <MoneySummary label={priceLabel} amount={amount} basis={priceUnit} />
         : <FactRow art="money" label="Cena" value={amount || BEZ_IZNOSA} size="detail" />}
       <FactRow art={remote ? 'remote' : 'pin'} label="Mesto" value={agreementTaskPlace(a)} size="detail" />
       <FactRow art="calendar" label="Termin" value={termValue(a)} size="detail" />

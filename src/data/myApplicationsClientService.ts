@@ -65,14 +65,16 @@ export function readExistingApplicationInterval(p: MojaPrijavaProjekcija) {
   return readOwnedResult<ExistingApplicationInterval>({ account: { accountId, accountRevision: owner.accountRevision },
     errors: {}, fallback: 'APPLICATION_INTERVAL_UNAVAILABLE', invalid: 'APPLICATION_INTERVAL_CHANGED',
     request: () => supabaseKlijent().from('marketplace_responses')
-      .select('id,need_id,worker_account_id,current_version,submitted_against_need_revision,status,proposed_start_at,proposed_end_at,needs!inner(id,revision,mode,requester_price_rsd,price_basis,required_slots)')
+      .select('id,need_id,worker_account_id,current_version,submitted_against_need_revision,status,price_basis,proposed_start_at,proposed_end_at,needs!inner(id,revision,mode,requester_price_rsd,price_basis,required_slots)')
       .eq('id', p.prijavaId).eq('need_id', p.potrebaId).eq('worker_account_id', accountId)
       .eq('current_version', p.prijavaVerzija).eq('needs.revision', p.potrebaRevizija).maybeSingle(),
     decode(raw) {
       const row = record(raw), need = record(row?.needs);
       if (!row || !need || !sameId(row.id, p.prijavaId) || !sameId(row.need_id, p.potrebaId) ||
           row.worker_account_id !== accountId || row.current_version !== p.prijavaVerzija ||
-          row.submitted_against_need_revision !== p.prijavaRevizija || row.status !== 'STALE_REVIEW_REQUIRED' ||
+          row.submitted_against_need_revision !== p.prijavaRevizija ||
+          !(row.status === 'STALE_REVIEW_REQUIRED' || p.osnovicaZaProveru === true && row.price_basis === null
+            && ['SUBMITTED', 'DELIVERED', 'VIEWED', 'SHORTLISTED', 'STALE'].includes(String(row.status))) ||
           !sameId(need.id, p.potrebaId) || need.revision !== p.potrebaRevizija) return null;
       const start = row.proposed_start_at, end = row.proposed_end_at;
       if ((start === null) !== (end === null) || start !== null && !timestamp(start) || end !== null && !timestamp(end)) return null;

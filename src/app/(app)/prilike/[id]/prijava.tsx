@@ -2,8 +2,9 @@ import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { MojaPrijavaProjekcija, PotrebaProjekcija, PrilikaProjekcija, RadnikProfilProjekcija } from '../../../../contracts/projections';
 import type { Ishod, PodnesiPrijavuKomanda } from '../../../../data/ports';
-import { applicationRefusalGuidance, boundedApplicationSelectionRead, conclusiveApplicationRefusal } from '../../../../data/applicationSelectionClientService';
-import { applicationCommandJournal } from '../../../../data/applicationCommandJournal';
+import { applicationRefusalGuidance, boundedApplicationSelectionRead, conclusiveApplicationRefusal, readApplicationSubmitResult } from '../../../../data/applicationSelectionClientService';
+import { applicationCommandJournal, type ApplicationCommandRecord } from '../../../../data/applicationCommandJournal';
+import type { ReceiptAccount } from '../../../../data/serverReceipt';
 import { applicationComposerDraftMemory } from '../../../../data/applicationComposerDraftMemory';
 import { ApplicationServiceOffer } from '../../../../ui/workerProfile/ApplicationServiceOffer';
 import { fixedApplicationPrice } from '../../../../data/needDetailPresentation';
@@ -19,7 +20,26 @@ const NOT_RETIRED_ON_DEVICE = 'Stara prijava nije uklonjena sa telefona. Pokuša
 const JOURNAL_RECOVERY_REQUIRED = 'Prvo proverite da li je prethodna prijava poslata. Izaberite „Proveri da li je poslato“.';
 type Receipt = { prijavaId: string; verzija: number; hash: string; osnovaCene?: 'TOTAL' | 'HOURLY' };
 type Loaded = { need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; applications: MojaPrijavaProjekcija[]; receipt: Receipt | null };
-type Pending = { applicationPriceBasis: 'TOTAL' | 'HOURLY'; command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
+type Pending = { applicationPriceBasis: 'TOTAL' | 'HOURLY' | null; command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
+/** A refresh only reads the original command's result. An absent receipt cannot
+ * retire the journal or authorize a different request. Legacy receipts prove
+ * that the application exists; the applicant still reviews its price in the list. */
+async function recoverSavedApplication(record: ApplicationCommandRecord, account: ReceiptAccount, current: () => boolean): Promise<Ishod<{ applicationId: string } | null>> {
+  const result = await readApplicationSubmitResult(record.command, account);
+  if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
+  if (!result.ok) return result;
+  if (result.podatak.state === 'NOT_FOUND') return { ok: true, podatak: null };
+  if (result.podatak.state === 'CONFIRMED' && record.applicationPriceBasis !== undefined &&
+      record.applicationPriceBasis !== result.podatak.receipt.osnovaCene) {
+    return { ok: false, kod: 'APPLICATION_SELECTION_INVALID_RECEIPT', poruka: 'Način obračuna cene se ne poklapa sa sačuvanom prijavom. Proverite svoje prijave.' };
+  }
+  try {
+    const retired = await applicationCommandJournal.clear(account.accountId, record.needId, record.command.clientRequestId, current);
+    if (!current()) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
+    if (!retired) return { ok: false, kod: 'APPLICATION_JOURNAL_RETIRE_FAILED', poruka: NOT_RETIRED_ON_DEVICE };
+  } catch { return { ok: false, kod: 'APPLICATION_JOURNAL_RETIRE_FAILED', poruka: NOT_RETIRED_ON_DEVICE }; }
+  return { ok: true, podatak: { applicationId: result.podatak.receipt.prijavaId } };
+}
 /** A NEW offer follows the task's own term. Older unconfirmed journals are never rewritten:
  * those exact commands bypass this draft normalizer and keep their original key/terms. */
 function withTaskPrice(draft: ApplicationDraft, need: PotrebaProjekcija): ApplicationDraft {
@@ -48,52 +68,68 @@ export default function Prijava() {
     return () => { session.focused = false; };
   }, [session]));
   const read = useCallback(async (): Promise<Ishod<Loaded>> => {
-    const generation = ++session.readRevision; session.reading = true;
-    session.navigated = false;
-    if (!id) { session.reading = false; return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni.' }; }
+    const generation = ++session.readRevision, focus = session.focusToken;
+    session.reading = true; session.navigated = false;
+    const accountId = user?.id;
+    const ownsRead = () => session.focused && session.focusToken === focus && generation === session.readRevision &&
+      !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
+    if (!id || !accountId) { session.reading = false; return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni.' }; }
     try {
-      const [liveOpportunity, liveNeed, liveProfile, applications] = await boundedApplicationSelectionRead(Promise.all([
-        izvor.prilika(id), izvor.potreba(id), izvor.mojRadnikProfil(), izvor.mojePrijave(),
-      ]));
-      // Visibility can close after a committed write. A successful owned list
-      // read still permits replay of only the frozen original request.
-      const opportunity = liveOpportunity ?? session.pending?.opportunity;
-      const need = liveNeed ?? session.pending?.need;
-      const profile = liveProfile ?? session.pending?.profile;
-      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proverite zadatak i svoj profil.' };
-      if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
       session.notice = null;
-      if (!session.pending && user?.id) {
-        // A recreated instance restores only the exact unresolved command of this account and
-        // Need. It is never resent here; the owner replays it explicitly. Corrupt storage is an
-        // explicit exit, never a replay source.
+      const previous = session.pending;
+      let storedRecord: ApplicationCommandRecord | null = previous && !previous.inFlight && !previous.result?.ok &&
+        !(previous.result && conclusiveApplicationRefusal(previous.result)) ? {
+          version: 1, accountId, needId: id, command: previous.command,
+          ...(previous.applicationPriceBasis === null ? {} : { applicationPriceBasis: previous.applicationPriceBasis }),
+        } : null;
+      if (!previous) {
+        // Restore identity before reading the parent: a committed application can
+        // outlive visibility of its task. Reading never resends the command.
         try {
-          const stored = await applicationCommandJournal.load(user.id, id);
-          const owned = sesijaSada().user?.id === user.id && sesijaSada().accountRevision === accountRevision;
-          if (generation !== session.readRevision || !owned) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
+          const stored = await applicationCommandJournal.load(accountId, id);
+          if (!ownsRead()) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
           if (stored.state === 'CORRUPT') {
-            await applicationCommandJournal.discard(user.id, id);
-            if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
+            await applicationCommandJournal.discard(accountId, id);
+            if (!ownsRead()) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
             session.notice = 'Sačuvana prijava na telefonu se nije mogla pročitati, pa je uklonjena. Proverite svoje prijave.';
-          } else if (stored.state === 'PRESENT' && !session.pending) {
-            const command = stored.record.command;
-            // The journal owns only the application, not consent for an optional profile change.
-            session.pending = { applicationPriceBasis: stored.record.applicationPriceBasis ?? 'TOTAL', command, need, opportunity, profile, result: null, inFlight: false, reconciled: false };
-            session.draft = { price: String(command.cenaRsd), people: String(command.pokrivenaMesta), note: command.napomena ?? '',
-              start: command.predlozeniPocetak, end: command.predlozeniKraj };
-            if (draftScope) applicationComposerDraftMemory.clear(draftScope);
-          }
+          } else if (stored.state === 'PRESENT') storedRecord = stored.record;
           session.journalRecovery = false;
-          if (session.focused && sesijaSada().user?.id === user.id &&
-            sesijaSada().accountRevision === accountRevision) {
-            setValidation(value => value === JOURNAL_RECOVERY_REQUIRED ? null : value);
-          }
+          setValidation(value => value === JOURNAL_RECOVERY_REQUIRED ? null : value);
         } catch {
-          // An unread journal may hold an earlier sent command. Do not offer a fresh identity until it is read.
           session.journalRecovery = true;
           return { ok: false, kod: 'APPLICATION_JOURNAL_READ_FAILED',
             poruka: 'Ne možemo da proverimo prethodno poslatu prijavu. Pokušajte ponovo.' };
         }
+      }
+      if (storedRecord) {
+        const recovered = await recoverSavedApplication(storedRecord, { accountId, accountRevision }, ownsRead);
+        if (!ownsRead()) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
+        if (!recovered.ok) return recovered;
+        if (recovered.podatak) {
+          // Exact owner-scoped evidence retires this request. The list shows the
+          // current application and any required price review, without a new send.
+          session.pending = null; session.draft = null; session.navigated = true;
+          if (draftScope) applicationComposerDraftMemory.clear(draftScope);
+          router.replace({ pathname: '/moje-prijave', params: { prijavaId: recovered.podatak.applicationId } });
+          return { ok: false, kod: 'APPLICATION_RECEIPT_FOUND', poruka: 'Prijava je pronađena. Otvaramo Vaše prijave.' };
+        }
+      }
+      const [liveOpportunity, liveNeed, liveProfile, applications] = await boundedApplicationSelectionRead(Promise.all([
+        izvor.prilika(id), izvor.potreba(id), izvor.mojRadnikProfil(), izvor.mojePrijave(),
+      ]));
+      if (!ownsRead()) return { ok: false, kod: 'STALE_READ', poruka: 'Osvežite pa pokušajte ponovo.' };
+      const opportunity = liveOpportunity ?? session.pending?.opportunity;
+      const need = liveNeed ?? session.pending?.need;
+      const profile = liveProfile ?? session.pending?.profile;
+      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proverite zadatak i svoj profil.' };
+      if (storedRecord && !session.pending) {
+        const command = storedRecord.command;
+        // Missing old metadata stays unknown; a current task cannot fill it in.
+        session.pending = { applicationPriceBasis: storedRecord.applicationPriceBasis ?? null, command, need, opportunity, profile,
+          result: null, inFlight: false, reconciled: false };
+        session.draft = { price: String(command.cenaRsd), people: String(command.pokrivenaMesta), note: command.napomena ?? '',
+          start: command.predlozeniPocetak, end: command.predlozeniKraj };
+        if (draftScope) applicationComposerDraftMemory.clear(draftScope);
       }
       // Displayed terms and command revision come from the same Need read.
       const displayedOpportunity = { ...opportunity, naslov: need.naslov, podrucjeTekst: need.podrucjeTekst, vremeTekst: need.vremeTekst,
@@ -106,7 +142,7 @@ export default function Prijava() {
       return { ok: true, podatak: { opportunity: displayedOpportunity, need, profile, applications, receipt: result?.ok ? result.podatak : null } };
     } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Podatke za prijavu trenutno nije moguće učitati. Proverite vezu i pokušajte ponovo.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
-  }, [id, izvor, session, draftScope]);
+  }, [id, izvor, session, draftScope, user?.id, accountRevision, router]);
   const editor = useOwnedEditor(read), data = editor.data;
   const focusToken = session.focusToken, readRevision = session.readRevision;
   const currentAccount = () => sesijaSada().user?.id === user?.id && sesijaSada().accountRevision === accountRevision;
@@ -168,14 +204,15 @@ export default function Prijava() {
         const currentPriceBasis = data.need.rezimCene === 'MY_PRICE' && data.need.osnovaCene === 'HOURLY' ? 'HOURLY' : 'TOTAL';
         // An old journal may never have reached the server. The same revision must not
         // reinterpret its frozen total as an hourly rate on its first committed write.
-        result = pending.command.potrebaRevizija === data.need.revizija && pending.applicationPriceBasis !== currentPriceBasis
+        result = pending.applicationPriceBasis === null ||
+          pending.command.potrebaRevizija === data.need.revizija && pending.applicationPriceBasis !== currentPriceBasis
           ? { ok: false, kod: 'APPLICATION_PRICE_BASIS_REVIEW_REQUIRED', poruka: 'Sačuvana prijava ima drugačiji način obračuna cene. Proverite svoje postojeće prijave.' }
           : await izvor.podnesiPrijavu(pending.command);
       }
       // The notice names the button under it, "Proveri da li je poslato" (r6: it said "Proveri stanje").
       catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ne znamo da li je prijava stigla. Izaberite „Proverite da li je poslato“.' }; }
       finally { pending.inFlight = false; }
-      if (result.ok && (result.podatak.osnovaCene ?? 'TOTAL') !== pending.applicationPriceBasis) {
+      if (result.ok && result.podatak.osnovaCene !== pending.applicationPriceBasis) {
         result = { ok: false, kod: 'APPLICATION_SELECTION_INVALID_RECEIPT', poruka: 'Osnovica cene nije potvrđena. Proverite da li je prijava poslata.' };
       }
       pending.result = result;
@@ -217,7 +254,8 @@ export default function Prijava() {
       if (session.focused && currentAccount()) render(v => v + 1);
     }
   } : undefined;
-  const priceBasisReview = pending?.result?.ok === false && pending.result.kod === 'APPLICATION_PRICE_BASIS_REVIEW_REQUIRED';
+  const priceBasisReview = pending?.applicationPriceBasis === null ||
+    pending?.result?.ok === false && pending.result.kod === 'APPLICATION_PRICE_BASIS_REVIEW_REQUIRED';
   const pendingHelp = priceBasisReview ? {
     lines: ['Sačuvana prijava ostaje na telefonu dok proveravate postojeće prijave.'],
     actions: [{ label: 'Otvorite moje prijave', onPress: () => { if (current()) router.push('/moje-prijave'); } }],
@@ -236,10 +274,12 @@ export default function Prijava() {
       if (draftScope) applicationComposerDraftMemory.remember(draftScope, session.draft);
       setValidation(null); render(v => v + 1);
     } }}
-    busy={editor.busy || !!pending?.inFlight || session.resetting || session.journaling} pending={!!pending} uncertain={editor.uncertain || session.journalRecovery || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
+    busy={editor.busy || !!pending?.inFlight || session.resetting || session.journaling} pending={!!pending} uncertain={editor.uncertain || session.journalRecovery || (!!pending && (!pending.reconciled || pending.applicationPriceBasis === null) && !data.receipt)} confirmed={!!data.receipt}
     // A conclusive refusal carries its outcome beside the new-offer action immediately.
     // Other failures keep their error and exact-command retry; a collection read never proves refusal.
-    error={validation ?? session.notice ?? (refusal && !editor.uncertain
+    error={validation ?? session.notice ?? (pending?.applicationPriceBasis === null
+      ? 'Prethodna prijava nema potvrđen način obračuna. Proverite da li je poslata ili otvorite svoje prijave.'
+      : refusal && !editor.uncertain
       ? `Ova prijava nije primljena. ${refusal.poruka}`
       : editor.error ?? (pending && !data.receipt && !editor.uncertain
         ? 'Ne znamo da li je prijava stigla. Pošaljite istu prijavu još jednom — ako je već stigla, neće biti poslata dvaput.'

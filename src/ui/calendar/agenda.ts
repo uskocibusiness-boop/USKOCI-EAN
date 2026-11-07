@@ -2,6 +2,7 @@ import type { DogovorProjekcija } from '../../contracts/projections';
 import type { WorkerCalendarEvent } from '../../contracts/workerCalendar';
 import { calendarInstant } from '../../lib/calendarTime';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
+import { applicationPriceBasisText } from '../../lib/novac';
 import { inicijali } from '../../lib/inicijali';
 import { raspon, vreme } from '../../lib/vreme';
 import { overlapsInterval } from './calendarPresentation';
@@ -76,7 +77,7 @@ export function agendaFacts(agreement: AgendaAgreement) {
   const title = typeof agreement.naslov === 'string' ? agreement.naslov.trim().replace(/\s+/g, ' ') : '';
   const place = agreement.rezim === 'DALJINSKI' ? 'Na daljinu' : agreement.putanjaTekst ?? '';
   const person = other?.ime?.trim() || null;
-  return { title: title || null, amount: agreement.cena?.prikaz ? agreement.cena.prikaz + (agreement.osnovaCene === 'HOURLY' ? ' po osobi po satu' : '') : '', person, place,
+  return { title: title || null, amount: agreement.cena?.prikaz ? `${agreement.cena.prikaz} ${applicationPriceBasisText(agreement.osnovaCene)}` : '', person, place,
     // The face is the other person's, read by their PUBLIC profile id (never the account id); the letters are the read's own, or the name's.
     personProfileId: other?.profilId ?? null, personInitials: other?.inicijali?.trim() || inicijali(person) };
 }

@@ -19,13 +19,17 @@ PARTICIPANT_CONTRACT_FILE = (
 )
 
 
-# Frozen catalog facts extracted from the two archived receipts at 357d767d.
+# Frozen catalog facts extracted from archived receipts and dated read-only captures.
 # Pin their canonical JSON bytes independently of the editable provenance entries.
 CATALOG_EVIDENCE_SHA256 = {
     'supabase/operations/dev-alpha/ledger/20261021_server_package.receipt.json':
         '32dff9bd11e449edf4709a20422b6d19705250fa40d7edbf2957d4d339791dd5',
     'supabase/operations/dev-alpha/ledger/20261026_ai_contract_migrations.readonly.json':
         '4f72a19944bcafe7ad9edc7b5299a5a522ab01479cbc8d1e0ae4718d91b63b01',
+    'inline:dev_migration_catalog_20261107_before_r07b':
+        'a2517c93add2a51c60cbabaff4b5d1e1f6b06761fa5c16a15da7933a814a15d9',
+    'inline:dev_forward_catalog_20261107_r06_r07b':
+        '103649b3ed1ab2dff35af33aa149627584dfe9364d757d19c8e5b247835b41bb',
 }
 
 
@@ -93,6 +97,8 @@ def check_physical_suffix(section: dict, manifest_map: dict, evidence: dict) -> 
         live = catalog.get(item.get("live_version"))
         if not live or item.get("live_applied") is not True or item.get("live_name") != live["name"]:
             fail(f"physical suffix live binding missing: {name}")
+        if not re.fullmatch(r"[0-9a-f]{32}", live.get("joined_md5") or "") or not re.fullmatch(r"[0-9a-f]{64}", live.get("joined_sha256") or ""):
+            fail(f"physical suffix live binding has no recorded SQL bytes: {name}")
         if item.get("live_recorded_md5") != live["joined_md5"] or item.get("live_recorded_sha256") != live["joined_sha256"]:
             fail(f"physical suffix recorded hash mismatch: {name}")
         exact = item["raw_md5"] == live["joined_md5"] and item["raw_sha256"] == live["joined_sha256"]
@@ -192,7 +198,37 @@ def main() -> None:
             fail("Oct-26 reconciliation requires exactly three applied records")
         if suffix_names and oct26_suffix_names[0] <= suffix_names[-1]:
             fail("Oct-26 reconciliation is not strictly after earlier physical suffix")
-    if history_names + pending_names + suffix_names + oct26_suffix_names != disk_names:
+    # November source/ledger reconciliation has its own frozen witness. The
+    # empty taxonomy ledger marker is not an applied SQL byte record. R07a is
+    # an exact readmission at its already-applied version, never a new replay.
+    nov7_section = metadata.get("physical_suffix_reconciliation_20261107")
+    nov7_suffix_names = []
+    if nov7_section:
+        nov7_suffix_names = check_physical_suffix(
+            nov7_section, manifest_map, load_catalog_evidence(nov7_section),
+        )
+        nov7_classes = [item.get("classification") for item in nov7_section.get("entries", [])]
+        if len(nov7_suffix_names) != 7 or nov7_classes.count("APPLIED_EXACT_LEDGER_BYTES") != 1 or nov7_classes.count("APPLIED_RECORDED_BYTES_DIFFER") != 4 or nov7_classes.count("SOURCE_ONLY_LIVE_BINDING_UNPROVEN") != 2:
+            fail("Nov-7 reconciliation requires one exact, four differing, and two unproven records")
+        earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names
+        if earlier_names and nov7_suffix_names[0] <= earlier_names[-1]:
+            fail("Nov-7 reconciliation is not strictly after earlier physical suffix")
+    forward7_section = metadata.get("forward_readmission_20261107")
+    forward7_names = []
+    if forward7_section:
+        forward7_names = check_physical_suffix(
+            forward7_section, manifest_map, load_catalog_evidence(forward7_section),
+        )
+        if len(forward7_names) != 3 or any(
+            item.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+            or item.get("version") != item.get("live_version")
+            for item in forward7_section.get("entries", [])
+        ):
+            fail("Nov-7 forward readmission requires three exact ledger-version records")
+        earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names
+        if earlier_names and forward7_names[0] <= earlier_names[-1]:
+            fail("Nov-7 forward readmission is not strictly after reconciled suffix")
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -288,6 +324,8 @@ def main() -> None:
         f"pending={len(pending_names)} "
         f"physical_suffix={len(suffix_names)} "
         f"oct26_suffix={len(oct26_suffix_names)} "
+        f"nov7_suffix={len(nov7_suffix_names)} "
+        f"nov7_forward={len(forward7_names)} "
         "191500=RECORDED_STATEMENT_RECONSTRUCTION "
         "exact_byte_mirror=false "
         "participant_contract=PASS"

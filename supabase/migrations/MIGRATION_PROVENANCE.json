@@ -3783,5 +3783,268 @@
       "portable_replay_admitted": false,
       "r01_boundary_admitted": false
     }
+  },
+  "physical_suffix_reconciliation_20261107": {
+    "observed_at_utc": "2026-11-07",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "Append-only read-only reconciliation of six previously unlisted November source files and the exact R07a ledger readmission. Four source files have associated applied predecessor records but different bytes; two remain unproven. This inventory does not certify semantic equivalence, full database replay, or deployment of source-only changes. Older snapshots and all pre-existing raw SQL bytes/checksums remain unchanged.",
+    "evidence": "inline:dev_migration_catalog_20261107_before_r07b",
+    "entries": [
+      {
+        "file": "20261105150000_uskoci_v15_clean_scalable_taxonomy.sql",
+        "version": "20261105150000",
+        "name": "uskoci_v15_clean_scalable_taxonomy",
+        "classification": "APPLIED_RECORDED_BYTES_DIFFER",
+        "live_applied": true,
+        "raw_md5": "fe4dc3c5653cbcf0104d87dac605fd4b",
+        "raw_sha256": "9cad5cba61b94be6e608e87daaabe5e46c14e03efca5849155ba977c642e7392",
+        "raw_bytes": 28568,
+        "note": "Associated applied migration has different catalog labels and aliases. The same-numbered ledger row 20261105150000 is empty and is not evidence that these source bytes were applied.",
+        "live_version": "20261105141631",
+        "live_name": "uskoci_v15_clean_scalable_taxonomy",
+        "live_recorded_md5": "7cdc2e936c52603231096c493f35fe00",
+        "live_recorded_sha256": "4666ecde6dad05e1c6fa76f8fcd822c6cb08ed58b54ea1e3a2da5ca616b0f193"
+      },
+      {
+        "file": "20261105230000_single_pass_and_push_defaults.sql",
+        "version": "20261105230000",
+        "name": "single_pass_and_push_defaults",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "live_applied": null,
+        "raw_md5": "cd778bdbd46ec8de67b42c857528f67d",
+        "raw_sha256": "566d4c4a8d024aed55d70f03e3c8cb961701096387f1a8ef2b20da22653926de",
+        "raw_bytes": 21211,
+        "note": "No complete migration-ledger binding established for this source bundle. Current function presence is not proof that the physical migration was applied."
+      },
+      {
+        "file": "20261106000000_p0_fixes_completion_push_area.sql",
+        "version": "20261106000000",
+        "name": "p0_fixes_completion_push_area",
+        "classification": "APPLIED_RECORDED_BYTES_DIFFER",
+        "live_applied": true,
+        "raw_md5": "9961b4abca42442d44947a80ef31ae5d",
+        "raw_sha256": "f7e1fbc2ad1cf00c14ab480dfbcc97be3f2918e037e937248a9369e25d6c3d71",
+        "raw_bytes": 6421,
+        "note": "Associated applied migration is separately recorded; physical source adds a header. No raw-byte equivalence claim.",
+        "live_version": "20261105223653",
+        "live_name": "20261106000000_p0_fixes_completion_push_area",
+        "live_recorded_md5": "27b53ae263bf24037ff311e45f88c705",
+        "live_recorded_sha256": "4f68ce259257baba16e16bb38fb576387538c2fd9109e875ed106c8e9868c30f"
+      },
+      {
+        "file": "20261106000100_create_simulation_need_helper.sql",
+        "version": "20261106000100",
+        "name": "create_simulation_need_helper",
+        "classification": "APPLIED_RECORDED_BYTES_DIFFER",
+        "live_applied": true,
+        "raw_md5": "35fd2851ff8a7b17fa56d56b2eb137ff",
+        "raw_sha256": "c82a22cea8f9b8feb051f3a8c6206ff9b4e31543a96f03b03ec71d55b2a98aae",
+        "raw_bytes": 2431,
+        "note": "Associated original helper migration was followed by ledger updates 20261105224835 and 20261105224957. Physical source also changes role grants and adds a service guard. Do not replay or treat these bytes as the original applied migration.",
+        "live_version": "20261105224626",
+        "live_name": "create_simulation_need_helper",
+        "live_recorded_md5": "e6d12ea2b595c0b807e8e0d2ed579958",
+        "live_recorded_sha256": "5a926c9259f3ba56e1bb299895b20aec895aa2c5d1770a6ce55e9b46a58a33a0"
+      },
+      {
+        "file": "20261106000200_fix_cancel_agreement_completion_sync.sql",
+        "version": "20261106000200",
+        "name": "fix_cancel_agreement_completion_sync",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "live_applied": null,
+        "raw_md5": "4e0a6ca66d4b58b40531612b103ddf2e",
+        "raw_sha256": "1232f96a404357f96d1ebc6b9904011d61f27da2a672547bcc393e7e7c009b02",
+        "raw_bytes": 3611,
+        "note": "Current public.rpc_cancel_agreement includes the completion-sync branch, but a migration-ledger binding for this physical file has not been established. Function readback does not prove migration application."
+      },
+      {
+        "file": "20261106000300_matching_ratings_serbia_wide_and_rls_initplan.sql",
+        "version": "20261106000300",
+        "name": "matching_ratings_serbia_wide_and_rls_initplan",
+        "classification": "APPLIED_RECORDED_BYTES_DIFFER",
+        "live_applied": true,
+        "raw_md5": "114926a38b520005c521e99a11a582f5",
+        "raw_sha256": "85b30c1f3b95d96e736307c003e6543c729962c3183a00289ac756c85e02d63d",
+        "raw_bytes": 12027,
+        "note": "Associated applied migration is separately recorded; physical source adds comments/header. No raw-byte equivalence claim.",
+        "live_version": "20261106182045",
+        "live_name": "matching_ratings_serbia_wide_and_rls_initplan",
+        "live_recorded_md5": "cd96b5909db3708059be57e33cd51e05",
+        "live_recorded_sha256": "fd975b1c2b6577619e28fd241ee4de1e4a84e8efe58f31d5936b42c62c3f2e06"
+      },
+      {
+        "file": "20261106235737_r07a_currency_invalidation_20261107.sql",
+        "version": "20261106235737",
+        "name": "r07a_currency_invalidation_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "raw_md5": "e48e2dd4cff6792aedbb4890b31cdd31",
+        "raw_sha256": "648d820cec5b844d3e00848f60d9930bf23c1a09de41b85772ae2fb214b76ce4",
+        "raw_bytes": 8702,
+        "note": "Exact readmission of the one recorded statement at its observed ledger version. Matches existing scripts/sql/r07a_currency_invalidation_20261107.sql byte for byte; already applied, not a new replay candidate.",
+        "live_version": "20261106235737",
+        "live_name": "r07a_currency_invalidation_20261107",
+        "live_recorded_md5": "e48e2dd4cff6792aedbb4890b31cdd31",
+        "live_recorded_sha256": "648d820cec5b844d3e00848f60d9930bf23c1a09de41b85772ae2fb214b76ce4"
+      }
+    ],
+    "catalog_evidence": {
+      "source_git_commit": "259b451ae8963d1173466103c191b3c8be98fc55",
+      "observed_at_utc": "2026-11-07",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "method": "Read-only supabase_migrations.schema_migrations; UTF-8 array_to_string(statements, newline) compared with raw physical file bytes. Statements are not normalized or rewritten.",
+      "capture_range": "version >= 20261105000000 and version <= 20261106235737",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261105141631",
+          "name": "uskoci_v15_clean_scalable_taxonomy",
+          "statement_count": 1,
+          "joined_md5": "7cdc2e936c52603231096c493f35fe00",
+          "joined_sha256": "4666ecde6dad05e1c6fa76f8fcd822c6cb08ed58b54ea1e3a2da5ca616b0f193",
+          "joined_bytes": 27672
+        },
+        {
+          "version": "20261105150000",
+          "name": null,
+          "statement_count": null,
+          "joined_md5": null,
+          "joined_sha256": null,
+          "joined_bytes": null
+        },
+        {
+          "version": "20261105223653",
+          "name": "20261106000000_p0_fixes_completion_push_area",
+          "statement_count": 1,
+          "joined_md5": "27b53ae263bf24037ff311e45f88c705",
+          "joined_sha256": "4f68ce259257baba16e16bb38fb576387538c2fd9109e875ed106c8e9868c30f",
+          "joined_bytes": 5889
+        },
+        {
+          "version": "20261105224626",
+          "name": "create_simulation_need_helper",
+          "statement_count": 1,
+          "joined_md5": "e6d12ea2b595c0b807e8e0d2ed579958",
+          "joined_sha256": "5a926c9259f3ba56e1bb299895b20aec895aa2c5d1770a6ce55e9b46a58a33a0",
+          "joined_bytes": 1979
+        },
+        {
+          "version": "20261105224835",
+          "name": "update_simulation_need_helper_region",
+          "statement_count": 1,
+          "joined_md5": "bcb9df9f37463479428260a4fdc5d0ff",
+          "joined_sha256": "e3b6daa88e7e46fa232ee56c2ae271c0a22aeab42106d7afc629907fae4a8c76",
+          "joined_bytes": 1640
+        },
+        {
+          "version": "20261105224957",
+          "name": "update_simulation_need_calendar_clean",
+          "statement_count": 1,
+          "joined_md5": "1633b4bf88a8871dc47847f358188d86",
+          "joined_sha256": "036de1ba65be46784a815c448e8616d603296f3d51e19286468f5dbac3db3ee9",
+          "joined_bytes": 1918
+        },
+        {
+          "version": "20261106182045",
+          "name": "matching_ratings_serbia_wide_and_rls_initplan",
+          "statement_count": 1,
+          "joined_md5": "cd96b5909db3708059be57e33cd51e05",
+          "joined_sha256": "fd975b1c2b6577619e28fd241ee4de1e4a84e8efe58f31d5936b42c62c3f2e06",
+          "joined_bytes": 11291
+        },
+        {
+          "version": "20261106235737",
+          "name": "r07a_currency_invalidation_20261107",
+          "statement_count": 1,
+          "joined_md5": "e48e2dd4cff6792aedbb4890b31cdd31",
+          "joined_sha256": "648d820cec5b844d3e00848f60d9930bf23c1a09de41b85772ae2fb214b76ce4",
+          "joined_bytes": 8702
+        }
+      ]
+    }
+  },
+  "forward_readmission_20261107": {
+    "observed_at_utc": "2026-11-07",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "Three newly applied, separately reviewed DEV forward migrations. Canonical filenames retain exact observed ledger versions and bytes. Local function fixtures and DEV function readback do not imply full database replay, PostgREST user-flow acceptance, or native E2E.",
+    "evidence": "inline:dev_forward_catalog_20261107_r06_r07b",
+    "entries": [
+      {
+        "file": "20261107100323_r06_first_plan_replay_20261107.sql",
+        "version": "20261107100323",
+        "name": "r06_first_plan_replay_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107100323",
+        "live_name": "r06_first_plan_replay_20261107",
+        "live_recorded_md5": "db06137fd42b2799306ceff19ada2b59",
+        "live_recorded_sha256": "edb15319ee1ad9aade14f31f4a5a061427c9fb15ebf6b70ba2ff5c7336f6d001",
+        "raw_md5": "db06137fd42b2799306ceff19ada2b59",
+        "raw_sha256": "edb15319ee1ad9aade14f31f4a5a061427c9fb15ebf6b70ba2ff5c7336f6d001",
+        "raw_bytes": 7944,
+        "source": "scripts/sql/r06_first_plan_replay_20261107.sql"
+      },
+      {
+        "file": "20261107100405_r06_provider_dispatch_retention_20261107.sql",
+        "version": "20261107100405",
+        "name": "r06_provider_dispatch_retention_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107100405",
+        "live_name": "r06_provider_dispatch_retention_20261107",
+        "live_recorded_md5": "f05d1f354705fc2a733b2914318ca78b",
+        "live_recorded_sha256": "63fad260a67e2907dbdd2f23b1cce40b0805bf109678f9077fd4d2cb7adb1b22",
+        "raw_md5": "f05d1f354705fc2a733b2914318ca78b",
+        "raw_sha256": "63fad260a67e2907dbdd2f23b1cce40b0805bf109678f9077fd4d2cb7adb1b22",
+        "raw_bytes": 3107,
+        "source": "scripts/sql/r06_provider_dispatch_retention_20261107.sql"
+      },
+      {
+        "file": "20261107100529_r07b_price_snapshot_20261107.sql",
+        "version": "20261107100529",
+        "name": "r07b_price_snapshot_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107100529",
+        "live_name": "r07b_price_snapshot_20261107",
+        "live_recorded_md5": "d8307f8ed9d2e9f1363af3bd557d3d28",
+        "live_recorded_sha256": "cd8ffcf51cf0d12d522125ff59938b424ba2e69d3a541752a5f95e6d7f6177f0",
+        "raw_md5": "d8307f8ed9d2e9f1363af3bd557d3d28",
+        "raw_sha256": "cd8ffcf51cf0d12d522125ff59938b424ba2e69d3a541752a5f95e6d7f6177f0",
+        "raw_bytes": 115752,
+        "source": "scripts/sql/r07b_price_snapshot_20261107.sql"
+      }
+    ],
+    "catalog_evidence": {
+      "source_base_commit": "259b451ae8963d1173466103c191b3c8be98fc55",
+      "observed_at_utc": "2026-11-07",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "method": "Read-only post-apply ledger capture. Each one-statement UTF-8 SQL body compared byte-for-byte to its reviewed scripts/sql source before canonical readmission. No normalization.",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261107100323",
+          "name": "r06_first_plan_replay_20261107",
+          "statement_count": 1,
+          "joined_md5": "db06137fd42b2799306ceff19ada2b59",
+          "joined_sha256": "edb15319ee1ad9aade14f31f4a5a061427c9fb15ebf6b70ba2ff5c7336f6d001",
+          "joined_bytes": 7944
+        },
+        {
+          "version": "20261107100405",
+          "name": "r06_provider_dispatch_retention_20261107",
+          "statement_count": 1,
+          "joined_md5": "f05d1f354705fc2a733b2914318ca78b",
+          "joined_sha256": "63fad260a67e2907dbdd2f23b1cce40b0805bf109678f9077fd4d2cb7adb1b22",
+          "joined_bytes": 3107
+        },
+        {
+          "version": "20261107100529",
+          "name": "r07b_price_snapshot_20261107",
+          "statement_count": 1,
+          "joined_md5": "d8307f8ed9d2e9f1363af3bd557d3d28",
+          "joined_sha256": "cd8ffcf51cf0d12d522125ff59938b424ba2e69d3a541752a5f95e6d7f6177f0",
+          "joined_bytes": 115752
+        }
+      ]
+    }
   }
 }

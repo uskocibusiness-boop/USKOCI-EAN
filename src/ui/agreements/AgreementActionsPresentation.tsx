@@ -5,7 +5,7 @@ import { ArrowClockwise } from 'phosphor-react-native';
 import type { AgreementChangeSnapshot, AgreementChangeTerms } from '../../data/agreementClientService';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
-import { BEZ_IZNOSA, novac } from '../../lib/novac';
+import { applicationPriceBasisText, BEZ_IZNOSA, novac } from '../../lib/novac';
 import { CivilField } from '../calendar/CalendarControls';
 import { civilClock, civilDay, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
@@ -37,7 +37,7 @@ const scopeText = (terms: AgreementChangeTerms) => terms.scopeNote || 'Nije doda
  * "Iznos nije sačuvan", in words. A missing price never looks like an amount, and never reads "0 RSD".
  */
 const priceText = (rsd: number, basis?: 'TOTAL' | 'HOURLY') => Number.isFinite(rsd) && rsd > 0
-  ? novac(rsd) + (basis === 'HOURLY' ? ' po osobi po satu' : '') : BEZ_IZNOSA;
+  ? `${novac(rsd)} ${applicationPriceBasisText(basis)}` : BEZ_IZNOSA;
 
 /**
  * One fact of the terms. With `before`, the line under the value is the one mark of a change ("umesto 3.500 RSD") or

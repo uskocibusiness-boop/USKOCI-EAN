@@ -84,6 +84,8 @@ function mapApplication(raw: any, options: { facts: 'optional' | 'required' } = 
   }
   if (raw.applicationPriceBasis != null && !['TOTAL', 'HOURLY'].includes(raw.applicationPriceBasis))
     throw new Error('APPLICATION_PRICE_BASIS_INVALID');
+  if (raw.currency != null && raw.currency !== 'RSD') throw new Error('APPLICATION_CURRENCY_INVALID');
+  if (raw.priceReviewRequired !== undefined && typeof raw.priceReviewRequired !== 'boolean') throw new Error('APPLICATION_PRICE_REVIEW_INVALID');
   const facts = readTaskFacts(raw, options.facts === 'required');
   if (raw.calendarConflict !== undefined && typeof raw.calendarConflict !== 'boolean') throw new Error('MY_APPLICATIONS_CALENDAR_INVALID');
 
@@ -94,6 +96,7 @@ function mapApplication(raw: any, options: { facts: 'optional' | 'required' } = 
     prijavaRevizija: submittedNeedRevision,
     prijavaVerzija: version,
     stanje: state,
+    ...(raw.priceReviewRequired === undefined ? {} : { osnovicaZaProveru: raw.priceReviewRequired }),
     ...(raw.calendarConflict !== undefined ? { terminZauzet: raw.calendarConflict } : {}),
     naslov: String(raw?.title ?? 'Zadatak'),
     opis: String(raw?.description ?? ''),

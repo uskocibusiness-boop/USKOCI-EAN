@@ -68,7 +68,7 @@ export function AgreementOverview({ agreement, step, steps, info, headExtra, par
   // These seats belong to this accepted bilateral Dogovor. Other collaborations and whether applications remain open
   // cannot be inferred from this projection, even when its source task needs more people.
   const coverage = agreement.pokrivenost;
-  const coverageLine = coverage.ukupno > 1 && coverage.popunjeno > 0
+  const coverageLine = coverage.ukupno > 1 && coverage.popunjeno > 0 && coverage.ukupno >= coverage.popunjeno
     ? `Obuhvat ovog Dogovora: ${coverage.popunjeno} od ${coverage.ukupno} traženih mesta` : undefined;
   const link = (command: (() => void) | undefined) => command ? { disabled: !enabled, onPress: command } : undefined;
   return <>

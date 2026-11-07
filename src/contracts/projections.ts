@@ -236,7 +236,7 @@ export type KandidatProjekcija = {
   ocenaTekst: string;
   recenzijeTekst: string;
   cena: Novac;
-  /** Immutable price unit: HOURLY is RSD per person per hour; other/legacy amounts are application totals. */
+  /** Immutable unit: HOURLY is RSD per person per hour; TOTAL covers the application. Missing legacy basis is unknown. */
   osnovaCene?: 'TOTAL' | 'HOURLY' | null;
   pokrivaMesta: number;
   preostaloMesta: number;
@@ -287,11 +287,13 @@ export type MojaPrijavaProjekcija = {
   prijavaRevizija: number;
   prijavaVerzija: number;
   stanje: StanjeMojePrijave;
+  /** The server asks for explicit review of legacy price metadata, even without a task edit. */
+  osnovicaZaProveru?: boolean;
   terminZauzet?: boolean;
   naslov: string;
   opis: string;
   cena: Novac;
-  /** Immutable price unit: HOURLY is RSD per person per hour; other/legacy amounts are application totals. */
+  /** Immutable unit: HOURLY is RSD per person per hour; TOTAL covers the application. Missing legacy basis is unknown. */
   osnovaCene?: 'TOTAL' | 'HOURLY' | null;
   pokrivaMesta: number;
   napomena: string;
@@ -387,7 +389,7 @@ export type DogovorProjekcija = {
   naslov: string;
   stanje: StanjeDogovora;
   cena: Novac;
-  /** Immutable price unit: HOURLY is RSD per person per hour; other/legacy amounts are application totals. */
+  /** Immutable unit: HOURLY is RSD per person per hour; TOTAL covers the application. Missing legacy basis is unknown. */
   osnovaCene?: 'TOTAL' | 'HOURLY' | null;
   vremeTekst: string;
   /** Validated start from accepted terms only; never the source task's current start. Absent when terms were not read. */

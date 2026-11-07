@@ -33,3 +33,10 @@ export function novac(value: number, valuta = 'RSD'): string {
 
 /** An agreed amount that was never saved, said in words wherever an amount would stand; never "0 RSD". */
 export const BEZ_IZNOSA = 'Iznos nije sačuvan';
+
+/** An application or accepted agreement keeps its own unit. Missing legacy
+ * metadata cannot be reconstructed from today's task or silently mean TOTAL. */
+export function applicationPriceBasisText(basis: 'TOTAL' | 'HOURLY' | null | undefined): string {
+  return basis === 'HOURLY' ? 'po osobi po satu'
+    : basis === 'TOTAL' ? 'ukupno' : 'osnovica cene nije potvrđena';
+}

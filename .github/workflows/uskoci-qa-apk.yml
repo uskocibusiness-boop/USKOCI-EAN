@@ -82,6 +82,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/uskoci-checks"
           npm test 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/tests.tap"
           npx tsc --noEmit 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/typescript.txt"
+          sh supabase/migrations/check_md5.sh 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/migration-integrity.txt"
       - name: Upload source check results
         if: always()
         uses: actions/upload-artifact@v4

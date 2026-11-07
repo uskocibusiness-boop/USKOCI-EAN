@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
 import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
+import { applicationPriceBasisText } from '../../lib/novac';
 import { layout } from '../system/layout';
 import { osoba } from '../system/plural';
 import { STATUS_CHIPS, type StatusKey } from '../system/StatusChip';
@@ -57,9 +58,8 @@ const REASON: Partial<Record<StanjeMojePrijave, NonNullable<PrijavaModel['reason
 };
 
 /**
- * My offer. The stored price of an application is its own total: a task priced per person is multiplied by the places
- * this application covers when it is sent (pkg025b), and the edit form asks for "Cena prijave ukupno". So the card says
- * "ukupno"; "po osobi" is drawn only for a value that is one, and the read hands none over today. An amount that is not a
+ * My offer keeps the unit saved on its own version. TOTAL covers the people in
+ * this application; HOURLY is per person per hour. A legacy missing unit is unknown. An amount that is not a
  * positive number with its written form is not an amount, and the card says so in words ("Cena nije navedena").
  */
 export type ApplicationValue = PrijavaPrice;
@@ -67,7 +67,7 @@ export function applicationValue(row: Pick<MojaPrijavaProjekcija, 'cena' | 'osno
   const amount = row.cena?.prikaz?.trim();
   const number = row.cena?.iznos;
   if (!amount || typeof number !== 'number' || !Number.isFinite(number) || number <= 0) return { kind: 'unpriced' };
-  return { kind: 'amount', amount, basis: row.osnovaCene === 'HOURLY' ? 'po osobi po satu' : 'ukupno' };
+  return { kind: 'amount', amount, basis: applicationPriceBasisText(row.osnovaCene) };
 }
 
 /**
@@ -78,7 +78,9 @@ export function workerPrijava(row: MojaPrijavaProjekcija, fresh = false): Prijav
   const note = row.napomena?.trim();
   const calendarReason: PrijavaModel['reason'] = row.terminZauzet && ['SUBMITTED', 'VIEWED', 'SHORTLISTED'].includes(row.stanje)
     ? { text: 'Termin zauzet · imaš drugi Dogovor u ovo vreme. Prijava ostaje sačuvana.', tone: 'warn' } : null;
-  return { status: STATUS[row.stanje], reason: calendarReason ?? REASON[row.stanje] ?? null, who: { kind: 'task', title: readableTitle(row.naslov) },
+  const priceReason: PrijavaModel['reason'] = row.osnovicaZaProveru
+    ? { text: 'Proverite cenu i način obračuna prijave.', tone: 'warn' } : null;
+  return { status: STATUS[row.stanje], reason: calendarReason ?? priceReason ?? REASON[row.stanje] ?? null, who: { kind: 'task', title: readableTitle(row.naslov) },
     term: row.vremeTekst, price: applicationValue(row), people: osoba(row.pokrivaMesta), message: note ? `„${note}“` : null,
     quiet: row.stanje === 'WITHDRAWN' || row.stanje === 'CLOSED', ...(fresh ? { detail: 'upravo' } : {}) };
 }
@@ -99,7 +101,7 @@ const FOOT: Record<ApplicationFootAction, { label: string; spoken: string; tone:
   // opens (review r4 item 7).
   withdraw: { label: 'Povuci prijavu', spoken: 'Povuci prijavu', tone: 'ink', caret: 'none', hint: 'Pre povlačenja tražimo da potvrdite.' },
   // The spoken name starts with the visible words, so voice control and a screen reader name it the same (WCAG 2.5.3).
-  review: { label: 'Pregledaj izmene zadatka', spoken: 'Pregledaj izmene zadatka', tone: 'waiting', caret: 'down', hint: 'Otvara trenutne uslove ispod kartice.' },
+  review: { label: 'Pregledajte uslove prijave', spoken: 'Pregledajte uslove prijave', tone: 'waiting', caret: 'down', hint: 'Otvara trenutne uslove ispod kartice.' },
 };
 /** What the foot says, and what a screen reader hears ("Povuci prijavu: <naslov>"), per action. */
 export const applicationFootWords = (action: ApplicationFootAction) => FOOT[action];

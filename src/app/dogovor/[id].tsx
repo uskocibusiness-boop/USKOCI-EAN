@@ -220,7 +220,9 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   }), [messages.data, dogovor?.ucesnici]);
   const enabled = foreground && !resumeRequired && !workspace.loading && !workspace.error && !workspace.busy && !workspace.uncertain;
   const writable = enabled && dogovor?.chatDostupan === true;
-  const groupModel = useGroupContext(id, enabled && !!dogovor && dogovor.pokrivenost.ukupno > 1
+  // Frozen accepted people do not establish today's group membership. Read the
+  // authorized group even for a legacy or initially one-person agreement.
+  const groupModel = useGroupContext(id, enabled && !!dogovor
     && dogovor.ucesnici.some(party => party.viSte && party.id === accountId));
   const refreshIncoming = useCallback(async () => {
     if (tabRef.current === 'poruke') {
@@ -552,7 +554,8 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
             </>}
             problem={{ note: problemNote, exits: problemExits, form: problemForm }}
             groupReady={!!groupModel.context?.group} privatePartyName={other?.ime}
-            group={me && enabled && dogovor.pokrivenost.ukupno > 1 ? <GroupConversationEntry agreementId={id} model={groupModel} onPrivate={openPrivateConversation} /> : null}
+            group={me && enabled && (groupModel.context?.group || groupModel.error || !groupModel.context && dogovor.pokrivenost.ukupno !== 1)
+              ? <GroupConversationEntry agreementId={id} model={groupModel} onPrivate={openPrivateConversation} /> : null}
             on={{
               // The requester has no screen that opens one Prijava by its id, so no "Tvoja prijava" row is drawn for them; once the worker says
               // done, the requester confirms or reports a problem (owner decision 2026-09-21), so nothing is left to change for them; a finished

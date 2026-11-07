@@ -81,6 +81,7 @@ function mapCandidate(raw: any): KandidatProjekcija {
   if (raw.calendarConflict !== undefined && typeof raw.calendarConflict !== 'boolean') throw new Error('CANDIDATE_CALENDAR_INVALID');
   if (raw.applicationPriceBasis != null && !['TOTAL', 'HOURLY'].includes(raw.applicationPriceBasis))
     throw new Error('APPLICATION_PRICE_BASIS_INVALID');
+  if (raw.currency != null && raw.currency !== 'RSD') throw new Error('APPLICATION_CURRENCY_INVALID');
   if (!Number.isInteger(raw.priceRsd) || raw.priceRsd <= 0) throw new Error('CANDIDATE_PRICE_INVALID');
   if (!Number.isInteger(raw.coveredSlots) || raw.coveredSlots < 1) throw new Error('CANDIDATE_COVERAGE_INVALID');
   if (!Number.isInteger(raw.remainingSlots) || raw.remainingSlots < 0) throw new Error('CANDIDATE_REMAINING_INVALID');
@@ -121,7 +122,8 @@ function mapCandidate(raw: any): KandidatProjekcija {
     prevozTekst: vozila === null ? 'Nije dokazano' : vozila.length ? vozila.join(', ') : 'Bez navedenog vozila',
     napomena: typeof raw.scopeNote === 'string' ? raw.scopeNote : '',
     stanje: raw.state,
-    mozeIzabrati: raw.canSelect === true && raw.state === 'SELECTABLE' && raw.calendarConflict !== true,
+    mozeIzabrati: raw.canSelect === true && raw.state === 'SELECTABLE' && raw.calendarConflict !== true
+      && (raw.applicationPriceBasis === 'TOTAL' || raw.applicationPriceBasis === 'HOURLY'),
     ...(raw.calendarConflict !== undefined ? { terminZauzet: raw.calendarConflict } : {}),
     dokazPrijave: evidence,
     razlogPreporuke: null,

@@ -98,7 +98,9 @@ const CandidateItem = memo(function CandidateItem({ candidate, need, index, anim
  * it by headcount or compare it against a TOTAL. A hidden/malformed price cannot rank. */
 type ComparablePrice = { amount: number; people: number; unit: 'TOTAL_PER_PERSON' | 'HOURLY_PER_PERSON_HOUR' };
 function comparablePrice(k: KandidatProjekcija): ComparablePrice | null {
-  if (candidateValue(k).kind !== 'amount' || !Number.isSafeInteger(k.pokrivaMesta) || k.pokrivaMesta < 1) return null;
+  if (candidateValue(k).kind !== 'amount' || k.cena.valuta !== 'RSD'
+    || (k.osnovaCene !== 'TOTAL' && k.osnovaCene !== 'HOURLY')
+    || !Number.isSafeInteger(k.pokrivaMesta) || k.pokrivaMesta < 1) return null;
   return { amount: k.cena.iznos, people: k.osnovaCene === 'HOURLY' ? 1 : k.pokrivaMesta,
     unit: k.osnovaCene === 'HOURLY' ? 'HOURLY_PER_PERSON_HOUR' : 'TOTAL_PER_PERSON' };
 }
@@ -110,8 +112,9 @@ function comparePrices(a: ComparablePrice, b: ComparablePrice): number {
   const divided = a.amount / a.people - b.amount / b.people;
   return divided < 0 ? -1 : divided > 0 ? 1 : 0;
 }
-function differentPriceUnits(prices: readonly (ComparablePrice | null)[]): boolean {
-  return new Set(prices.filter((price): price is ComparablePrice => price !== null).map(price => price.unit)).size > 1;
+function incomparablePrices(prices: readonly (ComparablePrice | null)[]): boolean {
+  return prices.some(price => price === null)
+    || new Set(prices.filter((price): price is ComparablePrice => price !== null).map(price => price.unit)).size > 1;
 }
 
 /** The two things a whole list can say about an application that can still be chosen, in the owner's words. */
@@ -132,7 +135,7 @@ export function candidateMeasures(candidates: readonly KandidatProjekcija[], who
   const open = candidates.filter(k => k.stanje === 'SELECTABLE' && k.mozeIzabrati === true);
   const priced = open.map(k => ({ k, price: comparablePrice(k) }))
     .filter((entry): entry is { k: KandidatProjekcija; price: ComparablePrice } => entry.price !== null);
-  const comparable = !differentPriceUnits(priced.map(entry => entry.price));
+  const comparable = !incomparablePrices(open.map(comparablePrice));
   const lowest = comparable && priced.length > 1
     ? priced.reduce((best, entry) => comparePrices(entry.price, best.price) < 0 ? entry : best) : null;
   const rated = open.map(k => ({ k, figure: candidateRatingFigure(k) })).filter(entry => entry.figure && entry.figure.count > 0);
@@ -173,7 +176,7 @@ export function sortCandidates(candidates: readonly KandidatProjekcija[], sort: 
   if (sort === 'PRICE') {
     const entries = indexed.map(entry => ({ ...entry, price: comparablePrice(entry.k) }));
     // Unlike units have no meaningful common "cheapest" ranking.
-    if (differentPriceUnits(entries.map(entry => entry.price))) return candidates;
+    if (incomparablePrices(entries.map(entry => entry.price))) return candidates;
     return entries.sort((a, b) => a.price && b.price ? comparePrices(a.price, b.price) || a.at - b.at
       : a.price ? -1 : b.price ? 1 : a.at - b.at).map(({ k }) => k);
   }
@@ -255,7 +258,8 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   // not ordered by price or rating at all and the control is not drawn (the approved draft R4: only when the list is whole). Arrival is the server's own order.
   const sort: CandidateSort = known ? chosenSort ?? ownSort : 'ARRIVAL';
   const visiblePrices = candidates.map(comparablePrice);
-  const priceUnitsMixed = differentPriceUnits(visiblePrices);
+  const priceUnitsMixed = incomparablePrices(visiblePrices);
+  const priceUnitUnknown = visiblePrices.some(price => price === null);
   const hourlyOnly = visiblePrices.some(p => p?.unit === 'HOURLY_PER_PERSON_HOUR') && !priceUnitsMixed;
   // The comparison has to know how much room there is (two columns of at least 200 dp), so it reads the width through the one hook that may; the
   // kind of room (the owner's large text, a window under 340 dp) is the layout class. A gallery that gives its own text size decides by it.
@@ -308,7 +312,8 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
               <T variant="copy" tone="green" style={s.sortText}>{SORT_LABEL[sort]}</T><Glyph name="caret-down" size={16} tone="green" />
             </Press> : null}</View> : null}
           {known && sort === 'PRICE' ? <T variant="note" tone="muted">
-            {priceUnitsMixed ? 'Cene sa različitim jedinicama nisu uporedive; prikazan je redosled prijava.'
+            {priceUnitUnknown ? 'Za neke prijave iznos ili osnovica cene nisu potvrđeni; prikazan je redosled prijava.'
+              : priceUnitsMixed ? 'Cene sa različitim jedinicama nisu uporedive; prikazan je redosled prijava.'
               : hourlyOnly ? 'Poređenje je po osobi po satu; iznos na kartici je satnica.'
               : 'Poređenje je po osobi; iznos na kartici ostaje ukupna ponuda.'}
           </T> : null}
@@ -508,12 +513,12 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
         {blocked ? <V2Action label="Osvežite prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noteAction} /> : null}
       </View>
       {value.kind === 'amount'
-        ? <MoneySummary label={candidate.osnovaCene === 'HOURLY' ? 'Satnica po osobi' : 'Ukupna ponuda'} amount={priceWords}
+        ? <MoneySummary label={candidate.osnovaCene === 'HOURLY' ? 'Satnica po osobi' : candidate.osnovaCene === 'TOTAL' ? 'Ukupna ponuda' : 'Ponuđeni iznos'} amount={priceWords}
           basis={candidate.osnovaCene === 'HOURLY'
             ? (candidate.pokrivaMesta > 1 && Number.isSafeInteger(candidate.cena?.iznos)
                 ? `Po osobi po satu (${candidate.pokrivaMesta} pomagača × ${priceWords} = ${novac(candidate.pokrivaMesta * candidate.cena.iznos)}/h ukupno)`
                 : 'Po osobi po satu')
-            : `Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} />
+            : candidate.osnovaCene === 'TOTAL' ? `Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}` : 'Osnovica cene nije potvrđena'} />
         : <FactRow art="money" size="detail" label="Ukupna ponuda" value={priceWords} />}
       <Surface kind="panel" variant="tinted" tone="wash" density="comfortable" style={s.offerFacts}>
         <FactRow art="users" size="detail" label="Dolazi" value={osoba(candidate.pokrivaMesta)} />

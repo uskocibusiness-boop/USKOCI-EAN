@@ -1,5 +1,6 @@
 import { candidateRatingValue } from '../../data/candidateRating';
 import { memo, type ReactNode } from 'react';
+import { applicationPriceBasisText } from '../../lib/novac';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import type { KandidatProjekcija } from '../../contracts/projections';
@@ -83,7 +84,7 @@ export function candidateValue(k: Pick<KandidatProjekcija, 'cena' | 'pokrivaMest
   if (!shown || !/\d/.test(shown) || !Number.isSafeInteger(k.cena.iznos) || k.cena.iznos <= 0) return { kind: 'unpriced' };
   // An amount never loses its currency: a figure written without one gets the offer's own.
   const amount = /[A-Za-z€]/.test(shown) ? shown : `${shown} ${k.cena.valuta || 'RSD'}`;
-  return { kind: 'amount', amount, basis: k.osnovaCene === 'HOURLY' ? 'po osobi po satu' : 'ukupno' };
+  return { kind: 'amount', amount, basis: applicationPriceBasisText(k.osnovaCene) };
 }
 
 /** An amount as it is written, in its figure and its currency ("4.500 RSD" → "4.500", "RSD"): the figure carries the card's right side, the currency is a quiet word. */
@@ -142,9 +143,12 @@ export const CANDIDATE_REASON: Partial<Record<KandidatProjekcija['stanje'], stri
 };
 export type CandidateTone = 'warn' | 'muted';
 /** The reason line, only when it says something: an application that can simply be chosen, and one that was chosen or withdrawn, need none. */
-export function candidateStatus(k: Pick<KandidatProjekcija, 'stanje' | 'terminZauzet'>): { text: string; tone: CandidateTone } | null {
+export function candidateStatus(k: Pick<KandidatProjekcija, 'stanje' | 'terminZauzet' | 'osnovaCene'>): { text: string; tone: CandidateTone } | null {
   if (k.terminZauzet && (k.stanje === 'STALE' || k.stanje === 'SELECTABLE')) return {
     text: 'Termin zauzet · preklapa se sa drugim Dogovorom.', tone: 'warn',
+  };
+  if ((k.stanje === 'SELECTABLE' || k.stanje === 'STALE') && k.osnovaCene !== 'TOTAL' && k.osnovaCene !== 'HOURLY') return {
+    text: 'Osnovica cene nije potvrđena. Podnosilac treba da pregleda i potvrdi prijavu.', tone: 'warn',
   };
   const text = CANDIDATE_REASON[k.stanje];
   return text ? { text, tone: k.stanje === 'STALE' || k.stanje === 'OVERFILL' ? 'warn' : 'muted' } : null;

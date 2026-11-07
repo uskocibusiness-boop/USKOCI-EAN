@@ -97,13 +97,13 @@ export function singlePassCapturePlan(built, catalog) {
 export function withUnresolvedSinglePassReply(turn, built, plan) {
   if (!['ALLOW', 'CLARIFY'].includes(turn?.safety) || plan &&
       !built?.clarifications?.length && !built?.failures?.length && !built?.unresolvedServices?.length) return turn;
-  if (turn.dialogue?.next !== 'REVIEW' && turn.assistantMessage.includes('?')) return turn;
-  // If the model already provided a natural Serbian reply, preserve it rather than overwriting with bureaucracy
-  if (turn?.assistantMessage && turn.assistantMessage.trim().length > 0 && !turn.assistantMessage.startsWith('Opis ostaje')) {
-    return turn;
-  }
   const question = built?.clarifications?.[0]?.ambiguityPrompt;
-  return { ...turn, assistantMessage: question || 'Detalji zadatka su zabeleženi u odgovarajuću kategoriju.',
+  // An ordinary question can still collect a missing business fact. An internal
+  // REVIEW invitation, however natural the prose, cannot certify an absent plan.
+  // A validated work distinction takes precedence over a generic invitation.
+  if (!question && turn.dialogue?.next === 'ANSWER') return turn;
+  if (!question && turn.dialogue?.next !== 'REVIEW' && turn.assistantMessage.includes('?')) return turn;
+  return { ...turn, assistantMessage: question || 'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.',
     ...(turn.dialogue ? { dialogue: { ...turn.dialogue, next: question ? 'CLARIFY' : 'ACK', questionKey: 'NONE' } } : {}) };
 }
 

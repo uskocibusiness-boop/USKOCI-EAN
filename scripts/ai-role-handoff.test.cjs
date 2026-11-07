@@ -29,6 +29,21 @@ for (const [input, expected] of [
   ['Ćao, zanima me nešto', false],
   ['Trebaju mi dva nosača', false],
   ['Želim da mi neko okreči sobu', false],
+  ['Da li ovde mogu da nudim prevoz?', false],
+  ['Да ли овде могу да нудим превоз', false],
+  ['Kako mogu da nudim časove?', false],
+  ['Mogu li da nudim prevoz', false],
+  ['Nudim časove. Kako radi aplikacija?', false],
+  ['Ne želim da radim kao moler', false],
+  ['Не желим да радим као молер', false],
+  ['Više ne držim časove francuskog', false],
+  ['Nudim prevoz, ne radim utovar', false],
+  ['Radim kao pomoćnik pri selidbi, nemam kombi', true],
+  ['Držim onlajn časove francuskog', true],
+  ['Ćao.', false], ['Da.', false], ['Ne.', false], ['To je to.', false],
+  ['Sutra.', false], ['Posle četiri.', false], ['Nemam kombi.', false],
+  ['Samo utovar.', false], ['Mislim na evre.', false], ['Ne treba odvoz.', false],
+  ['Može i petak.', false], ['I subotu bih mogao.', false], ['Promenio sam mišljenje.', false],
 ]) test('role intent: '+input, () => assert.equal(isExplicitWorkerOffer(input), expected));
 const owner = { accountId: '22222222-2222-4222-8222-222222222222', accountRevision: 8 };
 const token = '11111111-1111-4111-8111-111111111111';
@@ -45,4 +60,8 @@ test('expired text is discarded', () => {
 });
 test('mixed intent cannot be transferred', () => {
   assert.equal(stageWorkerText({ ...owner, token, text: 'Nudim prevoz ali treba mi radnik' }, 1000), false);
+});
+test('questions and negated offers cannot stage a role switch', () => {
+  for (const text of ['Da li ovde mogu da nudim prevoz?', 'Ne želim da radim kao moler'])
+    assert.equal(stageWorkerText({ ...owner, token, text }, 1000), false);
 });

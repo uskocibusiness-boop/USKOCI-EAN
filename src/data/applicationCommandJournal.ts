@@ -68,7 +68,7 @@ export const applicationCommandJournal = {
       if (old.state === 'PRESENT') {
         if (old.record.command.clientRequestId !== next.command.clientRequestId) throw new Error('APPLICATION_COMMAND_UNRESOLVED');
         if (commandKeys.some(key => old.record.command[key] !== next.command[key])
-          || (old.record.applicationPriceBasis ?? 'TOTAL') !== (next.applicationPriceBasis ?? 'TOTAL')) throw new Error('APPLICATION_COMMAND_PAYLOAD_CHANGED');
+          || old.record.applicationPriceBasis !== next.applicationPriceBasis) throw new Error('APPLICATION_COMMAND_PAYLOAD_CHANGED');
       }
       await AsyncStorage.setItem(storageKey(next.accountId, next.needId), JSON.stringify(next));
     });

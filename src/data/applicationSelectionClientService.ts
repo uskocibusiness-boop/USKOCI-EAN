@@ -1,7 +1,7 @@
 import type { Ishod, IzborKomanda, Izvor, PodnesiPrijavuKomanda } from './ports';
 import { calendarFailure } from './calendarErrors';
 import { calendarInstant } from '../lib/calendarTime';
-import { failure, positiveInteger, readOwnedResult, record, sameId, uuid } from './serverReceipt';
+import { failure, positiveInteger, readOwnedResult, record, sameId, uuid, type ReceiptAccount } from './serverReceipt';
 import { supabaseKlijent } from './supabaseClient';
 import { sesijaSada } from '../store/sesija';
 
@@ -29,6 +29,8 @@ export const applicationSelectionErrors: Readonly<Record<string, string>> = {
   // Legacy pkg025b compatibility until the proportional TOTAL server package is applied.
   TOTAL_PRICE_REQUIRES_ALL_SLOTS: 'Cena ovog zadatka važi za ceo zadatak, pa prijava mora da pokrije sva mesta.',
   UNKNOWN_PRICE_BASIS: 'Ova verzija aplikacije ne podržava način računanja cene na ovom zadatku. Ažuriraj aplikaciju.',
+  APPLICATION_PRICE_BASIS_REVIEW_REQUIRED: 'Osnovica cene nije potvrđena. Podnosilac treba da pregleda cenu i broj ljudi i potvrdi ažuriranu prijavu.',
+  APPLICATION_PRICE_BASIS_CHANGED: 'Način obračuna cene je promenjen. Pregledajte i potvrdite ažuriranu prijavu.',
   INVALID_PROPOSED_INTERVAL: 'Kraj predloženog termina mora biti posle početka.',
   NEED_FIXED_INTERVAL_INVALID: 'Termin zadatka nije potpun. Ponovo otvori zadatak.',
   WORKER_PROFILE_NOT_READY: 'Radni profil još ne ispunjava uslove za ovu prijavu.',
@@ -144,6 +146,65 @@ function interval(start: string | null, end: string | null) {
   return from !== null && to !== null && from < to;
 }
 const invalid = () => failure('APPLICATION_COMMAND_INVALID', 'Proveri cenu, broj ljudi i termin svoje ponude.');
+function submitArguments(k: PodnesiPrijavuKomanda): Record<string, unknown> | null {
+  if (!uuid(k.potrebaId) || !uuid(k.radnikProfilId) || !positiveInteger(k.potrebaRevizija) ||
+      !positiveInteger(k.pokrivenaMesta) || !positiveInteger(k.cenaRsd) || !key(k.clientRequestId) ||
+      !interval(k.predlozeniPocetak, k.predlozeniKraj) ||
+      (k.napomena !== null && (typeof k.napomena !== 'string' || k.napomena.length > 4000))) return null;
+  // The original payload, including whitespace in scopeNote, also owns the
+  // ledger read. Neither retry nor recovery may normalize its request digest.
+  return {
+    p_need_id: k.potrebaId, p_need_revision: k.potrebaRevizija, p_worker_profile_id: k.radnikProfilId,
+    p_covered_slots: k.pokrivenaMesta, p_price_rsd: k.cenaRsd,
+    p_proposed_start_at: k.predlozeniPocetak, p_proposed_end_at: k.predlozeniKraj,
+    p_scope_note: k.napomena, p_client_request_id: k.clientRequestId,
+  };
+}
+export type ApplicationSubmitReceipt = { prijavaId: string; verzija: number; hash: string; osnovaCene: 'TOTAL' | 'HOURLY' };
+type ApplicationSubmitIdentity = Pick<ApplicationSubmitReceipt, 'prijavaId' | 'verzija' | 'hash'>;
+export type ApplicationSubmitReadback =
+  | { state: 'NOT_FOUND' }
+  | { state: 'CONFIRMED'; receipt: ApplicationSubmitReceipt }
+  | { state: 'LEGACY_REVIEW_REQUIRED'; receipt: ApplicationSubmitIdentity };
+type DecodedSubmitResult = Exclude<ApplicationSubmitReadback, { state: 'NOT_FOUND' }>;
+function decodeSubmitResult(raw: unknown, k: PodnesiPrijavuKomanda): DecodedSubmitResult | null {
+  const value = record(raw);
+  if (!value || !uuid(value.responseId) || !sameId(value.applicationId, value.responseId) ||
+      !positiveInteger(value.version) || value.needRevision !== k.potrebaRevizija || !hash(value.contentHash) ||
+      !['SUBMITTED', 'VIEWED', 'SHORTLISTED'].includes(String(value.status)) ||
+      !['MY_PRICE', 'OFFERS'].includes(String(value.pricingMode)) || value.coveredSlots !== k.pokrivenaMesta ||
+      value.snapshotSchema !== 'APPLICATION_V1_SELF_DECLARED' || value.authoritative !== true ||
+      typeof value.idempotentReplay !== 'boolean') return null;
+  const identity = { prijavaId: value.responseId, verzija: value.version, hash: value.contentHash };
+  // The captured old writer returned none of these three keys. Its exact replay
+  // proves that this command was saved, not whether its amount meant a total or
+  // a rate. Partial or contradictory metadata is never accepted as legacy.
+  if (value.idempotentReplay === true && ['applicationPriceBasis', 'currency', 'priceRsd'].every(field => !Object.hasOwn(value, field)))
+    return { state: 'LEGACY_REVIEW_REQUIRED', receipt: identity };
+  if ((value.applicationPriceBasis !== 'TOTAL' && value.applicationPriceBasis !== 'HOURLY') ||
+      value.currency !== 'RSD' || value.priceRsd !== k.cenaRsd ||
+      value.pricingMode === 'OFFERS' && value.applicationPriceBasis === 'HOURLY') return null;
+  return { state: 'CONFIRMED', receipt: { ...identity, osnovaCene: value.applicationPriceBasis } };
+}
+
+/** Only the account's exact request key AND original request digest may prove
+ * a saved submit. NOT_FOUND is one observation, not proof that an earlier
+ * in-flight request cannot commit; it never authorizes changing the old intent. */
+export function readApplicationSubmitResult(k: PodnesiPrijavuKomanda, account: ReceiptAccount): Promise<Ishod<ApplicationSubmitReadback>> {
+  const args = submitArguments(k);
+  if (!args) return Promise.resolve(invalid());
+  return readOwnedResult({ account, errors: applicationSelectionErrors,
+    fallback: 'APPLICATION_SUBMIT_RESULT_UNAVAILABLE', invalid: 'APPLICATION_SUBMIT_RESULT_INVALID',
+    request: () => supabaseKlijent().rpc('rpc_read_response_submit_result', args),
+    decode(raw): ApplicationSubmitReadback | null {
+      const envelope = record(raw);
+      if (!envelope || envelope.authoritative !== true || typeof envelope.found !== 'boolean') return null;
+      if (!envelope.found) return envelope.result == null ? { state: 'NOT_FOUND' } : null;
+      if (record(envelope.result)?.idempotentReplay !== true) return null;
+      return decodeSubmitResult(envelope.result, k);
+    },
+  });
+}
 /** Bounds the two composed screen reads, including legacy SDK readers. The
  * caller's existing focus/account/generation guard owns the result. A deadline
  * stops waiting; it does not claim cancellation of an already issued request. */
@@ -170,18 +231,10 @@ async function command<T>(rpc: string, args: Record<string, unknown>, decode: (r
  * immutable request. Server still owns eligibility, calendar and atomic Agreement. */
 export const applicationSelectionClientService: Pick<Izvor, 'podnesiPrijavu' | 'izaberiPrijavu'> = {
   async podnesiPrijavu(k: PodnesiPrijavuKomanda) {
-    if (!uuid(k.potrebaId) || !uuid(k.radnikProfilId) || !positiveInteger(k.potrebaRevizija) ||
-        !positiveInteger(k.pokrivenaMesta) || !positiveInteger(k.cenaRsd) || !key(k.clientRequestId) ||
-        !interval(k.predlozeniPocetak, k.predlozeniKraj) ||
-        (k.napomena !== null && (typeof k.napomena !== 'string' || k.napomena.length > 4000))) return invalid();
-    const args = {
-      p_need_id: k.potrebaId, p_need_revision: k.potrebaRevizija, p_worker_profile_id: k.radnikProfilId,
-      p_covered_slots: k.pokrivenaMesta, p_price_rsd: k.cenaRsd,
-      p_proposed_start_at: k.predlozeniPocetak, p_proposed_end_at: k.predlozeniKraj,
-      p_scope_note: k.napomena, p_client_request_id: k.clientRequestId,
-    };
+    const args = submitArguments(k);
+    if (!args) return invalid();
     type Envelope =
-      | { kind: 'SUCCESS'; receipt: { prijavaId: string; verzija: number; hash: string; osnovaCene?: 'TOTAL' | 'HOURLY' } }
+      | { kind: 'SUCCESS'; result: DecodedSubmitResult }
       | { kind: 'REFUSAL'; refusal: ApplicationSubmitRefusal };
     const outcome = await readOwnedResult<Envelope>({ write: true, errors: applicationSelectionErrors,
       fallback: 'APPLICATION_SELECTION_UNCONFIRMED', invalid: 'APPLICATION_SELECTION_INVALID_RECEIPT',
@@ -200,21 +253,15 @@ export const applicationSelectionClientService: Pick<Izvor, 'podnesiPrijavu' | '
           return conclusiveApplicationRefusal(refusal) ? { kind: 'REFUSAL', refusal } : null;
         }
         if (envelope?.kind !== 'SUCCESS') return null;
-        const value = record(envelope.raw);
-        if (!value || !uuid(value.responseId) || !sameId(value.applicationId, value.responseId) ||
-            !positiveInteger(value.version) || value.needRevision !== k.potrebaRevizija || !hash(value.contentHash) ||
-            !['SUBMITTED', 'VIEWED', 'SHORTLISTED'].includes(String(value.status)) ||
-            !['MY_PRICE', 'OFFERS'].includes(String(value.pricingMode)) || value.coveredSlots !== k.pokrivenaMesta ||
-            value.snapshotSchema !== 'APPLICATION_V1_SELF_DECLARED' || value.authoritative !== true ||
-            typeof value.idempotentReplay !== 'boolean' ||
-            value.applicationPriceBasis != null && value.applicationPriceBasis !== 'TOTAL' && value.applicationPriceBasis !== 'HOURLY' ||
-            value.pricingMode === 'OFFERS' && value.applicationPriceBasis === 'HOURLY') return null;
-        return { kind: 'SUCCESS', receipt: { prijavaId: value.responseId, verzija: value.version, hash: value.contentHash,
-          ...(value.applicationPriceBasis == null ? {} : { osnovaCene: value.applicationPriceBasis }) } };
+        const result = decodeSubmitResult(envelope.raw, k);
+        return result ? { kind: 'SUCCESS', result } : null;
       },
     });
     if (!outcome.ok) return outcome;
-    return outcome.podatak.kind === 'REFUSAL' ? outcome.podatak.refusal : { ok: true as const, podatak: outcome.podatak.receipt };
+    if (outcome.podatak.kind === 'REFUSAL') return outcome.podatak.refusal;
+    return outcome.podatak.result.state === 'LEGACY_REVIEW_REQUIRED'
+      ? failure('APPLICATION_PRICE_BASIS_REVIEW_REQUIRED', applicationSelectionErrors.APPLICATION_PRICE_BASIS_REVIEW_REQUIRED)
+      : { ok: true as const, podatak: outcome.podatak.result.receipt };
   },
   izaberiPrijavu(k: IzborKomanda) {
     if (!uuid(k.potrebaId) || !uuid(k.prijavaId) || !positiveInteger(k.potrebaRevizija) ||

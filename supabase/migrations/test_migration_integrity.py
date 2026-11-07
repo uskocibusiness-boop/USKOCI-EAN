@@ -150,7 +150,8 @@ class ArchivedCatalogEvidenceTests(unittest.TestCase):
     def setUp(self):
         metadata = json.loads(Path(__file__).with_name("MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
         self.sections = [metadata[key] for key in (
-            "physical_suffix_readmission_20261018", "physical_suffix_reconciliation_20261026")]
+            "physical_suffix_readmission_20261018", "physical_suffix_reconciliation_20261026",
+            "physical_suffix_reconciliation_20261107", "forward_readmission_20261107")]
 
     def test_missing_or_unrecognized_archived_evidence_fails_closed(self):
         for original in self.sections:
@@ -173,6 +174,85 @@ class ArchivedCatalogEvidenceTests(unittest.TestCase):
                         evidence["liveMigrationCatalogHashes"][0][key] = "changed"
                     with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                         load_catalog_evidence(section)
+
+
+class Nov7ReconciliationTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).parent
+        metadata = json.loads((self.root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
+        self.section = metadata["physical_suffix_reconciliation_20261107"]
+        self.evidence = load_catalog_evidence(self.section)
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (self.root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+
+    def rejects(self, section):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_physical_suffix(section, self.manifest, self.evidence)
+
+    def test_r07a_readmission_is_exact_existing_source_and_ledger(self):
+        verified = check_physical_suffix(self.section, self.manifest, self.evidence)
+        self.assertEqual(len(verified), 7)
+        classes = [row["classification"] for row in self.section["entries"]]
+        self.assertEqual(classes.count("APPLIED_EXACT_LEDGER_BYTES"), 1)
+        self.assertEqual(classes.count("APPLIED_RECORDED_BYTES_DIFFER"), 4)
+        self.assertEqual(classes.count("SOURCE_ONLY_LIVE_BINDING_UNPROVEN"), 2)
+        row = next(row for row in self.section["entries"] if row["classification"] == "APPLIED_EXACT_LEDGER_BYTES")
+        self.assertEqual(row["live_version"], "20261106235737")
+        self.assertEqual(row["version"], row["live_version"])
+        self.assertEqual((self.root / row["file"]).read_bytes(),
+                         (self.root.parent.parent / "scripts/sql/r07a_currency_invalidation_20261107.sql").read_bytes())
+
+    def test_empty_taxonomy_marker_cannot_prove_application(self):
+        section = copy.deepcopy(self.section)
+        row = section["entries"][0]
+        row.update(live_version="20261105150000", live_name=None,
+                   live_recorded_md5=None, live_recorded_sha256=None)
+        self.rejects(section)
+
+    def test_different_bytes_and_unproven_files_cannot_claim_exact_application(self):
+        for original in self.section["entries"]:
+            if original["classification"] == "APPLIED_EXACT_LEDGER_BYTES":
+                continue
+            with self.subTest(file=original["file"]):
+                section = copy.deepcopy(self.section)
+                row = next(row for row in section["entries"] if row["file"] == original["file"])
+                row["classification"] = "APPLIED_EXACT_LEDGER_BYTES"
+                row["live_applied"] = True
+                self.rejects(section)
+
+    def test_unproven_file_cannot_smuggle_recorded_hash(self):
+        section = copy.deepcopy(self.section)
+        row = next(row for row in section["entries"] if row["classification"] == "SOURCE_ONLY_LIVE_BINDING_UNPROVEN")
+        row["live_recorded_sha256"] = "0" * 64
+        self.rejects(section)
+
+
+class Nov7ForwardReadmissionTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).parent
+        metadata = json.loads((self.root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
+        self.section = metadata["forward_readmission_20261107"]
+        self.evidence = load_catalog_evidence(self.section)
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (self.root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+
+    def test_all_three_reviewed_candidates_match_exact_applied_ledger_bytes(self):
+        verified = check_physical_suffix(self.section, self.manifest, self.evidence)
+        self.assertEqual(len(verified), 3)
+        for row in self.section["entries"]:
+            with self.subTest(file=row["file"]):
+                self.assertEqual(row["classification"], "APPLIED_EXACT_LEDGER_BYTES")
+                self.assertEqual(row["version"], row["live_version"])
+                self.assertEqual((self.root / row["file"]).read_bytes(),
+                                 (self.root.parent.parent / row["source"]).read_bytes())
+
+    def test_swapped_migration_identity_or_digest_fails_closed(self):
+        for key in ("live_version", "live_name", "live_recorded_md5", "live_recorded_sha256", "raw_md5", "raw_sha256"):
+            with self.subTest(key=key):
+                section = copy.deepcopy(self.section)
+                section["entries"][0][key] = section["entries"][1][key]
+                with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    check_physical_suffix(section, self.manifest, self.evidence)
 
 
 if __name__ == "__main__":
