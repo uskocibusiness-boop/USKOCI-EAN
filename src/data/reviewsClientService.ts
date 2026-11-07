@@ -23,13 +23,14 @@ export type ReviewContext = { accountId: string; agreementId: string; targetAcco
 export type AccountReputation = { accountId: string; reviewCount: number; averageRating: number | null;
   state: 'NO_REVIEWS' | 'RATED'; authoritative: true };
 const errors: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.',
   REVIEW_INPUT_INVALID: 'Ocena mora biti ceo broj od 1 do 5.',
-  REVIEW_TAGS_INVALID: 'Izaberi najviše tri različite ponuđene oznake.',
-  REVIEW_NOT_ALLOWED: 'Možeš oceniti samo drugu stranu svog Dogovora.',
+  REVIEW_TAGS_INVALID: 'Izaberite najviše tri različite ponuđene oznake.',
+  REVIEW_NOT_ALLOWED: 'Možete oceniti samo drugu stranu svog Dogovora.',
   REVIEW_NOT_COMPLETED: 'Ocena je dostupna tek po završetku Dogovora.',
+  REVIEW_WINDOW_CLOSED: 'Istekao je rok od 14 dana za ocenjivanje ove saradnje.',
   REVIEW_ALREADY_SUBMITTED: 'Ovaj Dogovor je već ocenjen. Uspešna ocena se ne menja.',
-  REQUEST_ID_REUSED: 'Zahtev je već upotrebljen. Proveri potvrdu prethodne ocene.',
+  REQUEST_ID_REUSED: 'Zahtev je već upotrebljen. Proverite potvrdu prethodne ocene.',
   REPUTATION_NOT_AVAILABLE: 'Reputacija ovog naloga trenutno nije dostupna.',
   ACCOUNT_CLOSING: 'Nalog je u postupku zatvaranja.',
   ACCOUNT_CLOSURE_RESTRICTED: 'Nalog je u postupku zatvaranja.',

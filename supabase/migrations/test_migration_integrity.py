@@ -151,7 +151,9 @@ class ArchivedCatalogEvidenceTests(unittest.TestCase):
         metadata = json.loads(Path(__file__).with_name("MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
         self.sections = [metadata[key] for key in (
             "physical_suffix_readmission_20261018", "physical_suffix_reconciliation_20261026",
-            "physical_suffix_reconciliation_20261107", "forward_readmission_20261107")]
+            "physical_suffix_reconciliation_20261107", "forward_readmission_20261107",
+            "forward_readmission_20261107_r08", "forward_readmission_20261107_r01",
+            "forward_readmission_20261107_r08_reviews", "forward_readmission_20261107_r05")]
 
     def test_missing_or_unrecognized_archived_evidence_fails_closed(self):
         for original in self.sections:
@@ -251,6 +253,108 @@ class Nov7ForwardReadmissionTests(unittest.TestCase):
             with self.subTest(key=key):
                 section = copy.deepcopy(self.section)
                 section["entries"][0][key] = section["entries"][1][key]
+                with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    check_physical_suffix(section, self.manifest, self.evidence)
+
+
+class R08ForwardReadmissionTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).parent
+        metadata = json.loads((self.root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
+        self.section = metadata["forward_readmission_20261107_r08"]
+        self.evidence = load_catalog_evidence(self.section)
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (self.root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+
+    def test_r08_uses_exact_observed_ledger_identity_and_source_bytes(self):
+        self.assertEqual(len(check_physical_suffix(self.section, self.manifest, self.evidence)), 1)
+        row = self.section["entries"][0]
+        self.assertEqual(row["version"], "20261107113611")
+        self.assertEqual(row["version"], row["live_version"])
+        self.assertEqual((self.root / row["file"]).read_bytes(),
+                         (self.root.parent.parent / row["source"]).read_bytes())
+
+    def test_r08_wrong_ledger_or_relabelled_source_digest_is_rejected(self):
+        for key in ("live_version", "live_name", "live_recorded_sha256", "raw_md5", "raw_bytes"):
+            with self.subTest(key=key):
+                section = copy.deepcopy(self.section)
+                section["entries"][0][key] = "INVALID"
+                with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    check_physical_suffix(section, self.manifest, self.evidence)
+
+
+class R01ProjectionReadmissionTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).parent
+        metadata = json.loads((self.root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
+        self.section = metadata["forward_readmission_20261107_r01"]
+        self.evidence = load_catalog_evidence(self.section)
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (self.root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+        self.row = self.section["entries"][0]
+        self.sql = (self.root / self.row["file"]).read_text(encoding="utf-8")
+
+    def test_exact_grant_projection_matches_ledger_and_keeps_participant_fences_read_only(self):
+        self.assertEqual(len(check_physical_suffix(self.section, self.manifest, self.evidence)), 1)
+        self.assertEqual(self.row["version"], "20261107114458")
+        self.assertEqual((self.root / self.row["file"]).read_bytes(),
+                         (self.root.parent.parent / self.row["source"]).read_bytes())
+        check_later_participant_contract(self.row["file"], self.sql)
+
+    def test_added_or_altered_participant_mutations_cannot_use_projection_exception(self):
+        for mutation in (
+            self.sql + "\ndrop policy needs_participant_read on public.needs;",
+            self.sql + "\nalter function rls_private.need_participant_can_read(uuid) security invoker;",
+            self.sql.replace("rls_private.need_participant_can_read(uuid)", "public.unreviewed_reader(uuid)"),
+        ):
+            with self.subTest(mutation=mutation[-80:]), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                check_later_participant_contract(self.row["file"], mutation)
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_later_participant_contract("20261107114459_unreviewed.sql", self.sql)
+
+    def test_relabelled_ledger_or_private_scope_digest_is_rejected(self):
+        for key in ("live_version", "live_name", "live_recorded_sha256", "raw_md5", "raw_bytes"):
+            with self.subTest(key=key):
+                section = copy.deepcopy(self.section)
+                section["entries"][0][key] = "INVALID"
+                with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    check_physical_suffix(section, self.manifest, self.evidence)
+
+
+class R05DiscoveryReadmissionTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).parent
+        metadata = json.loads((self.root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
+        self.section = metadata["forward_readmission_20261107_r05"]
+        self.evidence = load_catalog_evidence(self.section)
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (self.root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+        self.row = self.section["entries"][0]
+        self.sql = (self.root / self.row["file"]).read_text(encoding="utf-8")
+
+    def test_exact_discovery_body_matches_ledger_and_keeps_participant_fences_read_only(self):
+        self.assertEqual(len(check_physical_suffix(self.section, self.manifest, self.evidence)), 1)
+        self.assertEqual(self.row["version"], "20261107121943")
+        self.assertEqual((self.root / self.row["file"]).read_bytes(),
+                         (self.root.parent.parent / self.row["source"]).read_bytes())
+        check_later_participant_contract(self.row["file"], self.sql)
+
+    def test_mutations_or_relabelled_files_cannot_use_discovery_exception(self):
+        for mutation in (
+            self.sql + "\ndrop policy needs_participant_read on public.needs;",
+            self.sql + "\nalter function rls_private.need_participant_can_read(uuid) security invoker;",
+            self.sql.replace("needs_participant_read", "unreviewed_participant_read"),
+        ):
+            with self.subTest(mutation=mutation[-80:]), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                check_later_participant_contract(self.row["file"], mutation)
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_later_participant_contract("20261107121944_unreviewed.sql", self.sql)
+
+    def test_changed_ledger_identity_or_source_digest_is_rejected(self):
+        for key in ("live_version", "live_name", "live_recorded_sha256", "raw_md5", "raw_bytes"):
+            with self.subTest(key=key):
+                section = copy.deepcopy(self.section)
+                section["entries"][0][key] = "INVALID"
                 with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                     check_physical_suffix(section, self.manifest, self.evidence)
 

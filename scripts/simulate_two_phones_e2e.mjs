@@ -1,14 +1,33 @@
+// Administratorski DEV fixture alat. Njegov rezultat nije E2E dokaz dva obična naloga.
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://leqcwgzvjsxugfgzdmth.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlcWN3Z3p2anN4dWdmZ3pkbXRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NTQ1MzUsImV4cCI6MjEwMzIzMDUzNX0.xXDf315iaIwtNwK2u2ZB8m3Dw5amx3eFsA4_adw6hMk';
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SERVICE_KEY) {
-  console.error('Postavite SUPABASE_SERVICE_ROLE_KEY u okruženju pre pokretanja (ključ se ne čuva u kodu).');
-  process.exit(1);
+import { readFileSync } from 'node:fs';
+
+const preview = JSON.parse(readFileSync(new URL('../eas.json', import.meta.url), 'utf8')).build.preview.env;
+const SUPABASE_URL = preview.EXPO_PUBLIC_SUPABASE_URL;
+const ANON_KEY = preview.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const SERVICE_KEY = process.env.SUPABASE_SECRET_KEY;
+if (SUPABASE_URL !== 'https://leqcwgzvjsxugfgzdmth.supabase.co'
+  || !/^sb_publishable_[A-Za-z0-9_-]{16,}$/.test(ANON_KEY ?? '')) {
+  console.error('Potreban je kanonski DEV preview sa važećim javnim ključem.'); process.exit(1);
+}
+if (!/^sb_secret_[A-Za-z0-9_-]{16,}$/.test(SERVICE_KEY ?? '')) {
+  console.error('Postavite novi SUPABASE_SECRET_KEY u okruženju. Stari service_role JWT nije podržan; ključ se ne čuva u kodu.'); process.exit(1);
 }
 
-const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
+
+function requiredQaEnv(name) {
+  const value = process.env[name];
+  if (typeof value !== 'string' || value.trim().length === 0) throw new Error(`MISSING_QA_ENV:${name}`);
+  return value;
+}
+
+async function secretServiceFetch(input, init) {
+  const headers = new Headers(init?.headers);
+  // A modern service key is an API key, never a user JWT.
+  if (headers.get('Authorization') === `Bearer ${SERVICE_KEY}`) headers.delete('Authorization');
+  return fetch(input, { ...init, headers });
+}
 
 async function main() {
   console.log('========================================================================');
@@ -16,12 +35,16 @@ async function main() {
   console.log('========================================================================\n');
 
   // KORISNIK 1 (Naručilac na Telefonu 1)
-  const user1Email = 'sim_marko_narucilac@uskoci.rs';
-  const user1Pass = 'Sifra123!Marko';
+  const user1Email = requiredQaEnv('QA_REQUESTER_EMAIL');
+  const user1Pass = requiredQaEnv('QA_REQUESTER_PASSWORD');
 
   // KORISNIK 2 (Majstor na Telefonu 2)
-  const user2Email = 'sim_jovan_majstor@uskoci.rs';
-  const user2Pass = 'Sifra123!Jovan';
+  const user2Email = requiredQaEnv('QA_WORKER_EMAIL');
+  const user2Pass = requiredQaEnv('QA_WORKER_PASSWORD');
+  const adminClient = createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: secretServiceFetch },
+  });
 
   // ========================================================================
   // FAZA 1: TELEFON 1 (NARUČILAC MARKO) — PRIJAVA I AI RAZGOVOR SA GEMINIJEM

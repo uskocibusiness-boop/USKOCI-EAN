@@ -4,8 +4,8 @@
  * The route receives only a UUID token, never the text.
  */
 export type AiRoleOwner = Readonly<{ accountId: string; accountRevision: number }>;
-type WorkerText = Readonly<AiRoleOwner & { token: string; text: string; createdAt: number }>;
-let pendingWorkerText: WorkerText | null = null;
+type RoleText = Readonly<AiRoleOwner & { token: string; text: string; createdAt: number; target: 'NEED' | 'WORKER' }>;
+let pendingRoleText: RoleText | null = null;
 const MAX_TEXT = 4000;
 const MAX_AGE_MS = 5 * 60_000;
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -38,23 +38,37 @@ export function isExplicitWorkerOffer(text: string): boolean {
 }
 /** Caller owns its authenticated session and explicit navigation gesture. */
 export function stageWorkerText(input: AiRoleOwner & { token: string; text: string }, now = Date.now()): boolean {
-  const text = input.text?.trim();
+  if (!isExplicitWorkerOffer(input.text)) return false;
+  return stageAiRoleText({ ...input, target: 'WORKER' }, now);
+}
+/** The route may call this only after the person chooses a confirmed semantic suggestion. */
+export function stageAiRoleText(input: AiRoleOwner & { token: string; text: string; target: 'NEED' | 'WORKER' }, now = Date.now()): boolean {
+  const text = typeof input.text === 'string' ? input.text.trim() : '';
   if (!ID.test(input.accountId) || !ID.test(input.token) || !Number.isSafeInteger(input.accountRevision)
-    || input.accountRevision < 0 || !text || text.length > MAX_TEXT || !isExplicitWorkerOffer(text)
+    || input.accountRevision < 0 || !text || text.length > MAX_TEXT || !['NEED', 'WORKER'].includes(input.target)
     || !Number.isFinite(now)) return false;
-  pendingWorkerText = { accountId: input.accountId, accountRevision: input.accountRevision,
-    token: input.token, text, createdAt: now };
+  pendingRoleText = { accountId: input.accountId, accountRevision: input.accountRevision,
+    token: input.token, text, target: input.target, createdAt: now };
   return true;
 }
 /** Consume exactly once for the SAME signed-in account generation and route token. */
-export function takeWorkerText(input: AiRoleOwner & { token: string }, now = Date.now()): string | null {
-  const saved = pendingWorkerText;
+function takeRoleText(input: AiRoleOwner & { token: string; target: 'NEED' | 'WORKER'; capacity?: number }, now: number): string | null {
+  const saved = pendingRoleText;
   if (!saved) return null;
   if (!Number.isFinite(now) || now < saved.createdAt || now - saved.createdAt > MAX_AGE_MS) {
-    pendingWorkerText = null; return null;
+    pendingRoleText = null; return null;
   }
   if (saved.token !== input.token || saved.accountId !== input.accountId
-    || saved.accountRevision !== input.accountRevision) return null;
-  pendingWorkerText = null;
+    || saved.accountRevision !== input.accountRevision || saved.target !== input.target) return null;
+  const capacity = input.capacity ?? MAX_TEXT;
+  // An occupied composer must not consume and silently discard the transfer.
+  if (!Number.isSafeInteger(capacity) || capacity < saved.text.length || capacity > MAX_TEXT) return null;
+  pendingRoleText = null;
   return saved.text;
+}
+export function takeWorkerText(input: AiRoleOwner & { token: string; capacity?: number }, now = Date.now()): string | null {
+  return takeRoleText({ ...input, target: 'WORKER' }, now);
+}
+export function takeNeedText(input: AiRoleOwner & { token: string; capacity?: number }, now = Date.now()): string | null {
+  return takeRoleText({ ...input, target: 'NEED' }, now);
 }

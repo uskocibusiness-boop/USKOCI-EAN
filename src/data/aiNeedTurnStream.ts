@@ -2,24 +2,31 @@ import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, 
 import { uuid, record, sameId } from './serverReceipt';
 import { fetch as expoFetch } from 'expo/fetch';
 import { NEED_FACT_TURN_CAPABILITY_HEADER, NEED_FACT_TURN_CAPABILITY_VERSION } from '../contracts/needFactsV2';
+import { AI_CONVERSATION_INTENT_HEADER, AI_CONVERSATION_INTENT_CAPABILITY, decodeAiConversationIntent, type AiConversationIntent } from '../contracts/aiConversationIntent';
 
-export type AiTurnStreamOptions = { onText: (delta: string) => void; signal?: AbortSignal };
+export type AiTurnStreamOptions = { onText: (delta: string) => void; signal?: AbortSignal;
+  /** Called by the owned service only after its existing full receipt decoder succeeds. */
+  onConversationIntent?: (intent: AiConversationIntent) => void };
 
 /** Ordered, bounded stream events are ephemeral. Only the terminal DTO may be
  * decoded by the existing owned-turn receipt decoder. */
 export function createAiTurnStreamDecoder(input: {
   conversationId: string; clientRequestId: string; current: () => boolean; onText: (delta: string) => void;
+  text?: string; allowConversationIntent?: boolean;
 }) {
   let sequence = 0, attempt: string | null = null, turn: string | null = null;
   let text = '', terminal = false, safeError = false, receipt: unknown = undefined;
   let failureCode: typeof AI_CREDITS_UNAVAILABLE | null = null;
+  let intent: AiConversationIntent | null = null;
   const accept = (raw: unknown) => {
     const e = record(raw);
     if (!input.current() || terminal || !e || !sameId(e.conversationId, input.conversationId)
       || !sameId(e.clientRequestId, input.clientRequestId) || !uuid(e.turnId) || !uuid(e.attemptId)
       || e.sequence !== sequence + 1) throw new Error('AI_STREAM_INVALID');
     const fields = ['conversationId', 'clientRequestId', 'turnId', 'attemptId', 'sequence', 'kind'];
-    const extras = e.kind === 'accepted' ? [] : e.kind === 'text_delta' ? ['text'] : e.kind === 'final' ? ['turn'] : e.kind === 'safe_error' ? ['code'] : null;
+    const extras = e.kind === 'accepted' ? [] : e.kind === 'text_delta' ? ['text'] : e.kind === 'final'
+      ? input.allowConversationIntent && Object.hasOwn(e, 'conversationIntent') ? ['turn', 'conversationIntent'] : ['turn']
+      : e.kind === 'safe_error' ? ['code'] : null;
     if (!extras || Object.keys(e).length !== fields.length + extras.length
       || [...fields, ...extras].some(key => !Object.hasOwn(e, key))) throw new Error('AI_STREAM_INVALID');
     if (!sequence) {
@@ -38,6 +45,10 @@ export function createAiTurnStreamDecoder(input: {
         || !sameId(result.clientRequestId, input.clientRequestId)
         || !sameId(result.turnId, turn)
         || (Object.hasOwn(result, 'attemptId') && !sameId(result.attemptId, attempt))) throw new Error('AI_STREAM_INVALID');
+      if (Object.hasOwn(e, 'conversationIntent')) {
+        intent = decodeAiConversationIntent(e.conversationIntent, input.text ?? '');
+        if (!intent) throw new Error('AI_STREAM_INVALID');
+      }
       receipt = e.turn; terminal = true;
     } else if (e.kind === 'safe_error') {
       // Never reflect provider, SQL, Auth or arbitrary event text in the UI.
@@ -46,7 +57,8 @@ export function createAiTurnStreamDecoder(input: {
       safeError = true; failureCode = e.code === AI_CREDITS_UNAVAILABLE ? AI_CREDITS_UNAVAILABLE : null;
     }
   };
-  return { accept, result: () => terminal ? receipt : undefined, failed: () => safeError, failureCode: () => failureCode };
+  return { accept, result: () => terminal ? receipt : undefined,
+    conversationIntent: () => terminal && !safeError ? intent : null, failed: () => safeError, failureCode: () => failureCode };
 }
 
 export async function requestAiTurnStream(input: AiTurnStreamOptions & {
@@ -54,7 +66,7 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
   text: string; current: () => boolean; deadline: number;
   endpoint?: 'uskoci-ai-interview' | 'uskoci-worker-interview';
   imageBase64?: string; imageMime?: string;
-}): Promise<{ data: unknown; error: { message: string } | null }> {
+}): Promise<{ data: unknown; error: { message: string } | null; conversationIntent?: AiConversationIntent | null }> {
   const abort = new AbortController(), stop = () => abort.abort();
   const timer = setTimeout(stop, Math.max(0, input.deadline - Date.now()));
   input.signal?.addEventListener('abort', stop, { once: true });
@@ -65,6 +77,7 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     const response = await expoFetch(input.url + '/functions/v1/' + (input.endpoint ?? 'uskoci-ai-interview'), {
       method: 'POST', signal: abort.signal, redirect: 'error',
       headers: { Authorization: 'Bearer ' + input.accessToken, apikey: input.anonKey, 'Content-Type': 'application/json', Accept: 'text/event-stream', [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION,
+        ...(input.onConversationIntent ? { [AI_CONVERSATION_INTENT_HEADER]: AI_CONVERSATION_INTENT_CAPABILITY } : {}),
         ...(input.endpoint === 'uskoci-worker-interview' ? { 'x-uskoci-worker-preview-stream': 'v1' } : { [NEED_FACT_TURN_CAPABILITY_HEADER]: NEED_FACT_TURN_CAPABILITY_VERSION }) },
       body: JSON.stringify({
         conversationId: input.conversationId,
@@ -86,7 +99,7 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > maximum)) throw new Error('AI_STREAM_INVALID');
     reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8', { fatal: true });
-    const events = createAiTurnStreamDecoder({ ...input, current });
+    const events = createAiTurnStreamDecoder({ ...input, current, allowConversationIntent: !!input.onConversationIntent });
     let buffer = '', total = 0;
     const event = (body: string) => {
       const lines = body.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart());
@@ -112,7 +125,7 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     if (buffer.trim()) event(buffer);
     return events.failed()
       ? { data: undefined, error: { message: events.failureCode() ?? 'AI_SERVICE_UNAVAILABLE' } }
-      : { data: events.result(), error: null };
+      : { data: events.result(), error: null, conversationIntent: events.conversationIntent() };
   } catch {
     return { data: undefined, error: { message: 'AI_TURN_SEND_UNCONFIRMED' } };
   } finally {

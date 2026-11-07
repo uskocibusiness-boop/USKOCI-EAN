@@ -1,19 +1,29 @@
+// Istorijska DEV Need proba sa običnim QA nalogom; nije native ili dva-naloga E2E dokaz.
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://leqcwgzvjsxugfgzdmth.supabase.co';
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SERVICE_KEY) { console.error('Postavite SUPABASE_SERVICE_ROLE_KEY u okruženju pre pokretanja.'); process.exit(1); }
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlcWN3Z3p2anN4dWdmZ3pkbXRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NTQ1MzUsImV4cCI6MjEwMzIzMDUzNX0.xXDf315iaIwtNwK2u2ZB8m3Dw5amx3eFsA4_adw6hMk';
+import { readFileSync } from 'node:fs';
+
+const preview = JSON.parse(readFileSync(new URL('../eas.json', import.meta.url), 'utf8')).build.preview.env;
+const SUPABASE_URL = preview.EXPO_PUBLIC_SUPABASE_URL;
+const ANON_KEY = preview.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+if (SUPABASE_URL !== 'https://leqcwgzvjsxugfgzdmth.supabase.co'
+  || !/^sb_publishable_[A-Za-z0-9_-]{16,}$/.test(ANON_KEY ?? '')) {
+  console.error('Potreban je kanonski DEV preview sa važećim javnim ključem.'); process.exit(1);
+}
+
+function requiredQaEnv(name) {
+  const value = process.env[name];
+  if (typeof value !== 'string' || value.trim().length === 0) throw new Error(`MISSING_QA_ENV:${name}`);
+  return value;
+}
 
 async function main() {
   console.log('=== POKRETANJE PRAVOG RAZGOVORA SA GEMINIJEM NA DEV SERVERU ===\n');
 
-  const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  const testEmail = 'test_ai_agent_sim_1792703736740@uskoci.rs';
-  const testPassword = 'Password123!Secure';
-  const userId = '6e4b5ef6-8039-4360-911f-467964bbf640';
-  console.log(`[1/5] Koristim odobrenog QA korisnika: ${testEmail}`);
+  const testEmail = requiredQaEnv('QA_REQUESTER_EMAIL');
+  const testPassword = requiredQaEnv('QA_REQUESTER_PASSWORD');
+  console.log('[1/5] Koristim QA nalog iz okruženja.');
 
   // 2. Sign in to get user session / JWT
   console.log('[2/5] Prijavljujem korisnika...');
@@ -112,4 +122,4 @@ async function main() {
   console.log('[5/5] Završen razgovor.');
 }
 
-main().catch(console.error);
+main().catch(error => { console.error(error instanceof Error ? error.message : 'QA_SCRIPT_FAILED'); process.exitCode = 1; });

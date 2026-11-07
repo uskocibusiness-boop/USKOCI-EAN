@@ -166,7 +166,10 @@ test('Worker Gemini text streaming is opt-in and never bypasses signed persisten
   assert.ok(provider>=0 && preview>provider && signed>preview,'preview precedes authoritative SQL completion');
   assert.ok(edge.includes("if(previewStream&&!abort.signal.aborted)"));
   assert.ok(edge.includes("if(!previewStream)send('text_delta',{text:output.assistantMessage});"));
-  assert.ok(edge.includes("send('final',{turn});"));
+  const final=edge.indexOf("send('final',{turn,",signed);
+  assert.ok(final>signed,'the final still follows authoritative completion');
+  assert.ok(edge.includes("...(wantsIntent && intentHint ? {conversationIntent:intentHint} : {})"),
+    'only opted-in clients receive advisory metadata beside the unchanged turn');
   assert.ok(workerRoute.includes('setStream(value=>value+delta)'));
   assert.ok(needRoute.includes('setStreamingText((prev) => prev + delta)'));
   assert.ok(shell.includes('Odgovor u pripremi · podaci još nisu potvrđeni'));

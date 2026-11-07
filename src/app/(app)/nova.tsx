@@ -6,7 +6,8 @@ import type { AiNeedTurnRecovery, AiNeedTurnStatus, AiNeedV2Conversation } from 
 import { aiNeedV2Izvor } from '../../data';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope } from '../../data/aiTaskReviewClientService';
 import { aiTurnIntentJournal } from '../../data/aiTurnIntentJournal';
-import { isExplicitWorkerOffer, stageWorkerText } from '../../data/aiRoleHandoff';
+import { isExplicitWorkerOffer, stageWorkerText, stageAiRoleText, takeNeedText } from '../../data/aiRoleHandoff';
+import { oppositeInterviewDomain, type AiConversationIntent, type AiRoleSuggestion } from '../../contracts/aiConversationIntent';
 import { locationDialogueEnabled, resolveLocationDialogue } from '../../data/locationDialogueClientService';
 import type { LocationDialogueRequest } from '../../contracts/locationDialogue';
 import type { LocationReplyLease, LocationReplyPrompt } from '../../ui/location/ConversationPointAsk';
@@ -36,14 +37,16 @@ type SubmittedDraft = { value: string; revision: number };
 type PendingTurn = { id: string; body: string | null; submittedDraft: SubmittedDraft | null; locationContext?: LocationDialogueRequest['locationContext']; image?: { base64: string; mimeType: string } };
 
 export default function NovaPotrebaV2() {
-  const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[]; aiCorrection?: string | string[] }>();
+  const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[]; aiCorrection?: string | string[]; roleHandoff?: string | string[] }>();
   const { user, accountRevision } = useSesija();
   const resumeId = typeof params.conversationId === 'string' ? params.conversationId : undefined;
   const entryKey = typeof params.entryKey === 'string' ? params.entryKey : undefined;
+  const roleHandoff = typeof params.roleHandoff === 'string' && uuid(params.roleHandoff) ? params.roleHandoff : undefined;
   const invalidRoute = (params.conversationId !== undefined && (!resumeId || !uuid(resumeId)))
-    || (params.entryKey !== undefined && (!entryKey || !uuid(entryKey)));
+    || (params.entryKey !== undefined && (!entryKey || !uuid(entryKey)))
+    || (params.roleHandoff !== undefined && !roleHandoff);
   return <OwnedIntake key={`${user?.id ?? ''}:${accountRevision}:${resumeId ?? ''}:${entryKey ?? ''}:${invalidRoute}`}
-    resumeId={resumeId} entryKey={entryKey} invalidRoute={invalidRoute} correctionToken={params.aiCorrection} />;
+    resumeId={resumeId} entryKey={entryKey} invalidRoute={invalidRoute} correctionToken={params.aiCorrection} roleHandoff={roleHandoff} />;
 }
 
 /** A conversation that has not been started. It is never sent anywhere and never read back. */
@@ -51,7 +54,7 @@ const BLANK: AiNeedV2Conversation = { conversationId: '', schemaVersion: 'NEED_F
   messages: [], facts: [], safety: 'ALLOW',
   review: { conversationId: '', schemaVersion: 'NEED_FACT_V2', boundNeedId: null, canSaveDraft: false, missingRequired: [], facts: [] } };
 
-function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { resumeId?: string; entryKey?: string; invalidRoute: boolean; correctionToken?: unknown }) {
+function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHandoff }: { resumeId?: string; entryKey?: string; invalidRoute: boolean; correctionToken?: unknown; roleHandoff?: string }) {
   const { user, accountRevision } = useSesija(), accountId = user?.id;
   const [openRequestId] = useState(noviUuidZahtevId);
   const conversation = useRef<string | null>(resumeId ?? null);
@@ -72,6 +75,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
   }, []);
 
   const [unos, setUnos] = useState('');
+  const [roleSuggestion, setRoleSuggestion] = useState<AiRoleSuggestion | null>(null);
   const [correction, setCorrection] = useState<AiCorrectionIntent | null>(null);
   const [retainedLocationSpeech, setRetainedLocationSpeech] = useState<string | null>(null);
   const draftText = useRef(unos); draftText.current = unos;
@@ -103,6 +107,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
     const subscription = AppState.addEventListener('change', state => {
       if (state !== 'active') {
         if (restartOwner.current) { restartOwner.current = null; renderRestartAvailability(value => value + 1); }
+        setRoleSuggestion(null);
         retireConfirmation();
       } else if (!restartOwner.current) { restartOwner.current = {}; renderRestartAvailability(value => value + 1); }
     });
@@ -114,7 +119,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
     // A completed return (including Android Back) cannot be reused by an older review route.
     retireIntakeReviewReturn(reviewReturn.current); reviewReturn.current = null;
     // Leaving retires an open question: its answer checks this focus and would do nothing any more.
-    return () => { if (focus.current === scope) focus.current = null; retireLocation(); retireConfirmation();
+    return () => { if (focus.current === scope) focus.current = null; retireLocation(); retireConfirmation(); setRoleSuggestion(null);
       streamAbort.current?.abort(); streamAbort.current = null; setStreamingText(''); setPhotoSourceAfterOpen(null); };
   }, [accountId, accountRevision, retireConfirmation]));
   const read = useCallback(async (confirmedTurn?: AiNeedTurnStatus): Promise<Ishod<IntakeSnapshot>> => {
@@ -283,6 +288,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
   const view = useMemo(() => ({}), [editor.data]), currentView = useRef(view);
   currentView.current = view;
   const renderedFocus = focus.current;
+  const renderedForeground = restartOwner.current;
   const isCurrent = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const canAct = () => isCurrent() && !navigating.current && editor.loaded && !editor.loading && !editor.busy && !editor.uncertain && !!stanje;
@@ -294,8 +300,33 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
   const writable = stanje?.status === 'OPEN' && stanje.safety !== 'BLOCK' && !abandoning.current;
   const canSubmit = writable && editor.loaded && !editor.loading && !radi && !editor.uncertain && (!pending || knownRetry);
 
+  // Worker -> Need arrives only after a human choice, as an editable unsent draft.
+  useEffect(() => {
+    if (!roleHandoff || !accountId || !canSubmit || !focus.current || !restartOwner.current || request.current
+      || sesijaSada().user?.id !== accountId || sesijaSada().accountRevision !== accountRevision) return;
+    const prefix = draftText.current.trimEnd();
+    const transferred = takeNeedText({ token: roleHandoff, accountId, accountRevision,
+      capacity: 4000 - prefix.length - (prefix ? 1 : 0) });
+    if (!transferred) return;
+    const next = [prefix, transferred].filter(Boolean).join('\n');
+    draftRevision.current += 1; draftText.current = next; setUnos(next);
+  }, [roleHandoff, accountId, accountRevision, canSubmit, razgovorId, unos]);
+
+  const currentRoleSuggestion = roleSuggestion && stanje?.status === 'OPEN' && stanje.safety !== 'BLOCK' && stanje.safety !== 'REVIEW'
+    && roleSuggestion.conversationId === razgovorId && stanje.messages.at(-1)?.id === roleSuggestion.assistantMessageId
+    ? roleSuggestion : null;
+  const openSuggestedWorker = () => {
+    if (!canAct() || !writable || !currentRoleSuggestion || !accountId || request.current || draftText.current.trim()
+      || !renderedForeground || restartOwner.current !== renderedForeground
+      || voice.controller.getSnapshot().phase !== 'IDLE') return;
+    const token = noviUuidZahtevId();
+    if (!stageAiRoleText({ token, text: currentRoleSuggestion.text, target: 'WORKER', accountId, accountRevision })) return;
+    navigate(() => router.push({ pathname: '/profil/razgovor', params: { entryKey: noviUuidZahtevId(), roleHandoff: token } }));
+  };
+
   const submitTurn = async (body: string, submittedDraft: SubmittedDraft | null = null, pointLease: LocationReplyLease | null = null, image?: { base64: string; mimeType: string }) => {
     if (!canAct() || !canSubmit || (!body && !image) || (pointLease && !pointLease.isCurrent())) { pointLease?.cancel(); return; }
+    setRoleSuggestion(null);
     // A worker OFFER is not a Need. Do not create a task AI turn for an explicit offer:
     // ask the user first, preserve the unsent text by account/token, and never auto-Save.
     // An ambiguous mixed need/offer is left to the AI; the user can cancel and send as a task.
@@ -307,7 +338,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
         cancelLabel: 'Ipak napravite zadatak',
         confirmLabel: 'Otvorite radni profil',
         onConfirm: () => {
-          if (!canAct() || request.current || !accountId || voice.controller.getSnapshot().phase !== 'IDLE') return;
+          if (!canAct() || request.current || !accountId || !renderedForeground || restartOwner.current !== renderedForeground
+            || voice.controller.getSnapshot().phase !== 'IDLE') return;
           const token = noviUuidZahtevId();
           if (!stageWorkerText({ token, text: body, accountId, accountRevision })) return;
           navigate(() => router.push({ pathname: '/profil/razgovor',
@@ -345,6 +377,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
       if (!isCurrent() || (!command.body && !command.image) || (pointLease && !pointLease.isCurrent()))
         return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
       const abort = new AbortController(); streamAbort.current?.abort(); streamAbort.current = abort;
+      const presence = restartOwner.current;
+      const semanticHint: { value: AiConversationIntent | null } = { value: null };
       setStreamingText('');
       let result: Ishod<AiNeedTurnStatus>;
       try {
@@ -374,6 +408,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
             command.id,
             {
               signal: abort.signal,
+              onConversationIntent: intent => { semanticHint.value = intent; },
               onText: (delta) => {
                 if (isCurrent() && !abort.signal.aborted) {
                   setStreamingText((prev) => prev + delta);
@@ -408,6 +443,18 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
         return result;
       }
       const nextRead = await read(result.podatak);
+      if (isCurrent() && presence && presence === restartOwner.current && !abort.signal.aborted && nextRead.ok
+        && result.podatak.state === 'SUCCEEDED' && semanticHint.value
+        && oppositeInterviewDomain(semanticHint.value, 'NEED') === 'WORKER' && command.body && !command.image) {
+        const canonical = nextRead.podatak.conversation, receipt = result.podatak.receipt;
+        const userMessage = canonical.messages.find(message => message.id === receipt.userMessageId);
+        if (canonical.conversationId === id && canonical.safety !== 'BLOCK' && canonical.safety !== 'REVIEW'
+          && userMessage && !userMessage.fromAi && userMessage.body.trim() === command.body.trim()
+          && canonical.messages.at(-1)?.id === receipt.assistantMessageId && canonical.messages.at(-1)?.fromAi) {
+          setRoleSuggestion({ text: command.body, conversationId: id, clientRequestId: command.id,
+            turnId: result.podatak.turnId, assistantMessageId: receipt.assistantMessageId });
+        }
+      }
       if (isCurrent()) setStreamingText('');
       return nextRead;
     }); } finally {
@@ -666,8 +713,10 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
     // back through `onTranscript` above, so each guard on sending stays here.
     voice={stanje.status === 'OPEN' ? { controller: voice.controller, state: voice.state, disabled: !canSubmit || !!request.current,
       onKeepText: keepTranscript } : undefined}
-    canReview={!!razgovorId && (readyToReview || canOpenOutcome) && editor.loaded && !radi && !editor.loading && !editor.uncertain && !request.current}
-    reviewReady={readyToReview}
+    roleHandoff={currentRoleSuggestion ? { onPress: openSuggestedWorker,
+      disabled: !canAct() || !!request.current || voiceBusy || !!unos.trim() } : undefined}
+    canReview={!currentRoleSuggestion && !!razgovorId && (readyToReview || canOpenOutcome) && editor.loaded && !radi && !editor.loading && !editor.uncertain && !request.current}
+    reviewReady={!currentRoleSuggestion && readyToReview}
     reviewDisabledReason={voiceBusy ? 'Završite govor pre otvaranja pregleda.' : writable ? photos.continueReason : null}
     reviewLabel={canOpenOutcome ? 'Proverite sačuvani zadatak' : stanje.review.boundNeedId ? 'Pregledajte izmene' : 'Pregledajte zadatak'}
     showReadback={!sending && !!(editor.uncertain || ((request.current || abandoning.current) && stanje.status === 'OPEN') || greska || preparationProblem)}

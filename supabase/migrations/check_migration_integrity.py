@@ -17,6 +17,10 @@ LINE_RE = re.compile(r"^([0-9a-f]{32})  (\d{14}_[a-z0-9_]+\.sql)$")
 PARTICIPANT_CONTRACT_FILE = (
     "20260831114338_clean_pre_p4_participant_rls_authenticated_proof.sql"
 )
+R01_PROJECTION_FILE = "20261107114458_r01_needs_projection_20261107.sql"
+R01_PROJECTION_SHA256 = "f79cebd5df556a4f8c107c5696702cd42bbd3d9d38b003cd6c3487d561cc5fa3"
+R05_DISCOVERY_FILE = "20261107121943_r05_discovery_contract_20261107.sql"
+R05_DISCOVERY_SHA256 = "086f8f269d2c2bd67ff3037dcc41b7f38e0e1eaf34648639f82b4aec1bf9cc5d"
 
 
 # Frozen catalog facts extracted from archived receipts and dated read-only captures.
@@ -30,6 +34,14 @@ CATALOG_EVIDENCE_SHA256 = {
         'a2517c93add2a51c60cbabaff4b5d1e1f6b06761fa5c16a15da7933a814a15d9',
     'inline:dev_forward_catalog_20261107_r06_r07b':
         '103649b3ed1ab2dff35af33aa149627584dfe9364d757d19c8e5b247835b41bb',
+    'inline:dev_forward_catalog_20261107_r08':
+        'c40d2a8e12bdf57d3b9f96c8bbd7fb07619f364c49d987b67846ff740964612b',
+    'inline:dev_forward_catalog_20261107_r01':
+        '91c94209bc3e79c7b6a5e670de3aae3270d9aec753e926268d0c1f8604d161fe',
+    'inline:dev_forward_catalog_20261107_r08_reviews':
+        '742adf3ee6c68c7358c5070e3d78e6a9a225a38f8274e506d69ef1dc82a8548f',
+    'inline:dev_forward_catalog_20261107_r05':
+        '7aaaf62031b73f0eaa1ce85758503164989aedc4ca67c9f7dda0317cbdbd6e80',
 }
 
 
@@ -52,6 +64,21 @@ def load_catalog_evidence(section: dict) -> dict:
 
 def check_later_participant_contract(filename: str, sql: str) -> None:
     remaining = sql.lower()
+    if filename == R01_PROJECTION_FILE:
+        # This exact applied grant-only body names the existing participant
+        # policy/helper solely in immutable pre/postimage guards. It does not
+        # replace either. A changed byte, appended mutation or different file
+        # must receive a new explicit contract review, never this exception.
+        if hashlib.sha256(sql.encode("utf-8")).hexdigest() != R01_PROJECTION_SHA256:
+            fail("R01 participant read-only fence differs from reviewed ledger bytes")
+        return
+    if filename == R05_DISCOVERY_FILE:
+        # This exact discovery body only names the existing participant policy
+        # in immutable needs pre/postimage guards. No RLS/helper replacement is
+        # permitted by this byte-specific exception or by a relabelled file.
+        if hashlib.sha256(sql.encode("utf-8")).hexdigest() != R05_DISCOVERY_SHA256:
+            fail("R05 participant read-only fence differs from reviewed ledger bytes")
+        return
     if filename in (
         "20260913045824_clean_v5_support_case_authority.sql",
         "20260913081147_clean_v5_event_bound_account_erasure.sql",
@@ -228,7 +255,67 @@ def main() -> None:
         earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names
         if earlier_names and forward7_names[0] <= earlier_names[-1]:
             fail("Nov-7 forward readmission is not strictly after reconciled suffix")
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names != disk_names:
+    r08_section = metadata.get("forward_readmission_20261107_r08")
+    r08_names = []
+    if r08_section:
+        r08_names = check_physical_suffix(
+            r08_section, manifest_map, load_catalog_evidence(r08_section),
+        )
+        if len(r08_names) != 1 or any(
+            item.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+            or item.get("version") != item.get("live_version")
+            for item in r08_section.get("entries", [])
+        ):
+            fail("R08 forward readmission requires one exact ledger-version record")
+        earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names
+        if earlier_names and r08_names[0] <= earlier_names[-1]:
+            fail("R08 readmission is not strictly after the previous forward records")
+    r01_section = metadata.get("forward_readmission_20261107_r01")
+    r01_names = []
+    if r01_section:
+        r01_names = check_physical_suffix(
+            r01_section, manifest_map, load_catalog_evidence(r01_section),
+        )
+        if len(r01_names) != 1 or r01_names[0] != R01_PROJECTION_FILE or any(
+            item.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+            or item.get("version") != item.get("live_version")
+            for item in r01_section.get("entries", [])
+        ):
+            fail("R01 forward readmission requires the exact reviewed ledger-version record")
+        earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names
+        if earlier_names and r01_names[0] <= earlier_names[-1]:
+            fail("R01 readmission is not strictly after the previous forward records")
+    r08_reviews_section = metadata.get("forward_readmission_20261107_r08_reviews")
+    r08_reviews_names = []
+    if r08_reviews_section:
+        r08_reviews_names = check_physical_suffix(
+            r08_reviews_section, manifest_map, load_catalog_evidence(r08_reviews_section),
+        )
+        if len(r08_reviews_names) != 1 or any(
+            item.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+            or item.get("version") != item.get("live_version")
+            for item in r08_reviews_section.get("entries", [])
+        ):
+            fail("R08 review readmission requires one exact ledger-version record")
+        earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names
+        if earlier_names and r08_reviews_names[0] <= earlier_names[-1]:
+            fail("R08 review readmission is not strictly after the previous forward records")
+    r05_section = metadata.get("forward_readmission_20261107_r05")
+    r05_names = []
+    if r05_section:
+        r05_names = check_physical_suffix(
+            r05_section, manifest_map, load_catalog_evidence(r05_section),
+        )
+        if len(r05_names) != 1 or r05_names[0] != R05_DISCOVERY_FILE or any(
+            item.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+            or item.get("version") != item.get("live_version")
+            for item in r05_section.get("entries", [])
+        ):
+            fail("R05 readmission requires the exact reviewed ledger-version record")
+        earlier_names = history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names
+        if earlier_names and r05_names[0] <= earlier_names[-1]:
+            fail("R05 readmission is not strictly after the previous forward records")
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -326,6 +413,10 @@ def main() -> None:
         f"oct26_suffix={len(oct26_suffix_names)} "
         f"nov7_suffix={len(nov7_suffix_names)} "
         f"nov7_forward={len(forward7_names)} "
+        f"r08_forward={len(r08_names)} "
+        f"r01_forward={len(r01_names)} "
+        f"r08_reviews_forward={len(r08_reviews_names)} "
+        f"r05_forward={len(r05_names)} "
         "191500=RECORDED_STATEMENT_RECONSTRUCTION "
         "exact_byte_mirror=false "
         "participant_contract=PASS"

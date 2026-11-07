@@ -4046,5 +4046,161 @@
         }
       ]
     }
+  },
+  "forward_readmission_20261107_r08": {
+    "observed_at_utc": "2026-11-07",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "One reviewed R08 cancellation forward migration. Canonical identity and bytes are the actual DEV ledger entry; local SQL fixture and readback do not establish hosted two-account or native acceptance.",
+    "evidence": "inline:dev_forward_catalog_20261107_r08",
+    "entries": [
+      {
+        "file": "20261107113611_r08_agreement_cancellation_20261107.sql",
+        "version": "20261107113611",
+        "name": "r08_agreement_cancellation_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107113611",
+        "live_name": "r08_agreement_cancellation_20261107",
+        "live_recorded_md5": "8676d546f96e6e8266dedb07515df905",
+        "live_recorded_sha256": "fca1cf49a2ade156bd872040122547978f4aecbad4980679e57d6da4655aa733",
+        "raw_md5": "8676d546f96e6e8266dedb07515df905",
+        "raw_sha256": "fca1cf49a2ade156bd872040122547978f4aecbad4980679e57d6da4655aa733",
+        "raw_bytes": 15515,
+        "source": "scripts/sql/r08_agreement_cancellation_20261107.sql"
+      }
+    ],
+    "catalog_evidence": {
+      "source_base_commit": "20903892d7f5def28ce33a15027918e5ca19c342",
+      "observed_at_utc": "2026-11-07",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "method": "Read-only full post-apply ledger capture; the single UTF-8 statement equals the reviewed R08 source and canonical copy byte for byte. Full changed function body, 49 unchanged dependencies and all captured pg_proc attributes were compared. No normalization or historical rewrite.",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261107113611",
+          "name": "r08_agreement_cancellation_20261107",
+          "statement_count": 1,
+          "joined_md5": "8676d546f96e6e8266dedb07515df905",
+          "joined_sha256": "fca1cf49a2ade156bd872040122547978f4aecbad4980679e57d6da4655aa733",
+          "joined_bytes": 15515
+        }
+      ]
+    }
+  },
+  "forward_readmission_20261107_r01": {
+    "observed_at_utc": "2026-11-07",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "One reviewed R01 column projection forward migration. RLS, functions, data and non-SELECT privileges are unchanged. This ordinary authenticated boundary does not revoke privileged keys or establish native acceptance.",
+    "evidence": "inline:dev_forward_catalog_20261107_r01",
+    "entries": [
+      {
+        "file": "20261107114458_r01_needs_projection_20261107.sql",
+        "version": "20261107114458",
+        "name": "r01_needs_projection_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107114458",
+        "live_name": "r01_needs_projection_20261107",
+        "live_recorded_md5": "300aacd085335b4dc847646a2bc65ecc",
+        "live_recorded_sha256": "f79cebd5df556a4f8c107c5696702cd42bbd3d9d38b003cd6c3487d561cc5fa3",
+        "raw_md5": "300aacd085335b4dc847646a2bc65ecc",
+        "raw_sha256": "f79cebd5df556a4f8c107c5696702cd42bbd3d9d38b003cd6c3487d561cc5fa3",
+        "raw_bytes": 18460,
+        "source": "scripts/sql/r01_needs_projection_20261107.sql"
+      }
+    ],
+    "catalog_evidence": {
+      "source_base_commit": "20903892d7f5def28ce33a15027918e5ca19c342",
+      "observed_at_utc": "2026-11-07",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "method": "Read-only full post-apply ledger capture; the single UTF-8 statement equals the reviewed R01 grant-only source and canonical copy byte for byte. Twelve full reader/policy/composite definitions and metadata and all six needs RLS policies were compared unchanged. Forty public column SELECTs retained, two internal column SELECTs denied. No data or historical rewrite.",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261107114458",
+          "name": "r01_needs_projection_20261107",
+          "statement_count": 1,
+          "joined_md5": "300aacd085335b4dc847646a2bc65ecc",
+          "joined_sha256": "f79cebd5df556a4f8c107c5696702cd42bbd3d9d38b003cd6c3487d561cc5fa3",
+          "joined_bytes": 18460
+        }
+      ]
+    }
+  },
+  "forward_readmission_20261107_r08_reviews": {
+    "observed_at_utc": "2026-11-07",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "One reviewed R08 blind-review forward migration: bilateral or completion-bound 336-hour publication and no new review after the same deadline. Existing review rows, receipt hashes and permissions remain unchanged. Local SQL plus full DEV source/ACL readback alone do not establish ordinary-Auth or native acceptance.",
+    "evidence": "inline:dev_forward_catalog_20261107_r08_reviews",
+    "entries": [
+      {
+        "file": "20261107121408_r08_blind_reviews_20261107.sql",
+        "version": "20261107121408",
+        "name": "r08_blind_reviews_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107121408",
+        "live_name": "r08_blind_reviews_20261107",
+        "live_recorded_md5": "f6cc0966cfc421968edfaa6901c4c166",
+        "live_recorded_sha256": "fb1c59407075d6ffd08c6ec91222d6153a293681a294ee8c9624ab181068271d",
+        "raw_md5": "f6cc0966cfc421968edfaa6901c4c166",
+        "raw_sha256": "fb1c59407075d6ffd08c6ec91222d6153a293681a294ee8c9624ab181068271d",
+        "raw_bytes": 52649,
+        "source": "scripts/sql/r08_blind_reviews_20261107.sql"
+      }
+    ],
+    "catalog_evidence": {
+      "source_base_commit": "20903892d7f5def28ce33a15027918e5ca19c342",
+      "observed_at_utc": "2026-11-07",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "method": "Read-only full post-apply ledger capture; the single UTF-8 statement equals the reviewed R08 blind-review source and canonical copy byte for byte. Full bodies of nine changed functions and two new private helpers match the candidate. All thirty existing captured pg_proc attributes including OIDs/ACLs remain identical. No business-row write, normalization or historical rewrite.",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261107121408",
+          "name": "r08_blind_reviews_20261107",
+          "statement_count": 1,
+          "joined_md5": "f6cc0966cfc421968edfaa6901c4c166",
+          "joined_sha256": "fb1c59407075d6ffd08c6ec91222d6153a293681a294ee8c9624ab181068271d",
+          "joined_bytes": 52649
+        }
+      ]
+    }
+  },
+  "forward_readmission_20261107_r05": {
+    "observed_at_utc": "2026-11-07",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "One reviewed R05 discovery forward migration restoring the existing optional ForMe/minimum-budget and PAGE/MAP/PLACES/EXACT_PUBLIC contract. It reuses the current matcher and removes obsolete profile-circle prefilters. P6 activation is unchanged. Local SQL and full DEV readback alone do not establish native or complete geographic acceptance.",
+    "evidence": "inline:dev_forward_catalog_20261107_r05",
+    "entries": [
+      {
+        "file": "20261107121943_r05_discovery_contract_20261107.sql",
+        "version": "20261107121943",
+        "name": "r05_discovery_contract_20261107",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107121943",
+        "live_name": "r05_discovery_contract_20261107",
+        "live_recorded_md5": "24654d7bd668afa192180c16f6fe0bc1",
+        "live_recorded_sha256": "086f8f269d2c2bd67ff3037dcc41b7f38e0e1eaf34648639f82b4aec1bf9cc5d",
+        "raw_md5": "24654d7bd668afa192180c16f6fe0bc1",
+        "raw_sha256": "086f8f269d2c2bd67ff3037dcc41b7f38e0e1eaf34648639f82b4aec1bf9cc5d",
+        "raw_bytes": 51324,
+        "source": "scripts/sql/r05_discovery_contract_20261107.sql"
+      }
+    ],
+    "catalog_evidence": {
+      "source_base_commit": "20903892d7f5def28ce33a15027918e5ca19c342",
+      "observed_at_utc": "2026-11-07",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "method": "Read-only full post-apply ledger capture; the single UTF-8 statement equals the reviewed R05 source and canonical copy byte for byte. Full bodies and pg_proc metadata of fourteen functions were compared: only rpc_discovery_v1 body changed. The thirteen helpers, target owner/ACL/configuration, forty-column public projection and six needs RLS policies are unchanged. No data, matching rule, flag or historical rewrite.",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261107121943",
+          "name": "r05_discovery_contract_20261107",
+          "statement_count": 1,
+          "joined_md5": "24654d7bd668afa192180c16f6fe0bc1",
+          "joined_sha256": "086f8f269d2c2bd67ff3037dcc41b7f38e0e1eaf34648639f82b4aec1bf9cc5d",
+          "joined_bytes": 51324
+        }
+      ]
+    }
   }
 }

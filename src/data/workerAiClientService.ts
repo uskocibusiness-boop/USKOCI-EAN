@@ -1,6 +1,7 @@
 import { AI_CREDITS_UNAVAILABLE, AI_CREDITS_UNAVAILABLE_COPY } from '../contracts/aiAvailability';
 import { decodeWorkerAreas, type WorkerArea } from '../contracts/workerAreas';
 import { decodeServiceHandoff } from '../contracts/serviceHandoff';
+import type { AiConversationIntent } from '../contracts/aiConversationIntent';
 import { decodeTaxonomySemanticReviewCandidates, type TaxonomySemanticReviewCandidate } from '../contracts/taxonomySemanticReview';
 import type { WorkerLocation } from '../contracts/location';
 import type { WorkerAvailabilityInput, AvailabilityRule, AvailabilityWindow } from '../contracts/workerAvailability';
@@ -347,11 +348,18 @@ export const workerAiClientService={
     const account=scope(),session=sesijaSada().session,config=readPublicSupabaseConfig();
     const url=config?.url,anonKey=config?.anonKey;
     if(!account||!session?.access_token||!url||!anonKey)return failure('AUTH_REQUIRED',ERRORS.AUTH_REQUIRED);
-    if(!uuid(conversationId)||!uuid(clientRequestId)||!text(body,4000)||!body.trim())return failure('WORKER_AI_INPUT_INVALID','Unesi poruku do 4000 znakova.');
-    return readOwnedResult({account,errors:ERRORS,write:true,timeoutMs:55_000,fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
-      request:()=>requestAiTurnStream({...stream,endpoint:'uskoci-worker-interview',url,anonKey,accessToken:session.access_token,
+    if(!uuid(conversationId)||!uuid(clientRequestId)||!text(body,4000)||!body.trim())return failure('WORKER_AI_INPUT_INVALID','Unesite poruku do 4000 znakova.');
+    const hint:{value:AiConversationIntent|null}={value:null};
+    const completed=await readOwnedResult({account,errors:ERRORS,write:true,timeoutMs:55_000,fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
+      request:async()=>{const response=await requestAiTurnStream({...stream,endpoint:'uskoci-worker-interview',url,anonKey,accessToken:session.access_token,
         conversationId,clientRequestId,text:body,deadline:Date.now()+55000,
-        current:()=>sesijaSada().user?.id===account.accountId&&sesijaSada().accountRevision===account.accountRevision}),
+        current:()=>sesijaSada().user?.id===account.accountId&&sesijaSada().accountRevision===account.accountRevision});
+        hint.value=response.conversationIntent??null;return response;},
       decode:v=>decodeWorkerAiTurn(v,conversationId,clientRequestId)});
+    if(completed.ok&&completed.podatak.state==='SUCCEEDED'&&hint.value&&!stream.signal?.aborted
+      &&sesijaSada().user?.id===account.accountId&&sesijaSada().accountRevision===account.accountRevision){
+      try{stream.onConversationIntent?.(hint.value);}catch{/* A suggestion cannot invalidate the confirmed turn. */}
+    }
+    return completed;
   },
 };

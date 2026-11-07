@@ -117,6 +117,7 @@ type Props = {
   reviewReady?: boolean;
   reviewDisabledReason?: string | null;
   correction?: AiConversationShellProps['correction'];
+  roleHandoff?: { onPress: () => void; disabled: boolean };
   /** Separate route authority from the temporary speech/semantic interaction lock. */
   locationDisabled?: boolean;
   locationDialogueEnabled?: boolean;
@@ -365,7 +366,7 @@ export function IntakePresentation(props: Props) {
   // A user-spoken area/POI can seed a map search without claiming an exact address.
   // The point is still unverified until the owner confirms it manually.
   const addressReady = place?.geography?.mode !== 'STATIONARY' || (!!requestedPlace && !slotNeedsCloserPlace('start', requestedPlace));
-  const askOpen = showPlace && (placeComplete ? editingSavedPlace : addressReady && !pointAskHidden);
+  const askOpen = !props.roleHandoff && showPlace && (placeComplete ? editingSavedPlace : addressReady && !pointAskHidden);
   if (askOpen) askSeen.current = true;
   // Arrival animation keeps the route's stable key; retained history uses the durable ID after the first send.
   const orderScope = conversation.conversationId || props.conversationKey || '';
@@ -525,7 +526,12 @@ export function IntakePresentation(props: Props) {
       onReview={outsidePlace(props.onReview)} note={note} reviewDisabledReason={props.reviewDisabledReason} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
       hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} ended={ended}
       hasUnsentText={open && !!value.trim() && !busy && !pending} appear={landed} />}
-    actions={(!attach && photoAssets.length) || (safetyCopy && (!showSummary || conversation.safety === 'BLOCK')) ? <>
+    actions={props.roleHandoff || (!attach && photoAssets.length) || (safetyCopy && (!showSummary || conversation.safety === 'BLOCK')) ? <>
+      {props.roleHandoff ? <>
+        <T variant="note" tone="muted">Vaša poruka može da Vas sačeka kod asistenta za usluge kao neposlat nacrt.</T>
+        <V2Action label="Otvorite radni profil" kind="primary" style={brandAction}
+          disabled={props.roleHandoff.disabled || editingPlace} onPress={outsidePlace(props.roleHandoff.onPress)} />
+      </> : null}
       {!attach && photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledajte fotografije zadatka"
           disabled={props.photosDisabled || editingPlace} accessibilityState={{ disabled: !!props.photosDisabled || editingPlace }} onPress={outsidePlace(props.onPhotos)}

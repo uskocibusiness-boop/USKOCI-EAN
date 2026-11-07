@@ -16,11 +16,14 @@ import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
 import { loadFullCatalogTree, buildWorkerFullTreeTaxonomyProposals, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
+import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationIntentSchema, conversationIntentInstruction,
+  takeConversationIntent, intentAllowsDomain, guardInterviewIntentOutput, conversationIntentHint,
+  workerServiceChangesSchema, workerServiceChangesInstruction, applyWorkerServiceChanges } from '../_shared/conversationIntent.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>Deno.env.get(key));
 
-const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info,x-uskoci-worker-preview-stream',
+const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info,x-uskoci-worker-preview-stream,x-uskoci-interview-intent',
   'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status,
   headers: { ...cors, 'Content-Type': 'application/json' } });
@@ -71,10 +74,12 @@ export function workerProviderSchema() {
   const nullableString = { type: 'STRING', nullable: true };
   const rule = obj({ startTime: string, endTime: string, startsOn: string, endsOn: nullableString, label: string, active: boolean },
     ['startTime','endTime','startsOn','endsOn','label','active']);
-  return obj({ assistantMessage: string, safety: { type: 'STRING', enum: ['ALLOW','CLARIFY','REVIEW','BLOCK'],
+  return withConversationIntentSchema(obj({ assistantMessage: string, safety: { type: 'STRING', enum: ['ALLOW','CLARIFY','REVIEW','BLOCK'],
     description:'Use shared safety rules. REVIEW means a safety concern, never profile preview.' },
-    availabilityChange: obj({ kind: { type: 'STRING', enum: ['NONE','PATCH','CLARIFY'] }, evidence: string }, ['kind','evidence']),
-    patch: obj({ displayName: string, bio: string, skills: array(string),
+    availabilityChange: obj({ kind: { type: 'STRING', enum: ['NONE','PATCH','CLARIFY'] },
+      scope: { type: 'STRING', enum: ['NONE','WEEKLY','DATED','NOW','MIXED'] }, evidence: string }, ['kind','scope','evidence']),
+    serviceChanges: workerServiceChangesSchema,
+    patch: obj({ displayName: string, bio: string,
       location: obj({ operatingCountryCode: string, city: string, radiusKm: integer }),
       areaRequests: workerAreaRequestSchema,
       availability: {...obj({ timezone: string, availableNow: boolean,
@@ -83,33 +88,60 @@ export function workerProviderSchema() {
         windowsUpsert: array(obj({ id: nullableString, startsAt: string, endsAt: string, state: { type: 'STRING', enum: ['AVAILABLE','UNAVAILABLE'] }, label: string },
           ['id','startsAt','endsAt','state','label'])), windowIdsRemove: array(string) }), nullable:true,
         description:'PATCH requires actual operations; NONE/CLARIFY uses null. REVIEW/BLOCK cannot propose changes.'}
-      }, ['availability']) }, ['assistantMessage','safety','patch','availabilityChange']);
+      }, ['availability']) }, ['assistantMessage','safety','patch','availabilityChange','serviceChanges']));
 }
 
 // A conversational acknowledgement is not a calendar operation. This provider-only
 // intent must agree with the patch before the existing DB writer can accept the turn.
-function guardAvailabilityChange(output: Record<string,any>, intent: unknown, context: Record<string,any>) {
+function guardAvailabilityChange(output: Record<string,any>, intent: unknown, context: Record<string,any>, currentText: string) {
   const plan=object(intent);
-  if (!plan || !keys(plan,['kind','evidence']) || !['NONE','PATCH','CLARIFY'].includes(plan.kind)
+  // A stopped/non-mutating legacy NONE hint is harmless. Any attempted change
+  // must carry the new scope; a missing scope never grants calendar authority.
+  const oldNone=plan?.kind==='NONE' && keys(plan,['kind','evidence']);
+  if (!plan || !(keys(plan,['kind','scope','evidence']) || oldNone) || !['NONE','PATCH','CLARIFY'].includes(plan.kind)
+      || !['NONE','WEEKLY','DATED','NOW','MIXED'].includes(oldNone?'NONE':plan.scope)
       || typeof plan.evidence!=='string' || plan.evidence.length>1000) throw new Error('WORKER_AI_OUTPUT_INVALID');
   if (!['ALLOW','CLARIFY'].includes(output.safety)) return output;
+  const scope=oldNone?'NONE':plan.scope;
   const av=object(output.patch.availability), prior=context.candidate.availability;
-  const hasOperation=!!av && (['ruleChanges','windowsUpsert','windowIdsRemove'].some(k=>Array.isArray(av[k])&&av[k].length>0)
+  const weekly=!!av && Array.isArray(av.ruleChanges) && av.ruleChanges.length>0;
+  const dated=!!av && ['windowsUpsert','windowIdsRemove'].some(k=>Array.isArray(av[k])&&av[k].length>0);
+  const now=!!av && typeof av.availableNow==='boolean';
+  // Timezone is the existing weekly-calendar setting, not a dated window.
+  // Keep its explicit correction supported without requiring invented hours.
+  const timezone=!!av && typeof av.timezone==='string' && av.timezone!==prior?.timezone;
+  const hasOperation=!!av && (weekly || dated
     || ['timezone','availableNow'].some(k=>Object.hasOwn(av,k)&&av[k]!==prior?.[k]));
   // A quote may differ only in formatting, never in words, negation or hours.
-  const normalizeQuote=(value:string)=>value.normalize('NFKC').replace(/\s+/gu,' ').trim().toLowerCase();
+  // Bind the intent to THIS request. An old valid USER quote cannot authorize
+  // an availability edit after the person changes the subject or their mind.
+  const normalizeQuote=(value:string)=>value.normalize('NFKC').replace(/\s+/gu,' ').trim();
   const evidence=normalizeQuote(plan.evidence);
-  const supportedEvidence=evidence.length>0 && context.messages.some((m:any)=>m.role==='USER'
-    && typeof m.body==='string' && normalizeQuote(m.body).includes(evidence));
-  if (plan.kind==='NONE' && !hasOperation) return output;
-  if (plan.kind==='PATCH' && supportedEvidence && hasOperation) return output;
-  if (plan.kind==='CLARIFY' && supportedEvidence && !hasOperation) {
+  const supportedEvidence=evidence.length>0 && normalizeQuote(currentText).includes(evidence);
+  const scopeMatches=scope==='WEEKLY' ? (weekly||timezone)&&!dated&&!now
+    : scope==='DATED' ? dated&&!weekly&&!now&&!timezone
+    : scope==='NOW' ? now&&!weekly&&!dated&&!timezone
+    : scope==='MIXED' ? Number(weekly||timezone)+Number(dated)+Number(now)>=2 : false;
+  // A narrow, explicit daily declaration is also a hard no-substitution case:
+  // it cannot become just today's dated window, even if the model mislabels
+  // its scope. Other natural recurrence uses the semantic scope above. Negative
+  // or exception-bearing clauses do not authorize seven available weekdays.
+  const dailyClause=normalizeQuote(currentText).split(/[.!?;:\n]/u).some(clause=>
+    /^\s*(?:(?:dostup(?:an|na)\s+sam|mogu|radim|доступ(?:ан|на)\s+сам|могу|радим)\s+)?(?:svakog\s+dana|svaki\s+dan|svakodnevno|сваког\s+дана|сваки\s+дан|свакодневно)(?=\s|,|$)/iu.test(clause)
+    && !/(?:^|\s)(?:osim|sem|izuzev|ali|осим|сем|изузев|али)(?=\s|,|$)/iu.test(clause));
+  const days=new Set(weekly ? av!.ruleChanges.flatMap((change:any)=>
+    object(change?.value)?.active===true && Array.isArray(change.weekdays) ? change.weekdays : []) : []);
+  const recurrenceMatches=!dailyClause || weekly && [0,1,2,3,4,5,6].every(day=>days.has(day));
+  if (plan.kind==='NONE' && scope==='NONE' && plan.evidence==='' && !hasOperation) return output;
+  if (plan.kind==='PATCH' && supportedEvidence && hasOperation && scopeMatches && recurrenceMatches) return output;
+  if (plan.kind==='CLARIFY' && scope!=='NONE' && supportedEvidence && !hasOperation) {
     // Asking for a genuinely missing part is a valid outcome, not a failed
     // calendar write. Keep its targeted question and unrelated area explanation.
     const {availability: _unchanged,...independent}=output.patch;
     return {...output,safety:'CLARIFY',patch:independent};
   }
-  const reason=plan.kind!=='PATCH'?'INTENT_MISMATCH':!hasOperation?'OPERATION_MISSING':'EVIDENCE_MISMATCH';
+  const reason=plan.kind!=='PATCH'?'INTENT_MISMATCH':!hasOperation?'OPERATION_MISSING':!supportedEvidence?'EVIDENCE_MISMATCH'
+    :!recurrenceMatches?'RECURRENCE_SHAPE_MISMATCH':'SCOPE_MISMATCH';
   try {
     console.info('WORKER_AVAILABILITY_GUARD',reason);
     console.info('WORKER_AVAILABILITY_SHAPE',!!av,Array.isArray(av?.ruleChanges)?av.ruleChanges.length:-1,
@@ -117,7 +149,9 @@ function guardAvailabilityChange(output: Record<string,any>, intent: unknown, co
   } catch { /* diagnostics cannot fail the turn */ }
   const {availability: _availability,...independent}=output.patch;
   return {...output,safety:'CLARIFY',patch:independent,
-    assistantMessage:'Samo još da razjasnimo dostupnost: dopunite deo termina koji nedostaje, bez ponavljanja već navedenih dana i sati. Ostale jasne izmene ostaju u nacrtu.'};
+    assistantMessage:dailyClause && !recurrenceMatches
+      ? 'Ponovljeni raspored nije upisan kao termin samo za danas. Da li navedene sate želite svakog dana u nedelji? Ostale jasne izmene ostaju u nacrtu.'
+      : 'Dostupnost nije promenjena. Da li menjate nedeljni raspored, određeni datum ili trenutnu dostupnost? Ostale jasne izmene ostaju u nacrtu.'};
 }
 
 export function parseWorkerOutput(raw: unknown) {
@@ -188,13 +222,15 @@ function workerRuntimeContext(context: Record<string, any>, now: string) {
 
 function instruction() {
   return `${interviewVoiceInstruction()}
+${conversationIntentInstruction('WORKER')}
+${workerServiceChangesInstruction()}
 WORKER INTAKE (WORKER_PROFILE_V1): understand what ONE person actually offers, how, where and when. The phone already introduced the flow. Do not interview them about an imaginary customer task’s size/price/materials/deadline. If the person asks for help from another worker rather than describing their own work, explain politely that the separate Novi zadatak AI assistant handles that request; do not invent worker skills, availability or a profile patch. Never claim a route changed or a task was published. If mixed or unclear, ask one short intention question. Address people with Vi/Vam/Vas.
 patch contains only declared changes; omission preserves data. Required patch.availability=null when unchanged (server removes it); REVIEW/BLOCK or finish-only: patch {availability:null}.
-Priorities: offered services, genuinely unclear execution, ON_SITE territory, relevant availability. Calendar detail/bio are optional. Once specific services, their supported modes and required ON_SITE territory are clear, stop optional questions proactively, without waiting for any finish phrase. The app independently verifies signed review readiness; no automatic Save/activation. Record independent clear corrections while clarifying another. skills is the COMPLETE offered list: preserve unremoved services, omit unchanged list, keep distinct services separate. English knowledge/van ownership do not imply translation/transport. Related-service suggestions require explicit agreement; never add examples as offers or market unrelated errands to a professional.
+Priorities: offered services, genuinely unclear execution, ON_SITE territory, relevant availability. Calendar detail/bio are optional. Once specific services, their supported modes and required ON_SITE territory are clear, stop optional questions proactively, without waiting for any finish phrase. The app independently verifies signed review readiness; no automatic Save/activation. Record independent clear corrections while clarifying another. Change services only through serviceChanges, preserve unmentioned services and keep distinct services separate. English knowledge/van ownership do not imply translation/transport. Related-service suggestions require explicit agreement; never add examples as offers or market unrelated errands to a professional.
 Modes/handoff use per-service metadata, not extra patch fields/skills. No home city/address/GPS interview; REMOTE-only needs no city. Country is not inferred from language. Do not ask for equipment inventory, licenses, certificates or permanent team capacity. The legacy tools/vehicles arrays remain read-only and private: never output them or present old equipment as review/matching evidence. Only explicitly user-stated vehicle, capacity and tool facts relevant to their work belong in bio as descriptive claims; retain exact numbers and units, including stated limits or absence. Ownership never adds a service or mode and these details never delay readiness. Do not invent experience, verification, ratings, priority or legal eligibility.
 ON_SITE patch.areaRequests is a COMPLETE list (max 5), preserving untouched areas. COUNTRY/RS: query="", radiusKm=null. CITY: nominative locality, radiusKm=null. RADIUS: locality + explicit 1–200 km. Novi Sad i Beograd = two CITY areas; i okolina needs km. Server resolves places: no coordinates/sourceRef/workAreas or simultaneous legacy patch.location. Unsupported region/cross-border scope: explain and ask Serbian cities/all Serbia; never silently narrow or substitute a giant radius. Search radius changes do not remove service areas.
 bio is an optional introduction/limits, never a matching filter. If absent and the person has named real services, draft a concise 2–3 sentence bio in the SAME patch from user-provided facts, without another question or model call; the owner can edit it at signed review before Save. Do not invent experience, credentials, equipment, clients, reliability or promises. Preserve unrelated existing bio when adding explicit work details or correcting service/mode/territory/equipment facts; replace only the corrected claim, never append a duplicate or retain its stale value. Keep unchanged territory sentences verbatim and separate when adding unrelated details; a territory correction still changes those sentences. Omit unchanged bio. Acknowledge a descriptive change only when the SAME patch.bio records it or the current bio already contains that exact fact; an empty patch can ask a natural follow-up, never claim an unrecorded change. A missing bio never delays readiness.
-Required availabilityChange: NONE + empty evidence for no change; PATCH + verbatim USER quote + matching availability operation; CLARIFY + USER quote + availability=null for incomplete intent. Retain partial days/times and ask only what is missing. Weekdays 15–19/weekends off = rule [1,2,3,4,5], not another question. Never acknowledge a change without its operation.
+Required availabilityChange {kind,scope,evidence}: kind NONE + scope NONE + empty evidence for no change; PATCH + verbatim CURRENT USER quote + matching operations; CLARIFY + the relevant scope + CURRENT USER quote + availability=null for incomplete intent. scope WEEKLY=recurring ruleChanges or an explicit calendar timezone correction, DATED=windowsUpsert/windowIdsRemove for particular dates, NOW=availableNow, MIXED=two or more of those channels. Omit unchanged scalar fields; never toggle availableNow without current explicit intent. An earlier USER message cannot authorize a new calendar edit. Retain partial days/times and ask only what is missing. Weekdays 15–19/weekends off = rule [1,2,3,4,5], not another question. Every day/svakog dana/сваког дана = rule weekdays [0,1,2,3,4,5,6]; preserve the stated local hours and authoritative timezone. A weekly statement MUST NOT become one dated window today. “Dostupan sam svakog dana od 8 do 22 po vremenu Beograda. Trenutno sam dostupan.” is MIXED: ruleChanges for all seven days 08:00–22:00 Europe/Belgrade, plus availableNow=true. Never manufacture a fixed end date for an ongoing weekly rule. Existing unrelated rules/windows remain; remove a prior wrong dated window only when this CURRENT correction requests it, using its owned ID. Never acknowledge a change without its operation.
 Calendar: preserve untouched rules/days/exceptions and separate daily intervals. ruleChanges uses existing ruleId (null=new), targeted weekdays (Sunday=0), value (null=remove those days). Changing Monday in a Mon/Wed rule targets [1] with that ID; server keeps Wednesday. windowsUpsert: dated AVAILABLE/UNAVAILABLE; windowIdsRemove: explicitly removed IDs only. No invented IDs, whole-calendar overwrite or unrequested timezone change. Timestamps need offsets; clarify ambiguity. availableNow requires stated intent; server owns expiry, exceptions do not toggle it.`;
 }
 
@@ -309,10 +345,10 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   const clarificationPart = pendingWorkerClarificationHint?.ambiguityPrompt ? [{
     text: `Ranije je nedostajalo razjašnjenje: „${pendingWorkerClarificationHint.ambiguityPrompt}“. Najpre proveri da li ga je korisnik već dao u ovoj poruci. Pitaj samo ako ta poslovna činjenica još nedostaje.`
   }] : [];
-  const hasEstablishedSkills = Array.isArray(context.candidate?.skills) && context.candidate.skills.length > 0
-    && (serviceModeContext?.unresolvedServices?.length ?? 0) === 0 && !pendingWorkerClarificationHint;
-  const isWorkerExplicitSkillChange = /(?:dodaj\s+veštinu|dodaj\s+zanat|promeni\s+veštine|ne\s+radim\s+više|ne\s+radim\s+vise)/iu.test(input.text);
-  const needsWorkerTree = singlePassActive && (!hasEstablishedSkills || isWorkerExplicitSkillChange);
+  // A natural service addition/removal is decided inside this existing call,
+  // not by a pre-model phrase gate. Reuse the already loaded full catalog;
+  // the builder preserves unchanged owned service/category identities.
+  const needsWorkerTree = singlePassActive;
   const stableSystemParts=[...stableParts,
     ...(needsWorkerTree ? [{text:singlePassTaxonomyInstruction(fullCatalog,'WORKER_CAPABILITY')}] : []),
     ...modeParts];
@@ -395,6 +431,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   } catch { await fail(); return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
   // Versioned opt-in: older APKs retain completed-only text instead of an unverified preview.
   const previewStream=req.headers.get('x-uskoci-worker-preview-stream')==='v1';
+  const wantsIntent=req.headers.get(INTERVIEW_INTENT_HEADER)===INTERVIEW_INTENT_CAPABILITY;
   const abort=new AbortController(),stop=()=>{abort.abort();research?.dispose();}; req.signal.addEventListener('abort',stop,{once:true}); if(req.signal.aborted)stop();
   const encoder=new TextEncoder(); let sequence=0;
   const stream=new ReadableStream<Uint8Array>({
@@ -410,11 +447,17 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         let output:Record<string,any>;
         let serviceModeChangesJson: unknown;
         let taxonomyDecisions: any[] = [];
+        let intentDecision: ReturnType<typeof takeConversationIntent>;
+        let intentAllowsChanges=false, serviceChangesValid=false;
+        let outputStage: 'JSON'|'INTENT'|'OUTPUT'|'SERVICES'|'AVAILABILITY'|'AREA' = 'JSON';
         try {
           const providerOutput = JSON.parse(raw);
-          const extracted = (singlePassActive && needsWorkerTree) ? takeSinglePassTaxonomy(providerOutput) : {output:providerOutput,decisions:[]};
+          outputStage='INTENT';
+          intentDecision=takeConversationIntent(providerOutput,input.text);
+          const guarded=guardInterviewIntentOutput(intentDecision.output,intentDecision,'WORKER');
+          const extracted = needsWorkerTree ? takeSinglePassTaxonomy(guarded) : {output:guarded,decisions:[]};
           taxonomyDecisions = extracted.decisions;
-          const {availabilityChange,...parsed} = extracted.output;
+          const {availabilityChange,serviceChanges,...parsed} = extracted.output;
           // Provider must explicitly decide about the calendar. Null means no
           // change, not clearing it; the existing database patch stays sparse.
           if (object(parsed.patch)?.availability === null) {
@@ -426,15 +469,36 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             const {serviceModeChangesJson:changes,...remaining}=parsed;
             serviceModeChangesJson=changes; classified=remaining;
           }
-          output=guardAvailabilityChange(parseWorkerOutput(classified),availabilityChange,context);
-          if(!Object.hasOwn(output.patch,'areaRequests'))output=guardWorkerAreaOutput(output,input.text,context);
-        } catch { throw new Error('WORKER_AI_INVALID'); }
-        if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety)) {
+          outputStage='OUTPUT';
+          output=parseWorkerOutput(classified);
+          intentAllowsChanges=intentAllowsDomain(intentDecision,'WORKER') && ['ALLOW','CLARIFY'].includes(output.safety);
+          if(intentAllowsChanges) {
+            outputStage='SERVICES';
+            const services=applyWorkerServiceChanges(output,serviceChanges,context.candidate,input.text,intentDecision);
+            output=services.output; serviceChangesValid=services.valid;
+            if(!serviceChangesValid) { serviceModeChangesJson='[]'; taxonomyDecisions=[]; }
+            outputStage='AVAILABILITY';
+            output=guardAvailabilityChange(output,availabilityChange,context,input.text);
+            outputStage='AREA';
+            if(!Object.hasOwn(output.patch,'areaRequests'))output=guardWorkerAreaOutput(output,input.text,context);
+          }
+        } catch (error) {
+          // Closed diagnostics distinguish a completed paid response from a
+          // rejected local shape. Never log raw errors, keys, values or quotes;
+          // this does not normalize output, grant a retry or acknowledge a save.
+          const code=outputStage==='JSON' ? 'JSON_SYNTAX'
+            : outputStage==='OUTPUT' && error instanceof Error && error.message==='WORKER_AREA_INVALID' ? 'AREA_SHAPE'
+            : (outputStage==='OUTPUT' || outputStage==='AVAILABILITY') && error instanceof Error && error.message==='WORKER_AI_OUTPUT_INVALID'
+              ? 'OUTPUT_SHAPE' : 'GATE_FAILED';
+          try { console.warn('WORKER_OUTPUT_GATE',outputStage,code); } catch { /* Diagnostics cannot change the outcome. */ }
+          throw new Error('WORKER_AI_INVALID');
+        }
+        if (intentAllowsChanges && finishOnly(input.text)) {
           // Finish adds no profile edits or consent. The model may still ask
           // for a missing business fact; signed readiness owns the final card.
           output={...output,patch:{}};
         }
-        return {output,serviceModeChangesJson,taxonomyDecisions};
+        return {output,serviceModeChangesJson,taxonomyDecisions,intentDecision,intentAllowsChanges,serviceChangesValid};
       };
 
       try {
@@ -444,7 +508,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         const raw=await measureAiPhase('PROVIDER', () => streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
           key,body,signal:research!.signal,onText:delta=>{if(previewStream&&!abort.signal.aborted)send('text_delta',{text:delta});},
           onUsage:value=>{usage.value=value;},timeoutMs:30000}));
-        const {output: preparedOutput,serviceModeChangesJson,taxonomyDecisions} = analyzeOutput(raw);
+        const {output: preparedOutput,serviceModeChangesJson,taxonomyDecisions,intentDecision,intentAllowsChanges,serviceChangesValid} = analyzeOutput(raw);
         let output = preparedOutput;
         research!.dispose();
         // The answer is complete. A disconnected phone must not cancel its
@@ -481,7 +545,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             : 'Ovaj zahtev ne mogu da obradim. Nacrt nije promenjen.'};
         }
         let builtTaxonomy: any = null;
-        if (singlePassActive && ['ALLOW','CLARIFY'].includes(output.safety)) {
+        if (singlePassActive && intentAllowsChanges && serviceChangesValid && ['ALLOW','CLARIFY'].includes(output.safety)) {
           const effectiveSkills = output.patch.skills ?? context.candidate?.skills ?? [];
           // Classification is already in the one paid reply. Validate it against
           // guarded facts and USER quotes; never start a second model here.
@@ -505,7 +569,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           }
         }
         const taxonomyPlan = singlePassCapturePlan(builtTaxonomy, fullCatalog);
-        if (singlePassActive && (output.patch.skills ?? context.candidate?.skills ?? []).length > 0)
+        if (singlePassActive && intentAllowsChanges && serviceChangesValid && (output.patch.skills ?? context.candidate?.skills ?? []).length > 0)
           output = withUnresolvedSinglePassReply(output, builtTaxonomy, taxonomyPlan);
         if (builtTaxonomy?.proposals?.length && !taxonomyPlan) console.info('WORKER_TAXONOMY_HINT_CAPTURE', 'PAYLOAD_UNAVAILABLE');
         // Requires the paired LOCAL_ONLY SQL candidate's reviewed promotion.
@@ -524,7 +588,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         const turn=await measureAiPhase('WORKER_COMPLETE', async()=>taxonomyPlan
           ? completeFirstPlan({rpc:requestRpc,writer:completionRpc,args:completionArgs,decode:decodeCompletion})
           : decodeCompletion(await rpc(completionRpc,completionArgs,completionSignal)));
-        if (turn.state === 'SUCCEEDED' && pendingWorkerClarificationHint?.service) {
+        if (turn.state === 'SUCCEEDED' && intentAllowsChanges && serviceChangesValid && pendingWorkerClarificationHint?.service) {
           // Consumption belongs to the confirmed turn, not the classifier's budget.
           const consumeSignal = new AbortController().signal;
           void runInBackground(persistConsumeClarificationHint(
@@ -543,7 +607,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           // Legacy clients keep their completed-only text; opt-in clients already
           // received provisional deltas and replace them with the owned readback.
           if(!previewStream)send('text_delta',{text:output.assistantMessage});
-          send('final',{turn});
+          const intentHint=conversationIntentHint(intentDecision,output.safety);
+          send('final',{turn,...(wantsIntent && intentHint ? {conversationIntent:intentHint} : {})});
         }
       } catch (error) { await fail(); if(!abort.signal.aborted) { try { send('safe_error',{code:
         req.headers.get(AI_DIAGNOSTICS_HEADER)===AI_DIAGNOSTICS_VERSION && error instanceof GeminiCreditsUnavailableError

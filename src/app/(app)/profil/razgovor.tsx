@@ -3,7 +3,8 @@ import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { workerAiClientService as api, WORKER_AI_READ_TRANSPORT_UNAVAILABLE, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurn, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
-import { takeWorkerText } from '../../../data/aiRoleHandoff';
+import { takeWorkerText, stageAiRoleText } from '../../../data/aiRoleHandoff';
+import { oppositeInterviewDomain, type AiConversationIntent, type AiRoleSuggestion } from '../../../contracts/aiConversationIntent';
 import type { Ishod } from '../../../data/ports';
 import { uuid } from '../../../data/serverReceipt';
 import { rememberAiCorrection, takeAiCorrection, type AiCorrectionIntent } from '../../../data/aiCorrectionIntent';
@@ -63,9 +64,11 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const cid=useRef<string|null>(initialId??null),[openKey]=useState(noviUuidZahtevId);
   const activationEntryRead=useRef<string|null>(null),reviewedActivationRequest=useRef<string|null>(null);
   const focus=useRef<object|null>(null),active=useRef(!AppState.currentState||AppState.currentState==='active');
+  const foregroundGeneration=useRef<object|null>(active.current?{}:null);
   const [foreground,setForeground]=useState(active.current),[resuming,setResuming]=useState(false);
   const abort=useRef<AbortController|null>(null),refreshRef=useRef<()=>Promise<void>>(async()=>{});
   const [panel,setPanel]=useState<Panel>('chat'),[input,setInput]=useState(''),[stream,setStream]=useState('');
+  const [roleSuggestion,setRoleSuggestion]=useState<AiRoleSuggestion|null>(null);
   const [reviewActivity,setReviewActivity]=useState<ReviewActivity>(null);
   const [correction,setCorrection]=useState<AiCorrectionIntent|null>(null);
   const panelScope=useRef<object>({}),renderedPanel=panelScope.current,panelWrite=useRef(false);
@@ -87,14 +90,15 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   // Leaving, or the app going to the background, makes an open question stale (its answer checks canAct), so it goes too.
   const confirmSheet=useConfirmSheet(),retireConfirmation=confirmSheet.close;
   useFocusEffect(useCallback(()=>{const token={};focus.current=token;setLeaving(false);return()=>{
-    if(focus.current===token)focus.current=null;retireConfirmation();abort.current?.abort();abort.current=null;setStream('');
+    if(focus.current===token)focus.current=null;retireConfirmation();abort.current?.abort();abort.current=null;setStream('');setRoleSuggestion(null);
   };},[retireConfirmation]));
   useEffect(()=>{const subscription=AppState.addEventListener('change',state=>{
     // Duplicate native activity notifications are not a return from background.
     // Refreshing here would abort the current reply and unmount the voice composer.
     if(active.current===(state==='active'))return;
-    active.current=state==='active';setForeground(active.current);abort.current?.abort();setStream('');
-    if(!active.current)retireConfirmation();
+    active.current=state==='active';foregroundGeneration.current=active.current?{}:null;
+    setForeground(active.current);abort.current?.abort();setStream('');
+    if(!active.current){retireConfirmation();setRoleSuggestion(null);}
     if(active.current){setResuming(true);void refreshRef.current().finally(()=>{if(active.current)setResuming(false);});}
   });return()=>{subscription.remove();active.current=false;abort.current?.abort();};},[retireConfirmation]);
   const owns=useCallback(()=>!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision,
@@ -202,7 +206,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     return result;
   },[invalid,owns,openKey,accountId,activationRequest]);
   const editor=useOwnedEditor(read);refreshRef.current=editor.refresh;
-  const data=editor.data,renderedFocus=focus.current;
+  const data=editor.data,renderedFocus=focus.current,renderedForeground=foregroundGeneration.current;
   useEffect(()=>{
     if(data?.review)activationChoice.current={conversationId:data.conversationId,activate:data.review.activate};
   },[data?.conversationId,data?.review]);
@@ -224,21 +228,19 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   useEffect(() => {
     if (!roleHandoff || !data || !writable || !accountId || !owns() || !active.current
       || !focus.current || pending.current) return;
-    const transferred = takeWorkerText({ token: roleHandoff, accountId, accountRevision });
+    const prefix = draftText.current.trimEnd();
+    const transferred = takeWorkerText({ token: roleHandoff, accountId, accountRevision,
+      capacity: 4000 - prefix.length - (prefix ? 1 : 0) });
     if (!transferred) return;
-    setInput(previous => {
-      const next = [previous.trimEnd(), transferred].filter(Boolean).join('\n');
-      if (next.length > 4000) return previous;
-      draftRevision.current += 1;
-      draftText.current = next;
-      return next;
-    });
+    const next = [prefix, transferred].filter(Boolean).join('\n');
+    draftRevision.current += 1; draftText.current = next; setInput(next);
     showPanel('chat');
-  }, [roleHandoff, accountId, accountRevision, data?.conversationId, data?.revision, writable, owns]);
+  }, [roleHandoff, accountId, accountRevision, data?.conversationId, data?.revision, writable, owns, input]);
 
   const rename=(snapshot:WorkerAiSnapshot):WorkerAiPatch|null=>accountName&&snapshot.candidate.displayName.trim()!==accountName?{displayName:accountName}:null;
   const send=async(body:string,submittedDraft:SubmittedDraft|null=null)=>{
     if(!canAct()||!writable||awaiting||!data||!body.trim()||(pending.current&&!recovery?.retryAllowed))return;
+    setRoleSuggestion(null);
     await editor.save(async()=>{
       // Name alignment changes the signed candidate revision. Do it before a
       // new AI turn captures classification, never between that capture and review.
@@ -253,15 +255,28 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       const command=pending.current??{id:noviUuidZahtevId(),text:body,submittedDraft};
       if(!command.text)return unavailable();pending.current=command;intentChanged(n=>n+1);setRecovery(null);
       const controller=new AbortController();abort.current=controller;setStream('');
+      const semanticHint:{value:AiConversationIntent|null}={value:null};
       try{
         await journal.save({accountId:accountId!,conversationId:data.conversationId,clientRequestId:command.id});
         if(!current()||controller.signal.aborted)return unavailable();
         const sent=await api.send(data.conversationId,command.text,command.id,{signal:controller.signal,
+          onConversationIntent:intent=>{semanticHint.value=intent;},
           onText:delta=>{if(current()&&!controller.signal.aborted&&pending.current===command)setStream(value=>value+delta);}});
         if(!current())return unavailable();
         // Always read the canonical candidate. An exact success skips only
         // duplicate status recovery; lost responses never resend the model call.
         const result=await read(sent.ok?sent.podatak:undefined);
+        if(current()&&!controller.signal.aborted&&result.ok&&sent.ok&&sent.podatak.state==='SUCCEEDED'
+          &&semanticHint.value&&oppositeInterviewDomain(semanticHint.value,'WORKER')==='NEED'){
+          const canonical=result.podatak,last=canonical.messages.at(-1),userMessage=canonical.messages.at(-2);
+          if(canonical.conversationId===data.conversationId&&canonical.turn?.state==='SUCCEEDED'
+            &&canonical.turn.turnId===sent.podatak.turnId&&canonical.turn.clientRequestId===command.id
+            &&canonical.safety!=='BLOCK'&&canonical.safety!=='REVIEW'&&last?.role==='ASSISTANT'
+            &&userMessage?.role==='USER'&&userMessage.body.trim()===command.text.trim()){
+            setRoleSuggestion({text:command.text,conversationId:data.conversationId,clientRequestId:command.id,
+              turnId:sent.podatak.turnId,assistantMessageId:last.id});
+          }
+        }
         if(current())setStream('');
         if(!current())return unavailable();
         return result.ok?result:sent.ok?result:sent;
@@ -316,6 +331,17 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     if(!current()||panelScope.current!==renderedPanel)return;
     if(panel==='review'){if(!editor.busy&&!panelWrite.current)showPanel('chat');return;}
     leave(()=>router.canGoBack()?router.back():router.replace('/profil/radnik'));
+  };
+  const currentRoleSuggestion=roleSuggestion&&data?.status==='OPEN'&&!data.saved&&data.safety!=='BLOCK'&&data.safety!=='REVIEW'
+    &&roleSuggestion.conversationId===data.conversationId&&data.messages.at(-1)?.id===roleSuggestion.assistantMessageId
+    ?roleSuggestion:null;
+  const openSuggestedNeed=()=>{
+    if(!canAct()||!enabled||!writable||!currentRoleSuggestion||!accountId||pending.current||draftText.current.trim()
+      ||!renderedForeground||foregroundGeneration.current!==renderedForeground
+      ||voice.controller.getSnapshot().phase!=='IDLE')return;
+    const token=noviUuidZahtevId();
+    if(!stageAiRoleText({token,text:currentRoleSuggestion.text,target:'NEED',accountId,accountRevision}))return;
+    leave(()=>router.push({pathname:'/nova',params:{entryKey:noviUuidZahtevId(),roleHandoff:token}}));
   };
   const refresh=()=>{if(current()&&!editor.busy&&!editor.loading&&!voiceBusy)void editor.refresh();};
   const recoverCorruptLocal=()=>{
@@ -531,7 +557,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     // The final affordance appears only after current signed readiness, not merely
     // because some profile content exists. Preparation already ran after readback.
     card={()=>null}
-    footerAction={readyToReview&&writable&&!data.saved?<V2Action label="Pregledajte radni profil"
+    footerAction={!currentRoleSuggestion&&readyToReview&&writable&&!data.saved?<V2Action label="Pregledajte radni profil"
       kind="primary" style={brandAction} disabled={!enabled}
       reason={!enabled?unavailableNow:undefined}
       onPress={()=>{if(workerReviewReady(data))void review();}}/>:undefined}
@@ -565,6 +591,11 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     // through `onTranscript` above.
     voice={writable?{controller:voice.controller,state:voice.state,disabled:!enabled||!!pending.current,onKeepText:keepTranscript}:undefined}
     actions={<>
+      {currentRoleSuggestion?<>
+        <T variant="note" tone="muted">Vaša poruka može da Vas sačeka kod asistenta za zadatke kao neposlat nacrt.</T>
+        <V2Action label="Otvorite razgovor o zadatku" kind="primary" style={brandAction}
+          disabled={!enabled||!!input.trim()} onPress={openSuggestedNeed}/>
+      </>:null}
       {/* After a save the only next step is the saved profile; a second "check" button beside it read as unfinished. */}
       {(pending.current||awaiting||editor.uncertain||editor.error||preparationProblem)&&!data.saved?<V2Action tone="neutral" label="Proverite razgovor" disabled={editor.busy||editor.loading||voiceBusy}
         onPress={()=>{

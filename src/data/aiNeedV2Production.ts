@@ -7,6 +7,7 @@ import type {
 import { MAX_AI_NEED_FACT_V2_PROPOSALS, MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_SCHEMA_V2, NEED_FACT_TURN_CAPABILITY_HEADER, NEED_FACT_TURN_CAPABILITY_VERSION, NEED_FACT_V2_DEFINITIONS, isNeedFactV2Key } from '../contracts/needFactsV2';
 import { decodeTaskApplicationDeadlineFact } from '../contracts/taskApplicationDeadline';
 import { decodeServiceHandoff } from '../contracts/serviceHandoff';
+import type { AiConversationIntent } from '../contracts/aiConversationIntent';
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import { readPublicSupabaseConfig } from './publicSupabaseConfig';
@@ -384,10 +385,11 @@ export const aiNeedV2Production = {
   async sendMessage(conversationId: string, body: string, clientRequestId: string, stream?: AiTurnStreamOptions, image?: { base64: string; mimeType: string }): Promise<Ishod<AiNeedTurnStatus>> {
     if (!uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvorite razgovor.');
     const text = typeof body === 'string' ? body.trim() : '';
-    if (!text && !image) return fail('MESSAGE_REQUIRED', 'Unesi poruku ili priloži fotografiju.');
+    if (!text && !image) return fail('MESSAGE_REQUIRED', 'Unesite poruku ili priložite fotografiju.');
     if (text && !boundedText(text, 4000)) return fail('MESSAGE_TOO_LONG', 'Poruka može imati najviše 4000 znakova i ispravan tekst.');
     const account = scope(), deadline = Date.now() + 55_000;
-    return readOwnedResult({ account, write: true, timeoutMs: 55_000, errors: ERRORS, fallback: 'AI_TURN_SEND_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
+    const hint: { value: AiConversationIntent | null } = { value: null };
+    const completed = await readOwnedResult({ account, write: true, timeoutMs: 55_000, errors: ERRORS, fallback: 'AI_TURN_SEND_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
       request: async () => {
         if (!account) return scopeChanged();
         if (stream) {
@@ -395,9 +397,11 @@ export const aiNeedV2Production = {
           const config = readPublicSupabaseConfig();
           const url = config?.url, anonKey = config?.anonKey;
           if (!session?.access_token || !url || !anonKey) return scopeChanged();
-          return requestAiTurnStream({ ...stream, url, anonKey, accessToken: session.access_token,
+          const response = await requestAiTurnStream({ ...stream, url, anonKey, accessToken: session.access_token,
             conversationId, clientRequestId, text, deadline, current: () => scopeCurrent(account),
             imageBase64: image?.base64, imageMime: image?.mimeType });
+          hint.value = response.conversationIntent ?? null;
+          return response;
         }
         const response = await supabaseKlijent().functions.invoke('uskoci-ai-interview', {
           body: {
@@ -419,6 +423,11 @@ export const aiNeedV2Production = {
         const envelope = turnStatus(response.data, conversationId, clientRequestId);
         return envelope && (envelope.state === 'SUCCEEDED' || envelope.state === 'PROCESSING') ? { data: envelope, error: null } : invalidResponse();
       }, decode: raw => turnStatus(raw, conversationId, clientRequestId) });
+    if (completed.ok && completed.podatak.state === 'SUCCEEDED' && account && scopeCurrent(account)
+      && !stream?.signal?.aborted && hint.value) {
+      try { stream?.onConversationIntent?.(hint.value); } catch { /* A UI suggestion cannot invalidate a confirmed turn. */ }
+    }
+    return completed;
   },
 
   async abandonConversation(conversationId: string): Promise<Ishod<AiNeedConversationAbandoned>> {

@@ -40,7 +40,7 @@ const STARS = [1, 2, 3, 4, 5] as const;
 const FACE = 72;
 const reviewedTags = (tags: readonly ReviewTag[]) => tags.map(tag => tagLabels[tag]).join(' · ');
 /** What the saved screen says once, under the rating: why it matters to others and that it cannot be changed. */
-export const SACUVANO_NOTE = 'Ocena pomaže drugima da biraju i ne može da se menja.';
+export const SACUVANO_NOTE = 'Ocena se ne može menjati. Objavljuje se kada obe strane ocene saradnju ili kada isteknu 14 dana od njenog završetka.';
 /** Whom the rating is about, as the screen draws them: never invented, absent when the Dogovor did not say. */
 export type ReviewPerson = { name: string; initials: string; profileId: string | null; role: string; task: string };
 /** What the rating screen shows; each state carries only what it draws. */
@@ -141,7 +141,7 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
           </Section>
           {view.comment ? <ReviewCommentField field={view.comment} /> : null}
           {view.attempt ? <T variant="meta" tone="muted">Čuvamo Vašu ocenu dok proveravate da li je poslata.</T> : null}
-        </> : view.kind === 'unavailable' ? <StateView kind="empty" art="star" title="Ocena još nije dostupna" body="Ocenite saradnju kad Dogovor bude završen."
+        </> : view.kind === 'unavailable' ? <StateView kind="empty" art="star" title="Ocena nije dostupna" body="Ocenu možete poslati nakon završetka Dogovora, u roku od 14 dana."
           primary={{ label: backLabel, onPress: onBack }} /> : null}
   </Screen>;
 }
@@ -181,11 +181,11 @@ function SavedRating({ view, person, face }: { view: Extract<ReviewView, { kind:
 }
 
 /** Said once, above "Sačuvaj": a saved rating cannot be changed (idea R29). */
-export const SAVE_WARNING = 'Ocenu posle čuvanja ne možeš da menjaš.';
+export const SAVE_WARNING = 'Ocenu posle čuvanja ne možete menjati. Objavljuje se kada obe strane ocene ili isteknu 14 dana od završetka.';
 
 /** Why the other tags stopped taking a press once the most are chosen. */
 function fullHint(max: number): string {
-  return `Najviše ${plural(max, 'oznaka', 'oznake', 'oznaka')}. Skini jednu da izabereš drugu.`;
+  return `Najviše ${plural(max, 'oznaka', 'oznake', 'oznaka')}. Uklonite jednu da izaberete drugu.`;
 }
 /** "Ocenu trenutno nije moguće učitati. Proveri vezu." → the first sentence and the rest. */
 function firstSentence(message: string): [string, string | null] {

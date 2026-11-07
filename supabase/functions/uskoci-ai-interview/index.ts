@@ -31,6 +31,8 @@ import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruct
 import { decodeServiceHandoff } from '../_shared/serviceHandoff.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
+import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationIntentSchema, conversationIntentInstruction,
+  takeConversationIntent, intentAllowsDomain, guardInterviewIntentOutput, conversationIntentHint } from '../_shared/conversationIntent.mjs';
 
 import {
   buildFullTreeTaxonomyProposals,
@@ -49,7 +51,7 @@ const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': `authorization, apikey, content-type, x-client-info, ${NEED_FACT_TURN_CAPABILITY_HEADER}`,
+  'Access-Control-Allow-Headers': `authorization, apikey, content-type, x-client-info, ${NEED_FACT_TURN_CAPABILITY_HEADER}, ${INTERVIEW_INTENT_HEADER}`,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -92,6 +94,9 @@ type ParsedTurn = {
   priceRetraction?: 'UNSUPPORTED_CURRENCY' | 'AMBIGUOUS_CURRENCY' | 'UNSUPPORTED_PRICE_BASIS';
   locationAction?: LocationAction;
   dialogue?: { next: string; questionKey: string; taskRelation: string; priceUnit: string; schedulePattern: string };
+  // Validated current-turn provider proposal. Never part of a fact/SQL receipt.
+  intentDecision?: ReturnType<typeof takeConversationIntent>;
+  intentAllowsChanges?: boolean;
 };
 
 const DIALOGUE_VALUES = {
@@ -396,7 +401,7 @@ function legacyProviderSchema() {
 }
 
 function v2ProviderSchema(maxProposals = 12) {
-  return {
+  return withConversationIntentSchema({
     type: 'OBJECT',
     additionalProperties: false,
     properties: {
@@ -429,7 +434,7 @@ function v2ProviderSchema(maxProposals = 12) {
       },
     },
     required: ['safety', 'assistantMessage', 'facts', 'dialogue'],
-  };
+  });
 }
 
 function needRuntimeContext(activeFacts: any[], timeContext: ServerTimeContext) {
@@ -478,6 +483,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
   return [
     'TASK INTAKE: ONE concrete job. Prioritize missing scope, execution/place, time, price/offers. As soon as required facts are known, set dialogue.next=REVIEW and stop optional questions without waiting for a finish phrase; this is only an intent, server review and Publish remain separate. Use the declared schema.',
     ...commonInstruction(),
+    conversationIntentInstruction('NEED'),
     'ROLE BOUNDARY: You create a task that someone ELSE needs done, not a list of services this person offers. If their message clearly says they offer their own work, do not ask for a customer task deadline, tools or price: return an ANSWER, no fact proposals, and politely explain that the separate AI assistant for the radni profil can help. The app offers the actual switch; never claim navigation or Save happened. If they both offer and request work, ask just one question to clarify the intent. Address users formally with Vi/Vam/Vas.',
     'Scope: ask only relevant distinctions (wall/floor area, load/access, lesson subject/level, route, digital deliverable). Unknown optional details can remain for agreement. Capture ALL distinct details already stated in this turn and confirmed history: stairs/no lift, size/fragility, access, material, route, equipment needs and limits. Preserve them as accurate need.description/need.critical_conditions or private access_notes as appropriate; never invent missing details or ask again for ones supplied. Draft a short need.title and clear need.description retaining scope/materials/limits, excluding uncertain execution, private addresses and duplicated price/dates. Corrections remove stale claims, not unrelated detail or typed facts.',
     'need.people_needed: positive integer (1..50). Default to 1 for standard individual work (majstor, popravka, časovi, moler, čišćenje, prevoz, servis). Only ask about people count or propose >1 if the task inherently requires a team (heavy moving, construction crew) or if user explicitly mentions multiple workers/people. If user does not mention people count, propose need.people_needed=1.',
@@ -705,7 +711,7 @@ function parseV2Output(parsed: any, maxProposals = 12): ParsedTurn {
         value = normalizeAiGeographyProposal(value);
       }
       if (!valueMatchesContract(key, value)) {
-        console.warn('NEED_AI_OUTPUT_GATE_FACT_SKIPPED', key, JSON.stringify(value));
+        console.warn('NEED_AI_OUTPUT_GATE_FACT_SKIPPED', key);
         continue;
       }
       const displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim() : '';
@@ -765,6 +771,8 @@ async function callGemini(
   }
   contents.push({ role: 'user', parts: userParts });
   const parseOutput = async (value: any) => {
+    const intentDecision = takeConversationIntent(value, text);
+    value = guardInterviewIntentOutput(intentDecision.output, intentDecision, 'NEED');
     if (singlePass) {
       const extracted = takeSinglePassTaxonomy(value);
       value = extracted.output;
@@ -772,6 +780,10 @@ async function callGemini(
     }
     const parseFacts=(output:any)=>parseV2Output(output,maxProposals);
     const parsedTurn=locationContext ? parseLocationOutput(value,locationContext,parseFacts) : parseFacts(value);
+    const intentAllowsChanges = intentAllowsDomain(intentDecision, 'NEED') && ['ALLOW', 'CLARIFY'].includes(parsedTurn.safety);
+    // An opposite/ambiguous intention cannot become a price retraction, map
+    // confirmation, category proposal or task fact through a downstream guard.
+    if (!intentAllowsChanges) return { ...parsedTurn, intentDecision, intentAllowsChanges };
     const previousMessage = history[history.length - 1];
     const pendingDeadlineQuestion = applicationDeadlineEnabled() && previousMessage?.role === 'ASSISTANT'
       && typeof previousMessage.body === 'string' && previousMessage.body.includes('?')
@@ -779,7 +791,8 @@ async function callGemini(
       && /(?:do kada|do kog|kad|datum|sat|rok)/iu.test(previousMessage.body);
     // Classification is validated later against these guarded facts and the
     // same complete catalog. No tool loop or second model can alter the answer.
-    return guardConversationTurn(parsedTurn,text,history,activeFacts,timeContext,locationContext,pendingDeadlineQuestion);
+    return { ...guardConversationTurn(parsedTurn,text,history,activeFacts,timeContext,locationContext,pendingDeadlineQuestion),
+      intentDecision, intentAllowsChanges };
   };
   // Stable rules precede private per-turn data. This permits provider prefix
   // caching without sharing application context or trusting stale catalog data.
@@ -1422,6 +1435,8 @@ Deno.serve(async (req: Request) => {
   if (!release) return response(429, { code: 'AI_RATE_LIMITED', message: 'Sačekajte trenutak pre sledeće poruke.' });
   const availabilityDiagnostics = req.headers.get(AI_DIAGNOSTICS_HEADER) === AI_DIAGNOSTICS_VERSION;
   const wantsStream = req.headers.get('Accept')?.split(',').some(value => value.trim() === 'text/event-stream') === true;
+  const wantsIntent = req.headers.get(INTERVIEW_INTENT_HEADER) === INTERVIEW_INTENT_CAPABILITY;
+  let completedIntentHint: ReturnType<typeof conversationIntentHint> = null;
   let detachedRelease = false;
   let requestId = '', attemptId: string | null = null, claimedTurnId: string | null = null;
   let retirementStarted = false;
@@ -1568,7 +1583,7 @@ Deno.serve(async (req: Request) => {
       if (locationContext) {
         // A validated answer to the shown question (e.g. 'to je to') stays a map
         // confirmation. Explicit task publication can never take that route.
-        if (explicitPublicationOnly(effectiveUserMessage) || taskFinishOnly(effectiveUserMessage) && aiTurn.locationAction !== 'CONFIRM_DISPLAYED') aiTurn.locationAction = 'CONTINUE';
+        if (!aiTurn.intentAllowsChanges || explicitPublicationOnly(effectiveUserMessage) || taskFinishOnly(effectiveUserMessage) && aiTurn.locationAction !== 'CONFIRM_DISPLAYED') aiTurn.locationAction = 'CONTINUE';
         else if (!aiTurn.locationAction || aiTurn.safety !== 'ALLOW') aiTurn.locationAction = 'CLARIFY';
       }
     } catch (providerError: any) {
@@ -1595,7 +1610,7 @@ Deno.serve(async (req: Request) => {
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
       let builtTaxonomy: any = null;
       let hasClassificationInput = false;
-      if (singlePassActive && ['ALLOW','CLARIFY'].includes(aiTurn.safety)) {
+      if (singlePassActive && aiTurn.intentAllowsChanges && ['ALLOW','CLARIFY'].includes(aiTurn.safety)) {
         const turnProposals = aiTurn.proposals ?? [];
         const fact = (key: string) => activeFacts.find((f: any) => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
         const effectiveFact = (key: string) => turnProposals.find((p: any) => p.key === key)?.value ?? fact(key);
@@ -1688,7 +1703,8 @@ Deno.serve(async (req: Request) => {
         return decodeCompletion(result.data);
       });
       const completed = locationContext ? completion.turn : completion;
-      if (completed.state === 'SUCCEEDED' && pendingClarificationHint?.service) {
+      if (completed.state === 'SUCCEEDED') completedIntentHint = conversationIntentHint(aiTurn.intentDecision, aiTurn.safety);
+      if (completed.state === 'SUCCEEDED' && aiTurn.intentAllowsChanges && pendingClarificationHint?.service) {
           // Consumption belongs to the confirmed turn, not the classifier's budget.
           const consumeSignal = new AbortController().signal;
           void runInBackground(persistConsumeClarificationHint(
@@ -1740,7 +1756,8 @@ Deno.serve(async (req: Request) => {
           void runInBackground(work);
           const result = await work;
           const data = await result.json();
-          if (result.ok && validTurn(data, conversationId, requestId) && data.state === 'SUCCEEDED') emit({ kind: 'final', turn: data });
+          if (result.ok && validTurn(data, conversationId, requestId) && data.state === 'SUCCEEDED') emit({ kind: 'final', turn: data,
+            ...(wantsIntent && completedIntentHint ? { conversationIntent: completedIntentHint } : {}) });
           else emit({ kind: 'safe_error', code: availabilityDiagnostics && result.status === 503 && data?.code === AI_CREDITS_UNAVAILABLE ? AI_CREDITS_UNAVAILABLE : 'AI_TURN_NOT_CONFIRMED' });
         } catch {
           await retireAttempt();

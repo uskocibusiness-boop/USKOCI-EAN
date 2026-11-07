@@ -29,8 +29,11 @@ async function bytes(message:Request|Response,max:number,signal:AbortSignal):Pro
  const declared=message.headers.get('content-length');if(declared!==null&&(!/^\d+$/.test(declared)||Number(declared)>max))throw new Safe('MEDIA_INPUT_INVALID',413);
  const reader=message.body?.getReader();if(!reader)throw new Safe('MEDIA_INPUT_INVALID');
  const chunks:Uint8Array[]=[];let total=0;const stop=()=>{void reader.cancel().catch(()=>undefined);};signal.addEventListener('abort',stop,{once:true});
- try{for(;;){if(signal.aborted)throw new Error('CANCELLED');const part=await reader.read();if(signal.aborted)throw new Error('CANCELLED');if(part.done)break;
-  total+=part.value.byteLength;if(total>max)throw new Safe('MEDIA_INPUT_INVALID',413);chunks.push(part.value);}
+ try{for(;;){if(signal.aborted)throw new Error('CANCELLED');const part=await reader.read();
+  // Own every delivered chunk before a cancellation or size refusal can throw.
+  if(!part.done)chunks.push(part.value);
+  if(signal.aborted)throw new Error('CANCELLED');if(part.done)break;
+  total+=part.value.byteLength;if(total>max)throw new Safe('MEDIA_INPUT_INVALID',413);}
   if(declared!==null&&Number(declared)!==total)throw new Error('TRUNCATED');const out=new Uint8Array(total);let offset=0;for(const c of chunks){out.set(c,offset);offset+=c.length;}return out;
  }finally{
   signal.removeEventListener('abort',stop);
