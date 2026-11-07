@@ -63,5 +63,5 @@ export default function Raspored() {
     onProposeTerm={id => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id, start: 'propose' } })}
     // The other person's face in a card: their photo, read here (a data client), or the letters of their name while it is read or when they have none.
     photo={(profileId, standIn) => <ProfilePhoto profileId={profileId} size={32} fallback={standIn} />}
-    onAvailability={() => router.navigate('/profil/dostupnost')} onArchive={() => router.navigate('/arhiva')} />;
+    onAvailability={() => router.navigate('/profil/dostupnost')} onPreviousAgreements={() => router.navigate({ pathname: '/dogovori', params: { odeljak: 'istorija' } })} />;
 }

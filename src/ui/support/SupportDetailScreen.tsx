@@ -111,7 +111,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
     const discardAndBack = () => { clearSupportReplyDraft(replyScope); back(); };
     if (replyText && !state.pending && state.phase !== 'SENDING') confirm.ask({
       title: 'Odbaciti napisanu dopunu?', message: 'Neposlata dopuna neće biti sačuvana.',
-      confirmLabel: 'Odbaci', cancelLabel: 'Nastavi pisanje', tone: 'danger', onConfirm: discardAndBack,
+      confirmLabel: 'Odbacite', cancelLabel: 'Nastavite pisanje', tone: 'danger', onConfirm: discardAndBack,
     });
     else discardAndBack();
   };
@@ -127,7 +127,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
   const askClose = () => {
     if (!current() || actionsDisabled || !allowed('CLOSE')) return;
     confirm.ask({ title: 'Zatvoriti predmet?', message: 'Predmet se zatvara i dopune više nisu moguće. Odluka i razgovor ostaju u istoriji.',
-      confirmLabel: 'Zatvori predmet', tone: 'danger',
+      confirmLabel: 'Zatvorite predmet', tone: 'danger',
       onConfirm: () => { if (current() && allowed('CLOSE')) return controller?.submit('CLOSE', {}, state); } });
   };
   const author = detail?.viewerRole !== 'OPERATOR';
@@ -145,7 +145,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
   // One look for "failed": a failed mark or read is danger; a word about a reply still unconfirmed waits (round 5 review).
   const tone = supportMessageTone(state), messageTone = tone === 'success' ? 'success' : tone === 'danger' ? 'danger' : 'ink';
   // The grey send area says why a written reply cannot go now.
-  const replyReason = replyTooLong ? 'Skrati tekst pre slanja.' : state.pending ? 'Najpre proveri prethodno slanje.' : null;
+  const replyReason = replyTooLong ? 'Skratite tekst pre slanja.' : state.pending ? 'Najpre proveri prethodno slanje.' : null;
 
   const thread: ReactNode[] = [];
   if (detail) {
@@ -192,7 +192,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
     {supportMessageShown(state) && !(state.phase === 'ERROR' && !detail) ? <T variant="note" tone={messageTone === 'success' ? 'success' : messageTone === 'danger' ? 'danger' : 'ink'}
       accessibilityRole={messageTone === 'danger' ? 'alert' : undefined} accessibilityLiveRegion="polite">{state.message}</T> : null}
     {detail && canReply ? <>
-      {replyTooLong ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{`${Array.from(replyText).length} / ${REPLY_LIMIT} · Skrati tekst pre slanja.`}</T> : null}
+      {replyTooLong ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{`${Array.from(replyText).length} / ${REPLY_LIMIT} · Skratite tekst pre slanja.`}</T> : null}
       {/* The spinner is this reply's own: marking as read, a claim, a close, or a stop or replay of an unconfirmed reply
           run without it (round 5c review). */}
       <SupportComposer value={replyText} placeholder={author ? 'Napiši dopunu…' : 'Napiši odgovor…'} editable={!actionsDisabled}
@@ -238,7 +238,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
               onPress={() => { if (current()) void controller?.submit('CLAIM', {}, state); }} /> : null}
             {allowed('REQUEST_INFO') ? <SettingsAction label="Zatraži dopunu" kind="quiet" disabled={actionsDisabled} onPress={() => open('REQUEST_INFO')} /> : null}
             {allowed('DECIDE') ? <SettingsAction label="Donesi odluku" kind="quiet" disabled={actionsDisabled} onPress={() => open('DECIDE')} /> : null}
-            {allowed('CLOSE') ? <SettingsAction label="Zatvori obrađeni predmet" kind="quiet" disabled={actionsDisabled} onPress={askClose} /> : null}
+            {allowed('CLOSE') ? <SettingsAction label="Zatvorite obrađeni predmet" kind="quiet" disabled={actionsDisabled} onPress={askClose} /> : null}
           </View>
         </View> : null}
       </>}
@@ -287,18 +287,18 @@ function SupportFormSheet({ action, targetId, detail, model, onClose }: {
     else if (action === 'DECIDE_APPEAL') { if (targetId) void controller?.submit(action, { outcome, reasonCode: reason, body, evidenceIds, appealId: targetId }, state); }
     else void controller?.submit(action, { body }, state);
   };
-  const why = disabled || valid ? null : !body.trim() ? (deciding ? 'Unesi obrazloženje pre čuvanja odluke.' : 'Unesi tekst pre slanja.')
-    : Array.from(body).length > 4000 ? 'Skrati tekst do 4000 znakova.' : 'Oznaka razloga: velika slova, brojevi i donja crta, do 64 znaka.';
+  const why = disabled || valid ? null : !body.trim() ? (deciding ? 'Unesite obrazloženje pre čuvanja odluke.' : 'Unesite tekst pre slanja.')
+    : Array.from(body).length > 4000 ? 'Skratite tekst do 4000 znakova.' : 'Oznaka razloga: velika slova, brojevi i donja crta, do 64 znaka.';
   return <ProductSheet title={action === 'APPEAL' ? 'Razlog za ponovni pregled' : deciding ? 'Obrazložena odluka' : 'Poruka u predmetu'}
     dirty={!!body || !!reason} dismissible={state.phase !== 'SENDING'} onClose={onClose}
-    footer={() => <SettingsAction label={action === 'APPEAL' ? 'Pošalji zahtev za ponovni pregled' : deciding ? 'Sačuvaj odluku' : 'Pošalji poruku'}
+    footer={() => <SettingsAction label={action === 'APPEAL' ? 'Pošaljite zahtev za ponovni pregled' : deciding ? 'Sačuvajte odluku' : 'Pošaljite poruku'}
       loading={state.phase === 'SENDING' && state.command === 'SEND' && state.pending?.kind === action} disabled={disabled || !valid} reason={why} onPress={submit} />}>
     {() => <View style={s.sheet}>
       {action === 'APPEAL' ? <T variant="note" tone="muted">Zahtev za ponovni pregled odnosi se na izabranu odluku. Ovo je ponovni pregled u okviru podrške; ne predstavlja nezavisan žalbeni organ.</T> : null}
       {deciding ? <>
         <View style={supportStyles.list} accessibilityRole="radiogroup" accessibilityLabel="Odluka o zahtevu">
-          <SupportChoiceRow kind="radio" label="Prihvati zahtev" selected={outcome === 'ACCEPTED'} disabled={disabled} onPress={() => { if (current()) setOutcome('ACCEPTED'); }} />
-          <SupportChoiceRow kind="radio" label="Odbij zahtev" selected={outcome === 'REJECTED'} disabled={disabled} last onPress={() => { if (current()) setOutcome('REJECTED'); }} />
+          <SupportChoiceRow kind="radio" label="Prihvatite zahtev" selected={outcome === 'ACCEPTED'} disabled={disabled} onPress={() => { if (current()) setOutcome('ACCEPTED'); }} />
+          <SupportChoiceRow kind="radio" label="Odbijte zahtev" selected={outcome === 'REJECTED'} disabled={disabled} last onPress={() => { if (current()) setOutcome('REJECTED'); }} />
         </View>
         <View>
           <SupportField label="Oznaka razloga" value={reason} onChange={value => { if (current() && !disabled) setReason(value); }} maximum={64} disabled={disabled} />

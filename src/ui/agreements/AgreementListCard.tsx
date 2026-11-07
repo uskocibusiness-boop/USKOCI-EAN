@@ -1,3 +1,4 @@
+import { prioritizeAgreementSearch } from './agreementSearch';
 import { memo, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -179,10 +180,10 @@ export const AgreementRow = memo(function AgreementRow({ item, index, now, anima
 });
 
 /** One task record. Each collaboration keeps its own accepted terms and destination; there is no invented group price/status. */
-export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, now, animate, stale = false, expanded, onExpand, cancellations, ownerCapacities, onOpenOwnerTask, onOpen, onRate, prioritize = 'all' }: {
+export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, now, animate, stale = false, expanded, onExpand, cancellations, ownerCapacities, onOpenOwnerTask, onOpen, onRate, prioritize = 'all', searchQuery = '' }: {
   group: AgreementTaskGroup; index: number; now: number; animate: boolean; expanded: boolean;
   stale?: boolean;
-  prioritize?: HistoryFilter | 'confirmation';
+  prioritize?: HistoryFilter | 'confirmation'; searchQuery?: string;
   onExpand: (key: string | null, witness: DogovorProjekcija) => void;
   ownerCapacities?: ReadonlyMap<string, NeedSearchState> | null;
   onOpenOwnerTask?: (taskId: string, witness: DogovorProjekcija) => void;
@@ -199,7 +200,9 @@ export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, n
   // The reason this task matched the current filter is visible without expanding it.
   const matches = (item: DogovorProjekcija) => prioritize === 'confirmation' ? awaitsMyConfirmation(item)
     : prioritize === 'completed' ? item.stanje === 'COMPLETED' : prioritize === 'cancelled' ? item.stanje === 'CANCELLED' : true;
-  const ordered = prioritize === 'all' ? byUrgency : [...byUrgency.filter(matches), ...byUrgency.filter(item => !matches(item))];
+  const prioritized = prioritize === 'all' ? byUrgency : [...byUrgency.filter(matches), ...byUrgency.filter(item => !matches(item))];
+  // Keep a found person visible in a collapsed group without discarding siblings.
+  const ordered = prioritizeAgreementSearch(prioritized, searchQuery, prioritize === 'completed' || prioritize === 'cancelled' ? prioritize : 'all');
   const shown = expanded ? ordered : ordered.slice(0, 3);
   const waiting = stale ? 0 : group.items.filter(item => agreementAttention(item)).length;
   const role = first.ucesnici.find(person => person.viSte)?.uloga === 'narucilac' ? 'Tražite pomoć' : 'Uskačete';

@@ -12,6 +12,8 @@ import { SettingsGroup, SettingsRow } from '../settings/SettingsPresentation';
 import { V2Action } from '../v2/V2Action';
 import { NameDifference, namesDiffer } from './NameDifference';
 import type { WorkerDraft } from './workerProfileDraft';
+import { SavedAvailability } from './SavedAvailability';
+import type { WorkerAvailabilityView } from '../../hooks/useWorkerAvailability';
 import type { WorkerExecutionModeView } from '../../hooks/useWorkerExecutionModes';
 import type { WorkerAiPart } from './workerProfileFacts';
 import { serviceHandoffText } from '../../contracts/serviceHandoff';
@@ -35,7 +37,7 @@ export type AvailableNowControl = { value: boolean; onEdit: () => void };
  * The route owns status, the AI entry and restrictions on a suspended profile.
  */
 export function WorkerProfileSaved({ draft, status, disabled, navigate, openConversation, accountName = null, onUseAccountName, nameWorking = false,
-  face, rating, readOnly = false, executionModes, refreshModes, showConversationAction = true, confirmMap }: {
+  face, rating, readOnly = false, executionModes, refreshModes, showConversationAction = true, confirmMap, availability, refreshAvailability }: {
   draft: WorkerDraft; status: ReactNode; disabled: boolean; navigate: (path: SavedProfilePath) => void;
   /** A part opens as local context in the same owned AI conversation. */ openConversation?: (part?: WorkerAiPart) => void;
   /** Hide the generic entry when the route already supplies its main conversation action. */ showConversationAction?: boolean;
@@ -47,6 +49,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   /** The rating in the card (a line, or nothing). */ rating?: ReactNode;
   /** Legacy caller input, retained for older route contracts; the saved profile no longer displays this control. */ availableNow?: AvailableNowControl;
   executionModes?: WorkerExecutionModeView; refreshModes?: () => void;
+  availability?: WorkerAvailabilityView; refreshAvailability?: () => void;
   /** A separate, explicit confirmation of the saved area's approximate point. */ confirmMap?: () => void;
 }) {
   const grad = draft.grad.trim() ? cityLabel(draft.grad) : '';
@@ -94,9 +97,9 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
     {onSite && !draft.workAreas?.length && !readOnly && confirmMap ? <V2Action label="Potvrdite tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
       onPress={() => { if (!disabled) confirmMap(); }} /> : null}
     <View testID="worker-profile-time-card" style={s.sectionCard}><SettingsGroup title="Kada">
+        <SavedAvailability view={availability} retry={refreshAvailability} disabled={disabled} />
         {/* Owner decision: "Mogu odmah" remains in legacy data, not on the ordinary saved profile. */}
-        {readOnly ? <ListRow title="Nedeljni raspored" leading={<FactArt kind="calendar" size={32} />} />
-          : <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}
+        {readOnly ? null : <SettingsRow label="Izmenite raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}
             onPress={() => openConversation ? openConversation('time') : navigate('/profil/dostupnost')} last />}
       </SettingsGroup></View>
   </View>;

@@ -99,7 +99,7 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
         style={s.publicButton} labelStyle={s.linkTitle} /> : null}
     </View>}
 
-    <ProfileLink label="Profil za uskakanje" subtitle="Usluge, područje i dostupnost" detail={capabilityDetail}
+    <ProfileLink label="Radni profil" subtitle="Usluge, područje i dostupnost" detail={capabilityDetail}
       attention={capabilityNeedsAttention} disabled={busy} onPress={go('/profil/radnik')}
       onRetry={capabilityError ? onRetryCapability : undefined} />
     <ProfileLink label="Moje prijave" subtitle="Pogledajte status i odgovore" disabled={busy} onPress={go('/moje-prijave')} />
@@ -131,7 +131,7 @@ function ProfileLink({ label, subtitle, detail, attention, settings, disabled, o
       accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} haptic="select" scaleTo={sys.motion.scale.row} style={s.linkPrimary}>
       {content}
     </Press>
-    <Press accessibilityRole="button" accessibilityLabel="Osvežite profil za uskakanje"
+    <Press accessibilityRole="button" accessibilityLabel="Osvežite radni profil"
       accessibilityHint="Ponovo učitava stanje profila za uskakanje." accessibilityState={{ disabled }}
       disabled={disabled} onPress={onRetry} haptic="select" scaleTo={sys.motion.scale.row} style={s.retryWork}>
       <Glyph name="refresh" size={20} tone={disabled ? 'muted' : 'ink'} />

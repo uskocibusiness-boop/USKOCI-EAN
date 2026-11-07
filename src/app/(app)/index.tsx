@@ -46,6 +46,7 @@ function Home() {
     setScope(owner); setFocused(true);
     const subscription = AppState.addEventListener('change', state => {
       if (state !== 'active') workerRetrying.current = null;
+      if (focus.current === owner) setFocused(state === 'active');
     });
     return () => { subscription.remove(); if (focus.current === owner) { focus.current = null; setFocused(false); } };
   }, []));
@@ -124,6 +125,7 @@ function Home() {
       ? router.navigate({ pathname: '/oceni-dogovor', params: { agreementId, from: 'pocetna' } }) : router.navigate('/dogovori'))}
     onMyTasks={() => navigate(() => router.navigate('/potrebe'))}
     onMyApplications={() => navigate(() => router.navigate('/moje-prijave'))}
+    onAgreements={() => navigate(() => router.navigate('/dogovori'))}
     // "Sledeće": the face of the other person in the card of the next Dogovor is read by the route's own photo element (a data client),
     // as the header's avatar is, so the presentation and its gallery load none. The whole schedule is reached from Dogovori only (the
     // blueprint of 8 Oct 2026: one home for each thing), so the card has no way into it.

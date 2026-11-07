@@ -278,7 +278,7 @@ export default function AuthScreen() {
       await authClientService.resendSignupConfirmation(email.trim());
     }, () => {
       setSignupReturn(null);
-      setPoruka('Ako email čeka potvrdu, stići će nova poruka. Proveri i neželjenu poštu.');
+      setPoruka('Ako email čeka potvrdu, stići će nova poruka. Proverite i neželjenu poštu.');
     }, error => prijaviGresku(error));
   }
 
@@ -289,7 +289,7 @@ export default function AuthScreen() {
       await authClientService.sendPhoneOtp({ phone: telefon.trim() });
     }, () => {
       setFaza('OTP');
-      setPoruka('Poslali smo ti kod.');
+      setPoruka('Poslali smo Vam kod.');
     }, error => prijaviGresku(error));
   }
 

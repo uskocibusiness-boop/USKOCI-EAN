@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, RefreshControl, StyleSheet, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { Avatar } from '../system/Avatar';
@@ -21,6 +21,7 @@ import { plural, prijava } from '../system/plural';
 import { useLayoutClass } from '../system/textScale';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { HomeLaunchArt } from './HomeLaunchArt';
+import { HomeWaitingPanel } from './HomeWaitingPanel';
 import { HowItWorks } from './HowItWorks';
 
 /** Two main actions, the next appointment, real pending work and the account's lists.
@@ -47,6 +48,7 @@ export type HomePresentationProps = {
    */
   onRatings: (agreementId: string | null) => void;
   onMyTasks: () => void; onMyApplications: () => void; onRefresh: () => void;
+  onAgreements?: () => void;
   /** Saved availability is a fact; its action continues the AI conversation. */
   availableNow?: { value: boolean; onEdit: () => void };
   /**
@@ -268,6 +270,10 @@ function applicationsLine(section: HomeSection<ApplicationCounts>): string {
 }
 
 export function HomePresentation(p: HomePresentationProps) {
+  const [waitingOpen, setWaitingOpen] = useState(false);
+  const waitingOwner = useRef({ active: p.active, home: p.home });
+  waitingOwner.current = { active: p.active, home: p.home };
+  useEffect(() => { if (p.active === false || !p.home) setWaitingOpen(false); }, [p.active, p.home]);
   const home = p.home;
   const { stacked } = useLayoutClass();
   // A row that was already here when the screen opened has nothing to tell you by sliding in; only a genuinely new one moves,
@@ -312,7 +318,7 @@ export function HomePresentation(p: HomePresentationProps) {
   // The pull spinner is for a pull. "Osvežite pregled" has a spinner of its own, and no read the route starts by itself may raise the white
   // disc of Android's pull at the top of the screen (the owner's phone, 8 Oct 2026).
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
-  return <Screen kind="root" background="wash" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
+  return <><Screen kind="root" background="wash" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     contentStyle={{ paddingBottom: 100 }}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
     {recovery ? <Surface kind="note" testID="home-recovery" style={s.recovery}>
@@ -341,7 +347,7 @@ export function HomePresentation(p: HomePresentationProps) {
         : ratingsShown && ratings === 'due' && home.ratingsDue ? <ListRow leading={<Marked art="star" attention />} title={oceniDogovore(home.ratingsDue)} last
           onPress={() => p.onRatings(home.ratingDueAgreementId)} accessibilityLabel={oceniDogovore(home.ratingsDue)}
           accessibilityHint={home.ratingDueAgreementId ? 'Otvara ocenu saradnje.' : 'Otvara Dogovore.'} /> : null}
-      {more > 0 ? <T variant="note" tone="muted" style={s.more}>I još {more} u Vašim zadacima, prijavama i Dogovorima.</T> : null}
+      {more > 0 ? <V2Action label="Prikažite pregled obaveza" kind="quiet" compact tone="neutral" onPress={() => { if (waitingOwner.current.active !== false && waitingOwner.current.home === home) setWaitingOpen(true); }} /> : null}
     </Section> : null}
 
     {/* A Dogovori read that failed says so here, never as an empty schedule; with no appointment ahead there is no block and no placeholder. */}
@@ -357,12 +363,16 @@ export function HomePresentation(p: HomePresentationProps) {
       <WorkProfileReadState state={p.workProfileRead} />
       {availabilityShown ? <AvailableNowRow control={p.availableNow!} last={!setupProfile} /> : null}
       {/* R20: until the work profile exists, one row says what it is for and opens its conversation. */}
-      {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesite profil majstora" subtitle="Dobijate zadatke koji Vam odgovaraju."
-        onPress={() => p.onOpen({ kind: 'WORKER_PROFILE' })} last accessibilityLabel="Podesite profil majstora. Dobijate zadatke koji Vam odgovaraju." /> : null}
+      {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesite radni profil" subtitle="Dobijate zadatke koji Vam odgovaraju."
+        onPress={() => p.onOpen({ kind: 'WORKER_PROFILE' })} last accessibilityLabel="Podesite radni profil. Dobijate zadatke koji Vam odgovaraju." /> : null}
     </View>
     {p.loading && !home ? <HomeInitialLoading /> : null}
     {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}
-  </Screen>;
+  </Screen>
+  {waitingOpen && home && p.active !== false ? <HomeWaitingPanel home={home} stale={!!p.stale} refreshing={p.refreshing}
+    onClose={() => setWaitingOpen(false)} onOpen={p.onOpen} onRatings={p.onRatings}
+    onMyTasks={p.onMyTasks} onMyApplications={p.onMyApplications} onAgreements={p.onAgreements ?? (() => p.onRatings(null))}
+    onRefresh={p.onRefresh} /> : null}</>;
 }
 
 /** "Ocenite završen Dogovor" / "Ocenite 2 završena Dogovora" / "Ocenite 5 završenih Dogovora": the verb leads (A1). */

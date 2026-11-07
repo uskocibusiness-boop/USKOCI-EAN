@@ -106,7 +106,7 @@ export function SupportField({ label, value, onChange, maximum, disabled = false
       autoCapitalize="sentences" textAlignVertical={multiline ? 'top' : 'center'} placeholderTextColor={sys.color.muted}
       style={[supportStyles.input, multiline && supportStyles.multiline, invalid && supportStyles.invalid, disabled && supportStyles.inputDisabled]} />
     {counted ? <T variant="meta" tone={invalid ? 'danger' : 'muted'} accessibilityLiveRegion={invalid ? 'polite' : 'none'}>
-      {count} / {maximum}{invalid ? ' · Skrati tekst pre slanja.' : ''}
+      {count} / {maximum}{invalid ? ' · Skratite tekst pre slanja.' : ''}
     </T> : null}
   </View>;
 }
@@ -123,9 +123,9 @@ export function SupportRecovery({ busy, absent, working = null, onRead, onCancel
       <T variant="note" tone="muted">Provera ništa ne šalje ponovo. Ako zaustaviš slanje, ranije primljen zahtev ostaje.</T>
     </InlineNote>
     <View style={supportStyles.recoveryActions}>
-      <SettingsAction kind="secondary" label="Proveri da li je uspelo" disabled={busy} loading={working === 'read'} onPress={onRead} />
+      <SettingsAction kind="secondary" label="Proverite da li je uspelo" disabled={busy} loading={working === 'read'} onPress={onRead} />
       <SettingsAction label="Zaustavi prethodno slanje" kind="quiet" disabled={busy} loading={working === 'cancel'} onPress={onCancel} />
-      {onReplay || working === 'replay' ? <SettingsAction label="Pošalji ponovo" kind="quiet" disabled={busy || !onReplay}
+      {onReplay || working === 'replay' ? <SettingsAction label="Pošaljite ponovo" kind="quiet" disabled={busy || !onReplay}
         loading={working === 'replay'} onPress={onReplay ?? (() => {})} /> : null}
     </View>
   </View>;
@@ -191,7 +191,7 @@ export function SupportTopicDisclosure({ selectedLabel, expanded, disabled, onTo
 }) {
   return <View>
     <Press accessibilityRole="button" accessibilityLabel="Tema zahteva" accessibilityValue={{ text: selectedLabel }}
-      accessibilityHint={expanded ? 'Zatvori izbor teme.' : 'Prikaži teme zahteva.'}
+      accessibilityHint={expanded ? 'Zatvorite izbor teme.' : 'Prikaži teme zahteva.'}
       accessibilityState={{ expanded, disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={sys.motion.scale.row}
       onPress={() => { if (!disabled) onToggle(); }}
       style={supportStyles.topicToggle}>
@@ -274,11 +274,11 @@ export function SupportComposer({ value, onChange, placeholder, editable, canSen
 }) {
   const empty = !value.trim();
   // The caller's reason wins: a locked, empty field (an unconfirmed reply) is not told to type (round 5c review).
-  const why = sending || canSend ? undefined : reason ?? (empty ? 'Unesi tekst pre slanja.' : undefined);
+  const why = sending || canSend ? undefined : reason ?? (empty ? 'Unesite tekst pre slanja.' : undefined);
   return <View style={supportStyles.pill}>
     <TextInput accessibilityLabel="Tekst poruke" placeholder={placeholder} placeholderTextColor={sys.color.muted} value={value}
       onChangeText={onChange} editable={editable} multiline textAlignVertical="center" maxLength={maxLength} style={supportStyles.pillInput} />
-    <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" accessibilityHint={why}
+    <Press accessibilityRole="button" accessibilityLabel="Pošaljite poruku" accessibilityHint={why}
       accessibilityState={{ disabled: !canSend || sending, busy: sending }} disabled={!canSend || sending} haptic={canSend ? 'light' : 'none'}
       onPress={onSend} style={supportStyles.sendArea}>
       <View style={[supportStyles.send, canSend || sending ? supportStyles.sendOn : supportStyles.sendOff]}>

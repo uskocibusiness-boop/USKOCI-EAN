@@ -1,3 +1,4 @@
+import { agreementGroupMatchesSearch } from './agreementSearch';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import {
   awaitsMyConfirmation, filterAgreementRole, filterHistory, groupAgreementTasks, isActiveAgreementTask,
@@ -17,6 +18,7 @@ export type AgreementOptionalReadView = {
   roleFilter: AgreementRoleFilter;
   confirmationOnly: boolean;
   historyFilter: HistoryFilter;
+  searchQuery?: string;
 };
 
 export function visibleAgreementTaskGroups(
@@ -25,10 +27,12 @@ export function visibleAgreementTaskGroups(
   const groups = groupAgreementTasks(filterAgreementRole(items, view.roleFilter));
   if (view.section === 'history') {
     return groups.filter(group => !isActiveAgreementTask(group)
-      && filterHistory(group.items, view.historyFilter).length > 0);
+      && filterHistory(group.items, view.historyFilter).length > 0
+      && agreementGroupMatchesSearch(group, view.searchQuery ?? '', view.historyFilter));
   }
   return groups.filter(group => isActiveAgreementTask(group)
-    && (!view.confirmationOnly || group.items.some(awaitsMyConfirmation)));
+    && (!view.confirmationOnly || group.items.some(awaitsMyConfirmation))
+    && agreementGroupMatchesSearch(group, view.searchQuery ?? ''));
 }
 
 /** Only cancellation details that can be reached in the currently rendered list.

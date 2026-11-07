@@ -63,14 +63,14 @@ const LOADING = <QuietReadState art="calendar" title="Učitavamo raspored…" bo
  *  - DAN: the day on its hours, 07:00 to 22:00 (moving outwards to a Dogovor that stands outside them), each Dogovor a block from its
  *    start to its end, the worker's hours as a band, and on today the red line where "sada" is. A swipe changes the day.
  *
- * Under every view: "Moja dostupnost" (only for someone who has a work profile) and "Arhiva". A view: it has no primary command.
+ * Under every view: "Moja dostupnost" (only for someone who has a work profile) and "Prethodne saradnje". A view: it has no primary command.
  *
  * Everything is Serbian time (`planner.ts`, `serbianDays.ts`). A read that failed is said, never drawn as an empty day, and a day the
  * schedule was not read for is a plain number, never an empty one. The frame is the system's `Screen`; the switch, the bar and the period
  * stand still while the view under them scrolls. Presentation only: the route owns the reads and every command.
  */
 export function AgendaScreen({ selected, today, schedule, list, availability = null, readWindow, refreshing, retrying = false, initialView = 'month',
-  onSelect, onBack, onRefresh, onRetry, onRetryList, onOpen, onProposeTerm, onAvailability, onArchive, photo, phoneZone = zonaTelefona(), now }: {
+  onSelect, onBack, onRefresh, onRetry, onRetryList, onOpen, onProposeTerm, onAvailability, onPreviousAgreements, photo, phoneZone = zonaTelefona(), now }: {
   selected: string; today: string; schedule: AgendaSchedule; list: AgendaList;
   availability?: AgendaAvailability | null;
   /** The window of weeks the schedule was read for (`plannerWindow`); the month of the chosen day when left out. Everything outside it is unknown, not empty. */
@@ -85,8 +85,8 @@ export function AgendaScreen({ selected, today, schedule, list, availability = n
   /** "Predloži termin" for a Dogovor that has none: the form of Izmene Dogovora that proposes one. Without it nothing offers the command. */
   onProposeTerm?: (agreementId: string) => void;
   onAvailability: () => void;
-  /** The way into the Arhiva; the row is not drawn without it (the design gallery has no archive). */
-  onArchive?: () => void;
+  /** Opens previous collaborations in Dogovori; never a second cross-domain archive. */
+  onPreviousAgreements?: () => void;
   /** The face of the other person in a Dogovor, read by the route (a data client); the letters of their name stand in without it. */
   photo?: EntryFace;
   phoneZone?: string; now?: Date;
@@ -238,9 +238,9 @@ export function AgendaScreen({ selected, today, schedule, list, availability = n
           refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
           {body}
           {/* Set once in a while, read every time: the quiet rows stand under the view, not before it. Two rows of the one list. */}
-          {availability || onArchive ? <View style={s.foot}>
-            {availability ? <ListRow leading={<ClockArt size={32} />} title="Moja dostupnost" accessibilityLabel="Moja dostupnost" last={!onArchive} onPress={onAvailability} /> : null}
-            {onArchive ? <ListRow leading={<FactArt kind="document" size={32} />} title="Arhiva" accessibilityLabel="Arhiva" last onPress={onArchive} /> : null}
+          {availability || onPreviousAgreements ? <View style={s.foot}>
+            {availability ? <ListRow leading={<ClockArt size={32} />} title="Moja dostupnost" accessibilityLabel="Moja dostupnost" last={!onPreviousAgreements} onPress={onAvailability} /> : null}
+            {onPreviousAgreements ? <ListRow leading={<FactArt kind="document" size={32} />} title="Prethodne saradnje" accessibilityLabel="Prethodne saradnje" last onPress={onPreviousAgreements} /> : null}
           </View> : null}
         </ScrollView>
       </View>

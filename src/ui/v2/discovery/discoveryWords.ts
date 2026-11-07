@@ -60,7 +60,7 @@ export const NEWEST_FIRST = 'Najnovije prvo';
  * screen says why in this one sentence, with the one way out, the same entry to the work profile that an application and the availability offer.
  */
 export const FOR_ME_REFUSED = 'Za mene radi kad je radni profil aktivan.';
-export const WORK_PROFILE_ENTRY = 'Dopuni radni profil';
+export const WORK_PROFILE_ENTRY = 'Otvorite radni profil';
 
 /** A count with the thousands set apart by a dot, as the app writes money and as the person reads it: 1.248. */
 export const groupDigits = (count: number) => String(Math.trunc(count)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');

@@ -12,7 +12,7 @@ import { sys } from '../system/tokens';
 
 /** An explicit read opens an owned existing case or a new unsent form.
  * The route contains only an opaque reference, never a narrative or snapshot. */
-export function SupportContextEntry({ reference, label = 'Otvori podršku', disabled = false, canAct = () => true,
+export function SupportContextEntry({ reference, label = 'Otvorite podršku', disabled = false, canAct = () => true,
   navigate = action => action(), previewText }: { reference: SupportReference; label?: string; disabled?: boolean; previewText?: string;
     canAct?: () => boolean; navigate?: (action: () => void) => void }) {
   const { user, accountRevision } = useSesija(), accountId = user?.id ?? '';
@@ -56,7 +56,7 @@ export function SupportContextEntry({ reference, label = 'Otvori podršku', disa
       navigate(() => target ? router.push({ pathname: '/podrska/[id]', params: { id: target } })
         : router.push({ pathname: '/podrska/novi', params: { contextKind: bound.kind, contextId: bound.id,
           ...(bound.revision !== null ? { contextRevision: String(bound.revision) } : {}) } }));
-    } catch { if (current()) setError('Postojeći zahtev nije učitan. Proveri ponovo pre nastavka.'); }
+    } catch { if (current()) setError('Postojeći zahtev nije učitan. Proverite ponovo pre nastavka.'); }
     // A parent authority refresh invalidates this result, while the same screen
     // lease still owns its busy indicator. Release that indicator without using
     // the rejected result or updating another account/focus/context.
@@ -90,7 +90,7 @@ export function SupportMessagePreviewSheet({ previewText, busy, disabled, error,
 }) {
   return <ProductSheet title="Izabrana poruka za privatnu podršku" closeLabel="Odustani od izbora poruke" dismissible={!busy} onClose={onCancel}
     footer={dismiss => <>
-      <SettingsAction label="Nastavi sa izabranom porukom" loading={busy} disabled={disabled || busy} onPress={onContinue} />
+      <SettingsAction label="Nastavite sa izabranom porukom" loading={busy} disabled={disabled || busy} onPress={onContinue} />
       <SettingsAction label="Odustani od izbora poruke" kind="quiet" disabled={disabled || busy} onPress={dismiss} />
     </>}>
     {() => <View style={styles.preview}>

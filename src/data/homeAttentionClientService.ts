@@ -38,7 +38,7 @@ export function decodeHomeAttention(raw: unknown): HomeAttentionPreview | null {
       if (!sameId(row.agreementId, id) || row.applicationId !== null || row.applicationCount !== null || c.activeAgreements < 1) return null;
       const confirm = reason === 'AGREEMENT_CONFIRM_COMPLETION';
       rows.push({ id: `agreement:${id}:${confirm ? 'confirm' : 'problem'}`,
-        title: confirm ? 'Potvrdi završetak' : 'Prijavljen je problem',
+        title: confirm ? 'Potvrdite završetak' : 'Prijavljen je problem',
         taskTitle: row.taskTitle,
         detail: confirm ? 'Završetak je označen.' : 'Automatski završetak je zaustavljen.',
         target: { kind: 'AGREEMENT', agreementId: id } });

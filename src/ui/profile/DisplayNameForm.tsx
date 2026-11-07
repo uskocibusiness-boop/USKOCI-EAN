@@ -46,10 +46,10 @@ export function DisplayNameForm(p: { savedName: string; /** The name already typ
     <T variant="meta" tone="muted">Ime za prikaz</T>
     <TextInput accessibilityLabel="Ime za prikaz" autoComplete="name" textContentType="name" value={name} maxLength={200}
       editable={!p.busy && !p.uncertain} onChangeText={value => { request.current = null; setName(value); }} style={field} />
-    {reconcile ? <SettingsAction label="Proveri sačuvane podatke" disabled={p.checking} onPress={p.check} />
+    {reconcile ? <SettingsAction label="Proverite sačuvane podatke" disabled={p.checking} onPress={p.check} />
       : unchanged ? null
         : inBar ? (reason ? <T variant="note" tone="muted">{reason}</T> : null)
-          : <SettingsAction label="Sačuvaj ime" loading={p.busy} disabled={disabled} reason={reason} onPress={send} />}
+          : <SettingsAction label="Sačuvajte ime" loading={p.busy} disabled={disabled} reason={reason} onPress={send} />}
     {p.saved && unchanged ? <T accessibilityLiveRegion="polite">Ime je sačuvano.</T> : null}
     {p.error ? <T accessibilityRole="alert" tone="danger">{p.error}</T> : null}
   </View>;

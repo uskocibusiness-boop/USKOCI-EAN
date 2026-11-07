@@ -237,7 +237,7 @@ function SentReceipt({ fresh, price, hourly, title, people, time, timeNote, mess
       {/* Announced when it has just happened; reopened on a send already confirmed it is the screen's heading. */}
       <T accessibilityRole={fresh ? 'alert' : 'header'} variant="title" style={s.centred}>Prijava je poslata.</T>
       {/* The state the application wears in "Moje prijave" from now on is the chip above, so the receipt and the list say one word; the way on says where it is. */}
-      <T variant="copy" tone="muted" style={s.centred}>Ako te izaberu, odmah nastaje Dogovor.</T>
+      <T variant="copy" tone="muted" style={s.centred}>Ako Vas izaberu, odmah nastaje Dogovor.</T>
     </View>
     <Surface kind="panel" testID="sent-receipt" style={s.receipt}>
       <KeyValueRow label="Zadatak" value={title} />
@@ -320,7 +320,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
     if (!disabled && canSubmit && !reviewing && !issue.reason) { Keyboard.dismiss(); setReview({ key: reviewKey }); }
   };
   // Every green action is label-only, as the brand action is drawn everywhere else (r6: two of them carried a glyph).
-  const primary = confirmed ? <V2Action label="Otvori moje prijave" onPress={openApplications} style={brandAction} />
+  const primary = confirmed ? <V2Action label="Otvorite moje prijave" onPress={openApplications} style={brandAction} />
     : uncertain ? <V2Action label="Proverite da li je poslato" onPress={refresh} disabled={busy} style={brandAction} />
     // A known refusal cannot be undone by repeating the same command: the one way on is a new application on fresh terms.
     : reset ? <V2Action label="Sastavi novu prijavu" onPress={reset} disabled={busy} style={brandAction} />

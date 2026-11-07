@@ -41,7 +41,7 @@ export function DiscoveryChipRow({ forMeAvailable = false, scope = 'all', onScop
     accessibilityLabel="Brzi filteri" style={s.rail} contentContainerStyle={s.chips}>
     {onsite ? <Capsule key={onsite.key} label={onsite.label} selected={onsite.selected} hint={onsite.hint} onPress={onsite.onPress} /> : null}
     {remote ? <Capsule key={remote.key} label={remote.label} selected={remote.selected} removable={remote.removable} hint={remote.hint} onPress={remote.onPress} /> : null}
-    {forMeAvailable ? <Capsule testID="chip-for-me" label={FOR_ME} selected={scope === 'forMe'} hint="Zadaci koji odgovaraju tvom radnom profilu."
+    {forMeAvailable ? <Capsule testID="chip-for-me" label={FOR_ME} selected={scope === 'forMe'} hint="Zadaci koji odgovaraju Vašem radnom profilu."
       onPress={() => onScope?.(scope === 'forMe' ? 'all' : 'forMe')} /> : null}
     {chips.filter(chip => chip.key !== remote?.key && chip.key !== onsite?.key).map(chip => <Capsule key={chip.key} label={chip.label} selected={chip.selected} removable={chip.removable} hint={chip.hint} onPress={chip.onPress} />)}
   </ScrollView>;

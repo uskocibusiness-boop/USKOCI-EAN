@@ -12,7 +12,8 @@ import { V2Action } from '../v2/V2Action';
 export function ApplicationServiceOffer({ input, openProfile }: {
   input: ApplicationServiceIntent; openProfile: () => void;
 }) {
-  const owner = useMemo(() => ({ input: { ...input }, focused: false, generation: 0, busy: false }),
+  const owner = useMemo(() => ({ input: { ...input }, focused: false, generation: 0, busy: false,
+    checkOnIdle: false, cancelWait: null as (() => void) | null }),
     [input.accountId, input.accountRevision, input.applicationId, input.needId, input.profileId]);
   const [value, setValue] = useState<ApplicationServiceResult | null>(null);
   const [busy, setBusy] = useState(false);
@@ -21,13 +22,18 @@ export function ApplicationServiceOffer({ input, openProfile }: {
   const [alreadyPresent, setAlreadyPresent] = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
   const mounted = useRef(false);
-  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const current = (generation: number) => mounted.current && owner.focused && owner.generation === generation
+  const activeOwner = useRef(owner);
+  activeOwner.current = owner;
+  const current = (generation: number) => activeOwner.current === owner && mounted.current && owner.focused && owner.generation === generation
     && applicationServiceAccountCurrent(owner.input);
 
   const act = async (add: boolean) => {
     const generation = owner.generation;
-    if (!current(generation) || owner.busy) return;
+    if (!current(generation)) return;
+    // A fast blur/focus can happen before an old read or Save settles. Queue one
+    // read-only check, but never release the real in-flight writer or replay consent.
+    if (owner.busy) { if (!add) owner.checkOnIdle = true; return; }
+    owner.checkOnIdle = false;
     owner.busy = true; setBusy(true); setUncertain(true); setError(null);
     try {
       let result = await applicationServiceClientService.read(owner.input, add);
@@ -45,7 +51,13 @@ export function ApplicationServiceOffer({ input, openProfile }: {
       for (let attempt = 0; attempt < 4 && result.ok && result.podatak.state === 'SAVED'; attempt++) {
         if (!current(generation)) return;
         await new Promise<void>(resolve => {
-          pollTimer.current = setTimeout(() => { pollTimer.current = null; resolve(); }, 1200);
+          const finish = () => {
+            clearTimeout(timer);
+            if (owner.cancelWait === finish) owner.cancelWait = null;
+            resolve();
+          };
+          const timer = setTimeout(finish, 1200);
+          owner.cancelWait = finish;
         });
         if (!current(generation)) return;
         result = await applicationServiceClientService.read(owner.input);
@@ -66,16 +78,23 @@ export function ApplicationServiceOffer({ input, openProfile }: {
       if (current(generation)) { setError('Trenutno ne možemo da potvrdimo dodavanje. Pokušajte ponovo.'); setUncertain(true); }
     } finally {
       owner.busy = false;
-      if (mounted.current && owner.focused && applicationServiceAccountCurrent(owner.input)) setBusy(false);
+      if (current(owner.generation)) {
+        if (owner.checkOnIdle) { owner.checkOnIdle = false; void act(false); }
+        else setBusy(false);
+      }
     }
   };
   useFocusEffect(useCallback(() => {
     mounted.current = true; owner.focused = true; owner.generation++;
+    setUncertain(true);
     // The same response ID locates a prepared/saved result after cold start.
     void act(false);
     return () => {
-      if (pollTimer.current !== null) { clearTimeout(pollTimer.current); pollTimer.current = null; }
       owner.focused = false; owner.generation++; mounted.current = false;
+      owner.checkOnIdle = false;
+      // Clearing a timer alone strands its awaited Promise and owner.busy forever.
+      // Settle the local wait after invalidating this focus; it cannot send a write.
+      owner.cancelWait?.();
     };
     // Owner identity, not a render or state update, opens this read.
     // eslint-disable-next-line react-hooks/exhaustive-deps

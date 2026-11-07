@@ -161,7 +161,7 @@ function NewContents({ model, initialReference, initialTopic, preset, readAgreem
     try { const result = await readAgreements();
       if (!current()) return;
       setChoices(result.filter(item => uuid(item.id) && positiveInteger(item.verzija))); setChoicePage(0);
-    } catch { if (current()) setChoiceError('Dogovori nisu učitani. Pokušaj ponovo.'); }
+    } catch { if (current()) setChoiceError('Dogovori nisu učitani. Pokušajte ponovo.'); }
     finally { if (current()) setChoosing(false); }
   }
   // The words exist only in memory: leaving with some asks first. An unsent form with nothing typed leaves at once.
@@ -169,7 +169,7 @@ function NewContents({ model, initialReference, initialTopic, preset, readAgreem
     if (!current()) return;
     const discardAndLeave = () => { clearSupportNewDraft(draftScope); go(); };
     if (guarded) confirm.ask({ title: 'Odbaciti zahtev?', message: 'Uneti tekst neće biti sačuvan.',
-      confirmLabel: 'Odbaci', cancelLabel: 'Nastavi pisanje', tone: 'danger', onConfirm: discardAndLeave });
+      confirmLabel: 'Odbacite', cancelLabel: 'Nastavite pisanje', tone: 'danger', onConfirm: discardAndLeave });
     else discardAndLeave();
   };
   // The question may outlive the render that asked it (a reload that settles while it is open), so its answer leaves
@@ -206,14 +206,14 @@ function NewContents({ model, initialReference, initialTopic, preset, readAgreem
   const messageTone = supportMessageTone(state);
   // A grey send says why in the foot's own line ABOVE it, where it reads as the cause and not as the next thing (owner's phone, 8 Oct 2026: it stood under the button).
   return <SupportFrame title="Novi zahtev" onBack={leave} footerReason={hideForm ? null : missing} footer={hideForm ? undefined
-    : <SettingsAction label="Pošalji privatni zahtev" loading={sending} disabled={disabled || !valid} onPress={send} />}>
+    : <SettingsAction label="Pošaljite privatni zahtev" loading={sending} disabled={disabled || !valid} onPress={send} />}>
     <SupportRecoveryPanel model={model} receipt={false} />
     {state.phase === 'LOADING' && hideForm ? <SupportLoading />
       : state.phase === 'ERROR' && hideForm ? <StateView kind="error" title="Stanje zahteva nije učitano" body={state.message ?? undefined}
-        quiet={{ label: 'Proveri dostupnost', onPress: () => { if (model.current()) void controller?.load(); } }} />
+        quiet={{ label: 'Proverite dostupnost', onPress: () => { if (model.current()) void controller?.load(); } }} />
       : state.phase === 'ERROR' ? <>
         {state.message ? <SupportNote tone="danger">{state.message}</SupportNote> : null}
-        <SettingsAction label="Proveri dostupnost" kind="quiet" onPress={() => { if (model.current()) void controller?.load(); }} />
+        <SettingsAction label="Proverite dostupnost" kind="quiet" onPress={() => { if (model.current()) void controller?.load(); }} />
       </> : supportMessageShown(state) ? <SupportNote tone={messageTone === 'success' ? 'info' : messageTone}>{state.message}</SupportNote> : null}
     <View style={hideForm ? s.hidden : s.form}>
       <SupportPrivacy />
@@ -231,15 +231,15 @@ function NewContents({ model, initialReference, initialTopic, preset, readAgreem
       </SettingsGroup>
       {requiresAgreement ? <SettingsGroup title="Dogovor na koji se zahtev odnosi"><View style={s.inCard}>
         {context?.kind === 'AGREEMENT' ? <T variant="bodyStrong">{contextTitle ?? 'Izabran Dogovor'}</T>
-          : <T tone="muted">Izaberi jedan od svojih Dogovora.</T>}
+          : <T tone="muted">Izaberite jedan od svojih Dogovora.</T>}
         <T variant="note" tone="muted">Podrška dobija izabrani Dogovor i osnovne podatke o njemu. Razgovor se ne kopira automatski.</T>
-        <SettingsAction label="Izaberi Dogovor" kind="quiet" loading={choosing} disabled={disabled} onPress={() => { void loadAgreements(); }} />
+        <SettingsAction label="Izaberite Dogovor" kind="quiet" loading={choosing} disabled={disabled} onPress={() => { void loadAgreements(); }} />
         {choiceError ? <T variant="note" accessibilityRole="alert" tone="danger">{choiceError}</T> : null}
         {/* Choosing this topic with no agreements made the send button unreachable, with nothing anywhere saying why:
             the requirement is stated here and the way out is beside it. */}
         {choices && !choices.length ? <>
-          <T>Ova tema traži Dogovor, a ti još nemaš nijedan.</T>
-          <SettingsAction label="Izaberi drugu temu" kind="quiet" disabled={disabled}
+          <T>Ova tema traži Dogovor, a Vi još nemate nijedan.</T>
+          <SettingsAction label="Izaberite drugu temu" kind="quiet" disabled={disabled}
             onPress={() => { if (current() && !disabled) { setTopic('OTHER'); setContext(null); setContextTitle(null); setChoices(null); } }} />
         </> : null}
       </View></SettingsGroup> : null}
@@ -250,8 +250,8 @@ function NewContents({ model, initialReference, initialTopic, preset, readAgreem
         <View style={s.inCard}>
           {contextNote ? <T variant="note" tone="muted">Uz zahtev se šalje ovaj kontekst. Ostali razgovori i privatni podaci nisu automatski priloženi.</T> : null}
           {selectedEvidence ? <>
-            <T variant="note" tone="muted">Prilaže se samo namerno izabrana poruka, čak i ako zahtev povežeš sa Dogovorom.</T>
-            <SettingsAction label="Ukloni izabranu poruku iz zahteva" kind="quiet" disabled={disabled}
+            <T variant="note" tone="muted">Prilaže se samo namerno izabrana poruka, čak i ako zahtev povežete sa Dogovorom.</T>
+            <SettingsAction label="Uklonite izabranu poruku iz zahteva" kind="quiet" disabled={disabled}
               onPress={() => { if (current() && !disabled) {
                 if (context?.kind === selectedEvidence.kind && context.id === selectedEvidence.id) setContext(null);
                 setSelectedEvidence(null);
@@ -262,14 +262,14 @@ function NewContents({ model, initialReference, initialTopic, preset, readAgreem
       {topic === 'PRIVACY_RIGHTS' ? <View style={s.rights}>
         <SupportNote>Ovde možeš da pošalješ zahtev u vezi sa svojim pravima. Slobodna poruka ne izvršava izvoz ili zatvaranje naloga.</SupportNote>
         {/* This screen starts empty on its next focus, so leaving it here with typed words asks first, as Back does. */}
-        <SettingsAction label="Otvori izvoz i zatvaranje naloga" kind="quiet" disabled={disabled}
+        <SettingsAction label="Otvorite izvoz i zatvaranje naloga" kind="quiet" disabled={disabled}
           onPress={() => discard(() => exits.current.navigate(() => router.push('/profil/privatnost')))} />
       </View> : null}
       <SupportField label="Kratak naslov" value={title} onChange={value => { if (current() && !disabled) setTitle(value); }} maximum={200} disabled={disabled} />
       <SupportField label="Opis zahteva" value={body} onChange={value => { if (current() && !disabled) setBody(value); }} maximum={4000} multiline disabled={disabled} />
       <SupportField label="Željeni ishod" value={desired} onChange={value => { if (current() && !disabled) setDesired(value); }} maximum={1000} multiline optional disabled={disabled} />
     </View>
-    {choices && choices.length ? <ProductSheet title="Tvoji Dogovori" onClose={() => { if (alive.current) setChoices(null); }}>
+    {choices && choices.length ? <ProductSheet title="Vaši Dogovori" onClose={() => { if (alive.current) setChoices(null); }}>
       {dismiss => <View>
         {/* The agreed time under the title, as the Dogovor itself shows it: two Dogovori with one title differ by it. */}
         {page.map((item, index) => <SettingsRow key={item.id} label={item.naslov || 'Dogovor'} detail={item.vremeTekst || undefined}

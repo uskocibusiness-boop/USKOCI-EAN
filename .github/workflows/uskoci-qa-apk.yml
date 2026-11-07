@@ -19,6 +19,9 @@ jobs:
   qa-apk:
     if: github.ref == 'refs/heads/work/uskoci-cist-proizvod-20261104'
     runs-on: ubuntu-latest
+    outputs:
+      ux_tests: ${{ steps.source_checks.outputs.ux_tests }}
+      apk_artifact: ${{ steps.apk_upload.outputs.artifact-id }}
     timeout-minutes: 60
     env:
       CI: '1'
@@ -65,7 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/uskoci-test-runtime"
-          tar -czf "$RUNNER_TEMP/uskoci-test-runtime/runtime.tar.gz" node_modules/react node_modules/react-test-renderer node_modules/react-is node_modules/scheduler node_modules/typescript
+          tar -czf "$RUNNER_TEMP/uskoci-test-runtime/runtime.tar.gz" node_modules/react node_modules/react-test-renderer node_modules/react-is node_modules/scheduler node_modules/typescript node_modules/@electric-sql/pglite node_modules/@supabase
           sha256sum package-lock.json > "$RUNNER_TEMP/uskoci-test-runtime/lock.sha256"
           git rev-parse HEAD > "$RUNNER_TEMP/uskoci-test-runtime/source-commit.txt"
       - name: Upload bounded test runtime
@@ -76,13 +79,22 @@ jobs:
           if-no-files-found: error
           retention-days: 3
       - name: Verify the active clean source
+        id: source_checks
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/uskoci-checks"
+          node scripts/record-ux-checkpoint.cjs --verify-source
           npm test 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/tests.tap"
           npx tsc --noEmit 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/typescript.txt"
           sh supabase/migrations/check_md5.sh 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/migration-integrity.txt"
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const tap = fs.readFileSync(process.env.RUNNER_TEMP + '/uskoci-checks/tests.tap', 'utf8');
+          const tests = tap.match(/^# tests (\d+)$/m), failed = tap.match(/^# fail (\d+)$/m);
+          if (!tests || !failed || failed[1] !== '0') throw Error('UX_TEST_EVIDENCE_INVALID');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'ux_tests=' + tests[1] + '\n');
+          NODE
       - name: Upload source check results
         if: always()
         uses: actions/upload-artifact@v4
@@ -194,9 +206,35 @@ jobs:
           NODE
           printf 'Temporary side-by-side ARM64 QA APK only. Embedded source only; OTA disabled. New package/signing; NOT the signed EAS preview, NOT production/store, NO push or device-install proof.\n' > artifacts/qa-apk/README.txt
       - name: Upload installable APK and bounded receipt
+        id: apk_upload
         uses: actions/upload-artifact@v4
         with:
           name: uskoci-isolated-qa-apk-${{ github.run_number }}
           path: artifacts/qa-apk/
           if-no-files-found: error
           retention-days: 7
+
+  # Isolated documentation-only writer. The build job stays contents:read.
+  # No npm/dependency commands run here, and its token is not stored by checkout.
+  # The recorder pins the original master blob and refuses concurrent movement.
+  record-ux-checkpoint:
+    needs: qa-apk
+    if: needs.qa-apk.result == 'success' && github.ref == 'refs/heads/work/uskoci-cist-proizvod-20261104'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Save verified evidence in the existing execution master
+        run: node scripts/record-ux-checkpoint.cjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UX_CI_TESTS: ${{ needs.qa-apk.outputs.ux_tests }}
+          UX_APK_ARTIFACT: ${{ needs.qa-apk.outputs.apk_artifact }}

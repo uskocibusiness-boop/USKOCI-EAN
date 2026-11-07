@@ -1,0 +1,216 @@
+{
+  "schema": "USKOCI_UX_IMPLEMENTATION_20261107",
+  "sourceBase": "f9e13ed5020a786ba6e0963dfd5de87eba3e3245",
+  "runtimeBase": "bc9dab1c4cf2ab07e5cd088b57f4465d283604e0",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "expectedPlanBlob": "8850410ea6b41eb024955acf1153bb8c031f536f",
+  "createdAt": "2026-11-07T20:56:10.880665+00:00",
+  "minimumExpectedActiveTests": 761,
+  "sourceFileSha256": {
+    ".github/workflows/uskoci-qa-apk.yml": "69b23ab0e289ef70bf6a066f05945d6a70ffbcabead12be84383f94b4c36269e",
+    "eas.json": "0b9e544ebfae0834ba695a5422f0158866787c8812d1b2dbacc4d35b50fe3b59",
+    "package.json": "3c05a84408da81ae4835b5cc65ff5a1c1835384ca76ef51789c94d9dd5bc8944",
+    "scripts/record-ux-checkpoint.cjs": "f78e9a8ebf929de57129e4203a989e39a94917bfd52113997237ed765fd50d26",
+    "scripts/ux-agreement-search.test.cjs": "188fdb42f2d566cb292a31d91bc51be86fe13ebb56e88ac93fa46b165001e3bf",
+    "scripts/ux-application-service-focus.test.cjs": "56bbafcc960e8f4675cc89a1afe320253242c5bcd549c0e238501fe775a83200",
+    "scripts/ux-checkpoint.test.cjs": "b71bfe7561c49f7dabcd99d489fca7394512536ea7f07e2c378584a263502ca3",
+    "scripts/ux-component-harness.cjs": "e5f82691f60b7ef21aeefd64477b6a62d4398ca5e403276a7c3eb94a6b2a7772",
+    "scripts/ux-discovery-for-me.test.cjs": "23a8500515cd9b906cb1fb4694b381449bde1fd6a789e0c5cb397e3011ef4fb6",
+    "scripts/ux-home-waiting.test.cjs": "6501bd4cb1a5bf9318fd5d2230dd1a447c7658ae78d7c2f5acbeaac2725f7d67",
+    "scripts/ux-navigation-copy.test.cjs": "3c44fd0614da7cf91432de916f1ae5eddc12b24f9856a443385e42a024ff8954",
+    "scripts/ux-saved-availability.test.cjs": "c8dd400bfe60e03eaeef7ff024e9f99d7ac2d196f8ec3593a946318ffcfa5ca6",
+    "src/app/(app)/arhiva.tsx": "7f394d6d1a715fafd46ddc832bddf365d35620668a3ceac758954aec04a1b257",
+    "src/app/(app)/dogovori.tsx": "16277b0c8d2b2363b73108134881d4d5fc23c0016430faa8191ae2c7c759b0b3",
+    "src/app/(app)/index.tsx": "741265a7f85149a4c60b8205e4d21ee257891506964526e3a8fc42300de19f66",
+    "src/app/(app)/profil/radnik.tsx": "d807c89cc5fbfa77f51ff2d4b904b5dc08649538bba6af0374155389062c93a6",
+    "src/app/(app)/raspored.tsx": "86dab87cdb3c2d4664feb64a61a5107eecb89c9512db8ab79bb8881c994eb63d",
+    "src/app/auth.tsx": "a0c81ea616cd5e4b745011b70327a78ff1f36c0be23b7cd11d2395dc5c9f3a9b",
+    "src/data/homeAttentionClientService.ts": "503e5f4c09cf73ea7a242476ad223dbaa5c04db5a8eba4bfaa319f312f6d03cd",
+    "src/data/homeSnapshot.ts": "5aa2df949466699e0bf09b3d6c9400712e4da84df5c8376ff57dbb93e2d93084",
+    "src/hooks/useWorkerAvailability.ts": "d57cd4fba056c5fbd3abf6e602da068d2cf42547786c5aa1d125eaedf8b48a15",
+    "src/ui/agreements/AgreementListCard.tsx": "6a92cbf2cbb3da6ae30baf49a4108a12db74939dc61018d4fa6f047ebd1ac8ab",
+    "src/ui/agreements/agreementSearch.ts": "4ccca909d313ac6498a246195adc7ab9949aba900acbcaf28139ba8e7fb5af77",
+    "src/ui/agreements/optionalReadScope.ts": "7b603aab87ebb2854508283878cc9125c95ee12ad9cfb31d9902676a979bd90f",
+    "src/ui/calendar/AgendaScreen.tsx": "6cb003b0ab53497fac215a7bf32ce0e35fe2fbd3d541ff8a2a1f025845baeffc",
+    "src/ui/home/HomePresentation.tsx": "60d6120b19548b50098ab49d347ad23a7d0e59cfe44e149dd727fa528fc0f64d",
+    "src/ui/home/HomeWaitingPanel.tsx": "5ab5ec5206ff2958962a54bcec5605a162b53c8b6aa4888db4c483c6c9b1f37d",
+    "src/ui/profile/DisplayNameForm.tsx": "9d0b2fc0b936ae117dff7daadb083f4f4d4684d4156932616b167378078c359e",
+    "src/ui/profile/ProfileHubPresentation.tsx": "d729db30a84122dbf3cc49ec16a537458bef78f872fb1a277af3664b70fdbf08",
+    "src/ui/support/SupportContextEntry.tsx": "3feee24d65a792c77f5f14ff2002872daa6dbb526a4f3e803352eb2e4c066383",
+    "src/ui/support/SupportDetailScreen.tsx": "19a144fcc190e0bd0164ff2499d896b2101bd1bbc0838d0d46f1b14edd253b50",
+    "src/ui/support/SupportInboxScreen.tsx": "714bd7a67f5be279e7c654c1527a9bbc6db8f9177b167db6512b4ebbaf16720d",
+    "src/ui/support/SupportNewScreen.tsx": "ad4dc9f34dccf357bdf03fd3a82232b5146fae20c3146f21d25d3b58c4205694",
+    "src/ui/support/SupportPresentation.tsx": "29d581d37a7e9afa2d06377af6b8691911d7e80c5a1311a895cf9cf125daf6fb",
+    "src/ui/support/SupportRecoveryPanel.tsx": "c976326a2c9e6dda3dbdedf43f4f45d2d7f49b51ab4f659c03455a8b1c6a373c",
+    "src/ui/v2/AgreementCollectionPresentation.tsx": "9a9f2ae9d9b615c15dc6ae5cbba9c56875d0d17b334a5591665c1cb7aace3ad5",
+    "src/ui/v2/ApplicationComposerPresentation.tsx": "64e8869430d460fa38e4d898e668e41662732fd9793f2737613e7bbfd618d45d",
+    "src/ui/v2/discovery/DiscoveryChipRow.tsx": "0ce2c81c67a907261ea61d71500c3d06c29ce1223bd8b6585d5855a9447bb337",
+    "src/ui/v2/discovery/DiscoveryListState.tsx": "0aa872802c515e5deacb390d518960c5c97d86a992ffbbd1a28f78e0d9a9fa8e",
+    "src/ui/v2/discovery/DiscoverySearchPanel.tsx": "ea1d1f93d8382e707ddbc58bb7409043a69209f0fc8d5ff5e4ec8e21d5537f04",
+    "src/ui/v2/discovery/discoveryWords.ts": "e83ac1841f2cf506ddc5a1025ebc1ce9e7df0dcc799a589241f7c653dfcd2345",
+    "src/ui/workerProfile/ApplicationServiceOffer.tsx": "1d601b506b805d68b575a8fe0d1457253e171c88177c312c1a72c06806ed270a",
+    "src/ui/workerProfile/SavedAvailability.tsx": "771f1d4bbce08c15cb7abfd5d9a0c4a9ee730ba869019c83f9e35ccf58d3d56b",
+    "src/ui/workerProfile/WorkerProfilePresentation.tsx": "e9542464f4f4742584c8265bfd8dae0c35f37266e81296235f13658eb2cb4a22",
+    "src/ui/workerProfile/WorkerProfileSaved.tsx": "d4c96dc4346a4486f99ed2f485e72a3856eaef156061d32d5357dc9bd04a977d"
+  },
+  "findings": [
+    {
+      "id": "UX01",
+      "status": "SOURCE IMPLEMENTIRANO / TESTIRANO",
+      "fix": "Prekid čekanja pri izlasku više ne ostavlja dodavanje usluge zauzetim; povratak pokreće samo proveru, nikad ponovni upis.",
+      "boundary": "11 testova; native blur/restart nije potvrđen."
+    },
+    {
+      "id": "UX02",
+      "status": "SOURCE IMPLEMENTIRANO / TESTIRANO",
+      "fix": "Preview/QA koristi postojeći P6 čitač i kapsulu Za mene; lista/mapa čuvaju isti filter/anchor, REMOTE nema lažnu geografiju, publication handoff ostaje zaseban.",
+      "boundary": "16 novih testova i postojeći R05 paket; produkcija ostaje isključena, novi ordinary Auth/native prihvat nije izvršen."
+    },
+    {
+      "id": "UX03",
+      "status": "DELIMIČNO — SOURCE IMPLEMENTIRANO / TESTIRANO",
+      "fix": "Mrtav tekst za dodatne obaveze zamenjen je prolaznim panelom sa učitanim akcijama, svim poznatim dodatnim predlozima i direktnim ulazima u tri postojeća domena.",
+      "boundary": "9 testova; postojeći server šalje samo 3 stavke. Panel otvoreno prikazuje broj neprikazanih obaveza; puni paginirani spisak nije završen."
+    },
+    {
+      "id": "UX04",
+      "status": "SOURCE IMPLEMENTIRANO / TESTIRANO",
+      "fix": "Radni profil čita i prikazuje sačuvane dane, sate, period, pauzirana pravila i posebne prozore u njihovoj vremenskoj zoni, bez AI poziva.",
+      "boundary": "13 testova vlasništva, kasnih rezultata i UI stanja; novi hosted/native prihvat nije izvršen."
+    },
+    {
+      "id": "UX05",
+      "status": "SOURCE IMPLEMENTIRANO / TESTIRANO",
+      "fix": "Raspored vodi na Prethodne saradnje; stara /arhiva adresa je kompatibilno preusmeravanje u Dogovore, bez tri paralelna privatna čitanja.",
+      "boundary": "Stari link ostaje; nema brisanja istorijskih podataka. Native Back treba proveriti."
+    },
+    {
+      "id": "UX06",
+      "status": "SOURCE IMPLEMENTIRANO / TESTIRANO",
+      "fix": "Dogovori imaju pretragu po naslovu, drugoj osobi i već prikazanom mestu, latinicom/ćirilicom; uloga, ishod, grupa, pogođeni član i scroll kontekst očuvani.",
+      "boundary": "18 testova; ne indeksiraju se tačna adresa, telefon, koordinate, poruke ili skriveni ID-jevi. Native tastatura/Back ostaju."
+    },
+    {
+      "id": "UX07",
+      "status": "SOURCE IMPLEMENTIRANO / TESTIRANO",
+      "fix": "Filter kaže Sa navedenom cenom; MY_PRICE, iznos, osnovica, valuta i broj ljudi nisu promenjeni.",
+      "boundary": "Zajedno sa UX05/08 šest ciljanih testova navigacije/tekstova; vizuelni native prihvat ostaje."
+    },
+    {
+      "id": "UX08",
+      "status": "SOURCE IMPLEMENTIRANO / TESTIRANO",
+      "fix": "Pregledani aktivni ulazi koriste Radni profil; uklonjeni su naziv profil majstora i neformalni imperativi u pregledanim Auth/prijava/podrška/profil tekstovima.",
+      "boundary": "Ograničen pregled konkretnih aktivnih tekstova, ne tvrdnja da je svaki istorijski tekst projekta usklađen."
+    }
+  ],
+  "localTests": {
+    "newPassed": 78,
+    "newFailed": 0,
+    "offlineIntegratedPassed": 526,
+    "offlineIntegratedFailed": 0,
+    "scope": {
+      "selected": [
+        "scripts/product-smoke.test.cjs",
+        "scripts/voice-recovery-ownership.test.cjs",
+        "scripts/context-cache-matrix.test.cjs",
+        "scripts/taxonomy-compact-bypass.test.cjs",
+        "scripts/ai-role-handoff.test.cjs",
+        "scripts/need-currency-guard.test.cjs",
+        "scripts/location-grant-failclosed.test.cjs",
+        "scripts/r07-price-invalidation-sql.test.cjs",
+        "scripts/ai-classification-feedback.test.cjs",
+        "scripts/r07-pricing-semantics.test.cjs",
+        "scripts/r07-agreement-snapshot.test.cjs",
+        "scripts/r07-application-receipt.test.cjs",
+        "scripts/r07-application-recovery.test.cjs",
+        "scripts/production-build-guard.test.cjs",
+        "scripts/ai-stream-display.test.cjs",
+        "scripts/conversation-intent-server.test.cjs",
+        "scripts/conversation-intent-integration.test.cjs",
+        "scripts/worker-availability-intent.test.cjs",
+        "scripts/speech-provider-accounting.test.cjs",
+        "scripts/review-publication-client.test.cjs",
+        "scripts/worker-output-diagnostic.test.cjs",
+        "scripts/media-handler-admission.test.cjs",
+        "scripts/r06-reconciliation-qa-usage.test.cjs",
+        "scripts/r07-selection-recovery.test.cjs",
+        "scripts/r07-selection-cold-restart.test.cjs",
+        "scripts/supabase-key-compatibility.test.cjs",
+        "scripts/ai-budget-client-recovery.test.cjs",
+        "scripts/ux-application-service-focus.test.cjs",
+        "scripts/ux-saved-availability.test.cjs",
+        "scripts/ux-agreement-search.test.cjs",
+        "scripts/ux-discovery-for-me.test.cjs",
+        "scripts/ux-home-waiting.test.cjs",
+        "scripts/ux-navigation-copy.test.cjs",
+        "scripts/ux-checkpoint.test.cjs"
+      ],
+      "unavailable": [
+        "scripts/ai-review-expiry.test.cjs",
+        "scripts/qa-credential-boundary.test.cjs",
+        "scripts/r01-needs-projection.test.cjs",
+        "scripts/r05-discovery-contract.test.cjs",
+        "scripts/r06-budget-accounting.test.cjs",
+        "scripts/r06-first-plan-replay.test.cjs",
+        "scripts/r06-provider-dispatch-retention.test.cjs",
+        "scripts/r07-price-snapshot-sql.test.cjs",
+        "scripts/r07-selection-recovery-sql.test.cjs",
+        "scripts/r08-agreement-cancellation-sql.test.cjs",
+        "scripts/r08-blind-reviews-sql.test.cjs",
+        "scripts/r08-cancellation-reason-readback.test.cjs",
+        "scripts/r10-work-areas-projection.test.cjs"
+      ]
+    },
+    "initialIncompleteAttempt": {
+      "passed": 490,
+      "failedToExecute": 21,
+      "cause": "Missing @supabase/supabase-js and @electric-sql/pglite in the downloaded bounded runtime; not a pass and not confirmed application bugs."
+    },
+    "migrationFiles": 211,
+    "migrationIntegrityTests": 35,
+    "syntax": "Actual changed TS/TSX transpilation; full TypeScript awaits CI",
+    "diffCheck": "PASS"
+  },
+  "freshDevMetadata": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "Read-only pg_proc metadata only, no private user rows or Auth simulation",
+    "rpc_discovery_v1(jsonb)": "1cb5ece85a18972ca3ef827981733858",
+    "discovery_for_me_state_v1()": "bd4dcf16863e7564a5d82ac22aca1418",
+    "rpc_home_attention()": "f3bc12de53c96fb50f011350c6cb9c9d",
+    "discoveryDigestMatchesPreviouslyTestedCandidate": true
+  },
+  "sideEffects": {
+    "sqlMigrations": 0,
+    "edgeDeploys": 0,
+    "businessWrites": 0,
+    "paidAiCalls": 0,
+    "newBudget": false,
+    "productionChanges": false,
+    "nativeExecuted": false,
+    "subagentsAvailable": false
+  },
+  "ciChanges": {
+    "buildJobContents": "read",
+    "boundedRuntime": "Includes already locked PGlite and Supabase packages for offline verification; no dependency changes",
+    "separateDocumentationJob": "contents:write only in isolated no-npm job, exact master preimage plus source hashes, two fixed documentation paths, refuses moved branch/master, fast-forward only; no secret management or deployment",
+    "documentationWriterMaySkip": "If branch/master changed concurrently, does not overwrite and does not claim saved checkpoint"
+  },
+  "logs": {
+    "new": {
+      "bytes": 21418,
+      "sha256": "4269fa9a44f2bf76921a976b0ace0c9388f57bc35563c4a45dfa59ee940345de"
+    },
+    "offline": {
+      "bytes": 124874,
+      "sha256": "bbe3889319af5a67be43cc64f002a03084e794cbef05c3b13d9f07b31d100cb9"
+    },
+    "migrations": {
+      "bytes": 464,
+      "sha256": "b5decdbe2805feab7e41444648e6b0386c865b18153e470003ad6b22165bbec0"
+    },
+    "homeRecheck": {
+      "bytes": 3324,
+      "sha256": "71e62001ae606debd3e852d53304b985e69bf24b05e35da36eabcbc6ed7121fe"
+    }
+  }
+}

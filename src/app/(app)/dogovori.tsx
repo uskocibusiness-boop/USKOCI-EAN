@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScreenHeader } from '../../ui/system/ScreenHeader';
 import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { ChromeIconButton } from '../../ui/system/ScreenChrome';
-import { AppState, BackHandler } from 'react-native';
+import { AppState, BackHandler, Keyboard } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { NeedSearchState } from '../../contracts/needSearchRecovery';
@@ -14,6 +14,7 @@ import { izvorSada, useIzvor } from '../../store/uloga';
 import type { HistoryFilter, AgreementRoleFilter } from '../../ui/agreements/agreementListModel';
 import { visibleAgreementTaskGroups, cancelledIdsForVisibleAgreementGroups } from '../../ui/agreements/optionalReadScope';
 import { ownerCapacityNeedIds, sameOwnerTaskId } from '../../ui/agreements/ownerTaskCapacity';
+import { AGREEMENT_SEARCH_MAX_LENGTH } from '../../ui/agreements/agreementSearch';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../../ui/v2/AgreementCollectionPresentation';
 
 export default function Dogovori() {
@@ -30,21 +31,26 @@ function AgreementListSession() {
   const [confirmationOnly, setConfirmationOnly] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
   const [roleFilter, setRoleFilter] = useState<AgreementRoleFilter>('all');
+  const [searches, setSearches] = useState({ active: { query: '', open: false }, history: { query: '', open: false } });
+  const search = searches[section];
+  const changeSearch = (value: { query: string; open: boolean }) => setSearches(current => ({ ...current, [section]: value }));
   const [expandedTaskKey, setExpandedTaskKey] = useState<string | null>(null);
   // Previous collaborations are a child view, not a second root tab. Android
   // Back returns to the same list and filters before leaving Dogovori.
   useFocusEffect(useCallback(() => {
-    if (section !== 'history') return;
+    if (section !== 'history' && !search.open) return;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      setSection('active');
+      if (search.open) { Keyboard.dismiss(); setSearches(current => ({ ...current, [section]: { query: '', open: false } })); }
+      else setSection('active');
       return true;
     });
     return () => subscription.remove();
-  }, [section]));
+  }, [section, search.open]));
   // The profile's total means every role. Consume this explicit entry once so
   // back from a detail preserves filters and a later profile entry resets again.
   useEffect(() => {
     if (odeljak !== 'istorija') return;
+    setSearches(current => ({ ...current, history: { query: '', open: false } }));
     setSection('history'); setConfirmationOnly(false); setHistoryFilter('all'); setRoleFilter('all');
     router.setParams({ odeljak: undefined });
   }, [odeljak]);
@@ -62,11 +68,12 @@ function AgreementListSession() {
   // Retire private rows and callbacks synchronously, including a batched
   // background→foreground transition; returning creates a fresh owned read.
   return foreground.current.active ? <OwnedAgreements key={foreground.current.generation}
-    foreground={foreground.current} section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter} roleFilter={roleFilter}
+    search={search} onSearch={changeSearch} foreground={foreground.current} section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter} roleFilter={roleFilter}
     expandedTaskKey={expandedTaskKey} onExpandedTask={setExpandedTaskKey}
     onSection={setSection} onConfirmationOnly={setConfirmationOnly} onHistoryFilter={setHistoryFilter} onRoleFilter={setRoleFilter} /> : null;
 }
-function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter, roleFilter, expandedTaskKey, onExpandedTask, onSection, onConfirmationOnly, onHistoryFilter, onRoleFilter }: {
+function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter, roleFilter, expandedTaskKey, onExpandedTask, onSection, onConfirmationOnly, onHistoryFilter, onRoleFilter, search, onSearch }: {
+  search: { query: string; open: boolean }; onSearch: (value: { query: string; open: boolean }) => void;
   foreground: { active: boolean; generation: number }; section: AgreementCollectionSection; confirmationOnly: boolean; historyFilter: HistoryFilter; roleFilter: AgreementRoleFilter;
   onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void; onHistoryFilter: (value: HistoryFilter) => void; onRoleFilter: (value: AgreementRoleFilter) => void;
   expandedTaskKey: string | null; onExpandedTask: (key: string | null) => void;
@@ -128,8 +135,8 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
   // Query task-wide capacity only for groups this tab/filter can actually display.
   // The same grouping rules drive the rendered rows; switching tabs retires old results.
   const visibleGroups = useMemo(() => visibleAgreementTaskGroups(resource.data ?? [],
-    { section, confirmationOnly, historyFilter, roleFilter }),
-  [resource.data, section, confirmationOnly, historyFilter, roleFilter]);
+    { section, confirmationOnly, historyFilter, roleFilter, searchQuery: search.query }),
+  [resource.data, section, confirmationOnly, historyFilter, roleFilter, search.query]);
   const capacityIds = useMemo(() => ownerCapacityNeedIds(visibleGroups.flatMap(group => group.items)), [visibleGroups]);
   const capacityKey = capacityIds.join('|');
   const [capacities, setCapacities] = useState<{ key: string; value: ReadonlyMap<string, NeedSearchState>;
@@ -174,11 +181,15 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     return () => { live = false; };
   }, [cancelledKey, user?.id, accountRevision, scope, renderedReadGeneration, resource.data, resource.loading, resource.refreshing, resource.error, resource.refreshError]); // eslint-disable-line react-hooks/exhaustive-deps
   return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" showTitle onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />}
-    right={<ChromeIconButton glyph="calendar" label="Raspored" onPress={() => navigate(() => router.navigate('/raspored'))} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} refreshError={resource.refreshError} error={!!resource.error}
+    right={<>{search.open || search.query || !resource.loading && !resource.error && !!resource.data?.length ? <ChromeIconButton glyph="search"
+      label={search.open ? 'Zatvorite pretragu Dogovora' : 'Pretražite Dogovore'} active={search.open}
+      onPress={() => { if (current()) { if (search.open) Keyboard.dismiss(); onSearch(search.open ? { query: '', open: false } : { ...search, open: true }); } }} /> : null}<ChromeIconButton glyph="calendar" label="Raspored" onPress={() => navigate(() => router.navigate('/raspored'))} /></>} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} refreshError={resource.refreshError} error={!!resource.error}
     ownerCapacities={!resource.loading && !resource.refreshing && !resource.error && !resource.refreshError && current() && capacities?.key === capacityKey
       && capacities.scope === scope && capacities.generation === renderedReadGeneration && capacities.data === resource.data ? capacities.value : null}
     cancellations={!resource.loading && !resource.refreshing && !resource.error && !resource.refreshError && current() && cancellations?.key === cancelledKey && cancellations.scope === scope
       && cancellations.generation === renderedReadGeneration && cancellations.data === resource.data ? cancellations.value : null}
+    search={{ ...search, onChange: query => { if (current()) onSearch({ query: query.slice(0, AGREEMENT_SEARCH_MAX_LENGTH), open: true }); },
+      onToggle: () => { if (current()) onSearch(search.open ? { query: '', open: false } : { ...search, open: true }); } }}
     section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter} roleFilter={roleFilter}
     expandedTaskKey={expandedTaskKey} onExpandedTask={(key, witness) => { if (current() && shown(witness)) onExpandedTask(key); }}
     onSection={value => { if (current()) onSection(value); }}

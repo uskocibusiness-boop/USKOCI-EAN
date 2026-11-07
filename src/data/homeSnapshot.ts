@@ -87,6 +87,9 @@ export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; 
    * is none, so a snapshot without them is exactly the one it was before.
    */
   prompts?: HomeAttention[]; promptsMore?: number;
+  /** Same confirmed own-task/Agreement reads, retained for the on-demand Home panel.
+   * This is not a replacement for missing server attention or a new activity feed. */
+  allPrompts?: HomeAttention[];
   /** R20, R06: absent when the profile was not read; `unavailable` when its read failed (nothing is then said about it). */
   workerProfile?: HomeSection<HomeWorkProfile>;
   /** The two front doors. A side that could not be read is unavailable, never zero. */
@@ -249,14 +252,14 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
   const subject = (title: string) => { const text = readableTitle(title); return text ? { taskTitle: text } : {}; };
   const prompts: HomeAttention[] = [
     ...(agreements ?? []).filter(row => activeAgreement(row) && row.izmenaCeka && !row.izmenaCeka.mojPredlog).map(row => ({
-      id: `agreement:${row.id}:change`, title: 'Odgovori na predlog izmene', ...subject(row.naslov), detail: 'Druga strana predlaže izmenu uslova.',
+      id: `agreement:${row.id}:change`, title: 'Odgovorite na predlog izmene', ...subject(row.naslov), detail: 'Druga strana predlaže izmenu uslova.',
       target: { kind: 'AGREEMENT_CHANGE' as const, agreementId: row.id } })),
     ...(agreements ?? []).filter(needsTerm).map(row => ({
-      id: `agreement:${row.id}:term`, title: 'Predloži termin', ...subject(row.naslov), detail: 'Termin još nije dogovoren.',
+      id: `agreement:${row.id}:term`, title: 'Predložite termin', ...subject(row.naslov), detail: 'Termin još nije dogovoren.',
       target: { kind: 'AGREEMENT_TERM' as const, agreementId: row.id } })),
     ...(needs ?? []).filter(row => row.stanje === 'NACRT' && readableTitle(row.naslov)
       && draftIsFresh(row.azurirano, now)).slice(0, 1).map(row => ({
-      id: `need:${row.id}:draft`, title: 'Nastavi nacrt', ...subject(row.naslov), detail: 'Nacrt još nije objavljen.',
+      id: `need:${row.id}:draft`, title: 'Nastavite nacrt', ...subject(row.naslov), detail: 'Nacrt još nije objavljen.',
       target: { kind: 'NEED' as const, needId: row.id } })),
   ];
   const room = Math.max(0, HOME_WAITING_LIMIT - Math.min(attention.length, HOME_ATTENTION_LIMIT));
@@ -275,7 +278,7 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
     attention: attention.slice(0, HOME_ATTENTION_LIMIT), attentionMore: serverAttention
       ? serverAttention.kind === 'known' ? serverAttention.value.more : 0 : Math.max(0, attention.length - HOME_ATTENTION_LIMIT),
     ...(serverAttention ? { attentionState: serverAttention.kind } : {}),
-    ...(prompts.length ? { prompts: prompts.slice(0, room), ...(prompts.length > room ? { promptsMore: prompts.length - room } : {}) } : {}),
+    ...(prompts.length ? { allPrompts: prompts, prompts: prompts.slice(0, room), ...(prompts.length > room ? { promptsMore: prompts.length - room } : {}) } : {}),
     ...(workerProfile ? { workerProfile } : {}),
     agreements: agreements ? { kind: 'known', value: { rows: activeAgreements.slice(0, HOME_AGREEMENT_LIMIT),
       more: Math.max(0, activeAgreements.length - HOME_AGREEMENT_LIMIT), ...(quietLine ? { quietLine } : {}) } } : { kind: 'unavailable' },

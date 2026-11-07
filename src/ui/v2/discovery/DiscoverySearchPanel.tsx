@@ -67,7 +67,7 @@ export type DiscoveryV1SearchPanelSeam = {
 /** "Gde" at its "everything": no place, no map area, no single point. The words searched are another choice and stay. */
 const ANYWHERE = { place: null, area: null, pinPlace: null } as const satisfies Partial<SearchDraft>;
 const WORK_MODE_OPTIONS: readonly (readonly [WhereFilter, string])[] = [['onsite', 'Na lokaciji'], ['remote', 'Na daljinu'], ['any', 'Oba']];
-const PRICE_OPTIONS: readonly (readonly [MarketplaceView['price'], string])[] = [['all', 'Oba'], ['MY_PRICE', 'Fiksna cena'], ['OFFERS', 'Ponude']];
+const PRICE_OPTIONS: readonly (readonly [MarketplaceView['price'], string])[] = [['all', 'Oba'], ['MY_PRICE', 'Sa navedenom cenom'], ['OFFERS', 'Ponude']];
 
 /**
  * The search reached through Zadaci filters: the whole screen, the field "Šta tražiš" at the top with the keyboard up, and
@@ -328,7 +328,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
       where: p6Search && draft.where === 'remote' ? 'onsite' : draft.where === 'remote' ? 'any' : draft.where });
     const tasks = draft.query.trim() && counted && serverCurrent ? p6Search?.snapshot.tasks ?? [] : [];
     const header = <View style={s.searchHeader}>
-      <ChromeIconButton glyph="back" label="Zatvori pretragu" hint="Lista ostaje kakva je bila." quiet onPress={onCloseButton} />
+      <ChromeIconButton glyph="back" label="Zatvorite pretragu" hint="Lista ostaje kakva je bila." quiet onPress={onCloseButton} />
       <View style={s.grow}>
         <SearchField testID="search-what-field" inputRef={searchInput} value={draft.query} onChangeText={query => {
           setTyping(true); setWithin(''); if (!query) setCommittedQuery(''); edit({ query });
@@ -337,13 +337,13 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
       </View>
     </View>;
     return <SearchSheet key="search" reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} screen header={header} onShown={focusSearch}
-      title={SEARCH_WORDS.searchTitle} closeLabel="Zatvori pretragu" closeHint="Lista ostaje kakva je bila."
+      title={SEARCH_WORDS.searchTitle} closeLabel="Zatvorite pretragu" closeHint="Lista ostaje kakva je bila."
       footer={footer} onCloseButton={onCloseButton} onRequestClose={requestClose} onClosed={closed}>
       <ScrollView style={s.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.sections}>
         {onOpenTask && tasks.length ? <View testID="search-task-suggestions" style={s.recent}>
           <T variant="bodyStrong" accessibilityRole="header">Zadaci</T>
           {tasks.map(item => <Row key={item.id} art="tasks" text={item.title} note={[item.approximateArea, item.approximateCity].filter(Boolean).join(', ')}
-            label={`Otvori zadatak: ${item.title}${item.approximateCity ? `, ${item.approximateCity}` : ''}`} role="button" onPress={() => {
+            label={`Otvorite zadatak: ${item.title}${item.approximateCity ? `, ${item.approximateCity}` : ''}`} role="button" onPress={() => {
               const latest = taskState.current;
               if (!alive.current || leaving.value || !latest.serverCurrent || latest.serverKey !== serverKey
                 || latest.p6Search?.snapshot.status !== 'ready'
@@ -392,7 +392,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const section = (key: string, title: string, children: ReactNode) =>
     <FilterSection key={key} id={key} title={title}>{children}</FilterSection>;
   return <SearchSheet key="filters" reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} ratio={FILTERS_RATIO}
-    title={SEARCH_WORDS.filtersTitle} closeLabel="Zatvori filtere" closeHint="Lista ostaje kakva je bila."
+    title={SEARCH_WORDS.filtersTitle} closeLabel="Zatvorite filtere" closeHint="Lista ostaje kakva je bila."
     footer={footer} onCloseButton={onCloseButton} onRequestClose={requestClose} onClosed={onClose}>
     <ScrollView style={s.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.sections}>
       {draft.where !== 'remote' ? section('place', 'Mesto na mapi', <>
@@ -432,7 +432,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         }} />
         {minPriceVisible ? <>
           <T variant="note" tone="muted">Najmanji navedeni iznos: ukupna cena, cena po osobi ili satnica po osobi. {draft.price === 'all' ? 'Ponude ostaju u rezultatima.' : ''}</T>
-          <TextInput testID="filters-min-budget-input" accessibilityLabel="Najmanja fiksna cena u dinarima"
+          <TextInput testID="filters-min-budget-input" accessibilityLabel="Najmanja navedena cena u dinarima"
             value={minText} placeholder="Na primer 3000" keyboardType="number-pad" maxLength={10}
             onChangeText={text => {
               setMinText(text);

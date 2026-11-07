@@ -32,7 +32,7 @@ export const LIST_STATE_WORDS = {
   error: 'Ne možemo da učitamo zadatke',
   errorBody: 'Zadaci trenutno nisu dostupni. Pokušajte ponovo za trenutak.',
   retry: 'Pokušajte ponovo',
-  showAll: 'Prikaži sve zadatke',
+  showAll: 'Prikažite sve zadatke',
   pointTitle: 'Nema zadataka na ovom mestu', pointBody: 'Pomerite mapu ili prikažite sve zadatke.',
   areaTitle: 'Nema zadataka u ovoj oblasti', areaBody: 'Umanjite mapu ili je pomerite da vidite zadatke u okolini.',
   filteredTitle: 'Nema zadataka u ovom prikazu', filteredBody: 'Nijedan zadatak ne odgovara ovim uslovima.',

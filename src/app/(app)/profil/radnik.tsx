@@ -4,6 +4,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { RadnikProfilProjekcija } from '../../../contracts/projections';
 import type { AzurirajProfilKomanda, Ishod } from '../../../data/ports';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
+import { useWorkerAvailability } from '../../../hooks/useWorkerAvailability';
 import { useWorkerExecutionModes } from '../../../hooks/useWorkerExecutionModes';
 import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { sesijaSada, useSesija } from '../../../store/sesija';
@@ -74,6 +75,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   }, [izvor, owns]);
   const editor = useOwnedEditor(read);
   const executionModes = useWorkerExecutionModes(editor.data?.profile?.id ?? null, editor.data?.read ?? 0);
+  const availability = useWorkerAvailability(editor.data?.profile?.id ?? null, editor.data?.read ?? 0);
   const latestModes = useRef(executionModes.view);
   latestModes.current = executionModes.view;
   const latestStatus = useRef(editor.data?.profile?.stanje);
@@ -318,7 +320,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
         checks={{ basics: basicsReady, area: locationReady }} readyToActivate={!!primary.activates && !pending}
         openConversation={openConversation} showConversationAction={!(reading && status === 'DRAFT')} profileExists={profile !== null} introOnly={introOnly}
         reading={reading} aiOnly onEditPart={editPart} face={face} rating={accountId ? <RatingLine accountId={accountId} /> : undefined}
-        availableNow={availableNowControl}
+        availableNow={availableNowControl} availability={availability.view} refreshAvailability={availability.refresh}
         executionModes={executionModes.view} refreshModes={executionModes.refresh} confirmMap={() => navigate('/profil/lokacija', true)}
         accountName={accountName} onUseAccountName={() => { void adoptAccountName(); }} nameWorking={nameWorking} /></View>}
     {leave.sheet}

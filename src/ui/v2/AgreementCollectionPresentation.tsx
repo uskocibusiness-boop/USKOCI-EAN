@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
-import { FlatList, Platform, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { FlatList, Keyboard, Platform, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { NeedSearchState } from '../../contracts/needSearchRecovery';
@@ -16,6 +16,8 @@ import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
+import { SearchField } from './discovery/SearchParts';
+import { agreementGroupMatchesSearch, agreementSearchQuery, AGREEMENT_SEARCH_MAX_LENGTH } from '../agreements/agreementSearch';
 import { AgreementRoleRail } from '../agreements/AgreementRoleRail';
 import { AgreementTaskRow } from '../agreements/AgreementListCard';
 import { QuietReadState } from './QuietReadState';
@@ -28,6 +30,7 @@ import {
 /** The root and its previous-collaborations view share the same owned list and filters. */
 export type AgreementCollectionSection = 'active' | 'history';
 type Props = {
+  search?: { query: string; open: boolean; onChange: (value: string) => void; onToggle: () => void };
   items: readonly DogovorProjekcija[]; loading: boolean; refreshing?: boolean; refreshError?: boolean; error: boolean;
   section: AgreementCollectionSection; confirmationOnly: boolean;
   onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void;
@@ -76,6 +79,13 @@ const unverifiedTitle = (count: number) => `Za proveru · ${zadataka(count)}`;
 /** D01 shares the accepted Agreement projection in both account roles. Presentation only. */
 export function AgreementCollectionPresentation(props: Props) {
   const { items, section, confirmationOnly, loading, error, onOpen, onRate } = props;
+  const [ownSearch, setOwnSearch] = useState({ active: { query: '', open: false }, history: { query: '', open: false } });
+  const search = props.search ?? { ...ownSearch[section],
+    onChange: (query: string) => setOwnSearch(value => ({ ...value, [section]: { open: true, query: query.slice(0, AGREEMENT_SEARCH_MAX_LENGTH) } })),
+    onToggle: () => setOwnSearch(value => ({ ...value, [section]: value[section].open ? { query: '', open: false } : { ...value[section], open: true } })) };
+  const query = agreementSearchQuery(search.query);
+  const searchOffsets = useRef({ active: { query: '', offset: 0 }, history: { query: '', offset: 0 } });
+  if (searchOffsets.current[section].query !== query) searchOffsets.current[section] = { query, offset: 0 };
   const scrollOffsets = useRef<Record<AgreementCollectionSection, number>>({ active: 0, history: 0 });
   const stale = !!props.refreshError && !loading && !error;
   // The pull spinner answers a pull only; a read of its own (a focus, a tab) does not raise it (the owner's "dot", 8 Oct 2026).
@@ -109,9 +119,9 @@ export function AgreementCollectionPresentation(props: Props) {
   // Aktivni is groups ("Čeka tebe" first, then the days), each a heading and its cards; Istorija keeps the newest-first order
   // the server gave, narrowed by its chips. One flat list, so the window and the row memo stay as they were.
   const rows = useMemo<ListRow[]>(() => {
-    if (section === 'history') return historyItems.filter(task => filterHistory(task.items, historyFilter).length > 0)
+    if (section === 'history') return historyItems.filter(task => filterHistory(task.items, historyFilter).length > 0 && agreementGroupMatchesSearch(task, query, historyFilter))
       .map(task => ({ id: task.key, kind: 'item' as const, task }));
-    const pool = filtering ? activeItems.filter(task => task.items.some(awaitsMyConfirmation)) : activeItems;
+    const pool = activeItems.filter(task => (!filtering || task.items.some(awaitsMyConfirmation)) && agreementGroupMatchesSearch(task, query));
     const groups = groupActiveAgreementTasks(pool, new Date(now));
     let upcomingStarted = false;
     return groups.flatMap(group => {
@@ -124,7 +134,7 @@ export function AgreementCollectionPresentation(props: Props) {
       // unfinished work. The cards themselves carry the exact day and time.
       return [...heading, ...group.items.map(task => ({ id: task.key, kind: 'item' as const, task }))];
     });
-  }, [section, filtering, activeItems, historyItems, historyFilter, now, stale]);
+  }, [section, filtering, activeItems, historyItems, historyFilter, now, stale, query]);
   const waiting = useMemo(() => roleItems.filter(awaitsMyConfirmation).length, [roleItems]);
   const settledRead = !loading && !error;
   const freshRead = settledRead && !stale;
@@ -136,7 +146,7 @@ export function AgreementCollectionPresentation(props: Props) {
   // with rows already there and a change of set or filter stay still.
   const sawLoading = useRef(false);
   if (loading) sawLoading.current = true;
-  appear.settle(rows.filter(row => row.kind === 'item').map(keyOf), JSON.stringify([section, filtering, historyFilter, roleFilter]), { afterLoading: sawLoading.current });
+  appear.settle(rows.filter(row => row.kind === 'item').map(keyOf), JSON.stringify([section, filtering, historyFilter, roleFilter, query]), { afterLoading: sawLoading.current });
   // `useAppear` returns a new object each render over the same two refs, and the route's `onOpen`
   // is a fresh closure each render; both are read through refs so `renderItem` keeps its identity.
   const appearRef = useRef(appear); appearRef.current = appear;
@@ -152,10 +162,10 @@ export function AgreementCollectionPresentation(props: Props) {
   const renderItem = useCallback(({ item: row, index }: ListRenderItemInfo<ListRow>) => row.kind === 'group'
     ? <GroupHeader title={row.title} first={index === 0} />
     : <AgreementTaskRow group={row.task} index={index} now={now} animate={appearRef.current.isNew(row.id)} stale={stale} onOpen={openItem}
-      expanded={expandedKey === row.task.key} onExpand={expand} cancellations={cancellations}
+      searchQuery={query} expanded={expandedKey === row.task.key} onExpand={expand} cancellations={cancellations}
       ownerCapacities={ownerCapacities} onOpenOwnerTask={props.onOpenOwnerTask ? openOwnerTask : undefined}
       prioritize={section === 'history' ? historyFilter : filtering ? 'confirmation' : 'all'}
-      onRate={rates ? rateItem : undefined} />, [openItem, rateItem, rates, now, cancellations, ownerCapacities, props.onOpenOwnerTask, openOwnerTask, expandedKey, expand, section, historyFilter, filtering, stale]);
+      onRate={rates ? rateItem : undefined} />, [openItem, rateItem, rates, now, cancellations, ownerCapacities, props.onOpenOwnerTask, openOwnerTask, expandedKey, expand, section, historyFilter, filtering, stale, query]);
   // A set that is empty while the other one is not leads to the one that has Dogovori, with the filter off, so the
   // way forward never lands on another empty view (review r3 item 7).
   const target: AgreementCollectionSection = (section === 'active' && !filtering) || !activeCount ? 'history' : 'active';
@@ -177,6 +187,9 @@ export function AgreementCollectionPresentation(props: Props) {
     {loading ? <QuietReadState art="users" title="Učitavamo Dogovore…" body="Proveravamo aktivne saradnje i istoriju." />
       : error ? <StateView kind="error" art="agreements" title="Ne možemo da učitamo Dogovore" body="Pokušajte ponovo da proverite stanje."
         primary={{ label: 'Pokušajte ponovo', onPress: props.onRefresh }} />
+        : query ? <StateView compact art="agreements" title={stale || props.refreshing ? 'Rezultati pretrage nisu potvrđeni' : 'Nema rezultata u ovom pregledu'}
+          body={stale || props.refreshing ? 'Pretraga obuhvata samo poslednje učitane podatke. Osvežite Dogovore.' : 'Pokušajte sa drugim naslovom, imenom saradnika ili prikazanim mestom. Izabrana uloga i ishod ostaju važeći.'}
+          primary={stale || props.refreshing ? { label: 'Osvežite Dogovore', onPress: props.onRefresh } : { label: 'Obrišite pretragu', onPress: () => search.onChange('') }} />
         : emptyRole ? <StateView compact art="agreements" title="Nema Dogovora u ovoj ulozi" primary={{ label: 'Prikažite sve uloge', onPress: clearRole }} />
         : items.length ? <StateView compact art="agreements"
           title={filtering ? 'Nijedan Dogovor ne čeka Vašu potvrdu' : section === 'active' ? 'Nema aktivnih Dogovora'
@@ -207,12 +220,21 @@ export function AgreementCollectionPresentation(props: Props) {
       </Press>;
     })}
   </View> : null;
+  const searchControl = search.open || search.query || settledRead && items.length > 0
+    ? <ChromeIconButton glyph="search" label={search.open ? 'Zatvorite pretragu Dogovora' : 'Pretražite Dogovore'} active={search.open}
+      onPress={() => { if (search.open) Keyboard.dismiss(); search.onToggle(); }} /> : null;
   return <SafeAreaView edges={['top']} style={s.screen}>
     {section === 'history' ? <ScreenChrome variant="detail" title="Prethodne saradnje" backLabel="Nazad na Dogovore"
-      onBack={() => props.onSection('active')} />
+      onBack={() => props.onSection('active')} right={searchControl} />
       : props.header ?? <ScreenHeader title="Dogovori" showTitle onProfile={props.onProfile}
-        right={<ChromeIconButton glyph="calendar" label="Raspored" onPress={props.onCalendar} />} />}
+        right={<>{searchControl}<ChromeIconButton glyph="calendar" label="Raspored" onPress={props.onCalendar} /></>} />}
     <View style={s.controls}>
+      {search.open ? <View style={s.search}>
+        <SearchField testID="agreement-search-input" label="Pretraga Dogovora" placeholder="Zadatak, osoba ili mesto" clearLabel="Obrišite pretragu"
+          value={search.query} onChangeText={search.onChange} autoFocus maxLength={AGREEMENT_SEARCH_MAX_LENGTH} returnKeyType="search" onSubmit={() => Keyboard.dismiss()} />
+        <T variant="meta" tone="muted">{section === 'history' ? 'Pretražujete prethodne saradnje.' : 'Pretražujete trenutne Dogovore.'}</T>
+      </View> : null}
+      {query && props.refreshing && !loading && !error ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Osvežavamo rezultate. Pretraga trenutno obuhvata poslednje učitane podatke.</T> : null}
       {settledRead && (hasBothRoles || roleFilter !== 'all') ? <View style={s.filterRow}>
         <View style={s.filterNameSlot}><T variant="meta" tone="muted" style={s.filterName}>Uloga</T></View>
         <AgreementRoleRail value={roleFilter} onChange={value => { setRoleFilter(value); props.onConfirmationOnly(false); }} />
@@ -237,10 +259,11 @@ export function AgreementCollectionPresentation(props: Props) {
         </Press>
       </Surface>
     </View> : null}
-    <FlatList<ListRow> key={section} data={loading || error ? [] : rows} keyExtractor={keyOf} refreshing={pull.refreshing}
-      contentOffset={{ x: 0, y: scrollOffsets.current[section] }}
-      onScroll={event => { scrollOffsets.current[section] = Math.max(0, event.nativeEvent.contentOffset.y); }} scrollEventThrottle={32}
-      onRefresh={pull.onRefresh} showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
+    <FlatList<ListRow> key={`${section}:${query}`} data={loading || error ? [] : rows} keyExtractor={keyOf} refreshing={pull.refreshing}
+      contentOffset={{ x: 0, y: query ? searchOffsets.current[section].offset : scrollOffsets.current[section] }}
+      onScroll={event => { const y = Math.max(0, event.nativeEvent.contentOffset.y);
+        if (query) searchOffsets.current[section].offset = y; else scrollOffsets.current[section] = y; }} scrollEventThrottle={32}
+      onRefresh={pull.onRefresh} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
       ListFooterComponent={section === 'active' && settledRead ? <Press accessibilityRole="button" accessibilityLabel="Prethodne saradnje"
         onPress={() => { props.onSection('history'); props.onConfirmationOnly(false); }} style={s.historyLink}>
         <T variant="body" style={s.attentionText}>Prethodne saradnje</T><Glyph name="caret-right" size={20} />
@@ -253,6 +276,7 @@ export function AgreementCollectionPresentation(props: Props) {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   // Local rhythm keeps all controls visible while bringing the first task closer; touch targets retain their full height.
+  search: { gap: sys.space.sm, paddingVertical: sys.space.sm },
   controls: { paddingHorizontal: layout.gutter, paddingTop: sys.space.xs },
   refreshNotice: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm },
   refreshAction: { minHeight: layout.touch, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },

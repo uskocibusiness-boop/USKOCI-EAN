@@ -76,7 +76,7 @@ export function SupportInboxView({ model, mode, onMode }: {
     {state.message && !state.pending && state.phase !== 'ERROR' ? <SupportNote tone={messageTone === 'success' ? 'info' : messageTone}>{state.message}</SupportNote> : null}
     {state.phase === 'LOADING' && !kept ? <SupportLoading />
       : state.phase === 'ERROR' ? <StateView kind="error" art="chat" title="Zahtevi nisu učitani" body={state.message ?? undefined}
-        primary={{ label: 'Pokušaj ponovo', onPress: reload, disabled: busy }} />
+        primary={{ label: 'Pokušajte ponovo', onPress: reload, disabled: busy }} />
       : inbox ? <SettingsGroup title={mode === 'OWN' ? 'Vaši zahtevi' : 'Zahtevi'}>
         {inbox.cases.length ? inbox.cases.map((item, index) => <SupportCaseRow key={item.id} topic={supportLabel(item.topic)} status={item.status}
           channel={item.channel} time={supportTime(item.updatedAt)} caseNumber={item.caseNumber} unread={item.unread}
@@ -97,7 +97,7 @@ export function SupportInboxView({ model, mode, onMode }: {
     {mode === 'OWN' && state.phase !== 'ERROR' ? <SupportFaq /> : null}
     {mode !== 'OWN' ? <View style={s.privacy}><SupportPrivacy safety={mode === 'SAFETY'} /></View> : null}
     {capabilities?.operatorAvailable && mode === 'OWN' ? <SettingsGroup title="Ovlašćena obrada">
-      <SettingsRow label="Otvori sve zahteve" detail="Pristup odobren ovom nalogu." disabled={locked} last
+      <SettingsRow label="Otvorite sve zahteve" detail="Pristup odobren ovom nalogu." disabled={locked} last
         onPress={() => navigate(() => router.push('/podrska/operator'))} />
     </SettingsGroup> : null}
     {mode === 'OWN' ? <SettingsGroup title="Bezbednost i podaci">
