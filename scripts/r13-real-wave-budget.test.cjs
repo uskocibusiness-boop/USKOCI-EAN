@@ -100,3 +100,23 @@ test('captured real ON_SITE dispatch with 60 workers respects cross-Need 50 noti
   assert.deepEqual(grouped,[{need_id:NEED_1,n:60},{need_id:NEED_2,n:60}]);
  } finally { await db.close(); }
 });
+
+test('captured real wave survives crash after first 50 deliveries; restart sends remaining without duplicates',async()=>{
+ const db=await fixture();try{
+  const marker='    COMMIT;\n  END LOOP;';
+  assert.ok(isolated.includes(marker),'must inject failure only after confirmed per-Need COMMIT');
+  await db.exec(isolated.replace(marker,`    COMMIT;\n    IF v_processed=1 THEN RAISE EXCEPTION 'TEST_CRASH_AFTER_REAL_WAVE_COMMIT'; END IF;\n  END LOOP;`));
+  const call=()=>db.exec('CALL private.dispatch_cooperative_candidate(2,statement_timestamp())');
+  await assert.rejects(call(),/TEST_CRASH_AFTER_REAL_WAVE_COMMIT/);
+  assert.equal(await count(db,'select count(*)::int as n from public.opportunity_deliveries'),50);
+  assert.equal(await count(db,'select count(*)::int as n from private.probe_push'),50);
+  assert.equal(await count(db,"select count(*)::int as n from private.dispatch_schedule where last_status='SENT'"),1);
+  await db.exec(isolated);
+  for(let i=0;i<3;i++)await call();
+  assert.equal(await count(db,'select count(*)::int as n from public.opportunity_deliveries'),120);
+  assert.equal(await count(db,'select count(*)::int as n from private.probe_push'),120);
+  assert.equal(await count(db,'select count(distinct dedupe)::int as n from private.probe_push'),120);
+  const after=await row(db,'select need_id,count(*)::int as n from public.opportunity_deliveries group by 1 order by need_id');
+  assert.deepEqual(after,[{need_id:NEED_1,n:60},{need_id:NEED_2,n:60}]);
+ }finally{await db.close();}
+});
