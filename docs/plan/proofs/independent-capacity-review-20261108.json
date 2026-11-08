@@ -1,0 +1,124 @@
+{
+  "kind": "INDEPENDENT_CAPACITY_REVIEW",
+  "date": "2026-11-08",
+  "reviewer": "push_ai",
+  "reviewedCommits": {
+    "agreementGroups": "f42a51d9388c6d0b5e47e1c822f863083e7f6471",
+    "discoveryPrefilter": "201b25bc94275c7fa86aebfd474c4f72c814a10b"
+  },
+  "result": "No reproduced new privacy, authorization, semantic or keyset blocker in these two patches. This is not release or hosted-capacity approval.",
+  "readOnly": {
+    "reviewedRepositoryFilesUnchanged": true,
+    "hostedDatabaseWrites": false,
+    "deployments": false,
+    "flagsChanged": false,
+    "testsUseDisposableLocalFixtures": true
+  },
+  "tests": [
+    {
+      "command": "node --test scripts/r09-agreement-groups-sql.test.cjs scripts/r09-agreement-groups-client.test.cjs",
+      "sourceRef": "f42a51d9388c6d0b5e47e1c822f863083e7f6471",
+      "passed": 60,
+      "failed": 0
+    },
+    {
+      "command": "node --test scripts/p0-discovery-materialization.test.cjs scripts/ux-discovery-for-me.test.cjs",
+      "worktreeHeadAtRun": "47d6d8ab9b3cf7930cc303a01deb1416f8ede006",
+      "discoveryTestRef": "96d7bf756c3232a5fa0483ae472362ccd2b58804",
+      "passed": 28,
+      "failed": 0,
+      "note": "This working-tree run included the later mode-specific guard; it is not presented as an exact 201b25bc run."
+    },
+    {
+      "command": "node - <<'JS'\nconst fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process');\nconst original=fs.readFileSync,ref='201b25bc94275c7fa86aebfd474c4f72c814a10b',testRef='96d7bf756c3232a5fa0483ae472362ccd2b58804';\nconst names=['scripts/sql/p0_discovery_materialization_20261108.sql','scripts/sql/p0_discovery_materialization_20261108.rollback.sql','scripts/sql/p0_discovery_materialization_20261108.preimage.json'];\nconst immutable=new Map(names.map(name=>[path.resolve(name),execFileSync('git',['show',ref+':'+name])]));\nfs.readFileSync=function(file,options){const saved=typeof file==='string'?immutable.get(path.resolve(file)):undefined;if(!saved)return original.apply(this,arguments);return typeof options==='string'||options?.encoding?saved.toString(typeof options==='string'?options:options.encoding):Buffer.from(saved);};\nconst source=execFileSync('git',['show',testRef+':scripts/p0-discovery-materialization.test.cjs'],{encoding:'utf8'});\nnew Function('require','__dirname',source)(require,path.resolve('scripts'));\nJS",
+      "executedSqlAndRollbackRef": "201b25bc94275c7fa86aebfd474c4f72c814a10b",
+      "testRef": "96d7bf756c3232a5fa0483ae472362ccd2b58804",
+      "passed": 12,
+      "failed": 0,
+      "note": "Exact requested 201b25bc SQL/rollback/preimage were loaded from Git into read-only in-process fs overrides; the expanded test also covers MAP/PLACES any-time behavior. The tested statement and rollback were not edited."
+    }
+  ],
+  "scopeChecked": [
+    "Owned bilateral rows precede Agreement grouping; other workers are excluded",
+    "Accepted price/currency/people and review-aware lifecycle grouping",
+    "Foreign account/view/cursor, equal timestamps, microseconds, abort/retry and A-B-A session fences",
+    "Discovery invoker/RLS/ACL preservation and exact guarded rollback",
+    "Filter, location-coarseness, count, map, facet and pagination parity"
+  ],
+  "discoverySyntheticObservation": {
+    "rows": 10012,
+    "matchedTasks": 20,
+    "scheduleHelperCallsBefore": 10009,
+    "scheduleHelperCallsAfter": 24,
+    "boundary": "Isolated PostgreSQL WASM fixtures; no hosted latency or PostGIS capacity inference."
+  },
+  "productionReader": {
+    "previewP6Flag": "1",
+    "productionP6Flag": "0",
+    "productionReader": "LEGACY",
+    "publicationHandoff": "LEGACY exact-public visit",
+    "proofOverrideRequires": [
+      "route parameter 1",
+      "compile proof flag 1",
+      "Android package rs.uskoci.dev"
+    ],
+    "flagSourceRef": "f42a51d9388c6d0b5e47e1c822f863083e7f6471"
+  },
+  "legacyBoundaryProbe": {
+    "command": "node scripts/legacy-discovery-boundary-probe.cjs --run --source-ref f42a51d9388c6d0b5e47e1c822f863083e7f6471",
+    "source": {
+      "ref": "f42a51d9388c6d0b5e47e1c822f863083e7f6471",
+      "file": "src/data/supabaseIzvor.ts",
+      "fileSha256": "944450891700c362981721d7e62f1e60932dc64232ecbd93152b20f38b2215a1",
+      "methodSha256": "9d5348ac02c25faa593886fff3ab1b11f8566202554b287ef5a5c1445d49338e",
+      "cursorHelpersSha256": "b3e9b9e9e7153721016119ed3a1d9d677b7f8f4fbd2ac9743736e0d5cc375957",
+      "calendarHelperSha256": "c260f30104b2efab3c62f3da2d61facb0168612f06cca63143fa72f9ce418c12"
+    },
+    "boundary": "Actual client pagination/cursor code; synthetic RPC/Auth and final card-enrichment seam. No real network, public-card decoder, hosted RLS or Android verification.",
+    "results": [
+      {
+        "total": 4999,
+        "calls": 25,
+        "acceptedCount": 4999,
+        "error": null,
+        "projectionBoundaryReached": true
+      },
+      {
+        "total": 5000,
+        "calls": 25,
+        "acceptedCount": 5000,
+        "error": null,
+        "projectionBoundaryReached": true
+      },
+      {
+        "total": 5001,
+        "calls": 25,
+        "acceptedCount": null,
+        "error": "OPPORTUNITIES_TOO_MANY_PAGES",
+        "projectionBoundaryReached": false
+      }
+    ]
+  },
+  "limits": [
+    "The production legacy walk still refuses more than 5000 open tasks, after 25 pages of 200; it does not silently display a partial list. This is not an account-count limit.",
+    "P6 SQL and author batching do not change the production reader flag.",
+    "Agreement pages contain 20 complete task groups, not necessarily 20 bilateral Agreements; one large group and owner-wide classification/counts still need capacity measurement.",
+    "Unfiltered Discovery PAGE, global map counts and whole bounds still require broad work. Selective price/location prefilters are not complete spatial optimization.",
+    "No physical Android, two-device E2E, hosted load or release approval is established by this review."
+  ],
+  "immutableReviewedFileSha256": {
+    "f42a51d9388c6d0b5e47e1c822f863083e7f6471": {
+      "src/data/ownAgreementGroupsPage.ts": "60f83419c7beb1010957248450589086aa6b78e140bf1b12079461ba11d8ce6b",
+      "src/data/agreementClientService.ts": "6b91ce5a6fcaf2d67025d56bb965239f5143cfc189f010dad23443d74b5f3c7c",
+      "src/data/pagedListPager.ts": "4e7a40fe8e26acaa09b89d62e87ab4b691b3b3db04fc9c0b71f938fc0d88e206",
+      "scripts/sql/r09_agreement_groups_20261108.sql": "b8bcfec64f85f66344ae1e2cdca5503bb9d4bbc260337a929319efce6baeb589",
+      "eas.json": "0b9e544ebfae0834ba695a5422f0158866787c8812d1b2dbacc4d35b50fe3b59",
+      "src/data/discoveryV1ReaderGate.ts": "cbe6b2cab397955d766621afd19034ccfda32136cef4f565d42a1f3db0fce758",
+      "src/data/supabaseIzvor.ts": "944450891700c362981721d7e62f1e60932dc64232ecbd93152b20f38b2215a1"
+    },
+    "201b25bc94275c7fa86aebfd474c4f72c814a10b": {
+      "scripts/sql/p0_discovery_materialization_20261108.sql": "1d36e5c54bfa5b40c97aff46ee50125af3382c9f861e477201b7677f1f389a16",
+      "scripts/sql/p0_discovery_materialization_20261108.rollback.sql": "8afeeb6a8bff055452c5923f046c20e65ef6bcbfc62c12485a9f928f1c97d00a"
+    }
+  }
+}
