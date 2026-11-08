@@ -1,0 +1,92 @@
+{
+  "schema": "USKOCI_R13_COOPERATIVE_NOTIFICATION_BUDGET_SOURCE_GATE_V1",
+  "date": "2026-11-08",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "source_commits": {
+    "python_direct_runner": "8b90315fbcccc344641bfcfdd1dec55d2cce773e",
+    "candidate_budget_carry": "a67ab08a410ddf5956680b7a42642d7b01101b04",
+    "candidate_budget_tests": "43c53f986f7925a1de377df0e7e23c2a86312856"
+  },
+  "live_DEV": {
+    "migrations": 363,
+    "dispatch_tick_md5": "76280b0ad653d2fc10199bca2c3971a8",
+    "marketplace_tick_md5": "3858404992f2ceaa30b65af1055e2b9c",
+    "cooperative_procedure_exists": false,
+    "changes_applied_in_this_work": false
+  },
+  "recent_operational_sample": {
+    "cron_window": "last 2 hours at observed readback",
+    "marketplace_runs": 120,
+    "marketplace_failures": 0,
+    "marketplace_avg_seconds": 0.099,
+    "marketplace_p95_seconds": 0.369,
+    "marketplace_max_seconds": 0.569,
+    "dispatch_queue_total": 4,
+    "dispatch_queue_due": 0,
+    "dispatch_queue_leased": 0
+  },
+  "historical_query_stats": {
+    "marketplace_tick_calls": 102062,
+    "mean_ms": 94.41,
+    "max_ms": 14695.64,
+    "direct_dispatch_tick_calls": 11,
+    "direct_dispatch_mean_ms": 5226.03,
+    "direct_dispatch_max_ms": 16178.7,
+    "caveat": "pg_stat_statements aggregates since its own reset; these maxima are not values from the last two hours"
+  },
+  "live_configuration": {
+    "normal_wave_max": 3000,
+    "normal_candidate_limit": 5000,
+    "urgent_candidate_limit": 3000,
+    "notify_budget_per_transaction": 1000,
+    "worker_daily_cap": 1000,
+    "comment": "These are active DEV values, not validated 300k-user capacity limits"
+  },
+  "isolated_local_tests": {
+    "actual_captured_dispatch_tick": {
+      "framework": "PGlite; actual DEV preimage body with synthetic waves/profile sweep",
+      "pass": 4,
+      "fail": 0,
+      "coverage": [
+        "batch processes two Needs and profile sweep once",
+        "outer transaction rollback discards all earlier waves",
+        "naive one-Need commits repeat profile sweep",
+        "naive one-Need commits reset v1b.notified and can exceed per-cycle allowance"
+      ]
+    },
+    "cycle_carry_mechanism": {
+      "framework": "PGlite; compact source-equivalent PLpgSQL procedure, not full candidate file",
+      "pass": 2,
+      "fail": 0,
+      "coverage": [
+        "three successful waves permit only two notifications across commits",
+        "failed wave rollback does not consume budget; subsequent two send"
+      ]
+    },
+    "candidate_github_tests": {
+      "added": 2,
+      "status": "AWAITING_FULL_CI",
+      "source": "scripts/r13-dispatch-cooperative.test.cjs"
+    }
+  },
+  "candidate": {
+    "path": "scripts/sql/r13_dispatch_cooperative_candidate.sql",
+    "status": "SOURCE_ONLY_GUARDED_NOT_DEPLOYED",
+    "guard": "R13_COOPERATIVE_DISPATCH_SOURCE_ONLY",
+    "cycle_variable": "v_cycle_notified",
+    "post_exception_guc_read": true,
+    "profile_sweep_once": true,
+    "per_need_commit": true,
+    "current_scheduler_unchanged": true
+  },
+  "remaining_gates": [
+    "Native PostgreSQL 17 concurrent lock tests with actual dispatch_next_wave, notification ledger and idempotency",
+    "Verify original per-cycle notifyBudget and whole wave with 60 real eligible synthetic workers",
+    "Test crash/restart and same Need selection with simultaneous cron workers; verify full permissions",
+    "Hosted pg_cron top-level CALL transaction-control and lifecycle ordering proof",
+    "New HEAD full GitHub CI and installed Android/two-account E2E",
+    "R01/R10 legal/data export and deletion readiness"
+  ],
+  "decision": "NO_GO_FOR_DEV_DEPLOY_OR_PUBLIC_RELEASE"
+}
