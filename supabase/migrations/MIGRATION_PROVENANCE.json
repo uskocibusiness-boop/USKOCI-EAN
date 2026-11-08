@@ -4404,5 +4404,103 @@
         }
       ]
     }
+  },
+  "late_readmission_20261108": {
+    "observed_at_utc": "2026-11-08",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "Physical identity and recorded bytes only. Existing private location/legal behavior is not newly approved or reapplied. Legal counsel_reference is historical data, not verified legal counsel approval.",
+    "evidence": "inline:dev_late_catalog_20261108",
+    "entries": [
+      {
+        "file": "20261107232758_r11_auto_location_grant_on_agreement_20261108.sql",
+        "version": "20261107232758",
+        "name": "r11_auto_location_grant_on_agreement_20261108",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107232758",
+        "live_name": "r11_auto_location_grant_on_agreement_20261108",
+        "live_recorded_md5": "dbf2a1f67d1f5f4f28d6607fa7d173d5",
+        "live_recorded_sha256": "839d673dd15139a203b107827c78638ce9f22b3afb15159ea2656411121a4e1c",
+        "raw_md5": "dbf2a1f67d1f5f4f28d6607fa7d173d5",
+        "raw_sha256": "839d673dd15139a203b107827c78638ce9f22b3afb15159ea2656411121a4e1c",
+        "raw_bytes": 2222
+      },
+      {
+        "file": "20261107234426_r12_publish_initial_legal_bundle_and_processors.sql",
+        "version": "20261107234426",
+        "name": "r12_publish_initial_legal_bundle_and_processors",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107234426",
+        "live_name": "r12_publish_initial_legal_bundle_and_processors",
+        "live_recorded_md5": "d4c70eec0210de7fc065e1fcda7766ee",
+        "live_recorded_sha256": "8eb07c8f934e0faa0d934ebe75e737f553009d8f8f606bc9e4ef4c7820f9d87d",
+        "raw_md5": "d4c70eec0210de7fc065e1fcda7766ee",
+        "raw_sha256": "8eb07c8f934e0faa0d934ebe75e737f553009d8f8f606bc9e4ef4c7820f9d87d",
+        "raw_bytes": 5226
+      },
+      {
+        "file": "20261107235123_r12_update_legal_hashes_apple_and_availability.sql",
+        "version": "20261107235123",
+        "name": "r12_update_legal_hashes_apple_and_availability",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261107235123",
+        "live_name": "r12_update_legal_hashes_apple_and_availability",
+        "live_recorded_md5": "a70735930140f5445823a2faa0a9092a",
+        "live_recorded_sha256": "c675f46fe94aa153f148d774285f744dcfba6059998d3e6d26aac06208fa0f30",
+        "raw_md5": "a70735930140f5445823a2faa0a9092a",
+        "raw_sha256": "c675f46fe94aa153f148d774285f744dcfba6059998d3e6d26aac06208fa0f30",
+        "raw_bytes": 575
+      }
+    ],
+    "catalog_evidence": {
+      "source_base_commit": "9cf4f5ee913a3751f83615e134a1e6d7c68300f3",
+      "observed_at_utc": "2026-11-08",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "method": "Read-only recovery of three already-applied DEV ledger rows. Corrects two differently named source files and restores the later legal hash update; no SQL execution, no policy approval, no assertion of legal review or release readiness.",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261107232758",
+          "name": "r11_auto_location_grant_on_agreement_20261108",
+          "statement_count": 1,
+          "joined_md5": "dbf2a1f67d1f5f4f28d6607fa7d173d5",
+          "joined_sha256": "839d673dd15139a203b107827c78638ce9f22b3afb15159ea2656411121a4e1c",
+          "joined_bytes": 2222
+        },
+        {
+          "version": "20261107234426",
+          "name": "r12_publish_initial_legal_bundle_and_processors",
+          "statement_count": 1,
+          "joined_md5": "d4c70eec0210de7fc065e1fcda7766ee",
+          "joined_sha256": "8eb07c8f934e0faa0d934ebe75e737f553009d8f8f606bc9e4ef4c7820f9d87d",
+          "joined_bytes": 5226
+        },
+        {
+          "version": "20261107235123",
+          "name": "r12_update_legal_hashes_apple_and_availability",
+          "statement_count": 1,
+          "joined_md5": "a70735930140f5445823a2faa0a9092a",
+          "joined_sha256": "c675f46fe94aa153f148d774285f744dcfba6059998d3e6d26aac06208fa0f30",
+          "joined_bytes": 575
+        }
+      ]
+    },
+    "source_reconciliation": [
+      {
+        "source_file_before": "20261108001000_r11_auto_location_grant_on_agreement_20261108.sql",
+        "source_sha256_before": "80345ee579c580d6567af6c3f694d24d16fa69828bd43583dd95f754dea0b2a8",
+        "source_bytes_before": 2300,
+        "canonical_file": "20261107232758_r11_auto_location_grant_on_agreement_20261108.sql",
+        "exact_before": false
+      },
+      {
+        "source_file_before": "20261108003500_r12_publish_initial_legal_bundle_and_processors.sql",
+        "source_sha256_before": "81c2740f13d66043b65b44066038da856e2edc7224542747bf456754e39fcb31",
+        "source_bytes_before": 5226,
+        "canonical_file": "20261107234426_r12_publish_initial_legal_bundle_and_processors.sql",
+        "exact_before": false
+      }
+    ]
   }
 }

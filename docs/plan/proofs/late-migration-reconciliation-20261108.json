@@ -1,0 +1,55 @@
+{
+  "status": "SOURCE_LEDGER_RECONCILIATION_ONLY",
+  "sourceBase": "9cf4f5ee913a3751f83615e134a1e6d7c68300f3",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "schemaMutations": 0,
+  "dataMutations": 0,
+  "evidenceSha256": "bab1887819c835dece2e96c4063dcf3722c6427fadbeaa636f2e39513151cd6e",
+  "catalog": [
+    {
+      "version": "20261107232758",
+      "name": "r11_auto_location_grant_on_agreement_20261108",
+      "statement_count": 1,
+      "joined_md5": "dbf2a1f67d1f5f4f28d6607fa7d173d5",
+      "joined_sha256": "839d673dd15139a203b107827c78638ce9f22b3afb15159ea2656411121a4e1c",
+      "joined_bytes": 2222
+    },
+    {
+      "version": "20261107234426",
+      "name": "r12_publish_initial_legal_bundle_and_processors",
+      "statement_count": 1,
+      "joined_md5": "d4c70eec0210de7fc065e1fcda7766ee",
+      "joined_sha256": "8eb07c8f934e0faa0d934ebe75e737f553009d8f8f606bc9e4ef4c7820f9d87d",
+      "joined_bytes": 5226
+    },
+    {
+      "version": "20261107235123",
+      "name": "r12_update_legal_hashes_apple_and_availability",
+      "statement_count": 1,
+      "joined_md5": "a70735930140f5445823a2faa0a9092a",
+      "joined_sha256": "c675f46fe94aa153f148d774285f744dcfba6059998d3e6d26aac06208fa0f30",
+      "joined_bytes": 575
+    }
+  ],
+  "sourceReconciliation": [
+    {
+      "source_file_before": "20261108001000_r11_auto_location_grant_on_agreement_20261108.sql",
+      "source_sha256_before": "80345ee579c580d6567af6c3f694d24d16fa69828bd43583dd95f754dea0b2a8",
+      "source_bytes_before": 2300,
+      "canonical_file": "20261107232758_r11_auto_location_grant_on_agreement_20261108.sql",
+      "exact_before": false
+    },
+    {
+      "source_file_before": "20261108003500_r12_publish_initial_legal_bundle_and_processors.sql",
+      "source_sha256_before": "81c2740f13d66043b65b44066038da856e2edc7224542747bf456754e39fcb31",
+      "source_bytes_before": 5226,
+      "canonical_file": "20261107234426_r12_publish_initial_legal_bundle_and_processors.sql",
+      "exact_before": false
+    }
+  ],
+  "limits": [
+    "Historical applied SQL bytes are preserved, not re-executed.",
+    "The old legal counsel_reference is not evidence of legal review.",
+    "retention_ai_source_ready remains false on live DEV."
+  ]
+}

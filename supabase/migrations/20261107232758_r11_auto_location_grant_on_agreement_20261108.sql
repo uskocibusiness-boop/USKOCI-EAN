@@ -40,8 +40,7 @@ begin
 end;
 $$;
 
-drop trigger if exists trg_auto_grant_exact_location_on_agreement on public.agreements;
-create trigger trg_auto_grant_exact_location_on_agreement
+create or replace trigger trg_auto_grant_exact_location_on_agreement
 after insert on public.agreements
 for each row
 execute function private.auto_grant_exact_location_on_agreement();

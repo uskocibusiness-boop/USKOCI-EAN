@@ -416,5 +416,29 @@ class Nov7RecoveryExportTests(unittest.TestCase):
                         check_physical_suffix(section, self.manifest, self.evidence)
 
 
+class Nov8LateReadmissionTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).parent
+        self.section = json.loads((root / "MIGRATION_PROVENANCE.json").read_text())["late_readmission_20261108"]
+        self.evidence = load_catalog_evidence(self.section)
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (root / "MD5_MANIFEST.txt").read_text().splitlines())
+
+    def test_all_three_recovered_records_match_existing_ledger_bytes(self):
+        self.assertEqual(len(check_physical_suffix(self.section, self.manifest, self.evidence)), 3)
+        self.assertEqual([row["live_version"] for row in self.section["entries"]],
+                         ["20261107232758", "20261107234426", "20261107235123"])
+
+    def test_modified_witness_or_false_live_binding_is_rejected(self):
+        changed = copy.deepcopy(self.section)
+        changed["catalog_evidence"]["liveMigrationCatalogHashes"][0]["joined_md5"] = "0" * 32
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            load_catalog_evidence(changed)
+        changed = copy.deepcopy(self.section)
+        changed["entries"][0]["live_version"] = "20261108001000"
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_physical_suffix(changed, self.manifest, self.evidence)
+
+
 if __name__ == "__main__":
     unittest.main()

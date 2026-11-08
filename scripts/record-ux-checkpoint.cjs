@@ -43,9 +43,29 @@ function verifySource(proof,readFile=p=>fs.readFileSync(p)){
   if(p.split('/').includes('..')||sha256(readFile(p))!==hash)throw Error('CHECKPOINT_SOURCE_DIGEST');
  }
 }
+// This manifest belongs to the one-time QA48 follow-up. Once its exact CI
+// checkpoint is in the master, it is historical evidence, not a permanent hash
+// lock on every later change. Never relabel it as proof for a newer build.
+function verifySourceForBuild(proof,readFile=p=>fs.readFileSync(p)){
+ const plan=readFile(PLAN).toString('utf8');
+ if(!plan.includes(MARKER)){verifySource(proof,readFile);return 'PENDING_CHECKPOINT_SOURCE_VERIFIED';}
+ const receipt=JSON.parse(readFile(CI_PROOF).toString('utf8'));
+ const url=`https://github.com/${REPO}/actions/runs/${receipt.run}`;
+ if(plan.split(MARKER).length!==2||receipt.schema!=='USKOCI_UX_CI_CHECKPOINT_V1'
+   ||receipt.proof!==PROOF||receipt.sourceBase!==proof.sourceBase
+   ||!/^[a-f0-9]{40}$/.test(receipt.source??'')
+   ||!Number.isSafeInteger(receipt.tests)||receipt.tests<proof.minimumExpectedActiveTests
+   ||![receipt.run,receipt.number,receipt.artifact].every(n=>Number.isSafeInteger(n)&&n>0)
+   ||receipt.typescript!=='PASS'||receipt.migrationIntegrity!=='PASS'||receipt.androidBuild!=='PASS'
+   ||receipt.native!==false||receipt.independentlyDownloadedApk!==false||receipt.devDeploy!==false
+   ||!plan.includes(`**Source:** \`${receipt.source}\``)
+   ||!plan.includes(`[run ${receipt.run}](${url})`)
+   ||!plan.includes(`**${receipt.tests}/${receipt.tests} aktivnih testova PASS**`))throw Error('CHECKPOINT_RECORDED_EVIDENCE_INVALID');
+ return 'HISTORICAL_CHECKPOINT_ALREADY_RECORDED';
+}
 async function recordCheckpoint({env=process.env,readFile=p=>fs.readFileSync(p),api}){
  const proof=JSON.parse(readFile(PROOF).toString('utf8')),prepared=buildCheckpoint(proof,env);
- verifySource(proof,readFile);
+ if(verifySourceForBuild(proof,readFile)==='HISTORICAL_CHECKPOINT_ALREADY_RECORDED')return{status:'SKIPPED_ALREADY_RECORDED'};
  const ref=await api('GET',`/git/ref/heads/${BRANCH}`);
  if(ref.object?.sha!==env.GITHUB_SHA)return{status:'SKIPPED_BRANCH_MOVED'};
  const commit=await api('GET',`/git/commits/${env.GITHUB_SHA}`);
@@ -67,7 +87,7 @@ async function recordCheckpoint({env=process.env,readFile=p=>fs.readFileSync(p),
  return{status:'SAVED',commit:saved.sha,source:env.GITHUB_SHA};
 }
 if(require.main===module && process.argv.includes('--verify-source')){
- verifySource(JSON.parse(fs.readFileSync(PROOF,'utf8')));console.log('UX source manifest matches exact tested files');
+ console.log(verifySourceForBuild(JSON.parse(fs.readFileSync(PROOF,'utf8'))));
 }else if(require.main===module){
  const token=process.env.GITHUB_TOKEN;if(!token)throw Error('CHECKPOINT_TOKEN_MISSING');
  const api=async(method,p,data)=>{const r=await fetch(`https://api.github.com/repos/${REPO}${p}`,{method,redirect:'error',signal:AbortSignal.timeout(30000),
@@ -75,4 +95,4 @@ if(require.main===module && process.argv.includes('--verify-source')){
   if(!r.ok)throw Error(`CHECKPOINT_GITHUB_${r.status}`);return r.json()};
  recordCheckpoint({api}).then(result=>console.log(JSON.stringify(result))).catch(error=>{console.error(String(error.message));process.exitCode=1});
 }
-module.exports={insertCheckpoint,buildCheckpoint,recordCheckpoint,gitBlob,verifySource};
+module.exports={insertCheckpoint,buildCheckpoint,recordCheckpoint,gitBlob,verifySource,verifySourceForBuild};
