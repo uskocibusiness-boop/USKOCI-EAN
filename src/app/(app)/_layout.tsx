@@ -248,6 +248,7 @@ export default function TabLayout() {
     <Tabs.Screen name="profil/blokirani" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/pravna" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/o-aplikaciji" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/kako-radi" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/lozinka" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/prijava-greske" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="bezbednost" options={{ href: null, ...FULL }} />

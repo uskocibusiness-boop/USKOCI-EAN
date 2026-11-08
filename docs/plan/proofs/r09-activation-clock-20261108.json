@@ -1,0 +1,539 @@
+{
+  "schemaVersion": "R09_ACTIVATION_CLOCK_PROOF_V1",
+  "recordedAt": "2026-11-08T21:01:09.638307+00:00",
+  "sourceHeadBeforeLocalChanges": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "sourceState": "SOURCE_IMPLEMENTED_LOCAL_AND_NATIVE_TESTED_NOT_DEPLOYED",
+  "devProjectReadOnly": "leqcwgzvjsxugfgzdmth",
+  "devMutationByThisAgent": false,
+  "files": [
+    {
+      "path": "scripts/sql/r09_worker_activation_20261108.sql",
+      "sha256": "51d8d087bfe4b92cd9d3498d8aaa4a1b81feabd28b5cf59e1eb36207aeca1b92"
+    },
+    {
+      "path": "scripts/sql/r09_worker_activation_20261108.rollback.sql",
+      "sha256": "01ad7ecf81a4f31b22862cf47d379e1a3e56fe60e431cae58c8f74943d26015e"
+    },
+    {
+      "path": "scripts/sql/r09_worker_activation_20261108.preimage.json",
+      "sha256": "1a72732093e1a59743f5e3dbebedb72a62e8187492727bda33a3ea2f4a8d0dec"
+    },
+    {
+      "path": "scripts/r09-worker-activation-fixture.cjs",
+      "sha256": "b899405659f08437442966566ff56268cce9671164564cc15575d6f48ace75f3"
+    },
+    {
+      "path": "scripts/r09-worker-activation.test.cjs",
+      "sha256": "c8c4b57e1dba8486bae5e5e1594aa435a792640e09903d262209838e86a933c0"
+    },
+    {
+      "path": "scripts/sql/r13_native_matcher_20261108.preimage.json",
+      "sha256": "487565421618d54683f196a8be5ee9db789592b9cf6723e9a0c24271f943968c"
+    },
+    {
+      "path": "scripts/r13-real-matcher-native.cjs",
+      "sha256": "ef984a4b6c26ec808b47d2e76c440b375a1e6e3cda4e1508c4c42786ea315650"
+    }
+  ],
+  "tests": [
+    {
+      "command": "node --test scripts/r09-worker-activation.test.cjs",
+      "runtime": "PGlite PostgreSQL",
+      "tests": 29,
+      "pass": 29,
+      "fail": 0,
+      "aclCaptureStatus": "Local29/29 repeated with corrected service_role grant; owner labels subsequently made explicit."
+    },
+    {
+      "command": "USKOCI_R09_NATIVE=1 USKOCI_POSTGRES_ROOT=<extracted PG17 root> USKOCI_PG_MODULE=<node-postgres module> node --test --test-reporter=tap scripts/r09-worker-activation.test.cjs",
+      "runtime": "native PostgreSQL 17.11 / PostGIS 3.5.2",
+      "tests": 29,
+      "pass": 29,
+      "fail": 0,
+      "inputActivationPreimageSha256": "d263e1109dc5ccc5752e4796ae3cd166b8a387df62c91d5be987c144b385c92b",
+      "aclCaptureStatus": "Historical pass before JSON ACL enrichment; see aclCaptureCorrection and root independent rerun."
+    },
+    {
+      "command": "USKOCI_POSTGRES_ROOT=<extracted PG17 root> USKOCI_PG_MODULE=<node-postgres module> node scripts/r13-real-matcher-native.cjs",
+      "runtime": "native PostgreSQL 17.11 / PostGIS 3.5.2",
+      "scenarios": 14,
+      "result": "PASS",
+      "proof": "docs/plan/proofs/r13-native-real-matcher-20261108.json",
+      "inputActivationPreimageSha256": "d263e1109dc5ccc5752e4796ae3cd166b8a387df62c91d5be987c144b385c92b",
+      "aclCaptureStatus": "Historical pass before JSON ACL enrichment; see aclCaptureCorrection and root independent rerun.",
+      "supersededBy": "docs/plan/proofs/r13-native-independent-20261108.json"
+    }
+  ],
+  "independentReview": "Agent /root/ai_recovery independently read the frozen patch and reported 29/29 local tests passing; bounded source review, not hosted/device acceptance.",
+  "reproducedProblems": [
+    "The actual old cheap dispatch gate admits a matching task published before first worker activation. No immutable activation evidence existed.",
+    "The actual old Need guard rejects metadata changes with a NULL lifecycle token but admits same-revision published_at and revision changes with empty/unrelated tokens. Proven isolated SQL boundary only; no HTTP exploit claim.",
+    "Adding profile columns changes whole-row worker AI source/hash and avatar source markers. A normal backfill also changes updated_at through its existing trigger."
+  ],
+  "implementation": {
+    "profileColumns": [
+      "worker_dispatch_eligible_since",
+      "worker_dispatch_clock_source"
+    ],
+    "firstActivation": "Existing confirmed activation writer stamps FIRST_ACTIVATION once through the late profile guard.",
+    "backfill": "Existing ACTIVE worker profiles receive one observed rollout threshold labelled ROLLOUT_ACTIVE_OBSERVED, never a fabricated historic activation date. DRAFT and REQUESTER profiles remain NULL.",
+    "backfillContinuity": "The migration retains the ALTER lock and uses a temporary late BEFORE trigger only for an exact ACTIVE WORKER metadata-only update. It preserves old updated_at, rejects any other change, and drops itself and its helper before COMMIT. All seven existing BEFORE profile guards stay enabled.",
+    "dispatch": "Only the existing cheap proactive-admission gate requires published_at > worker_dispatch_eligible_since; shared matching/Discovery and manual response eligibility stay independent.",
+    "publicationWitness": "Existing CONFIRM_EDIT and narrow authorized closure returns are preserved. Any other revision change is rejected. published_at can change only for a canonical PUBLISH DRAFT-to-PUBLISHED transition.",
+    "aiAndAvatarContinuity": "Existing worker AI source and the two avatar marker owners exclude only the new internal columns; all previous profile material remains in their hashes.",
+    "privacy": "Existing export catalogue/snapshot and closure patch include or erase the two columns. No privacy readiness, legal policy or certificate is enabled or repinned.",
+    "runtime": "Existing dispatch_tick, marketplace_tick, Cron, budget, remote wave settings and Edge workers are not changed."
+  },
+  "compatibilityChecks": [
+    "Exact ACTIVE and DRAFT worker AI source documents, source hashes, stored sessions and stored reviews remain unchanged across candidate application.",
+    "Preexisting avatar claim markers for ACTIVE worker, DRAFT worker and REQUESTER remain accepted by the actual avatar apply owner; explicit replay returns the same receipt.",
+    "New avatar claims use the same semantic hash; a real profile bio change still produces MEDIA_VERSION_CONFLICT.",
+    "Unknown or disabled BEFORE profile triggers cause fail-closed migration drift rejection.",
+    "Spoofed profile clock insert/update/erase rejected for authenticated and service-role claims; service role has no generic bypass.",
+    "Actual exact closure certificate inputs authorize only their exact profile redaction patch, including erasure of both columns. The full certificate issuer/closure executor is outside this test.",
+    "New revision publication through existing guarded transition logic can create a new opportunity while the historical revision ledger remains present. Public published-task edit readiness block remains intact."
+  ],
+  "postimage": {
+    "recordedAt": "2026-11-08T21:04:33.058Z",
+    "functions": [
+      {
+        "signature": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+        "preMd5": "cec5c0a2c13af6718af53b7a80245f28",
+        "postMd5": "5f3862949a6b93ab99c29c549ff9a837",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.guard_profile_write()",
+        "preMd5": "319fef6fe239a21ecf134476ed2b90a4",
+        "postMd5": "319fef6fe239a21ecf134476ed2b90a4",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.complete_worker_profile_v1(uuid,uuid,text)",
+        "preMd5": "2a0a7c10a3671d6cd49fad21fe65d824",
+        "postMd5": "2a0a7c10a3671d6cd49fad21fe65d824",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": false,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb)",
+        "preMd5": "7fabcc71502e065e638364fc3d58b761",
+        "postMd5": "7fabcc71502e065e638364fc3d58b761",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)",
+        "preMd5": "55ba7bf41ce39d9c914929270b916570",
+        "postMd5": "3b802baedd97cb0ab6e4a227690e7f5e",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.data_export_dataset_catalog()",
+        "preMd5": "e08e712c811ab2a093e48ca75a436c25",
+        "postMd5": "f897294aed6972dd1c41a88da42ea1ab",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)",
+        "preMd5": "c3bde16e2175c7ec33c1a171e0ad04a3",
+        "postMd5": "3e20cccd6b54b161970c6960fa33136b",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.guard_need_write()",
+        "preMd5": "314b93f7f89d3d52dbcf17a2a2552502",
+        "postMd5": "cfbf899e4e388d0fe459ef0ba956f8a4",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.closure_account_restricted(uuid)",
+        "preMd5": "f4999250c315e0253374d4611291c7ad",
+        "postMd5": "f4999250c315e0253374d4611291c7ad",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.closure_guard_owned_write()",
+        "preMd5": "f13117fd601dcb82de423b78f25acb4f",
+        "postMd5": "f13117fd601dcb82de423b78f25acb4f",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.guard_persistent_availability()",
+        "preMd5": "cf05c663227f4f1d51a28f463b895bf7",
+        "postMd5": "cf05c663227f4f1d51a28f463b895bf7",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": false,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.guard_requester_identity_writer()",
+        "preMd5": "c9d7f6593950e858b319f316cdbf6422",
+        "postMd5": "c9d7f6593950e858b319f316cdbf6422",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.guard_worker_equipment_retired_v1()",
+        "preMd5": "abb19096d5f0f00cd7f1817d3223a5d2",
+        "postMd5": "abb19096d5f0f00cd7f1817d3223a5d2",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": false,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.guard_worker_fact_authority()",
+        "preMd5": "a6be4e85f69592615e8c5b8272028d0d",
+        "postMd5": "a6be4e85f69592615e8c5b8272028d0d",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.worker_ai_source_hash(uuid)",
+        "preMd5": "416e1e92c90545ff2a3f4c942db793f7",
+        "postMd5": "416e1e92c90545ff2a3f4c942db793f7",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.worker_ai_source(uuid)",
+        "preMd5": "27416a26166d8c0d910d3eda9ee82dce",
+        "postMd5": "5ae2bca9c15a84ab166091dcaa81af6d",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "public.set_updated_at()",
+        "preMd5": "fbb247b78e5a461958844a3c37feb1e5",
+        "postMd5": "fbb247b78e5a461958844a3c37feb1e5",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "securityDefiner": false,
+        "settings": [
+          "search_path=\"\""
+        ]
+      },
+      {
+        "signature": "private.closure_assert_open(uuid,uuid)",
+        "preMd5": "dc9bc4c718593850da4fdb49e612dbd2",
+        "postMd5": "dc9bc4c718593850da4fdb49e612dbd2",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.worker_availability_document(uuid)",
+        "preMd5": "fbfe4e849840eaaff4729fec266e1937",
+        "postMd5": "fbfe4e849840eaaff4729fec266e1937",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog",
+          "TimeZone=UTC",
+          "DateStyle=ISO, YMD"
+        ]
+      },
+      {
+        "signature": "private.worker_capacity_document(uuid)",
+        "preMd5": "01cfe29179cc15858f20a1bf736c16b2",
+        "postMd5": "01cfe29179cc15858f20a1bf736c16b2",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.worker_location_document(uuid)",
+        "preMd5": "8745e96b743bb8104ecc9c20c53c5e30",
+        "postMd5": "8745e96b743bb8104ecc9c20c53c5e30",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.closure_account_key(uuid)",
+        "preMd5": "2dde6ad2462255b188e4f03ffe88edcd",
+        "postMd5": "2dde6ad2462255b188e4f03ffe88edcd",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": false,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.media_asset_document(private.owned_media_assets)",
+        "preMd5": "2b5b71600bad9bcc49ec1db0044256a7",
+        "postMd5": "2b5b71600bad9bcc49ec1db0044256a7",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "securityDefiner": false,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "public.rpc_apply_profile_avatar(uuid,text)",
+        "preMd5": "bb219571e1c338dc0620f20cc164ea44",
+        "postMd5": "b2b66c19596616b53c48ed1e040f1537",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "public.rpc_claim_media_upload_service(uuid,text,uuid,uuid,text,integer,text)",
+        "preMd5": "4f522b3df65e00f6985e50e66d388bbc",
+        "postMd5": "6f02f2bdb3acea78711b8bef1ad33e26",
+        "metadataPreserved": true,
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "securityDefiner": true,
+        "settings": [
+          "search_path=pg_catalog"
+        ]
+      }
+    ],
+    "clockGuard": "d0e5aca4748892e9b93fece2782230f3"
+  },
+  "rollback": {
+    "source": "scripts/sql/r09_worker_activation_20261108.rollback.sql",
+    "guard": "Full rollback file aborts with R09_ACTIVATION_ROLLBACK_SOURCE_ONLY; only a separately reviewed migration may use the isolated body.",
+    "preconditionDispatchMd5": "5f3862949a6b93ab99c29c549ff9a837",
+    "restoredDispatchMd5": "cec5c0a2c13af6718af53b7a80245f28",
+    "retains": [
+      "all activation clock data",
+      "immutable clock guard",
+      "Need publication/revision hardening",
+      "AI/avatar hash continuity",
+      "export/closure ownership",
+      "all existing opportunities/events/delivery identities"
+    ],
+    "impact": "Explicitly restores the old dispatch admission predicate, which can again consider pre-activation tasks. It does not pretend old-task suppression remains enabled after rollback.",
+    "tested": "Atomic injected forward failure rolls back DDL/backfill; explicit rollback preserves the clock and guard; second rollback refuses mismatched postimage."
+  },
+  "safeDevAdoptionConditions": [
+    "Root independent review/native reproduction and integrated CI before canonical migration creation.",
+    "Fresh comparison of all25 guarded live function bodies and their owner/ACL/security/search_path metadata; no clock columns/trigger already present.",
+    "Fresh comparison of all7 BEFORE profile trigger definitions/order and enabled state O; locked review of current active worker count and pending eligible pairs before conservative rollout.",
+    "Capture current source hashes and updated_at for existing worker profiles and source markers for pending avatar tickets; compare readback after atomic migration without writing private profile bodies to proof files.",
+    "Ensure no ACTIVE profile is in account closure or would have other historical fields normalized by an existing guard during backfill; migration aborts on such drift instead of silently altering content.",
+    "Preserve the current2 opportunity records and notification ledger; do not rerun or resend UNKNOWN attempts.",
+    "Use a new canonical migration with exact source/provenance, then register its local migration integrity record. Keep R13 procedure and Cron change separate."
+  ],
+  "readbackPlan": [
+    "Compare all25 postimage MD5s plus metadata against postimage.functions; new clock guard MD5 must match postimage.clockGuard.",
+    "Inspect new columns/constraint/trigger: only ACTIVE existing WORKER rows have rollout observations; drafts/requesters have no invented activation. Runtime clock trigger enabled; temporary migration trigger/helper absent.",
+    "Compare pre/post AI source hashes, stored AI review/session source markers, profile updated_at and avatar marker continuity for unchanged profiles.",
+    "Run signed ordinary-user positive/negative DEV probes on explicitly synthetic fixtures: clock spoof rejected; old matching task visible/manual response permitted; proactive gate absent for old publication and present for new publication.",
+    "Verify all old opportunity/event/delivery dedupe identities remain unchanged; confirm no Cron, Edge or budget changes and existing legal/export readiness stays guarded.",
+    "Android installation and actual notification receipt remain separate acceptance gates."
+  ],
+  "limitations": [
+    "No hosted DEV migration, production change, network send, paid AI call, Storage upload or Android action was performed by this agent.",
+    "The R09 test runs actual SQL owners with synthetic table data. It does not prove signed HTTP/RLS, full registration, full AI review acceptance or complete deletion/export delivery.",
+    "Manual application proof is existing match_detail.responseAllowed; no real marketplace response was submitted in DEV.",
+    "The public task editing guard PUBLISHED_TASK_EDIT_NOT_READY remains active. Guarded synthetic revision transitions are not a claim that the full edit/publish UX is complete.",
+    "Conservative rollout affects existing ACTIVE workers too: pending pre-rollout opportunities not already created would no longer be proactively admitted. A fresh pending-pair preflight is required.",
+    "R13 native proof retains source-only status until maintenance/profile-sweep/lifecycle transaction parity and hosted scheduler ownership are accepted. Its cross-commit budget is per invocation, not a fleet-global budget.",
+    "Native latency observations are single local samples while other workspace verification may be running; no controlled p50/p95/p99, hosted capacity or300000-user readiness claim."
+  ],
+  "aclCaptureCorrection": {
+    "oldNativeInputSha256": "d263e1109dc5ccc5752e4796ae3cd166b8a387df62c91d5be987c144b385c92b",
+    "enrichedInputSha256": "1a72732093e1a59743f5e3dbebedb72a62e8187492727bda33a3ea2f4a8d0dec",
+    "sourceSqlChanged": false,
+    "testCodeChanged": false,
+    "bodyDefinitionsChanged": false,
+    "description": "Root fresh25owner readback enriched three absent ACL fields and six absent owner labels. Actual closure_redaction_allowed_v5 allows service_role EXECUTE; fixture previously had owner-only ACL for that helper. Other two missing ACL fields are postgres only. No hosted function changed.",
+    "localRetest": "29/29 PASS after ACL enrichment; only subsequent owner label enrichment does not affect fixture installation.",
+    "nativeRetest": "Root independently repeated native29/29 and14/14 after current ACL/owner enrichment. Current-input14 result was read locally and its preimage hash verified.",
+    "currentInputNativeProof": "docs/plan/proofs/r13-native-independent-20261108.json"
+  },
+  "remainingIssues": [
+    {
+      "id": "R09_F20_ALREADY_APPLIED_INITIAL_OPPORTUNITY",
+      "priority": "P0",
+      "status": "EXISTING_REPRODUCED_GAP_NOT_FIXED_IN_THIS_CANDIDATE",
+      "case": "One matching ACTIVE worker has a SUBMITTED OFFER for the same Need/revision before the first dispatch. The task publication is after the activation clock. No prior opportunity exists.",
+      "result": {
+        "recordedAt": "2026-11-08T21:07:40.308Z",
+        "scope": "ISOLATED_REAL_MATCHER_WAVE_EMITTER_NO_HOSTED_WRITE_NO_TRANSPORT",
+        "status": "REPRODUCED_UNFIXED",
+        "existingSubmittedResponse": 1,
+        "initialOpportunityAdmission": true,
+        "newOpportunities": 1,
+        "ledger": {
+          "push": 1,
+          "inApp": 1,
+          "events": 1,
+          "duplicates": 0,
+          "opportunities": 1
+        }
+      },
+      "readOnlyLiveSourceFunctions": [
+        {
+          "signature": "private.candidate_profile_ids_v1b(uuid,integer,integer)",
+          "bodyMd5": "c1505cb7784898875f37ecbc9c52d23c"
+        },
+        {
+          "signature": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+          "bodyMd5": "cec5c0a2c13af6718af53b7a80245f28"
+        },
+        {
+          "signature": "private.emit_event(uuid,text,text,text,uuid,integer,text,text,text,text,jsonb,timestamp with time zone)",
+          "bodyMd5": "586c40786332a9863922585503f083f6"
+        },
+        {
+          "signature": "private.match_detail_without_calendar(uuid,uuid)",
+          "bodyMd5": "41b54908d3f461420c3826ad8b723880"
+        },
+        {
+          "signature": "private.remote_wave_candidates_v1b(uuid,integer,integer)",
+          "bodyMd5": "3bd12de1d220804a91a7b1b036fd7ce6"
+        },
+        {
+          "signature": "private.push_suppression(public.notification_deliveries)",
+          "bodyMd5": "25d3fae40c1f67689e1c50ee1898005b"
+        },
+        {
+          "signature": "public.rpc_claim_push_transport(text)",
+          "bodyMd5": "7c9145f1b9696f9ed6e4a29949228b58"
+        },
+        {
+          "signature": "private.safety_guard_delivery()",
+          "bodyMd5": "650c89ef5bc36fe45d802f5dec1c9dbd"
+        },
+        {
+          "signature": "private.safety_event_blocked(public.user_activity_events)",
+          "bodyMd5": "4a253bbaf6abd6b3207c7cd73a02ae0e"
+        },
+        {
+          "signature": "private.closure_guard_delivery()",
+          "bodyMd5": "33649ad64a682f939bad905cf9ff4734"
+        },
+        {
+          "signature": "private.closure_event_restricted(public.user_activity_events)",
+          "bodyMd5": "9487f617239b01bd5c698e6dc93d055d"
+        },
+        {
+          "signature": "private.guard_closed_remaining_search_delivery()",
+          "bodyMd5": "9eee75a9a0302d125bf2028dae5e3510"
+        }
+      ],
+      "postCandidateCheapGateMd5": "5f3862949a6b93ab99c29c549ff9a837",
+      "cause": "Candidate/real matching checks do not exclude an existing active response. Actual event emission creates the opportunity notification; current push_suppression checks delivery state/expiry/preferences/quiet hours but no application state. Delivery safety/closure helpers only enforce blocked pairs/closing accounts. Remaining-search guard only fences closed search.",
+      "boundary": "Actual SQL matcher/wave/emitter with one synthetically inserted valid SUBMITTED response row. No public response RPC, hosted DEV write, push claim, external SEND, Expo/FCM or Android assertion.",
+      "nextSafeUnit": "Define suppression for active same-revision applicants at candidate admission and before SEND, and verify dispatch/apply race plus dedupe. Preserve distinct event identities for messages and agreement lifecycle.",
+      "policyNotInvented": "Withdrawn response and reopen behavior were not changed or inferred. This existing issue does not turn the independent activation-clock patch into full R09 completion."
+    }
+  ],
+  "subsequentRootIntegration": {
+    "status": "ROOT_REPORTED_DEV_MIGRATION_APPLIED_READBACK_PENDING",
+    "note": "Root reported successful authorized DEV apply after independent tests and a separate guarded rollout wrapper. Root owns canonical migration, live readback, provenance and plan update. This agent made no DEV writes and does not claim its own deployment proof."
+  }
+}

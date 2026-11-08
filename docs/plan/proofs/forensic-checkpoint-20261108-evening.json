@@ -1,0 +1,309 @@
+{
+  "schema": "USKOCI_FORENSIC_CHECKPOINT_20261108_V1",
+  "sourceHead": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "newCommitsAfterUserCheckpoint": 0,
+  "latestSuccessfulCI": {
+    "runId": 42514397968,
+    "number": 89,
+    "source": "16405319c8aa4bf268cea13546f2146799a057d1",
+    "conclusion": "success",
+    "diffToInitialHead": [
+      "docs/plan/CODEX_PLAN_RADA.md",
+      "docs/plan/proofs/r13-real-wave-60-workers-20261108.json"
+    ],
+    "notPhoneProof": true
+  },
+  "dev": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "postgres": "17.6.1.165",
+    "status": "ACTIVE_HEALTHY",
+    "migration_count": 363,
+    "latest_migrations": [
+      {
+        "name": "r13_coalesce_push_wake_20261108",
+        "version": "20261108154914"
+      },
+      {
+        "name": "r13_short_publication_transaction_20261108",
+        "version": "20261108141444"
+      },
+      {
+        "name": "r12_quarantine_unverified_legal_v11_20261108",
+        "version": "20261108140731"
+      },
+      {
+        "name": "verify_legal_bundle_rpc",
+        "version": "20261108110019"
+      },
+      {
+        "name": "r12_reactivate_verified_counsel_bundle_20261108",
+        "version": "20261108110012"
+      },
+      {
+        "name": "r12_quarantine_unverified_legal_20261108",
+        "version": "20261108100023"
+      }
+    ],
+    "jobs": [
+      {
+        "jobid": 1,
+        "active": true,
+        "command": "select private.marketplace_tick(25);",
+        "jobname": "uskoci_marketplace_tick",
+        "schedule": "* * * * *"
+      },
+      {
+        "jobid": 2,
+        "active": true,
+        "command": "select private.edge_worker_tick_v5()",
+        "jobname": "uskoci_edge_workers",
+        "schedule": "* * * * *"
+      },
+      {
+        "jobid": 3,
+        "active": true,
+        "command": "\n SELECT net.http_post(\n  url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='uskoci_edge_base_url')||'/functions/v1/uskoci-taxonomy-postsave-worker',\n  headers := jsonb_build_object('Content-Type','application/json','apikey',\n    (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='uskoci_edge_worker_key')),\n  body := '{}'::jsonb,\n  timeout_milliseconds := 26000\n ) AS request_id\n WHERE EXISTS(SELECT 1 FROM private.work_taxonomy_review_outbox_control_v1 WHERE singleton AND enabled);\n ",
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "schedule": "* * * * *"
+      }
+    ],
+    "edgeFunctions": [
+      {
+        "name": "uskoci-ai-interview",
+        "version": 195,
+        "status": "ACTIVE",
+        "verifyJwt": false,
+        "packageSha256": "663abedcda9b000b001f606ab6cb22dce4331d1f655d4358e1d7c1aabed4f3fc"
+      },
+      {
+        "name": "uskoci-location-search",
+        "version": 32,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "packageSha256": "aa756f8daae61e5c8b07179a74ac05e9b5d7e9967393ea3cc21a16ad659ef39f"
+      },
+      {
+        "name": "uskoci-publication-evaluate",
+        "version": 32,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "packageSha256": "d9764a7f319195719a411cd9afe4c9ad2e06d6927bdd5f63df70d83c0a001e3f"
+      },
+      {
+        "name": "uskoci-data-export-worker",
+        "version": 29,
+        "status": "ACTIVE",
+        "verifyJwt": false,
+        "packageSha256": "e70434a972d46b0af8216717490bd01f6995e0ee785f811c3873b69f6ec5dfff"
+      },
+      {
+        "name": "uskoci-data-export-download",
+        "version": 29,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "packageSha256": "83581eb03346471b6a1f5575bdf63abea79a028cb0722c94664f0b1f6acb733d"
+      },
+      {
+        "name": "uskoci-worker-interview",
+        "version": 148,
+        "status": "ACTIVE",
+        "verifyJwt": false,
+        "packageSha256": "ddbf0bd3e5e15d64ebb650223dc2e573bb8408108c9342dc029e056709efc694"
+      },
+      {
+        "name": "uskoci-speech-session",
+        "version": 33,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "packageSha256": "d6095a2cbec088d608bbf65172bb85296c400ad6f191a540ec2724175db2472a"
+      },
+      {
+        "name": "uskoci-qa-classify",
+        "version": 31,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "packageSha256": "322bba9d34ad97e04c571288d469d5a3a0efbb66fa458bbfd943f056fc8e8929"
+      },
+      {
+        "name": "uskoci-push-transport",
+        "version": 47,
+        "status": "ACTIVE",
+        "verifyJwt": false,
+        "packageSha256": "3fce4c4b7d03a4bf6f533ee0721b43b86024a66da595603ff8eb5222080a472f"
+      },
+      {
+        "name": "uskoci-media",
+        "version": 31,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "packageSha256": "baebc8575e0048a5b42897e7da52cdbfa1a612b0bed36aa97d399fb5274466b9"
+      },
+      {
+        "name": "uskoci-account-closure-worker",
+        "version": 19,
+        "status": "ACTIVE",
+        "verifyJwt": false,
+        "packageSha256": "fe4f56c67541bf60909418a48b7a7d614eb8f95e77e2d337121f3af24c4fd34e"
+      },
+      {
+        "name": "uskoci-taxonomy-postsave-worker",
+        "version": 14,
+        "status": "ACTIVE",
+        "verifyJwt": false,
+        "packageSha256": "b61376460dbc24bcacbddc5473fd882d126f607e8a6ebb422a6be25f6f7b9494"
+      },
+      {
+        "name": "sbfenv",
+        "version": 10,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "packageSha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18"
+      },
+      {
+        "name": "uskoci-gemini-schema-smoke",
+        "version": 11,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "packageSha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72"
+      },
+      {
+        "name": "uskoci-gemini-provider-probe-dev",
+        "version": 12,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "packageSha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0"
+      }
+    ],
+    "cronObservedLastHour": [
+      {
+        "jobname": "uskoci_edge_workers",
+        "runs": 60,
+        "succeeded": 60,
+        "other_status": 0,
+        "p50_ms": "354.69",
+        "p95_ms": "1236.21",
+        "p99_ms": "1303.38"
+      },
+      {
+        "jobname": "uskoci_marketplace_tick",
+        "runs": 60,
+        "succeeded": 60,
+        "other_status": 0,
+        "p50_ms": "61.58",
+        "p95_ms": "425.85",
+        "p99_ms": "503.95"
+      },
+      {
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "runs": 60,
+        "succeeded": 60,
+        "other_status": 0,
+        "p50_ms": "22.85",
+        "p95_ms": "111.97",
+        "p99_ms": "145.88"
+      }
+    ],
+    "countsAfterTwoNewSyntheticAuthFixtures": {
+      "accounts": 18,
+      "needs": 18,
+      "agreements": 6,
+      "agreement_messages": 12,
+      "database_bytes": 123382931,
+      "observed_at": "2026-11-08 20:31:31.833152+00"
+    },
+    "privacyReadiness": {
+      "retention_ai_source_ready": false,
+      "data_export_policy_binding_is_null": true,
+      "retention_policy_sets": 0,
+      "retention_policy_rules": 0
+    }
+  },
+  "advisors": {
+    "security": [
+      {
+        "name": "rls_enabled_no_policy",
+        "level": "INFO",
+        "count": 123,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+      },
+      {
+        "name": "extension_in_public",
+        "level": "WARN",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public"
+      },
+      {
+        "name": "anon_security_definer_function_executable",
+        "level": "WARN",
+        "count": 3,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable"
+      },
+      {
+        "name": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "count": 202,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+      },
+      {
+        "name": "auth_leaked_password_protection",
+        "level": "WARN",
+        "count": 1,
+        "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+      }
+    ],
+    "performance": [
+      {
+        "name": "unindexed_foreign_keys",
+        "level": "INFO",
+        "count": 88,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys"
+      },
+      {
+        "name": "no_primary_key",
+        "level": "INFO",
+        "count": 7,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0004_no_primary_key"
+      },
+      {
+        "name": "unused_index",
+        "level": "INFO",
+        "count": 16,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index"
+      },
+      {
+        "name": "multiple_permissive_policies",
+        "level": "WARN",
+        "count": 5,
+        "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0006_multiple_permissive_policies"
+      }
+    ]
+  },
+  "actualProofs": {
+    "ordinaryAuth": "r01-p6-ordinary-auth-20261108.json",
+    "legacyKey": "r01-legacy-key-recheck-20261108.json",
+    "baselineNode": {
+      "tests": 1027,
+      "pass": 1027,
+      "fail": 0
+    },
+    "baselineTypeScript": {
+      "exitCode": 0
+    },
+    "baselineMigrationIntegrity": {
+      "files": 226,
+      "tests": 44,
+      "pass": 44
+    }
+  },
+  "coverage": "Current entrypoint, recent plan checkpoints and relevant R01/R02/R06/R09/R10/R11/R12/R13 and Product contracts reviewed; not a claim of semantic rereading all 5926 plan and 31723 Product lines.",
+  "noProductionWrites": true,
+  "noPaidProviderCalls": true,
+  "nativeDeviceProof": "NOT_CONFIRMED",
+  "rotationBlocker": {
+    "apiKeyOrSigningWriteTool": false,
+    "browser": "Originating connected browser unavailable; tool required opening ChatGPT in connected browser. No alternate login attempted.",
+    "rawKeyExposedInProof": false
+  },
+  "release": "NO_GO"
+}

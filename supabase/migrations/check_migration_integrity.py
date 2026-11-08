@@ -70,6 +70,12 @@ R13_PUSH_WAKE_FILE = "20261108154914_r13_coalesce_push_wake_20261108.sql"
 R13_PUSH_WAKE_MD5 = "25ad3acc139c8fb0d2d5c5d4fa117901"
 R13_PUSH_WAKE_SHA256 = "4f78f892cfc16ec130fb4dcc3a1b0f0ca37bda44f99b11ad0e8ed5d32599de03"
 R13_PUSH_WAKE_BYTES = 4724
+R09_ACTIVATION_FILE = "20261108211133_r09_worker_activation_clock_20261108.sql"
+R09_ACTIVATION_MD5 = "ff622b61d13aba1744b02dcde70c622a"
+R09_ACTIVATION_SHA256 = "5770bd040522c5f3bccb4c4d997787d32e494cb645fa456b09818ee4139ebb3c"
+R09_ACTIVATION_BYTES = 16708
+R09_ACTIVATION_PROOF = "docs/plan/proofs/r09-activation-clock-dev-20261108.json"
+R09_ACTIVATION_PROOF_SHA256 = "d34f03b015e9ac510c76ef5ad9f282c2682e6f371fd11adcaed0266c837763d0"
 
 
 def fail(message: str) -> None:
@@ -195,6 +201,50 @@ def check_r13_push_wake_provenance(section: dict, manifest_map: dict) -> str:
     if manifest_map.get(R13_PUSH_WAKE_FILE) != md5:
         fail("R13 coalesced push-wake manifest differs from DEV ledger")
     return R13_PUSH_WAKE_FILE
+
+
+def check_r09_activation_provenance(section: dict, manifest_map: dict) -> str:
+    """Bind the controlled DEV rollout to its exact ledger and readback witness."""
+    expected = {
+        "project": "leqcwgzvjsxugfgzdmth",
+        "file": R09_ACTIVATION_FILE,
+        "version": "20261108211133",
+        "name": "r09_worker_activation_clock_20261108",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "source_md5": R09_ACTIVATION_MD5,
+        "source_sha256": R09_ACTIVATION_SHA256,
+        "source_bytes": R09_ACTIVATION_BYTES,
+        "recorded_statement_md5": R09_ACTIVATION_MD5,
+        "recorded_statement_sha256": R09_ACTIVATION_SHA256,
+        "recorded_statement_count": 1,
+        "evidence": R09_ACTIVATION_PROOF,
+        "evidence_sha256": R09_ACTIVATION_PROOF_SHA256,
+        "dev_applied": True,
+        "dev_migration_count_before": 363,
+        "dev_migration_count_after": 364,
+        "existing_admitted_pairs_before": 0,
+        "preserved_profile_documents_updated_at_ai_hashes": 24,
+        "preserved_owner_metadata": 25,
+        "cron_changed": False,
+        "r13_cooperative_activated": False,
+        "verified_android_delivery": False,
+        "capacity_300k_proven": False,
+        "release": "NO-GO",
+    }
+    if not isinstance(section, dict) or any(section.get(k) != v for k, v in expected.items()):
+        fail("R09 activation provenance differs from verified controlled DEV rollout")
+    raw = (ROOT / R09_ACTIVATION_FILE).read_bytes()
+    if (len(raw) != R09_ACTIVATION_BYTES
+            or hashlib.md5(raw).hexdigest() != R09_ACTIVATION_MD5
+            or hashlib.sha256(raw).hexdigest() != R09_ACTIVATION_SHA256):
+        fail("R09 activation canonical source bytes differ from DEV ledger")
+    if manifest_map.get(R09_ACTIVATION_FILE) != R09_ACTIVATION_MD5:
+        fail("R09 activation manifest differs from DEV ledger")
+    witness = ROOT.parent.parent / R09_ACTIVATION_PROOF
+    if (not witness.is_file()
+            or hashlib.sha256(witness.read_bytes()).hexdigest() != R09_ACTIVATION_PROOF_SHA256):
+        fail("R09 activation DEV readback differs from its pinned immutable witness")
+    return R09_ACTIVATION_FILE
 
 
 def main() -> None:
@@ -543,7 +593,14 @@ def main() -> None:
     if r13_names and push_wake_file <= r13_names[-1]:
         fail("R13 coalesced wake must follow short-publication ledger version")
 
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names != disk_names:
+    activation_file = check_r09_activation_provenance(
+        metadata.get("forward_execution_20261108_r09_activation"), manifest_map
+    )
+    activation_names = [activation_file]
+    if activation_file <= push_wake_file:
+        fail("R09 activation must follow the coalesced wake ledger version")
+
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -641,6 +698,7 @@ def main() -> None:
         f"oct26_suffix={len(oct26_suffix_names)} "
         f"nov7_suffix={len(nov7_suffix_names)} "
         f"r13_push_wake={len(push_wake_names)} "
+        f"r09_activation={len(activation_names)} "
         f"nov7_forward={len(forward7_names)} "
         f"r08_forward={len(r08_names)} "
         f"r01_forward={len(r01_names)} "

@@ -1,0 +1,404 @@
+{
+  "recordedAt": "2026-11-08T20:56:52.579Z",
+  "sourceHead": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "candidateSha256": "e990bcc094fb2e14e5d8f8878e660de84abc7d6a5c55c43a5d944c04ff734bca",
+  "procedureSha256": "3ce86ac931dd8771b54e6683669129a3e21e38873193cde4430891c79fc41899",
+  "captureSha256": "487565421618d54683f196a8be5ee9db789592b9cf6723e9a0c24271f943968c",
+  "activationPreimageSha256": "d263e1109dc5ccc5752e4796ae3cd166b8a387df62c91d5be987c144b385c92b",
+  "fixtureSha256": "b899405659f08437442966566ff56268cce9671164564cc15575d6f48ace75f3",
+  "harnessSha256": "ef984a4b6c26ec808b47d2e76c440b375a1e6e3cda4e1508c4c42786ea315650",
+  "exactFunctionCount": 82,
+  "exactRelationCount": 53,
+  "activationOwnerFunctionCount": 25,
+  "deployment": "ISOLATED_ONLY_NO_DEV_CHANGES",
+  "scenarios": [
+    {
+      "name": "Source gate and scheduler access: no client role can invoke the prototype",
+      "elapsedMs": 2.976782,
+      "result": {
+        "acl": {
+          "anon": false,
+          "authenticated": false,
+          "service_role": false
+        }
+      }
+    },
+    {
+      "name": "0 eligible workers: exact current DEV configuration, real onsite geography and matcher",
+      "elapsedMs": 34.596953,
+      "result": {
+        "eligibleWorkers": 0,
+        "push": 0,
+        "inApp": 0,
+        "events": 0,
+        "duplicates": 0,
+        "opportunities": 0,
+        "firstDispatchMs": 14.806783,
+        "repeatedDispatchMs": 2.371362,
+        "networkPushAttempts": 0
+      }
+    },
+    {
+      "name": "1 eligible workers: exact current DEV configuration, real onsite geography and matcher",
+      "elapsedMs": 68.04347,
+      "result": {
+        "eligibleWorkers": 1,
+        "push": 1,
+        "inApp": 1,
+        "events": 1,
+        "duplicates": 0,
+        "opportunities": 1,
+        "firstDispatchMs": 28.06408,
+        "repeatedDispatchMs": 5.775131,
+        "networkPushAttempts": 0
+      }
+    },
+    {
+      "name": "20 eligible workers: exact current DEV configuration, real onsite geography and matcher",
+      "elapsedMs": 326.625973,
+      "result": {
+        "eligibleWorkers": 20,
+        "push": 20,
+        "inApp": 20,
+        "events": 20,
+        "duplicates": 0,
+        "opportunities": 20,
+        "firstDispatchMs": 42.598977,
+        "repeatedDispatchMs": 25.508906,
+        "networkPushAttempts": 0
+      }
+    },
+    {
+      "name": "120 eligible workers: exact current DEV configuration, real onsite geography and matcher",
+      "elapsedMs": 2180.397238,
+      "result": {
+        "eligibleWorkers": 120,
+        "push": 120,
+        "inApp": 120,
+        "events": 120,
+        "duplicates": 0,
+        "opportunities": 120,
+        "firstDispatchMs": 279.603544,
+        "repeatedDispatchMs": 138.437468,
+        "networkPushAttempts": 0
+      }
+    },
+    {
+      "name": "1000 eligible workers: exact current DEV configuration, real onsite geography and matcher",
+      "elapsedMs": 14745.362007,
+      "result": {
+        "eligibleWorkers": 1000,
+        "push": 1000,
+        "inApp": 1000,
+        "events": 1000,
+        "duplicates": 0,
+        "opportunities": 1000,
+        "firstDispatchMs": 2233.910568,
+        "repeatedDispatchMs": 1089.12111,
+        "networkPushAttempts": 0
+      }
+    },
+    {
+      "name": "1201 eligible workers: real current1000 budget defers201 without duplicates",
+      "elapsedMs": 16211.388869,
+      "result": {
+        "eligibleWorkers": 1201,
+        "perInvocationBudget": 1000,
+        "totals": [
+          1000,
+          1201
+        ],
+        "final": {
+          "push": 1201,
+          "inApp": 1201,
+          "events": 1201,
+          "duplicates": 0,
+          "opportunities": 1201
+        }
+      }
+    },
+    {
+      "name": "Two tasks and60 workers: notification budget50 survives per-task COMMIT",
+      "elapsedMs": 8270.128412,
+      "result": {
+        "syntheticBudget": 50,
+        "remoteWaves": false,
+        "totals": [
+          50,
+          100,
+          120
+        ],
+        "final": {
+          "push": 120,
+          "inApp": 120,
+          "events": 120,
+          "duplicates": 0,
+          "opportunities": 120
+        }
+      }
+    },
+    {
+      "name": "Two concurrent schedulers claim distinct Needs and preserve unique real ledgers",
+      "elapsedMs": 4918.96659,
+      "result": {
+        "parallelSchedulers": 2,
+        "perInvocationBudget": 50,
+        "firstCombined": 100,
+        "distinctBackendOwners": 2,
+        "final": {
+          "push": 120,
+          "inApp": 120,
+          "events": 120,
+          "duplicates": 0,
+          "opportunities": 120
+        },
+        "fleetGlobalBudgetClaim": false
+      }
+    },
+    {
+      "name": "Concurrent direct waves for the same task serialize and create one business opportunity per worker",
+      "elapsedMs": 2871.565729,
+      "result": {
+        "parallelWaves": 2,
+        "inserted": [
+          0,
+          20
+        ],
+        "final": {
+          "push": 20,
+          "inApp": 20,
+          "events": 20,
+          "duplicates": 0,
+          "opportunities": 20
+        }
+      }
+    },
+    {
+      "name": "Busy Need and busy queue are skipped without holding unrelated Need locks",
+      "elapsedMs": 4866.054019,
+      "result": {
+        "skippedBusyNeed": true,
+        "skippedBusyQueue": true,
+        "skippedNeedLockReleased": true,
+        "final": {
+          "push": 3,
+          "inApp": 3,
+          "events": 3,
+          "duplicates": 0,
+          "opportunities": 3
+        }
+      }
+    },
+    {
+      "name": "Connection cancellation during second task preserves the first committed task and retries without duplicates",
+      "elapsedMs": 6066.664208,
+      "result": {
+        "committedBeforeCancellation": 20,
+        "cancellationSqlstate": "57014",
+        "final": {
+          "push": 40,
+          "inApp": 40,
+          "events": 40,
+          "duplicates": 0,
+          "opportunities": 40
+        }
+      }
+    },
+    {
+      "name": "REMOTE keeps its own300/1000 waves and30-minute window under actual configuration",
+      "elapsedMs": 7367.756353,
+      "result": {
+        "first": {
+          "mode": "ALL",
+          "round": 1,
+          "remote": true,
+          "status": "SENT",
+          "ceiling": 10000,
+          "urgency": "NORMAL",
+          "inserted": 300,
+          "waveSize": 300,
+          "batchSize": 300,
+          "exhausted": false,
+          "deadlineAt": "2026-11-08T22:27:57.335179+01:00",
+          "validUntil": "2026-11-09T21:57:57.335179+01:00",
+          "budgetSource": "FIXED",
+          "authoritative": true,
+          "selectedSlots": 0,
+          "activeCoverage": 0,
+          "candidateLimit": 300,
+          "deliveredTotal": 300,
+          "remainingSlots": 1,
+          "workerDailyCap": null,
+          "activeResponses": 0,
+          "deliveredBefore": 0,
+          "candidateRetrieval": "REMOTE_ROTATION_WAVES"
+        },
+        "early": {
+          "mode": "ALL",
+          "remote": true,
+          "status": "SENT",
+          "waiting": true,
+          "inserted": 0,
+          "deadlineAt": "2026-11-08T22:27:57.335179+01:00",
+          "selectedSlots": 0,
+          "activeCoverage": 0,
+          "remainingSlots": 1,
+          "activeResponses": 0,
+          "deliveredBefore": 300
+        },
+        "second": {
+          "mode": "ALL",
+          "round": 2,
+          "remote": true,
+          "status": "SENT",
+          "ceiling": 10000,
+          "urgency": "NORMAL",
+          "inserted": 20,
+          "waveSize": 1000,
+          "batchSize": 1000,
+          "exhausted": true,
+          "deadlineAt": "2026-11-08T22:28:01.284605+01:00",
+          "validUntil": "2026-11-09T21:58:01.284605+01:00",
+          "budgetSource": "FIXED",
+          "authoritative": true,
+          "selectedSlots": 0,
+          "activeCoverage": 0,
+          "candidateLimit": 1000,
+          "deliveredTotal": 320,
+          "remainingSlots": 1,
+          "workerDailyCap": null,
+          "activeResponses": 0,
+          "deliveredBefore": 300,
+          "candidateRetrieval": "REMOTE_ROTATION_WAVES"
+        },
+        "simulatedElapsedWindow": true,
+        "final": {
+          "push": 320,
+          "inApp": 320,
+          "events": 320,
+          "duplicates": 0,
+          "opportunities": 320
+        }
+      }
+    },
+    {
+      "name": "New worker sees an old task through actual matcher and can respond, without retroactive opportunity; new publication qualifies",
+      "elapsedMs": 2093.222745,
+      "result": {
+        "oldStillMatches": true,
+        "oldManualResponseAllowed": true,
+        "oldOpportunities": 0,
+        "newOpportunities": 1,
+        "final": {
+          "push": 1,
+          "inApp": 1,
+          "events": 1,
+          "duplicates": 0,
+          "opportunities": 1
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Local synthetic accounts, tasks and signed-scope rows; no real users, Auth/JWT HTTP, Android, Expo/FCM or transport calls.",
+    "Captured real matcher, wave, event ledger, profile requeue and candidate procedure. External lifecycle/wake triggers and foreign keys are not installed; this is not a full Supabase copy.",
+    "Native real PostGIS and real SQL functions run unchanged except the separately hash-guarded R09 activation candidate.",
+    "Latency samples describe this isolated process only, not hosted capacity, p95/p99, or 300000-user readiness.",
+    "Per-invocation notification budget is carried across commits; parallel invocations each retain their own budget. A fleet-global rate limit is not proven or introduced.",
+    "Maintenance/expiry/autocompletion/export/retention/AI sweep transaction parity, hosted scheduler role and Cron switching remain unresolved. R13 remains source-only.",
+    "Material task editing remains blocked by the existing writer; fixture revision changes only model already-authorized publications."
+  ],
+  "installedFunctionCount": 120,
+  "isolatedRelationCount": 99,
+  "postgres": "PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "postgis": "POSTGIS=\"3.5.2 dea6d0a\" [EXTENSION] PGSQL=\"170\" GEOS=\"3.13.1-CAPI-1.19.2\" PROJ=\"9.6.0 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/home/agent/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db\" (compiled against PROJ 9.5.1) LIBXML=\"2.9.14\" LIBJSON=\"0.18\" LIBPROTOBUF=\"1.5.1\" WAGYU=\"0.5.0 (Internal)\"",
+  "actualConfig": [
+    {
+      "key": "dispatch_normal",
+      "value": {
+        "waveSizes": [
+          50,
+          100,
+          250,
+          500,
+          1000,
+          2000,
+          3000
+        ],
+        "windowMinutes": 10,
+        "candidateLimit": 5000,
+        "candidateBudget": {
+          "_note": "CAPACITY_300K_20261108",
+          "baseLimit": 100,
+          "hardMaxLimit": 5000,
+          "responseRate": 0.25,
+          "safetyFactor": 3,
+          "avgCoveragePerResponse": 1.3,
+          "maxRoutingCallsPerWave": 50
+        },
+        "targetResponses": 500,
+        "fallbackToFixedWaves": true
+      }
+    },
+    {
+      "key": "dispatch_urgent",
+      "value": {
+        "waveSizes": [
+          100,
+          200,
+          500,
+          1000,
+          2000
+        ],
+        "windowMinutes": 3,
+        "candidateLimit": 3000,
+        "candidateBudget": {
+          "_note": "CAPACITY_300K_URGENT_20261108",
+          "baseLimit": 100,
+          "hardMaxLimit": 3000,
+          "responseRate": 0.35,
+          "safetyFactor": 3,
+          "avgCoveragePerResponse": 1.3,
+          "maxRoutingCallsPerWave": 50
+        },
+        "targetResponses": 500,
+        "fallbackToFixedWaves": true
+      }
+    },
+    {
+      "key": "match_v1_dispatch",
+      "value": {
+        "mode": "ALL",
+        "owner": "MATCH-V1 2026-10-07",
+        "ceiling": 10000,
+        "remoteWaves": true,
+        "validMinutes": 1440,
+        "remoteCeiling": 10000,
+        "remoteWaveSize": 300,
+        "workerDailyCap": 1000,
+        "remoteWaveMinutes": 30,
+        "tickBudgetSeconds": 40,
+        "remoteNextWaveSize": 1000,
+        "remoteStopAfterResponses": 500,
+        "workerNotifyPerTransaction": 1000
+      }
+    },
+    {
+      "key": "urgent_activation_policy",
+      "value": {
+        "_note": "O-2 blokada: bez kanonskog registra kategorija allowlist ostaje prazan i HITNO je ugaseno.",
+        "enabled": false,
+        "minChoice": 2,
+        "chargesFee": false,
+        "policyVersion": "CLEAN_URGENT_V1",
+        "allowedCategories": [],
+        "maxMinutesToStart": 360,
+        "maxLifetimeMinutes": 60
+      }
+    }
+  ],
+  "completedAt": "2026-11-08T20:58:05.238Z",
+  "result": "PASS",
+  "supersededBy": "docs/plan/proofs/r13-native-independent-20261108.json",
+  "supersessionReason": "Independent root replica verifies the same frozen SQL/harness after the explicit ACL/owner capture enrichment. This historical run keeps its original input hash; no prior result is relabelled."
+}

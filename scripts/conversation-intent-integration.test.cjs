@@ -259,6 +259,7 @@ test('a newer user-approved handoff replaces the old one while wrong or expired 
 // provider, SQL mutation, account, paid call or production secrets are used.
 function handlerHarness(domain, text, providerOutput, options = {}) {
   const calls = [], logs = [], handlers = [];
+  let completedEnvelope = null;
   const singlePass = options.singlePass === true;
   const env = { SUPABASE_URL: 'https://leqcwgzvjsxugfgzdmth.supabase.co',
     SUPABASE_ANON_KEY: 'public-fixture', SUPABASE_SERVICE_ROLE_KEY: 'server-fixture',
@@ -292,12 +293,19 @@ function handlerHarness(domain, text, providerOutput, options = {}) {
     if (name === 'rpc_read_worker_ai_context_service') return json({ schemaVersion: 'WORKER_PROFILE_V1', accountId: ACCOUNT,
       conversationId: CONVERSATION, status: 'OPEN', stale: false, safety: 'ALLOW', profileStatus: 'DRAFT', revision: 1, candidate,
       messages: options.history ?? [{ role: 'USER', body: text, id: id(6) }],
-      serviceModeContext: { schemaVersion: 'WORKER_SERVICE_MODE_CONTEXT_V1', revision: 1, savedServices: [], draftServices: [], unresolvedServices: candidate.skills } });
+      serviceModeContext: options.serviceModeContext ?? { schemaVersion: 'WORKER_SERVICE_MODE_CONTEXT_V1', revision: 1, savedServices: [], draftServices: [], unresolvedServices: candidate.skills } });
     if (name === 'rpc_ai_test_budget_reserve_service') return json({ admitted: true, replay: false, reservationId: id(10), code: 'AI_TEST_RESERVED' });
     if (name === 'rpc_ai_dispatch_need_turn_v2_service') return json(true);
     if (name === 'rpc_dispatch_worker_ai_turn_service') return json({ dispatched: true, turn: processing });
-    if (name === 'rpc_taxonomy_fetch_snapshot_v1') return json({ catalogVersion: 1, catalogFingerprint: 'fixture-catalog', count: 1,
-      categories: [{ categoryId: id(20), label: 'Fizička pomoć pri selidbi', parentId: null, isLeaf: true, aliases: [], modes: ['ON_SITE'] }] });
+    if (name === 'rpc_taxonomy_fetch_snapshot_v1') {
+      const categories = options.catalog ?? [{ categoryId: id(20), label: 'Fizička pomoć pri selidbi', parentId: null, isLeaf: true, aliases: [], modes: ['ON_SITE'] }];
+      return json({ catalogVersion: 1, catalogFingerprint: 'fixture-catalog', count: categories.length, categories });
+    }
+    if (name === 'rpc_ai_read_first_plan_completion_service') {
+      assert.equal(options.completionOutcome, 'LOST_ACK', 'Readback is allowed only in a declared recovery scenario');
+      assert.ok(completedEnvelope, 'The fixture must first persist the exact completion');
+      return json({ state: 'COMPLETED', envelope: completedEnvelope });
+    }
     if (name === 'rpc_ai_test_record_usage_service') return json(true);
     if (['rpc_ai_fail_need_turn_v2_service', 'rpc_fail_worker_ai_turn_service'].includes(name)) return json(true);
     if (['rpc_ai_complete_need_turn_v2_service', 'rpc_ai_complete_need_turn_with_first_plan_service',
@@ -306,8 +314,10 @@ function handlerHarness(domain, text, providerOutput, options = {}) {
       const completed = domain === 'NEED' ? needTurn({ receipt: { ...needTurn().receipt,
         proposedCount: args.p_proposals.length, safety: args.p_safety } }) : workerTurn();
       if (options.malformedReceipt) completed.authoritative = false;
-      return json(name.includes('first_plan') ? { completion: completed,
-        firstPlan: { state: 'RESOLVED', authority: 'CATALOG_ONLY', applicability: 'NOT_EVALUATED' } } : completed);
+      completedEnvelope = name.includes('first_plan') ? { completion: completed,
+        firstPlan: { state: 'RESOLVED', authority: 'CATALOG_ONLY', applicability: 'NOT_EVALUATED' } } : completed;
+      if (options.completionOutcome === 'LOST_ACK') throw new Error('FIXTURE_COMMITTED_ACK_LOST');
+      return json(completedEnvelope);
     }
     throw new Error('Unexpected external call: ' + parsed.origin + parsed.pathname);
   };
@@ -424,6 +434,119 @@ test('Worker actual Edge: ADD, REMOVE and scoped REPLACE preserve every unrelate
       assert.ok(modelInput.generationConfig.responseSchema.required.includes(key), 'Natural edits get the complete schema: ' + key);
     assert.ok(modelInput.systemInstruction.parts.some(part => part.text.includes(id(20))), 'The same single model call receives the actual complete catalog');
   }
+});
+
+// The earlier mutation corpus intentionally left every service unresolved. The
+// cases below reach the actual single-pass builder and first-plan writer, with
+// owned saved/draft bindings. SQL and provider boundaries remain fixtures.
+const mutationCatalog = [
+  { categoryId: id(20), label: 'Fizička pomoć pri selidbi', parentId: null, isLeaf: true, aliases: [], modes: ['ON_SITE'] },
+  { categoryId: id(21), label: 'Lektura tekstova', parentId: null, isLeaf: true, aliases: [], modes: ['REMOTE', 'ON_SITE'] },
+  { categoryId: id(22), label: 'Košenje trave', parentId: null, isLeaf: true, aliases: [], modes: ['ON_SITE'] },
+  { categoryId: id(23), label: 'Selidbe sa prevozom', parentId: null, isLeaf: true, aliases: [], modes: ['ON_SITE'] },
+];
+const binding = (service, mode, categoryId, handoff) => ({ service, mode, categoryId, ...(handoff ? { handoff } : {}) });
+const modeContext = (savedServices, draftServices = [], unresolvedServices = []) => ({
+  schemaVersion: 'WORKER_SERVICE_MODE_CONTEXT_V1', revision: 1, savedServices, draftServices, unresolvedServices,
+});
+const reuseDecision = (service, mode, categoryId) => ({ service, mode, categoryId, action: 'REUSE_EXISTING',
+  parentId: '', proposedPath: [], ambiguityPrompt: '', reason: 'Ista konkretna usluga i način rada u važećem katalogu.' });
+const planBindings = result => result.writes[0].args.p_taxonomy_plan?.proposals.map(proposal =>
+  binding(proposal.service, proposal.mode, proposal.categoryId, proposal.handoff));
+const assertOnePaidAttempt = result => {
+  assert.equal(result.calls.filter(call => /streamGenerateContent/.test(call.name)).length, 1);
+  assert.equal(result.calls.filter(call => /dispatch.*turn/.test(call.name)).length, 1);
+  assert.equal(result.calls.filter(call => call.name === 'rpc_ai_test_budget_reserve_service').length, 1);
+  assert.equal(result.calls.filter(call => call.name === 'rpc_ai_test_record_usage_service').length, 1);
+  assert.equal(result.calls.some(call => /(?:publish|activate|save_worker|release_unused)/.test(call.name)), false);
+};
+
+for (const recovery of [false, true]) test('Worker actual Edge: ADD keeps an unrelated BOTH identity, including lost completion ACK=' + recovery, async () => {
+  const text = 'Takođe kosim travu na lokaciji, uz postojeću lekturu.', service = 'Košenje trave';
+  const saved = [binding('Lektura', 'REMOTE', id(21), { required: false }), binding('Lektura', 'ON_SITE', id(21))];
+  const output = providerWorker('WORKER_ADD_SERVICE', text, {
+    serviceChanges: [{ action: 'ADD', service, replacement: '', evidence: text }],
+    serviceModeChangesJson: JSON.stringify([{ service, modes: ['ON_SITE'], evidence: text }]),
+    taxonomyDecisions: [reuseDecision(service, 'ON_SITE', id(22)),
+      // Unsolicited reclassification of a preserved synonym must be ignored.
+      reuseDecision('Lektura', 'REMOTE', id(23))],
+  });
+  const result = await handlerHarness('WORKER', text, output, { singlePass: true, skills: ['Lektura'],
+    serviceModeContext: modeContext(saved), catalog: mutationCatalog,
+    ...(recovery ? { completionOutcome: 'LOST_ACK' } : {}) }).run();
+  assert.equal(result.events.at(-1)?.kind, 'final', JSON.stringify({ events: result.events, logs: result.logs }));
+  assert.deepEqual(result.writes[0].args.p_output.patch, { skills: ['Lektura', service] });
+  assert.deepEqual(planBindings(result), [...saved, binding(service, 'ON_SITE', id(22))]);
+  assert.equal(result.writes[0].name, 'rpc_complete_worker_ai_turn_with_first_plan_service');
+  assert.equal(result.writes.length, 1, 'Lost acknowledgement uses the persisted exact result, never a second writer');
+  assert.equal(result.calls.filter(call => call.name === 'rpc_ai_read_first_plan_completion_service').length, recovery ? 1 : 0);
+  if (recovery) assert.deepEqual(result.calls.find(call => call.name === 'rpc_ai_read_first_plan_completion_service').args,
+    { p_writer: result.writes[0].name, p_arguments: result.writes[0].args });
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: REMOVE does not restore the removed service or an intentionally removed half of BOTH', async () => {
+  const text = 'Više ne kosim travu, lekturu nastavljam.', remaining = binding('Lektura', 'REMOTE', id(21), { required: false });
+  const saved = [remaining, binding('Lektura', 'ON_SITE', id(21)), binding('Košenje trave', 'ON_SITE', id(22))];
+  const output = providerWorker('WORKER_REMOVE_SERVICE', text, {
+    serviceChanges: [{ action: 'REMOVE', service: 'Košenje trave', replacement: '', evidence: text }],
+    serviceModeChangesJson: '[]', taxonomyDecisions: [reuseDecision('Košenje trave', 'ON_SITE', id(22))],
+  });
+  const result = await handlerHarness('WORKER', text, output, { singlePass: true, skills: ['Lektura', 'Košenje trave'],
+    serviceModeContext: modeContext(saved, [remaining]), catalog: mutationCatalog }).run();
+  assert.equal(result.events.at(-1)?.kind, 'final', JSON.stringify({ events: result.events, logs: result.logs }));
+  assert.deepEqual(result.writes[0].args.p_output.patch, { skills: ['Lektura'] });
+  assert.deepEqual(planBindings(result), [remaining]);
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: scoped REPLACE removes transport identity, keeps unrelated work and never invents a van', async () => {
+  const text = 'Selidbe radim samo kao fizička pomoć na lokaciji. Nemam kombi.', service = 'Fizička pomoć pri selidbi';
+  const retained = binding('Košenje trave', 'ON_SITE', id(22));
+  const output = providerWorker('WORKER_EDIT_SERVICE', text, {
+    serviceChanges: [{ action: 'REPLACE', service: 'Selidbe sa prevozom', replacement: service, evidence: text }],
+    serviceModeChangesJson: JSON.stringify([{ service, modes: ['ON_SITE'], evidence: text }]),
+    taxonomyDecisions: [reuseDecision(service, 'ON_SITE', id(20)), reuseDecision('Selidbe sa prevozom', 'ON_SITE', id(23))],
+  });
+  const result = await handlerHarness('WORKER', text, output, { singlePass: true, skills: ['Selidbe sa prevozom', retained.service],
+    serviceModeContext: modeContext([binding('Selidbe sa prevozom', 'ON_SITE', id(23)), retained]), catalog: mutationCatalog }).run();
+  assert.equal(result.events.at(-1)?.kind, 'final', JSON.stringify({ events: result.events, logs: result.logs }));
+  assert.deepEqual(result.writes[0].args.p_output.patch, { skills: [service, retained.service] });
+  assert.deepEqual(planBindings(result), [binding(service, 'ON_SITE', id(20)), retained]);
+  assert.equal(result.writes[0].args.p_taxonomy_plan.anchors.some(anchor => anchor.categoryId === id(23)), false);
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: incomplete new BOTH never becomes partial authority beside an unaffected saved service', async () => {
+  const text = 'Dodajem lekturu preko interneta i uživo na lokaciji.', service = 'Lektura';
+  const retained = binding('Košenje trave', 'ON_SITE', id(22));
+  const output = providerWorker('WORKER_ADD_SERVICE', text, {
+    serviceChanges: [{ action: 'ADD', service, replacement: '', evidence: text }],
+    serviceModeChangesJson: JSON.stringify([{ service, modes: ['REMOTE', 'ON_SITE'], evidence: text, handoff: { required: false } }]),
+    taxonomyDecisions: [reuseDecision(service, 'REMOTE', id(21))],
+  });
+  const result = await handlerHarness('WORKER', text, output, { singlePass: true, skills: [retained.service],
+    serviceModeContext: modeContext([retained]), catalog: mutationCatalog }).run();
+  assert.equal(result.events.at(-1)?.kind, 'final', JSON.stringify({ events: result.events, logs: result.logs }));
+  assert.deepEqual(result.writes[0].args.p_output.patch, { skills: [retained.service, service] });
+  assert.deepEqual(planBindings(result), [retained], 'Unresolved BOTH is kept out of the plan as one complete service');
+  assert.match(result.writes[0].args.p_output.assistantMessage, /Pregled još nije spreman/);
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: removing the last saved service creates no replacement or taxonomy authority', async () => {
+  const text = 'Više ne nudim lekturu.', service = 'Lektura';
+  const output = providerWorker('WORKER_REMOVE_SERVICE', text, {
+    serviceChanges: [{ action: 'REMOVE', service, replacement: '', evidence: text }], serviceModeChangesJson: '[]',
+    taxonomyDecisions: [reuseDecision(service, 'REMOTE', id(21))],
+  });
+  const result = await handlerHarness('WORKER', text, output, { singlePass: true, skills: [service],
+    serviceModeContext: modeContext([binding(service, 'REMOTE', id(21), { required: false })]), catalog: mutationCatalog }).run();
+  assert.equal(result.events.at(-1)?.kind, 'final', JSON.stringify({ events: result.events, logs: result.logs }));
+  assert.deepEqual(result.writes[0].args.p_output.patch, { skills: [] });
+  assert.equal(result.writes[0].name, 'rpc_complete_worker_ai_turn_service');
+  assert.equal(Object.hasOwn(result.writes[0].args, 'p_taxonomy_plan'), false);
+  assertOnePaidAttempt(result);
 });
 
 test('Worker actual Edge: mismatched removals, stale evidence and legacy full-list overwrite keep existing services', async () => {

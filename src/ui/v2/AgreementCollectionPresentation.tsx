@@ -18,6 +18,7 @@ import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
+import { HowItWorks } from '../home/HowItWorks';
 import { SearchField } from './discovery/SearchParts';
 import { agreementGroupMatchesSearch, agreementSearchQuery, AGREEMENT_SEARCH_MAX_LENGTH } from '../agreements/agreementSearch';
 import { AgreementRoleRail } from '../agreements/AgreementRoleRail';
@@ -278,6 +279,7 @@ export function AgreementCollectionPresentation(props: Props) {
       </Surface>
     </View> : null}
     <FlatList<ListRow> key={`${section}:${query}`} data={loading || error ? [] : rows} keyExtractor={keyOf} refreshing={pull.refreshing}
+      ListHeaderComponent={section === 'active' && settledRead && !search.open ? <HowItWorks topic="agreements" /> : null}
       contentOffset={{ x: 0, y: query ? searchOffsets.current[section].offset : scrollOffsets.current[section] }}
       onScroll={event => { const y = Math.max(0, event.nativeEvent.contentOffset.y);
         if (query) searchOffsets.current[section].offset = y; else scrollOffsets.current[section] = y; }} scrollEventThrottle={32}

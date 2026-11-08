@@ -4,9 +4,10 @@ import copy
 import io
 import json
 import unittest
+from unittest import mock
 from pathlib import Path
 
-from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence, check_r13_push_wake_provenance
+from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence, check_r13_push_wake_provenance, check_r09_activation_provenance
 
 
 class ParticipantContractTests(unittest.TestCase):
@@ -529,6 +530,45 @@ class R13PushWakeProvenanceTests(unittest.TestCase):
             check_r13_push_wake_provenance(None, self.manifest)
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             check_r13_push_wake_provenance(self.section, {**self.manifest, self.section["file"]: "0" * 32})
+
+
+class R09ActivationProvenanceTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).parent
+        self.section = json.loads((root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))["forward_execution_20261108_r09_activation"]
+        self.manifest = dict(line.split("  ")[::-1] for line in (root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+
+    def test_exact_applied_ledger_and_controlled_rollout_witness(self):
+        self.assertEqual(check_r09_activation_provenance(self.section, self.manifest), self.section["file"])
+        self.assertEqual(self.section["existing_admitted_pairs_before"], 0)
+        self.assertEqual(self.section["preserved_profile_documents_updated_at_ai_hashes"], 24)
+        self.assertFalse(self.section["r13_cooperative_activated"])
+        self.assertFalse(self.section["verified_android_delivery"])
+
+    def test_fabricated_version_hash_or_delivery_claim_is_rejected(self):
+        for name, bad in (("version", "20261108210405"), ("source_sha256", "0" * 64),
+                          ("recorded_statement_count", 2), ("evidence_sha256", "0" * 64),
+                          ("existing_admitted_pairs_before", 1), ("dev_applied", False),
+                          ("cron_changed", True), ("verified_android_delivery", True)):
+            with self.subTest(name=name), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                changed = {**self.section, name: bad}
+                check_r09_activation_provenance(changed, self.manifest)
+
+    def test_missing_section_and_manifest_mismatch_are_rejected(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_r09_activation_provenance(None, self.manifest)
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_r09_activation_provenance(self.section, {**self.manifest, self.section["file"]: "0" * 32})
+
+    def test_changed_source_or_server_witness_bytes_are_rejected(self):
+        original = Path.read_bytes
+        for suffix in (self.section["file"], self.section["evidence"]):
+            def tampered(path, _suffix=suffix):
+                raw = original(path)
+                return raw + b"\n" if str(path).endswith(_suffix) else raw
+            with self.subTest(suffix=suffix), mock.patch.object(Path, "read_bytes", tampered):
+                with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    check_r09_activation_provenance(self.section, self.manifest)
 
 
 if __name__ == "__main__":

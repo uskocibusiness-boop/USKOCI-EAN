@@ -29,6 +29,7 @@ export function AccountSettings({ email, busy, logoutError, version, words, open
       {row('Privatnost i podaci', 'shield', '/profil/privatnost', 'Vidljivost, podaci i blokirane osobe', 'info')}
     </AccountGroup>
     <AccountGroup title="Pomoć">
+      {row('Kako radi', 'info', '/profil/kako-radi', 'Kratka uputstva za svaki korak', 'green')}
       {row('Pomoć i podrška', 'messages', '/podrska', words.support ?? 'Odgovori i Vaši zahtevi', 'info')}
       {row('Prijavi grešku', 'info', '/profil/prijava-greske', undefined, 'orange')}
       {row('Pravila i saglasnosti', 'shield', '/profil/pravna', words.legal, 'violet')}

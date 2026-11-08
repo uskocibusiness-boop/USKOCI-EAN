@@ -1,13 +1,14 @@
 'use strict';
 const { buildIdentity } = require('./scripts/build-identity.cjs');
 const { assertProductionTarget } = require('./scripts/build-contract.cjs');
+const { SOUND_ASSETS } = require('./scripts/notification-audio-assets.cjs');
 
 // Expo supplies normalized app.json, including each disposable workflow's
 // package/label overrides. Never replace those with the preview identity.
 // The Google Play identity (owner, 2026-09-23: "rs.uskoci"). Only the EAS production profile, the store app bundle,
 // takes it; the preview APK and every CI build keep the package they are given. A package is permanent in Play Console.
 const STORE_PACKAGE = 'rs.uskoci';
-const PREVIEW_RUNTIME = 'uskoci-v1-preview-r1';
+const PREVIEW_RUNTIME = 'uskoci-v1-preview-r2';
 const PRODUCTION_RUNTIME = 'uskoci-v1-production-r1';
 const UPDATE_URL = 'https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6';
 const NEARBY_PERMISSION = 'USKOČI koristi jednu lokaciju kada izaberete „U blizini”, kako bi prikazao mapu zadataka u Vašoj okolini.';
@@ -36,6 +37,15 @@ module.exports = ({ config }) => {
   const devAutoPush = process.env.EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL === '1';
   const plugins = (config.plugins ?? []).filter(plugin =>
     (Array.isArray(plugin) ? plugin[0] : plugin) !== inertPlugin);
+  if (!production) {
+    // Native sounds require a new binary/runtime. This only embeds original
+    // resources; it does not reroute old tokens or reset the default channel.
+    const index = plugins.findIndex(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === 'expo-notifications');
+    const previous = index < 0 ? {} : Array.isArray(plugins[index]) ? plugins[index][1] ?? {} : {};
+    const notificationPlugin = ['expo-notifications', { ...previous,
+      sounds: [...new Set([...(previous.sounds ?? []), ...SOUND_ASSETS])] }];
+    if (index < 0) plugins.push(notificationPlugin); else plugins[index] = notificationPlugin;
+  }
   const mapPlugin = '@maplibre/maplibre-react-native';
   const photoPlugin = 'expo-image-picker';
   const locationPlugin = 'expo-location';

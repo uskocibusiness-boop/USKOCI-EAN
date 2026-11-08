@@ -8,7 +8,8 @@ import { publicPushTarget } from './pushTarget';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { nativePushDevice } from '../../data/nativePushDevice';
 import { pushDeviceClientService, revokePushBeforeLogout } from '../../data/pushDeviceClientService';
-import { isPublicInboxNotification as publicInbox } from './publicInboxCopy';
+import { createForegroundAlertPolicy } from './foregroundAlertPolicy';
+import { foregroundNotificationAudio } from '../../data/foregroundNotificationAudio';
 
 /** Fixed owned Inbox navigation + rotation of an already explicit registration.
  * Mount once under the existing router/Auth runtime. Never asks OS permission,
@@ -17,6 +18,7 @@ import { isPublicInboxNotification as publicInbox } from './publicInboxCopy';
 export function PushRuntime({ ready = false }: { ready?: boolean }) {
  const { user, accountRevision, sessionEpoch } = useSesija(); const accountId = user?.id;
  const seen = useRef(new Set<string>()), coldStarted = useRef(false), blocked = useRef(new Set<string>());
+ const foregroundAlerts = useRef(createForegroundAlertPolicy());
  const rendered = useRef({ ready, accountId, accountRevision, sessionEpoch });
  rendered.current = { ready, accountId, accountRevision, sessionEpoch };
  useEffect(() => {
@@ -35,13 +37,14 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
     && sesijaSada().accountRevision === accountRevision && sesijaSada().sessionEpoch === sessionEpoch;
   };
   let foreground = AppState.currentState === 'active';
+  void foregroundNotificationAudio.load();
   Notifications.setNotificationHandler({ handleNotification: async notification => {
    const owner = rendered.current;
    const show = owned() && owner.ready && owner.accountId === accountId && owner.accountRevision === accountRevision
-    && owner.sessionEpoch === sessionEpoch && foreground && publicInbox(notification);
+    && owner.sessionEpoch === sessionEpoch && foreground && AppState.currentState === 'active';
    // Immediate local presentation only: no permission, RPC, navigation, badge or
    // read/delivery acknowledgment. Sound still obeys native permission/channel.
-   return { shouldShowBanner: show, shouldShowList: show, shouldPlaySound: show, shouldSetBadge: false };
+   return foregroundAlerts.current(notification, show, foregroundNotificationAudio.snapshot());
   } });
   const remember = (set: Set<string>, value: string, max: number) => { set.add(value); if (set.size > max) set.delete(set.values().next().value!); };
   function tap(response: Notifications.NotificationResponse | null, cold = false) {

@@ -17,6 +17,7 @@ import { sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { V2Action } from '../v2/V2Action';
 import { TimedRow } from '../notifications/TimedRow';
+import { HowItWorks } from '../home/HowItWorks';
 
 /**
  * The admitted reader's contract owns these facts (`MY_CONVERSATIONS_PAGE_V1`). Two things the Poruke design draws are NOT in that
@@ -131,6 +132,7 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
     {!titleInHeader ? <T variant="pageTitle" accessibilityRole="header">Poruke</T> : null}
     <T variant="note" tone="muted">Razgovori o Vašim zadacima</T>
     {notice}
+    {items !== null && !error ? <HowItWorks topic="messages" /> : null}
   </View>;
 
   const incomplete = hasMore || pageError || paging;

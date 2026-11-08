@@ -9,13 +9,13 @@ type ContactClientService = Pick<Izvor, 'podeliTelefon' | 'opoziviTelefon' | 'ot
   | 'lokacijskaDozvola' | 'podeliTacnuLokaciju' | 'opoziviTacnuLokaciju'>;
 
 const locationErrors = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.',
   NOT_PARTY: 'Lokacija je dostupna samo učesnicima Dogovora.',
   AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.',
   AGREEMENT_NOT_ACTIVE: 'Privatna lokacija je dostupna samo dok je Dogovor aktivan.',
-  NO_ACTIVE_GRANT: 'Dozvola za prikaz lokacije nije aktivna. Osveži prikaz.',
+  NO_ACTIVE_GRANT: 'Dozvola za prikaz lokacije nije aktivna. Osvežite prikaz.',
   LOCATION_NOT_SET: 'Privatna lokacija još nije postavljena.',
-  LOCATION_BINDING_CHANGED: 'Lokacija je promenjena. Osveži Dogovor.',
+  LOCATION_BINDING_CHANGED: 'Lokacija je promenjena. Osvežite Dogovor.',
   GRANT_NOT_FROM_DATA_OWNER: 'Lokaciju može da podeli njen vlasnik.',
   GRANT_NOT_OWNABLE: 'Lokaciju može da podeli njen vlasnik.',
   GRANT_NOT_TO_COUNTERPARTY: 'Dozvola ne pripada ovom učesniku Dogovora.',

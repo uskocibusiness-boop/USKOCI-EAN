@@ -9,7 +9,7 @@ const { assertProductionTarget, assertDevBuildContract } = require('./build-cont
 const PROJECT_ID = '1e6cc490-9851-4741-9226-128612122db6';
 const SUPABASE_REF = 'leqcwgzvjsxugfgzdmth';
 const UPDATE_URL = `https://u.expo.dev/${PROJECT_ID}`;
-const PREVIEW_RUNTIME = 'uskoci-v1-preview-r1';
+const PREVIEW_RUNTIME = 'uskoci-v1-preview-r2';
 
 function requireCondition(condition, message) {
   if (!condition) throw new Error(message);

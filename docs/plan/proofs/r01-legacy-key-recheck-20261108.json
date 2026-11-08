@@ -1,0 +1,47 @@
+{
+  "schema": "USKOCI_R01_LEGACY_KEY_BOUNDED_RECHECK_V2",
+  "observedAtUtc": "2026-11-08T20:30:02.892423+00:00",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceCommit": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "keySha256": "3a130d7a360260e307ae11b95db987b27c1d73d9232a59a7720b3d28c22c9776",
+  "scope": "Three GET needs select=id limit=0; no rows, writes, key rotation or secret output",
+  "checks": [
+    {
+      "name": "historical-api-and-bearer",
+      "httpStatus": 200,
+      "emptyArray": true,
+      "rowCount": 0,
+      "errorCode": null,
+      "elapsedMs": 11097
+    },
+    {
+      "name": "modern-public-and-historical-bearer",
+      "httpStatus": 200,
+      "emptyArray": true,
+      "rowCount": 0,
+      "errorCode": null,
+      "elapsedMs": 5272
+    },
+    {
+      "name": "invalid-bearer-negative",
+      "httpStatus": 401,
+      "emptyArray": false,
+      "rowCount": null,
+      "errorCode": "PGRST301",
+      "elapsedMs": 5317
+    }
+  ],
+  "legacyKeyStillAccepted": true,
+  "invalidControlRejected": true,
+  "secretValuesIncluded": false,
+  "status": "P0_ACTIVE_EXPOSED_KEY",
+  "rotationAccessCheck": {
+    "connectorKeyOrSigningRotationToolExposed": false,
+    "connectedBrowserPlugin": "originating connected browser unavailable",
+    "cloudBrowser": "Supabase dashboard redirected to Sign in; no authenticated admin session",
+    "observedUrl": "https://supabase.com/dashboard/sign-in?returnTo=%2Forg",
+    "credentialsEntered": false,
+    "rotationPerformed": false,
+    "nextRequiredAccess": "Authenticated project administrator plus reviewed consumer cutover; no raw secrets in chat"
+  }
+}

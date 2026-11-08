@@ -86,6 +86,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/uskoci-checks"
           node scripts/verify-native-patches.cjs --repo
           python scripts/qa-gradle-bootstrap.test.py
+          python scripts/test_verify_qa_apk_r2.py
           node scripts/record-ux-checkpoint.cjs --verify-source
           npm test 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/tests.tap"
           npx tsc --noEmit 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/typescript.txt"
@@ -143,7 +144,7 @@ jobs:
             USKOCI_PUSH_PROOF_BUILD: '0', EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL: '0',
           });
           const expo=require('./app.config.js')({config: require('./app.json').expo});
-          if(expo.android.package!=='rs.uskoci.preview.qa'||expo.extra?.uskociBuild?.backendTarget!=='canonical'||expo.runtimeVersion!=='uskoci-v1-preview-r1') throw Error('QA_BUILD_IDENTITY_INVALID');
+          if(expo.android.package!=='rs.uskoci.preview.qa'||expo.extra?.uskociBuild?.backendTarget!=='canonical'||expo.runtimeVersion!=='uskoci-v1-preview-r2') throw Error('QA_BUILD_IDENTITY_INVALID');
           if (expo.android.googleServicesFile) throw Error('QA_MUST_HAVE_NO_FIREBASE');
           if (expo.updates.enabled !== false || expo.updates.checkAutomatically !== 'NEVER' || expo.updates.useEmbeddedUpdate !== true) throw Error('QA_MUST_USE_EMBEDDED_SOURCE');
           if (expo.extra.uskociBuild.sourceCommit !== process.env.GITHUB_SHA) throw Error('QA_SOURCE_COMMIT_MISMATCH');
@@ -154,6 +155,8 @@ jobs:
       - name: Verify generated native update isolation
         run: |
           python - <<'PY'
+          import hashlib
+          from pathlib import Path
           import xml.etree.ElementTree as ET
           manifest = ET.parse('android/app/src/main/AndroidManifest.xml').getroot()
           android = '{http://schemas.android.com/apk/res/android}'
@@ -161,6 +164,12 @@ jobs:
           assert metadata.get('expo.modules.updates.ENABLED') == 'false', 'QA_NATIVE_UPDATES_MUST_BE_DISABLED'
           assert metadata.get('expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH') == 'NEVER', 'QA_NATIVE_UPDATE_CHECK_MUST_BE_DISABLED'
           assert metadata.get('expo.modules.updates.HAS_EMBEDDED_UPDATE') != 'false', 'QA_NATIVE_BUNDLE_REQUIRED'
+          sounds = sorted(Path('assets/audio').glob('uskoci_*_v1.wav'))
+          assert {p.name for p in sounds} == {'uskoci_message_v1.wav', 'uskoci_opportunity_v1.wav', 'uskoci_confirm_v1.wav'}, 'QA_AUDIO_SOURCE_SET_MISMATCH'
+          for sound in sounds:
+              bundled = Path('android/app/src/main/res/raw') / sound.name
+              assert bundled.is_file() and bundled.read_bytes() == sound.read_bytes(), 'QA_NATIVE_AUDIO_RESOURCE_MISMATCH'
+              print('Bundled native sound:', sound.name, hashlib.sha256(sound.read_bytes()).hexdigest())
           print('Generated Android manifest: embedded source only PASS')
           PY
       - name: Prepare pinned Gradle distribution with bounded retry
@@ -231,7 +240,7 @@ jobs:
           grep -F "package: name='rs.uskoci.preview.qa'" artifacts/qa-apk/apk-badging.txt
           "$tools_dir/aapt" dump xmltree "$apk" AndroidManifest.xml > artifacts/qa-apk/AndroidManifest-tree.txt
           python - <<'PY'
-          import json, re, zipfile
+          import hashlib, json, re, zipfile
           from pathlib import Path
           directory = Path('artifacts/qa-apk')
           manifest = (directory / 'AndroidManifest-tree.txt').read_text()
@@ -245,7 +254,13 @@ jobs:
             assert 'assets/index.android.bundle' in names and apk.getinfo('assets/index.android.bundle').file_size > 0, 'APK_EMBEDDED_BUNDLE_MISSING'
             dex = [name for name in names if re.fullmatch(r'classes\d*\.dex', name)]
             assert dex and any(b'USKOCI_RNR01' in apk.read(name) for name in dex), 'APK_NATIVE_PATCH_MISSING'
-          (directory / 'native-receipt.json').write_text(json.dumps({'abis': abis, 'embeddedBundle': True, 'otaEnabled': False, 'nativePatchMarker': 'USKOCI_RNR01', 'dexFiles': len(dex)}, indent=2) + '\n')
+            audio = {}
+            for sound in sorted(Path('assets/audio').glob('uskoci_*_v1.wav')):
+              resource = 'res/raw/' + sound.name
+              assert resource in names and apk.read(resource) == sound.read_bytes(), 'APK_NATIVE_AUDIO_RESOURCE_MISMATCH'
+              audio[sound.name] = hashlib.sha256(apk.read(resource)).hexdigest()
+            assert len(audio) == 3, 'APK_NATIVE_AUDIO_COUNT_MISMATCH'
+          (directory / 'native-receipt.json').write_text(json.dumps({'abis': abis, 'embeddedBundle': True, 'otaEnabled': False, 'nativePatchMarker': 'USKOCI_RNR01', 'dexFiles': len(dex), 'bundledAudioSha256': audio, 'customSoundActivation': 'NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED'}, indent=2) + '\n')
           print('Final APK: ARM64, embedded bundle, OTA disabled and native patch marker PASS')
           PY
           cp "$apk" artifacts/qa-apk/USKOCI-QA-$(git rev-parse --short=9 HEAD).apk
@@ -257,7 +272,7 @@ jobs:
           if(files.length!==1)throw Error('APK_COUNT_INVALID');
           const data=fs.readFileSync(dir + '/' + files[0]);
           const native=JSON.parse(fs.readFileSync(dir + '/native-receipt.json','utf8'));
-          const meta={status:'BUILD_OUTPUT_NOT_NATIVE_E2E',sourceCommit:process.env.GITHUB_SHA,filename:files[0],bytes:data.length,sha256:crypto.createHash('sha256').update(data).digest('hex'),package:'rs.uskoci.preview.qa',signing:'EXPO_TEMPLATE_ANDROID_DEBUG_KEY',backend:'DEV',runtimeVersion:'uskoci-v1-preview-r1',...native,configOverrides:{name:'USKOČI • QA',androidPackage:'rs.uskoci.preview.qa'},push:'NOT_PROVEN',deviceInstall:'NOT_PERFORMED',replacesExistingPreview:false};
+          const meta={status:'BUILD_OUTPUT_NOT_NATIVE_E2E',sourceCommit:process.env.GITHUB_SHA,filename:files[0],bytes:data.length,sha256:crypto.createHash('sha256').update(data).digest('hex'),package:'rs.uskoci.preview.qa',signing:'EXPO_TEMPLATE_ANDROID_DEBUG_KEY',backend:'DEV',runtimeVersion:'uskoci-v1-preview-r2',...native,configOverrides:{name:'USKOČI • QA',androidPackage:'rs.uskoci.preview.qa'},push:'NOT_PROVEN',deviceInstall:'NOT_PERFORMED',replacesExistingPreview:false};
           fs.writeFileSync(dir + '/build-receipt.json',JSON.stringify(meta,null,2)+'\n');
           NODE
           printf 'Temporary side-by-side ARM64 QA APK only. Embedded source only; OTA disabled. New package/signing; NOT the signed EAS preview, NOT production/store, NO push or device-install proof.\n' > artifacts/qa-apk/README.txt

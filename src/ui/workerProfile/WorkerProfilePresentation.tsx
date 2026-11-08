@@ -3,6 +3,7 @@ import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
+import { HowItWorks } from '../home/HowItWorks';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { FactArt } from '../system/FactArt';
 import { layout, ruleWidth } from '../system/layout';
@@ -189,13 +190,16 @@ export function WorkerProfileForm({ draft, disabled, status, navigate, openConve
     <T variant="body" tone="muted">Koje zadatke želite da preuzimate, gde i kada Vam odgovara.</T>
     <T variant="note" tone="muted">Razgovor možete da nastavite kasnije. Profil aktivirate tek kada pregledate i potvrdite podatke.</T>
   </View>;
-  return <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
+  return <>
+    {status !== 'SUSPENDED' ? <HowItWorks topic="workerProfile" /> : null}
+    <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
     showConversationAction={showConversationAction}
     executionModes={executionModes} refreshModes={refreshModes} confirmMap={confirmMap}
     availability={availability} refreshAvailability={refreshAvailability}
     readOnly={status === 'SUSPENDED'} face={face} rating={rating} availableNow={availableNow}
     accountName={accountName} onUseAccountName={onUseAccountName} nameWorking={nameWorking}
-    status={<ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate ?? false} disabled={disabled} navigate={navigate} />} />;
+    status={<ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate ?? false} disabled={disabled} navigate={navigate} />} />
+  </>;
 }
 
 const s = StyleSheet.create({

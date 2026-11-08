@@ -19,6 +19,7 @@ import { discoveryV1RouteIntentKey } from '../../data/discoveryV1RouteCoordinato
 import { novac } from '../../lib/novac';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { HowItWorks } from '../home/HowItWorks';
 import { Glyph } from '../system/Glyph';
 import { Appear, useAppear } from '../system/Appear';
 import { useReducedMotion } from '../system/motion';
@@ -1542,6 +1543,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       <Press accessibilityRole="button" accessibilityLabel="Proverite status zadataka" onPress={refreshList}
         style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Proverite</T></Press>
     </View> : null}
+    {/* Within the measured, scrolling header: no overlay over map controls, and both readers use the same explanation. */}
+    {!loading && !error && !props.forMeRefused ? <HowItWorks topic={forMeOn ? 'forMe' : 'tasks'} /> : null}
   </View>;
 
   return <TaskAgeContext.Provider value={ageOf}><DistanceFromContext.Provider value={nearby.me}><SafeAreaView edges={['top']} style={s.screen}>

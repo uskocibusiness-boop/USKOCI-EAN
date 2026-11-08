@@ -14,6 +14,7 @@ import { CivilField } from '../calendar/CalendarControls';
 import { SettingsFooter, SettingsGroup, SettingsInfo } from '../settings/SettingsPresentation';
 import { NotificationLoading } from './NotificationLoading';
 import { NoticeSwitchRow } from './NoticeSwitchRow';
+import { NotificationAudioPreferences } from './NotificationAudioPreferences';
 import { Disclosure } from '../system/Disclosure';
 import { FactArt } from '../system/FactArt';
 import { InfoButton } from '../system/InfoButton';
@@ -479,6 +480,8 @@ export function PushPreferencesView({ signedIn, data, busy, error, locked, dirty
      </Disclosure> : null}
     </View>
    </Section>
+
+   <NotificationAudioPreferences openSystemSettings={onOpenSystemSettings} />
 
    {/* While a command runs the choices stay readable and visibly wait: every locked row draws its words in muted ink, so
        the block is not faded a second time on top of that. The phone's state and the footer are not touched. Each set has the choices

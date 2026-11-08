@@ -4784,5 +4784,33 @@
     "capacity_300k_proven": false,
     "release": "NO-GO",
     "scope": "Coalesce optional transaction-local pg_net wake; durable notification delivery queue and recovery Cron stay authoritative; no changes to recipient/budget/provider policy."
+  },
+  "forward_execution_20261108_r09_activation": {
+    "classification": "APPLIED_EXACT_LEDGER_BYTES",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "file": "20261108211133_r09_worker_activation_clock_20261108.sql",
+    "version": "20261108211133",
+    "name": "r09_worker_activation_clock_20261108",
+    "source_md5": "ff622b61d13aba1744b02dcde70c622a",
+    "source_sha256": "5770bd040522c5f3bccb4c4d997787d32e494cb645fa456b09818ee4139ebb3c",
+    "source_bytes": 16708,
+    "recorded_statement_md5": "ff622b61d13aba1744b02dcde70c622a",
+    "recorded_statement_sha256": "5770bd040522c5f3bccb4c4d997787d32e494cb645fa456b09818ee4139ebb3c",
+    "recorded_statement_count": 1,
+    "evidence": "docs/plan/proofs/r09-activation-clock-dev-20261108.json",
+    "evidence_sha256": "d34f03b015e9ac510c76ef5ad9f282c2682e6f371fd11adcaed0266c837763d0",
+    "dev_applied": true,
+    "dev_migration_count_before": 363,
+    "dev_migration_count_after": 364,
+    "existing_admitted_pairs_before": 0,
+    "preserved_profile_documents_updated_at_ai_hashes": 24,
+    "preserved_owner_metadata": 25,
+    "cron_changed": false,
+    "r13_cooperative_activated": false,
+    "verified_android_delivery": false,
+    "capacity_300k_proven": false,
+    "release": "NO-GO",
+    "scope": "DEV first-activation clock and dispatch-only admission fence, immutable publication/revision authority, AI/avatar continuity, and export/closure projections. Current eligible pairs checked as zero under bounded table locks; no provider delivery or legal readiness claim.",
+    "rollback": "scripts/sql/r09_worker_activation_20261108.rollback.sql; explicit recovery only, restores old admission predicate while preserving clocks, guards and privacy projections."
   }
 }

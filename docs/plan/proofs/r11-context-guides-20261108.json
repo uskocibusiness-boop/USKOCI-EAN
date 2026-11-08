@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "planItem": "R11",
+  "capturedAt": "2026-11-08T20:41:48.020205+00:00",
+  "sourceBaseline": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "status": [
+    "SOURCE_IMPLEMENTED",
+    "LOCALLY_TESTED"
+  ],
+  "problem": "Existing HowItWorks only supported a permanent Home dismissal; no manual reopening or contextual guidance was available.",
+  "implementation": {
+    "owner": "src/ui/home/HowItWorks.tsx",
+    "topics": [
+      "home",
+      "tasks",
+      "forMe",
+      "agreements",
+      "messages",
+      "workerProfile"
+    ],
+    "forMeLabel": "Zadaci za Vas (current accepted Za Vas capsule; no scope or reader change)",
+    "acknowledgement": "Razumem persists seenVersion; same and older guide versions stay hidden after restart.",
+    "suppression": "Ne prikazuj ponovo persists suppression independently of content version.",
+    "scope": "Device preference only, no account identifiers. Existing permanent Home receipt remains valid.",
+    "storageFailure": "Unknown or failed reads omit optional guidance for the visit; no hidden-guide flash or delayed pop-in. Failed writes retain the choice in memory without a success claim.",
+    "manualReading": "Profile settings -> Kako radi; same six bundled texts, no storage read or clearing, no network dependency.",
+    "placement": "Inline scrolling content. Discovery uses its existing measured header shared by P6 and legacy; Agreement search/history/read-recovery and pristine/suspended worker profile do not get competing guidance.",
+    "navigation": "One href:null FULL detail route; four primary tabs preserved.",
+    "concurrency": "First explicit choice per topic/run wins; duplicate taps cannot write contradictory receipts. Live occurrences observe the same choice. Retired-topic responses cannot replace the current topic."
+  },
+  "tests": [
+    {
+      "command": "node --test scripts/ux-navigation-copy.test.cjs",
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "newR11Tests": 21
+    },
+    {
+      "command": "node --test --test-concurrency=2 scripts/ux-navigation-copy.test.cjs scripts/ux-home-waiting.test.cjs scripts/ux-discovery-for-me.test.cjs scripts/ux-agreement-search.test.cjs scripts/ux-saved-availability.test.cjs",
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 5670.850025
+    },
+    {
+      "command": "npx tsc --noEmit --pretty false",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "testBoundary": "Actual React hooks, guide content, settings route and selected presentation owners execute with inert native components. AsyncStorage and timers are fixtures; restart is a fresh JS module. No physical Android process, native layout/gesture or TalkBack proof is claimed. Regression totals overlap the targeted 28 and must not be added together.",
+  "initialIntegrationPass": {
+    "passed": 23,
+    "failed": 2,
+    "reasons": [
+      "New detail route not yet registered in Tabs (subsequently added).",
+      "Worker profile test native token fixture omitted sys.conversation (fixture completed without weakening assertions)."
+    ]
+  },
+  "changedFiles": [
+    {
+      "path": "src/ui/home/HowItWorks.tsx",
+      "sha256": "8b9e585609f14525f2344a217b30ced693431b436155e85f9e5120710d464e9f"
+    },
+    {
+      "path": "src/ui/settings/AccountSettingsPresentation.tsx",
+      "sha256": "810d254e3d44b61cafe21bc57d6f4ef5a8c2a7f507ba88711d6c916cfaef655c"
+    },
+    {
+      "path": "src/ui/profile/ProfileHubPresentation.tsx",
+      "sha256": "55ccff6b89925c84e6277f2976eac7a93ea07e0ee1a2379709c42962becf6e98"
+    },
+    {
+      "path": "src/app/(app)/profil/kako-radi.tsx",
+      "sha256": "664bf5d860c6da476f76d11579e2df55140db069b2c6692fc0e55d84edcf4780"
+    },
+    {
+      "path": "src/app/(app)/_layout.tsx",
+      "sha256": "667362db7b7e8a60c02ae5b60234c91f40b80d344f54029e30e50ffee440a667"
+    },
+    {
+      "path": "src/ui/messages/ConversationInboxPresentation.tsx",
+      "sha256": "7b85bd36cbf29c69ef7c051d5fd19a5caaf6bb1262eb0637b22d11b633418917"
+    },
+    {
+      "path": "src/ui/v2/AgreementCollectionPresentation.tsx",
+      "sha256": "630ebf39d4a6e8db255fc8f334dadd3087116a7a932aaf37d0c1bcf819d607dc"
+    },
+    {
+      "path": "src/ui/v2/DiscoveryPresentation.tsx",
+      "sha256": "d35a09a7f06a78a1cb9194c3ba49b7d05b7903beaf6055e0f5d06cd1bbafa9fd"
+    },
+    {
+      "path": "src/ui/workerProfile/WorkerProfilePresentation.tsx",
+      "sha256": "b0526dabdd9d552418a248252491b1600ab5bc765cfb349a1ab5c4797e955ce7"
+    },
+    {
+      "path": "scripts/ux-navigation-copy.test.cjs",
+      "sha256": "930410e1d49281770a79a6e2957d82dff15cf3180eff24fca8e8dc3afe7c35d5"
+    }
+  ],
+  "devMutations": 0,
+  "providerCalls": 0,
+  "newDependencies": 0,
+  "unconfirmed": [
+    "Exact source commit CI and integrated QA APK",
+    "Real 360dp and 1.3x font rendering, Android Back and TalkBack",
+    "Native Discovery sheet/list offset after acknowledging a guide and returning from task detail",
+    "Actual cold process restart and AsyncStorage on a physical phone",
+    "Full R11 screen-by-screen acceptance beyond these contextual explanations"
+  ],
+  "nextSafeStep": "Integrate with the current shared source, run current CI, then verify the guide lifecycle and Discovery geometry in the exact QA APK before claiming native completion."
+}

@@ -1,0 +1,292 @@
+{
+  "schema": "USKOCI_R01_P6_ORDINARY_AUTH_V1",
+  "startedAtUtc": "2026-11-08T20:28:17.383Z",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceCommit": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "harnessSha256": "07ff30751d18a6097cde1c059af92b460d74a2361dd164372d84ba4b100f891b",
+  "actors": [
+    {
+      "label": "A",
+      "accountIdSha256": "94c803f8ca9962efec44043a7570654dec02bab0b9c9e7cfc626ffccf8d23214",
+      "jwtAlgorithm": "ES256",
+      "jwtRole": "authenticated",
+      "sessionIdPresent": true
+    },
+    {
+      "label": "B",
+      "accountIdSha256": "250d634639353ac438bcf66ba72a78854c30620ec3005b54d19bf225f9759a52",
+      "jwtAlgorithm": "ES256",
+      "jwtRole": "authenticated",
+      "sessionIdPresent": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "ordinary-password-login-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 10595,
+      "sqlstate": null
+    },
+    {
+      "name": "auth-user-verified-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 521,
+      "sqlstate": null
+    },
+    {
+      "name": "ordinary-password-login-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 575,
+      "sqlstate": null
+    },
+    {
+      "name": "auth-user-verified-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 195,
+      "sqlstate": null
+    },
+    {
+      "name": "own-account-positive-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 682,
+      "sqlstate": null
+    },
+    {
+      "name": "other-account-email-phone-hidden-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 499,
+      "sqlstate": null
+    },
+    {
+      "name": "private-need-projection-denied-remaining_search_close_reason-A",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 5341,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "private-need-projection-denied-remaining_search_closed_by_account_id-A",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 5543,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "private-need-projection-denied-*-A",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 195,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "supported-need-projection-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 515,
+      "sqlstate": null
+    },
+    {
+      "name": "owned-conversation-open-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 225,
+      "sqlstate": null
+    },
+    {
+      "name": "own-account-positive-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 273,
+      "sqlstate": null
+    },
+    {
+      "name": "other-account-email-phone-hidden-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 182,
+      "sqlstate": null
+    },
+    {
+      "name": "private-need-projection-denied-remaining_search_close_reason-B",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 6045,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "private-need-projection-denied-remaining_search_closed_by_account_id-B",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 5251,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "private-need-projection-denied-*-B",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 194,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "supported-need-projection-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 508,
+      "sqlstate": null
+    },
+    {
+      "name": "owned-conversation-open-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 185,
+      "sqlstate": null
+    },
+    {
+      "name": "own-conversation-positive-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 540,
+      "sqlstate": null
+    },
+    {
+      "name": "other-conversation-hidden-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 232,
+      "sqlstate": null
+    },
+    {
+      "name": "other-conversation-rpc-denied-A",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 5496,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "home-attention-ordinary-auth-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 5307,
+      "sqlstate": null
+    },
+    {
+      "name": "own-conversation-positive-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 211,
+      "sqlstate": null
+    },
+    {
+      "name": "other-conversation-hidden-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 180,
+      "sqlstate": null
+    },
+    {
+      "name": "other-conversation-rpc-denied-B",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 5217,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "home-attention-ordinary-auth-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 5805,
+      "sqlstate": null
+    },
+    {
+      "name": "p6-page-signed-http-and-current-decoder",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 307,
+      "sqlstate": null
+    },
+    {
+      "name": "p6-continuation-1",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 527,
+      "sqlstate": null
+    },
+    {
+      "name": "p6-live-keysets-no-duplicates",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 307,
+      "sqlstate": null,
+      "pages": 2,
+      "visibleRows": 4
+    },
+    {
+      "name": "p6-map-signed-http-and-current-decoder",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 209,
+      "sqlstate": null
+    },
+    {
+      "name": "p6-places-signed-http-and-current-decoder",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 194,
+      "sqlstate": null
+    },
+    {
+      "name": "p6-anon-denied",
+      "pass": true,
+      "httpStatus": 401,
+      "elapsedMs": 179,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "needs-anon-denied",
+      "pass": true,
+      "httpStatus": 401,
+      "elapsedMs": 182,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "legal-unpublished-guard-retained",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 185,
+      "sqlstate": null
+    },
+    {
+      "name": "anon-conversation-delete-denied",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 184,
+      "sqlstate": "28000"
+    },
+    {
+      "name": "denied-command-preserves-owned-conversation",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 206,
+      "sqlstate": null
+    }
+  ],
+  "boundary": "Real signed ordinary Auth HTTP and current client decoders. Fixture identities were created with the Auth admin API and admitted to TEST separately; this does not test signup email delivery, devices, 5001 live rows, storage, exact-location revocation, or public release.",
+  "providerCalls": 0,
+  "adminBusinessWrites": 0,
+  "deletions": 0,
+  "publications": 0,
+  "pushSends": 0,
+  "finishedAtUtc": "2026-11-08T20:29:20.221Z",
+  "passed": 36,
+  "failed": 0,
+  "status": "PASS_WITH_STATED_BOUNDARY",
+  "fixtureConversationsCreated": 2,
+  "completed": true,
+  "reportingNote": "After the completed 36-check execution, the harness checkpoint status was tightened to IN_PROGRESS until completed. The recorded harnessSha256 remains the exact executed bytes; the network scenarios were not rerun."
+}

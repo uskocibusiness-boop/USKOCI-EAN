@@ -1,0 +1,528 @@
+{
+  "schemaVersion": 1,
+  "planItems": [
+    "R04",
+    "R06",
+    "R08"
+  ],
+  "sourceBaseline": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "liveReadback": {
+    "budget": {
+      "enabled": true,
+      "capEnforced": true,
+      "ceilingMicrousd": 5000000,
+      "heldAndSettledMicrousd": 65486681
+    },
+    "unsettled": {
+      "count": 221,
+      "heldMicrousd": 55100000
+    },
+    "capturedAt": "2026-11-08T20:25:40.268311+00:00",
+    "reservations": 2324,
+    "duplicateOperationIds": 0,
+    "providerDispatchFunctions": [
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "bodyMd5": "fa90211a3fb9297eeebc74463845c7ca",
+        "signature": "rpc_ai_dispatch_need_turn_v2_service(uuid,uuid,uuid,uuid)",
+        "securityDefiner": true
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "bodyMd5": "91629b929aae24dc3a9b05b412ab1b2e",
+        "signature": "rpc_ai_test_budget_reserve_service(uuid,uuid,text,bigint)",
+        "securityDefiner": true
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "bodyMd5": "05c6f257e25baec1ea39abbc4246b36f",
+        "signature": "rpc_dispatch_worker_ai_turn_service(uuid,uuid,uuid,uuid)",
+        "securityDefiner": true
+      }
+    ],
+    "budgetEqualsReservationLedger": true
+  },
+  "changedFiles": [
+    "scripts/conversation-intent-integration.test.cjs"
+  ],
+  "productCodeChanged": false,
+  "providerCallsMade": 0,
+  "budgetMutations": 0,
+  "devMutations": 0,
+  "deployments": 0,
+  "tests": {
+    "command": "node --test --test-concurrency=2 scripts/conversation-intent-server.test.cjs scripts/conversation-intent-integration.test.cjs scripts/ai-stream-display.test.cjs scripts/r06-first-plan-replay.test.cjs",
+    "passed": 103,
+    "failed": 0,
+    "skipped": 0,
+    "newScenarios": 6,
+    "newCoverage": [
+      "ADD preserves unrelated natural-label BOTH binding and saved handoff",
+      "Lost completion ACK reads exact completed first-plan envelope with one provider request and one writer",
+      "REMOVE cannot restore removed service or a removed half of BOTH",
+      "Scoped REPLACE drops old transport ID and preserves unrelated capability without inventing a van",
+      "Incomplete new BOTH cannot become a partial captured service beside an unaffected saved service",
+      "Removing the last service creates no replacement or taxonomy authority"
+    ],
+    "boundary": "Actual Edge handlers, real SSE/intent guards and real single-pass builder execute locally. Provider responses, Auth and HTTP SQL results are controlled fixtures. The pre-existing first-plan SQL suite uses PGlite and its stated fixture dependencies, not hosted Auth or native PostgreSQL proof."
+  },
+  "sourceLivePackages": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 195,
+      "status": "ACTIVE",
+      "fileCount": 22,
+      "budgetLimits": {
+        "llmRequestBytes": 10485760,
+        "llmMaxOutputTokens": 2048,
+        "llmReservationMicrousd": 250000
+      },
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-ai-interview/index.ts",
+          "deployedSha256": "9a213ed0f2751abbc09e65da23217e6e5422f566cef4f2a5143f190424fbc086",
+          "localSha256": "9a213ed0f2751abbc09e65da23217e6e5422f566cef4f2a5143f190424fbc086",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiPhaseTiming.mjs",
+          "deployedSha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2",
+          "localSha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/supabaseKeys.mjs",
+          "deployedSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "localSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+          "deployedSha256": "3b6678e26cf6e72daf42e5345e736d6de8899416a83a0dc96f97db891304e398",
+          "localSha256": "3b6678e26cf6e72daf42e5345e736d6de8899416a83a0dc96f97db891304e398",
+          "byteEqual": true
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "deployedSha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+          "localSha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+          "byteEqual": true
+        },
+        {
+          "path": "src/contracts/needFactsV2.ts",
+          "deployedSha256": "f5f9eed0f9ed17278d805982d036feae3b910a413e98d20f8e93e0e9fe1d5099",
+          "localSha256": "f5f9eed0f9ed17278d805982d036feae3b910a413e98d20f8e93e0e9fe1d5099",
+          "byteEqual": true
+        },
+        {
+          "path": "src/contracts/taskApplicationDeadline.ts",
+          "deployedSha256": "6561ccfe5530ae34944d304abeb8400e8f3e5e8d29d16d5a5d517226b5e5ff5a",
+          "localSha256": "6561ccfe5530ae34944d304abeb8400e8f3e5e8d29d16d5a5d517226b5e5ff5a",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/locationReply.ts",
+          "deployedSha256": "e58382d12212257801fdbfdb5271ea5488891533e2208943cf18b81fe49770e3",
+          "localSha256": "e58382d12212257801fdbfdb5271ea5488891533e2208943cf18b81fe49770e3",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/interviewVoiceInstruction.mjs",
+          "deployedSha256": "ce73cde3e8722eb1440850ba6fcbf6651cf9aebef75acda31dca5e8fafb67c0e",
+          "localSha256": "ce73cde3e8722eb1440850ba6fcbf6651cf9aebef75acda31dca5e8fafb67c0e",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "deployedSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+          "localSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "deployedSha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+          "localSha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+          "deployedSha256": "aa126a55d690fb0799ca8b1e4473061ed3b0f503631a738378490618f2664632",
+          "localSha256": "aa126a55d690fb0799ca8b1e4473061ed3b0f503631a738378490618f2664632",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+          "deployedSha256": "90c6ec46f56248d184ea338d51acb9153e64358ea0acdf7fa118575c6377ee6f",
+          "localSha256": "90c6ec46f56248d184ea338d51acb9153e64358ea0acdf7fa118575c6377ee6f",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "deployedSha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+          "localSha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/serviceHandoff.mjs",
+          "deployedSha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e",
+          "localSha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/workerServiceModeContext.mjs",
+          "deployedSha256": "839e373ac5949085f735222c870bcd4374a90b045233e90c9a146e6046ea452f",
+          "localSha256": "839e373ac5949085f735222c870bcd4374a90b045233e90c9a146e6046ea452f",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/completeFirstPlan.ts",
+          "deployedSha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de",
+          "localSha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/serviceExecutionInstruction.mjs",
+          "deployedSha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314",
+          "localSha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/researchDeadline.ts",
+          "deployedSha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9",
+          "localSha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiContextCache.mjs",
+          "deployedSha256": "160fb09f35538f6b0f4170931fa7d64bb87e9f2af2695e4dcabedfb799fce9c7",
+          "localSha256": "94daaefe13749a01f5cfde4d933be07824b930f2e7a0517f3c96d73eb4d0c7cf",
+          "byteEqual": false
+        },
+        {
+          "path": "supabase/functions/_shared/craftQuestionMatrix.mjs",
+          "deployedSha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b",
+          "localSha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/conversationIntent.mjs",
+          "deployedSha256": "5c99f4a30ad7e3b30189dfeb143f45ab66f19060b5e58cbde5d6498f0badffc7",
+          "localSha256": "5c99f4a30ad7e3b30189dfeb143f45ab66f19060b5e58cbde5d6498f0badffc7",
+          "byteEqual": true
+        }
+      ]
+    },
+    {
+      "slug": "uskoci-publication-evaluate",
+      "version": 32,
+      "status": "ACTIVE",
+      "fileCount": 5,
+      "budgetLimits": {
+        "llmRequestBytes": 262144,
+        "llmMaxOutputTokens": 8192,
+        "llmReservationMicrousd": 250000
+      },
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-publication-evaluate/index.ts",
+          "deployedSha256": "7d3665a435420d88433be8f9a96836b770a80724bd88b4d88d349b762405cb05",
+          "localSha256": "7d3665a435420d88433be8f9a96836b770a80724bd88b4d88d349b762405cb05",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "deployedSha256": "55eea40ff86b409503812f9f2848c8056bf29261c66096dd8ab11e80e8628f4d",
+          "localSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+          "byteEqual": false
+        },
+        {
+          "path": "supabase/functions/_shared/supabaseKeys.mjs",
+          "deployedSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "localSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "deployedSha256": "52995599c0c4dd89350681fa657c2777089046dd560555e764931f20c9b12aac",
+          "localSha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+          "byteEqual": false
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "deployedSha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "localSha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+          "byteEqual": false
+        }
+      ]
+    },
+    {
+      "slug": "uskoci-qa-classify",
+      "version": 31,
+      "status": "ACTIVE",
+      "fileCount": 7,
+      "budgetLimits": {
+        "llmRequestBytes": 262144,
+        "llmMaxOutputTokens": 8192,
+        "llmReservationMicrousd": 250000
+      },
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-qa-classify/index.ts",
+          "deployedSha256": "eb69d270c28356ad059e32157583ece1c012512743c36eedd57a83211b428688",
+          "localSha256": "eb69d270c28356ad059e32157583ece1c012512743c36eedd57a83211b428688",
+          "byteEqual": true
+        },
+        {
+          "path": "src/contracts/qaSubmission.ts",
+          "deployedSha256": "decf8744b41f808cb3dd45cda1b6f26809656b1ff46a9f6157071e4caf5bbeb5",
+          "localSha256": "35e43a41a59e39d400adb9e63da822d7ae2a55a0cd464ded68ffd17768fa6fe9",
+          "byteEqual": false
+        },
+        {
+          "path": "src/lib/qaTextHash.ts",
+          "deployedSha256": "9c1226bdbbbe9a6a8bbc50f71e30036e86b668c35d540ba3317eae6efd842285",
+          "localSha256": "9c1226bdbbbe9a6a8bbc50f71e30036e86b668c35d540ba3317eae6efd842285",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "deployedSha256": "5b8d725143a51b62e63165c49a27a31be133ef6cbb1d5fa1c8999e8444c21c3a",
+          "localSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+          "byteEqual": false
+        },
+        {
+          "path": "supabase/functions/_shared/supabaseKeys.mjs",
+          "deployedSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "localSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "deployedSha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+          "localSha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+          "byteEqual": true
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "deployedSha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+          "localSha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+          "byteEqual": true
+        }
+      ]
+    },
+    {
+      "slug": "uskoci-speech-session",
+      "version": 33,
+      "status": "ACTIVE",
+      "fileCount": 5,
+      "budgetLimits": {
+        "llmRequestBytes": 10485760,
+        "llmMaxOutputTokens": 2048,
+        "llmReservationMicrousd": 250000
+      },
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-speech-session/index.ts",
+          "deployedSha256": "c456c16a30404ddc2396da8cfb5410751cbd8c71fe24860b42a2583c567ca6b5",
+          "localSha256": "c456c16a30404ddc2396da8cfb5410751cbd8c71fe24860b42a2583c567ca6b5",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "deployedSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+          "localSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/supabaseKeys.mjs",
+          "deployedSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "localSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/uskoci-speech-session/proxy.ts",
+          "deployedSha256": "3819ef579a6fc8370ee289aa3e53386bbeeb96add16552c78a6cd4d4c68f02f4",
+          "localSha256": "3819ef579a6fc8370ee289aa3e53386bbeeb96add16552c78a6cd4d4c68f02f4",
+          "byteEqual": true
+        },
+        {
+          "path": "src/features/voice/speechProtocol.ts",
+          "deployedSha256": "6f8cef7e96ed7802e2784342edea98019c08d16a8c6924cacc9c7ea39cb38ddc",
+          "localSha256": "6f8cef7e96ed7802e2784342edea98019c08d16a8c6924cacc9c7ea39cb38ddc",
+          "byteEqual": true
+        }
+      ]
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 148,
+      "status": "ACTIVE",
+      "fileCount": 23,
+      "budgetLimits": {
+        "llmRequestBytes": 10485760,
+        "llmMaxOutputTokens": 2048,
+        "llmReservationMicrousd": 250000
+      },
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-worker-interview/index.ts",
+          "deployedSha256": "4874dac0a5a0e680a63349c3aeac9bff6cab5a7ff31756ee4a26859e32af1969",
+          "localSha256": "4874dac0a5a0e680a63349c3aeac9bff6cab5a7ff31756ee4a26859e32af1969",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiPhaseTiming.mjs",
+          "deployedSha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2",
+          "localSha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/supabaseKeys.mjs",
+          "deployedSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "localSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+          "deployedSha256": "3b6678e26cf6e72daf42e5345e736d6de8899416a83a0dc96f97db891304e398",
+          "localSha256": "3b6678e26cf6e72daf42e5345e736d6de8899416a83a0dc96f97db891304e398",
+          "byteEqual": true
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "deployedSha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+          "localSha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+          "byteEqual": true
+        },
+        {
+          "path": "src/contracts/workerAreas.ts",
+          "deployedSha256": "42043ac28b6be3443a9837d855bada914513e267e45710111698da2c0163c33d",
+          "localSha256": "42043ac28b6be3443a9837d855bada914513e267e45710111698da2c0163c33d",
+          "byteEqual": true
+        },
+        {
+          "path": "src/contracts/workerNowFeature.ts",
+          "deployedSha256": "78bf2b510f531420f4b0accdc121ee7c5c147d50751956f9fc2cf8610664ca6a",
+          "localSha256": "78bf2b510f531420f4b0accdc121ee7c5c147d50751956f9fc2cf8610664ca6a",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/interviewVoiceInstruction.mjs",
+          "deployedSha256": "ce73cde3e8722eb1440850ba6fcbf6651cf9aebef75acda31dca5e8fafb67c0e",
+          "localSha256": "ce73cde3e8722eb1440850ba6fcbf6651cf9aebef75acda31dca5e8fafb67c0e",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "deployedSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+          "localSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "deployedSha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+          "localSha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+          "deployedSha256": "aa126a55d690fb0799ca8b1e4473061ed3b0f503631a738378490618f2664632",
+          "localSha256": "aa126a55d690fb0799ca8b1e4473061ed3b0f503631a738378490618f2664632",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+          "deployedSha256": "90c6ec46f56248d184ea338d51acb9153e64358ea0acdf7fa118575c6377ee6f",
+          "localSha256": "90c6ec46f56248d184ea338d51acb9153e64358ea0acdf7fa118575c6377ee6f",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "deployedSha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+          "localSha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/serviceHandoff.mjs",
+          "deployedSha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e",
+          "localSha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/workerServiceModeContext.mjs",
+          "deployedSha256": "839e373ac5949085f735222c870bcd4374a90b045233e90c9a146e6046ea452f",
+          "localSha256": "839e373ac5949085f735222c870bcd4374a90b045233e90c9a146e6046ea452f",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/completeFirstPlan.ts",
+          "deployedSha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de",
+          "localSha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/serviceExecutionInstruction.mjs",
+          "deployedSha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314",
+          "localSha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/researchDeadline.ts",
+          "deployedSha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9",
+          "localSha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/workerAreaAdmission.mjs",
+          "deployedSha256": "27e41e614301d73b55c61782ea1b885cbf76a634b0d25ae814eb9b09038f9c99",
+          "localSha256": "27e41e614301d73b55c61782ea1b885cbf76a634b0d25ae814eb9b09038f9c99",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/workerAreaResolver.mjs",
+          "deployedSha256": "6890d942d88a845054abea2b0651b3c5db6dbf5554468d87840e59f67fc0e0ab",
+          "localSha256": "6890d942d88a845054abea2b0651b3c5db6dbf5554468d87840e59f67fc0e0ab",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiContextCache.mjs",
+          "deployedSha256": "160fb09f35538f6b0f4170931fa7d64bb87e9f2af2695e4dcabedfb799fce9c7",
+          "localSha256": "94daaefe13749a01f5cfde4d933be07824b930f2e7a0517f3c96d73eb4d0c7cf",
+          "byteEqual": false
+        },
+        {
+          "path": "supabase/functions/_shared/craftQuestionMatrix.mjs",
+          "deployedSha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b",
+          "localSha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b",
+          "byteEqual": true
+        },
+        {
+          "path": "supabase/functions/_shared/conversationIntent.mjs",
+          "deployedSha256": "5c99f4a30ad7e3b30189dfeb143f45ab66f19060b5e58cbde5d6498f0badffc7",
+          "localSha256": "5c99f4a30ad7e3b30189dfeb143f45ab66f19060b5e58cbde5d6498f0badffc7",
+          "byteEqual": true
+        }
+      ]
+    }
+  ],
+  "findings": [
+    "Need195 and Worker148 handlers, aiTestBudget and all other deployed files except geminiContextCache match the baseline. The cache difference is comment cleanup/removal of an unused Map; both implementations return null without a provider call.",
+    "Speech33 has full byte parity with source. Publication32 and QA31 still have divergent deployed shared files; preserve their package-specific budget limits and dependencies before any future deployment.",
+    "Live dispatch writers commit provider_dispatched under owned command locks before paid I/O. Budget replay is denied; loss of acknowledgement cannot grant another paid attempt. This is an implementation safeguard, not a provider billing exactly-once proof.",
+    "First taxonomy plan remains built from an obtained provider answer and persisted with completion. A durable dispatch marker and tested completion recovery do not establish a reconstructable first classification plan before provider execution.",
+    "Budget ceiling remains 5000000 microusd; internally held/settled ledger remains 65486681 microusd and exactly matches reservation accounting. This is not a provider invoice. No reset or cap increase was performed."
+  ],
+  "unconfirmed": [
+    "Paid provider end-to-end semantic accuracy and billing reconciliation",
+    "First-plan recovery after process death before any classification result is captured",
+    "Real model latency and first useful rendered text",
+    "Hosted signed Auth/Save/activation/matching following the new service mutation corpus",
+    "Physical Android, microphone and two-account E2E"
+  ],
+  "auditCoverage": {
+    "masters": "Current checkpoints and relevant R04/R06/R08 and S14/S16 product contracts read; not an assertion of full semantic reading of all historical master text.",
+    "instructions": "No AGENTS.md found in the current clone; README and continuation skill used.",
+    "sourceRuntime": "Only exercised boundaries are declared; no source defect was invented for passing scenarios."
+  }
+}

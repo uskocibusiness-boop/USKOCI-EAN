@@ -62,7 +62,7 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "runtimeVersion": "uskoci-v1-preview-r1",
+    "runtimeVersion": "uskoci-v1-preview-r2",
     "updates": {
       "url": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
       "enabled": true,

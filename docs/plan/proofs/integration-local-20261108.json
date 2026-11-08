@@ -1,0 +1,63 @@
+{
+  "status": "LOCAL_INTEGRATION_PASS_NOT_YET_CI_OR_ANDROID_ACCEPTED",
+  "checkedAt": "2026-11-08T21:21:05.480445+00:00",
+  "sourceBaseCommit": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "node": {
+    "command": "npm test",
+    "tests": 1103,
+    "pass": 1103,
+    "fail": 0,
+    "skipped": 0,
+    "todo": 0,
+    "logSha256": "d1cfb6036fbada13f0e489ca599ef218f7a4a61835390cc36e54afa86e8ac61e"
+  },
+  "typescript": {
+    "command": "npx tsc --noEmit",
+    "exitCode": 0
+  },
+  "migrations": {
+    "canonicalFiles": 227,
+    "integrity": "PASS",
+    "pythonTests": 48,
+    "pythonPassed": 48
+  },
+  "qaWorkflowGuard": {
+    "command": "python scripts/qa-gradle-bootstrap.test.py",
+    "tests": 14,
+    "passed": 14
+  },
+  "r2ArtifactVerifier": {
+    "command": "python scripts/test_verify_qa_apk_r2.py",
+    "tests": 11,
+    "passed": 11
+  },
+  "independentNative": {
+    "r09": {
+      "passed": 29,
+      "failed": 0
+    },
+    "r13": {
+      "passed": 14,
+      "failed": 0,
+      "proof": "docs/plan/proofs/r13-native-independent-20261108.json"
+    }
+  },
+  "ordinaryHttp": {
+    "initialAuthAndP6": 36,
+    "privateRead": 24,
+    "postMigrationPrivateRead": 24,
+    "failed": 0
+  },
+  "devMigration": {
+    "version": "20261108211133",
+    "count": 364,
+    "proof": "docs/plan/proofs/r09-activation-clock-dev-20261108.json"
+  },
+  "integrationBoundaries": [
+    "No new CI success is asserted by this local receipt.",
+    "No physical Android device, FCM delivery, active custom sound channel, two-account phone E2E or production readiness is asserted.",
+    "Native PostgreSQL tests use an isolated captured graph, not a full hosted Supabase clone.",
+    "R13 remains source-only; only R09 activation migration was applied to DEV."
+  ],
+  "release": "NO-GO"
+}

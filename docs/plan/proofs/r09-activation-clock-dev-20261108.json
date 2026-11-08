@@ -1,0 +1,1268 @@
+{
+  "schemaVersion": 1,
+  "scope": "R09 controlled DEV first-activation clock; not production or R13 scheduler activation",
+  "status": "DEV_CONFIRMED_WITH_STATED_BOUNDARIES",
+  "release": "NO-GO",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceBaseCommit": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "migration": {
+    "version": "20261108211133",
+    "name": "r09_worker_activation_clock_20261108",
+    "file": "20261108211133_r09_worker_activation_clock_20261108.sql",
+    "classification": "APPLIED_EXACT_LEDGER_BYTES",
+    "statementCount": 1,
+    "md5": "ff622b61d13aba1744b02dcde70c622a",
+    "sha256": "5770bd040522c5f3bccb4c4d997787d32e494cb645fa456b09818ee4139ebb3c",
+    "bytes": 16708,
+    "exactInputLedgerBytes": true,
+    "countBefore": 363,
+    "countAfter": 364,
+    "applyToolSuccess": true,
+    "appliedExactlyOnce": true
+  },
+  "rollout": {
+    "eligiblePairsBefore": 0,
+    "lockedTablesInOrder": [
+      "public.needs",
+      "public.app_profiles"
+    ],
+    "lockMode": "SHARE ROW EXCLUSIVE",
+    "lockTimeout": "5s",
+    "statementTimeout": "60s",
+    "rejectsIfAnyPreexistingAdmittedPair": true,
+    "legacyClockSource": "ROLLOUT_ACTIVE_OBSERVED",
+    "inventedHistoricActivation": false,
+    "temporaryTriggerRemoved": true,
+    "allExistingGuardsRemainEnabled": true
+  },
+  "assertions": {
+    "ownerMetadataPreserved": 25,
+    "changedFunctionBodies": 8,
+    "existingProfileDocumentsUpdatedAtAndAiHashesPreserved": 24,
+    "businessCountsUnchanged": true,
+    "cronUnchanged": true,
+    "readinessUnchanged": true,
+    "noRealPushSent": true,
+    "noPaidAiCall": true,
+    "noProductionChange": true,
+    "noR13CronSwitch": true
+  },
+  "before": {
+    "cron": [
+      {
+        "active": true,
+        "jobname": "uskoci_edge_workers",
+        "schedule": "* * * * *",
+        "commandMd5": "6abaf04335ccd2f8240bafcd4dbfb314"
+      },
+      {
+        "active": true,
+        "jobname": "uskoci_marketplace_tick",
+        "schedule": "* * * * *",
+        "commandMd5": "93518fd0382301fc76f79037123bccfc"
+      },
+      {
+        "active": true,
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "schedule": "* * * * *",
+        "commandMd5": "b1e89b08b31a550f0ccce47ddcf3cb08"
+      }
+    ],
+    "counts": {
+      "needs": 18,
+      "events": 44,
+      "accounts": 18,
+      "agreements": 6,
+      "notifications": 88,
+      "opportunities": 2
+    },
+    "readiness": {
+      "legal": false,
+      "retention": false,
+      "exportBinding": null
+    },
+    "observedAt": "2026-11-08T21:02:58.313477+00:00",
+    "clockColumns": 0,
+    "eligiblePairs": 0,
+    "profileHashes": [
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-08T20:24:45.584811+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "80a5bdda9ab86f54c9df5102caef1087b7bd03a9b596c0d45196dafc76ec4911",
+        "profileDocumentHash": "8e674ec447201364eb82c43101e205ee0c32bdefb8830d230ef5af5b31207eff"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-23T20:45:33.271045+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "e39e61be0b12b4ddb250881e4535093b5180b04ecb6b9620f1756663b170eec6",
+        "profileDocumentHash": "faea383d4af49a4066535f51d940c3f84f2e769c2ea86300b9f0c373658dc846"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T20:01:43.81912+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "b7fc9d19fb173eb0acca12562950e096c3f1cff73d3a11d59b593ceae413949b",
+        "profileDocumentHash": "ef945cc475c9c003dafb84af8a4fa78865289dfcd6729d873eabdfb2fcf21965"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-07T22:14:07.576034+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "7833e285d87408b317471c9e10c654db5bca2fb1d43baf3d160dba57b58874d7",
+        "profileDocumentHash": "0886412d59bcf8b2f657246056a7dff22a76c0c3dc59ab1b795e7a2fdac3ca98"
+      },
+      {
+        "kind": "WORKER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-04T22:21:28.474514+00:00",
+        "workerAiHash": "0d40ebc48021017506a57b92bd609063a53ff97ed2440bb5a5a2c06882d4c762",
+        "profileIdSha256": "4581f6b79f692a8e66c6cc5f3c66054cea861ce32b1713474e735ee032fbd814",
+        "profileDocumentHash": "b616a55607c2be8904022d23652e93056ff45be7a37721116e4ccb328ec96764"
+      },
+      {
+        "kind": "WORKER",
+        "status": "DRAFT",
+        "updatedAt": "2026-11-08T20:24:45.589503+00:00",
+        "workerAiHash": "773e924b5e827e89b41727ba7c1f84f690da9e7b9f2d7230eaf73ad30a3b7144",
+        "profileIdSha256": "35a471607c7898a0c9be009e50fb113eda9297dd27410b2bf5d57aeb282615cc",
+        "profileDocumentHash": "94ac051f459d6c6cf79c4355e8ed945a2b80343874e8c802ff2d2455c2186ac2"
+      },
+      {
+        "kind": "WORKER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-06T17:14:56.505896+00:00",
+        "workerAiHash": "2cfe5d495dd4ea573fed03827d8c5a080df942e044f23bbe9e15f6eb62734774",
+        "profileIdSha256": "7c080c3c1fa4d8896aca99a96d55aa16490fb8cfafc6889bb28972d8c6fb60ee",
+        "profileDocumentHash": "7178d247c3ec7ad6919a8a495ca6ebfebb30b949e2812d14612b0eec48bfd7d5"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-04T22:11:49.3154+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "7616bd8c442658629e353bdf50ed59e5c5733866bed9371ea76d3ead494370f1",
+        "profileDocumentHash": "40205204881bf05c306bd7c707ab06989c2e688c1fed7836c0289b98cf66c163"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-04T22:11:48.876512+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "2a92eba87f187a676bc1025b48546d86e1914ea6cdad0c51e6d5aa6e0eb7e842",
+        "profileDocumentHash": "6232d95fa52b888264fe9bac78a5c9919bf63d0384bb6ba3be35ad14d3a0990b"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T11:01:00.566283+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "4e16315ffb9ab9337752bb6e94e8df17aa36ef9407eaf27f72f212e4db272cd1",
+        "profileDocumentHash": "d616c7e92a2cdda186280d754d2b076423e95fe15358f3b869e74af3f9ab3688"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-22T21:17:15.649642+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "4196ac84adbdb4077078c59d318ec15c8dfa71e2b557216a1e42ab6820bc307a",
+        "profileDocumentHash": "9453c16cdfc5add66d5d7919780e96852ea184ca1f813e524c01979727c06cbd"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-17T19:47:44.464187+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "9185e4a281e02b54baf5ab4606389c75fce22b71597d09ed2cf1edb4b72f92d8",
+        "profileDocumentHash": "bb4ee5bd100746011f5f24a2102029daa1eabad99beef1eb858e5a71607fb504"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T07:34:41.190263+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "7501b11ed08a8bfb26b610ce620cd451faf27c1d71e776ea4206289f836b19a0",
+        "profileDocumentHash": "3c7db8c02e4aa0afd82c3c29ff14c607165b1794dd4f5f08ace84f582f78b734"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-21T19:25:12.356556+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "55b9c09b02d88e49d3e4e385138b1c4e26c2c8352ee5f841e51c4076e36d9e17",
+        "profileDocumentHash": "15f82acaf4a03cd28fbf8b85502dd17466fd925176477b6bad22f7f834c3a09a"
+      },
+      {
+        "kind": "WORKER",
+        "status": "DRAFT",
+        "updatedAt": "2026-11-08T20:24:45.584811+00:00",
+        "workerAiHash": "7fe32398100d96f9e1ed35977cfcd34726e7eaafb493a907f7a630cb2b31071d",
+        "profileIdSha256": "2107e4050ffed3b669a4ab1dcb2584e116b45ea6ceae256a5af65ffd5e7f62ff",
+        "profileDocumentHash": "2ddfe1430bebc513835a45900ee08c42c5e2be7f569701971da4a3eb8a46dab3"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-14T22:25:49.751902+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "a75124836daa3a97196e5800e3a830bb2627474caa0ac417c635d29589e89b46",
+        "profileDocumentHash": "ea25457c05e0dc83aa1867595d31dd58b1cb792f577b13a96446eccd7ec26113"
+      },
+      {
+        "kind": "WORKER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-07T11:42:32.826197+00:00",
+        "workerAiHash": "4161127473603c0ca0f70b3b9afef34a2ab7ffb9761db102c660f06263081d71",
+        "profileIdSha256": "5f21f1ca8ad1a8145c25953ba290be433238b13327962da70931b4634ad8afcb",
+        "profileDocumentHash": "5c34c5574ab9b6f1feaf9d72092e23bf4251cd062ce17c5dc4983bf8f715f2ff"
+      },
+      {
+        "kind": "WORKER",
+        "status": "DRAFT",
+        "updatedAt": "2026-11-03T10:08:28.638261+00:00",
+        "workerAiHash": "c4f583a0ce33aecb6a31293717ec69c602e0f830a88b5b879c8dce88e3059f9d",
+        "profileIdSha256": "3538cf949b2eb493cc58b5a48f7de183a78bf4b8058f4884603d40cc159f2c65",
+        "profileDocumentHash": "5f9ccc2564a019beb1af4bc89e4b39d0b415faf9802d2588c380d218e5a25cc0"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T20:47:57.825256+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "70c8041e48c9d62ad6b0a5838b35f1620a534869c110f71613ea2f15094431cf",
+        "profileDocumentHash": "df8f63e50bcbfd3f2aca5d5185262761db65407d9a962f1dcf1b4fc4d82575a0"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T09:21:47.744281+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "4cb6fd942ab91fabab1433539e19a70300aa8923a446fe5cad2f2105131631fb",
+        "profileDocumentHash": "a99cb88d967648456a63d8cb0d539b9d84083d1acebf6758a15f445a984c3e2c"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T21:32:24.575754+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "c2c1adbf87578d3eba8b987c77952b1c9dc11a0ed2118f43f9bf218ef31bf64e",
+        "profileDocumentHash": "22b3825c29916e17ffdc0315c0d0a6348375d856d81adb692577d3aa16dfeca0"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-08T20:24:45.589503+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "03f21eb1942b02ec30f8713b9f7b9a62a485b14faa6cb5f3df01242f6c1eb556",
+        "profileDocumentHash": "bf69ad714bac208f3448686a9d073d1e7365d81df873fa9d8786c8a9f9108901"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-22T21:15:37.441483+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "0d4d780ea0fd53ea840ddee63642d94ad71942e37efff69987ea7e4c2db1a4a1",
+        "profileDocumentHash": "695a652ffbcce41ea882f5748a7d630220912f64e9b768d5e2d6d15bb0f36d06"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T11:19:15.817236+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "4164f22088928839ff68ed4cfc89d8faaaa2dfe641a13fdca4c78de56e90ca51",
+        "profileDocumentHash": "eee195b9bb85d25016b0265db0350eb6f9c76cb33dc932322a0ce592b4bd2c69"
+      }
+    ],
+    "migrationCount": 363
+  },
+  "after": {
+    "cron": [
+      {
+        "active": true,
+        "jobname": "uskoci_edge_workers",
+        "schedule": "* * * * *",
+        "commandMd5": "6abaf04335ccd2f8240bafcd4dbfb314"
+      },
+      {
+        "active": true,
+        "jobname": "uskoci_marketplace_tick",
+        "schedule": "* * * * *",
+        "commandMd5": "93518fd0382301fc76f79037123bccfc"
+      },
+      {
+        "active": true,
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "schedule": "* * * * *",
+        "commandMd5": "b1e89b08b31a550f0ccce47ddcf3cb08"
+      }
+    ],
+    "clocks": [
+      {
+        "kind": "WORKER",
+        "count": 3,
+        "source": null,
+        "status": "DRAFT"
+      },
+      {
+        "kind": "REQUESTER",
+        "count": 18,
+        "source": null,
+        "status": "ACTIVE"
+      },
+      {
+        "kind": "WORKER",
+        "count": 3,
+        "source": "ROLLOUT_ACTIVE_OBSERVED",
+        "status": "ACTIVE"
+      }
+    ],
+    "counts": {
+      "needs": 18,
+      "events": 44,
+      "accounts": 18,
+      "agreements": 6,
+      "notifications": 88,
+      "opportunities": 2
+    },
+    "readiness": {
+      "legal": false,
+      "retention": false,
+      "exportBinding": null
+    },
+    "clockGuard": {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "d0e5aca4748892e9b93fece2782230f3",
+      "securityDefiner": true
+    },
+    "observedAt": "2026-11-08T21:12:24.662001+00:00",
+    "profileHashes": [
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-08T20:24:45.584811+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "80a5bdda9ab86f54c9df5102caef1087b7bd03a9b596c0d45196dafc76ec4911",
+        "profileDocumentHash": "8e674ec447201364eb82c43101e205ee0c32bdefb8830d230ef5af5b31207eff"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-23T20:45:33.271045+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "e39e61be0b12b4ddb250881e4535093b5180b04ecb6b9620f1756663b170eec6",
+        "profileDocumentHash": "faea383d4af49a4066535f51d940c3f84f2e769c2ea86300b9f0c373658dc846"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T20:01:43.81912+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "b7fc9d19fb173eb0acca12562950e096c3f1cff73d3a11d59b593ceae413949b",
+        "profileDocumentHash": "ef945cc475c9c003dafb84af8a4fa78865289dfcd6729d873eabdfb2fcf21965"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-07T22:14:07.576034+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "7833e285d87408b317471c9e10c654db5bca2fb1d43baf3d160dba57b58874d7",
+        "profileDocumentHash": "0886412d59bcf8b2f657246056a7dff22a76c0c3dc59ab1b795e7a2fdac3ca98"
+      },
+      {
+        "kind": "WORKER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-04T22:21:28.474514+00:00",
+        "workerAiHash": "0d40ebc48021017506a57b92bd609063a53ff97ed2440bb5a5a2c06882d4c762",
+        "profileIdSha256": "4581f6b79f692a8e66c6cc5f3c66054cea861ce32b1713474e735ee032fbd814",
+        "profileDocumentHash": "b616a55607c2be8904022d23652e93056ff45be7a37721116e4ccb328ec96764"
+      },
+      {
+        "kind": "WORKER",
+        "status": "DRAFT",
+        "updatedAt": "2026-11-08T20:24:45.589503+00:00",
+        "workerAiHash": "773e924b5e827e89b41727ba7c1f84f690da9e7b9f2d7230eaf73ad30a3b7144",
+        "profileIdSha256": "35a471607c7898a0c9be009e50fb113eda9297dd27410b2bf5d57aeb282615cc",
+        "profileDocumentHash": "94ac051f459d6c6cf79c4355e8ed945a2b80343874e8c802ff2d2455c2186ac2"
+      },
+      {
+        "kind": "WORKER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-06T17:14:56.505896+00:00",
+        "workerAiHash": "2cfe5d495dd4ea573fed03827d8c5a080df942e044f23bbe9e15f6eb62734774",
+        "profileIdSha256": "7c080c3c1fa4d8896aca99a96d55aa16490fb8cfafc6889bb28972d8c6fb60ee",
+        "profileDocumentHash": "7178d247c3ec7ad6919a8a495ca6ebfebb30b949e2812d14612b0eec48bfd7d5"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-04T22:11:49.3154+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "7616bd8c442658629e353bdf50ed59e5c5733866bed9371ea76d3ead494370f1",
+        "profileDocumentHash": "40205204881bf05c306bd7c707ab06989c2e688c1fed7836c0289b98cf66c163"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-04T22:11:48.876512+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "2a92eba87f187a676bc1025b48546d86e1914ea6cdad0c51e6d5aa6e0eb7e842",
+        "profileDocumentHash": "6232d95fa52b888264fe9bac78a5c9919bf63d0384bb6ba3be35ad14d3a0990b"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T11:01:00.566283+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "4e16315ffb9ab9337752bb6e94e8df17aa36ef9407eaf27f72f212e4db272cd1",
+        "profileDocumentHash": "d616c7e92a2cdda186280d754d2b076423e95fe15358f3b869e74af3f9ab3688"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-22T21:17:15.649642+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "4196ac84adbdb4077078c59d318ec15c8dfa71e2b557216a1e42ab6820bc307a",
+        "profileDocumentHash": "9453c16cdfc5add66d5d7919780e96852ea184ca1f813e524c01979727c06cbd"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-17T19:47:44.464187+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "9185e4a281e02b54baf5ab4606389c75fce22b71597d09ed2cf1edb4b72f92d8",
+        "profileDocumentHash": "bb4ee5bd100746011f5f24a2102029daa1eabad99beef1eb858e5a71607fb504"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T07:34:41.190263+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "7501b11ed08a8bfb26b610ce620cd451faf27c1d71e776ea4206289f836b19a0",
+        "profileDocumentHash": "3c7db8c02e4aa0afd82c3c29ff14c607165b1794dd4f5f08ace84f582f78b734"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-21T19:25:12.356556+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "55b9c09b02d88e49d3e4e385138b1c4e26c2c8352ee5f841e51c4076e36d9e17",
+        "profileDocumentHash": "15f82acaf4a03cd28fbf8b85502dd17466fd925176477b6bad22f7f834c3a09a"
+      },
+      {
+        "kind": "WORKER",
+        "status": "DRAFT",
+        "updatedAt": "2026-11-08T20:24:45.584811+00:00",
+        "workerAiHash": "7fe32398100d96f9e1ed35977cfcd34726e7eaafb493a907f7a630cb2b31071d",
+        "profileIdSha256": "2107e4050ffed3b669a4ab1dcb2584e116b45ea6ceae256a5af65ffd5e7f62ff",
+        "profileDocumentHash": "2ddfe1430bebc513835a45900ee08c42c5e2be7f569701971da4a3eb8a46dab3"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-14T22:25:49.751902+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "a75124836daa3a97196e5800e3a830bb2627474caa0ac417c635d29589e89b46",
+        "profileDocumentHash": "ea25457c05e0dc83aa1867595d31dd58b1cb792f577b13a96446eccd7ec26113"
+      },
+      {
+        "kind": "WORKER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-07T11:42:32.826197+00:00",
+        "workerAiHash": "4161127473603c0ca0f70b3b9afef34a2ab7ffb9761db102c660f06263081d71",
+        "profileIdSha256": "5f21f1ca8ad1a8145c25953ba290be433238b13327962da70931b4634ad8afcb",
+        "profileDocumentHash": "5c34c5574ab9b6f1feaf9d72092e23bf4251cd062ce17c5dc4983bf8f715f2ff"
+      },
+      {
+        "kind": "WORKER",
+        "status": "DRAFT",
+        "updatedAt": "2026-11-03T10:08:28.638261+00:00",
+        "workerAiHash": "c4f583a0ce33aecb6a31293717ec69c602e0f830a88b5b879c8dce88e3059f9d",
+        "profileIdSha256": "3538cf949b2eb493cc58b5a48f7de183a78bf4b8058f4884603d40cc159f2c65",
+        "profileDocumentHash": "5f9ccc2564a019beb1af4bc89e4b39d0b415faf9802d2588c380d218e5a25cc0"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T20:47:57.825256+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "70c8041e48c9d62ad6b0a5838b35f1620a534869c110f71613ea2f15094431cf",
+        "profileDocumentHash": "df8f63e50bcbfd3f2aca5d5185262761db65407d9a962f1dcf1b4fc4d82575a0"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T09:21:47.744281+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "4cb6fd942ab91fabab1433539e19a70300aa8923a446fe5cad2f2105131631fb",
+        "profileDocumentHash": "a99cb88d967648456a63d8cb0d539b9d84083d1acebf6758a15f445a984c3e2c"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T21:32:24.575754+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "c2c1adbf87578d3eba8b987c77952b1c9dc11a0ed2118f43f9bf218ef31bf64e",
+        "profileDocumentHash": "22b3825c29916e17ffdc0315c0d0a6348375d856d81adb692577d3aa16dfeca0"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-11-08T20:24:45.589503+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "03f21eb1942b02ec30f8713b9f7b9a62a485b14faa6cb5f3df01242f6c1eb556",
+        "profileDocumentHash": "bf69ad714bac208f3448686a9d073d1e7365d81df873fa9d8786c8a9f9108901"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-22T21:15:37.441483+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "0d4d780ea0fd53ea840ddee63642d94ad71942e37efff69987ea7e4c2db1a4a1",
+        "profileDocumentHash": "695a652ffbcce41ea882f5748a7d630220912f64e9b768d5e2d6d15bb0f36d06"
+      },
+      {
+        "kind": "REQUESTER",
+        "status": "ACTIVE",
+        "updatedAt": "2026-10-19T11:19:15.817236+00:00",
+        "workerAiHash": null,
+        "profileIdSha256": "4164f22088928839ff68ed4cfc89d8faaaa2dfe641a13fdca4c78de56e90ca51",
+        "profileDocumentHash": "eee195b9bb85d25016b0265db0350eb6f9c76cb33dc932322a0ce592b4bd2c69"
+      }
+    ],
+    "migrationCount": 364,
+    "temporaryTriggerAbsent": true
+  },
+  "owners": [
+    {
+      "signature": "private.closure_account_key(uuid)",
+      "before": {
+        "signature": "private.closure_account_key(uuid)",
+        "definition_md5": "29116ea6e982cecd3242354a20faa3fd",
+        "body_md5": "2dde6ad2462255b188e4f03ffe88edcd",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.closure_account_key(uuid)",
+        "definition_md5": "29116ea6e982cecd3242354a20faa3fd",
+        "body_md5": "2dde6ad2462255b188e4f03ffe88edcd",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.closure_account_restricted(uuid)",
+      "before": {
+        "signature": "private.closure_account_restricted(uuid)",
+        "definition_md5": "9ce14bacf456210147ba14235d7ba8de",
+        "body_md5": "f4999250c315e0253374d4611291c7ad",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.closure_account_restricted(uuid)",
+        "definition_md5": "9ce14bacf456210147ba14235d7ba8de",
+        "body_md5": "f4999250c315e0253374d4611291c7ad",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.closure_assert_open(uuid,uuid)",
+      "before": {
+        "signature": "private.closure_assert_open(uuid,uuid)",
+        "definition_md5": "1d0e22224d546c4756f216acfe103246",
+        "body_md5": "dc9bc4c718593850da4fdb49e612dbd2",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.closure_assert_open(uuid,uuid)",
+        "definition_md5": "1d0e22224d546c4756f216acfe103246",
+        "body_md5": "dc9bc4c718593850da4fdb49e612dbd2",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.closure_guard_owned_write()",
+      "before": {
+        "signature": "private.closure_guard_owned_write()",
+        "definition_md5": "331b1d322cee8e46a0b155524932861b",
+        "body_md5": "f13117fd601dcb82de423b78f25acb4f",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.closure_guard_owned_write()",
+        "definition_md5": "331b1d322cee8e46a0b155524932861b",
+        "body_md5": "f13117fd601dcb82de423b78f25acb4f",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb)",
+      "before": {
+        "signature": "private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb)",
+        "definition_md5": "00b797ba302f69e368c4a62e9fab234c",
+        "body_md5": "7fabcc71502e065e638364fc3d58b761",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb)",
+        "definition_md5": "00b797ba302f69e368c4a62e9fab234c",
+        "body_md5": "7fabcc71502e065e638364fc3d58b761",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)",
+      "before": {
+        "signature": "private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)",
+        "definition_md5": "71a29b31dd46ef311fe70fb7763e6f02",
+        "body_md5": "55ba7bf41ce39d9c914929270b916570",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)",
+        "definition_md5": "ad9074b11f15d728b11c05c30f4d36b7",
+        "body_md5": "3b802baedd97cb0ab6e4a227690e7f5e",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": true
+    },
+    {
+      "signature": "private.complete_worker_profile_v1(uuid,uuid,text)",
+      "before": {
+        "signature": "private.complete_worker_profile_v1(uuid,uuid,text)",
+        "definition_md5": "55b1f3c8a52a7bc6fa9b9bf694129adc",
+        "body_md5": "2a0a7c10a3671d6cd49fad21fe65d824",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.complete_worker_profile_v1(uuid,uuid,text)",
+        "definition_md5": "55b1f3c8a52a7bc6fa9b9bf694129adc",
+        "body_md5": "2a0a7c10a3671d6cd49fad21fe65d824",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.data_export_dataset_catalog()",
+      "before": {
+        "signature": "private.data_export_dataset_catalog()",
+        "definition_md5": "43df4107eac3360af8ac23467613210e",
+        "body_md5": "e08e712c811ab2a093e48ca75a436c25",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.data_export_dataset_catalog()",
+        "definition_md5": "5f778d880f6e1378c5c2658cb9a93d26",
+        "body_md5": "f897294aed6972dd1c41a88da42ea1ab",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": true
+    },
+    {
+      "signature": "private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)",
+      "before": {
+        "signature": "private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)",
+        "definition_md5": "408fff073c41f77bdffb20bf1fdaff06",
+        "body_md5": "c3bde16e2175c7ec33c1a171e0ad04a3",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)",
+        "definition_md5": "7602f5fc58c484044a8fac1a9b7e30fa",
+        "body_md5": "3e20cccd6b54b161970c6960fa33136b",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": true
+    },
+    {
+      "signature": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+      "before": {
+        "signature": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+        "definition_md5": "3a29aaf12ec94c4a83743944a973dc09",
+        "body_md5": "cec5c0a2c13af6718af53b7a80245f28",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+        "definition_md5": "207bc494043d3bfc7fbfeda6cf5b0020",
+        "body_md5": "5f3862949a6b93ab99c29c549ff9a837",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": true
+    },
+    {
+      "signature": "private.guard_need_write()",
+      "before": {
+        "signature": "private.guard_need_write()",
+        "definition_md5": "f39b8db830097c940b0c07aed2dd5603",
+        "body_md5": "314b93f7f89d3d52dbcf17a2a2552502",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.guard_need_write()",
+        "definition_md5": "d1fec6f65f020c12c1317e50444465c3",
+        "body_md5": "cfbf899e4e388d0fe459ef0ba956f8a4",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": true
+    },
+    {
+      "signature": "private.guard_persistent_availability()",
+      "before": {
+        "signature": "private.guard_persistent_availability()",
+        "definition_md5": "d7f65761d65c0aa26272d8ca98a352eb",
+        "body_md5": "cf05c663227f4f1d51a28f463b895bf7",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.guard_persistent_availability()",
+        "definition_md5": "d7f65761d65c0aa26272d8ca98a352eb",
+        "body_md5": "cf05c663227f4f1d51a28f463b895bf7",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.guard_profile_write()",
+      "before": {
+        "signature": "private.guard_profile_write()",
+        "definition_md5": "acd34f3abcf44d62a643f304ed97d7bb",
+        "body_md5": "319fef6fe239a21ecf134476ed2b90a4",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.guard_profile_write()",
+        "definition_md5": "acd34f3abcf44d62a643f304ed97d7bb",
+        "body_md5": "319fef6fe239a21ecf134476ed2b90a4",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.guard_requester_identity_writer()",
+      "before": {
+        "signature": "private.guard_requester_identity_writer()",
+        "definition_md5": "082342fbc0f7948be5f201fdc012a5cf",
+        "body_md5": "c9d7f6593950e858b319f316cdbf6422",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.guard_requester_identity_writer()",
+        "definition_md5": "082342fbc0f7948be5f201fdc012a5cf",
+        "body_md5": "c9d7f6593950e858b319f316cdbf6422",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.guard_worker_equipment_retired_v1()",
+      "before": {
+        "signature": "private.guard_worker_equipment_retired_v1()",
+        "definition_md5": "997da33b7cb10c24e275d2e18298536a",
+        "body_md5": "abb19096d5f0f00cd7f1817d3223a5d2",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.guard_worker_equipment_retired_v1()",
+        "definition_md5": "997da33b7cb10c24e275d2e18298536a",
+        "body_md5": "abb19096d5f0f00cd7f1817d3223a5d2",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.guard_worker_fact_authority()",
+      "before": {
+        "signature": "private.guard_worker_fact_authority()",
+        "definition_md5": "7cdb6e7b18d4cf73827df1a5560f5f9b",
+        "body_md5": "a6be4e85f69592615e8c5b8272028d0d",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.guard_worker_fact_authority()",
+        "definition_md5": "7cdb6e7b18d4cf73827df1a5560f5f9b",
+        "body_md5": "a6be4e85f69592615e8c5b8272028d0d",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.media_asset_document(private.owned_media_assets)",
+      "before": {
+        "signature": "private.media_asset_document(private.owned_media_assets)",
+        "definition_md5": "3ed6f4621b2e0609a1e3878fe57894c2",
+        "body_md5": "2b5b71600bad9bcc49ec1db0044256a7",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.media_asset_document(private.owned_media_assets)",
+        "definition_md5": "3ed6f4621b2e0609a1e3878fe57894c2",
+        "body_md5": "2b5b71600bad9bcc49ec1db0044256a7",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.worker_ai_source_hash(uuid)",
+      "before": {
+        "signature": "private.worker_ai_source_hash(uuid)",
+        "definition_md5": "d50edbb9666e5d0e5e12ec2dca18172e",
+        "body_md5": "416e1e92c90545ff2a3f4c942db793f7",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.worker_ai_source_hash(uuid)",
+        "definition_md5": "d50edbb9666e5d0e5e12ec2dca18172e",
+        "body_md5": "416e1e92c90545ff2a3f4c942db793f7",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.worker_ai_source(uuid)",
+      "before": {
+        "signature": "private.worker_ai_source(uuid)",
+        "definition_md5": "24725641b8eefe96f5a52a22f4c044d1",
+        "body_md5": "27416a26166d8c0d910d3eda9ee82dce",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.worker_ai_source(uuid)",
+        "definition_md5": "80b68ae6f3ab164eee3d9f3faad11b0d",
+        "body_md5": "5ae2bca9c15a84ab166091dcaa81af6d",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": true
+    },
+    {
+      "signature": "private.worker_availability_document(uuid)",
+      "before": {
+        "signature": "private.worker_availability_document(uuid)",
+        "definition_md5": "c9aa32104844874a5552a32661faf27c",
+        "body_md5": "fbfe4e849840eaaff4729fec266e1937",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog",
+          "TimeZone=UTC",
+          "DateStyle=ISO, YMD"
+        ]
+      },
+      "after": {
+        "signature": "private.worker_availability_document(uuid)",
+        "definition_md5": "c9aa32104844874a5552a32661faf27c",
+        "body_md5": "fbfe4e849840eaaff4729fec266e1937",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog",
+          "TimeZone=UTC",
+          "DateStyle=ISO, YMD"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.worker_capacity_document(uuid)",
+      "before": {
+        "signature": "private.worker_capacity_document(uuid)",
+        "definition_md5": "dbe15114be2e7992c0e5ad9041f3538c",
+        "body_md5": "01cfe29179cc15858f20a1bf736c16b2",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.worker_capacity_document(uuid)",
+        "definition_md5": "dbe15114be2e7992c0e5ad9041f3538c",
+        "body_md5": "01cfe29179cc15858f20a1bf736c16b2",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "private.worker_location_document(uuid)",
+      "before": {
+        "signature": "private.worker_location_document(uuid)",
+        "definition_md5": "c9d518a186eac359d3eb9713ab23f8e7",
+        "body_md5": "8745e96b743bb8104ecc9c20c53c5e30",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "private.worker_location_document(uuid)",
+        "definition_md5": "c9d518a186eac359d3eb9713ab23f8e7",
+        "body_md5": "8745e96b743bb8104ecc9c20c53c5e30",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    },
+    {
+      "signature": "public.rpc_apply_profile_avatar(uuid,text)",
+      "before": {
+        "signature": "public.rpc_apply_profile_avatar(uuid,text)",
+        "definition_md5": "81ff3463cca6f940c4e022e85c86ac99",
+        "body_md5": "bb219571e1c338dc0620f20cc164ea44",
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "public.rpc_apply_profile_avatar(uuid,text)",
+        "definition_md5": "6f1c5a5bb3ff52576aba1fb365aae6dc",
+        "body_md5": "b2b66c19596616b53c48ed1e040f1537",
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": true
+    },
+    {
+      "signature": "public.rpc_claim_media_upload_service(uuid,text,uuid,uuid,text,integer,text)",
+      "before": {
+        "signature": "public.rpc_claim_media_upload_service(uuid,text,uuid,uuid,text,integer,text)",
+        "definition_md5": "9ecf9119fc0bfb9231e52dfed8d86024",
+        "body_md5": "4f522b3df65e00f6985e50e66d388bbc",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "after": {
+        "signature": "public.rpc_claim_media_upload_service(uuid,text,uuid,uuid,text,integer,text)",
+        "definition_md5": "6e5227a9234a3a37fcaa9e308f808db5",
+        "body_md5": "6f02f2bdb3acea78711b8bef1ad33e26",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "security_definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": true
+    },
+    {
+      "signature": "public.set_updated_at()",
+      "before": {
+        "signature": "public.set_updated_at()",
+        "definition_md5": "76dba26be9f6e6877b90230b92840d5b",
+        "body_md5": "fbb247b78e5a461958844a3c37feb1e5",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=\"\""
+        ]
+      },
+      "after": {
+        "signature": "public.set_updated_at()",
+        "definition_md5": "76dba26be9f6e6877b90230b92840d5b",
+        "body_md5": "fbb247b78e5a461958844a3c37feb1e5",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "security_definer": false,
+        "config": [
+          "search_path=\"\""
+        ]
+      },
+      "metadataUnchanged": true,
+      "bodyChanged": false
+    }
+  ],
+  "verification": {
+    "r09Native": {
+      "engine": "PostgreSQL 17.11 with PostGIS 3.5.2",
+      "passed": 29,
+      "failed": 0,
+      "proof": "docs/plan/proofs/r09-activation-clock-20261108.json",
+      "independentCoordinatorLog": "root-r09-native-final.tap",
+      "afterAclCaptureCorrection": true
+    },
+    "r13Native": {
+      "passed": 14,
+      "failed": 0,
+      "proof": "docs/plan/proofs/r13-native-independent-20261108.json",
+      "fixtureBoundary": "Real captured matcher/emitter/ledger; bounded isolated schema, not a full hosted Supabase clone"
+    },
+    "rolloutWrapper": {
+      "passed": 2,
+      "failed": 0,
+      "test": "scripts/r09-rollout-preflight.test.cjs",
+      "positive": "Zero admitted pairs permits atomic apply and preserves existing AI hash; new publication remains eligible",
+      "negative": "Existing admitted pair aborts before clock schema/backfill changes"
+    },
+    "ordinaryHttpAfterApply": {
+      "passed": 24,
+      "failed": 0,
+      "proof": "docs/plan/proofs/r01-post-r09-read-boundary-20261108.json",
+      "mutations": "None except ordinary authentication session creation"
+    }
+  },
+  "rollback": {
+    "source": "scripts/sql/r09_worker_activation_20261108.rollback.sql",
+    "applied": false,
+    "behavior": "Restore only old admission predicate, preserve clocks, publication guard, AI/avatar compatibility and export/closure support; could resume old-task admission and is explicit recovery only"
+  },
+  "boundaries": [
+    "First activation and publish/dispatch behavior proven in isolated native SQL, not by a signed live HTTP activation/publication or an Android phone.",
+    "DEV preflight found zero admitted old pairs, so conservative legacy cutoff did not discard currently pending eligible dispatch work.",
+    "Published-task edit stays PUBLISHED_TASK_EDIT_NOT_READY; no claim that material republish is completed.",
+    "Existing SUBMITTED OFFER applicant can still receive a first opportunity; separately reproduced F20 remains P0.",
+    "R13 cooperative scheduler remains source-only; maintenance/profile sweep/hosted Cron parity remain open.",
+    "Retention=false, export binding null, legal ready=false; export and deletion end-to-end are not accepted.",
+    "No Expo/FCM receipt, notification sound on a phone, two-account Android E2E or 300000-user capacity claim."
+  ]
+}

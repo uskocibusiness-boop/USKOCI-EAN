@@ -1,0 +1,104 @@
+{
+  "status": "SOURCE_IMPLEMENTED_AND_LOCALLY_TESTED_NOT_NATIVE_ACCEPTED",
+  "checkedAt": "2026-11-08T20:53:33.874094+00:00",
+  "baseCommit": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "workingTreeChanges": true,
+  "owner": "R09 notification audio; Android preview resources",
+  "changes": [
+    "One existing Expo foreground notification handler remains the only audio owner; no media playback or separate vibration was introduced.",
+    "Stable event UUID deduplicates foreground retry across transport identifiers. Distinct subsequent messages remain eligible. Deduplication retains at most 1024 identities for the mounted runtime.",
+    "An 800ms burst gap limits audible cues while distinct allowed notifications remain eligible for list presentation.",
+    "Two device-local foreground sound preferences use AsyncStorage readback. Unknown/failed/pending settings suppress sound. Unknown writes reconcile by reading, with late-write fencing and synchronous-native-throw recovery.",
+    "Android default channel/permission are read on settings focus/foreground return; malformed values remain unconfirmed. Opening OS settings never claims settings were applied.",
+    "Three original synthesized short WAV assets are included through the Expo notification plugin for preview runtime r2 only. Active default channel/routing and production runtime/guard are unchanged.",
+    "Clock rollback resets the burst window without clearing event deduplication, preventing extended accidental silence after a device-time correction.",
+    "Installed Expo57 native builder couples foreground vibration to shouldPlaySound. Settings explicitly disclose that disabling foreground sound also suppresses that notification vibration; no separate haptic/player bypass is used."
+  ],
+  "verification": {
+    "nodeCommand": "node --test --test-reporter=tap scripts/notification-audio.test.cjs scripts/production-build-guard.test.cjs",
+    "nodeTests": 25,
+    "nodePass": 25,
+    "nodeFail": 0,
+    "audioTests": 18,
+    "productionGuardTests": 7,
+    "nodeTapSha256": "523b728d161ac2bc1c7d7bcb17c747c062f2a3b16cfd59d48d1d56da5ab04ceb",
+    "nodeTestNames": [
+      "foreground event plays once across distinct Expo transport identifiers; later message is independent",
+      "burst creates one native sound, preserves later visible messages and consumes suppressed repeats",
+      "clock rollback cannot mute all new messages while the previous sound time catches up",
+      "message and other foreground sound controls are separate, and muted events are not replayed on enabling",
+      "silent source, unconfirmed persistence and pending local write cannot become audible",
+      "background/stale scope, history-shaped records and unsafe payloads cannot produce an alert",
+      "legacy generic notification preserves transport-level dedupe without treating it as a message identity",
+      "audio choices persist offline and become confirmed only after readback",
+      "unconfirmed write offers read-only reconciliation and never reports a requested value as saved",
+      "timed-out local write stays fenced until settled; late completion cannot race a second write",
+      "malformed or failed local read is muted and recoverable without replacing existing data",
+      "synchronous storage bridge failures cannot strand the single flight or prevent read-only recovery",
+      "system sound readback observes the existing default channel without changing permission, vibration or routing",
+      "malformed native channel or permission never becomes a confirmed sound/vibration setting",
+      "original native sound assets reproduce exactly, use bounded mono PCM and contain no clipping",
+      "installed Expo Android sound plugin copies exact originals into native raw resources",
+      "preview config embeds original resources only under r2 while existing default routing and production gate remain",
+      "actual PushRuntime checks active scope and rejects retained callbacks after account change/logout",
+      "the reviewed DEV preview still passes its build contract",
+      "production EAS_BUILD_PROFILE cannot bypass readiness with the old override",
+      "production USKOCI_OTA_TARGET cannot bypass readiness with the old override",
+      "the retained store profile has no DEV endpoint, DEV client key or bypass",
+      "actual isolated QA config retains its identity, embedded source and no Firebase",
+      "actual Expo production config fails before building even with old override",
+      "the isolated QA package still rejects preview push-proof flags"
+    ],
+    "typeScript": {
+      "command": "npx tsc --noEmit --pretty false",
+      "exitCode": 0
+    },
+    "expoNotificationsVersion": "57.0.15",
+    "nativeResourceFixture": "Executed installed Expo setNotificationSounds into isolated temporary Android res/raw directory; all three outputs matched repository WAV bytes. Missing file negative test rejected.",
+    "productionGate": "Existing production build/OTA readiness guard remains rejecting unconfigured production.",
+    "nativePhone": "NOT_PERFORMED",
+    "newApk": "NOT_BUILT_BY_THIS_PROOF",
+    "devWrites": 0,
+    "providerCalls": 0
+  },
+  "notConfirmed": [
+    "Actual Android sound loudness, native rendering, vibration, system silent/DND behavior, background/killed/cold start, and physical phone delivery.",
+    "Custom sound channel activation: server still sends default channel and default sound. Embedded originals alone do not enable new native system sounds.",
+    "Capability-bound token routing and versioned-channel upgrade that preserves prior mute/custom channel choices; no automatic channel migration was introduced.",
+    "Realtime-only new-message sound: existing invalidations carry agreement/revision, not a validated incoming message/event identity. History/refresh/Realtime remain silent.",
+    "Deduplication across process restart or eviction after 1024 identities. Legacy generic INBOX payloads have only transport-ID dedupe.",
+    "Recipient ownership of an old-account event newly delivered to a replacement handler: strict payload contains eventId but no recipient/session. Retired old handler callback is fenced, but this does not prove recipient identity for the new handler.",
+    "Final visual/TalkBack/360dp/1.3x-font QA of the settings UI and full exact-commit CI/build."
+  ],
+  "nextSafeStep": "Run integrated CI and inspect embedded raw resources in APK; then a capability/upgrade design and controlled two-phone preview acceptance are required before routing any token to a new versioned custom-sound channel.",
+  "officialReferences": [
+    "https://docs.expo.dev/versions/v57.0.0/sdk/notifications/",
+    "https://docs.expo.dev/push-notifications/sending-notifications/"
+  ],
+  "fileSha256": {
+    "app.config.js": "fe980069925f23fe8c9bc1f1fa2dd01a88f5de689c8c634b4a9aa0bd20d49c08",
+    "app.json": "d9c7ffbb129ee437f834d609cbbe7fb95aeec4fb386cc62679d87531f5f68fee",
+    "src/data/foregroundNotificationAudio.ts": "c78a2004b54176d7703bd551f92b8ad2ca5ac5e80e0674f8606f7652600b6edc",
+    "src/data/nativeNotificationAudio.ts": "4aa28cbe589ca701453486e81107e766589de1ff40ccf573bb1334e4815f5268",
+    "src/ui/notifications/foregroundAlertPolicy.ts": "58063d43b6f2de5afa51a487fa4d50b03afb81ec14118593109974b3cdd6ca0c",
+    "src/ui/notifications/NotificationAudioPreferences.tsx": "3ff8ff109bfadad8ce6a09393960f6c833dcce641ce664fce00e817a80415db2",
+    "src/ui/notifications/PushRuntime.tsx": "8f13733da1e619950a4c02b4af7df835d766cc79d830e5563c294e05bd9fba87",
+    "src/ui/notifications/PushPreferences.tsx": "9bc3f7c127376d3b8265439fea1e668c33eae509a5dcc11049824d2b5937f47e",
+    "scripts/notification-audio.test.cjs": "0d6f2e5dbf0d4c04fbfd31a068795af9cbda23cd4ee407d84db8c52db4811a4a",
+    "scripts/notification-audio-assets.cjs": "056e87b9ffa18c5b2270ca89459ddbf1eaaa3fb01f5e3d4c88c00a29cff8513e",
+    "assets/audio/README.md": "31e0a1ecd47f1d97d78c9e55ba4819ebdc41edd76f1b35a1f361bced4eed8577",
+    "assets/audio/uskoci_message_v1.wav": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed",
+    "assets/audio/uskoci_opportunity_v1.wav": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d",
+    "assets/audio/uskoci_confirm_v1.wav": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1"
+  },
+  "independentReview": {
+    "reviewer": "/root/ai_recovery",
+    "finding": "Actual source policy reproduced long silence after Date.now rollback; fixed and regression-tested.",
+    "additionalObservation": "ExpoNotificationBuilder.kt shouldVibrate uses notificationBehavior.shouldPlaySound; UI updated to disclose coupling.",
+    "rootFindingsFixed": [
+      "Synchronous getItem/setItem throw cannot strand operation promise.",
+      "Malformed native channel/permission readback cannot become confirmed sound/vibration settings."
+    ]
+  },
+  "installedNativeReference": "node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/presentation/builders/ExpoNotificationBuilder.kt"
+}

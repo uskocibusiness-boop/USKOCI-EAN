@@ -1,0 +1,218 @@
+{
+  "schema": "USKOCI_R01_PRIVATE_READ_BOUNDARY_V1",
+  "completed": true,
+  "startedAtUtc": "2026-11-08T20:43:44.777Z",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceCommit": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "harnessSha256": "015d39208988e3504950bfba0d6017155c8dec5d3079d4667126812c250ca374",
+  "actors": [
+    {
+      "label": "A",
+      "accountIdSha256": "94c803f8ca9962efec44043a7570654dec02bab0b9c9e7cfc626ffccf8d23214",
+      "jwtAlgorithm": "ES256",
+      "jwtRole": "authenticated",
+      "sessionIdPresent": true
+    },
+    {
+      "label": "B",
+      "accountIdSha256": "250d634639353ac438bcf66ba72a78854c30620ec3005b54d19bf225f9759a52",
+      "jwtAlgorithm": "ES256",
+      "jwtRole": "authenticated",
+      "sessionIdPresent": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "ordinary-password-login-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 11050,
+      "sqlstate": null
+    },
+    {
+      "name": "auth-user-verified-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 632,
+      "sqlstate": null
+    },
+    {
+      "name": "ordinary-password-login-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 421,
+      "sqlstate": null
+    },
+    {
+      "name": "auth-user-verified-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 201,
+      "sqlstate": null
+    },
+    {
+      "name": "positive-own-conversation-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 1081,
+      "sqlstate": null
+    },
+    {
+      "name": "nonparty-need_sensitive-hidden-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 419,
+      "sqlstate": null
+    },
+    {
+      "name": "nonparty-agreements-hidden-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 7658,
+      "sqlstate": null
+    },
+    {
+      "name": "nonparty-agreement_messages-hidden-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 6045,
+      "sqlstate": null
+    },
+    {
+      "name": "nonparty-access_grants-hidden-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 6783,
+      "sqlstate": null
+    },
+    {
+      "name": "real-nonparty-EXACT_LOCATION-denied-A",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 6289,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "real-nonparty-PHONE-denied-A",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 6357,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "direct-storage-list-empty-profile-media-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 837,
+      "sqlstate": null
+    },
+    {
+      "name": "direct-storage-list-empty-agreement-voice-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 6415,
+      "sqlstate": null
+    },
+    {
+      "name": "direct-storage-list-empty-data-export-artifacts-A",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 6193,
+      "sqlstate": null
+    },
+    {
+      "name": "positive-own-conversation-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 5828,
+      "sqlstate": null
+    },
+    {
+      "name": "nonparty-need_sensitive-hidden-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 6354,
+      "sqlstate": null
+    },
+    {
+      "name": "nonparty-agreements-hidden-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 6380,
+      "sqlstate": null
+    },
+    {
+      "name": "nonparty-agreement_messages-hidden-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 6139,
+      "sqlstate": null
+    },
+    {
+      "name": "nonparty-access_grants-hidden-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 6718,
+      "sqlstate": null
+    },
+    {
+      "name": "real-nonparty-EXACT_LOCATION-denied-B",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 6296,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "real-nonparty-PHONE-denied-B",
+      "pass": true,
+      "httpStatus": 403,
+      "elapsedMs": 7369,
+      "sqlstate": "42501"
+    },
+    {
+      "name": "direct-storage-list-empty-profile-media-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 215,
+      "sqlstate": null
+    },
+    {
+      "name": "direct-storage-list-empty-agreement-voice-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 8227,
+      "sqlstate": null
+    },
+    {
+      "name": "direct-storage-list-empty-data-export-artifacts-B",
+      "pass": true,
+      "httpStatus": 200,
+      "elapsedMs": 5945,
+      "sqlstate": null
+    }
+  ],
+  "boundary": "Read-only signed HTTP follow-up using the same two confirmed synthetic accounts. Positive own-conversation reads; negative access to populated private location/agreement/message tables, a real nonparty agreement reveal, and direct Storage listings. No participant location grant/revocation, signed URL, media upload/download, logout, Android or public-release claim.",
+  "providerCalls": 0,
+  "adminBusinessWrites": 0,
+  "deletions": 0,
+  "publications": 0,
+  "pushSends": 0,
+  "finishedAtUtc": "2026-11-08T20:45:44.696Z",
+  "passed": 24,
+  "failed": 0,
+  "status": "PASS_WITH_STATED_BOUNDARY",
+  "nonpartyAgreementIdSha256": "531c79cf7b78c72b4a0136d39a946e1c3691dd508605f6b0486b824fb76be970",
+  "fixtureConversationsCreated": 0,
+  "preflightObservedPopulations": {
+    "needSensitive": 6,
+    "agreements": 6,
+    "agreementMessages": 12,
+    "accessGrants": 0,
+    "storage": {
+      "profile-media": 38,
+      "agreement-voice": 0,
+      "data-export-artifacts": 0
+    }
+  },
+  "populationBoundary": "SQL counts observed during the read-only follow-up. Empty access_grants/voice/export datasets do not prove denial of a populated grant or artifact. Populated locations/agreements/messages and profile-media are the meaningful negative controls."
+}
