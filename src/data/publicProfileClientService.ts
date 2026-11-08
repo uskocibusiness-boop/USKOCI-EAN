@@ -1,5 +1,7 @@
 import type { JavniProfilProjekcija } from '../contracts/projections';
 import type { Izvor } from './ports';
+import { sesijaSada } from '../store/sesija';
+import { readOwnedResult, record, sameId, timestamp, uuid } from './serverReceipt';
 import { supabaseKlijent } from './supabaseClient';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
@@ -8,7 +10,31 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type PublicProfileService = {
   javniProfil(profileId: string, signal?: AbortSignal): ReturnType<Izvor['javniProfil']>;
+  javniProfili(profileIds: readonly string[], signal?: AbortSignal): Promise<ReadonlyMap<string, JavniProfilProjekcija | null>>;
 };
+export const PUBLIC_PROFILES_BATCH_LIMIT = 100;
+const exact = (value: Record<string, unknown>, keys: readonly string[]) =>
+  Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
+
+function decodePublicProfiles(raw: unknown, accountId: string, profileIds: readonly string[]): ReadonlyMap<string, JavniProfilProjekcija | null> | null {
+  const value = record(raw);
+  if (!value || !exact(value, ['schema', 'accountId', 'profiles', 'asOf', 'authoritative'])
+    || value.schema !== 'PUBLIC_PROFILES_BATCH_V1' || !sameId(value.accountId, accountId)
+    || value.authoritative !== true || !timestamp(value.asOf) || !Array.isArray(value.profiles)
+    || value.profiles.length !== profileIds.length) return null;
+  const profiles = new Map<string, JavniProfilProjekcija | null>();
+  for (let i = 0; i < profileIds.length; i++) {
+    const entry = record(value.profiles[i]), expected = profileIds[i];
+    if (!entry || !exact(entry, ['profileId', 'profile']) || !sameId(entry.profileId, expected)) return null;
+    if (entry.profile === null) { profiles.set(expected, null); continue; }
+    const profile = record(entry.profile);
+    if (!profile || !sameId(profile.profileId, expected)) return null;
+    // The existing public reader owns the projection and reputation rules. Keep
+    // the request's spelling of the same UUID so overlay keys remain exact.
+    profiles.set(expected, { ...mapPublicProfile(profile), profilId: expected });
+  }
+  return profiles;
+}
 
 function mapPublicProfile(raw: any): JavniProfilProjekcija {
   if (!raw || typeof raw !== 'object') throw new Error('PUBLIC_PROFILE_INVALID_PROJECTION');
@@ -63,6 +89,28 @@ function mapPublicProfile(raw: any): JavniProfilProjekcija {
  * verification, completed-work, availability, radius, tool or vehicle truth.
  */
 export const publicProfileClientService: PublicProfileService = {
+  async javniProfili(profileIds, signal) {
+    if (!Array.isArray(profileIds) || profileIds.length > PUBLIC_PROFILES_BATCH_LIMIT || profileIds.some(id => !uuid(id)))
+      throw new Error('PUBLIC_PROFILE_BATCH_INPUT_INVALID');
+    const seen = new Set<string>();
+    const ids = profileIds.filter(id => { const key = id.toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; });
+    if (!ids.length) return new Map();
+    const session = sesijaSada();
+    if (!session.user) throw new Error('AUTH_REQUIRED');
+    const account = { accountId: session.user.id, accountRevision: session.accountRevision };
+    const result = await readOwnedResult({ account, signal,
+      errors: { AUTH_REQUIRED: 'Prijavite se da nastavite.', AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvorite prikaz.',
+        PUBLIC_PROFILE_BATCH_INPUT_INVALID: 'Javni profili trenutno nisu dostupni.' },
+      fallback: 'PUBLIC_PROFILE_READ_FAILED', invalid: 'PUBLIC_PROFILE_BATCH_INVALID_RECEIPT',
+      decode: raw => decodePublicProfiles(raw, account.accountId, ids),
+      request: ownedSignal => {
+        const request = supabase.rpc('rpc_get_public_profiles_batch', { p_expected_user_id: account.accountId, p_profile_ids: ids });
+        return typeof request.abortSignal === 'function' ? request.abortSignal(ownedSignal) : request;
+      },
+    });
+    if (!result.ok) throw new Error(result.kod);
+    return result.podatak;
+  },
   async javniProfil(profileId, signal) {
     const id = profileId.trim();
     if (!id) return null;

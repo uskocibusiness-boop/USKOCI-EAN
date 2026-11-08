@@ -1,0 +1,89 @@
+{
+  "kind": "LOCAL_PUBLIC_PROFILES_BATCH_EXECUTION_RECEIPT",
+  "date": "2026-11-08",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceBase": "95ca57c3456fc89d166010e11e5eaaba68f43203",
+  "scope": "P6 Discovery optional public-author overlay; existing single-profile callers and main Discovery SQL unchanged.",
+  "boundary": "Actual captured public.rpc_get_public_profile plus exact candidate wrapper run in PGlite, with actual TypeScript public-profile client, owned receipt fence and overlay owner. Auth.uid and closure/safety/world/reputation helper dependencies are synthetic fixtures. No hosted JWT proof, representative database load, installed Android or real network latency claim.",
+  "measurements": {
+    "authors": 100,
+    "baselineRpcTransportInvocations": 100,
+    "baselinePeakConcurrentProfileReads": 4,
+    "batchRpcTransportInvocations": 1,
+    "batchPeakConcurrentProfileReads": 1,
+    "publicProjectionsEquivalent": true,
+    "emptyClientInputRpcInvocations": 0,
+    "internalSqlReaderCallsPer100Profiles": 100,
+    "hostedLatencyMeasured": false,
+    "p50": null,
+    "p95": null,
+    "p99": null
+  },
+  "sql": {
+    "existingReader": "public.rpc_get_public_profile(uuid)",
+    "existingReaderUnchangedBodyMd5": "9ecc0b69096f1167d02e0bb7b9656bc0",
+    "wrapper": "public.rpc_get_public_profiles_batch(uuid,uuid[])",
+    "wrapperBodyMd5": "a01875f4e9e3349988defde7a288a46a",
+    "definer": false,
+    "owner": "postgres",
+    "volatility": "s",
+    "config": [
+      "search_path=pg_catalog"
+    ],
+    "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+    "migrationGeneratedBy": "npm exec --yes --package=supabase@2.79.0 -- supabase migration new r09_public_profiles_batch_20261108",
+    "migration": "supabase/migrations/20261108011940_r09_public_profiles_batch_20261108.sql",
+    "candidateEqualsMigration": true,
+    "rollback": "scripts/sql/r09_public_profiles_batch_20261108.rollback.sql",
+    "rolloutOrder": "Apply guarded SQL, read back function and rights, then ship the client. Roll back client before dropping wrapper."
+  },
+  "validation": {
+    "targetedPassed": 28,
+    "targetedFailed": 0,
+    "combinedCommand": "node --test scripts/r09-public-profiles-batch.test.cjs scripts/r05-discovery-contract.test.cjs scripts/ux-discovery-for-me.test.cjs",
+    "combinedPassed": 60,
+    "combinedFailed": 0,
+    "typescript": "npx tsc --noEmit PASS",
+    "diffCheck": "git diff --check PASS",
+    "checks": [
+      "Exact old reader and immutable output semantics",
+      "Direct profile SELECT remains behind fixture RLS",
+      "Invoker wrapper; anon denied; unauthenticated service-role denied",
+      "Requester/Worker roles, private requester summary cut and shared account reputation",
+      "Inactive, closed, blocked, other-world and unknown profiles return null",
+      "Max100, empty, null, duplicate, multidimensional and owner-bound input validation",
+      "100 RPC vs1 actual client/SQL/overlay control",
+      "Reuse only known profiles; dropped ids disappear",
+      "Absent/denied and role-change remove prior projections",
+      "Foreign/duplicate/truncated/non-authoritative/malformed profile receipts rejected",
+      "Authority refusal also clears reused profiles",
+      "Session change returns AUTH_ACCOUNT_CHANGED; late generation cannot publish",
+      "Abort settles even when transport ignores signal",
+      "Optional injected batch validation and unchanged legacy four-worker compatibility",
+      "Preimage and ACL drift guard; guarded rollback preserves old reader and data"
+    ]
+  },
+  "status": {
+    "source": "IMPLEMENTED_AND_LOCALLY_TESTED",
+    "ci": "PENDING_INTEGRATOR",
+    "dev": "NOT_APPLIED_BY_THIS_AGENT",
+    "android": "UNVERIFIED",
+    "realE2E": "UNVERIFIED"
+  },
+  "limits": [
+    "This removes the network N+1 only. Existing SQL public reader still runs once per requested id.",
+    "The production P6 reader flag is not enabled by this change.",
+    "Malformed or transiently failed reads keep the previously authorized projection with an error marker; an explicit null or authority refusal removes it.",
+    "The broader R01/R10 privacy/release gates are unchanged."
+  ],
+  "sha256": {
+    "src/data/publicProfileClientService.ts": "8fb151c5da2f28f7105298ebed5d867fe32149bb89abe450115a0a3d6df65959",
+    "src/data/discoveryV1OverlayOwner.ts": "de4ad2b44d6a8cd9fd9cf1c28de5742860dc8de2d5c4c5813f2f71ace01f532d",
+    "scripts/sql/r09_public_profiles_batch_20261108.sql": "150f6391fcc250fa83f88197659ae1d060bbdc9e862d45e626ab25dbd15e9fd3",
+    "scripts/sql/r09_public_profiles_batch_20261108.rollback.sql": "315cd5b6dfa5833b7362cce6bc6a699e275aa24d2ae7fe013bb3fbc93c7ca704",
+    "scripts/sql/r09_public_profiles_batch_20261108.preimage.json": "6c255a6da4945ef3e10ad11d3725e6545b5c0b168300a2774f42a67466d8b2ed",
+    "supabase/migrations/20261108011940_r09_public_profiles_batch_20261108.sql": "150f6391fcc250fa83f88197659ae1d060bbdc9e862d45e626ab25dbd15e9fd3",
+    "scripts/r09-public-profiles-batch.test.cjs": "8c43520af0f08fb8a8ae104d6d6451bf08e7aaa32ddd2f3028403f9a34882085",
+    "scripts/r09-public-profiles-batch-fixture.cjs": "d9a75823508c84c39d58bc231f459402aa2b39688a84c727a9105b2e9d8484d6"
+  }
+}

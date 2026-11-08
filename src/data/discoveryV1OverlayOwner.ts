@@ -13,6 +13,8 @@ export const DISCOVERY_V1_PROFILE_CONCURRENCY = 4;
 export type DiscoveryV1OverlayLoaders = {
   relations: (needIds: readonly string[], signal: AbortSignal) => Promise<TaskRelationIndex>;
   profile: (profileId: string, signal: AbortSignal) => Promise<JavniProfilProjekcija | null>;
+  /** Optional for existing fixtures/adapters; the production reader returns an explicit answer, including null, for every requested id. */
+  profiles?: (profileIds: readonly string[], signal: AbortSignal) => Promise<ReadonlyMap<string, JavniProfilProjekcija | null>>;
   urgencies: (rows: readonly { id: string; urgent: boolean }[], signal: AbortSignal) => Promise<Map<string, NeedUrgencyProjection>>;
 };
 /**
@@ -105,6 +107,7 @@ export function createDiscoveryV1ExistingOverlayLoaders(source: Pick<Izvor, 'odn
   return {
     relations: (ids, signal) => source.odnosiPremaZadacima(ids, { signal }),
     profile: (id, signal) => publicProfileClientService.javniProfil(id, signal),
+    profiles: (ids, signal) => publicProfileClientService.javniProfili(ids, signal),
     urgencies: (rows, signal) => readNeedUrgencies(rows, signal),
   };
 }
@@ -154,8 +157,30 @@ export function createDiscoveryV1OverlayOwner(loaders: DiscoveryV1OverlayLoaders
         } catch { if (!own.signal.aborted) profileFailed = true; }
       }
     };
+    const batchProfiles = async () => {
+      const asked = profileIds.filter(id => !options.reuseProfiles || !kept.profiles.has(id));
+      if (!asked.length || own.signal.aborted) return;
+      try {
+        const values = await loaders.profiles!(asked, own.signal);
+        if (own.signal.aborted) return;
+        // A truncated, foreign or duplicated result is not an absence receipt.
+        if (values.size !== asked.length || [...values.keys()].some(id => !asked.includes(id))
+          || asked.some(id => !values.has(id) || (values.get(id) !== null && values.get(id)?.profilId !== id)))
+          throw new Error('PUBLIC_PROFILE_BATCH_INVALID_RECEIPT');
+        for (const id of asked) {
+          const value = values.get(id)!;
+          if (value && value.uloga !== 'narucilac') { profileFailed = true; answered.set(id, null); }
+          else answered.set(id, value);
+        }
+      } catch (error) {
+        if (own.signal.aborted) return;
+        profileFailed = true;
+        if (error instanceof Error && ['AUTH_REQUIRED', 'AUTH_ACCOUNT_CHANGED', 'AUTH_CONTEXT_CHANGED', 'ACCOUNT_CLOSING'].includes(error.message))
+          for (const id of profileIds) answered.set(id, null);
+      }
+    };
     await Promise.all([relationTask, urgencyTask,
-      Promise.all(Array.from({ length: Math.min(DISCOVERY_V1_PROFILE_CONCURRENCY, profileIds.length) }, worker))]);
+      loaders.profiles ? batchProfiles() : Promise.all(Array.from({ length: Math.min(DISCOVERY_V1_PROFILE_CONCURRENCY, profileIds.length) }, worker))]);
     const relations = await relationTask, urgencies = await urgencyTask;
     if (!current(g)) { own.abort(); return { kind: 'stale' }; }
 
