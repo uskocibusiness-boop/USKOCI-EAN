@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USKOČI — Pomoć kad ti zatreba. Posao kad ti odgovara.</title>
+  <meta name="description" content="USKOČI je vodeća domaća platforma za povezivanje ljudi kojima je potrebna fizička pomoć sa onima koji žele da uskoče i pošteno zarade. Dostupno za iOS i Android.">
+  <style>
+    :root {
+      --bg: #F8F9FA;
+      --surface: #FFFFFF;
+      --ink: #18191B;
+      --ink-soft: #4B5563;
+      --muted: #6B7280;
+      --line: #E5E7EB;
+      --primary: #15803D;
+      --primary-hover: #166534;
+      --primary-soft: #DCFCE7;
+      --card-bg: #FFFFFF;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* Navigacija */
+    nav {
+      position: sticky;
+      top: 0;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+      z-index: 100;
+    }
+    .nav-container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      font-size: 22px;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+    .logo-badge span {
+      background: var(--primary);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--ink-soft);
+    }
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+    .btn-nav {
+      background: var(--primary);
+      color: #fff !important;
+      padding: 8px 18px;
+      border-radius: 999px;
+      transition: background 0.2s;
+    }
+    .btn-nav:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Hero */
+    .hero {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 80px 24px 60px;
+      text-align: center;
+    }
+    .pill {
+      display: inline-block;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 13.5px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .hero h1 {
+      font-size: 48px;
+      font-weight: 900;
+      letter-spacing: -1.2px;
+      line-height: 1.15;
+      margin-bottom: 20px;
+      color: var(--ink);
+    }
+    .hero h1 span {
+      color: var(--primary);
+    }
+    .hero p {
+      font-size: 19px;
+      color: var(--ink-soft);
+      max-width: 680px;
+      margin: 0 auto 36px;
+    }
+    .store-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .store-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #000;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    .store-btn:hover {
+      transform: translateY(-2px);
+      opacity: 0.92;
+    }
+    .store-btn .icon {
+      font-size: 24px;
+    }
+    .store-btn .sub {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      color: #9CA3AF;
+    }
+    .store-btn .title {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    /* Sekcije */
+    .section-container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 60px 24px;
+    }
+    .section-title {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .section-title h2 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+    .section-title p {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 580px;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 32px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover {
+      border-color: #CBD5E1;
+    }
+    .card-icon {
+      font-size: 36px;
+      margin-bottom: 16px;
+      display: inline-block;
+    }
+    .feature-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .feature-card p {
+      font-size: 15px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+    }
+
+    /* Dva stuba: Naručioci i Uskočeri */
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-top: 40px;
+    }
+    .column-box {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 40px;
+      border: 1px solid var(--line);
+    }
+    .column-box.need { border-top: 5px solid #2563EB; }
+    .column-box.worker { border-top: 5px solid var(--primary); }
+    .column-box h3 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+    .column-box ul {
+      list-style: none;
+      padding: 0;
+    }
+    .column-box li {
+      margin-bottom: 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 15px;
+      color: var(--ink-soft);
+    }
+    .check-icon {
+      color: var(--primary);
+      font-weight: 900;
+      font-size: 16px;
+    }
+
+    /* Trust / Sigurnost */
+    .trust-banner {
+      background: #111827;
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 48px;
+      margin: 60px 0;
+      text-align: center;
+    }
+    .trust-banner h3 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    .trust-banner p {
+      font-size: 16px;
+      color: #9CA3AF;
+      max-width: 720px;
+      margin: 0 auto 24px;
+    }
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      text-align: left;
+      margin-top: 32px;
+    }
+    .trust-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 12px;
+    }
+    .trust-item strong {
+      display: block;
+      color: #fff;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .trust-item span {
+      font-size: 13px;
+      color: #9CA3AF;
+    }
+
+    /* Footer */
+    footer {
+      background: #FFFFFF;
+      border-top: 1px solid var(--line);
+      padding: 48px 24px 32px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .footer-container {
+      max-width: 1140px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 32px;
+      margin-bottom: 40px;
+    }
+    .footer-col h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 16px;
+    }
+    .footer-col ul {
+      list-style: none;
+      padding: 0;
+    }
+    .footer-col li {
+      margin-bottom: 10px;
+    }
+    .footer-col a:hover {
+      color: var(--primary);
+    }
+    .footer-bottom {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 34px; }
+      .hero p { font-size: 16px; }
+      .two-column { grid-template-columns: 1fr; }
+      .footer-container { grid-template-columns: 1fr 1fr; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigacija -->
+  <nav>
+    <div class="nav-container">
+      <div class="logo-badge">
+        <span>USKOČI</span>
+      </div>
+      <div class="nav-links">
+        <a href="#kako-radi">Kako radi</a>
+        <a href="#za-narucioce">Za naručioce</a>
+        <a href="#za-uskocere">Za uskočere</a>
+        <a href="https://uskoci.rs/podrska">Podrška</a>
+        <a href="https://uskoci.rs/uslovi-koriscenja">Pravila</a>
+        <a href="#preuzmi" class="btn-nav">Preuzmi aplikaciju</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero sekcija -->
+  <section class="hero" id="preuzmi">
+    <div class="pill">Domaća platforma za brzu pomoć i poslove</div>
+    <h1>Pomoć kad ti zatreba.<br><span>Posao kad ti odgovara.</span></h1>
+    <p>USKOČI je brza i sigurna mobilna platforma koja povezuje ljude kojima je potrebna pomoć sa proverenim ljudima spremnim da odmah uskoče i pošteno zarade.</p>
+    
+    <div class="store-buttons">
+      <a href="#" class="store-btn">
+        <span class="icon"></span>
+        <div>
+          <span class="sub">Preuzmite na</span>
+          <span class="title">App Store</span>
+        </div>
+      </a>
+      <a href="#" class="store-btn">
+        <span class="icon">▶</span>
+        <div>
+          <span class="sub">Preuzmite na</span>
+          <span class="title">Google Play</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- Glavne odlike -->
+  <section class="section-container" id="kako-radi">
+    <div class="section-title">
+      <h2>Kako funkcioniše USKOČI?</h2>
+      <p>Jednostavan, transparentan i pošten sistem bez posredničkih provizija od cene rada.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="card-icon">⚡</span>
+        <h3>1. Postavi ili pronađi</h3>
+        <p>Potrebna ti je selidba, čišćenje, pomoć u bašti ili majstor? Opiši zadatak glasom ili tekstom za 60 sekundi uz pomoć našeg pametnog asistenta.</p>
+      </div>
+      <div class="feature-card">
+        <span class="card-icon">🤝</span>
+        <h3>2. Dogovori se direktno</h3>
+        <p>Pregledaj profile i ocene ljudi u blizini, uporedi ponude i potvrdi dogovor u dva klika. Nema skrivenih troškova.</p>
+      </div>
+      <div class="feature-card">
+        <span class="card-icon">💵</span>
+        <h3>3. Plati na terenu</h3>
+        <p>Plaćanje se vrši direktno između vas (gotovina, račun ili instant IPS NBS) tek kada je posao uspešno završen.</p>
+      </div>
+    </div>
+
+    <!-- Dva stuba -->
+    <div class="two-column" id="za-narucioce">
+      <div class="column-box need">
+        <h3>Treba ti pomoć?</h3>
+        <ul>
+          <li><span class="check-icon">✓</span> <strong>Bez čekanja:</strong> Objavite zadatak i javljaju vam se ljudi koji su odmah slobodni u vašem kraju.</li>
+          <li><span class="check-icon">✓</span> <strong>Potpuna privatnost:</strong> Vaša tačna adresa je zaštićena i otkriva se tek kada sami izaberete saradnika.</li>
+          <li><span class="check-icon">✓</span> <strong>Slepe recenzije:</strong> Ocene su poštene i objektivne, niko ne vidi tuđu ocenu pre nego što napiše svoju.</li>
+        </ul>
+      </div>
+
+      <div class="column-box worker" id="za-uskocere">
+        <h3>Želiš da zaradiš?</h3>
+        <ul>
+          <li><span class="check-icon">✓</span> <strong>Ti biraš vreme:</strong> Nema radnog vremena, nema smena. Uskoči onda kada si slobodan.</li>
+          <li><span class="check-icon">✓</span> <strong>100% zarade je tvoje:</strong> Platforma ne uzima procenat od tvoje zarade za obavljeni fizički rad.</li>
+          <li><span class="check-icon">✓</span> <strong>Isplata odmah:</strong> Novac dobijaš na ruke ili na račun čim se posao završi na terenu.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Bezbednost i privatnost -->
+    <div class="trust-banner">
+      <h3>Bezbednost i privatnost na prvom mestu</h3>
+      <p>USKOČI posluje u potpunom skladu sa zakonima Republike Srbije, propisima o zaštiti podataka o ličnosti (ZZPL RS), standardima Apple App Store-a i Google Play Store-a.</p>
+      
+      <div class="trust-grid">
+        <div class="trust-item">
+          <strong>🔒 Privacy by Design</strong>
+          <span>Adrese i lični kontakti su kriptovani do potvrde dogovora.</span>
+        </div>
+        <div class="trust-item">
+          <strong>🛡️ Pravni štit</strong>
+          <span>Jasno definisani uslovi u skladu sa Zakonom o elektronskoj trgovini RS.</span>
+        </div>
+        <div class="trust-item">
+          <strong>🇪🇺 EU serveri</strong>
+          <span>Podaci se bezbedno čuvaju u Frankfurtskom data centru pod strogim DPA ugovorima.</span>
+        </div>
+        <div class="trust-item">
+          <strong>🗑️ Pravo na brisanje</strong>
+          <span>U svakom trenutku možete jednim klikom trajno ukloniti svoj nalog.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Futer -->
+  <footer>
+    <div class="footer-container">
+      <div class="footer-col">
+        <div class="logo-badge" style="margin-bottom: 12px;">
+          <span>USKOČI</span>
+        </div>
+        <p style="font-size: 13.5px; line-height: 1.6; color: var(--muted);">
+          Digitalna posrednička platforma za brzu pomoć i poslove u zajednici.<br>
+          Novi Sad, Republika Srbija.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Aplikacija</h4>
+        <ul>
+          <li><a href="#kako-radi">Kako radi</a></li>
+          <li><a href="#za-narucioce">Za naručioce</a></li>
+          <li><a href="#za-uskocere">Za uskočere</a></li>
+          <li><a href="https://uskoci.rs/podrska">Česta pitanja (FAQ)</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Pravni akti</h4>
+        <ul>
+          <li><a href="https://uskoci.rs/uslovi-koriscenja">Uslovi korišćenja</a></li>
+          <li><a href="https://uskoci.rs/politika-privatnosti">Politika privatnosti</a></li>
+          <li><a href="https://uskoci.rs/brisanje-naloga">Brisanje naloga</a></li>
+          <li><a href="https://uskoci.rs/podrska">Korisnička podrška</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Podrška i kontakt</h4>
+        <ul>
+          <li>E-mail: <a href="mailto:podrska@uskoci.rs">podrska@uskoci.rs</a></li>
+          <li>Pravna pitanja: <a href="mailto:pravna@uskoci.rs">pravna@uskoci.rs</a></li>
+          <li>DPO tim: <a href="mailto:privatnost@uskoci.rs">privatnost@uskoci.rs</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div>© 2026 USKOČI. Sva prava zadržana. Registrovano u Republici Srbiji.</div>
+      <div>Usklađeno sa zakonima RS, Apple App Store i Google Play pravilima.</div>
+    </div>
+  </footer>
+
+</body>
+</html>
