@@ -140,3 +140,17 @@ begin
   return new;
 end;
 $function$;
+
+-- 4. Worker default availability without manual 'available_now' toggling
+-- Workers without custom recurring rules are available by default unless an explicit UNAVAILABLE window is set.
+DO $$
+DECLARE
+  v_def text;
+BEGIN
+  SELECT pg_get_functiondef('private.worker_need_time_tier_v1(uuid,uuid)'::regprocedure) INTO v_def;
+  IF position('if not has_rules and false' in v_def) > 0 THEN
+    v_def := replace(v_def, 'if not has_rules and false', 'if not has_rules');
+    EXECUTE v_def;
+  END IF;
+END $$;
+
