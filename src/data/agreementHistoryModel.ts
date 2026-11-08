@@ -92,17 +92,32 @@ export function createAgreementHistoryModel(options: {
       refreshError: false, loadingOlder: operation === 'older', loadingNewer: operation === 'newer', historyErrorDirection: undefined });
     let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      const requestPromise = operation === 'older' && previous.olderCursor
+      const readTarget = () => operation === 'older' && previous.olderCursor
         ? options.port.page(options.agreementId, { limit: 50, before: previous.olderCursor, signal: abort.signal }, options.account)
         : target ? options.port.window(options.agreementId, target,
           { beforeCount: operation === 'newer' || (operation === 'refresh' && !anchor) ? 0 : 24,
             afterCount: operation === 'newer' || (operation === 'refresh' && !anchor) ? 49 : 25, signal: abort.signal }, options.account)
           : options.port.page(options.agreementId, { limit: 50, signal: abort.signal }, options.account);
-      // A newest probe notices arrivals while the person reads an older anchor. It is
-      // merged only on overlap; a disconnected newest page must never hide a gap.
-      const newestPromise = operation === 'refresh' && rows?.length
-        ? options.port.page(options.agreementId, { limit: 50, signal: abort.signal }, options.account) : null;
-      const [result, newest] = await Promise.race([Promise.all([requestPromise, newestPromise]), new Promise<never>((_, reject) => {
+      const readNewest = () => options.port.page(options.agreementId, { limit: 50, signal: abort.signal }, options.account);
+      const readResults = async (): Promise<[Ishod<AgreementMessageHistoryPage | AgreementMessageWindow>, Ishod<AgreementMessageHistoryPage> | null]> => {
+        if (operation === 'refresh' && position.following && rows?.length && previous.newerCursor === null) {
+          // One authorized newest page covers the usual live tail. Only a proven
+          // overlap (or a complete history) can replace the second window read.
+          const newest = await readNewest();
+          if (!current() || request !== generation || abort.signal.aborted
+            || (!newest.ok && authorityRefused(newest.kod))) return [newest, null];
+          const loaded = new Set(rows.map(row => row.id));
+          if (newest.ok && (newest.podatak.olderCursor === null
+            || newest.podatak.messages.some(row => loaded.has(row.id)))) return [newest, null];
+          // A burst can leave an unseen gap. Retain the old tail and its resumable
+          // boundary; a failed newest read also retains the existing window fallback.
+          return [await readTarget(), newest];
+        }
+        // An older reading anchor still needs its window and a separate newest
+        // probe. A disconnected newest page must never hide an unseen interval.
+        return Promise.all([readTarget(), operation === 'refresh' && rows?.length ? readNewest() : null]);
+      };
+      const [result, newest] = await Promise.race([readResults(), new Promise<never>((_, reject) => {
         timeout = setTimeout(() => { abort.abort(); reject(new Error('CHAT_HISTORY_TIMEOUT')); }, 15_000);
       })]);
       if (!current() || request !== generation || abort.signal.aborted) return;
@@ -116,6 +131,10 @@ export function createAgreementHistoryModel(options: {
       const movedWhilePaging = (operation === 'older' || operation === 'newer')
         && livePosition.anchor?.messageId !== position.anchor?.messageId;
       let next = mergeAgreementHistory(previous, response.messages, before, after, operation, livePosition, movedWhilePaging);
+      // The newest page can now be the only response. Its empty authoritative
+      // history clears retained rows just as the separate newest probe did.
+      if (operation === 'refresh' && 'olderCursor' in response && !response.messages.length)
+        next = { data: [], olderCursor: null, newerCursor: null };
       // Concurrent reads can complete in either order. A probe from an older statement
       // must not overwrite a fresher window's removal/arrival evidence.
       const probeCurrent = newest?.ok && compareAgreementMessageCursors(

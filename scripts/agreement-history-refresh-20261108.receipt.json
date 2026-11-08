@@ -1,0 +1,80 @@
+{
+  "kind": "LOCAL_EXECUTABLE_CLIENT_HISTORY_RECEIPT",
+  "date": "2026-11-08",
+  "sourceBaseline": "9cf4f5ee913a3751f83615e134a1e6d7c68300f3",
+  "model": "src/data/agreementHistoryModel.ts",
+  "preimageSha256": "eeab5f7e4c7a2548b2c074eefa3ebd69bcc25b2e6d25237347772043a829ad9f",
+  "postimageSha256": "ccc3a42b193d84938453a6eb10a2adf35e852b66fe1539f3f8aef27cf35182eb",
+  "test": "scripts/agreement-history-refresh.test.cjs",
+  "boundary": "Actual TypeScript history model, history service decoders and readOwnedResult; synthetic RPC transport/session/clock. No hosted server latency, database load, Android or two-device delivery measurement.",
+  "observedClientRpcCounts": [
+    {
+      "scenario": "Following live tail with 3 new TEXT/PHOTO/VOICE rows and an overlapping newest page",
+      "before": 2,
+      "after": 1,
+      "unit": "RPC reads per refresh"
+    },
+    {
+      "scenario": "Disconnected newest page after a burst of 150 messages",
+      "after": 2,
+      "unit": "RPC reads per refresh; contiguous retained interval and newer cursor preserved"
+    },
+    {
+      "scenario": "Reading an older anchor",
+      "after": 2,
+      "unit": "RPC reads per refresh; no jump over unseen messages"
+    },
+    {
+      "scenario": "100 duplicate refresh hints during one in-flight refresh",
+      "after": 2,
+      "unit": "Total RPC reads for initial plus one coalesced trailing refresh"
+    }
+  ],
+  "validation": {
+    "targetedHistory": {
+      "command": "node --test scripts/agreement-history-refresh.test.cjs",
+      "passed": 25,
+      "failed": 0
+    },
+    "historyCacheVoiceRegression": {
+      "command": "node --test scripts/agreement-history-refresh.test.cjs scripts/context-cache-matrix.test.cjs scripts/voice-recovery-ownership.test.cjs",
+      "passed": 31,
+      "failed": 0
+    },
+    "typecheck": {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0
+    },
+    "negativeControl": {
+      "command": "USKOCI_HISTORY_PREIMAGE=9cf4f5ee913a3751f83615e134a1e6d7c68300f3 node --test --test-name-pattern='following refresh uses one real RPC' scripts/agreement-history-refresh.test.cjs",
+      "expectedFailure": true,
+      "observedActualRpcReads": 2,
+      "expectedOptimizedRpcReads": 1
+    },
+    "covered": [
+      "Authoritative TEXT/PHOTO/VOICE projection",
+      "Microsecond tuple ordering",
+      "Replacements and removals in the covered interval",
+      "Authoritative empty or complete replacement",
+      "Gap cursor and incremental recovery",
+      "Older reading anchor",
+      "Stale probe cannot resurrect removed rows",
+      "200-message bound and anchor moved during refresh",
+      "Access revoked or account closing clears projection",
+      "Foreign account/agreement or non-authoritative receipt rejected",
+      "Transient read fallback and retry state",
+      "Retired visit and changed session fences",
+      "showLatest supersedes pending read",
+      "Concurrent hint coalescing",
+      "15-second overall deadline and no late fallback"
+    ]
+  },
+  "status": {
+    "source": "IMPLEMENTED_AND_LOCALLY_TESTED",
+    "ci": "NOT_VERIFIED_BY_THIS_RECEIPT",
+    "dev": "NO_SERVER_CHANGE",
+    "android": "REQUIRED",
+    "realE2E": "REQUIRED"
+  },
+  "remaining": "Anchored or disconnected intervals deliberately retain the additional read. A physical phone must verify scroll position, media playback and reconnect behavior in the built app."
+}
