@@ -1,0 +1,79 @@
+{
+  "schema": "USKOCI_CAPACITY2_VALIDATION_V1",
+  "sourceBase": "c9403455bc1088d7e67130d7471dbac45a1dad72",
+  "recordedAt": "2026-11-08T10:10:33.531375+00:00",
+  "baseline": {
+    "node": {
+      "pass": 963,
+      "fail": 0,
+      "skip": 0
+    },
+    "typescript": "PASS",
+    "migrationPython": 39,
+    "canonicalSqlFiles": 221
+  },
+  "integrated": {
+    "node": {
+      "pass": 1009,
+      "fail": 0,
+      "skip": 0,
+      "milliseconds": 48358.401659
+    },
+    "typescript": "PASS",
+    "migrationPython": 41,
+    "canonicalSqlFiles": 223,
+    "migrationIntegrity": "PASS"
+  },
+  "targeted": {
+    "push": 33,
+    "discovery": 6,
+    "legalCurrentController": 15,
+    "mediaVoiceHandler": 20,
+    "aiSpeechPlusQaAccounting": 43,
+    "legacyPublicationHelper": 7,
+    "legacyQaHelperCleanupOnly": 5
+  },
+  "nativePostgres": {
+    "version": "17.11",
+    "discovery": "scripts/sql/r02_discovery_schedule_20261108.benchmark.json",
+    "legalConcurrency": "docs/plan/proofs/capacity2-legal-quarantine-native-20261108.json",
+    "lastSlot100": "scripts/sql/r07_last_slot_100_20261108.receipt.json"
+  },
+  "androidEnvironment": {
+    "adb": null,
+    "emulator": null,
+    "kvmAvailable": false,
+    "physicalDevice": "NOT_AVAILABLE"
+  },
+  "negativeControls": {
+    "r02": "unchanged reader makes30009 calendar calls and fails bounded-work assertion",
+    "aiCleanup": "5of7newcases fail on baseline;0of7after",
+    "mediaDeadline": "4of20failonbaseline;0of20after",
+    "legal": "old realreaders readytrue; withdrawal makesfalse, concurrent acceptance separately tested"
+  },
+  "nativeClaim": "Native PostgreSQL means the real database engine, not Android. No physical phone acceptance.",
+  "ci": "PENDING_NEW_RUN",
+  "release": "NO_GO",
+  "logs": {
+    "baselineNode": {
+      "sha256": "e15b42ba0d768b9cedfc4a62de71bef330df894dddc054bac5188e6c1c120e71",
+      "bytes": 106788
+    },
+    "integrationNode": {
+      "sha256": "1041c8145d50f96d01419c7f6704d57806c7ee46781462db99c1c5e9e06e92ed",
+      "bytes": 111969
+    },
+    "integrationTypeScript": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "r02Before": {
+      "sha256": "7bc585a6693f83d83dd176e27cdc7c0bcb499c0a77c55629d716b5fec771aeaa",
+      "bytes": 1712
+    },
+    "r02After": {
+      "sha256": "bce02906f447d70e066c0ab12fc998a53a0e4c7212c39252e93cb1acdc03674e",
+      "bytes": 995
+    }
+  }
+}

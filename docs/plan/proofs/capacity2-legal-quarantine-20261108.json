@@ -1,0 +1,105 @@
+{
+  "task": "R12 — quarantine unverified v1.0-20261108 legal and processor readiness",
+  "baseCommit": "c9403455bc1088d7e67130d7471dbac45a1dad72",
+  "problem": "The two historical migrations made public legal bundle and authenticated processor map RPCs report ready using an unverified counsel reference and unverified contract/provider claims.",
+  "cause": "Publication registry rows were seeded active without verified legal publication or evidence. The existing readiness readers correctly reflected those active rows; no reader or permission change is needed to withdraw that evidence.",
+  "sourceMigration": "supabase/migrations/20261108095226_r12_quarantine_unverified_legal_20261108.sql",
+  "sourceMigrationSha256": "fc4a2e658f52bdc68b308eee8007d30fd90d77bef9f290b38d70b546e4528981",
+  "cliCreation": "npm exec --yes --package=supabase@3.0.0 -- supabase migration new r12_quarantine_unverified_legal_20261108",
+  "preimage": "scripts/sql/capacity2_legal_quarantine_20261108.preimage.json",
+  "before": {
+    "observedAt": "2026-11-08T09:48:05.835494+00:00",
+    "legalBundleReady": true,
+    "processorMapReady": true,
+    "legalVersions": 2,
+    "processorMapSets": 1,
+    "processorEntries": 3,
+    "acceptanceEvents": 0,
+    "repeatGuardObservation": {
+      "mapHash": "2f8f4030c6614fac2f01ad95e72832e9",
+      "observedAt": "2026-11-08T09:53:22.2533+00:00",
+      "entriesHash": "99522f63e25915805bd1369e64703ea0",
+      "documentsHash": "2964fb16b92e7eadf972bdc8b4609447",
+      "linkedAcceptances": 0
+    },
+    "retentionAiSourceReady": false,
+    "exportBinding": null,
+    "retentionExecutionBinding": null,
+    "runtimeProviderGateAdmitted": false
+  },
+  "implementation": {
+    "documents": "Only the two exact v1.0-20261108 rows: is_active=false and retired_at set.",
+    "processorMap": "Only the exact v1.0-20261108 map: retired_at set. All three processor entries retained verbatim as historical evidence.",
+    "preserved": [
+      "All row IDs and content/hashes/URLs/publication times",
+      "Acceptance history and unrelated old/future rows",
+      "Provider inventory (including separately unresolved stale EXPO/OpenAI inventory claims)",
+      "Function bodies, owners, ACLs, search_path, table grants and RLS",
+      "AI budget, runtime provider routing, users, tasks, messages, agreements and media"
+    ],
+    "guards": [
+      "Exact sorted PostgreSQL JSONB snapshots of documents, map and entries",
+      "No target document acceptance exists; if one appears, stop for review",
+      "Bounded table locks serialize with real acceptance FOR SHARE before the check",
+      "Final readiness false and no active effective processor map"
+    ],
+    "atomicity": "Single transaction, lock_timeout 5 seconds, statement_timeout 30 seconds. SQL failure rolls back every update."
+  },
+  "tests": {
+    "unitIntegration": {
+      "command": "node --test scripts/capacity2-legal-quarantine.test.cjs",
+      "engine": "PGlite PostgreSQL engine, historical registry schema plus exact captured live RPC definitions and equivalent grants",
+      "pass": 15,
+      "fail": 0,
+      "skip": 0,
+      "cases": [
+        "Reproduce ready=true before withdrawal and ready=false after for actual RPCs",
+        "Legacy acceptance and current reviewed/hash-bound acceptance RPCs both deny after withdrawal with LEGAL_DOCUMENTS_NOT_PUBLISHED; readback remains authoritative and empty",
+        "The actual LegalReviewController refreshes from the real before/after SQL RPC projections and sends no acceptance once documents are withdrawn",
+        "Registry content and IDs, all processor entries, inventory, functions, ACL/RLS unchanged except intended status/timestamp fields",
+        "Unrelated historical acceptance and future drafts retained, including current owner readback of historical receipts",
+        "New acceptance of target versions refuses migration atomically",
+        "Eight snapshot drift variants refused atomically",
+        "Repeat migration refuses already changed snapshot",
+        "Anon/authenticated cannot read or republish private evidence"
+      ]
+    },
+    "native": {
+      "command": "USKOCI_POSTGRES_ROOT=<local PostgreSQL 17 install> USKOCI_PG_MODULE=<local node-postgres module> node scripts/capacity2-legal-quarantine-native.cjs",
+      "proof": "docs/plan/proofs/capacity2-legal-quarantine-native-20261108.json",
+      "pass": 3,
+      "fail": 0,
+      "cases": [
+        "Actual current reviewed-acceptance RPC: withdrawal locks first, acceptance waits then rejects, ordinary reads continue",
+        "Earlier acceptance commits: migration waits then aborts with all readiness and acceptance data preserved",
+        "Earlier acceptance rolls back: migration waits then safely withdraws"
+      ]
+    }
+  },
+  "dev": {
+    "status": "NOT_DEPLOYED_BY_AGENT",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "note": "Only read-only snapshots were obtained. Root coordinator must review, integrate, check guards again and apply via controlled migration tool."
+  },
+  "ci": {
+    "status": "PENDING_ROOT_INTEGRATION",
+    "note": "Root owns package test command and migration provenance gate integration."
+  },
+  "android": {
+    "status": "NOT_TESTED",
+    "effect": "The existing UI will receive legal readiness=false and must not offer acceptance of the withdrawn bundle. Full Android onboarding remains blocked until verified published replacements exist."
+  },
+  "rollback": {
+    "transactionFailure": "Automatic PostgreSQL rollback leaves the preimage unchanged.",
+    "afterCommit": "Do not automatically reactivate unverified legal approval or contracts. A forward replacement requires owner/qualified legal verification, valid public documents matching stored hashes, verified processor inventory/contracts and a new version. Historical rows are retained for inspection."
+  },
+  "remaining": [
+    "This change removes false readiness; it does not establish operator legality or legal approval.",
+    "Public website document publication and legal text require root/user work.",
+    "Stale technical provider inventory needs separately evidenced correction; no replacement claims are invented.",
+    "Retention and export bindings remain absent, AI-source retention readiness remains false.",
+    "No physical Android, hosted load, complete account lifecycle or production release proof. Public release remains NO-GO."
+  ],
+  "appliedMigration": "supabase/migrations/20261108100023_r12_quarantine_unverified_legal_20261108.sql",
+  "subsequentDevEvidence": "docs/plan/proofs/capacity2-dev-execution-20261108.json"
+}

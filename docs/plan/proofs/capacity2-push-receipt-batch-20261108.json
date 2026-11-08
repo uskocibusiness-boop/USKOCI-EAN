@@ -1,0 +1,83 @@
+{
+  "schema": "USKOCI_CAPACITY2_PUSH_RECEIPT_BATCH_PROOF_V1",
+  "capturedAt": "2026-11-08T09:46:57.131Z",
+  "baseSource": "c9403455bc1088d7e67130d7471dbac45a1dad72",
+  "planOwner": "R09/SV05",
+  "problem": "Global receipt worker made one Expo HTTP request per ticket.",
+  "change": "Batch up to six owned receipt leases per provider request; flush a partial batch on WAIT/NONE/STOP; map by exact ticket ID; settle each attempt independently.",
+  "unchanged": {
+    "sendTickLimit": 100,
+    "receiptTickLimit": 100,
+    "sendLanes": 4,
+    "sqlGlobalLeaseLimit": 6,
+    "sqlClaimsPerSecond": 60,
+    "sqlClaimsPerRecipientPerSecond": 4,
+    "unknownSendRetry": false,
+    "singleTargetGlobalScan": false
+  },
+  "preChange": {
+    "command": "node --test --test-name-pattern='100 receipts use|mixed unordered|WAIT flushes|one failed settlement' scripts/capacity2-push-receipt-batch.test.cjs",
+    "tests": 4,
+    "pass": 0,
+    "fail": 4,
+    "boundary": "New batching acceptance checks run against captured unchanged source; old handler used100 HTTP requests for100 receipts."
+  },
+  "validation": {
+    "command": "node --test scripts/capacity2-push-receipt-batch.test.cjs scripts/r09-push-capacity.test.cjs",
+    "tests": 33,
+    "pass": 33,
+    "fail": 0,
+    "skipped": 0,
+    "typeScript": "npx tsc --noEmit: PASS",
+    "diffCheck": "git diff --check: PASS",
+    "realSqlBoundary": "PGlite/PostgreSQL engine; deployed claim/begin/complete SQL; controlled Auth and external dependencies, mocked Expo. Not simultaneous native DB sessions.",
+    "scenarios": [
+      "100 receipts ->17 HTTP requests",
+      "unordered mixed provider outcomes",
+      "missing/malformed/foreign receipts",
+      "429/500/timeouts",
+      "partial claims flushed",
+      "settlement failure preserves other outcomes",
+      "expired leases and abort forbid late writes",
+      "single-target admission unchanged",
+      "real SQL six-lease ceiling",
+      "failed uncommitted receipt settlement recovered with no SEND",
+      "mixed SEND/RECEIPT queues progress",
+      "synthetic100/1000/10000 distinct receipt bursts"
+    ]
+  },
+  "benchmark": "../../../scripts/capacity2-push-receipt-benchmark-20261108.json",
+  "benchmarkBoundary": "Actual handler with mock RPC and provider, no live load or delivery claim. Synthetic per-tick percentiles and harness CPU/RSS are not DEV/phone metrics.",
+  "files": [
+    {
+      "path": "supabase/functions/uskoci-push-transport/index.ts",
+      "sha256": "ba834938838a063d4f05b04157bd70843b460ad77ea745e0f2869f0e8532d0af"
+    },
+    {
+      "path": "scripts/capacity2-push-receipt-batch.test.cjs",
+      "sha256": "d92f8b67b89a26b1e7eaa36e6e7ebcbecbbd74c8ef6cafe47e8ed575ce548ece"
+    },
+    {
+      "path": "scripts/capacity2-push-receipt-benchmark.cjs",
+      "sha256": "518af87a642f7fbdcb7fa0230fd039176787f7fff8a4f1e58528fadd7db987c5"
+    },
+    {
+      "path": "scripts/sql/capacity2_push_edge_v46_20261108.preimage.json",
+      "sha256": "ca23b38c14861901bc8164ad78b8d02a5fad5f33a7a80bf81f9c0ff6af02bd08"
+    }
+  ],
+  "dev": {
+    "baseline": "Push Edge46 byte-identical to baseSource;356 migrations. No mutation by this agent.",
+    "newDeploy": "NOT_DEPLOYED"
+  },
+  "android": "NOT_TESTED; server-side receipt check cannot prove OS delivery.",
+  "rollback": "Restore exactly the captured v46 entrypoint and unchanged shared dependencies; no SQL rollback or data mutation is required.",
+  "open": [
+    "SEND still one message per HTTP: trusted common Expo project identity is not stored in device registry. Do not batch arbitrary opaque tokens across projects.",
+    "100 SEND/minute Cron and dispatch transaction/lock budget remain unchanged.",
+    "Provider, full network, real device and representative DB load need separate proof."
+  ],
+  "officialReferences": [
+    "https://docs.expo.dev/push-notifications/sending-notifications/"
+  ]
+}

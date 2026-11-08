@@ -1,0 +1,76 @@
+{
+  "schema": "USKOCI_LEGAL_REVIEW_EVIDENCE_V1",
+  "reviewedAt": "2026-11-08T10:11:32.331991+00:00",
+  "classification": "RESEARCH_AND_SOURCE_CORRECTION_NOT_LEGAL_CLEARANCE",
+  "ownerDecision": {
+    "operator": "physical person",
+    "territory": "Serbia",
+    "companyExists": "not asserted",
+    "platformMonetization": false,
+    "privateHomeAddress": "not collected or published"
+  },
+  "confirmedOperationalFacts": [
+    "DEV previously had2active legal documents and1active processor map with an unverified counsel_reference; no user acceptance existed.",
+    "Exact guarded retirement applied20261108100023; all records preserved; legal readiness nowfalse.",
+    "Four canonical docs/legal HTML files now clearly marked drafts, no effective date, noindex; false corporate identity, DPO/contact/24h-support, blanket liability and deletion guarantees removed.",
+    "Public terms/privacy/deletion/support URLs returned404; homepage200. No public website publication performed."
+  ],
+  "sources": [
+    {
+      "url": "https://pravno-informacioni-sistem.rs/SlGlasnikPortal/eli/rep/sgrs/skupstina/zakon/2009/41/4/reg",
+      "authority": "Pravno-informacioni sistem RS",
+      "law": "Zakon o elektronskoj trgovini41/2009,95/2013,52/2019",
+      "relevantArticles": [
+        "3",
+        "6"
+      ],
+      "finding": "Commercial information-society service activity and required provider identification must be assessed. Article6 includes name/provider name, seat and contact including email, with registration/regulatory/tax details as applicable. No conclusion that zero platform fees alone exempt this marketplace."
+    },
+    {
+      "url": "https://pravno-informacioni-sistem.rs/eli/rep/sgrs/skupstina/zakon/2026/35/1/reg",
+      "authority": "Pravno-informacioni sistem RS",
+      "law": "Zakon o zaštiti potrošača35/2026",
+      "relevantArticles": [
+        "3",
+        "4",
+        "5",
+        "28"
+      ],
+      "finding": "Current2026 text contains online-marketplace definitions and information duties. Some digital-service rules also cover personal-data consideration with specific exceptions. Applicability to this operator and user roles requires legal qualification; using the old2021 law alone is inadequate."
+    },
+    {
+      "url": "https://mto.gov.rs/tekst/sr/175/zakoni.php",
+      "authority": "Ministarstvo turizma i omladine RS",
+      "finding": "Official law inventory lists consumer law35of23April2026."
+    },
+    {
+      "url": "https://poverenik.rs/zastita-podataka/obaveze-rukovaoca/",
+      "authority": "Poverenik",
+      "finding": "Serbian personal-data protection obligations apply to relevant controllers/processors based in Serbia. A personal/public marketplace is not automatically exempt by lacking a company or platform fees."
+    },
+    {
+      "url": "https://support.google.com/googleplay/android-developer/answer/13628312?hl=en",
+      "authority": "Google Play",
+      "finding": "Personal developer account requires legal identity/address and verified contact details. Public baseline is legal name, country, developer email; full address is displayed if monetizing on Play, with regional additional-information exceptions. This does not settle Serbian provider-identification law."
+    },
+    {
+      "url": "https://support.google.com/googleplay/android-developer/answer/13327111?hl=en",
+      "authority": "Google Play",
+      "finding": "An account-creation app needs an in-app account/data deletion request route and a functioning web request path that does not require reinstallation. Legitimate retention exceptions must be disclosed. A404 or an informational draft is not a working request channel."
+    },
+    {
+      "url": "https://support.google.com/googleplay/android-developer/answer/9876937?hl=en",
+      "authority": "Google Play",
+      "finding": "UGC requires appropriate terms/content rules, effective moderation and reporting/blocking relevant to public content and1:1interaction; buttons without operational handling are insufficient."
+    }
+  ],
+  "unresolved": [
+    "Whether the actual physical-person operator may perform the proposed activity without registering an activity; no legal approval has been obtained.",
+    "Confirmed identity, verified support/privacy contact, lawful required public identification and any address obligation. Do not invent a firm or substitute address.",
+    "Consumer/trader user status, online-marketplace ranking and responsibility disclosures, regulated-service categories, tax/employment qualifications.",
+    "Actual processor legal entities/contracts/regions/transfers and service inventory; old map falsely omitted activeExpo and assertedOpenAI.",
+    "Executable retention/export/account-erasure bindings and response/deletion timelines matched to tested behavior.",
+    "Google Play Console account-specific requirements, DataSafety, country/targetSDK/appaccess/UGC declarations and physical acceptance."
+  ],
+  "release": "NO_GO"
+}

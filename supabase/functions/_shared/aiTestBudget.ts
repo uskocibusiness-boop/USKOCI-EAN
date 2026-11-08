@@ -80,7 +80,12 @@ export async function reserveAiTestBudget(input: {
         content += decoder.decode(part.value, { stream: true });
       }
       content += decoder.decode();
-    } finally { void reader.cancel().catch(() => undefined); }
+    } finally {
+      // Body cleanup is best effort, including transports whose cancel throws
+      // synchronously or returns no promise. Preserve the receipt or original
+      // conservative refusal, and never wait on cleanup that may not finish.
+      try { void Promise.resolve(reader.cancel()).catch(() => undefined); } catch { /* best effort cleanup */ }
+    }
     const result = JSON.parse(content);
     const codes = ['AI_TEST_RESERVED','AI_TEST_OPERATION_REPLAY','AI_TEST_BUDGET_NOT_READY','AI_TEST_ACCOUNT_NOT_ADMITTED','AI_TEST_BUDGET_EXHAUSTED'];
     if (!result || Object.keys(result).length !== 4 || typeof result.admitted !== 'boolean' || typeof result.replay !== 'boolean'

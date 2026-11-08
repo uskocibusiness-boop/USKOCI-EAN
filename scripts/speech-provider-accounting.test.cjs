@@ -312,3 +312,79 @@ test('wrong accounting operation identity cannot confirm release or settlement',
     } finally { await h.finish(); }
   }
 });
+
+// Exercise the shared budget reader itself: a custom body may synchronously
+// throw, return no promise, or never finish cleanup after the RPC has answered.
+// Cleanup is not an accounting operation and cannot replace the RPC outcome.
+function reservationReaderHarness({ receipt, cancel, oversized = false, hanging = false }) {
+  const timer = clock(), requests = [];
+  let reads = 0, cancels = 0;
+  const reader = {
+    async read() {
+      reads++;
+      if (hanging) return new Promise(() => {});
+      if (reads > 1) return { done: true };
+      return { done: false, value: oversized ? new Uint8Array(4097)
+        : new TextEncoder().encode(JSON.stringify(receipt)) };
+    },
+    cancel() { cancels++; return cancel(); },
+  };
+  // Optional exact deployed helper/candidate replay; the handler suites above
+  // retain their own complete source packages and do not use this override.
+  const budgetSource = process.env.USKOCI_AI_BUDGET_HELPER_SOURCE;
+  const load = loadSources(budgetSource ? {
+    'supabase/functions/_shared/aiTestBudget.ts': fs.readFileSync(budgetSource, 'utf8'),
+  } : {}, {
+    fetch: async (url, init) => {
+      assert.equal(url, 'https://budget-fixture.invalid/rest/v1/rpc/rpc_ai_test_budget_reserve_service');
+      requests.push(JSON.parse(init.body));
+      return { ok: true, body: { getReader: () => reader } };
+    },
+    setTimeout: timer.setTimeout, clearTimeout: timer.clearTimeout,
+  });
+  const { reserveAiTestBudget } = load('supabase/functions/_shared/aiTestBudget.ts');
+  const run = signal => reserveAiTestBudget({ supabaseUrl: 'https://budget-fixture.invalid',
+    serviceRoleKey: 'synthetic-local-only', accountId: ACCOUNT, operationId: OPERATION, kind: 'LLM', signal });
+  const verify = () => {
+    assert.deepEqual(requests, [{ p_account_id: ACCOUNT, p_operation_id: OPERATION, p_kind: 'LLM', p_max_cost_microusd: 250000 }]);
+    assert.equal(cancels, 1); assert.equal(timer.active.size, 0);
+  };
+  return { run, timer, verify };
+}
+
+for (const [cleanup, cancel] of [
+  ['synchronous throw', () => { throw new TypeError('synthetic cleanup failure'); }],
+  ['non-promise return', () => undefined],
+  ['rejected promise', () => Promise.reject(new Error('synthetic cleanup failure'))],
+  ['never-settled promise', () => new Promise(() => {})],
+]) {
+  test('budget receipts survive reader cleanup with ' + cleanup, { timeout: 1000 }, async () => {
+    for (const receipt of [
+      { admitted: false, reservationId: null, replay: false, code: 'AI_TEST_BUDGET_EXHAUSTED' },
+      { admitted: false, reservationId: RESERVATION, replay: true, code: 'AI_TEST_OPERATION_REPLAY' },
+      { admitted: true, reservationId: RESERVATION, replay: false, code: 'AI_TEST_RESERVED' },
+    ]) {
+      const h = reservationReaderHarness({ receipt, cancel });
+      assert.deepEqual(await h.run(), receipt);
+      h.verify();
+    }
+  });
+}
+
+for (const mode of ['oversized body', 'deadline', 'caller cancellation']) {
+  test('budget refusal survives throwing reader cleanup after ' + mode, { timeout: 1000 }, async () => {
+    const h = reservationReaderHarness({
+      cancel: () => { throw new TypeError('synthetic cleanup failure'); },
+      oversized: mode === 'oversized body', hanging: mode !== 'oversized body',
+    });
+    const caller = new AbortController();
+    const result = assert.rejects(h.run(caller.signal), { message: 'AI_TEST_BUDGET_UNAVAILABLE' });
+    if (mode !== 'oversized body') {
+      await turn();
+      if (mode === 'deadline') h.timer.fire(5000);
+      else caller.abort();
+    }
+    await result;
+    h.verify();
+  });
+}

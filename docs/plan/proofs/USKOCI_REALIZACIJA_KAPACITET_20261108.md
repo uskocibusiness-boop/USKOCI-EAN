@@ -159,3 +159,20 @@ Opciono prepoznavanje govora ima odvojen procenjeni trošak: približno 9 USD za
 Popravili smo i konkretan nepravedan ishod: radnik se više ne odbacuje samo zbog udaljenog pina ako njegovo sačuvano radno područje pokriva zadatak. Stvarnim paralelnim pokušajima potvrdili smo da poslednje mesto ne proizvodi dva nova Dogovora.
 
 Sledeći važan dokaz je iskustvo na telefonima: da obaveštenje stigne, fotografija se otvori, glas se snimi i pusti, a prekid mreže ostavi razumljiv i ispravan ishod. Današnji rezultat je upotrebljiv napredak sa dokazima i sačuvanim izmenama. Odobrenje javnog izdanja i obećanje velikog kapaciteta još nisu zasluženi.
+
+
+## Nastavak posle QA58 — 08.11.2026.
+
+Ovaj dodatak beleži naredni stvarno izvršen krug od HEAD-a `c9403455bc1088d7e67130d7471dbac45a1dad72`. Važeći status i odluke ostaju u [jedinom izvršnom masteru](../CODEX_PLAN_RADA.md). Raniji brojevi ovog izveštaja predstavljaju presek pre ovog nastavka.
+
+- Push receipts: do6 po HTTP zahtevu uz iste lease/claim granice;33/33 testova. U mock burst-u100/1000/10000, HTTP100→17/1000→170/10000→1700; SEND zahtevi ostaju pojedinačni. DEV Edge47, exact readback; privatni endpoint odbija zahtev bez autorizacije403. Nema phone delivery dokaza.
+- Discovery: bez vremenskog filtera kalendarski helper30.009→1 na izolovanom uzorku, isti odgovor i50 stavki. Native PG17.11/PostGIS sa30.000 dodatih zadataka: p50 340,99→236,46ms; p95 419,11→265,87ms;25 uzoraka po varijanti. CPU posmatranog backend-a8,61→5,93s kroz25 upita; response46.944bajta ostaje isti. P99 iz25 uzoraka je maksimum, slab dokaz repa. Time-filter PAGE p50 318,10→325,31ms i MAP218,94→220,18ms nisu unapređenja. Nema tvrdnje o hostovanom kapacitetu.
+- Glas: ukupan serverski rok50s obuhvata Auth/admission/upload/SQL; klijent55s, drugi media tokovi25s.4 prechange pada,20/20 posle; DEV media31.
+- AI: zaštićen cleanup čuva budžetski odgovor;5 prechange padova,43/43 povezanih provera posle. Svih5 Edge paketa dobilo je samo taj patch, uz očuvane različite stare limite: Need194,Worker147,Speech32,Publication31,QA30.0provider poziva, limit5USD nepromenjen. QA cancellation race i semantički/native prihvat otvoreni.
+- Pravno: aktivni dokumenti i mapa sa nepotkrepljenim odobrenjem povučeni, svi zapisi očuvani. DEV `ready=false`;15/15 i3/3 konkurentne provere. Ranije tvrdnje da je objavljeni pravni paket gotov više ne važe. Četiri javne URL putanje404; izvori su sada nacrti, ne važeći dokumenti.
+- Poslednje mesto:100 stvarnih istovremenih SQL izbora među100 radničkih prijava daje1 Dogovor/99 odbijanja;100 istih komandi vraća isti1 Dogovor. To je konkurentni izbor, ne100 paralelnih kreiranja prijava.
+- Home/kalendar:4 konkretne reprodukcije pokazuju gubitak podataka pri naivnoj zameni ALL čitača prvom ACTIVE stranom. Takva promena nije napravljena. Dispatch transakcije nisu skraćene bez dokaza.
+
+Integracija:1009/1009 Node, TypeScript,223 SQL/41 Python PASS. DEV ledger358. Novi CI/APK dokaz dodaje se zasebno posle stvarnog izvršavanja; fizički telefoni nisu testirani. Ostaje **NO-GO**.
+
+Dokazi: [DEV i rollback](capacity2-dev-execution-20261108.json), [validacija](capacity2-validation-20261108.json), [push model](capacity2-push-receipt-batch-20261108.json), [Discovery merenja](../../../scripts/sql/r02_discovery_schedule_20261108.benchmark.json), [100 konkurentnih izbora](../../../scripts/sql/r07_last_slot_100_20261108.receipt.json), [pravni izvori i otvorene obaveze](capacity2-legal-review-20261108.json), [dispatch nalaz](capacity2-dispatch-transaction-20261108.json), [Home/kalendar](USKOCI_HOME_CALENDAR_READER_CONTRACT_20261108.json).

@@ -28,9 +28,10 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 async function until(predicate) { for (let i = 0; i < 30 && !predicate(); i++) await tick(); assert.ok(predicate(), 'local transition completed'); }
 function clock() {
-  let next = 0; const active = new Map();
-  return { active, setTimeout(fn, ms) { const id = ++next; active.set(id, { fn, ms }); return id; },
+  let next = 0, now = 0; const active = new Map();
+  return { active, setTimeout(fn, ms) { const id = ++next; active.set(id, { fn, ms, due: now + ms }); return id; },
     clearTimeout(id) { active.delete(id); },
+    advance(ms) { now += ms; for (const [id, t] of [...active]) if (t.due <= now && active.delete(id)) t.fn(); },
     fire(ms) { for (const [id, t] of [...active]) if (t.ms === ms && active.delete(id)) t.fn(); } };
 }
 function body(chunks = [new Uint8Array(SAMPLE)], options = {}) {
@@ -82,13 +83,25 @@ function harness(options = {}) {
       dispatchState: 'NOT_DISPATCHED', dispatchOutcome: null, acquired: config.full };
     records.set(key, r); return r;
   }
+  const waitForGate = async (gate, signal) => {
+    if (!gate) return;
+    let cancel;
+    try {
+      await Promise.race([gate.promise, new Promise((_, reject) => {
+        cancel = () => reject(new Error('synthetic aborted fetch'));
+        signal.addEventListener('abort', cancel, { once: true });
+        if (signal.aborted) cancel();
+      })]);
+    } finally { signal.removeEventListener('abort', cancel); }
+  };
   const network = async (raw, init = {}) => {
     const url = new URL(raw); assert.equal(url.origin, ORIGIN, 'No external request escapes this fixture');
     if (init.signal?.aborted) throw new Error('synthetic aborted fetch');
     const headers = new Headers(init.headers);
     requests.push({ path: url.pathname, method: init.method ?? 'GET', headers });
     if (url.pathname === '/auth/v1/user') {
-      calls.push({ name: 'auth' }); return config.authDenied ? json({}, 401) : json({ id: actualOwner(headers.get('authorization')) });
+      calls.push({ name: 'auth' }); await waitForGate(config.authGate, init.signal);
+      return config.authDenied ? json({}, 401) : json({ id: actualOwner(headers.get('authorization')) });
     }
     if (url.pathname.startsWith('/storage/v1/object/')) {
       const key = url.pathname.replace('/storage/v1/object/', '');
@@ -99,6 +112,7 @@ function harness(options = {}) {
         if (config.losePostResponse) { config.losePostResponse = false; throw new Error('synthetic lost Storage response'); }
         return new Response('', { status: 200 });
       }
+      await waitForGate(config.storageReadGate, init.signal);
       const bytes = storage.get(key); if (!bytes) return new Response('', { status: 404 });
       return new Response(new Uint8Array(bytes), { headers: { 'content-type': key.includes('agreement-voice/') ? 'audio/mp4' : 'image/jpeg' } });
     }
@@ -345,4 +359,92 @@ test('private image proxy refuses a foreign viewer and rechecks a revoked Agreem
   assert.deepEqual(await grant.decode(revoked), { status: 403, body: { code: 'MEDIA_NOT_FOUND' } });
   assert.equal(grant.calls.filter(c => c.name === 'rpc_agreement_photo_read_service_v5').length, 2);
   assert.equal(r.state, 'READY'); // A denied read never rewrites the owner's upload.
+});
+
+
+test('voice upload has one 50s budget including auth and cancels a slow body before the 55s client deadline', async () => {
+  const authGate = deferred(), h = harness({ authGate }), req = request('VOICE', { bodyOptions: { holdAt: 0 } });
+  let settled = false;
+  const pending = h.decode(req).then(value => { settled = true; return value; });
+  try {
+    await until(() => h.calls.some(c => c.name === 'auth'));
+    h.timer.advance(20_000); authGate.resolve(); await until(() => req.stream.stats.reads === 1);
+    h.timer.advance(29_999); await tick(); assert.equal(settled, false);
+    h.timer.advance(1); await tick();
+    assert.equal(settled, true, 'auth and body share the original 50s deadline; no reset after auth/admission');
+    assert.deepEqual(await pending, { status: 503, body: { code: 'MEDIA_UNCONFIRMED' } });
+    assert.equal(h.pending().length, 0); assert.equal(h.posts.length, 0); assert.ok(req.stream.stats.cancelled > 0);
+  } finally { req.controller.abort(); authGate.resolve(); await pending; }
+  assert.equal(h.timer.active.size, 0);
+  assert.equal((await h.decode(request('VOICE'))).status, 200, 'expired voice upload releases admission');
+});
+
+test('voice auth can use its bounded upload budget without the old unrelated 25s cutoff', async () => {
+  const authGate = deferred(), h = harness({ authGate }), req = request('VOICE');
+  let settled = false;
+  const pending = h.decode(req).then(value => { settled = true; return value; });
+  try {
+    await until(() => h.calls.some(c => c.name === 'auth'));
+    h.timer.advance(30_000); await tick();
+    assert.equal(settled, false, 'voice operation owns one upload budget before auth begins');
+    authGate.resolve(); assert.equal((await pending).status, 200);
+    assert.equal(h.timer.active.size, 0);
+  } finally { req.controller.abort(); authGate.resolve(); await pending; }
+});
+
+test('voice admission wait consumes the original deadline instead of starting a fresh timer', async () => {
+  const h = harness(), first = request('VOICE', { bodyOptions: { holdAt: 0 } }), second = request('VOICE', { bodyOptions: { holdAt: 0 } });
+  const third = request('VOICE', { bodyOptions: { holdAt: 0 } });
+  const a = h.decode(first), b = h.decode(second); let settled = false;
+  let c;
+  try {
+    await until(() => first.stream.stats.reads && second.stream.stats.reads);
+    c = h.decode(third).then(value => { settled = true; return value; });
+    await until(() => [...h.timer.active.values()].some(t => t.ms === 4000));
+    h.timer.advance(3000); first.stream.release(); assert.equal((await a).status, 200);
+    await until(() => third.stream.stats.reads === 1);
+    h.timer.advance(46_999); await tick(); assert.equal(settled, false);
+    h.timer.advance(1); await tick(); assert.equal(settled, true, '3s waiting time counts against the same 50s deadline');
+    assert.equal((await c).status, 503); assert.equal((await b).status, 503);
+  } finally { first.controller.abort(); second.controller.abort(); third.controller.abort(); await Promise.all([a, b, c]); }
+  assert.equal(h.timer.active.size, 0);
+});
+
+test('voice deadline preserves a previously dispatched unknown outcome and recovery never reposts', async () => {
+  const storageReadGate = deferred(), h = harness({ storageReadGate }), key = randomUUID(), assetId = randomUUID();
+  const sha256 = createHash('sha256').update(SAMPLE).digest('hex');
+  const record = { key, accountId: ACCOUNT, kind: 'VOICE', assetId, attemptId: randomUUID(), state: 'STAGED',
+    path: `${ACCOUNT}/agreement-voice-v1/${assetId}/${sha256}.m4a`, sha256, byteSize: SAMPLE.length,
+    dispatchState: 'DISPATCHING', dispatchOutcome: null, acquired: false };
+  // A trusted ledger/storage fixture represents an earlier accepted write; this test does not claim codec validation.
+  h.records.set(key, record); h.storage.set('agreement-voice/' + record.path, new Uint8Array(SAMPLE));
+  const req = request('VOICE', { key }); let settled = false;
+  const pending = h.decode(req).then(value => { settled = true; return value; });
+  try {
+    await until(() => h.requests.some(r => r.path.includes('/storage/')));
+    h.timer.advance(50_000); await tick(); assert.equal(settled, true);
+    assert.equal((await pending).status, 503); assert.equal(record.dispatchState, 'DISPATCHING');
+    assert.equal(record.dispatchOutcome, null); assert.equal(record.state, 'STAGED');
+    assert.equal(h.calls.filter(c => c.args?.p_operation === 'SETTLE').length, 0); assert.equal(h.posts.length, 0);
+  } finally { req.controller.abort(); storageReadGate.resolve(); await pending; }
+  const recovered = await h.decode(request('VOICE', { key }));
+  assert.equal(recovered.status, 200); assert.equal(recovered.body.state, 'READY');
+  assert.equal(record.dispatchOutcome, 'STORED'); assert.equal(h.posts.length, 0);
+  assert.equal(h.calls.filter(c => c.args?.p_operation === 'SETTLE').length, 1);
+  assert.equal(h.timer.active.size, 0);
+});
+
+test('photo upload retains its 25s absolute deadline including auth and body', async () => {
+  const authGate = deferred(), h = harness({ authGate }), req = request('PHOTO', { bodyOptions: { holdAt: 0 } });
+  let settled = false;
+  const pending = h.decode(req).then(value => { settled = true; return value; });
+  try {
+    await until(() => h.calls.some(c => c.name === 'auth'));
+    h.timer.advance(5000); authGate.resolve(); await until(() => req.stream.stats.reads === 1);
+    h.timer.advance(19_999); await tick(); assert.equal(settled, false);
+    h.timer.advance(1); await tick(); assert.equal(settled, true);
+    assert.deepEqual(await pending, { status: 503, body: { code: 'MEDIA_UNCONFIRMED' } });
+    assert.equal(h.pending().length, 0); assert.equal(h.posts.length, 0);
+  } finally { req.controller.abort(); authGate.resolve(); await pending; }
+  assert.equal(h.timer.active.size, 0);
 });

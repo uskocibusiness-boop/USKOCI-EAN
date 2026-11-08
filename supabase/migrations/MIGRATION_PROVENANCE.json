@@ -4648,5 +4648,65 @@
         }
       ]
     }
+  },
+  "forward_execution_20261108_capacity2": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "evidence": "inline:dev_forward_catalog_20261108_capacity2",
+    "entries": [
+      {
+        "file": "20261108095246_r02_discovery_schedule_20261108.sql",
+        "version": "20261108095246",
+        "name": "r02_discovery_schedule_20261108",
+        "source": "scripts/sql/r02_discovery_schedule_20261108.sql",
+        "cli_generated_file": "20261108094226_r02_discovery_schedule_20261108.sql",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261108095246",
+        "live_name": "r02_discovery_schedule_20261108",
+        "live_recorded_md5": "b378fa59229d07d384ce4c794ff0bdc5",
+        "live_recorded_sha256": "54edfec569dd20a80dd6e216bb71d52a6d4e17b901a918013f2e37bbb53659b4",
+        "raw_md5": "b378fa59229d07d384ce4c794ff0bdc5",
+        "raw_sha256": "54edfec569dd20a80dd6e216bb71d52a6d4e17b901a918013f2e37bbb53659b4",
+        "raw_bytes": 2120
+      },
+      {
+        "file": "20261108100023_r12_quarantine_unverified_legal_20261108.sql",
+        "version": "20261108100023",
+        "name": "r12_quarantine_unverified_legal_20261108",
+        "source": "supabase/migrations/20261108100023_r12_quarantine_unverified_legal_20261108.sql",
+        "cli_generated_file": "20261108095226_r12_quarantine_unverified_legal_20261108.sql",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261108100023",
+        "live_name": "r12_quarantine_unverified_legal_20261108",
+        "live_recorded_md5": "ca3be1670a4d0b2cc83dbe0b29ef5f37",
+        "live_recorded_sha256": "fc4a2e658f52bdc68b308eee8007d30fd90d77bef9f290b38d70b546e4528981",
+        "raw_md5": "ca3be1670a4d0b2cc83dbe0b29ef5f37",
+        "raw_sha256": "fc4a2e658f52bdc68b308eee8007d30fd90d77bef9f290b38d70b546e4528981",
+        "raw_bytes": 3765
+      }
+    ],
+    "catalog_evidence": {
+      "project": "leqcwgzvjsxugfgzdmth",
+      "observed_at_utc": "2026-11-08T10:04:35.838511+00:00",
+      "liveMigrationCatalogHashes": [
+        {
+          "name": "r02_discovery_schedule_20261108",
+          "version": "20261108095246",
+          "joined_md5": "b378fa59229d07d384ce4c794ff0bdc5",
+          "joined_bytes": 2120,
+          "joined_sha256": "54edfec569dd20a80dd6e216bb71d52a6d4e17b901a918013f2e37bbb53659b4",
+          "statement_count": 1
+        },
+        {
+          "name": "r12_quarantine_unverified_legal_20261108",
+          "version": "20261108100023",
+          "joined_md5": "ca3be1670a4d0b2cc83dbe0b29ef5f37",
+          "joined_bytes": 3765,
+          "joined_sha256": "fc4a2e658f52bdc68b308eee8007d30fd90d77bef9f290b38d70b546e4528981",
+          "statement_count": 1
+        }
+      ]
+    }
   }
 }

@@ -470,5 +470,37 @@ class Nov8CapacityReadersTests(unittest.TestCase):
             load_catalog_evidence(changed)
 
 
+class Nov8Capacity2Tests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).parent
+        self.section = json.loads((self.root / "MIGRATION_PROVENANCE.json").read_text())["forward_execution_20261108_capacity2"]
+        self.evidence = load_catalog_evidence(self.section)
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (self.root / "MD5_MANIFEST.txt").read_text().splitlines())
+
+    def test_discovery_and_quarantine_bind_exact_applied_bytes(self):
+        self.assertEqual(check_physical_suffix(self.section, self.manifest, self.evidence), [
+            "20261108095246_r02_discovery_schedule_20261108.sql",
+            "20261108100023_r12_quarantine_unverified_legal_20261108.sql",
+        ])
+        for row in self.section["entries"]:
+            self.assertEqual(row["version"], row["live_version"])
+            self.assertEqual((self.root / row["file"]).read_bytes(),
+                             (self.root.parent.parent / row["source"]).read_bytes())
+
+    def test_modified_live_receipt_and_fabricated_dev_claim_are_rejected(self):
+        for index in range(2):
+            for key in ("live_version", "live_name", "live_recorded_sha256", "raw_md5", "raw_bytes"):
+                with self.subTest(index=index, key=key):
+                    changed = copy.deepcopy(self.section)
+                    changed["entries"][index][key] = "INVALID"
+                    with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                        check_physical_suffix(changed, self.manifest, self.evidence)
+        changed = copy.deepcopy(self.section)
+        changed["catalog_evidence"]["liveMigrationCatalogHashes"][1]["joined_sha256"] = "0" * 64
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            load_catalog_evidence(changed)
+
+
 if __name__ == "__main__":
     unittest.main()

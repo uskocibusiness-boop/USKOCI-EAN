@@ -122,7 +122,10 @@ export async function handleMedia(req:Request):Promise<Response>{
  const authorization=req.headers.get('authorization')??'',base=Deno.env.get('SUPABASE_URL')??'',anon=readSupabasePublishableKey(name=>Deno.env.get(name))??'',service=readSupabaseServiceKey(name=>Deno.env.get(name))??'';
  if(!/^Bearer [^\s]+$/.test(authorization)||authorization.length>16384)return json(401,{code:'AUTH_REQUIRED'});
  let url:URL;try{url=new URL(base);if(url.protocol!=='https:'||url.username||url.password||url.pathname!=='/'||url.search||url.hash||!anon||!service)throw new Error();}catch{return json(503,{code:'MEDIA_UNAVAILABLE'});}
- const abort=new AbortController(),stop=()=>abort.abort();let timer=setTimeout(stop,25000);req.signal.addEventListener('abort',stop,{once:true});if(req.signal.aborted)stop();
+ const op=req.headers.get('x-media-operation');
+ // One absolute budget includes auth, admission, body, Storage and SQL. Voice
+ // leaves 5s below the client's 55s deadline; never restart after admission.
+ const abort=new AbortController(),stop=()=>abort.abort();const timer=setTimeout(stop,op==='agreement-voice-upload'?50000:25000);req.signal.addEventListener('abort',stop,{once:true});if(req.signal.aborted)stop();
  const fetchBound=(path:string,init:RequestInit)=>fetch(path,{...init,redirect:'error',signal:abort.signal});
  const userHeaders={apikey:anon,Authorization:authorization,'Content-Type':'application/json'};
  const serviceHeaders=supabaseServiceHeaders(service,{'Content-Type':'application/json'});
@@ -134,7 +137,7 @@ export async function handleMedia(req:Request):Promise<Response>{
  try{
   const auth=await fetchBound(url.origin+'/auth/v1/user',{headers:userHeaders});if(!auth.ok)return json(401,{code:'AUTH_REQUIRED'});
   const user=row(parse(await bytes(auth,65536,abort.signal)));if(!id(user?.id))return json(401,{code:'AUTH_REQUIRED'});const aid=user.id;
-  const op=req.headers.get('x-media-operation'),preview=(a:Row)=>({assetId:a.assetId,width:a.width,height:a.height,contentType:'image/jpeg'});
+  const preview=(a:Row)=>({assetId:a.assetId,width:a.width,height:a.height,contentType:'image/jpeg'});
   if(op?.startsWith('agreement-voice-')){
    // Voice messages (B1-c). The original bytes ARE the stored bytes: one validated self-contained mono AAC-LC M4A, no transcoding, never a URL.
    const sessionId=supportSession(authorization,aid,url.origin);
@@ -183,8 +186,6 @@ export async function handleMedia(req:Request):Promise<Response>{
    }
    releaseAdmission=await voiceAdmission.acquire(abort.signal);
    if(!releaseAdmission){if(abort.signal.aborted)throw new Error('MEDIA_WAIT_ABORTED');throw new Safe('MEDIA_BUSY',429);}
-   // A recording takes longer to arrive than a photo: the body counts against this timer, so the voice upload gets its own bound.
-   clearTimeout(timer);timer=setTimeout(stop,60000);
    const contentType=req.headers.get('content-type')?.split(';')[0].trim().toLowerCase();if(contentType!=='audio/mp4')throw new Safe('MEDIA_FORMAT_UNSUPPORTED');
    try{
     input=await bytes(req,VOICE_MAX,abort.signal);if(!input.length)throw new Safe('MEDIA_INPUT_INVALID');

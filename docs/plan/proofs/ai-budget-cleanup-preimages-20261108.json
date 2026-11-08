@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "project": "leqcwgzvjsxugfgzdmth",
+  "capturedAt": "2026-11-08T10:00:15.47826+00:00",
+  "boundary": "Deployed shared budget helper sources only. No secrets, user content or environment values. Full-package rollout remains a separate root operation.",
+  "entries": [
+    {
+      "slug": "uskoci-publication-evaluate",
+      "version": 30,
+      "bundleSha256": "a2add994af5ad543207eb8b8cc15edc7da79933aa4de6506b8885c7772eb2073",
+      "budgetHelper": "// Shared V5 controlled-provider test budget. No retries or refunds after uncertain I/O.\nimport { supabaseServiceHeaders } from './supabaseKeys.mjs';\nexport const AI_TEST_LIMITS = Object.freeze({\n  // Per model call, not catalog capacity. Navigation avoids whole-tree prompts.\n  // Text budget doubled after adding paged tool results; output remains bounded.\n  llmRequestBytes: 262144,\n  llmMaxOutputTokens: 8192,\n  llmReservationMicrousd: 250000,\n  speechPcmBytes: 3840000,\n  speechMaxOutputTokens: 8192,\n  speechReservationMicrousd: 200000,\n  speechCaptureMs: 120000,\n  speechFinalizationMs: 15000,\n});\n\nexport type AiTestBudgetResult = {\n  admitted: boolean;\n  reservationId: string | null;\n  replay: boolean;\n  code: string;\n};\n\nexport async function reserveAiTestBudget(input: {\n  supabaseUrl: string; serviceRoleKey: string; accountId: string; operationId: string;\n  kind: 'LLM' | 'STT'; signal?: AbortSignal;\n}): Promise<AiTestBudgetResult> {\n  const abort = new AbortController();\n  const stop = () => abort.abort();\n  const timeout = setTimeout(stop, 5000);\n  input.signal?.addEventListener('abort', stop, { once: true });\n  if (input.signal?.aborted) stop();\n  // A response body or fetch implementation may ignore AbortSignal. The five-\n  // second budget and caller cancellation must still settle this reservation.\n  // Do not interpret an interrupted reservation as proof of no provider charge\n  // or automatically create another paid operation.\n  const cancelled=new Promise<never>((_,reject)=>{\n    const onAbort=()=>reject(new Error('AI_TEST_BUDGET_UNAVAILABLE'));\n    if(abort.signal.aborted)onAbort();\n    else abort.signal.addEventListener('abort',onAbort,{once:true});\n  });\n  void cancelled.catch(()=>undefined);\n  const assertActive = () => {\n    if (abort.signal.aborted) throw new Error('AI_TEST_BUDGET_UNAVAILABLE');\n  };\n  try {\n    assertActive();\n    const response = await Promise.race([fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_budget_reserve_service', {\n      method: 'POST', redirect: 'error', signal: abort.signal,\n      headers: supabaseServiceHeaders(input.serviceRoleKey, { 'Content-Type': 'application/json' }),\n      body: JSON.stringify({ p_account_id: input.accountId, p_operation_id: input.operationId, p_kind: input.kind,\n        p_max_cost_microusd: input.kind === 'LLM' ? AI_TEST_LIMITS.llmReservationMicrousd : AI_TEST_LIMITS.speechReservationMicrousd }),\n    }),cancelled]);\n    if (abort.signal.aborted || !response.ok || !response.body) {\n      // The deadline may win just before headers resolve. Cleanup MUST NOT\n      // replace the original budget refusal with a TypeError, even for a\n      // nonstandard transport that only exposes getReader().cancel().\n      // Do not await cleanup: its promise may ignore cancellation too.\n      try {\n        const body=response.body;\n        if (body && typeof body.cancel==='function')\n          void Promise.resolve(body.cancel()).catch(()=>undefined);\n        else if (body && typeof body.getReader==='function') {\n          const reader=body.getReader();\n          if (typeof reader.cancel==='function')\n            void Promise.resolve(reader.cancel()).catch(()=>undefined);\n        }\n      } catch { /* best effort, never changes the conservative refusal */ }\n      throw new Error('AI_TEST_BUDGET_UNAVAILABLE');\n    }\n    const reader = response.body.getReader();\n    let content = '', length = 0;\n    try {\n      const decoder = new TextDecoder();\n      while (true) {\n        const part = await Promise.race([reader.read(),cancelled]);\n        assertActive();\n        if (part.done) break;\n        length += part.value.byteLength;\n        if (length > 4096) throw new Error('AI_TEST_BUDGET_UNAVAILABLE');\n        content += decoder.decode(part.value, { stream: true });\n      }\n      content += decoder.decode();\n    } finally { void reader.cancel().catch(() => undefined); }\n    const result = JSON.parse(content);\n    const codes = ['AI_TEST_RESERVED','AI_TEST_OPERATION_REPLAY','AI_TEST_BUDGET_NOT_READY','AI_TEST_ACCOUNT_NOT_ADMITTED','AI_TEST_BUDGET_EXHAUSTED'];\n    if (!result || Object.keys(result).length !== 4 || typeof result.admitted !== 'boolean' || typeof result.replay !== 'boolean'\n      || !codes.includes(result.code) || !(result.reservationId === null || /^[0-9a-f-]{36}$/i.test(result.reservationId))\n      || (result.admitted && (result.replay || result.code !== 'AI_TEST_RESERVED' || !result.reservationId))) {\n      throw new Error('AI_TEST_BUDGET_UNAVAILABLE');\n    }\n    assertActive();\n    return result;\n  } finally { clearTimeout(timeout); input.signal?.removeEventListener('abort', stop); stop(); }\n}\n\n// The speech session uses waitUntil for these two receipts. AbortSignal alone\n// cannot settle a transport/body that ignores cancellation; bound the wait as\n// well, and keep an uncertain write unconfirmed without retrying it.\nasync function postAudioBudgetReceipt(input: {\n  supabaseUrl: string; serviceRoleKey: string;\n}, rpc: 'rpc_ai_test_release_unused_reservation_service' | 'rpc_ai_test_settle_audio_service',\nargs: Record<string, unknown>): Promise<Record<string, unknown>> {\n  const abort = new AbortController();\n  const stopped = new Promise<never>((_, reject) => {\n    abort.signal.addEventListener('abort', () => reject(new Error('AI_TEST_ACCOUNTING_UNCONFIRMED')), { once: true });\n  });\n  void stopped.catch(() => undefined);\n  const timeout = setTimeout(() => abort.abort(), 5000);\n  const check = () => { if (abort.signal.aborted) throw new Error('AI_TEST_ACCOUNTING_UNCONFIRMED'); };\n  try {\n    const request = fetch(input.supabaseUrl + '/rest/v1/rpc/' + rpc, {\n      method: 'POST', redirect: 'error', signal: abort.signal,\n      headers: supabaseServiceHeaders(input.serviceRoleKey, { 'Content-Type': 'application/json' }),\n      body: JSON.stringify(args),\n    }).then(response => {\n      if (abort.signal.aborted || !response.ok || response.redirected || !response.body) {\n        try { void response.body?.cancel().catch(() => undefined); } catch { /* best effort cleanup */ }\n        throw new Error('AI_TEST_ACCOUNTING_UNCONFIRMED');\n      }\n      return response;\n    });\n    const response = await Promise.race([request, stopped]);\n    check();\n    const reader = response.body!.getReader();\n    let raw = '', length = 0;\n    try {\n      const decoder = new TextDecoder('utf-8', { fatal: true });\n      while (true) {\n        const part = await Promise.race([reader.read(), stopped]);\n        check();\n        if (part.done) break;\n        length += part.value.byteLength;\n        if (length > 4096) throw new Error('AI_TEST_ACCOUNTING_UNCONFIRMED');\n        raw += decoder.decode(part.value, { stream: true });\n      }\n      raw += decoder.decode();\n    } finally { try { void reader.cancel().catch(() => undefined); } catch { /* best effort cleanup */ } }\n    check();\n    const receipt: unknown = JSON.parse(raw);\n    if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) throw new Error('AI_TEST_ACCOUNTING_UNCONFIRMED');\n    return receipt as Record<string, unknown>;\n  } finally { clearTimeout(timeout); abort.abort(); }\n}\n\n/** Only call with proof that no audio was dispatched and no provider output observed.\n * Missing output after dispatch is UNKNOWN, never proof of zero cost. The RPC also\n * refuses release when usage exists, but absence of recorded usage is not that proof. */\nexport async function releaseUnusedAiTestReservation(input: {\n  supabaseUrl: string; serviceRoleKey: string; operationId: string;\n}): Promise<boolean> {\n  try {\n    const body = await postAudioBudgetReceipt(input, 'rpc_ai_test_release_unused_reservation_service', { p_operation_id: input.operationId });\n    return body.operationId === input.operationId && body.released === true && body.code === 'AI_RELEASE_DONE';\n  } catch { return false; }\n}\n\n/** A fully completed session uses the existing duration/output estimate, not a provider\n * invoice. Partial/unknown completion keeps its hold. The RPC refuses when provider\n * usage exists, so reported usage always wins. */\nexport async function settleAiTestAudio(input: {\n  supabaseUrl: string; serviceRoleKey: string; operationId: string; audioBytes: number; transcriptChars: number;\n}): Promise<boolean> {\n  if (!(input.audioBytes > 0)) return false;\n  try {\n    const body = await postAudioBudgetReceipt(input, 'rpc_ai_test_settle_audio_service', {\n      p_operation_id: input.operationId, p_audio_bytes: input.audioBytes, p_transcript_chars: input.transcriptChars,\n    });\n    return body.operationId === input.operationId && body.settled === true && body.code === 'AI_AUDIO_SETTLED';\n  } catch { return false; }\n}\n",
+      "preimageSha256": "2e029b0ac9dde43c2661405357ff6195f2ed5b4c4ae3f2e81f029c5e97864c13",
+      "candidateSha256": "71604ae6f7e760a2f1af1b63795ae9f336814c4a1c85f6c44096fcd1b4dec9a6",
+      "rollback": {
+        "expectedCandidateSha256": "71604ae6f7e760a2f1af1b63795ae9f336814c4a1c85f6c44096fcd1b4dec9a6",
+        "restoreHelperSha256": "2e029b0ac9dde43c2661405357ff6195f2ed5b4c4ae3f2e81f029c5e97864c13",
+        "preserveAllOtherPackageFiles": true
+      }
+    },
+    {
+      "slug": "uskoci-qa-classify",
+      "version": 29,
+      "bundleSha256": "4cb4a006880be8bf5edcec0f8b932d2062940ad04dcc857a86e6b10e7cb37281",
+      "budgetHelper": "// Shared V5 controlled-provider test budget. No retries or refunds after uncertain I/O.\nimport { supabaseServiceHeaders } from './supabaseKeys.mjs';\nexport const AI_TEST_LIMITS = Object.freeze({\n  // Per model call, not catalog capacity. Navigation avoids whole-tree prompts.\n  // Text budget doubled after adding paged tool results; output remains bounded.\n  llmRequestBytes: 262144,\n  llmMaxOutputTokens: 8192,\n  llmReservationMicrousd: 250000,\n  speechPcmBytes: 3840000,\n  speechMaxOutputTokens: 8192,\n  speechReservationMicrousd: 200000,\n  speechCaptureMs: 120000,\n  speechFinalizationMs: 15000,\n});\n\nexport type AiTestBudgetResult = {\n  admitted: boolean;\n  reservationId: string | null;\n  replay: boolean;\n  code: string;\n};\n\nexport async function reserveAiTestBudget(input: {\n  supabaseUrl: string; serviceRoleKey: string; accountId: string; operationId: string;\n  kind: 'LLM' | 'STT'; signal?: AbortSignal;\n}): Promise<AiTestBudgetResult> {\n  const abort = new AbortController();\n  const stop = () => abort.abort();\n  const timeout = setTimeout(stop, 5000);\n  input.signal?.addEventListener('abort', stop, { once: true });\n  if (input.signal?.aborted) stop();\n  const assertActive = () => {\n    if (abort.signal.aborted) throw new Error('AI_TEST_BUDGET_UNAVAILABLE');\n  };\n  try {\n    assertActive();\n    const response = await fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_budget_reserve_service', {\n      method: 'POST', redirect: 'error', signal: abort.signal,\n      headers: supabaseServiceHeaders(input.serviceRoleKey, { 'Content-Type': 'application/json' }),\n      body: JSON.stringify({ p_account_id: input.accountId, p_operation_id: input.operationId, p_kind: input.kind,\n        p_max_cost_microusd: input.kind === 'LLM' ? AI_TEST_LIMITS.llmReservationMicrousd : AI_TEST_LIMITS.speechReservationMicrousd }),\n    });\n    if (abort.signal.aborted || !response.ok || !response.body) { void response.body?.cancel(); throw new Error('AI_TEST_BUDGET_UNAVAILABLE'); }\n    const reader = response.body.getReader();\n    let content = '', length = 0;\n    try {\n      const decoder = new TextDecoder();\n      while (true) {\n        const part = await reader.read();\n        assertActive();\n        if (part.done) break;\n        length += part.value.byteLength;\n        if (length > 4096) throw new Error('AI_TEST_BUDGET_UNAVAILABLE');\n        content += decoder.decode(part.value, { stream: true });\n      }\n      content += decoder.decode();\n    } finally { void reader.cancel().catch(() => undefined); }\n    const result = JSON.parse(content);\n    const codes = ['AI_TEST_RESERVED','AI_TEST_OPERATION_REPLAY','AI_TEST_BUDGET_NOT_READY','AI_TEST_ACCOUNT_NOT_ADMITTED','AI_TEST_BUDGET_EXHAUSTED'];\n    if (!result || Object.keys(result).length !== 4 || typeof result.admitted !== 'boolean' || typeof result.replay !== 'boolean'\n      || !codes.includes(result.code) || !(result.reservationId === null || /^[0-9a-f-]{36}$/i.test(result.reservationId))\n      || (result.admitted && (result.replay || result.code !== 'AI_TEST_RESERVED' || !result.reservationId))) {\n      throw new Error('AI_TEST_BUDGET_UNAVAILABLE');\n    }\n    assertActive();\n    return result;\n  } finally { clearTimeout(timeout); input.signal?.removeEventListener('abort', stop); stop(); }\n}\n\n/** A session that produced nothing spent nothing, so its worst-case hold goes back.\n *  The RPC itself refuses to release any operation that has recorded usage. */\nexport async function releaseUnusedAiTestReservation(input: {\n  supabaseUrl: string; serviceRoleKey: string; operationId: string;\n}): Promise<boolean> {\n  const abort = new AbortController();\n  const timeout = setTimeout(() => abort.abort(), 5000);\n  try {\n    const response = await fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_release_unused_reservation_service', {\n      method: 'POST', redirect: 'error', signal: abort.signal,\n      headers: supabaseServiceHeaders(input.serviceRoleKey, { 'Content-Type': 'application/json' }),\n      body: JSON.stringify({ p_operation_id: input.operationId }),\n    });\n    if (!response.ok) { void response.body?.cancel(); return false; }\n    const body = await response.json().catch(() => null);\n    return !!body && body.released === true;\n  } catch { return false; }\n  finally { clearTimeout(timeout); }\n}\n\n/** A session that did transcribe settles against the audio it actually sent, priced at the\n *  published rate. The RPC refuses when provider usage exists, so reported usage always wins. */\nexport async function settleAiTestAudio(input: {\n  supabaseUrl: string; serviceRoleKey: string; operationId: string; audioBytes: number; transcriptChars: number;\n}): Promise<boolean> {\n  if (!(input.audioBytes > 0)) return false;\n  const abort = new AbortController();\n  const timeout = setTimeout(() => abort.abort(), 5000);\n  try {\n    const response = await fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_settle_audio_service', {\n      method: 'POST', redirect: 'error', signal: abort.signal,\n      headers: supabaseServiceHeaders(input.serviceRoleKey, { 'Content-Type': 'application/json' }),\n      body: JSON.stringify({ p_operation_id: input.operationId, p_audio_bytes: input.audioBytes, p_transcript_chars: input.transcriptChars }),\n    });\n    if (!response.ok) { void response.body?.cancel(); return false; }\n    const body = await response.json().catch(() => null);\n    return !!body && body.settled === true;\n  } catch { return false; }\n  finally { clearTimeout(timeout); }\n}\n",
+      "preimageSha256": "076c7a51dddbe1c1e73ba58a6ac18e8f9ce364dfb0eb710fe8798248efe73804",
+      "candidateSha256": "95c567504f058b235b41b6bbb3e7db7e61ac7530372be9096d5be2ca311d9030",
+      "rollback": {
+        "expectedCandidateSha256": "95c567504f058b235b41b6bbb3e7db7e61ac7530372be9096d5be2ca311d9030",
+        "restoreHelperSha256": "076c7a51dddbe1c1e73ba58a6ac18e8f9ce364dfb0eb710fe8798248efe73804",
+        "preserveAllOtherPackageFiles": true
+      }
+    }
+  ],
+  "patch": {
+    "exactOccurrenceCount": 1,
+    "preimage": "    } finally { void reader.cancel().catch(() => undefined); }",
+    "replacement": "    } finally {\n      // Body cleanup is best effort, including transports whose cancel throws\n      // synchronously or returns no promise. Preserve the receipt or original\n      // conservative refusal, and never wait on cleanup that may not finish.\n      try { void Promise.resolve(reader.cancel()).catch(() => undefined); } catch { /* best effort cleanup */ }\n    }",
+    "sourceReference": "7bb6e3434e5d600b10260bda48ab58c0ef1fb4d2",
+    "limitsChanged": false,
+    "allOtherHelperBytesPreserved": true
+  },
+  "testRuns": [
+    {
+      "target": "publication",
+      "variant": "before",
+      "summary": {
+        "tests": 7,
+        "pass": 2,
+        "fail": 5,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "tapSha256": "3a691fa800822232014f9acd1bc87a73a063f9a8ed2dfac072063d9381d03ce8",
+      "testNamesAndOutcomes": [
+        "not ok 1 - budget receipts survive reader cleanup with synchronous throw",
+        "not ok 2 - budget receipts survive reader cleanup with non-promise return",
+        "ok 3 - budget receipts survive reader cleanup with rejected promise",
+        "ok 4 - budget receipts survive reader cleanup with never-settled promise",
+        "not ok 5 - budget refusal survives throwing reader cleanup after oversized body",
+        "not ok 6 - budget refusal survives throwing reader cleanup after deadline",
+        "not ok 7 - budget refusal survives throwing reader cleanup after caller cancellation"
+      ],
+      "boundary": "Actual exact helper bytes; local mocked RPC/clock; no hosted/provider/native call."
+    },
+    {
+      "target": "publication",
+      "variant": "after",
+      "summary": {
+        "tests": 7,
+        "pass": 7,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "tapSha256": "e85c0aa7a26ee5341ac0b59038c3ae1095310685d270bf2991d6f9990e6f1fc3",
+      "testNamesAndOutcomes": [
+        "ok 1 - budget receipts survive reader cleanup with synchronous throw",
+        "ok 2 - budget receipts survive reader cleanup with non-promise return",
+        "ok 3 - budget receipts survive reader cleanup with rejected promise",
+        "ok 4 - budget receipts survive reader cleanup with never-settled promise",
+        "ok 5 - budget refusal survives throwing reader cleanup after oversized body",
+        "ok 6 - budget refusal survives throwing reader cleanup after deadline",
+        "ok 7 - budget refusal survives throwing reader cleanup after caller cancellation"
+      ],
+      "boundary": "Actual exact helper bytes; local mocked RPC/clock; no hosted/provider/native call."
+    },
+    {
+      "target": "qa",
+      "variant": "before",
+      "summary": {
+        "tests": 5,
+        "pass": 2,
+        "fail": 3,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "tapSha256": "9359f6210bb7b9ed3e3209316c30d7263abaeedbcf69c2fda0ae4ca1027ac461",
+      "testNamesAndOutcomes": [
+        "not ok 1 - budget receipts survive reader cleanup with synchronous throw",
+        "not ok 2 - budget receipts survive reader cleanup with non-promise return",
+        "ok 3 - budget receipts survive reader cleanup with rejected promise",
+        "ok 4 - budget receipts survive reader cleanup with never-settled promise",
+        "not ok 5 - budget refusal survives throwing reader cleanup after oversized body"
+      ],
+      "boundary": "Actual exact helper bytes; local mocked RPC/clock; no hosted/provider/native call."
+    },
+    {
+      "target": "qa",
+      "variant": "after",
+      "summary": {
+        "tests": 5,
+        "pass": 5,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "tapSha256": "87b4901f6a95e66c563810bd3eabf28765cfb5cd5eea593f03b0ff2dbb6c0664",
+      "testNamesAndOutcomes": [
+        "ok 1 - budget receipts survive reader cleanup with synchronous throw",
+        "ok 2 - budget receipts survive reader cleanup with non-promise return",
+        "ok 3 - budget receipts survive reader cleanup with rejected promise",
+        "ok 4 - budget receipts survive reader cleanup with never-settled promise",
+        "ok 5 - budget refusal survives throwing reader cleanup after oversized body"
+      ],
+      "boundary": "Actual exact helper bytes; local mocked RPC/clock; no hosted/provider/native call."
+    }
+  ],
+  "reproduction": {
+    "suite": "scripts/speech-provider-accounting.test.cjs",
+    "helperOverride": "USKOCI_AI_BUDGET_HELPER_SOURCE=<file containing exact budgetHelper or its single guarded patch>",
+    "publicationTestPattern": "budget receipts survive|budget refusal survives",
+    "qaTestPattern": "budget receipts survive|budget refusal survives throwing reader cleanup after oversized body",
+    "qaRemainingLimitation": "Deployed QA helper lacks explicit Promise.race cancellation. Cleanup-only patch does not repair this; cancellation/deadline tests are not claimed as passing for QA."
+  },
+  "deploymentStatus": "SOURCE_CANDIDATE_TESTED_ONLY; parent coordinates any subsequent exact full-package DEV deployment"
+}

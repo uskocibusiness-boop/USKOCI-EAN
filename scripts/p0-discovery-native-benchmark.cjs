@@ -63,12 +63,14 @@ const fixtureRequire=name=>name==='@electric-sql/pglite'?{PGlite:NativeFixture}:
 const baseline=new Function('require','__dirname',source.slice(0,firstTest.getStart(parsed))+'\nreturn {fixture,filter,page,clean,N,B};')(fixtureRequire,__dirname);
 const {filter,page,clean,N,B}=baseline;
 const percentile=(sorted,p)=>sorted[Math.min(sorted.length-1,Math.ceil(sorted.length*p)-1)];
-async function startFixture(factory=baseline.fixture){
+async function startFixture(factory=baseline.fixture,options={}){
+ const maxConnections=options.maxConnections??30;
+ assert.ok(Number.isInteger(maxConnections)&&maxConnections>=30&&maxConnections<=120,'bounded isolated connection count');
  const init=spawnSync(path.join(bin,'initdb'),['-D',data,'-L',share,'-U','postgres','-A','trust','--no-locale','-E','UTF8'],{env,encoding:'utf8'});
  if(init.status!==0)throw new Error('Isolated initdb failed: '+init.stderr);
  const log=fs.openSync(serverLog,'w');
  server=spawn(path.join(bin,'postgres'),['-D',data,'-p',String(port),'-c','unix_socket_directories=',
-  '-c','listen_addresses=127.0.0.1','-c','max_connections=30','-c','shared_buffers=128MB'],{env,stdio:['ignore',log,log]});
+  '-c','listen_addresses=127.0.0.1','-c',`max_connections=${maxConnections}`,'-c','shared_buffers=128MB'],{env,stdio:['ignore',log,log]});
  fs.closeSync(log);
  for(let attempt=0;attempt<100;attempt++){
   if(server.exitCode!==null)throw new Error('Isolated postgres exited: '+fs.readFileSync(serverLog,'utf8'));

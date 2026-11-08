@@ -1,0 +1,293 @@
+{
+  "schema": "USKOCI_CAPACITY2_DEV_EXECUTION_V1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceBase": "c9403455bc1088d7e67130d7471dbac45a1dad72",
+  "discovery": {
+    "migration": {
+      "captured_at": "2026-11-08 09:53:26.186038+00",
+      "version": "20261108095246",
+      "name": "r02_discovery_schedule_20261108",
+      "statement_count": 1,
+      "joined_md5": "b378fa59229d07d384ce4c794ff0bdc5",
+      "joined_sha256": "54edfec569dd20a80dd6e216bb71d52a6d4e17b901a918013f2e37bbb53659b4",
+      "joined_bytes": 2120
+    },
+    "postimage": {
+      "body_md5": "c75535d3f77b2216ed424843ef57ef04",
+      "prosecdef": false,
+      "provolatile": "s",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    },
+    "sqlRoleRead": {
+      "summary": {
+        "role": "authenticated",
+        "counts": {
+          "kind": "exact_live",
+          "inArea": 4,
+          "listed": 4,
+          "mapped": 4,
+          "undated": 0,
+          "observedAt": "2026-11-08T09:57:08.808556+00:00",
+          "withoutPoint": 0
+        },
+        "hasMore": false,
+        "pageRows": 4,
+        "actorPresent": true,
+        "responseBytes": 4827
+      }
+    },
+    "boundary": "Actual current DEV authenticated SQL role and existing account RLS, read-only rollback. This is not a JWT/PostgREST, native or load test.",
+    "rollback": "scripts/sql/r02_discovery_schedule_20261108.rollback.sql"
+  },
+  "legal": {
+    "after": {
+      "captured_at": "2026-11-08 10:01:52.947375+00",
+      "bundle": {
+        "ready": false,
+        "reason": "LEGAL_DOCUMENTS_NOT_PUBLISHED",
+        "documents": [],
+        "acceptedCurrentBundle": false
+      },
+      "acceptances": 0,
+      "active_documents": 0,
+      "active_processor_maps": 0,
+      "ledger": [
+        {
+          "name": "r12_quarantine_unverified_legal_20261108",
+          "version": "20261108100023",
+          "joined_md5": "ca3be1670a4d0b2cc83dbe0b29ef5f37",
+          "joined_bytes": 3765,
+          "joined_sha256": "fc4a2e658f52bdc68b308eee8007d30fd90d77bef9f290b38d70b546e4528981",
+          "statement_count": 1
+        }
+      ]
+    },
+    "preserved": "Existing document/map contents and all history preserved. Zero acceptances before and after. Guarded withdrawal only.",
+    "rollback": "Forward recovery with independently verified new immutable versions. No automatic restoration of unverified claims."
+  },
+  "push": {
+    "beforeVersion": 46,
+    "afterVersion": 47,
+    "bundleSha256": "3fce4c4b7d03a4bf6f533ee0721b43b86024a66da595603ff8eb5222080a472f",
+    "exactPackageReadback": true,
+    "verifyJwtUnchanged": true,
+    "providerBurst": "Mock only; no new real provider sends",
+    "rollback": "Restore c940345 exact three-file v46 package, after verifying deployed v47 hash. No SQL rollback needed for receipt batching.",
+    "negativeHttpBoundary": {
+      "status": 403,
+      "body": "{\"code\":\"FORBIDDEN\"}",
+      "checkedAt": "2026-11-08T10:09:45.543973+00:00",
+      "authorization": "none",
+      "purpose": "negative HTTP authorization boundary only; no service credential or provider call"
+    }
+  },
+  "media": {
+    "beforeVersion": 30,
+    "afterVersion": 31,
+    "bundleSha256": "baebc8575e0048a5b42897e7da52cdbfa1a612b0bed36aa97d399fb5274466b9",
+    "exactPackageReadback": true,
+    "verifyJwtUnchanged": true,
+    "voiceDeadlineMs": 50000,
+    "clientVoiceDeadlineMs": 55000,
+    "otherDeadlineMs": 25000,
+    "boundary": "DEV deployed exact source; auth/storage/voice success and interruptions tested with controlled local dependencies, not real phone-to-phone.",
+    "rollback": "Restore c940345 exact five-file v30 package after verifying v31 hash. No data migration."
+  },
+  "ai": {
+    "packages": [
+      {
+        "name": "uskoci-ai-interview",
+        "before": 193,
+        "after": 194,
+        "beforeBundleSha256": "f0c6fee7dfbf4d9f74362c4cf13120050b2e86442bac53301b92a00d0dadecee",
+        "afterBundleSha256": "1bb0d80e75b8eb581e2ff1c2fd7e2e18df11a53fb455fce1fa8fac2ff1a7c1af",
+        "verifyJwt": false,
+        "verifyJwtUnchanged": true,
+        "exactPackageReadback": true,
+        "changedFiles": [
+          "supabase/functions/_shared/aiTestBudget.ts"
+        ],
+        "allOtherFilesPreserved": true
+      },
+      {
+        "name": "uskoci-worker-interview",
+        "before": 146,
+        "after": 147,
+        "beforeBundleSha256": "022ccbba371a73ccc38fb9b8befc2cb11ed3fd168e8d382f5501d06c9a671b85",
+        "afterBundleSha256": "abdfaf345b6b92b3605d45c5903a6c7b574daba8c87ddb7048224709a60081d3",
+        "verifyJwt": false,
+        "verifyJwtUnchanged": true,
+        "exactPackageReadback": true,
+        "changedFiles": [
+          "supabase/functions/_shared/aiTestBudget.ts"
+        ],
+        "allOtherFilesPreserved": true
+      },
+      {
+        "name": "uskoci-speech-session",
+        "before": 31,
+        "after": 32,
+        "beforeBundleSha256": "6724c6ba46a2c271dd027a17d32616b759af561fc6472d1603f256f449729534",
+        "afterBundleSha256": "0357e460cf46cfeeab354585b7d5bda48661ddede8f4d4a22b97bd84ee31e905",
+        "verifyJwt": true,
+        "verifyJwtUnchanged": true,
+        "exactPackageReadback": true,
+        "changedFiles": [
+          "supabase/functions/_shared/aiTestBudget.ts"
+        ],
+        "allOtherFilesPreserved": true
+      },
+      {
+        "name": "uskoci-publication-evaluate",
+        "before": 30,
+        "after": 31,
+        "beforeBundleSha256": "a2add994af5ad543207eb8b8cc15edc7da79933aa4de6506b8885c7772eb2073",
+        "afterBundleSha256": "17ca6799a1e9c11add5bb7f3faafdf71bc07f2ba436ce4c7a13437d1d8dce964",
+        "verifyJwt": true,
+        "verifyJwtUnchanged": true,
+        "exactPackageReadback": true,
+        "changedFiles": [
+          "supabase/functions/_shared/aiTestBudget.ts"
+        ],
+        "allOtherFilesPreserved": true
+      },
+      {
+        "name": "uskoci-qa-classify",
+        "before": 29,
+        "after": 30,
+        "beforeBundleSha256": "4cb4a006880be8bf5edcec0f8b932d2062940ad04dcc857a86e6b10e7cb37281",
+        "afterBundleSha256": "62ccb77bbac967a5d0c7ba0561427b7da7750247543e2e74725c5a5b1372b44f",
+        "verifyJwt": true,
+        "verifyJwtUnchanged": true,
+        "exactPackageReadback": true,
+        "changedFiles": [
+          "supabase/functions/_shared/aiTestBudget.ts"
+        ],
+        "allOtherFilesPreserved": true
+      }
+    ],
+    "onlyBudgetReaderCleanupChanged": true,
+    "providerCalls": 0,
+    "budgetChanged": false,
+    "modelsChanged": false,
+    "legacyHelperLimitsPreserved": true,
+    "remainingDrift": "Publication and QA retain their existing262144/8192 limits. QA retains missing explicit cancellation race; cleanup-only does not fix it.",
+    "rollback": "Verify current package hashes; replace only helper with exact preimage from c940345 (Need/Worker/Speech) or ai-budget-cleanup-preimages-20261108.json (Publication/QA). Preserve all other files and JWT configuration."
+  },
+  "native": "NOT_TESTED_ON_ANDROID",
+  "release": "NO_GO",
+  "postDeployQueueAndCron": {
+    "scope": "Read-only bounded postdeploy DEV observations after root deployed Edge v47 and R02 schedule pagination. No synthetic push, event creation, raw headers, tokens, messages, cron commands or provider calls.",
+    "queryWindowStart": "2026-11-08T09:52:00Z",
+    "data": [
+      {
+        "data": {
+          "cron": [
+            {
+              "runs": 9,
+              "active": true,
+              "avg_ms": 463.56,
+              "max_ms": 1676.6,
+              "jobname": "uskoci_edge_workers",
+              "schedule": "* * * * *",
+              "command_md5": "6abaf04335ccd2f8240bafcd4dbfb314",
+              "failed_runs": 0,
+              "latest_finish": "2026-11-08T10:00:00.404289+00:00",
+              "successful_runs": 9
+            },
+            {
+              "runs": 9,
+              "active": true,
+              "avg_ms": 124.15,
+              "max_ms": 635.19,
+              "jobname": "uskoci_marketplace_tick",
+              "schedule": "* * * * *",
+              "command_md5": "93518fd0382301fc76f79037123bccfc",
+              "failed_runs": 0,
+              "latest_finish": "2026-11-08T10:00:00.118873+00:00",
+              "successful_runs": 9
+            },
+            {
+              "runs": 9,
+              "active": true,
+              "avg_ms": 36.89,
+              "max_ms": 164.87,
+              "jobname": "uskoci_taxonomy_postsave_tick_dev",
+              "schedule": "* * * * *",
+              "command_md5": "b1e89b08b31a550f0ccce47ddcf3cb08",
+              "failed_runs": 0,
+              "latest_finish": "2026-11-08T10:00:00.079174+00:00",
+              "successful_runs": 9
+            }
+          ],
+          "pgNet": [
+            {
+              "responses": 9,
+              "timed_out": false,
+              "status_code": 200,
+              "error_present": false,
+              "last_response": "2026-11-08T10:00:00.079482+00:00",
+              "first_response": "2026-11-08T09:52:00.788129+00:00"
+            }
+          ],
+          "pushQueue": {
+            "activeLeases": 0,
+            "attemptStates": [
+              {
+                "rows": 2,
+                "transport_state": "UNKNOWN"
+              }
+            ],
+            "sendAttemptsDue": 0,
+            "receiptAttemptsDue": 0,
+            "oldestPendingDeliverySeconds": null,
+            "pendingUnpreparedPushDeliveries": 0
+          },
+          "observedAt": "2026-11-08T10:00:25.203115+00:00",
+          "windowStart": "2026-11-08T09:52:00Z",
+          "ungrantedLocks": 0
+        }
+      }
+    ],
+    "boundaries": [
+      "Cron SQL success alone is not downstream HTTP, provider or Android success.",
+      "pg_net counts include every provider/Edge URL invoked by existing jobs in the stated window; no route attribution is claimed.",
+      "Empty push work proves idle tick health only, not provider delivery/capacity or OS visibility."
+    ]
+  },
+  "publicSite": {
+    "checkedAt": "2026-11-08T09:49:00.315725+00:00",
+    "results": [
+      {
+        "url": "https://uskoci.rs",
+        "status": 200,
+        "finalUrl": "https://uskoci.rs",
+        "bytes": 2000000,
+        "sha256": "2f6e1d5cde3995cdaed999ca2e302cf243af59198b4e47d02327cb950a37e85f",
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "url": "https://uskoci.rs/uslovi-koriscenja",
+        "error": "HTTP Error 404: Not Found"
+      },
+      {
+        "url": "https://uskoci.rs/politika-privatnosti",
+        "error": "HTTP Error 404: Not Found"
+      },
+      {
+        "url": "https://uskoci.rs/brisanje-naloga",
+        "error": "HTTP Error 404: Not Found"
+      },
+      {
+        "url": "https://uskoci.rs/podrska",
+        "error": "HTTP Error 404: Not Found"
+      }
+    ],
+    "homepageBodyWasCappedAtBytes": 2000000,
+    "homepageHashScope": "first2000000bytes, not guaranteed complete response"
+  }
+}

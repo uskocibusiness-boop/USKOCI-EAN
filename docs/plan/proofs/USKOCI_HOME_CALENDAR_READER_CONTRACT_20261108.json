@@ -1,0 +1,88 @@
+{
+  "source": "actual composeHome and buildPlanner loaded from native-flows worktree; synthetic account projections; no API/native/SQL execution",
+  "cases": [
+    {
+      "name": "first 20 attention groups omit nearest accepted appointment",
+      "complete": {
+        "nearest": "nearest",
+        "totalActive": 21
+      },
+      "firstPage": {
+        "nearestVisible": false,
+        "totalActive": 20
+      }
+    },
+    {
+      "name": "history-only account loses hasAny",
+      "complete": {
+        "firstRun": false
+      },
+      "emptyActive": {
+        "firstRun": true
+      }
+    },
+    {
+      "name": "old ACTIVE scope omits completed rating due when aggregate unavailable",
+      "complete": {
+        "ratingsDue": 1
+      },
+      "activeOnly": {
+        "ratingsDue": 0
+      }
+    },
+    {
+      "name": "calendar ACTIVE-only omits completed agreed event inside selected month",
+      "complete": {
+        "placed": 1
+      },
+      "activeOnly": {
+        "placed": 0
+      }
+    }
+  ],
+  "passed": 4,
+  "failed": 0,
+  "date": "2026-11-08",
+  "sourceBase": "c9403455bc1088d7e67130d7471dbac45a1dad72 (Home/calendar sources unchanged by media commit c5b33e44b8731d84cf080b9ee7f0a5566739fd29)",
+  "status": "VERIFIED_DEPENDENCY: no production reader replacement implemented",
+  "command": "node docs/plan/proofs/home-calendar-reader-contract-20261108.cjs (from repository root)",
+  "entrypoints": {
+    "home": "src/app/(app)/index.tsx: source.mojiDogovori({ signal })",
+    "calendar": "src/app/(app)/raspored.tsx: agreementClientService.mojiDogovori({ includeRatings:false })",
+    "legacyRead": "src/data/agreementClientService.ts: mojiDogovori always requests scope ALL,100 rows; refuses after20pages instead of truncating",
+    "groupPage": "src/data/agreementClientService.ts: mojiDogovoriStrana calls rpc_list_my_agreement_groups_page; src/data/ownAgreementGroupsPage.ts validates complete groups and scope/cursor",
+    "homeComposer": "src/data/homeSnapshot.ts: requires all active rows for next accepted term, loose/overdue counts, prompt list; ratings fallback includes completed due rows; firstRun requires history presence",
+    "calendarComposer": "src/ui/calendar/agenda.ts and planner.ts: exact-window CONFIRMED/AWAITING_REQUESTER/COMPLETED plus active start-only and unscheduled rows"
+  },
+  "serverFindings": [
+    {
+      "path": "supabase/migrations/20261107121408_r08_blind_reviews_20261107.sql",
+      "finding": "rpc_list_my_agreements_page ACTIVE excludes all COMPLETED; rpc_home_attention supplies exact eligible-rating counts separately, but can fail independently. Completed disputes are not part of the current Home attention projection; its own_agreements CTE includes CONFIRMED/AWAITING_REQUESTER only."
+    },
+    {
+      "path": "supabase/migrations/20261108012341_r09_agreement_groups_20261108.sql",
+      "finding": "Grouped active includes CONFIRMED/AWAITING_REQUESTER OR rating_due and all members of each selected active task group. counts.hasAny includes history-only accounts. A first page is insufficient for all Home facts; group count is not the count of bilateral agreements."
+    },
+    {
+      "path": "supabase/migrations/20261108012341_r09_agreement_groups_20261108.sql",
+      "finding": "The group cursor uses mutable attention rank and accepted start. viewAt fixes relative-day ordering, not row versions or status. An automatic full walk cannot be claimed snapshot-consistent when a group changes before the cursor. This is source reasoning, not a concurrent SQL benchmark."
+    },
+    {
+      "path": "supabase/migrations/20260909110000_clean_w02_calendar_authority.sql",
+      "finding": "rpc_get_worker_calendar(from,to) returns only caller-owned worker BLOCKING events overlapping the range. It cannot replace requester agreements, completed exact-window events, or loose/start-only agreements."
+    }
+  ],
+  "smallestSafeFutureScope": {
+    "home": "A purpose-specific bounded aggregate/read contract for accepted next appointments, exact counts and hasAny, eligible reviews, and a complete or explicitly paginated prompt list. Alternatively a scoped reader with stable traversal can be evaluated, but not first-page substitution. Preserve account/abort guards and failed-read unknown state.",
+    "calendar": "An authorized range reader for both participant roles using accepted current Agreement terms (including completed overlaps and start-only instants), plus separate complete counts/paging for active agreements without a placeable term. Keep existing worker calendar conflict authority; include version and range/cursor binding. Filtering created_at cannot replace accepted-time overlap.",
+    "currentDecision": "Do not replace either consumer in this package. Existing ports alone do not provide a small complete bounded replacement; coordinate a new server read contract before changing UI reads."
+  },
+  "filesChanged": "Proof script and this proof only. No application, SQL, migration, package, master, DEV or Android change.",
+  "limitations": [
+    "4 deterministic source-level counterexamples; no hosted SQL/DEV/native measurement",
+    "No runtime/throughput improvement claimed",
+    "All-history readers remain open work; evidence prevents an incomplete optimization"
+  ],
+  "rollback": "Remove this proof-only commit; no runtime effect.",
+  "scriptSha256": "bb0cd3a58b82503c29feda7f3d00dbd27a847e1fdbee6532fcea5880068678de"
+}

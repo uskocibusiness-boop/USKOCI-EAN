@@ -1,0 +1,83 @@
+{
+  "capturedAt": "2026-11-08T09:57:57.787Z",
+  "postgres": "PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "writerSource": [
+    {
+      "signature": "fn_need_covered_slots(uuid)",
+      "body_md5": "5a1d10aa69cda3c3095550b6f8e4c03f"
+    },
+    {
+      "signature": "rpc_select_response(uuid,integer,uuid,integer,text,text)",
+      "body_md5": "02934f7831db821a7b33fd6d40289b9a"
+    }
+  ],
+  "simultaneousWriterConnections": 100,
+  "controlConnections": 1,
+  "scenarios": [
+    {
+      "name": "100 different workers compete for one place",
+      "observedOverlappingRequests": 100,
+      "successfulRequests": 1,
+      "expectedBusinessRejections": 99,
+      "unexpectedErrors": 0,
+      "facts": {
+        "commands": 1,
+        "agreements": 1,
+        "activations": 1,
+        "coveredSlots": 1,
+        "selectedRows": 1,
+        "agreementVersions": 1
+      },
+      "barrierMs": 72.65242399927229,
+      "totalElapsedMs": 113.69400499947369,
+      "p50Ms": 98.27401799988002,
+      "p95Ms": 112.10990499984473,
+      "p99Ms": 113.28633299935609,
+      "writerCpuSeconds": 0,
+      "summedWriterRssKiB": 1968624,
+      "rpcCalls": 100,
+      "retryProviderCalls": 0,
+      "capturedOutcomeBytes": 8436,
+      "frontendSqlCommands": 100,
+      "internalSqlStatements": "NOT_COUNTED",
+      "cpuTickSeconds": 0.01
+    },
+    {
+      "name": "100 concurrent identical command replays",
+      "observedOverlappingRequests": 100,
+      "successfulRequests": 100,
+      "expectedBusinessRejections": 0,
+      "unexpectedErrors": 0,
+      "facts": {
+        "commands": 1,
+        "agreements": 1,
+        "activations": 1,
+        "coveredSlots": 1,
+        "selectedRows": 1,
+        "agreementVersions": 1
+      },
+      "barrierMs": 18.472163000144064,
+      "totalElapsedMs": 47.49431100022048,
+      "p50Ms": 34.80674399994314,
+      "p95Ms": 46.005293999798596,
+      "p99Ms": 47.45605400018394,
+      "writerCpuSeconds": 0,
+      "summedWriterRssKiB": 1980192,
+      "rpcCalls": 100,
+      "retryProviderCalls": 0,
+      "capturedOutcomeBytes": 8637,
+      "frontendSqlCommands": 100,
+      "internalSqlStatements": "NOT_COUNTED",
+      "cpuTickSeconds": 0.01
+    }
+  ],
+  "limitations": [
+    "Local isolated SQL only. Existing identity/world, eligibility/calendar, notification/audit and dispatch fixture seams remain substitutes.",
+    "Exact current selection writer and slot counter, locks and business writes are exercised. Hosted JWT/PostgREST, real eligibility and Android E2E are not.",
+    "Elapsed time includes an intentional row-lock barrier and is not product latency. p99 from 100 samples is descriptive only.",
+    "Summed RSS includes shared mappings multiple times and is not a measure of private memory or phone RAM.",
+    "The isolated max_connections=110 is a fixture setting. Hosted DEV stays unchanged at60. No provider traffic.",
+    "CPU accounting is per-backend in10ms ticks; zero observed delta is below measurement resolution, not zero CPU work."
+  ],
+  "lockWaitersAtEnd": 0
+}

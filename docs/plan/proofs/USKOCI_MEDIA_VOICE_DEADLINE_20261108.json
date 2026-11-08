@@ -1,0 +1,76 @@
+{
+  "task": "R09 / Agreement voice: one absolute server deadline below client deadline",
+  "date": "2026-11-08",
+  "baselineCommit": "c9403455bc1088d7e67130d7471dbac45a1dad72",
+  "problem": "The client waits 55 seconds. The Edge handler previously waited up to 25 seconds for auth/admission and then restarted a 60-second voice timer, allowing work to continue after the client stops waiting.",
+  "cause": "Voice upload replaced the request timer after auth and admission instead of counting all awaited phases against one deadline.",
+  "change": {
+    "voiceUploadServerMs": 50000,
+    "voiceUploadClientMs": 55000,
+    "otherMediaServerMs": 25000,
+    "scope": "The same abort signal covers auth, admission, request body, RPC, Storage write/readback and settle. No timer reset. No client, schema, authorization or retry changes."
+  },
+  "files": [
+    {
+      "path": "supabase/functions/uskoci-media/index.ts",
+      "sha256": "452aa3e86d8562ee705b0f97bab8e111bf8bafb98b6b83644139fa041c994a28"
+    },
+    {
+      "path": "scripts/media-handler-admission.test.cjs",
+      "sha256": "caca1d4a89c4fbcdb8e0b637fe528ccf170c139b68b73736237993d1430926c0"
+    }
+  ],
+  "migrations": [],
+  "testBefore": {
+    "command": "node --test scripts/media-handler-admission.test.cjs",
+    "sourceCommit": "c9403455bc1088d7e67130d7471dbac45a1dad72",
+    "tests": 20,
+    "passed": 16,
+    "failed": 4,
+    "expectedFailures": [
+      "voice auth plus slow body exceeds original 50s deadline",
+      "voice auth is incorrectly cut off at 25s",
+      "admission wait restarts timer",
+      "unknown dispatch readback remains pending beyond 50s"
+    ],
+    "logSha256": "b39ffe529391ffe1b4c41461cfeb5d8a25968a8039b3aeddf445dda63cd4498e"
+  },
+  "testAfter": {
+    "command": "node --test scripts/media-handler-admission.test.cjs",
+    "tests": 20,
+    "passed": 20,
+    "failed": 0,
+    "logSha256": "c17a803eee116c5ca849725ae928478f5ddd301c51f5ff44201e28225ba8544d"
+  },
+  "regressions": {
+    "command": "node --test --test-concurrency=4 scripts/media-handler-admission.test.cjs scripts/media-binary-deadline.test.cjs scripts/agreement-photo-efficiency.test.cjs scripts/photo-cache-privacy.test.cjs scripts/voice-gesture-lifecycle.test.cjs scripts/voice-recovery-ownership.test.cjs",
+    "tests": 63,
+    "passed": 63,
+    "failed": 0,
+    "logSha256": "0097a813f69d63e06cdb104162a404eed8df6e9a7aa590b712055644de42a2f0"
+  },
+  "typeScript": {
+    "command": "./node_modules/.bin/tsc --noEmit",
+    "exitCode": 0
+  },
+  "diffCheck": {
+    "command": "git diff --check",
+    "exitCode": 0
+  },
+  "evidenceBoundary": {
+    "handler": "Actual repository Edge handler and admission module executed; Auth/RPC/Storage, WASM image decoder and clock use local controlled seams. No external requests.",
+    "unknownRecovery": "Previously dispatched voice ledger/storage fixture stays STAGED/DISPATCHING with null outcome after timeout; positive readback later settles READY/STORED with zero Storage POSTs during timeout or recovery.",
+    "voiceCodec": "The recovery fixture represents a previously validated immutable asset; synthetic bytes in that case are not an audio codec or playback test.",
+    "native": "NOT_RUN: no Android emulator or physical phone available.",
+    "dev": "NOT_DEPLOYED_BY_THIS_CHANGE: requires controlled uskoci-media Edge deployment and separate DEV verification.",
+    "ci": "NOT_RUN_BY_THIS_WORKTREE: parent integration must record actual CI result.",
+    "performance": "No throughput, CPU/RAM or real network benchmark claimed. 50s versus old auth/admission+60s is a deterministic simulated deadline comparison.",
+    "transport": "The 5s server/client margin is not a guarantee under high upstream network latency; the existing UNKNOWN recovery remains necessary."
+  },
+  "rollback": "Revert this change and redeploy the prior uskoci-media package if deployed. No DB/schema/data rollback is required.",
+  "remaining": [
+    "DEV deployment and live recovery verification",
+    "Slow-network Android upload, cancellation and restart",
+    "Actual voice send/listen between two phones"
+  ]
+}

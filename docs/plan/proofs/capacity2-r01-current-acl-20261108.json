@@ -1,0 +1,12 @@
+{
+  "observation": {
+    "captured_at": "2026-11-08 10:12:09.44577+00",
+    "authenticated_table_select": false,
+    "anon_table_select": false,
+    "requester_account_id_select": true,
+    "closed_by_select": false,
+    "close_reason_select": false,
+    "migration_count": 358
+  },
+  "boundary": "Read-only effective table and column privilege checks. The earlier broad public.needs SELECT finding is superseded by current grants. This does not certify every RPC, key rotation, Storage, realtime, Auth/DataAPI or Android access path."
+}

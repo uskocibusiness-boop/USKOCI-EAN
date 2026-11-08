@@ -1,7 +1,33 @@
 # USKOČI — jedinstveni plan dovršavanja proizvoda i objavljivanja
 
+<!-- USKOCI_CAPACITY2_EXECUTION_20261108 -->
+## Aktuelni izvršni checkpoint — 08.11.2026: nastavak posle QA58, izvedene izmene i povučena neproverena pravna gotovost
+
+**Polazni identitet:** potvrđen GitHub HEAD `c9403455bc1088d7e67130d7471dbac45a1dad72`, ista grana `work/uskoci-cist-proizvod-20261104`. Posle QA58 nije bilo novih runtime promena. Ponovljeni baseline: 963/963 Node, TypeScript, 221 SQL / 39 Python PASS. Stare lokalne kopije sa tuđim nezabeleženim izmenama nisu dirane; tri stvarna pomoćna agenta dobila su odvojene worktree-ove. Pregledani su važeći delovi oba mastera povezani sa ovim radom, bez tvrdnje da je svaki istorijski pasus dva velika dokumenta ponovo pročitan. `docs/continuation/NASTAVAK_RADA.md` i `source-bridge-20261030/` ne postoje u ovom aktuelnom tree-u; istorijski fajlovi nisu proizvoljno vraćani.
+
+| Oblast | Stvarno izvedeno | Dokaz i granica |
+| --- | --- | --- |
+| Push receipts | Jedan Expo HTTP zahtev čita do šest receipt-a, uz postojeće zajedničke lease-ove, četiri SEND trake i 100+100 limit. Delimičan batch se šalje odmah na WAIT; ishodi i settle ostaju pojedinačni. | 33/33 relevantnih testova; mock100/1000/10000 receipt-a: 100→17 / 1000→170 / 10000→1700 HTTP poziva. SQL broj ne pada. DEV **Edge47**, sve tri datoteke tačno pročitane nazad; neautorizovan HTTP zahtev403. Nema novog stvarnog Expo/telefon slanja. |
+| Discovery | Bez vremenskog filtera PAGE ne računa kalendarske dane za svaki zadatak; globalna dostupnost ostaje tačna pomoću istog helper-a i EXISTS. | 6/6 testova, nezavisno ponovljeno; 30.009 vidljivih sintetičkih zadataka vraća50 stavki i isti ceo odgovor, calendar30.009→1. Native PG17.11/PostGIS: 30.000 dodatih zadataka, p50 340,99→236,46 ms, p95 419,11→265,87 ms. Vremenski filter i mapa nisu dokazano ubrzani. DEV **20261108095246**, neizmenjeni invoker/ACL i uspešno čitanje4 javne projekcije pod authenticated SQL ulogom. Production P6 flag ostaje0, LEGACY5001 prepreka ostaje otvorena. |
+| Glasovni mediji | Jedan apsolutni serverski rok50s od početka obrade, uključujući Auth i admission; uklonjen novi60s rok posle čekanja. Klijent55s, ostale medijske operacije25s. | Stari handler4 očekivana pada; novi20/20. Nepoznat već poslat zahtev ostaje za readback i može postati READY bez novog POST-a. DEV **media31**, svih pet fajlova tačno pročitano nazad. Nema Android/audio/two-phone prihvata. |
+| AI budžetski odgovor | Greška pri čišćenju stream-a više ne zamenjuje autoritativan budžetski odgovor ili konzervativno odbijanje. | Baseline5/7 novih provera pada, posle43/43 povezanih regresija. DEV Need194, Worker147, Speech32, Publication31, QA30; u svakom paketu promenjen samo helper. Dva starija helpera dobila su zasebno testiran cleanup-only patch, njihovi limiti nisu promenjeni. QA nedostatak eksplicitnog cancellation race ostaje otvoren. Provider poziva0; budžet5USD nije resetovan. |
+| Pravni paket | Povučena aktivnost tačno dva neproverena dokumenta i mape sa nepotkrepljenim pravnim odobrenjem. Sadržaj i istorija ostaju sačuvani. Četiri HTML-a ispravljena u jasno označene nacrte, bez lažne firme, kontakta, DPO-a, rokova ili datuma stupanja na snagu. | 15/15 SQL/controller i3/3 native konkurentne provere stvarnog reviewed-acceptance RPC-a. DEV **20261108100023**, `ready=false`,0 aktivnih dokumenata/mapa i0 prihvatanja. To uklanja neosnovanu gotovost; ne daje pravno odobrenje. Četiri javne URL putanje vraćaju404. Nacrt nije javno objavljen. |
+| Poslednje mesto | Bez promene poslovnog writer-a, proširena stvarna konkurentna provera sa2 na100 zasebnih konekcija. | 100 opaženih istovremenih zaključavanja:100 različitih izbora daje1 Dogovor i99 očekivanih odbijanja;100 iste komande daje isti1 Dogovor. Identitet/eligibility/notification delovi fixture-a ostaju zamene. Ovo nije100 paralelnih kreiranja prijava ili300.000-korisnički load test. |
+
+**Integrisani rezultat ovog izvornog paketa:** **1009/1009 Node PASS**,0 skip/fail; TypeScript PASS; **223 SQL / 41 Python PASS**. Novi CI/APK još se ne podrazumeva — vezuje se zasebnim CI dokazom posle push-a. Android SDK/emulator/KVM i fizički telefoni nisu dostupni u pregledanom okruženju; native PostgreSQL nije Android dokaz. [Testovi](proofs/capacity2-validation-20261108.json), [DEV primene/readback/rollback](proofs/capacity2-dev-execution-20261108.json), [native Discovery](../../scripts/sql/r02_discovery_schedule_20261108.benchmark.json), [100 konkurentnih izbora](../../scripts/sql/r07_last_slot_100_20261108.receipt.json).
+
+**Aktuelno stanje i otvorene granice:** DEV početni presek ima16 naloga,18 zadataka,6 Dogovora,12 poruka, približno116,75MiB i Free plan; nakon dve primene ledger ima358 migracija. Tri minutna Cron posla nisu menjana, nema dospelog push posla ni aktivnih lease-ova;2 ranija UNKNOWN ostaju. Agregat HTTP200 drugih poslova nije dokaz push transporta. Dispatch i dalje drži batch zaključavanja unutar jedne transakcije i profile sweep ne sme da se ponovi25 puta kao navodna optimizacija. Home/kalendar ostaju ALL reader-i: četiri izvršiva kontraprimera dokazuju da zamena prvom ACTIVE stranom gubi termine, ocene ili istorijske događaje. [Početni DEV](proofs/capacity2-initial-dev-20261108.json), [dispatch](proofs/capacity2-dispatch-transaction-20261108.json), [Home/kalendar](proofs/USKOCI_HOME_CALENDAR_READER_CONTRACT_20261108.json).
+
+**R01/R10 i AI:** širi table SELECT nad `needs` više ne postoji; close reason i close actor nisu dostupni authenticated ulozi. `requester_account_id` ostaje čitljiv po kolonskom ugovoru iz primenjene R01 migracije, zato stari zahtev zabrane sva tri polja nije zatvoren. Ključevi, stvarni Auth/HTTP pristup i retention/export nisu time prihvaćeni. AI interna evidencija65,486681USD jednaka je zbiru rezervacija, nema duplih operation ID;221 nezavršena LLM/STT rezervacija drži55,1USD. To nije račun provajdera;181 MEASURED rezervacija nema zadržan usage dokaz. [R01 aktuelna prava](proofs/capacity2-r01-current-acl-20261108.json), [AI stanje](proofs/ai-budget-live-readonly-20261108.json).
+
+**Pravni model i release:** odluka vlasnika je fizičko lice / Srbija / bez monetizacije. Google Play podržava personal developer nalog, ali to samo ne rešava srpski pravni status. Provereni su Zakon o elektronskoj trgovini, novi Zakon o zaštiti potrošača35/2026, smernice Poverenika i Google pravila identifikacije, brisanja i UGC-a. Potrebni su potvrđeni identitet/kontakt, pravna kvalifikacija delatnosti, stvarni ugovori/obrada/retencija i funkcionalna podrška. Privatna kućna adresa nije uneta niti objavljena. **NO-GO**: još nema pravnog prihvata, Android/two-phone E2E, produkcionog P6 prihvata, kratkih dispatch transakcija niti reprezentativnog mešovitog opterećenja za3000/10000 istovremenih korisnika. [Pravni nalazi i primarni izvori](proofs/capacity2-legal-review-20261108.json).
+
+**Sledeća konkretna zavisnost:** izdvojiti jedan atomski dispatch posao od jednom izvršenog profile sweep-a i maintenance transakcija uz izolovano merenje; zatim ordinary-Auth i Android paritet paginiranog Discovery-ja. Home zahteva autoritativan bounded summary, kalendar date-range ugovor za obe uloge. Ne povećavati limite ili uključivati production flag da bi dokaz izgledao zeleno.
+
+---
+
 <!-- USKOCI_CAPACITY_EXECUTION_20261108 -->
-## Aktuelni izvršni checkpoint — 08.11.2026: kapacitet, push, Discovery, Dogovori i mediji
+## Prethodni izvršni checkpoint — 08.11.2026: QA58, kapacitet, push, Discovery, Dogovori i mediji
 
 **Autoritet:** nova izričita komanda vlasnika od 08.11.2026. Nastavljeno je na istoj grani `work/uskoci-cist-proizvod-20261104` od potvrđenog GitHub HEAD-a `9cf4f5ee913a3751f83615e134a1e6d7c68300f3`. Pregledani su noviji rad, stara `work/rev14-review-f17`, otvoreni PR-ovi i CI. Nema povratka na stari source. Tri stvarna pomoćna agenta radila su u odvojenim worktree-ovima; koordinator je pregledao i integrisao izmene, a deo SQL/klijenta dobio je nezavisan pregled. Product/UX master i prihvaćene odluke ostaju autoritet. Ovaj checkpoint dopunjava jedini izvršni master; nije novi opšti plan.
 
@@ -796,6 +822,8 @@ Svi zadaci su deo istog plana. Status opisanog koda i starih testova nije novo i
 
 ### R01 — Privatnost čitanja, stvarne dozvole i isporučeni ugovor
 
+**Aktuelno08.11.2026:** širi table SELECT i pristup close reason/actor više ne postoje; requester_account_id ostaje dozvoljen po uskoj R01 migraciji. Stari presek ispod je istorijski. Celovit R01 ostaje otvoren; videti aktuelni checkpoint i capacity2-r01-current-acl dokaz.
+
 **DEV read-only presek 03.11.2026:** `public.needs` ima `relrowsecurity=true`, ali `has_table_privilege('authenticated', 'public.needs','SELECT')=true` (anon=false, šest policy-ja); privatnost kolona nije zatvorena. [R01 strict CI 41692994097](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41692994097) je **FAIL**: osam raw parity, 49 owner/ACL i tri managed-net razlike; dokaz nije Auth/PostgREST prihvat niti odobren waiver. Bez SQL/DEV upisa, R01 ostaje BLOCKED i zabrana javnog izdanja važi.
 
 <!-- EXECUTION-UPDATE-BEGIN: r01-20261028 -->
@@ -854,6 +882,8 @@ Negativne kontrole obuhvataju drugi svet, anoniman ili zatvoren nalog, pogrešnu
 **A30-D10:** P6 je `0` u oba EAS profila; `zadaci.tsx` ima user-ID `console.warn`. PAGE/MAP/PLACES/ForMe/filter i nezavisna greška mape od liste, Auth/HTTP i native prove moraju biti završeni PRE P6=1. Ukloniti PII debug u build-u. **Status: SOURCE delimičan, P6/native OPEN.**
 
 ### R02 — Discovery, mapa, filteri i istinito stanje greške
+
+**Izvršeno08.11.2026:** calendar-work optimizacija primenjena20261108095246,6/6 testova i native PG/PostGIS merenje do30.000 dodatih zadataka. Produkcioni LEGACY5001 i Android/ordinary-Auth prihvat ostaju otvoreni; detalji u aktuelnom checkpoint-u.
 <!-- EXECUTION-UPDATE-BEGIN: r02-20261028 -->
 
 **Izvršni status 28.10.2026:** `IN_PROGRESS`; F17 (`264d12d`) i sve tri konkretne SB11 klijentske popravke — PLACES nastavak (`6f349ee`), recent-search retry (`117a143`), fit invalidation (`e878667`) — imaju lokalni i udaljeni CI dokaz. F16 klijentsko razdvajanje PAGE/MAP, sopstveni MAP retry i oporavak selekcije (`f831591`) implementirani su i lokalno provereni kroz 503 različita testa u 11 suite-ova i TypeScript. Ceo novi kod i plan `6be13b0` prošli su GitHub CI `40652955784`: **623 suite-a / 14.253 testa / 3 snapshot-a**, uz sve ostale workflow provere. F15 i uređajski deo F16 ostaju otvoreni; nije izvedena server/native potvrda niti isporuka aplikacije. Tačan obuhvat i nastavak su u [11.2a](#112a-aktuelni-izvršni-status--28102026).
@@ -1637,6 +1667,8 @@ Posle povlačenja proveriti import/require, package skripte, CI eksplicitne ulaz
 **A30-D03/D07/D10/D12:** direktni CI `deno check` pokriva 4/12 glavnih Edge handler-a, a Need i Speech imaju `@ts-nocheck`; ukloniti te blokade uz stvarne tipove, uvesti 12/12 + proveru zajedničkih ugovora. A30-D07 19 živih RPC-a mora biti reproduktivno kanonizovano pre čistog PROD-a (ne pretpostaviti da `CREATE OR REPLACE` i live DEV istovetno rade). P6=1 samo posle R02 integracije/native; `modules/uskoci-voice` ima samo Android native folder, iOS bez implementacije zahteva zasebnu native potvrdu ili iskren text-only način. R12 release: 2 nezavisna naloga/telefona, J01–J14, realan provider/push/media, restart/timeout, eksport/brisanje, tačan APK SHA/runtime/OTA i rollback. **Status: objava BLOCKED.**
 
 ### R12 — Stvarna celina, native kandidati i objavljivanje
+
+**Izvršeno08.11.2026:** neproverena pravna gotovost povučena migracijom20261108100023; istorija očuvana,15/15 i3/3 konkurentne provere. Četiri pravna HTML-a su nacrti. Nema javnog pravnog/Android prihvata; NO-GO i dalje važi. Detalji i izvori su u aktuelnom checkpoint-u.
 
 #### Cilj i dokazna granica
 

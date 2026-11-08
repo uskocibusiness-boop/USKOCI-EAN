@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "c9403455bc1088d7e67130d7471dbac45a1dad72",
+  "fixCommit": "7bb6e3434e5d600b10260bda48ab58c0ef1fb4d2",
+  "boundary": "Read-only DEV SQL aggregates and deployed Edge sources. No user content, secrets, budget mutation, admission RPC, provider call, model output, deployment or billing-provider verification.",
+  "statements": "begin read only; set local statement_timeout = '5s'; select jsonb_build_object('capturedAt',statement_timestamp(),'project','leqcwgzvjsxugfgzdmth','budget',(select to_jsonb(b) from private.ai_test_budget_v5 b where singleton),'activeTestAccounts',(select count(*) from private.ai_test_accounts_v5 where retired_at is null),'reservationGroups',(select jsonb_agg(to_jsonb(g) order by g.kind,g.settlement_basis) from (select kind,coalesce(settlement_basis,'UNSETTLED') as settlement_basis,count(*) as rows,sum(max_cost_microusd) as max_cost_microusd,sum(settled_microusd) as settled_microusd,sum(coalesce(settled_microusd,max_cost_microusd)) as accounted_or_held_microusd,min(created_at) as first_created_at,max(created_at) as latest_created_at from private.ai_test_reservations_v5 group by kind,settlement_basis) g),'usageGroups',(select jsonb_agg(to_jsonb(g) order by g.model) from (select model,count(*) as operations,sum(prompt_tokens) as prompt_tokens,sum(output_tokens) as output_tokens,sum(total_tokens) as total_tokens,min(recorded_at) as first_recorded_at,max(recorded_at) as latest_recorded_at from private.ai_test_usage_v5 group by model) g),'integrity',jsonb_build_object('budgetEqualsReservationLedger',(select reserved_microusd=(select coalesce(sum(coalesce(settled_microusd,max_cost_microusd)),0) from private.ai_test_reservations_v5) from private.ai_test_budget_v5 where singleton),'duplicateReservationOperations',(select count(*)-count(distinct operation_id) from private.ai_test_reservations_v5),'duplicateUsageOperations',(select count(*)-count(distinct operation_id) from private.ai_test_usage_v5),'measuredReservationsWithoutRetainedUsage',(select count(*) from private.ai_test_reservations_v5 r where r.settlement_basis='MEASURED' and not exists(select 1 from private.ai_test_usage_v5 u where u.operation_id=r.operation_id and u.account_id=r.account_id)),'usageWithoutRetainedReservation',(select count(*) from private.ai_test_usage_v5 u where not exists(select 1 from private.ai_test_reservations_v5 r where r.operation_id=u.operation_id and r.account_id=u.account_id))),'last24h',jsonb_build_object('newReservations',(select count(*) from private.ai_test_reservations_v5 where created_at>statement_timestamp()-interval '24 hours'),'recordedUsage',(select count(*) from private.ai_test_usage_v5 where recorded_at>statement_timestamp()-interval '24 hours')),'admissionFunction',(select jsonb_build_object('bodyMd5',md5(prosrc),'securityDefiner',prosecdef,'acl',proacl::text,'searchPath',proconfig,'hasCeilingCheck',strpos(prosrc,'v_budget.reserved_microusd + p_max_cost_microusd > v_budget.ceiling_microusd')>0) from pg_proc where oid='public.rpc_ai_test_budget_reserve_service(uuid,uuid,text,bigint)'::regprocedure)) as evidence; commit;",
+  "budget": {
+    "enabled": true,
+    "singleton": true,
+    "ceiling_microusd": 5000000,
+    "price_valid_until": "2027-01-01T00:00:00+00:00",
+    "reserved_microusd": 65486681,
+    "reservation_cap_enforced": true
+  },
+  "last24h": {
+    "recordedUsage": 13,
+    "newReservations": 19
+  },
+  "project": "leqcwgzvjsxugfgzdmth",
+  "integrity": {
+    "duplicateUsageOperations": 0,
+    "budgetEqualsReservationLedger": true,
+    "duplicateReservationOperations": 0,
+    "usageWithoutRetainedReservation": 0,
+    "measuredReservationsWithoutRetainedUsage": 181
+  },
+  "capturedAt": "2026-11-08T10:00:15.47826+00:00",
+  "usageGroups": [
+    {
+      "model": "gemini-3.8-flash",
+      "operations": 1227,
+      "total_tokens": 10309025,
+      "output_tokens": 428499,
+      "prompt_tokens": 9878097,
+      "first_recorded_at": "2026-09-18T12:37:32.481917+00:00",
+      "latest_recorded_at": "2026-11-07T12:33:15.625161+00:00"
+    }
+  ],
+  "admissionFunction": {
+    "acl": "{postgres=X/postgres,service_role=X/postgres}",
+    "bodyMd5": "91629b929aae24dc3a9b05b412ab1b2e",
+    "searchPath": [
+      "search_path=pg_catalog, public, private"
+    ],
+    "hasCeilingCheck": true,
+    "securityDefiner": true
+  },
+  "reservationGroups": [
+    {
+      "kind": "LLM",
+      "rows": 19,
+      "first_created_at": "2026-09-13T13:09:25.253856+00:00",
+      "settled_microusd": 58026,
+      "settlement_basis": "CONSERVATIVE_ESTIMATE_UNMEASURED",
+      "latest_created_at": "2026-09-16T20:53:05.24923+00:00",
+      "max_cost_microusd": 4750000,
+      "accounted_or_held_microusd": 58026
+    },
+    {
+      "kind": "LLM",
+      "rows": 1408,
+      "first_created_at": "2026-09-17T09:04:54.817152+00:00",
+      "settled_microusd": 9537381,
+      "settlement_basis": "MEASURED",
+      "latest_created_at": "2026-11-07T12:33:13.867776+00:00",
+      "max_cost_microusd": 352000000,
+      "accounted_or_held_microusd": 9537381
+    },
+    {
+      "kind": "LLM",
+      "rows": 218,
+      "first_created_at": "2026-09-17T18:23:05.868516+00:00",
+      "settled_microusd": null,
+      "settlement_basis": "UNSETTLED",
+      "latest_created_at": "2026-11-05T20:22:06.66694+00:00",
+      "max_cost_microusd": 54500000,
+      "accounted_or_held_microusd": 54500000
+    },
+    {
+      "kind": "STT",
+      "rows": 554,
+      "first_created_at": "2026-09-17T18:09:35.369598+00:00",
+      "settled_microusd": 791274,
+      "settlement_basis": "AUDIO_DURATION_AT_PUBLISHED_RATE",
+      "latest_created_at": "2026-11-07T12:31:36.058639+00:00",
+      "max_cost_microusd": 110800000,
+      "accounted_or_held_microusd": 791274
+    },
+    {
+      "kind": "STT",
+      "rows": 122,
+      "first_created_at": "2026-09-17T13:14:55.411923+00:00",
+      "settled_microusd": 0,
+      "settlement_basis": "FAILED_NO_USAGE",
+      "latest_created_at": "2026-11-06T21:50:12.922691+00:00",
+      "max_cost_microusd": 24400000,
+      "accounted_or_held_microusd": 0
+    },
+    {
+      "kind": "STT",
+      "rows": 3,
+      "first_created_at": "2026-09-17T16:50:12.005644+00:00",
+      "settled_microusd": null,
+      "settlement_basis": "UNSETTLED",
+      "latest_created_at": "2026-09-17T16:51:53.44043+00:00",
+      "max_cost_microusd": 600000,
+      "accounted_or_held_microusd": 600000
+    }
+  ],
+  "activeTestAccounts": 12,
+  "edgeSourceReadback": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 193,
+      "status": "ACTIVE",
+      "bundleSha256": "f0c6fee7dfbf4d9f74362c4cf13120050b2e86442bac53301b92a00d0dadecee",
+      "fileCount": 22,
+      "budgetHelperMatchesBaseline": true,
+      "budgetHelperMatchesFix": false,
+      "hasOriginalUnguardedReaderCleanup": true,
+      "sourceModelIdentifiers": [
+        "gemini-3.8-flash"
+      ],
+      "budgetHelperLimits": {
+        "llmRequestBytes": 10485760,
+        "llmMaxOutputTokens": 2048,
+        "llmReservationMicrousd": 250000
+      },
+      "reservationWaitRacesCancellation": true
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 146,
+      "status": "ACTIVE",
+      "bundleSha256": "022ccbba371a73ccc38fb9b8befc2cb11ed3fd168e8d382f5501d06c9a671b85",
+      "fileCount": 23,
+      "budgetHelperMatchesBaseline": true,
+      "budgetHelperMatchesFix": false,
+      "hasOriginalUnguardedReaderCleanup": true,
+      "sourceModelIdentifiers": [
+        "gemini-3.8-flash"
+      ],
+      "budgetHelperLimits": {
+        "llmRequestBytes": 10485760,
+        "llmMaxOutputTokens": 2048,
+        "llmReservationMicrousd": 250000
+      },
+      "reservationWaitRacesCancellation": true
+    },
+    {
+      "slug": "uskoci-publication-evaluate",
+      "version": 30,
+      "status": "ACTIVE",
+      "bundleSha256": "a2add994af5ad543207eb8b8cc15edc7da79933aa4de6506b8885c7772eb2073",
+      "fileCount": 5,
+      "budgetHelperMatchesBaseline": false,
+      "budgetHelperMatchesFix": false,
+      "hasOriginalUnguardedReaderCleanup": true,
+      "sourceModelIdentifiers": [
+        "gemini-3.8-flash"
+      ],
+      "budgetHelperLimits": {
+        "llmRequestBytes": 262144,
+        "llmMaxOutputTokens": 8192,
+        "llmReservationMicrousd": 250000
+      },
+      "reservationWaitRacesCancellation": true
+    },
+    {
+      "slug": "uskoci-speech-session",
+      "version": 31,
+      "status": "ACTIVE",
+      "bundleSha256": "6724c6ba46a2c271dd027a17d32616b759af561fc6472d1603f256f449729534",
+      "fileCount": 5,
+      "budgetHelperMatchesBaseline": true,
+      "budgetHelperMatchesFix": false,
+      "hasOriginalUnguardedReaderCleanup": true,
+      "sourceModelIdentifiers": [
+        "gemini-3.5-transcribe-live"
+      ],
+      "budgetHelperLimits": {
+        "llmRequestBytes": 10485760,
+        "llmMaxOutputTokens": 2048,
+        "llmReservationMicrousd": 250000
+      },
+      "reservationWaitRacesCancellation": true
+    },
+    {
+      "slug": "uskoci-qa-classify",
+      "version": 29,
+      "status": "ACTIVE",
+      "bundleSha256": "4cb4a006880be8bf5edcec0f8b932d2062940ad04dcc857a86e6b10e7cb37281",
+      "fileCount": 7,
+      "budgetHelperMatchesBaseline": false,
+      "budgetHelperMatchesFix": false,
+      "hasOriginalUnguardedReaderCleanup": true,
+      "sourceModelIdentifiers": [
+        "gemini-3.8-flash"
+      ],
+      "budgetHelperLimits": {
+        "llmRequestBytes": 262144,
+        "llmMaxOutputTokens": 8192,
+        "llmReservationMicrousd": 250000
+      },
+      "reservationWaitRacesCancellation": false
+    }
+  ],
+  "conclusions": [
+    "Budget is enabled with a 5 USD ceiling and 65.486681 USD internally accounted or held. The reservation ledger matches the budget exactly; this is not a provider invoice.",
+    "55.1 USD remains held across 218 LLM and 3 STT unsettled reservations. Recorded settlements/estimates total 10.386681 USD; source-labelled MEASURED is not independently reconciled provider billing.",
+    "No duplicate reservation or usage operation IDs were found. 181 MEASURED reservations have no retained matching usage record. This does not prove those calls were absent or duplicated.",
+    "The live service-role admission function retains its ceiling check and excludes anon/authenticated from EXECUTE. No mutating admission request was invoked by this audit.",
+    "None of the five deployed Edge packages contains the cleanup fix. Three budget helpers exactly match source baseline c9403455; publication-evaluate and qa-classify have different helpers but both retain the same unguarded reader cleanup. The fix is source-tested only; any future deployment must preserve each current complete package and review these differences.",
+    "Model identifier strings describe observed source/ledger data, not externally verified model availability or pricing. Current configured secret/environment values were not requested.",
+    "Observed helper drift: publication-evaluate v30 and qa-classify v29 carry a 262144-byte LLM request limit and 8192 output tokens, while source c9403455 and the other three deployed helpers carry 10485760 bytes and 2048 output tokens. QA v29 also predates explicit cancellation races in the reservation fetch/body. No limit changes or package replacement were performed."
+  ],
+  "readOnly": true,
+  "providerCallsMade": 0,
+  "budgetMutations": 0,
+  "newDeployments": 0,
+  "fixValidation": {
+    "sourceCommit": "7bb6e3434e5d600b10260bda48ab58c0ef1fb4d2",
+    "files": [
+      "supabase/functions/_shared/aiTestBudget.ts",
+      "scripts/speech-provider-accounting.test.cjs"
+    ],
+    "reproduction": {
+      "newCases": 7,
+      "beforePass": 2,
+      "beforeFail": 5
+    },
+    "regression": {
+      "suites": [
+        "scripts/speech-provider-accounting.test.cjs",
+        "scripts/r06-reconciliation-qa-usage.test.cjs"
+      ],
+      "passed": 43,
+      "failed": 0
+    },
+    "typescriptNoEmit": "PASS",
+    "diffCheck": "PASS",
+    "android": "NOT_TESTED",
+    "provider": "NOT_CALLED",
+    "devDeploymentAtAudit": "NOT_DEPLOYED"
+  },
+  "auditCoverage": {
+    "currentMasters": "Relevant AI/Worker authority, status and product sections were read. Whole large master documents were not claimed as fully read by this agent.",
+    "continuationPaths": "docs/continuation/NASTAVAK_RADA.md and docs/continuation/source-bridge-20261030/ absent from the checked current tree; no historical documents restored.",
+    "notCompleted": [
+      "Natural-language semantic acceptance of Need/Worker AI",
+      "Live provider latency and billing reconciliation",
+      "Physical Android voice/AI E2E"
+    ],
+    "coordination": "Initial child-agent context did not expose collaboration tools; no code or tests had been changed then. Concrete implementation began only after tools were available and parent approved bounded ownership."
+  },
+  "accessNotes": [
+    "Initial query without link_id failed argument validation and did not execute.",
+    "The first listed Supabase connection lacked permission for this project; no access-control change was attempted.",
+    "Read-only inspection succeeded using the parent-confirmed existing DEV connection."
+  ]
+}

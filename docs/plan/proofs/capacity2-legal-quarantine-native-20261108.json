@@ -1,0 +1,34 @@
+{
+  "observedAt": "2026-11-08T10:03:16.076Z",
+  "acceptanceRpc": "public.rpc_accept_reviewed_legal_bundle(text,text,text)",
+  "migration": "supabase/migrations/20261108095226_r12_quarantine_unverified_legal_20261108.sql",
+  "migrationSha256": "fc4a2e658f52bdc68b308eee8007d30fd90d77bef9f290b38d70b546e4528981",
+  "boundary": "Disposable local PostgreSQL, real registry/RPC SQL and real concurrent sessions. Not DEV, Android, legal advice or approval.",
+  "scenarios": [
+    {
+      "name": "withdrawal wins before acceptance reads",
+      "realLockWait": true,
+      "ordinaryReadRemainsAvailable": true,
+      "acceptanceRejectedAfterCommit": true,
+      "acceptanceRows": 0,
+      "pass": true
+    },
+    {
+      "name": "earlier acceptance commits",
+      "realLockWait": true,
+      "migration": "refused atomically for review",
+      "acceptanceRows": 1,
+      "pass": true
+    },
+    {
+      "name": "earlier acceptance rolls back",
+      "realLockWait": true,
+      "migration": "withdrawn after rollback",
+      "acceptanceRows": 0,
+      "pass": true
+    }
+  ],
+  "postgres": "PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "appliedMigration": "supabase/migrations/20261108100023_r12_quarantine_unverified_legal_20261108.sql",
+  "subsequentDevEvidence": "docs/plan/proofs/capacity2-dev-execution-20261108.json"
+}

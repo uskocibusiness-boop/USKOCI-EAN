@@ -16,10 +16,13 @@ const json = (x: unknown, status = 200) => new Response(JSON.stringify(x), { sta
 class Invalid extends Error {}
 let running = false;
 // A minute cron may drain several recipients, but never run unbounded work.
-// Four send lanes and one receipt lane stay below the DB's six-lease limit;
+// Four send lanes and one receipt batch lane share the DB's six-lease limit;
 // that database limit (not this isolate-local flag) protects parallel isolates.
 const TICK_SEND_LIMIT = 100;
 const TICK_RECEIPT_LIMIT = 100;
+// Never hold a partial batch waiting for another lease. A SQL WAIT flushes it,
+// allowing the same six global leases to serve both sends and receipt checks.
+const RECEIPT_BATCH_LIMIT = 6;
 const TICK_DEADLINE_MS = 50000;
 const CLAIM_WINDOW_MS = 30000;
 const RPC_DEADLINE_MS = 3000;
@@ -48,7 +51,14 @@ async function read(stream: ReadableStream<Uint8Array> | null, max: number, sign
  } finally { signal.removeEventListener('abort', cancel); cancel(); }
 }
 type Result = 'TICKET' | 'PROVIDER_ACCEPTED' | 'DEVICE_NOT_REGISTERED' | 'RETRYABLE' | 'RECEIPT_RATE_EXCEEDED' | 'FATAL' | 'UNKNOWN' | 'RECEIPT_PENDING';
-function expoResult(value: unknown, receipt: boolean): { result: Result; ticketId: string | null } {
+type ProviderResult = { result: Result; ticketId: string | null };
+type Claim = { kind: 'SEND' | 'RECEIPT'; attemptId: string; leaseId: string; leaseExpiresAt: string; ticketId: string | null };
+function validClaim(value: unknown, kind: 'SEND' | 'RECEIPT'): value is Claim {
+ return row(value) && only(value, ['kind', 'attemptId', 'leaseId', 'leaseExpiresAt', 'ticketId']) && value.kind === kind
+  && uuid(value.attemptId) && uuid(value.leaseId) && live(value.leaseExpiresAt)
+  && (kind === 'SEND' ? value.ticketId === null : ticket(value.ticketId));
+}
+function expoResult(value: unknown, receipt: boolean): ProviderResult {
  if (!row(value)) throw new Invalid();
  if (value.status === 'ok') {
   if (receipt && only(value, ['status'])) return { result: 'PROVIDER_ACCEPTED', ticketId: null };
@@ -149,6 +159,14 @@ Deno.serve(async req => {
     if (signal.aborted) abort();
    });
   }
+  async function settle(claim: Claim, parsed: ProviderResult) {
+   if (signal.aborted || !live(claim.leaseExpiresAt)) throw new Invalid();
+   const done = await rpc('rpc_complete_push_transport', { p_attempt_id: claim.attemptId, p_lease_id: claim.leaseId, p_result: parsed.result, p_ticket_id: parsed.ticketId });
+   const states: Record<Result, string[]> = { TICKET: ['TICKET_PENDING'], PROVIDER_ACCEPTED: ['PROVIDER_ACCEPTED'], DEVICE_NOT_REGISTERED: ['FINAL'],
+    RETRYABLE: claim.kind === 'SEND' ? ['RETRYABLE', 'FINAL'] : ['TICKET_PENDING'], RECEIPT_RATE_EXCEEDED: ['RETRYABLE', 'FINAL'], FATAL: ['FINAL'], UNKNOWN: ['UNKNOWN'], RECEIPT_PENDING: ['TICKET_PENDING'] };
+   if (!row(done) || !only(done, ['attemptId', 'state']) || done.attemptId !== claim.attemptId || !states[parsed.result].includes(String(done.state))) throw new Invalid();
+   return String(done.state);
+  }
   async function once(kind: 'SEND' | 'RECEIPT', admissionId?: string) {
    const claim = admissionId
     ? await rpc(kind === 'SEND' ? 'rpc_claim_push_single_target' : 'rpc_claim_push_single_target_receipt', { p_admission_id: admissionId })
@@ -160,9 +178,7 @@ Deno.serve(async req => {
     await pause(Number(claim.retryAfterMs));
     return 'WAIT';
    }
-   if (!row(claim) || !only(claim, ['kind', 'attemptId', 'leaseId', 'leaseExpiresAt', 'ticketId']) || claim.kind !== kind
-    || !uuid(claim.attemptId) || !uuid(claim.leaseId) || !live(claim.leaseExpiresAt)
-    || (kind === 'SEND' ? claim.ticketId !== null : !ticket(claim.ticketId))) throw new Invalid();
+   if (!validClaim(claim, kind)) throw new Invalid();
    let body: Row | Row[];
    let deliveryExpiresAt: number | null = null;
    if (kind === 'SEND') {
@@ -204,7 +220,7 @@ Deno.serve(async req => {
     body = [{ to: begin.expoPushToken, title: copy.title, body: copy.body,
      data, channelId: 'default', sound: 'default', priority: begin.priority === 'HIGH' ? 'high' : 'normal', ttl }];
    } else body = { ids: [claim.ticketId] };
-   let parsed: { result: Result; ticketId: string | null } = { result: kind === 'SEND' ? 'UNKNOWN' : 'RECEIPT_PENDING', ticketId: null };
+   let parsed: ProviderResult = { result: kind === 'SEND' ? 'UNKNOWN' : 'RECEIPT_PENDING', ticketId: null };
    try {
     if (signal.aborted || !live(claim.leaseExpiresAt)) throw new Invalid();
     const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
@@ -235,12 +251,7 @@ Deno.serve(async req => {
     }
     });
    } catch { /* No blind resend and no raw provider exception reaches output. */ }
-   if (signal.aborted || !live(claim.leaseExpiresAt)) throw new Invalid();
-   const done = await rpc('rpc_complete_push_transport', { p_attempt_id: claim.attemptId, p_lease_id: claim.leaseId, p_result: parsed.result, p_ticket_id: parsed.ticketId });
-   const states: Record<Result, string[]> = { TICKET: ['TICKET_PENDING'], PROVIDER_ACCEPTED: ['PROVIDER_ACCEPTED'], DEVICE_NOT_REGISTERED: ['FINAL'],
-    RETRYABLE: kind === 'SEND' ? ['RETRYABLE', 'FINAL'] : ['TICKET_PENDING'], RECEIPT_RATE_EXCEEDED: ['RETRYABLE', 'FINAL'], FATAL: ['FINAL'], UNKNOWN: ['UNKNOWN'], RECEIPT_PENDING: ['TICKET_PENDING'] };
-   if (!row(done) || !only(done, ['attemptId', 'state']) || done.attemptId !== claim.attemptId || !states[parsed.result].includes(String(done.state))) throw new Invalid();
-   return String(done.state);
+   return settle(claim, parsed);
   }
   // Exactly one selected lane. Never fall through to global receipt/send scans.
   if (targeted) {
@@ -252,6 +263,70 @@ Deno.serve(async req => {
    SEND: { processed: 0, failures: 0, states: {}, lastState: 'NONE' },
    RECEIPT: { processed: 0, failures: 0, states: {}, lastState: 'NONE' },
   };
+  async function drainReceipts() {
+   const summary = summaries.RECEIPT;
+   let stop = false;
+   try {
+    while (!signal.aborted && Date.now() < startedAt + CLAIM_WINDOW_MS) {
+     const batch: Claim[] = [];
+     let waitMs = 0;
+     try {
+      while (batch.length < RECEIPT_BATCH_LIMIT) {
+       const claim = await globalClaim('RECEIPT');
+       if (row(claim) && only(claim, ['kind']) && (claim.kind === 'NONE' || claim.kind === 'STOP')) { stop = true; break; }
+       if (row(claim) && only(claim, ['kind', 'retryAfterMs']) && claim.kind === 'WAIT'
+        && Number.isInteger(claim.retryAfterMs) && Number(claim.retryAfterMs) >= 100 && Number(claim.retryAfterMs) <= 1000) {
+        waitMs = Number(claim.retryAfterMs); break;
+       }
+       if (!validClaim(claim, 'RECEIPT')) throw new Invalid();
+       batch.push(claim);
+      }
+     } catch { summary.failures += 1; stop = true; }
+     if (signal.aborted) throw new Invalid();
+     if (batch.length === 0) {
+      if (stop) break;
+      if (waitMs) await pause(waitMs);
+      continue;
+     }
+     // The server owns each lease and ticket; no client-supplied IDs are read.
+     // Flush even on WAIT/NONE/STOP. Waiting while holding all available leases
+     // would block both this batch and the independent send lanes.
+     const active = batch.filter(claim => live(claim.leaseExpiresAt));
+     if (active.length !== batch.length) { summary.failures += batch.length - active.length; stop = true; }
+     if (active.length > 0) {
+      const ids = [...new Set(active.map(claim => claim.ticketId as string))];
+      const pending: ProviderResult = { result: 'RECEIPT_PENDING', ticketId: null };
+      const outcomes = new Map<string, ProviderResult>();
+      try {
+       const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
+       const access = Deno.env.get('EXPO_ACCESS_TOKEN'); if (access) headers.Authorization = `Bearer ${access}`;
+       await bounded(PROVIDER_DEADLINE_MS, async localSignal => {
+        const response = await request('https://exp.host/--/api/v2/push/getReceipts',
+         { method: 'POST', headers, body: JSON.stringify({ ids }), signal: localSignal, redirect: 'error' });
+        if (!response.ok) { void response.body?.cancel().catch(() => undefined); return; }
+        const envelope = await read(response.body, 32768, localSignal);
+        if (!row(envelope) || !only(envelope, ['data']) || !row(envelope.data)
+         || Object.keys(envelope.data).some(id => !ids.includes(id))) throw new Invalid();
+        for (const id of ids) {
+         if (!Object.hasOwn(envelope.data, id)) continue;
+         try { outcomes.set(id, expoResult(envelope.data[id], true)); }
+         catch { /* One malformed receipt must not erase other valid outcomes. */ }
+        }
+       });
+      } catch { /* A receipt read may be repeated; it can never become a SEND. */ }
+      // Settle independently, including after another member loses its SQL ACK.
+      // A failed member keeps its durable lease for the existing SQL recovery.
+      const settled = await Promise.allSettled(active.map(claim => settle(claim, outcomes.get(claim.ticketId as string) ?? pending)));
+      for (const result of settled) {
+       if (result.status === 'rejected') { summary.failures += 1; stop = true; continue; }
+       summary.processed += 1; summary.lastState = result.value;
+       summary.states[result.value] = (summary.states[result.value] ?? 0) + 1;
+      }
+     }
+     if (stop) break;
+    }
+   } catch { summary.failures += 1; }
+  }
   async function drain(kind: 'SEND' | 'RECEIPT') {
    const summary = summaries[kind];
    try {
@@ -268,7 +343,7 @@ Deno.serve(async req => {
    } catch { summary.failures += 1; }
   }
   // Receipts have their own progress budget and never wait behind all sends.
-  await Promise.all([drain('RECEIPT'), drain('SEND'), drain('SEND'), drain('SEND'), drain('SEND')]);
+  await Promise.all([drainReceipts(), drain('SEND'), drain('SEND'), drain('SEND'), drain('SEND')]);
   if (signal.aborted) throw new Invalid();
   let queue: unknown = null;
   try {

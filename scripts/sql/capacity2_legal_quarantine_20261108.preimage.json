@@ -1,0 +1,330 @@
+{
+  "observedAt": "2026-11-08T09:48:05.835494+00:00",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "scope": "Read-only sanitized DEV snapshot. These prior legal claims are unverified evidence being withdrawn, not approved terms.",
+  "driftGuards": {"mapHash":"2f8f4030c6614fac2f01ad95e72832e9","observedAt":"2026-11-08T09:53:22.2533+00:00","entriesHash":"99522f63e25915805bd1369e64703ea0","documentsHash":"2964fb16b92e7eadf972bdc8b4609447","linkedAcceptances":0},
+  "documents": [
+    {
+      "is_active": true,
+      "created_at": "2026-11-07T23:44:26.400524+00:00",
+      "public_url": "https://uskoci.rs/uslovi-koriscenja",
+      "retired_at": null,
+      "effective_at": "2026-11-07T23:51:23.849428+00:00",
+      "published_at": "2026-11-07T23:51:23.849428+00:00",
+      "document_kind": "TERMS",
+      "version_label": "v1.0-20261108",
+      "content_sha256": "ea1a97627894b76461aff365d4df47e3bda6ac0af418ad31e93c54362e65cea8"
+    },
+    {
+      "is_active": true,
+      "created_at": "2026-11-07T23:44:26.400524+00:00",
+      "public_url": "https://uskoci.rs/politika-privatnosti",
+      "retired_at": null,
+      "effective_at": "2026-11-07T23:51:23.849428+00:00",
+      "published_at": "2026-11-07T23:51:23.849428+00:00",
+      "document_kind": "PRIVACY",
+      "version_label": "v1.0-20261108",
+      "content_sha256": "7ea5711378d724ac92e5d2b7779ee06369ae6652a7d5f3c49e2c47a7cfbd38ef"
+    }
+  ],
+  "processorMaps": [
+    {
+      "retired_at": null,
+      "map_version": "v1.0-20261108",
+      "effective_at": "2026-11-07T23:44:26.400524+00:00",
+      "published_at": "2026-11-07T23:44:26.400524+00:00",
+      "counsel_reference": "Pravno odobrenje USKOCI-LEGAL-20261108 za usaglasenost sa ZZPL RS i GDPR"
+    }
+  ],
+  "processorEntries": [
+    {
+      "purpose": "Primarna cloud infrastruktura: PostgreSQL baza, autentifikacija, storage za slike i glas, i Edge funkcije.",
+      "created_at": "2026-11-07T23:44:26.400524+00:00",
+      "legal_role": "PROCESSOR",
+      "dpa_reference": "Supabase Data Processing Addendum (DPA) 2026",
+      "provider_code": "SUPABASE_PLATFORM",
+      "data_categories": [
+        "Identitet naloga",
+        "Podaci profila",
+        "Zadaci",
+        "Prijave",
+        "Dogovori",
+        "Poruke",
+        "Audio zapisi",
+        "Fotografije"
+      ],
+      "legal_entity_name": "Supabase, Inc.",
+      "privacy_notice_url": "https://supabase.com/privacy",
+      "processing_regions": "EU (Frankfurt, Nemacka)",
+      "subprocessor_terms": "AWS Europe, Cloudflare",
+      "transfer_mechanism": "Standardne ugovorne klauzule (SCC) i EU lokacija servera",
+      "cross_border_transfer": false,
+      "legal_basis_reference": "Clan 12. stav 1. tacka 2) ZZPL RS (Izvrsenje ugovora)",
+      "retention_deletion_terms": "Podaci se cuvaju do brisanja naloga ili isteka ugovornog roka dogovora"
+    },
+    {
+      "purpose": "Strukturiranje podataka zadatka i radnog profila putem Gemini 3.8 Flash modela.",
+      "created_at": "2026-11-07T23:44:26.400524+00:00",
+      "legal_role": "PROCESSOR",
+      "dpa_reference": "Google Cloud DPA i Generative AI Additional Terms",
+      "provider_code": "GOOGLE_GEMINI_AI",
+      "data_categories": [
+        "Opis zadatka",
+        "Kategorija posla",
+        "Korisnicki glasovni transkript"
+      ],
+      "legal_entity_name": "Google Ireland Limited",
+      "privacy_notice_url": "https://cloud.google.com/terms/data-processing-addendum",
+      "processing_regions": "EU / Globalno Google Cloud",
+      "subprocessor_terms": "Google Cloud regionalni centri podataka",
+      "transfer_mechanism": "Standardne ugovorne klauzule (SCC) i Google Cloud Data Processing Addendum",
+      "cross_border_transfer": true,
+      "legal_basis_reference": "Clan 12. stav 1. tacke 1) i 2) ZZPL RS (Pristanak i izvrsenje ugovora)",
+      "retention_deletion_terms": "Prolazna obrada (stateless inference), podaci se ne koriste za treniranje javnih modela"
+    },
+    {
+      "purpose": "Rezervni AI model za pomoc pri strukturiranju kategorija zadataka.",
+      "created_at": "2026-11-07T23:44:26.400524+00:00",
+      "legal_role": "PROCESSOR",
+      "dpa_reference": "OpenAI Data Processing Agreement 2026",
+      "provider_code": "OPENAI_AI",
+      "data_categories": [
+        "Opis zadatka",
+        "Tekst pretrage"
+      ],
+      "legal_entity_name": "OpenAI, LLC",
+      "privacy_notice_url": "https://openai.com/policies/privacy-policy",
+      "processing_regions": "SAD / Globalno",
+      "subprocessor_terms": "Microsoft Azure infrastructure",
+      "transfer_mechanism": "Standardne ugovorne klauzule (SCC) i OpenAI Business DPA",
+      "cross_border_transfer": true,
+      "legal_basis_reference": "Clan 12. stav 1. tacka 6) ZZPL RS (Legitimni interes)",
+      "retention_deletion_terms": "API upiti se zadrzavaju maksimalno 30 dana radi detekcije zloupotrebe i automatski brisu"
+    }
+  ],
+  "providerInventory": [
+    {
+      "code": "SUPABASE_PLATFORM",
+      "active": true,
+      "updated_at": "2026-09-10T13:13:25.696395+00:00",
+      "display_name": "Supabase",
+      "required_current": true,
+      "physical_evidence": "Live CLEAN project leqcwgzvjsxugfgzdmth (Postgres 17) with the uskoci-ai-interview Edge function deployed and one private Storage bucket profile-media; the app has no other backend.",
+      "technical_purpose": "Primary cloud platform: Postgres database, Auth, PostgREST API, Storage and Edge Functions runtime for every client call."
+    },
+    {
+      "code": "OPENAI_AI",
+      "active": true,
+      "updated_at": "2026-09-10T13:13:25.696395+00:00",
+      "display_name": "OpenAI",
+      "required_current": true,
+      "physical_evidence": "supabase/functions/uskoci-ai-interview/index.ts callOpenAI posts to https://api.openai.com/v1/responses. Runtime selection depends on the AI_PROVIDER and OPENAI_API_KEY secrets, which this unit cannot read, so coverage is required fail-safe until authorized operations retire the unused adapter.",
+      "technical_purpose": "External AI provider adapter for the AI interview turn (Responses API)."
+    },
+    {
+      "code": "GOOGLE_GEMINI_AI",
+      "active": true,
+      "updated_at": "2026-09-10T13:13:25.696395+00:00",
+      "display_name": "Google Gemini",
+      "required_current": true,
+      "physical_evidence": "supabase/functions/uskoci-ai-interview/index.ts callGemini posts to generativelanguage.googleapis.com and is the default route when GEMINI_API_KEY and GEMINI_MODEL are set without AI_PROVIDER. Runtime selection is not readable by this unit, so coverage is required fail-safe.",
+      "technical_purpose": "External AI provider adapter for the AI interview turn (generateContent API)."
+    },
+    {
+      "code": "EXPO_PUSH",
+      "active": false,
+      "updated_at": "2026-09-10T13:13:25.696395+00:00",
+      "display_name": "Expo Push",
+      "required_current": false,
+      "physical_evidence": "notification_push_devices and notification_push_attempts exist (N06/N07 registry) but no Edge function or job in this repository calls exp.host; the transport is not admitted, so this provider processes no personal data yet.",
+      "technical_purpose": "Push transport candidate for Expo push tickets and receipts."
+    }
+  ],
+  "acceptanceEvents": 0,
+  "bundle": {
+    "ready": true,
+    "reason": null,
+    "documents": [
+      {
+        "url": "https://uskoci.rs/uslovi-koriscenja",
+        "kind": "TERMS",
+        "sha256": "ea1a97627894b76461aff365d4df47e3bda6ac0af418ad31e93c54362e65cea8",
+        "version": "v1.0-20261108",
+        "effectiveAt": "2026-11-07T23:51:23.849428+00:00",
+        "publishedAt": "2026-11-07T23:51:23.849428+00:00"
+      },
+      {
+        "url": "https://uskoci.rs/politika-privatnosti",
+        "kind": "PRIVACY",
+        "sha256": "7ea5711378d724ac92e5d2b7779ee06369ae6652a7d5f3c49e2c47a7cfbd38ef",
+        "version": "v1.0-20261108",
+        "effectiveAt": "2026-11-07T23:51:23.849428+00:00",
+        "publishedAt": "2026-11-07T23:51:23.849428+00:00"
+      }
+    ],
+    "acceptedCurrentBundle": false
+  },
+  "processorStatus": [
+    {
+      "processor_map": {
+        "ready": true,
+        "reason": null,
+        "providers": [
+          {
+            "purpose": "Strukturiranje podataka zadatka i radnog profila putem Gemini 3.8 Flash modela.",
+            "legalRole": "PROCESSOR",
+            "dpaReference": "Google Cloud DPA i Generative AI Additional Terms",
+            "providerCode": "GOOGLE_GEMINI_AI",
+            "dataCategories": [
+              "Opis zadatka",
+              "Kategorija posla",
+              "Korisnicki glasovni transkript"
+            ],
+            "legalEntityName": "Google Ireland Limited",
+            "privacyNoticeUrl": "https://cloud.google.com/terms/data-processing-addendum",
+            "processingRegions": "EU / Globalno Google Cloud",
+            "subprocessorTerms": "Google Cloud regionalni centri podataka",
+            "transferMechanism": "Standardne ugovorne klauzule (SCC) i Google Cloud Data Processing Addendum",
+            "crossBorderTransfer": true,
+            "legalBasisReference": "Clan 12. stav 1. tacke 1) i 2) ZZPL RS (Pristanak i izvrsenje ugovora)",
+            "providerDisplayName": "Google Gemini",
+            "retentionDeletionTerms": "Prolazna obrada (stateless inference), podaci se ne koriste za treniranje javnih modela"
+          },
+          {
+            "purpose": "Rezervni AI model za pomoc pri strukturiranju kategorija zadataka.",
+            "legalRole": "PROCESSOR",
+            "dpaReference": "OpenAI Data Processing Agreement 2026",
+            "providerCode": "OPENAI_AI",
+            "dataCategories": [
+              "Opis zadatka",
+              "Tekst pretrage"
+            ],
+            "legalEntityName": "OpenAI, LLC",
+            "privacyNoticeUrl": "https://openai.com/policies/privacy-policy",
+            "processingRegions": "SAD / Globalno",
+            "subprocessorTerms": "Microsoft Azure infrastructure",
+            "transferMechanism": "Standardne ugovorne klauzule (SCC) i OpenAI Business DPA",
+            "crossBorderTransfer": true,
+            "legalBasisReference": "Clan 12. stav 1. tacka 6) ZZPL RS (Legitimni interes)",
+            "providerDisplayName": "OpenAI",
+            "retentionDeletionTerms": "API upiti se zadrzavaju maksimalno 30 dana radi detekcije zloupotrebe i automatski brisu"
+          },
+          {
+            "purpose": "Primarna cloud infrastruktura: PostgreSQL baza, autentifikacija, storage za slike i glas, i Edge funkcije.",
+            "legalRole": "PROCESSOR",
+            "dpaReference": "Supabase Data Processing Addendum (DPA) 2026",
+            "providerCode": "SUPABASE_PLATFORM",
+            "dataCategories": [
+              "Identitet naloga",
+              "Podaci profila",
+              "Zadaci",
+              "Prijave",
+              "Dogovori",
+              "Poruke",
+              "Audio zapisi",
+              "Fotografije"
+            ],
+            "legalEntityName": "Supabase, Inc.",
+            "privacyNoticeUrl": "https://supabase.com/privacy",
+            "processingRegions": "EU (Frankfurt, Nemacka)",
+            "subprocessorTerms": "AWS Europe, Cloudflare",
+            "transferMechanism": "Standardne ugovorne klauzule (SCC) i EU lokacija servera",
+            "crossBorderTransfer": false,
+            "legalBasisReference": "Clan 12. stav 1. tacka 2) ZZPL RS (Izvrsenje ugovora)",
+            "providerDisplayName": "Supabase",
+            "retentionDeletionTerms": "Podaci se cuvaju do brisanja naloga ili isteka ugovornog roka dogovora"
+          }
+        ],
+        "mapVersion": "v1.0-20261108",
+        "effectiveAt": "2026-11-07T23:44:26.400524+00:00",
+        "counselReference": "Pravno odobrenje USKOCI-LEGAL-20261108 za usaglasenost sa ZZPL RS i GDPR",
+        "technicalProviderCount": 4,
+        "coveredCurrentProviders": 3,
+        "requiredCurrentProviders": 3,
+        "runtimeProviderGateAdmitted": false
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "data": {
+        "exportBinding": null,
+        "retentionExecutionBinding": null
+      }
+    }
+  ],
+  "functions": [
+    {
+      "signature": "rpc_accept_legal_bundle(text)",
+      "body_md5": "774a7c76c8e9d8c608ce7d1124e5e8d8",
+      "prosecdef": true,
+      "provolatile": "v",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_accept_legal_bundle(p_client_request_id text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  u uuid:=auth.uid();\n  v_request_id text:=btrim(coalesce(p_client_request_id,''));\n  terms_row private.legal_document_versions%rowtype;\n  privacy_row private.legal_document_versions%rowtype;\n  existing public.account_legal_acceptance_events%rowtype;\n  created public.account_legal_acceptance_events%rowtype;\nbegin\n  if u is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;\n  if char_length(v_request_id)<16 or char_length(v_request_id)>96 or v_request_id !~ '^[A-Za-z0-9_-]+$' then\n    raise exception 'INVALID_CLIENT_REQUEST_ID' using errcode='22023';\n  end if;\n\n  select * into terms_row\n  from private.legal_document_versions d\n  where d.document_kind='TERMS' and d.is_active\n    and d.published_at<=statement_timestamp() and d.effective_at<=statement_timestamp()\n    and d.retired_at is null\n  for share;\n\n  select * into privacy_row\n  from private.legal_document_versions d\n  where d.document_kind='PRIVACY' and d.is_active\n    and d.published_at<=statement_timestamp() and d.effective_at<=statement_timestamp()\n    and d.retired_at is null\n  for share;\n\n  if terms_row.id is null or privacy_row.id is null then\n    raise exception 'LEGAL_DOCUMENTS_NOT_PUBLISHED' using errcode='55000';\n  end if;\n\n  perform pg_advisory_xact_lock(hashtextextended(u::text||E'\\n'||v_request_id,4412));\n\n  select * into existing\n  from public.account_legal_acceptance_events a\n  where a.account_id=u and a.request_id=v_request_id;\n\n  if found then\n    if existing.terms_document_id<>terms_row.id\n       or existing.terms_content_sha256<>terms_row.content_sha256\n       or existing.privacy_document_id<>privacy_row.id\n       or existing.privacy_content_sha256<>privacy_row.content_sha256 then\n      raise exception 'LEGAL_ACCEPTANCE_REQUEST_REUSED_FOR_DIFFERENT_BUNDLE' using errcode='22023';\n    end if;\n    return jsonb_build_object(\n      'accepted',true,'idempotentReplay',true,'acceptedAt',existing.accepted_at,\n      'termsVersion',existing.terms_version_label,'termsSha256',existing.terms_content_sha256,\n      'privacyVersion',existing.privacy_version_label,'privacySha256',existing.privacy_content_sha256\n    );\n  end if;\n\n  insert into public.account_legal_acceptance_events(\n    account_id,request_id,\n    terms_document_id,terms_version_label,terms_content_sha256,\n    privacy_document_id,privacy_version_label,privacy_content_sha256,\n    acceptance_context\n  ) values (\n    u,v_request_id,\n    terms_row.id,terms_row.version_label,terms_row.content_sha256,\n    privacy_row.id,privacy_row.version_label,privacy_row.content_sha256,\n    'ACCOUNT_TERMS_PRIVACY_ACK'\n  ) returning * into created;\n\n  perform private.audit_marketplace(\n    u,'LEGAL_BUNDLE_ACCEPTED','SYSTEM',created.id,null,\n    jsonb_build_object(\n      'termsVersion',created.terms_version_label,'termsSha256',created.terms_content_sha256,\n      'privacyVersion',created.privacy_version_label,'privacySha256',created.privacy_content_sha256\n    )\n  );\n\n  return jsonb_build_object(\n    'accepted',true,'idempotentReplay',false,'acceptedAt',created.accepted_at,\n    'termsVersion',created.terms_version_label,'termsSha256',created.terms_content_sha256,\n    'privacyVersion',created.privacy_version_label,'privacySha256',created.privacy_content_sha256\n  );\nend;\n$function$\n"
+    },
+    {
+      "signature": "rpc_get_legal_bundle()",
+      "body_md5": "713dfa6d1d40a33537a344efe71d35ba",
+      "prosecdef": true,
+      "provolatile": "s",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_get_legal_bundle()\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  terms_row private.legal_document_versions%rowtype;\n  privacy_row private.legal_document_versions%rowtype;\n  u uuid:=auth.uid();\n  accepted_current boolean:=false;\nbegin\n  select * into terms_row\n  from private.legal_document_versions d\n  where d.document_kind='TERMS' and d.is_active\n    and d.published_at<=statement_timestamp() and d.effective_at<=statement_timestamp()\n    and d.retired_at is null;\n\n  select * into privacy_row\n  from private.legal_document_versions d\n  where d.document_kind='PRIVACY' and d.is_active\n    and d.published_at<=statement_timestamp() and d.effective_at<=statement_timestamp()\n    and d.retired_at is null;\n\n  if terms_row.id is null or privacy_row.id is null then\n    return jsonb_build_object(\n      'ready',false,\n      'acceptedCurrentBundle',false,\n      'documents','[]'::jsonb,\n      'reason','LEGAL_DOCUMENTS_NOT_PUBLISHED'\n    );\n  end if;\n\n  if u is not null then\n    select exists(\n      select 1 from public.account_legal_acceptance_events a\n      where a.account_id=u\n        and a.terms_document_id=terms_row.id\n        and a.terms_content_sha256=terms_row.content_sha256\n        and a.privacy_document_id=privacy_row.id\n        and a.privacy_content_sha256=privacy_row.content_sha256\n    ) into accepted_current;\n  end if;\n\n  return jsonb_build_object(\n    'ready',true,\n    'acceptedCurrentBundle',accepted_current,\n    'reason',null,\n    'documents',jsonb_build_array(\n      jsonb_build_object('kind','TERMS','version',terms_row.version_label,'sha256',terms_row.content_sha256,'url',terms_row.public_url,'publishedAt',terms_row.published_at,'effectiveAt',terms_row.effective_at),\n      jsonb_build_object('kind','PRIVACY','version',privacy_row.version_label,'sha256',privacy_row.content_sha256,'url',privacy_row.public_url,'publishedAt',privacy_row.published_at,'effectiveAt',privacy_row.effective_at)\n    )\n  );\nend;\n$function$\n"
+    },
+    {
+      "signature": "rpc_get_processor_map_status()",
+      "body_md5": "701fbccd022049b9aeaa020f2f68060e",
+      "prosecdef": true,
+      "provolatile": "s",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_get_processor_map_status()\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  u uuid:=auth.uid();\n  p private.processor_map_sets%rowtype;\n  active_count integer;\n  technical_count integer;\n  required_count integer;\n  covered_count integer;\n  missing jsonb;\n  mapped jsonb;\nbegin\n  if u is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;\n  select count(*) into technical_count from private.processor_provider_inventory x;\n  select count(*) into required_count from private.processor_provider_inventory x where x.active and x.required_current;\n  select count(*) into active_count from private.processor_map_sets x where x.retired_at is null and x.effective_at<=statement_timestamp();\n\n  if active_count=0 then\n    return jsonb_build_object('ready',false,'reason','PROCESSOR_MAP_NOT_PUBLISHED',\n      'technicalProviderCount',technical_count,'requiredCurrentProviders',required_count,'runtimeProviderGateAdmitted',false);\n  end if;\n  if active_count<>1 then\n    return jsonb_build_object('ready',false,'reason','PROCESSOR_MAP_AMBIGUOUS',\n      'technicalProviderCount',technical_count,'requiredCurrentProviders',required_count,'runtimeProviderGateAdmitted',false);\n  end if;\n\n  select * into p from private.processor_map_sets x\n  where x.retired_at is null and x.effective_at<=statement_timestamp()\n  order by x.effective_at desc limit 1;\n\n  select count(*) into covered_count\n  from private.processor_provider_inventory i\n  where i.active and i.required_current\n    and exists(select 1 from private.processor_map_entries e where e.map_id=p.id and e.provider_code=i.code);\n\n  select coalesce(jsonb_agg(i.code order by i.code),'[]'::jsonb) into missing\n  from private.processor_provider_inventory i\n  where i.active and i.required_current\n    and not exists(select 1 from private.processor_map_entries e where e.map_id=p.id and e.provider_code=i.code);\n\n  if covered_count<>required_count then\n    return jsonb_build_object('ready',false,'reason','PROCESSOR_MAP_INCOMPLETE','mapVersion',p.map_version,\n      'technicalProviderCount',technical_count,'requiredCurrentProviders',required_count,'coveredCurrentProviders',covered_count,\n      'missingProviders',missing,'runtimeProviderGateAdmitted',false);\n  end if;\n\n  select coalesce(jsonb_agg(jsonb_build_object(\n    'providerCode',e.provider_code,'providerDisplayName',i.display_name,'legalEntityName',e.legal_entity_name,\n    'legalRole',e.legal_role,'purpose',e.purpose,'dataCategories',e.data_categories,'processingRegions',e.processing_regions,\n    'crossBorderTransfer',e.cross_border_transfer,'transferMechanism',e.transfer_mechanism,'dpaReference',e.dpa_reference,\n    'privacyNoticeUrl',e.privacy_notice_url,'retentionDeletionTerms',e.retention_deletion_terms,\n    'subprocessorTerms',e.subprocessor_terms,'legalBasisReference',e.legal_basis_reference\n  ) order by i.display_name),'[]'::jsonb) into mapped\n  from private.processor_map_entries e\n  join private.processor_provider_inventory i on i.code=e.provider_code\n  where e.map_id=p.id and i.active;\n\n  return jsonb_build_object('ready',true,'reason',null,'mapVersion',p.map_version,'effectiveAt',p.effective_at,\n    'counselReference',p.counsel_reference,'technicalProviderCount',technical_count,'requiredCurrentProviders',required_count,\n    'coveredCurrentProviders',covered_count,'providers',mapped,'runtimeProviderGateAdmitted',false);\nend;\n$function$\n"
+    }
+  ],
+  "currentUiFunctions": [
+    {
+      "signature": "rpc_accept_reviewed_legal_bundle(text,text,text)",
+      "body_md5": "3dbfb7877a6dcbf6c7b50af5b85e9644",
+      "prosecdef": true,
+      "provolatile": "v",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_accept_reviewed_legal_bundle(p_client_request_id text, p_terms_sha256 text, p_privacy_sha256 text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare b jsonb; r jsonb;\nbegin\n if auth.uid() is null then raise exception 'AUTH_REQUIRED' using errcode='42501'; end if;\n if p_client_request_id is null or length(p_client_request_id) not between 16 and 96 or p_client_request_id !~ '^[A-Za-z0-9_-]+$' then\n  raise exception 'INVALID_CLIENT_REQUEST_ID' using errcode='22023'; end if;\n if p_terms_sha256 is null or p_terms_sha256 !~ '^[0-9a-f]{64}$' or p_privacy_sha256 is null or p_privacy_sha256 !~ '^[0-9a-f]{64}$' then\n  raise exception 'LEGAL_REVIEW_CHANGED' using errcode='22023';\n end if;\n -- Protect the active-document pointer as well as row bytes against publication\n -- between review validation and the existing immutable ledger writer.\n lock table private.legal_document_versions in share mode;\n b:=public.rpc_get_legal_bundle();\n if b->>'ready'<>'true' then raise exception 'LEGAL_DOCUMENTS_NOT_PUBLISHED' using errcode='55000'; end if;\n if not exists(select 1 from jsonb_array_elements(b->'documents') d where d->>'kind'='TERMS' and d->>'sha256'=p_terms_sha256)\n or not exists(select 1 from jsonb_array_elements(b->'documents') d where d->>'kind'='PRIVACY' and d->>'sha256'=p_privacy_sha256) then\n  raise exception 'LEGAL_REVIEW_CHANGED' using errcode='PT409';\n end if;\n r:=public.rpc_accept_legal_bundle(p_client_request_id);\n return r||jsonb_build_object('accountId',auth.uid(),'clientRequestId',p_client_request_id,'authoritative',true);\nend;\n$function$\n"
+    },
+    {
+      "signature": "rpc_read_my_legal_acceptance(text)",
+      "body_md5": "1b50eaed5bf54e4fe7eecdaed5a3f0c7",
+      "prosecdef": true,
+      "provolatile": "s",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_read_my_legal_acceptance(p_client_request_id text)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare u uuid:=auth.uid(); r public.account_legal_acceptance_events;\nbegin\n if u is null then raise exception 'AUTH_REQUIRED' using errcode='42501'; end if;\n if p_client_request_id is null or length(p_client_request_id) not between 16 and 96 or p_client_request_id !~ '^[A-Za-z0-9_-]+$' then\n  raise exception 'INVALID_CLIENT_REQUEST_ID' using errcode='22023'; end if;\n select * into r from public.account_legal_acceptance_events where account_id=u and request_id=p_client_request_id;\n return jsonb_build_object('accountId',u,'clientRequestId',p_client_request_id,'found',found,'authoritative',true,\n  'receipt',case when r.id is not null then jsonb_build_object('accepted',true,'idempotentReplay',true,'acceptedAt',r.accepted_at,\n   'termsVersion',r.terms_version_label,'termsSha256',r.terms_content_sha256,\n   'privacyVersion',r.privacy_version_label,'privacySha256',r.privacy_content_sha256) else null end);\nend;\n$function$\n"
+    }
+  ],
+  "migrations": [
+    {
+      "name": "r12_publish_initial_legal_bundle_and_processors",
+      "version": "20261107234426"
+    },
+    {
+      "name": "r12_update_legal_hashes_apple_and_availability",
+      "version": "20261107235123"
+    }
+  ]
+}

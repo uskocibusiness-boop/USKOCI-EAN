@@ -1,0 +1,135 @@
+{
+  "task": "Dispatch transaction boundaries — verified current state and next isolated experiment",
+  "status": "DEV_READ_ONLY_VERIFIED; NO_IMPLEMENTATION_OR_LOAD_CLAIM",
+  "observedAt": "2026-11-08T10:05:15.360923+00:00",
+  "baseCommit": "c9403455bc1088d7e67130d7471dbac45a1dad72",
+  "preimage": "scripts/sql/capacity2_dispatch_transaction_20261108.preimage.json",
+  "live": {
+    "cron": {
+      "name": "uskoci_marketplace_tick",
+      "active": true,
+      "schedule": "* * * * *",
+      "commandMd5": "93518fd0382301fc76f79037123bccfc"
+    },
+    "queue": {
+      "due": 0,
+      "rows": 4,
+      "leased": 0
+    },
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "bodyMd5": "76280b0ad653d2fc10199bca2c3971a8",
+        "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+        "securityDefiner": true
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "bodyMd5": "3858404992f2ceaa30b65af1055e2b9c",
+        "signature": "private.marketplace_tick(integer,timestamp with time zone)",
+        "securityDefiner": true
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "bodyMd5": "9104edac66d52ba630b91fac58c7fcbc",
+        "signature": "private.requeue_changed_worker_profiles_v1(timestamp with time zone)",
+        "securityDefiner": true
+      }
+    ],
+    "observedAt": "2026-11-08T10:05:15.360923+00:00",
+    "queueIndexes": [
+      {
+        "name": "private.dispatch_schedule_due_idx",
+        "definition": "CREATE INDEX dispatch_schedule_due_idx ON private.dispatch_schedule USING btree (next_run_at, locked_until)"
+      },
+      {
+        "name": "private.dispatch_schedule_pkey",
+        "definition": "CREATE UNIQUE INDEX dispatch_schedule_pkey ON private.dispatch_schedule USING btree (need_id)"
+      }
+    ],
+    "dispatchConfig": {
+      "mode": "ALL",
+      "ceiling": 10000,
+      "remoteCeiling": 10000,
+      "remoteWaveSize": 300,
+      "workerDailyCap": 1000,
+      "tickBudgetSeconds": 40,
+      "remoteWaveSizeNext": null,
+      "workerNotifyPerTransaction": 1000
+    }
+  },
+  "findings": [
+    {
+      "title": "One marketplace SQL transaction currently owns multiple maintenance domains",
+      "evidence": "private.marketplace_tick calls expire_lifecycle, dispatch_tick, auto completion, data export maintenance, retention maintenance and AI turn sweep in one function. No transaction boundary exists between them.",
+      "effect": "Successful locks and writes held by early work remain part of the same outer transaction through later work. A later unhandled failure can roll back earlier domain work.",
+      "classification": "SOURCE and LIVE FUNCTION confirmed; high-load contention or rollback frequency not measured."
+    },
+    {
+      "title": "Dispatch claims the entire successful batch before processing the first need",
+      "evidence": "dispatch_tick defaults to 25, permits up to 200, walks due rows, locks Need then queue with SKIP LOCKED, updates locked_until and appends each successful Need to claimed. Only after claim collection does it call dispatch_next_wave sequentially.",
+      "effect": "All successfully claimed Need and queue row locks stay until the outer marketplace transaction commits, including deferred claims. Failed queue claims correctly release the unsuccessful Need lock through a small subtransaction.",
+      "classification": "Confirmed source semantics. Preserve Need-before-queue order, SKIP LOCKED and exception isolation."
+    },
+    {
+      "title": "The 40-second budget is an admission check, not a deadline for an individual wave",
+      "evidence": "Timer starts at function entry. Changed-profile requeue and the entire claim collection happen before the processing loop checks it. At least the first task starts; an already running dispatch_next_wave is not interrupted by this guard.",
+      "effect": "A slow profile sweep or one heavy wave may exceed the configured budget. Raising the batch or ceiling can prolong time holding unrelated Need locks.",
+      "classification": "Confirmed control flow; no statement-duration or capacity upper bound is inferred."
+    },
+    {
+      "title": "Profile change sweep is a serialized prerequisite with independent semantics",
+      "evidence": "requeue_changed_worker_profiles_v1 takes FOR UPDATE SKIP LOCKED on the match_v1_profile_requeue config row, processes at most 100 changed ACTIVE worker profiles, considers up to 200 eligible needs per profile, and advances the (updated_at, account_id) watermark. This happens on every dispatch_tick invocation.",
+      "effect": "Replacing one dispatch_tick(25) with 25 dispatch_tick(1) calls repeats this sweep and may move up to 25 profile batches rather than one. It can perform more work and change reconsideration timing. The config row also remains locked to the outer commit.",
+      "classification": "Confirmed source and exact live function. Do not blindly loop the old function."
+    },
+    {
+      "title": "Existing due index is useful but does not exactly match the queue tie-break order",
+      "evidence": "dispatch_schedule_due_idx(next_run_at, locked_until), primary key(need_id); due query orders by next_run_at, need_id and skips busy Needs and queues.",
+      "effect": "Any proposed ordered index or candidate batch limit needs EXPLAIN plus busy-row fairness tests; silently capping examined candidates can hide available items beyond locked rows.",
+      "classification": "Existing index definitions confirmed; no replacement index or performance gain claimed."
+    }
+  ],
+  "currentEvidenceLimits": {
+    "queueRows": 4,
+    "dueRows": 0,
+    "leasedRows": 0,
+    "sourceDefinitionsUnchanged": true,
+    "noNewProcedure": true,
+    "noCronMutation": true,
+    "noDispatchMigration": true,
+    "postdeployCron": "Nine successful marketplace invocations in the 09:52–10:00 window, average 124.15 ms, maximum 635.19 ms. Tiny idle DEV workload; not a scaled capacity measurement.",
+    "unmeasured": [
+      "100/1,000/10,000 tasks",
+      "30,000 open tasks and changed profiles",
+      "100 parallel same-task requests against a new dispatch implementation",
+      "Real contention, CPU/RAM, p95/p99 and database write cost under dispatch load"
+    ]
+  },
+  "nextExperiment": [
+    "Reproduce the exact current tick and its queue locks in disposable native PostgreSQL/PostGIS, with the real matching and scheduling helpers. Capture baseline response equivalence, SQL plans, durations, held lock time and successful/failed/deferred counts.",
+    "Extract the one-profile-sweep-per-cycle behavior from one-task atomic claim/wave/settle work, preserving existing Need-before-queue ordering, world/availability/cap checks and last-slot guard. This is a candidate design, not an implemented fix.",
+    "Compare a restricted top-level SECURITY INVOKER procedure or existing-worker orchestration with separate transaction boundaries between completed needs and maintenance domains. Do not insert COMMIT inside the existing SECURITY DEFINER functions.",
+    "Verify PostgreSQL CALL/transaction and exception-block restrictions, fully qualified object names, postgres-only EXECUTE and pg_cron invocation semantics in isolation before considering a DEV schedule change.",
+    "Prove duplicate-cron, parallel-worker, crash/retry, stale-profile, locked-row fairness and final-slot invariants, then evaluate the measured tradeoff against extra SQL/transaction overhead."
+  ],
+  "rollback": "No source function, migration or Cron schedule changed. Future implementation must preserve these preimages and provide guarded rollback before deployment.",
+  "releaseImpact": "Dispatch scalability remains open; no claim that this source audit closes the 300,000-user or 30,000-open-task release gate.",
+  "references": [
+    "https://www.postgresql.org/docs/current/plpgsql-transactions.html",
+    "https://www.postgresql.org/docs/current/sql-createprocedure.html",
+    "https://supabase.com/docs/guides/cron"
+  ]
+}
