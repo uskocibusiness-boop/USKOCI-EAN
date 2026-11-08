@@ -4538,5 +4538,115 @@
         }
       ]
     }
+  },
+  "forward_execution_20261108_capacity_readers": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "observed_at_utc": "2026-11-08T01:28:58.293495+00:00",
+    "scope": "Four reviewed forward migrations. Exact recorded SQL was read back after each apply. CLI files renamed to actual server ledger versions. Existing data was only read for runtime acceptance; no historical replay.",
+    "evidence": "inline:dev_forward_catalog_20261108_capacity_readers",
+    "entries": [
+      {
+        "file": "20261108012341_r09_agreement_groups_20261108.sql",
+        "version": "20261108012341",
+        "name": "r09_agreement_groups_20261108",
+        "source": "scripts/sql/r09_agreement_groups_20261108.sql",
+        "cli_generated_file": "20261108011206_r09_agreement_groups_20261108.sql",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261108012341",
+        "live_name": "r09_agreement_groups_20261108",
+        "live_recorded_md5": "b749355b4fa87e9b59bb8a6792a780a5",
+        "live_recorded_sha256": "b8bcfec64f85f66344ae1e2cdca5503bb9d4bbc260337a929319efce6baeb589",
+        "raw_md5": "b749355b4fa87e9b59bb8a6792a780a5",
+        "raw_sha256": "b8bcfec64f85f66344ae1e2cdca5503bb9d4bbc260337a929319efce6baeb589",
+        "raw_bytes": 14709
+      },
+      {
+        "file": "20261108012344_r09_public_profiles_batch_20261108.sql",
+        "version": "20261108012344",
+        "name": "r09_public_profiles_batch_20261108",
+        "source": "scripts/sql/r09_public_profiles_batch_20261108.sql",
+        "cli_generated_file": "20261108011940_r09_public_profiles_batch_20261108.sql",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261108012344",
+        "live_name": "r09_public_profiles_batch_20261108",
+        "live_recorded_md5": "70e418bfb4d8c4345a5897bf295253e0",
+        "live_recorded_sha256": "150f6391fcc250fa83f88197659ae1d060bbdc9e862d45e626ab25dbd15e9fd3",
+        "raw_md5": "70e418bfb4d8c4345a5897bf295253e0",
+        "raw_sha256": "150f6391fcc250fa83f88197659ae1d060bbdc9e862d45e626ab25dbd15e9fd3",
+        "raw_bytes": 2726
+      },
+      {
+        "file": "20261108012644_p0_discovery_materialization_20261108.sql",
+        "version": "20261108012644",
+        "name": "p0_discovery_materialization_20261108",
+        "source": "scripts/sql/p0_discovery_materialization_20261108.sql",
+        "cli_generated_file": "20261108011450_p0_discovery_materialization_20261108.sql",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261108012644",
+        "live_name": "p0_discovery_materialization_20261108",
+        "live_recorded_md5": "6efa7a887e0f464f116401a3b593de0f",
+        "live_recorded_sha256": "0b9494b2d3eddd6db4c0b1f4ed95030ef3e25816a526212809045a9e8927413c",
+        "raw_md5": "6efa7a887e0f464f116401a3b593de0f",
+        "raw_sha256": "0b9494b2d3eddd6db4c0b1f4ed95030ef3e25816a526212809045a9e8927413c",
+        "raw_bytes": 6660
+      },
+      {
+        "file": "20261108012842_p0_dispatch_saved_areas_20261108.sql",
+        "version": "20261108012842",
+        "name": "p0_dispatch_saved_areas_20261108",
+        "source": "scripts/sql/p0_dispatch_saved_areas_20261108.sql",
+        "cli_generated_file": "20261108012558_p0_dispatch_saved_areas_20261108.sql",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261108012842",
+        "live_name": "p0_dispatch_saved_areas_20261108",
+        "live_recorded_md5": "5b94f752787bcecbe1e3d9cd6abb0b0f",
+        "live_recorded_sha256": "2757c91c51bc90d561bbbb31a9b5b11d92f8d56e0e6fac801a8d685626787983",
+        "raw_md5": "5b94f752787bcecbe1e3d9cd6abb0b0f",
+        "raw_sha256": "2757c91c51bc90d561bbbb31a9b5b11d92f8d56e0e6fac801a8d685626787983",
+        "raw_bytes": 2002
+      }
+    ],
+    "catalog_evidence": {
+      "project": "leqcwgzvjsxugfgzdmth",
+      "observed_at_utc": "2026-11-08T01:28:58.293495+00:00",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261108012341",
+          "name": "r09_agreement_groups_20261108",
+          "statement_count": 1,
+          "joined_md5": "b749355b4fa87e9b59bb8a6792a780a5",
+          "joined_sha256": "b8bcfec64f85f66344ae1e2cdca5503bb9d4bbc260337a929319efce6baeb589",
+          "joined_bytes": 14709
+        },
+        {
+          "version": "20261108012344",
+          "name": "r09_public_profiles_batch_20261108",
+          "statement_count": 1,
+          "joined_md5": "70e418bfb4d8c4345a5897bf295253e0",
+          "joined_sha256": "150f6391fcc250fa83f88197659ae1d060bbdc9e862d45e626ab25dbd15e9fd3",
+          "joined_bytes": 2726
+        },
+        {
+          "version": "20261108012644",
+          "name": "p0_discovery_materialization_20261108",
+          "statement_count": 1,
+          "joined_md5": "6efa7a887e0f464f116401a3b593de0f",
+          "joined_sha256": "0b9494b2d3eddd6db4c0b1f4ed95030ef3e25816a526212809045a9e8927413c",
+          "joined_bytes": 6660
+        },
+        {
+          "version": "20261108012842",
+          "name": "p0_dispatch_saved_areas_20261108",
+          "statement_count": 1,
+          "joined_md5": "5b94f752787bcecbe1e3d9cd6abb0b0f",
+          "joined_sha256": "2757c91c51bc90d561bbbb31a9b5b11d92f8d56e0e6fac801a8d685626787983",
+          "joined_bytes": 2002
+        }
+      ]
+    }
   }
 }

@@ -1,0 +1,63 @@
+{
+  "schema": "USKOCI_CAPACITY_LOCAL_INTEGRATION_20261108",
+  "baselineCommit": "9cf4f5ee913a3751f83615e134a1e6d7c68300f3",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "node": {
+    "command": "npm test",
+    "tests": 963,
+    "pass": 963,
+    "fail": 0,
+    "skipped": 0,
+    "todo": 0,
+    "durationMs": 27209.887094
+  },
+  "typescript": {
+    "command": "npx tsc --noEmit",
+    "exitCode": 0
+  },
+  "migrations": {
+    "command": "sh supabase/migrations/check_md5.sh",
+    "files": 221,
+    "pythonTests": 39,
+    "pass": 39,
+    "fail": 0
+  },
+  "regressionsFixedBeforeProceeding": [
+    {
+      "attempt": "integration-round2",
+      "tests": 898,
+      "pass": 897,
+      "fail": 1,
+      "reason": "Push test fixture still referenced original CLI migration filename after the exact DEV ledger rename.",
+      "resolution": "Updated test binding to the exact applied file; standalone20/20, then full954/954, then full963/963."
+    }
+  ],
+  "notes": [
+    "Native PostGIS measurements and physical phone status are separate receipts.",
+    "Network/provider ports in runtime tests use controlled adapters; no claimed real phone E2E."
+  ],
+  "coordinatorNativeConcurrency": {
+    "capturedAt": "2026-11-08T01:37:16.926Z",
+    "scenariosPassed": 3,
+    "failed": 0,
+    "writerSource": [
+      {
+        "signature": "fn_need_covered_slots(uuid)",
+        "body_md5": "5a1d10aa69cda3c3095550b6f8e4c03f"
+      },
+      {
+        "signature": "rpc_select_response(uuid,integer,uuid,integer,text,text)",
+        "body_md5": "02934f7831db821a7b33fd6d40289b9a"
+      }
+    ],
+    "overlapProvenByPostgresLocks": true,
+    "expectedLockTimeoutIsNotRegression": true,
+    "sourceReceipt": "scripts/sql/p0_last_slot_concurrency_20261108.receipt.json"
+  },
+  "credentialPatternReview": {
+    "actualServiceRoleTokensFound": 0,
+    "syntheticFixtureSecretFound": 1,
+    "syntheticOrigin": "https://fixture-push.supabase.co",
+    "credentialValuesPrinted": false
+  }
+}

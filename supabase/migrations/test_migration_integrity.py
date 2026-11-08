@@ -440,5 +440,35 @@ class Nov8LateReadmissionTests(unittest.TestCase):
             check_physical_suffix(changed, self.manifest, self.evidence)
 
 
+class Nov8CapacityReadersTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).parent
+        self.section = json.loads((self.root / "MIGRATION_PROVENANCE.json").read_text())["forward_execution_20261108_capacity_readers"]
+        self.evidence = load_catalog_evidence(self.section)
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (self.root / "MD5_MANIFEST.txt").read_text().splitlines())
+
+    def test_all_four_live_migrations_are_the_exact_executed_test_candidates(self):
+        self.assertEqual(len(check_physical_suffix(self.section, self.manifest, self.evidence)), 4)
+        self.assertEqual([row["live_version"] for row in self.section["entries"]],
+                         ["20261108012341", "20261108012344", "20261108012644", "20261108012842"])
+        for row in self.section["entries"]:
+            self.assertEqual((self.root / row["file"]).read_bytes(),
+                             (self.root.parent.parent / row["source"]).read_bytes())
+
+    def test_fabricated_binding_or_changed_witness_cannot_claim_dev_acceptance(self):
+        for index in range(4):
+            for key in ("live_version", "live_name", "live_recorded_sha256", "raw_md5", "raw_bytes"):
+                with self.subTest(index=index, key=key):
+                    changed = copy.deepcopy(self.section)
+                    changed["entries"][index][key] = "INVALID"
+                    with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                        check_physical_suffix(changed, self.manifest, self.evidence)
+        changed = copy.deepcopy(self.section)
+        changed["catalog_evidence"]["liveMigrationCatalogHashes"][0]["joined_sha256"] = "0" * 64
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            load_catalog_evidence(changed)
+
+
 if __name__ == "__main__":
     unittest.main()

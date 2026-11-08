@@ -10,7 +10,7 @@ const { PGlite } = require('@electric-sql/pglite');
 const root = path.resolve(__dirname, '..');
 const capture = JSON.parse(fs.readFileSync(path.join(__dirname, 'sql/r09_push_capacity_20261108.preimage.json'), 'utf8'));
 const candidate = fs.readFileSync(path.join(__dirname, 'sql/r09_push_capacity_20261108.sql'), 'utf8');
-assert.equal(fs.readFileSync(path.join(root,'supabase/migrations/20261108005658_r09_push_capacity_20261108.sql'),'utf8'),candidate,
+assert.equal(fs.readFileSync(path.join(root,'supabase/migrations/20261108010233_r09_push_capacity_20261108.sql'),'utf8'),candidate,
  'The tested SQL must be the actual forward migration, not a divergent candidate.');
 const rollback = fs.readFileSync(path.join(__dirname, 'sql/r09_push_capacity_20261108.rollback.sql'), 'utf8');
 const SECRET = 'sb_secret_fixture_push_01234567890123456789';

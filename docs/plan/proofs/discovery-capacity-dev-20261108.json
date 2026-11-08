@@ -1,0 +1,598 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "live": {
+    "observed_at": "2026-11-08 01:26:56.103722+00",
+    "signature": "rpc_discovery_v1(jsonb)",
+    "body_md5": "bd7fd285ddcba47a8d7d7cfb2422f0d1",
+    "prosecdef": false,
+    "provolatile": "s",
+    "proconfig": [
+      "search_path=pg_catalog"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "owner": "postgres",
+    "version": "20261108012644",
+    "name": "p0_discovery_materialization_20261108",
+    "exactLedgerBytes": true,
+    "canonicalFile": "supabase/migrations/20261108012644_p0_discovery_materialization_20261108.sql",
+    "cliGeneratedFile": "20261108011450_p0_discovery_materialization_20261108.sql",
+    "sha256": "0b9494b2d3eddd6db4c0b1f4ed95030ef3e25816a526212809045a9e8927413c",
+    "bytes": 6660
+  },
+  "before": [
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "any",
+          "places": 1
+        }
+      },
+      "response_md5": "819d3361e564fd9005c3a2ed2f44f666",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 4,
+        "listed": 4,
+        "mapped": 4,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 4
+    },
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "08bb6992959c507001d32dc3db3c8ff3",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "remote",
+          "places": 1
+        }
+      },
+      "response_md5": "c955e490b1215e1d06074517c7661655",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 3,
+        "listed": 3,
+        "mapped": 3,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 3
+    },
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "6491c035a24aa13ce14f6c8dc2d5fa4a",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "onsite",
+          "places": 1
+        }
+      },
+      "response_md5": "870b4eec3fe068bca8f2b2a386a077b6",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 1,
+        "listed": 1,
+        "mapped": 1,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 1
+    },
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "c063f0318e07125877b10576a66ff478",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "MY_PRICE",
+          "where": "any",
+          "places": 1,
+          "minBudgetRsd": 1000
+        }
+      },
+      "response_md5": "2365f862f3be079bb52af1b634d59869",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 1,
+        "listed": 1,
+        "mapped": 1,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 1
+    },
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "74aa522e336651896695a03448c9f843",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "OFFERS",
+          "where": "any",
+          "places": 1
+        }
+      },
+      "response_md5": "926b429d75c9604c9f977bc52af807e3",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 3,
+        "listed": 3,
+        "mapped": 3,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 3
+    },
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "2a54841c801baa6bb8d80d250093e0ba",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "any",
+          "places": 2
+        }
+      },
+      "response_md5": "4ff3cf8e1f765980fdb53f58fa97f257",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 1,
+        "listed": 1,
+        "mapped": 1,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 1
+    },
+    {
+      "request": {
+        "grid": 24,
+        "mode": "MAP",
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "6491c035a24aa13ce14f6c8dc2d5fa4a",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "bounds": [
+          18,
+          41,
+          24,
+          47
+        ],
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "onsite",
+          "places": 1
+        }
+      },
+      "response_md5": "1c951f9f0aa8674925825d382d77d53a",
+      "counts": {
+        "kind": "exact_live",
+        "mapped": 1,
+        "withoutPoint": 0
+      },
+      "items_returned": 0
+    },
+    {
+      "request": {
+        "mode": "PLACES",
+        "after": null,
+        "limit": 30,
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "6253d3efcff9146c7e966a61b3c4d06c",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "onsite",
+          "places": 1
+        },
+        "prefix": "",
+        "groupBy": "CITY",
+        "facetArea": null
+      },
+      "response_md5": "b95e6eaedd33b65653dc162a2e791a84",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": null,
+        "everywhere": 1
+      },
+      "items_returned": 1
+    }
+  ],
+  "after": [
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "any",
+          "places": 1
+        }
+      },
+      "response_md5": "819d3361e564fd9005c3a2ed2f44f666",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 4,
+        "listed": 4,
+        "mapped": 4,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 4
+    },
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "08bb6992959c507001d32dc3db3c8ff3",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "remote",
+          "places": 1
+        }
+      },
+      "response_md5": "c955e490b1215e1d06074517c7661655",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 3,
+        "listed": 3,
+        "mapped": 3,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 3
+    },
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "6491c035a24aa13ce14f6c8dc2d5fa4a",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "onsite",
+          "places": 1
+        }
+      },
+      "response_md5": "870b4eec3fe068bca8f2b2a386a077b6",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 1,
+        "listed": 1,
+        "mapped": 1,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 1
+    },
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "c063f0318e07125877b10576a66ff478",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "MY_PRICE",
+          "where": "any",
+          "places": 1,
+          "minBudgetRsd": 1000
+        }
+      },
+      "response_md5": "2365f862f3be079bb52af1b634d59869",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 1,
+        "listed": 1,
+        "mapped": 1,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 1
+    },
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "74aa522e336651896695a03448c9f843",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "OFFERS",
+          "where": "any",
+          "places": 1
+        }
+      },
+      "response_md5": "926b429d75c9604c9f977bc52af807e3",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 3,
+        "listed": 3,
+        "mapped": 3,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 3
+    },
+    {
+      "request": {
+        "mode": "PAGE",
+        "after": null,
+        "limit": 30,
+        "scope": {
+          "kind": "ALL"
+        },
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "2a54841c801baa6bb8d80d250093e0ba",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "any",
+          "places": 2
+        }
+      },
+      "response_md5": "4ff3cf8e1f765980fdb53f58fa97f257",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": 1,
+        "listed": 1,
+        "mapped": 1,
+        "undated": 0,
+        "withoutPoint": 0
+      },
+      "items_returned": 1
+    },
+    {
+      "request": {
+        "grid": 24,
+        "mode": "MAP",
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "6491c035a24aa13ce14f6c8dc2d5fa4a",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "bounds": [
+          18,
+          41,
+          24,
+          47
+        ],
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "onsite",
+          "places": 1
+        }
+      },
+      "response_md5": "1c951f9f0aa8674925825d382d77d53a",
+      "counts": {
+        "kind": "exact_live",
+        "mapped": 1,
+        "withoutPoint": 0
+      },
+      "items_returned": 0
+    },
+    {
+      "request": {
+        "mode": "PLACES",
+        "after": null,
+        "limit": 30,
+        "anchor": {
+          "timeAt": "2026-11-08T01:26:26.021256Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-11-08T01:56:26.021256Z",
+          "filterKey": "6253d3efcff9146c7e966a61b3c4d06c",
+          "publishedThrough": "2026-11-08T01:26:26.021256Z"
+        },
+        "filter": {
+          "text": "",
+          "when": "any",
+          "dates": null,
+          "place": null,
+          "price": "all",
+          "where": "onsite",
+          "places": 1
+        },
+        "prefix": "",
+        "groupBy": "CITY",
+        "facetArea": null
+      },
+      "response_md5": "b95e6eaedd33b65653dc162a2e791a84",
+      "counts": {
+        "kind": "exact_live",
+        "inArea": null,
+        "everywhere": 1
+      },
+      "items_returned": 1
+    }
+  ],
+  "parity": true,
+  "limitations": "Read-only existing DEV data and authenticated SQL role with scoped JWT claims; excludes hosted token, device, load and spatial index proof."
+}

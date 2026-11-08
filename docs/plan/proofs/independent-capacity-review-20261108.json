@@ -97,7 +97,8 @@
         "error": "OPPORTUNITIES_TOO_MANY_PAGES",
         "projectionBoundaryReached": false
       }
-    ]
+    ],
+    "publishedEquivalentCommand": "node scripts/legacy-discovery-boundary-probe.cjs --run --source-ref e705a41378a56a6140841d7a10b0baf3e3989e59"
   },
   "limits": [
     "The production legacy walk still refuses more than 5000 open tasks, after 25 pages of 200; it does not silently display a partial list. This is not an account-count limit.",
@@ -119,6 +120,20 @@
     "201b25bc94275c7fa86aebfd474c4f72c814a10b": {
       "scripts/sql/p0_discovery_materialization_20261108.sql": "1d36e5c54bfa5b40c97aff46ee50125af3382c9f861e477201b7677f1f389a16",
       "scripts/sql/p0_discovery_materialization_20261108.rollback.sql": "8afeeb6a8bff055452c5923f046c20e65ef6bcbfc62c12485a9f928f1c97d00a"
+    }
+  },
+  "publishedEquivalentCommits": {
+    "f42a51d9388c6d0b5e47e1c822f863083e7f6471": {
+      "integratedCommit": "e705a41378a56a6140841d7a10b0baf3e3989e59",
+      "reviewedFileHashesVerifiedEqual": true
+    },
+    "201b25bc94275c7fa86aebfd474c4f72c814a10b": {
+      "integratedCommit": "7583d4581e0c8c93eb87ccf6565b410e4c7ad43d",
+      "reviewedFileHashesVerifiedEqual": true
+    },
+    "96d7bf756c3232a5fa0483ae472362ccd2b58804": {
+      "integratedCommit": "2e40b69bde6f19f7721218097ab77e679b73d2c3",
+      "reviewedFileHashesVerifiedEqual": true
     }
   }
 }

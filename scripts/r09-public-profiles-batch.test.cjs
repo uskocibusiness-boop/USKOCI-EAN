@@ -4,7 +4,7 @@ const fs = require('node:fs'), path = require('node:path');
 const { ROOT, preimage, candidate, id, ACTOR, OTHER, deferred, wait, sqlFixture, clientHarness, items, projection, envelope }
   = require('./r09-public-profiles-batch-fixture.cjs');
 const rollback = fs.readFileSync(path.join(__dirname, 'sql/r09_public_profiles_batch_20261108.rollback.sql'), 'utf8');
-assert.equal(fs.readFileSync(path.join(ROOT, 'supabase/migrations/20261108011940_r09_public_profiles_batch_20261108.sql'), 'utf8'), candidate,
+assert.equal(fs.readFileSync(path.join(ROOT, 'supabase/migrations/20261108012344_r09_public_profiles_batch_20261108.sql'), 'utf8'), candidate,
   'The SQL executed by these tests must be exactly the migration shipped to DEV.');
 const ids = Array.from({ length: 100 }, (_, i) => id(i + 1));
 const signature = 'public.rpc_get_public_profiles_batch(uuid,uuid[])';

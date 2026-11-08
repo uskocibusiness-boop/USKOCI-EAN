@@ -1,0 +1,135 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "observedAt": "2026-11-08T01:23:56.102051+00:00",
+  "migrations": [
+    {
+      "name": "r09_agreement_groups_20261108",
+      "version": "20261108012341",
+      "exactLedgerBytes": true,
+      "canonicalFile": "supabase/migrations/20261108012341_r09_agreement_groups_20261108.sql",
+      "cliGeneratedFile": "20261108011206_r09_agreement_groups_20261108.sql",
+      "sha256": "b8bcfec64f85f66344ae1e2cdca5503bb9d4bbc260337a929319efce6baeb589",
+      "bytes": 14709
+    },
+    {
+      "name": "r09_public_profiles_batch_20261108",
+      "version": "20261108012344",
+      "exactLedgerBytes": true,
+      "canonicalFile": "supabase/migrations/20261108012344_r09_public_profiles_batch_20261108.sql",
+      "cliGeneratedFile": "20261108011940_r09_public_profiles_batch_20261108.sql",
+      "sha256": "150f6391fcc250fa83f88197659ae1d060bbdc9e862d45e626ab25dbd15e9fd3",
+      "bytes": 2726
+    }
+  ],
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "069eb961b036f7a2cc733c9f61d72d66",
+      "signature": "private.agreement_list_instant_v1(text)",
+      "volatility": "i",
+      "securityDefiner": false
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "fc532bd40c1c7d03f22dc0faa3e4b393",
+      "signature": "private.agreement_list_search_v1(text)",
+      "volatility": "i",
+      "securityDefiner": false
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "a86bf830d7e536e75d1a6c680e4d2876",
+      "signature": "private.agreement_review_deadline_v1(uuid)",
+      "volatility": "s",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "9ecc0b69096f1167d02e0bb7b9656bc0",
+      "signature": "rpc_get_public_profile(uuid)",
+      "volatility": "s",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "a01875f4e9e3349988defde7a288a46a",
+      "signature": "rpc_get_public_profiles_batch(uuid,uuid[])",
+      "volatility": "s",
+      "securityDefiner": false
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "9149868e6241948f89d3f54f378e4946",
+      "signature": "rpc_list_my_agreement_groups_page(jsonb,integer,jsonb)",
+      "volatility": "s",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "0f14c3a0a462096f5c3641fbd5629f43",
+      "signature": "rpc_list_my_agreements_page(text,integer,timestamp with time zone,uuid)",
+      "volatility": "s",
+      "securityDefiner": true
+    }
+  ],
+  "agreementFirstAccountRuntime": {
+    "role": "authenticated",
+    "source": "Existing DEV rows; no business writes",
+    "hasMore": false,
+    "foreignRows": 0,
+    "activeGroups": 5,
+    "bilateralRows": 6,
+    "historyGroups": 1,
+    "allRowsHaveNeedId": true,
+    "duplicateAgreementIds": 0
+  },
+  "agreementAllAccountsRuntime": {
+    "foreignRows": 0,
+    "transactions": "Read-only existing rows; authenticated role with scoped test JWT claims, not hosted token/device E2E",
+    "duplicateRows": 0,
+    "accountsChecked": 16,
+    "actualOwnedBilateralProjections": 12,
+    "expectedOwnedBilateralProjections": 12
+  },
+  "publicProfileBatchRuntime": {
+    "role": "authenticated",
+    "source": "Existing DEV public profile projection parity under authenticated role; no business writes",
+    "accountBound": true,
+    "profileCount": 20,
+    "anonCanExecute": false,
+    "publicProjectionMismatches": 0
+  },
+  "limitations": [
+    "Ordinary authenticated SQL role with scoped test JWT claims; not hosted token/Android E2E.",
+    "Six existing Agreements and twenty profiles are not a capacity test. No business data mutation.",
+    "Production Discovery P6 flag remains off. Batch is wired to P6/QA path."
+  ]
+}

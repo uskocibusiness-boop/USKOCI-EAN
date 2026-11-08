@@ -1,0 +1,35 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "mode": "READ_ONLY_FUNCTION_REVIEW",
+  "findings": [
+    {
+      "function": "public.rpc_closure_api_guard()",
+      "bodyMd5": "09d52badff732c2b22ba7b69adfa4d66",
+      "assessment": "Anonymous EXECUTE is intentional for the PostgREST pre-request guard; revoking it would break unauthenticated API requests. Authenticated closing accounts remain restricted."
+    },
+    {
+      "function": "public.rpc_get_legal_bundle()",
+      "bodyMd5": "713dfa6d1d40a33537a344efe71d35ba",
+      "assessment": "Anonymous EXECUTE is intentional so legal document links can be read before signing in. This projection is not evidence of approved legal content."
+    },
+    {
+      "function": "public.rpc_delete_abandoned_intake_conversation(uuid)",
+      "bodyMd5": "5829cbb6998255adae020793dd18ff33",
+      "assessment": "Has explicit auth.uid() requirement and owner-scoped lookup. PUBLIC/anon EXECUTE is unnecessary surface; no unauthenticated deletion exploit established by this read-only inspection. No grant or business deletion changed."
+    }
+  ],
+  "otherAdvisories": {
+    "securityDefinerAuthenticated": 201,
+    "unindexedForeignKeys": 93,
+    "rlsEnabledWithoutPolicy": 123,
+    "pgNetExtensionInPublic": true,
+    "leakedPasswordProtectionDisabled": true
+  },
+  "limits": [
+    "Advisor counts are review leads, not independently proven exploits.",
+    "No blanket grant changes, index creation, extension relocation or data deletion.",
+    "R01 legacy-key revocation and R10 retention/export approval remain release gates."
+  ],
+  "observedDateUtc": "2026-11-08",
+  "advisorSnapshotAtUtc": "2026-11-08T00:47:55.122Z"
+}

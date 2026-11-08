@@ -1,0 +1,32 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "live": {
+    "observed_at": "2026-11-08 01:28:58.293495+00",
+    "signature": "private.candidate_profile_ids_v1b(uuid,integer,integer)",
+    "body_md5": "c1505cb7784898875f37ecbc9c52d23c",
+    "prosecdef": true,
+    "provolatile": "s",
+    "proconfig": [
+      "search_path=pg_catalog"
+    ],
+    "acl": "{postgres=X/postgres}",
+    "owner": "postgres",
+    "version": "20261108012842",
+    "name": "p0_dispatch_saved_areas_20261108",
+    "exactLedgerBytes": true,
+    "canonicalFile": "supabase/migrations/20261108012842_p0_dispatch_saved_areas_20261108.sql",
+    "cliGeneratedFile": "20261108012558_p0_dispatch_saved_areas_20261108.sql",
+    "sha256": "2757c91c51bc90d561bbbb31a9b5b11d92f8d56e0e6fac801a8d685626787983",
+    "bytes": 2002
+  },
+  "activeCaller": "private.dispatch_next_wave(uuid)",
+  "activeCallerBodyMd5": "d3cdfe2bdd6e5d40a74e6029793c89c5",
+  "runtime": {
+    "needsChecked": 4,
+    "candidatesBefore": 0,
+    "candidatesAfter": 0,
+    "unchangedOnExistingData": true,
+    "allCanonicallyAdmitted": true
+  },
+  "limitations": "Existing DEV tasks have no admitted candidate in this check. Positive far-pin/saved-area proof uses isolated synthetic tests, not this empty result. No dispatch run or business writes."
+}

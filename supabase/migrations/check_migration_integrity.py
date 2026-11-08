@@ -36,6 +36,7 @@ WORKER_NOW_SCHEDULE_FIT_FILES = ["20261107222231_worker_now_schedule_fit_paused_
 # Frozen catalog facts extracted from archived receipts and dated read-only captures.
 # Pin their canonical JSON bytes independently of the editable provenance entries.
 CATALOG_EVIDENCE_SHA256 = {
+    'inline:dev_forward_catalog_20261108_capacity_readers': '95d75d56271bb33678d4ac5f53a6eeee576651576ca2d94f072726f6cda9179c',
     'inline:dev_forward_catalog_20261108_push_capacity': '2e7a2294e0f6f54dad9f364a2686be58d642db95c469e7e5c694617697a163fd',
     'inline:dev_late_catalog_20261108': 'bab1887819c835dece2e96c4063dcf3722c6427fadbeaa636f2e39513151cd6e',
     'supabase/operations/dev-alpha/ledger/20261021_server_package.receipt.json':
@@ -420,7 +421,20 @@ def main() -> None:
             fail("Nov-8 bounded push requires exact applied ledger bytes")
         if late_names and push_names[0] <= late_names[-1]:
             fail("Nov-8 bounded push must follow the reconciled history")
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names != disk_names:
+    capacity_section = metadata.get("forward_execution_20261108_capacity_readers")
+    capacity_names = []
+    if capacity_section:
+        capacity_names = check_physical_suffix(capacity_section, manifest_map, load_catalog_evidence(capacity_section))
+        expected_capacity = ['20261108012341_r09_agreement_groups_20261108.sql', '20261108012344_r09_public_profiles_batch_20261108.sql', '20261108012644_p0_discovery_materialization_20261108.sql', '20261108012842_p0_dispatch_saved_areas_20261108.sql']
+        if capacity_names != expected_capacity or any(
+            row.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+            or row.get("version") != row.get("live_version")
+            for row in capacity_section.get("entries", [])
+        ):
+            fail("Nov-8 capacity readers require four exact applied ledger records")
+        if push_names and capacity_names[0] <= push_names[-1]:
+            fail("Nov-8 capacity readers must follow the push forward migration")
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
