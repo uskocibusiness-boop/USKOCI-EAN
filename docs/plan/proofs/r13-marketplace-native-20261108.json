@@ -1,0 +1,215 @@
+{
+  "recordedAt": "2026-11-08T22:50:06.143Z",
+  "sourceBaseHead": "a9d77308f2bd471348384710e89cf5bcba2cfcf3",
+  "boundary": "SOURCE_ONLY_NATIVE_POSTGRESQL_17_MARKETPLACE_MAINTENANCE_NO_HOSTED_MUTATIONS",
+  "candidateSha256": "ce4bce60f9dfbe9bc9933073814a1b82f9d362ec9fdd4afe604683ce4303c2a4",
+  "dispatchCandidateSha256": "d2d97f4a303b188678e85f69e7e624cce0a0a82b0b360eb0e00b9f7acee26d71",
+  "preimageSha256": "481df903d2e5ad57b4cc84aa8951693bd74cd68f3958990f49f9260f06a5b50b",
+  "fixtureSha256": "87ca76181728c2cbdc43250cd16e492018ffe19fc930f52f20884c697c363ddb",
+  "harnessSha256": "26c3d44e5ca34197e7c295f062d33bdf421e486cf512196b6d18275957b50fa2",
+  "f20OverlaySha256": "18bcc433a36dec266fd4199debad5bbc9337996b9cba46e34b5b26bf97383acf",
+  "maintenanceOwners": [
+    {
+      "signature": "private.ai_turn_sweep_v5(timestamp with time zone)",
+      "bodyMd5": "9d89b9af2e893bc608e7598d175551b7"
+    },
+    {
+      "signature": "private.claim_retention_job(uuid)",
+      "bodyMd5": "88bbd0588c94770b39b031fa37623b60"
+    },
+    {
+      "signature": "private.data_export_maintenance(integer)",
+      "bodyMd5": "95448ab2792ff3ff1929c39c33166993"
+    },
+    {
+      "signature": "private.execute_retention_job(uuid,uuid)",
+      "bodyMd5": "2842dd02281aa105962a323bd0cd9a86"
+    },
+    {
+      "signature": "private.expire_lifecycle(timestamp with time zone)",
+      "bodyMd5": "2e13f16eb5f760c1a8a3ebbf59fb60a9"
+    },
+    {
+      "signature": "private.expire_urgent(timestamp with time zone)",
+      "bodyMd5": "f2fac2a1bd06331cc8758211ac0673aa"
+    },
+    {
+      "signature": "private.retention_maintenance(integer)",
+      "bodyMd5": "ceee19079bba714fd2b02b438c7eac86"
+    },
+    {
+      "signature": "private.sync_need_completion(uuid)",
+      "bodyMd5": "c88bcaee9c51ba09bf7db84a43d33095"
+    },
+    {
+      "signature": "rpc_tick_auto_completion()",
+      "bodyMd5": "b617890420e11846dbe528ffc4d800d7"
+    },
+    {
+      "signature": "private.audit_marketplace(uuid,text,text,uuid,integer,jsonb)",
+      "bodyMd5": "ef33e1d34afb1507071c47253a13c9b2"
+    },
+    {
+      "signature": "private.closure_account_key(uuid)",
+      "bodyMd5": "2dde6ad2462255b188e4f03ffe88edcd"
+    },
+    {
+      "signature": "private.closure_account_restricted(uuid)",
+      "bodyMd5": "f4999250c315e0253374d4611291c7ad"
+    },
+    {
+      "signature": "private.retention_ai_candidate(uuid)",
+      "bodyMd5": "10d5582f39de68ed47afa28042246d22"
+    },
+    {
+      "signature": "private.retention_ai_source_ready()",
+      "bodyMd5": "b89891cd3eb5f327bd642a160e5a2e81"
+    },
+    {
+      "signature": "private.retention_execution_binding()",
+      "bodyMd5": "24adda1c25a113b458c0209cdf91065a"
+    },
+    {
+      "signature": "private.after_need_revision()",
+      "bodyMd5": "645eb3b7dbcc4ec37df8e5298a382d5f"
+    },
+    {
+      "signature": "private.closure_source_digest_v5()",
+      "bodyMd5": "41e54d223122b58decd25cf66191470a"
+    },
+    {
+      "signature": "private.enqueue_on_need_change()",
+      "bodyMd5": "3f7d263b9e1724e683c9c920ed782550"
+    },
+    {
+      "signature": "private.guard_closed_remaining_search_response()",
+      "bodyMd5": "cf3da799fac158812bbbc549def026a7"
+    },
+    {
+      "signature": "private.guard_need_write()",
+      "bodyMd5": "cfbf899e4e388d0fe459ef0ba956f8a4"
+    },
+    {
+      "signature": "private.guard_urgent_need()",
+      "bodyMd5": "f71abd4eb5a5adf015f080d5ecff8b67"
+    },
+    {
+      "signature": "private.set_updated_at()",
+      "bodyMd5": "d2ba7342ae061b491b5ec4bb74fb81c4"
+    }
+  ],
+  "selectedActualTriggers": {
+    "needs": [
+      "needs_guard_write",
+      "needs_guard_urgent",
+      "needs_enqueue_dispatch",
+      "needs_after_revision",
+      "needs_set_updated_at"
+    ],
+    "marketplace_responses": [
+      "guard_closed_remaining_search_response_trg",
+      "marketplace_responses_set_updated_at"
+    ],
+    "agreements": [
+      "agreements_set_updated_at"
+    ],
+    "agreement_execution": [
+      "agreement_execution_set_updated_at"
+    ],
+    "need_selections": [
+      "need_selections_set_updated_at"
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "real six-phase cycle: late export error preserves expiry, actual F20 dispatch and completion; retry finishes without duplicated business effects",
+      "result": {
+        "f20BodyMd5": "34dcf47d654d5960fbf7254c28745a04",
+        "actualPhaseEffects": [
+          "EXPIRY",
+          "DISPATCH",
+          "COMPLETION",
+          "EXPORT",
+          "AI"
+        ],
+        "independentEffectTransactions": 5,
+        "retentionGate": {
+          "code": "POLICY_NOT_READY",
+          "state": "NOT_READY",
+          "deferred": 0,
+          "storageCleanup": "NOT_APPLICABLE",
+          "deletedConversations": 0
+        },
+        "exportFailureSqlstate": "P0001",
+        "earlierCommittedPhases": 3,
+        "failedExportPurgeRolledBack": true,
+        "staleNeedWorkerQaCommandsEnded": 3,
+        "freshLeasesUnchanged": 3,
+        "providerDispatchedPreserved": true,
+        "completionNotificationCount": 1,
+        "retryBusinessSnapshotIdentical": true,
+        "storageDeleted": false,
+        "selectedLifecycleGuardsExecuted": true
+      },
+      "elapsedMs": 151.320291
+    },
+    {
+      "name": "actual export owner preserves raw batch clamp and active snapshot lease; AI publication sweep keeps its independent100 cap",
+      "result": {
+        "exportBatch0": 1,
+        "exportBatch201": 100,
+        "temporarySnapshotsPurged": 101,
+        "oneActiveSyntheticPolicy": true,
+        "actualPolicyUniqueIndexEnforced": true,
+        "activeLeaseSnapshotHeld": true,
+        "verifiedSnapshotPurged": true,
+        "aiReviewFirst": 100,
+        "aiReviewNext": 1,
+        "aiErrors": []
+      },
+      "elapsedMs": 191.164129
+    },
+    {
+      "name": "actual completion owner keeps its independent100 cap with wrapper batch1 and completes the101st on retry",
+      "result": {
+        "wrapperBatch": 1,
+        "eligibleAgreements": 101,
+        "firstCompleted": 100,
+        "nextCompleted": 1,
+        "completionTransactions": 2,
+        "completionEvents": 101,
+        "duplicateEvents": 0,
+        "selectedLifecycleGuardsExecuted": true
+      },
+      "elapsedMs": 1108.672693
+    },
+    {
+      "name": "native explicit transaction and unauthorized role reject scheduler entry without partial lifecycle changes",
+      "result": {
+        "outerTransactionSqlstate": "2D000",
+        "uncommittedExpiryRolledBack": true,
+        "deniedRoles": [
+          "anon",
+          "authenticated",
+          "service_role"
+        ],
+        "sourceOnlySentinel": true
+      },
+      "elapsedMs": 72.08532
+    }
+  ],
+  "limitations": [
+    "Synthetic data in the captured matcher/F20 graph; no user data, live provider, network wake, Storage deletion or hosted DDL.",
+    "All invoked maintenance bodies are captured unchanged. Selected real Need/response lifecycle guards and timestamp triggers execute. Fixture input creation deliberately bypasses application writers.",
+    "The base fixture omits foreign keys and external closure, safety, group/calendar, connection activation and invalidation triggers. This is not a full Supabase trigger-graph or security acceptance proof.",
+    "Retention executes its real POLICY_NOT_READY gate with no retention execution certificate. Positive retention deletion, legal approval and full source-digest readiness remain unproven and unmodified.",
+    "Expiry/urgent work and three AI command updates remain bulk operations. Six separate phase transactions do not establish a bound on those phases or on whole-CALL latency.",
+    "Transaction segmentation intentionally changes crash atomicity: earlier phases remain committed. Retry starts from expiry and reconciles already committed current owner states.",
+    "Actual native runtime differs from hosted PostgreSQL minor version; hosted procedure ownership, role/ACL/SET behavior, scheduler connection reuse and Cron acceptance remain release gates.",
+    "The full-file source sentinel remains active. No Cron command or hosted object was changed by this test."
+  ],
+  "postgres": "PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "postgis": "3.5.2",
+  "completedAt": "2026-11-08T22:50:10.397Z",
+  "result": "PASS"
+}

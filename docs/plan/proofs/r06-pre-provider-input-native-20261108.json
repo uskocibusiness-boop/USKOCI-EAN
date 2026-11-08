@@ -1,0 +1,170 @@
+{
+  "recordedAt": "2026-11-08T22:58:44.864Z",
+  "scope": "SOURCE_ONLY_BOUNDED_TEXT_COMMAND_CONTRACT",
+  "runtimeHandlersChanged": false,
+  "sourceSha256": "bbf3aff6c268136c4a01ecfb07826b7b467f6dcc227b5f27748fe43db9a72a12",
+  "cases": [
+    {
+      "name": "whole candidate is blocked and does not install columns",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "guarded installation preserves exact existing dispatch/reservation/usage bodies",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "new executors are service-only and command tables stay private",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: prepare atomically reserves once and returns immutable reconstructible input",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: altered same-key input and wrong account/attempt cannot replace the snapshot",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: existing dispatch still wins once; post-dispatch recovery never renews permission",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: expired, changed-source, cancelled and closing ownership stay closed",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: real export includes owned snapshot; held-aware redaction removes input without clearing dispatch",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: undispatched redaction is ERASED and cannot repopulate its reservation",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: committed preparation survives abrupt process exit; new process needs IDs only",
+      "result": {
+        "terminatedExit": 73,
+        "freshProcessInput": "IDENTIFIERS_ONLY",
+        "syntheticDispatchDecisions": 1,
+        "providerNetworkCalls": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: budget lock wait crossing the original lease rolls reservation and snapshot back",
+      "result": {
+        "observedBudgetLockWait": true,
+        "originalLeaseExpired": true,
+        "reservations": 0,
+        "counter": 0,
+        "preparedInputs": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: prepare atomically reserves once and returns immutable reconstructible input",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: altered same-key input and wrong account/attempt cannot replace the snapshot",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: existing dispatch still wins once; post-dispatch recovery never renews permission",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: expired, changed-source, cancelled and closing ownership stay closed",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: real export includes owned snapshot; held-aware redaction removes input without clearing dispatch",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: undispatched redaction is ERASED and cannot repopulate its reservation",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: committed preparation survives abrupt process exit; new process needs IDs only",
+      "result": {
+        "terminatedExit": 73,
+        "freshProcessInput": "IDENTIFIERS_ONLY",
+        "syntheticDispatchDecisions": 1,
+        "providerNetworkCalls": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: budget lock wait crossing the original lease rolls reservation and snapshot back",
+      "result": {
+        "observedBudgetLockWait": true,
+        "originalLeaseExpired": true,
+        "reservations": 0,
+        "counter": 0,
+        "preparedInputs": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "unprepared legacy reservation is never adopted or reset",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "settled reservation makes prepare replay and fresh read non-executable",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "post-reservation size failure rolls snapshot and actual budget owner back together",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "inline media and oversize input are refused only by this inactive candidate contract before any reservation",
+      "result": {},
+      "status": "PASS"
+    },
+    {
+      "name": "missing role, null catalog fingerprint and extra generation cost controls fail closed",
+      "result": {},
+      "status": "PASS"
+    }
+  ],
+  "failures": [],
+  "limitations": [
+    "No active Edge handler invokes this contract. This is not end-to-end Need/Worker restart or production activation.",
+    "Photos/location replies are outside this bounded text-only contract. Existing accepted input/runtime behavior is unchanged.",
+    "Synthetic data, no external model/HTTP/Auth/device call. A fixture row represents an invocation decision, not provider billing or delivery.",
+    "Captured Need context, both dispatch owners, budget reservation, export and held-aware redaction bodies execute real SQL.",
+    "Worker profile hash/document/service-mode assembly have explicit narrow SQL seams; actual Worker read-context and dispatch bodies are unchanged.",
+    "Existing leases are never renewed. Expired/failed/changed-source/cancelled/dispatched commands cannot resume this contract.",
+    "Known-usage and completion runtime paths are unchanged; no new receipt or billing improvement is claimed.",
+    "Private export/redaction projections are tested; public policy certification, full erasure worker and large multi-command export capacity remain outside this proof."
+  ],
+  "artifactSha256": {
+    "r06-pre-provider-input-fixture.cjs": "c706d874678a70f0006a80df062551e98ea7aae7d6975b6d649683abef6ad3ee",
+    "r06-pre-provider-input.test.cjs": "dbc25c941d76e0e59a99de4b28fa0ad1463a77f33a635feba83ce0d93f22ea39",
+    "r06-pre-provider-input-process.cjs": "fcd5bcbe0ba976e23b524f1ee5d432cb0901806f0c2388d37cc15515ba96f734",
+    "sql/r06_pre_provider_input_20261108.preimage.json": "164260e09f84b60b0ace0e21a4ee3d39a3e15f73aa193715de99ebb711ab39e8",
+    "sql/r06_pre_provider_input_20261108.budget-schema.json": "4e143895dd0229c027ba92859cb33eb1afd0db4210a0cd853d22fb0e4d66ea06"
+  },
+  "result": "PASS",
+  "completedAt": "2026-11-08T22:58:50.750Z"
+}

@@ -1,0 +1,130 @@
+{
+  "schema": "USKOCI_RECOVERED_CONTINUATION_LOCAL_INTEGRATION_V1",
+  "recordedAt": "2026-11-08T23:05:36.184420+00:00",
+  "recoveredRemoteBase": "76dd409a929b7d133fb63da4ed840762778baa27",
+  "localCoreCommit": "a9d77308f2bd471348384710e89cf5bcba2cfcf3",
+  "boundary": "LOCAL_FINAL_SOURCE_CHECKS_NOT_NEW_CI_APK_OR_DEVICE_PROOF",
+  "sourceWorktreeFingerprint": {
+    "algorithm": "SHA256 of sorted unique Git indexed and untracked nonignored regular-file paths outside docs/, each UTF-8 path + NUL + file SHA256 hex + LF",
+    "fileCount": 1356,
+    "sha256": "726fa49cce583b24e71475565ff56c07b4c0095f9117b284b492bbeb40c850e5"
+  },
+  "nodeCounts": {
+    "tests": 1185,
+    "pass": 1185,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "migrationFiles": 228,
+  "migrationIntegrityTests": 52,
+  "checks": {
+    "node": {
+      "command": "npm test",
+      "exitCode": 0,
+      "elapsedSeconds": 137.50280121200194,
+      "completedAt": "2026-11-08T23:02:09.991152+00:00",
+      "logSha256": "868b7a4ee8d85f2a815bac5049528fe525139bcac828b319b148a43a05533911"
+    },
+    "ts": {
+      "command": "tsc --noEmit",
+      "exitCode": 0,
+      "elapsedSeconds": 41.1188042030044,
+      "completedAt": "2026-11-08T23:00:33.607134+00:00",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "migrations": {
+      "command": "sh supabase/migrations/check_md5.sh",
+      "exitCode": 0,
+      "elapsedSeconds": 0.6974634869984584,
+      "completedAt": "2026-11-08T22:59:53.188317+00:00",
+      "logSha256": "e629e26f9845be484266953c45051f1228c84116d6eda01bd5a92bbf1cd717be"
+    }
+  },
+  "sourceGates": {
+    "completedAt": "2026-11-08T23:04:48.912587+00:00",
+    "results": [
+      {
+        "command": [
+          "node",
+          "scripts/verify-native-patches.cjs"
+        ],
+        "exitCode": 0,
+        "elapsedSeconds": 0.212
+      },
+      {
+        "command": [
+          "node",
+          "scripts/verify-native-patches.cjs",
+          "--repo"
+        ],
+        "exitCode": 0,
+        "elapsedSeconds": 0.148
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/qa-gradle-bootstrap.test.py"
+        ],
+        "exitCode": 0,
+        "elapsedSeconds": 2.468
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/test_apk_audio_resources.py"
+        ],
+        "exitCode": 0,
+        "elapsedSeconds": 0.523
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/test_verify_qa_apk_r2.py"
+        ],
+        "exitCode": 0,
+        "elapsedSeconds": 1.923
+      },
+      {
+        "command": [
+          "node",
+          "scripts/record-ux-checkpoint.cjs",
+          "--verify-source"
+        ],
+        "exitCode": 0,
+        "elapsedSeconds": 0.111
+      }
+    ],
+    "logSha256": "9f29ea06860317c48c46cff6a340e4b44157db2d00ed015bf18ab1972c62399c"
+  },
+  "independentReview": {
+    "reviewerTask": "/root/r13_maintenance",
+    "result": "PASS",
+    "scope": "R06 current and staged artifact SHA consistency; identifiers-only resume arguments; R13 current artifact/F20 overlay hashes; registration; final scope claims"
+  },
+  "proofSha256": {
+    "r09-applicant-suppression-dev-20261108.json": "607b8c613e3fd2f26d439b63870c8e3720060689624882e03b0328e7e55d44c2",
+    "r09-applicant-suppression-native-20261108.json": "83208e5153a71a8831cc002505319a61b043f5e404da7f7b35d15e1496230612",
+    "r09-foreground-recipient-20261108.json": "4fdf874de17f24a42bce1b3ca6e0110c80df9675d9a68d47ea14bc6cd395a61a",
+    "r13-profile-sweep-native-20261108.json": "c96f7a492cd5e228152666e076a0309e740ec0a2e963ae9f9bf01b93847f6735",
+    "r13-marketplace-native-20261108.json": "c8857ef8af308f4a403985c637b45845a5e5ee0b8e5c13d73db2d4c0fe373ef0",
+    "r06-pre-provider-input-pglite-20261108.json": "e333429cd8f6a2ac6160526acdced658277d35d60b50d05cde00fe42acdb86ba",
+    "r06-pre-provider-input-native-20261108.json": "6f02511705f57a8bc211db9d2aad6ed1b94f29b0a46d8a13769afab907ca506c"
+  },
+  "dev": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "migrationCount": 365,
+    "onlyAppliedMigrationThisContinuation": "20261108222329_r09_applicant_suppression_20261108",
+    "r13CooperativeActive": false,
+    "r06PreparedInputHandlerActive": false,
+    "edgeRedeploy": false
+  },
+  "limitations": [
+    "Final GitHub CI and APK must be tied to their exact source commit and independently verified separately.",
+    "No physical Android, Firebase/FCM delivery, custom system sound activation or end-to-end provider invocation is established.",
+    "R06 bounded text SQL remains source-only; existing dispatch path, leases, photo/location and usage recovery boundaries remain documented.",
+    "R13 isolated cooperative procedure is not hosted and does not close remaining bulk phase bounds, diagnostics, full trigger/FK parity or hosted CALL/Cron acceptance.",
+    "No production mutation, public release, paid provider call or real push send was performed."
+  ]
+}
