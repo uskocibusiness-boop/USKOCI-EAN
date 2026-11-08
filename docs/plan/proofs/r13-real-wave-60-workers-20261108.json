@@ -18,8 +18,9 @@
         "4df1472f6745ade42c8651717927c53e8c992a43"
       ],
       "git_blob": "62560e84411a78a6c61a1dc13c86de017186e45f",
-      "sha256": "NOT_PROVIDED_IN_THIS_PROOF",
-      "verification": "2 tests use captured exact live dispatch_next_wave and dispatch_config_v1b SQL definitions with synthetic worker admission and event sink"
+      "sha256": "6a7fc89acce56874d1c73fdaafe7120eb35968d024dc86049bf6b245248a2ef1",
+      "verification": "2 tests use captured exact live dispatch_next_wave and dispatch_config_v1b SQL definitions with synthetic worker admission and event sink",
+      "raw_bytes": 9136
     },
     {
       "path": "package.json",
