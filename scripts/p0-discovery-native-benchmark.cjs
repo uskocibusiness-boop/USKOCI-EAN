@@ -40,7 +40,13 @@ function nestedPlans(log){
  return plans;
 }
 class NativeFixture {
- constructor(){this.client=new Client({host:'127.0.0.1',port,user:'postgres',database:'postgres'});this.ready=this.client.connect();}
+ constructor(){
+  this.client=new Client({host:'127.0.0.1',port,user:'postgres',database:'postgres'});db=this;
+  this.ready=this.client.connect().then(async()=>{
+   const probe=await this.client.query("select current_setting('data_directory') as directory");
+   assert.equal(probe.rows[0].directory,data,'refuse a pre-existing server on the local fixture port');
+  });
+ }
  async query(text,values=[]){await this.ready;return this.client.query(text,values);}
  async exec(text){
   // Only the fixture's geography stub is replaced. The deployed RPC, grants,
@@ -57,7 +63,7 @@ const fixtureRequire=name=>name==='@electric-sql/pglite'?{PGlite:NativeFixture}:
 const baseline=new Function('require','__dirname',source.slice(0,firstTest.getStart(parsed))+'\nreturn {fixture,filter,page,clean,N,B};')(fixtureRequire,__dirname);
 const {filter,page,clean,N,B}=baseline;
 const percentile=(sorted,p)=>sorted[Math.min(sorted.length-1,Math.ceil(sorted.length*p)-1)];
-async function main(){
+async function startFixture(){
  const init=spawnSync(path.join(bin,'initdb'),['-D',data,'-L',share,'-U','postgres','-A','trust','--no-locale','-E','UTF8'],{env,encoding:'utf8'});
  if(init.status!==0)throw new Error('Isolated initdb failed: '+init.stderr);
  const log=fs.openSync(serverLog,'w');
@@ -72,6 +78,10 @@ async function main(){
   await new Promise(resolve=>setTimeout(resolve,50));
  }
  const fixture=await baseline.fixture();db=fixture.db;
+ return fixture;
+}
+async function main(){
+ const fixture=await startFixture();
  const {actor,value,raw}=fixture;
  const columns=JSON.parse(sql('r05_discovery_contract_20261107.preimage.json')).needsState.columns.map(c=>c.name).filter(n=>n!=='approx_geog');
  const template=await value('select to_jsonb(n) as value from public.needs n where id=$1',[N]);
@@ -122,8 +132,10 @@ async function main(){
  fs.mkdirSync(path.dirname(path.resolve(output)),{recursive:true});fs.writeFileSync(output,JSON.stringify(result,null,2)+'\n');
  console.log('Evidence: '+path.resolve(output));
 }
-main().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{
+async function stopFixture(){
  if(db)await db.close();
  if(server&&server.exitCode===null){const stopped=once(server,'exit');server.kill('SIGTERM');await stopped;}
  fs.rmSync(temporary,{recursive:true,force:true});
-});
+}
+module.exports={startFixture,stopFixture};
+if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;}).finally(stopFixture);

@@ -1,0 +1,44 @@
+{
+  "capturedAt": "2026-11-08T01:28:44.195Z",
+  "postgres": "PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "postgis": "POSTGIS=\"3.5.2 dea6d0a\" [EXTENSION] PGSQL=\"170\" GEOS=\"3.13.1-CAPI-1.19.2\" PROJ=\"9.6.0 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/home/agent/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db\" (compiled against PROJ 9.5.1) LIBXML=\"2.9.14\" LIBJSON=\"0.18\" LIBPROTOBUF=\"1.5.1\" WAGYU=\"0.5.0 (Internal)\"",
+  "farPinDistanceMeters": 356258.2721593,
+  "checks": [
+    {
+      "name": "native PostGIS far-pin exceeds300km, canonical matcher admits saved area",
+      "passed": true
+    },
+    {
+      "name": "capped reader now retains the same saved-area worker",
+      "passed": true
+    },
+    {
+      "name": "all physical execution modes retain parity",
+      "passed": true
+    },
+    {
+      "name": "REMOTE retains the canonical reader result",
+      "passed": true
+    },
+    {
+      "name": "near and absent pins do not duplicate the saved-area worker",
+      "passed": true
+    },
+    {
+      "name": "daily cap still rejects and null cap still delegates",
+      "passed": true
+    },
+    {
+      "name": "revision-aware delivery deduplication is unchanged",
+      "passed": true
+    },
+    {
+      "name": "actual rollback restores the previous capped result",
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Isolated native PostgreSQL/PostGIS, synthetic accounts/tasks only; no hosted deployment, push delivery or concurrency test.",
+    "Actual candidate bodies, cheap gate and canonical fit/match execute. Work-area geometry/taxonomy and account lineage remain the explicitly bounded R05 fixture; no claim of full matcher end-to-end or spatial index performance."
+  ]
+}
