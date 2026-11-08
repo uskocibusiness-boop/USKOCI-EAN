@@ -79,6 +79,14 @@ test('P0 Discovery executes filter pushdown with full wire/authority parity',asy
    for(const groupBy of ['CITY','AREA'])for(const prefix of ['','Nis','НИШ'])
     await compare({mode:'PLACES',filter:filter({forMe:true,minBudgetRsd:1000}),anchor:null,prefix,facetArea:null,limit:1,after:null,groupBy});
   });
+  await t.test('MAP and PLACES with selective filters and any-time do not expose PAGE availability',async()=>{
+   for(const change of [{where:'remote'},{where:'onsite'},{price:'MY_PRICE'},{price:'OFFERS'},{minBudgetRsd:1000}]){
+    const map=await compare({mode:'MAP',filter:filter(change),anchor:null,bounds:[-180,-90,180,90],grid:24});
+    const places=await compare({mode:'PLACES',filter:filter(change),anchor:null,prefix:'',facetArea:null,limit:30,after:null});
+    assert.equal(Object.hasOwn(map.before,'availability'),false);assert.equal(Object.hasOwn(map.after,'availability'),false);
+    assert.equal(Object.hasOwn(places.before,'availability'),false);assert.equal(Object.hasOwn(places.after,'availability'),false);
+   }
+  });
   await t.test('EXACT_PUBLIC still denies draft, closed and other-world tasks; anon and closed account fail',async()=>{
    for(const needId of [N,id(2),D,OTHER,CLOSED])await compare({mode:'EXACT_PUBLIC',needId});
    for(const who of [A,B,C])await compare(page(),who);
@@ -122,6 +130,13 @@ test('P0 Discovery executes filter pushdown with full wire/authority parity',asy
    const allBefore=await measure(false,null,page()),allAfter=await measure(true,allBefore.result.anchor,page());
    assert.deepEqual(clean(allAfter.result),clean(allBefore.result));
    assert.equal(allAfter.calls,allBefore.calls,'unfiltered PAGE must reuse base, not compute another global schedule traversal');
+   for(const query of [
+    {mode:'MAP',filter:filter({price:'MY_PRICE',where:'onsite'}),anchor:null,bounds:[-180,-90,180,90],grid:24},
+    {mode:'PLACES',filter:filter({price:'MY_PRICE',where:'onsite'}),anchor:null,prefix:'',facetArea:null,limit:30,after:null}]){
+    const modeBefore=await measure(false,null,query),modeAfter=await measure(true,modeBefore.result.anchor,query);
+    assert.deepEqual(clean(modeAfter.result),clean(modeBefore.result));
+    assert.equal(modeBefore.calls,0);assert.equal(modeAfter.calls,0,'any-time MAP/PLACES must not evaluate schedule availability');
+   }
    await db.exec('reset role');
    const fixtureRows=Number(await value('select count(*) as value from public.needs'));
    t.diagnostic(JSON.stringify({fixtureRows,matched:20,scheduleHelperCalls:{before:before.calls,after:after.calls},

@@ -51,7 +51,8 @@ DECLARE
    then jsonb_build_object('hasKnownWorkMode',exists(select 1 from base where execution_location_mode is not null),
    'hasKnownSchedule',exists(select 1 from base where days is not null),'priceModes',(select coalesce(jsonb_agg(mode order by mode),'[]') from (select distinct mode from base) modes))
    else jsonb_build_object('hasKnownWorkMode',exists(select 1 from unfiltered where execution_location_mode is not null),
-   'hasKnownSchedule',exists(select 1 from unfiltered where public.p6_discovery_days(schedule_kind,starts_at,ends_at,task_timezone,time_at) is not null),
+   'hasKnownSchedule',exists(select 1 from unfiltered where (case when request_mode in ('MAP','PLACES') and when_mode='any' and range_from is null then null::text[]
+     else public.p6_discovery_days(schedule_kind,starts_at,ends_at,task_timezone,time_at) end) is not null),
    'priceModes',(select coalesce(jsonb_agg(mode order by mode),'[]') from (select distinct mode from unfiltered) modes)) end)$new_availability$;
 BEGIN
  IF target IS NULL THEN RAISE EXCEPTION 'P0_DISCOVERY_MISSING'; END IF;
