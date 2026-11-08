@@ -24,13 +24,18 @@ async function fixture(){
  insert into private.probe_events values ('SWEEP',NULL,pg_current_xact_id());
  return '{}'::jsonb;
  end $$;
- create function private.dispatch_next_wave(nid uuid) returns jsonb language plpgsql as $$
- declare k text;
+ create function private.dispatch_next_wave(nid uuid) returns jsonb language plpgsql as $
+ declare k text; v_used integer;
  begin
  select probe_kind into strict k from public.needs where id=nid;
+ if k in ('LIMITED','LIMITED_FAIL') then
+   v_used:=coalesce(nullif(current_setting('v1b.notified',true),'')::integer,0);
+   if v_used>=2 then return jsonb_build_object('status','SENT','waiting',true,'deadlineAt',statement_timestamp()); end if;
+   perform set_config('v1b.notified',(v_used+1)::text,true);
+ end if;
  insert into private.probe_events values ('WAVE',nid,pg_current_xact_id());
- if k='FAIL' then raise exception 'PROBE_FAIL'; end if;
- if k='SENT' then return jsonb_build_object('status','SENT','deadlineAt','2026-11-08T15:15:00Z'); end if;
+ if k in ('FAIL','LIMITED_FAIL') then raise exception 'PROBE_FAIL'; end if;
+ if k in ('SENT','LIMITED') then return jsonb_build_object('status','SENT','deadlineAt','2026-11-08T15:15:00Z'); end if;
  if k='FILLED' then return jsonb_build_object('status','STOPPED','reason','SLOTS_FILLED'); end if;
  return jsonb_build_object('status','STOPPED','reason','NO_ELIGIBLE_CANDIDATES');
  end $$;
@@ -95,5 +100,31 @@ test('injected scheduler crash after first commit cannot undo completed Need; re
   await db.exec(`CALL private.dispatch_cooperative_candidate(2,'${B}'::timestamptz)`);
   const events=await rows(db,"select need_id from private.probe_events where event='WAVE' order by need_id");
   assert.deepEqual(events.map(x=>x.need_id),[id(1),id(2)]);
+ }finally{await db.close();}
+});
+
+
+test('cooperative budget is carried across commits, without exceeding the old per-cycle ceiling',async()=>{
+ const db=await fixture();try{
+  await seed(db,['LIMITED','LIMITED','LIMITED']);
+  await db.exec(executable);
+  await db.exec("CALL private.dispatch_cooperative_candidate(3,'"+B+"'::timestamptz)");
+  const events=await rows(db,"select need_id,transaction_id::text as tx from private.probe_events where event='WAVE' order by need_id");
+  assert.deepEqual(events.map(x=>x.need_id),[id(1),id(2)],'third wave must wait after cycle allowance 2');
+  assert.equal(new Set(events.map(x=>x.tx)).size,2,'successful waves still commit independently');
+  const states=await rows(db,"select need_id,last_status from private.dispatch_schedule order by need_id");
+  assert.ok(states.every(x=>x.last_status==='SENT'),'deferred entry remains queued with exact next_run_at');
+ }finally{await db.close();}
+});
+
+test('cooperative budget ignores an exception-rolled-back reservation and admits next two workers',async()=>{
+ const db=await fixture();try{
+  await seed(db,['LIMITED_FAIL','LIMITED','LIMITED','LIMITED']);
+  await db.exec(executable);
+  await db.exec("CALL private.dispatch_cooperative_candidate(4,'"+B+"'::timestamptz)");
+  const events=await rows(db,"select need_id from private.probe_events where event='WAVE' order by need_id");
+  assert.deepEqual(events.map(x=>x.need_id),[id(2),id(3)]);
+  const first=(await rows(db,"select attempts,last_status from private.dispatch_schedule where need_id='"+id(1)+"'"))[0];
+  assert.deepEqual(first,{attempts:1,last_status:'ERROR'});
  }finally{await db.close();}
 });
