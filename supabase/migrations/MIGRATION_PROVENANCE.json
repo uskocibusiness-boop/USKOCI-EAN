@@ -4708,5 +4708,35 @@
         }
       ]
     }
+  },
+  "forward_execution_20261108_v11_quarantine": {
+    "classification": "APPLIED_EXACT_LEDGER_BYTES",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "file": "20261108140731_r12_quarantine_unverified_legal_v11_20261108.sql",
+    "version": "20261108140731",
+    "name": "r12_quarantine_unverified_legal_v11_20261108",
+    "source_sha256": "d594faa98fda7fab36dbfe6ad3e7cb6f2cfdeddbacd74664fbb068ee4362a000",
+    "source_md5": "f0755b5b6abda1eaa5b0183c4f21d1e9",
+    "source_bytes": 3843,
+    "recorded_statement_sha256": "d594faa98fda7fab36dbfe6ad3e7cb6f2cfdeddbacd74664fbb068ee4362a000",
+    "recorded_statement_md5": "f0755b5b6abda1eaa5b0183c4f21d1e9",
+    "recorded_statement_bytes": 3843,
+    "recorded_statement_count": 1,
+    "dry_run": "2026-11-08, rollback transaction produced ready=false and 0 active v1.1 document/map; no persistent change",
+    "apply": "MCP apply_migration success; exact recorded statement bytes verified",
+    "postflight": {
+      "legal_ready": false,
+      "reason": "LEGAL_DOCUMENTS_NOT_PUBLISHED",
+      "active_v11_documents": 0,
+      "active_v11_processor_maps": 0,
+      "historical_documents_retained": 4,
+      "historical_processor_entries_retained": 6,
+      "legal_acceptances": 0,
+      "accounts_unchanged": 16,
+      "needs_unchanged": 18,
+      "agreements_unchanged": 6
+    },
+    "boundary": "DEV only; this withdraws an unverified approval claim and does not establish Serbian legal clearance, website publication, or Android acceptance",
+    "rollback": "No automatic reactivation of unverified claims. Future forward migration only after independently verified legal documents and contracts."
   }
 }

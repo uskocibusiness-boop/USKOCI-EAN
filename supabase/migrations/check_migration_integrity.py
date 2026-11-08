@@ -448,7 +448,31 @@ def main() -> None:
             fail("Nov-8 capacity2 requires both exact applied ledger records")
         if capacity_names and capacity2_names[0] <= capacity_names[-1]:
             fail("Nov-8 capacity2 must follow the previous reader migrations")
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names != disk_names:
+    v11_section = metadata.get("forward_execution_20261108_v11_quarantine")
+    v11_names = []
+    if v11_section:
+        v11_file = "20261108140731_r12_quarantine_unverified_legal_v11_20261108.sql"
+        v11_names = [v11_file]
+        raw = (ROOT / v11_file).read_bytes()
+        if (v11_section.get("file") != v11_file
+            or v11_section.get("project") != "leqcwgzvjsxugfgzdmth"
+            or v11_section.get("version") != "20261108140731"
+            or v11_section.get("name") != "r12_quarantine_unverified_legal_v11_20261108"
+            or v11_section.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+            or len(raw) != 3843
+            or hashlib.md5(raw).hexdigest() != "f0755b5b6abda1eaa5b0183c4f21d1e9"
+            or hashlib.sha256(raw).hexdigest() != "d594faa98fda7fab36dbfe6ad3e7cb6f2cfdeddbacd74664fbb068ee4362a000"
+            or v11_section.get("source_md5") != "f0755b5b6abda1eaa5b0183c4f21d1e9"
+            or v11_section.get("source_sha256") != "d594faa98fda7fab36dbfe6ad3e7cb6f2cfdeddbacd74664fbb068ee4362a000"
+            or v11_section.get("recorded_statement_md5") != "f0755b5b6abda1eaa5b0183c4f21d1e9"
+            or v11_section.get("recorded_statement_sha256") != "d594faa98fda7fab36dbfe6ad3e7cb6f2cfdeddbacd74664fbb068ee4362a000"
+            or v11_section.get("recorded_statement_count") != 1
+            or manifest_map.get(v11_file) != "f0755b5b6abda1eaa5b0183c4f21d1e9"):
+            fail("R12 v1.1 quarantine does not match independently read back DEV ledger bytes")
+        if capacity2_names and v11_file <= capacity2_names[-1]:
+            fail("R12 v1.1 quarantine must follow capacity2 migrations")
+
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"

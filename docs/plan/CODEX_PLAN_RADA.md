@@ -1,5 +1,8 @@
 # USKOČI — jedinstveni plan dovršavanja proizvoda i objavljivanja
 
+<!-- USKOCI_R12_V11_REVIEWED_QUARANTINE_20261108 -->
+**Naknadni DEV checkpoint 08.11.2026 — R12 v1.1 pravna karantinska popravka (IZVRŠENO).** Uočena su dva nedokumentovana DEV pravna ledger upisa 20261108110012/20261108110019, posle prethodnog ispravnog povlačenja verzije v1.0. V1.1 je ponovo označen kao counsel-verified bez dokaza o odobrenju. Pod punim preimage MD5 proverama i kratkim zaključavanjima, SQL je prvo izvršen uz ROLLBACK i pokazao ready=false, a zatim primenjen na DEV kao ledger verzija **20261108140731**. Nakon primene `rpc_get_legal_bundle` vraća **ready=false / LEGAL_DOCUMENTS_NOT_PUBLISHED**, aktivnih v1.1 dokumenata/mapa ima **0/0**, istorijska 4 dokumenta i 6 stavki mape su sačuvani, pravnih prihvatanja 0 i korisničkih poslovnih redova bez promene. Source i tačni ledger bajtovi: `supabase/migrations/20261108140731_r12_quarantine_unverified_legal_v11_20261108.sql`, `scripts/sql/r12_quarantine_unverified_legal_v11_20261108.sql`; dokaz: `docs/plan/proofs/r12-v11-quarantine-dev-20261108.json`. Ovo je **DEV POTVRĐENO**, a **pravni release ostaje NO-GO**. R13 direktni DEV objekti i dalje nemaju odgovarajući ledger izvor, dispatch/P6 i native dokaz ostaju otvoreni; ovu evidenciju ne tumačiti kao pravno odobrenje.
+
 <!-- USKOCI_CAPACITY2_EXECUTION_20261108 -->
 ## Aktuelni izvršni checkpoint — 08.11.2026: nastavak posle QA58, izvedene izmene i povučena neproverena pravna gotovost
 
