@@ -1,0 +1,154 @@
+{
+  "schema": "USKOCI_R13_AI_P6_SOURCE_DEV_RECONCILIATION_V1",
+  "date": "2026-11-08",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "source_head_before_proof": "1ca64593dbd2c666afff01d0959b39f6536305c3",
+  "baseline_archive": {
+    "github_actions_run": 42489379066,
+    "commit": "559928efd0bf6de19988986e799d20e6c0f05dff",
+    "source_artifact": 13620792555,
+    "test_runtime_artifact": 13620233568
+  },
+  "changes": [
+    {
+      "id": "R13_PUSH_WAKE_LEDGER",
+      "source_commits": [
+        "2b57031ab65ddada4d0ca9f1e4ddbdabc481b498",
+        "8200f72eb1dd246891a77a258feb69b725e9f6d5",
+        "1e637d6d23973f8eeec36fcf4c0138f1bc843588",
+        "6db0f3d795bbdae0a603656baa733843608e266a",
+        "0912ee6d618e153641c2d9ed02fff73468ee04b0"
+      ],
+      "ledger_version": "20261108154914",
+      "ledger_name": "r13_coalesce_push_wake_20261108",
+      "dev_applied_prior": true,
+      "reapplied_during_this_work": false,
+      "sql_bytes": 4724,
+      "sql_md5": "25ad3acc139c8fb0d2d5c5d4fa117901",
+      "sql_sha256": "4f78f892cfc16ec130fb4dcc3a1b0f0ca37bda44f99b11ad0e8ed5d32599de03",
+      "wake_function_postimage_md5": "e00bb01c0c20392ab004f39154cf1bf7",
+      "limitation": "Optional transaction wake only; no completed provider push receipt or physical notification proof"
+    },
+    {
+      "id": "R06_AI_BUDGET_LATE_RESPONSE_CLEANUP",
+      "source_commits": [
+        "95e79aa8d0e7b2ffa8b7d1e49267d04727dc8906",
+        "81cad0f4d81f236f011f914541e08453ec012f2a"
+      ],
+      "shared_source_bytes": 9505,
+      "dev_equivalent_packages": [
+        "uskoci-ai-interview@195",
+        "uskoci-worker-interview@148",
+        "uskoci-speech-session@33"
+      ],
+      "divergent_dev_package_budgets": [
+        "uskoci-publication-evaluate@32",
+        "uskoci-qa-classify@31"
+      ],
+      "budget_limits_unchanged": true,
+      "paid_provider_calls": 0,
+      "limitation": "No assertion that all five Edge packages have identical helper bytes or rollout limits"
+    },
+    {
+      "id": "SUPPORT_CONTACT",
+      "source_commit": "c1d72215180ee25154ebb9cb68c565a708e6e424",
+      "file": "eas.json",
+      "preview_support": "uskoci.support@gmail.com",
+      "production_support": "uskoci.support@gmail.com",
+      "native_build_tested": false
+    },
+    {
+      "id": "P6_LEGACY_5001_REPRO_AND_KEYSET",
+      "source_commit": "1ca64593dbd2c666afff01d0959b39f6536305c3",
+      "file": "scripts/ux-discovery-for-me.test.cjs",
+      "legacy_fixture_counts": {
+        "pass_at_4999": true,
+        "pass_at_5000": true,
+        "fails_at_5001": true,
+        "error": "OPPORTUNITIES_TOO_MANY_PAGES"
+      },
+      "p6_fixture_count": 5001,
+      "page_count": 101,
+      "page_size_max": 50,
+      "items_unique": true,
+      "dev_role_simulation": {
+        "role": "authenticated",
+        "page_items": 4,
+        "listed": 4,
+        "has_more": false,
+        "kind": "read_only_SQL_local_role_simulation_not_signed_HTTP_JWT"
+      },
+      "dev_anon_role_denied": true,
+      "production_flag": "0",
+      "preview_flag": "1",
+      "limitation": "Synthetic pagination and SQL role simulation; no real signed end-user HTTP or Android proof"
+    }
+  ],
+  "tests": {
+    "migration_integrity": {
+      "status": "PASS",
+      "canonical_files": 226,
+      "python_tests": 44
+    },
+    "ai_focused": {
+      "status": "PASS",
+      "tests": 25
+    },
+    "p6_focused": {
+      "status": "PASS",
+      "tests": 17
+    },
+    "combined_critical": {
+      "status": "PASS",
+      "tests": 93,
+      "skipped": 0
+    },
+    "available_source_tests": {
+      "status": "PASS",
+      "tests": 997,
+      "excluded_files": [
+        "scripts/ai-review-expiry.test.cjs",
+        "scripts/qa-credential-boundary.test.cjs"
+      ],
+      "why_excluded": "Incomplete archived CI runtime; iceberg-js absent; not evidence of application regression"
+    },
+    "complete_node_suite_attempt": {
+      "status": "INCOMPLETE_DEPENDENCIES",
+      "tests": 1012,
+      "passed": 997,
+      "blocked": 15,
+      "observed_missing": [
+        "tslib",
+        "iceberg-js"
+      ],
+      "new_head_ci_run_verified": false
+    },
+    "typecheck_new_head_verified": false,
+    "new_apk_head_verified": false,
+    "physical_android_verified": false
+  },
+  "dispatch": {
+    "active_dev_dispatch_tick_md5": "76280b0ad653d2fc10199bca2c3971a8",
+    "active_dev_marketplace_tick_md5": "3858404992f2ceaa30b65af1055e2b9c",
+    "publication_is_queue_only": true,
+    "atomic_per_need_transactions": false,
+    "postpublication_long_transaction_open": true,
+    "dev_dispatch_schema_changed_during_this_work": false
+  },
+  "release": {
+    "decision": "NO-GO",
+    "legal_bundle_published": false,
+    "retention_ai_source_ready": false,
+    "data_export_policy_binding_ready": false,
+    "prod_p6_enabled": false,
+    "two_device_e2e_done": false,
+    "representative_300k_capacity_proven": false
+  },
+  "next_actions": [
+    "Obtain real signed ordinary-Auth/PostgREST P6 positive/negative proof and Android PAGE/MAP/recovery testing",
+    "Isolate one dispatch need transaction from profile sweep and marketplace maintenance with native PostgreSQL/real-wave concurrency proof; do not change live dispatch by speculative SQL",
+    "Run full locked-install CI and build QA on new source HEAD",
+    "Close retention/export, legal-publication and Android two-account E2E release gates"
+  ]
+}
