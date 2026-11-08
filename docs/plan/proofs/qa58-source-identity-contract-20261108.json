@@ -1,0 +1,92 @@
+{
+  "schema": "USKOCI_QA58_SOURCE_IDENTITY_CONTRACT_REVIEW_V1",
+  "observedAtUtc": "2026-11-08T02:00:30.808726+00:00",
+  "sourceCommit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+  "contract": "EMBEDDED_APP_CONFIG_AND_SAME_CI_BUILD",
+  "evidence": [
+    {
+      "path": ".github/workflows/uskoci-qa-apk.yml",
+      "sourceCommit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+      "sha256": "c9aca10ecbbdce276106323968b562a48515f6923624dcee9c8ba73b9a8922b4"
+    },
+    {
+      "path": "scripts/build-identity.cjs",
+      "sourceCommit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+      "sha256": "857fe667c8c674195c5d006b33739c3fa2bc373a7f2a272edac2adacad2d7959"
+    },
+    {
+      "path": "app.config.js",
+      "sourceCommit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+      "sha256": "79a07f41499043b07137449a513c41b54ac4a3b58f64c27b319b6059f8e25fe1"
+    },
+    {
+      "path": "src/data/buildIdentity.ts",
+      "sourceCommit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+      "sha256": "b5aea7e4dbff695de8045256fa815776db9f3f103fdf1f65ccf4adbf1ddd11d1"
+    },
+    {
+      "path": "metro.config.cjs",
+      "sourceCommit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+      "sha256": "af7564e7415faeb3584a1a91dfb2c0d101655728a98a2133de2be849771e2b70"
+    }
+  ],
+  "expoConstants": {
+    "installedVersion": "57.0.16",
+    "sourceLockVersion": "57.0.16",
+    "evidence": [
+      {
+        "path": "node_modules/expo-constants/scripts/get-app-config-android.gradle",
+        "sha256": "83c420088cadbcdd419ab6979cf89500904c41642d51e4316d0e5d1ad5641a73"
+      },
+      {
+        "path": "node_modules/expo-constants/scripts/build/getAppConfig.js",
+        "sha256": "59434bebf951fda6a539644d87fa6361b8f5c24f3bc84b500e8c801b2df9f710"
+      },
+      {
+        "path": "node_modules/expo-constants/android/src/main/java/expo/modules/constants/ConstantsService.kt",
+        "sha256": "0952afab6cfe7c6b078e9c88648fdd6c1ec03c393f88f3e725908f9ad78a5f91"
+      },
+      {
+        "path": "node_modules/expo-constants/src/Constants.ts",
+        "sha256": "47ff54233d77b23307234268933c0eabfec2adaf50a9b8a8c0086211acf71407"
+      }
+    ]
+  },
+  "identityPath": [
+    "scripts/build-identity.cjs obtains the Git source SHA, or explicit build environment SHA when Git is unavailable.",
+    "app.config.js places this public identity under extra.uskociBuild.",
+    "The QA workflow requires expo.extra.uskociBuild.sourceCommit === GITHUB_SHA before generating the native project and building the APK.",
+    "expo-constants createExpoConfig serializes the public config into generated Android assets/app.config during Gradle preBuild.",
+    "Android ConstantsService reads app.config from APK assets; Constants.expoConfig exposes the native config to JavaScript.",
+    "src/data/buildIdentity.ts reads Constants.expoConfig.extra.uskociBuild at runtime; no source SHA literal is explicitly compiled into that client module."
+  ],
+  "verificationDecision": {
+    "embeddedConfigSourceShaRequired": true,
+    "successfulCiSourceIdentityStepRequired": true,
+    "githubRunHeadAndArtifactHeadRequired": true,
+    "originalArtifactZipHashAndSizeRequired": true,
+    "buildReceiptApkHashAndSizeRequired": true,
+    "sameApkEmbeddedBundleReadRequired": true,
+    "hermesSourceShaLiteralRequiredByContract": false,
+    "hermesLiteralPresence": "Observe and report either result; absence is not an application/build failure.",
+    "securityChecksRetained": [
+      "Debug certificate continuity",
+      "ARM64 and native marker",
+      "Embedded OTA disabled",
+      "Canonical DEV host",
+      "Bounded credential-pattern scan"
+    ]
+  },
+  "verifierTests": {
+    "command": "python docs/plan/proofs/test_qa58_artifact_verifier.py -v",
+    "tests": 20,
+    "passed": 20,
+    "failed": 0,
+    "scope": "Synthetic offline parser and negative ZIP/identity fixtures, including wrong embedded source SHA and missing CI identity step."
+  },
+  "boundaries": [
+    "This review does not verify a downloaded QA58 APK.",
+    "No installation, Android execution, physical-device test or reproducible rebuild was performed.",
+    "No application source, build workflow or historical QA48 verifier was changed."
+  ]
+}
