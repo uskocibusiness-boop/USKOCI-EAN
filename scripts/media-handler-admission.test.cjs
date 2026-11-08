@@ -98,7 +98,8 @@ function harness(options = {}) {
     const url = new URL(raw); assert.equal(url.origin, ORIGIN, 'No external request escapes this fixture');
     if (init.signal?.aborted) throw new Error('synthetic aborted fetch');
     const headers = new Headers(init.headers);
-    requests.push({ path: url.pathname, method: init.method ?? 'GET', headers });
+    const observed = { path: url.pathname, method: init.method ?? 'GET', headers };
+    requests.push(observed); config.onRequest?.(observed);
     if (url.pathname === '/auth/v1/user') {
       calls.push({ name: 'auth' }); await waitForGate(config.authGate, init.signal);
       return config.authDenied ? json({}, 401) : json({ id: actualOwner(headers.get('authorization')) });
@@ -171,7 +172,8 @@ function harness(options = {}) {
   };
   const globals = { Deno: { env: { get: name => ({ SUPABASE_URL: ORIGIN, SUPABASE_ANON_KEY: 'public-fixture', SUPABASE_SERVICE_ROLE_KEY: 'service-fixture', ...config.env })[name] },
     readFile: async () => new Uint8Array(), serve: fn => { handler = fn; } },
-    fixtureImportMeta: { resolve: () => 'file:///synthetic-magick.wasm' }, fetch: network, crypto: webcrypto,
+    fixtureImportMeta: { resolve: () => 'file:///synthetic-magick.wasm' }, fetch: network,
+    crypto: config.beforeDigest ? { subtle: { async digest(...args) { await config.beforeDigest(); return webcrypto.subtle.digest(...args); } } } : webcrypto,
     setTimeout: timer.setTimeout, clearTimeout: timer.clearTimeout };
   const modules = new Map();
   const load = name => {
@@ -410,8 +412,15 @@ test('voice admission wait consumes the original deadline instead of starting a 
   assert.equal(h.timer.active.size, 0);
 });
 
-test('voice deadline preserves a previously dispatched unknown outcome and recovery never reposts', async () => {
-  const storageReadGate = deferred(), h = harness({ storageReadGate }), key = randomUUID(), assetId = randomUUID();
+test('voice deadline preserves a previously dispatched unknown outcome and recovery never reposts', { timeout: 10_000 }, async () => {
+  const storageReadGate = deferred(), storageReadStarted = deferred();
+  const h = harness({ storageReadGate,
+    // WebCrypto completes on its own worker queue, not within a fixed number of
+    // setImmediate turns. Keep the real digest but deterministically delay it
+    // past the old 30-turn polling window to reproduce the slow CI runner.
+    beforeDigest: async () => { for (let i = 0; i < 40; i++) await tick(); },
+    onRequest: r => { if (r.method === 'GET' && r.path.startsWith('/storage/v1/object/agreement-voice/')) storageReadStarted.resolve(r); },
+  }), key = randomUUID(), assetId = randomUUID();
   const sha256 = createHash('sha256').update(SAMPLE).digest('hex');
   const record = { key, accountId: ACCOUNT, kind: 'VOICE', assetId, attemptId: randomUUID(), state: 'STAGED',
     path: `${ACCOUNT}/agreement-voice-v1/${assetId}/${sha256}.m4a`, sha256, byteSize: SAMPLE.length,
@@ -421,7 +430,13 @@ test('voice deadline preserves a previously dispatched unknown outcome and recov
   const req = request('VOICE', { key }); let settled = false;
   const pending = h.decode(req).then(value => { settled = true; return value; });
   try {
-    await until(() => h.requests.some(r => r.path.includes('/storage/')));
+    // Wait for the actual phase, regardless of how long real WebCrypto takes.
+    // A handler that exits before readback is a failure, not a successful wait.
+    const readback = await Promise.race([storageReadStarted.promise, pending.then(() => {
+      throw new Error('Voice handler ended before Storage readback');
+    })]);
+    assert.equal(readback.path, '/storage/v1/object/agreement-voice/' + record.path);
+    assert.equal(settled, false);
     h.timer.advance(50_000); await tick(); assert.equal(settled, true);
     assert.equal((await pending).status, 503); assert.equal(record.dispatchState, 'DISPATCHING');
     assert.equal(record.dispatchOutcome, null); assert.equal(record.state, 'STAGED');

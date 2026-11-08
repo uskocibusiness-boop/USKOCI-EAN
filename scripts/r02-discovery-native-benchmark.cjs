@@ -36,7 +36,9 @@ async function main() {
     limitations: ['Native local synthetic database. Real RPC, RLS/ACL, time helpers, client decoder, PostGIS. Account lineage and canonical eligibility are inherited bounded seams.',
       'No real network, phone, Realtime, hosted performance or 300000-user capacity claim.',
       'Nearest-rank quantiles: p99 is the maximum for these sample counts, with low statistical power.',
-      'Backend RSS includes mapped/shared memory; these are not private-memory or Android RAM measurements. CPU is this backend only.'] };
+      'Backend RSS includes mapped/shared memory; these are not private-memory or Android RAM measurements. CPU is this backend only.',
+      'backendPeakRssKiB is the cumulative VmHWM of the same backend process, not a separately reset peak for each variant.',
+      'The observed calendar-call reduction depends on finding an early known schedule. EXISTS may inspect more or all candidates when no known schedule exists.'] };
   let previous = 0;
   for (const total of [100, 1000, 5001, 10000, 30000]) {
     await db.exec('reset role');

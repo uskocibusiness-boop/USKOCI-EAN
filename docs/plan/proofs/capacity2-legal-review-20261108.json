@@ -7,12 +7,21 @@
     "territory": "Serbia",
     "companyExists": "not asserted",
     "platformMonetization": false,
-    "privateHomeAddress": "not collected or published"
+    "privateHomeAddress": "not collected or published",
+    "supportPrivacyDeletionEmail": "uskoci.support@gmail.com",
+    "supportContactEvidence": {
+      "status": "OWNER_CONFIRMED_PRIOR_DECISION_PRESERVED",
+      "ownerMessageAt": "2026-11-07T15:59:29Z",
+      "evidence": "Retrieved prior user context confirms this is the owner's Gmail and can receive mail; the same decision was already recorded in the existing CODEX master.",
+      "limit": "No new email sent; no independent inbox delivery, response handling, public website or completed erasure verification performed.",
+      "correction": "The first capacity2 draft incorrectly treated all contact details as unconfirmed. This follow-up restores the previously confirmed address without reactivating unreviewed legal documents.",
+      "reconciledAt": "2026-11-08T10:26:25Z"
+    }
   },
   "confirmedOperationalFacts": [
     "DEV previously had2active legal documents and1active processor map with an unverified counsel_reference; no user acceptance existed.",
     "Exact guarded retirement applied20261108100023; all records preserved; legal readiness nowfalse.",
-    "Four canonical docs/legal HTML files now clearly marked drafts, no effective date, noindex; false corporate identity, DPO/contact/24h-support, blanket liability and deletion guarantees removed.",
+    "Four canonical docs/legal HTML files remain drafts with no effective date and noindex. Unsupported corporate identity, DPO, 24-hour support and blanket liability/deletion guarantees removed. Previously owner-confirmed support/privacy/deletion email is preserved after continuity reconciliation.",
     "Public terms/privacy/deletion/support URLs returned404; homepage200. No public website publication performed."
   ],
   "sources": [
@@ -62,15 +71,39 @@
       "url": "https://support.google.com/googleplay/android-developer/answer/9876937?hl=en",
       "authority": "Google Play",
       "finding": "UGC requires appropriate terms/content rules, effective moderation and reporting/blocking relevant to public content and1:1interaction; buttons without operational handling are insufficient."
+    },
+    {
+      "url": "https://support.google.com/googleplay/android-developer/answer/11926878?hl=en",
+      "authority": "Google Play",
+      "finding": "From31August2026 new Android phone apps and updates require targetAPI36orhigher; standard extension ended1November2026. QA target36 meets only this specific requirement, not production acceptance."
+    },
+    {
+      "url": "https://support.google.com/googleplay/android-developer/answer/14151465?hl=en",
+      "authority": "Google Play",
+      "finding": "Personal accounts created after13November2023 require at least12testers opted in continuously for14days of closed testing before applying for production access. Approval is not automatic; owner account creation date and acceptance are not established."
     }
   ],
   "unresolved": [
     "Whether the actual physical-person operator may perform the proposed activity without registering an activity; no legal approval has been obtained.",
-    "Confirmed identity, verified support/privacy contact, lawful required public identification and any address obligation. Do not invent a firm or substitute address.",
+    "Confirmed legal operator identity, lawful required public identification and any address obligation. Support email is already owner-confirmed; complete delivery/handling and public request path remain unverified. Do not invent a firm or substitute address.",
     "Consumer/trader user status, online-marketplace ranking and responsibility disclosures, regulated-service categories, tax/employment qualifications.",
     "Actual processor legal entities/contracts/regions/transfers and service inventory; old map falsely omitted activeExpo and assertedOpenAI.",
     "Executable retention/export/account-erasure bindings and response/deletion timelines matched to tested behavior.",
     "Google Play Console account-specific requirements, DataSafety, country/targetSDK/appaccess/UGC declarations and physical acceptance."
   ],
-  "release": "NO_GO"
+  "release": "NO_GO",
+  "consumerLawApplicability": {
+    "law": "Zakon o zaštiti potrošača, Sl. glasnik RS 35/2026",
+    "officialPublicationDate": "2026-04-23",
+    "officialText": "https://slgl.pravno-informacioni-sistem.rs/api/prins/viewdoc?uuid=5e1627a4-81c0-452d-9f5c-d8c3ab84ddd1",
+    "enactedAssemblyText": "https://www.parlament.gov.rs/upload/archive/files/cir/pdf/zakoni/14_saziv/1317-26.pdf",
+    "article220": "Entry into force on the eighth day after publication; general application after three months; articles 4(1) and 6 apply on entry into force.",
+    "entryIntoForceDerived": "2026-05-01",
+    "generalApplicationDerived": "2026-08-02",
+    "dateQualification": "Calendar derivation from the publication date and article 220, not a separately located official announcement spelling out 2 August. General application is unambiguously in force by 8 November 2026.",
+    "transition": "Article 219 replaces 88/21; article 215 preserves rules for already started proceedings; article 218 covers subsequent digital supplies, with articles 85–86 restricted to contracts concluded after application starts.",
+    "article4Boundary": "Certain digital services supplied for personal data are covered, with an exception where data processing is exclusively necessary for that service or a statutory duty. Zero fees alone do not settle applicability.",
+    "article28Boundary": "Where the online-marketplace regime applies, ranking parameters, provider trader status, applicable consumer-law boundary and allocation of obligations require clear pre-contract information; terms alone are insufficient.",
+    "notEstablished": "No conclusion that the planned physical-person operator may lawfully carry out this activity without registration."
+  }
 }

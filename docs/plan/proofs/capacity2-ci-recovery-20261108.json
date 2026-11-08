@@ -1,0 +1,138 @@
+{
+  "schema": "USKOCI_CAPACITY2_CI_RECOVERY_V1",
+  "source": "79a1edf2b697ac15ac14be9525bc96be416b7156",
+  "tree": "92a8c0384e299813528c26dae9994327cd998ab1",
+  "attempts": [
+    {
+      "id": 42471170081,
+      "attempt": 1,
+      "head": "79a1edf2b697ac15ac14be9525bc96be416b7156",
+      "status": "completed",
+      "conclusion": "failure",
+      "startedAt": "2026-11-08T10:22:37Z",
+      "updatedAt": "2026-11-08T10:25:21Z",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42471170081",
+      "jobId": 128702003420,
+      "sourceChecks": {
+        "tests": 1009,
+        "pass": 1009,
+        "fail": 0,
+        "typescript": "PASS",
+        "migrationFiles": 223,
+        "migrationTests": 41
+      },
+      "failure": {
+        "phase": "Gradle distribution download",
+        "httpStatus": 504,
+        "url": "https://services.gradle.org/distributions/gradle-9.3.1-bin.zip"
+      },
+      "apk": "NOT_PRODUCED",
+      "checksArtifactVerification": {
+        "archive": {
+          "path": "/workspace/scratch/792f3e12eb9e/qa59/attempt1-checks.zip",
+          "bytes": 36027,
+          "sha256": "6cc894016a00504f2326de46bbb2ca063c349bf51131bb145e198a1936021186",
+          "artifactId": 13612928433,
+          "artifactName": "uskoci-checks-79a1edf2b697ac15ac14be9525bc96be416b7156",
+          "matchesGithubDigestAndSize": true
+        },
+        "tests": {
+          "tests": 1009,
+          "pass": 1009,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "testReportFormat": "NODE_SPEC",
+        "typescript": {
+          "status": "PASS_FROM_SUCCESSFUL_CI_STEP_AND_EMPTY_OUTPUT",
+          "outputBytes": 0
+        },
+        "migrationIntegrity": {
+          "status": "PASS",
+          "physicalFiles": 223,
+          "pythonTests": {
+            "tests": 41,
+            "status": "OK"
+          }
+        },
+        "fileSha256": {
+          "migration-integrity.txt": "79d8a4c09f27e2399ec8b5308c606442637c6441778a8aeb6dcc889fadbb9854",
+          "tests.tap": "dd21bb055527b0bce0b141a5e50775831bb538cc1023694b2588cb29395b0d75",
+          "typescript.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "id": 42471170081,
+      "attempt": 2,
+      "head": "79a1edf2b697ac15ac14be9525bc96be416b7156",
+      "status": "completed",
+      "conclusion": "failure",
+      "startedAt": "2026-11-08T10:27:05Z",
+      "updatedAt": "2026-11-08T10:29:27Z",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42471170081",
+      "jobId": 128703014553,
+      "sourceChecks": {
+        "tests": 1009,
+        "pass": 1008,
+        "fail": 1
+      },
+      "failure": {
+        "phase": "Node test",
+        "file": "scripts/media-handler-admission.test.cjs",
+        "test": "voice deadline preserves a previously dispatched unknown outcome and recovery never reposts",
+        "error": "AssertionError: local transition completed",
+        "cause": "The test waited for at most 30 setImmediate turns while real WebCrypto digest completion is scheduled independently."
+      },
+      "apk": "NOT_PRODUCED"
+    }
+  ],
+  "correction": {
+    "productionChanged": false,
+    "timeoutOrSecurityWeakened": false,
+    "testSkipped": false,
+    "change": "Wait for the exact observed Storage GET phase, race against premature handler completion, preserve the real digest with a deterministic 40-turn delay and retain UNKNOWN/recovery/no-repost assertions.",
+    "testHarnessGuardMilliseconds": 10000,
+    "negativeControl": "Old 30-turn wait fails under the controlled 40-turn digest delay with the same assertion.",
+    "targetedAfter": {
+      "pass": 1,
+      "fail": 0
+    },
+    "mediaVoiceRegression": {
+      "pass": 63,
+      "fail": 0
+    },
+    "testHarnessBlobBefore": "28d613d715bdd71eaf74e8f7aebc9998c7db1d17",
+    "testHarnessBlobAfter": "2c3f7bba7e9a1f533ffb901d305791bbe21528b2",
+    "integratedAfter": {
+      "tests": 1009,
+      "pass": 1009,
+      "fail": 0,
+      "skip": 0,
+      "milliseconds": 48283.495637
+    }
+  },
+  "scope": "CI test-harness repair only; Edge deployments and business behavior from the integrated package remain unchanged.",
+  "recordedAt": "2026-11-08T10:35:35.617182+00:00",
+  "logs": {
+    "negativeControl": {
+      "bytes": 1127,
+      "sha256": "d1a8124e5c4e4c51712af8b6131cc6db2da83b326607a8274a875a1fd1305048"
+    },
+    "targetedAfter": {
+      "bytes": 226,
+      "sha256": "dccedb585861500555066195b13f781157d082287dedd3dbb6e92937549ebc30"
+    },
+    "mediaVoiceRegression": {
+      "bytes": 8386,
+      "sha256": "caa2922d8ff22ac57b5819b23e999518a5d5e2d67154868b8fd5724df14272c7"
+    },
+    "integratedAfter": {
+      "bytes": 111941,
+      "sha256": "f6822a23e9adc27382b5187d1bc92f2f04d37d4243ccf9b0f7a767a5ce6e1e21"
+    }
+  },
+  "nextCi": "PENDING_NEW_SOURCE_RUN"
+}

@@ -176,3 +176,9 @@ Ovaj dodatak beleži naredni stvarno izvršen krug od HEAD-a `c9403455bc1088d7e6
 Integracija:1009/1009 Node, TypeScript,223 SQL/41 Python PASS. DEV ledger358. Novi CI/APK dokaz dodaje se zasebno posle stvarnog izvršavanja; fizički telefoni nisu testirani. Ostaje **NO-GO**.
 
 Dokazi: [DEV i rollback](capacity2-dev-execution-20261108.json), [validacija](capacity2-validation-20261108.json), [push model](capacity2-push-receipt-batch-20261108.json), [Discovery merenja](../../../scripts/sql/r02_discovery_schedule_20261108.benchmark.json), [100 konkurentnih izbora](../../../scripts/sql/r07_last_slot_100_20261108.receipt.json), [pravni izvori i otvorene obaveze](capacity2-legal-review-20261108.json), [dispatch nalaz](capacity2-dispatch-transaction-20261108.json), [Home/kalendar](USKOCI_HOME_CALENDAR_READER_CONTRACT_20261108.json).
+
+### Naknadna CI i pravna provera istog kruga
+
+GitHub paket `79a1edf2` sa istim testiranim stablom je objavljen. QA59 prvi pokušaj prošao je 1009 testova, TypeScript i 41 migracionu proveru, pa stao na preuzimanju Gradle-a (HTTP504). Drugi pokušaj otkrio je nedeterminističko čekanje u novom voice testu. Stari test deterministički pada uz odložen stvarni WebCrypto digest; novo čekanje stvarne Storage faze prolazi 1/1, 63/63 povezanih i 1009/1009 svih testova. Produkcioni kod i timeout-i nisu izmenjeni. APK iz QA59 nije proizveden. [Dokaz](capacity2-ci-recovery-20261108.json).
+
+Kontakt `uskoci.support@gmail.com` ostaje prethodno potvrđena vlasnička odluka, ponovo pronađena u kontinuitetu razgovora; nacrti su usaglašeni, bez novog pitanja vlasniku. Nisu potvrđeni celokupan postupak obrade zahteva ili javne stranice. Potvrđena je primena novog Zakona o zaštiti potrošača 35/2026, uključujući čl. 4, 28 i 220. Za novo Play izdanje važi target API36; uslov 12 testera / 14 uzastopnih dana zavisi od datuma ličnog developer naloga. Sve četiri HTML stranice ostaju nacrti, a pravni release gate ostaje otvoren.

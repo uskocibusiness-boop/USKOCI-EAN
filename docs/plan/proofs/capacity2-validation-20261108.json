@@ -52,7 +52,17 @@
     "legal": "old realreaders readytrue; withdrawal makesfalse, concurrent acceptance separately tested"
   },
   "nativeClaim": "Native PostgreSQL means the real database engine, not Android. No physical phone acceptance.",
-  "ci": "PENDING_NEW_RUN",
+  "ci": {
+    "qa59": {
+      "run": 42471170081,
+      "source": "79a1edf2b697ac15ac14be9525bc96be416b7156",
+      "status": "FAILED",
+      "attempt1": "1009/TS/223SQL/41PASS; Gradle download HTTP504",
+      "attempt2": "1008/1009; reproduced WebCrypto test polling race"
+    },
+    "recoveryProof": "docs/plan/proofs/capacity2-ci-recovery-20261108.json",
+    "nextRun": "PENDING_NEW_SOURCE"
+  },
   "release": "NO_GO",
   "logs": {
     "baselineNode": {
@@ -75,5 +85,15 @@
       "sha256": "bce02906f447d70e066c0ab12fc998a53a0e4c7212c39252e93cb1acdc03674e",
       "bytes": 995
     }
+  },
+  "postCiHarnessRepair": {
+    "node": {
+      "pass": 1009,
+      "fail": 0,
+      "skip": 0,
+      "milliseconds": 48283.495637
+    },
+    "productionCodeChanged": false,
+    "edgeRedeployNeeded": false
   }
 }

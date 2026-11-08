@@ -41,7 +41,13 @@
       }
     },
     "boundary": "Actual current DEV authenticated SQL role and existing account RLS, read-only rollback. This is not a JWT/PostgREST, native or load test.",
-    "rollback": "scripts/sql/r02_discovery_schedule_20261108.rollback.sql"
+    "rollback": "scripts/sql/r02_discovery_schedule_20261108.rollback.sql",
+    "activeClientPath": {
+      "previewP6Flag": "1",
+      "productionP6Flag": "0",
+      "productionLegacy5001Limit": "OPEN",
+      "patchScope": "Optimize calendar work in the existing reader; no new pagination contract or production reader activation."
+    }
   },
   "legal": {
     "after": {
@@ -181,7 +187,7 @@
   "native": "NOT_TESTED_ON_ANDROID",
   "release": "NO_GO",
   "postDeployQueueAndCron": {
-    "scope": "Read-only bounded postdeploy DEV observations after root deployed Edge v47 and R02 schedule pagination. No synthetic push, event creation, raw headers, tokens, messages, cron commands or provider calls.",
+    "scope": "Read-only bounded postdeploy DEV observations after root deployed Edge v47 and R02 Discovery calendar-work optimization. No synthetic push, event creation, raw headers, tokens, messages, cron commands or provider calls.",
     "queryWindowStart": "2026-11-08T09:52:00Z",
     "data": [
       {
@@ -256,7 +262,7 @@
     "boundaries": [
       "Cron SQL success alone is not downstream HTTP, provider or Android success.",
       "pg_net counts include every provider/Edge URL invoked by existing jobs in the stated window; no route attribution is claimed.",
-      "Empty push work proves idle tick health only, not provider delivery/capacity or OS visibility."
+      "Empty queue and successful Cron SQL callbacks establish no due work and scheduled SQL health; execution of the deployed push tick/provider path is not demonstrated."
     ]
   },
   "publicSite": {
