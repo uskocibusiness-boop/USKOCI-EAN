@@ -1,0 +1,387 @@
+{
+  "schemaVersion": 1,
+  "scope": "Final read-only DEV linkage of AI usage/reservation operations to retained Need and Worker conversations. No capacity or billing claim.",
+  "observedAt": {
+    "aggregate": "2026-11-08T01:50:19.857817+00:00",
+    "integrity": "2026-11-08T01:51:00.036565+00:00",
+    "schema": "2026-11-08T01:48:06.941637+00:00"
+  },
+  "project": "leqcwgzvjsxugfgzdmth",
+  "source": {
+    "qa58Commit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+    "reviewBranchBase": "15bb5f9410e7be0c2937b905a78edc34c19bdbf2",
+    "sha256": {
+      "supabase/functions/uskoci-ai-interview/index.ts": "9a213ed0f2751abbc09e65da23217e6e5422f566cef4f2a5143f190424fbc086",
+      "supabase/functions/uskoci-worker-interview/index.ts": "4874dac0a5a0e680a63349c3aeac9bff6cab5a7ff31756ee4a26859e32af1969",
+      "supabase/functions/_shared/aiTestBudget.ts": "f2603e5b8e40ccaa0677536bc43b1e93ea42bacaf59211762e03f33382726a90"
+    }
+  },
+  "readOnly": {
+    "selectAndFunctionMetadataOnly": true,
+    "privateTextOrAccountConversationOperationIdentifiersReturned": false,
+    "providerCallsMade": 0,
+    "databaseWritesMade": 0,
+    "budgetOrAllowlistChanges": false,
+    "retentionReset": false,
+    "existingReceiptsModified": false
+  },
+  "method": {
+    "join": "usage.(operation_id,account_id) = Need/Worker turn.(client_request_id,account_id), then turn.(conversation_id,account_id,purpose) = conversation.(id,account_id,purpose); reservations join usage by (operation_id,account_id).",
+    "requiredPurpose": {
+      "Need": "NEED_INTAKE",
+      "Worker": "PROFILE"
+    },
+    "usageUnit": "One retained provider-usage ledger operation; operation_id is unique and usage replay cannot insert a second row. It is not a reservation count or an independent provider invoice.",
+    "conversationOutcome": "COMPLETED is successful completion; ABANDONED is explicitly abandoned; OPEN and records without a retained matching conversation remain unknown. A successful turn alone is not a completed conversation.",
+    "percentiles": "PostgreSQL percentile_cont, so interpolated p95 can be fractional. Call percentiles include zero-usage retained conversations. Token percentiles explicitly use only conversations with at least one usage row.",
+    "providerUsageCaveat": "Both Edge functions record received usage after provider execution via a background RPC with a 3000 ms timeout. Provider errors, missing usage metadata, failed background recording or deleted historical records can leave usage unrecorded. Reservations and internal settledMicrousd are not provider charges.",
+    "completionCrossCheck": {
+      "needCompletedWithBoundNeed": 11,
+      "needCompletedWithCompletedAt": 11,
+      "workerCompletedWithCompletedAt": 4,
+      "workerSaveReceipts": {
+        "open": 0,
+        "saves": 4,
+        "abandoned": 0,
+        "completed": 4,
+        "linked_review": 4,
+        "linked_conversation": 4
+      }
+    }
+  },
+  "linkage": {
+    "allUsage": {
+      "records": 1227,
+      "inputTokens": 9878097,
+      "outputTokens": 428499,
+      "earliest": "2026-09-18T12:37:32.481917+00:00",
+      "latest": "2026-11-07T12:33:15.625161+00:00"
+    },
+    "matchedToTurn": 576,
+    "matchedToRetainedConversation": 221,
+    "noMatchingTurn": 651,
+    "turnWithMissingConversation": 355,
+    "integrity": {
+      "usage_with_no_reservation": 0,
+      "usage_turn_account_mismatches": 0,
+      "cross_domain_operation_duplicates": 0,
+      "all_need_turns_without_conversation": 586,
+      "turn_conversation_account_mismatches": 0,
+      "turn_conversation_purpose_mismatches": 0,
+      "usage_recorded_despite_current_dispatched_false": 2
+    },
+    "missingRecordWindows": [
+      {
+        "latest": "2026-11-07T12:33:15.625161+00:00",
+        "reason": "NO_MATCHING_TURN",
+        "earliest": "2026-09-23T20:06:48.382107+00:00",
+        "usage_records": 651
+      },
+      {
+        "latest": "2026-10-14T08:04:11.779392+00:00",
+        "reason": "TURN_WITH_DELETED_OR_MISSING_CONVERSATION",
+        "earliest": "2026-09-18T12:37:32.481917+00:00",
+        "usage_records": 355
+      }
+    ],
+    "completedCoverage": [
+      {
+        "purpose": "NEED_INTAKE",
+        "turn_records": 40,
+        "usage_records": 40,
+        "dispatched_turn_records": 39,
+        "dispatched_without_usage": 0,
+        "usage_despite_dispatched_false": 1
+      },
+      {
+        "purpose": "PROFILE",
+        "turn_records": 17,
+        "usage_records": 17,
+        "dispatched_turn_records": 17,
+        "dispatched_without_usage": 0,
+        "usage_despite_dispatched_false": 0
+      }
+    ],
+    "reservationCoverage": [
+      {
+        "kind": "LLM",
+        "with_turn": 12,
+        "with_usage": 0,
+        "reservations": 19,
+        "settled_microusd": 58026,
+        "settlement_basis": "CONSERVATIVE_ESTIMATE_UNMEASURED",
+        "max_cost_microusd": 4750000
+      },
+      {
+        "kind": "LLM",
+        "with_turn": 730,
+        "with_usage": 1227,
+        "reservations": 1408,
+        "settled_microusd": 9537381,
+        "settlement_basis": "MEASURED",
+        "max_cost_microusd": 352000000
+      },
+      {
+        "kind": "LLM",
+        "with_turn": 51,
+        "with_usage": 0,
+        "reservations": 218,
+        "settled_microusd": null,
+        "settlement_basis": null,
+        "max_cost_microusd": 54500000
+      },
+      {
+        "kind": "STT",
+        "with_turn": 0,
+        "with_usage": 0,
+        "reservations": 554,
+        "settled_microusd": 791274,
+        "settlement_basis": "AUDIO_DURATION_AT_PUBLISHED_RATE",
+        "max_cost_microusd": 110800000
+      },
+      {
+        "kind": "STT",
+        "with_turn": 0,
+        "with_usage": 0,
+        "reservations": 122,
+        "settled_microusd": 0,
+        "settlement_basis": "FAILED_NO_USAGE",
+        "max_cost_microusd": 24400000
+      },
+      {
+        "kind": "STT",
+        "with_turn": 0,
+        "with_usage": 0,
+        "reservations": 3,
+        "settled_microusd": null,
+        "settlement_basis": null,
+        "max_cost_microusd": 600000
+      }
+    ]
+  },
+  "retainedConversationCohorts": [
+    {
+      "purpose": "NEED_INTAKE",
+      "outcome": "EXPLICITLY_ABANDONED",
+      "sourceStatus": "ABANDONED",
+      "conversations": 5,
+      "conversationsWithoutUsage": 0,
+      "recordedUsageOperations": {
+        "count": 20,
+        "min": 2,
+        "p50": 2,
+        "p95": 7.6,
+        "max": 8,
+        "mean": 4
+      },
+      "tokens": {
+        "inputTotal": 318040,
+        "outputTotal": 10049,
+        "perConversationWithAtLeastOneUsage": {
+          "conversations": 5,
+          "input": {
+            "min": 14686,
+            "p50": 35908,
+            "p95": 136613.2,
+            "max": 143813
+          },
+          "output": {
+            "min": 829,
+            "p50": 1626,
+            "p95": 3464.6,
+            "max": 3721
+          }
+        }
+      }
+    },
+    {
+      "purpose": "NEED_INTAKE",
+      "outcome": "SUCCESSFULLY_COMPLETED",
+      "sourceStatus": "COMPLETED",
+      "conversations": 11,
+      "conversationsWithoutUsage": 0,
+      "recordedUsageOperations": {
+        "count": 40,
+        "min": 1,
+        "p50": 3,
+        "p95": 7,
+        "max": 8,
+        "mean": 3.6363636363636362
+      },
+      "tokens": {
+        "inputTotal": 378043,
+        "outputTotal": 21141,
+        "perConversationWithAtLeastOneUsage": {
+          "conversations": 11,
+          "input": {
+            "min": 8221,
+            "p50": 24845,
+            "p95": 91560.5,
+            "max": 91582
+          },
+          "output": {
+            "min": 432,
+            "p50": 1936,
+            "p95": 2616,
+            "max": 2780
+          }
+        }
+      }
+    },
+    {
+      "purpose": "NEED_INTAKE",
+      "outcome": "UNKNOWN_OPEN",
+      "sourceStatus": "OPEN",
+      "conversations": 53,
+      "conversationsWithoutUsage": 9,
+      "recordedUsageOperations": {
+        "count": 131,
+        "min": 0,
+        "p50": 1,
+        "p95": 6.4,
+        "max": 15,
+        "mean": 2.4716981132075473
+      },
+      "tokens": {
+        "inputTotal": 1034561,
+        "outputTotal": 73788,
+        "perConversationWithAtLeastOneUsage": {
+          "conversations": 44,
+          "input": {
+            "min": 7108,
+            "p50": 18320,
+            "p95": 84173.7500000001,
+            "max": 103315
+          },
+          "output": {
+            "min": 113,
+            "p50": 1476.5,
+            "p95": 3486.55,
+            "max": 4293
+          }
+        }
+      }
+    },
+    {
+      "purpose": "PROFILE",
+      "outcome": "EXPLICITLY_ABANDONED",
+      "sourceStatus": "ABANDONED",
+      "conversations": 3,
+      "conversationsWithoutUsage": 0,
+      "recordedUsageOperations": {
+        "count": 9,
+        "min": 1,
+        "p50": 1,
+        "p95": 6.4,
+        "max": 7,
+        "mean": 3
+      },
+      "tokens": {
+        "inputTotal": 132421,
+        "outputTotal": 6091,
+        "perConversationWithAtLeastOneUsage": {
+          "conversations": 3,
+          "input": {
+            "min": 4357,
+            "p50": 4506,
+            "p95": 111652.8,
+            "max": 123558
+          },
+          "output": {
+            "min": 401,
+            "p50": 451,
+            "p95": 4760.2,
+            "max": 5239
+          }
+        }
+      }
+    },
+    {
+      "purpose": "PROFILE",
+      "outcome": "SUCCESSFULLY_COMPLETED",
+      "sourceStatus": "COMPLETED",
+      "conversations": 4,
+      "conversationsWithoutUsage": 0,
+      "recordedUsageOperations": {
+        "count": 17,
+        "min": 1,
+        "p50": 2.5,
+        "p95": 9.95,
+        "max": 11,
+        "mean": 4.25
+      },
+      "tokens": {
+        "inputTotal": 228517,
+        "outputTotal": 9846,
+        "perConversationWithAtLeastOneUsage": {
+          "conversations": 4,
+          "input": {
+            "min": 4509,
+            "p50": 16401.5,
+            "p95": 166263.6,
+            "max": 191205
+          },
+          "output": {
+            "min": 449,
+            "p50": 1253,
+            "p95": 6126.75,
+            "max": 6891
+          }
+        }
+      }
+    },
+    {
+      "purpose": "PROFILE",
+      "outcome": "UNKNOWN_OPEN",
+      "sourceStatus": "OPEN",
+      "conversations": 4,
+      "conversationsWithoutUsage": 1,
+      "recordedUsageOperations": {
+        "count": 4,
+        "min": 0,
+        "p50": 1,
+        "p95": 1.85,
+        "max": 2,
+        "mean": 1
+      },
+      "tokens": {
+        "inputTotal": 37964,
+        "outputTotal": 2268,
+        "perConversationWithAtLeastOneUsage": {
+          "conversations": 3,
+          "input": {
+            "min": 3503,
+            "p50": 16761,
+            "p95": 17606.1,
+            "max": 17700
+          },
+          "output": {
+            "min": 198,
+            "p50": 861,
+            "p95": 1174.2,
+            "max": 1209
+          }
+        }
+      }
+    }
+  ],
+  "conclusions": [
+    "The exact composite-key join is unambiguous for retained records: no duplicate cross-domain operations or account/purpose mismatches were observed. Fifteen COMPLETED conversations account for 57 recorded usage operations.",
+    "Eleven completed Need conversations recorded 40 operations (mean 3.6364, p50 3, p95 7, range 1–8). Four completed Worker conversations recorded 17 (mean 4.25, p50 2.5, p95 9.95, range 1–11). These are small DEV samples, not production estimates.",
+    "Only 221 of 1227 usage records link to a currently retained conversation. The outcome and denominator of the other 1006 cannot be reconstructed from these retained ledgers. Missing conversation rows are confirmed; their deletion cause is not inferred.",
+    "All 57 retained turns in completed conversations have usage records. One completed Need turn nevertheless currently has provider_dispatched=false; globally this discrepancy affects two usage-bearing Need turns. Current dispatch flags alone cannot reconstruct historic paid execution.",
+    "The 1408 MEASURED LLM reservations include 181 without a currently retained usage row. Nineteen conservative estimates and 218 unsettled LLM reservations also cannot be turned into measured calls or token totals.",
+    "The cost-model assumption of eight AI calls per conversation remains an explicitly selected scenario parameter. It is not validated by this small incomplete DEV history and must not be described as the measured average, guaranteed maximum or billed provider call count.",
+    "No new AI invocation or data mutation was performed; this receipt is measurement evidence only. Commercial validation requires representative consented usage, durable privacy-preserving aggregate outcome linkage and reconciliation with provider usage/billing, without changing retention or budget protections."
+  ],
+  "reproducibility": {
+    "aggregateSql": "with turns as (\n select 'NEED_INTAKE'::text purpose,account_id,client_request_id,conversation_id,state,provider_dispatched from private.ai_need_turn_commands\n union all select 'PROFILE',account_id,client_request_id,conversation_id,state,provider_dispatched from private.worker_ai_turns\n), usage_links as (\n select u.operation_id,u.account_id,u.prompt_tokens,u.output_tokens,u.total_tokens,u.recorded_at,\n count(t.client_request_id) as turn_matches,\n count(c.id) as matching_conversations,\n bool_and(t.provider_dispatched) as dispatched,\n min(t.purpose) as purpose,min(c.status) as status,min(t.state) as turn_state\n from private.ai_test_usage_v5 u left join turns t on t.client_request_id=u.operation_id and t.account_id=u.account_id\n left join public.ai_conversations c on c.id=t.conversation_id and c.account_id=t.account_id and c.purpose=t.purpose\n group by u.operation_id,u.account_id,u.prompt_tokens,u.output_tokens,u.total_tokens,u.recorded_at\n), per_conv as (\n select c.id,c.purpose,c.status,\n count(t.client_request_id) as turn_records,\n count(t.client_request_id) filter(where t.provider_dispatched) as dispatched_turn_records,\n count(u.operation_id) as recorded_usage_calls,\n coalesce(sum(u.prompt_tokens),0) as prompt_tokens,coalesce(sum(u.output_tokens),0) as output_tokens,coalesce(sum(u.total_tokens),0) as total_tokens\n from public.ai_conversations c left join turns t on t.conversation_id=c.id and t.account_id=c.account_id and t.purpose=c.purpose\n left join private.ai_test_usage_v5 u on u.operation_id=t.client_request_id and u.account_id=t.account_id\n where c.purpose in ('NEED_INTAKE','PROFILE')\n group by c.id,c.purpose,c.status\n)\nselect jsonb_build_object(\n'observedAt',statement_timestamp(),\n'usageTotals',(select jsonb_build_object('records',count(*),'prompt_tokens',sum(prompt_tokens),'output_tokens',sum(output_tokens),'total_tokens',sum(total_tokens),'earliest',min(recorded_at),'latest',max(recorded_at)) from private.ai_test_usage_v5),\n'joinCoverage',(select jsonb_agg(to_jsonb(x)) from (select turn_matches,matching_conversations,purpose,status,turn_state,dispatched,count(*) as usage_records,sum(prompt_tokens) as prompt_tokens,sum(output_tokens) as output_tokens from usage_links group by turn_matches,matching_conversations,purpose,status,turn_state,dispatched order by turn_matches,purpose,status,turn_state) x),\n'turnUsageCoverage',(select jsonb_agg(to_jsonb(x)) from (select t.purpose,t.state,t.provider_dispatched,count(*) as turn_records,count(u.operation_id) as with_usage from turns t left join private.ai_test_usage_v5 u on u.operation_id=t.client_request_id and u.account_id=t.account_id group by t.purpose,t.state,t.provider_dispatched order by t.purpose,t.state,t.provider_dispatched) x),\n'conversationStats',(select jsonb_agg(to_jsonb(x)) from (select purpose,status,count(*) as conversations,count(*) filter(where turn_records=0) as without_turn_record,count(*) filter(where recorded_usage_calls=0) as without_usage,count(*) filter(where dispatched_turn_records=recorded_usage_calls and dispatched_turn_records>0) as equal_dispatched_and_usage,sum(recorded_usage_calls) as recorded_usage_calls,sum(prompt_tokens) as prompt_tokens,sum(output_tokens) as output_tokens,min(recorded_usage_calls) as calls_min,max(recorded_usage_calls) as calls_max,percentile_cont(0.5) within group(order by recorded_usage_calls) as calls_p50,percentile_cont(0.95) within group(order by recorded_usage_calls) as calls_p95 from per_conv group by purpose,status order by purpose,status) x),\n'nonzeroConversationStats',(select jsonb_agg(to_jsonb(x)) from (select purpose,status,count(*) as conversations,min(recorded_usage_calls) as calls_min,max(recorded_usage_calls) as calls_max,percentile_cont(0.5) within group(order by recorded_usage_calls) as calls_p50,percentile_cont(0.95) within group(order by recorded_usage_calls) as calls_p95,min(prompt_tokens) as prompt_min,max(prompt_tokens) as prompt_max,percentile_cont(0.5) within group(order by prompt_tokens) as prompt_p50,percentile_cont(0.95) within group(order by prompt_tokens) as prompt_p95,min(output_tokens) as output_min,max(output_tokens) as output_max,percentile_cont(0.5) within group(order by output_tokens) as output_p50,percentile_cont(0.95) within group(order by output_tokens) as output_p95 from per_conv where recorded_usage_calls>0 group by purpose,status order by purpose,status) x),\n'reservationCoverage',(select jsonb_agg(to_jsonb(x)) from (select r.kind,r.settlement_basis,count(*) as reservations,count(u.operation_id) as with_usage,count(*) filter(where exists(select 1 from turns t where t.client_request_id=r.operation_id and t.account_id=r.account_id)) as with_turn,sum(r.max_cost_microusd) as max_cost_microusd,sum(r.settled_microusd) as settled_microusd from private.ai_test_reservations_v5 r left join private.ai_test_usage_v5 u on u.operation_id=r.operation_id and u.account_id=r.account_id group by r.kind,r.settlement_basis order by r.kind,r.settlement_basis) x),\n'workerSaveEvidence',(select jsonb_build_object('saves',count(*),'linked_review',count(r.id),'linked_conversation',count(c.id),'completed',count(*) filter(where c.status='COMPLETED'),'abandoned',count(*) filter(where c.status='ABANDONED'),'open',count(*) filter(where c.status='OPEN')) from private.worker_ai_saves s left join private.worker_ai_reviews r on r.id=s.review_id and r.account_id=s.account_id left join public.ai_conversations c on c.id=r.conversation_id and c.account_id=r.account_id and c.purpose='PROFILE')\n) as report;",
+    "integritySql": "with turns as (\n select 'NEED_INTAKE'::text purpose,account_id,client_request_id,conversation_id,state,provider_dispatched from private.ai_need_turn_commands\n union all select 'PROFILE',account_id,client_request_id,conversation_id,state,provider_dispatched from private.worker_ai_turns\n), matched as (\n select t.*,u.recorded_at,c.id as existing_conversation,c.account_id as conversation_account,c.purpose as conversation_purpose,c.status\n from turns t join private.ai_test_usage_v5 u on u.operation_id=t.client_request_id and u.account_id=t.account_id\n left join public.ai_conversations c on c.id=t.conversation_id\n)\nselect jsonb_build_object(\n'observedAt',statement_timestamp(),\n'joinIntegrity',jsonb_build_object(\n 'cross_domain_operation_duplicates',(select count(*) from (select account_id,client_request_id from turns group by account_id,client_request_id having count(*)>1) x),\n 'usage_turn_account_mismatches',(select count(*) from private.ai_test_usage_v5 u join turns t on t.client_request_id=u.operation_id where t.account_id<>u.account_id),\n 'turn_conversation_account_mismatches',(select count(*) from matched where existing_conversation is not null and conversation_account<>account_id),\n 'turn_conversation_purpose_mismatches',(select count(*) from matched where existing_conversation is not null and conversation_purpose<>purpose),\n 'usage_with_no_reservation',(select count(*) from private.ai_test_usage_v5 u where not exists(select 1 from private.ai_test_reservations_v5 r where r.operation_id=u.operation_id and r.account_id=u.account_id)),\n 'usage_recorded_despite_current_dispatched_false',(select count(*) from matched where not provider_dispatched),\n 'all_need_turns_without_conversation',(select count(*) from private.ai_need_turn_commands t where not exists(select 1 from public.ai_conversations c where c.id=t.conversation_id))\n),\n'unlinkedWindows',(select jsonb_agg(to_jsonb(x)) from (\n select 'NO_MATCHING_TURN'::text reason,count(*) as usage_records,min(u.recorded_at) as earliest,max(u.recorded_at) as latest from private.ai_test_usage_v5 u where not exists(select 1 from turns t where t.client_request_id=u.operation_id and t.account_id=u.account_id)\n union all\n select 'TURN_WITH_DELETED_OR_MISSING_CONVERSATION',count(*),min(recorded_at),max(recorded_at) from matched where existing_conversation is null\n) x),\n'completedCoverage',(select jsonb_agg(to_jsonb(x)) from (\n select c.purpose,count(t.client_request_id) as turn_records,count(t.client_request_id) filter(where t.provider_dispatched) as dispatched_turn_records,count(u.operation_id) as usage_records,count(t.client_request_id) filter(where t.provider_dispatched and u.operation_id is null) as dispatched_without_usage,count(t.client_request_id) filter(where not t.provider_dispatched and u.operation_id is not null) as usage_despite_dispatched_false\n from public.ai_conversations c join turns t on t.conversation_id=c.id and t.account_id=c.account_id and t.purpose=c.purpose left join private.ai_test_usage_v5 u on u.operation_id=t.client_request_id and u.account_id=t.account_id\n where c.status='COMPLETED' group by c.purpose\n) x),\n'usageFunction',(select pg_get_functiondef(p.oid) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='rpc_ai_test_record_usage_service')\n) as report;"
+  },
+  "validation": {
+    "type": "Read-only SQL aggregate and source-contract inspection",
+    "newAutomatedTests": 0,
+    "ciRunForThisReceipt": false,
+    "androidVerification": false
+  }
+}
