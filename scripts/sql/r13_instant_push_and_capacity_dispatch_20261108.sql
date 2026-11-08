@@ -1,3 +1,17 @@
+-- RETIRED / QUARANTINED historical candidate. NEVER APPLY OR REPLAY.
+-- The proposed 300k wave/capacity settings have no signed load proof.
+-- Its old wake_push_worker body would roll back the exact DEV coalescing fix
+-- 20261108154914_r13_coalesce_push_wake_20261108, and this script also
+-- recreates the notification trigger. Preserve history for review only.
+-- Authoritative changes are the separately applied 20261108141444 short-
+-- publication and 20261108154914 transaction-local wake migrations.
+-- Fail before ANY UPDATE/INDEX/CREATE: a comment/feature flag is not a guard.
+DO $r13_retired_candidate$
+BEGIN
+  RAISE EXCEPTION 'R13_HISTORICAL_CAPACITY_CANDIDATE_DISABLED' USING ERRCODE = 'P0001';
+END
+$r13_retired_candidate$;
+
 -- 20261108130000_r13_instant_push_and_capacity_dispatch_20261108.sql
 -- R13: Instant Event-Driven Push, 300K Capacity Dispatch Configuration, and FK Indexes
 
