@@ -6,7 +6,10 @@
   "source_commits": {
     "python_direct_runner": "8b90315fbcccc344641bfcfdd1dec55d2cce773e",
     "candidate_budget_carry": "a67ab08a410ddf5956680b7a42642d7b01101b04",
-    "candidate_budget_tests": "43c53f986f7925a1de377df0e7e23c2a86312856"
+    "candidate_budget_tests": "43c53f986f7925a1de377df0e7e23c2a86312856",
+    "live_dispatch_capture_regression": "49a938dee4ec6fdaed4823800f5c0dc36b3aaabe",
+    "live_dispatch_test_registration": "a511ff1eab3896370f7a405139f26103a7be6b99",
+    "cooperative_fixture_delimiter_fix": "7f207508605c4745648a37879b4fe3aa058cc99b"
   },
   "live_DEV": {
     "migrations": 363,
@@ -66,8 +69,17 @@
     },
     "candidate_github_tests": {
       "added": 2,
-      "status": "AWAITING_FULL_CI",
+      "status": "ADDED_SOURCE_PENDING_VERIFIED_HEAD_CI",
       "source": "scripts/r13-dispatch-cooperative.test.cjs"
+    },
+    "tracked_actual_dispatch_regression": {
+      "source": "scripts/r13-live-dispatch-budget-regression.test.cjs",
+      "git_blob_sha": "5854e3992db04e38cc734416aeaf38807c14de5d",
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "tested_against": "captured private.dispatch_tick() SQL body MD5 76280b0ad653d2fc10199bca2c3971a8",
+      "scope": "PGlite with synthetic wave and profile sweep; does NOT prove native concurrency or real notifications"
     }
   },
   "candidate": {
