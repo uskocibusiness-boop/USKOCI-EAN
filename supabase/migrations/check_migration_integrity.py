@@ -66,6 +66,11 @@ CATALOG_EVIDENCE_SHA256 = {
         '3b7096f76b5e1ec21e31ebcfd3e17c7a57d63e76cfd91dd6d502a74a7b5fbbe2',
 }
 
+R13_PUSH_WAKE_FILE = "20261108154914_r13_coalesce_push_wake_20261108.sql"
+R13_PUSH_WAKE_MD5 = "25ad3acc139c8fb0d2d5c5d4fa117901"
+R13_PUSH_WAKE_SHA256 = "4f78f892cfc16ec130fb4dcc3a1b0f0ca37bda44f99b11ad0e8ed5d32599de03"
+R13_PUSH_WAKE_BYTES = 4724
+
 
 def fail(message: str) -> None:
     print(f"FAIL migration_integrity: {message}", file=sys.stderr)
@@ -154,6 +159,42 @@ def check_physical_suffix(section: dict, manifest_map: dict, evidence: dict) -> 
         if exact != (classification == "APPLIED_EXACT_LEDGER_BYTES"):
             fail(f"physical suffix exact-byte claim is false: {name}")
     return names
+
+
+
+def check_r13_push_wake_provenance(section: dict, manifest_map: dict) -> str:
+    """Pin one already-applied DEV SQL ledger statement; never infer transport delivery."""
+    raw = (ROOT / R13_PUSH_WAKE_FILE).read_bytes()
+    md5 = hashlib.md5(raw).hexdigest()
+    sha256 = hashlib.sha256(raw).hexdigest()
+    expected = {
+        "project": "leqcwgzvjsxugfgzdmth",
+        "file": R13_PUSH_WAKE_FILE,
+        "version": "20261108154914",
+        "name": "r13_coalesce_push_wake_20261108",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "source_md5": R13_PUSH_WAKE_MD5,
+        "source_sha256": R13_PUSH_WAKE_SHA256,
+        "source_bytes": R13_PUSH_WAKE_BYTES,
+        "recorded_statement_md5": R13_PUSH_WAKE_MD5,
+        "recorded_statement_sha256": R13_PUSH_WAKE_SHA256,
+        "recorded_statement_count": 1,
+        "preimage_wake_md5": "c0374f79d5275adada913537549e6bae",
+        "postimage_wake_md5": "e00bb01c0c20392ab004f39154cf1bf7",
+        "preimage_trigger_md5": "368b2fa3a66d885edbbd4ed946f644e1",
+        "dev_applied": True,
+        "dev_migration_count_after": 363,
+        "verified_http_push_delivery": False,
+        "capacity_300k_proven": False,
+        "release": "NO-GO",
+    }
+    if not isinstance(section, dict) or any(section.get(k) != v for k, v in expected.items()):
+        fail("R13 coalesced push-wake provenance differs from verified DEV ledger")
+    if len(raw) != R13_PUSH_WAKE_BYTES or md5 != R13_PUSH_WAKE_MD5 or sha256 != R13_PUSH_WAKE_SHA256:
+        fail("R13 coalesced push-wake canonical source bytes differ from DEV ledger")
+    if manifest_map.get(R13_PUSH_WAKE_FILE) != md5:
+        fail("R13 coalesced push-wake manifest differs from DEV ledger")
+    return R13_PUSH_WAKE_FILE
 
 
 def main() -> None:
@@ -496,7 +537,13 @@ def main() -> None:
         if v11_names and r13_file <= v11_names[-1]:
             fail("R13 short-publication must follow R12 quarantine")
 
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names != disk_names:
+    push_wake_section = metadata.get("forward_execution_20261108_r13_push_wake")
+    push_wake_file = check_r13_push_wake_provenance(push_wake_section, manifest_map)
+    push_wake_names = [push_wake_file]
+    if r13_names and push_wake_file <= r13_names[-1]:
+        fail("R13 coalesced wake must follow short-publication ledger version")
+
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -593,6 +640,7 @@ def main() -> None:
         f"physical_suffix={len(suffix_names)} "
         f"oct26_suffix={len(oct26_suffix_names)} "
         f"nov7_suffix={len(nov7_suffix_names)} "
+        f"r13_push_wake={len(push_wake_names)} "
         f"nov7_forward={len(forward7_names)} "
         f"r08_forward={len(r08_names)} "
         f"r01_forward={len(r01_names)} "
