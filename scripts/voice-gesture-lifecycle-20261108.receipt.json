@@ -1,0 +1,33 @@
+{
+  "dateUtc": "2026-11-08T01:26:42.813Z",
+  "baselineCommit": "1e0e5aef",
+  "baselineHookBlob": "2f7b010fdd1028aa48b87c5daf531752e00ac24c",
+  "sourceSha256": "b6c6d2bf08fa6d0b163c90ac35078187ab225ad6914a201633574a4adfa4bebc",
+  "reproducedBefore": {
+    "tests": 11,
+    "pass": 3,
+    "fail": 8,
+    "skipped": 0
+  },
+  "verifiedAfter": {
+    "tests": 43,
+    "pass": 43,
+    "fail": 0,
+    "skipped": 0
+  },
+  "commands": [
+    "node --test scripts/voice-gesture-lifecycle.test.cjs",
+    "node --test scripts/voice-gesture-lifecycle.test.cjs scripts/voice-recovery-ownership.test.cjs scripts/agreement-history-refresh.test.cjs",
+    "./node_modules/.bin/tsc --noEmit --pretty false",
+    "git diff --check"
+  ],
+  "newRuntimeCases": 14,
+  "typecheckExit": 0,
+  "limitations": [
+    "Real mounted React hook, microphone/panel, composer, playback and arbiter. Native audio/permission, Auth/outbox transport and clocks are substituted.",
+    "Before reproduction used the first 11 cases: eight failures were recovered by the patch. Three further lifecycle regression cases were added after the fix.",
+    "No phone, emulator, hosted upload, microphone hardware, push or two-device end-to-end proof.",
+    "Chat ScrollView is unchanged: native anchoring and visibility proof are prerequisites for safe virtualization."
+  ],
+  "fixed": "A non-completed recording gesture is retired after a failed start or spontaneous capture stop; an explicit release retains its owned stop/send lifecycle."
+}

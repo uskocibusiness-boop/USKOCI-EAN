@@ -42,6 +42,16 @@ export function useAgreementVoice(options: Options) {
   const hold = useRef<Hold | null>(null);
   const admissionChanged = useRef<() => void>(() => {});
   const cancelHold = () => { if (hold.current) hold.current.cancelled = true; hold.current = null; };
+  // The microphone view releases its responder when capture stops by itself
+  // (permission denial, a native failure, interruption or the duration limit).
+  // Retire the matching send intent too, or the next begin sees a permanent hold.
+  // An explicit finger release owns its awaited stop/send until its finally runs.
+  const retireStoppedHold = () => {
+    const gesture = hold.current;
+    if (!gesture || gesture.completed) return;
+    const phase = gesture.runtime.composer.getSnapshot().phase;
+    if (phase !== 'requesting' && phase !== 'recording') cancelHold();
+  };
   // Until accessibility resolves, use explicit review rather than assuming release should send.
   const [screenReader, setScreenReader] = useState(true);
   const [reviewFirst, setReviewFirst] = useState(false);
@@ -105,6 +115,9 @@ export function useAgreementVoice(options: Options) {
   const playback = useSyncExternalStore(runtime?.playback.subscribe ?? noSubscribe,
     runtime?.playback.getSnapshot ?? (() => EMPTY_PLAYBACK), () => EMPTY_PLAYBACK);
   useEffect(() => {
+    if (hold.current?.runtime === runtime) retireStoppedHold();
+  }, [runtime, recording.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
     if (runtime?.current() && outboxState.phase === 'ready') void runtime.composer.restore().catch(() => {});
   }, [runtime, outboxState.phase]);
   useEffect(() => {
@@ -126,10 +139,16 @@ export function useAgreementVoice(options: Options) {
   async function begin() {
     const owner = active.current;
     if (!owner?.current() || !owner.composer.getSnapshot().canRecord || hold.current) return;
-    hold.current = { runtime: owner, cancelled: false, completed: false, review: reviewRef.current, stopping: null, explicitStop: false };
+    const gesture: Hold = { runtime: owner, cancelled: false, completed: false, review: reviewRef.current, stopping: null, explicitStop: false };
+    hold.current = gesture;
     setInteractionError(null);
     try { await owner.composer.start(); }
     catch { if (owner.current()) setInteractionError('Mikrofon nije spreman. Pokušajte ponovo.'); }
+    finally {
+      // A quick denied/later answer can batch requesting→idle into one React
+      // render, so the phase effect alone cannot observe every failed start.
+      if (hold.current === gesture) retireStoppedHold();
+    }
   }
   function finishHold(gesture: Hold): Promise<void> {
     if (gesture.stopping) return gesture.stopping;
