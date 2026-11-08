@@ -4762,5 +4762,27 @@
     "scope": "Remove direct dispatch_next_wave from public.needs trigger while retaining durable enqueue, RLS/ACL and Cron",
     "capacity_300k_proven": false,
     "release": "NO-GO"
+  },
+  "forward_execution_20261108_r13_push_wake": {
+    "classification": "APPLIED_EXACT_LEDGER_BYTES",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "file": "20261108154914_r13_coalesce_push_wake_20261108.sql",
+    "version": "20261108154914",
+    "name": "r13_coalesce_push_wake_20261108",
+    "source_md5": "25ad3acc139c8fb0d2d5c5d4fa117901",
+    "source_sha256": "4f78f892cfc16ec130fb4dcc3a1b0f0ca37bda44f99b11ad0e8ed5d32599de03",
+    "source_bytes": 4724,
+    "recorded_statement_md5": "25ad3acc139c8fb0d2d5c5d4fa117901",
+    "recorded_statement_sha256": "4f78f892cfc16ec130fb4dcc3a1b0f0ca37bda44f99b11ad0e8ed5d32599de03",
+    "recorded_statement_count": 1,
+    "preimage_wake_md5": "c0374f79d5275adada913537549e6bae",
+    "postimage_wake_md5": "e00bb01c0c20392ab004f39154cf1bf7",
+    "preimage_trigger_md5": "368b2fa3a66d885edbbd4ed946f644e1",
+    "dev_applied": true,
+    "dev_migration_count_after": 363,
+    "verified_http_push_delivery": false,
+    "capacity_300k_proven": false,
+    "release": "NO-GO",
+    "scope": "Coalesce optional transaction-local pg_net wake; durable notification delivery queue and recovery Cron stay authoritative; no changes to recipient/budget/provider policy."
   }
 }
