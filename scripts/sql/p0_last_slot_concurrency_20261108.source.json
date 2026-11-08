@@ -1,0 +1,14 @@
+{
+  "counter": {
+    "observed_at": "2026-11-08 01:32:52.303037+00",
+    "signature": "fn_need_covered_slots(uuid)",
+    "body_md5": "5a1d10aa69cda3c3095550b6f8e4c03f",
+    "definition": "CREATE OR REPLACE FUNCTION public.fn_need_covered_slots(p_need_id uuid)\n RETURNS integer\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  select coalesce(sum(s.covered_slots), 0)::integer\n    from public.need_selections s\n   where s.need_id = p_need_id\n     and s.status = 'SELECTED';\n$function$\n"
+  },
+  "writer": {
+    "signature": "public.rpc_select_response(uuid,integer,uuid,integer,text,text)",
+    "body_md5": "02934f7831db821a7b33fd6d40289b9a",
+    "source": "scripts/sql/r07_selection_recovery_20261107.preimage.json",
+    "verification": "Read-only DEV pg_proc comparison in this session; exact writer body is already captured in the existing R07 selection recovery preimage."
+  }
+}

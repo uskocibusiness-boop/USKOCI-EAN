@@ -63,7 +63,7 @@ const fixtureRequire=name=>name==='@electric-sql/pglite'?{PGlite:NativeFixture}:
 const baseline=new Function('require','__dirname',source.slice(0,firstTest.getStart(parsed))+'\nreturn {fixture,filter,page,clean,N,B};')(fixtureRequire,__dirname);
 const {filter,page,clean,N,B}=baseline;
 const percentile=(sorted,p)=>sorted[Math.min(sorted.length-1,Math.ceil(sorted.length*p)-1)];
-async function startFixture(){
+async function startFixture(factory=baseline.fixture){
  const init=spawnSync(path.join(bin,'initdb'),['-D',data,'-L',share,'-U','postgres','-A','trust','--no-locale','-E','UTF8'],{env,encoding:'utf8'});
  if(init.status!==0)throw new Error('Isolated initdb failed: '+init.stderr);
  const log=fs.openSync(serverLog,'w');
@@ -77,7 +77,7 @@ async function startFixture(){
   if(attempt===99)throw new Error('Isolated postgres did not become ready');
   await new Promise(resolve=>setTimeout(resolve,50));
  }
- const fixture=await baseline.fixture();db=fixture.db;
+ const fixture=await factory(NativeFixture);db=fixture.db;
  return fixture;
 }
 async function main(){
@@ -137,5 +137,14 @@ async function stopFixture(){
  if(server&&server.exitCode===null){const stopped=once(server,'exit');server.kill('SIGTERM');await stopped;}
  fs.rmSync(temporary,{recursive:true,force:true});
 }
-module.exports={startFixture,stopFixture};
+async function connectFixtureClient(){
+ const client=new Client({host:'127.0.0.1',port,user:'postgres',database:'postgres'});
+ try{
+  await client.connect();
+  const probe=await client.query("select current_setting('data_directory') as directory");
+  assert.equal(probe.rows[0].directory,data,'refuse a pre-existing server on the local fixture port');
+  return client;
+ }catch(error){await client.end();throw error;}
+}
+module.exports={startFixture,stopFixture,connectFixtureClient};
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;}).finally(stopFixture);
