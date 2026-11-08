@@ -502,10 +502,7 @@ class Nov8Capacity2Tests(unittest.TestCase):
             load_catalog_evidence(changed)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
- 
 class R13PushWakeProvenanceTests(unittest.TestCase):
     def setUp(self):
         root = Path(__file__).parent
@@ -532,3 +529,7 @@ class R13PushWakeProvenanceTests(unittest.TestCase):
             check_r13_push_wake_provenance(None, self.manifest)
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             check_r13_push_wake_provenance(self.section, {**self.manifest, self.section["file"]: "0" * 32})
+
+
+if __name__ == "__main__":
+    unittest.main()
