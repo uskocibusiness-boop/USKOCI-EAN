@@ -61,7 +61,26 @@
       "attempt2": "1008/1009; reproduced WebCrypto test polling race"
     },
     "recoveryProof": "docs/plan/proofs/capacity2-ci-recovery-20261108.json",
-    "nextRun": "PENDING_NEW_SOURCE"
+    "nextRun": "QA61_COMPLETED_SUCCESS",
+    "qa60": {
+      "run": 42472157554,
+      "source": "615c9c573cc631a591e71f2048ea04b710944c8e",
+      "status": "FAILED",
+      "checks": "1009/TS/223SQL/41PASS",
+      "cause": "Gradle distribution HTTP503"
+    },
+    "qa61": {
+      "run": 42473155397,
+      "source": "b3ab43364d25b626479cc72c5aa811059ff07ce4",
+      "status": "SUCCESS",
+      "node": 1009,
+      "migrationFiles": 223,
+      "migrationPythonTests": 41,
+      "bootstrapPythonTests": 14,
+      "artifactId": 13615016238,
+      "localArtifactReadback": "BLOCKED_ENVIRONMENT_UNAVAILABLE"
+    },
+    "finalProof": "docs/plan/proofs/qa61-ci-readback-20261108.json"
   },
   "release": "NO_GO",
   "logs": {
@@ -95,5 +114,11 @@
     },
     "productionCodeChanged": false,
     "edgeRedeployNeeded": false
+  },
+  "dispatchFollowup": {
+    "localTransactionExperiment": "11/11_PASS_AGENT_AND_COORDINATOR",
+    "scope": "Real tick/requeue/enqueue with explicit substitute wave and maintenance",
+    "nextRealWave": "NOT_RUN_ENVIRONMENT_UNAVAILABLE",
+    "proof": "docs/plan/proofs/dispatch-boundary-20261108/execution-observation.json"
   }
 }

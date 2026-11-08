@@ -87,6 +87,20 @@
     "scripts/qa-gradle-bootstrap.test.py": "b0efc672b929b08c33bb49bad121c673dcdba3e4884e9797933fc9a6dee43296"
   },
   "rollback": "Revert this CI-only change; application and DEV runtime are unchanged. Restores the old download failure risk, not a production migration.",
-  "status": "LOCAL_TESTED_CI_PENDING",
-  "nativeStatus": "NO_NEW_APK_OR_DEVICE_PROOF"
+  "status": "LOCAL_AND_CI_TESTED",
+  "nativeStatus": "QA61_CI_BUILD_SUCCESS_LOCAL_APK_READBACK_BLOCKED",
+  "ciValidation": {
+    "run": 42473155397,
+    "source": "b3ab43364d25b626479cc72c5aa811059ff07ce4",
+    "bootstrapTests": 14,
+    "actualBootstrapAttempts": 3,
+    "actualSequence": [
+      "HTTP502",
+      "download timeout10000ms",
+      "success"
+    ],
+    "assembleReleaseAttempts": 1,
+    "build": "PASS",
+    "proof": "qa61-ci-readback-20261108.json"
+  }
 }

@@ -112,6 +112,36 @@
         "url": "https://services.gradle.org/distributions/gradle-9.3.1-bin.zip"
       },
       "apk": "NOT_PRODUCED"
+    },
+    {
+      "id": 42473155397,
+      "attempt": 1,
+      "head": "b3ab43364d25b626479cc72c5aa811059ff07ce4",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-11-08T10:51:01Z",
+      "updatedAt": "2026-11-08T11:11:34Z",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42473155397",
+      "jobId": 128708448596,
+      "sourceChecks": {
+        "tests": 1009,
+        "pass": 1009,
+        "fail": 0,
+        "typescript": "PASS",
+        "migrationFiles": 223,
+        "migrationTests": 41,
+        "bootstrapTests": 14
+      },
+      "bootstrap": {
+        "attempts": 3,
+        "outcomes": [
+          "HTTP502",
+          "download timeout",
+          "success"
+        ]
+      },
+      "apk": "CI_ARTIFACT_PUBLISHED_LOCAL_READBACK_BLOCKED",
+      "artifactId": 13615016238
     }
   ],
   "correction": {
@@ -159,6 +189,8 @@
       "sha256": "f6822a23e9adc27382b5187d1bc92f2f04d37d4243ccf9b0f7a767a5ce6e1e21"
     }
   },
-  "nextCi": "PENDING_BOUNDED_BOOTSTRAP_SOURCE_RUN",
-  "gradleRecoveryProof": "capacity2-gradle-bootstrap-20261108.json"
+  "nextCi": "QA61_SUCCESS",
+  "gradleRecoveryProof": "capacity2-gradle-bootstrap-20261108.json",
+  "finalEvidence": "qa61-ci-readback-20261108.json",
+  "remaining": "Execution environment unavailable: no new local artifact byte verification, installed-device test or OS push proof."
 }

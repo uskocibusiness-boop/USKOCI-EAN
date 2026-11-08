@@ -1,0 +1,357 @@
+{
+  "schema": "USKOCI_QA61_CI_READBACK_V1",
+  "recordedAt": "2026-11-08 11:18:04 UTC",
+  "run": {
+    "id": 42473155397,
+    "number": 61,
+    "attempt": 1,
+    "source": "b3ab43364d25b626479cc72c5aa811059ff07ce4",
+    "branch": "work/uskoci-cist-proizvod-20261104",
+    "status": "completed",
+    "conclusion": "success",
+    "startedAt": "2026-11-08T10:51:01Z",
+    "updatedAt": "2026-11-08T11:11:34Z",
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42473155397"
+  },
+  "jobs": [
+    {
+      "id": 128708448596,
+      "name": "qa-apk",
+      "status": "completed",
+      "conclusion": "success",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Check out exact source",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Capture tracked source for offline audit",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Upload exact source snapshot separately from APK",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Set up Node",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Set up Java 17",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Set up Android SDK",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Install exact dependencies and enforce the native patch",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Archive bounded test runtime for reproducible offline checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 10,
+          "name": "Upload bounded test runtime",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 11,
+          "name": "Verify the active clean source",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 12,
+          "name": "Upload source check results",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 13,
+          "name": "Pin canonical DEV settings and isolate app identity",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 14,
+          "name": "Generate only the Android native project",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 15,
+          "name": "Verify generated native update isolation",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 16,
+          "name": "Prepare pinned Gradle distribution with bounded retry",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 17,
+          "name": "Build standalone installable release JS bundle and APK",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 18,
+          "name": "Attest isolated APK and source identity",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 19,
+          "name": "Upload installable APK and bounded receipt",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 36,
+          "name": "Post Set up Java 17",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 37,
+          "name": "Post Set up Node",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 38,
+          "name": "Post Check out exact source",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 39,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 128713102820,
+      "name": "record-ux-checkpoint",
+      "status": "completed",
+      "conclusion": "success",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Save verified evidence in the existing execution master",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 9,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "node": {
+      "tests": 1009,
+      "pass": 1009,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "typescript": "PASS_IN_SUCCESSFUL_SOURCE_CHECK_STEP",
+    "migrationFiles": 223,
+    "migrationPythonTests": 41,
+    "bootstrapPythonTests": 14
+  },
+  "bootstrap": {
+    "version": "9.3.1",
+    "officialDistributionSha256": "b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06",
+    "attemptsObserved": 3,
+    "sequence": [
+      "HTTP502",
+      "download timeout10000ms / SocketTimeoutException",
+      "success"
+    ],
+    "applicationBuildAttempts": 1,
+    "buildReportedDuration": "16m49s"
+  },
+  "artifacts": [
+    {
+      "id": 13615016238,
+      "name": "uskoci-isolated-qa-apk-61",
+      "apiReportedZipBytes": 48803063,
+      "apiReportedZipDigest": "sha256:107f0710d38a2817aa2bd933e8e6e339053d6650edf11e8fec84218dd9d3b20b",
+      "expired": false,
+      "createdAt": "2026-11-08T11:11:20Z",
+      "expiresAt": "2026-11-15T11:11:17Z",
+      "workflowRun": {
+        "id": 42473155397,
+        "headSha": "b3ab43364d25b626479cc72c5aa811059ff07ce4"
+      }
+    },
+    {
+      "id": 13614720892,
+      "name": "uskoci-source-b3ab43364d25b626479cc72c5aa811059ff07ce4",
+      "apiReportedZipBytes": 23097019,
+      "apiReportedZipDigest": "sha256:78cad37151d82f917c375ce5358f7211c21a0e02ac4f90ef036362cf7c707fd5",
+      "expired": false,
+      "createdAt": "2026-11-08T10:51:09Z",
+      "expiresAt": "2026-11-11T10:51:08Z",
+      "workflowRun": {
+        "id": 42473155397,
+        "headSha": "b3ab43364d25b626479cc72c5aa811059ff07ce4"
+      }
+    },
+    {
+      "id": 13614456193,
+      "name": "uskoci-checks-b3ab43364d25b626479cc72c5aa811059ff07ce4",
+      "apiReportedZipBytes": 35980,
+      "apiReportedZipDigest": "sha256:120e746d82a188ed2cf5ec1ee2370ea5c05b4de96f50dbfbc54cd78aef3a74b2",
+      "expired": false,
+      "createdAt": "2026-11-08T10:53:44Z",
+      "expiresAt": "2026-11-11T10:53:43Z",
+      "workflowRun": {
+        "id": 42473155397,
+        "headSha": "b3ab43364d25b626479cc72c5aa811059ff07ce4"
+      }
+    },
+    {
+      "id": 13614257468,
+      "name": "uskoci-test-runtime-b3ab43364d25b626479cc72c5aa811059ff07ce4",
+      "apiReportedZipBytes": 14752419,
+      "apiReportedZipDigest": "sha256:f27e5d179f82c1db77096def46e3ae02d64749fc9c36aadf0ce0c76082bc5efd",
+      "expired": false,
+      "createdAt": "2026-11-08T10:51:48Z",
+      "expiresAt": "2026-11-11T10:51:47Z",
+      "workflowRun": {
+        "id": 42473155397,
+        "headSha": "b3ab43364d25b626479cc72c5aa811059ff07ce4"
+      }
+    }
+  ],
+  "apk": {
+    "artifactId": 13615016238,
+    "artifactUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42473155397/artifacts/13615016238",
+    "ciExpectedFilename": "USKOCI-QA-b3ab43364.apk",
+    "packageFromCiBadging": "rs.uskoci.preview.qa",
+    "versionCodeFromCiBadging": 36,
+    "compileSdkFromCiBadging": 36,
+    "targetSdkIndependentReadback": null,
+    "backendConfig": "DEV",
+    "abiFromCiInspection": "arm64-v8a",
+    "embeddedBundleFromCiInspection": true,
+    "otaEnabledFromCiInspection": false,
+    "nativePatchMarkerFromCiInspection": "USKOCI_RNR01",
+    "signatureVerification": "CI_APKSIGNER_COMMAND_SUCCEEDED",
+    "firebaseBoundary": "QA configuration rejects expo.android.googleServicesFile; no FCM/OS delivery acceptance.",
+    "apkBytesSha256": null,
+    "archiveDownloadedLocally": false,
+    "archiveDigestComparedLocally": false,
+    "localArtifactVerifierExecuted": false,
+    "deviceInstalled": false,
+    "physicalPhonesTested": 0,
+    "osPushProven": false,
+    "signingProfileDeclaredByBuildContract": "EXPO_TEMPLATE_ANDROID_DEBUG_KEY"
+  },
+  "logEvidence": [
+    "2026-11-08T10:51:50.9647740Z Ran 14 tests in 1.815s",
+    "2026-11-08T10:53:27.3284553Z ℹ tests 1009",
+    "2026-11-08T10:53:27.3285080Z ℹ pass 1009",
+    "2026-11-08T10:53:27.3285337Z ℹ fail 0",
+    "2026-11-08T10:53:27.3285825Z ℹ cancelled 0",
+    "2026-11-08T10:53:27.3286127Z ℹ skipped 0",
+    "2026-11-08T10:53:27.3286352Z ℹ todo 0",
+    "2026-11-08T10:53:43.5323642Z PASS migration_integrity files=223 live_snapshot=87 pending=60 physical_suffix=43 oct26_suffix=3 nov7_suffix=7 nov7_forward=3 r08_forward=1 r01_forward=1 r08_reviews_forward=1 r05_forward=1 continuation_forward=2 recovery_export_forward=2 191500=RECORDED_STATEMENT_RECONSTRUCTION exact_byte_mirror=false participant_contract=PASS",
+    "2026-11-08T10:53:43.6589833Z Ran 41 tests in 0.062s",
+    "2026-11-08T10:53:49.4015911Z Generated Android manifest: embedded source only PASS",
+    "2026-11-08T10:53:49.4470235Z Same Gradle 9.3.1 distribution, official SHA-256 and wrapper identity pinned",
+    "2026-11-08T10:53:57.0333515Z Downloading https://downloads.gradle.org/distributions/gradle-9.3.1-bin.zip",
+    "2026-11-08T10:53:57.0348337Z ##[error]Exception in thread \"main\" java.io.IOException: Server returned HTTP response code: 502 for URL: https://downloads.gradle.org/distributions/gradle-9.3.1-bin.zip",
+    "2026-11-08T10:54:09.5191122Z Downloading https://downloads.gradle.org/distributions/gradle-9.3.1-bin.zip",
+    "2026-11-08T10:54:09.5200322Z Caused by: java.net.SocketTimeoutException: Read timed out",
+    "2026-11-08T10:54:25.6637719Z Downloading https://downloads.gradle.org/distributions/gradle-9.3.1-bin.zip",
+    "2026-11-08T10:54:25.6640699Z Welcome to Gradle 9.3.1!",
+    "2026-11-08T11:11:15.2991514Z BUILD SUCCESSFUL in 16m 49s",
+    "2026-11-08T11:11:16.9827085Z package: name='rs.uskoci.preview.qa' versionCode='36' versionName='1.0.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+    "2026-11-08T11:11:17.2546286Z Final APK: ARM64, embedded bundle, OTA disabled and native patch marker PASS"
+  ],
+  "checkpointJob": {
+    "status": "success",
+    "recorderResult": "SKIPPED_ALREADY_RECORDED",
+    "scope": "Existing one-time historical UX checkpoint was preserved; current-round evidence is recorded separately in the same master/proof directory."
+  },
+  "environmentBlock": {
+    "status": "UNAVAILABLE",
+    "effect": "Local artifact transfer, ZIP/APK hash comparison and parameterized full APK verifier could not run after the environment outage. No separate directly downloadable APK file was saved from this run.",
+    "verifierPreparedAndTested": "Existing verifier20/20 tests plus explicit1009/223/41 positive and three wrong-count negatives passed before outage; those parser tests are not a QA61 APK byte inspection."
+  },
+  "release": "NO_GO",
+  "limits": [
+    "GitHub artifact ZIP digest is not the contained APK SHA-256.",
+    "CI success and a published artifact are not an installed APK, device E2E or proof of OS notification delivery.",
+    "No claim of a reproducible independent source build or complete native/runtime acceptance.",
+    "No production publication, paid-resource upgrade or budget reset."
+  ]
+}
