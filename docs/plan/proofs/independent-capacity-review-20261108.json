@@ -98,7 +98,7 @@
         "projectionBoundaryReached": false
       }
     ],
-    "publishedEquivalentCommand": "node scripts/legacy-discovery-boundary-probe.cjs --run --source-ref e705a41378a56a6140841d7a10b0baf3e3989e59"
+    "publishedEquivalentCommand": "node scripts/legacy-discovery-boundary-probe.cjs --run --source-ref 417e981321f09448cd9d1061d2fc64665e9994e3"
   },
   "limits": [
     "The production legacy walk still refuses more than 5000 open tasks, after 25 pages of 200; it does not silently display a partial list. This is not an account-count limit.",
@@ -124,16 +124,19 @@
   },
   "publishedEquivalentCommits": {
     "f42a51d9388c6d0b5e47e1c822f863083e7f6471": {
-      "integratedCommit": "e705a41378a56a6140841d7a10b0baf3e3989e59",
-      "reviewedFileHashesVerifiedEqual": true
+      "integratedCommit": "417e981321f09448cd9d1061d2fc64665e9994e3",
+      "reviewedFileHashesVerifiedEqual": true,
+      "verifiedLocalCommit": "e705a41378a56a6140841d7a10b0baf3e3989e59"
     },
     "201b25bc94275c7fa86aebfd474c4f72c814a10b": {
-      "integratedCommit": "7583d4581e0c8c93eb87ccf6565b410e4c7ad43d",
-      "reviewedFileHashesVerifiedEqual": true
+      "integratedCommit": "eb25e3fed020e9002f26487a422280431f677c1a",
+      "reviewedFileHashesVerifiedEqual": true,
+      "verifiedLocalCommit": "7583d4581e0c8c93eb87ccf6565b410e4c7ad43d"
     },
     "96d7bf756c3232a5fa0483ae472362ccd2b58804": {
-      "integratedCommit": "2e40b69bde6f19f7721218097ab77e679b73d2c3",
-      "reviewedFileHashesVerifiedEqual": true
+      "integratedCommit": "4ef1e861d4434ad1ef13b2c39c83a889af9a6d70",
+      "reviewedFileHashesVerifiedEqual": true,
+      "verifiedLocalCommit": "2e40b69bde6f19f7721218097ab77e679b73d2c3"
     }
   }
 }

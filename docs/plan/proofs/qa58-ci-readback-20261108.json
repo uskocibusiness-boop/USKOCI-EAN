@@ -1,0 +1,530 @@
+{
+  "run": {
+    "id": 42435554637,
+    "name": "USKOCI temporary isolated Android APK proof",
+    "node_id": "WFR_kwLOU---088AAAAJ4VstTQ",
+    "head_branch": "work/uskoci-cist-proizvod-20261104",
+    "head_sha": "f0ea98106537f5a844721400d5357d5e21689cc1",
+    "path": ".github/workflows/uskoci-qa-apk.yml",
+    "display_title": "chore: bind capacity fixes to exact DEV receipts and integrated tests",
+    "run_number": 58,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow_id": 405865666,
+    "check_suite_id": 114960234094,
+    "check_suite_node_id": "CS_kwDOU---088AAAAaxCn2bg",
+    "url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/runs/42435554637",
+    "html_url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42435554637",
+    "pull_requests": [],
+    "created_at": "2026-11-08T01:44:34Z",
+    "updated_at": "2026-11-08T02:01:13Z",
+    "actor": {
+      "login": "uskocibusiness-boop",
+      "id": 338851284,
+      "node_id": "U_kgDOFDJ11A",
+      "avatar_url": "https://avatars.githubusercontent.com/u/338851284?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/uskocibusiness-boop",
+      "html_url": "https://github.com/uskocibusiness-boop",
+      "followers_url": "https://api.github.com/users/uskocibusiness-boop/followers",
+      "following_url": "https://api.github.com/users/uskocibusiness-boop/following{/other_user}",
+      "gists_url": "https://api.github.com/users/uskocibusiness-boop/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/uskocibusiness-boop/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/uskocibusiness-boop/subscriptions",
+      "organizations_url": "https://api.github.com/users/uskocibusiness-boop/orgs",
+      "repos_url": "https://api.github.com/users/uskocibusiness-boop/repos",
+      "events_url": "https://api.github.com/users/uskocibusiness-boop/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/uskocibusiness-boop/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "run_attempt": 1,
+    "referenced_workflows": [],
+    "run_started_at": "2026-11-08T01:44:34Z",
+    "triggering_actor": {
+      "login": "uskocibusiness-boop",
+      "id": 338851284,
+      "node_id": "U_kgDOFDJ11A",
+      "avatar_url": "https://avatars.githubusercontent.com/u/338851284?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/uskocibusiness-boop",
+      "html_url": "https://github.com/uskocibusiness-boop",
+      "followers_url": "https://api.github.com/users/uskocibusiness-boop/followers",
+      "following_url": "https://api.github.com/users/uskocibusiness-boop/following{/other_user}",
+      "gists_url": "https://api.github.com/users/uskocibusiness-boop/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/uskocibusiness-boop/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/uskocibusiness-boop/subscriptions",
+      "organizations_url": "https://api.github.com/users/uskocibusiness-boop/orgs",
+      "repos_url": "https://api.github.com/users/uskocibusiness-boop/repos",
+      "events_url": "https://api.github.com/users/uskocibusiness-boop/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/uskocibusiness-boop/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "jobs_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/runs/42435554637/jobs",
+    "logs_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/runs/42435554637/logs",
+    "check_suite_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/check-suites/114960234094",
+    "artifacts_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/runs/42435554637/artifacts",
+    "cancel_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/runs/42435554637/cancel",
+    "rerun_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/runs/42435554637/rerun",
+    "previous_attempt_url": null,
+    "workflow_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/workflows/405865666",
+    "head_commit": {
+      "id": "f0ea98106537f5a844721400d5357d5e21689cc1",
+      "tree_id": "0d99260f737d5db2327da846801ce2ea8f7525ca",
+      "message": "chore: bind capacity fixes to exact DEV receipts and integrated tests\n\nVerified local source commit: e591eb8dfc1754ca16761547e7cc40fed00d5a94",
+      "timestamp": "2026-11-08T01:44:30Z",
+      "author": {
+        "name": "uskocibusiness-boop",
+        "email": "uskocibusiness@gmail.com"
+      },
+      "committer": {
+        "name": "uskocibusiness-boop",
+        "email": "uskocibusiness@gmail.com"
+      }
+    },
+    "repository": {
+      "id": 1408220883,
+      "node_id": "R_kgDOU---0w",
+      "name": "USKOCI-EAN",
+      "full_name": "uskocibusiness-boop/USKOCI-EAN",
+      "private": false,
+      "owner": {
+        "login": "uskocibusiness-boop",
+        "id": 338851284,
+        "node_id": "U_kgDOFDJ11A",
+        "avatar_url": "https://avatars.githubusercontent.com/u/338851284?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/uskocibusiness-boop",
+        "html_url": "https://github.com/uskocibusiness-boop",
+        "followers_url": "https://api.github.com/users/uskocibusiness-boop/followers",
+        "following_url": "https://api.github.com/users/uskocibusiness-boop/following{/other_user}",
+        "gists_url": "https://api.github.com/users/uskocibusiness-boop/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/uskocibusiness-boop/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/uskocibusiness-boop/subscriptions",
+        "organizations_url": "https://api.github.com/users/uskocibusiness-boop/orgs",
+        "repos_url": "https://api.github.com/users/uskocibusiness-boop/repos",
+        "events_url": "https://api.github.com/users/uskocibusiness-boop/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/uskocibusiness-boop/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/uskocibusiness-boop/USKOCI-EAN",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN",
+      "forks_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/forks",
+      "keys_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/teams",
+      "hooks_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/hooks",
+      "issue_events_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/events",
+      "assignees_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/tags",
+      "blobs_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/languages",
+      "stargazers_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/stargazers",
+      "contributors_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/contributors",
+      "subscribers_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/subscribers",
+      "subscription_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/subscription",
+      "commits_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/merges",
+      "archive_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/downloads",
+      "issues_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/labels{/name}",
+      "releases_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/deployments"
+    },
+    "head_repository": {
+      "id": 1408220883,
+      "node_id": "R_kgDOU---0w",
+      "name": "USKOCI-EAN",
+      "full_name": "uskocibusiness-boop/USKOCI-EAN",
+      "private": false,
+      "owner": {
+        "login": "uskocibusiness-boop",
+        "id": 338851284,
+        "node_id": "U_kgDOFDJ11A",
+        "avatar_url": "https://avatars.githubusercontent.com/u/338851284?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/uskocibusiness-boop",
+        "html_url": "https://github.com/uskocibusiness-boop",
+        "followers_url": "https://api.github.com/users/uskocibusiness-boop/followers",
+        "following_url": "https://api.github.com/users/uskocibusiness-boop/following{/other_user}",
+        "gists_url": "https://api.github.com/users/uskocibusiness-boop/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/uskocibusiness-boop/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/uskocibusiness-boop/subscriptions",
+        "organizations_url": "https://api.github.com/users/uskocibusiness-boop/orgs",
+        "repos_url": "https://api.github.com/users/uskocibusiness-boop/repos",
+        "events_url": "https://api.github.com/users/uskocibusiness-boop/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/uskocibusiness-boop/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "html_url": "https://github.com/uskocibusiness-boop/USKOCI-EAN",
+      "description": null,
+      "fork": false,
+      "url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN",
+      "forks_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/forks",
+      "keys_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/keys{/key_id}",
+      "collaborators_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/collaborators{/collaborator}",
+      "teams_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/teams",
+      "hooks_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/hooks",
+      "issue_events_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/issues/events{/number}",
+      "events_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/events",
+      "assignees_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/assignees{/user}",
+      "branches_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/branches{/branch}",
+      "tags_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/tags",
+      "blobs_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/git/blobs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/git/tags{/sha}",
+      "git_refs_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/git/refs{/sha}",
+      "trees_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/git/trees{/sha}",
+      "statuses_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/statuses/{sha}",
+      "languages_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/languages",
+      "stargazers_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/stargazers",
+      "contributors_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/contributors",
+      "subscribers_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/subscribers",
+      "subscription_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/subscription",
+      "commits_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/commits{/sha}",
+      "git_commits_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/git/commits{/sha}",
+      "comments_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/comments{/number}",
+      "issue_comment_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/issues/comments{/number}",
+      "contents_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/contents/{+path}",
+      "compare_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/compare/{base}...{head}",
+      "merges_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/merges",
+      "archive_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/{archive_format}{/ref}",
+      "downloads_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/downloads",
+      "issues_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/issues{/number}",
+      "pulls_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/pulls{/number}",
+      "milestones_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/milestones{/number}",
+      "notifications_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/notifications{?since,all,participating}",
+      "labels_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/labels{/name}",
+      "releases_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/releases{/id}",
+      "deployments_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/deployments"
+    }
+  },
+  "jobs": {
+    "jobs": [
+      {
+        "id": 128593508537,
+        "name": "qa-apk",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 42435554637,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Check out exact source",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Capture tracked source for offline audit",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Upload exact source snapshot separately from APK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Set up Node",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Set up Java 17",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Set up Android SDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Install exact dependencies and enforce the native patch",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Archive bounded test runtime for reproducible offline checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Upload bounded test runtime",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Verify the active clean source",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Upload source check results",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Pin canonical DEV settings and isolate app identity",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Generate only the Android native project",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Verify generated native update isolation",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Build standalone installable release JS bundle and APK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Attest isolated APK and source identity",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Upload installable APK and bounded receipt",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18
+          },
+          {
+            "name": "Post Set up Java 17",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 34
+          },
+          {
+            "name": "Post Set up Node",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 35
+          },
+          {
+            "name": "Post Check out exact source",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 36
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 37
+          }
+        ]
+      },
+      {
+        "id": 128596945622,
+        "name": "record-ux-checkpoint",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 42435554637,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Save verified evidence in the existing execution master",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          }
+        ]
+      }
+    ]
+  },
+  "artifacts": {
+    "artifacts": [
+      {
+        "id": 13599746089,
+        "name": "uskoci-checks-f0ea98106537f5a844721400d5357d5e21689cc1",
+        "size_in_bytes": 34071,
+        "url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13599746089",
+        "archive_download_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13599746089/zip",
+        "expired": false,
+        "created_at": "2026-11-08T01:46:26Z",
+        "expires_at": "2026-11-11T01:46:25Z",
+        "updated_at": "2026-11-08T01:46:26Z",
+        "digest": "sha256:c650eabcbcbb76ae29b7c99337ffa5e90071a490c5da05476ad1397a542550ec",
+        "workflow_run": {
+          "id": 42435554637,
+          "repository_id": 1408220883,
+          "head_repository_id": 1408220883,
+          "head_branch": "work/uskoci-cist-proizvod-20261104",
+          "head_sha": "f0ea98106537f5a844721400d5357d5e21689cc1"
+        }
+      },
+      {
+        "id": 13599613709,
+        "name": "uskoci-isolated-qa-apk-58",
+        "size_in_bytes": 48803045,
+        "url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13599613709",
+        "archive_download_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13599613709/zip",
+        "expired": false,
+        "created_at": "2026-11-08T02:00:58Z",
+        "expires_at": "2026-11-15T02:00:55Z",
+        "updated_at": "2026-11-08T02:00:58Z",
+        "digest": "sha256:3be01e38897817d08461f5e8ef7967cf3d3cc16628b8dbcd1841b4927a85382c",
+        "workflow_run": {
+          "id": 42435554637,
+          "repository_id": 1408220883,
+          "head_repository_id": 1408220883,
+          "head_branch": "work/uskoci-cist-proizvod-20261104",
+          "head_sha": "f0ea98106537f5a844721400d5357d5e21689cc1"
+        }
+      },
+      {
+        "id": 13599462487,
+        "name": "uskoci-source-f0ea98106537f5a844721400d5357d5e21689cc1",
+        "size_in_bytes": 22936497,
+        "url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13599462487",
+        "archive_download_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13599462487/zip",
+        "expired": false,
+        "created_at": "2026-11-08T01:44:47Z",
+        "expires_at": "2026-11-11T01:44:44Z",
+        "updated_at": "2026-11-08T01:44:47Z",
+        "digest": "sha256:677e5e3ae16e835bbecaf66751e2722e08672c47ed99c6adbf7587a94c9f4ec3",
+        "workflow_run": {
+          "id": 42435554637,
+          "repository_id": 1408220883,
+          "head_repository_id": 1408220883,
+          "head_branch": "work/uskoci-cist-proizvod-20261104",
+          "head_sha": "f0ea98106537f5a844721400d5357d5e21689cc1"
+        }
+      },
+      {
+        "id": 13598789790,
+        "name": "uskoci-test-runtime-f0ea98106537f5a844721400d5357d5e21689cc1",
+        "size_in_bytes": 14750530,
+        "url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13598789790",
+        "archive_download_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13598789790/zip",
+        "expired": false,
+        "created_at": "2026-11-08T01:45:20Z",
+        "expires_at": "2026-11-11T01:45:18Z",
+        "updated_at": "2026-11-08T01:45:20Z",
+        "digest": "sha256:97f1e0e336bc1a79e2d6ceaaf192874837f7aba5ebd840deae1f715dd62600c9",
+        "workflow_run": {
+          "id": 42435554637,
+          "repository_id": 1408220883,
+          "head_repository_id": 1408220883,
+          "head_branch": "work/uskoci-cist-proizvod-20261104",
+          "head_sha": "f0ea98106537f5a844721400d5357d5e21689cc1"
+        }
+      }
+    ]
+  },
+  "coordinatorReadback": {
+    "sourceCommit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+    "runConclusion": "success",
+    "runUpdatedAt": "2026-11-08T02:01:13Z",
+    "historicalRecorderStatus": "SKIPPED_ALREADY_RECORDED",
+    "rawGithubMetadataSha256": "bf1978cf5feb1f622229ddc30dcce5ed5f6e9caaae54205f0591646e1e21f091",
+    "independentVerifier": "docs/plan/proofs/qa58-local-verifier-20261108.json",
+    "extractedApk": {
+      "filename": "USKOCI-QA58.apk",
+      "bytes": 83409667,
+      "sha256": "34cdb4e5a68eb44df8f039c8874ede5a2d426a84aeec38d06c6205699addca48",
+      "matchedOriginalArtifactEntryAndBuildReceipt": true
+    },
+    "coordinatorChecked": [
+      "Original APK ZIP size and SHA256 against GitHub metadata",
+      "Extracted APK size and SHA256 against CI build receipt",
+      "Embedded config source SHA, package, canonical backend and OTA",
+      "Embedded bundle presence and ARM64 native files"
+    ],
+    "boundaries": [
+      "No local apksigner/aapt or device run",
+      "No production signing or release",
+      "No OS push proof; QA has no Firebase push enrollment",
+      "Later documentation commits leave tested app source unchanged"
+    ]
+  }
+}

@@ -29,7 +29,9 @@
       "Provider grounding/search",
       "Image transforms/CDN service",
       "Engineering and user support labor"
-    ]
+    ],
+    "realtimeWebSocketsPerConcurrentUser": 1,
+    "realtimePeakIsAssumedNotMeasured": true
   },
   "criticalCapacityLimit": "Current automatic push worker claims at most 100 SEND per minute tick: at most 144000 per day or 4.32 million per 30 days before failures, limits, multiple devices, expiry and receipt work. This is an arithmetic ceiling, not a measured guaranteed throughput; scenario C/D at 10 million/month exceeds it.",
   "sources": [
@@ -56,6 +58,10 @@
     {
       "url": "https://docs.expo.dev/push-notifications/faq/",
       "use": "Expo push service free, 600 notifications/s/project provider ceiling; not our measured rate"
+    },
+    {
+      "url": "https://supabase.com/docs/guides/realtime/limits",
+      "use": "Configurable plan limits; standard Pro 500 connections, Pro without spend cap 10000. These are provider defaults, not readback of current project settings."
     }
   ],
   "scenarios": [
@@ -215,5 +221,51 @@
     "aiTokenCostMultiplierFrom2027Jan": 2,
     "realtimePeaksDoNotProveDatabaseCapacity": true,
     "phoneVoiceMessagesAreStorageTransferNotTranscription": true
+  },
+  "optionalSpeechTranscription": {
+    "model": "gemini-3.5-transcribe-live",
+    "configuredSource": "src/features/voice/speechProtocol.ts",
+    "publishedBlendedEstimateUSDPerMinute": 0.009,
+    "exactTokenRatesUSDPerMillion": {
+      "audioInput": 3.5,
+      "textOutput": 21
+    },
+    "providerEstimateAssumes": {
+      "audioTokensPerSecond": 25,
+      "textTokensPerMinute": 175
+    },
+    "examplesUSD": {
+      "1000Minutes": 9,
+      "100000Minutes": 900
+    },
+    "notIncludedInScenarioTotals": true,
+    "chatVoiceMessagesAreStorageAndTransferNotAutomaticallyTranscription": true,
+    "source": "https://ai.google.dev/gemini-api/docs/pricing?authuser=0",
+    "rateIsPublishedEstimateNotInvoice": true,
+    "exactUSDPerMinuteUnderTokenAssumptions": 0.008925,
+    "exactExampleUSD": {
+      "1000minutes": 8.925,
+      "100000minutes": 892.5
+    },
+    "roundedExamplesNote": "The 9 and 900 USD examples use the published rounded 0.009 USD/min estimate; exact token assumptions give 8.925 and 892.50 USD."
+  },
+  "realtimeCapacityLimit": {
+    "defaultProConcurrentConnections": 500,
+    "defaultProWithoutSpendCapConcurrentConnections": 10000,
+    "scenarioBHeadroomAtStandardProConnections": 0,
+    "scenarioDHeadroomAtProWithoutSpendCapConnections": 0,
+    "scenarioCAndDRequireAppropriateQuota": true,
+    "actualProjectQuotaReadOrChanged": false,
+    "note": "Monthly cost assumes one successful Realtime WebSocket connection per concurrent user. Multiple devices, background connections and server subscriptions can raise the peak. No spend cap or paid quota was changed."
+  },
+  "independentArithmeticReview": {
+    "reviewer": "push_ai",
+    "result": "PASS_ALL_SCENARIO_LINE_ITEMS_AI_TOTALS_AND_SENSITIVITY",
+    "method": "Decimal arithmetic with official prices checked on 2026-11-08",
+    "numericTotalsChanged": false,
+    "limitsAdded": [
+      "Explicit assumed WebSocket/user mapping and project quota caveat",
+      "Exact STT token arithmetic distinguished from rounded provider estimate"
+    ]
   }
 }

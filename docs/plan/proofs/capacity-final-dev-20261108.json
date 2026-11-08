@@ -1,0 +1,55 @@
+{
+  "cron": [
+    {
+      "jobid": 1,
+      "active": true,
+      "jobname": "uskoci_marketplace_tick",
+      "schedule": "* * * * *",
+      "latest_start": "2026-11-08T01:46:00.069209+00:00",
+      "failures_last30m": 0
+    },
+    {
+      "jobid": 2,
+      "active": true,
+      "jobname": "uskoci_edge_workers",
+      "schedule": "* * * * *",
+      "latest_start": "2026-11-08T01:46:00.075973+00:00",
+      "failures_last30m": 0
+    },
+    {
+      "jobid": 3,
+      "active": true,
+      "jobname": "uskoci_taxonomy_postsave_tick_dev",
+      "schedule": "* * * * *",
+      "latest_start": "2026-11-08T01:46:00.073642+00:00",
+      "failures_last30m": 0
+    }
+  ],
+  "needs": 18,
+  "messages": 12,
+  "authUsers": 16,
+  "agreements": 6,
+  "ledgerHead": "20261108012842",
+  "observedAt": "2026-11-08T01:46:18.685631+00:00",
+  "pushMetrics": {
+    "observedAt": "2026-11-08T01:46:18.842045+00:00",
+    "activeLeases": 0,
+    "sendAttemptsDue": 0,
+    "pendingDeliveries": 0,
+    "receiptAttemptsDue": 0,
+    "oldestSendAttemptSeconds": null,
+    "oldestReceiptAttemptSeconds": null,
+    "oldestPendingDeliverySeconds": null
+  },
+  "databaseBytes": 121851027,
+  "storageObjects": 38,
+  "ledgerMigrations": 356,
+  "retentionAiSourceReady": false,
+  "exportPolicyBindingIsNull": true,
+  "sourceCommit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+  "limitations": [
+    "Service-only push metrics read with explicitly scoped service role claims in a read-only administrative transaction.",
+    "Zero queued work and successful cron invocations are not provider delivery or load proof.",
+    "Same 16 users, 18 tasks, 6 Agreements, 12 messages and 38 Storage objects; no synthetic load was inserted on hosted DEV."
+  ]
+}

@@ -28,7 +28,7 @@ Na izolovanom PostgreSQL/PostGIS primeru udaljenost je bila 356.258 metara: osno
 
 Ekran Dogovora više ne mora prvo preuzeti skoro celu istoriju. Novi reader učitava po 20 **celih grupa zadataka**, uz pretragu, filtere i stabilan nastavak. Jedna grupa može sadržati više bilateralnih saradnji. Sačuvani su prihvaćeni iznosi, jedinice cene, statusi, ocenjivanje i mogućnost ponovnog pokušaja.
 
-Na DEV-u je provereno svih 16 postojećih naloga: dobijeno je svih 12 očekivanih vlasničkih projekcija šest Dogovora, bez tuđih ili duplih redova. To je pozitivan dokaz pristupa na malom uzorku, ne veliko opterećenje. Početna i kalendar još imaju stare potrošače cele liste. [DEV provera](reader-capacity-dev-20261108.json), [izolovano merenje](../../../scripts/sql/r09_agreement_groups_20261108.benchmark.json).
+Na DEV-u je provereno svih 16 postojećih naloga: dobijeno je svih 12 očekivanih vlasničkih projekcija šest Dogovora, bez tuđih ili duplih redova. Provera je koristila SQL ulogu `authenticated` sa ograničenim testnim JWT tvrdnjama; ona potvrđuje SQL prava i rezultat na malom uzorku, ali nije prijava običnim tokenom preko aplikacije niti veliko opterećenje. Početna i kalendar još imaju stare potrošače cele liste. [DEV provera](reader-capacity-dev-20261108.json), [izolovano merenje](../../../scripts/sql/r09_agreement_groups_20261108.benchmark.json).
 
 ### Fotografije: manje ponavljanja i ispravniji rokovi
 
@@ -50,14 +50,14 @@ U izolovanoj bazi dve odvojene PostgreSQL konekcije zaista su istovremeno pokuš
 
 | Kontrolisani primer | Pre | Posle | Granica merenja |
 | --- | ---: | ---: | --- |
-| Push ciklus | 1 SEND + 1 RECEIPT | 100 + 100 | Stvarni handler/SQL, simulirani Expo; nije prijem na uređaju |
+| Push ciklus | 1 SEND + 1 RECEIPT | 100 + 100 | Stvarni handler sa kontrolisanim testnim zavisnostima; nije prijem na uređaju |
 | Šest uspešnih fotografija | 33 zahteva | 6 zahteva | Bez početnog inventara i zasebnog vezivanja poruke |
 | Prvi prikaz među 1.050 saradnji | 11 RPC; 973.813 bajtova | 1 RPC; 22.694 bajta | Izolovani reader; dodatna čitanja kartica nisu uključena |
 | Podaci 100 autora P6 kartica | 100 mrežnih RPC | 1 mrežni RPC | Unutrašnjih 100 SQL reader poziva ostaje |
 | Osvežavanje preklopljenog najnovijeg četa | 2 RPC | 1 RPC | Praznine i starije sidro opravdano zadržavaju 2 |
 | Discovery kalendarske projekcije | 10.009 poziva | 24 poziva | Isti odgovor sa 20 pogodaka u sintetičkom primeru |
 
-Izvori su [push](../../../scripts/r09-push-capacity-20261108.receipt.json), [Dogovori](../../../scripts/sql/r09_agreement_groups_20261108.benchmark.json), [autori](../../../scripts/sql/r09_public_profiles_batch_20261108.receipt.json), [čet](../../../scripts/agreement-history-refresh-20261108.receipt.json) i [Discovery](../../../scripts/sql/p0_discovery_materialization_20261108.benchmark.json); foto rezultat je evidentiran u [izvršnom checkpoint-u](../CODEX_PLAN_RADA.md).
+Izvori su [push](../../../scripts/r09-push-capacity-20261108.receipt.json), [Dogovori](../../../scripts/sql/r09_agreement_groups_20261108.benchmark.json), [autori](../../../scripts/sql/r09_public_profiles_batch_20261108.receipt.json), [čet](../../../scripts/agreement-history-refresh-20261108.receipt.json) i [Discovery](../../../scripts/sql/p0_discovery_materialization_20261108.benchmark.json); foto rezultat je evidentiran u [izvršnom checkpoint-u](../CODEX_PLAN_RADA.md). Zasebna integracija stvarnog SQL-a i push handlera sa simuliranim Expo servisom obradila je 12 slanja i 12 potvrda bez dupliranja. Ni taj rezultat nije isporuka na telefon.
 
 Native PostgreSQL 17.11/PostGIS 3.5.2 koristio je 10.012 sintetičkih redova i jednog klijenta:
 
@@ -71,7 +71,7 @@ Svaka varijanta ima 25 uzoraka; p99 je njihov maksimum i statistički je slab po
 
 ## C. GITHUB I TESTOVI
 
-Repozitorijum je `uskocibusiness-boop/USKOCI-EAN`, grana **`work/uskoci-cist-proizvod-20261104`**. Početni commit je `9cf4f5ee913a3751f83615e134a1e6d7c68300f3`; završni objavljeni aplikacioni source ovog preseka je **`f0ea98106537f5a844721400d5357d5e21689cc1`**. Ovaj izveštaj može dobiti kasniji dokumentacioni commit.
+Repozitorijum je `uskocibusiness-boop/USKOCI-EAN`, grana **`work/uskoci-cist-proizvod-20261104`**. Početni commit je `9cf4f5ee913a3751f83615e134a1e6d7c68300f3`; završni objavljeni aplikacioni source ovog preseka je **`f0ea98106537f5a844721400d5357d5e21689cc1`**. Kasniji završni dokumentacioni commit-i čuvaju isti aplikacioni source; njihov tačan GitHub HEAD naveden je uz završni odgovor i dostupnu istoriju grane.
 
 Pošto CLI nije imao kredencijale za push, 17 commitova preneto je povezanim GitHub API-jem. Proverena je identičnost sadržaja svih stabala, uz kontrolisanu izmenu grane bez prisilnog prepisivanja. Različiti lokalni i udaljeni SHA potiču od commit metapodataka; [mapa prenosa](capacity-github-transfer-20261108.json) čuva poređenje.
 
@@ -79,7 +79,11 @@ Važni fajlovi obuhvataju `uskoci-push-transport/index.ts`, `agreementClientServ
 
 Na istom objavljenom source-u **QA58 source-checks su prošli**: 963/963, TypeScript bez grešaka, 221 SQL/39 provera. Koordinator je nezavisno preuzeo checks ZIP i proverio digest. [GitHub Actions run 42435554637](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42435554637). Uspeh tog posla ne daje automatski uspeh celom Android workflow-u.
 
-> **DOPUNA KOORDINATORA — QA58 APK:** U TRENUTKU PISANJA IZGRADNJA JE JOŠ U TOKU. Pre konačnog zatvaranja ovog izveštaja upisati završni status run-a, APK link, SHA-256, package/version i obim stvarne provere artefakta. Ne pripisivati ovom source-u stari QA51 APK niti izjednačiti napravljen APK sa proverom na telefonu.
+**Završna QA58 potvrda:** ceo workflow i oba posla su **SUCCESS**, završni status je 08.11.2026. u 02:01:13 UTC. Istorijski recorder ispravno je vratio `SKIPPED_ALREADY_RECORDED`. [APK artefakt 13599613709](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42435554637/artifacts/13599613709) sadrži `USKOCI-QA-f0ea98106.apk`, **83.409.667 bajtova**, SHA-256 **`34cdb4e5a68eb44df8f039c8874ede5a2d426a84aeec38d06c6205699addca48`**. Paket je `rs.uskoci.preview.qa`, verzija 1.0.0 / code36, ARM64, minSDK24 / target36, kanonski DEV, ugrađen bundle i OTA off/NEVER.
+
+Originalni checks i APK ZIP digest/veličina provereni su prema GitHubu. Nezavisni verifier je potvrdio APK/config iz istog artefakta, source SHA u `assets/app.config`, native marker i isti debug sertifikat kao QA47 prema CI apksigner potvrdi. Pregled 51.548 Hermes stringova našao je samo kanonski DEV Supabase host, bez service-role JWT ili modernog secret literala; to nije potpun audit native binarnih fajlova. Source SHA nije namerna Hermes konstanta; potvrđuje ga ugrađena konfiguracija i isti CI build. `sourceDirty=true` potiče iz dokumentovanog QA podešavanja `app.json`, zato nije proglašen reproduktivan build potpuno neizmenjene kopije.
+
+**Nema instalacije, emulatora, fizičkog telefona ili stvarnog E2E prihvata.** Ovaj QA paket nema Firebase push-proof konfiguraciju; za OS push treba postojeći namenski preview tok. [CI/readback](qa58-ci-readback-20261108.json), [potpun nezavisni APK dokaz](qa58-local-verifier-20261108.json), [source identity ugovor](qa58-source-identity-contract-20261108.json). Novi verifier je zasebno prošao 20/20 lokalnih Python testova; oni nisu dodati broju 963 CI testa.
 
 Na DEV-u su potvrđeni Edge46 i migracije `20261108010233`, `20261108012341`, `20261108012344`, `20261108012644`, `20261108012842`, uz proverene bajtove, prava i povratne skripte. Završni snimak ima 16 korisnika, 18 zadataka, 6 Dogovora, 12 poruka, 38 Storage objekata i 356 migracija. Tri cron posla nisu imala pad u posmatranih 30 minuta; push red je bio prazan. To pokazuje uredan mali DEV presek, ne kapacitet ili isporuku. [Završni DEV zapis](capacity-final-dev-20261108.json).
 
@@ -93,12 +97,12 @@ Na DEV-u su potvrđeni Edge46 i migracije `20261108010233`, `20261108012341`, `2
 | Dogovori | DELIMIČNO | Novi ekran paginiran; drugi ALL potrošači ostaju |
 | Tekstualni čet | DELIMIČNO | Manje čitanja; puna reconnect/telefon potvrda nedostaje |
 | Fotografije | DELIMIČNO | Zahtevi, rokovi i cache popravljeni; thumbnail nedostaje |
-| Glasovne poruke | POTREBNA PROVERA NA TELEFONU | Lokalni lifecycle testovi prolaze; hardver i slanje nisu potvrđeni |
+| Glasovne poruke | DELIMIČNO | Gest snimanja popravljen; rok slanja i provera na telefonu ostaju |
 | Realtime | DELIMIČNO | Analiziran postojeći tok; recipient projekcija nije uvedena |
 | Gemini AI | BLOKIRANO | Postojeći testni budžet odbija novo odobravanje poziva |
 | Baza i RLS | DELIMIČNO | Ciljne izmene proverene; širi R01/R10 prihvat otvoren |
 | Opterećenje | DELIMIČNO | Izolovani primeri postoje; veliki paralelni miks nije testiran |
-| Android | POTREBNA PROVERA NA TELEFONU | Završni APK status dopuniti u C; fizička provera nedostaje |
+| Android | POTREBNA PROVERA NA TELEFONU | QA58 build i preuzeti APK potvrđeni; fizička provera nedostaje |
 | Release | BLOKIRANO | Bezbednosni, retention/export i E2E uslovi nisu zatvoreni |
 
 Statusi se odnose na cele oblasti, zato pojedinačna uspešna popravka nije automatski „REŠENO” za čitavu oblast.
@@ -128,7 +132,7 @@ Statusi se odnose na cele oblasti, zato pojedinačna uspešna popravka nije auto
 | C, platforma | 300.000 / 100.000 / 30.000 / 3.000 | 30.000 | 2XL: 32 GB / 8 / 380–1.500 |
 | D, udarni termin | 300.000 / 100.000 / 30.000 / 10.000 | 30.000 | 4XL: 64 GB / 16 / 480–3.000 |
 
-To nisu dozvoljene granice aplikacije. Pooler konekcije nisu isto što i korisnici ili paralelni skupi upiti. Ne postoji izmerena bezbedna granica istovremenih stvarnih korisnika. Za svaki scenario tek treba meriti CPU, memoriju, čekanja, zaključavanja, spore upite, Realtime i medijsku propusnost sa odgovarajućim miksom radnji.
+To nisu dozvoljene granice aplikacije. Pooler konekcije nisu isto što i korisnici ili paralelni skupi upiti. Ne postoji izmerena bezbedna granica istovremenih stvarnih korisnika. Za svaki scenario tek treba meriti CPU, memoriju, čekanja, zaključavanja, spore upite, Realtime i medijsku propusnost sa odgovarajućim miksom radnji. Trošak pretpostavlja jednu Realtime WebSocket vezu po istovremenom korisniku; više uređaja ili serverske pretplate mogu povećati broj veza. Objavljeni standardni Pro limit je 500, odnosno 10.000 bez spend cap-a: B i D su već na tim granicama bez rezerve. C/D zahtevaju odgovarajuću kvotu i dodatno merenje. Stvarna projektna kvota nije ovde očitana ni menjana. [Zvanične kvote](https://supabase.com/docs/guides/realtime/limits), [obračun vršnih veza](https://supabase.com/docs/guides/platform/manage-your-usage/realtime-peak-connections).
 
 | Mesečna pretpostavka | A | B | C | D |
 | --- | ---: | ---: | ---: | ---: |
@@ -146,7 +150,7 @@ Odvojeni novi DEV presek našao je 40 evidentiranih AI operacija u 11 završenih
 
 **Scenariji C/D već premašuju sadašnji push plafon:** 10 miliona mesečno ne staje u aritmetičkih 4,32 miliona SEND operacija. Finansijski zbir zato nije potvrda izvodljivosti tih scenarija. Korišćeni Expo cenovnik nema zasebnu naknadu za push servis; naša obrada i infrastruktura i dalje koštaju. Model izostavlja poreze, dodatni DEV compute, SMTP/SMS, PITR, dodatne servise, rad i podršku.
 
-Opciono prepoznavanje govora ima odvojen procenjeni trošak: približno 9 USD za 1.000 minuta ili 900 USD za 100.000 minuta prema navedenim pretpostavkama za `gemini-3.5-transcribe-live`. Nije uključeno u tabelu. Glasovne poruke u Dogovoru nisu automatski transkripcija. Za dokaz kapaciteta slede izolovani testovi rastućeg broja paralelnih korisnika, dugotrajnog rada i udara, uz p50/p95/p99, redove, gubitke, greške i trošak po završenom toku.
+Opciono prepoznavanje govora ima odvojen procenjeni trošak: približno 9 USD za 1.000 minuta ili 900 USD za 100.000 minuta prema navedenim pretpostavkama za `gemini-3.5-transcribe-live`. Nije uključeno u tabelu. Primeri koriste zaokruženu objavljenu procenu 0,009 USD/min; tačne navedene token pretpostavke daju 0,008925 USD/min, odnosno 8,925 i 892,50 USD. Glasovne poruke u Dogovoru nisu automatski transkripcija. Za dokaz kapaciteta slede izolovani testovi rastućeg broja paralelnih korisnika, dugotrajnog rada i udara, uz p50/p95/p99, redove, gubitke, greške i trošak po završenom toku.
 
 ## G. OBJASNI MI KAO VLASNIKU, NE KAO PROGRAMERU
 
