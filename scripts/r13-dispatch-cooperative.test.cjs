@@ -24,7 +24,7 @@ async function fixture(){
  insert into private.probe_events values ('SWEEP',NULL,pg_current_xact_id());
  return '{}'::jsonb;
  end $$;
- create function private.dispatch_next_wave(nid uuid) returns jsonb language plpgsql as $
+ create function private.dispatch_next_wave(nid uuid) returns jsonb language plpgsql as $wave_fixture$
  declare k text; v_used integer;
  begin
  select probe_kind into strict k from public.needs where id=nid;
@@ -38,7 +38,7 @@ async function fixture(){
  if k in ('SENT','LIMITED') then return jsonb_build_object('status','SENT','deadlineAt','2026-11-08T15:15:00Z'); end if;
  if k='FILLED' then return jsonb_build_object('status','STOPPED','reason','SLOTS_FILLED'); end if;
  return jsonb_build_object('status','STOPPED','reason','NO_ELIGIBLE_CANDIDATES');
- end $$;
+ end $wave_fixture$;
  `);
  return db;
 }
