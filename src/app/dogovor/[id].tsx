@@ -203,6 +203,14 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   }, [foreground, resumeRequired, resumeEpoch, workspace.busy, workspace.refresh]);
   const messages = useAgreementHistory(accountId, accountRevision, id, chatReadingPosition);
   const dogovor = workspace.data;
+  useAgreementIncomingRefresh({
+    accountId,
+    accountRevision,
+    agreementId: id,
+    enabled: !!accountId && dogovor?.stanje !== 'CANCELLED',
+    source: izvor,
+    refresh: workspace.refresh,
+  });
   // When, by whom and why a cancelled Dogovor was cancelled (CANCEL-INFO): asked once the read says it is cancelled, in one call. A read that
   // fails, or has not come, leaves the step bar saying only "Otkazano" - nothing is guessed.
   const cancelled = dogovor?.stanje === 'CANCELLED';

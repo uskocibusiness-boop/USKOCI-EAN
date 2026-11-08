@@ -109,7 +109,8 @@ function edgeHarness(options = {}) {
   assert.ok(full.startsWith(root + path.sep));
   if (cache.has(full)) return cache.get(full).exports;
   const mod = { exports: {} }; cache.set(full, mod);
-  const source = options.entrySource && full.endsWith('/uskoci-push-transport/index.ts') ? options.entrySource : fs.readFileSync(full, 'utf8');
+  const normalized = full.replaceAll('\\', '/');
+  const source = options.entrySource && normalized.endsWith('/uskoci-push-transport/index.ts') ? options.entrySource : fs.readFileSync(full, 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: {
    module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, allowJs: true,
   }, reportDiagnostics: true });

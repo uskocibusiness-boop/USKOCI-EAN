@@ -29,14 +29,16 @@ export function supabaseKlijent(): SupabaseClient {
   return klijent;
 }
 
-// React Native requires telling Supabase Auth when the app comes to foreground or goes to background
-// to properly manage the token refresh timers.
+// React Native requires telling Supabase Auth and Realtime when the app comes to foreground or goes to background
+// to properly manage token refresh timers and pause background websocket telemetry/battery usage.
 AppState.addEventListener('change', (state) => {
   if (!klijent) return;
   if (state === 'active') {
     klijent.auth.startAutoRefresh();
+    try { klijent.realtime.connect(); } catch { /* ignore if already connected */ }
   } else {
     klijent.auth.stopAutoRefresh();
+    try { klijent.realtime.disconnect(); } catch { /* ignore if already disconnected */ }
   }
 });
 
