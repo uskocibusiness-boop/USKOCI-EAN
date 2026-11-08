@@ -1,0 +1,365 @@
+{
+  "snapshots": [
+    {
+      "emitEvent": [
+        {
+          "result": "uuid",
+          "bodyMd5": "586c40786332a9863922585503f083f6",
+          "arguments": "p_recipient uuid, p_role text, p_event_type text, p_entity_type text, p_entity_id uuid, p_entity_version integer, p_title text, p_body text, p_dedupe_key text, p_urgency text DEFAULT 'NORMAL'::text, p_payload jsonb DEFAULT '{}'::jsonb, p_expires_at timestamp with time zone DEFAULT NULL::timestamp with time zone",
+          "signature": "private.emit_event(uuid,text,text,text,uuid,integer,text,text,text,text,jsonb,timestamp with time zone)"
+        }
+      ],
+      "functions": [
+        {
+          "acl": [
+            "postgres=X/postgres"
+          ],
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "b0567136e7c969834c31c3c697717692",
+          "signature": "private.account_reputation(uuid)",
+          "definition": "CREATE OR REPLACE FUNCTION private.account_reputation(account_id uuid)\n RETURNS jsonb\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n select jsonb_build_object('accountId',account_id,'reviewCount',count(*),\n 'averageRating',case when count(*)=0 then null else round(avg(rating),2) end,\n 'state',case when count(*)=0 then 'NO_REVIEWS' else 'RATED' end,'authoritative',true)\n from private.agreement_reviews r where r.target_account_id=account_id\n  and private.agreement_review_published_v1(r.id);\n$function$\n"
+        },
+        {
+          "acl": [
+            "postgres=X/postgres"
+          ],
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "9eee75a9a0302d125bf2028dae5e3510",
+          "signature": "private.guard_closed_remaining_search_delivery()",
+          "definition": "CREATE OR REPLACE FUNCTION private.guard_closed_remaining_search_delivery()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nbegin\n if auth.role()='service_role' then\n  if TG_OP in ('UPDATE','DELETE') and private.closure_redaction_allowed_v5(TG_RELID,TG_OP,to_jsonb(OLD),case when TG_OP='UPDATE' then to_jsonb(NEW) else null end) then\n   if TG_OP='DELETE' then return OLD;end if;return NEW;\n  end if;\n end if;\n\n  if new.status in ('READY','SEEN')\n     and exists (\n       select 1 from public.needs n\n        where n.id = new.need_id\n          and n.remaining_search_closed_at is not null\n     ) then\n    raise exception 'NEED_REMAINING_SEARCH_CLOSED' using errcode='P0001';\n  end if;\n  return new;\nend;\n$function$\n"
+        },
+        {
+          "acl": [
+            "postgres=X/postgres"
+          ],
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "781956cab666befab216b3ce2334ca1d",
+          "signature": "private.match_detail_for_calendar_interval(uuid,uuid,timestamp with time zone,timestamp with time zone)",
+          "definition": "CREATE OR REPLACE FUNCTION private.match_detail_for_calendar_interval(nid uuid, pid uuid, s timestamp with time zone, e timestamp with time zone)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare result jsonb; blockers jsonb;\nbegin\n  if (s is null)<>(e is null) or (s is not null and (not isfinite(s) or not isfinite(e) or s>=e)) then\n    raise exception 'AGREEMENT_CALENDAR_INTERVAL_INVALID' using errcode='22023';\n  end if;\n  result:=private.match_detail_without_calendar(nid,pid);\n  if result is null or not private.worker_calendar_conflict(pid,s,e,null) then return result; end if;\n  blockers:=coalesce(result->'hardBlockers','[]'::jsonb);\n  if not (blockers @> '[\"CALENDAR_CONFLICT\"]'::jsonb) then blockers:=blockers||'[\"CALENDAR_CONFLICT\"]'::jsonb; end if;\n  result:=jsonb_set(result,'{hardBlockers}',blockers,true);\n  result:=jsonb_set(result,'{responseAllowed}','false'::jsonb,true);\n  return jsonb_set(result,'{dispatchEligible}','false'::jsonb,true);\nend;\n$function$\n"
+        },
+        {
+          "acl": [
+            "postgres=X/postgres"
+          ],
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "d2ba7342ae061b491b5ec4bb74fb81c4",
+          "signature": "private.set_updated_at()",
+          "definition": "CREATE OR REPLACE FUNCTION private.set_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog'\nAS $function$\nbegin\n if auth.role()='service_role' then\n  if TG_OP in ('UPDATE','DELETE') and private.closure_redaction_allowed_v5(TG_RELID,TG_OP,to_jsonb(OLD),case when TG_OP='UPDATE' then to_jsonb(NEW) else null end) then\n   if TG_OP='DELETE' then return OLD;end if;return NEW;\n  end if;\n end if;\n\n  new.updated_at := statement_timestamp();\n  return new;\nend;\n$function$\n"
+        }
+      ],
+      "observedAt": "2026-11-08T10:59:36.859564+00:00"
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "table": "private.agreement_reviews",
+          "default": "gen_random_uuid()",
+          "notNull": true
+        },
+        {
+          "name": "agreement_id",
+          "type": "uuid",
+          "table": "private.agreement_reviews",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "reviewer_account_id",
+          "type": "uuid",
+          "table": "private.agreement_reviews",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "target_account_id",
+          "type": "uuid",
+          "table": "private.agreement_reviews",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "rating",
+          "type": "integer",
+          "table": "private.agreement_reviews",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "tags",
+          "type": "text[]",
+          "table": "private.agreement_reviews",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "client_request_id",
+          "type": "uuid",
+          "table": "private.agreement_reviews",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "input_hash",
+          "type": "text",
+          "table": "private.agreement_reviews",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "table": "private.agreement_reviews",
+          "default": "clock_timestamp()",
+          "notNull": true
+        }
+      ],
+      "functions": [
+        {
+          "acl": [
+            "postgres=X/postgres"
+          ],
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "e222c4e0a1831c00200b0e30fac7b1bf",
+          "signature": "private.agreement_review_published_v1(uuid)",
+          "definition": "CREATE OR REPLACE FUNCTION private.agreement_review_published_v1(p_review_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n -- Review stars are immutable, DELETE is forbidden, and account closure keeps\n -- their rows. A later comment hide/redaction cannot undo bilateral publication.\n -- Account/profile closure, world and block gates remain in the existing readers.\n select coalesce((\n  select deadline.at_time is not null and (\n    statement_timestamp()>=deadline.at_time or exists(\n      select 1 from private.agreement_reviews counterpart\n       where counterpart.agreement_id=r.agreement_id\n        and counterpart.reviewer_account_id=r.target_account_id\n        and counterpart.target_account_id=r.reviewer_account_id))\n  from private.agreement_reviews r\n  join public.agreements a on a.id=r.agreement_id\n  cross join lateral(select private.agreement_review_deadline_v1(a.id) as at_time) deadline\n  where r.id=p_review_id\n   and r.reviewer_account_id in(a.requester_account_id,a.worker_account_id)\n   and r.target_account_id=case when r.reviewer_account_id=a.requester_account_id\n     then a.worker_account_id else a.requester_account_id end\n ),false);\n$function$\n"
+        },
+        {
+          "acl": [
+            "postgres=X/postgres"
+          ],
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "417c9db16bbe70ed9ad652380790900c",
+          "signature": "private.worker_calendar_conflict(uuid,timestamp with time zone,timestamp with time zone,uuid)",
+          "definition": "CREATE OR REPLACE FUNCTION private.worker_calendar_conflict(p_worker_profile_id uuid, p_starts_at timestamp with time zone, p_ends_at timestamp with time zone, p_exclude_agreement_id uuid DEFAULT NULL::uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  select case\n    when p_worker_profile_id is null or p_starts_at is null or p_ends_at is null then false\n    when p_starts_at >= p_ends_at then false\n    else exists (\n      select 1\n      from private.worker_calendar_events e\n      where e.worker_profile_id = p_worker_profile_id\n        and e.state = 'BLOCKING'\n        and (p_exclude_agreement_id is null or e.agreement_id <> p_exclude_agreement_id)\n        and e.starts_at < p_ends_at\n        and e.ends_at > p_starts_at\n    )\n  end;\n$function$\n"
+        }
+      ],
+      "observedAt": "2026-11-08T10:59:57.736891+00:00"
+    },
+    {
+      "columns": [
+        {
+          "name": "rating_worker",
+          "type": "numeric(3,2)",
+          "table": "app_profiles",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "table": "app_profiles",
+          "default": "now()",
+          "notNull": true
+        },
+        {
+          "name": "covered_slots",
+          "type": "integer",
+          "table": "marketplace_responses",
+          "default": "1",
+          "notNull": true
+        },
+        {
+          "name": "event_type",
+          "type": "text",
+          "table": "user_activity_events",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "urgency",
+          "type": "text",
+          "table": "user_activity_events",
+          "default": "'NORMAL'::text",
+          "notNull": true
+        },
+        {
+          "name": "dedupe_key",
+          "type": "text",
+          "table": "user_activity_events",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "table": "user_activity_events",
+          "default": "statement_timestamp()",
+          "notNull": true
+        },
+        {
+          "name": "worker_account_id",
+          "type": "uuid",
+          "table": "worker_match_preferences",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "proactive_notifications",
+          "type": "boolean",
+          "table": "worker_match_preferences",
+          "default": "true",
+          "notNull": true
+        },
+        {
+          "name": "same_day_urgent_notifications",
+          "type": "boolean",
+          "table": "worker_match_preferences",
+          "default": "true",
+          "notNull": true
+        },
+        {
+          "name": "id",
+          "type": "uuid",
+          "table": "private.worker_calendar_events",
+          "default": "extensions.gen_random_uuid()",
+          "notNull": true
+        },
+        {
+          "name": "agreement_id",
+          "type": "uuid",
+          "table": "private.worker_calendar_events",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "worker_account_id",
+          "type": "uuid",
+          "table": "private.worker_calendar_events",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "worker_profile_id",
+          "type": "uuid",
+          "table": "private.worker_calendar_events",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "agreement_version",
+          "type": "integer",
+          "table": "private.worker_calendar_events",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "table": "private.worker_calendar_events",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "ends_at",
+          "type": "timestamp with time zone",
+          "table": "private.worker_calendar_events",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "table": "private.worker_calendar_events",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "agreement_status",
+          "type": "text",
+          "table": "private.worker_calendar_events",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "table": "private.worker_calendar_events",
+          "default": "statement_timestamp()",
+          "notNull": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "table": "private.worker_calendar_events",
+          "default": "statement_timestamp()",
+          "notNull": true
+        }
+      ],
+      "functions": [
+        {
+          "acl": [
+            "postgres=X/postgres"
+          ],
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "a86bf830d7e536e75d1a6c680e4d2876",
+          "signature": "private.agreement_review_deadline_v1(uuid)",
+          "definition": "CREATE OR REPLACE FUNCTION private.agreement_review_deadline_v1(p_agreement_id uuid)\n RETURNS timestamp with time zone\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n -- Fourteen elapsed days from authoritative current-version completion.\n -- No Agreement/update/message date is a substitute for missing completion.\n select x.completed_at+interval '336 hours'\n from public.agreements a\n join public.agreement_execution x on x.agreement_id=a.id and x.agreement_version=a.current_version\n where a.id=p_agreement_id and a.status='COMPLETED' and x.state='COMPLETED'\n  and x.completed_at is not null and isfinite(x.completed_at)\n  and x.completed_at<=statement_timestamp();\n$function$\n"
+        }
+      ],
+      "observedAt": "2026-11-08T11:00:08.077742+00:00"
+    },
+    {
+      "columns": [
+        {
+          "name": "current_version",
+          "type": "integer",
+          "table": "agreements",
+          "default": "1",
+          "notNull": true
+        },
+        {
+          "name": "agreement_id",
+          "type": "uuid",
+          "table": "agreement_execution",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "agreement_version",
+          "type": "integer",
+          "table": "agreement_execution",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "table": "agreement_execution",
+          "default": "'CONFIRMED'::text",
+          "notNull": true
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "table": "agreement_execution",
+          "default": null,
+          "notNull": false
+        }
+      ],
+      "observedAt": "2026-11-08T11:00:47.549883+00:00"
+    }
+  ]
+}

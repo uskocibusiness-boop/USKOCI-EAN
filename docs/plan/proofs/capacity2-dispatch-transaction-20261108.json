@@ -131,5 +131,17 @@
     "https://www.postgresql.org/docs/current/plpgsql-transactions.html",
     "https://www.postgresql.org/docs/current/sql-createprocedure.html",
     "https://supabase.com/docs/guides/cron"
-  ]
+  ],
+  "followupIsolatedExperiment": {
+    "status": "LOCAL_ONLY_11_OF_11_PASS_NO_DEV_CHANGE",
+    "recordedAt": "2026-11-08 11:12:16 UTC",
+    "proofDirectory": "docs/plan/proofs/dispatch-boundary-20261108",
+    "agentPass": 11,
+    "coordinatorIndependentPass": 11,
+    "scope": "Actual tick/requeue/enqueue; explicit substitute wave/maintenance.",
+    "actualConfigMinimumAllowance": 50,
+    "nextActualWaveTest": "BLOCKED_BEFORE_EXECUTION_ENVIRONMENT_UNAVAILABLE",
+    "rawRunnerCandidateReceiptCommitted": false,
+    "recoveredSqlInputFiles": 5
+  }
 }

@@ -1,0 +1,345 @@
+{
+  "tables": [
+    {
+      "name": "dispatch_rounds",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "notNull": true
+        },
+        {
+          "name": "need_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "need_revision",
+          "type": "integer",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "round_no",
+          "type": "integer",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "urgency",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "batch_size",
+          "type": "integer",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "target_responses",
+          "type": "integer",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "candidate_limit_used",
+          "type": "integer",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "budget_source",
+          "type": "text",
+          "default": "'FIXED'::text",
+          "notNull": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "default": "'SENT'::text",
+          "notNull": true
+        },
+        {
+          "name": "stop_reason",
+          "type": "text",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "deadline_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true
+        }
+      ],
+      "triggers": null,
+      "constraints": [
+        {
+          "name": "dispatch_rounds_batch_size_check",
+          "type": "c",
+          "definition": "CHECK ((batch_size > 0))"
+        },
+        {
+          "name": "dispatch_rounds_budget_source_check",
+          "type": "c",
+          "definition": "CHECK ((budget_source = ANY (ARRAY['FIXED'::text, 'ADAPTIVE_FLOOR'::text, 'ADAPTIVE_COMPUTED'::text, 'ADAPTIVE_CAPPED'::text])))"
+        },
+        {
+          "name": "dispatch_rounds_candidate_limit_used_check",
+          "type": "c",
+          "definition": "CHECK (((candidate_limit_used >= 1) AND (candidate_limit_used <= 10000)))"
+        },
+        {
+          "name": "dispatch_rounds_need_id_fkey",
+          "type": "f",
+          "definition": "FOREIGN KEY (need_id) REFERENCES needs(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "dispatch_rounds_need_round_uq",
+          "type": "u",
+          "definition": "UNIQUE (need_id, need_revision, round_no)"
+        },
+        {
+          "name": "dispatch_rounds_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "dispatch_rounds_round_no_check",
+          "type": "c",
+          "definition": "CHECK ((round_no >= 1))"
+        },
+        {
+          "name": "dispatch_rounds_status_check",
+          "type": "c",
+          "definition": "CHECK ((status = ANY (ARRAY['PLANNED'::text, 'SENT'::text, 'STOPPED'::text, 'EXPIRED'::text])))"
+        },
+        {
+          "name": "dispatch_rounds_target_responses_check",
+          "type": "c",
+          "definition": "CHECK ((target_responses > 0))"
+        },
+        {
+          "name": "dispatch_rounds_urgency_check",
+          "type": "c",
+          "definition": "CHECK ((urgency = ANY (ARRAY['NORMAL'::text, 'URGENT'::text])))"
+        }
+      ]
+    },
+    {
+      "name": "opportunity_deliveries",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "notNull": true
+        },
+        {
+          "name": "worker_account_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "worker_profile_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "need_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "need_revision",
+          "type": "integer",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "dispatch_round_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "match_score",
+          "type": "numeric(6,2)",
+          "default": "0",
+          "notNull": true
+        },
+        {
+          "name": "score_components",
+          "type": "jsonb",
+          "default": "'{}'::jsonb",
+          "notNull": true
+        },
+        {
+          "name": "reason_codes",
+          "type": "text[]",
+          "default": "'{}'::text[]",
+          "notNull": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "default": "'READY'::text",
+          "notNull": true
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "seen_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "responded_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true
+        }
+      ],
+      "triggers": [
+        {
+          "name": "guard_closed_remaining_search_delivery_trg",
+          "definition": "CREATE TRIGGER guard_closed_remaining_search_delivery_trg BEFORE INSERT OR UPDATE OF status ON public.opportunity_deliveries FOR EACH ROW EXECUTE FUNCTION private.guard_closed_remaining_search_delivery()"
+        },
+        {
+          "name": "od_updated_at",
+          "definition": "CREATE TRIGGER od_updated_at BEFORE UPDATE ON public.opportunity_deliveries FOR EACH ROW EXECUTE FUNCTION private.set_updated_at()"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "opportunity_deliveries_dispatch_round_id_fkey",
+          "type": "f",
+          "definition": "FOREIGN KEY (dispatch_round_id) REFERENCES dispatch_rounds(id) ON DELETE SET NULL"
+        },
+        {
+          "name": "opportunity_deliveries_need_id_fkey",
+          "type": "f",
+          "definition": "FOREIGN KEY (need_id) REFERENCES needs(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "opportunity_deliveries_once_per_revision_uq",
+          "type": "u",
+          "definition": "UNIQUE (worker_account_id, need_id, need_revision)"
+        },
+        {
+          "name": "opportunity_deliveries_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "opportunity_deliveries_status_check",
+          "type": "c",
+          "definition": "CHECK ((status = ANY (ARRAY['READY'::text, 'SEEN'::text, 'DECLINED'::text, 'RESPONDED'::text, 'EXPIRED'::text])))"
+        },
+        {
+          "name": "opportunity_deliveries_worker_account_id_fkey",
+          "type": "f",
+          "definition": "FOREIGN KEY (worker_account_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "opportunity_deliveries_worker_profile_id_fkey",
+          "type": "f",
+          "definition": "FOREIGN KEY (worker_profile_id) REFERENCES app_profiles(id) ON DELETE CASCADE"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "7aa34ff0b5f4a3637c433bec317c1c13",
+      "signature": "private.dispatch_config_v1b(jsonb)",
+      "definition": "CREATE OR REPLACE FUNCTION private.dispatch_config_v1b(sw jsonb)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  k text; knob record; v jsonb; num numeric; flag boolean := false; cap integer; budget integer;\nbegin\n  -- MATCH-V1B (owner 2026-10-07): checks the knobs of the row private.marketplace_config 'match_v1_dispatch' that this package\n  -- adds (mode ALL only). A bad value, a missing cap or budget or a misspelt knob of the two new families is the named configuration\n  -- error DISPATCH_CONFIG_INVALID, never a setting that silently stays as it was. Returns the checked switch, the cap that is in force\n  -- (workerDailyCap 1000 is \"off\" and comes back as null: no query is made for it) and the notify budget of one transaction. A wave\n  -- larger than that budget could never be sent, so it is an error too.\n  for k in select jsonb_object_keys(sw) loop\n    if (k like 'remote%' and k not in ('remoteWaves','remoteWaveSize','remoteNextWaveSize','remoteWaveMinutes','remoteStopAfterResponses','remoteCeiling'))\n       or (k like 'worker%' and k not in ('workerDailyCap','workerNotifyPerTransaction')) then\n      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n    end if;\n  end loop;\n\n  v := sw->'workerDailyCap';\n  if v is null or jsonb_typeof(v) <> 'number' then\n    raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n  end if;\n  num := (v #>> '{}')::numeric;\n  if num <> trunc(num) or num < 1 or num > 1000 then\n    raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n  end if;\n  cap := num::integer;\n\n  v := sw->'workerNotifyPerTransaction';\n  if v is null or jsonb_typeof(v) <> 'number' then\n    raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n  end if;\n  num := (v #>> '{}')::numeric;\n  if num <> trunc(num) or num < 50 or num > 1500 then\n    raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n  end if;\n  budget := num::integer;\n\n  v := sw->'remoteWaves';\n  if v is not null then\n    if jsonb_typeof(v) <> 'boolean' then\n      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n    end if;\n    flag := (v #>> '{}')::boolean;\n  end if;\n  if flag then\n    for knob in\n      select * from (values ('remoteWaveSize', 1, 1500), ('remoteNextWaveSize', 1, 1500), ('remoteWaveMinutes', 1, 1440),\n                            ('remoteStopAfterResponses', 1, 1000), ('remoteCeiling', 1, 10000))\n        as t(knob_key, lo, hi)\n    loop\n      v := sw->knob.knob_key;\n      if v is null or jsonb_typeof(v) <> 'number' then\n        raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n      end if;\n      num := (v #>> '{}')::numeric;\n      if num <> trunc(num) or num < knob.lo or num > knob.hi then\n        raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n      end if;\n    end loop;\n    if (sw->>'remoteWaveSize')::integer > budget or (sw->>'remoteNextWaveSize')::integer > budget then\n      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n    end if;\n  end if;\n  return jsonb_build_object('remoteWaves', flag, 'workerDailyCap', case when cap >= 1000 then null else cap end, 'notifyBudget', budget);\nend;\n$function$\n"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "2ba676d2f0fbd1456b48eb1ef36b468e",
+      "signature": "private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer,integer)",
+      "definition": "CREATE OR REPLACE FUNCTION private.dispatch_remote_wave_v1b(nid uuid, sw jsonb, cfgb jsonb, urg text, windowm integer, target integer, remaining integer, selected integer, active integer, active_coverage integer, delivered integer, tx_left integer)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  n public.needs;\n  wave_size integer := (sw->>'remoteWaveSize')::integer;\n  next_size integer := (sw->>'remoteNextWaveSize')::integer;\n  wave_minutes integer := (sw->>'remoteWaveMinutes')::integer;\n  stop_after integer := (sw->>'remoteStopAfterResponses')::integer;\n  rem_ceiling integer := (sw->>'remoteCeiling')::integer;\n  sw_valid integer := (sw->>'validMinutes')::integer;\n  daily_cap integer := case when urg = 'URGENT' then null else (cfgb->>'workerDailyCap')::integer end;\n  pace_minutes integer; batch integer; roundno integer; roundid uuid := gen_random_uuid();\n  lr_no integer; lr_at timestamptz; lr_empty boolean; streak integer := 0; permitted timestamptz;\n  deadline timestamptz; valid_until timestamptz; inserted integer := 0; c record; d jsonb;\nbegin\n  -- MATCH-V1B (owner 2026-10-07): one WAVE of a task without a place (remote, or without coordinates).\n  -- Called by private.dispatch_next_wave in mode ALL when remoteWaves is on; the task is locked, open and has room, the knobs are checked.\n  --   * the first wave notifies at most remoteWaveSize workers, every later wave at most remoteNextWaveSize: always the NEXT workers of the\n  --     rotation seeded by the id of the task (the same order as private.candidate_profile_ids), never a worker twice for one revision of\n  --     the task (a new revision starts the rotation again);\n  --   * the next wave comes remoteWaveMinutes after the previous one (an urgent task: its own, shorter window), no matter who wakes the\n  --     task up (a changed profile re-queues it at once): an early call answers \"waiting\" with the time it is due;\n  --   * waves stop while the task has remoteStopAfterResponses active applications (they go on when applications are withdrawn), and\n  --     for good when the task is closed or agreed (the checks of private.dispatch_next_wave before this call);\n  --   * at most remoteCeiling workers are notified for one revision of one task: the brake;\n  --   * a check that finds nobody new is paced like the tick paces every task that found nobody (5 minutes, growing to 6 hours);\n  --   * one transaction (one tick) notifies at most workerNotifyPerTransaction workers in all (every notified recipient holds two locks of\n  --     the shared lock table until the transaction ends): a wave that does not fit in what is left of that budget is not started, the\n  --     answer is \"waiting\" and due at once, so the next tick sends it.\n  select * into n from public.needs where id = nid;\n  if not found then raise exception using errcode='P0002', message='NEED_NOT_FOUND'; end if;\n\n  if delivered >= rem_ceiling then\n    return jsonb_build_object('status','STOPPED','reason','DELIVERY_CEILING_REACHED','inserted',0,'mode','ALL','remote',true,\n      'ceiling',rem_ceiling,'deliveredBefore',delivered,'activeResponses',active,'activeCoverage',active_coverage,\n      'selectedSlots',selected,'remainingSlots',remaining);\n  end if;\n\n  if active >= stop_after and active_coverage >= remaining then\n    return jsonb_build_object('status','STOPPED','reason','REMOTE_RESPONSE_TARGET_REACHED','inserted',0,'mode','ALL','remote',true,\n      'stopAfterResponses',stop_after,'deliveredBefore',delivered,'activeResponses',active,'activeCoverage',active_coverage,\n      'selectedSlots',selected,'remainingSlots',remaining);\n  end if;\n\n  pace_minutes := case when urg = 'URGENT' then least(wave_minutes, windowm) else wave_minutes end;\n\n  select r.round_no, r.created_at, (r.status = 'STOPPED' and r.stop_reason = 'NO_ELIGIBLE_CANDIDATES')\n    into lr_no, lr_at, lr_empty\n    from public.dispatch_rounds r\n   where r.need_id = nid and r.need_revision = n.revision\n   order by r.round_no desc\n   limit 1;\n  roundno := coalesce(lr_no, 0) + 1;\n\n  if lr_no is not null then\n    if coalesce(lr_empty, false) then\n      select count(*) into streak from public.dispatch_rounds r\n       where r.need_id = nid and r.need_revision = n.revision\n         and r.status = 'STOPPED' and r.stop_reason = 'NO_ELIGIBLE_CANDIDATES'\n         and r.round_no > coalesce((select max(x.round_no) from public.dispatch_rounds x\n                                     where x.need_id = nid and x.need_revision = n.revision\n                                       and not (x.status = 'STOPPED' and x.stop_reason = 'NO_ELIGIBLE_CANDIDATES')), 0);\n      permitted := lr_at + make_interval(mins => least(360, greatest(5, (2 ^ least(streak - 1, 9))::integer)));\n    else\n      permitted := lr_at + make_interval(mins => pace_minutes);\n    end if;\n    if statement_timestamp() < permitted then\n      return jsonb_build_object('status','SENT','inserted',0,'waiting',true,'mode','ALL','remote',true,\n        'deadlineAt',permitted,'deliveredBefore',delivered,'activeResponses',active,'activeCoverage',active_coverage,\n        'selectedSlots',selected,'remainingSlots',remaining);\n    end if;\n  end if;\n\n  batch := least(case when delivered = 0 then wave_size else next_size end, rem_ceiling - delivered);\n\n  -- the lock table: this transaction has already notified its share, so the wave waits for the next tick (nothing is written)\n  if tx_left < batch then\n    return jsonb_build_object('status','SENT','inserted',0,'waiting',true,'deferred','TRANSACTION_NOTIFY_BUDGET','mode','ALL','remote',true,\n      'deadlineAt',statement_timestamp(),'txNotifyBudget',(cfgb->>'notifyBudget')::integer,'txNotifyLeft',tx_left,'deliveredBefore',delivered,\n      'activeResponses',active,'activeCoverage',active_coverage,'selectedSlots',selected,'remainingSlots',remaining);\n  end if;\n\n  deadline := statement_timestamp() + make_interval(mins => pace_minutes);\n  valid_until := statement_timestamp() + make_interval(mins => sw_valid);\n  if urg = 'URGENT' then valid_until := least(valid_until, n.urgent_expires_at); end if;\n\n  insert into public.dispatch_rounds(id,need_id,need_revision,round_no,urgency,batch_size,\n      target_responses,candidate_limit_used,budget_source,status,deadline_at)\n    values (roundid,n.id,n.revision,roundno,urg,batch,target,batch,'FIXED','SENT',deadline);\n\n  for c in\n    select s.pid, s.uid, s.detail from private.remote_wave_candidates_v1b(n.id, batch, daily_cap) s\n    -- \"Mogu odmah\" first for a task danas/odmah (timeTier 1), then the schedule (2); score within a tier.\n    order by coalesce((s.detail->>'timeTier')::integer, 9), (s.detail->>'score')::numeric desc, s.pid\n  loop\n    d := c.detail;\n    insert into public.opportunity_deliveries(worker_account_id,worker_profile_id,need_id,\n        need_revision,dispatch_round_id,match_score,score_components,reason_codes,status,expires_at)\n      values (c.uid,c.pid,n.id,n.revision,roundid,(d->>'score')::numeric,\n        coalesce(d->'scoreComponents','{}'::jsonb) || jsonb_build_object(\n          'distanceToStartKm', d->'distanceToStartKm',\n          'effectiveRadiusKm', d->'effectiveRadiusKm',\n          'distanceSource', d->'distanceSource',\n          'taskLocationMode', d->'taskLocationMode'),\n        array(select jsonb_array_elements_text(d->'reasonCodes')), 'READY', valid_until)\n      on conflict do nothing;\n\n    if found then\n      inserted := inserted + 1;\n      perform private.emit_event(\n        p_recipient => c.uid, p_role => 'WORKER',\n        p_event_type => 'OPPORTUNITY_AVAILABLE',\n        p_entity_type => 'NEED', p_entity_id => n.id, p_entity_version => n.revision,\n        p_title => 'Nova prilika koja može da Vam odgovara',\n        p_body => left(n.title,140),\n        p_dedupe_key => 'opp:'||n.id::text||':'||n.revision::text||':'||c.uid::text,\n        p_urgency => case when urg = 'URGENT' then 'HITNO' else 'NORMAL' end,\n        p_payload => jsonb_build_object('needRevision',n.revision,\n                       'reasonCodes',d->'reasonCodes','remainingSlots',remaining),\n        p_expires_at => valid_until);\n    end if;\n  end loop;\n\n  -- what this transaction has notified so far (read by the next task of the same tick); a rolled-back task takes its share back with it\n  perform set_config('v1b.notified', (coalesce(nullif(current_setting('v1b.notified', true), '')::integer, 0) + inserted)::text, true);\n\n  -- nobody new: the same record as every other check that found nobody (it does not use up a wave), paced by the back-off below\n  if inserted = 0 then\n    update public.dispatch_rounds\n       set status = 'STOPPED', stop_reason = 'NO_ELIGIBLE_CANDIDATES',\n           deadline_at = statement_timestamp() + make_interval(mins => least(360, greatest(5, (2 ^ least(streak, 9))::integer)))\n     where id = roundid;\n  end if;\n\n  return jsonb_build_object(\n    'status', case when inserted > 0 then 'SENT' else 'STOPPED' end,\n    'round', roundno, 'urgency', urg,\n    'inserted', inserted, 'batchSize', batch,\n    'deadlineAt', deadline,\n    'activeResponses', active, 'activeCoverage', active_coverage,\n    'selectedSlots', selected, 'remainingSlots', remaining,\n    'candidateLimit', batch, 'budgetSource', 'FIXED',\n    'candidateRetrieval', 'REMOTE_ROTATION_WAVES',\n    'authoritative', true,\n    'mode', 'ALL', 'remote', true, 'waveSize', case when delivered = 0 then wave_size else next_size end, 'ceiling', rem_ceiling,\n    'deliveredBefore', delivered, 'deliveredTotal', delivered + inserted,\n    'exhausted', inserted < batch, 'validUntil', valid_until, 'workerDailyCap', daily_cap)\n    || case when inserted = 0 then jsonb_build_object('reason', 'NO_ELIGIBLE_CANDIDATES') else '{}'::jsonb end;\nend;\n$function$\n"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "41b54908d3f461420c3826ad8b723880",
+      "signature": "private.match_detail_without_calendar(uuid,uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.match_detail_without_calendar(nid uuid, pid uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  n public.needs; p public.app_profiles; pref public.worker_match_preferences;\n  hard text[] := '{}'; disp text[] := '{}'; reasons text[] := '{}';\n  tz text; local_day date; fit jsonb; tier integer;\n  svc boolean;\n  sched boolean; dist numeric; radiusok boolean;\n  effective_radius numeric; exposure integer;\n  v_worker_rating numeric;\n  cap numeric := 0; ss numeric := 0; ds numeric := 0; rs numeric := 0;\n  rels numeric := 0; fair numeric := 0;\nbegin\n  select * into n from public.needs where id = nid;\n  if not found then\n    return jsonb_build_object('responseAllowed',false,'dispatchEligible',false,\n      'hardBlockers',jsonb_build_array('NEED_NOT_FOUND'));\n  end if;\n  select * into p from public.app_profiles where id = pid and kind = 'WORKER';\n  if not found then\n    return jsonb_build_object('responseAllowed',false,'dispatchEligible',false,\n      'hardBlockers',jsonb_build_array('WORKER_PROFILE_NOT_FOUND'));\n  end if;\n  select * into pref from public.worker_match_preferences where worker_profile_id = pid;\n\n  tz := coalesce(nullif(pref.timezone,''), 'Europe/Belgrade');\n  local_day := case when n.starts_at is not null then (n.starts_at at time zone tz)::date end;\n\n  fit := private.worker_need_fit_v1(nid,pid,false);\n  svc := (fit->>'service')::boolean;\n  tier := (fit->>'timeTier')::integer;\n  sched := tier is not null;\n  effective_radius := (fit->>'effectiveRadiusKm')::numeric;\n  dist := (fit->>'distanceKm')::numeric;\n  radiusok := (fit->>'area')::boolean;\n\n  if p.profile_status <> 'ACTIVE' then hard := array_append(hard,'ACCOUNT_OR_PROFILE_RESTRICTED'); end if;\n  if n.requester_account_id = p.account_id then hard := array_append(hard,'OWN_NEED'); end if;\n  if n.verified_identity_required and not private.identity_admitted(p.account_id)\n    then hard := array_append(hard,'IDENTITY_VERIFICATION_NOT_ADMITTED'); end if;\n  if coalesce(cardinality(p.exclusions),0) > 0 and (private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))\n     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category, n.required_skills)))\n    then hard := array_append(hard,'PROFILE_EXCLUSION'); end if;\n\n  if not coalesce(pref.proactive_notifications,true) then disp := array_append(disp,'PROACTIVE_NOTIFICATIONS_PAUSED'); end if;\n  if n.urgent\n     and (n.schedule_kind = 'TODAY_FLEXIBLE'\n          or (n.starts_at is not null and (n.starts_at at time zone tz)::date = (statement_timestamp() at time zone tz)::date))\n     and not coalesce(pref.same_day_urgent_notifications,true)\n    then disp := array_append(disp,'SAME_DAY_URGENT_NOTIFICATIONS_PAUSED'); end if;\n  if not svc then disp := array_append(disp,'SERVICE_NOT_IN_WORK_PROFILE'); end if;\n  if not sched then disp := array_append(disp,'OUTSIDE_AVAILABILITY'); end if;\n  if not radiusok then disp := array_append(disp,'OUTSIDE_PREFERRED_RADIUS'); end if;\n\n  if svc then reasons := array_append(reasons,'SERVICE_MATCH'); cap := 30; end if;\n  if sched then reasons := array_append(reasons,'SCHEDULE_MATCH'); ss := 25; end if;\n  if radiusok then\n    reasons := array_append(reasons, case when n.execution_location_mode='REMOTE'\n                 then 'REMOTE_LOCATION_NOT_REQUIRED' else 'START_PROXIMITY_MATCH' end);\n    ds := case\n      when n.execution_location_mode='REMOTE' then 15\n      when dist is null or effective_radius is null or effective_radius <= 0 then 10\n      else round(15 * (1 - 0.55 * least(1, greatest(0, dist/effective_radius))), 1)\n    end;\n  end if;\n\n  v_worker_rating := coalesce((private.account_reputation(p.account_id)->>'averageRating')::numeric, p.rating_worker);\n  rels := round(greatest(0, least(100, coalesce(v_worker_rating*20, 50)))/10, 1);\n  select count(*) into exposure from public.opportunity_deliveries d\n   where d.worker_account_id = p.account_id\n     and d.created_at > statement_timestamp() - interval '7 days';\n  fair := case when v_worker_rating is null then 5 else greatest(0, 5 - least(5, exposure)) end;\n  if v_worker_rating is null then reasons := array_append(reasons,'NEWCOMER_FAIRNESS'); end if;\n\n  return jsonb_build_object(\n    'workerAccountId', p.account_id,\n    'workerProfileId', p.id,\n    'responseAllowed', cardinality(hard) = 0,\n    'dispatchEligible', cardinality(hard) = 0 and cardinality(disp) = 0,\n    'hardBlockers', to_jsonb(hard),\n    'dispatchBlockers', to_jsonb(disp),\n    'reasonCodes', to_jsonb(reasons),\n    'distanceToStartKm', dist,\n    'effectiveRadiusKm', effective_radius,\n    'taskLocationMode', n.execution_location_mode,\n    'distanceSource', case when dist is null then null else 'GEODESIC' end,\n    'routingProvider', null,\n    'liveStateDate', local_day,\n    'timeTier', tier,\n    'score', round(least(100, cap+ss+ds+rs+rels+fair), 1),\n    'scoreComponents', jsonb_build_object(\n      'capability', cap, 'schedule', ss, 'distanceToStart', ds,\n      'resources', rs, 'reliability', rels, 'fairness', fair)\n  );\nend;\n$function$\n"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "38c7894a8cf43a8f32bd5a30bc2cbd09",
+      "signature": "private.match_detail(uuid,uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.match_detail(nid uuid, pid uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare s timestamptz; e timestamptz;\nbegin\n  -- A pair of timestamps alone is not evidence of a fixed appointment:\n  -- FLEXIBLE/TODAY_FLEXIBLE/TOMORROW_FLEXIBLE/WEEK_FLEXIBLE can have both.\n  select n.starts_at,n.ends_at into s,e from public.needs n\n    where n.id=nid and n.schedule_kind='FIXED_WINDOW';\n  if s is null or e is null then s:=null; e:=null; end if;\n  return private.match_detail_for_calendar_interval(nid,pid,s,e);\nend;\n$function$\n"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "0fd72e91c11eeac2c2501f3a8f753734",
+      "signature": "private.need_search_time_admitted_v1(uuid,timestamp with time zone)",
+      "definition": "CREATE OR REPLACE FUNCTION private.need_search_time_admitted_v1(p_need_id uuid, p_at timestamp with time zone DEFAULT statement_timestamp())\n RETURNS boolean\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  n public.needs%rowtype;\n  execution_end timestamptz;\nbegin\n  if p_need_id is null or p_at is null or not isfinite(p_at) then return false; end if;\n  select * into n from public.needs where id=p_need_id;\n  if not found then return false; end if;\n  if n.response_deadline is not null\n     and (not isfinite(n.response_deadline) or n.response_deadline <= p_at) then return false; end if;\n  if n.starts_at is not null and not isfinite(n.starts_at) then return false; end if;\n  if n.ends_at is not null then\n    if not isfinite(n.ends_at) or n.ends_at <= p_at then return false; end if;\n    if n.starts_at is not null and n.starts_at >= n.ends_at then return false; end if;\n  end if;\n  if n.schedule_kind='FIXED_WINDOW' then\n    execution_end := coalesce(n.ends_at,n.starts_at);\n    return execution_end is not null and isfinite(execution_end) and p_at < execution_end;\n  elsif n.schedule_kind in ('TODAY_FLEXIBLE','TOMORROW_FLEXIBLE','WEEK_FLEXIBLE') then\n    -- A specified completion deadline wins over a derived publication-period end.\n    execution_end := coalesce(n.ends_at,private.relative_schedule_end_v5(n.schedule_kind,n.published_at,n.task_timezone));\n    return execution_end is not null and isfinite(execution_end) and p_at < execution_end;\n  elsif n.schedule_kind in ('FLEXIBLE','REMOTE_ANYTIME') then\n    -- An explicit generic end is honoured above. A start alone is NOT an invented end.\n    return true;\n  end if;\n  -- Unrecognised time semantics cannot license automatic matching.\n  return false;\nend\n$function$\n"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "9aac9da0479327fdf82b2f9298e47719",
+      "signature": "private.worker_notify_room_v1b(uuid,integer)",
+      "definition": "CREATE OR REPLACE FUNCTION private.worker_notify_room_v1b(uid uuid, p_cap integer)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  -- MATCH-V1B (owner 2026-10-07): may this worker still get a PROACTIVE new-task notification today?\n  -- It counts the worker's own OPPORTUNITY_AVAILABLE events of normal urgency created in the last 24 hours: the event the\n  -- dispatch wave emits for every notified worker (private.dispatch_next_wave -> private.emit_event). Urgent (HITNO) events and\n  -- every other event type (responses, agreements, messages, reviews ...) are NOT counted. A null cap means \"no cap\".\n  -- Index-friendly: one range on an existing recipient index (activity_recipient_idx: recipient_user_id, recipient_role, created_at; the\n  -- inbox index activity_inbox_page_idx serves the same range), and the count stops at the cap, so at most p_cap matching rows are read\n  -- however long the worker's history is.\n  select p_cap is null or (\n    select count(*) from (\n      select 1\n        from public.user_activity_events e\n       where e.recipient_user_id = uid\n         and e.recipient_role = 'WORKER'\n         and e.created_at > statement_timestamp() - interval '24 hours'\n         and e.event_type = 'OPPORTUNITY_AVAILABLE'\n         and e.urgency = 'NORMAL'\n       limit p_cap\n    ) counted\n  ) < p_cap;\n$function$\n"
+    }
+  ],
+  "observedAt": "2026-11-08T10:56:48.779065+00:00"
+}

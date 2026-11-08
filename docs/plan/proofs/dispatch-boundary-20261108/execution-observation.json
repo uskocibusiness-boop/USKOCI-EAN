@@ -1,0 +1,105 @@
+{
+  "schema": "USKOCI_DISPATCH_BOUNDARY_OBSERVATION_V1",
+  "recordedAt": "2026-11-08 11:12:16 UTC",
+  "kind": "Coordinator observation, not a reconstructed raw receipt.",
+  "scope": "LOCAL_ONLY; actual captured tick/requeue/enqueue, explicit substitute wave and maintenance. No DEV mutation or production integration.",
+  "source": {
+    "candidateSha256": "d9993ca6c132238a15eb95a9f2fbed7e7be958a90eb5023d7acb9a00bac8cdc7",
+    "runnerSha256": "caffaf6bcac6d9b75d57fba975b59061b98f67f21b67f3d72c06254cb5d0573f",
+    "agentReceiptSha256": "6f0533d42ecf71b4550277767b4f9a34cfe57fdcf4b647ddd2edc7dd3a1130fc"
+  },
+  "execution": {
+    "postgres": "PostgreSQL17.11 Debian17.11-0+deb13u1 x86_64",
+    "agentPass": 11,
+    "coordinatorIndependentPass": 11,
+    "scenarios": [
+      {
+        "name": "baseline holds all batch Needs and watermark through later wave",
+        "pass": true
+      },
+      {
+        "name": "candidate releases completed/unclaimed Needs and profile watermark",
+        "pass": true
+      },
+      {
+        "name": "negative control: COMMIT resets allowance and exceeds old cycle budget",
+        "pass": true
+      },
+      {
+        "name": "candidate preserves whole-cycle notification allowance",
+        "pass": true
+      },
+      {
+        "name": "negative control: immediate chunk repeatedly consumes same Need",
+        "pass": true
+      },
+      {
+        "name": "candidate visits each Need at most once despite immediate next_run_at",
+        "pass": true
+      },
+      {
+        "name": "failed wave rolls back its writes and allowance, next Need progresses",
+        "pass": true
+      },
+      {
+        "name": "process death preserves committed Need, rolls back in-flight Need and recovery completes remaining work",
+        "pass": true
+      },
+      {
+        "name": "later maintenance failure cannot roll back already committed Needs",
+        "pass": true
+      },
+      {
+        "name": "parallel orchestrators skip a busy Need and finish distinct available jobs without duplicate wave calls",
+        "pass": true
+      },
+      {
+        "name": "top-level CALL required; procedure remains postgres-only INVOKER with no SET clause",
+        "pass": true
+      }
+    ],
+    "originalDefinitionsAndAclUnchanged": true
+  },
+  "observations": {
+    "baseline": {
+      "freePriorAndFutureNeedsDuringSecondWave": 0,
+      "watermarkLockAvailable": false,
+      "committedDeliveriesVisible": 0
+    },
+    "candidate": {
+      "freePriorAndFutureNeedsDuringSecondWave": 2,
+      "watermarkLockAvailable": true,
+      "committedDeliveriesVisible": 1
+    },
+    "negativeBudgetControl": {
+      "fixtureAllowance": 2,
+      "withoutCarry": 3,
+      "withCarry": 2
+    },
+    "negativeReselectionControl": {
+      "distinctNeeds": 1,
+      "withoutSeenSetWaveCalls": 3,
+      "withSeenSetWaveCalls": 1
+    },
+    "nativeTopLevelCall": true,
+    "callInsideBeginSqlstate": "2D000"
+  },
+  "limits": [
+    "These are synthetic wave work units, not real sent notifications.",
+    "The actual dispatch configuration permits workerNotifyPerTransaction50..1500; the allowance2 experiment is deliberately a substitute-wave control.",
+    "Real matcher/wave, lifecycle dependencies, actual selection writer and hosted pg_cron CALL are not validated.",
+    "No CPU/RAM/throughput or Android capacity claim."
+  ],
+  "outage": {
+    "message": "No usable execution environment is available. Wait for an environment to become available before using this tool.",
+    "localArchiveCreatedAndIndependentlyExecutedBeforeOutage": true,
+    "rawRunnerCandidateReceiptsCommitted": false,
+    "reason": "Environment became unavailable before the final proof commit. Complete runner/candidate/receipt strings were not retained in the accessible tool store and are not reconstructed here.",
+    "localPaths": [
+      "/workspace/scratch/792f3e12eb9e/USKOCI-EAN/docs/plan/proofs/dispatch-boundary-20261108/",
+      "/workspace/scratch/792f3e12eb9e/db-capacity/"
+    ],
+    "nextRealWaveTest": "BLOCKED_BEFORE_EXECUTION",
+    "nextRealWaveScenario": "60 eligible synthetic workers, two Needs, allowance50; preserve whole-cycle budget and actual delivery uniqueness across commits."
+  }
+}

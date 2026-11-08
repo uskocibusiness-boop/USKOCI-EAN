@@ -1,0 +1,49 @@
+{
+  "schema": "USKOCI_DISPATCH_RECOVERED_INPUTS_V1",
+  "recordedAt": "2026-11-08 11:12:16 UTC",
+  "source": "Complete saved tool-result objects recovered without filesystem access; no truncated-output reconstruction.",
+  "files": [
+    {
+      "name": "capacity2_dispatch_transaction_20261108.preimage.json",
+      "bytes": 14257,
+      "sha256": "8619d6f544d7c15ea6a879e4638855b4ccb373a2de1be24625d53a77521c473d",
+      "gitBlobSha": "cf32143b9e4833193f701a0771f7804106a459c4",
+      "path": "recovered/capacity2_dispatch_transaction_20261108.preimage.json"
+    },
+    {
+      "name": "capacity3_dispatch_dependencies_20261108.preimage.json",
+      "bytes": 33089,
+      "sha256": "0feec9b7b5b7d0836becfba9f86db8b8d2ea0293bb96c96564e62b5b3fec1bdf",
+      "gitBlobSha": "d7d3a83377b16c48bd843c85a358c2cc88d7e770",
+      "path": "recovered/capacity3_dispatch_dependencies_20261108.preimage.json"
+    },
+    {
+      "name": "capacity4_dispatch_wave_dependencies_20261108.preimage.json",
+      "bytes": 32228,
+      "sha256": "4fb07e8773b68f1dc0193e14553db13c9e368bc018de18078385840ee54620fc",
+      "gitBlobSha": "c5dd0c5224ed0b485bdcb587009405e82fb7955b",
+      "path": "recovered/capacity4_dispatch_wave_dependencies_20261108.preimage.json"
+    },
+    {
+      "name": "capacity4_dispatch_wave_additional_20261108.preimage.json",
+      "bytes": 15975,
+      "sha256": "95fc4ee794fd8d595ebedc8923b8fe56813dda0ed7c9b96759db387d7a63f2b7",
+      "gitBlobSha": "e06a4e5573e86f2d5c973d067661b5065398f0b3",
+      "path": "recovered/capacity4_dispatch_wave_additional_20261108.preimage.json"
+    },
+    {
+      "name": "capacity4_dispatch_wave_candidates_recovered_20261108.preimage.json",
+      "bytes": 8326,
+      "sha256": "1b6c39d4500e807b8af5e098c7c74004186deb6eb54403df5b2561d4adb91909",
+      "gitBlobSha": "71678275e7ab6ba3951d1989a2a2e66227b842c9",
+      "path": "recovered/capacity4_dispatch_wave_candidates_recovered_20261108.preimage.json"
+    }
+  ],
+  "missingExactArtifacts": [
+    "capacity3_dispatch_split_candidate.sql",
+    "capacity3-dispatch-native-feasibility.cjs",
+    "agent-receipt.json",
+    "root-receipt.json"
+  ],
+  "boundary": "Missing artifacts were executed/inspected locally before outage but are not committed by this recovery. The execution-observation file is a qualified summary, not their replacement bytes."
+}

@@ -1,0 +1,187 @@
+{
+  "schema": "USKOCI_CAPACITY2_FINAL_DEV_READBACK_V1",
+  "runtimeSource": "79a1edf2b697ac15ac14be9525bc96be416b7156",
+  "currentCiSource": "b3ab43364d25b626479cc72c5aa811059ff07ce4",
+  "scope": "Read-only aggregate follow-up. No new events, provider calls, synthetic load, credentials or private message bodies.",
+  "project": {
+    "id": "leqcwgzvjsxugfgzdmth",
+    "status": "ACTIVE_HEALTHY",
+    "region": "eu-central-1",
+    "postgresVersion": "17.6.1.165"
+  },
+  "edges": [
+    {
+      "name": "uskoci-ai-interview",
+      "status": "ACTIVE",
+      "version": 194,
+      "verifyJwt": false,
+      "bundleSha256": "1bb0d80e75b8eb581e2ff1c2fd7e2e18df11a53fb455fce1fa8fac2ff1a7c1af"
+    },
+    {
+      "name": "uskoci-location-search",
+      "status": "ACTIVE",
+      "version": 32,
+      "verifyJwt": true,
+      "bundleSha256": "aa756f8daae61e5c8b07179a74ac05e9b5d7e9967393ea3cc21a16ad659ef39f"
+    },
+    {
+      "name": "uskoci-publication-evaluate",
+      "status": "ACTIVE",
+      "version": 31,
+      "verifyJwt": true,
+      "bundleSha256": "17ca6799a1e9c11add5bb7f3faafdf71bc07f2ba436ce4c7a13437d1d8dce964"
+    },
+    {
+      "name": "uskoci-data-export-worker",
+      "status": "ACTIVE",
+      "version": 29,
+      "verifyJwt": false,
+      "bundleSha256": "e70434a972d46b0af8216717490bd01f6995e0ee785f811c3873b69f6ec5dfff"
+    },
+    {
+      "name": "uskoci-data-export-download",
+      "status": "ACTIVE",
+      "version": 29,
+      "verifyJwt": true,
+      "bundleSha256": "83581eb03346471b6a1f5575bdf63abea79a028cb0722c94664f0b1f6acb733d"
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "status": "ACTIVE",
+      "version": 147,
+      "verifyJwt": false,
+      "bundleSha256": "abdfaf345b6b92b3605d45c5903a6c7b574daba8c87ddb7048224709a60081d3"
+    },
+    {
+      "name": "uskoci-speech-session",
+      "status": "ACTIVE",
+      "version": 32,
+      "verifyJwt": true,
+      "bundleSha256": "0357e460cf46cfeeab354585b7d5bda48661ddede8f4d4a22b97bd84ee31e905"
+    },
+    {
+      "name": "uskoci-qa-classify",
+      "status": "ACTIVE",
+      "version": 30,
+      "verifyJwt": true,
+      "bundleSha256": "62ccb77bbac967a5d0c7ba0561427b7da7750247543e2e74725c5a5b1372b44f"
+    },
+    {
+      "name": "uskoci-push-transport",
+      "status": "ACTIVE",
+      "version": 47,
+      "verifyJwt": false,
+      "bundleSha256": "3fce4c4b7d03a4bf6f533ee0721b43b86024a66da595603ff8eb5222080a472f"
+    },
+    {
+      "name": "uskoci-media",
+      "status": "ACTIVE",
+      "version": 31,
+      "verifyJwt": true,
+      "bundleSha256": "baebc8575e0048a5b42897e7da52cdbfa1a612b0bed36aa97d399fb5274466b9"
+    },
+    {
+      "name": "uskoci-account-closure-worker",
+      "status": "ACTIVE",
+      "version": 19,
+      "verifyJwt": false,
+      "bundleSha256": "fe4f56c67541bf60909418a48b7a7d614eb8f95e77e2d337121f3af24c4fd34e"
+    },
+    {
+      "name": "uskoci-taxonomy-postsave-worker",
+      "status": "ACTIVE",
+      "version": 14,
+      "verifyJwt": false,
+      "bundleSha256": "b61376460dbc24bcacbddc5473fd882d126f607e8a6ebb422a6be25f6f7b9494"
+    },
+    {
+      "name": "sbfenv",
+      "status": "ACTIVE",
+      "version": 10,
+      "verifyJwt": true,
+      "bundleSha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18"
+    },
+    {
+      "name": "uskoci-gemini-schema-smoke",
+      "status": "ACTIVE",
+      "version": 11,
+      "verifyJwt": true,
+      "bundleSha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72"
+    },
+    {
+      "name": "uskoci-gemini-provider-probe-dev",
+      "status": "ACTIVE",
+      "version": 12,
+      "verifyJwt": true,
+      "bundleSha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0"
+    }
+  ],
+  "sql": {
+    "cron": [
+      {
+        "active": true,
+        "jobName": "uskoci_marketplace_tick",
+        "schedule": "* * * * *",
+        "commandMd5": "93518fd0382301fc76f79037123bccfc",
+        "lastHourRuns": 60,
+        "lastHourFailures": 0
+      },
+      {
+        "active": true,
+        "jobName": "uskoci_edge_workers",
+        "schedule": "* * * * *",
+        "commandMd5": "6abaf04335ccd2f8240bafcd4dbfb314",
+        "lastHourRuns": 60,
+        "lastHourFailures": 0
+      },
+      {
+        "active": true,
+        "jobName": "uskoci_taxonomy_postsave_tick_dev",
+        "schedule": "* * * * *",
+        "commandMd5": "b1e89b08b31a550f0ccce47ddcf3cb08",
+        "lastHourRuns": 60,
+        "lastHourFailures": 0
+      }
+    ],
+    "push": {
+      "activeLeases": 0,
+      "sendAttemptsDue": 0,
+      "unknownAttempts": 2,
+      "pendingDeliveries": 0,
+      "receiptAttemptsDue": 0
+    },
+    "legal": {
+      "bundle": {
+        "ready": false,
+        "reason": "LEGAL_DOCUMENTS_NOT_PUBLISHED",
+        "documents": [],
+        "acceptedCurrentBundle": false
+      },
+      "acceptances": 0,
+      "activeDocuments": 0,
+      "activeProcessorMaps": 0
+    },
+    "counts": {
+      "needs": 18,
+      "dbBytes": 122514579,
+      "accounts": 16,
+      "messages": 12,
+      "agreements": 6,
+      "migrations": 358
+    },
+    "observedAt": "2026-11-08T10:52:04.129962+00:00",
+    "connections": {
+      "max": "60",
+      "sessions": 13,
+      "ungrantedLocks": 0,
+      "idleInTransaction": 0
+    },
+    "retentionAiSourceReady": false
+  },
+  "limits": [
+    "Edge metadata health is not handler E2E or Android proof.",
+    "Cron SQL success is not downstream provider or phone success.",
+    "The empty due queue leaves two prior UNKNOWN attempts intact.",
+    "No representative multi-user load has been applied to DEV."
+  ]
+}
