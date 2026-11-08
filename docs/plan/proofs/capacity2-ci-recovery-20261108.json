@@ -87,6 +87,31 @@
         "cause": "The test waited for at most 30 setImmediate turns while real WebCrypto digest completion is scheduled independently."
       },
       "apk": "NOT_PRODUCED"
+    },
+    {
+      "id": 42472157554,
+      "attempt": 1,
+      "head": "615c9c573cc631a591e71f2048ea04b710944c8e",
+      "status": "completed",
+      "conclusion": "failure",
+      "startedAt": "2026-11-08T10:36:38Z",
+      "updatedAt": "2026-11-08T10:38:35Z",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42472157554",
+      "jobId": 128705236962,
+      "sourceChecks": {
+        "tests": 1009,
+        "pass": 1009,
+        "fail": 0,
+        "typescript": "PASS",
+        "migrationFiles": 223,
+        "migrationTests": 41
+      },
+      "failure": {
+        "phase": "Gradle distribution download",
+        "httpStatus": 503,
+        "url": "https://services.gradle.org/distributions/gradle-9.3.1-bin.zip"
+      },
+      "apk": "NOT_PRODUCED"
     }
   ],
   "correction": {
@@ -134,5 +159,6 @@
       "sha256": "f6822a23e9adc27382b5187d1bc92f2f04d37d4243ccf9b0f7a767a5ce6e1e21"
     }
   },
-  "nextCi": "PENDING_NEW_SOURCE_RUN"
+  "nextCi": "PENDING_BOUNDED_BOOTSTRAP_SOURCE_RUN",
+  "gradleRecoveryProof": "capacity2-gradle-bootstrap-20261108.json"
 }

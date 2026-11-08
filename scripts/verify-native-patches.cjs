@@ -247,9 +247,14 @@ function checkQaApkWorkflow(code, fail) {
   const install = blocks.find(block => /\bnpm ci\b/.test(block.text));
   const verify = blocks.find(block => /node scripts\/verify-native-patches\.cjs[ \t]*(?:\r?\n|$)/.test(block.text));
   const prebuild = blocks.find(block => /expo prebuild/.test(block.text));
-  const build = blocks.find(block => /\bgradlew\b/.test(block.text));
+  // A preceding --version bootstrap is not the application build. Likewise,
+  // source/checks artifacts must not stand in for the attested APK upload.
+  const builds = blocks.filter(block => /\.\/gradlew\s+:app:assembleRelease(?:\s|$)/.test(block.text));
+  const build = builds.length === 1 ? builds[0] : null;
   const attest = blocks.find(block => /apksigner.*verify/.test(block.text));
-  const upload = blocks.find(block => /uses: actions\/upload-artifact@/.test(block.text));
+  const uploads = blocks.filter(block => /uses: actions\/upload-artifact@/.test(block.text)
+    && /^ {10}path: artifacts\/qa-apk\/\s*$/m.test(block.text));
+  const upload = uploads.length === 1 ? uploads[0] : null;
   if (!install || !verify || !prebuild || !build ||
       !(install.index <= verify.index && verify.index < prebuild.index && prebuild.index < build.index) ||
       (install === verify && verify.text.indexOf(VERIFY_COMMAND) < verify.text.indexOf('npm ci'))) {

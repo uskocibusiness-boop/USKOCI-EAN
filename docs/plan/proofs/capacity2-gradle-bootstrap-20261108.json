@@ -1,0 +1,92 @@
+{
+  "schema": "USKOCI_CAPACITY2_GRADLE_BOOTSTRAP_V1",
+  "recordedAt": "2026-11-08T10:50:11.604439+00:00",
+  "baselineSource": "615c9c573cc631a591e71f2048ea04b710944c8e",
+  "problem": "QA59 and QA60 passed application checks but received HTTP504/503 downloading Gradle9.3.1 before compilation.",
+  "cause": "External distribution download failed; the installed Expo Gradle9.3.1 wrapper has no native retry configuration. The repository workflow verifier also identified the first source artifact as the APK artifact.",
+  "scope": "CI bootstrap and its existing workflow guard only; app code, backend deployments, dependencies, Gradle version, permissions and release gates unchanged.",
+  "officialSources": [
+    {
+      "url": "https://gradle.org/release-checksums/",
+      "version": "9.3.1",
+      "binSha256": "b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06",
+      "wrapperJarSha256": "b3a875ddc1f044746e1b1a55f645584505f4a10438c1afea9f15e92a7c42ec13"
+    },
+    {
+      "url": "https://docs.gradle.org/9.5.0/release-notes.html#automatic-retries-for-wrapper-downloads",
+      "finding": "Native wrapper retry properties were introduced after9.3.1; no ineffective new properties were added."
+    }
+  ],
+  "observedTemplate": {
+    "file": "node_modules/expo/template.tgz",
+    "distribution": "gradle-9.3.1-bin.zip",
+    "networkTimeoutMs": 10000,
+    "validateDistributionUrl": true,
+    "checksumPropertyBefore": false,
+    "jarMatchesOfficialHash": true
+  },
+  "change": {
+    "distribution": "https://downloads.gradle.org/distributions/gradle-9.3.1-bin.zip",
+    "assertOriginalDistribution": true,
+    "pinDistributionSha256": true,
+    "pinWrapperJarSha256": true,
+    "maximumBootstrapAttempts": 3,
+    "eachAttemptSeconds": 180,
+    "killAfterSeconds": 10,
+    "retryBackoffSeconds": [
+      2,
+      4
+    ],
+    "retryOnly": [
+      "HTTP429",
+      "HTTP5xx",
+      "SocketTimeoutException",
+      "timed out",
+      "timeout exit124/137"
+    ],
+    "applicationBuildAttempts": 1,
+    "checksumJvmConfigurationFailure": "FAIL_IMMEDIATELY",
+    "workflowGuard": "Require exactly one assembleRelease step and exactly one upload to artifacts/qa-apk/ after the attestation; source uploads and --version are not substitutes."
+  },
+  "tests": {
+    "script": "scripts/qa-gradle-bootstrap.test.py",
+    "pass": 14,
+    "fail": 0,
+    "rootIndependentRepeatSeconds": 1.551,
+    "usesActualWorkflowScripts": true,
+    "usesActualExpoTemplate": true,
+    "usesControlledLocalCommands": true,
+    "negativeCases": [
+      "wrong distribution",
+      "wrong checksum",
+      "tampered JAR",
+      "disabled URL validation",
+      "permanent JVM/checksum/404 failure",
+      "three transient failures",
+      "timeout124",
+      "conditional or absent assembleRelease",
+      "APK upload before attestation or conditional upload"
+    ],
+    "existingRepoGuardBefore": "WORKFLOW_APK_ATTESTATION_ORDER",
+    "existingRepoGuardAfter": "PASS",
+    "diffCheck": "PASS"
+  },
+  "networkProbe": {
+    "officialChecksumRequests": 2,
+    "checksumStatus": 200,
+    "checksumAgrees": true,
+    "archiveRangeStatus": 206,
+    "range": "bytes0-1023/137037885",
+    "receivedBytes": 1024,
+    "zipPrefixHex": "504b0304",
+    "limitation": "Availability probe only; no complete archive was downloaded or independently hashed locally. CI must verify its full pinned distribution."
+  },
+  "fileSha256": {
+    ".github/workflows/uskoci-qa-apk.yml": "2bb2093c8ba56ae18f51637ad473d7abe9303eb2eaf4abe610777e004e8e607b",
+    "scripts/verify-native-patches.cjs": "0646cfbf5572bba71ca86ff0d4299be54c1123f3951741a750e9c3e6decdc781",
+    "scripts/qa-gradle-bootstrap.test.py": "b0efc672b929b08c33bb49bad121c673dcdba3e4884e9797933fc9a6dee43296"
+  },
+  "rollback": "Revert this CI-only change; application and DEV runtime are unchanged. Restores the old download failure risk, not a production migration.",
+  "status": "LOCAL_TESTED_CI_PENDING",
+  "nativeStatus": "NO_NEW_APK_OR_DEVICE_PROOF"
+}

@@ -84,6 +84,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/uskoci-checks"
+          node scripts/verify-native-patches.cjs --repo
+          python scripts/qa-gradle-bootstrap.test.py
           node scripts/record-ux-checkpoint.cjs --verify-source
           npm test 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/tests.tap"
           npx tsc --noEmit 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/typescript.txt"
@@ -161,6 +163,52 @@ jobs:
           assert metadata.get('expo.modules.updates.HAS_EMBEDDED_UPDATE') != 'false', 'QA_NATIVE_BUNDLE_REQUIRED'
           print('Generated Android manifest: embedded source only PASS')
           PY
+      - name: Prepare pinned Gradle distribution with bounded retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, re
+          wrapper = Path('android/gradle/wrapper')
+          properties = wrapper / 'gradle-wrapper.properties'
+          text = properties.read_text()
+          original = r'https\://services.gradle.org/distributions/gradle-9.3.1-bin.zip'
+          direct = r'https\://downloads.gradle.org/distributions/gradle-9.3.1-bin.zip'
+          # Gradle's official release-checksums reference; keep the same version.
+          expected = 'b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06'
+          assert re.findall(r'^distributionUrl=(.*)$', text, re.M) == [original], 'UNEXPECTED_GRADLE_DISTRIBUTION'
+          assert re.findall(r'^validateDistributionUrl=(.*)$', text, re.M) == ['true'], 'GRADLE_URL_VALIDATION_REQUIRED'
+          assert re.findall(r'^distributionSha256Sum=(.*)$', text, re.M) in ([], [expected]), 'UNEXPECTED_GRADLE_CHECKSUM'
+          assert hashlib.sha256((wrapper / 'gradle-wrapper.jar').read_bytes()).hexdigest() == 'b3a875ddc1f044746e1b1a55f645584505f4a10438c1afea9f15e92a7c42ec13', 'UNEXPECTED_GRADLE_WRAPPER'
+          text = text.replace('distributionUrl=' + original, 'distributionUrl=' + direct)
+          if not re.search(r'^distributionSha256Sum=', text, re.M):
+              text = text.rstrip('\n') + '\ndistributionSha256Sum=' + expected + '\n'
+          properties.write_text(text)
+          print('Same Gradle 9.3.1 distribution, official SHA-256 and wrapper identity pinned')
+          PY
+          cd android
+          chmod +x gradlew
+          # Retry only distribution bootstrap, never a failed application build.
+          # Wrapper 9.3.1 predates native retry properties introduced in 9.5.
+          gradle_bootstrap_ok=0
+          for gradle_attempt in 1 2 3; do
+            gradle_bootstrap_log="$RUNNER_TEMP/uskoci-gradle-bootstrap-${gradle_attempt}.log"
+            if timeout --kill-after=10s 180s ./gradlew --version > "$gradle_bootstrap_log" 2>&1; then
+              cat "$gradle_bootstrap_log"
+              gradle_bootstrap_ok=1
+              break
+            else
+              gradle_attempt_exit=$?
+              cat "$gradle_bootstrap_log"
+            fi
+            # Keep checksum, JVM and configuration failures visible immediately.
+            if [ "$gradle_attempt_exit" -ne 124 ] && [ "$gradle_attempt_exit" -ne 137 ] && ! grep -Eq 'HTTP response code: (429|5[0-9][0-9])|SocketTimeoutException|[Tt]imed out' "$gradle_bootstrap_log"; then
+              exit "$gradle_attempt_exit"
+            fi
+            if [ "$gradle_attempt" -lt 3 ]; then sleep "$((gradle_attempt * 2))"; fi
+          done
+          test "$gradle_bootstrap_ok" = 1
       - name: Build standalone installable release JS bundle and APK
         shell: bash
         run: |
