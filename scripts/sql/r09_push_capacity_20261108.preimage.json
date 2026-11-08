@@ -1,0 +1,800 @@
+{
+  "date": "2026-11-08",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceSha": "9cf4f5ee913a3751f83615e134a1e6d7c68300f3",
+  "tables": [
+    {
+      "name": "public.notification_deliveries",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "extensions.gen_random_uuid()",
+          "notNull": true
+        },
+        {
+          "name": "event_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "recipient_user_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "recipient_role",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "channel",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "priority",
+          "type": "text",
+          "default": "'NORMAL'::text",
+          "notNull": true
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "suppression_reason",
+          "type": "text",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "dedupe_key",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true
+        },
+        {
+          "name": "queued_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "delivered_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "read_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "push_started_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX notification_deliveries_pkey ON public.notification_deliveries USING btree (id)",
+        "CREATE UNIQUE INDEX notification_deliveries_dedupe_key_key ON public.notification_deliveries USING btree (dedupe_key)",
+        "CREATE INDEX notification_recipient_idx ON public.notification_deliveries USING btree (recipient_user_id, recipient_role, state, created_at DESC)",
+        "CREATE INDEX notification_queue_idx ON public.notification_deliveries USING btree (state, priority, created_at) WHERE (state = ANY (ARRAY['CREATED'::text, 'QUEUED'::text, 'FAILED_RETRYABLE'::text]))",
+        "CREATE INDEX delivery_inbox_copy_idx ON public.notification_deliveries USING btree (event_id, created_at, id) WHERE (channel = 'IN_APP'::text)"
+      ],
+      "constraints": [
+        {
+          "name": "notification_deliveries_channel_check",
+          "type": "c",
+          "definition": "CHECK ((channel = ANY (ARRAY['IN_APP'::text, 'PUSH'::text])))"
+        },
+        {
+          "name": "notification_deliveries_check",
+          "type": "c",
+          "definition": "CHECK (((state <> 'SUPPRESSED'::text) OR (suppression_reason IS NOT NULL)))"
+        },
+        {
+          "name": "notification_deliveries_dedupe_key_key",
+          "type": "u",
+          "definition": "UNIQUE (dedupe_key)"
+        },
+        {
+          "name": "notification_deliveries_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "notification_deliveries_priority_check",
+          "type": "c",
+          "definition": "CHECK ((priority = ANY (ARRAY['NORMAL'::text, 'HIGH'::text])))"
+        },
+        {
+          "name": "notification_deliveries_recipient_role_check",
+          "type": "c",
+          "definition": "CHECK ((recipient_role = ANY (ARRAY['REQUESTER'::text, 'WORKER'::text])))"
+        },
+        {
+          "name": "notification_deliveries_state_check",
+          "type": "c",
+          "definition": "CHECK ((state = ANY (ARRAY['CREATED'::text, 'QUEUED'::text, 'SENT'::text, 'DELIVERED'::text, 'FAILED_RETRYABLE'::text, 'FAILED_FINAL'::text, 'EXPIRED'::text, 'READ'::text, 'SUPPRESSED'::text])))"
+        }
+      ]
+    },
+    {
+      "name": "public.notification_preferences",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "role_context",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "in_app_enabled",
+          "type": "boolean",
+          "default": "true",
+          "notNull": true
+        },
+        {
+          "name": "push_enabled",
+          "type": "boolean",
+          "default": "false",
+          "notNull": true
+        },
+        {
+          "name": "opportunities_enabled",
+          "type": "boolean",
+          "default": "true",
+          "notNull": true
+        },
+        {
+          "name": "responses_enabled",
+          "type": "boolean",
+          "default": "true",
+          "notNull": true
+        },
+        {
+          "name": "dogovor_enabled",
+          "type": "boolean",
+          "default": "true",
+          "notNull": true
+        },
+        {
+          "name": "execution_enabled",
+          "type": "boolean",
+          "default": "true",
+          "notNull": true
+        },
+        {
+          "name": "recovery_enabled",
+          "type": "boolean",
+          "default": "true",
+          "notNull": true
+        },
+        {
+          "name": "account_enabled",
+          "type": "boolean",
+          "default": "true",
+          "notNull": true
+        },
+        {
+          "name": "quiet_hours_enabled",
+          "type": "boolean",
+          "default": "false",
+          "notNull": true
+        },
+        {
+          "name": "quiet_start",
+          "type": "time without time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "quiet_end",
+          "type": "time without time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "quiet_timezone",
+          "type": "text",
+          "default": "'Europe/Belgrade'::text",
+          "notNull": true
+        },
+        {
+          "name": "urgent_overrides_quiet_hours",
+          "type": "boolean",
+          "default": "false",
+          "notNull": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true
+        },
+        {
+          "name": "revision",
+          "type": "bigint",
+          "default": "0",
+          "notNull": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX notification_preferences_pkey ON public.notification_preferences USING btree (user_id, role_context)"
+      ],
+      "constraints": [
+        {
+          "name": "notification_preferences_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (user_id, role_context)"
+        },
+        {
+          "name": "notification_preferences_revision_check",
+          "type": "c",
+          "definition": "CHECK ((revision >= 0))"
+        },
+        {
+          "name": "notification_preferences_role_context_check",
+          "type": "c",
+          "definition": "CHECK ((role_context = ANY (ARRAY['REQUESTER'::text, 'WORKER'::text])))"
+        },
+        {
+          "name": "notification_quiet_times_bounds",
+          "type": "c",
+          "definition": "CHECK ((((quiet_start IS NULL) OR (quiet_start < '24:00:00'::time without time zone)) AND ((quiet_end IS NULL) OR (quiet_end < '24:00:00'::time without time zone))))"
+        },
+        {
+          "name": "notification_quiet_times_complete",
+          "type": "c",
+          "definition": "CHECK (((NOT quiet_hours_enabled) OR ((quiet_start IS NOT NULL) AND (quiet_end IS NOT NULL))))"
+        }
+      ]
+    },
+    {
+      "name": "public.notification_push_attempts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "extensions.gen_random_uuid()",
+          "notNull": true
+        },
+        {
+          "name": "delivery_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "device_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "attempt_no",
+          "type": "integer",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "default": "'EXPO_PUSH'::text",
+          "notNull": true
+        },
+        {
+          "name": "provider_ticket_id",
+          "type": "text",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "error_code",
+          "type": "text",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true
+        },
+        {
+          "name": "transport_state",
+          "type": "text",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "device_revision",
+          "type": "bigint",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "send_count",
+          "type": "integer",
+          "default": "0",
+          "notNull": true
+        },
+        {
+          "name": "lease_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "lease_until",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "ticket_received_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "receipt_checked_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "last_claimed_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "rejected_ticket_ids",
+          "type": "text[]",
+          "default": "'{}'::text[]",
+          "notNull": true
+        },
+        {
+          "name": "single_target_admission",
+          "type": "jsonb",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "single_target_claimed_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "single_target_authorization_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX notification_push_attempts_pkey ON public.notification_push_attempts USING btree (id)",
+        "CREATE UNIQUE INDEX notification_push_attempts_delivery_id_attempt_no_key ON public.notification_push_attempts USING btree (delivery_id, attempt_no)",
+        "CREATE UNIQUE INDEX notification_transport_device_once ON public.notification_push_attempts USING btree (delivery_id, device_id) WHERE (transport_state IS NOT NULL)",
+        "CREATE UNIQUE INDEX notification_transport_ticket_once ON public.notification_push_attempts USING btree (provider, provider_ticket_id) WHERE ((transport_state IS NOT NULL) AND (provider_ticket_id IS NOT NULL))",
+        "CREATE INDEX notification_transport_ready ON public.notification_push_attempts USING btree (transport_state, next_attempt_at) WHERE (transport_state = ANY (ARRAY['PENDING'::text, 'RETRYABLE'::text, 'TICKET_PENDING'::text, 'SEND_LEASED'::text, 'SEND_STARTED'::text, 'RECEIPT_LEASED'::text]))",
+        "CREATE INDEX notification_transport_leases ON public.notification_push_attempts USING btree (lease_until) WHERE (lease_until IS NOT NULL)",
+        "CREATE INDEX notification_transport_claim_rate ON public.notification_push_attempts USING btree (last_claimed_at) WHERE (last_claimed_at IS NOT NULL)",
+        "CREATE UNIQUE INDEX push_single_target_authorization_v1 ON public.notification_push_attempts USING btree (single_target_authorization_id)"
+      ],
+      "constraints": [
+        {
+          "name": "notification_push_attempts_attempt_no_check",
+          "type": "c",
+          "definition": "CHECK ((attempt_no >= 1))"
+        },
+        {
+          "name": "notification_push_attempts_delivery_id_attempt_no_key",
+          "type": "u",
+          "definition": "UNIQUE (delivery_id, attempt_no)"
+        },
+        {
+          "name": "notification_push_attempts_outcome_check",
+          "type": "c",
+          "definition": "CHECK ((outcome = ANY (ARRAY['QUEUED'::text, 'OK'::text, 'RETRYABLE'::text, 'FATAL'::text])))"
+        },
+        {
+          "name": "notification_push_attempts_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "notification_push_attempts_rejected_ticket_ids_check",
+          "type": "c",
+          "definition": "CHECK (((cardinality(rejected_ticket_ids) <= 2) AND (array_position(rejected_ticket_ids, NULL::text) IS NULL)))"
+        },
+        {
+          "name": "notification_push_attempts_send_count_check",
+          "type": "c",
+          "definition": "CHECK (((send_count >= 0) AND (send_count <= 3)))"
+        },
+        {
+          "name": "notification_push_attempts_transport_state_check",
+          "type": "c",
+          "definition": "CHECK ((transport_state = ANY (ARRAY['PENDING'::text, 'SEND_LEASED'::text, 'SEND_STARTED'::text, 'TICKET_PENDING'::text, 'RECEIPT_LEASED'::text, 'PROVIDER_ACCEPTED'::text, 'RETRYABLE'::text, 'FINAL'::text, 'UNKNOWN'::text, 'SUPPRESSED'::text])))"
+        },
+        {
+          "name": "push_single_target_authorization_shape_v1",
+          "type": "c",
+          "definition": "CHECK ((((single_target_admission IS NULL) AND (single_target_authorization_id IS NULL)) OR ((single_target_admission IS NOT NULL) AND (single_target_authorization_id IS NOT NULL) AND ((single_target_authorization_id)::text = (single_target_admission ->> 'authorizationId'::text)))))"
+        },
+        {
+          "name": "push_single_target_authorization_v1",
+          "type": "u",
+          "definition": "UNIQUE (single_target_authorization_id)"
+        },
+        {
+          "name": "push_single_target_claim_shape_v1",
+          "type": "c",
+          "definition": "CHECK (((single_target_claimed_at IS NULL) OR (single_target_admission IS NOT NULL)))"
+        },
+        {
+          "name": "push_single_target_shape_v1",
+          "type": "c",
+          "definition": "CHECK (((single_target_admission IS NULL) OR COALESCE(((jsonb_typeof(single_target_admission) = 'object'::text) AND (single_target_admission ?& ARRAY['schema'::text, 'authorizationId'::text, 'recipientAccountId'::text, 'recipientRole'::text, 'eventId'::text, 'eventType'::text, 'deviceId'::text, 'deviceRevision'::text, 'boundSessionId'::text, 'expiresAt'::text, 'receiptDeadline'::text]) AND ((single_target_admission - ARRAY['schema'::text, 'authorizationId'::text, 'recipientAccountId'::text, 'recipientRole'::text, 'eventId'::text, 'eventType'::text, 'deviceId'::text, 'deviceRevision'::text, 'boundSessionId'::text, 'expiresAt'::text, 'receiptDeadline'::text]) = '{}'::jsonb) AND ((single_target_admission ->> 'schema'::text) = 'PUSH_SINGLE_TARGET_V1'::text) AND ((single_target_admission ->> 'eventType'::text) = 'MESSAGE_RECEIVED'::text) AND ((single_target_admission ->> 'recipientRole'::text) = ANY (ARRAY['REQUESTER'::text, 'WORKER'::text])) AND ((jsonb_typeof((single_target_admission -> 'authorizationId'::text)) = 'string'::text) AND ((single_target_admission ->> 'authorizationId'::text) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text)) AND ((jsonb_typeof((single_target_admission -> 'recipientAccountId'::text)) = 'string'::text) AND ((single_target_admission ->> 'recipientAccountId'::text) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text)) AND ((jsonb_typeof((single_target_admission -> 'eventId'::text)) = 'string'::text) AND ((single_target_admission ->> 'eventId'::text) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text)) AND ((jsonb_typeof((single_target_admission -> 'deviceId'::text)) = 'string'::text) AND ((single_target_admission ->> 'deviceId'::text) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text)) AND ((jsonb_typeof((single_target_admission -> 'boundSessionId'::text)) = 'string'::text) AND ((single_target_admission ->> 'boundSessionId'::text) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text)) AND ((jsonb_typeof((single_target_admission -> 'deviceRevision'::text)) = 'number'::text) AND ((single_target_admission ->> 'deviceRevision'::text) ~ '^[0-9]+$'::text)) AND ((jsonb_typeof((single_target_admission -> 'expiresAt'::text)) = 'string'::text) AND isfinite(((single_target_admission ->> 'expiresAt'::text))::timestamp with time zone)) AND ((jsonb_typeof((single_target_admission -> 'receiptDeadline'::text)) = 'string'::text) AND isfinite(((single_target_admission ->> 'receiptDeadline'::text))::timestamp with time zone))), false)))"
+        }
+      ]
+    },
+    {
+      "name": "public.notification_push_devices",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "extensions.gen_random_uuid()",
+          "notNull": true
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "expo_push_token",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "platform",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "default": "true",
+          "notNull": true
+        },
+        {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true
+        },
+        {
+          "name": "revision",
+          "type": "bigint",
+          "default": "0",
+          "notNull": true
+        },
+        {
+          "name": "bound_session_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "bound_revision",
+          "type": "bigint",
+          "default": null,
+          "notNull": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX notification_push_devices_pkey ON public.notification_push_devices USING btree (id)",
+        "CREATE UNIQUE INDEX notification_push_devices_user_id_expo_push_token_key ON public.notification_push_devices USING btree (user_id, expo_push_token)",
+        "CREATE INDEX push_devices_user_idx ON public.notification_push_devices USING btree (user_id) WHERE active",
+        "CREATE UNIQUE INDEX push_device_active_token_owner_idx ON public.notification_push_devices USING btree (expo_push_token) WHERE active"
+      ],
+      "constraints": [
+        {
+          "name": "notification_push_devices_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "notification_push_devices_platform_check",
+          "type": "c",
+          "definition": "CHECK ((platform = ANY (ARRAY['IOS'::text, 'ANDROID'::text, 'WEB'::text])))"
+        },
+        {
+          "name": "notification_push_devices_revision_check",
+          "type": "c",
+          "definition": "CHECK ((revision >= 0))"
+        },
+        {
+          "name": "notification_push_devices_user_id_expo_push_token_key",
+          "type": "u",
+          "definition": "UNIQUE (user_id, expo_push_token)"
+        }
+      ]
+    },
+    {
+      "name": "public.user_activity_events",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "extensions.gen_random_uuid()",
+          "notNull": true
+        },
+        {
+          "name": "recipient_user_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "recipient_role",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "event_type",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "entity_type",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "entity_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "entity_version",
+          "type": "integer",
+          "default": null,
+          "notNull": false
+        },
+        {
+          "name": "urgency",
+          "type": "text",
+          "default": "'NORMAL'::text",
+          "notNull": true
+        },
+        {
+          "name": "payload",
+          "type": "jsonb",
+          "default": "'{}'::jsonb",
+          "notNull": true
+        },
+        {
+          "name": "dedupe_key",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true
+        },
+        {
+          "name": "read_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX user_activity_events_pkey ON public.user_activity_events USING btree (id)",
+        "CREATE UNIQUE INDEX user_activity_events_dedupe_key_key ON public.user_activity_events USING btree (dedupe_key)",
+        "CREATE INDEX activity_recipient_idx ON public.user_activity_events USING btree (recipient_user_id, recipient_role, created_at DESC)",
+        "CREATE INDEX activity_inbox_page_idx ON public.user_activity_events USING btree (recipient_user_id, created_at DESC, id DESC)",
+        "CREATE INDEX activity_inbox_unread_idx ON public.user_activity_events USING btree (recipient_user_id, recipient_role) WHERE (read_at IS NULL)"
+      ],
+      "constraints": [
+        {
+          "name": "user_activity_events_dedupe_key_key",
+          "type": "u",
+          "definition": "UNIQUE (dedupe_key)"
+        },
+        {
+          "name": "user_activity_events_entity_type_check",
+          "type": "c",
+          "definition": "CHECK ((entity_type = ANY (ARRAY['NEED'::text, 'RESPONSE'::text, 'AGREEMENT'::text, 'CLARIFICATION'::text])))"
+        },
+        {
+          "name": "user_activity_events_event_type_check",
+          "type": "c",
+          "definition": "CHECK (((event_type = ANY (ARRAY['OPPORTUNITY_AVAILABLE'::text, 'RESPONSE_RECEIVED'::text, 'RESPONSE_UPDATED'::text, 'RESPONSE_VIEWED'::text, 'RESPONSE_SHORTLISTED'::text, 'RESPONSE_SELECTED'::text, 'RESPONSE_NOT_SELECTED'::text, 'RESPONSE_STALE'::text, 'RESPONSE_WITHDRAWN'::text, 'RESPONSE_EXPIRED'::text, 'NEED_REVISED'::text, 'NEED_CANCELLED'::text, 'AGREEMENT_VERSION_CHANGED'::text, 'AGREEMENT_CHANGE_PROPOSED'::text, 'AGREEMENT_CHANGE_REJECTED'::text, 'EXECUTION_STATE_CHANGED'::text, 'COMPLETION_REQUIRED'::text, 'MESSAGE_RECEIVED'::text, 'PRIVATE_ACCESS_GRANTED'::text, 'RECOVERY_OPENED'::text, 'REVIEW_RECEIVED'::text, 'CLARIFICATION_CREATED'::text, 'CLARIFICATION_ANSWERED'::text])) OR (event_type = 'AGREEMENT_CANCELLED'::text)))"
+        },
+        {
+          "name": "user_activity_events_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "user_activity_events_recipient_role_check",
+          "type": "c",
+          "definition": "CHECK ((recipient_role = ANY (ARRAY['REQUESTER'::text, 'WORKER'::text])))"
+        },
+        {
+          "name": "user_activity_events_urgency_check",
+          "type": "c",
+          "definition": "CHECK ((urgency = ANY (ARRAY['NORMAL'::text, 'HITNO'::text])))"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres}",
+      "name": "category_of_event",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "schema": "private",
+      "definer": false,
+      "body_md5": "85389285506a1f5801ad204f60dfa2a1",
+      "signature": "private.category_of_event(text)",
+      "definition": "CREATE OR REPLACE FUNCTION private.category_of_event(p_event_type text)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO 'pg_catalog'\nAS $function$\n  select case\n    when p_event_type = 'OPPORTUNITY_AVAILABLE' then 'opportunities'\n    when p_event_type like 'RESPONSE\\_%'\n      or p_event_type in ('NEED_REVISED','NEED_CANCELLED','CLARIFICATION_CREATED','CLARIFICATION_ANSWERED') then 'responses'\n    when p_event_type like 'AGREEMENT\\_%'\n      or p_event_type in ('MESSAGE_RECEIVED','PRIVATE_ACCESS_GRANTED','REVIEW_RECEIVED') then 'dogovor'\n    when p_event_type in ('EXECUTION_STATE_CHANGED','COMPLETION_REQUIRED') then 'execution'\n    when p_event_type = 'RECOVERY_OPENED' then 'recovery'\n    else 'account'\n  end;\n$function$\n",
+      "volatility": "i"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "name": "push_session_valid",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "schema": "private",
+      "definer": true,
+      "body_md5": "3454eb7040f3dab3cb0c35b512b46859",
+      "signature": "private.push_session_valid(uuid,uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION private.push_session_valid(p_user uuid, p_session uuid)\n RETURNS boolean\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n select p_session is not null and exists(select 1 from auth.sessions s join auth.users u on u.id=s.user_id\n where s.id=p_session and s.user_id=p_user and (s.not_after is null or s.not_after>clock_timestamp())\n and u.deleted_at is null and (u.banned_until is null or u.banned_until<=clock_timestamp()));\n$function$\n",
+      "volatility": "v"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "name": "push_suppression",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "schema": "private",
+      "definer": true,
+      "body_md5": "25d3fae40c1f67689e1c50ee1898005b",
+      "signature": "private.push_suppression(notification_deliveries)",
+      "definition": "CREATE OR REPLACE FUNCTION private.push_suppression(p_delivery notification_deliveries)\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  p public.notification_preferences%rowtype;\n  e public.user_activity_events%rowtype;\n  enabled boolean;\n  local_time time;\nbegin\n  if p_delivery.channel<>'PUSH' or p_delivery.state in ('SUPPRESSED','EXPIRED','READ','DELIVERED','FAILED_FINAL') then\n    return 'DELIVERY_CLOSED';\n  end if;\n  if p_delivery.expires_at<=clock_timestamp() then\n    return 'EXPIRED';\n  end if;\n  select * into e from public.user_activity_events where id=p_delivery.event_id;\n  if not found or e.recipient_user_id<>p_delivery.recipient_user_id or e.recipient_role<>p_delivery.recipient_role then\n    return 'EVENT_UNAVAILABLE';\n  end if;\n\n  select * into p from public.notification_preferences where user_id=p_delivery.recipient_user_id and role_context=p_delivery.recipient_role;\n  if not found then\n    -- When preferences row does not exist yet, default all categories and push to ON\n    return null;\n  end if;\n\n  if not coalesce(p.push_enabled, true) then\n    return 'PUSH_OFF';\n  end if;\n\n  enabled:=case private.category_of_event(e.event_type)\n    when 'opportunities' then coalesce(p.opportunities_enabled, true)\n    when 'responses' then coalesce(p.responses_enabled, true)\n    when 'dogovor' then coalesce(p.dogovor_enabled, true)\n    when 'execution' then coalesce(p.execution_enabled, true)\n    when 'recovery' then coalesce(p.recovery_enabled, true)\n    else coalesce(p.account_enabled, true)\n  end;\n  if not enabled then\n    return 'CATEGORY_OFF';\n  end if;\n\n  local_time:=(clock_timestamp() at time zone coalesce(p.quiet_timezone, 'UTC'))::time;\n  if coalesce(p.quiet_hours_enabled, false)\n     and (case when p.quiet_start<p.quiet_end then local_time between p.quiet_start and p.quiet_end else local_time>=p.quiet_start or local_time<=p.quiet_end end)\n     and not(e.urgency='HITNO' and coalesce(p.urgent_overrides_quiet_hours, true)) then\n    return 'QUIET_HOURS';\n  end if;\n\n  return null;\nend $function$\n",
+      "volatility": "v"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "name": "rpc_claim_push_transport",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "schema": "public",
+      "definer": true,
+      "body_md5": "f70229927ca68419e5ca735a5b64b2e9",
+      "signature": "rpc_claim_push_transport(text)",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_claim_push_transport(p_kind text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare d public.notification_deliveries%rowtype; a public.notification_push_attempts%rowtype; v_now timestamptz:=clock_timestamp(); why text; dev record; num integer;\nbegin\n if auth.role() is distinct from 'service_role' then raise exception 'FORBIDDEN' using errcode='42501'; end if;\n if p_kind is null or p_kind not in ('SEND','RECEIPT') then raise exception 'INVALID_PUSH_ACTION' using errcode='22023'; end if;\n -- Cross-isolate dispatch throttle and SKIP LOCKED delivery ownership. No\n -- in-memory limit is mistaken for a project-wide limiter.\n if not pg_try_advisory_xact_lock(hashtextextended('uskoci:push-claim',0)) then return jsonb_build_object('kind','NONE'); end if;\n if (select count(*) from public.notification_push_attempts where lease_until>v_now)>=6 then return jsonb_build_object('kind','NONE'); end if;\n if (select count(*) from public.notification_push_attempts where last_claimed_at>v_now-interval '1 second')>=60 then return jsonb_build_object('kind','NONE'); end if;\n for d in select * from public.notification_deliveries x where x.channel='PUSH' and not exists(select 1 from public.notification_push_attempts admitted where admitted.delivery_id=x.id and admitted.single_target_admission is not null) and\n  ((p_kind='SEND' and x.push_started_at is null and x.state in ('CREATED','QUEUED','FAILED_RETRYABLE') and not exists(select 1 from public.notification_push_attempts z where z.delivery_id=x.id))\n   or exists(select 1 from public.notification_push_attempts z where z.delivery_id=x.id and\n    ((p_kind='SEND' and z.transport_state in ('PENDING','RETRYABLE','SEND_LEASED','SEND_STARTED')) or (p_kind='RECEIPT' and z.transport_state in ('TICKET_PENDING','RECEIPT_LEASED')))\n    and (z.next_attempt_at<=v_now or z.lease_until<=v_now)))\n  order by case x.priority when 'HIGH' then 0 else 1 end,x.created_at,x.id limit 64 for update skip locked loop\n  if d.push_started_at is null and p_kind='SEND' then\n   why:=private.push_suppression(d);\n   if why is not null then update public.notification_deliveries set state='SUPPRESSED',suppression_reason=why,push_started_at=v_now where id=d.id; continue; end if;\n   -- Historical attempts are not reinterpreted or resent by the new transport.\n   if exists(select 1 from public.notification_push_attempts where delivery_id=d.id) then continue; end if;\n   num:=0;\n   for dev in select * from public.notification_push_devices x where x.user_id=d.recipient_user_id and x.active and x.bound_revision=x.revision and private.push_session_valid(x.user_id,x.bound_session_id) and x.platform in ('IOS','ANDROID') order by x.id loop\n    num:=num+1;\n    insert into public.notification_push_attempts(delivery_id,device_id,attempt_no,outcome,transport_state,device_revision,next_attempt_at)\n    values(d.id,dev.id,num,'QUEUED','PENDING',dev.revision,v_now);\n   end loop;\n   update public.notification_deliveries set push_started_at=v_now,queued_at=v_now,state=case when num=0 then 'SUPPRESSED' else 'QUEUED' end,suppression_reason=case when num=0 then 'NO_ACTIVE_DEVICE' else null end where id=d.id;\n  end if;\n  -- Losing a worker after begin may have produced a real push. Never resend it.\n  update public.notification_push_attempts set transport_state='UNKNOWN',outcome='FATAL',error_code='SEND_OUTCOME_UNKNOWN',lease_id=null,lease_until=null where delivery_id=d.id and transport_state='SEND_STARTED' and lease_until<=v_now;\n  update public.notification_push_attempts set transport_state='PENDING',lease_id=null,lease_until=null where delivery_id=d.id and transport_state='SEND_LEASED' and lease_until<=v_now;\n  update public.notification_push_attempts set transport_state='TICKET_PENDING',lease_id=null,lease_until=null where delivery_id=d.id and transport_state='RECEIPT_LEASED' and lease_until<=v_now;\n  update public.notification_push_attempts set transport_state='UNKNOWN',outcome='FATAL',error_code='RECEIPT_UNAVAILABLE',lease_id=null,lease_until=null where delivery_id=d.id and transport_state='TICKET_PENDING' and ticket_received_at<=v_now-interval '24 hours';\n  select * into a from public.notification_push_attempts where delivery_id=d.id and next_attempt_at<=v_now and\n   ((p_kind='SEND' and transport_state in ('PENDING','RETRYABLE') and send_count<3) or (p_kind='RECEIPT' and transport_state='TICKET_PENDING')) order by attempt_no limit 1 for update;\n  if not found then continue; end if;\n  if p_kind='SEND' then\n   why:=private.push_suppression(d);\n   if why is not null then update public.notification_push_attempts set transport_state='SUPPRESSED',outcome='FATAL',error_code=why where id=a.id; continue; end if;\n   select * into dev from public.notification_push_devices x where x.id=a.device_id and x.user_id=d.recipient_user_id and x.active and x.revision=a.device_revision and x.bound_revision=x.revision and private.push_session_valid(x.user_id,x.bound_session_id);\n   if not found then update public.notification_push_attempts set transport_state='SUPPRESSED',outcome='FATAL',error_code='DEVICE_CHANGED' where id=a.id; continue; end if;\n  end if;\n  update public.notification_push_attempts set transport_state=case when p_kind='SEND' then 'SEND_LEASED' else 'RECEIPT_LEASED' end,lease_id=extensions.gen_random_uuid(),lease_until=v_now+interval '90 seconds',next_attempt_at=v_now,last_claimed_at=v_now where id=a.id returning * into a;\n  return jsonb_build_object('kind',p_kind,'attemptId',a.id,'leaseId',a.lease_id,'leaseExpiresAt',a.lease_until,'ticketId',a.provider_ticket_id);\n end loop;\n return jsonb_build_object('kind','NONE');\nend $function$\n",
+      "volatility": "v"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "name": "rpc_complete_push_transport",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "schema": "public",
+      "definer": true,
+      "body_md5": "d87908db1908b8c88fe66228c5b07f9f",
+      "signature": "rpc_complete_push_transport(uuid,uuid,text,text)",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_complete_push_transport(p_attempt_id uuid, p_lease_id uuid, p_result text, p_ticket_id text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare a public.notification_push_attempts%rowtype; d public.notification_deliveries%rowtype; token text; receipt boolean; v_now timestamptz:=clock_timestamp(); next_state text;\nbegin\n if auth.role() is distinct from 'service_role' then raise exception 'FORBIDDEN' using errcode='42501'; end if;\n if p_result is null or p_result not in ('TICKET','PROVIDER_ACCEPTED','DEVICE_NOT_REGISTERED','RETRYABLE','RECEIPT_RATE_EXCEEDED','FATAL','UNKNOWN','RECEIPT_PENDING') or\n  (p_result='TICKET' and (p_ticket_id is null or p_ticket_id!~'^[A-Za-z0-9_-]{1,200}$')) or (p_result<>'TICKET' and p_ticket_id is not null) then raise exception 'INVALID_PUSH_RESULT' using errcode='22023'; end if;\n select x.expo_push_token into token from public.notification_push_devices x join public.notification_push_attempts y on y.device_id=x.id where y.id=p_attempt_id;\n if token is not null then perform pg_advisory_xact_lock(hashtextextended('uskoci:push-token:'||token,0)); end if;\n select x.* into d from public.notification_deliveries x join public.notification_push_attempts y on y.delivery_id=x.id where y.id=p_attempt_id for update of x;\n select * into a from public.notification_push_attempts where id=p_attempt_id for update;\n if not found or a.lease_id is distinct from p_lease_id or a.lease_until<=clock_timestamp() or a.transport_state not in ('SEND_STARTED','RECEIPT_LEASED') then raise exception 'PUSH_LEASE_STALE' using errcode='PT409'; end if;\n receipt:=a.transport_state='RECEIPT_LEASED';\n if (receipt and (p_result='TICKET' or a.provider_ticket_id is null)) or (not receipt and p_result in ('PROVIDER_ACCEPTED','RECEIPT_PENDING','RECEIPT_RATE_EXCEEDED'))\n or (p_result='TICKET' and p_ticket_id=any(a.rejected_ticket_ids)) then raise exception 'INVALID_PUSH_RESULT' using errcode='22023'; end if;\n -- A documented receipt MessageRateExceeded is a known rejection of this\n -- message, unlike HTTP429 while merely looking up a receipt. Only the former\n -- permits a new send, with current-device/consent revalidation and max3 sends.\n next_state:=case p_result when 'TICKET' then 'TICKET_PENDING' when 'PROVIDER_ACCEPTED' then 'PROVIDER_ACCEPTED' when 'DEVICE_NOT_REGISTERED' then 'FINAL' when 'UNKNOWN' then 'UNKNOWN' when 'RECEIPT_PENDING' then 'TICKET_PENDING' when 'RECEIPT_RATE_EXCEEDED' then case when a.send_count<3 then 'RETRYABLE' else 'FINAL' end when 'RETRYABLE' then case when receipt then 'TICKET_PENDING' when a.send_count<3 then 'RETRYABLE' else 'FINAL' end else 'FINAL' end;\n -- A one-shot admission never regains send permission, including known provider throttles.\n if a.single_target_admission is not null and next_state='RETRYABLE' then next_state:='FINAL'; end if;\n update public.notification_push_attempts set transport_state=next_state,\n  outcome=case when next_state='PROVIDER_ACCEPTED' then 'OK' when next_state='RETRYABLE' then 'RETRYABLE' when next_state in ('TICKET_PENDING') then 'QUEUED' else 'FATAL' end,\n  error_code=case when p_result in ('TICKET','PROVIDER_ACCEPTED') then null else p_result end,\n  rejected_ticket_ids=case when p_result='RECEIPT_RATE_EXCEEDED' and next_state='RETRYABLE' then array_append(rejected_ticket_ids,provider_ticket_id) else rejected_ticket_ids end,\n  provider_ticket_id=case when p_result='TICKET' then p_ticket_id when p_result='RECEIPT_RATE_EXCEEDED' and next_state='RETRYABLE' then null else provider_ticket_id end,\n  ticket_received_at=case when p_result='TICKET' then v_now when p_result='RECEIPT_RATE_EXCEEDED' and next_state='RETRYABLE' then null else ticket_received_at end,\n  receipt_checked_at=case when receipt then v_now else receipt_checked_at end,\n  next_attempt_at=case when next_state='TICKET_PENDING' then v_now+interval '15 minutes' when next_state='RETRYABLE' then v_now+make_interval(secs=>power(2,a.send_count)::integer*30) else null end,\n  lease_id=null,lease_until=null where id=a.id;\n if p_result='DEVICE_NOT_REGISTERED' then\n  -- Token rebind / revoke / re-registration changes revision. An old provider\n  -- result must never disable a different user's or a newer registration.\n  update public.notification_push_devices set active=false,revision=revision+1,bound_session_id=null,bound_revision=null\n  where id=a.device_id and user_id=d.recipient_user_id and revision=a.device_revision and active;\n end if;\n if p_result='TICKET' and d.state in ('CREATED','QUEUED','FAILED_RETRYABLE') then update public.notification_deliveries set state='SENT',sent_at=coalesce(sent_at,v_now) where id=d.id; end if;\n -- DELIVERED and delivered_at are deliberately never written by this adapter.\n return jsonb_build_object('attemptId',a.id,'state',next_state);\nend $function$\n",
+      "volatility": "v"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "name": "rpc_begin_push_send",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "schema": "public",
+      "definer": true,
+      "body_md5": "fc2dcc23f986d667ef61159ebc435228",
+      "signature": "rpc_begin_push_send(uuid,uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_begin_push_send(p_attempt_id uuid, p_lease_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  a public.notification_push_attempts%rowtype;\n  d public.notification_deliveries%rowtype;\n  dev public.notification_push_devices%rowtype;\n  why text;\n  v_event_type text;\n  v_event_id uuid;\nbegin\n  if auth.role() is distinct from 'service_role' then\n    raise exception 'FORBIDDEN' using errcode='42501';\n  end if;\n  select x.* into dev\n  from public.notification_push_devices x\n  join public.notification_push_attempts y on y.device_id=x.id\n  where y.id=p_attempt_id;\n  if not found then return jsonb_build_object('kind','SUPPRESSED'); end if;\n\n  -- Preserve the proven token-first lock ordering.\n  perform pg_advisory_xact_lock(hashtextextended('uskoci:push-token:'||dev.expo_push_token,0));\n  select x.* into d\n  from public.notification_deliveries x\n  join public.notification_push_attempts y on y.delivery_id=x.id\n  where y.id=p_attempt_id\n  for update of x;\n  select * into a from public.notification_push_attempts where id=p_attempt_id for update;\n  if not found or a.transport_state<>'SEND_LEASED'\n     or a.lease_id is distinct from p_lease_id\n     or a.lease_until<=clock_timestamp() then\n    raise exception 'PUSH_LEASE_STALE' using errcode='PT409';\n  end if;\n\n  select * into dev from public.notification_push_devices where id=a.device_id;\n  if a.single_target_admission is not null then\n    if a.single_target_claimed_at is null or a.send_count<>0\n       or ((a.single_target_admission->>'expiresAt')::timestamptz>clock_timestamp()) is not true\n       or a.device_id::text is distinct from a.single_target_admission->>'deviceId'\n       or a.device_revision::text is distinct from a.single_target_admission->>'deviceRevision'\n       or dev.bound_session_id::text is distinct from a.single_target_admission->>'boundSessionId'\n       or d.event_id::text is distinct from a.single_target_admission->>'eventId'\n       or d.recipient_user_id::text is distinct from a.single_target_admission->>'recipientAccountId'\n       or d.recipient_role is distinct from a.single_target_admission->>'recipientRole'\n       or not exists(select 1 from public.user_activity_events e\n         where e.id=d.event_id and e.recipient_user_id=d.recipient_user_id\n           and e.recipient_role=d.recipient_role\n           and e.event_type=a.single_target_admission->>'eventType'\n           and e.event_type in ('MESSAGE_RECEIVED','OPPORTUNITY_AVAILABLE'))\n       -- A Need can change between manual admission and the actual send. Recheck\n       -- current recipient, public task revision, world, consent and expiry.\n       or (a.single_target_admission->>'eventType'='OPPORTUNITY_AVAILABLE' and not exists(\n         select 1 from public.user_activity_events e\n         join public.needs n on n.id=e.entity_id\n         join public.app_profiles p on p.account_id=d.recipient_user_id\n           and p.kind='WORKER' and p.profile_status='ACTIVE'\n         join public.opportunity_deliveries od on od.worker_profile_id=p.id\n           and od.worker_account_id=d.recipient_user_id and od.need_id=n.id\n           and od.need_revision=n.revision\n         where e.id=d.event_id and e.recipient_user_id=d.recipient_user_id\n           and e.recipient_role='WORKER' and e.event_type='OPPORTUNITY_AVAILABLE'\n           and e.entity_type='NEED' and e.entity_version=n.revision\n           and e.dedupe_key='opp:'||n.id::text||':'||n.revision::text||':'||d.recipient_user_id::text\n           and n.status in ('PUBLISHED','SELECTION') and n.requester_account_id is not null\n           and n.requester_account_id<>d.recipient_user_id\n           and od.status in ('READY','SEEN','RESPONDED') and od.expires_at>clock_timestamp()\n           and private.accounts_same_world(n.requester_account_id,d.recipient_user_id)\n           and not private.closure_account_restricted(n.requester_account_id)\n           and not private.safety_event_blocked(e)\n           and exists(select 1 from public.notification_deliveries x where x.event_id=e.id\n             and x.recipient_user_id=d.recipient_user_id and x.recipient_role='WORKER'\n             and x.channel='IN_APP' and x.dedupe_key=e.dedupe_key||':in_app'\n             and x.suppression_reason is null and x.state in ('CREATED','SENT','DELIVERED','READ'))\n       ))\n    then why:='SINGLE_TARGET_EXPIRED_OR_CHANGED'; end if;\n  end if;\n  why:=coalesce(why,private.push_suppression(d));\n  if why is null and\n    (dev.id is null or dev.user_id<>d.recipient_user_id or not dev.active\n     or dev.revision<>a.device_revision or dev.bound_revision is distinct from dev.revision\n     or not private.push_session_valid(dev.user_id,dev.bound_session_id)) then\n    why:='DEVICE_CHANGED';\n  end if;\n  if why is not null then\n    update public.notification_push_attempts\n    set transport_state='SUPPRESSED',outcome='FATAL',error_code=why,lease_id=null,lease_until=null\n    where id=a.id;\n    return jsonb_build_object('kind','SUPPRESSED');\n  end if;\n\n  select e.event_type,e.id into v_event_type,v_event_id\n  from public.user_activity_events e\n  where e.id=d.event_id\n    and e.recipient_user_id=d.recipient_user_id\n    and e.recipient_role=d.recipient_role;\n  if v_event_type is null then\n    update public.notification_push_attempts\n    set transport_state='SUPPRESSED',outcome='FATAL',error_code='EVENT_UNAVAILABLE',lease_id=null,lease_until=null\n    where id=a.id;\n    return jsonb_build_object('kind','SUPPRESSED');\n  end if;\n\n  update public.notification_push_attempts\n  set transport_state='SEND_STARTED',send_count=send_count+1\n  where id=a.id;\n\n  -- The event UUID is a recipient-bound hint, never navigation authority. The\n  -- authenticated P4 resolver rechecks it after tap and returns the exact target.\n  return jsonb_build_object(\n    'kind','SEND',\n    'attemptId',a.id,\n    'leaseId',a.lease_id,\n    'leaseExpiresAt',a.lease_until,\n    'expoPushToken',dev.expo_push_token,\n    'priority',d.priority,\n    'eventType',v_event_type\n  ) || case when v_event_type in ('MESSAGE_RECEIVED','OPPORTUNITY_AVAILABLE','RESPONSE_RECEIVED','RESPONSE_UPDATED')\n    then jsonb_build_object('eventId',v_event_id) else '{}'::jsonb end;\nend\n$function$\n",
+      "volatility": "v"
+    }
+  ]
+}

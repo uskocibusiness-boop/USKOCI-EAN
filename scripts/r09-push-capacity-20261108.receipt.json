@@ -1,0 +1,104 @@
+{
+  "date": "2026-11-08",
+  "sourceBase": "9cf4f5ee913a3751f83615e134a1e6d7c68300f3",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "status": "SOURCE_AND_ISOLATED_TESTED_NOT_DEPLOYED",
+  "proofBoundary": "Actual Edge handler; captured production SQL in PGlite; synthetic Auth/users/devices; mocked Expo HTTP. No hosted load, provider send or phone proof.",
+  "commands": [
+    {
+      "command": "node --test scripts/r09-push-capacity.test.cjs scripts/supabase-key-compatibility.test.cjs",
+      "passed": 52,
+      "failed": 0
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "mockBurst": {
+    "queuedEach": 100,
+    "before": {
+      "send": 1,
+      "receipt": 1
+    },
+    "after": {
+      "send": 100,
+      "receipt": 100
+    },
+    "peakSend": 4,
+    "peakProvider": 5,
+    "claimConcurrency": 1,
+    "duplicates": 0
+  },
+  "integration": {
+    "handler": "actual",
+    "sql": "captured functions plus exact forward migration",
+    "provider": "mock",
+    "sends": 12,
+    "receipts": 12,
+    "sendCountEach": 1,
+    "deviceDeliveryClaimed": false
+  },
+  "limits": {
+    "sendPerTick": 100,
+    "receiptPerTick": 100,
+    "invocationDeadlineMs": 50000,
+    "claimWindowMs": 30000,
+    "rpcDeadlineMs": 3000,
+    "providerDeadlineMs": 5000,
+    "globalActiveLeases": 6,
+    "globalClaimsPerSecond": 60,
+    "recipientClaimsPerSecond": 4,
+    "maxOfflineTtlSeconds": 3600,
+    "knownRejectionMaxSends": 3,
+    "blindResendUnknown": false
+  },
+  "migration": "supabase/migrations/20261108005658_r09_push_capacity_20261108.sql",
+  "migrationSha256": "4f00f50757eca043b8c4276cfd86d1d1db3fd44ff934ccc9b99bf493c76c6359",
+  "edgeSha256": "6c58b3a88de38562df9d85e6127408a554678bff3c52c98aeb9e7e91154bd932",
+  "postimage": [
+    {
+      "name": "public.rpc_begin_push_send",
+      "signature": "rpc_begin_push_send(uuid,uuid)",
+      "body_md5": "e693b140450a9bb1cf6d3178b0ad80c1",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "name": "public.rpc_claim_push_transport",
+      "signature": "rpc_claim_push_transport(text)",
+      "body_md5": "7c9145f1b9696f9ed6e4a29949228b58",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "name": "public.rpc_complete_push_transport",
+      "signature": "rpc_complete_push_transport(uuid,uuid,text,text)",
+      "body_md5": "d87908db1908b8c88fe66228c5b07f9f",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "name": "public.rpc_get_push_transport_metrics",
+      "signature": "rpc_get_push_transport_metrics()",
+      "body_md5": "1614462cd13b241ba3ab4cf2ffebf59a",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    }
+  ],
+  "rolloutOrder": [
+    "Deploy compatible bounded Edge first; it accepts old begin receipt without expiry (TTL 0).",
+    "Apply exact guarded SQL migration; validate postimage, service-only metrics and empty/due queue readback.",
+    "Capture real transport receipt and phone test separately when target device approval/admission is available."
+  ],
+  "rollbackOrder": [
+    "Execute scripts/sql/r09_push_capacity_20261108.rollback.sql (guards postimage).",
+    "Restore captured v45 Edge bundle after SQL rollback; do not reset attempts or resend UNKNOWN."
+  ],
+  "remaining": [
+    "Real Expo send/receipt/offline/background phone evidence.",
+    "Measured drain p50/p95/p99 under representative isolated HTTP/Postgres/network load.",
+    "Provider batching/coalescing is not introduced: each authorized send still uses one Expo request.",
+    "New telemetry exposes current aggregate counts; long-term alerting/storage is not claimed."
+  ]
+}

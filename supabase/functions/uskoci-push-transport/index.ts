@@ -15,6 +15,16 @@ const live = (x: unknown): x is string => typeof x === 'string' && Number.isFini
 const json = (x: unknown, status = 200) => new Response(JSON.stringify(x), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 class Invalid extends Error {}
 let running = false;
+// A minute cron may drain several recipients, but never run unbounded work.
+// Four send lanes and one receipt lane stay below the DB's six-lease limit;
+// that database limit (not this isolate-local flag) protects parallel isolates.
+const TICK_SEND_LIMIT = 100;
+const TICK_RECEIPT_LIMIT = 100;
+const TICK_DEADLINE_MS = 50000;
+const CLAIM_WINDOW_MS = 30000;
+const RPC_DEADLINE_MS = 3000;
+const PROVIDER_DEADLINE_MS = 5000;
+const MAX_OFFLINE_TTL_SECONDS = 3600;
 async function request(url: string, init: RequestInit & { signal: AbortSignal }): Promise<Response> {
  let aborted: (() => void) | undefined;
  const signal = init.signal;
@@ -65,7 +75,8 @@ Deno.serve(async req => {
  const controller = new AbortController();
  const cancel = () => controller.abort(); req.signal.addEventListener('abort', cancel, { once: true });
  if (req.signal.aborted) cancel();
- const timer = setTimeout(cancel, 25000);
+ const startedAt = Date.now();
+ const timer = setTimeout(cancel, TICK_DEADLINE_MS);
  const signal = controller.signal;
  let reportFailure: (() => Promise<void>) | undefined;
  try {
@@ -79,12 +90,24 @@ Deno.serve(async req => {
   const rawURL = Deno.env.get('SUPABASE_URL'); if (!rawURL) throw new Invalid();
   const base = new URL(rawURL);
   if (base.protocol !== 'https:' || !/^[a-z0-9-]+\.supabase\.co$/.test(base.hostname) || base.username || base.password || base.port || base.pathname !== '/' || base.search || base.hash) throw new Invalid();
-  async function rpc(name: 'rpc_claim_push_transport' | 'rpc_begin_push_send' | 'rpc_complete_push_transport' | 'rpc_record_push_readiness' | 'rpc_claim_push_single_target' | 'rpc_claim_push_single_target_receipt', args: Row) {
+  async function bounded<T>(milliseconds: number, operation: (localSignal: AbortSignal) => Promise<T>): Promise<T> {
    if (signal.aborted) throw new Invalid();
-   const result = await request(`${base.origin}/rest/v1/rpc/${name}`, { method: 'POST', redirect: 'error', signal,
-    headers: supabaseServiceHeaders(service!, { 'Content-Type': 'application/json' }), body: JSON.stringify(args) });
-   if (!result.ok) { void result.body?.cancel().catch(() => undefined); throw new Invalid(); }
-   return read(result.body, 16384, signal);
+   const local = new AbortController();
+   const abort = () => local.abort();
+   signal.addEventListener('abort', abort, { once: true });
+   if (signal.aborted) abort();
+   const deadline = setTimeout(abort, milliseconds);
+   try { return await operation(local.signal); }
+   finally { clearTimeout(deadline); signal.removeEventListener('abort', abort); local.abort(); }
+  }
+  async function rpc(name: 'rpc_claim_push_transport' | 'rpc_begin_push_send' | 'rpc_complete_push_transport' | 'rpc_record_push_readiness' | 'rpc_claim_push_single_target' | 'rpc_claim_push_single_target_receipt' | 'rpc_get_push_transport_metrics', args: Row) {
+   if (signal.aborted) throw new Invalid();
+   return bounded(RPC_DEADLINE_MS, async localSignal => {
+    const result = await request(`${base.origin}/rest/v1/rpc/${name}`, { method: 'POST', redirect: 'error', signal: localSignal,
+     headers: supabaseServiceHeaders(service!, { 'Content-Type': 'application/json' }), body: JSON.stringify(args) });
+    if (!result.ok) { void result.body?.cancel().catch(() => undefined); throw new Invalid(); }
+    return read(result.body, 16384, localSignal);
+   });
   }
   async function observe(observation: 'PROBE_ENABLED' | 'PROBE_DISABLED' | 'TICK_OK' | 'TICK_DEGRADED' | 'TICK_FAILED') {
    const receipt = await rpc('rpc_record_push_readiness', { p_sender_version: 'PRE_V3_PUSH_READINESS_V1', p_observation: observation });
@@ -98,23 +121,63 @@ Deno.serve(async req => {
   }
   // Targeted actions never record a global tick observation.
   if (!targeted) reportFailure = () => observe('TICK_FAILED');
+  const claimed = { SEND: 0, RECEIPT: 0 };
+  // Serialize only short claim RPCs in this invocation. Running them together
+  // would contend on the DB's advisory claim lock and mistake contention for
+  // an empty queue. Begin/provider/settle work remains parallel and durable.
+  let claimTail: Promise<void> = Promise.resolve();
+  async function globalClaim(kind: 'SEND' | 'RECEIPT') {
+   const previous = claimTail;
+   let release!: () => void;
+   claimTail = new Promise<void>(resolve => { release = resolve; });
+   await previous;
+   try {
+    if (signal.aborted) throw new Invalid();
+    if (Date.now() >= startedAt + CLAIM_WINDOW_MS || claimed[kind] >= (kind === 'SEND' ? TICK_SEND_LIMIT : TICK_RECEIPT_LIMIT))
+     return { kind: 'STOP' };
+    const value = await rpc('rpc_claim_push_transport', { p_kind: kind });
+    if (row(value) && value.kind === kind) claimed[kind] += 1;
+    return value;
+   } finally { release(); }
+  }
+  async function pause(milliseconds: number) {
+   if (signal.aborted) throw new Invalid();
+   await new Promise<void>((resolve, reject) => {
+    const abort = () => { clearTimeout(waiter); signal.removeEventListener('abort', abort); reject(new Invalid()); };
+    const waiter = setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, milliseconds);
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) abort();
+   });
+  }
   async function once(kind: 'SEND' | 'RECEIPT', admissionId?: string) {
    const claim = admissionId
     ? await rpc(kind === 'SEND' ? 'rpc_claim_push_single_target' : 'rpc_claim_push_single_target_receipt', { p_admission_id: admissionId })
-    : await rpc('rpc_claim_push_transport', { p_kind: kind });
+    : await globalClaim(kind);
    if (row(claim) && only(claim, ['kind']) && claim.kind === 'NONE') return 'NONE';
+   if (!admissionId && row(claim) && only(claim, ['kind']) && claim.kind === 'STOP') return 'STOP';
+   if (!admissionId && row(claim) && only(claim, ['kind', 'retryAfterMs']) && claim.kind === 'WAIT'
+     && Number.isInteger(claim.retryAfterMs) && Number(claim.retryAfterMs) >= 100 && Number(claim.retryAfterMs) <= 1000) {
+    await pause(Number(claim.retryAfterMs));
+    return 'WAIT';
+   }
    if (!row(claim) || !only(claim, ['kind', 'attemptId', 'leaseId', 'leaseExpiresAt', 'ticketId']) || claim.kind !== kind
     || !uuid(claim.attemptId) || !uuid(claim.leaseId) || !live(claim.leaseExpiresAt)
     || (kind === 'SEND' ? claim.ticketId !== null : !ticket(claim.ticketId))) throw new Invalid();
    let body: Row | Row[];
+   let deliveryExpiresAt: number | null = null;
    if (kind === 'SEND') {
     const begin = await rpc('rpc_begin_push_send', { p_attempt_id: claim.attemptId, p_lease_id: claim.leaseId });
     if (row(begin) && only(begin, ['kind']) && begin.kind === 'SUPPRESSED') return 'SUPPRESSED';
     const beginKeys = ['kind', 'attemptId', 'leaseId', 'leaseExpiresAt', 'expoPushToken', 'priority', 'eventType'];
     // Compatibility bridge: legacy receipts have no eventId. These four
     // server-authorized event kinds may add one opaque identity; no Need ID/body.
-    if (!row(begin) || !(only(begin, beginKeys) || (only(begin, [...beginKeys, 'eventId'])
-      && ['MESSAGE_RECEIVED', 'OPPORTUNITY_AVAILABLE', 'RESPONSE_RECEIVED', 'RESPONSE_UPDATED'].includes(String(begin.eventType)) && uuid(begin.eventId))) || begin.kind !== 'SEND'
+    const optionalKeys = row(begin) ? [
+     ...(Object.hasOwn(begin, 'eventId') ? ['eventId'] : []),
+     ...(Object.hasOwn(begin, 'deliveryExpiresAt') ? ['deliveryExpiresAt'] : []),
+    ] : [];
+    if (!row(begin) || !only(begin, [...beginKeys, ...optionalKeys])
+     || (Object.hasOwn(begin, 'eventId') && (!['MESSAGE_RECEIVED', 'OPPORTUNITY_AVAILABLE', 'RESPONSE_RECEIVED', 'RESPONSE_UPDATED'].includes(String(begin.eventType)) || !uuid(begin.eventId)))
+     || (Object.hasOwn(begin, 'deliveryExpiresAt') && (typeof begin.deliveryExpiresAt !== 'string' || !Number.isFinite(Date.parse(begin.deliveryExpiresAt)))) || begin.kind !== 'SEND'
      || begin.attemptId !== claim.attemptId || begin.leaseId !== claim.leaseId || begin.leaseExpiresAt !== claim.leaseExpiresAt || !live(begin.leaseExpiresAt)
      || typeof begin.expoPushToken !== 'string' || begin.expoPushToken.length > 256 || !/^(ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]+\]$/.test(begin.expoPushToken)
      || !['NORMAL', 'HIGH'].includes(String(begin.priority))
@@ -133,8 +196,13 @@ Deno.serve(async req => {
     const data = exactMessage || exactOpportunity || exactApplication
       ? { kind: 'INBOX', eventType: begin.eventType, eventId: (begin.eventId as string).toLowerCase() }
       : { kind: 'INBOX' };
+    deliveryExpiresAt = typeof begin.deliveryExpiresAt === 'string' ? Date.parse(begin.deliveryExpiresAt) : null;
+    // The server owns expiry. Older begin receipts and one-shot admissions
+    // retain TTL 0; a verified expiry allows offline delivery for at most 1h.
+    const ttl = targeted || deliveryExpiresAt === null ? 0
+      : Math.max(0, Math.min(MAX_OFFLINE_TTL_SECONDS, Math.floor((deliveryExpiresAt - Date.now()) / 1000)));
     body = [{ to: begin.expoPushToken, title: copy.title, body: copy.body,
-     data, channelId: 'default', sound: 'default', priority: begin.priority === 'HIGH' ? 'high' : 'normal', ttl: 0 }];
+     data, channelId: 'default', sound: 'default', priority: begin.priority === 'HIGH' ? 'high' : 'normal', ttl }];
    } else body = { ids: [claim.ticketId] };
    let parsed: { result: Result; ticketId: string | null } = { result: kind === 'SEND' ? 'UNKNOWN' : 'RECEIPT_PENDING', ticketId: null };
    try {
@@ -142,8 +210,12 @@ Deno.serve(async req => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
     const access = Deno.env.get('EXPO_ACCESS_TOKEN'); if (access) headers.Authorization = `Bearer ${access}`;
     // Literal provider URLs; no redirects or caller-controlled target component.
+    if (kind === 'SEND' && deliveryExpiresAt !== null && deliveryExpiresAt <= Date.now()) {
+     // No provider request was made. Close a now-expired claimed attempt.
+     parsed = { result: 'FATAL', ticketId: null };
+    } else await bounded(PROVIDER_DEADLINE_MS, async localSignal => {
     const response = await request(kind === 'SEND' ? 'https://exp.host/--/api/v2/push/send' : 'https://exp.host/--/api/v2/push/getReceipts',
-     { method: 'POST', headers, body: JSON.stringify(body), signal, redirect: 'error' });
+     { method: 'POST', headers, body: JSON.stringify(body), signal: localSignal, redirect: 'error' });
     if (!response.ok) {
      void response.body?.cancel().catch(() => undefined);
      // Only explicit throttle rejection is known safe to resend. 5xx/network/
@@ -151,7 +223,7 @@ Deno.serve(async req => {
      parsed.result = kind === 'RECEIPT' ? 'RECEIPT_PENDING' : response.status === 429 ? 'RETRYABLE'
       : response.status >= 400 && response.status < 500 ? 'FATAL' : 'UNKNOWN';
     } else {
-     const envelope = await read(response.body, 32768, signal);
+     const envelope = await read(response.body, 32768, localSignal);
      if (!row(envelope) || !only(envelope, ['data'])) throw new Invalid();
      if (kind === 'SEND') {
       if (!Array.isArray(envelope.data) || envelope.data.length !== 1) throw new Invalid();
@@ -161,6 +233,7 @@ Deno.serve(async req => {
       parsed = String(claim.ticketId) in envelope.data ? expoResult(envelope.data[String(claim.ticketId)], true) : { result: 'RECEIPT_PENDING', ticketId: null };
      }
     }
+    });
    } catch { /* No blind resend and no raw provider exception reaches output. */ }
    if (signal.aborted || !live(claim.leaseExpiresAt)) throw new Invalid();
    const done = await rpc('rpc_complete_push_transport', { p_attempt_id: claim.attemptId, p_lease_id: claim.leaseId, p_result: parsed.result, p_ticket_id: parsed.ticketId });
@@ -174,10 +247,45 @@ Deno.serve(async req => {
    const state = await once(input.action === 'single_target' ? 'SEND' : 'RECEIPT', input.admissionId as string);
    return json({ kind: 'SINGLE_TARGET_COMPLETED', state });
   }
-  const receipt = await once('RECEIPT'); const send = await once('SEND');
-  const unhealthy = [receipt, send].some(state => ['UNKNOWN', 'FINAL', 'RETRYABLE'].includes(state));
+  type Summary = { processed: number; failures: number; states: Record<string, number>; lastState: string };
+  const summaries: Record<'SEND' | 'RECEIPT', Summary> = {
+   SEND: { processed: 0, failures: 0, states: {}, lastState: 'NONE' },
+   RECEIPT: { processed: 0, failures: 0, states: {}, lastState: 'NONE' },
+  };
+  async function drain(kind: 'SEND' | 'RECEIPT') {
+   const summary = summaries[kind];
+   try {
+    while (!signal.aborted && Date.now() < startedAt + CLAIM_WINDOW_MS) {
+     const state = await once(kind);
+     if (state === 'NONE' || state === 'STOP') break;
+     if (state === 'WAIT') continue;
+     summary.processed += 1; summary.lastState = state;
+     summary.states[state] = (summary.states[state] ?? 0) + 1;
+     // Stop this send lane on an uncertain or throttled provider. Do not turn
+     // an outage into 100 uncertain deliveries or an immediate retry storm.
+     if (kind === 'SEND' && ['UNKNOWN', 'RETRYABLE'].includes(state)) break;
+    }
+   } catch { summary.failures += 1; }
+  }
+  // Receipts have their own progress budget and never wait behind all sends.
+  await Promise.all([drain('RECEIPT'), drain('SEND'), drain('SEND'), drain('SEND'), drain('SEND')]);
+  if (signal.aborted) throw new Invalid();
+  let queue: unknown = null;
+  try {
+   const metrics = await rpc('rpc_get_push_transport_metrics', {});
+   const counts = ['pendingDeliveries', 'sendAttemptsDue', 'receiptAttemptsDue', 'activeLeases'];
+   const ages = ['oldestPendingDeliverySeconds', 'oldestSendAttemptSeconds', 'oldestReceiptAttemptSeconds'];
+   if (!row(metrics) || !only(metrics, ['observedAt', ...counts, ...ages])
+    || typeof metrics.observedAt !== 'string' || !Number.isFinite(Date.parse(metrics.observedAt))
+    || counts.some(key => !Number.isSafeInteger(metrics[key]) || Number(metrics[key]) < 0)
+    || ages.some(key => metrics[key] !== null && (typeof metrics[key] !== 'number' || !Number.isFinite(metrics[key]) || Number(metrics[key]) < 0))) throw new Invalid();
+   queue = metrics;
+  } catch { /* Deployment bridge: unavailable telemetry never resends or masks a settled push. */ }
+  const unhealthy = Object.values(summaries).some(s => s.failures > 0 || ['UNKNOWN', 'FINAL', 'RETRYABLE'].some(state => s.states[state] > 0));
   await observe(unhealthy ? 'TICK_DEGRADED' : 'TICK_OK');
-  return json({ kind: 'TICK_COMPLETED', receipt, send });
+  return json({ kind: 'TICK_COMPLETED', receipt: summaries.RECEIPT.lastState, send: summaries.SEND.lastState,
+   processed: { send: summaries.SEND.processed, receipt: summaries.RECEIPT.processed },
+   failures: { send: summaries.SEND.failures, receipt: summaries.RECEIPT.failures }, queue });
  } catch {
   // No late writes after cancellation; failed telemetry never masks the original
   // unknown outcome and never causes a resend. Stale/no observation stays UNKNOWN.
