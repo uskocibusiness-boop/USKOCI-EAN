@@ -1,0 +1,57 @@
+{
+  "schema": "USKOCI_EXACT_SOURCE_PUBLICATION_V1",
+  "recordedAt": "2026-11-08T23:09:02.886101+00:00",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "expectedPreviousRemoteHead": "76dd409a929b7d133fb63da4ed840762778baa27",
+  "refUpdateCount": 1,
+  "force": false,
+  "status": "GITHUB_REF_UPDATED_EXACT_TESTED_TREES",
+  "commits": [
+    {
+      "local": "a9d77308f2bd471348384710e89cf5bcba2cfcf3",
+      "github": "5bb3618078b39937e427cc760ed35959fff35b05",
+      "tree": "f16d0e5968f20c98de016dc7a4c22b3235191e68",
+      "files": 35,
+      "treeIdentityVerified": true,
+      "fetchedGitObjectTreeVerified": true
+    },
+    {
+      "local": "1fc9cc008ec3efe570a33a18d00ee838fc65d506",
+      "github": "47fc6708ae7e9e8669fb1943f94d63b14647c7eb",
+      "tree": "37bfc0ef6e5c2082e5edd55e825b6a88c95ba93f",
+      "files": 19,
+      "treeIdentityVerified": true,
+      "fetchedGitObjectTreeVerified": true
+    }
+  ],
+  "method": "Authorized GitHub connector Git Data API: create exact text trees, compare returned tree SHAs with local committed trees, create ordered commits, update branch once with expected prior SHA and force=false. CLI push had no configured HTTPS credential.",
+  "sourceTests": "integration-continuation-20261108.json",
+  "ciAtRecording": {
+    "runNumber": 92,
+    "runId": 42533679348,
+    "headSha": "47fc6708ae7e9e8669fb1943f94d63b14647c7eb",
+    "status": "IN_PROGRESS_NOT_SUCCESS_PROOF"
+  },
+  "limits": [
+    "API-generated commit metadata differs from local author/commit time, so commit SHAs differ; full Git tree identities are exact.",
+    "This publication receipt does not establish successful new CI/APK or physical device behavior.",
+    "No production, public rollout, paid model invocation or real push call."
+  ],
+  "fetchedRemoteBranchHead": "47fc6708ae7e9e8669fb1943f94d63b14647c7eb",
+  "publishedCanonicalMigration": {
+    "path": "supabase/migrations/20261108222329_r09_applicant_suppression_20261108.sql",
+    "bytes": 5874,
+    "sha256": "18bcc433a36dec266fd4199debad5bbc9337996b9cba46e34b5b26bf97383acf",
+    "exactAppliedDevStatement": true
+  },
+  "subsequentVerifiedCi": {
+    "runNumber": 92,
+    "runId": 42533679348,
+    "sourceCommit": "47fc6708ae7e9e8669fb1943f94d63b14647c7eb",
+    "bothJobs": "SUCCESS",
+    "proof": "qa92-local-verifier-20261108.json",
+    "proofSha256": "447d4cd8f8d2cbddabb4022535d1b4bc297c0248453939790feed0f0e41fb6d8",
+    "notEvidenceForLaterDevMigrations": true
+  }
+}

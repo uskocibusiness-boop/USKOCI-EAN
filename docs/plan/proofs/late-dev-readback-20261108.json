@@ -1,0 +1,241 @@
+{
+  "schema": "USKOCI_LATE_DEV_READBACK_20261108",
+  "method": "READ_ONLY_CATALOG_LEDGER_READINESS_CRON_AND_TWO_EXISTING_SYNTHETIC_PROBE_ROWS",
+  "state": {
+    "cron": [
+      {
+        "jobId": 1,
+        "active": true,
+        "failed": 0,
+        "jobName": "uskoci_marketplace_tick",
+        "schedule": "* * * * *",
+        "username": "postgres",
+        "succeeded": 58,
+        "commandMd5": "93518fd0382301fc76f79037123bccfc",
+        "marketplaceCommand": "select private.marketplace_tick(25);"
+      },
+      {
+        "jobId": 2,
+        "active": true,
+        "failed": 0,
+        "jobName": "uskoci_edge_workers",
+        "schedule": "* * * * *",
+        "username": "postgres",
+        "succeeded": 58,
+        "commandMd5": "6abaf04335ccd2f8240bafcd4dbfb314",
+        "marketplaceCommand": null
+      },
+      {
+        "jobId": 3,
+        "active": true,
+        "failed": 0,
+        "jobName": "uskoci_taxonomy_postsave_tick_dev",
+        "schedule": "* * * * *",
+        "username": "postgres",
+        "succeeded": 58,
+        "commandMd5": "b1e89b08b31a550f0ccce47ddcf3cb08",
+        "marketplaceCommand": null
+      }
+    ],
+    "project": "leqcwgzvjsxugfgzdmth",
+    "functions": [
+      {
+        "bodyMd5": "34dcf47d654d5960fbf7254c28745a04",
+        "identity": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+        "definitionMd5": "5747bcde620abeb6c5e8f5b4982e6445"
+      },
+      {
+        "bodyMd5": "ebd9c03035630bde62bf9fd8a27378c2",
+        "identity": "private.push_suppression(notification_deliveries)",
+        "definitionMd5": "29dbb8135643026d892c27cdc6f4ccde"
+      }
+    ],
+    "readiness": {
+      "legalReady": false,
+      "legalReason": "LEGAL_DOCUMENTS_NOT_PUBLISHED",
+      "retentionPolicySets": 0,
+      "retentionPolicyRules": 0,
+      "retentionAiSourceReady": false,
+      "dataExportPolicyBindingIsNull": true
+    },
+    "recordedAt": "2026-11-08T23:21:24.573588+00:00",
+    "migrationCount": 368,
+    "latestMigration": {
+      "name": "r13_hosted_transaction_probe_20261108",
+      "version": "20261108230512"
+    },
+    "r06PreparedInputColumns": [],
+    "cooperativeCandidateInstalled": false
+  },
+  "edgeFunctions": [
+    {
+      "name": "uskoci-ai-interview",
+      "version": 195,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "ezbrSha256": "663abedcda9b000b001f606ab6cb22dce4331d1f655d4358e1d7c1aabed4f3fc"
+    },
+    {
+      "name": "uskoci-location-search",
+      "version": 32,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "ezbrSha256": "aa756f8daae61e5c8b07179a74ac05e9b5d7e9967393ea3cc21a16ad659ef39f"
+    },
+    {
+      "name": "uskoci-publication-evaluate",
+      "version": 32,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "ezbrSha256": "d9764a7f319195719a411cd9afe4c9ad2e06d6927bdd5f63df70d83c0a001e3f"
+    },
+    {
+      "name": "uskoci-data-export-worker",
+      "version": 29,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "ezbrSha256": "e70434a972d46b0af8216717490bd01f6995e0ee785f811c3873b69f6ec5dfff"
+    },
+    {
+      "name": "uskoci-data-export-download",
+      "version": 29,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "ezbrSha256": "83581eb03346471b6a1f5575bdf63abea79a028cb0722c94664f0b1f6acb733d"
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "version": 148,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "ezbrSha256": "ddbf0bd3e5e15d64ebb650223dc2e573bb8408108c9342dc029e056709efc694"
+    },
+    {
+      "name": "uskoci-speech-session",
+      "version": 33,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "ezbrSha256": "d6095a2cbec088d608bbf65172bb85296c400ad6f191a540ec2724175db2472a"
+    },
+    {
+      "name": "uskoci-qa-classify",
+      "version": 31,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "ezbrSha256": "322bba9d34ad97e04c571288d469d5a3a0efbb66fa458bbfd943f056fc8e8929"
+    },
+    {
+      "name": "uskoci-push-transport",
+      "version": 47,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "ezbrSha256": "3fce4c4b7d03a4bf6f533ee0721b43b86024a66da595603ff8eb5222080a472f"
+    },
+    {
+      "name": "uskoci-media",
+      "version": 31,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "ezbrSha256": "baebc8575e0048a5b42897e7da52cdbfa1a612b0bed36aa97d399fb5274466b9"
+    },
+    {
+      "name": "uskoci-account-closure-worker",
+      "version": 19,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "ezbrSha256": "fe4f56c67541bf60909418a48b7a7d614eb8f95e77e2d337121f3af24c4fd34e"
+    },
+    {
+      "name": "uskoci-taxonomy-postsave-worker",
+      "version": 14,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "ezbrSha256": "b61376460dbc24bcacbddc5473fd882d126f607e8a6ebb422a6be25f6f7b9494"
+    },
+    {
+      "name": "sbfenv",
+      "version": 10,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "ezbrSha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18"
+    },
+    {
+      "name": "uskoci-gemini-schema-smoke",
+      "version": 11,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "ezbrSha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72"
+    },
+    {
+      "name": "uskoci-gemini-provider-probe-dev",
+      "version": 12,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "ezbrSha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0"
+    }
+  ],
+  "concurrentMigrationsCapture": "concurrent-dev-migrations-20261108.json",
+  "probe": {
+    "schedulingAndHistory": {
+      "jobs": [],
+      "runs": [
+        {
+          "jobid": 4,
+          "runid": 208107,
+          "status": "succeeded",
+          "command": "call private.capacity4_transaction_probe_v1();",
+          "end_time": "2026-11-08T23:06:00.167712+00:00",
+          "start_time": "2026-11-08T23:06:00.140368+00:00",
+          "return_message": "CALL"
+        }
+      ],
+      "observedAt": "2026-11-08T23:25:11.741214+00:00",
+      "probeTable": "private.capacity4_transaction_probe",
+      "probeProcedure": "private.capacity4_transaction_probe_v1()"
+    },
+    "phaseAndOwner": {
+      "phases": [
+        {
+          "phase": "before",
+          "observed_at": "2026-11-08T23:06:00.153974+00:00",
+          "transaction_id": 203348825
+        },
+        {
+          "phase": "after",
+          "observed_at": "2026-11-08T23:06:00.164508+00:00",
+          "transaction_id": 203348826
+        }
+      ],
+      "procedure": {
+        "acl": "{postgres=X/postgres}",
+        "kind": "p",
+        "owner": "postgres",
+        "config": null,
+        "bodyMd5": "62051bf43e88a090ab14e98ab453f245",
+        "securityDefiner": false
+      },
+      "observedAt": "2026-11-08T23:26:06.538925+00:00"
+    },
+    "executedByThisRoot": false,
+    "cleanupPerformedByThisRoot": false
+  },
+  "otherPreservedCheckout": {
+    "directory": "/workspace/scratch/78491a3df814/USKOCI-EAN",
+    "observedHead": "f774a8a9f0c20631402898afd15e9a810700f3da",
+    "mergeParents": [
+      "5d720e73ebdc2171201ccc84bfdb73ca7898d047",
+      "47fc6708ae7e9e8669fb1943f94d63b14647c7eb"
+    ],
+    "uncommittedIntegrityReconciliationObserved": true,
+    "mutatedByThisRoot": false
+  },
+  "limits": [
+    "F20 prosrc MD5 values still match this root's applied proof. pg_get_functiondef MD5 is a different representation and is not compared as a prosrc digest.",
+    "Three further migrations were observed after this root's apply; this record does not attribute their executor or repeat them.",
+    "QA92 source47fc does not include the new Home client or canonical mirrors for these three records. The other preserved checkout contains later integration work; that work was not overwritten or published by this root.",
+    "The R06 source-only candidate pins pre-R10 export owner hashes and must be rebased and reproved before any promotion against this new DEV baseline.",
+    "The hosted probe supports only direct invoker CALL across two transaction boundaries. It does not establish complete cooperative marketplace behavior; the old marketplace Cron remains active.",
+    "Probe job was absent but its named table/procedure were still present at observation. Cleanup is not claimed.",
+    "Cron success is SQL completion, not real push/model/provider/device delivery. R10/legal gates remain closed."
+  ]
+}
