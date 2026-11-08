@@ -32,6 +32,9 @@ DECLARE
   v_processed integer := 0;
   v_started timestamptz := clock_timestamp();
   v_budget numeric := 40;
+  -- The live wave uses a transaction-local v1b.notified safety counter.
+  -- Carry its value in a procedure variable across per-Need commits.
+  v_cycle_notified integer := 0;
 BEGIN
   IF current_user <> 'postgres' THEN
     RAISE EXCEPTION 'R13_SCHEDULER_ROLE_REQUIRED' USING ERRCODE='42501';
@@ -50,8 +53,8 @@ BEGIN
     PERFORM private.requeue_changed_worker_profiles_v1(p_at);
   EXCEPTION WHEN OTHERS THEN
     -- A failed profile scan must not stop already queued Need dispatch.
-    -- Record failure in scheduler telemetry before production promotion.
-    NULL;
+    -- Never suppress a profile-sweep failure without a bounded diagnostic.
+    RAISE WARNING 'R13_PROFILE_SWEEP_FAILED SQLSTATE=%', SQLSTATE;
   END;
   COMMIT;
 
@@ -94,6 +97,9 @@ BEGIN
     IF v_need IS NULL THEN EXIT; END IF;
     v_seen := array_append(v_seen,v_need);
     BEGIN
+      -- set_config(...,true) is cleared at COMMIT. Never restart the
+      -- shared lock-table notification allowance for each Need.
+      PERFORM pg_catalog.set_config('v1b.notified', v_cycle_notified::text, true);
       v_result := private.dispatch_next_wave(v_need);
       v_reason := coalesce(v_result->>'reason',v_result->>'status');
       IF v_result->>'status'='SENT' THEN
@@ -122,6 +128,10 @@ BEGIN
             last_reason=left(SQLERRM,200),updated_at=statement_timestamp()
         WHERE need_id=v_need;
     END;
+    -- Only read after the exception subtransaction has completed: failed
+    -- wave writes and its local GUC update have already rolled back.
+    v_cycle_notified := greatest(v_cycle_notified,
+      coalesce(nullif(pg_catalog.current_setting('v1b.notified',true),'')::integer,0));
     v_processed := v_processed + 1;
     -- Core property: one Need's effects and queue state commit together.
     -- The following Need starts with no earlier Need locks held.
