@@ -1,0 +1,63 @@
+{
+  "schema": "USKOCI_R09_FOREGROUND_RECIPIENT_V1",
+  "recordedAtUtc": "2026-11-08T22:18:31.097743+00:00",
+  "baseSource": "76dd409a929b7d133fb63da4ed840762778baa27",
+  "files": [
+    {
+      "path": "src/data/inboxClientService.ts",
+      "sha256": "13941c6b4629e1e1cf0740cb7e7de58eb7356a6b6e0fc210f58b95df132302cd"
+    },
+    {
+      "path": "src/ui/notifications/PushRuntime.tsx",
+      "sha256": "d54510eb99c22647a3dce3ad31eb97856ded62c31369c34f6a34ae058615b7bc"
+    },
+    {
+      "path": "scripts/notification-audio.test.cjs",
+      "sha256": "6b34fb17254495c2d8f7bf7cd00a17ef2763f714d34abffb06df66104ae651f2"
+    }
+  ],
+  "reproducedBeforeFix": {
+    "command": "node --test --test-name-pattern='fresh account handler' scripts/notification-audio.test.cjs",
+    "exitCode": 1,
+    "result": "Fresh handler accepted delayed previous-recipient event: shouldShowBanner=true, expected=false."
+  },
+  "afterFix": [
+    {
+      "command": "node --test scripts/notification-audio.test.cjs",
+      "exitCode": 0,
+      "tests": 25,
+      "pass": 25,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exitCode": 0
+    }
+  ],
+  "cases": [
+    "owned exact event and recipient/type",
+    "foreign or missing recipient",
+    "account revision or session epoch changes during read",
+    "background and cleanup during read",
+    "unknown, error and nonsettling native transport",
+    "parallel duplicate transports share one read and one alert",
+    "no read/delivery acknowledgment",
+    "only three identity columns selected",
+    "no sound burst consumed by foreign event"
+  ],
+  "behavior": "Identified incoming foreground notifications read the existing RLS event owner before sound/banner. One 1200ms bounded check, matching the current account, revision and session before and after. No server writer, notification preference, transport or system-channel change.",
+  "liveSchemaRead": "2026-11-08: authenticated SELECT confirmed on id,recipient_user_id,event_type; events_own uses recipient_user_id=auth.uid(). No raw event content recorded.",
+  "sdkBoundary": {
+    "installed": "expo-notifications 57.0.15",
+    "source": "node_modules/expo-notifications/src/NotificationsHandler.ts",
+    "documentation": "https://docs.expo.dev/versions/v57.0.0/sdk/notifications/",
+    "handlerDeadlineMs": 3000
+  },
+  "limits": [
+    "Node execution of actual client owners with controlled native/HTTP adapters, not a physical Android push.",
+    "Legacy generic INBOX payloads lack event identity and retain existing generic presentation; complete recipient proof for those still requires a compatible server envelope.",
+    "OS background delivery, FCM, custom channels and Realtime-only audio remain separate.",
+    "When the identity read is offline/unconfirmed, no identified foreground alert is shown; durable Inbox events are unchanged."
+  ]
+}

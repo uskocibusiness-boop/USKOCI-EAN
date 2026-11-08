@@ -1,0 +1,129 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "c1505cb7784898875f37ecbc9c52d23c",
+      "identity": "private.candidate_profile_ids_v1b(uuid,integer,integer)",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "5f3862949a6b93ab99c29c549ff9a837",
+      "identity": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "d3cdfe2bdd6e5d40a74e6029793c89c5",
+      "identity": "private.dispatch_next_wave(uuid)",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "25d3fae40c1f67689e1c50ee1898005b",
+      "identity": "private.push_suppression(public.notification_deliveries)",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "3bd12de1d220804a91a7b1b036fd7ce6",
+      "identity": "private.remote_wave_candidates_v1b(uuid,integer,integer)",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "e693b140450a9bb1cf6d3178b0ad80c1",
+      "identity": "public.rpc_begin_push_send(uuid,uuid)",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "e592af7aead2172ff769f38aada8e056",
+      "identity": "public.rpc_cancel_agreement(uuid,text)",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "7c9145f1b9696f9ed6e4a29949228b58",
+      "identity": "public.rpc_claim_push_transport(text)",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "d87908db1908b8c88fe66228c5b07f9f",
+      "identity": "public.rpc_complete_push_transport(uuid,uuid,text,text)",
+      "security_definer": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "body_md5": "398e85c4420da9c4765ae0ff6197a59e",
+      "identity": "public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamp with time zone,timestamp with time zone,text,text)",
+      "security_definer": true
+    }
+  ],
+  "checked_at": "2026-11-08T22:21:26.295631+00:00",
+  "reason_constraints": [
+    {
+      "name": "notification_deliveries_check",
+      "table": "notification_deliveries",
+      "definition": "CHECK (((state <> 'SUPPRESSED'::text) OR (suppression_reason IS NOT NULL)))"
+    }
+  ],
+  "text_reason_columns": [
+    {
+      "type": "text",
+      "table": "notification_deliveries",
+      "column": "suppression_reason"
+    },
+    {
+      "type": "text",
+      "table": "notification_push_attempts",
+      "column": "error_code"
+    }
+  ],
+  "response_status_constraint": "CHECK ((status = ANY (ARRAY['DRAFT'::text, 'SUBMITTED'::text, 'DELIVERED'::text, 'VIEWED'::text, 'SHORTLISTED'::text, 'SELECTED'::text, 'NOT_SELECTED'::text, 'WITHDRAWN'::text, 'EXPIRED'::text, 'STALE'::text, 'STALE_REVIEW_REQUIRED'::text])))",
+  "existing_live_response_index": "CREATE UNIQUE INDEX marketplace_responses_one_live_per_worker_need ON public.marketplace_responses USING btree (need_id, worker_account_id) WHERE (status = ANY (ARRAY['DRAFT'::text, 'SUBMITTED'::text, 'DELIVERED'::text, 'VIEWED'::text, 'SHORTLISTED'::text, 'SELECTED'::text]))",
+  "method": "READ_ONLY_CATALOG_QUERY",
+  "deployment": "CANDIDATE_NOT_APPLIED"
+}

@@ -282,6 +282,7 @@ test('actual PushRuntime checks active scope and rejects retained callbacks afte
   '../../data/nativePushDevice': { nativePushDevice: async () => { throw Error('No registration'); } },
   '../../data/pushDeviceClientService': { pushDeviceClientService: { sessionDevice: async () => ({ ok: false }) }, revokePushBeforeLogout() {} },
   '../../data/foregroundNotificationAudio': { foregroundNotificationAudio: { load: async () => {}, snapshot: () => audioReady } },
+  '../../data/inboxClientService': { ownsForegroundEvent: async () => true },
  });
  const { PushRuntime } = load('src/ui/notifications/PushRuntime.tsx');
  PushRuntime({ ready: true }); const cleanup = effects.shift()();
@@ -297,4 +298,162 @@ test('actual PushRuntime checks active scope and rejects retained callbacks afte
  assert.equal((await retained(notification(4))).shouldShowBanner, false);
  cleanup(); assert.equal(handler, null);
  assert.equal((await retained(notification(5))).shouldPlaySound, false);
+});
+
+function foregroundRuntime(readEvent) {
+ const effects = [], refs = []; let cursor = 0, handler, appStateListener;
+ const session = { user: { id: id(901) }, accountRevision: 2, sessionEpoch: 2 };
+ const app = { currentState: 'active', addEventListener: (_name, callback) => { appStateListener = callback; return { remove() {} }; } };
+ const calls = [];
+ const load = loader({
+  react: { useRef: value => refs[cursor++] ??= { current: value }, useEffect: effect => effects.push(effect) },
+  'react-native': { AppState: app, Platform: { OS: 'android' } },
+  'expo-notifications': { setNotificationHandler: value => { handler = value; },
+   addNotificationResponseReceivedListener: () => ({ remove() {} }), addPushTokenListener: () => ({ remove() {} }),
+   getLastNotificationResponseAsync: async () => null, clearLastNotificationResponseAsync: async () => {} },
+  'expo-router': { router: { navigate() { throw Error('Unexpected navigation'); } } },
+  '../../store/pendingRoute': { pendingRoute: {} },
+  '../../store/messagePushIntent': { messagePushIntent: { snapshot: () => null, clear() {} }, ownsMessagePush: () => false },
+  '../../store/sesija': { useSesija: () => session, sesijaSada: () => session },
+  '../../data/nativePushDevice': { nativePushDevice: async () => { throw Error('No registration'); } },
+  '../../data/pushDeviceClientService': { pushDeviceClientService: { sessionDevice: async () => ({ ok: false }) }, revokePushBeforeLogout() {} },
+  '../../data/foregroundNotificationAudio': { foregroundNotificationAudio: { load: async () => {}, snapshot: () => audioReady } },
+  '../../data/inboxClientService': { ownsForegroundEvent: (...args) => { calls.push(args); return readEvent(...args); } },
+ });
+ const { PushRuntime } = load('src/ui/notifications/PushRuntime.tsx');
+ PushRuntime({ ready: true }); const cleanup = effects.shift()();
+ return { receive: value => handler.handleNotification(value), session, app,
+  background() { app.currentState = 'background'; appStateListener('background'); }, calls, cleanup };
+}
+
+test('fresh account handler rejects a delayed old-recipient event and accepts its own next event', async () => {
+ const h = foregroundRuntime(async eventId => eventId === id(2));
+ try {
+  const foreign = await h.receive(notification(1));
+  assert.equal(foreign.shouldShowBanner, false);
+  assert.equal(foreign.shouldPlaySound, false);
+  const current = await h.receive(notification(2));
+  assert.equal(current.shouldShowBanner, true);
+  assert.equal(current.shouldPlaySound, true, 'foreign notification cannot consume the owned sound burst');
+  assert.equal(h.calls.length, 2);
+  assert.equal(h.calls[0][0], id(1));
+  assert.equal(h.calls[0][1], 'MESSAGE_RECEIVED');
+  assert.deepEqual(h.calls[0][2], { accountId: id(901), accountRevision: 2 });
+ } finally { h.cleanup(); }
+});
+
+test('account change or background during the foreground ownership read stays silent', async () => {
+ for (const change of ['account', 'epoch', 'background', 'cleanup']) {
+  const pending = deferred(); const h = foregroundRuntime(() => pending.promise);
+  const response = h.receive(notification(1));
+  if (change === 'account') { h.session.user = { id: id(902) }; h.session.accountRevision++; }
+  if (change === 'epoch') h.session.sessionEpoch++;
+  if (change === 'background') h.background();
+  if (change === 'cleanup') h.cleanup();
+  pending.resolve(true);
+  try { assert.equal((await response).shouldShowBanner, false, change); }
+  finally { if (change !== 'cleanup') h.cleanup(); }
+ }
+});
+
+test('foreground ownership error or deadline cannot admit a late notification', async () => {
+ for (const mode of ['throw', 'reject', 'never']) {
+  const late = deferred();
+  const h = foregroundRuntime(() => {
+   if (mode === 'throw') throw Error('private transport detail');
+   if (mode === 'reject') return Promise.reject(Error('private transport detail'));
+   return late.promise;
+  });
+  const started = Date.now();
+  try {
+   const result = await h.receive(notification(1));
+   assert.equal(result.shouldPlaySound, false);
+   assert.equal(result.shouldShowBanner, false);
+   assert.ok(Date.now() - started < 2400, 'settles before Expo SDK57 three-second deadline');
+   if (mode === 'never') assert.equal(h.calls[0][3].aborted, true);
+   late.resolve(true);
+   await Promise.resolve();
+   assert.equal(result.shouldPlaySound, false);
+  } finally { h.cleanup(); }
+ }
+});
+
+test('parallel duplicate transports share one owned event read and produce one alert', async () => {
+ const pending = deferred(); const h = foregroundRuntime(() => pending.promise);
+ try {
+  const first = h.receive(notification(1));
+  const second = h.receive(notification(1, { transport: 'parallel-retry' }));
+  await Promise.resolve(); assert.equal(h.calls.length, 1);
+  pending.resolve(true);
+  const results = await Promise.all([first, second]);
+  assert.equal(results.filter(x => x.shouldPlaySound).length, 1);
+  assert.equal(results.filter(x => x.shouldShowBanner).length, 1);
+ } finally { h.cleanup(); }
+});
+
+function eventReadHarness() {
+ const account = { accountId: id(901), accountRevision: 2 };
+ const session = { user: { id: account.accountId }, accountRevision: account.accountRevision };
+ let next = { data: { id: id(1), recipient_user_id: account.accountId, event_type: 'MESSAGE_RECEIVED' }, error: null };
+ const queries = [];
+ const client = { from(table) {
+  const query = { table, filters: [] }; queries.push(query);
+  const builder = { select(columns) { query.columns = columns; return builder; },
+   eq(column, value) { query.filters.push([column, value]); return builder; },
+   abortSignal(signal) { query.signal = signal; return builder; },
+   maybeSingle() { query.maybeSingle = true; return next; } };
+  return builder;
+ } };
+ const read = loader({ './supabaseClient': { supabaseKlijent: () => client },
+  '../store/sesija': { sesijaSada: () => session } })('src/data/inboxClientService.ts').ownsForegroundEvent;
+ return { read, account, session, queries, set(value) { next = value; } };
+}
+
+test('owned foreground reader selects only the exact recipient/event identity without marking read', async () => {
+ const h = eventReadHarness(); const controller = new AbortController();
+ assert.equal(await h.read(id(1), 'MESSAGE_RECEIVED', h.account, controller.signal), true);
+ assert.equal(h.queries.length, 1);
+ const query = h.queries[0];
+ assert.equal(query.table, 'user_activity_events');
+ assert.equal(query.columns, 'id,recipient_user_id,event_type');
+ assert.deepEqual(query.filters, [['id', id(1)], ['recipient_user_id', h.account.accountId]]);
+ assert.equal(query.maybeSingle, true);
+ assert.equal(query.signal instanceof AbortSignal, true);
+});
+
+test('owned foreground reader refuses foreign, missing, wrong-type, malformed or failed replies', async () => {
+ const h = eventReadHarness(); const signal = new AbortController().signal;
+ const own = { id: id(1), recipient_user_id: h.account.accountId, event_type: 'MESSAGE_RECEIVED' };
+ for (const value of [null, [], {}, { ...own, recipient_user_id: id(900) }, { ...own, id: id(2) },
+  { ...own, event_type: 'OPPORTUNITY_AVAILABLE' }, { ...own, unexpected: 'payload' }]) {
+  h.set({ data: value, error: null });
+  assert.equal(await h.read(id(1), 'MESSAGE_RECEIVED', h.account, signal), false);
+ }
+ h.set({ data: own, error: { message: 'private backend error' } });
+ assert.equal(await h.read(id(1), 'MESSAGE_RECEIVED', h.account, signal), false);
+});
+
+test('owned foreground reader rejects invalid inputs and respects account/abort fences around the real receipt owner', async () => {
+ const h = eventReadHarness(); const signal = new AbortController().signal;
+ for (const [event, type, scope] of [['not-an-id', 'MESSAGE_RECEIVED', h.account],
+  [id(1), 'UNRECOGNIZED', h.account], [id(1), 'MESSAGE_RECEIVED', { ...h.account, accountId: id(900) }]])
+  assert.equal(await h.read(event, type, scope, signal), false);
+ const stopped = new AbortController(); stopped.abort();
+ assert.equal(await h.read(id(1), 'MESSAGE_RECEIVED', h.account, stopped.signal), false);
+ assert.equal(h.queries.length, 0);
+
+ const pending = deferred(); h.set(pending.promise);
+ const reading = h.read(id(1), 'MESSAGE_RECEIVED', h.account, signal);
+ h.session.accountRevision++;
+ pending.resolve({ data: { id: id(1), recipient_user_id: h.account.accountId, event_type: 'MESSAGE_RECEIVED' }, error: null });
+ assert.equal(await reading, false);
+ h.session.accountRevision--;
+
+ const ignoredAbort = deferred(); h.set(ignoredAbort.promise);
+ const controller = new AbortController();
+ const cancelled = h.read(id(1), 'MESSAGE_RECEIVED', h.account, controller.signal);
+ controller.abort();
+ assert.equal(await cancelled, false, 'an ignored native abort must still settle');
+ assert.equal(h.queries.at(-1).signal.aborted, true);
+ ignoredAbort.resolve({ data: { id: id(1), recipient_user_id: h.account.accountId, event_type: 'MESSAGE_RECEIVED' }, error: null });
 });

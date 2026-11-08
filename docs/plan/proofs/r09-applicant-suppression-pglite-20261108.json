@@ -1,0 +1,321 @@
+{
+  "recordedAt": "2026-11-08T22:21:12.725Z",
+  "sourceBase": "76dd409a929b7d133fb63da4ed840762778baa27",
+  "dimension": "ISOLATED_PGLITE_SQL",
+  "deployment": "NOT_APPLIED_TO_DEV",
+  "sourceSha256": "715df990f04338ea12dd460651368be06511a53c6a1c74427f0c7be54a015acc",
+  "candidateSha256": "18bcc433a36dec266fd4199debad5bbc9337996b9cba46e34b5b26bf97383acf",
+  "rollbackSha256": "8f0c630779f186c60e88027ad06dedcafe9ff06c4444fe879c86d25b83982275",
+  "dependencyCaptureSha256": "7b37acced2dfe300558a7bc5a2679844db61f6f95dfde02cee46619745f59020",
+  "harnessSha256": "4da0238194b385a3dfa6ece9db27ba5ff9e6e4277078b6bacee02c1657da0f1f",
+  "scenarios": [
+    {
+      "name": "live preimage reproduces first opportunity after committed manual OFFER",
+      "result": {
+        "characterization": "CURRENT_BUG_REPRODUCED",
+        "activeOffer": true,
+        "push": 1,
+        "events": 1,
+        "attempts": 0,
+        "sendCount": 0,
+        "duplicates": 0,
+        "opportunities": 1
+      },
+      "elapsedMs": 134.15376300000025,
+      "status": "PASS"
+    },
+    {
+      "name": "live preimage also admits manually SELECTED account on partially filled flexible task",
+      "result": {
+        "characterization": "CURRENT_SELECTED_BUG_REPRODUCED",
+        "selectedSlots": 1,
+        "remainingSlots": 1,
+        "push": 2,
+        "events": 2,
+        "attempts": 0,
+        "sendCount": 0,
+        "duplicates": 0,
+        "opportunities": 2
+      },
+      "elapsedMs": 109.8318390000004,
+      "status": "PASS"
+    },
+    {
+      "name": "full source candidates cannot be mistaken for deployment SQL",
+      "result": {},
+      "elapsedMs": 12.009817999998631,
+      "status": "PASS"
+    },
+    {
+      "name": "changed owner body fails before either mutation",
+      "result": {},
+      "elapsedMs": 16.214592000000266,
+      "status": "PASS"
+    },
+    {
+      "name": "unexpected public privilege fails before mutation without weakening the gate",
+      "result": {},
+      "elapsedMs": 6.833415000000969,
+      "status": "PASS"
+    },
+    {
+      "name": "candidate preserves all rows and all owner/ACL/security metadata",
+      "result": {
+        "changedOwners": [
+          "private.push_suppression(notification_deliveries)",
+          "private.dispatch_cheap_candidate_admitted(uuid,uuid)"
+        ],
+        "dataUnchanged": true,
+        "metadataUnchanged": true
+      },
+      "elapsedMs": 22.09683600000062,
+      "status": "PASS"
+    },
+    {
+      "name": "private owners remain unavailable to every client role and begin remains service-only",
+      "result": {},
+      "elapsedMs": 5.911767999999938,
+      "status": "PASS"
+    },
+    {
+      "name": "ordinary first candidate still receives exactly one opportunity and repeated dispatch never duplicates it",
+      "result": {},
+      "elapsedMs": 68.3470529999995,
+      "status": "PASS"
+    },
+    {
+      "name": "SUBMITTED OFFER blocks only proactive opportunity, not matching or manual eligibility",
+      "result": {},
+      "elapsedMs": 52.519939999998314,
+      "status": "PASS"
+    },
+    {
+      "name": "DELIVERED OFFER blocks only proactive opportunity, not matching or manual eligibility",
+      "result": {},
+      "elapsedMs": 68.8117000000002,
+      "status": "PASS"
+    },
+    {
+      "name": "VIEWED OFFER blocks only proactive opportunity, not matching or manual eligibility",
+      "result": {},
+      "elapsedMs": 58.11193600000115,
+      "status": "PASS"
+    },
+    {
+      "name": "SHORTLISTED OFFER blocks only proactive opportunity, not matching or manual eligibility",
+      "result": {},
+      "elapsedMs": 70.51073499999984,
+      "status": "PASS"
+    },
+    {
+      "name": "SELECTED OFFER blocks only proactive opportunity, not matching or manual eligibility",
+      "result": {},
+      "elapsedMs": 72.15525999999954,
+      "status": "PASS"
+    },
+    {
+      "name": "DRAFT keeps existing non-active response admission policy",
+      "result": {},
+      "elapsedMs": 54.546353000001545,
+      "status": "PASS"
+    },
+    {
+      "name": "WITHDRAWN keeps existing non-active response admission policy",
+      "result": {},
+      "elapsedMs": 59.84649199999876,
+      "status": "PASS"
+    },
+    {
+      "name": "EXPIRED keeps existing non-active response admission policy",
+      "result": {},
+      "elapsedMs": 54.487697999999,
+      "status": "PASS"
+    },
+    {
+      "name": "STALE keeps existing non-active response admission policy",
+      "result": {},
+      "elapsedMs": 100.60764799999924,
+      "status": "PASS"
+    },
+    {
+      "name": "STALE_REVIEW_REQUIRED keeps existing non-active response admission policy",
+      "result": {},
+      "elapsedMs": 113.21756300000015,
+      "status": "PASS"
+    },
+    {
+      "name": "NOT_SELECTED keeps existing non-active response admission policy",
+      "result": {},
+      "elapsedMs": 112.64186299999892,
+      "status": "PASS"
+    },
+    {
+      "name": "legacy APPLICATION kind does not acquire a new OFFER policy",
+      "result": {},
+      "elapsedMs": 76.53005300000041,
+      "status": "PASS"
+    },
+    {
+      "name": "same account is suppressed despite a historical different response profile snapshot",
+      "result": {},
+      "elapsedMs": 160.6625270000004,
+      "status": "PASS"
+    },
+    {
+      "name": "another account or another Need does not suppress an unrelated candidate",
+      "result": {},
+      "elapsedMs": 120.80208499999935,
+      "status": "PASS"
+    },
+    {
+      "name": "old submitted revision does not suppress a genuinely new publication revision",
+      "result": {},
+      "elapsedMs": 107.9656329999998,
+      "status": "PASS"
+    },
+    {
+      "name": "REMOTE uses the same applicant boundary and retains its independent wave policy",
+      "result": {},
+      "elapsedMs": 97.88431500000115,
+      "status": "PASS"
+    },
+    {
+      "name": "new worker can manually apply to older matching task without retroactive notification",
+      "result": {},
+      "elapsedMs": 84.74008900000081,
+      "status": "PASS"
+    },
+    {
+      "name": "selected account stays suppressed while another eligible worker fills remaining place",
+      "result": {
+        "selectedNotReinvited": true,
+        "otherWorkerInvited": true,
+        "remainingSlots": 1
+      },
+      "elapsedMs": 163.78386599999976,
+      "status": "PASS"
+    },
+    {
+      "name": "SELECTED on a partially filled task suppresses its already queued opportunity before first claim",
+      "result": {
+        "selectedSlots": 1,
+        "remainingSlots": 1,
+        "queuedPushSuppressed": true,
+        "sendCount": 0
+      },
+      "elapsedMs": 123.55627500000082,
+      "status": "PASS"
+    },
+    {
+      "name": "current cancellation NOT_SELECTED state retains existing eligibility without inventing a new revision",
+      "result": {},
+      "elapsedMs": 304.8164710000001,
+      "status": "PASS"
+    },
+    {
+      "name": "suppression uses concrete event revision even when current Need has advanced",
+      "result": {},
+      "elapsedMs": 139.19210500000008,
+      "status": "PASS"
+    },
+    {
+      "name": "missing preferences cannot bypass already-responded suppression",
+      "result": {},
+      "elapsedMs": 126.52595400000064,
+      "status": "PASS"
+    },
+    {
+      "name": "recipient identity is validated before any applicant lookup or preference default",
+      "result": {},
+      "elapsedMs": 130.12272999999914,
+      "status": "PASS"
+    },
+    {
+      "name": "non-opportunity messages remain allowed after an application",
+      "result": {},
+      "elapsedMs": 120.82953799999996,
+      "status": "PASS"
+    },
+    {
+      "name": "push off, category off, quiet hours, expiry and closed state retain their existing checks",
+      "result": {},
+      "elapsedMs": 179.69077900000048,
+      "status": "PASS"
+    },
+    {
+      "name": "claim then committed application blocks begin for every pending device",
+      "result": {
+        "push": 1,
+        "events": 1,
+        "attempts": 2,
+        "sendCount": 0,
+        "duplicates": 0,
+        "opportunities": 1,
+        "suppressedDevices": 2
+      },
+      "elapsedMs": 206.64179400000103,
+      "status": "PASS"
+    },
+    {
+      "name": "withdrawal/reopen after final suppression never creates a repeated opportunity or revives its delivery",
+      "result": {},
+      "elapsedMs": 420.53422500000124,
+      "status": "PASS"
+    },
+    {
+      "name": "real Edge handler sees committed application between SQL claim and begin and makes no provider call",
+      "result": {
+        "providerCalls": 0,
+        "actualSqlClaimBegin": true
+      },
+      "elapsedMs": 514.9257500000003,
+      "status": "PASS"
+    },
+    {
+      "name": "provider outcome UNKNOWN remains one started send across applicant arrival and repeated ticks",
+      "result": {
+        "mockProviderCalls": 1,
+        "sendCount": 1,
+        "finalState": "UNKNOWN",
+        "providerRecalled": false
+      },
+      "elapsedMs": 192.14475800000218,
+      "status": "PASS"
+    },
+    {
+      "name": "late receipt settles its original ticket without another SEND after application",
+      "result": {},
+      "elapsedMs": 120.05580199999895,
+      "status": "PASS"
+    },
+    {
+      "name": "known receipt rejection can retry only after current applicant suppression recheck",
+      "result": {},
+      "elapsedMs": 101.03917700000238,
+      "status": "PASS"
+    },
+    {
+      "name": "guarded rollback restores only the two admission bodies and retains all rows and activation clock",
+      "result": {
+        "forwardRollbackForward": true,
+        "dataUnchanged": true
+      },
+      "elapsedMs": 51.00115499999811,
+      "status": "PASS"
+    }
+  ],
+  "failures": [],
+  "limitations": [
+    "Synthetic SQL data only, not live Auth/JWT, Android, Expo/FCM delivery or a full Supabase clone.",
+    "Real captured matcher, wave/emitter, rpc_submit_response and claim/begin/complete bodies run unchanged; only the two named suppression owners are patched.",
+    "Auth users/sessions are a narrow shape fixture. External safety, closure, lifecycle, response-version event and pg_net wake triggers and foreign keys are not installed.",
+    "Selected/withdrawn/revision/cancelled states are valid synthetic state inputs, not execution of the entire selection/cancellation/edit writer flow.",
+    "The real Edge handler uses mock Expo HTTP and mocked readiness/metrics reporting, while its claim/begin/complete RPCs execute real SQL.",
+    "A response committed before suppression is checked blocks SEND_STARTED. A provider send that already started cannot be recalled; UNKNOWN never permits a blind resend.",
+    "PGlite cases prove SQL semantics; real multi-connection races require the separate native invocation."
+  ],
+  "postgres": "PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+  "completedAt": "2026-11-08T22:21:29.050Z",
+  "result": "PASS",
+  "passedScenarios": 40
+}

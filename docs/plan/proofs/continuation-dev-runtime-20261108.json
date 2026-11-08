@@ -1,0 +1,45 @@
+{
+  "recordedAt": "2026-11-08T22:39:08.488413+00:00",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "method": "READ_ONLY_SQL_AFTER_F20_APPLY",
+  "migrations": 365,
+  "last": {
+    "name": "r09_applicant_suppression_20261108",
+    "version": "20261108222329"
+  },
+  "cronObservedAt": "2026-11-08T22:38:50.78085+00:00",
+  "cronSinceApply": [
+    {
+      "jobid": 1,
+      "failed": 0,
+      "jobname": "uskoci_marketplace_tick",
+      "succeeded": 15
+    },
+    {
+      "jobid": 2,
+      "failed": 0,
+      "jobname": "uskoci_edge_workers",
+      "succeeded": 15
+    },
+    {
+      "jobid": 3,
+      "failed": 0,
+      "jobname": "uskoci_taxonomy_postsave_tick_dev",
+      "succeeded": 15
+    }
+  ],
+  "readiness": {
+    "checked_at": "2026-11-08T22:39:08.488413+00:00",
+    "legal_ready": false,
+    "legal_reason": "LEGAL_DOCUMENTS_NOT_PUBLISHED",
+    "retention_policy_sets": 0,
+    "retention_policy_rules": 0,
+    "retention_ai_source_ready": false,
+    "data_export_policy_binding_is_null": true
+  },
+  "limits": [
+    "Cron success describes SQL execution, not external provider or device delivery.",
+    "Readiness remains closed; no retention policy, legal document, export, erasure or real notification was created.",
+    "R13 and R06 prototypes remain local source-only work and are not represented as active DEV behavior."
+  ]
+}

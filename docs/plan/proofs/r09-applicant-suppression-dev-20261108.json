@@ -1,0 +1,1074 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceBase": "76dd409a929b7d133fb63da4ed840762778baa27",
+  "result": "APPLIED_EXACT_LEDGER_BYTES",
+  "apply": {
+    "tool": "Supabase apply_migration",
+    "success": true,
+    "version": "20261108222329",
+    "name": "r09_applicant_suppression_20261108",
+    "statementCount": 1,
+    "recordedBytes": 5874,
+    "recordedMd5": "9d6ae5f019f8cb36fc7e600eb7cba447",
+    "recordedSha256": "18bcc433a36dec266fd4199debad5bbc9337996b9cba46e34b5b26bf97383acf"
+  },
+  "sourceCandidate": "scripts/sql/r09_applicant_suppression_20261108.sql",
+  "sourceCandidateSha256": "715df990f04338ea12dd460651368be06511a53c6a1c74427f0c7be54a015acc",
+  "isolatedTestedBodySha256": "18bcc433a36dec266fd4199debad5bbc9337996b9cba46e34b5b26bf97383acf",
+  "canonicalFile": "supabase/migrations/20261108222329_r09_applicant_suppression_20261108.sql",
+  "before": {
+    "cron": [
+      {
+        "jobid": 1,
+        "active": true,
+        "command": "select private.marketplace_tick(25);",
+        "jobname": "uskoci_marketplace_tick",
+        "schedule": "* * * * *",
+        "username": "postgres"
+      },
+      {
+        "jobid": 2,
+        "active": true,
+        "command": "select private.edge_worker_tick_v5()",
+        "jobname": "uskoci_edge_workers",
+        "schedule": "* * * * *",
+        "username": "postgres"
+      },
+      {
+        "jobid": 3,
+        "active": true,
+        "command": "\n SELECT net.http_post(\n  url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='uskoci_edge_base_url')||'/functions/v1/uskoci-taxonomy-postsave-worker',\n  headers := jsonb_build_object('Content-Type','application/json','apikey',\n    (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='uskoci_edge_worker_key')),\n  body := '{}'::jsonb,\n  timeout_milliseconds := 26000\n ) AS request_id\n WHERE EXISTS(SELECT 1 FROM private.work_taxonomy_review_outbox_control_v1 WHERE singleton AND enabled);\n ",
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "schedule": "* * * * *",
+        "username": "postgres"
+      }
+    ],
+    "rows": {
+      "needs": 18,
+      "events": 44,
+      "accounts": 18,
+      "attempts": 2,
+      "profiles": 24,
+      "responses": 6,
+      "agreements": 6,
+      "deliveries": 88,
+      "opportunities": 2
+    },
+    "functions": [
+      {
+        "body_md5": "c1505cb7784898875f37ecbc9c52d23c",
+        "identity": "private.candidate_profile_ids_v1b(uuid,integer,integer)",
+        "metadata": {
+          "oid": "27762",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "candidate_profile_ids_v1b",
+          "prorows": 1000,
+          "pronargs": 3,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": true,
+          "prosecdef": true,
+          "prorettype": "2950",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": [
+            "i",
+            "i",
+            "i",
+            "t"
+          ],
+          "proargnames": [
+            "nid",
+            "p_limit",
+            "p_cap",
+            "worker_profile_id"
+          ],
+          "proargtypes": [
+            "2950",
+            "23",
+            "23"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "18078",
+          "proallargtypes": [
+            "2950",
+            "23",
+            "23",
+            "2950"
+          ],
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "5f3862949a6b93ab99c29c549ff9a837",
+        "identity": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+        "metadata": {
+          "oid": "20584",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "dispatch_cheap_candidate_admitted",
+          "prorows": 0,
+          "pronargs": 2,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "16",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "nid",
+            "pid"
+          ],
+          "proargtypes": [
+            "2950",
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "18078",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "d3cdfe2bdd6e5d40a74e6029793c89c5",
+        "identity": "private.dispatch_next_wave(uuid)",
+        "metadata": {
+          "oid": "20589",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "dispatch_next_wave",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "3802",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "nid"
+          ],
+          "proargtypes": [
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "18078",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "25d3fae40c1f67689e1c50ee1898005b",
+        "identity": "private.push_suppression(notification_deliveries)",
+        "metadata": {
+          "oid": "22519",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "push_suppression",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "25",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_delivery"
+          ],
+          "proargtypes": [
+            "18181"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "18078",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "3bd12de1d220804a91a7b1b036fd7ce6",
+        "identity": "private.remote_wave_candidates_v1b(uuid,integer,integer)",
+        "metadata": {
+          "oid": "27763",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "remote_wave_candidates_v1b",
+          "prorows": 1000,
+          "pronargs": 3,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": true,
+          "prosecdef": true,
+          "prorettype": "2249",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": [
+            "i",
+            "i",
+            "i",
+            "t",
+            "t",
+            "t"
+          ],
+          "proargnames": [
+            "nid",
+            "p_limit",
+            "p_cap",
+            "pid",
+            "uid",
+            "detail"
+          ],
+          "proargtypes": [
+            "2950",
+            "23",
+            "23"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "18078",
+          "proallargtypes": [
+            "2950",
+            "23",
+            "23",
+            "2950",
+            "2950",
+            "3802"
+          ],
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "e693b140450a9bb1cf6d3178b0ad80c1",
+        "identity": "rpc_begin_push_send(uuid,uuid)",
+        "metadata": {
+          "oid": "22522",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "rpc_begin_push_send",
+          "prorows": 0,
+          "pronargs": 2,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "3802",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_attempt_id",
+            "p_lease_id"
+          ],
+          "proargtypes": [
+            "2950",
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "7c9145f1b9696f9ed6e4a29949228b58",
+        "identity": "rpc_claim_push_transport(text)",
+        "metadata": {
+          "oid": "22520",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "rpc_claim_push_transport",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "3802",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_kind"
+          ],
+          "proargtypes": [
+            "25"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "d87908db1908b8c88fe66228c5b07f9f",
+        "identity": "rpc_complete_push_transport(uuid,uuid,text,text)",
+        "metadata": {
+          "oid": "22523",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "rpc_complete_push_transport",
+          "prorows": 0,
+          "pronargs": 4,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "3802",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_attempt_id",
+            "p_lease_id",
+            "p_result",
+            "p_ticket_id"
+          ],
+          "proargtypes": [
+            "2950",
+            "2950",
+            "25",
+            "25"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": "({CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull true :location -1 :constvalue <>})",
+          "pronargdefaults": 1
+        }
+      },
+      {
+        "body_md5": "398e85c4420da9c4765ae0ff6197a59e",
+        "identity": "rpc_submit_response(uuid,integer,uuid,integer,integer,timestamp with time zone,timestamp with time zone,text,text)",
+        "metadata": {
+          "oid": "20726",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres",
+            "authenticated=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "rpc_submit_response",
+          "prorows": 0,
+          "pronargs": 9,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "3802",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_need_id",
+            "p_need_revision",
+            "p_worker_profile_id",
+            "p_covered_slots",
+            "p_price_rsd",
+            "p_proposed_start_at",
+            "p_proposed_end_at",
+            "p_scope_note",
+            "p_client_request_id"
+          ],
+          "proargtypes": [
+            "2950",
+            "23",
+            "2950",
+            "23",
+            "23",
+            "1184",
+            "1184",
+            "25",
+            "25"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      }
+    ],
+    "checked_at": "2026-11-08T22:23:09.502906+00:00",
+    "migration_count": 364,
+    "candidate_applicant_pairs": 0,
+    "queued_applicant_opportunities": 0
+  },
+  "after": {
+    "cron": [
+      {
+        "jobid": 1,
+        "active": true,
+        "command": "select private.marketplace_tick(25);",
+        "jobname": "uskoci_marketplace_tick",
+        "schedule": "* * * * *",
+        "username": "postgres"
+      },
+      {
+        "jobid": 2,
+        "active": true,
+        "command": "select private.edge_worker_tick_v5()",
+        "jobname": "uskoci_edge_workers",
+        "schedule": "* * * * *",
+        "username": "postgres"
+      },
+      {
+        "jobid": 3,
+        "active": true,
+        "command": "\n SELECT net.http_post(\n  url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='uskoci_edge_base_url')||'/functions/v1/uskoci-taxonomy-postsave-worker',\n  headers := jsonb_build_object('Content-Type','application/json','apikey',\n    (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='uskoci_edge_worker_key')),\n  body := '{}'::jsonb,\n  timeout_milliseconds := 26000\n ) AS request_id\n WHERE EXISTS(SELECT 1 FROM private.work_taxonomy_review_outbox_control_v1 WHERE singleton AND enabled);\n ",
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "schedule": "* * * * *",
+        "username": "postgres"
+      }
+    ],
+    "rows": {
+      "needs": 18,
+      "events": 44,
+      "accounts": 18,
+      "attempts": 2,
+      "profiles": 24,
+      "responses": 6,
+      "agreements": 6,
+      "deliveries": 88,
+      "opportunities": 2
+    },
+    "functions": [
+      {
+        "body_md5": "c1505cb7784898875f37ecbc9c52d23c",
+        "identity": "private.candidate_profile_ids_v1b(uuid,integer,integer)",
+        "metadata": {
+          "oid": "27762",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "candidate_profile_ids_v1b",
+          "prorows": 1000,
+          "pronargs": 3,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": true,
+          "prosecdef": true,
+          "prorettype": "2950",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": [
+            "i",
+            "i",
+            "i",
+            "t"
+          ],
+          "proargnames": [
+            "nid",
+            "p_limit",
+            "p_cap",
+            "worker_profile_id"
+          ],
+          "proargtypes": [
+            "2950",
+            "23",
+            "23"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "18078",
+          "proallargtypes": [
+            "2950",
+            "23",
+            "23",
+            "2950"
+          ],
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "34dcf47d654d5960fbf7254c28745a04",
+        "identity": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+        "metadata": {
+          "oid": "20584",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "dispatch_cheap_candidate_admitted",
+          "prorows": 0,
+          "pronargs": 2,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "16",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "nid",
+            "pid"
+          ],
+          "proargtypes": [
+            "2950",
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "18078",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "d3cdfe2bdd6e5d40a74e6029793c89c5",
+        "identity": "private.dispatch_next_wave(uuid)",
+        "metadata": {
+          "oid": "20589",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "dispatch_next_wave",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "3802",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "nid"
+          ],
+          "proargtypes": [
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "18078",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "ebd9c03035630bde62bf9fd8a27378c2",
+        "identity": "private.push_suppression(notification_deliveries)",
+        "metadata": {
+          "oid": "22519",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "push_suppression",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "25",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_delivery"
+          ],
+          "proargtypes": [
+            "18181"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "18078",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "3bd12de1d220804a91a7b1b036fd7ce6",
+        "identity": "private.remote_wave_candidates_v1b(uuid,integer,integer)",
+        "metadata": {
+          "oid": "27763",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "remote_wave_candidates_v1b",
+          "prorows": 1000,
+          "pronargs": 3,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": true,
+          "prosecdef": true,
+          "prorettype": "2249",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": [
+            "i",
+            "i",
+            "i",
+            "t",
+            "t",
+            "t"
+          ],
+          "proargnames": [
+            "nid",
+            "p_limit",
+            "p_cap",
+            "pid",
+            "uid",
+            "detail"
+          ],
+          "proargtypes": [
+            "2950",
+            "23",
+            "23"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "18078",
+          "proallargtypes": [
+            "2950",
+            "23",
+            "23",
+            "2950",
+            "2950",
+            "3802"
+          ],
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "e693b140450a9bb1cf6d3178b0ad80c1",
+        "identity": "rpc_begin_push_send(uuid,uuid)",
+        "metadata": {
+          "oid": "22522",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "rpc_begin_push_send",
+          "prorows": 0,
+          "pronargs": 2,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "3802",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_attempt_id",
+            "p_lease_id"
+          ],
+          "proargtypes": [
+            "2950",
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "7c9145f1b9696f9ed6e4a29949228b58",
+        "identity": "rpc_claim_push_transport(text)",
+        "metadata": {
+          "oid": "22520",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "rpc_claim_push_transport",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "3802",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_kind"
+          ],
+          "proargtypes": [
+            "25"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "body_md5": "d87908db1908b8c88fe66228c5b07f9f",
+        "identity": "rpc_complete_push_transport(uuid,uuid,text,text)",
+        "metadata": {
+          "oid": "22523",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "rpc_complete_push_transport",
+          "prorows": 0,
+          "pronargs": 4,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "3802",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_attempt_id",
+            "p_lease_id",
+            "p_result",
+            "p_ticket_id"
+          ],
+          "proargtypes": [
+            "2950",
+            "2950",
+            "25",
+            "25"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": "({CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull true :location -1 :constvalue <>})",
+          "pronargdefaults": 1
+        }
+      },
+      {
+        "body_md5": "398e85c4420da9c4765ae0ff6197a59e",
+        "identity": "rpc_submit_response(uuid,integer,uuid,integer,integer,timestamp with time zone,timestamp with time zone,text,text)",
+        "metadata": {
+          "oid": "20726",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres",
+            "authenticated=X/postgres"
+          ],
+          "probin": null,
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "rpc_submit_response",
+          "prorows": 0,
+          "pronargs": 9,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "3802",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_need_id",
+            "p_need_revision",
+            "p_worker_profile_id",
+            "p_covered_slots",
+            "p_price_rsd",
+            "p_proposed_start_at",
+            "p_proposed_end_at",
+            "p_scope_note",
+            "p_client_request_id"
+          ],
+          "proargtypes": [
+            "2950",
+            "23",
+            "2950",
+            "23",
+            "23",
+            "1184",
+            "1184",
+            "25",
+            "25"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      }
+    ],
+    "checked_at": "2026-11-08T22:23:36.330671+00:00",
+    "migration_count": 365,
+    "candidate_applicant_pairs": 0,
+    "queued_applicant_opportunities": 0
+  },
+  "assertions": {
+    "onlyTwoExistingFunctionBodiesChanged": true,
+    "allNineFunctionMetadataPreserved": true,
+    "sevenConsumerBodiesPreserved": true,
+    "observedBusinessRowCountsUnchanged": true,
+    "cronDefinitionsUnchanged": true,
+    "noRowDmlInMigration": true,
+    "noNewIndexesOrQueue": true,
+    "noProviderCallInMigration": true
+  },
+  "tested": {
+    "rootIndependentPGlite": {
+      "tests": 41,
+      "passed": 41,
+      "failed": 0
+    },
+    "agentPGlite": {
+      "tests": 41,
+      "scenarios": 40
+    },
+    "nativePostgreSQL": {
+      "tests": 45,
+      "scenarios": 44,
+      "version": "17.11",
+      "postgis": "3.5.2"
+    },
+    "rollbackForward": "PASS_IN_ISOLATED_FIXTURE",
+    "hostedSyntheticApplication": false,
+    "physicalAndroid": false
+  },
+  "beforeLogs": {
+    "start": "2026-11-08T22:00:00Z",
+    "end": "2026-11-08T22:22:39Z",
+    "edgeHttp200": 69,
+    "functionEdgeHttp200": 23,
+    "functionLogLevelLog": 33,
+    "postgresLog": 148,
+    "postgresError42703": 1,
+    "note": "The observed 42703 follows an earlier read-only inspection selecting a nonexistent account_id column; corrected to recipient_user_id. This is not downstream delivery evidence."
+  },
+  "afterSecurityAdvisorCounts": {
+    "rls_enabled_no_policy:INFO": 123,
+    "extension_in_public:WARN": 1,
+    "anon_security_definer_function_executable:WARN": 3,
+    "authenticated_security_definer_function_executable:WARN": 202,
+    "auth_leaked_password_protection:WARN": 1
+  },
+  "limitations": [
+    "No positive hosted applicant fixture was created; live candidate/applicant and queued-applicant intersections were both zero before and after.",
+    "Function metadata and row counts are readback evidence; full live row-content equality was not claimed.",
+    "A committed response visible to the existing pre-send suppression check blocks SEND_STARTED. A response arriving after that check may be too late; an external send cannot be recalled.",
+    "UNKNOWN attempts remain non-retryable without a known result; this patch does not add transport sends.",
+    "Native PostgreSQL and mocked-provider results are not FCM, Expo delivery, Android audio or 300,000-user capacity evidence.",
+    "Production, Cron, Edge deployments, legal readiness and R13 cooperative activation were not changed."
+  ],
+  "rollback": "scripts/sql/r09_applicant_suppression_20261108.rollback.sql; source-only guarded recovery, not automatic because restoring old admission can allow unwanted opportunities again.",
+  "advisorInterpretation": "Grouped notices with finding counts; no blanket privilege revocation. Two existing private owners retain their exact postgres-only ACL."
+}

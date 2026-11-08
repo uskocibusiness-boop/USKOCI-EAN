@@ -76,6 +76,12 @@ R09_ACTIVATION_SHA256 = "5770bd040522c5f3bccb4c4d997787d32e494cb645fa456b09818ee
 R09_ACTIVATION_BYTES = 16708
 R09_ACTIVATION_PROOF = "docs/plan/proofs/r09-activation-clock-dev-20261108.json"
 R09_ACTIVATION_PROOF_SHA256 = "d34f03b015e9ac510c76ef5ad9f282c2682e6f371fd11adcaed0266c837763d0"
+R09_APPLICANT_FILE = "20261108222329_r09_applicant_suppression_20261108.sql"
+R09_APPLICANT_MD5 = "9d6ae5f019f8cb36fc7e600eb7cba447"
+R09_APPLICANT_SHA256 = "18bcc433a36dec266fd4199debad5bbc9337996b9cba46e34b5b26bf97383acf"
+R09_APPLICANT_BYTES = 5874
+R09_APPLICANT_PROOF = "docs/plan/proofs/r09-applicant-suppression-dev-20261108.json"
+R09_APPLICANT_PROOF_SHA256 = "607b8c613e3fd2f26d439b63870c8e3720060689624882e03b0328e7e55d44c2"
 
 
 def fail(message: str) -> None:
@@ -245,6 +251,48 @@ def check_r09_activation_provenance(section: dict, manifest_map: dict) -> str:
             or hashlib.sha256(witness.read_bytes()).hexdigest() != R09_ACTIVATION_PROOF_SHA256):
         fail("R09 activation DEV readback differs from its pinned immutable witness")
     return R09_ACTIVATION_FILE
+
+
+def check_r09_applicant_provenance(section: dict, manifest_map: dict) -> str:
+    """Bind the two existing suppression owners to the actual DEV ledger."""
+    expected = {
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "project": "leqcwgzvjsxugfgzdmth",
+        "file": R09_APPLICANT_FILE,
+        "version": "20261108222329",
+        "name": "r09_applicant_suppression_20261108",
+        "source_md5": R09_APPLICANT_MD5,
+        "source_sha256": R09_APPLICANT_SHA256,
+        "source_bytes": R09_APPLICANT_BYTES,
+        "recorded_statement_md5": R09_APPLICANT_MD5,
+        "recorded_statement_sha256": R09_APPLICANT_SHA256,
+        "recorded_statement_count": 1,
+        "evidence": R09_APPLICANT_PROOF,
+        "evidence_sha256": R09_APPLICANT_PROOF_SHA256,
+        "dev_applied": True,
+        "dev_migration_count_before": 364,
+        "dev_migration_count_after": 365,
+        "preserved_owner_metadata": 9,
+        "changed_owner_bodies": 2,
+        "cron_changed": False,
+        "verified_android_delivery": False,
+        "capacity_300k_proven": False,
+        "release": "NO-GO",
+    }
+    if not isinstance(section, dict) or any(section.get(k) != v for k, v in expected.items()):
+        fail("R09 applicant provenance differs from verified DEV rollout")
+    raw = (ROOT / R09_APPLICANT_FILE).read_bytes()
+    if (len(raw) != R09_APPLICANT_BYTES
+            or hashlib.md5(raw).hexdigest() != R09_APPLICANT_MD5
+            or hashlib.sha256(raw).hexdigest() != R09_APPLICANT_SHA256):
+        fail("R09 applicant canonical source bytes differ from DEV ledger")
+    if manifest_map.get(R09_APPLICANT_FILE) != R09_APPLICANT_MD5:
+        fail("R09 applicant manifest differs from DEV ledger")
+    witness = ROOT.parent.parent / R09_APPLICANT_PROOF
+    if (not witness.is_file()
+            or hashlib.sha256(witness.read_bytes()).hexdigest() != R09_APPLICANT_PROOF_SHA256):
+        fail("R09 applicant DEV readback differs from pinned witness")
+    return R09_APPLICANT_FILE
 
 
 def main() -> None:
@@ -600,7 +648,14 @@ def main() -> None:
     if activation_file <= push_wake_file:
         fail("R09 activation must follow the coalesced wake ledger version")
 
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names != disk_names:
+    applicant_file = check_r09_applicant_provenance(
+        metadata.get("forward_execution_20261108_r09_applicant"), manifest_map
+    )
+    applicant_names = [applicant_file]
+    if applicant_file <= activation_file:
+        fail("R09 applicant suppression must follow the activation ledger version")
+
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names + applicant_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -699,6 +754,7 @@ def main() -> None:
         f"nov7_suffix={len(nov7_suffix_names)} "
         f"r13_push_wake={len(push_wake_names)} "
         f"r09_activation={len(activation_names)} "
+        f"r09_applicant={len(applicant_names)} "
         f"nov7_forward={len(forward7_names)} "
         f"r08_forward={len(r08_names)} "
         f"r01_forward={len(r01_names)} "

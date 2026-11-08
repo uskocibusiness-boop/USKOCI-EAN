@@ -1,0 +1,1147 @@
+{
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "captured_at": "2026-11-08T22:10:22.232Z",
+  "functions": [
+    {
+      "acl": "{=X/supabase_auth_admin,supabase_auth_admin=X/supabase_auth_admin,dashboard_user=X/supabase_auth_admin}",
+      "owner": "supabase_auth_admin",
+      "body_md5": "f31486fed08a7402e89d4aa71b0ad273",
+      "identity": "auth.role()",
+      "proconfig": null,
+      "prosecdef": false,
+      "definition": "CREATE OR REPLACE FUNCTION auth.role()\n RETURNS text\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.role', true), ''),\n    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')\n  )::text\n$function$\n",
+      "provolatile": "s",
+      "definition_md5": "8a3e05459e07e0633d43c6fba2a2cdf4"
+    },
+    {
+      "acl": "{=X/supabase_auth_admin,supabase_auth_admin=X/supabase_auth_admin,dashboard_user=X/supabase_auth_admin}",
+      "owner": "supabase_auth_admin",
+      "body_md5": "cdef18c69c4f4cbbced2eaf81e628b49",
+      "identity": "auth.uid()",
+      "proconfig": null,
+      "prosecdef": false,
+      "definition": "CREATE OR REPLACE FUNCTION auth.uid()\n RETURNS uuid\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.sub', true), ''),\n    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')\n  )::uuid\n$function$\n",
+      "provolatile": "s",
+      "definition_md5": "ea3b41bf29e2ad573067939329aa088e"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "2b4fef19b3fc70d57dca3144a63ca5e4",
+      "identity": "private.assert_application_price_v5(needs,integer,integer)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": false,
+      "definition": "CREATE OR REPLACE FUNCTION private.assert_application_price_v5(n needs, p_covered_slots integer, p_price_rsd integer)\n RETURNS void\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog'\nAS $function$\nbegin\n  if p_price_rsd is null or p_price_rsd <= 0 then\n    raise exception using errcode='22023', message='INVALID_PRICE';\n  end if;\n\n  if n.mode = 'MY_PRICE' then\n    if n.requester_price_rsd is null or n.requester_price_rsd <= 0 then\n      raise exception using errcode='P0001', message='FIXED_PRICE_NOT_READY';\n    end if;\n\n    if n.price_basis is null then\n      if p_price_rsd <> n.requester_price_rsd then\n        raise exception using errcode='22023', message='FIXED_PRICE_MISMATCH';\n      end if;\n    elsif n.price_basis = 'PER_PERSON' then\n      if p_price_rsd <> n.requester_price_rsd::bigint * p_covered_slots then\n        raise exception using\n          errcode='22023',\n          message='FIXED_PRICE_MISMATCH',\n          detail=format('basis=PER_PERSON,perPerson=%s,covered=%s,expected=%s,sent=%s',\n                        n.requester_price_rsd, p_covered_slots,\n                        n.requester_price_rsd::bigint * p_covered_slots, p_price_rsd);\n      end if;\n    elsif n.price_basis = 'TOTAL' then\n      if p_price_rsd::numeric is distinct from\n         round(n.requester_price_rsd::numeric * p_covered_slots / n.required_slots) then\n        raise exception using errcode='22023', message='FIXED_PRICE_MISMATCH',\n          detail=format('basis=TOTAL,total=%s,required=%s,covered=%s,sent=%s',\n            n.requester_price_rsd,n.required_slots,p_covered_slots,p_price_rsd);\n      end if;\n    elsif n.price_basis = 'HOURLY' then\n      -- R07b: an hourly amount is one person's rate for one hour.\n      -- Headcount and duration remain independent accepted facts.\n      if p_price_rsd <> n.requester_price_rsd then\n        raise exception using errcode='22023', message='FIXED_PRICE_MISMATCH';\n      end if;\n    else\n      raise exception using errcode='22023', message='UNKNOWN_PRICE_BASIS';\n    end if;\n  end if;\n\nend;\n$function$\n",
+      "provolatile": "i",
+      "definition_md5": "26dda4e36801bdb524e8b66077365b7c"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "85389285506a1f5801ad204f60dfa2a1",
+      "identity": "private.category_of_event(text)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": false,
+      "definition": "CREATE OR REPLACE FUNCTION private.category_of_event(p_event_type text)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO 'pg_catalog'\nAS $function$\n  select case\n    when p_event_type = 'OPPORTUNITY_AVAILABLE' then 'opportunities'\n    when p_event_type like 'RESPONSE\\_%'\n      or p_event_type in ('NEED_REVISED','NEED_CANCELLED','CLARIFICATION_CREATED','CLARIFICATION_ANSWERED') then 'responses'\n    when p_event_type like 'AGREEMENT\\_%'\n      or p_event_type in ('MESSAGE_RECEIVED','PRIVATE_ACCESS_GRANTED','REVIEW_RECEIVED') then 'dogovor'\n    when p_event_type in ('EXECUTION_STATE_CHANGED','COMPLETION_REQUIRED') then 'execution'\n    when p_event_type = 'RECOVERY_OPENED' then 'recovery'\n    else 'account'\n  end;\n$function$\n",
+      "provolatile": "i",
+      "definition_md5": "ef2598041723d925df1f602d7ceeeeb2"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "f4999250c315e0253374d4611291c7ad",
+      "identity": "private.closure_account_restricted(uuid)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": true,
+      "definition": "CREATE OR REPLACE FUNCTION private.closure_account_restricted(a uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$ select exists(select 1 from private.account_closure_requests r where r.account_id=a\n and r.state in('READY','EXECUTING','FAILED','CLOSED')); $function$\n",
+      "provolatile": "s",
+      "definition_md5": "9ce14bacf456210147ba14235d7ba8de"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "5f3862949a6b93ab99c29c549ff9a837",
+      "identity": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": true,
+      "definition": "CREATE OR REPLACE FUNCTION private.dispatch_cheap_candidate_admitted(nid uuid, pid uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  select exists (\n    select 1\n    from public.needs n\n    join public.app_profiles p on p.id = pid\n    left join public.worker_match_preferences pref on pref.worker_profile_id = p.id\n    where n.id = nid\n      and p.kind = 'WORKER'\n      and p.profile_status = 'ACTIVE'\n      and coalesce(pref.proactive_notifications, true) = true\n      -- R09: old tasks stay discoverable; only a publication after the\n      -- worker's immutable notification clock is proactively announced.\n      and p.worker_dispatch_eligible_since is not null\n      and n.published_at > p.worker_dispatch_eligible_since\n      -- MATCH-V1 (owner 2026-10-07): the ONE shared \"Odgovara mi\" rule: kind of work + area + time and the existing\n      -- hard exceptions (own task, other world, identity, exclusions). Tools, vehicles, experience and the\n      -- minimum fee are no longer conditions; licenses were retired by WPP01. The rule takes the ROW columns, never\n      -- the bare parameters: a parameter-only call is a one-time filter that would run before the status filter above,\n      -- for every draft or suspended profile the candidate loop visits.\n      and private.worker_need_match_v1(n.id, p.id)\n      and not exists (\n        select 1 from public.opportunity_deliveries od\n        where od.worker_account_id = p.account_id\n          and od.need_id = n.id\n          and od.need_revision = n.revision)\n  );\n$function$\n",
+      "provolatile": "s",
+      "definition_md5": "207bc494043d3bfc7fbfeda6cf5b0020"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "781956cab666befab216b3ce2334ca1d",
+      "identity": "private.match_detail_for_calendar_interval(uuid,uuid,timestamp with time zone,timestamp with time zone)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": true,
+      "definition": "CREATE OR REPLACE FUNCTION private.match_detail_for_calendar_interval(nid uuid, pid uuid, s timestamp with time zone, e timestamp with time zone)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare result jsonb; blockers jsonb;\nbegin\n  if (s is null)<>(e is null) or (s is not null and (not isfinite(s) or not isfinite(e) or s>=e)) then\n    raise exception 'AGREEMENT_CALENDAR_INTERVAL_INVALID' using errcode='22023';\n  end if;\n  result:=private.match_detail_without_calendar(nid,pid);\n  if result is null or not private.worker_calendar_conflict(pid,s,e,null) then return result; end if;\n  blockers:=coalesce(result->'hardBlockers','[]'::jsonb);\n  if not (blockers @> '[\"CALENDAR_CONFLICT\"]'::jsonb) then blockers:=blockers||'[\"CALENDAR_CONFLICT\"]'::jsonb; end if;\n  result:=jsonb_set(result,'{hardBlockers}',blockers,true);\n  result:=jsonb_set(result,'{responseAllowed}','false'::jsonb,true);\n  return jsonb_set(result,'{dispatchEligible}','false'::jsonb,true);\nend;\n$function$\n",
+      "provolatile": "s",
+      "definition_md5": "9a1a961940c46c4c2e45f229f7419052"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "3454eb7040f3dab3cb0c35b512b46859",
+      "identity": "private.push_session_valid(uuid,uuid)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": true,
+      "definition": "CREATE OR REPLACE FUNCTION private.push_session_valid(p_user uuid, p_session uuid)\n RETURNS boolean\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n select p_session is not null and exists(select 1 from auth.sessions s join auth.users u on u.id=s.user_id\n where s.id=p_session and s.user_id=p_user and (s.not_after is null or s.not_after>clock_timestamp())\n and u.deleted_at is null and (u.banned_until is null or u.banned_until<=clock_timestamp()));\n$function$\n",
+      "provolatile": "v",
+      "definition_md5": "3d0299868f2b0057dfa58e78eb43a34b"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "25d3fae40c1f67689e1c50ee1898005b",
+      "identity": "private.push_suppression(notification_deliveries)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": true,
+      "definition": "CREATE OR REPLACE FUNCTION private.push_suppression(p_delivery notification_deliveries)\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  p public.notification_preferences%rowtype;\n  e public.user_activity_events%rowtype;\n  enabled boolean;\n  local_time time;\nbegin\n  if p_delivery.channel<>'PUSH' or p_delivery.state in ('SUPPRESSED','EXPIRED','READ','DELIVERED','FAILED_FINAL') then\n    return 'DELIVERY_CLOSED';\n  end if;\n  if p_delivery.expires_at<=clock_timestamp() then\n    return 'EXPIRED';\n  end if;\n  select * into e from public.user_activity_events where id=p_delivery.event_id;\n  if not found or e.recipient_user_id<>p_delivery.recipient_user_id or e.recipient_role<>p_delivery.recipient_role then\n    return 'EVENT_UNAVAILABLE';\n  end if;\n\n  select * into p from public.notification_preferences where user_id=p_delivery.recipient_user_id and role_context=p_delivery.recipient_role;\n  if not found then\n    -- When preferences row does not exist yet, default all categories and push to ON\n    return null;\n  end if;\n\n  if not coalesce(p.push_enabled, true) then\n    return 'PUSH_OFF';\n  end if;\n\n  enabled:=case private.category_of_event(e.event_type)\n    when 'opportunities' then coalesce(p.opportunities_enabled, true)\n    when 'responses' then coalesce(p.responses_enabled, true)\n    when 'dogovor' then coalesce(p.dogovor_enabled, true)\n    when 'execution' then coalesce(p.execution_enabled, true)\n    when 'recovery' then coalesce(p.recovery_enabled, true)\n    else coalesce(p.account_enabled, true)\n  end;\n  if not enabled then\n    return 'CATEGORY_OFF';\n  end if;\n\n  local_time:=(clock_timestamp() at time zone coalesce(p.quiet_timezone, 'UTC'))::time;\n  if coalesce(p.quiet_hours_enabled, false)\n     and (case when p.quiet_start<p.quiet_end then local_time between p.quiet_start and p.quiet_end else local_time>=p.quiet_start or local_time<=p.quiet_end end)\n     and not(e.urgency='HITNO' and coalesce(p.urgent_overrides_quiet_hours, true)) then\n    return 'QUIET_HOURS';\n  end if;\n\n  return null;\nend $function$\n",
+      "provolatile": "v",
+      "definition_md5": "f15dd619729854d650f8dfd981077335"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "4a253bbaf6abd6b3207c7cd73a02ae0e",
+      "identity": "private.safety_event_blocked(user_activity_events)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": true,
+      "definition": "CREATE OR REPLACE FUNCTION private.safety_event_blocked(e user_activity_events)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare a public.agreements; peer uuid; target uuid;\nbegin\n -- Safe terminal notification must not make an active Agreement inescapable.\n if e.event_type in('AGREEMENT_CANCELLED','NEED_CANCELLED','EXECUTION_STATE_CHANGED','COMPLETION_REQUIRED','RECOVERY_OPENED') then return false; end if;\n if e.entity_type='AGREEMENT' then\n  select * into a from public.agreements where id=e.entity_id;\n  peer:=case when e.recipient_user_id=a.requester_account_id then a.worker_account_id when e.recipient_user_id=a.worker_account_id then a.requester_account_id end;\n elsif e.entity_type='RESPONSE' then\n  select case when e.recipient_user_id=r.worker_account_id then n.requester_account_id\n   when e.recipient_user_id=n.requester_account_id then r.worker_account_id end into peer\n   from public.marketplace_responses r join public.needs n on n.id=r.need_id where r.id=e.entity_id;\n elsif e.entity_type='NEED' then\n  select requester_account_id into peer from public.needs where id=e.entity_id;\n elsif e.entity_type='CLARIFICATION' then\n  select case when e.recipient_user_id=n.requester_account_id then qa.asker_account_id else n.requester_account_id end into peer\n   from private.preselection_qa_questions qa join public.needs n on n.id=qa.need_id where qa.id=e.entity_id;\n end if;\n if peer is null or peer=e.recipient_user_id then return false; end if;\n perform pg_advisory_xact_lock_shared(private.safety_pair_key(e.recipient_user_id,peer));\n return private.safety_pair_blocked(e.recipient_user_id,peer);\nend;\n$function$\n",
+      "provolatile": "v",
+      "definition_md5": "17b73740869b9093abd74fc9a70ed8e8"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "e693b140450a9bb1cf6d3178b0ad80c1",
+      "identity": "rpc_begin_push_send(uuid,uuid)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": true,
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_begin_push_send(p_attempt_id uuid, p_lease_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  a public.notification_push_attempts%rowtype;\n  d public.notification_deliveries%rowtype;\n  dev public.notification_push_devices%rowtype;\n  why text;\n  v_event_type text;\n  v_event_id uuid;\nbegin\n  if auth.role() is distinct from 'service_role' then\n    raise exception 'FORBIDDEN' using errcode='42501';\n  end if;\n  select x.* into dev\n  from public.notification_push_devices x\n  join public.notification_push_attempts y on y.device_id=x.id\n  where y.id=p_attempt_id;\n  if not found then return jsonb_build_object('kind','SUPPRESSED'); end if;\n\n  -- Preserve the proven token-first lock ordering.\n  perform pg_advisory_xact_lock(hashtextextended('uskoci:push-token:'||dev.expo_push_token,0));\n  select x.* into d\n  from public.notification_deliveries x\n  join public.notification_push_attempts y on y.delivery_id=x.id\n  where y.id=p_attempt_id\n  for update of x;\n  select * into a from public.notification_push_attempts where id=p_attempt_id for update;\n  if not found or a.transport_state<>'SEND_LEASED'\n     or a.lease_id is distinct from p_lease_id\n     or a.lease_until<=clock_timestamp() then\n    raise exception 'PUSH_LEASE_STALE' using errcode='PT409';\n  end if;\n\n  select * into dev from public.notification_push_devices where id=a.device_id;\n  if a.single_target_admission is not null then\n    if a.single_target_claimed_at is null or a.send_count<>0\n       or ((a.single_target_admission->>'expiresAt')::timestamptz>clock_timestamp()) is not true\n       or a.device_id::text is distinct from a.single_target_admission->>'deviceId'\n       or a.device_revision::text is distinct from a.single_target_admission->>'deviceRevision'\n       or dev.bound_session_id::text is distinct from a.single_target_admission->>'boundSessionId'\n       or d.event_id::text is distinct from a.single_target_admission->>'eventId'\n       or d.recipient_user_id::text is distinct from a.single_target_admission->>'recipientAccountId'\n       or d.recipient_role is distinct from a.single_target_admission->>'recipientRole'\n       or not exists(select 1 from public.user_activity_events e\n         where e.id=d.event_id and e.recipient_user_id=d.recipient_user_id\n           and e.recipient_role=d.recipient_role\n           and e.event_type=a.single_target_admission->>'eventType'\n           and e.event_type in ('MESSAGE_RECEIVED','OPPORTUNITY_AVAILABLE'))\n       -- A Need can change between manual admission and the actual send. Recheck\n       -- current recipient, public task revision, world, consent and expiry.\n       or (a.single_target_admission->>'eventType'='OPPORTUNITY_AVAILABLE' and not exists(\n         select 1 from public.user_activity_events e\n         join public.needs n on n.id=e.entity_id\n         join public.app_profiles p on p.account_id=d.recipient_user_id\n           and p.kind='WORKER' and p.profile_status='ACTIVE'\n         join public.opportunity_deliveries od on od.worker_profile_id=p.id\n           and od.worker_account_id=d.recipient_user_id and od.need_id=n.id\n           and od.need_revision=n.revision\n         where e.id=d.event_id and e.recipient_user_id=d.recipient_user_id\n           and e.recipient_role='WORKER' and e.event_type='OPPORTUNITY_AVAILABLE'\n           and e.entity_type='NEED' and e.entity_version=n.revision\n           and e.dedupe_key='opp:'||n.id::text||':'||n.revision::text||':'||d.recipient_user_id::text\n           and n.status in ('PUBLISHED','SELECTION') and n.requester_account_id is not null\n           and n.requester_account_id<>d.recipient_user_id\n           and od.status in ('READY','SEEN','RESPONDED') and od.expires_at>clock_timestamp()\n           and private.accounts_same_world(n.requester_account_id,d.recipient_user_id)\n           and not private.closure_account_restricted(n.requester_account_id)\n           and not private.safety_event_blocked(e)\n           and exists(select 1 from public.notification_deliveries x where x.event_id=e.id\n             and x.recipient_user_id=d.recipient_user_id and x.recipient_role='WORKER'\n             and x.channel='IN_APP' and x.dedupe_key=e.dedupe_key||':in_app'\n             and x.suppression_reason is null and x.state in ('CREATED','SENT','DELIVERED','READ'))\n       ))\n    then why:='SINGLE_TARGET_EXPIRED_OR_CHANGED'; end if;\n  end if;\n  why:=coalesce(why,private.push_suppression(d));\n  if why is null and\n    (dev.id is null or dev.user_id<>d.recipient_user_id or not dev.active\n     or dev.revision<>a.device_revision or dev.bound_revision is distinct from dev.revision\n     or not private.push_session_valid(dev.user_id,dev.bound_session_id)) then\n    why:='DEVICE_CHANGED';\n  end if;\n  if why is not null then\n    update public.notification_push_attempts\n    set transport_state='SUPPRESSED',outcome='FATAL',error_code=why,lease_id=null,lease_until=null\n    where id=a.id;\n    return jsonb_build_object('kind','SUPPRESSED');\n  end if;\n\n  select e.event_type,e.id into v_event_type,v_event_id\n  from public.user_activity_events e\n  where e.id=d.event_id\n    and e.recipient_user_id=d.recipient_user_id\n    and e.recipient_role=d.recipient_role;\n  if v_event_type is null then\n    update public.notification_push_attempts\n    set transport_state='SUPPRESSED',outcome='FATAL',error_code='EVENT_UNAVAILABLE',lease_id=null,lease_until=null\n    where id=a.id;\n    return jsonb_build_object('kind','SUPPRESSED');\n  end if;\n\n  update public.notification_push_attempts\n  set transport_state='SEND_STARTED',send_count=send_count+1\n  where id=a.id;\n\n  -- The event UUID is a recipient-bound hint, never navigation authority. The\n  -- authenticated P4 resolver rechecks it after tap and returns the exact target.\n  return jsonb_build_object(\n    'kind','SEND',\n    'attemptId',a.id,\n    'leaseId',a.lease_id,\n    'leaseExpiresAt',a.lease_until,\n    'expoPushToken',dev.expo_push_token,\n    'priority',d.priority,\n    'eventType',v_event_type,\n    -- Generic notification content may wait for an offline device, but never\n    -- past its delivery expiry. Single-target probes keep TTL=0 in the worker.\n    'deliveryExpiresAt',least(coalesce(d.expires_at,clock_timestamp()+interval '1 hour'),clock_timestamp()+interval '1 hour')\n  ) || case when v_event_type in ('MESSAGE_RECEIVED','OPPORTUNITY_AVAILABLE','RESPONSE_RECEIVED','RESPONSE_UPDATED')\n    then jsonb_build_object('eventId',v_event_id) else '{}'::jsonb end;\nend\n$function$\n",
+      "provolatile": "v",
+      "definition_md5": "242c2ccb117fc3f40f230a6fbde8c9c5"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "7c9145f1b9696f9ed6e4a29949228b58",
+      "identity": "rpc_claim_push_transport(text)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": true,
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_claim_push_transport(p_kind text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare d public.notification_deliveries%rowtype; a public.notification_push_attempts%rowtype; v_now timestamptz:=clock_timestamp(); why text; dev record; num integer; paused_recipients uuid[]:=array[]::uuid[];\nbegin\n if auth.role() is distinct from 'service_role' then raise exception 'FORBIDDEN' using errcode='42501'; end if;\n if p_kind is null or p_kind not in ('SEND','RECEIPT') then raise exception 'INVALID_PUSH_ACTION' using errcode='22023'; end if;\n -- Cross-isolate dispatch throttle and SKIP LOCKED delivery ownership. No\n -- in-memory limit is mistaken for a project-wide limiter.\n if not pg_try_advisory_xact_lock(hashtextextended('uskoci:push-claim',0)) then return jsonb_build_object('kind','WAIT','retryAfterMs',100); end if;\n if (select count(*) from public.notification_push_attempts where lease_until>v_now)>=6 then return jsonb_build_object('kind','WAIT','retryAfterMs',250); end if;\n if (select count(*) from public.notification_push_attempts where last_claimed_at>v_now-interval '1 second')>=60 then return jsonb_build_object('kind','WAIT','retryAfterMs',1000); end if;\n -- Only the already rate-bounded last second is examined. Limit any one\n -- recipient to four claims/second across devices; receipts count too and\n -- can only defer, never discard, a later send. The global advisory lock\n -- serializes the check plus lease, including other Edge isolates.\n if p_kind='SEND' then\n  select coalesce(array_agg(q.recipient_user_id),array[]::uuid[]) into paused_recipients\n  from (select d1.recipient_user_id\n    from public.notification_push_attempts a1\n    join public.notification_deliveries d1 on d1.id=a1.delivery_id\n    where a1.last_claimed_at>v_now-interval '1 second'\n    group by d1.recipient_user_id having count(*)>=4) q;\n end if;\n for d in select * from public.notification_deliveries x where x.channel='PUSH'\n  and (p_kind<>'SEND' or not(x.recipient_user_id=any(paused_recipients))) and not exists(select 1 from public.notification_push_attempts admitted where admitted.delivery_id=x.id and admitted.single_target_admission is not null) and\n  ((p_kind='SEND' and x.push_started_at is null and x.state in ('CREATED','QUEUED','FAILED_RETRYABLE') and not exists(select 1 from public.notification_push_attempts z where z.delivery_id=x.id))\n   or exists(select 1 from public.notification_push_attempts z where z.delivery_id=x.id and\n    ((p_kind='SEND' and z.transport_state in ('PENDING','RETRYABLE','SEND_LEASED','SEND_STARTED')) or (p_kind='RECEIPT' and z.transport_state in ('TICKET_PENDING','RECEIPT_LEASED')))\n    and (z.next_attempt_at<=v_now or z.lease_until<=v_now)))\n  -- HIGH receives a one-minute ordering advantage. Older normal work then\n  -- overtakes newer HIGH arrivals, so a sustained burst cannot starve it.\n  order by x.created_at-case when x.priority='HIGH' then interval '1 minute' else interval '0 seconds' end,x.created_at,x.id limit 64 for update skip locked loop\n  if d.push_started_at is null and p_kind='SEND' then\n   why:=private.push_suppression(d);\n   if why is not null then update public.notification_deliveries set state='SUPPRESSED',suppression_reason=why,push_started_at=v_now where id=d.id; continue; end if;\n   -- Historical attempts are not reinterpreted or resent by the new transport.\n   if exists(select 1 from public.notification_push_attempts where delivery_id=d.id) then continue; end if;\n   num:=0;\n   for dev in select * from public.notification_push_devices x where x.user_id=d.recipient_user_id and x.active and x.bound_revision=x.revision and private.push_session_valid(x.user_id,x.bound_session_id) and x.platform in ('IOS','ANDROID') order by x.id loop\n    num:=num+1;\n    insert into public.notification_push_attempts(delivery_id,device_id,attempt_no,outcome,transport_state,device_revision,next_attempt_at)\n    values(d.id,dev.id,num,'QUEUED','PENDING',dev.revision,v_now);\n   end loop;\n   update public.notification_deliveries set push_started_at=v_now,queued_at=v_now,state=case when num=0 then 'SUPPRESSED' else 'QUEUED' end,suppression_reason=case when num=0 then 'NO_ACTIVE_DEVICE' else null end where id=d.id;\n  end if;\n  -- Losing a worker after begin may have produced a real push. Never resend it.\n  update public.notification_push_attempts set transport_state='UNKNOWN',outcome='FATAL',error_code='SEND_OUTCOME_UNKNOWN',lease_id=null,lease_until=null where delivery_id=d.id and transport_state='SEND_STARTED' and lease_until<=v_now;\n  update public.notification_push_attempts set transport_state='PENDING',lease_id=null,lease_until=null where delivery_id=d.id and transport_state='SEND_LEASED' and lease_until<=v_now;\n  update public.notification_push_attempts set transport_state='TICKET_PENDING',lease_id=null,lease_until=null where delivery_id=d.id and transport_state='RECEIPT_LEASED' and lease_until<=v_now;\n  update public.notification_push_attempts set transport_state='UNKNOWN',outcome='FATAL',error_code='RECEIPT_UNAVAILABLE',lease_id=null,lease_until=null where delivery_id=d.id and transport_state='TICKET_PENDING' and ticket_received_at<=v_now-interval '24 hours';\n  select * into a from public.notification_push_attempts where delivery_id=d.id and next_attempt_at<=v_now and\n   ((p_kind='SEND' and transport_state in ('PENDING','RETRYABLE') and send_count<3) or (p_kind='RECEIPT' and transport_state='TICKET_PENDING')) order by attempt_no limit 1 for update;\n  if not found then continue; end if;\n  if p_kind='SEND' then\n   why:=private.push_suppression(d);\n   if why is not null then update public.notification_push_attempts set transport_state='SUPPRESSED',outcome='FATAL',error_code=why where id=a.id; continue; end if;\n   select * into dev from public.notification_push_devices x where x.id=a.device_id and x.user_id=d.recipient_user_id and x.active and x.revision=a.device_revision and x.bound_revision=x.revision and private.push_session_valid(x.user_id,x.bound_session_id);\n   if not found then update public.notification_push_attempts set transport_state='SUPPRESSED',outcome='FATAL',error_code='DEVICE_CHANGED' where id=a.id; continue; end if;\n  end if;\n  update public.notification_push_attempts set transport_state=case when p_kind='SEND' then 'SEND_LEASED' else 'RECEIPT_LEASED' end,lease_id=extensions.gen_random_uuid(),lease_until=v_now+interval '90 seconds',next_attempt_at=v_now,last_claimed_at=v_now where id=a.id returning * into a;\n  return jsonb_build_object('kind',p_kind,'attemptId',a.id,'leaseId',a.lease_id,'leaseExpiresAt',a.lease_until,'ticketId',a.provider_ticket_id);\n end loop;\n if p_kind='SEND' and cardinality(paused_recipients)>0 then\n  return jsonb_build_object('kind','WAIT','retryAfterMs',1000);\n end if;\n return jsonb_build_object('kind','NONE');\nend $function$\n",
+      "provolatile": "v",
+      "definition_md5": "77f09ea963fb72464392a6b6ffa48686"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "d87908db1908b8c88fe66228c5b07f9f",
+      "identity": "rpc_complete_push_transport(uuid,uuid,text,text)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": true,
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_complete_push_transport(p_attempt_id uuid, p_lease_id uuid, p_result text, p_ticket_id text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare a public.notification_push_attempts%rowtype; d public.notification_deliveries%rowtype; token text; receipt boolean; v_now timestamptz:=clock_timestamp(); next_state text;\nbegin\n if auth.role() is distinct from 'service_role' then raise exception 'FORBIDDEN' using errcode='42501'; end if;\n if p_result is null or p_result not in ('TICKET','PROVIDER_ACCEPTED','DEVICE_NOT_REGISTERED','RETRYABLE','RECEIPT_RATE_EXCEEDED','FATAL','UNKNOWN','RECEIPT_PENDING') or\n  (p_result='TICKET' and (p_ticket_id is null or p_ticket_id!~'^[A-Za-z0-9_-]{1,200}$')) or (p_result<>'TICKET' and p_ticket_id is not null) then raise exception 'INVALID_PUSH_RESULT' using errcode='22023'; end if;\n select x.expo_push_token into token from public.notification_push_devices x join public.notification_push_attempts y on y.device_id=x.id where y.id=p_attempt_id;\n if token is not null then perform pg_advisory_xact_lock(hashtextextended('uskoci:push-token:'||token,0)); end if;\n select x.* into d from public.notification_deliveries x join public.notification_push_attempts y on y.delivery_id=x.id where y.id=p_attempt_id for update of x;\n select * into a from public.notification_push_attempts where id=p_attempt_id for update;\n if not found or a.lease_id is distinct from p_lease_id or a.lease_until<=clock_timestamp() or a.transport_state not in ('SEND_STARTED','RECEIPT_LEASED') then raise exception 'PUSH_LEASE_STALE' using errcode='PT409'; end if;\n receipt:=a.transport_state='RECEIPT_LEASED';\n if (receipt and (p_result='TICKET' or a.provider_ticket_id is null)) or (not receipt and p_result in ('PROVIDER_ACCEPTED','RECEIPT_PENDING','RECEIPT_RATE_EXCEEDED'))\n or (p_result='TICKET' and p_ticket_id=any(a.rejected_ticket_ids)) then raise exception 'INVALID_PUSH_RESULT' using errcode='22023'; end if;\n -- A documented receipt MessageRateExceeded is a known rejection of this\n -- message, unlike HTTP429 while merely looking up a receipt. Only the former\n -- permits a new send, with current-device/consent revalidation and max3 sends.\n next_state:=case p_result when 'TICKET' then 'TICKET_PENDING' when 'PROVIDER_ACCEPTED' then 'PROVIDER_ACCEPTED' when 'DEVICE_NOT_REGISTERED' then 'FINAL' when 'UNKNOWN' then 'UNKNOWN' when 'RECEIPT_PENDING' then 'TICKET_PENDING' when 'RECEIPT_RATE_EXCEEDED' then case when a.send_count<3 then 'RETRYABLE' else 'FINAL' end when 'RETRYABLE' then case when receipt then 'TICKET_PENDING' when a.send_count<3 then 'RETRYABLE' else 'FINAL' end else 'FINAL' end;\n -- A one-shot admission never regains send permission, including known provider throttles.\n if a.single_target_admission is not null and next_state='RETRYABLE' then next_state:='FINAL'; end if;\n update public.notification_push_attempts set transport_state=next_state,\n  outcome=case when next_state='PROVIDER_ACCEPTED' then 'OK' when next_state='RETRYABLE' then 'RETRYABLE' when next_state in ('TICKET_PENDING') then 'QUEUED' else 'FATAL' end,\n  error_code=case when p_result in ('TICKET','PROVIDER_ACCEPTED') then null else p_result end,\n  rejected_ticket_ids=case when p_result='RECEIPT_RATE_EXCEEDED' and next_state='RETRYABLE' then array_append(rejected_ticket_ids,provider_ticket_id) else rejected_ticket_ids end,\n  provider_ticket_id=case when p_result='TICKET' then p_ticket_id when p_result='RECEIPT_RATE_EXCEEDED' and next_state='RETRYABLE' then null else provider_ticket_id end,\n  ticket_received_at=case when p_result='TICKET' then v_now when p_result='RECEIPT_RATE_EXCEEDED' and next_state='RETRYABLE' then null else ticket_received_at end,\n  receipt_checked_at=case when receipt then v_now else receipt_checked_at end,\n  next_attempt_at=case when next_state='TICKET_PENDING' then v_now+interval '15 minutes' when next_state='RETRYABLE' then v_now+make_interval(secs=>power(2,a.send_count)::integer*30) else null end,\n  lease_id=null,lease_until=null where id=a.id;\n if p_result='DEVICE_NOT_REGISTERED' then\n  -- Token rebind / revoke / re-registration changes revision. An old provider\n  -- result must never disable a different user's or a newer registration.\n  update public.notification_push_devices set active=false,revision=revision+1,bound_session_id=null,bound_revision=null\n  where id=a.device_id and user_id=d.recipient_user_id and revision=a.device_revision and active;\n end if;\n if p_result='TICKET' and d.state in ('CREATED','QUEUED','FAILED_RETRYABLE') then update public.notification_deliveries set state='SENT',sent_at=coalesce(sent_at,v_now) where id=d.id; end if;\n -- DELIVERED and delivered_at are deliberately never written by this adapter.\n return jsonb_build_object('attemptId',a.id,'state',next_state);\nend $function$\n",
+      "provolatile": "v",
+      "definition_md5": "21937f77924133fad67ead5923403823"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "owner": "postgres",
+      "body_md5": "398e85c4420da9c4765ae0ff6197a59e",
+      "identity": "rpc_submit_response(uuid,integer,uuid,integer,integer,timestamp with time zone,timestamp with time zone,text,text)",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "prosecdef": true,
+      "definition": "CREATE OR REPLACE FUNCTION public.rpc_submit_response(p_need_id uuid, p_need_revision integer, p_worker_profile_id uuid, p_covered_slots integer, p_price_rsd integer, p_proposed_start_at timestamp with time zone, p_proposed_end_at timestamp with time zone, p_scope_note text, p_client_request_id text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  u uuid := auth.uid();\n  n public.needs;\n  v_profile public.app_profiles;\n  v_resp public.marketplace_responses;\n  v_command private.response_submit_commands;\n  v_match jsonb;\n  v_content_hash text;\n  v_request_hash text;\n  v_result jsonb;\n  v_version integer;\n  v_selected_slots integer := 0;\n  v_remaining_slots integer := 0;\nbegin\n  if u is null then\n    raise exception using errcode='42501', message='AUTH_REQUIRED';\n  end if;\n\n  if p_client_request_id is null\n     or char_length(btrim(p_client_request_id)) not between 8 and 200 then\n    raise exception using errcode='22023', message='INVALID_CLIENT_REQUEST_ID';\n  end if;\n\n  perform pg_catalog.pg_advisory_xact_lock(\n    pg_catalog.hashtextextended(u::text || ':' || p_client_request_id, 7241)\n  );\n\n  -- Bind only the semantic client command. Server-derived profile/Need snapshot\n  -- intentionally does not enter the request hash, so a retry after a committed\n  -- response replays the exact first result even if current context later moves.\n  v_request_hash := encode(sha256(convert_to(jsonb_build_object(\n    'needId', p_need_id,\n    'needRevision', p_need_revision,\n    'workerProfileId', p_worker_profile_id,\n    'coveredSlots', p_covered_slots,\n    'priceRsd', p_price_rsd,\n    'proposedStartAt', p_proposed_start_at,\n    'proposedEndAt', p_proposed_end_at,\n    'scopeNote', coalesce(p_scope_note, '')\n  )::text, 'UTF8')), 'hex');\n\n  select * into v_command\n    from private.response_submit_commands c\n   where c.worker_account_id = u\n     and c.client_request_id = p_client_request_id;\n\n  if found then\n    if v_command.request_hash <> v_request_hash then\n      raise exception using errcode='22023', message='IDEMPOTENCY_KEY_REUSED';\n    end if;\n    return v_command.result || jsonb_build_object('idempotentReplay', true);\n  end if;\n\n  -- Shared mutation lock order remains Need first.\n  select * into n\n    from public.needs\n   where id = p_need_id\n   for update;\n\n  if not found then\n    raise exception using errcode='P0002', message='NEED_NOT_FOUND';\n  end if;\n\n  if not private.accounts_same_world(n.requester_account_id, u) then\n    raise exception using errcode='P0002', message='NEED_NOT_FOUND';\n  end if;\n\n  select * into v_command\n    from private.response_submit_commands c\n   where c.worker_account_id = u\n     and c.client_request_id = p_client_request_id\n   for update;\n\n  if found then\n    if v_command.request_hash <> v_request_hash then\n      raise exception using errcode='22023', message='IDEMPOTENCY_KEY_REUSED';\n    end if;\n    return v_command.result || jsonb_build_object('idempotentReplay', true);\n  end if;\n\n  if n.status not in ('PUBLISHED','SELECTION') then\n    raise exception using errcode='22023', message='NEED_NOT_OPEN';\n  end if;\n\n  if n.requester_account_id = u then\n    raise exception using errcode='42501', message='OWN_NEED';\n  end if;\n\n  if n.response_deadline is not null\n     and n.response_deadline <= statement_timestamp() then\n    raise exception using errcode='22023', message='RESPONSE_WINDOW_EXPIRED';\n  end if;\n\n  -- New work uses the same actual task-time boundary as search/dispatch.\n  -- Replay already returned above; evaluate after the Need lock was acquired.\n  if not private.need_search_time_admitted_v1(n.id,clock_timestamp()) then\n    raise exception 'NEED_EXECUTION_WINDOW_EXPIRED' using errcode='PT409',\n      hint='Vreme za ovaj zadatak je isteklo.';\n  end if;\n\n  if n.revision is distinct from p_need_revision then\n    raise exception using errcode='P0001', message='STALE_REVIEW_REQUIRED';\n  end if;\n\n  -- Lock the current Worker profile after the Need. ACTIVE alone is not enough\n  -- for legacy rows: P0C-02 rechecks the exact RU-1 minimum readiness facts.\n  select * into v_profile\n    from public.app_profiles p\n   where p.id = p_worker_profile_id\n   for update;\n\n  if not found\n     or v_profile.account_id <> u\n     or v_profile.kind <> 'WORKER' then\n    raise exception using errcode='42501', message='PROFILE_NOT_OWNED_BY_ACCOUNT';\n  end if;\n\n  if v_profile.profile_status <> 'ACTIVE'\n     or char_length(btrim(v_profile.display_name)) < 2\n     or (char_length(btrim(v_profile.city)) < 2 and private.worker_remote_only_activation_ready_v1(v_profile.account_id,v_profile.skills) IS NOT TRUE)\n     or cardinality(v_profile.skills) < 1 then\n    raise exception using errcode='P0001', message='WORKER_PROFILE_NOT_READY';\n  end if;\n\n  select coalesce(sum(s.covered_slots), 0)::integer\n    into v_selected_slots\n    from public.need_selections s\n   where s.need_id = n.id\n     and s.status = 'SELECTED';\n\n  v_remaining_slots := greatest(0, n.required_slots - v_selected_slots);\n\n  if v_remaining_slots < 1 then\n    raise exception using errcode='P0001', message='NEED_FULL';\n  end if;\n\n  if p_covered_slots is null or p_covered_slots < 1 then\n    raise exception using errcode='22023', message='INVALID_COVERED_SLOTS';\n  end if;\n\n  -- WPP01: people are committed per offer; the personal profile is not a team limit.\n  -- Existing remaining-slot and pricing checks below remain authoritative.\n\n  if p_covered_slots > v_remaining_slots then\n    raise exception using\n      errcode='22023',\n      message='NEED_REMAINING_CAPACITY_EXCEEDED',\n      detail=format('covered=%s,remaining=%s', p_covered_slots, v_remaining_slots);\n  end if;\n\n  perform private.assert_application_price_v5(n, p_covered_slots, p_price_rsd);\n\n  if (p_proposed_start_at is null) <> (p_proposed_end_at is null)\n     or (\n       p_proposed_start_at is not null\n       and p_proposed_end_at is not null\n       and p_proposed_start_at >= p_proposed_end_at\n     ) then\n    raise exception using errcode='22023', message='INVALID_PROPOSED_INTERVAL';\n  end if;\n\n  if exists (\n    select 1\n      from public.marketplace_responses r\n     where r.need_id = p_need_id\n       and r.worker_account_id = u\n       and (\n         r.status = 'SELECTED'\n         or exists (\n           select 1\n             from public.agreements a\n            where a.selected_response_id = r.id\n              and a.status in ('CONFIRMED','SUPERSEDED','COMPLETED')\n         )\n       )\n  ) then\n    raise exception using errcode='P0001', message='RESPONSE_ALREADY_SELECTED';\n  end if;\n\n  if p_proposed_start_at is null and n.schedule_kind='FIXED_WINDOW'\n    and (n.starts_at is null or not isfinite(n.starts_at)\n      or (n.ends_at is not null and (not isfinite(n.ends_at) or n.starts_at>=n.ends_at))) then\n    raise exception 'NEED_FIXED_INTERVAL_INVALID' using errcode='22023';\n  end if;\n  -- Start-only appointment cannot accept a new offer after its start while lifecycle tick catches up.\n  if n.schedule_kind='FIXED_WINDOW' and n.ends_at is null\n     and n.starts_at is not null and n.starts_at<=statement_timestamp() then\n    raise exception 'FIXED_WINDOW_START_PASSED' using errcode='22023';\n  end if;\n  v_match := private.match_detail_for_calendar_interval(p_need_id, p_worker_profile_id,\n    coalesce(p_proposed_start_at,case when n.schedule_kind='FIXED_WINDOW' and n.ends_at is not null then n.starts_at end),\n    coalesce(p_proposed_end_at,case when n.schedule_kind='FIXED_WINDOW' and n.ends_at is not null then n.ends_at end));\n  if not coalesce((v_match->>'responseAllowed')::boolean, false) then\n    raise exception using\n      errcode='P0001',\n      message='WORKER_NOT_ELIGIBLE',\n      detail=coalesce((v_match->'hardBlockers')::text, '[]');\n  end if;\n\n  select * into v_resp\n    from public.marketplace_responses r\n   where r.need_id = p_need_id\n     and r.worker_account_id = u\n     and r.status in ('DRAFT','SUBMITTED','DELIVERED','VIEWED','SHORTLISTED')\n   order by r.created_at desc\n   limit 1\n   for update;\n\n  -- Content identity includes the server-derived self-declared capability/team\n  -- snapshot. It is not public trust/verification and is never copied into the\n  -- global public profile DTO.\n  v_content_hash := encode(sha256(convert_to(jsonb_build_object(\n    'needRevision', n.revision,\n    'pricingMode', n.mode,\n    'applicationPriceBasis', (case when n.mode='MY_PRICE' and n.price_basis='HOURLY' then 'HOURLY' else 'TOTAL' end),\n    'currency', 'RSD',\n    'priceRsd', p_price_rsd,\n    'coveredSlots', p_covered_slots,\n    'proposedStartAt', p_proposed_start_at,\n    'proposedEndAt', p_proposed_end_at,\n    'scopeNote', coalesce(btrim(p_scope_note), ''),\n    'snapshotSchema', 'APPLICATION_V1_SELF_DECLARED',\n    'workerTeamCapacity', v_profile.team_capacity,\n    'workerSkills', to_jsonb(v_profile.skills),\n    'workerTools', '[]'::jsonb,\n    'workerLicenses', to_jsonb(v_profile.licenses),\n    'workerVehicles', '[]'::jsonb\n  )::text, 'UTF8')), 'hex');\n\n  if v_resp.id is null then\n    insert into public.marketplace_responses (\n      need_id, worker_account_id, worker_profile_id, response_kind, status,\n      submitted_against_need_revision, current_version, covered_slots,\n      price_rsd, price_basis, proposed_start_at, proposed_end_at, scope_note, submitted_at\n    ) values (\n      p_need_id, u, p_worker_profile_id, 'OFFER', 'SUBMITTED', n.revision, 1,\n      p_covered_slots, p_price_rsd, (case when n.mode='MY_PRICE' and n.price_basis='HOURLY' then 'HOURLY' else 'TOTAL' end), p_proposed_start_at, p_proposed_end_at,\n      coalesce(p_scope_note, ''), statement_timestamp()\n    )\n    returning * into v_resp;\n    v_version := 1;\n  else\n    v_version := v_resp.current_version + 1;\n    update public.marketplace_responses\n       set current_version = v_version,\n           status = 'SUBMITTED',\n           submitted_against_need_revision = n.revision,\n           covered_slots = p_covered_slots,\n           price_rsd = p_price_rsd,\n           price_basis = (case when n.mode='MY_PRICE' and n.price_basis='HOURLY' then 'HOURLY' else 'TOTAL' end),\n           proposed_start_at = p_proposed_start_at,\n           proposed_end_at = p_proposed_end_at,\n           scope_note = coalesce(p_scope_note, ''),\n           submitted_at = statement_timestamp(),\n           withdrawn_at = null\n     where id = v_resp.id\n     returning * into v_resp;\n  end if;\n\n  insert into public.marketplace_response_versions (\n    response_id, version, need_revision, covered_slots, price_rsd, price_basis,\n    proposed_start_at, proposed_end_at, scope_note, content_hash\n  ) values (\n    v_resp.id, v_version, n.revision, p_covered_slots, p_price_rsd, (case when n.mode='MY_PRICE' and n.price_basis='HOURLY' then 'HOURLY' else 'TOTAL' end),\n    p_proposed_start_at, p_proposed_end_at, coalesce(p_scope_note, ''),\n    v_content_hash\n  );\n\n  insert into private.response_application_snapshots (\n    response_id, response_version, snapshot_schema,\n    worker_profile_id, worker_team_capacity, covered_slots,\n    need_required_slots, need_selected_slots_before_submit,\n    need_remaining_slots_before_submit, pricing_mode, requester_price_rsd,\n    worker_skills, worker_tools, worker_licenses, worker_vehicles\n  ) values (\n    v_resp.id, v_version, 'APPLICATION_V1_SELF_DECLARED',\n    v_profile.id, v_profile.team_capacity, p_covered_slots,\n    n.required_slots, v_selected_slots, v_remaining_slots,\n    n.mode, n.requester_price_rsd,\n    v_profile.skills, '{}'::text[], v_profile.licenses, '{}'::text[]\n  );\n\n  update public.opportunity_deliveries\n     set status = 'RESPONDED',\n         responded_at = statement_timestamp()\n   where need_id = p_need_id\n     and need_revision = n.revision\n     and worker_account_id = u\n     and status in ('READY','SEEN');\n\n  v_result := jsonb_build_object(\n    'responseId', v_resp.id,\n    'applicationId', v_resp.id,\n    'version', v_version,\n    'needRevision', n.revision,\n    'contentHash', v_content_hash,\n    'status', v_resp.status,\n    'pricingMode', n.mode,\n    'applicationPriceBasis', (case when n.mode='MY_PRICE' and n.price_basis='HOURLY' then 'HOURLY' else 'TOTAL' end),\n    'currency', 'RSD',\n    'coveredSlots', p_covered_slots,\n    'priceRsd', p_price_rsd,\n    'snapshotSchema', 'APPLICATION_V1_SELF_DECLARED',\n    'authoritative', true,\n    'idempotentReplay', false\n  );\n\n  insert into private.response_submit_commands (\n    worker_account_id, client_request_id, request_hash,\n    response_id, response_version, result\n  ) values (\n    u, p_client_request_id, v_request_hash,\n    v_resp.id, v_version, v_result\n  );\n\n  -- PRE-V3: persisted version trigger owns Application semantic events.\n\n  return v_result;\nend;\n$function$\n",
+      "provolatile": "v",
+      "definition_md5": "60abc746f99749eb41ed52574c56fa1c"
+    }
+  ],
+  "tables": [
+    {
+      "name": "marketplace_response_versions",
+      "columns": [
+        {
+          "name": "response_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "version",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "need_revision",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "price_rsd",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "covered_slots",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "proposed_start_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "proposed_end_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "scope_note",
+          "type": "text",
+          "default": "''::text",
+          "not_null": true
+        },
+        {
+          "name": "content_hash",
+          "type": "text",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "not_null": true
+        },
+        {
+          "name": "price_basis",
+          "type": "text",
+          "default": null,
+          "not_null": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX marketplace_response_versions_pkey ON public.marketplace_response_versions USING btree (response_id, version)"
+      ],
+      "triggers": [
+        {
+          "name": "pre_v3_application_event",
+          "function": "private.pre_v3_application_event()",
+          "definition": "CREATE TRIGGER pre_v3_application_event AFTER INSERT ON public.marketplace_response_versions FOR EACH ROW EXECUTE FUNCTION private.pre_v3_application_event()"
+        },
+        {
+          "name": "pre_v3_closure_response_version",
+          "function": "private.closure_guard_owned_write()",
+          "definition": "CREATE TRIGGER pre_v3_closure_response_version BEFORE INSERT ON public.marketplace_response_versions FOR EACH ROW EXECUTE FUNCTION private.closure_guard_owned_write('RESPONSE', 'response_id')"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "marketplace_response_versions_content_hash_check",
+          "type": "c",
+          "definition": "CHECK ((char_length(content_hash) >= 16))"
+        },
+        {
+          "name": "marketplace_response_versions_covered_slots_check",
+          "type": "c",
+          "definition": "CHECK (((covered_slots >= 1) AND (covered_slots <= 50)))"
+        },
+        {
+          "name": "marketplace_response_versions_need_revision_check",
+          "type": "c",
+          "definition": "CHECK ((need_revision >= 1))"
+        },
+        {
+          "name": "marketplace_response_versions_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (response_id, version)"
+        },
+        {
+          "name": "marketplace_response_versions_price_basis_check",
+          "type": "c",
+          "definition": "CHECK ((price_basis = ANY (ARRAY['TOTAL'::text, 'HOURLY'::text])))"
+        },
+        {
+          "name": "marketplace_response_versions_price_rsd_check",
+          "type": "c",
+          "definition": "CHECK ((price_rsd > 0))"
+        },
+        {
+          "name": "marketplace_response_versions_version_check",
+          "type": "c",
+          "definition": "CHECK ((version >= 1))"
+        }
+      ]
+    },
+    {
+      "name": "marketplace_responses",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "extensions.gen_random_uuid()",
+          "not_null": true
+        },
+        {
+          "name": "need_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "worker_account_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "worker_profile_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "response_kind",
+          "type": "text",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "submitted_against_need_revision",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "current_version",
+          "type": "integer",
+          "default": "1",
+          "not_null": true
+        },
+        {
+          "name": "covered_slots",
+          "type": "integer",
+          "default": "1",
+          "not_null": true
+        },
+        {
+          "name": "price_rsd",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "proposed_start_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "proposed_end_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "scope_note",
+          "type": "text",
+          "default": "''::text",
+          "not_null": true
+        },
+        {
+          "name": "bounded_message",
+          "type": "text",
+          "default": "''::text",
+          "not_null": true
+        },
+        {
+          "name": "submitted_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "viewed_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "selected_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "withdrawn_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "not_null": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "not_null": true
+        },
+        {
+          "name": "price_basis",
+          "type": "text",
+          "default": null,
+          "not_null": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX marketplace_responses_pkey ON public.marketplace_responses USING btree (id)",
+        "CREATE UNIQUE INDEX marketplace_responses_one_live_per_worker_need ON public.marketplace_responses USING btree (need_id, worker_account_id) WHERE (status = ANY (ARRAY['DRAFT'::text, 'SUBMITTED'::text, 'DELIVERED'::text, 'VIEWED'::text, 'SHORTLISTED'::text, 'SELECTED'::text]))",
+        "CREATE INDEX marketplace_responses_need_idx ON public.marketplace_responses USING btree (need_id, status, created_at DESC)",
+        "CREATE INDEX marketplace_responses_worker_idx ON public.marketplace_responses USING btree (worker_account_id, created_at DESC, id DESC) WHERE (status <> 'DRAFT'::text)",
+        "CREATE INDEX idx_market_resp_worker_profile_id ON public.marketplace_responses USING btree (worker_profile_id)"
+      ],
+      "triggers": [
+        {
+          "name": "guard_closed_remaining_search_response_trg",
+          "function": "private.guard_closed_remaining_search_response()",
+          "definition": "CREATE TRIGGER guard_closed_remaining_search_response_trg BEFORE INSERT OR UPDATE OF status, submitted_against_need_revision, current_version ON public.marketplace_responses FOR EACH ROW EXECUTE FUNCTION private.guard_closed_remaining_search_response()"
+        },
+        {
+          "name": "marketplace_responses_set_updated_at",
+          "function": "private.set_updated_at()",
+          "definition": "CREATE TRIGGER marketplace_responses_set_updated_at BEFORE UPDATE ON public.marketplace_responses FOR EACH ROW EXECUTE FUNCTION private.set_updated_at()"
+        },
+        {
+          "name": "pre_v3_closure_response",
+          "function": "private.closure_guard_owned_write()",
+          "definition": "CREATE TRIGGER pre_v3_closure_response BEFORE INSERT OR UPDATE ON public.marketplace_responses FOR EACH ROW EXECUTE FUNCTION private.closure_guard_owned_write('APPLICATION')"
+        },
+        {
+          "name": "pre_v3_safety_response",
+          "function": "private.safety_guard_interaction_write()",
+          "definition": "CREATE TRIGGER pre_v3_safety_response BEFORE INSERT OR UPDATE ON public.marketplace_responses FOR EACH ROW EXECUTE FUNCTION private.safety_guard_interaction_write()"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "marketplace_responses_bounded_message_check",
+          "type": "c",
+          "definition": "CHECK ((char_length(bounded_message) <= 1000))"
+        },
+        {
+          "name": "marketplace_responses_check",
+          "type": "c",
+          "definition": "CHECK ((((proposed_start_at IS NULL) AND (proposed_end_at IS NULL)) OR ((proposed_start_at IS NOT NULL) AND (proposed_end_at IS NOT NULL) AND (proposed_start_at < proposed_end_at))))"
+        },
+        {
+          "name": "marketplace_responses_covered_slots_check",
+          "type": "c",
+          "definition": "CHECK (((covered_slots >= 1) AND (covered_slots <= 50)))"
+        },
+        {
+          "name": "marketplace_responses_current_version_check",
+          "type": "c",
+          "definition": "CHECK ((current_version >= 1))"
+        },
+        {
+          "name": "marketplace_responses_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "marketplace_responses_price_basis_check",
+          "type": "c",
+          "definition": "CHECK ((price_basis = ANY (ARRAY['TOTAL'::text, 'HOURLY'::text])))"
+        },
+        {
+          "name": "marketplace_responses_price_rsd_check",
+          "type": "c",
+          "definition": "CHECK ((price_rsd > 0))"
+        },
+        {
+          "name": "marketplace_responses_response_kind_check",
+          "type": "c",
+          "definition": "CHECK ((response_kind = ANY (ARRAY['APPLICATION'::text, 'OFFER'::text])))"
+        },
+        {
+          "name": "marketplace_responses_status_check",
+          "type": "c",
+          "definition": "CHECK ((status = ANY (ARRAY['DRAFT'::text, 'SUBMITTED'::text, 'DELIVERED'::text, 'VIEWED'::text, 'SHORTLISTED'::text, 'SELECTED'::text, 'NOT_SELECTED'::text, 'WITHDRAWN'::text, 'EXPIRED'::text, 'STALE'::text, 'STALE_REVIEW_REQUIRED'::text])))"
+        },
+        {
+          "name": "marketplace_responses_submitted_against_need_revision_check",
+          "type": "c",
+          "definition": "CHECK ((submitted_against_need_revision >= 1))"
+        }
+      ]
+    },
+    {
+      "name": "notification_push_attempts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "extensions.gen_random_uuid()",
+          "not_null": true
+        },
+        {
+          "name": "delivery_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "device_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "attempt_no",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "default": "'EXPO_PUSH'::text",
+          "not_null": true
+        },
+        {
+          "name": "provider_ticket_id",
+          "type": "text",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "error_code",
+          "type": "text",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "not_null": true
+        },
+        {
+          "name": "transport_state",
+          "type": "text",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "device_revision",
+          "type": "bigint",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "send_count",
+          "type": "integer",
+          "default": "0",
+          "not_null": true
+        },
+        {
+          "name": "lease_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "lease_until",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "ticket_received_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "receipt_checked_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "last_claimed_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "rejected_ticket_ids",
+          "type": "text[]",
+          "default": "'{}'::text[]",
+          "not_null": true
+        },
+        {
+          "name": "single_target_admission",
+          "type": "jsonb",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "single_target_claimed_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "single_target_authorization_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX notification_push_attempts_pkey ON public.notification_push_attempts USING btree (id)",
+        "CREATE UNIQUE INDEX notification_push_attempts_delivery_id_attempt_no_key ON public.notification_push_attempts USING btree (delivery_id, attempt_no)",
+        "CREATE UNIQUE INDEX notification_transport_device_once ON public.notification_push_attempts USING btree (delivery_id, device_id) WHERE (transport_state IS NOT NULL)",
+        "CREATE UNIQUE INDEX notification_transport_ticket_once ON public.notification_push_attempts USING btree (provider, provider_ticket_id) WHERE ((transport_state IS NOT NULL) AND (provider_ticket_id IS NOT NULL))",
+        "CREATE INDEX notification_transport_ready ON public.notification_push_attempts USING btree (transport_state, next_attempt_at) WHERE (transport_state = ANY (ARRAY['PENDING'::text, 'RETRYABLE'::text, 'TICKET_PENDING'::text, 'SEND_LEASED'::text, 'SEND_STARTED'::text, 'RECEIPT_LEASED'::text]))",
+        "CREATE INDEX notification_transport_leases ON public.notification_push_attempts USING btree (lease_until) WHERE (lease_until IS NOT NULL)",
+        "CREATE INDEX notification_transport_claim_rate ON public.notification_push_attempts USING btree (last_claimed_at) WHERE (last_claimed_at IS NOT NULL)",
+        "CREATE UNIQUE INDEX push_single_target_authorization_v1 ON public.notification_push_attempts USING btree (single_target_authorization_id)",
+        "CREATE INDEX idx_push_attempts_device_id ON public.notification_push_attempts USING btree (device_id)",
+        "CREATE INDEX idx_push_attempts_active_queue ON public.notification_push_attempts USING btree (next_attempt_at) WHERE (transport_state = ANY (ARRAY['PENDING'::text, 'RETRYABLE'::text, 'TICKET_PENDING'::text]))"
+      ],
+      "triggers": null,
+      "constraints": [
+        {
+          "name": "notification_push_attempts_attempt_no_check",
+          "type": "c",
+          "definition": "CHECK ((attempt_no >= 1))"
+        },
+        {
+          "name": "notification_push_attempts_delivery_id_attempt_no_key",
+          "type": "u",
+          "definition": "UNIQUE (delivery_id, attempt_no)"
+        },
+        {
+          "name": "notification_push_attempts_outcome_check",
+          "type": "c",
+          "definition": "CHECK ((outcome = ANY (ARRAY['QUEUED'::text, 'OK'::text, 'RETRYABLE'::text, 'FATAL'::text])))"
+        },
+        {
+          "name": "notification_push_attempts_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "notification_push_attempts_rejected_ticket_ids_check",
+          "type": "c",
+          "definition": "CHECK (((cardinality(rejected_ticket_ids) <= 2) AND (array_position(rejected_ticket_ids, NULL::text) IS NULL)))"
+        },
+        {
+          "name": "notification_push_attempts_send_count_check",
+          "type": "c",
+          "definition": "CHECK (((send_count >= 0) AND (send_count <= 3)))"
+        },
+        {
+          "name": "notification_push_attempts_transport_state_check",
+          "type": "c",
+          "definition": "CHECK ((transport_state = ANY (ARRAY['PENDING'::text, 'SEND_LEASED'::text, 'SEND_STARTED'::text, 'TICKET_PENDING'::text, 'RECEIPT_LEASED'::text, 'PROVIDER_ACCEPTED'::text, 'RETRYABLE'::text, 'FINAL'::text, 'UNKNOWN'::text, 'SUPPRESSED'::text])))"
+        },
+        {
+          "name": "push_single_target_authorization_shape_v1",
+          "type": "c",
+          "definition": "CHECK ((((single_target_admission IS NULL) AND (single_target_authorization_id IS NULL)) OR ((single_target_admission IS NOT NULL) AND (single_target_authorization_id IS NOT NULL) AND ((single_target_authorization_id)::text = (single_target_admission ->> 'authorizationId'::text)))))"
+        },
+        {
+          "name": "push_single_target_authorization_v1",
+          "type": "u",
+          "definition": "UNIQUE (single_target_authorization_id)"
+        },
+        {
+          "name": "push_single_target_claim_shape_v1",
+          "type": "c",
+          "definition": "CHECK (((single_target_claimed_at IS NULL) OR (single_target_admission IS NOT NULL)))"
+        },
+        {
+          "name": "push_single_target_shape_v1",
+          "type": "c",
+          "definition": "CHECK (((single_target_admission IS NULL) OR COALESCE(((jsonb_typeof(single_target_admission) = 'object'::text) AND (single_target_admission ?& ARRAY['schema'::text, 'authorizationId'::text, 'recipientAccountId'::text, 'recipientRole'::text, 'eventId'::text, 'eventType'::text, 'deviceId'::text, 'deviceRevision'::text, 'boundSessionId'::text, 'expiresAt'::text, 'receiptDeadline'::text]) AND ((single_target_admission - ARRAY['schema'::text, 'authorizationId'::text, 'recipientAccountId'::text, 'recipientRole'::text, 'eventId'::text, 'eventType'::text, 'deviceId'::text, 'deviceRevision'::text, 'boundSessionId'::text, 'expiresAt'::text, 'receiptDeadline'::text]) = '{}'::jsonb) AND ((single_target_admission ->> 'schema'::text) = 'PUSH_SINGLE_TARGET_V1'::text) AND ((single_target_admission ->> 'eventType'::text) = 'MESSAGE_RECEIVED'::text) AND ((single_target_admission ->> 'recipientRole'::text) = ANY (ARRAY['REQUESTER'::text, 'WORKER'::text])) AND ((jsonb_typeof((single_target_admission -> 'authorizationId'::text)) = 'string'::text) AND ((single_target_admission ->> 'authorizationId'::text) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text)) AND ((jsonb_typeof((single_target_admission -> 'recipientAccountId'::text)) = 'string'::text) AND ((single_target_admission ->> 'recipientAccountId'::text) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text)) AND ((jsonb_typeof((single_target_admission -> 'eventId'::text)) = 'string'::text) AND ((single_target_admission ->> 'eventId'::text) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text)) AND ((jsonb_typeof((single_target_admission -> 'deviceId'::text)) = 'string'::text) AND ((single_target_admission ->> 'deviceId'::text) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text)) AND ((jsonb_typeof((single_target_admission -> 'boundSessionId'::text)) = 'string'::text) AND ((single_target_admission ->> 'boundSessionId'::text) ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text)) AND ((jsonb_typeof((single_target_admission -> 'deviceRevision'::text)) = 'number'::text) AND ((single_target_admission ->> 'deviceRevision'::text) ~ '^[0-9]+$'::text)) AND ((jsonb_typeof((single_target_admission -> 'expiresAt'::text)) = 'string'::text) AND isfinite(((single_target_admission ->> 'expiresAt'::text))::timestamp with time zone)) AND ((jsonb_typeof((single_target_admission -> 'receiptDeadline'::text)) = 'string'::text) AND isfinite(((single_target_admission ->> 'receiptDeadline'::text))::timestamp with time zone))), false)))"
+        }
+      ]
+    },
+    {
+      "name": "notification_push_devices",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "extensions.gen_random_uuid()",
+          "not_null": true
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "expo_push_token",
+          "type": "text",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "platform",
+          "type": "text",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "default": "true",
+          "not_null": true
+        },
+        {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "not_null": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "not_null": true
+        },
+        {
+          "name": "revision",
+          "type": "bigint",
+          "default": "0",
+          "not_null": true
+        },
+        {
+          "name": "bound_session_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "bound_revision",
+          "type": "bigint",
+          "default": null,
+          "not_null": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX notification_push_devices_pkey ON public.notification_push_devices USING btree (id)",
+        "CREATE UNIQUE INDEX notification_push_devices_user_id_expo_push_token_key ON public.notification_push_devices USING btree (user_id, expo_push_token)",
+        "CREATE INDEX push_devices_user_idx ON public.notification_push_devices USING btree (user_id) WHERE active",
+        "CREATE UNIQUE INDEX push_device_active_token_owner_idx ON public.notification_push_devices USING btree (expo_push_token) WHERE active"
+      ],
+      "triggers": [
+        {
+          "name": "pre_v3_closure_device",
+          "function": "private.closure_guard_owned_write()",
+          "definition": "CREATE TRIGGER pre_v3_closure_device BEFORE INSERT OR UPDATE ON public.notification_push_devices FOR EACH ROW EXECUTE FUNCTION private.closure_guard_owned_write('ACCOUNT', 'user_id')"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "notification_push_devices_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "notification_push_devices_platform_check",
+          "type": "c",
+          "definition": "CHECK ((platform = ANY (ARRAY['IOS'::text, 'ANDROID'::text, 'WEB'::text])))"
+        },
+        {
+          "name": "notification_push_devices_revision_check",
+          "type": "c",
+          "definition": "CHECK ((revision >= 0))"
+        },
+        {
+          "name": "notification_push_devices_user_id_expo_push_token_key",
+          "type": "u",
+          "definition": "UNIQUE (user_id, expo_push_token)"
+        }
+      ]
+    },
+    {
+      "name": "private.response_application_snapshots",
+      "columns": [
+        {
+          "name": "response_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "response_version",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "snapshot_schema",
+          "type": "text",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "worker_profile_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "worker_team_capacity",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "covered_slots",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "need_required_slots",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "need_selected_slots_before_submit",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "need_remaining_slots_before_submit",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "pricing_mode",
+          "type": "text",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "requester_price_rsd",
+          "type": "integer",
+          "default": null,
+          "not_null": false
+        },
+        {
+          "name": "worker_skills",
+          "type": "text[]",
+          "default": "ARRAY[]::text[]",
+          "not_null": true
+        },
+        {
+          "name": "worker_tools",
+          "type": "text[]",
+          "default": "ARRAY[]::text[]",
+          "not_null": true
+        },
+        {
+          "name": "worker_licenses",
+          "type": "text[]",
+          "default": "ARRAY[]::text[]",
+          "not_null": true
+        },
+        {
+          "name": "worker_vehicles",
+          "type": "text[]",
+          "default": "ARRAY[]::text[]",
+          "not_null": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "not_null": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX response_application_snapshots_pkey ON private.response_application_snapshots USING btree (response_id, response_version)"
+      ],
+      "triggers": null,
+      "constraints": [
+        {
+          "name": "response_application_snapsho_need_remaining_slots_before__check",
+          "type": "c",
+          "definition": "CHECK (((need_remaining_slots_before_submit >= 1) AND (need_remaining_slots_before_submit <= 50)))"
+        },
+        {
+          "name": "response_application_snapsho_need_selected_slots_before_s_check",
+          "type": "c",
+          "definition": "CHECK (((need_selected_slots_before_submit >= 0) AND (need_selected_slots_before_submit <= 50)))"
+        },
+        {
+          "name": "response_application_snapshots_covered_slots_check",
+          "type": "c",
+          "definition": "CHECK (((covered_slots >= 1) AND (covered_slots <= 50)))"
+        },
+        {
+          "name": "response_application_snapshots_need_required_slots_check",
+          "type": "c",
+          "definition": "CHECK (((need_required_slots >= 1) AND (need_required_slots <= 50)))"
+        },
+        {
+          "name": "response_application_snapshots_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (response_id, response_version)"
+        },
+        {
+          "name": "response_application_snapshots_pricing_mode_check",
+          "type": "c",
+          "definition": "CHECK ((pricing_mode = ANY (ARRAY['MY_PRICE'::text, 'OFFERS'::text])))"
+        },
+        {
+          "name": "response_application_snapshots_requester_price_rsd_check",
+          "type": "c",
+          "definition": "CHECK (((requester_price_rsd IS NULL) OR (requester_price_rsd > 0)))"
+        },
+        {
+          "name": "response_application_snapshots_response_version_check",
+          "type": "c",
+          "definition": "CHECK ((response_version >= 1))"
+        },
+        {
+          "name": "response_application_snapshots_snapshot_schema_check",
+          "type": "c",
+          "definition": "CHECK ((snapshot_schema = 'APPLICATION_V1_SELF_DECLARED'::text))"
+        },
+        {
+          "name": "response_application_snapshots_worker_team_capacity_check",
+          "type": "c",
+          "definition": "CHECK (((worker_team_capacity >= 1) AND (worker_team_capacity <= 50)))"
+        }
+      ]
+    },
+    {
+      "name": "private.response_submit_commands",
+      "columns": [
+        {
+          "name": "worker_account_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "client_request_id",
+          "type": "text",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "request_hash",
+          "type": "text",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "response_id",
+          "type": "uuid",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "response_version",
+          "type": "integer",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "result",
+          "type": "jsonb",
+          "default": null,
+          "not_null": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "not_null": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX response_submit_commands_pkey ON private.response_submit_commands USING btree (worker_account_id, client_request_id)"
+      ],
+      "triggers": null,
+      "constraints": [
+        {
+          "name": "response_submit_commands_client_request_id_check",
+          "type": "c",
+          "definition": "CHECK (((char_length(btrim(client_request_id)) >= 8) AND (char_length(btrim(client_request_id)) <= 200)))"
+        },
+        {
+          "name": "response_submit_commands_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (worker_account_id, client_request_id)"
+        },
+        {
+          "name": "response_submit_commands_request_hash_check",
+          "type": "c",
+          "definition": "CHECK ((char_length(request_hash) = 64))"
+        },
+        {
+          "name": "response_submit_commands_response_version_check",
+          "type": "c",
+          "definition": "CHECK ((response_version >= 1))"
+        }
+      ]
+    }
+  ],
+  "consumer_freshness": [
+    {
+      "identity": "private.dispatch_next_wave(uuid)",
+      "body_md5": "d3cdfe2bdd6e5d40a74e6029793c89c5",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "provolatile": "v",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "identity": "rpc_submit_response(uuid,integer,uuid,integer,integer,timestamp with time zone,timestamp with time zone,text,text)",
+      "body_md5": "398e85c4420da9c4765ae0ff6197a59e",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "provolatile": "v",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "identity": "rpc_claim_push_transport(text)",
+      "body_md5": "7c9145f1b9696f9ed6e4a29949228b58",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "provolatile": "v",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "identity": "rpc_begin_push_send(uuid,uuid)",
+      "body_md5": "e693b140450a9bb1cf6d3178b0ad80c1",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "provolatile": "v",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "identity": "rpc_complete_push_transport(uuid,uuid,text,text)",
+      "body_md5": "d87908db1908b8c88fe66228c5b07f9f",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "provolatile": "v",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "identity": "private.candidate_profile_ids_v1b(uuid,integer,integer)",
+      "body_md5": "c1505cb7784898875f37ecbc9c52d23c",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "provolatile": "s",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "identity": "private.remote_wave_candidates_v1b(uuid,integer,integer)",
+      "body_md5": "3bd12de1d220804a91a7b1b036fd7ce6",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "provolatile": "s",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ]
+    }
+  ],
+  "patch_hashes": {
+    "private.dispatch_cheap_candidate_admitted(uuid,uuid)": {
+      "before": "5f3862949a6b93ab99c29c549ff9a837",
+      "after": "34dcf47d654d5960fbf7254c28745a04"
+    },
+    "private.push_suppression(public.notification_deliveries)": {
+      "before": "25d3fae40c1f67689e1c50ee1898005b",
+      "after": "ebd9c03035630bde62bf9fd8a27378c2"
+    }
+  }
+}

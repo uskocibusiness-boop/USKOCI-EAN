@@ -1,0 +1,68 @@
+{
+  "schema": "USKOCI_RECOVERED_CONTINUATION_V1",
+  "baselineSource": "76dd409a929b7d133fb63da4ed840762778baa27",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "checkpointInUserCommand": "fea25188863475c289c5c9fb47ab1866c2c9d887",
+  "liveHeadVerifiedWith": "git ls-remote and GitHub compare",
+  "recoveredUncommittedWork": {
+    "files": [
+      "docs/plan/CODEX_PLAN_RADA.md"
+    ],
+    "content": "Two explicit next-step paragraphs: F20 applicant suppression and durable AI pre-provider input. Preserved in this continuation. No uncommitted application changes recovered."
+  },
+  "livePreflight": [
+    {
+      "inspected_at": "2026-11-08 22:17:13.484992+00",
+      "functions": [
+        {
+          "proacl": "{postgres=X/postgres}",
+          "body_md5": "5f3862949a6b93ab99c29c549ff9a837",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "prosecdef": true,
+          "signature": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+          "owner_name": "postgres"
+        },
+        {
+          "proacl": "{postgres=X/postgres}",
+          "body_md5": "3858404992f2ceaa30b65af1055e2b9c",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "prosecdef": true,
+          "signature": "private.marketplace_tick(integer,timestamp with time zone)",
+          "owner_name": "postgres"
+        },
+        {
+          "proacl": "{postgres=X/postgres}",
+          "body_md5": "25d3fae40c1f67689e1c50ee1898005b",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "prosecdef": true,
+          "signature": "private.push_suppression(notification_deliveries)",
+          "owner_name": "postgres"
+        }
+      ],
+      "cron_history": [
+        {
+          "count": 30,
+          "jobid": 1,
+          "status": "succeeded"
+        },
+        {
+          "count": 30,
+          "jobid": 2,
+          "status": "succeeded"
+        },
+        {
+          "count": 30,
+          "jobid": 3,
+          "status": "succeeded"
+        }
+      ]
+    }
+  ],
+  "note": "Source-only R13 candidate remains inactive; production and public release not authorized by this checkpoint."
+}

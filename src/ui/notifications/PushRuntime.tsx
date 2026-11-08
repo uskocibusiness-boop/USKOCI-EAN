@@ -10,6 +10,8 @@ import { nativePushDevice } from '../../data/nativePushDevice';
 import { pushDeviceClientService, revokePushBeforeLogout } from '../../data/pushDeviceClientService';
 import { createForegroundAlertPolicy } from './foregroundAlertPolicy';
 import { foregroundNotificationAudio } from '../../data/foregroundNotificationAudio';
+import { ownsForegroundEvent } from '../../data/inboxClientService';
+import { isPublicInboxNotification } from './publicInboxCopy';
 
 /** Fixed owned Inbox navigation + rotation of an already explicit registration.
  * Mount once under the existing router/Auth runtime. Never asks OS permission,
@@ -37,14 +39,42 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
     && sesijaSada().accountRevision === accountRevision && sesijaSada().sessionEpoch === sessionEpoch;
   };
   let foreground = AppState.currentState === 'active';
+  const foregroundChecks = new Map<string, { controller: AbortController; result: Promise<boolean> }>();
+  const visible = () => owned() && foreground && AppState.currentState === 'active';
+  function checkForegroundEvent(eventId: string, eventType: string): Promise<boolean> {
+   const key = eventId + ':' + eventType;
+   const existing = foregroundChecks.get(key);
+   if (existing) return existing.result;
+   const controller = new AbortController();
+   let finishStopped: () => void = () => {};
+   const stopped = new Promise<false>(resolve => { finishStopped = () => resolve(false); });
+   controller.signal.addEventListener('abort', finishStopped, { once: true });
+   // SDK57 requires a response within three seconds. An unconfirmed recipient
+   // stays silent; the durable Inbox is unaffected. Native abort is not assumed
+   // to settle a transport that has stopped responding.
+   const timer = setTimeout(() => controller.abort(), 1200);
+   const result = Promise.race([
+    Promise.resolve().then(() => ownsForegroundEvent(eventId, eventType, scope, controller.signal)).catch(() => false),
+    stopped,
+   ]).finally(() => {
+    clearTimeout(timer); controller.signal.removeEventListener('abort', finishStopped); controller.abort();
+    if (foregroundChecks.get(key)?.controller === controller) foregroundChecks.delete(key);
+   });
+   foregroundChecks.set(key, { controller, result });
+   return result;
+  }
   void foregroundNotificationAudio.load();
   Notifications.setNotificationHandler({ handleNotification: async notification => {
-   const owner = rendered.current;
-   const show = owned() && owner.ready && owner.accountId === accountId && owner.accountRevision === accountRevision
-    && owner.sessionEpoch === sessionEpoch && foreground && AppState.currentState === 'active';
-   // Immediate local presentation only: no permission, RPC, navigation, badge or
-   // read/delivery acknowledgment. Sound still obeys native permission/channel.
-   return foregroundAlerts.current(notification, show, foregroundNotificationAudio.snapshot());
+   if (!visible() || !isPublicInboxNotification(notification))
+    return foregroundAlerts.current(notification, false, foregroundNotificationAudio.snapshot());
+   const target = publicPushTarget(notification.request.content.data)!;
+   const confirmed = target.kind === 'INBOX' || await checkForegroundEvent(target.eventId,
+    target.kind === 'APPLICATION_EVENT' ? target.eventType
+     : target.kind === 'MESSAGE_EVENT' ? 'MESSAGE_RECEIVED' : 'OPPORTUNITY_AVAILABLE');
+   // Recheck the account, session, readiness and foreground after the read.
+   // Legacy generic events retain their existing generic-only presentation;
+   // they cannot prove recipient ownership without a future server envelope.
+   return foregroundAlerts.current(notification, confirmed && visible(), foregroundNotificationAudio.snapshot());
   } });
   const remember = (set: Set<string>, value: string, max: number) => { set.add(value); if (set.size > max) set.delete(set.values().next().value!); };
   function tap(response: Notifications.NotificationResponse | null, cold = false) {
@@ -111,6 +141,8 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
   reconcile();
   return () => {
    alive = false; generation++; Notifications.setNotificationHandler(null);
+   for (const check of foregroundChecks.values()) check.controller.abort();
+   foregroundChecks.clear();
    const intent = messagePushIntent.snapshot();
    if (intent && ownsMessagePush(intent, identity)) {
     pendingRoute.delivered(intent.coldRoute, intent); messagePushIntent.retire(intent.serial);

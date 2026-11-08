@@ -1,0 +1,19 @@
+{
+  "recordedAt": "2026-11-08T22:32:11Z",
+  "dimension": "CURRENT_TOOL_ACCESS_ONLY",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "apiCapabilities": {
+    "publishableKeyRead": true,
+    "apiKeyWrite": false,
+    "signingKeyWrite": false,
+    "secretEnvironmentWrite": false
+  },
+  "browser": {
+    "bootstrapAttempted": true,
+    "result": "Browser access requires the originating browser context. Open ChatGPT in the browser with the connected extension and try again.",
+    "connected": false
+  },
+  "legacyCredentialReTestedThisTurn": false,
+  "adminMutationPerformed": false,
+  "boundary": "Available project SQL/Edge access does not supply signing/API key management. No authentication material was read from browser profiles, and no rotation or fallback bypass was attempted. Previous dated zero-row credential proof remains the evidence for exposure; this access check does not establish its current acceptance."
+}

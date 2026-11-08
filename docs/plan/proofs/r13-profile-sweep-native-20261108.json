@@ -1,0 +1,198 @@
+{
+  "recordedAt": "2026-11-08T22:17:21.832Z",
+  "sourceBaseHead": "76dd409a929b7d133fb63da4ed840762778baa27",
+  "candidateSha256": "d2d97f4a303b188678e85f69e7e624cce0a0a82b0b360eb0e00b9f7acee26d71",
+  "preimageSha256": "9b30b283b2e8e453e126d9a5d092a1088750a3c23e07402622619afe5d5e288e",
+  "fixtureSha256": "14f6bbcc0131f7bac5d6ff3ca6c84bcff55b4ff09ef27d753ba519e6ec7f2837",
+  "harnessSha256": "f6ddf71d6f03f8d8d505b4d3c9324c28b23cbb6a678ddaa31cd16d7d11430106",
+  "boundary": "SOURCE_ONLY_NATIVE_POSTGRESQL_17_PROFILE_SWEEP_NO_HOSTED_MUTATIONS",
+  "comparedCurrentFunctionBodies": [
+    {
+      "signature": "private.accounts_same_world(uuid,uuid)",
+      "bodyMd5": "16f541f952d4e1e2dbb4fc87e594d572"
+    },
+    {
+      "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+      "bodyMd5": "76280b0ad653d2fc10199bca2c3971a8"
+    },
+    {
+      "signature": "private.enqueue_dispatch(uuid,timestamp with time zone)",
+      "bodyMd5": "470ed6ab6501c69bf9ebbfe057ccd0fb"
+    },
+    {
+      "signature": "private.marketplace_tick(integer,timestamp with time zone)",
+      "bodyMd5": "3858404992f2ceaa30b65af1055e2b9c"
+    },
+    {
+      "signature": "private.requeue_changed_worker_profiles_v1(timestamp with time zone)",
+      "bodyMd5": "9104edac66d52ba630b91fac58c7fcbc"
+    },
+    {
+      "signature": "private.requeue_open_needs_for_worker_v5(uuid)",
+      "bodyMd5": "371bb38ea1d7180ca6222409f1a9a591"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "source guard, role and ACL keep the extracted profile step internal",
+      "result": {
+        "acl": {
+          "anon": false,
+          "authenticated": false,
+          "service_role": false
+        },
+        "explicitWrongRoleRejected": true,
+        "hostedChanges": false
+      },
+      "elapsedMs": 5.992501
+    },
+    {
+      "name": "101 profiles sharing one timestamp: 100 independent commits then the remaining profile without skips",
+      "result": {
+        "profiles": 101,
+        "firstInvocation": 100,
+        "secondInvocation": 1,
+        "profileTransactions": 101,
+        "duplicateProfiles": 0,
+        "unrelatedConfigPreserved": true
+      },
+      "elapsedMs": 107.530769
+    },
+    {
+      "name": "30-second cutoff includes its exact boundary once and excludes recent or inactive/non-worker profiles",
+      "result": {
+        "initialEligible": 2,
+        "ignoredRecentUntilNextCutoff": true,
+        "exactCutoffReplays": 0,
+        "inactiveAndRequesterSkipped": true,
+        "olderCallerCannotRewind": true
+      },
+      "elapsedMs": 9.811183
+    },
+    {
+      "name": "one profile queues only 200 newest eligible Needs in the same transaction as its cursor",
+      "result": {
+        "eligibleNeeds": 201,
+        "queued": 200,
+        "perProfileTransactionCount": 1,
+        "cursorAndAllQueueWritesAtomic": true
+      },
+      "elapsedMs": 254.053481
+    },
+    {
+      "name": "existing world, ownership, expiry, closure, status and already-reconsidered filters match the unchanged owner",
+      "result": {
+        "baselineOwnerBodyMd5": "9104edac66d52ba630b91fac58c7fcbc",
+        "queued": 2,
+        "excluded": [
+          "own",
+          "otherWorld",
+          "expired",
+          "closed",
+          "draft",
+          "unpublished",
+          "recentQueue"
+        ],
+        "sameResultAsCurrentOwner": true
+      },
+      "elapsedMs": 31.346458
+    },
+    {
+      "name": "LADDER preserves a running wave; ALL requeues it without changing its status, attempts or earlier run time",
+      "result": {
+        "ladderQueued": 1,
+        "allQueued": 2,
+        "waitingWavePreservedInLadder": true,
+        "existingAttemptStatusAndEarlierTimePreserved": true
+      },
+      "elapsedMs": 20.502481
+    },
+    {
+      "name": "a mid-profile enqueue error rolls back its earlier writes and cursor; a later retry completes once",
+      "result": {
+        "rolledBackPartialQueueAndCursor": true,
+        "retryQueued": 6,
+        "processedProfiles": 1,
+        "duplicateQueueWrites": 0
+      },
+      "elapsedMs": 15.980157
+    },
+    {
+      "name": "invalid time/watermark and missing configuration do not move the cursor or enqueue work",
+      "result": {
+        "invalidInputsRejected": 5,
+        "queued": 0,
+        "cursorNotAdvanced": true
+      },
+      "elapsedMs": 5.631035
+    },
+    {
+      "name": "busy watermark is skipped without changing a profile or holding an unrelated queue lock",
+      "result": {
+        "busySkipped": true,
+        "cursorUnchangedWhileBusy": true,
+        "subsequentInvocationProcessesOnce": true
+      },
+      "elapsedMs": 13.192376
+    },
+    {
+      "name": "two native schedulers share the keyset cursor without processing the same timestamp/account twice",
+      "result": {
+        "profiles": 101,
+        "backendCounts": [
+          1,
+          100
+        ],
+        "independentProfileTransactions": 101,
+        "duplicates": 0,
+        "postCommitBarrier": "TEST_INSTRUMENTATION_ONLY"
+      },
+      "elapsedMs": 173.299799
+    },
+    {
+      "name": "backend termination after first profile COMMIT preserves200 queue writes and resumes with a fresh client",
+      "result": {
+        "terminatedClientSqlstate": "57P01",
+        "committedQueueWritesSurvive": 200,
+        "durableFirstProfile": "50000000-0000-4000-8000-000000000215",
+        "resumedProfiles": 2,
+        "duplicateProfileOrQueueWrites": 0,
+        "freshConnection": true
+      },
+      "elapsedMs": 295.9856
+    },
+    {
+      "name": "an explicit outer transaction rejects the first internal COMMIT and rolls back profile plus queue",
+      "result": {
+        "sqlstate": "2D000",
+        "partialCursorOrQueueCommits": 0
+      },
+      "elapsedMs": 18.866799
+    },
+    {
+      "name": "time budget yields after the first completed profile and preserves the remaining cursor work",
+      "result": {
+        "syntheticBudgetSeconds": 0.001,
+        "deterministicTestDelayMs": 20,
+        "firstInvocationProfiles": 1,
+        "resumedProfiles": 4,
+        "duplicates": 0
+      },
+      "elapsedMs": 34.22726
+    }
+  ],
+  "limitations": [
+    "Synthetic rows in an isolated captured SQL graph, not a full Supabase clone or real user/device traffic.",
+    "Actual captured profile requeue predicate, account-world and queue upsert bodies execute on PostgreSQL17; app profile/Need seeding bypasses application writers deliberately.",
+    "Probe triggers and an explicitly marked post-COMMIT advisory barrier observe transaction/session ordering; they are never added to the candidate or hosted server.",
+    "The process-failure scenario terminates a local PostgreSQL client backend after one commit, then resumes using a fresh connection and durable cursor. It does not stop the whole PostgreSQL server.",
+    "This change proves profile-sweep transaction boundaries, not hosted throughput, 300000-user capacity, Expo/FCM or native Android.",
+    "The100 profile and200 Need limits are per invocation/profile; concurrent calls do not add a new fleet-global quota.",
+    "The30-second cutoff retains the existing assumption that a profile write commits within30 seconds of its updated_at. Unbounded older long-running writers remain outside this contract.",
+    "Five other marketplace maintenance phases, their error and partial-progress semantics, hosted role/security and Cron switch acceptance still gate R13 activation. Source guard remains active."
+  ],
+  "postgres": "PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "postgis": "3.5.2",
+  "completedAt": "2026-11-08T22:17:25.288Z",
+  "result": "PASS"
+}

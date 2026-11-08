@@ -1,5 +1,6 @@
 import type { InboxItem, InboxPage, InboxPort, InboxTarget } from '../contracts/inbox';
 import { supabaseKlijent } from './supabaseClient';
+import { readOwnedResult, record, sameId, uuid, type ReceiptAccount } from './serverReceipt';
 type Rpc = (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const isId = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
@@ -60,3 +61,26 @@ export function createInboxService(rpc: Rpc): InboxPort {
 }
 // One production owner. No mock fallback, no raw table writes, no transport mutation.
 export const inboxClientService=createInboxService((name,args)=>supabaseKlijent().rpc(name,args));
+
+/** A delayed push may belong to the previous user of this phone. The active
+ * session alone does not establish its recipient. Read only the existing RLS
+ * event identity; do not mark it read, resolve a route or acknowledge delivery.
+ * Legacy generic payloads have no event identity and cannot use this proof. */
+export async function ownsForegroundEvent(eventId: string, eventType: string,
+ account: ReceiptAccount, signal: AbortSignal): Promise<boolean> {
+ if (!uuid(eventId) || !uuid(account.accountId)
+  || !['MESSAGE_RECEIVED','OPPORTUNITY_AVAILABLE','RESPONSE_RECEIVED','RESPONSE_UPDATED'].includes(eventType)
+  || signal.aborted) return false;
+ const result = await readOwnedResult({ account, signal, errors: {},
+  fallback: 'FOREGROUND_EVENT_UNCONFIRMED', invalid: 'FOREGROUND_EVENT_INVALID',
+  request: requestSignal => supabaseKlijent().from('user_activity_events')
+   .select('id,recipient_user_id,event_type').eq('id', eventId.toLowerCase())
+   .eq('recipient_user_id', account.accountId).abortSignal(requestSignal).maybeSingle(),
+  decode: raw => {
+   const event = record(raw);
+   return event && Object.keys(event).length === 3 && sameId(event.id, eventId)
+    && sameId(event.recipient_user_id, account.accountId) && event.event_type === eventType ? true : null;
+  },
+ });
+ return result.ok;
+}

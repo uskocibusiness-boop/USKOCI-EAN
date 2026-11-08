@@ -4812,5 +4812,31 @@
     "release": "NO-GO",
     "scope": "DEV first-activation clock and dispatch-only admission fence, immutable publication/revision authority, AI/avatar continuity, and export/closure projections. Current eligible pairs checked as zero under bounded table locks; no provider delivery or legal readiness claim.",
     "rollback": "scripts/sql/r09_worker_activation_20261108.rollback.sql; explicit recovery only, restores old admission predicate while preserving clocks, guards and privacy projections."
+  },
+  "forward_execution_20261108_r09_applicant": {
+    "classification": "APPLIED_EXACT_LEDGER_BYTES",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "file": "20261108222329_r09_applicant_suppression_20261108.sql",
+    "version": "20261108222329",
+    "name": "r09_applicant_suppression_20261108",
+    "source_md5": "9d6ae5f019f8cb36fc7e600eb7cba447",
+    "source_sha256": "18bcc433a36dec266fd4199debad5bbc9337996b9cba46e34b5b26bf97383acf",
+    "source_bytes": 5874,
+    "recorded_statement_md5": "9d6ae5f019f8cb36fc7e600eb7cba447",
+    "recorded_statement_sha256": "18bcc433a36dec266fd4199debad5bbc9337996b9cba46e34b5b26bf97383acf",
+    "recorded_statement_count": 1,
+    "evidence": "docs/plan/proofs/r09-applicant-suppression-dev-20261108.json",
+    "evidence_sha256": "607b8c613e3fd2f26d439b63870c8e3720060689624882e03b0328e7e55d44c2",
+    "dev_applied": true,
+    "dev_migration_count_before": 364,
+    "dev_migration_count_after": 365,
+    "preserved_owner_metadata": 9,
+    "changed_owner_bodies": 2,
+    "cron_changed": false,
+    "verified_android_delivery": false,
+    "capacity_300k_proven": false,
+    "release": "NO-GO",
+    "scope": "Exclude the existing active or SELECTED OFFER for the same account/Need/submitted revision from proactive dispatch and pending push. Existing Discovery, transport, UNKNOWN and inactive-state policies remain.",
+    "rollback": "scripts/sql/r09_applicant_suppression_20261108.rollback.sql; guarded manual recovery only; restoring the old policy can reallow unwanted opportunities."
   }
 }

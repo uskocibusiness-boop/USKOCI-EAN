@@ -1,0 +1,93 @@
+{
+  "recorded_at": "2026-11-08 22:10:41.908243+00",
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "source_head": "76dd409a929b7d133fb63da4ed840762778baa27",
+  "boundary": "Read-only deployed definitions and ACLs; no hosted mutations, profile data, keys or external calls.",
+  "query": "select now() as observed_at,p.oid::regprocedure::text as signature,n.nspname as schema,p.proname,pg_get_functiondef(p.oid) as definition,md5(p.prosrc) as body_md5,pg_get_userbyid(p.proowner) as owner,p.prosecdef,p.proconfig,p.proacl::text as acl from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.proname in ('requeue_changed_worker_profiles_v1','requeue_open_needs_for_worker_v5','enqueue_dispatch','accounts_same_world','marketplace_tick','dispatch_tick') order by 2;",
+  "functions": [
+    {
+      "observed_at": "2026-11-08 22:10:41.908243+00",
+      "signature": "private.accounts_same_world(uuid,uuid)",
+      "schema": "private",
+      "proname": "accounts_same_world",
+      "definition": "CREATE OR REPLACE FUNCTION private.accounts_same_world(p_a uuid, p_b uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  select private.account_visibility_world(p_a) = private.account_visibility_world(p_b);\n$function$\n",
+      "body_md5": "16f541f952d4e1e2dbb4fc87e594d572",
+      "owner": "postgres",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "observed_at": "2026-11-08 22:10:41.908243+00",
+      "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+      "schema": "private",
+      "proname": "dispatch_tick",
+      "definition": "CREATE OR REPLACE FUNCTION private.dispatch_tick(p_batch integer DEFAULT 25, p_at timestamp with time zone DEFAULT statement_timestamp())\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare\n  claimed uuid[]; r record; candidate record; res jsonb; profile_requeue jsonb;\n  tick_started timestamptz := clock_timestamp(); tick_budget numeric := 40; deferred integer := 0;\n  processed integer := 0; sent integer := 0; stopped integer := 0; failed integer := 0;\n  reason text; next_at timestamptz;\nbegin\n  if p_batch is null or p_batch < 1 or p_batch > 200 then p_batch := 25; end if;\n\n  -- MATCH-V1 (owner 2026-10-07): a direct profile write (the manual profile editor) brings the open tasks back\n  -- to the queue as the RPC saves do: once per change, before this tick claims anything. A failure here is\n  -- reported in the result and never stops the dispatch.\n  begin\n    profile_requeue := private.requeue_changed_worker_profiles_v1(p_at);\n  exception when others then\n    profile_requeue := jsonb_build_object('status','ERROR','reason',left(sqlerrm,200));\n  end;\n\n  -- MATCH-V1: the time budget of this tick (private.marketplace_config 'match_v1_dispatch', tickBudgetSeconds, default 40 s). One wave\n  -- to hundreds of workers takes seconds. After the budget this tick starts no further task: the claimed tasks it did not start are\n  -- released and come first on the next tick, so one heavy minute can never run into the statement timeout, roll back and repeat\n  -- forever. At least one task is always handled. A bad setting never stops the dispatch (default 40 s).\n  begin\n    select coalesce((value->>'tickBudgetSeconds')::numeric, 40) into tick_budget\n      from private.marketplace_config where key = 'match_v1_dispatch';\n  exception when others then\n    tick_budget := 40;\n  end;\n  tick_budget := least(greatest(coalesce(tick_budget, 40), 0.001), 100);\n\n  -- Claim each free Need and queue in a bounded successful-claim batch.\n  -- locked_until je zastita od procesa koji padne usred obrade.\n  -- Each attempt locks its Need before its queue. A skipped queue rolls back\n  -- this small subtransaction, releasing that unsuccessful Need lock. Thus a\n  -- queue-only holder cannot starve the next free item or accumulate held Needs.\n  claimed := '{}'::uuid[];\n  for candidate in\n    select s.need_id from private.dispatch_schedule s\n    where s.next_run_at <= p_at\n      and (s.locked_until is null or s.locked_until < p_at)\n    order by s.next_run_at, s.need_id\n  loop\n    begin\n      perform 1 from public.needs n where n.id = candidate.need_id\n        for update of n skip locked;\n      if not found then continue; end if;\n      perform 1 from private.dispatch_schedule s\n        where s.need_id = candidate.need_id and s.next_run_at <= p_at\n          and (s.locked_until is null or s.locked_until < p_at)\n        for update of s skip locked;\n      if not found then\n        raise exception using errcode = 'UD108', message = 'DISPATCH_QUEUE_SKIPPED';\n      end if;\n      update private.dispatch_schedule s\n        set locked_until = p_at + interval '2 minutes', updated_at = statement_timestamp()\n        where s.need_id = candidate.need_id;\n      claimed := array_append(claimed, candidate.need_id);\n    exception when sqlstate 'UD108' then\n      null;\n    end;\n    exit when cardinality(claimed) >= p_batch;\n  end loop;\n\n  for r in select unnest(claimed) as need_id loop\n    if processed > 0 and clock_timestamp() - tick_started > make_interval(secs => tick_budget) then\n      update private.dispatch_schedule set locked_until = null where need_id = r.need_id;\n      deferred := deferred + 1;\n      continue;\n    end if;\n    processed := processed + 1;\n    begin\n      res := private.dispatch_next_wave(r.need_id);\n      reason := coalesce(res->>'reason', res->>'status');\n\n      if (res->>'status') = 'SENT' then\n        sent := sent + 1;\n        -- Sledeci talas tek kad se prozor ovog zatvori.\n        next_at := coalesce((res->>'deadlineAt')::timestamptz, p_at + interval '15 minutes');\n        update private.dispatch_schedule\n           set next_run_at = next_at, locked_until = null, attempts = 0,\n               last_status = 'SENT', last_reason = null, updated_at = statement_timestamp()\n         where need_id = r.need_id;\n\n      elsif reason in ('SLOTS_FILLED','NEED_NOT_OPEN','WAVES_EXHAUSTED',\n                       'RESPONSE_TARGET_AND_COVERAGE_REACHED','REMAINING_SEARCH_CLOSED',\n                       'SEARCH_WINDOW_CLOSED') then\n        stopped := stopped + 1;\n        delete from private.dispatch_schedule where need_id = r.need_id;\n\n      else\n        -- NO_ELIGIBLE_CANDIDATES i slicno: eksponencijalno odlaganje do sest sati, bez odustajanja\n        -- (PKG-027a). Promena kod radnika vraca zadatak u red odmah (requeue_open_needs_for_worker_v5).\n        stopped := stopped + 1;\n        update private.dispatch_schedule\n           set attempts = attempts + 1,\n               locked_until = null,\n               next_run_at = p_at + make_interval(\n                 mins => least(360, greatest(5, (2 ^ least(attempts, 9))::integer))),\n               last_status = 'STOPPED', last_reason = reason,\n               updated_at = statement_timestamp()\n         where need_id = r.need_id;\n      end if;\n\n    exception when others then\n      failed := failed + 1;\n      update private.dispatch_schedule\n         set attempts = attempts + 1, locked_until = null,\n             next_run_at = p_at + interval '10 minutes',\n             last_status = 'ERROR', last_reason = left(sqlerrm, 200),\n             updated_at = statement_timestamp()\n       where need_id = r.need_id;\n    end;\n  end loop;\n\n  return jsonb_build_object('processed',processed,'sent',sent,'stopped',stopped,\n                            'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),\n                            'deferred',deferred,'profileRequeue',profile_requeue);\nend;\n$function$\n",
+      "body_md5": "76280b0ad653d2fc10199bca2c3971a8",
+      "owner": "postgres",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "observed_at": "2026-11-08 22:10:41.908243+00",
+      "signature": "private.enqueue_dispatch(uuid,timestamp with time zone)",
+      "schema": "private",
+      "proname": "enqueue_dispatch",
+      "definition": "CREATE OR REPLACE FUNCTION private.enqueue_dispatch(p_need_id uuid, p_at timestamp with time zone DEFAULT statement_timestamp())\n RETURNS void\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n  insert into private.dispatch_schedule (need_id, next_run_at)\n  values (p_need_id, p_at)\n  on conflict (need_id) do update\n    set next_run_at = least(private.dispatch_schedule.next_run_at, excluded.next_run_at),\n        updated_at = statement_timestamp();\n$function$\n",
+      "body_md5": "470ed6ab6501c69bf9ebbfe057ccd0fb",
+      "owner": "postgres",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "observed_at": "2026-11-08 22:10:41.908243+00",
+      "signature": "private.marketplace_tick(integer,timestamp with time zone)",
+      "schema": "private",
+      "proname": "marketplace_tick",
+      "definition": "CREATE OR REPLACE FUNCTION private.marketplace_tick(p_batch integer DEFAULT 25, p_at timestamp with time zone DEFAULT statement_timestamp())\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare expiry jsonb;dispatch jsonb;completion jsonb;export_maintenance jsonb;retention_maintenance jsonb;ai_turn_sweep jsonb;\nbegin\n expiry:=private.expire_lifecycle(p_at);dispatch:=private.dispatch_tick(p_batch,p_at);\n completion:=to_jsonb(public.rpc_tick_auto_completion());export_maintenance:=private.data_export_maintenance(p_batch);\n retention_maintenance:=private.retention_maintenance(p_batch);\n ai_turn_sweep:=private.ai_turn_sweep_v5(p_at);\n return jsonb_build_object('at',p_at,'expiry',expiry,'dispatch',dispatch,'completion',completion,'authoritative',true,\n 'exportMaintenance',export_maintenance,'retentionMaintenance',retention_maintenance,'aiTurnSweep',ai_turn_sweep);\nend $function$\n",
+      "body_md5": "3858404992f2ceaa30b65af1055e2b9c",
+      "owner": "postgres",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "observed_at": "2026-11-08 22:10:41.908243+00",
+      "signature": "private.requeue_changed_worker_profiles_v1(timestamp with time zone)",
+      "schema": "private",
+      "proname": "requeue_changed_worker_profiles_v1",
+      "definition": "CREATE OR REPLACE FUNCTION private.requeue_changed_worker_profiles_v1(p_at timestamp with time zone)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\n-- MATCH-V1 (owner 2026-10-07): a direct profile write (the manual profile editor UPDATEs public.app_profiles) brings\n-- the open tasks back to the queue as the RPC saves do (private.requeue_open_needs_for_worker_v5): the same open set,\n-- the worker's own world, never the worker's own tasks, at most 200 per worker. Exactly once per change: an ACTIVE\n-- worker profile whose updated_at lies in (watermark, cutoff] is handled; the cutoff trails this tick by 30 seconds so\n-- a write still committing is never skipped. A task that was already reconsidered after the change is left as it is. In the\n-- LADDER mode a task that sits inside a running wave window (whose next wave sees the worker anyway) is left as it is too, so no\n-- wave is pulled forward; in mode ALL (the default, see dispatch_next_wave) there is no wave window to wait for, so a changed\n-- profile re-queues the task even right after its wave and the worker is reached at the next tick.\n-- The watermark is one row of private.marketplace_config (data, not schema): no trigger and no new table.\n-- Bounded: at most 100 profiles per tick, in (updated_at, account_id) order, with a keyset cursor (so profiles that share one\n-- updated_at, e.g. one bulk UPDATE, are neither skipped nor repeated); the rest follows on the next ticks. The 30 second\n-- cutoff assumes a profile write commits within 30 seconds of its updated_at (that is the transaction start time).\n-- Cost when nothing changed: one config row and one pass over app_profiles.\ndeclare\n  cfg jsonb; after_at timestamptz; after_acc uuid; cutoff timestamptz; w record; v_need uuid; all_mode boolean:=false;\n  profiles integer:=0; queued integer:=0; last_at timestamptz; last_acc uuid;\nbegin\n  if p_at is null or not isfinite(p_at) then return jsonb_build_object('status','SKIPPED','reason','INVALID_TIME'); end if;\n  select value into cfg from private.marketplace_config where key='match_v1_profile_requeue' for update skip locked;\n  if not found then return jsonb_build_object('status','SKIPPED','reason','NOT_CONFIGURED_OR_BUSY'); end if;\n  select (value->>'mode')='ALL' into all_mode from private.marketplace_config where key='match_v1_dispatch';\n  all_mode:=coalesce(all_mode,false);\n  after_at:=(cfg->>'after')::timestamptz;\n  after_acc:=coalesce((cfg->>'afterAccount')::uuid,'00000000-0000-0000-0000-000000000000'::uuid);\n  cutoff:=least(p_at,statement_timestamp())-interval '30 seconds';\n  if after_at is null or not isfinite(after_at) then\n    return jsonb_build_object('status','SKIPPED','reason','WATERMARK_INVALID');\n  end if;\n  if cutoff<after_at then return jsonb_build_object('status','IDLE','profiles',0,'queued',0); end if;\n  for w in\n    select p.account_id, p.updated_at as changed_at from public.app_profiles p\n     where p.kind='WORKER' and p.profile_status='ACTIVE'\n       and (p.updated_at,p.account_id)>(after_at,after_acc) and p.updated_at<=cutoff\n     order by p.updated_at, p.account_id\n     limit 100\n  loop\n    profiles:=profiles+1; last_at:=w.changed_at; last_acc:=w.account_id;\n    -- The world check (three nested function calls, about 0.15 ms) runs only for the tasks that survive every cheap condition:\n    -- the OFFSET 0 fence keeps it out of the scan, so a profile whose open tasks are all queued already costs one pass over the tasks.\n    for v_need in\n      select c.id from (\n        select n.id, n.published_at, n.requester_account_id\n          from public.needs n\n          left join private.dispatch_schedule s on s.need_id=n.id\n         where n.status in ('PUBLISHED','SELECTION')\n           and n.published_at is not null\n           and n.remaining_search_closed_at is null\n           and n.requester_account_id<>w.account_id\n           and (n.response_deadline is null or n.response_deadline>statement_timestamp())\n           and (s.need_id is null or (coalesce(s.updated_at,'-infinity'::timestamptz)<w.changed_at\n                and (all_mode or not (coalesce(s.last_status,'')='SENT' and coalesce(s.next_run_at,'-infinity'::timestamptz)>p_at))))\n         order by n.published_at desc, n.id desc\n         offset 0\n      ) c\n       where private.accounts_same_world(c.requester_account_id,w.account_id)\n       order by c.published_at desc, c.id desc\n       limit 200\n    loop\n      perform private.enqueue_dispatch(v_need,statement_timestamp());\n      queued:=queued+1;\n    end loop;\n  end loop;\n  -- A full batch moves the cursor to its last profile (the rest follows on the next tick); a short batch was everything up to the cutoff.\n  update private.marketplace_config\n     set value=case when profiles>=100\n       then jsonb_set(jsonb_set(value,'{after}',to_jsonb(last_at)),'{afterAccount}',to_jsonb(last_acc))\n       else jsonb_set(jsonb_set(value,'{after}',to_jsonb(cutoff)),'{afterAccount}',to_jsonb('00000000-0000-0000-0000-000000000000'::uuid)) end,\n         updated_at=statement_timestamp()\n   where key='match_v1_profile_requeue';\n  return jsonb_build_object('status','DONE','profiles',profiles,'queued',queued,'more',profiles>=100);\nend;\n$function$\n",
+      "body_md5": "9104edac66d52ba630b91fac58c7fcbc",
+      "owner": "postgres",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "observed_at": "2026-11-08 22:10:41.908243+00",
+      "signature": "private.requeue_open_needs_for_worker_v5(uuid)",
+      "schema": "private",
+      "proname": "requeue_open_needs_for_worker_v5",
+      "definition": "CREATE OR REPLACE FUNCTION private.requeue_open_needs_for_worker_v5(p_account_id uuid)\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare v_need uuid; v_count integer := 0;\nbegin\n  if p_account_id is null or not exists (\n    select 1 from public.app_profiles p\n     where p.account_id = p_account_id and p.kind = 'WORKER' and p.profile_status = 'ACTIVE') then\n    return 0;\n  end if;\n  -- Same open set as the marketplace reader, the worker's own world only, never the worker's own tasks.\n  -- Queueing is idempotent (enqueue_dispatch keeps the earlier run time), and the tick decides eligibility.\n  for v_need in\n    select n.id from public.needs n\n     where n.status in ('PUBLISHED','SELECTION')\n       and n.published_at is not null\n       and n.remaining_search_closed_at is null\n       and n.requester_account_id <> p_account_id\n       and (n.response_deadline is null or n.response_deadline > statement_timestamp())\n       and private.accounts_same_world(n.requester_account_id, p_account_id)\n     order by n.published_at desc, n.id desc\n     limit 200\n  loop\n    perform private.enqueue_dispatch(v_need, statement_timestamp());\n    v_count := v_count + 1;\n  end loop;\n  return v_count;\nend\n$function$\n",
+      "body_md5": "371bb38ea1d7180ca6222409f1a9a591",
+      "owner": "postgres",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres}"
+    }
+  ]
+}

@@ -4,7 +4,9 @@ const fs=require('node:fs'),path=require('node:path');
 const {PGlite}=require('@electric-sql/pglite');
 const source=fs.readFileSync(path.join(__dirname,'sql/r13_dispatch_cooperative_candidate.sql'),'utf8');
 const anchor='-- R13_ISOLATED_TEST_PROCEDURE_START';
-const executable=source.slice(source.indexOf(anchor));
+// This suite isolates per-Need transaction handling; the one-profile step is
+// a fixture boundary here and is exercised with real captured SQL separately.
+const executable=source.slice(source.indexOf(anchor)).split('-- R13_ISOLATED_TEST_PROFILE_STEP_START')[0];
 const B='2026-11-08T15:00:00Z';
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 async function fixture(){
@@ -19,7 +21,7 @@ async function fixture(){
  next_run_at timestamptz not null,locked_until timestamptz,attempts integer not null default 0,
  last_status text,last_reason text,updated_at timestamptz);
  create table private.probe_events(event text not null,need_id uuid,transaction_id xid8 not null);
- create function private.requeue_changed_worker_profiles_v1(p_at timestamptz) returns jsonb language plpgsql as $$
+ create function private.requeue_changed_worker_profile_candidate(p_at timestamptz) returns jsonb language plpgsql as $$
  begin
  insert into private.probe_events values ('SWEEP',NULL,pg_current_xact_id());
  return '{}'::jsonb;

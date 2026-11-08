@@ -9,7 +9,9 @@ const capture=name=>JSON.parse(fs.readFileSync(path.join(root,'docs/plan/proofs/
 const dispatch=capture('capacity3_dispatch_dependencies_20261108.preimage.json').functions.find(x=>x.signature==='private.dispatch_next_wave(uuid)');
 const config=capture('capacity4_dispatch_wave_dependencies_20261108.preimage.json').functions.find(x=>x.signature==='private.dispatch_config_v1b(jsonb)');
 const candidate=fs.readFileSync(path.join(__dirname,'sql/r13_dispatch_cooperative_candidate.sql'),'utf8');
-const isolated=candidate.slice(candidate.indexOf('-- R13_ISOLATED_TEST_PROCEDURE_START'));
+// Real wave/budget suite with the profile step stubbed at its named boundary.
+// Non-idle profile/cursor transactions have their own captured-SQL/native suite.
+const isolated=candidate.slice(candidate.indexOf('-- R13_ISOLATED_TEST_PROCEDURE_START')).split('-- R13_ISOLATED_TEST_PROFILE_STEP_START')[0];
 const uuid=(prefix,n)=>`${prefix}-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const NEED_1=uuid('90000000',1),NEED_2=uuid('90000000',2);
 const row=async(db,q)=> (await db.query(q)).rows;
@@ -50,7 +52,7 @@ async function fixture(){
  create table private.dispatch_schedule(need_id uuid primary key references public.needs(id),
   next_run_at timestamptz not null,locked_until timestamptz,attempts integer not null default 0,
   last_status text,last_reason text,updated_at timestamptz);
- create function private.requeue_changed_worker_profiles_v1(p_at timestamptz) returns jsonb language plpgsql as $$
+ create function private.requeue_changed_worker_profile_candidate(p_at timestamptz) returns jsonb language plpgsql as $$
  begin insert into private.probe_events values('SWEEP',NULL,pg_current_xact_id());return '{}'::jsonb;end $$;
  create function private.need_search_time_admitted_v1(uuid,timestamptz) returns boolean language sql stable as $$select true$$;
  create function private.candidate_profile_ids_v1b(nid uuid,lim integer,cap integer) returns setof uuid
