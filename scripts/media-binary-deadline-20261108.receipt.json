@@ -1,0 +1,25 @@
+{
+  "dateUtc": "2026-11-08T01:32:55.519Z",
+  "baselineCommit": "573aeac9a2f50d0bcebfa155d6d658487d497a8e",
+  "sourceSha256": "cd6a1b3a47578eb6515df3ed33387374b3a873da10cfe54ffc2b71a703d2011c",
+  "before": {
+    "tests": 9,
+    "pass": 1,
+    "fail": 8,
+    "skipped": 0
+  },
+  "after": {
+    "tests": 25,
+    "pass": 25,
+    "fail": 0,
+    "skipped": 0
+  },
+  "command": "node --test scripts/media-binary-deadline.test.cjs scripts/agreement-photo-efficiency.test.cjs scripts/photo-cache-privacy.test.cjs",
+  "typecheckExit": 0,
+  "result": "The nested photo binary deadline now matches the existing 30s receipt owner. Auth, fetch and body share one total interval; 16/25/29s responses pass, an unfinished 30s response aborts, and external/session fences remain effective.",
+  "limitations": [
+    "All time progression is controlled; no network, physical-device or real elapsed-latency measurement.",
+    "Photo upload55s, Edge budgets, file limits and voice behavior are unchanged.",
+    "Nine new executable cases; before eight failed because the nested 15s deadline fired early."
+  ]
+}

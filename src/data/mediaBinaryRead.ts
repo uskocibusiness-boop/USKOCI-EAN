@@ -24,7 +24,10 @@ export async function readMediaBinary(input: {
     rejectAborted = () => reject(new Error('MEDIA_READ_CANCELLED'));
     controller.signal.addEventListener('abort', rejectAborted);
   });
-  const timer = setTimeout(abort, 15_000);
+  // The media receipt owner allows 30 seconds for the complete Auth/fetch/body
+  // read. A shorter nested deadline would still reject valid 16–29 second
+  // images. Keep the same bounded deadline here for standalone/cancel safety.
+  const timer = setTimeout(abort, 30_000);
   input.signal?.addEventListener('abort', abort);
   try {
     if (!current()) return unavailable();
