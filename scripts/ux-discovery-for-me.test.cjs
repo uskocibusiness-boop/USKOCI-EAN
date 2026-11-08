@@ -36,3 +36,38 @@ test('UX02 missing-profile refusal remains an error, never a fake empty success'
 test('UX02 visible capsule offers both explicit scopes with the formal description',async()=>{const C=h.load('src/ui/v2/discovery/DiscoveryChipRow.tsx').DiscoveryChipRow;const calls=[];let r=await mount(C,{forMeAvailable:true,scope:'all',onScope:s=>calls.push(s),chips:[]});await press(target(r,'Za Vas'));assert.deepEqual(calls,['forMe']);await RTR.act(async()=>r.update(React.createElement(C,{forMeAvailable:true,scope:'forMe',onScope:s=>calls.push(s),chips:[]})));await press(target(r,'Za Vas'));assert.deepEqual(calls,['forMe','all']);assert.match(target(r,'Za Vas').props.accessibilityHint,/Vašem/);await unmount(r);});
 test('UX02 absent matching hides its capsule rather than offering a dead control',async()=>{const C=h.load('src/ui/v2/discovery/DiscoveryChipRow.tsx').DiscoveryChipRow,r=await mount(C,{forMeAvailable:false,scope:'all',chips:[]});assert.equal(nodes(r,n=>n.props.testID==='chip-for-me').length,0);await unmount(r);});
 test('UX02 empty ForMe state has distinct show-all and work-profile exits',async()=>{const m=createHarness();m.stubs['src/ui/system/StateView.tsx']={StateView:m.host('StateView')};m.stubs['src/ui/v2/QuietReadState.tsx']={QuietReadState:m.host('QuietReadState')};const C=m.load('src/ui/v2/discovery/DiscoveryListState.tsx').DiscoveryListState;let all=0,profile=0;const r=await mount(C,{state:{kind:'forMe',onShowAll:()=>all++,onWorkProfile:()=>profile++},clearAllLabel:'Očistite'});const state=nodes(r,n=>n.type==='StateView')[0];assert.equal(state.props.primary.label,'Prikažite sve zadatke');assert.equal(state.props.quiet.label,'Otvorite radni profil');state.props.primary.onPress();state.props.quiet.onPress();assert.deepEqual([all,profile],[1,1]);await unmount(r);});
+
+
+// Reproduce the exact legacy 5,001-task boundary through the current P6
+// owner/decoder. This tests keyset continuation locally, not hosted Auth/RLS.
+test('P6 PAGE traverses 5,001 public items through 101 bounded 50-item requests without legacy cap', async () => {
+ const total=5001, pageSize=50, calls=[]; let offset=0, prior=null;
+ const key='2'.repeat(32),scopeKey='3'.repeat(32),a=anchor(key);
+ const item=n=>({id:id(total-n),revision:1,sortAt:instant,publishedAt:instant,title:'Pomoć '+n,category:'Pomoć',
+  status:'PUBLISHED',urgent:false,scheduleKind:'FLEXIBLE',startsAt:null,endsAt:null,executionLocationMode:'REMOTE',
+  taskCountryCode:'RS',taskTimezone:'Europe/Belgrade',verifiedIdentityRequired:false,approximateCity:null,approximateArea:null,pin:null,
+  requiredSlots:1,coveredSlots:0,requiredSkills:[],requiredTools:[],requiredVehicles:[],requiredLicenses:[],minimumExperienceYears:null,
+  priceMode:'OFFERS',requesterPriceRsd:null,priceBasis:null,requesterProfileId:id(6001),responseDeadline:null,
+  acceptsApplications:true,publicTopology:null,criticalConditions:[]});
+ const o=owner(async req=>{
+  assert.equal(req.mode,'PAGE');assert.equal(req.limit,pageSize);assert.deepEqual(req.scope,{kind:'ALL'});
+  assert.deepEqual(req.anchor,prior===null?null:a);
+  assert.deepEqual(req.after,prior);
+  const start=offset,end=Math.min(total,start+pageSize),items=Array.from({length:end-start},(_,i)=>item(start+i));
+  offset=end;const hasMore=end<total;
+  const cursor=hasMore?{scopeKey,section:0,sortAt:instant,id:items[items.length-1].id}:null;
+  prior=cursor;calls.push({start,end,hasMore});
+  return {version:'DISCOVERY_V1',mode:'PAGE',asOf:instant,filterKey:key,anchor:a,items,hasMore,nextCursor:cursor,
+   counts:{kind:'exact_live',observedAt:instant,mapped:total,listed:total,inArea:0,withoutPoint:total,undated:total},
+   availability:{hasKnownWorkMode:true,hasKnownSchedule:true,priceModes:['OFFERS']}};
+ });
+ o.begin(filter(),{kind:'ALL'},pageSize);
+ assert.equal((await o.firstPage()).kind,'applied');
+ for(let i=0;i<100;i++)assert.equal((await o.nextPage()).kind,'applied',`page ${i+2}`);
+ const snap=o.snapshot();
+ assert.equal(snap.page.items.length,total);assert.equal(new Set(snap.page.items.map(x=>x.id)).size,total);
+ assert.equal(snap.page.counts.listed,total);assert.equal(snap.page.hasMore,false);
+ assert.equal(calls.length,101);assert.equal(calls.at(-1).end,total);
+ assert.deepEqual(await o.nextPage(),{kind:'noop',reason:'NO_MORE'});
+ o.retire();
+});
