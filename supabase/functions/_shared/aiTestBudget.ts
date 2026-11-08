@@ -42,6 +42,20 @@ export async function reserveAiTestBudget(input: {
   const assertActive = () => {
     if (abort.signal.aborted) throw new Error('AI_TEST_BUDGET_UNAVAILABLE');
   };
+  const discardResponse = (response: Response) => {
+    // No content reader owns this response. Cleanup cannot replace a budget
+    // refusal, wait past the deadline, or revive a late reservation receipt.
+    try {
+      const body=response.body;
+      if (body && typeof body.cancel==='function')
+        void Promise.resolve(body.cancel()).catch(()=>undefined);
+      else if (body && typeof body.getReader==='function') {
+        const reader=body.getReader();
+        if (typeof reader.cancel==='function')
+          void Promise.resolve(reader.cancel()).catch(()=>undefined);
+      }
+    } catch { /* best effort, never changes the conservative refusal */ }
+  };
   try {
     assertActive();
     const response = await Promise.race([fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_budget_reserve_service', {
@@ -49,22 +63,21 @@ export async function reserveAiTestBudget(input: {
       headers: supabaseServiceHeaders(input.serviceRoleKey, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({ p_account_id: input.accountId, p_operation_id: input.operationId, p_kind: input.kind,
         p_max_cost_microusd: input.kind === 'LLM' ? AI_TEST_LIMITS.llmReservationMicrousd : AI_TEST_LIMITS.speechReservationMicrousd }),
+    }).then(response => {
+      // Cancellation may win Promise.race before headers arrive. The await
+      // below will then never see this body, so release it at resolution.
+      if (abort.signal.aborted) {
+        discardResponse(response);
+        throw new Error('AI_TEST_BUDGET_UNAVAILABLE');
+      }
+      return response;
     }),cancelled]);
     if (abort.signal.aborted || !response.ok || !response.body) {
       // The deadline may win just before headers resolve. Cleanup MUST NOT
       // replace the original budget refusal with a TypeError, even for a
       // nonstandard transport that only exposes getReader().cancel().
       // Do not await cleanup: its promise may ignore cancellation too.
-      try {
-        const body=response.body;
-        if (body && typeof body.cancel==='function')
-          void Promise.resolve(body.cancel()).catch(()=>undefined);
-        else if (body && typeof body.getReader==='function') {
-          const reader=body.getReader();
-          if (typeof reader.cancel==='function')
-            void Promise.resolve(reader.cancel()).catch(()=>undefined);
-        }
-      } catch { /* best effort, never changes the conservative refusal */ }
+      discardResponse(response);
       throw new Error('AI_TEST_BUDGET_UNAVAILABLE');
     }
     const reader = response.body.getReader();
