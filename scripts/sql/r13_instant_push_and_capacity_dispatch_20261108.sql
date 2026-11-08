@@ -125,14 +125,8 @@ begin
        or old.status is distinct from new.status
        or old.revision is distinct from new.revision then
       perform private.enqueue_dispatch(new.id, statement_timestamp());
-      -- Instant dispatch on initial publication
-      if new.status = 'PUBLISHED' and (tg_op = 'INSERT' or old.status is distinct from 'PUBLISHED') then
-        begin
-          perform private.dispatch_next_wave(new.id);
-        exception when others then
-          null;
-        end;
-      end if;
+      -- Matching runs through durable dispatch_schedule and its Cron worker.
+      -- Forward repair: 20261108141444_r13_short_publication_transaction_20261108.sql; no inline wave.
     end if;
   elsif tg_op = 'UPDATE' and old.status is distinct from new.status then
     delete from private.dispatch_schedule where need_id = new.id;

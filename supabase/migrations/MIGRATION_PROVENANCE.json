@@ -4738,5 +4738,29 @@
     },
     "boundary": "DEV only; this withdraws an unverified approval claim and does not establish Serbian legal clearance, website publication, or Android acceptance",
     "rollback": "No automatic reactivation of unverified claims. Future forward migration only after independently verified legal documents and contracts."
+  },
+  "forward_execution_20261108_r13_short_publish": {
+    "classification": "APPLIED_EXACT_LEDGER_BYTES",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "file": "20261108141444_r13_short_publication_transaction_20261108.sql",
+    "version": "20261108141444",
+    "name": "r13_short_publication_transaction_20261108",
+    "source_md5": "7eaf49a11df6136354a058a3a87a2af4",
+    "source_sha256": "3918dd516201c46025e82a11a373c9269acded6439ff0437453e7e573d7b6635",
+    "source_bytes": 2788,
+    "recorded_statement_md5": "7eaf49a11df6136354a058a3a87a2af4",
+    "recorded_statement_sha256": "3918dd516201c46025e82a11a373c9269acded6439ff0437453e7e573d7b6635",
+    "recorded_statement_count": 1,
+    "preimage_md5": "ea56b40af1ebd687d1713f75e619392c",
+    "postimage_md5": "3f7d263b9e1724e683c9c920ed782550",
+    "dry_run_rollback": true,
+    "dev_applied": true,
+    "dev_tasks": 18,
+    "dev_agreements": 6,
+    "dev_scheduled_jobs": 4,
+    "active_marketplace_cron": true,
+    "scope": "Remove direct dispatch_next_wave from public.needs trigger while retaining durable enqueue, RLS/ACL and Cron",
+    "capacity_300k_proven": false,
+    "release": "NO-GO"
   }
 }

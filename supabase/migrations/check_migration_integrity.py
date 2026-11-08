@@ -472,7 +472,31 @@ def main() -> None:
         if capacity2_names and v11_file <= capacity2_names[-1]:
             fail("R12 v1.1 quarantine must follow capacity2 migrations")
 
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names != disk_names:
+    r13_section = metadata.get("forward_execution_20261108_r13_short_publish")
+    r13_names = []
+    if r13_section:
+        r13_file = "20261108141444_r13_short_publication_transaction_20261108.sql"
+        r13_names = [r13_file]
+        raw = (ROOT / r13_file).read_bytes()
+        if (r13_section.get("file") != r13_file
+            or r13_section.get("project") != "leqcwgzvjsxugfgzdmth"
+            or r13_section.get("version") != "20261108141444"
+            or r13_section.get("name") != "r13_short_publication_transaction_20261108"
+            or r13_section.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+            or len(raw) != 2788
+            or hashlib.md5(raw).hexdigest() != "7eaf49a11df6136354a058a3a87a2af4"
+            or hashlib.sha256(raw).hexdigest() != "3918dd516201c46025e82a11a373c9269acded6439ff0437453e7e573d7b6635"
+            or r13_section.get("source_md5") != "7eaf49a11df6136354a058a3a87a2af4"
+            or r13_section.get("source_sha256") != "3918dd516201c46025e82a11a373c9269acded6439ff0437453e7e573d7b6635"
+            or r13_section.get("recorded_statement_md5") != "7eaf49a11df6136354a058a3a87a2af4"
+            or r13_section.get("recorded_statement_sha256") != "3918dd516201c46025e82a11a373c9269acded6439ff0437453e7e573d7b6635"
+            or r13_section.get("recorded_statement_count") != 1
+            or manifest_map.get(r13_file) != "7eaf49a11df6136354a058a3a87a2af4"):
+            fail("R13 short-publication is not the exact recorded DEV ledger")
+        if v11_names and r13_file <= v11_names[-1]:
+            fail("R13 short-publication must follow R12 quarantine")
+
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
