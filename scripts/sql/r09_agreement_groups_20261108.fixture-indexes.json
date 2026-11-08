@@ -1,0 +1,10 @@
+{
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "readAtUtc": "2026-11-08",
+  "source": "Read-only pg_indexes, relevant existing non-constraint indexes. Constraint-backed indexes are already in the R08 fixture. These are local fixture setup, not a migration.",
+  "indexes": [
+    "CREATE INDEX agreements_requester_idx ON public.agreements USING btree (requester_account_id, created_at DESC)",
+    "CREATE INDEX agreements_worker_idx ON public.agreements USING btree (worker_account_id, created_at DESC)",
+    "CREATE INDEX agreement_change_proposals_agreement_status_idx ON public.agreement_change_proposals USING btree (agreement_id, status, created_at DESC)"
+  ]
+}

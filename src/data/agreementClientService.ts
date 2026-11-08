@@ -14,6 +14,7 @@ import { vreme } from '../lib/vreme';
 import { inicijali } from '../lib/inicijali';
 import { sesijaSada } from '../store/sesija';
 import { ratingReadOwnerCurrent, withAgreementRatings } from './agreementRatingsRead';
+import { decodeOwnAgreementPage, isOwnAgreementPageRequest } from './ownAgreementGroupsPage';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -21,7 +22,7 @@ const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
 
 type AgreementService = Pick<
   Izvor,
-  'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'prijaviProblem' | 'oznaciZavrsetak' | 'potvrdiZavrsetak'
+  'mojiDogovori' | 'mojiDogovoriStrana' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'prijaviProblem' | 'oznaciZavrsetak' | 'potvrdiZavrsetak'
 >;
 
 function fail<T>(error: unknown, code: string, message: string): Ishod<T> {
@@ -632,6 +633,44 @@ function agreementPage(raw: unknown, cursor: AgreementCursor | null, seen: Set<s
 
 /** Canonical production client boundary; backend authority remains in Agreement RPCs. */
 export const agreementClientService: AgreementService = {
+  async mojiDogovoriStrana(request) {
+    if (!isOwnAgreementPageRequest(request)) throw new Error('AGREEMENT_PAGE_INVALID_REQUEST');
+    if (request.signal?.aborted) throw new Error('AGREEMENT_LIST_ABORTED');
+    const session = sesijaSada(), owner = { accountId: session.user?.id ?? '', accountRevision: session.accountRevision };
+    const controller = new AbortController();
+    let rejectBoundary!: (reason: Error) => void;
+    const boundary = new Promise<never>((_, reject) => { rejectBoundary = reject; });
+    const stop = (code: string) => { controller.abort(); rejectBoundary(new Error(code)); };
+    const externalAbort = () => stop('AGREEMENT_LIST_ABORTED');
+    const timeout = setTimeout(() => stop('AGREEMENTS_READ_TIMEOUT'), 15_000);
+    const accountWatch = setInterval(() => { if (!ratingReadOwnerCurrent(owner)) stop('AUTH_ACCOUNT_CHANGED'); }, 100);
+    request.signal?.addEventListener('abort', externalAbort, { once: true });
+    const current = () => {
+      if (!ratingReadOwnerCurrent(owner)) throw new Error('AUTH_ACCOUNT_CHANGED');
+      if (controller.signal.aborted) throw new Error('AGREEMENT_LIST_ABORTED');
+    };
+    try {
+      return await Promise.race([boundary, (async () => {
+        current();
+        const uid = await userId();
+        current();
+        if (uid !== owner.accountId) throw new Error('AUTH_ACCOUNT_CHANGED');
+        const rpc = supabase.rpc('rpc_list_my_agreement_groups_page', {
+          p_view: request.view, p_limit: request.limit, p_cursor: request.cursor,
+        });
+        const { data, error } = await rpc.abortSignal(controller.signal);
+        current();
+        if (error) throw new Error('AGREEMENT_LIST_FAILED');
+        const page = decodeOwnAgreementPage(data, request, uid, mapAgreement);
+        if (!page) throw new Error('AGREEMENT_LIST_INVALID_PROJECTION');
+        return page;
+      })()]);
+    } finally {
+      clearTimeout(timeout); clearInterval(accountWatch);
+      request.signal?.removeEventListener('abort', externalAbort);
+      controller.abort();
+    }
+  },
   /**
    * PKG-023a. The paged reader answers what the unpaged one could not: the start instant of the work
    * and whether a change proposal is waiting for an answer. The pages are a keyset on the Agreement's

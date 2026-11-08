@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { NeedSearchState } from '../../contracts/needSearchRecovery';
 import type { AgreementCancellations } from '../../data/agreementCancellationClientService';
+import type { OwnAgreementCounts } from '../../data/ownAgreementGroupsPage';
 import { Press } from '../Press';
 import { useAppear } from '../system/Appear';
 import { usePullRefresh } from '../system/usePullRefresh';
@@ -31,6 +32,8 @@ import {
 /** The root and its previous-collaborations view share the same owned list and filters. */
 export type AgreementCollectionSection = 'active' | 'history';
 type Props = {
+  pagination?: { hasMore: boolean; loadingMore: boolean; moreError: boolean; loadedGroups: number;
+    counts: OwnAgreementCounts | null; onMore: () => void };
   search?: { query: string; open: boolean; onChange: (value: string) => void; onToggle: () => void };
   items: readonly DogovorProjekcija[]; loading: boolean; refreshing?: boolean; refreshError?: boolean; error: boolean;
   section: AgreementCollectionSection; confirmationOnly: boolean;
@@ -103,10 +106,12 @@ export function AgreementCollectionPresentation(props: Props) {
   const roleItems = useMemo(() => filterAgreementRole(items, roleFilter), [items, roleFilter]);
   // This is a filter over actual collaborations, not a second account/persona switch.
   // Keep an active filter available even when its last result disappears, so it can be cleared.
-  const hasBothRoles = useMemo(() => new Set(items.flatMap(item => {
+  const loadedBothRoles = useMemo(() => new Set(items.flatMap(item => {
     const role = item.ucesnici.find(person => person.viSte)?.uloga;
     return role ? [role] : [];
   })).size > 1, [items]);
+  const counts = props.pagination?.counts;
+  const hasBothRoles = counts?.hasBothRoles ?? loadedBothRoles;
   const now = minuteOf(props.now);
   const tasks = useMemo(() => groupAgreementTasks(roleItems), [roleItems]);
   const activeItems = useMemo(() => tasks.filter(isActiveAgreementTask), [tasks]);
@@ -128,20 +133,22 @@ export function AgreementCollectionPresentation(props: Props) {
     return groups.flatMap(group => {
       const upcoming = group.key === 'tomorrow' || group.key === 'week' || group.key === 'later';
       const heading: ListRow[] = upcoming && upcomingStarted ? [] : [{ id: upcoming ? 'group:upcoming' : `group:${group.key}`, kind: 'group',
-        title: upcoming ? 'Sledeće' : group.key === 'waiting' ? stale ? unverifiedTitle(group.items.length) : waitingTitle(group.items.length)
+        title: upcoming ? 'Sledeće' : group.key === 'waiting' ? stale ? unverifiedTitle(group.items.length) : waitingTitle(counts?.attention ?? group.items.length)
           : group.key === 'undated' ? 'Bez tačnog termina' : group.key === 'past' ? 'Ranije, još otvoreno' : group.title }];
       if (upcoming) upcomingStarted = true;
       // Keep the accepted chronology and whole task groups, including overdue
       // unfinished work. The cards themselves carry the exact day and time.
       return [...heading, ...group.items.map(task => ({ id: task.key, kind: 'item' as const, task }))];
     });
-  }, [section, filtering, activeItems, historyItems, historyFilter, now, stale, query]);
-  const waiting = useMemo(() => roleItems.filter(awaitsMyConfirmation).length, [roleItems]);
+  }, [section, filtering, activeItems, historyItems, historyFilter, now, stale, query, counts?.attention]);
+  const loadedWaiting = useMemo(() => roleItems.filter(awaitsMyConfirmation).length, [roleItems]);
+  const waiting = counts?.confirmation ?? loadedWaiting;
   const settledRead = !loading && !error;
   const freshRead = settledRead && !stale;
   // The count belongs to "Čeka tebe". In history a direct link keeps outstanding actions discoverable.
-  const attention = useMemo(() => activeItems.filter(task => task.items.some(item => agreementAttention(item) !== null)).length, [activeItems]);
-  const activeCount = activeItems.length, historyCount = historyItems.length;
+  const loadedAttention = useMemo(() => activeItems.filter(task => task.items.some(item => agreementAttention(item) !== null)).length, [activeItems]);
+  const attention = counts?.activeAttention ?? loadedAttention;
+  const activeCount = counts?.active ?? activeItems.length, historyCount = counts?.history ?? historyItems.length;
   const appear = useAppear();
   // The waiting state was on screen before these rows: they are news, so the first few arrive once (M-02). A warm return
   // with rows already there and a change of set or filter stay still.
@@ -173,11 +180,11 @@ export function AgreementCollectionPresentation(props: Props) {
   const showOther = () => { props.onSection(target); props.onConfirmationOnly(false); };
   // A chip of Istorija that holds nothing while the other chips do: the way forward is "Sve", not another set.
   const narrowedEmpty = section === 'history' && historyFilter !== 'all' && historyCount > 0;
-  const emptyRole = roleFilter !== 'all' && roleItems.length === 0 && items.length > 0;
+  const emptyRole = roleFilter !== 'all' && (counts ? counts.active + counts.history === 0 && counts.hasAny : roleItems.length === 0 && items.length > 0);
   const clearRole = () => {
     setRoleFilter('all'); props.onConfirmationOnly(false); setHistoryFilter('all');
   };
-  const historyInActive = section === 'history' && activeItems.some(task => task.items.some(item => item.stanje === 'COMPLETED' || item.stanje === 'CANCELLED'));
+  const historyInActive = section === 'history' && (counts?.historyInActive ?? activeItems.some(task => task.items.some(item => item.stanje === 'COMPLETED' || item.stanje === 'CANCELLED')));
   const historyEmptyTitle = historyFilter === 'completed' ? 'Nema završenih Dogovora'
     : historyFilter === 'cancelled' ? 'Nema otkazanih Dogovora' : 'Još nema prethodnih saradnji';
   // Reading, a failed read, nothing in this set and nothing yet remain distinct. Nothing yet leads to the two
@@ -185,14 +192,14 @@ export function AgreementCollectionPresentation(props: Props) {
   const first = props.onTasks ? { label: 'Pogledajte zadatke', onPress: props.onTasks } : { label: 'Idite na Početnu', onPress: props.onHome };
   const second = props.onTasks ? props.onPublish ? { label: 'Objavite zadatak', onPress: props.onPublish } : { label: 'Idite na Početnu', onPress: props.onHome } : undefined;
   const empty = <View style={s.empty}>
-    {loading ? <QuietReadState art="users" title="Učitavamo Dogovore…" body="Proveravamo aktivne saradnje i istoriju." />
+    {loading ? <QuietReadState art="users" title="Učitavamo Dogovore…" body={section === 'history' ? 'Proveravamo prethodne saradnje.' : 'Proveravamo trenutne saradnje.'} />
       : error ? <StateView kind="error" art="agreements" title="Ne možemo da učitamo Dogovore" body="Pokušajte ponovo da proverite stanje."
         primary={{ label: 'Pokušajte ponovo', onPress: props.onRefresh }} />
         : query ? <StateView compact art="agreements" title={stale || props.refreshing ? 'Rezultati pretrage nisu potvrđeni' : 'Nema rezultata u ovom pregledu'}
           body={stale || props.refreshing ? 'Pretraga obuhvata samo poslednje učitane podatke. Osvežite Dogovore.' : 'Pokušajte sa drugim naslovom, imenom saradnika ili prikazanim mestom. Izabrana uloga i ishod ostaju važeći.'}
           primary={stale || props.refreshing ? { label: 'Osvežite Dogovore', onPress: props.onRefresh } : { label: 'Obrišite pretragu', onPress: () => search.onChange('') }} />
         : emptyRole ? <StateView compact art="agreements" title="Nema Dogovora u ovoj ulozi" primary={{ label: 'Prikažite sve uloge', onPress: clearRole }} />
-        : items.length ? <StateView compact art="agreements"
+        : (counts?.hasAny ?? items.length > 0) ? <StateView compact art="agreements"
           title={filtering ? 'Nijedan Dogovor ne čeka Vašu potvrdu' : section === 'active' ? 'Nema aktivnih Dogovora'
             : historyInActive && !narrowedEmpty ? 'Saradnje su uz aktivne zadatke' : historyEmptyTitle}
           body={historyInActive ? 'Završene i otkazane saradnje ostaju uz isti zadatak dok još ima obaveza. Pronađite ih u Dogovorima.' : undefined}
@@ -275,10 +282,23 @@ export function AgreementCollectionPresentation(props: Props) {
       onScroll={event => { const y = Math.max(0, event.nativeEvent.contentOffset.y);
         if (query) searchOffsets.current[section].offset = y; else scrollOffsets.current[section] = y; }} scrollEventThrottle={32}
       onRefresh={pull.onRefresh} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
-      ListFooterComponent={section === 'active' && settledRead ? <Press accessibilityRole="button" accessibilityLabel="Prethodne saradnje"
-        onPress={() => { props.onSection('history'); props.onConfirmationOnly(false); }} style={s.historyLink}>
-        <T variant="body" style={s.attentionText}>Prethodne saradnje</T><Glyph name="caret-right" size={20} />
-      </Press> : null}
+      onEndReached={() => { if (freshRead && !props.refreshing && props.pagination?.hasMore && !props.pagination.loadingMore && !props.pagination.moreError) props.pagination.onMore(); }}
+      onEndReachedThreshold={0.4}
+      ListFooterComponent={settledRead ? <View>
+        {props.pagination?.hasMore ? <View style={s.more}>
+          {props.pagination.moreError ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Nismo učitali naredne saradnje. Prethodno učitane su sačuvane.</T> : null}
+          {counts ? <T variant="meta" tone="muted">Prikazano {props.pagination.loadedGroups} od {counts.matching} zadataka.</T> : null}
+          <Press accessibilityRole="button" accessibilityLabel={props.pagination.moreError ? 'Pokušajte ponovo da učitate saradnje' : 'Učitajte još saradnji'}
+            accessibilityState={{ disabled: !!props.pagination.loadingMore || !!props.refreshing || stale, busy: props.pagination.loadingMore }}
+            disabled={!!props.pagination.loadingMore || !!props.refreshing || stale} onPress={props.pagination.onMore} style={s.moreAction}>
+            <T variant="note" tone="green">{props.pagination.loadingMore ? 'Učitavamo još saradnji…' : props.pagination.moreError ? 'Pokušajte ponovo' : 'Učitajte još saradnji'}</T>
+          </Press>
+        </View> : null}
+        {section === 'active' ? <Press accessibilityRole="button" accessibilityLabel="Prethodne saradnje"
+          onPress={() => { props.onSection('history'); props.onConfirmationOnly(false); }} style={s.historyLink}>
+          <T variant="body" style={s.attentionText}>Prethodne saradnje</T><Glyph name="caret-right" size={20} />
+        </Press> : null}
+      </View> : null}
       // Six of these cards are more than one phone screen; a modest window fills a fast scroll quickly.
       initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
       ItemSeparatorComponent={Separator} renderItem={renderItem} />
@@ -293,6 +313,8 @@ const s = StyleSheet.create({
   refreshNotice: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm },
   refreshAction: { minHeight: layout.touch, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   historyLink: { minHeight: layout.touch, marginTop: layout.group, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  more: { paddingTop: layout.group, gap: sys.space.sm },
+  moreAction: { minHeight: layout.touch, justifyContent: 'center', alignItems: 'center' },
   // Keep the label beside the first line when large text wraps the outcome choices on a narrow screen.
   filterRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm, minHeight: layout.touch, paddingTop: sys.space.xs },
   filterNameSlot: { minHeight: layout.touch, justifyContent: 'center', flexShrink: 0 },

@@ -24,6 +24,7 @@ import type { TaskRelationIndex } from './taskRelation';
 import type { HomeAttentionPreview } from './homeSnapshot';
 import type { CandidatesPage, CandidatesPageRequest } from './candidatesPage';
 import type { OwnApplicationsPage, OwnApplicationsPageRequest } from './ownApplicationsPage';
+import type { OwnAgreementPage, OwnAgreementPageRequest } from './ownAgreementGroupsPage';
 import type { OwnTasksPage, OwnTasksPageRequest } from './ownTasksPage';
 
 /** Svaka komanda vraća ovo. Nikad goli rezultat. */
@@ -85,6 +86,8 @@ export interface PrijaveCitanje {
 }
 
 export interface DogovoriCitanje {
+  /** Complete task groups in the visible view. The next page is explicitly requested by the list. */
+  mojiDogovoriStrana(request: OwnAgreementPageRequest): Promise<OwnAgreementPage>;
   /** Defaults to reading my rating state. Non-rating surfaces may skip enrichment; all rows still load. */
   mojiDogovori(options?: { includeRatings?: boolean; signal?: AbortSignal }): Promise<DogovorProjekcija[]>;
   dogovor(id: string): Promise<DogovorProjekcija | null>;

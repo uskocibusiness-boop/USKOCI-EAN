@@ -8,7 +8,8 @@ import type { DogovorProjekcija } from '../../contracts/projections';
 import type { NeedSearchState } from '../../contracts/needSearchRecovery';
 import { agreementCancellationService, type AgreementCancellations } from '../../data/agreementCancellationClientService';
 import { needSearchRecoveryClientService } from '../../data/needSearchRecoveryClientService';
-import { useFocusedResource } from '../../hooks/useFocusedResource';
+import { useOwnAgreementGroupsPager } from '../../hooks/useOwnAgreementGroupsPager';
+import { ownAgreementView, ownAgreementScope, type OwnAgreementPageRequest } from '../../data/ownAgreementGroupsPage';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import type { HistoryFilter, AgreementRoleFilter } from '../../ui/agreements/agreementListModel';
@@ -91,18 +92,19 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     setScope(owner);
     return () => { if (focus.current === owner) focus.current = null; };
   }, [source]));
-  const load = useCallback(async () => {
+  const load = useCallback(async (request: OwnAgreementPageRequest) => {
     readGeneration.current++;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      return await Promise.race([source.mojiDogovori(), new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('AGREEMENTS_READ_TIMEOUT')), 15_000);
-      })]);
-    } finally { if (timer) clearTimeout(timer); }
+    return source.mojiDogovoriStrana(request);
   }, [source]);
-  // A pull keeps the last owned snapshot visible if the re-read fails. The
-  // presentation marks it as old; each opened detail performs its own read.
-  const resource = useFocusedResource(load, { retainOnRefresh: true });
+  const view = useMemo(() => ownAgreementView({ section, role: roleFilter, outcome: historyFilter,
+    confirmationOnly, query: search.query }), [section, roleFilter, historyFilter, confirmationOnly, search.query]);
+  const { state: pages, pager, inView } = useOwnAgreementGroupsPager(load, view);
+  const data = useMemo(() => inView ? pages.items.flatMap(group => group.items) : null, [inView, pages.items]);
+  // Only the displayed view loads. A failed later page keeps the prior cards;
+  // a failed refresh keeps them explicitly stale. Detail reads remain authoritative.
+  const resource = { data, loading: !inView || pages.loading, refreshing: inView && pages.refreshing,
+    error: inView && pages.error, refreshError: inView && pages.refreshError, refresh: () => pager.refresh() };
+  const pageCounts = inView && pages.counts?.viewKey === ownAgreementScope(view) ? pages.counts : null;
   const renderedReadGeneration = readGeneration.current;
   const latest = useRef(resource); latest.current = resource;
   const current = () => foreground.active && foreground.generation === foregroundGeneration && renderedReadGeneration === readGeneration.current
@@ -191,12 +193,15 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     search={{ ...search, onChange: query => { if (current()) onSearch({ query: query.slice(0, AGREEMENT_SEARCH_MAX_LENGTH), open: true }); },
       onToggle: () => { if (current()) onSearch(search.open ? { query: '', open: false } : { ...search, open: true }); } }}
     section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter} roleFilter={roleFilter}
+    pagination={{ hasMore: inView && pages.hasMore, loadingMore: inView && pages.loadingMore, moreError: inView && pages.moreError,
+      loadedGroups: inView ? pages.items.length : 0, counts: pageCounts,
+      onMore: () => { if (current() && inView && !resource.loading && !resource.refreshing && !resource.error && !resource.refreshError) void pager.loadMore(); } }}
     expandedTaskKey={expandedTaskKey} onExpandedTask={(key, witness) => { if (current() && shown(witness)) onExpandedTask(key); }}
     onSection={value => { if (current()) onSection(value); }}
     onConfirmationOnly={value => { if (current()) onConfirmationOnly(value); }}
     onHistoryFilter={value => { if (current()) onHistoryFilter(value); }}
     onRoleFilter={value => { if (current()) { onRoleFilter(value); onConfirmationOnly(false); } }}
-    onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open} onRate={rate} onOpenOwnerTask={openOwnerTask}
+    onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open} onRate={rate} onOpenOwnerTask={openOwnerTask}
     onCalendar={() => navigate(() => router.navigate('/raspored'))}
     onProfile={onProfile}
     onHome={() => navigate(() => router.navigate('/'))}

@@ -28,6 +28,8 @@ export type PagedListState<Item, Scope, Counts> = {
   loading: boolean;
   /** The first page is being read again while the set stays on screen. */
   refreshing: boolean;
+  /** A failed first-page refresh keeps owned rows, explicitly marked stale. */
+  refreshError: boolean;
   /** The first page failed and nothing is on screen. */
   error: boolean;
   hasMore: boolean; loadingMore: boolean; moreError: boolean;
@@ -39,6 +41,8 @@ export type PagedListOptions<Item, Scope, Cursor, Counts> = {
   isCurrent: () => boolean;
   keyOf: (item: Item) => string;
   limit: number;
+  /** A server-filtered view may return counts for that view, rather than global tab totals. */
+  countsByScope?: boolean;
   now?: () => number; maxPages?: number; reloadPages?: number;
 };
 /** How the first page of a set is read: `load` shows nothing until it answers, `keep` is a pull-to-refresh, `silent` is a return to the screen, `auto` picks between `silent` and `load`. */
@@ -57,6 +61,7 @@ type SetState<Item, Cursor> = {
 export function createPagedListPager<Item, Scope extends string, Cursor, Counts>(options: PagedListOptions<Item, Scope, Cursor, Counts>) {
   const { readPage, isCurrent, keyOf, limit, now = Date.now, maxPages = 50, reloadPages = 5 } = options;
   const sets = new Map<Scope, SetState<Item, Cursor>>();
+  const scopedCounts = new Map<Scope, Counts>();
   const listeners = new Set<() => void>();
   const EMPTY: readonly Item[] = Object.freeze([]);
   let scope: Scope | null = null, counts: Counts | null = null, complete = false, until: ((items: readonly Item[]) => boolean) | undefined, active = false, epoch = 0;
@@ -70,10 +75,11 @@ export function createPagedListPager<Item, Scope extends string, Cursor, Counts>
   }
   function build(): PagedListState<Item, Scope, Counts> {
     const set = scope ? sets.get(scope) : undefined;
-    if (!scope) return { scope, items: EMPTY, counts, loading: false, refreshing: false, error: false, hasMore: false, loadingMore: false, moreError: false, pageBoundReached: false };
-    if (!set) return { scope, items: EMPTY, counts, loading: true, refreshing: false, error: false, hasMore: false, loadingMore: false, moreError: false, pageBoundReached: false };
-    return { scope, items: set.items, counts, loading: !set.loaded && !set.firstError, refreshing: set.loaded && set.firstFlight,
-      error: !set.loaded && set.firstError, hasMore: set.loaded && set.hasMore, loadingMore: set.moreFlight, moreError: set.moreError,
+    const shownCounts = options.countsByScope ? scope ? scopedCounts.get(scope) ?? null : null : counts;
+    if (!scope) return { scope, items: EMPTY, counts: shownCounts, loading: false, refreshing: false, refreshError: false, error: false, hasMore: false, loadingMore: false, moreError: false, pageBoundReached: false };
+    if (!set) return { scope, items: EMPTY, counts: shownCounts, loading: true, refreshing: false, refreshError: false, error: false, hasMore: false, loadingMore: false, moreError: false, pageBoundReached: false };
+    return { scope, items: set.items, counts: shownCounts, loading: !set.loaded && !set.firstError, refreshing: set.loaded && set.firstFlight,
+      error: !set.loaded && set.firstError, refreshError: set.loaded && set.firstError, hasMore: set.loaded && set.hasMore, loadingMore: set.moreFlight, moreError: set.moreError,
       pageBoundReached: set.loaded && set.hasMore && set.pages >= maxPages };
   }
   function show() { state = build(); listeners.forEach(listener => listener()); }
@@ -109,12 +115,12 @@ export function createPagedListPager<Item, Scope extends string, Cursor, Counts>
       const ids = new Set<string>(), items = collected.filter(item => !ids.has(keyOf(item)) && !!ids.add(keyOf(item)));
       Object.assign(set, { items, ids, cursor, hasMore, pages, loaded: true, loadedAt: now(), moreError: false, moreFlight: false });
       set.version += 1; set.moreToken += 1;
-      if (firstCounts) counts = firstCounts;
+      if (firstCounts) { counts = firstCounts; if (options.countsByScope) scopedCounts.set(key, firstCounts); }
       return true;
     } catch {
       if (!current()) return false;
       // What is on screen is the last thing the server said; only an empty screen turns into an error.
-      if (!set.loaded) set.firstError = true;
+      set.firstError = true;
       return false;
     } finally {
       if (set.firstToken === token && captured === epoch) { set.firstFlight = false; show(); pump(); }
@@ -152,14 +158,14 @@ export function createPagedListPager<Item, Scope extends string, Cursor, Counts>
     /** Focus: what the sets already hold is shown at once and read again quietly; a set older than the bound loads as if new. */
     start() {
       active = true;
-      if (!isCurrent()) { epoch += 1; sets.clear(); counts = null; show(); return; }
+      if (!isCurrent()) { epoch += 1; sets.clear(); scopedCounts.clear(); counts = null; show(); return; }
       if (scope) void readFirst(scope, howFor(sets.get(scope)));
       else show();
     },
     /** Focus of a screen that owns its own read: the pager is live (it fences, it keeps what it holds) but reads nothing until `reload` or a scope change asks. */
     activate() {
       active = true;
-      if (!isCurrent()) { epoch += 1; sets.clear(); counts = null; }
+      if (!isCurrent()) { epoch += 1; sets.clear(); scopedCounts.clear(); counts = null; }
       show();
     },
     /** Blur: reads in flight are retired; what the sets hold stays. */
@@ -170,7 +176,7 @@ export function createPagedListPager<Item, Scope extends string, Cursor, Counts>
     },
     /** The app leaves the foreground: the recents photograph must not hold somebody's data. */
     forget() {
-      active = false; epoch += 1; sets.clear(); counts = null; show();
+      active = false; epoch += 1; sets.clear(); scopedCounts.clear(); counts = null; show();
     },
     /** The set the person is looking at (null: nothing to read). A set already held is shown at once and read again quietly. */
     setScope(next: Scope | null) {
@@ -188,7 +194,7 @@ export function createPagedListPager<Item, Scope extends string, Cursor, Counts>
     refresh(): Promise<boolean> { return scope ? readFirst(scope, 'keep') : Promise.resolve(false); },
     /** After a command that moved an item between sections: the sets that are not shown are dropped, so each is read again as new when it is asked for. */
     forgetOtherSets() {
-      for (const key of [...sets.keys()]) if (key !== scope) sets.delete(key);
+      for (const key of [...sets.keys()]) if (key !== scope) { sets.delete(key); scopedCounts.delete(key); }
       show();
     },
     /** The next page; after a failed one, the same call is the retry. */

@@ -29,6 +29,9 @@ import { composeHome } from './homeSnapshot';
 import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems, ownedTaskCounts } from './marketplaceView';
 import { applicationCounts } from './myApplicationsView';
 import { applicationRank, ownApplicationsScopeRank } from './ownApplicationsPage';
+import { ownAgreementScope, type OwnAgreementGroup } from './ownAgreementGroupsPage';
+import { agreementAttention, awaitsMyConfirmation, groupAgreementTasks, groupActiveAgreementTasks, isActiveAgreementTask } from '../ui/agreements/agreementListModel';
+import { visibleAgreementTaskGroups } from '../ui/agreements/optionalReadScope';
 import { dogovorenoVreme } from '../lib/dogovorenoVreme';
 import { sesijaSada } from '../store/sesija';
 
@@ -556,6 +559,32 @@ export const lazniIzvor: Izvor = {
   async mojiDogovori() {
     await kasnjenje();
     return stanje.alokacije.map(dogovorIz);
+  },
+
+  async mojiDogovoriStrana(request) {
+    const all = await lazniIzvor.mojiDogovori(), now = new Date();
+    const groups = groupAgreementTasks(all), view = request.view;
+    const visible = visibleAgreementTaskGroups(all, { section: view.section, roleFilter: view.role,
+      historyFilter: view.outcome, confirmationOnly: view.confirmationOnly, searchQuery: view.query });
+    const ordered = view.section === 'active' ? groupActiveAgreementTasks(visible, now).flatMap(group => group.items) : visible;
+    // Demo cursors remain local positions, as in the existing demo tasks/applications readers.
+    const from = request.cursor ? Number(request.cursor.at) : 0;
+    const items: OwnAgreementGroup[] = ordered.slice(from, from + request.limit).map(group => ({ ...group, items: [...group.items],
+      needId: group.items[0].izvor?.zadatakId ?? group.items[0].id,
+      role: group.items[0].ucesnici.find(person => person.viSte)?.uloga === 'uskocer' ? 'uskocer' : 'narucilac',
+      rank: 0, sortAt: now.toISOString() }));
+    const inRole = groups.filter(group => view.role === 'all' || group.items[0].ucesnici.some(person => person.viSte && person.uloga === view.role));
+    const active = inRole.filter(isActiveAgreementTask), history = inRole.filter(group => !isActiveAgreementTask(group));
+    const last = items[items.length - 1];
+    return { items, hasMore: from + items.length < ordered.length, asOf: now.toISOString(),
+      cursor: last ? { rank: 0, at: String(from + items.length), id: last.needId, role: last.role, viewAt: now.toISOString(), view } : null,
+      counts: request.cursor ? null : { matching: ordered.length, active: active.length, history: history.length,
+        attention: visible.filter(group => isActiveAgreementTask(group) && group.items.some(item => agreementAttention(item))).length,
+        confirmation: visible.filter(group => group.items.some(awaitsMyConfirmation)).length,
+        activeAttention: active.filter(group => group.items.some(item => agreementAttention(item))).length,
+        hasAny: groups.length > 0, hasBothRoles: new Set(all.map(item => item.ucesnici.find(person => person.viSte)?.uloga)).size > 1,
+        historyInActive: active.some(group => group.items.some(item => item.stanje === 'COMPLETED' || item.stanje === 'CANCELLED')),
+        viewKey: ownAgreementScope(view) } };
   },
 
   async dogovor(id) {

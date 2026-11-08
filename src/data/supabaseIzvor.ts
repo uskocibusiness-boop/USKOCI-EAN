@@ -176,6 +176,7 @@ async function projectOpenTasks(items: Record<string, unknown>[], assertCurrent:
 type SupabaseIzvor = Omit<
   Izvor,
   | 'mojiDogovori'
+  | 'mojiDogovoriStrana'
   | 'dogovor'
   | 'predloziIzmenu'
   | 'odgovoriNaIzmenu'
