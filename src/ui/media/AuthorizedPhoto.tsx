@@ -12,10 +12,9 @@ import { sys } from '../system/tokens';
 // Bounded in-memory representation; no signed URL or persistent image cache.
 import { jpegDataUri } from './jpegDataUri';
 import { ownPhotoCache } from './ownPhotoCache';
+import { createPhotoMemoryCache } from './photoMemoryCache';
 
-const inMemoryPhotoCache = new Map<string, { uri: string; at: number }>();
-const MAX_CACHE_ENTRIES = 32;
-const CACHE_TTL_MS = 15 * 60 * 1000;
+const inMemoryPhotoCache = createPhotoMemoryCache();
 
 if (typeof AppState?.addEventListener === 'function') {
   AppState.addEventListener('change', (state) => {
@@ -35,8 +34,12 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
    * instead of the stand-in that waits for the read. Anyone else's photograph is never remembered, whatever this says. */ own?: boolean }) {
   const { user, accountRevision } = useSesija();
   const binding = `${user?.id}:${accountRevision}:${p.assetId}:${p.needId ?? ''}:${p.profileId ?? ''}:${p.caseId ?? ''}:${p.agreementId ?? ''}:${p.messageId ?? ''}`;
+  // Private conversation/support media must re-authorize every focused visit.
+  // Previously downloaded bytes are not a new permission after membership or
+  // access changes. Only the currently focused image remains in its component.
+  const canRemember = !p.agreementId && !p.caseId;
   // A remembered picture is kept under the exact account, revision, profile and asset that read it (null: nothing about this photograph is remembered).
-  const scope = useMemo(() => p.own && user?.id ? { accountId: user.id, accountRevision } : null, [p.own, user?.id, accountRevision]);
+  const scope = useMemo(() => canRemember && p.own && user?.id ? { accountId: user.id, accountRevision } : null, [canRemember, p.own, user?.id, accountRevision]);
   const profileKey = p.profileId ?? '';
   const renderedBinding = useRef(binding); renderedBinding.current = binding;
   const opening = useRef(p.open); opening.current = p.open;
@@ -65,12 +68,12 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
     // The person's own photograph, when it is remembered under this exact key, is the answer: nothing is read. Only a press on "Pokušaj ponovo" asks again.
     const known = scope && !retry ? ownPhotoCache.image(scope, profileKey, p.assetId) : undefined;
     if (known) { attempt.phase = 'image'; setState({ attempt, uri: known }); return; }
-    const sessionKnown = inMemoryPhotoCache.get(binding);
-    const sessionFresh = sessionKnown && (Date.now() - sessionKnown.at < CACHE_TTL_MS);
-    if (sessionFresh && !retry) {
-      attempt.phase = 'image'; setState({ attempt, uri: sessionKnown.uri }); return;
+    const sessionKnown = canRemember ? inMemoryPhotoCache.get(binding) : undefined;
+    if (sessionKnown && !retry) {
+      attempt.phase = 'image'; setState({ attempt, uri: sessionKnown }); return;
     }
     const mark = scope ? ownPhotoCache.mark() : 0;
+    const cacheMark = inMemoryPhotoCache.mark();
     setState({ attempt, uri: null });
     void (async () => {
       try {
@@ -80,24 +83,19 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
         if (!current(attempt)) return;
         if (!result.ok) { fail(attempt); return; }
         const uri = jpegDataUri(result.podatak.bytes);
-        if (inMemoryPhotoCache.size >= MAX_CACHE_ENTRIES) {
-          const oldestKey = inMemoryPhotoCache.keys().next().value;
-          if (oldestKey) inMemoryPhotoCache.delete(oldestKey);
-        }
-        inMemoryPhotoCache.set(binding, { uri, at: Date.now() });
+        if (canRemember) inMemoryPhotoCache.set(binding, uri, cacheMark);
         if (scope) ownPhotoCache.rememberImage(scope, profileKey, p.assetId, uri, mark);
         attempt.phase = 'image'; setState({ attempt, uri });
       } catch { fail(attempt); }
     })();
-  }, [binding, current, fail, ownsVisit, scope, profileKey, p.assetId, p.needId, p.profileId, p.caseId, p.agreementId, p.messageId]);
+  }, [binding, current, fail, ownsVisit, scope, canRemember, profileKey, p.assetId, p.needId, p.profileId, p.caseId, p.agreementId, p.messageId]);
   useFocusEffect(useCallback(() => {
     const visit = {}; active.current = visit;
-    const sessionKnown = inMemoryPhotoCache.get(binding);
-    const sessionFresh = sessionKnown && (Date.now() - sessionKnown.at < CACHE_TTL_MS);
-    if (sessionFresh) {
+    const sessionKnown = canRemember ? inMemoryPhotoCache.get(binding) : undefined;
+    if (sessionKnown) {
       const attempt: PhotoAttempt = { visit, binding, abort: new AbortController(), phase: 'image' };
       request.current = attempt;
-      setState({ attempt, uri: sessionKnown.uri });
+      setState({ attempt, uri: sessionKnown });
     } else {
       setState(null);
       read(visit);
@@ -106,14 +104,13 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
       if (active.current !== visit) return;
       active.current = null; request.current?.abort.abort(); request.current = null;
     };
-  }, [binding, read]));
+  }, [binding, read, canRemember]));
   const shown = state && current(state.attempt) ? state : null;
   // Until this visit has decided anything (the very first render, or a screen that is out of focus) the person's own remembered picture of this exact key
   // stands in for it. The key holds the account, its revision, the profile and the asset, so it can never be another face.
   const remembered = scope && !shown ? ownPhotoCache.image(scope, profileKey, p.assetId) : undefined;
-  const sessionCached = inMemoryPhotoCache.get(binding);
-  const sessionFresh = sessionCached && (Date.now() - sessionCached.at < CACHE_TTL_MS);
-  const uri = shown ? shown.attempt.phase === 'image' ? shown.uri : null : remembered ?? (sessionFresh ? sessionCached.uri : null);
+  const sessionCached = canRemember ? inMemoryPhotoCache.get(binding) : undefined;
+  const uri = shown ? shown.attempt.phase === 'image' ? shown.uri : null : remembered ?? sessionCached ?? null;
   const image = uri ? <Image source={{ uri }} accessibilityLabel={p.label}
     accessible={!p.open} contentFit={p.contentFit ?? 'contain'} cachePolicy="none" recyclingKey={binding}
     onError={() => { if (shown) fail(shown.attempt); }} transition={0} style={{ width: '100%', height: '100%' }} /> : null;

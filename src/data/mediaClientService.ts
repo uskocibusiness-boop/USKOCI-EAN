@@ -85,10 +85,10 @@ async function upload(scope:'TASK'|'AVATAR',targetId:string,input:MediaUpload,op
   if(!uuid(targetId)||!uuid(input.clientRequestId)||!(input.bytes instanceof ArrayBuffer)||input.bytes.byteLength<1||input.bytes.byteLength>10485760
     ||!['image/jpeg','image/png','image/webp'].includes(input.contentType)||options.signal?.aborted)return failure('MEDIA_INPUT_INVALID',errors.MEDIA_INPUT_INVALID);
   const account={accountId:owner.user.id,accountRevision:owner.accountRevision};
-  return readOwnedResult({account,write:true,errors,fallback:'MEDIA_UNCONFIRMED',invalid:'MEDIA_INVALID_RESPONSE',
-    request:async()=>{
+  return readOwnedResult({account,write:true,errors,fallback:'MEDIA_UNCONFIRMED',invalid:'MEDIA_INVALID_RESPONSE',signal:options.signal,timeoutMs:55_000,
+    request:async signal=>{
       const result=await supabaseKlijent().functions.invoke('uskoci-media',{body:input.bytes,headers:{'Content-Type':input.contentType,
-        'x-media-operation':'upload','x-media-scope':scope,'x-media-target':targetId,'x-media-request-id':input.clientRequestId},signal:options.signal});
+        'x-media-operation':'upload','x-media-scope':scope,'x-media-target':targetId,'x-media-request-id':input.clientRequestId},signal});
       if(result.error){const context=record(result.error)?.context;if(context instanceof Response){try{const e=record(await context.json());
         if(e&&typeof e.code==='string'&&Object.hasOwn(errors,e.code))return {data:null,error:{message:e.code}};}catch{/* bounded safe fallback */}}}
       return result;
@@ -140,8 +140,8 @@ export const mediaClientService={
     const readContext={...(context.needId?{needId:context.needId}:{}),...(context.profileId?{profileId:context.profileId}:{}),
       ...(context.caseId?{caseId:context.caseId}:{}), ...(context.agreementId?{agreementId:context.agreementId}:{}),
       ...(context.messageId?{messageId:context.messageId}:{})};
-    return readOwnedResult({account,errors,fallback:'MEDIA_UNAVAILABLE',invalid:'MEDIA_INVALID_RESPONSE',request:async()=>{
-      const result=await readMediaBinary({account,body:{assetId,...readContext},operation:agreement?'agreement-read':'read',signal:options.signal});
+    return readOwnedResult({account,errors,fallback:'MEDIA_UNAVAILABLE',invalid:'MEDIA_INVALID_RESPONSE',signal:options.signal,timeoutMs:30_000,request:async signal=>{
+      const result=await readMediaBinary({account,body:{assetId,...readContext},operation:agreement?'agreement-read':'read',signal});
       return result.data ? {data:{...result.data,assetId},error:null} : result;
     },decode:raw=>{const r=record(raw);return r&&r.bytes instanceof ArrayBuffer&&r.contentType==='image/jpeg'&&sameId(r.assetId,assetId)
       ?{bytes:r.bytes,contentType:'image/jpeg',assetId}:null;}});

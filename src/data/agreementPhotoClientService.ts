@@ -63,8 +63,9 @@ async function edge<T>(operation: string, body: ArrayBuffer | Record<string, unk
   headers?: Record<string, string>, signal?: AbortSignal): Promise<Ishod<T>> {
   const account = owner(scope); if (!account) return failure('AUTH_REQUIRED', agreementPhotoErrors.AUTH_REQUIRED);
   return readOwnedResult({ account, write, errors: agreementPhotoErrors, fallback: 'AGREEMENT_PHOTO_UNCONFIRMED', invalid: 'AGREEMENT_PHOTO_INVALID_RESPONSE',
-    decode, request: async () => {
-      const result = await supabaseKlijent().functions.invoke('uskoci-media', { body, headers: { 'x-media-operation': operation, ...headers }, signal });
+    signal, ...(operation === 'agreement-upload' ? { timeoutMs: 55_000 as const } : {}),
+    decode, request: async ownedSignal => {
+      const result = await supabaseKlijent().functions.invoke('uskoci-media', { body, headers: { 'x-media-operation': operation, ...headers }, signal: ownedSignal });
       if (result.error) {
         const context = record(result.error)?.context;
         if (context instanceof Response) { try { const error = record(await context.json());

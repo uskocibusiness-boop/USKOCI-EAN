@@ -21,7 +21,9 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
   const [state, setState] = useState<State>({ loaded: false, busy: false, items: [], saved: [], message: null });
   const latest = useRef(state); latest.current = state;
   const owns = () => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
-  const apply = (patch: Partial<State>) => setState(old => { const next = { ...old, ...patch }; latest.current = next; return next; });
+  const apply = (patch: Partial<State> | ((old: State) => Partial<State>)) => setState(old => {
+    const next = { ...old, ...(typeof patch === 'function' ? patch(old) : patch) }; latest.current = next; return next;
+  });
   async function read(current: () => boolean) {
     if (!current()) return;
     const refs = await agreementPhotoJournal.load(accountId, agreementId);
@@ -74,6 +76,17 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
     const result = await agreementPhotoClientService.upload(ref, photo.bytes, identity, controller.signal);
     if (!valid()) return;
     apply({ sending: null, message: result.ok ? null : result.poruka });
+    // The upload response has already passed the account/ref/asset decoder. A
+    // complete READY receipt is the authoritative readback for this command;
+    // re-reading every previously selected photo adds no new send authority.
+    // Keep the journal until the message captures/attaches the asset. Focus,
+    // refresh and every uncertain outcome still reconcile with the server.
+    if (result.ok && result.podatak.state === 'READY' && !result.podatak.attachedMessageId) {
+      apply(old => ({ items: old.items.map(item => item.ref.clientRequestId === ref.clientRequestId
+        ? { ref, receipt: result.podatak } : item),
+        saved: old.saved.filter(item => item.clientRequestId !== ref.clientRequestId) }));
+      return;
+    }
     await read(valid);
   }
   const reserved = (item: Item) => !!item.receipt?.assetId && live.current.outbox.getSnapshot().entries.some(entry => entry.command.photos?.assetIds.includes(item.receipt!.assetId!));
