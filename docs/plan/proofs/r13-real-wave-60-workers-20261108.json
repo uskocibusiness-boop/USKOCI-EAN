@@ -1,0 +1,122 @@
+{
+  "schema": "USKOCI_R13_CAPTURED_REAL_WAVE_60_WORKER_ISOLATION_V1",
+  "observed_on": "2026-11-08",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "source_head_before_proof": "16405319c8aa4bf268cea13546f2146799a057d1",
+  "domain": "R13 dispatch, ON_SITE mode ALL, notification cycle budget, durable replay",
+  "status": "SOURCE_COMMITTED_ISOLATED_TESTED_NOT_DEV_APPLIED",
+  "files": [
+    {
+      "path": "scripts/r13-dispatch-cooperative.test.cjs",
+      "commit": "31191f797d86e65d11a5de786d4ae29c8aa31a1a",
+      "verification": "8 PGlite tests covering role boundary, top-level transaction, leased/future work and earlier crash tests"
+    },
+    {
+      "path": "scripts/r13-real-wave-budget.test.cjs",
+      "commits": [
+        "c9d50607e8f5a96aaec415153001ec4cb72524b7",
+        "4df1472f6745ade42c8651717927c53e8c992a43"
+      ],
+      "git_blob": "62560e84411a78a6c61a1dc13c86de017186e45f",
+      "sha256": "NOT_PROVIDED_IN_THIS_PROOF",
+      "verification": "2 tests use captured exact live dispatch_next_wave and dispatch_config_v1b SQL definitions with synthetic worker admission and event sink"
+    },
+    {
+      "path": "package.json",
+      "commit": "16405319c8aa4bf268cea13546f2146799a057d1",
+      "verification": "new real-wave tests are included in npm test"
+    }
+  ],
+  "live_sql_capture": [
+    {
+      "signature": "private.dispatch_next_wave(uuid)",
+      "body_md5": "d3cdfe2bdd6e5d40a74e6029793c89c5",
+      "source": "docs/plan/proofs/dispatch-boundary-20261108/recovered/capacity3_dispatch_dependencies_20261108.preimage.json"
+    },
+    {
+      "signature": "private.dispatch_config_v1b(jsonb)",
+      "body_md5": "7aa34ff0b5f4a3637c433bec317c1c13",
+      "source": "docs/plan/proofs/dispatch-boundary-20261108/recovered/capacity4_dispatch_wave_dependencies_20261108.preimage.json"
+    }
+  ],
+  "test_env": {
+    "postgres": "PostgreSQL 18.3 via PGlite 0.5.8, WebAssembly, NOT native PG17",
+    "workers_per_need": 60,
+    "need_count": 2,
+    "mode": "ALL",
+    "location_mode": "STATIONARY",
+    "budget_per_call": 50,
+    "deliveries_expected_total": 120,
+    "worker_admission": "SYNTHETIC; candidate_profile_ids_v1b stub returns 60 worker IDs",
+    "matching": "SYNTHETIC match_detail stub grants eligibility",
+    "event_sink": "SYNTHETIC receipt sink with unique dedupe; no Expo or Firebase",
+    "real_functions": "exact captured DEV dispatch_next_wave and dispatch_config_v1b plus source-only per-Need dispatch_cooperative_candidate",
+    "hosted_io": false,
+    "provider_calls": 0
+  },
+  "outcomes": {
+    "first_call": {
+      "opportunity_deliveries": 50,
+      "push_records": 50,
+      "distinct_need_count": 1
+    },
+    "second_call": {
+      "opportunity_deliveries": 100,
+      "push_records": 100
+    },
+    "third_call": {
+      "opportunity_deliveries": 120,
+      "push_records": 120
+    },
+    "fourth_call": {
+      "opportunity_deliveries": 120,
+      "push_records": 120
+    },
+    "dedupe_unique_keys": 120,
+    "need1_deliveries": 60,
+    "need2_deliveries": 60,
+    "crash_injection": "after first Need's COMMIT with 50 stored deliveries",
+    "crash_retained_deliveries": 50,
+    "recovered_deliveries": 120,
+    "recovered_unique_keys": 120,
+    "real_wave_tests": {
+      "passed": 2,
+      "failed": 0
+    },
+    "additional_negative_candidate_tests": {
+      "passed": 8,
+      "failed": 0
+    },
+    "combined_node_suite": {
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0,
+      "command": "node --test --test-concurrency=4 scripts/r13-real-wave-budget.test.cjs scripts/r13-dispatch-cooperative.test.cjs scripts/r13-short-publication.test.cjs scripts/p0-dispatch-saved-areas.test.cjs scripts/r02-discovery-schedule.test.cjs scripts/r09-push-capacity.test.cjs"
+    }
+  },
+  "dev_readback": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "migrations": 363,
+    "last": "20261108154914",
+    "active_dispatch_tick_md5": "76280b0ad653d2fc10199bca2c3971a8",
+    "active_wave_md5": "d3cdfe2bdd6e5d40a74e6029793c89c5",
+    "active_wake_md5": "e00bb01c0c20392ab004f39154cf1bf7",
+    "cooperative_procedure_exists": false,
+    "marketplace_cron": "select private.marketplace_tick(25);",
+    "dispatch_queue_total": 4,
+    "dispatch_due": 0,
+    "changed_by_test": false
+  },
+  "ci_new_head": {
+    "status": "NOT_VERIFIED",
+    "note": "GitHub commit-level workflow lookup returned no workflow runs and combined statuses empty; do not claim full CI or APK PASS"
+  },
+  "remaining_blockers": [
+    "Real production candidate_profile_ids_v1b, match_detail, worker daily caps, RLS and event transport not proven by synthetic fixture",
+    "Native PostgreSQL17 with two concurrent dispatch callers, row locks, live-wave idempotence, notification ledger, crash/retry still required",
+    "Live cron activation must be separately justified and reviewed; current marketplace maintenance has other side effects",
+    "Full GitHub CI for new HEAD and real installed Android two-account run still required",
+    "R01 and R10: signed Auth/PostgREST privacy checks, legal documents, retention, export and erasure are not ready"
+  ],
+  "release": "NO-GO"
+}
