@@ -128,3 +128,52 @@ test('cooperative budget ignores an exception-rolled-back reservation and admits
   assert.deepEqual(first,{attempts:1,last_status:'ERROR'});
  }finally{await db.close();}
 });
+
+test('cooperative dispatch refuses ordinary authenticated caller even with schema visibility',async()=>{
+ const db=await fixture();try{
+  await seed(db,['SENT']);
+  await db.exec(executable);
+  await db.exec('GRANT USAGE ON SCHEMA private TO authenticated');
+  await db.exec('SET ROLE authenticated');
+  try {
+   await assert.rejects(db.exec(`CALL private.dispatch_cooperative_candidate(1,'${B}'::timestamptz)`),
+    /permission denied for procedure|R13_SCHEDULER_ROLE_REQUIRED/);
+  } finally { await db.exec('RESET ROLE'); }
+  assert.equal((await rows(db,"select count(*)::int as n from private.probe_events"))[0].n,0);
+ }finally{await db.close();}
+});
+
+test('cooperative dispatch must be top-level CALL, not nested in an existing transaction',async()=>{
+ const db=await fixture();try{
+  await seed(db,['SENT']);
+  await db.exec(executable);
+  await db.exec('BEGIN');
+  try {
+   await assert.rejects(db.exec(`CALL private.dispatch_cooperative_candidate(1,'${B}'::timestamptz)`),
+    /invalid transaction termination|transaction control is not allowed|cannot commit while a subtransaction is active/i);
+  } finally { await db.exec('ROLLBACK'); }
+  assert.equal((await rows(db,"select count(*)::int as n from private.probe_events"))[0].n,0);
+  assert.deepEqual((await rows(db,'select last_status,attempts from private.dispatch_schedule')),
+   [{last_status:null,attempts:0}]);
+ }finally{await db.close();}
+});
+
+test('cooperative dispatch skips leased and future-due Needs without changing their retry state',async()=>{
+ const db=await fixture();try{
+  await seed(db,['SENT','SENT','SENT']);
+  await db.exec(executable);
+  await db.query("update private.dispatch_schedule set locked_until=$1 where need_id=$2",
+   ['2026-11-08T15:05:00Z',id(1)]);
+  await db.query("update private.dispatch_schedule set next_run_at=$1 where need_id=$2",
+   ['2026-11-08T15:10:00Z',id(2)]);
+  await db.exec(`CALL private.dispatch_cooperative_candidate(3,'${B}'::timestamptz)`);
+  const events=await rows(db,"select need_id from private.probe_events where event='WAVE'");
+  assert.deepEqual(events,[{need_id:id(3)}]);
+  const queue=await rows(db,'select need_id,last_status,attempts from private.dispatch_schedule order by need_id');
+  assert.deepEqual(queue,[
+   {need_id:id(1),last_status:null,attempts:0},
+   {need_id:id(2),last_status:null,attempts:0},
+   {need_id:id(3),last_status:'SENT',attempts:0},
+  ]);
+ }finally{await db.close();}
+});
