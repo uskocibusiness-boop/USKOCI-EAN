@@ -1,15 +1,11 @@
-// USKOCI Gemini Context Cache Manager.
-// Manages Google Gemini cachedContents for the V15 clean taxonomy, craft matrix,
-// and dispatch doctrine. Enables 1s turn latency and 80% token cost reduction.
+// USKOCI explicit-cache compatibility seam. The current entry point is a no-op:
+// it creates no provider cache and promises no latency or token-price reduction.
+// Implicit provider cache hits must be measured from actual usage metadata.
 
 import { interviewVoiceInstruction } from './interviewVoiceInstruction.mjs';
 import { serviceExecutionInstruction } from './serviceExecutionInstruction.mjs';
 import { craftQuestionMatrixText, craftFewShotExamplesText } from './craftQuestionMatrix.mjs';
 import { formatFullCatalogHierarchy } from './backgroundTaxonomyArchitect.mjs';
-
-// In-memory process cache so multiple turns within the same Edge Function isolate
-// reuse the active Google cache handle without repeated REST discovery.
-const activeCacheHandles = new Map();
 
 /**
  * Builds the comprehensive cached knowledge document combining:
@@ -46,8 +42,8 @@ export function buildUskociCachedKnowledge(catalog, purpose = 'NEED_SERVICE') {
 }
 
 /**
- * Retrieves an active Gemini cachedContents resource name, or creates a new one
- * via Google REST API with a 24-hour TTL (86400s).
+ * Reserved compatibility entry point. Explicit provider caching is disabled;
+ * callers receive null and keep their normal, fully supplied request context.
  *
  * @param {Object} options
  * @param {string} options.geminiApiKey
@@ -56,17 +52,17 @@ export function buildUskociCachedKnowledge(catalog, purpose = 'NEED_SERVICE') {
  * @param {string} options.model
  * @param {AbortSignal} [options.signal]
  * @param {string} [options.purpose]
- * @returns {Promise<string|null>} The resource name e.g. "cachedContents/ab12cd34" or null on fallback.
+ * @returns {Promise<null>} No explicit provider cache is created or reused.
  */
 export async function getOrCreateGeminiContextCache(_options) {
-  // Google Gemini 2.5 and 3.8 Flash natively use Implicit Prefix Caching
-  // on systemInstruction (>2,048 / >4,096 tokens). The legacy explicit REST API
-  // (/v1beta/cachedContents) is officially deprecated and enforces a 32,768-token floor.
-  // Returning null allows zero-delay passthrough to Google's automatic TPU prefix caching.
+  // This is a deliberate local policy, not a claim that the provider removed
+  // cachedContents. Explicit caching requires its own cost admission, retention,
+  // purpose/catalog identity and expiry proof before implementation.
+  // https://ai.google.dev/gemini-api/docs/generate-content/caching
   return null;
 }
 
-/** Clears in-memory cache handles (useful for unit testing or catalog invalidation). */
+/** Compatibility hook: the disabled implementation retains no cache handles. */
 export function clearActiveGeminiCacheHandles() {
-  activeCacheHandles.clear();
+  // No provider or process-local cache exists to invalidate.
 }

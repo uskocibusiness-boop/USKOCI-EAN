@@ -61,7 +61,7 @@ test('Gemini context cache builder and craft question matrix', async () => {
   assert.ok(cachedKnowledge.includes('KOMPLETNO STABLO KATEGORIJA USKOCI'));
   assert.ok(cachedKnowledge.includes('[cat-lawn LEAF ON_SITE] Košenje trave'));
 
-  // 6. Verify graceful fallback when API key is missing or invalid
+  // 6. The explicit cache entry point is deliberately disabled.
   clearActiveGeminiCacheHandles();
   const nullCache = await getOrCreateGeminiContextCache({
     geminiApiKey: '',
@@ -69,4 +69,20 @@ test('Gemini context cache builder and craft question matrix', async () => {
     catalog,
   });
   assert.equal(nullCache, null);
+});
+
+test('configured explicit-cache compatibility seam remains a no-op without provider I/O', async () => {
+  const { getOrCreateGeminiContextCache, clearActiveGeminiCacheHandles } = await import('../supabase/functions/_shared/geminiContextCache.mjs');
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; throw new Error('Provider I/O is not admitted by this compatibility helper'); };
+  try {
+    for (const purpose of ['NEED_SERVICE', 'WORKER_CAPABILITY']) {
+      assert.equal(await getOrCreateGeminiContextCache({ geminiApiKey: 'synthetic-not-a-provider-key',
+        model: 'gemini-3.8-flash', catalogVersion: 14,
+        catalog: { verifiedComplete: true, catalogVersion: 14, categories: [] }, purpose }), null);
+    }
+    clearActiveGeminiCacheHandles();
+    assert.equal(calls, 0);
+  } finally { globalThis.fetch = originalFetch; }
 });

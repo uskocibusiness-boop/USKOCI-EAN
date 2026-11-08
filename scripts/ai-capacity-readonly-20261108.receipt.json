@@ -1,0 +1,374 @@
+{
+  "date": "2026-11-08",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceBase": "9cf4f5ee913a3751f83615e134a1e6d7c68300f3",
+  "boundary": "Read-only live metadata, aggregate ledgers and downloaded Edge definitions. No paid provider call, secret read, account mutation, budget reset or allowlist expansion.",
+  "budget": {
+    "enabled": true,
+    "ceiling_microusd": 5000000,
+    "price_valid_until": "2027-01-01T00:00:00+00:00",
+    "reserved_microusd": 65486681,
+    "reservation_cap_enforced": true
+  },
+  "allowlistCount": 12,
+  "usage": {
+    "usage_all": [
+      {
+        "calls": 1227,
+        "model": "gemini-3.8-flash",
+        "latest": "2026-11-07T12:33:15.625161+00:00"
+      }
+    ],
+    "observed_at": "2026-11-08T00:59:41.162205+00:00",
+    "reservations": [
+      {
+        "kind": "STT",
+        "count": 554,
+        "latest": "2026-11-07T12:31:36.058639+00:00",
+        "earliest": "2026-09-17T18:09:35.369598+00:00",
+        "settled_microusd": 791274,
+        "settlement_basis": "AUDIO_DURATION_AT_PUBLISHED_RATE",
+        "max_reserved_microusd": 110800000
+      },
+      {
+        "kind": "LLM",
+        "count": 218,
+        "latest": "2026-11-05T20:22:06.66694+00:00",
+        "earliest": "2026-09-17T18:23:05.868516+00:00",
+        "settled_microusd": null,
+        "settlement_basis": null,
+        "max_reserved_microusd": 54500000
+      },
+      {
+        "kind": "STT",
+        "count": 122,
+        "latest": "2026-11-06T21:50:12.922691+00:00",
+        "earliest": "2026-09-17T13:14:55.411923+00:00",
+        "settled_microusd": 0,
+        "settlement_basis": "FAILED_NO_USAGE",
+        "max_reserved_microusd": 24400000
+      },
+      {
+        "kind": "LLM",
+        "count": 19,
+        "latest": "2026-09-16T20:53:05.24923+00:00",
+        "earliest": "2026-09-13T13:09:25.253856+00:00",
+        "settled_microusd": 58026,
+        "settlement_basis": "CONSERVATIVE_ESTIMATE_UNMEASURED",
+        "max_reserved_microusd": 4750000
+      },
+      {
+        "kind": "STT",
+        "count": 3,
+        "latest": "2026-09-17T16:51:53.44043+00:00",
+        "earliest": "2026-09-17T16:50:12.005644+00:00",
+        "settled_microusd": null,
+        "settlement_basis": null,
+        "max_reserved_microusd": 600000
+      },
+      {
+        "kind": "LLM",
+        "count": 1408,
+        "latest": "2026-11-07T12:33:13.867776+00:00",
+        "earliest": "2026-09-17T09:04:54.817152+00:00",
+        "settled_microusd": 9537381,
+        "settlement_basis": "MEASURED",
+        "max_reserved_microusd": 352000000
+      }
+    ],
+    "usage_last_24h": [
+      {
+        "calls": 13,
+        "model": "gemini-3.8-flash",
+        "latest": "2026-11-07T12:33:15.625161+00:00",
+        "earliest": "2026-11-07T11:38:09.723009+00:00",
+        "total_tokens": 84094,
+        "output_tokens": 5432,
+        "prompt_tokens": 78662
+      }
+    ]
+  },
+  "interpretation": {
+    "reservedIsProviderInvoice": false,
+    "newAdmissionBlockedByExistingCeiling": true,
+    "unsettledConservativeMicrousd": 55100000,
+    "model": "gemini-3.8-flash",
+    "modelEvidence": "Pinned source permits this model and all recorded usage rows name it; current environment secrets were not read.",
+    "explicitCache": "NO_OP_RETURN_NULL",
+    "implicitCacheSavings": "UNKNOWN; usage ledger stores prompt/output/total, not cached-token split.",
+    "measuredPerConversationCost": "NOT_ESTABLISHED"
+  },
+  "cron": {
+    "observedAt": "2026-11-08T01:00:30.006459+00:00",
+    "jobName": "uskoci_edge_workers",
+    "schedule": "* * * * *",
+    "active": true,
+    "wrapper": "private.edge_worker_tick_v5(timestamp with time zone)",
+    "bodyMd5": "7d03dc2c31a629785b5f222786bf4dd9",
+    "explicitPgNetTimeoutMs": 60000,
+    "newPushInvokeDeadlineMs": 50000,
+    "requiresTimeoutChange": false
+  },
+  "realtime": {
+    "relation": "public.agreement_invalidations_v1",
+    "columns": [
+      "agreement_id",
+      "revision"
+    ],
+    "published": true,
+    "selectPolicy": "rpc_agreement_invalidation_visible_v1(agreement_id)",
+    "chatServerFilter": "agreement_id=eq.<owned agreement>",
+    "inboxServerFilter": null,
+    "inboxReason": "RLS authorizes conversations including those not yet paginated into the inbox. Filtering only loaded IDs would lose valid arrival hints.",
+    "existingCoalescingMs": 2000,
+    "recipientProjection": "NOT_IMPLEMENTED; needs visibility/lifecycle/retention contract rather than weakening current RLS."
+  },
+  "officialReferences": [
+    "https://ai.google.dev/gemini-api/docs/generate-content/caching",
+    "https://docs.expo.dev/push-notifications/sending-notifications/"
+  ],
+  "sourceCorrection": "Removed unsupported 1-second / 80-percent and API-deprecation claims from explicit-cache helper; preserved no-provider-call behavior.",
+  "deploymentSourceBeforeCommentCorrection": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 193,
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-ai-interview/index.ts",
+          "sha256": "9a213ed0f2751abbc09e65da23217e6e5422f566cef4f2a5143f190424fbc086",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiPhaseTiming.mjs",
+          "sha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/supabaseKeys.mjs",
+          "sha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+          "sha256": "3b6678e26cf6e72daf42e5345e736d6de8899416a83a0dc96f97db891304e398",
+          "matchesSource": true
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "sha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+          "matchesSource": true
+        },
+        {
+          "path": "src/contracts/needFactsV2.ts",
+          "sha256": "f5f9eed0f9ed17278d805982d036feae3b910a413e98d20f8e93e0e9fe1d5099",
+          "matchesSource": true
+        },
+        {
+          "path": "src/contracts/taskApplicationDeadline.ts",
+          "sha256": "6561ccfe5530ae34944d304abeb8400e8f3e5e8d29d16d5a5d517226b5e5ff5a",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/locationReply.ts",
+          "sha256": "e58382d12212257801fdbfdb5271ea5488891533e2208943cf18b81fe49770e3",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/interviewVoiceInstruction.mjs",
+          "sha256": "ce73cde3e8722eb1440850ba6fcbf6651cf9aebef75acda31dca5e8fafb67c0e",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "f2603e5b8e40ccaa0677536bc43b1e93ea42bacaf59211762e03f33382726a90",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+          "sha256": "aa126a55d690fb0799ca8b1e4473061ed3b0f503631a738378490618f2664632",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+          "sha256": "90c6ec46f56248d184ea338d51acb9153e64358ea0acdf7fa118575c6377ee6f",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "sha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/serviceHandoff.mjs",
+          "sha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/workerServiceModeContext.mjs",
+          "sha256": "839e373ac5949085f735222c870bcd4374a90b045233e90c9a146e6046ea452f",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/completeFirstPlan.ts",
+          "sha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/serviceExecutionInstruction.mjs",
+          "sha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/researchDeadline.ts",
+          "sha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiContextCache.mjs",
+          "sha256": "160fb09f35538f6b0f4170931fa7d64bb87e9f2af2695e4dcabedfb799fce9c7",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/craftQuestionMatrix.mjs",
+          "sha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/conversationIntent.mjs",
+          "sha256": "5c99f4a30ad7e3b30189dfeb143f45ab66f19060b5e58cbde5d6498f0badffc7",
+          "matchesSource": true
+        }
+      ],
+      "equal": 22,
+      "total": 22
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 146,
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-worker-interview/index.ts",
+          "sha256": "4874dac0a5a0e680a63349c3aeac9bff6cab5a7ff31756ee4a26859e32af1969",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiPhaseTiming.mjs",
+          "sha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/supabaseKeys.mjs",
+          "sha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+          "sha256": "3b6678e26cf6e72daf42e5345e736d6de8899416a83a0dc96f97db891304e398",
+          "matchesSource": true
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "sha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+          "matchesSource": true
+        },
+        {
+          "path": "src/contracts/workerAreas.ts",
+          "sha256": "42043ac28b6be3443a9837d855bada914513e267e45710111698da2c0163c33d",
+          "matchesSource": true
+        },
+        {
+          "path": "src/contracts/workerNowFeature.ts",
+          "sha256": "78bf2b510f531420f4b0accdc121ee7c5c147d50751956f9fc2cf8610664ca6a",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/interviewVoiceInstruction.mjs",
+          "sha256": "ce73cde3e8722eb1440850ba6fcbf6651cf9aebef75acda31dca5e8fafb67c0e",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "f2603e5b8e40ccaa0677536bc43b1e93ea42bacaf59211762e03f33382726a90",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+          "sha256": "aa126a55d690fb0799ca8b1e4473061ed3b0f503631a738378490618f2664632",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+          "sha256": "90c6ec46f56248d184ea338d51acb9153e64358ea0acdf7fa118575c6377ee6f",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "sha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/serviceHandoff.mjs",
+          "sha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/workerServiceModeContext.mjs",
+          "sha256": "839e373ac5949085f735222c870bcd4374a90b045233e90c9a146e6046ea452f",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/completeFirstPlan.ts",
+          "sha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/serviceExecutionInstruction.mjs",
+          "sha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/researchDeadline.ts",
+          "sha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/workerAreaAdmission.mjs",
+          "sha256": "27e41e614301d73b55c61782ea1b885cbf76a634b0d25ae814eb9b09038f9c99",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/workerAreaResolver.mjs",
+          "sha256": "6890d942d88a845054abea2b0651b3c5db6dbf5554468d87840e59f67fc0e0ab",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiContextCache.mjs",
+          "sha256": "160fb09f35538f6b0f4170931fa7d64bb87e9f2af2695e4dcabedfb799fce9c7",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/craftQuestionMatrix.mjs",
+          "sha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b",
+          "matchesSource": true
+        },
+        {
+          "path": "supabase/functions/_shared/conversationIntent.mjs",
+          "sha256": "5c99f4a30ad7e3b30189dfeb143f45ab66f19060b5e58cbde5d6498f0badffc7",
+          "matchesSource": true
+        }
+      ],
+      "equal": 23,
+      "total": 23
+    }
+  ]
+}
