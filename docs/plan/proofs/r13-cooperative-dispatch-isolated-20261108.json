@@ -1,0 +1,123 @@
+{
+  "schema": "USKOCI_R13_COOPERATIVE_DISPATCH_ISOLATED_V1",
+  "date": "2026-11-08",
+  "status": "SOURCE_ONLY_ISOLATED_TESTED_NOT_APPLIED",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "github_head_before_proof": "85043fa1405e7cc8af3d927483d3576397c5acde",
+  "changes": [
+    {
+      "path": "scripts/sql/r13_instant_push_and_capacity_dispatch_20261108.sql",
+      "git_commit": "454bfb277a207d0b55ec0d7cb9a836949c32e568",
+      "purpose": "Hard fail before unsafe historical 300k capacity and stale push-wake mutations; no DEV mutation"
+    },
+    {
+      "path": "scripts/r13-short-publication.test.cjs",
+      "git_commit": "a5eb9620aa559e67642fc653fc037aa601615a15",
+      "purpose": "PGlite negative execution: old candidate cannot change config or create push function"
+    },
+    {
+      "path": "scripts/sql/r13_dispatch_cooperative_candidate.sql",
+      "git_commit": "55d8b3adf935d55c6930b4257c234a0ab64d569f",
+      "sha256": "c8fd626081e8c89b2cd3bece9ab9f5468c8646bbd7387bd0bd3bfdcb91e4e5f1",
+      "git_blob_sha": "15bffef88d9912f373ce6ecc25427df5a9e543c4",
+      "source_only_guard": "R13_COOPERATIVE_DISPATCH_SOURCE_ONLY",
+      "purpose": "Prototype PostgreSQL top-level CALL procedure; one profile sweep, per-Need transaction; SECURITY INVOKER, postgres-only caller, no cron change"
+    },
+    {
+      "path": "scripts/r13-dispatch-cooperative.test.cjs",
+      "git_commit": "edae482950cbcfbb471af7f661788ca3fd5ad2d9",
+      "sha256": "fb2f48ff25b52963e5c5e82c13a4867ec3cad6044094a7a12ae01ec02eb7f259",
+      "git_blob_sha": "4e979ccdbbfe6534bcfcccf9d223dad38af5b0d4",
+      "purpose": "Fail-closed SQL, autonomous committed waves, crash after first commit, retry and privileged-call denial"
+    },
+    {
+      "path": "package.json",
+      "git_commit": "85043fa1405e7cc8af3d927483d3576397c5acde",
+      "purpose": "Register dispatch cooperative isolation tests in standard npm test"
+    }
+  ],
+  "tests": {
+    "new_candidate": {
+      "passed": 3,
+      "failed": 0,
+      "runner": "node --test scripts/r13-dispatch-cooperative.test.cjs",
+      "engine": "@electric-sql/pglite",
+      "description": "Synthetic in-memory fixture with actual PL/pgSQL procedure, COMMIT, separate XIDs, invalid-role grants, failure and restart"
+    },
+    "related_suite": {
+      "passed": 23,
+      "failed": 0,
+      "runner": "node --test scripts/r13-short-publication.test.cjs scripts/r13-dispatch-cooperative.test.cjs scripts/p0-dispatch-saved-areas.test.cjs scripts/r02-discovery-schedule.test.cjs"
+    },
+    "new_head_github_ci": {
+      "status": "NOT_VERIFIED",
+      "reason": "No GitHub Actions workflow run returned by connected per-commit query; combined status list empty"
+    },
+    "native_postgres_parallel_workers": {
+      "status": "NOT_RUN",
+      "reason": "Native isolated PostgreSQL 17 runtime unavailable in current working container"
+    },
+    "real_wave": {
+      "status": "NOT_RUN",
+      "reason": "Existing fixture replaces private.dispatch_next_wave with controlled outcome and event ledger"
+    },
+    "android_two_devices": {
+      "status": "NOT_RUN"
+    }
+  },
+  "dev_readonly": {
+    "observed_at_utc": "2026-11-08T18:34:27.827561Z",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "marketplace_cron": {
+      "job_id": 1,
+      "active": true,
+      "username": "postgres",
+      "command": "select private.marketplace_tick(25);",
+      "runs_last_hour": 60,
+      "failures_last_hour": 0,
+      "average_ms": 112.28,
+      "maximum_ms": 569
+    },
+    "other_cron_jobs": [
+      {
+        "job_id": 2,
+        "runs_last_hour": 60,
+        "failures": 0
+      },
+      {
+        "job_id": 3,
+        "runs_last_hour": 60,
+        "failures": 0
+      }
+    ],
+    "dispatch_schedule": {
+      "total": 4,
+      "due": 0,
+      "leased": 0
+    },
+    "current_dispatch_tick_md5": "76280b0ad653d2fc10199bca2c3971a8",
+    "current_push_wake_md5": "e00bb01c0c20392ab004f39154cf1bf7",
+    "schema_changed": false,
+    "cron_changed": false,
+    "edge_functions_changed": false
+  },
+  "official_constraint_sources": [
+    "https://www.postgresql.org/docs/17/plpgsql-transactions.html",
+    "https://www.postgresql.org/docs/17/sql-call.html"
+  ],
+  "limitations": [
+    "PGlite synthetic lifecycle and event sink are not the actual worker matcher, notification ledger, Auth or Android",
+    "Per-Need commit independence is locally proven; cross-connection row locks/deadlocks and real ON_SITE wave are not",
+    "No candidate rollout, permission change or production config change has occurred",
+    "Real PostgreSQL requires a top-level CALL; a SECURITY DEFINER or CREATE PROCEDURE SET clause would prevent transaction control",
+    "The new procedure is deliberately non-deployable; a future reviewed forward migration and independent cron switch are required"
+  ],
+  "next_acceptance": [
+    "Run native PostgreSQL 17 real dispatch_next_wave for 60 eligible synthetic workers and two Needs, plus two concurrent schedulers and interrupted transaction",
+    "Validate full marketplace lifecycle ordering and maintenance across committed steps without lost sweeps, receipts or audits",
+    "Create new guarded migration only after those tests, with exact pre/post signature/ACL and rollback or switchback plan",
+    "Compare GitHub CI and QA APK on new commit, then native ordinary-Auth two-account workflow"
+  ],
+  "release": "NO-GO"
+}
