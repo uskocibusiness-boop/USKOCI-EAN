@@ -1,0 +1,103 @@
+{
+  "attempts": [
+    {
+      "count": 2,
+      "transport_state": "UNKNOWN"
+    }
+  ],
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "body_md5": "e693b140450a9bb1cf6d3178b0ad80c1",
+      "signature": "rpc_begin_push_send(uuid,uuid)"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "body_md5": "7c9145f1b9696f9ed6e4a29949228b58",
+      "signature": "rpc_claim_push_transport(text)"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "body_md5": "d87908db1908b8c88fe66228c5b07f9f",
+      "signature": "rpc_complete_push_transport(uuid,uuid,text,text)"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "body_md5": "1614462cd13b241ba3ab4cf2ffebf59a",
+      "signature": "rpc_get_push_transport_metrics()"
+    }
+  ],
+  "observedAt": "2026-11-08T01:02:48.800211+00:00",
+  "edge": {
+    "version": 46,
+    "verify_jwt": false,
+    "exactSourceMatch": true,
+    "ezbr_sha256": "f421e220ef9a6ea0494924c017477f7c4b9aab85897618356d63822ecd52bf13"
+  },
+  "metrics": {
+    "observedAt": "2026-11-08T01:03:08.221369+00:00",
+    "activeLeases": 0,
+    "sendAttemptsDue": 0,
+    "pendingDeliveries": 0,
+    "receiptAttemptsDue": 0,
+    "oldestSendAttemptSeconds": null,
+    "oldestReceiptAttemptSeconds": null,
+    "oldestPendingDeliverySeconds": null
+  },
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceBase": "9cf4f5ee913a3751f83615e134a1e6d7c68300f3",
+  "status": "DEV_DEPLOYED_EXACT_READBACK_PHONE_UNVERIFIED",
+  "migration": "20261108010233_r09_push_capacity_20261108.sql",
+  "catalog": {
+    "version": "20261108010233",
+    "name": "r09_push_capacity_20261108",
+    "statement_count": 1,
+    "joined_md5": "8e417c61af756d968fe9dee8c2e35c16",
+    "joined_sha256": "4f00f50757eca043b8c4276cfd86d1d1db3fd44ff934ccc9b99bf493c76c6359",
+    "joined_bytes": 18398
+  },
+  "evidenceSha256": "2e7a2294e0f6f54dad9f364a2686be58d642db95c469e7e5c694617697a163fd",
+  "rollback": "scripts/sql/r09_push_capacity_20261108.rollback.sql",
+  "limitations": [
+    "Queue was empty; this is not a live throughput measurement.",
+    "Two historical UNKNOWN attempts remained UNKNOWN; no resend or state reset.",
+    "Expo/provider/device delivery is not established by deployment or HTTP success."
+  ],
+  "runtimeProbe": {
+    "requestId": 66117,
+    "status": 200,
+    "timedOut": false,
+    "result": {
+      "kind": "READINESS_RECORDED",
+      "enabled": true
+    }
+  },
+  "runtimeEmptyTick": {
+    "requestId": 66119,
+    "status": 200,
+    "timedOut": false,
+    "result": {
+      "kind": "TICK_COMPLETED",
+      "receipt": "NONE",
+      "send": "NONE",
+      "processed": {
+        "send": 0,
+        "receipt": 0
+      },
+      "failures": {
+        "send": 0,
+        "receipt": 0
+      },
+      "queue": {
+        "observedAt": "2026-11-08T01:06:19.913204+00:00",
+        "activeLeases": 0,
+        "sendAttemptsDue": 0,
+        "pendingDeliveries": 0,
+        "receiptAttemptsDue": 0,
+        "oldestSendAttemptSeconds": null,
+        "oldestReceiptAttemptSeconds": null,
+        "oldestPendingDeliverySeconds": null
+      }
+    }
+  }
+}

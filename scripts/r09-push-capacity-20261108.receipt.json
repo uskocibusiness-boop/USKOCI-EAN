@@ -57,7 +57,7 @@
     "knownRejectionMaxSends": 3,
     "blindResendUnknown": false
   },
-  "migration": "supabase/migrations/20261108005658_r09_push_capacity_20261108.sql",
+  "migration": "supabase/migrations/20261108010233_r09_push_capacity_20261108.sql",
   "migrationSha256": "4f00f50757eca043b8c4276cfd86d1d1db3fd44ff934ccc9b99bf493c76c6359",
   "edgeSha256": "6c58b3a88de38562df9d85e6127408a554678bff3c52c98aeb9e7e91154bd932",
   "postimage": [
@@ -100,5 +100,7 @@
     "Measured drain p50/p95/p99 under representative isolated HTTP/Postgres/network load.",
     "Provider batching/coalescing is not introduced: each authorized send still uses one Expo request.",
     "New telemetry exposes current aggregate counts; long-term alerting/storage is not claimed."
-  ]
+  ],
+  "cliGeneratedMigration": "supabase/migrations/20261108005658_r09_push_capacity_20261108.sql",
+  "laterDevEvidence": "docs/plan/proofs/push-capacity-dev-20261108.json"
 }

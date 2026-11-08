@@ -4502,5 +4502,41 @@
         "exact_before": false
       }
     ]
+  },
+  "forward_execution_20261108_push_capacity": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "observed_at_utc": "2026-11-08T01:02:48.800211+00:00",
+    "scope": "Exact applied bounded push forward migration. Original CLI filename 20261108005658_r09_push_capacity_20261108.sql; physical file renamed to the server-assigned ledger version after exact-byte readback. No historical replay.",
+    "evidence": "inline:dev_forward_catalog_20261108_push_capacity",
+    "entries": [
+      {
+        "file": "20261108010233_r09_push_capacity_20261108.sql",
+        "version": "20261108010233",
+        "name": "r09_push_capacity_20261108",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261108010233",
+        "live_name": "r09_push_capacity_20261108",
+        "live_recorded_md5": "8e417c61af756d968fe9dee8c2e35c16",
+        "live_recorded_sha256": "4f00f50757eca043b8c4276cfd86d1d1db3fd44ff934ccc9b99bf493c76c6359",
+        "raw_md5": "8e417c61af756d968fe9dee8c2e35c16",
+        "raw_sha256": "4f00f50757eca043b8c4276cfd86d1d1db3fd44ff934ccc9b99bf493c76c6359",
+        "raw_bytes": 18398
+      }
+    ],
+    "catalog_evidence": {
+      "project": "leqcwgzvjsxugfgzdmth",
+      "observed_at_utc": "2026-11-08T01:02:48.800211+00:00",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261108010233",
+          "name": "r09_push_capacity_20261108",
+          "statement_count": 1,
+          "joined_md5": "8e417c61af756d968fe9dee8c2e35c16",
+          "joined_sha256": "4f00f50757eca043b8c4276cfd86d1d1db3fd44ff934ccc9b99bf493c76c6359",
+          "joined_bytes": 18398
+        }
+      ]
+    }
   }
 }
