@@ -19,17 +19,22 @@
     {
       "path": "scripts/sql/r13_dispatch_cooperative_candidate.sql",
       "git_commit": "55d8b3adf935d55c6930b4257c234a0ab64d569f",
-      "sha256": "c8fd626081e8c89b2cd3bece9ab9f5468c8646bbd7387bd0bd3bfdcb91e4e5f1",
-      "git_blob_sha": "15bffef88d9912f373ce6ecc25427df5a9e543c4",
+      "sha256": "c8043b7b27dae0eeb9ccb470819993f0dcde2c1d196720ac04467cfe9453584a",
+      "git_blob_sha": "15248679fe790e69c5c05529e46fc3c65987ebcb",
       "source_only_guard": "R13_COOPERATIVE_DISPATCH_SOURCE_ONLY",
-      "purpose": "Prototype PostgreSQL top-level CALL procedure; one profile sweep, per-Need transaction; SECURITY INVOKER, postgres-only caller, no cron change"
+      "purpose": "Prototype PostgreSQL top-level CALL procedure; one profile sweep, per-Need transaction; SECURITY INVOKER, postgres-only caller, no cron change",
+      "source_bytes": 6766,
+      "cycle_budget_carried_across_commits": true,
+      "profile_sweep_error_warns_sqlstate_only": true
     },
     {
       "path": "scripts/r13-dispatch-cooperative.test.cjs",
       "git_commit": "edae482950cbcfbb471af7f661788ca3fd5ad2d9",
-      "sha256": "fb2f48ff25b52963e5c5e82c13a4867ec3cad6044094a7a12ae01ec02eb7f259",
-      "git_blob_sha": "4e979ccdbbfe6534bcfcccf9d223dad38af5b0d4",
-      "purpose": "Fail-closed SQL, autonomous committed waves, crash after first commit, retry and privileged-call denial"
+      "git_blob_sha": "fab5a4f221efec60b2c317cd42b58479871c6f98",
+      "purpose": "Fail-closed SQL, autonomous committed waves, crash after first commit, retry and privileged-call denial",
+      "source_bytes": 8212,
+      "named_sql_fixture_delimiter": true,
+      "latest_fix_commit": "7f207508605c4745648a37879b4fe3aa058cc99b"
     },
     {
       "path": "package.json",
@@ -39,14 +44,14 @@
   ],
   "tests": {
     "new_candidate": {
-      "passed": 3,
+      "passed": 5,
       "failed": 0,
       "runner": "node --test scripts/r13-dispatch-cooperative.test.cjs",
       "engine": "@electric-sql/pglite",
-      "description": "Synthetic in-memory fixture with actual PL/pgSQL procedure, COMMIT, separate XIDs, invalid-role grants, failure and restart"
+      "description": "Synthetic in-memory fixture with actual PL/pgSQL procedure, COMMIT, separate XIDs, invalid-role grants, failure and restart; per-cycle v1b.notified carry and rollback of failed per-Need quota lease"
     },
     "related_suite": {
-      "passed": 23,
+      "passed": 25,
       "failed": 0,
       "runner": "node --test scripts/r13-short-publication.test.cjs scripts/r13-dispatch-cooperative.test.cjs scripts/p0-dispatch-saved-areas.test.cjs scripts/r02-discovery-schedule.test.cjs"
     },
@@ -111,7 +116,8 @@
     "Per-Need commit independence is locally proven; cross-connection row locks/deadlocks and real ON_SITE wave are not",
     "No candidate rollout, permission change or production config change has occurred",
     "Real PostgreSQL requires a top-level CALL; a SECURITY DEFINER or CREATE PROCEDURE SET clause would prevent transaction control",
-    "The new procedure is deliberately non-deployable; a future reviewed forward migration and independent cron switch are required"
+    "The new procedure is deliberately non-deployable; a future reviewed forward migration and independent cron switch are required",
+    "A concurrent integration added two cycle-budget regression tests; source SQL and test Git blob identities were rechecked. Actual native parallel-worker/real wave remained untested."
   ],
   "next_acceptance": [
     "Run native PostgreSQL 17 real dispatch_next_wave for 60 eligible synthetic workers and two Needs, plus two concurrent schedulers and interrupted transaction",
@@ -119,5 +125,7 @@
     "Create new guarded migration only after those tests, with exact pre/post signature/ACL and rollback or switchback plan",
     "Compare GitHub CI and QA APK on new commit, then native ordinary-Auth two-account workflow"
   ],
-  "release": "NO-GO"
+  "release": "NO-GO",
+  "github_head_before_latest_proof_update": "5cf420e73fd39f6842c991d435b91440ba234bf8",
+  "reconciled_after_concurrent_source_changes": true
 }
