@@ -1,0 +1,193 @@
+{
+  "schema": "USKOCI_QA_APK_LOCAL_VERIFIER_V2",
+  "observedAtUtc": "2026-11-08T02:02:12.747862+00:00",
+  "verifier": {
+    "path": "/workspace/scratch/fa2a9c5165cb/worktree-mobile/docs/plan/proofs/qa58-artifact-verifier.py",
+    "bytes": 28155,
+    "sha256": "6224dc5d3eedcc71d1c0791bbcc231c5effde5960406b2909078cb11311dc873"
+  },
+  "status": "LOCAL_ARTIFACT_BYTES_AND_CI_RECEIPTS_CONFIRMED_NOT_NATIVE_E2E",
+  "boundaries": [
+    "No network, installation, emulator or device execution was performed.",
+    "CI aapt/apksigner receipts are not represented as local signature verification.",
+    "Source identity is pinned by assets/app.config and the same GitHub CI run/artifact; this build contract does not require a SHA literal inside Hermes bytecode.",
+    "The source identity checks do not constitute a reproducible rebuild of every bundled module.",
+    "The Hermes string scan does not inspect every native binary or establish server key revocation.",
+    "No production backend, production signing, Google Play AAB or public-release acceptance is claimed."
+  ],
+  "sourceCommit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+  "runNumber": 58,
+  "runId": 42435554637,
+  "githubMetadata": {
+    "path": "/workspace/scratch/fa2a9c5165cb/qa58_artifacts/github-metadata.json",
+    "bytes": 24758,
+    "sha256": "bf1978cf5feb1f622229ddc30dcce5ed5f6e9caaae54205f0591646e1e21f091"
+  },
+  "reference": {
+    "path": "/workspace/scratch/fa2a9c5165cb/worktree-mobile/docs/plan/proofs/qa47-readback-20261107.json",
+    "bytes": 7565,
+    "sha256": "c4a2186372444f783107022df3791f83944c847af6990e902a264c517ca62433"
+  },
+  "ciRunAndRequiredStepsSuccessful": true,
+  "checks": {
+    "archive": {
+      "path": "/workspace/scratch/fa2a9c5165cb/qa58_artifacts/checks.zip",
+      "bytes": 34071,
+      "sha256": "c650eabcbcbb76ae29b7c99337ffa5e90071a490c5da05476ad1397a542550ec",
+      "artifactId": 13599746089,
+      "artifactName": "uskoci-checks-f0ea98106537f5a844721400d5357d5e21689cc1",
+      "matchesGithubDigestAndSize": true
+    },
+    "tests": {
+      "tests": 963,
+      "pass": 963,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "testReportFormat": "NODE_SPEC",
+    "typescript": {
+      "status": "PASS_FROM_SUCCESSFUL_CI_STEP_AND_EMPTY_OUTPUT",
+      "outputBytes": 0
+    },
+    "migrationIntegrity": {
+      "status": "PASS",
+      "physicalFiles": 221,
+      "pythonTests": {
+        "tests": 39,
+        "status": "OK"
+      }
+    },
+    "fileSha256": {
+      "migration-integrity.txt": "d094666837f51b668e8c36c914647f27f1185fb3aa1da5f5ea5c3d597ace0b11",
+      "tests.tap": "75f2cd33cbc07ae089dbf2e6232389413584eec9d4ab7e7213060eb7257bab39",
+      "typescript.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "artifact": {
+    "path": "/workspace/scratch/fa2a9c5165cb/qa58_artifacts/apk.zip",
+    "bytes": 48803045,
+    "sha256": "3be01e38897817d08461f5e8ef7967cf3d3cc16628b8dbcd1841b4927a85382c",
+    "artifactId": 13599613709,
+    "artifactName": "uskoci-isolated-qa-apk-58",
+    "matchesGithubDigestAndSize": true
+  },
+  "apk": {
+    "filename": "USKOCI-QA-f0ea98106.apk",
+    "bytes": 83409667,
+    "sha256": "34cdb4e5a68eb44df8f039c8874ede5a2d426a84aeec38d06c6205699addca48",
+    "matchesBuildReceiptAndSha256sums": true,
+    "extractedApkCompared": false,
+    "package": "rs.uskoci.preview.qa",
+    "backend": "DEV",
+    "backendProject": "leqcwgzvjsxugfgzdmth",
+    "runtimeVersion": "uskoci-v1-preview-r1"
+  },
+  "artifactEvidenceSha256": {
+    "AndroidManifest-tree.txt": "8295a25a75e47aed3c4d8d35f369ed35613311756600d3712135d4445e93b447",
+    "SHA256SUMS.txt": "9e5c85d49b6bd46f50984fa3d7215c8c389185dfabd6b571d46620fe14d3df37",
+    "README.txt": "2e267fe37938ab4045cc8c6a24b6dab91a7c8edda97a9d6ab5c6b58b287a12dd",
+    "apk-badging.txt": "77a69ad13c4937967ab4d955de68ec4f270db30f5db15a040fc15aa8d1d0d8f9",
+    "build-receipt.json": "3b37638f4bbe273d6d50b373e8b1b401d6afd59b08ea12a33cb70fddc328c34e",
+    "native-receipt.json": "4cb8758517bac051010eb1c265f906604f1c538fb075052072a49dcb6552fc4d",
+    "signature.txt": "d3f9e564daa1f8874b2fa80116e8ff75f72412c8b88087cc3d0815861751d3d4"
+  },
+  "ciAndroidEvidence": {
+    "scope": "aapt/apksigner receipts in GitHub-digest-verified artifact; APK bytes independently matched to the build receipt",
+    "localAaptVerificationPerformed": false,
+    "localApksignerVerificationPerformed": false,
+    "localToolsAvailable": {
+      "aapt": false,
+      "apksigner": false
+    },
+    "package": "rs.uskoci.preview.qa",
+    "versionCode": 36,
+    "versionName": "1.0.0",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "otaEnabled": false,
+    "otaCheckAutomatically": "NEVER",
+    "signatureReceiptVerified": true,
+    "schemeV2": true,
+    "signers": 1,
+    "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+    "sameCertificateAsQa47": true,
+    "publicKeyType": "RSA",
+    "publicKeyBits": 2048
+  },
+  "embedded": {
+    "sourceCommit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+    "sourceCommitLocation": "assets/app.config -> extra.uskociBuild.sourceCommit",
+    "sourceDirtyFlag": true,
+    "backendTarget": "canonical",
+    "package": "rs.uskoci.preview.qa",
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "otaEnabled": false,
+    "otaCheckAutomatically": "NEVER",
+    "useEmbeddedUpdate": true,
+    "googleServicesFilePresent": false,
+    "configSha256": "754421b172637c4e540f2370120d6fbb2aff8753575c1e4508f53bac0012ad93",
+    "configBytes": 3210,
+    "manifestSha256": "d6036a3cbb6f40b1223bbc32f2efed151118669848a914ded87c28ae6f19fd26",
+    "manifestBytes": 17947,
+    "manifestAssets": 66,
+    "manifestContainsSourceCommit": false,
+    "bundleBytes": 13993292,
+    "bundleSha256": "9a53d8483c8c17f049f1f212327cc11b608b0535003e4c467be0be0a3827ed30",
+    "bundleSource": "assets/index.android.bundle from the exact APK entry in the verified artifact ZIP",
+    "standaloneBundleInArtifact": false,
+    "extractedBundleCompared": false,
+    "abis": [
+      "arm64-v8a"
+    ],
+    "dexFiles": 7,
+    "nativePatchMarkerPresent": true
+  },
+  "boundedPackagedAssetScan": {
+    "scope": "Bounded Hermes string table; credential and Supabase-host patterns, not a full native binary audit",
+    "bytecodeVersion": 98,
+    "decodedStringCount": 51548,
+    "unmatchedStringRows": 0,
+    "decodedAsciiRows": 48730,
+    "decodedUtf16Rows": 2818,
+    "serviceRoleJwtFound": false,
+    "modernSecretLiteralFound": false,
+    "literalPrefixCount": 1,
+    "jwtCandidateCount": 0,
+    "jwtPayloadsDecoded": 0,
+    "supabaseHostCount": 1,
+    "canonicalDevHostOnly": true,
+    "journalMarkerPresent": true,
+    "journalMarkerRows": 1,
+    "sourceShaLiteralPresent": false,
+    "sourceShaLiteralRows": 0,
+    "sourceShaLiteralExpected": "f0ea98106537f5a844721400d5357d5e21689cc1",
+    "sourceShaLiteralRequiredByBuildContract": false,
+    "rawStringsPublished": false,
+    "nativeBinaryFullAudit": false,
+    "compiler": {
+      "path": "/workspace/scratch/e4ef563411fd/USKOCI-EAN/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc",
+      "bytes": 4401040,
+      "sha256": "925ddf1bc2f17578e8af5df391c9d84dbd98441540fb43257aac3ef75c54b749"
+    },
+    "dumpBytes": 72449588,
+    "dumpSha256": "46afd3263e21efada3e726873475fda743379f825d2a8f99124111d398901341",
+    "rawDumpRetained": false,
+    "timeoutSeconds": 40,
+    "maxDumpBytes": 134217728
+  },
+  "sourceIdentity": {
+    "contract": "EMBEDDED_APP_CONFIG_AND_SAME_CI_BUILD",
+    "status": "CONFIRMED",
+    "sourceCommit": "f0ea98106537f5a844721400d5357d5e21689cc1",
+    "embeddedConfigSourceCommitMatched": true,
+    "ciSourceIdentityCheckSucceeded": true,
+    "githubRunAndArtifactSourceMatched": true,
+    "buildReceiptAndApkBytesMatched": true,
+    "hermesBundleReadFromSameApk": true,
+    "hermesSourceShaLiteralRequired": false,
+    "hermesSourceShaLiteralObserved": false,
+    "reproducibleRebuildPerformed": false
+  }
+}
