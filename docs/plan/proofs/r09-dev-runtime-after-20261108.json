@@ -1,0 +1,296 @@
+{
+  "schemaVersion": 1,
+  "status": "READ_ONLY_POST_ROLLOUT_RUNTIME_OBSERVATION",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceCommit": "e4b4a1c40dca98adb53d07b19fd407e88718f4eb",
+  "runtime": {
+    "cron": [
+      {
+        "active": true,
+        "failed": 0,
+        "jobname": "uskoci_edge_workers",
+        "mean_ms": 471.29,
+        "running": 0,
+        "schedule": "* * * * *",
+        "completed": 15,
+        "command_md5": "6abaf04335ccd2f8240bafcd4dbfb314",
+        "last_completed": "2026-11-08T21:27:00.496448+00:00"
+      },
+      {
+        "active": true,
+        "failed": 0,
+        "jobname": "uskoci_marketplace_tick",
+        "mean_ms": 125.72,
+        "running": 0,
+        "schedule": "* * * * *",
+        "completed": 15,
+        "command_md5": "93518fd0382301fc76f79037123bccfc",
+        "last_completed": "2026-11-08T21:27:00.173947+00:00"
+      },
+      {
+        "active": true,
+        "failed": 0,
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "mean_ms": 42.9,
+        "running": 0,
+        "schedule": "* * * * *",
+        "completed": 15,
+        "command_md5": "b1e89b08b31a550f0ccce47ddcf3cb08",
+        "last_completed": "2026-11-08T21:27:00.139368+00:00"
+      }
+    ],
+    "observedAt": "2026-11-08T21:27:38.857939+00:00",
+    "lastMigration": "20261108211133",
+    "migrationCount": 364,
+    "waitingLockSessions": 0
+  },
+  "edgeFunctions": [
+    {
+      "name": "uskoci-ai-interview",
+      "version": 195,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "deployedSha256": "663abedcda9b000b001f606ab6cb22dce4331d1f655d4358e1d7c1aabed4f3fc"
+    },
+    {
+      "name": "uskoci-location-search",
+      "version": 32,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "deployedSha256": "aa756f8daae61e5c8b07179a74ac05e9b5d7e9967393ea3cc21a16ad659ef39f"
+    },
+    {
+      "name": "uskoci-publication-evaluate",
+      "version": 32,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "deployedSha256": "d9764a7f319195719a411cd9afe4c9ad2e06d6927bdd5f63df70d83c0a001e3f"
+    },
+    {
+      "name": "uskoci-data-export-worker",
+      "version": 29,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "deployedSha256": "e70434a972d46b0af8216717490bd01f6995e0ee785f811c3873b69f6ec5dfff"
+    },
+    {
+      "name": "uskoci-data-export-download",
+      "version": 29,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "deployedSha256": "83581eb03346471b6a1f5575bdf63abea79a028cb0722c94664f0b1f6acb733d"
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "version": 148,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "deployedSha256": "ddbf0bd3e5e15d64ebb650223dc2e573bb8408108c9342dc029e056709efc694"
+    },
+    {
+      "name": "uskoci-speech-session",
+      "version": 33,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "deployedSha256": "d6095a2cbec088d608bbf65172bb85296c400ad6f191a540ec2724175db2472a"
+    },
+    {
+      "name": "uskoci-qa-classify",
+      "version": 31,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "deployedSha256": "322bba9d34ad97e04c571288d469d5a3a0efbb66fa458bbfd943f056fc8e8929"
+    },
+    {
+      "name": "uskoci-push-transport",
+      "version": 47,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "deployedSha256": "3fce4c4b7d03a4bf6f533ee0721b43b86024a66da595603ff8eb5222080a472f"
+    },
+    {
+      "name": "uskoci-media",
+      "version": 31,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "deployedSha256": "baebc8575e0048a5b42897e7da52cdbfa1a612b0bed36aa97d399fb5274466b9"
+    },
+    {
+      "name": "uskoci-account-closure-worker",
+      "version": 19,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "deployedSha256": "fe4f56c67541bf60909418a48b7a7d614eb8f95e77e2d337121f3af24c4fd34e"
+    },
+    {
+      "name": "uskoci-taxonomy-postsave-worker",
+      "version": 14,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "deployedSha256": "b61376460dbc24bcacbddc5473fd882d126f607e8a6ebb422a6be25f6f7b9494"
+    },
+    {
+      "name": "sbfenv",
+      "version": 10,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "deployedSha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18"
+    },
+    {
+      "name": "uskoci-gemini-schema-smoke",
+      "version": 11,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "deployedSha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72"
+    },
+    {
+      "name": "uskoci-gemini-provider-probe-dev",
+      "version": 12,
+      "status": "ACTIVE",
+      "verifyJwt": true,
+      "deployedSha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0"
+    }
+  ],
+  "boundaries": [
+    "Cron succeeded means the recorded SQL job completed; it does not prove the Edge consumer finished, Expo/FCM delivered, or a person saw a notification.",
+    "Fifteen recorded completions for each minute job are an observation at the existing small DEV scale, not a load test or capacity proof.",
+    "No changes to Cron, Edge deployments, budgets or production were made by this observation."
+  ],
+  "linkedApplyProof": "docs/plan/proofs/r09-activation-clock-dev-20261108.json",
+  "release": "NO-GO",
+  "diagnosticHandlersReadback": {
+    "schemaVersion": 1,
+    "observedAtUtc": "2026-11-08T21:29:49Z",
+    "observedAtMeaning": "Completion time recorded by clock__curr_time after the actual get_edge_function/list_edge_functions readback and source/hash/repository comparisons.",
+    "reviewerIdentity": "/root/ai_recovery",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "comparedRepositoryCommit": "e4b4a1c40dca98adb53d07b19fd407e88718f4eb",
+    "method": "Read all deployed files with get_edge_function and independently confirm version/status/verify_jwt/package SHA with list_edge_functions. Compute each source SHA-256 over the exact returned UTF-8 content using Node crypto. No endpoint invocation.",
+    "status": "DEPLOYED_STATIC_DISABLED_HANDLERS_SOURCE_CONFIRMED",
+    "functions": [
+      {
+        "slug": "sbfenv",
+        "version": 10,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "importMap": false,
+        "deployedEntrypointPath": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_9945df6e-ec35-483c-92eb-734b938bf86c_2/source/index.ts",
+        "packageSha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18",
+        "files": [
+          {
+            "path": "index.ts",
+            "source": "// DEV diagnostic endpoint permanently retired after security audit.\n// Never enumerate, log, serialize or return runtime environment variables.\nDeno.serve((_request: Request) => new Response(JSON.stringify({code:'DIAGNOSTIC_DISABLED'}), {\n  status: 410,\n  headers: {'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}\n}));\n",
+            "utf8Bytes": 369,
+            "sha256": "93fb71b6c764fee788aa05b67821a7f8505e2317ec4cec6e9ee905a3ce3b3bc2"
+          }
+        ],
+        "repositorySourceDirectory": "supabase/functions/sbfenv",
+        "repositorySourceDirectoryPresent": false,
+        "historicalHashMatch": true,
+        "staticHandler": {
+          "httpStatus": 410,
+          "requestBodyOrHeadersUsed": false,
+          "imports": 0,
+          "environmentAccess": false,
+          "networkCalls": 0,
+          "providerCostPath": false,
+          "dynamicExecution": false,
+          "literalSecretsFound": false
+        }
+      },
+      {
+        "slug": "uskoci-gemini-schema-smoke",
+        "version": 11,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "importMap": false,
+        "deployedEntrypointPath": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_77b4384f-b7c3-4658-a5a2-51735aa1cc35_3/source/index.ts",
+        "packageSha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72",
+        "files": [
+          {
+            "path": "index.ts",
+            "source": "// Disabled after isolated Gemini schema experiment. No Gemini network or secrets.\nDeno.serve((_request: Request) => new Response(JSON.stringify({code:'SMOKE_TEST_DISABLED'}), {status:410,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}}));\n",
+            "utf8Bytes": 263,
+            "sha256": "5776725353f8fe8e1000c1b0cb67d5fa25f45abb0126dc8a58d43795d615eb75"
+          }
+        ],
+        "repositorySourceDirectory": "supabase/functions/uskoci-gemini-schema-smoke",
+        "repositorySourceDirectoryPresent": false,
+        "historicalHashMatch": true,
+        "staticHandler": {
+          "httpStatus": 410,
+          "requestBodyOrHeadersUsed": false,
+          "imports": 0,
+          "environmentAccess": false,
+          "networkCalls": 0,
+          "providerCostPath": false,
+          "dynamicExecution": false,
+          "literalSecretsFound": false
+        }
+      },
+      {
+        "slug": "uskoci-gemini-provider-probe-dev",
+        "version": 12,
+        "status": "ACTIVE",
+        "verifyJwt": true,
+        "importMap": false,
+        "deployedEntrypointPath": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_6f6bd447-9a46-441b-a5bf-21543f693b0a_4/source/index.ts",
+        "packageSha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0",
+        "files": [
+          {
+            "path": "index.ts",
+            "source": "// Disabled: one-time provider and DEV flag checks completed.\nDeno.serve((_req:Request)=>Response.json({code:'DEV_PROBE_DISABLED'},{status:410,headers:{'Cache-Control':'no-store'}}));",
+            "utf8Bytes": 183,
+            "sha256": "2f12bd21f5a6b549826b8293cba14419d1f6b6e986e59a3f9c9bacbec13fc210"
+          }
+        ],
+        "repositorySourceDirectory": "supabase/functions/uskoci-gemini-provider-probe-dev",
+        "repositorySourceDirectoryPresent": false,
+        "historicalHashMatch": true,
+        "staticHandler": {
+          "httpStatus": 410,
+          "requestBodyOrHeadersUsed": false,
+          "imports": 0,
+          "environmentAccess": false,
+          "networkCalls": 0,
+          "providerCostPath": false,
+          "dynamicExecution": false,
+          "literalSecretsFound": false
+        }
+      }
+    ],
+    "historicalProof": "docs/plan/proofs/r01-diagnostic-edge-helpers-20261107.json",
+    "historicalSourceAndPackageHashesMatch": true,
+    "repositorySourceDirectoriesAbsent": true,
+    "repositorySourceBoundary": "The deployed static handlers are preserved here as readback evidence. Executable canonical folders are absent; this record is not a deploy-ready source package.",
+    "repositoryLiteralCallerSearch": {
+      "paths": [
+        ".github",
+        "scripts",
+        "src",
+        "supabase",
+        "eas.json",
+        "app.config.js"
+      ],
+      "matches": [
+        "scripts/sql/r01_legacy_key_20261107.receipt.json"
+      ],
+      "executableLiteralCallersFound": false,
+      "scope": "Exact three slugs only; no claim about external tools or dynamically constructed URLs."
+    },
+    "ordinaryJwtConclusion": "If the gateway admits a request, each deployed handler can only return its unconditional static HTTP410 response. The source has no environment, provider, privileged-key or request-dependent path. Gateway acceptance/rejection was not invoked.",
+    "additionalConfirmedImmediateBlocker": false,
+    "knownLegacyTokenBoundary": "This readback neither revokes the previously confirmed active historical service-role token nor closes that separate R01 blocker.",
+    "actions": {
+      "endpointInvocations": 0,
+      "providerCalls": 0,
+      "deployments": 0,
+      "devMutations": 0,
+      "runtimeCodeEdits": 0
+    },
+    "preservation": {
+      "priorProofSha256": "178f53db5dafee441788f1e391cc60ba4daa477b44219894b63fc4d88b2b31df",
+      "existingFieldsCanonicalSha256": "6e25f40b26603090d4c8c6bf4398b6e0973da525db13fd531cff804b4bd5e28e"
+    }
+  }
+}

@@ -59,13 +59,34 @@ class R2VerifierTests(unittest.TestCase):
         with zipfile.ZipFile(io.BytesIO(self.outer[self.filename])) as archive:
             self.inner = {name: archive.read(name) for name in archive.namelist()}
         self.hashes = {}
-        for filename in RUNNER.AUDIO:
+        self.resources = {}
+        paths = {'uskoci_confirm_v1.wav': 'res/F2.wav', 'uskoci_message_v1.wav': 'res/ES.wav', 'uskoci_opportunity_v1.wav': 'res/fp.wav'}
+        dump = ['Binary APK', 'Package name=rs.uskoci.preview.qa id=7f', '  type raw id=01 entryCount=3']
+        for index, filename in enumerate(sorted(RUNNER.AUDIO)):
             data = (self.repo / "assets/audio" / filename).read_bytes()
-            self.inner["res/raw/" + filename] = data
+            resource_id = f'0x7f01000{index}'
+            resource_name = 'raw/' + Path(filename).stem
+            self.inner[paths[filename]] = data
             self.hashes[filename] = RUNNER.BASE.sha(data)
+            self.resources[filename] = {'logicalName': resource_name, 'resourceId': resource_id,
+                                        'apkPath': paths[filename], 'bytes': len(data), 'sha256': self.hashes[filename]}
+            dump.extend([f'    resource {resource_id} {resource_name}', f'      () (file) {paths[filename]}'])
+        # AAPT2 itself is replaced only in this synthetic artifact fixture.
+        # The helper still parses a real observed dump shape and checks actual
+        # ZIP bytes. Separate native reproduction runs the official binary.
+        self.inner['resources.arsc'] = b'SYNTHETIC_RESOURCE_TABLE_ONLY'
+        self.inner['AndroidManifest.xml'] = b'SYNTHETIC_MANIFEST_ONLY'
+        dump_path = self.repo / 'fixture-resources.txt'
+        dump_path.write_text('\n'.join(dump) + '\n')
+        self.args.aapt2 = self.repo / 'aapt2-fixture'
+        self.args.aapt2.write_text('#!/usr/bin/env python3\nimport sys\nfrom pathlib import Path\n'
+                                  'if sys.argv[1:] == ["version"]: print("Android Asset Packaging Tool (aapt) 2.20-13700139")\n'
+                                  'elif sys.argv[1:3] == ["dump", "resources"]: print(Path(' + repr(str(dump_path)) + ').read_text(), end="")\n'
+                                  'else: raise SystemExit(2)\n')
+        self.args.aapt2.chmod(0o755)
         for name in ("native-receipt.json", "build-receipt.json"):
             receipt = json.loads(self.outer[name])
-            receipt.update(bundledAudioSha256=self.hashes, customSoundActivation=RUNNER.ACTIVATION)
+            receipt.update(bundledAudioSha256=self.hashes, bundledAudioResources=self.resources, customSoundActivation=RUNNER.ACTIVATION)
             self.outer[name] = json.dumps(receipt).encode()
         self.refresh_archive()
 
@@ -112,15 +133,26 @@ class R2VerifierTests(unittest.TestCase):
         self.assertEqual(self.verify()["nativeAudio"]["resources"][RUNNER.AUDIO[0]]["sha256"], self.hashes[RUNNER.AUDIO[0]])
 
     def test_tampered_wav_rejected_even_after_all_outer_apk_hashes_match(self):
-        key = "res/raw/" + RUNNER.AUDIO[0]
+        key = self.resources[RUNNER.AUDIO[0]]['apkPath']
         self.inner[key] = self.inner[key][:-1] + bytes([self.inner[key][-1] ^ 1])
         self.refresh_archive()
-        self.rejected("APK_NATIVE_AUDIO_BYTES_MISMATCH")
+        self.rejected("AUDIO_APK_RESOURCE_BYTES_MISMATCH")
 
     def test_missing_native_resource_rejected(self):
-        del self.inner["res/raw/" + RUNNER.AUDIO[1]]
+        del self.inner[self.resources[RUNNER.AUDIO[1]]['apkPath']]
         self.refresh_archive()
-        self.rejected("APK_NATIVE_AUDIO_RESOURCE_SET_MISMATCH")
+        self.rejected("AUDIO_APK_RESOURCE_MISSING")
+
+    def test_forged_resource_mapping_rejected_even_with_correct_audio_hashes(self):
+        receipt = json.loads(self.outer['native-receipt.json'])
+        receipt['bundledAudioResources'][RUNNER.AUDIO[0]]['apkPath'] = 'res/forged.wav'
+        self.outer['native-receipt.json'] = json.dumps(receipt).encode()
+        self.refresh_archive()
+        self.rejected('NATIVE_AUDIO_RESOURCE_RECEIPT_MISMATCH')
+
+    def test_independent_resource_table_tool_is_required(self):
+        self.args.aapt2 = None
+        self.rejected('AAPT2_NOT_AVAILABLE')
 
     def test_wrong_native_receipt_map_rejected(self):
         for name in ("native-receipt.json", "build-receipt.json"):

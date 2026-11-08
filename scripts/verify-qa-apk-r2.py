@@ -17,7 +17,10 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 import zipfile
+
+from apk_audio_resources import AudioResourceError, verify_apk_audio
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_PATH = ROOT / "docs/plan/proofs/qa58-artifact-verifier.py"
@@ -67,21 +70,28 @@ def verify(args, proof):
         receipt = BASE.object_json(archive.read("build-receipt.json"), "BUILD_RECEIPT_INVALID")
     BASE.require(BASE.sha(apk) == proof["apk"]["sha256"], "APK_CHANGED_DURING_VERIFICATION")
     hashes = {filename: BASE.sha(blob) for filename, blob in source.items()}
-    with zipfile.ZipFile(io.BytesIO(apk)) as packaged:
-        names = BASE.bounded_members(packaged, 512 * BASE.MIB, 128 * BASE.MIB)
-        expected = {"res/raw/" + filename for filename in AUDIO}
-        actual = {name for name in names if re.fullmatch(r"res/raw/uskoci_.*_v1\.wav", name)}
-        BASE.require(actual == expected, "APK_NATIVE_AUDIO_RESOURCE_SET_MISMATCH")
-        for filename, blob in source.items():
-            BASE.require(packaged.read("res/raw/" + filename) == blob, "APK_NATIVE_AUDIO_BYTES_MISMATCH")
+    BASE.require(args.aapt2 is not None and args.aapt2.is_file(), "AAPT2_NOT_AVAILABLE")
+    # Independently resolve Android resource IDs/names from the downloaded APK.
+    # AGP may shorten ZIP paths; stable logical names and exact bytes are required.
+    with tempfile.TemporaryDirectory(prefix="qa-audio-resource-", dir=args.output.parent) as directory:
+        snapshot = Path(directory) / "verified.apk"
+        snapshot.write_bytes(apk)
+        try:
+            audio = verify_apk_audio(snapshot, args.aapt2, args.package, source)
+        except AudioResourceError as error:
+            raise BASE.Rejected(str(error)) from error
+    BASE.require(audio["apk"]["sha256"] == proof["apk"]["sha256"], "APK_CHANGED_DURING_AUDIO_VERIFICATION")
     for record in (native, receipt):
         BASE.require(record.get("bundledAudioSha256") == hashes, "NATIVE_AUDIO_RECEIPT_MAP_MISMATCH")
+        BASE.require(record.get("bundledAudioResources") == audio["resources"], "NATIVE_AUDIO_RESOURCE_RECEIPT_MISMATCH")
         BASE.require(record.get("customSoundActivation") == ACTIVATION, "NATIVE_AUDIO_ACTIVATION_RECEIPT_MISMATCH")
     proof["nativeAudio"] = {
-        "status": "APK_RAW_BYTES_MATCH_EXACT_GIT_COMMIT_AND_BOTH_CI_RECEIPTS",
+        "status": "APK_LOGICAL_RAW_RESOURCES_AND_BYTES_MATCH_EXACT_GIT_COMMIT_AND_BOTH_CI_RECEIPTS",
         "sourceCommit": args.head,
         "source": "git show <exact sourceCommit>:assets/audio/<filename>; not working-tree files",
-        "resources": {name: {"apkPath": "res/raw/" + name, "bytes": len(source[name]), "sha256": hashes[name]} for name in AUDIO},
+        "resources": audio["resources"],
+        "independentAapt2": audio["aapt2"],
+        "independentResourceDump": audio["resourceDump"],
         "customSoundActivation": ACTIVATION,
         "audibleOutputOrDeviceExecutionVerified": False,
     }
@@ -103,6 +113,7 @@ def parse_args(argv=None):
     parser.add_argument("--output", type=Path, required=True, help="New proof path; existing files are never overwritten")
     parser.add_argument("--repo", type=Path, default=ROOT, help="Git repository containing the exact source commit")
     parser.add_argument("--hermesc", type=Path, default=ROOT / "node_modules/hermes-compiler/hermesc/linux64-bin/hermesc")
+    parser.add_argument("--aapt2", type=Path, help="Verified Android AAPT2 binary for independent raw resource-table checks")
     parser.add_argument("--reference", type=Path, default=ROOT / "docs/plan/proofs/qa47-readback-20261107.json")
     parser.add_argument("--branch", default="work/uskoci-cist-proizvod-20261104")
     parser.add_argument("--runtime", choices=[RUNTIME], default=RUNTIME)
@@ -132,8 +143,9 @@ def main(argv=None):
         "status": "INCOMPLETE",
         "boundaries": [
             "Offline verification of supplied GitHub metadata and original artifact ZIPs; no network or build is performed.",
-            "Native package/SDK/manifest/signature details use digest-bound CI aapt/apksigner receipts; no independent local Android tool invocation is claimed.",
+            "Native package/SDK/manifest/signature details use digest-bound CI aapt/apksigner receipts; no independent local aapt manifest or apksigner invocation is claimed.",
             "Embedded config/source/runtime/OTA flags, APK hashes, native WAV bytes and bounded Hermes strings are checked locally.",
+            "A supplied verified AAPT2 binary independently resolves logical raw resource names and IDs to optimized APK paths; exact Git WAV bytes remain mandatory.",
             "The preserved QA47 debug certificate and seven-DEX continuity checks remain mandatory; unexpected change fails for review.",
             "No device execution, audible sound, push delivery, production signing, Play AAB or public-release readiness is established.",
         ],

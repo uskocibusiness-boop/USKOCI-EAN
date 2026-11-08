@@ -1,0 +1,152 @@
+{
+  "status": "ACTUAL_AAPT2_RESOURCE_PACKAGING_FIXTURE_CONFIRMED_NOT_APPLICATION_OR_DEVICE_E2E",
+  "checkedAt": "2026-11-08T21:54:46.619908+00:00",
+  "sourceCommit": "e4b4a1c40dca98adb53d07b19fd407e88718f4eb",
+  "qa90": {
+    "runId": 42524917746,
+    "observedByCoordinator": "generated raw bytes PASS; Gradle build PASS; optimizeReleaseResources task executed; final fixed res/raw path assertion FAILED",
+    "failedApkBytesAvailable": false,
+    "rootCauseQualification": "The exact AGP8.12.0 source unconditionally enables resource path shortening; same-tool actual fixture reproduces rejection of fixed ZIP paths while preserving logical resources and exact WAV bytes. QA90 concrete packaged paths remain unobserved."
+  },
+  "officialDownloads": [
+    {
+      "file": "gradle-8.12.0-sources.jar",
+      "url": "https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/8.12.0/gradle-8.12.0-sources.jar",
+      "bytes": 3879732,
+      "sha256": "55d4e82406b9061f885ec6784c9bca72a809ce2269def5b4c4c371f3ae257eef",
+      "officialSha1": "2b5341f4e412b58b7ed59033a6a0d3d60b5d9e80",
+      "officialSha1Matches": true
+    },
+    {
+      "file": "aapt2-8.12.0-13700139-linux.jar",
+      "url": "https://dl.google.com/dl/android/maven2/com/android/tools/build/aapt2/8.12.0-13700139/aapt2-8.12.0-13700139-linux.jar",
+      "bytes": 2450069,
+      "sha256": "df85593b92c25199515750a30b14744acc42537b2d1176be61b248111484134f",
+      "officialSha1": "240beac906c7fc6c7f3f8c312c0a2f8c4acf0858",
+      "officialSha1Matches": true,
+      "binarySha256": "3aefe9e14970ba7fcbd0209809adc85e560b6ce07cc90804ea8e1c0e6e1f84dd"
+    }
+  ],
+  "agpSourceEvidence": {
+    "version": "8.12.0",
+    "optimizeTaskSha256": "95b4214d446142a86faa21909f878e4340b564f200120b129a16a49738165ec9",
+    "booleanOptionsSha256": "ef30db485f6058103ea33db7a2328f893d6537653fff2a6388c07cf7f15f28e1",
+    "facts": [
+      "ENABLE_RESOURCE_OPTIMIZATIONS defaults true.",
+      "OptimizeResourcesTask uses SHORTEN_RESOURCE_PATHS unconditionally.",
+      "Resource-name obfuscation is false; logical names are retained.",
+      "Task consumes processed resources when shrinker is disabled."
+    ]
+  },
+  "commands": [
+    "aapt2 compile --dir res -o compiled",
+    "aapt2 link --manifest AndroidManifest.xml -o before.apk compiled/*.flat",
+    "aapt2 optimize --shorten-resource-paths --resource-path-shortening-map path-map.txt -o after.apk before.apk",
+    "aapt2 dump resources before.apk",
+    "aapt2 dump resources after.apk"
+  ],
+  "actualFixtures": {
+    "before": {
+      "package": "rs.uskoci.preview.qa",
+      "apk": {
+        "bytes": 51156,
+        "sha256": "601a460fe3d20cf6129e221643abd9ea723a7bfbaf3819bdee04997a1eaa296b"
+      },
+      "resources": {
+        "uskoci_confirm_v1.wav": {
+          "logicalName": "raw/uskoci_confirm_v1",
+          "resourceId": "0x7f010000",
+          "apkPath": "res/raw/uskoci_confirm_v1.wav",
+          "bytes": 20330,
+          "sha256": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1"
+        },
+        "uskoci_message_v1.wav": {
+          "logicalName": "raw/uskoci_message_v1",
+          "resourceId": "0x7f010001",
+          "apkPath": "res/raw/uskoci_message_v1.wav",
+          "bytes": 10628,
+          "sha256": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed"
+        },
+        "uskoci_opportunity_v1.wav": {
+          "logicalName": "raw/uskoci_opportunity_v1",
+          "resourceId": "0x7f010002",
+          "apkPath": "res/raw/uskoci_opportunity_v1.wav",
+          "bytes": 18566,
+          "sha256": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+        }
+      },
+      "aapt2": {
+        "version": "Android Asset Packaging Tool (aapt) 2.20-13700139",
+        "sha256": "3aefe9e14970ba7fcbd0209809adc85e560b6ce07cc90804ea8e1c0e6e1f84dd"
+      },
+      "resourceDump": {
+        "bytes": 365,
+        "sha256": "e5798b822ec40d788305c5aa8bebde6559485224f081259a5a4c12115052a4d0"
+      }
+    },
+    "after": {
+      "package": "rs.uskoci.preview.qa",
+      "apk": {
+        "bytes": 50975,
+        "sha256": "6dbfdf719642a94677ce4cb26ff23974fcfe6581b9d822150f46c648ef2f26c3"
+      },
+      "resources": {
+        "uskoci_confirm_v1.wav": {
+          "logicalName": "raw/uskoci_confirm_v1",
+          "resourceId": "0x7f010000",
+          "apkPath": "res/F2.wav",
+          "bytes": 20330,
+          "sha256": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1"
+        },
+        "uskoci_message_v1.wav": {
+          "logicalName": "raw/uskoci_message_v1",
+          "resourceId": "0x7f010001",
+          "apkPath": "res/ES.wav",
+          "bytes": 10628,
+          "sha256": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed"
+        },
+        "uskoci_opportunity_v1.wav": {
+          "logicalName": "raw/uskoci_opportunity_v1",
+          "resourceId": "0x7f010002",
+          "apkPath": "res/fp.wav",
+          "bytes": 18566,
+          "sha256": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+        }
+      },
+      "aapt2": {
+        "version": "Android Asset Packaging Tool (aapt) 2.20-13700139",
+        "sha256": "3aefe9e14970ba7fcbd0209809adc85e560b6ce07cc90804ea8e1c0e6e1f84dd"
+      },
+      "resourceDump": {
+        "bytes": 304,
+        "sha256": "4c2b55ebef01a83527210a49bca5874d5a35d3d2c3f54fe911497037d95ad225"
+      }
+    }
+  },
+  "parserVerification": {
+    "command": "python scripts/test_apk_audio_resources.py -v",
+    "tests": 16,
+    "passed": 16,
+    "failed": 0,
+    "scope": "synthetic parser/subprocess/ZIP negative fixtures, separate from actual AAPT2 execution above"
+  },
+  "filesSha256": {
+    "scripts/apk_audio_resources.py": "b30290b28c24c53309f3fcaaf86d41282d1caace0fe54d855301387e44f4de45",
+    "scripts/test_apk_audio_resources.py": "cddc7eccdb93e5eac91f6a199257f00983abc410dede83580f9bdce3edd251d6"
+  },
+  "boundaries": [
+    "Fixture APK contains resources and manifest only; no app build, installation, device, sound playback, push or DND acceptance is claimed.",
+    "No production settings, native optimizer flags, server/DEV state or original WAV bytes were changed.",
+    "Safe remedy is logical resource table identity plus exact mapped bytes, not a global search for a matching SHA and not disabling the optimizer."
+  ],
+  "helperWorkingTreeChanges": true,
+  "independentReview": {
+    "reviewer": "/root/ai_recovery",
+    "fixedFindings": [
+      "Android resource type00 rejected.",
+      "ZIP/resource-table/manifest size preflight precedes AAPT2 invocation.",
+      "Package type-name to type-ID mapping cannot conflict or be redeclared."
+    ],
+    "reviewScope": "Bounded parser and helper; independent AAPT2 fixture verification. No QA90 APK or device proof."
+  }
+}

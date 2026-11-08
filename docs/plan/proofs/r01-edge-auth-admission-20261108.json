@@ -1,0 +1,126 @@
+{
+  "schema": "USKOCI_R01_EDGE_ADMISSION_BOUNDED_V1",
+  "sourceCommit": "e4b4a1c40dca98adb53d07b19fd407e88718f4eb",
+  "startedAtUtc": "2026-11-08T21:38:17.339Z",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "actors": [
+    {
+      "label": "A",
+      "accountIdSha256": "94c803f8ca9962efec44043a7570654dec02bab0b9c9e7cfc626ffccf8d23214",
+      "jwtAlgorithm": "ES256",
+      "jwtRole": "authenticated"
+    },
+    {
+      "label": "B",
+      "accountIdSha256": "250d634639353ac438bcf66ba72a78854c30620ec3005b54d19bf225f9759a52",
+      "jwtAlgorithm": "ES256",
+      "jwtRole": "authenticated"
+    }
+  ],
+  "sourceHashes": {
+    "uskoci-media": "452aa3e86d8562ee705b0f97bab8e111bf8bafb98b6b83644139fa041c994a28",
+    "uskoci-speech-session": "c456c16a30404ddc2396da8cfb5410751cbd8c71fe24860b42a2583c567ca6b5",
+    "uskoci-publication-evaluate": "7d3665a435420d88433be8f9a96836b770a80724bd88b4d88d349b762405cb05"
+  },
+  "requestPolicy": {
+    "method": "POST",
+    "body": {},
+    "mediaHeaders": "All x-media-* headers omitted",
+    "automaticRetries": 0,
+    "existingSessionsReused": true,
+    "privateCredentialsPublished": false
+  },
+  "checks": [
+    {
+      "name": "ordinary-auth-user-A",
+      "httpStatus": 200,
+      "code": null,
+      "gatewayMessage": null,
+      "expectedStatus": 200,
+      "expectedCode": null,
+      "elapsedMs": 7747,
+      "pass": true
+    },
+    {
+      "name": "ordinary-auth-user-B",
+      "httpStatus": 200,
+      "code": null,
+      "gatewayMessage": null,
+      "expectedStatus": 200,
+      "expectedCode": null,
+      "elapsedMs": 7720,
+      "pass": true
+    },
+    {
+      "name": "media-auth-before-invalid-operation-A",
+      "httpStatus": 400,
+      "code": "MEDIA_INPUT_INVALID",
+      "gatewayMessage": null,
+      "expectedStatus": 400,
+      "expectedCode": "MEDIA_INPUT_INVALID",
+      "elapsedMs": 1787,
+      "pass": true
+    },
+    {
+      "name": "media-auth-before-invalid-operation-B",
+      "httpStatus": 400,
+      "code": "MEDIA_INPUT_INVALID",
+      "gatewayMessage": null,
+      "expectedStatus": 400,
+      "expectedCode": "MEDIA_INPUT_INVALID",
+      "elapsedMs": 1779,
+      "pass": true
+    },
+    {
+      "name": "media-missing-token",
+      "httpStatus": 401,
+      "code": "AUTH_REQUIRED",
+      "gatewayMessage": null,
+      "expectedStatus": 401,
+      "expectedCode": null,
+      "elapsedMs": 52,
+      "pass": true
+    },
+    {
+      "name": "media-invalid-token",
+      "httpStatus": 401,
+      "code": "UNAUTHORIZED_INVALID_JWT_FORMAT",
+      "gatewayMessage": "Invalid JWT",
+      "expectedStatus": 401,
+      "expectedCode": null,
+      "elapsedMs": 56,
+      "pass": true
+    },
+    {
+      "name": "speech-method-gateway-admission",
+      "httpStatus": 405,
+      "code": "SPEECH_WEBSOCKET_REQUIRED",
+      "gatewayMessage": null,
+      "expectedStatus": 405,
+      "expectedCode": "SPEECH_WEBSOCKET_REQUIRED",
+      "elapsedMs": 5682,
+      "pass": true
+    },
+    {
+      "name": "publication-shape-gateway-admission",
+      "httpStatus": 400,
+      "code": "INVALID_REQUEST",
+      "gatewayMessage": null,
+      "expectedStatus": 400,
+      "expectedCode": "INVALID_REQUEST",
+      "elapsedMs": 5682,
+      "pass": true
+    }
+  ],
+  "boundaries": [
+    "Media empty POST authenticates against /auth/v1/user, then rejects missing operation before any admission, claim or Storage path.",
+    "Speech POST rejects method before handler Auth; publication empty POST rejects missing fields before handler Auth. These two show gateway admission only.",
+    "No real upload, WebSocket upgrade, provider request, paid reservation, publication, push, Android execution or full Edge operation acceptance."
+  ],
+  "finishedAtUtc": "2026-11-08T21:38:32.560Z",
+  "passed": 8,
+  "failed": 0,
+  "completed": true,
+  "status": "PASS_WITH_STATED_BOUNDARY",
+  "harnessSha256": "b14268fe111e9b96626b75d498bbb1b326eae4807d090c3a48c3c76f22b53c85"
+}

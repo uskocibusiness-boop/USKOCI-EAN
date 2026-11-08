@@ -86,6 +86,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/uskoci-checks"
           node scripts/verify-native-patches.cjs --repo
           python scripts/qa-gradle-bootstrap.test.py
+          python scripts/test_apk_audio_resources.py
           python scripts/test_verify_qa_apk_r2.py
           node scripts/record-ux-checkpoint.cjs --verify-source
           npm test 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/tests.tap"
@@ -235,13 +236,16 @@ jobs:
           apk=android/app/build/outputs/apk/release/app-release.apk
           test -s "$apk"
           tools_dir="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          export USKOCI_QA_AAPT2="$tools_dir/aapt2"
           "$tools_dir/apksigner" verify --verbose --print-certs "$apk" > artifacts/qa-apk/signature.txt
           "$tools_dir/aapt" dump badging "$apk" > artifacts/qa-apk/apk-badging.txt
           grep -F "package: name='rs.uskoci.preview.qa'" artifacts/qa-apk/apk-badging.txt
           "$tools_dir/aapt" dump xmltree "$apk" AndroidManifest.xml > artifacts/qa-apk/AndroidManifest-tree.txt
           python - <<'PY'
-          import hashlib, json, re, zipfile
+          import json, os, re, sys, zipfile
           from pathlib import Path
+          sys.path.insert(0, str(Path('scripts').resolve()))
+          from apk_audio_resources import verify_apk_audio
           directory = Path('artifacts/qa-apk')
           manifest = (directory / 'AndroidManifest-tree.txt').read_text()
           blocks = re.split(r'(?m)^\s*E: ', manifest)
@@ -254,13 +258,13 @@ jobs:
             assert 'assets/index.android.bundle' in names and apk.getinfo('assets/index.android.bundle').file_size > 0, 'APK_EMBEDDED_BUNDLE_MISSING'
             dex = [name for name in names if re.fullmatch(r'classes\d*\.dex', name)]
             assert dex and any(b'USKOCI_RNR01' in apk.read(name) for name in dex), 'APK_NATIVE_PATCH_MISSING'
-            audio = {}
-            for sound in sorted(Path('assets/audio').glob('uskoci_*_v1.wav')):
-              resource = 'res/raw/' + sound.name
-              assert resource in names and apk.read(resource) == sound.read_bytes(), 'APK_NATIVE_AUDIO_RESOURCE_MISMATCH'
-              audio[sound.name] = hashlib.sha256(apk.read(resource)).hexdigest()
-            assert len(audio) == 3, 'APK_NATIVE_AUDIO_COUNT_MISMATCH'
-          (directory / 'native-receipt.json').write_text(json.dumps({'abis': abis, 'embeddedBundle': True, 'otaEnabled': False, 'nativePatchMarker': 'USKOCI_RNR01', 'dexFiles': len(dex), 'bundledAudioSha256': audio, 'customSoundActivation': 'NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED'}, indent=2) + '\n')
+          sources = {p.name: p.read_bytes() for p in Path('assets/audio').glob('uskoci_*_v1.wav')}
+          assert set(sources) == {'uskoci_message_v1.wav', 'uskoci_opportunity_v1.wav', 'uskoci_confirm_v1.wav'}, 'APK_NATIVE_AUDIO_COUNT_MISMATCH'
+          # AGP8.12 shortens resource ZIP paths even without minify/shrink.
+          # Resolve logical Android raw names/IDs through the actual table, then
+          # compare the mapped packaged bytes exactly. Never infer by hash alone.
+          audio = verify_apk_audio(Path('android/app/build/outputs/apk/release/app-release.apk'), Path(os.environ['USKOCI_QA_AAPT2']), 'rs.uskoci.preview.qa', sources)
+          (directory / 'native-receipt.json').write_text(json.dumps({'abis': abis, 'embeddedBundle': True, 'otaEnabled': False, 'nativePatchMarker': 'USKOCI_RNR01', 'dexFiles': len(dex), 'bundledAudioSha256': {name: value['sha256'] for name, value in audio['resources'].items()}, 'bundledAudioResources': audio['resources'], 'audioResourceTableVerification': {'aapt2': audio['aapt2'], 'resourceDump': audio['resourceDump']}, 'customSoundActivation': 'NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED'}, indent=2) + '\n')
           print('Final APK: ARM64, embedded bundle, OTA disabled and native patch marker PASS')
           PY
           cp "$apk" artifacts/qa-apk/USKOCI-QA-$(git rev-parse --short=9 HEAD).apk

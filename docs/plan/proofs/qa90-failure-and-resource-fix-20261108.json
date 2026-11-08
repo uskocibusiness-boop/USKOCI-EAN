@@ -1,0 +1,63 @@
+{
+  "status": "CI_FAILED_AT_APK_AUDIO_ATTESTATION",
+  "run": 90,
+  "runId": 42524917746,
+  "sourceCommit": "e4b4a1c40dca98adb53d07b19fd407e88718f4eb",
+  "jobId": 128866281144,
+  "sourceChecks": {
+    "nodeTests": 1103,
+    "passed": 1103,
+    "typescript": "PASS",
+    "canonicalMigrations": 227,
+    "migrationTests": 48
+  },
+  "generatedNativeRawResources": "EXACT_BYTE_CHECK_PASS",
+  "nativeCompile": "PASS",
+  "nativeBuildDuration": "16m45s",
+  "failedGate": "APK_NATIVE_AUDIO_RESOURCE_MISMATCH",
+  "installableArtifactUploaded": false,
+  "guardWeakened": false,
+  "logSha256": "c695d2e5cb170134f14a3af5ade65f91ad7466290c6c94d3aa81481fb9b5e1f2",
+  "observations": [
+    "2026-11-08T21:25:56.9365858Z Bundled native sound: uskoci_confirm_v1.wav bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1",
+    "2026-11-08T21:25:56.9377509Z Bundled native sound: uskoci_message_v1.wav ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed",
+    "2026-11-08T21:25:56.9379406Z Bundled native sound: uskoci_opportunity_v1.wav 79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d",
+    "2026-11-08T21:25:56.9380810Z Generated Android manifest: embedded source only PASS",
+    "2026-11-08T21:42:42.3673838Z > Task :app:optimizeReleaseResources",
+    "2026-11-08T21:42:45.4862111Z BUILD SUCCESSFUL in 16m 45s",
+    "2026-11-08T21:42:47.3411785Z AssertionError: APK_NATIVE_AUDIO_RESOURCE_MISMATCH"
+  ],
+  "release": "NO-GO",
+  "checksArtifact": {
+    "id": 13634902771,
+    "bytes": 39829,
+    "sha256": "42592b399f4993d016dd2cedb9d965ec8fa0308dd0beed138f31ec5e0d55c177",
+    "originalDownloadedZipHashVerified": true
+  },
+  "reproducedCause": "Installed AGP8.12.0 OptimizeResourcesTask uses AAPT2 --shorten-resource-paths. Official AAPT2 on the three exact source WAVs preserves logical raw IDs and byte content but maps res/raw names to shortened ZIP paths. QA90 final APK was not uploaded and its specific resource table was not inspected.",
+  "reproductionProof": "docs/plan/proofs/r12-aapt2-audio-paths-20261108.json",
+  "fix": {
+    "owner": ".github/workflows/uskoci-qa-apk.yml",
+    "sharedVerifier": "scripts/apk_audio_resources.py",
+    "offlineVerifier": "scripts/verify-qa-apk-r2.py",
+    "rule": "actual Android logical raw name and ID -> mapped ZIP member -> exact immutable Git WAV bytes",
+    "optimizerChanged": false,
+    "historicalVerifierChanged": false,
+    "packageSignatureDexSourceOtaGatesRemoved": false,
+    "nextCI": "NOT_YET_RUN"
+  },
+  "historicalFullAppParserCompatibility": {
+    "apkSha256": "a6d6f2a75f4fb94d1bee6c8a39f92634dae7e39d98aba0e810a314908cde4d87",
+    "dumpBytes": 2397270,
+    "result": "all resource grammar traversed; AUDIO_RESOURCE_SET_MISMATCH expected because historical APK predates sounds",
+    "scope": "not acceptance of a new APK"
+  },
+  "localChecks": {
+    "sharedAudioVerifier": 16,
+    "r2ArtifactVerifier": 13,
+    "preservedHistoricalVerifier": 20,
+    "qaWorkflowBootstrap": 14,
+    "status": "PASS",
+    "syntheticArtifactFixturesAreNotBuildEvidence": true
+  }
+}
