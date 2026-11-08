@@ -388,3 +388,38 @@ for (const mode of ['oversized body', 'deadline', 'caller cancellation']) {
     h.verify();
   });
 }
+
+
+// The caller's deadline can win the race BEFORE fetch returns headers.
+// In that case there is no awaited Response to cancel unless the late fetch
+// settles through its own cleanup handler. Never reinterpret late success as
+// an admitted reservation or dispatch another paid model request.
+for (const mode of ['direct body', 'reader-only body']) {
+  test('late budget fetch response is discarded after deadline: ' + mode, { timeout: 1000 }, async () => {
+    const timer = clock();
+    let resolveFetch, cancels = 0, reads = 0, calls = 0;
+    const budgetSource = process.env.USKOCI_AI_BUDGET_HELPER_SOURCE;
+    const load = loadSources(budgetSource ? {
+      'supabase/functions/_shared/aiTestBudget.ts': fs.readFileSync(budgetSource, 'utf8'),
+    } : {}, {
+      fetch: async () => { calls++; return new Promise(resolve => { resolveFetch = resolve; }); },
+      setTimeout: timer.setTimeout, clearTimeout: timer.clearTimeout,
+    });
+    const { reserveAiTestBudget } = load('supabase/functions/_shared/aiTestBudget.ts');
+    const pending = reserveAiTestBudget({ supabaseUrl: 'https://budget-fixture.invalid',
+      serviceRoleKey: 'synthetic-local-only', accountId: ACCOUNT, operationId: OPERATION, kind: 'LLM' });
+    await turn();
+    const refused = assert.rejects(pending, { message: 'AI_TEST_BUDGET_UNAVAILABLE' });
+    timer.fire(5000);
+    await refused;
+    assert.equal(calls, 1);
+    assert.equal(timer.active.size, 0);
+    const reader = { read() { reads++; return Promise.resolve({ done: true }); }, cancel() { cancels++; } };
+    resolveFetch({ ok: true, body: mode === 'direct body'
+      ? { cancel() { cancels++; return Promise.reject(new Error('non-authoritative cleanup failure')); } }
+      : { getReader() { return reader; } } });
+    await turn();
+    assert.equal(reads, 0, 'late response body must not be parsed');
+    assert.equal(cancels, 1, 'late response body must be closed once');
+  });
+}
