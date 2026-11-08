@@ -6,7 +6,7 @@ import json
 import unittest
 from pathlib import Path
 
-from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence
+from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence, check_r13_push_wake_provenance
 
 
 class ParticipantContractTests(unittest.TestCase):
@@ -504,3 +504,31 @@ class Nov8Capacity2Tests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+ 
+class R13PushWakeProvenanceTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).parent
+        self.section = json.loads((root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))["forward_execution_20261108_r13_push_wake"]
+        self.manifest = dict(line.split("  ")[::-1] for line in (root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+
+    def test_one_exact_dev_ledger_statement_and_no_provider_claim(self):
+        self.assertEqual(check_r13_push_wake_provenance(self.section, self.manifest), self.section["file"])
+        self.assertFalse(self.section["verified_http_push_delivery"])
+        self.assertFalse(self.section["capacity_300k_proven"])
+        self.assertEqual(self.section["release"], "NO-GO")
+
+    def test_provenance_mutations_are_rejected(self):
+        for name, bad_value in (("source_sha256", "0" * 64), ("postimage_wake_md5", "0" * 32),
+                                ("recorded_statement_count", 2), ("dev_applied", False),
+                                ("verified_http_push_delivery", True)):
+            with self.subTest(name=name), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                changed = copy.deepcopy(self.section)
+                changed[name] = bad_value
+                check_r13_push_wake_provenance(changed, self.manifest)
+
+    def test_manifest_and_presence_cannot_be_waived(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_r13_push_wake_provenance(None, self.manifest)
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_r13_push_wake_provenance(self.section, {**self.manifest, self.section["file"]: "0" * 32})
