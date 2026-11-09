@@ -147,8 +147,9 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
       contentContainerStyle={[styles.content, { paddingHorizontal: gutter,
         paddingTop: Math.max(24, safeTop + (height < 700 ? 12 : 36)) - safeTop, paddingBottom: 24 }]}>
       <Animated.View testID="entry-card" style={[styles.card, { padding: cardPadding, opacity: enterAnim, transform: [{ translateY: enterAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
-        <View testID="entry-logo" style={{ alignSelf: 'center', marginBottom: 12 }}>
+        <View testID="entry-logo" style={{ alignSelf: 'center', alignItems: 'center', marginBottom: 12 }}>
           <BrandLockup width={Math.min(220, logoWidth)} />
+          <T style={styles.slogan}>Vaš partner za svaki zadatak</T>
         </View>
         <T testID="entry-title" style={[styles.title, width < 350 && styles.narrowTitle]}>Za svaki zadatak,{`\n`}prava osoba.</T>
         <T style={styles.description}>Objavite šta Vam treba ili uskočite svojim vremenom i znanjem.</T>
@@ -214,6 +215,7 @@ const styles = StyleSheet.create({
   viewport: { flex: 1, overflow: 'hidden' },
   content: { flexGrow: 1, alignItems: 'stretch', gap: 20 },
   card: { ...profileLift, backgroundColor: sys.color.surface, borderRadius: 24, gap: 16 },
+  slogan: { fontStyle: 'italic', fontSize: 13, color: sys.color.muted, marginTop: 4, textAlign: 'center' },
   title: { fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -0.9,
     color: sys.color.ink, includeFontPadding: false },
   narrowTitle: { fontSize: 28, lineHeight: 34 },

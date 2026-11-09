@@ -3,6 +3,17 @@
 > **ОБАВЕЗНА ВЛАСНИЧКА ОДЛУКА — 09.11.2026:** Стари UX master је повучен и уклоњен из активне гране. **НЕ ЧИТАТИ, НЕ КОРИСТИТИ, НЕ РЕКОНСТРУИСАТИ И НЕ ВРАЋАТИ** га, чак ни из Git историје. Све раније референце у овом великом техничком плану на Product/UX master, A–J/S01–S18 као извор дизајна и „два мастера” су неважеће. Последње изричите одлуке власника одређују жељени изглед, а код и тестови описују садашње стање. **Хоризонтални карусели на Почетној се задржавају; нема самовољних UX измена.** Види AGENTS.md.
 
 
+<!-- USKOCI_EXECUTION_20261109_DOGOVOR_UX -->
+## Aktuelni izvršni krug — 09.11.2026, 22:00 UTC: Unifikacija Dogovora, prikaz učesnika, centriranje kartica i brend slogan
+
+**SOURCE IMPLEMENTIRANO / TESTIRANO — Dogovor, Početna i brend usaglašavanje.**
+- **Dogovor bez tabova:** Uklonjen je segmentisani preklopnik `[ Pregled ] [ Poruke ]` iz `src/app/dogovor/[id].tsx` i `AgreementThreadPresentation.tsx`. U zaglavlju ekrana Dogovor (`AgreementPersonBar` i `ProductHeader`) desno je dodat direktan `ChromeIconButton` za poruke (`glyph="messages"`) pored postojećeg `more` menija. U razgovoru (`AgreementThreadPresentation`) nazad prirodno vraća na pregled dogovora, bez duplih kontrola.
+- **Ko je u Dogovoru za 1:1 i grupe:** `AgreementOverview.tsx` sada bezuslovno prikazuje odeljak `AgreementPeople` sa avatarima obe strane, imenima i ulogama („Vi · tražite pomoć” / „Ime · uskače”), što je ranije bilo potisnuto za 1:1 bilateralne zadatke.
+- **Brze akcije uslova:** Ispod dogovorenih uslova (`AgreementTerms`) u `AgreementOverview` dodata je traka brzih akcija sa dugmadima `[ Poruke ]` (sekundarna) i `[ Pregled zadatka ]` (quiet).
+- **Centriranje vrata na Početnoj:** U `src/ui/home/HomePresentation.tsx` za akcije „Objavite zadatak“ i „Uskočite i zaradite“ 3D ilustracija je centrirana na vrhu, a tekst i opis su centrirani ispod, uz očuvan stacked prikaz na uskim/horizontalnim ekranima.
+- **Brend slogan:** Pod `BrandLockup` („USKOČI“) u zaglavlju (`ScreenChrome.tsx`) i ekranu dobrodošlice (`EntryWelcome.tsx`) dodat je kurzivni podnaslov brenda: *„Vaš partner za svaki zadatak“*.
+- **Lokalna verifikacija:** `node --test scripts/agreement-incoming-lifecycle.test.cjs` PASS (7/7), `scripts/ux-home-waiting.test.cjs scripts/home-agreements-contract.test.cjs scripts/ux-checkpoint.test.cjs` PASS (42/42), `npx tsc --noEmit` PASS (0 dijagnostika). Nema diranja DEV baze ili migracija.
+
 <!-- USKOCI_EXECUTION_20261109_2000 -->
 ## Aktuelni izvršni krug — 09.11.2026, posle 20:00 UTC: trajni ishod izbora i potpuni P6 dokaz
 

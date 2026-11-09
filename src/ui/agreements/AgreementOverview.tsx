@@ -1,9 +1,11 @@
 import type { ComponentProps, ReactNode } from 'react';
-import { View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { T } from '../Text';
-import { AgreementPeople, AgreementTerms, agreementTaskPlace, isGroupAgreement } from '../v2/AgreementPresentation';
+import { sys } from '../system/tokens';
+import { V2Action } from '../v2/V2Action';
+import { AgreementPeople, AgreementTerms, agreementTaskPlace } from '../v2/AgreementPresentation';
 import { AgreementContactPlace } from './AgreementContactPlace';
 import { AgreementHead, AgreementTermNote, type OwnerCapacitySummary } from './AgreementOverviewParts';
 import type { AgreementSteps } from './AgreementSteps';
@@ -83,9 +85,13 @@ export function AgreementOverview({ agreement, step, steps, info, headExtra, par
     {on.proposeTerm ? <AgreementTermNote disabled={!enabled} onPropose={on.proposeTerm} /> : null}
     {problem?.note}
     {problem?.exits}
+    {/* Ko je u Dogovoru — uvek vidljivo za bilateralne i grupne zadatke */}
+    {!groupReady ? <AgreementPeople agreement={agreement} /> : null}
     <AgreementTerms agreement={agreement} onProposeTerm={!on.proposeTerm && on.openChange ? () => { if (enabled) on.openChange!(); } : undefined} />
-    {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
-    {isGroupAgreement(agreement) && !groupReady ? <AgreementPeople agreement={agreement} /> : null}
+    <View style={s.quickActions}>
+      <V2Action label="Poruke" kind="secondary" compact onPress={on.openMessages} style={s.actionFlex} />
+      {on.openTask ? <V2Action label="Pregled zadatka" kind="quiet" compact onPress={on.openTask} style={s.actionFlex} /> : null}
+    </View>
     {/* The real next step and accepted personal terms stay ahead of a potentially long roster.
         The group is a separate channel, not a source of shared price/status permissions. */}
     {group}
@@ -96,3 +102,8 @@ export function AgreementOverview({ agreement, step, steps, info, headExtra, par
     {problem?.form ? <View onLayout={on.problemLayout}>{problem.form}</View> : null}
   </>;
 }
+
+const s = StyleSheet.create({
+  quickActions: { flexDirection: 'row', gap: sys.space.md },
+  actionFlex: { flex: 1 },
+});

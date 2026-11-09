@@ -98,9 +98,9 @@ function StartActions({ onPublish, onEarn }: { onPublish: () => void; onEarn: ()
       haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.door, s.publishDoor, stacked && s.doorStacked]}>
       <View style={[s.doorMain, stacked && s.doorMainStacked]}>
         <HomeLaunchArt kind="publish" size={DOOR_ART} />
-        <View style={s.doorCopy}>
+        <View style={[s.doorCopy, stacked && { alignItems: 'flex-start' }]}>
           <T variant="heading" style={s.doorTitle}>Objavite zadatak</T>
-          <T variant="note" tone="muted">Opišite šta Vam treba.</T>
+          <T variant="note" tone="muted" style={!stacked ? { textAlign: 'center' } : undefined}>Opišite šta Vam treba.</T>
         </View>
       </View>
     </Press>
@@ -108,9 +108,9 @@ function StartActions({ onPublish, onEarn }: { onPublish: () => void; onEarn: ()
       haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.door, s.earnDoor, stacked && s.doorStacked]}>
       <View style={[s.doorMain, stacked && s.doorMainStacked]}>
         <HomeLaunchArt kind="discover" size={DOOR_ART} />
-        <View style={s.doorCopy}>
+        <View style={[s.doorCopy, stacked && { alignItems: 'flex-start' }]}>
           <T variant="heading" style={s.doorTitle}>Uskočite i zaradite</T>
-          <T variant="note" tone="muted">Pronađite zadatak.</T>
+          <T variant="note" tone="muted" style={!stacked ? { textAlign: 'center' } : undefined}>Pronađite zadatak.</T>
         </View>
       </View>
     </Press>
@@ -444,10 +444,10 @@ const s = StyleSheet.create({
   doorStacked: { flex: 0 },
   publishDoor: { backgroundColor: sys.color.orangeSoft },
   earnDoor: { backgroundColor: sys.color.greenSoft },
-  doorMain: { alignItems: 'flex-start', gap: sys.space.md },
-  doorMainStacked: { flexDirection: 'row', alignItems: 'center' },
-  doorCopy: { flexShrink: 1, minWidth: 0, gap: sys.space.xs },
-  doorTitle: { color: sys.color.ink },
+  doorMain: { alignItems: 'center', justifyContent: 'center', gap: sys.space.md },
+  doorMainStacked: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' },
+  doorCopy: { flexShrink: 1, minWidth: 0, gap: sys.space.xs, alignItems: 'center' },
+  doorTitle: { color: sys.color.ink, textAlign: 'center' },
   // Something waits here: the orange dot on the corner of its picture. The white ring keeps it apart from the drawing.
   attentionDot: { position: 'absolute', top: 0, right: 0, width: sys.space.sm, height: sys.space.sm, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.orange, borderWidth: 1, borderColor: sys.color.surface },

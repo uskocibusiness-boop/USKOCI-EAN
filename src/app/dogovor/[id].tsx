@@ -11,7 +11,7 @@ import { ActionSheet } from '../../ui/system/ActionSheet';
 import { useReducedMotion } from '../../ui/system/motion';
 import { PorukaHost } from '../../ui/system/Poruka';
 import { V2Action } from '../../ui/v2/V2Action';
-import { AgreementTabs, AgreementPersonBar, isNoTermText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
+import { AgreementPersonBar, isNoTermText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
 import { WorkspaceFooter, agreementNextStep, agreementQuietLine, agreementStepsInfo, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
 import { AgreementOverview } from '../../ui/agreements/AgreementOverview';
@@ -547,7 +547,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
           if (renderedFormFocus !== null && formFocus.current === renderedFormFocus && ownsAccount() && activeRef.current && freshRef.current) {
             if (router.canGoBack()) router.back(); else router.replace('/poruke');
           }
-        } : undefined}
+        } : () => setTab('pregled')}
         chat={{ messages: namedMessages, loading: messages.loading,
           error: messages.error, refreshing: messages.refreshing, refreshError: messages.refreshError,
           writable, terminal: !dogovor.chatDostupan, refresh: refreshMessages, refreshWorkspace: workspace.refresh, readingPosition: chatReadingPosition,
@@ -559,10 +559,15 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
           voiceScope: { accountId, accountRevision, agreementId: id, version: dogovor.verzija, isCurrent: chatCurrent },
           support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
         {other ? <AgreementPersonBar person={other} back={backToAgreements}
-          right={menuActions.length ? <ChromeIconButton glyph="more" label="Opcije Dogovora" onPress={() => { if (ownsAccount()) setMenuOpen(true); }} /> : undefined} />
+          right={<View style={s.headerActions}>
+            <ChromeIconButton glyph="messages" label="Poruke" onPress={() => setTab('poruke')} />
+            {menuActions.length ? <ChromeIconButton glyph="more" label="Opcije Dogovora" onPress={() => { if (ownsAccount()) setMenuOpen(true); }} /> : null}
+          </View>} />
           : <ProductHeader back={backToAgreements} title="Dogovor"
-            right={menuActions.length ? <ChromeIconButton glyph="more" label="Opcije Dogovora" onPress={() => { if (ownsAccount()) setMenuOpen(true); }} /> : undefined} />}
-        <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
+            right={<View style={s.headerActions}>
+              <ChromeIconButton glyph="messages" label="Poruke" onPress={() => setTab('poruke')} />
+              {menuActions.length ? <ChromeIconButton glyph="more" label="Opcije Dogovora" onPress={() => { if (ownsAccount()) setMenuOpen(true); }} /> : null}
+            </View>} />}
         <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" contentContainerStyle={overviewContent}>
           <AgreementOverview agreement={dogovor} step={nextStep} info={stepsInfo} party={!!me} enabled={enabled} concealed={resumeRequired}
             ownerCapacity={ownerCapacity}
@@ -625,6 +630,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   ink: { color: sys.color.ink },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   // The tab strip stands on the same edge as the bar above it and the page below it (`layout.gutter`), so the arrow does not move between Pregled and Poruke.
   tabs: { paddingHorizontal: layout.gutter, paddingBottom: sys.space.md },
   // What a step is about, inside the step: a proposal's lines, or the way to read the permissions again.

@@ -11,7 +11,7 @@ import { chrome, ChromeIconButton } from '../system/ScreenChrome';
 import { useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
-import { AgreementHero, AgreementTabs, agreementRole } from './AgreementPresentation';
+import { AgreementHero, agreementRole } from './AgreementPresentation';
 
 type Props = {
   agreement: DogovorProjekcija;
@@ -94,7 +94,6 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
         {onMore ? <ChromeIconButton glyph="more" label="Više radnji" hint="Izmena uslova, tačna lokacija, prijava problema, otkazivanje, blokiranje osobe"
           onPress={onMore} /> : null}
       </View>
-      <View testID="agreement-thread-tabs" style={s.tabs}><AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} /></View>
       {waiting ? <View style={s.waitingRow}><T variant="note" style={s.waiting}>{waiting}</T></View> : null}
     </>}
     {channels ? <View style={s.tabs}>{channels}</View> : null}
