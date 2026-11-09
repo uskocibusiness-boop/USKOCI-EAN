@@ -1,0 +1,182 @@
+{
+  "schema": "uskoci-p6-evidence-recovery-v1",
+  "recoveredAt": "2026-11-09T19:50:20.569840+00:00",
+  "status": "HISTORICAL_EVIDENCE_RECOVERED_NOT_REEXECUTED",
+  "recoveryBaseCommit": "00b18e7e56b6e2835cab0aff7a5dc1f3007448f4",
+  "originalProducingCommit": "4b515a58948cdd6e96621488b7609c073c3de021",
+  "preservedWorktreeCommit": "6c80e63898a7d349dd18adf54fb1aec1936b996e",
+  "anchor": {
+    "path": "docs/plan/proofs/forensic-local-integration-20261109.json",
+    "key": "prior_receipts.p6-discovery-integration-20261108.json",
+    "sha256": "27c1014b31f19e4bb20021b5d1fedd58e3d93e66a1d82e1f37c75e31177b699e",
+    "historicalProducingSnapshot": "b20346b1e8e2bcd200c6394379d5826f77a3acee"
+  },
+  "method": "Byte-identical restoration of seven missing files from the preserved producing worktree. Main receipt matches the previously published forensic receipt; its nested manifest binds four other receipts and two optional runners. No historical result, timestamp, source SHA or limitation was rewritten.",
+  "recoveredArtifacts": [
+    {
+      "path": "docs/plan/proofs/p6-discovery-integration-20261108.json",
+      "sha256": "27c1014b31f19e4bb20021b5d1fedd58e3d93e66a1d82e1f37c75e31177b699e",
+      "bytes": 10409
+    },
+    {
+      "path": "docs/plan/proofs/p6-pagination-native-20261108.json",
+      "sha256": "e5a3838c42e39cfc1b0c801efeb5aa4a5d095fcc95ba44502d193999f5b64f1b",
+      "bytes": 9176
+    },
+    {
+      "path": "docs/plan/proofs/p6-authenticated-http-20261108.json",
+      "sha256": "228bd80f60c28dd923d2fecdda271f9db6d622cc71651851ceba49ed1e805067",
+      "bytes": 3756
+    },
+    {
+      "path": "docs/plan/proofs/p6-legacy-boundary-20261108.json",
+      "sha256": "d688a8fc6cf3c876642537b1d1af94be10bf11f3295ea6e8e6bb7154b6c64924",
+      "bytes": 1105
+    },
+    {
+      "path": "docs/plan/proofs/p6-client-negative-control-20261108.txt",
+      "sha256": "6adbf09f0ca39885cb6b9aff3f79324d35f4125784ccdf7d9c66731c8b0323b6",
+      "bytes": 5294
+    },
+    {
+      "path": "scripts/p6-discovery-pagination-native.cjs",
+      "sha256": "94fb37d505bff9becd20551028362ac918629389347938850d44253a8802195a",
+      "bytes": 16256
+    },
+    {
+      "path": "scripts/p6-discovery-authenticated-http.cjs",
+      "sha256": "7b7c8b81b833a0cd709a949653a396f3dcf10efad33f6cbcaeb411ce8d2184aa",
+      "bytes": 7715
+    }
+  ],
+  "historicalResults": {
+    "nativePostgresPostgis": {
+      "checksPassed": 12,
+      "fullWalkSizes": [
+        100,
+        1000,
+        5000,
+        5001,
+        10000,
+        30000
+      ],
+      "largestWalkPages": 300,
+      "maxRowsPerPage": 100
+    },
+    "ordinaryAuthenticatedHttps": {
+      "checksPassed": 13,
+      "qaActors": 2,
+      "publicRowsPerActor": 4
+    },
+    "negativeControl": {
+      "expectedFailures": 5,
+      "unexpectedFailures": 0
+    }
+  },
+  "currentSourceComparison": [
+    {
+      "path": "src/data/discoveryV1Contract.ts",
+      "historicalSha256": "beca5c34aafaca6a76b6bafba90dbf3cd23b6f4e61501bd5d6c128403d2cf3f5",
+      "recoveryBaseSha256": "beca5c34aafaca6a76b6bafba90dbf3cd23b6f4e61501bd5d6c128403d2cf3f5",
+      "sameBytes": true
+    },
+    {
+      "path": "src/data/discoveryV1SpatialContract.ts",
+      "historicalSha256": "54c75735d619e70da01548de1bff4f68008a70380cb24ba36008d48f2fac6091",
+      "recoveryBaseSha256": "54c75735d619e70da01548de1bff4f68008a70380cb24ba36008d48f2fac6091",
+      "sameBytes": true
+    },
+    {
+      "path": "src/data/discoveryV1ClientTransport.ts",
+      "historicalSha256": "a6c164bafad9e479f45b451d73ff42571ed5269e0bac74cd2a1817f4ceabdcb2",
+      "recoveryBaseSha256": "a6c164bafad9e479f45b451d73ff42571ed5269e0bac74cd2a1817f4ceabdcb2",
+      "sameBytes": true
+    },
+    {
+      "path": "src/data/discoveryV1Owner.ts",
+      "historicalSha256": "1a30e41e726a6cca03d22015691bfce986dce51abc5a288271d237af3b8a2bbc",
+      "recoveryBaseSha256": "1a30e41e726a6cca03d22015691bfce986dce51abc5a288271d237af3b8a2bbc",
+      "sameBytes": true
+    },
+    {
+      "path": "src/data/discoveryV1SearchOwner.ts",
+      "historicalSha256": "d14c51f9288852898d40757c54ed225b0dd603183db7fa3563b380b3cc62a795",
+      "recoveryBaseSha256": "d14c51f9288852898d40757c54ed225b0dd603183db7fa3563b380b3cc62a795",
+      "sameBytes": true
+    },
+    {
+      "path": "src/data/discoveryV1ScreenSession.ts",
+      "historicalSha256": "f309a5250b050d8cc0218651426ee1698c8e4303f9beacfcf3110129e95fc3b4",
+      "recoveryBaseSha256": "d520ce29127d0cbf69004710b74fc4841b314316f3d114e65bd772b20ef7a3ef",
+      "sameBytes": false
+    },
+    {
+      "path": "src/data/discoveryV1RouteCoordinator.ts",
+      "historicalSha256": "229bcd6ff7c7776d5f0795a3f86928cac240cde89f1b55252104ef072c57779c",
+      "recoveryBaseSha256": "229bcd6ff7c7776d5f0795a3f86928cac240cde89f1b55252104ef072c57779c",
+      "sameBytes": true
+    },
+    {
+      "path": "src/data/discoveryV1MarketplaceAdapter.ts",
+      "historicalSha256": "f0c742a6f8e4a85142d5218302f28151e65d5240d5846210a141410cd4f16280",
+      "recoveryBaseSha256": "f0c742a6f8e4a85142d5218302f28151e65d5240d5846210a141410cd4f16280",
+      "sameBytes": true
+    },
+    {
+      "path": "src/app/(app)/zadaci.tsx",
+      "historicalSha256": "cba2daf130a4228639d104d4b1a6726fcf97349ef45d0b6ae168a59cafea779d",
+      "recoveryBaseSha256": "cba2daf130a4228639d104d4b1a6726fcf97349ef45d0b6ae168a59cafea779d",
+      "sameBytes": true
+    },
+    {
+      "path": "supabase/migrations/20261108095246_r02_discovery_schedule_20261108.sql",
+      "historicalSha256": "54edfec569dd20a80dd6e216bb71d52a6d4e17b901a918013f2e37bbb53659b4",
+      "recoveryBaseSha256": "54edfec569dd20a80dd6e216bb71d52a6d4e17b901a918013f2e37bbb53659b4",
+      "sameBytes": true
+    }
+  ],
+  "newerDependenciesPreserved": [
+    {
+      "path": "src/data/discoveryV1ScreenSession.ts",
+      "commit": "cf802823dc85d9ff53fa3440ea2724a58c6a4bbf",
+      "difference": "Two updates retain exactTaskId / verifiedPlaceKey when a selected marker already has accepted page rows. Historical native proof remains attributed to its original session bytes; current session was not tested here."
+    },
+    {
+      "path": "scripts/p0-discovery-native-benchmark.cjs",
+      "historicalSha256": "5d14eac6ea7ae83730737c8cc9f535d4e616bfdb8e701ec8efdc98856aab2d16",
+      "recoveryBaseSha256": "e2a647cc627b5ca4bec642f8b77144e011ab488d9280edef6ce4b56f6cc8c4fa",
+      "difference": "Current runner accepts USKOCI_PG_FIXTURE_PORT and checks the local dynamic port range; historical runner had fixed port 55434. Existing current dependency was preserved."
+    }
+  ],
+  "dependencyResolution": "Both recovered runners have all relative require targets present in the current tree. Existing SQL fixtures, P6 integration harness and active runtime were not copied over.",
+  "privacyReview": {
+    "scope": "Seven restored files; readable source and proof content inspected plus bounded credential/email literal scans. Not a general repository secret audit.",
+    "storedCredentials": false,
+    "storedJwtOrProviderSecret": false,
+    "storedUserIdsEmailsOrPrivateLocations": false,
+    "actorLabels": "dedicated-qa-1 / dedicated-qa-2 only",
+    "authRunner": "Requires an explicit out-of-band credential file and output path. It was not invoked; no credential file was read."
+  },
+  "verification": {
+    "command": "node scripts/p6-evidence-integrity.cjs",
+    "scope": "Historical artifact hashes and manifest links; read-only current source comparison. No network, application execution or SQL.",
+    "result": "PASS: 7 recovered artifacts match their pre-existing historical hashes and forensic anchor; both optional runners pass node --check."
+  },
+  "notPerformed": [
+    "No new complete PostgreSQL 30000-row traversal",
+    "No fresh hosted Auth or DEV query",
+    "No Android installation or E2E",
+    "No runtime, feature flag, package.json, CODEX or active migration edit",
+    "No provider call, business write, credential read or public release"
+  ],
+  "remainingBoundary": "Production P6 remains gated. The restored 2026-11-08 results prove only their declared historical source and fixture scope. Newer current session changes and later DEV changes are not silently covered by those results.",
+  "currentFocusedRegression": {
+    "command": "NODE_PATH=/workspace/scratch/78491a3df814/current/node_modules node --test scripts/p6-discovery-pagination.test.cjs",
+    "sourceBaseCommit": "00b18e7e56b6e2835cab0aff7a5dc1f3007448f4",
+    "pass": 21,
+    "fail": 0,
+    "skipped": 0,
+    "durationMs": 3268.01951,
+    "scope": "Current client owner/coordinator with synthetic RPC transport; lazy initial pages and continuation failures, filter/session/refresh boundaries. This is not a new complete PostgreSQL 30000-row walk, hosted Auth or Android proof."
+  }
+}

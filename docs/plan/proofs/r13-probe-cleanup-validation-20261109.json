@@ -1,0 +1,99 @@
+{
+  "schema": "uskoci-r13-probe-cleanup-validation-v1",
+  "checkedAt": "2026-11-09T19:54:57.154675+00:00",
+  "sourceBase": "00b18e7e56b6e2835cab0aff7a5dc1f3007448f4",
+  "status": "SOURCE_TESTED_NOT_YET_APPLIED",
+  "scope": "Removal of the two original disposable probe objects only; no matching/marketplace implementation or Cron transition.",
+  "reason": "The original hosted CALL probe completed and its temporary Cron was unscheduled; subsequent cleanup tool calls returned no successful result. Fresh read-only inspection confirms the two original diagnostic rows remain.",
+  "files": {
+    "scripts/sql/r13_transaction_probe_cleanup_20261109.sql": {
+      "sha256": "cd1e9e490aaf891fb74d194adfc1c990f73cecfe852d417d93b9bcc38b92bf01",
+      "md5": "723a9a8fac47527c4868af3821b99d43",
+      "bytes": 5775
+    },
+    "scripts/sql/r13_transaction_probe_cleanup_20261109.rollback.sql": {
+      "sha256": "6e7a53bbc0083c6a53f6cd67612aebc5c982b6edb4f9978ca257bcab3759f6d9",
+      "md5": "8b531d76cbf48d4ef1900cda17f0559b",
+      "bytes": 2969
+    },
+    "scripts/r13-probe-cleanup.test.cjs": {
+      "sha256": "452bded8e4303f247947948f20c0170d525b2fd056bf9839a03710120b2eed2f",
+      "md5": "84504e788987e4d4382f17deef5c53df",
+      "bytes": 7171
+    },
+    "scripts/r13-probe-cleanup-native.cjs": {
+      "sha256": "645024a42a0af08bb6d359a9ab8bc11d203aa583c34952f7788c8493a3f21024",
+      "md5": "b6844c4d26171715a1b1094cb906729f",
+      "bytes": 1212
+    },
+    "supabase/migrations/20261108230512_r13_hosted_transaction_probe_20261108.sql": {
+      "sha256": "13ec4b987548b460784b756b1fae31e9300b522472e4e9821daaad91403e1e8f",
+      "md5": "191353b645de51e34a89f5942129c4b4",
+      "bytes": 2367
+    },
+    "docs/plan/proofs/current-dev-readonly-20261109.json": {
+      "sha256": "8b2c6274acee9951b32051eac0cca08ea5dfebed35260ce9fe03b382e5a29d11",
+      "md5": "de29eed783d098da3d34834e69d8e085",
+      "bytes": 35785
+    },
+    "docs/plan/proofs/r13-probe-cleanup-pglite-20261109.txt": {
+      "sha256": "a8ec46ca6fc61353342cf75ef66eee028d23dd85570ad3c8fb3019c524cd4dda",
+      "md5": "5054c67e7b21880003e045cd593891f8",
+      "bytes": 1538
+    },
+    "docs/plan/proofs/r13-probe-cleanup-native-20261109.txt": {
+      "sha256": "ebf3660ac9300f8c6f34cb4af7d9654460e0c8ed72b071a665ea57a5c66daa17",
+      "md5": "f5ca76ee1b0283781892355f13cc848e",
+      "bytes": 1760
+    },
+    "docs/plan/proofs/r13-probe-cleanup-independent-review-20261109.json": {
+      "sha256": "cc49ad8cb6d096429b746e5eea2d7d5d52393e10dd23cb7bd2b5714caeb53add",
+      "bytes": 6994
+    }
+  },
+  "tests": {
+    "isolatedNativePostgres": "17.11",
+    "nativePass": 14,
+    "nativeFail": 0,
+    "pglitePostgres": "18.3",
+    "pglitePass": 14,
+    "pgliteFail": 0,
+    "coverage": [
+      "exact cleanup and reconstruction of archived two-row evidence",
+      "transaction rollback",
+      "changed procedure body",
+      "unexpected procedure/table grants",
+      "changed table comment or structure",
+      "changed or missing diagnostic observations",
+      "original or renamed probe Cron",
+      "dependent view causes RESTRICT failure and rolls back prior DROP",
+      "ordinary role denied",
+      "new PLpgSQL textual dependency rejected before either DROP",
+      "rollback exact microsecond observations and private owner/ACL/RLS independently asserted"
+    ],
+    "pgliteScope": "All14 cleanup cases passed in the integrated npm run; that whole run had three unrelated applicant-suppression subcase failures plus their parent. Their investigation and full-suite revalidation are separate; no full-suite success is claimed here.",
+    "additionalPgliteGuardPass": 1,
+    "integratedInitialRun": {
+      "tests": 1433,
+      "pass": 1429,
+      "fail": 4,
+      "cleanupCasesPassed": 14
+    }
+  },
+  "preserved": [
+    "existing three Cron definitions",
+    "business sentinel in isolated tests",
+    "R12/R13/dispatch/retention/budget code and data are not mutation targets"
+  ],
+  "limits": [
+    "Synthetic setup matches exact original canonical probe migration; Cron catalog is a local fixture.",
+    "No hosted cleanup, full matching test, provider call or Android action is claimed by this file.",
+    "Native tests use one disposable PostgreSQL17 loopback cluster; they do not load the marketplace business graph."
+  ],
+  "rollback": "Recreates the original private objects and exactly two diagnostic observations without scheduling a Cron job; separately tested.",
+  "review": {
+    "result": "BOUNDED_PASS",
+    "file": "docs/plan/proofs/r13-probe-cleanup-independent-review-20261109.json",
+    "followup": "Exact row microsecond timestamps and table/procedure owner/ACL/RLS assertions added to the success/rollback case; native14 passed again."
+  }
+}

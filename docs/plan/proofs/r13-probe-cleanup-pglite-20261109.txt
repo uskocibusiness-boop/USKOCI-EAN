@@ -1,0 +1,21 @@
+✔ R13 cleanup removes only the two completed probe objects; recreation retains the exact archived evidence (1671.38312ms)
+✔ R13 cleanup dry-run rollback preserves both diagnostic rows and every original Cron (1131.588811ms)
+✔ R13 cleanup refuses changed procedure body without partially dropping the other object (1234.794788ms)
+✔ R13 cleanup refuses unexpected procedure grant without partially dropping the other object (1132.046482ms)
+✔ R13 cleanup refuses changed diagnostic table comment without partially dropping the other object (1196.098667ms)
+✔ R13 cleanup refuses unexpected table grant without partially dropping the other object (1264.959479ms)
+✔ R13 cleanup refuses new data column without partially dropping the other object (1087.65882ms)
+✔ R13 cleanup refuses changed diagnostic row without partially dropping the other object (1092.338261ms)
+✔ R13 cleanup refuses missing diagnostic observation without partially dropping the other object (1102.843716ms)
+✔ R13 cleanup refuses scheduled original probe without partially dropping the other object (1043.223425ms)
+✔ R13 cleanup refuses renamed Cron still calling probe without partially dropping the other object (1007.254076ms)
+✔ R13 cleanup refuses new dependent view without partially dropping the other object (1065.14843ms)
+✔ R13 cleanup refuses an ordinary application role before touching a probe object (1030.025038ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15204.520366

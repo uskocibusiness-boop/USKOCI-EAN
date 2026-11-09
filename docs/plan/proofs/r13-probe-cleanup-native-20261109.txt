@@ -1,0 +1,23 @@
+Isolated probe cleanup runtime: PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+✔ R13 cleanup removes only the two completed probe objects; recreation retains the exact archived evidence (18.255393ms)
+✔ R13 cleanup dry-run rollback preserves both diagnostic rows and every original Cron (8.670962ms)
+✔ R13 cleanup refuses changed procedure body without partially dropping the other object (8.169602ms)
+✔ R13 cleanup refuses unexpected procedure grant without partially dropping the other object (5.78886ms)
+✔ R13 cleanup refuses changed diagnostic table comment without partially dropping the other object (7.120524ms)
+✔ R13 cleanup refuses unexpected table grant without partially dropping the other object (7.639406ms)
+✔ R13 cleanup refuses new data column without partially dropping the other object (7.755071ms)
+✔ R13 cleanup refuses changed diagnostic row without partially dropping the other object (8.338681ms)
+✔ R13 cleanup refuses missing diagnostic observation without partially dropping the other object (8.230923ms)
+✔ R13 cleanup refuses scheduled original probe without partially dropping the other object (14.998487ms)
+✔ R13 cleanup refuses renamed Cron still calling probe without partially dropping the other object (6.397509ms)
+✔ R13 cleanup refuses new dependent view without partially dropping the other object (9.24586ms)
+✔ R13 cleanup refuses new PLpgSQL textual dependency without partially dropping the other object (7.139603ms)
+✔ R13 cleanup refuses an ordinary application role before touching a probe object (5.830051ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 160.048959

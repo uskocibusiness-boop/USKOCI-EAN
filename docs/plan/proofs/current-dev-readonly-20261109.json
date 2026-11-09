@@ -1,0 +1,683 @@
+{
+  "schema": "USKOCI_CURRENT_DEV_READONLY_V1",
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "checked_window_utc": {
+    "from": "2026-11-09T19:47:04.672103Z",
+    "to": "2026-11-09T19:50:38.454495Z"
+  },
+  "read_only": true,
+  "source_context": {
+    "repository": "uskocibusiness-boop/USKOCI-EAN",
+    "branch": "work/uskoci-cist-proizvod-20261104",
+    "source_sha": "00b18e7e56b6e2835cab0aff7a5dc1f3007448f4",
+    "checkout": "/workspace/scratch/7daba5b8e5d2/USKOCI-audit",
+    "master_read_coverage": "Latest checkpoint read in part; not a complete master read. Full focused r13-capacity6-source-recovery-20261109.md read."
+  },
+  "project": {
+    "id": "leqcwgzvjsxugfgzdmth",
+    "status": "ACTIVE_HEALTHY",
+    "region": "eu-central-1",
+    "postgres_version": "17.6.1.165",
+    "postgres_engine": "17"
+  },
+  "additional_readback": {
+    "scope": "Parent-requested extension: current Edge metadata, AI budget/ledger aggregates, six scoped retention routine hashes, read-only preflight for precisely two disposable probe objects. Cleanup not applied.",
+    "checked_to_utc": "2026-11-09T19:50:38.454495Z",
+    "edge_functions": [
+      {
+        "slug": "uskoci-ai-interview",
+        "version": 199,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "6fcdf6c0d911782ade167a6a74d462ca9d9194c18b06454d325684a465bede1a",
+        "updated_at": 1794233211273
+      },
+      {
+        "slug": "uskoci-location-search",
+        "version": 32,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "aa756f8daae61e5c8b07179a74ac05e9b5d7e9967393ea3cc21a16ad659ef39f",
+        "updated_at": 1794066488002
+      },
+      {
+        "slug": "uskoci-publication-evaluate",
+        "version": 32,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "d9764a7f319195719a411cd9afe4c9ad2e06d6927bdd5f63df70d83c0a001e3f",
+        "updated_at": 1794153129706
+      },
+      {
+        "slug": "uskoci-data-export-worker",
+        "version": 29,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "e70434a972d46b0af8216717490bd01f6995e0ee785f811c3873b69f6ec5dfff",
+        "updated_at": 1794066513665
+      },
+      {
+        "slug": "uskoci-data-export-download",
+        "version": 29,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "83581eb03346471b6a1f5575bdf63abea79a028cb0722c94664f0b1f6acb733d",
+        "updated_at": 1794066514966
+      },
+      {
+        "slug": "uskoci-worker-interview",
+        "version": 152,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "3f37b16252ecf4b0db17d6fcb49f822a0e42c043001ace82742c9ed09e638fef",
+        "updated_at": 1794233212640
+      },
+      {
+        "slug": "uskoci-speech-session",
+        "version": 33,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "d6095a2cbec088d608bbf65172bb85296c400ad6f191a540ec2724175db2472a",
+        "updated_at": 1794153127765
+      },
+      {
+        "slug": "uskoci-qa-classify",
+        "version": 31,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "322bba9d34ad97e04c571288d469d5a3a0efbb66fa458bbfd943f056fc8e8929",
+        "updated_at": 1794153131188
+      },
+      {
+        "slug": "uskoci-push-transport",
+        "version": 47,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "3fce4c4b7d03a4bf6f533ee0721b43b86024a66da595603ff8eb5222080a472f",
+        "updated_at": 1794131543529
+      },
+      {
+        "slug": "uskoci-media",
+        "version": 31,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "baebc8575e0048a5b42897e7da52cdbfa1a612b0bed36aa97d399fb5274466b9",
+        "updated_at": 1794132098300
+      },
+      {
+        "slug": "uskoci-account-closure-worker",
+        "version": 19,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "fe4f56c67541bf60909418a48b7a7d614eb8f95e77e2d337121f3af24c4fd34e",
+        "updated_at": 1794066516301
+      },
+      {
+        "slug": "uskoci-taxonomy-postsave-worker",
+        "version": 14,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "b61376460dbc24bcacbddc5473fd882d126f607e8a6ebb422a6be25f6f7b9494",
+        "updated_at": 1794066453910
+      },
+      {
+        "slug": "sbfenv",
+        "version": 10,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18",
+        "updated_at": 1792245055342
+      },
+      {
+        "slug": "uskoci-gemini-schema-smoke",
+        "version": 11,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72",
+        "updated_at": 1792169523374
+      },
+      {
+        "slug": "uskoci-gemini-provider-probe-dev",
+        "version": 12,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0",
+        "updated_at": 1792170664309
+      }
+    ],
+    "queries": [
+      {
+        "part": 6,
+        "sql": "begin read only;\nset local statement_timeout='5s';\nselect clock_timestamp() observed_at,\n (select jsonb_build_object('enabled',enabled,'reservation_cap_enforced',reservation_cap_enforced,'ceiling_microusd',ceiling_microusd,'reserved_microusd',reserved_microusd,'price_valid_until',price_valid_until) from private.ai_test_budget_v5 where singleton) budget,\n (select jsonb_build_object('reservation_count',count(*),'unfinished_count',count(*) filter(where settled_microusd is null),'unfinished_hold_microusd',coalesce(sum(max_cost_microusd) filter(where settled_microusd is null),0),'settled_microusd',coalesce(sum(settled_microusd),0),'ledger_exposure_microusd',sum(coalesce(settled_microusd,max_cost_microusd))) from private.ai_test_reservations_v5) ledger,\n (select jsonb_build_object('count',count(*),'latest',max(recorded_at)) from private.ai_test_usage_v5) usage,\n (select jsonb_agg(jsonb_build_object('routine',p.oid::regprocedure::text,'owner',pg_get_userbyid(p.proowner),'prosecdef',p.prosecdef,'proconfig',p.proconfig,'acl',p.proacl::text,'body_md5',md5(p.prosrc),'definition_md5',md5(pg_get_functiondef(p.oid))) order by p.oid::regprocedure::text)\n from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.proname in('retention_ai_source_ready','data_export_policy_binding','retention_execution_binding','closure_erasure_binding_v5','data_export_dataset_catalog','data_export_snapshot')) retention_routines;\nrollback;",
+        "rows": [
+          {
+            "observed_at": "2026-11-09 19:49:51.209645+00",
+            "budget": {
+              "enabled": true,
+              "ceiling_microusd": 100000000,
+              "price_valid_until": "2027-01-01T00:00:00+00:00",
+              "reserved_microusd": 65662284,
+              "reservation_cap_enforced": true
+            },
+            "ledger": {
+              "settled_microusd": 10562284,
+              "unfinished_count": 221,
+              "reservation_count": 2349,
+              "ledger_exposure_microusd": 65662284,
+              "unfinished_hold_microusd": 55100000
+            },
+            "usage": {
+              "count": 1252,
+              "latest": "2026-11-09T15:16:14.429052+00:00"
+            },
+            "retention_routines": [
+              {
+                "acl": "{postgres=X/postgres}",
+                "owner": "postgres",
+                "routine": "private.closure_erasure_binding_v5()",
+                "body_md5": "d6d7e7f6f108fff45a4df5126949fa04",
+                "proconfig": [
+                  "search_path=pg_catalog"
+                ],
+                "prosecdef": true,
+                "definition_md5": "6c1b9fa576fcba9754f19be2ecdf0fb5"
+              },
+              {
+                "acl": "{postgres=X/postgres}",
+                "owner": "postgres",
+                "routine": "private.data_export_dataset_catalog()",
+                "body_md5": "45a2458b8e93a33649e885ad1ba41b4d",
+                "proconfig": [
+                  "search_path=pg_catalog"
+                ],
+                "prosecdef": true,
+                "definition_md5": "229c48d883abadf21685897607b0c274"
+              },
+              {
+                "acl": "{postgres=X/postgres}",
+                "owner": "postgres",
+                "routine": "private.data_export_policy_binding()",
+                "body_md5": "21ae94d4425396da941359cd834913fb",
+                "proconfig": [
+                  "search_path=pg_catalog"
+                ],
+                "prosecdef": true,
+                "definition_md5": "d4f5d842858a4c4d69d580db20687a53"
+              },
+              {
+                "acl": "{postgres=X/postgres}",
+                "owner": "postgres",
+                "routine": "private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)",
+                "body_md5": "8130be4bf875702981ec408a33af62ca",
+                "proconfig": [
+                  "search_path=pg_catalog"
+                ],
+                "prosecdef": true,
+                "definition_md5": "8c5a3139b2d31f7dfef8293ca00371b4"
+              },
+              {
+                "acl": "{postgres=X/postgres}",
+                "owner": "postgres",
+                "routine": "private.retention_ai_source_ready()",
+                "body_md5": "b89891cd3eb5f327bd642a160e5a2e81",
+                "proconfig": [
+                  "search_path=pg_catalog"
+                ],
+                "prosecdef": true,
+                "definition_md5": "b638ceff5865a966d56de63e94b9dbfd"
+              },
+              {
+                "acl": "{postgres=X/postgres}",
+                "owner": "postgres",
+                "routine": "private.retention_execution_binding()",
+                "body_md5": "24adda1c25a113b458c0209cdf91065a",
+                "proconfig": [
+                  "search_path=pg_catalog"
+                ],
+                "prosecdef": true,
+                "definition_md5": "c04a26e2707913990c4a1d74bb17e49f"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "part": 7,
+        "sql": "begin read only;\nset local statement_timeout='5s';\nselect clock_timestamp() observed_at,current_setting('transaction_read_only') read_only,\n (select jsonb_build_object('oid',c.oid,'relkind',c.relkind,'owner',pg_get_userbyid(c.relowner),'acl',c.relacl::text,'rls',c.relrowsecurity,'force_rls',c.relforcerowsecurity,'comment',obj_description(c.oid,'pg_class')) from pg_class c where c.oid='private.capacity4_transaction_probe'::regclass) table_metadata,\n (select jsonb_agg(jsonb_build_object('name',a.attname,'type',format_type(a.atttypid,a.atttypmod),'not_null',a.attnotnull,'default',pg_get_expr(d.adbin,d.adrelid)) order by a.attnum) from pg_attribute a left join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum where a.attrelid='private.capacity4_transaction_probe'::regclass and a.attnum>0 and not a.attisdropped) columns,\n (select jsonb_agg(jsonb_build_object('name',conname,'type',contype,'definition',pg_get_constraintdef(oid))) from pg_constraint where conrelid='private.capacity4_transaction_probe'::regclass) constraints,\n (select count(*) from pg_constraint where confrelid='private.capacity4_transaction_probe'::regclass) inbound_foreign_keys,\n (select count(*) from pg_trigger where tgrelid='private.capacity4_transaction_probe'::regclass and not tgisinternal) user_triggers,\n (select jsonb_agg(to_jsonb(x) order by phase) from (select phase,transaction_id,observed_at from private.capacity4_transaction_probe order by phase limit 3) x) synthetic_rows,\n (select pg_get_functiondef('private.capacity4_transaction_probe_v1()'::regprocedure)) procedure_definition,\n (select jsonb_agg(p.oid::regprocedure::text) from pg_proc p where position('capacity4_transaction_probe' in p.prosrc)>0) routines_referencing_probe,\n (select count(*) from cron.job where position('capacity4_transaction_probe' in command)>0 or jobname='uskoci_dispatch_call_probe_20261108') referencing_cron_jobs,\n (select count(*) from pg_stat_activity where pid<>pg_backend_pid() and datname=current_database() and state in('active','idle in transaction') and (position('capacity4_transaction_probe' in query)>0 or position('r13_transaction_probe_cleanup' in query)>0)) active_or_idle_transaction_probe_backends,\n (select jsonb_agg(jsonb_build_object('dependency_type',d.deptype,'dependent',pg_describe_object(d.classid,d.objid,d.objsubid),'referenced',pg_describe_object(d.refclassid,d.refobjid,d.refobjsubid))) from pg_depend d where (d.refclassid='pg_class'::regclass and d.refobjid='private.capacity4_transaction_probe'::regclass) or (d.refclassid='pg_proc'::regclass and d.refobjid='private.capacity4_transaction_probe_v1()'::regprocedure)) incoming_catalog_dependencies;\nrollback;",
+        "rows": [
+          {
+            "observed_at": "2026-11-09 19:50:38.454495+00",
+            "read_only": "on",
+            "table_metadata": {
+              "acl": "{postgres=arwdDxtm/postgres}",
+              "oid": "36160",
+              "rls": true,
+              "owner": "postgres",
+              "comment": "USKOCI disposable transaction CALL probe 20261108; synthetic diagnostic rows only",
+              "relkind": "r",
+              "force_rls": false
+            },
+            "columns": [
+              {
+                "name": "phase",
+                "type": "text",
+                "default": null,
+                "not_null": true
+              },
+              {
+                "name": "transaction_id",
+                "type": "bigint",
+                "default": null,
+                "not_null": true
+              },
+              {
+                "name": "observed_at",
+                "type": "timestamp with time zone",
+                "default": "clock_timestamp()",
+                "not_null": true
+              }
+            ],
+            "constraints": [
+              {
+                "name": "capacity4_transaction_probe_phase_check",
+                "type": "c",
+                "definition": "CHECK ((phase = ANY (ARRAY['before'::text, 'after'::text])))"
+              },
+              {
+                "name": "capacity4_transaction_probe_pkey",
+                "type": "p",
+                "definition": "PRIMARY KEY (phase)"
+              }
+            ],
+            "inbound_foreign_keys": 0,
+            "user_triggers": 0,
+            "synthetic_rows": [
+              {
+                "phase": "after",
+                "observed_at": "2026-11-08T23:06:00.164508+00:00",
+                "transaction_id": 203348826
+              },
+              {
+                "phase": "before",
+                "observed_at": "2026-11-08T23:06:00.153974+00:00",
+                "transaction_id": 203348825
+              }
+            ],
+            "procedure_definition": "CREATE OR REPLACE PROCEDURE private.capacity4_transaction_probe_v1()\n LANGUAGE plpgsql\nAS $procedure$\ndeclare first_transaction bigint;\nbegin\n if exists(select 1 from private.capacity4_transaction_probe where phase='after')then return;end if;\n first_transaction:=pg_catalog.txid_current();\n insert into private.capacity4_transaction_probe(phase,transaction_id)values('before',first_transaction)\n on conflict(phase)do update set transaction_id=excluded.transaction_id,observed_at=pg_catalog.clock_timestamp();\n commit;\n if pg_catalog.txid_current()=first_transaction then raise exception 'CAPACITY4_PROBE_TRANSACTION_NOT_CHANGED';end if;\n insert into private.capacity4_transaction_probe(phase,transaction_id)values('after',pg_catalog.txid_current());\n commit;\nend $procedure$\n",
+            "routines_referencing_probe": [
+              "private.capacity4_transaction_probe_v1()"
+            ],
+            "referencing_cron_jobs": 0,
+            "active_or_idle_transaction_probe_backends": 0,
+            "incoming_catalog_dependencies": [
+              {
+                "dependent": "type private.capacity4_transaction_probe",
+                "referenced": "table private.capacity4_transaction_probe",
+                "dependency_type": "i"
+              },
+              {
+                "dependent": "default value for column observed_at of table private.capacity4_transaction_probe",
+                "referenced": "column observed_at of table private.capacity4_transaction_probe",
+                "dependency_type": "a"
+              },
+              {
+                "dependent": "constraint capacity4_transaction_probe_phase_check on table private.capacity4_transaction_probe",
+                "referenced": "column phase of table private.capacity4_transaction_probe",
+                "dependency_type": "a"
+              },
+              {
+                "dependent": "constraint capacity4_transaction_probe_phase_check on table private.capacity4_transaction_probe",
+                "referenced": "column phase of table private.capacity4_transaction_probe",
+                "dependency_type": "n"
+              },
+              {
+                "dependent": "toast table pg_toast.pg_toast_36160",
+                "referenced": "table private.capacity4_transaction_probe",
+                "dependency_type": "i"
+              },
+              {
+                "dependent": "constraint capacity4_transaction_probe_pkey on table private.capacity4_transaction_probe",
+                "referenced": "column phase of table private.capacity4_transaction_probe",
+                "dependency_type": "a"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "budget_interpretation": "Observed cap100USD differs from original5USD reference; no change made by this reviewer. Newer owner authorization/provenance must be reconciled by coordinator. Ledger exposure65.662284USD and unfinished holds55.1USD are internal accounting, not proof of provider billing.",
+    "cleanup_review": {
+      "status": "READ_ONLY_PREFLIGHT_COMPLETE_NOT_APPLIED",
+      "allowed_object_scope": [
+        "private.capacity4_transaction_probe_v1()",
+        "private.capacity4_transaction_probe"
+      ],
+      "proposed_guard_requirements": [
+        "Check current_user=postgres and current_database=postgres and exact schema/object identity.",
+        "Lock only the probe table with short lock_timeout; recheck exact owner/ACL/RLS/comment/three-column shape/two expected synthetic rows.",
+        "Recheck procedure prokind=p, security invoker, no proconfig, postgres-only ACL and prosrc MD5=62051bf43e88a090ab14e98ab453f245.",
+        "Recheck no Cron command/name references and no other active or idle-in-transaction backend with probe/cleanup query.",
+        "Require no inbound foreign keys, no user triggers, no unexpected dependent objects or other routines referencing probe.",
+        "Use explicit DROP PROCEDURE RESTRICT then DROP TABLE RESTRICT without CASCADE; do not alter existing jobs or business relations.",
+        "Archive exact synthetic rows and procedure/table DDL and metadata as rollback preimages before any later root-reviewed execution."
+      ],
+      "caution": "Catalog dependencies include the table's own constraints/default/rowtype/TOAST. A PL/pgSQL textual reference is not necessarily represented as pg_depend; scoped pg_proc text scan found only the probe itself. Snapshot is not a lock or authorization to apply."
+    },
+    "readonly_confirmation": "transaction_read_only=on for cleanup preflight; seven SQL queries total; no mutating SQL submitted."
+  },
+  "queries": [
+    {
+      "part": 1,
+      "sql": "begin read only;\nset local statement_timeout = '5s';\nselect clock_timestamp() as observed_at,\n  (select count(*) from supabase_migrations.schema_migrations) as migration_count,\n  (select jsonb_agg(x order by x.version desc) from (select version,name from supabase_migrations.schema_migrations order by version desc limit 10) x) as latest_migrations,\n  to_regclass('private.capacity4_transaction_probe')::text as probe_table,\n  to_regprocedure('private.capacity4_transaction_probe_v1()')::text as probe_procedure,\n  to_regprocedure('private.dispatch_one_job_v1(timestamptz,uuid[])')::text as dispatch_one_job,\n  to_regprocedure('private.requeue_one_changed_worker_profile_v1(timestamptz)')::text as requeue_one_profile,\n  to_regprocedure('private.marketplace_tick_transactions_v1(integer,timestamptz,jsonb)')::text as marketplace_transactions,\n  (select count(*) from cron.job) as cron_jobs,\n  (select jsonb_agg(jsonb_build_object('jobid',jobid,'name',jobname,'schedule',schedule,'active',active,'command',case when jobname='uskoci_marketplace_tick' then command else null end)) from cron.job) as cron;\nrollback;",
+      "rows": [
+        {
+          "observed_at": "2026-11-09 19:47:04.672103+00",
+          "migration_count": 372,
+          "latest_migrations": [
+            {
+              "name": "worker_candidate_areas_20261109",
+              "version": "20261109173026"
+            },
+            {
+              "name": "worker_application_areas_20261109",
+              "version": "20261109165413"
+            },
+            {
+              "name": "worker_draft_activation_20261109",
+              "version": "20261109143049"
+            },
+            {
+              "name": "worker_shared_reuse_20261109",
+              "version": "20261109133503"
+            },
+            {
+              "name": "r13_hosted_transaction_probe_20261108",
+              "version": "20261108230512"
+            },
+            {
+              "name": "home_agreements_summary_20261108",
+              "version": "20261108230350"
+            },
+            {
+              "name": "r10_owned_usage_projection_post_r09_20261108",
+              "version": "20261108225909"
+            },
+            {
+              "name": "r09_applicant_suppression_20261108",
+              "version": "20261108222329"
+            },
+            {
+              "name": "r09_worker_activation_clock_20261108",
+              "version": "20261108211133"
+            },
+            {
+              "name": "r13_coalesce_push_wake_20261108",
+              "version": "20261108154914"
+            }
+          ],
+          "probe_table": "private.capacity4_transaction_probe",
+          "probe_procedure": "private.capacity4_transaction_probe_v1()",
+          "dispatch_one_job": null,
+          "requeue_one_profile": null,
+          "marketplace_transactions": null,
+          "cron_jobs": 3,
+          "cron": [
+            {
+              "name": "uskoci_marketplace_tick",
+              "jobid": 1,
+              "active": true,
+              "command": "select private.marketplace_tick(25);",
+              "schedule": "* * * * *"
+            },
+            {
+              "name": "uskoci_edge_workers",
+              "jobid": 2,
+              "active": true,
+              "command": null,
+              "schedule": "* * * * *"
+            },
+            {
+              "name": "uskoci_taxonomy_postsave_tick_dev",
+              "jobid": 3,
+              "active": true,
+              "command": null,
+              "schedule": "* * * * *"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 2,
+      "sql": "begin read only;\nset local statement_timeout='5s';\nwith legal as (select public.rpc_get_legal_bundle() v)\nselect clock_timestamp() observed_at,\n (select v->'ready' from legal) legal_ready,\n (select v->>'reason' from legal) legal_reason,\n (select count(*) from private.legal_document_versions) legal_document_history,\n (select count(*) from private.legal_document_versions where is_active and retired_at is null and published_at<=statement_timestamp() and effective_at<=statement_timestamp()) legal_documents_active,\n (select count(*) from private.processor_map_sets where retired_at is null and effective_at<=statement_timestamp()) processor_maps_active,\n private.retention_ai_source_ready() retention_ai_source_ready,\n private.data_export_policy_binding() is null export_binding_null,\n private.retention_execution_binding() is null retention_binding_null,\n private.closure_erasure_binding_v5() is null closure_binding_null,\n (select count(*) from private.retention_policy_sets) retention_policy_sets,\n (select count(*) from private.retention_policy_rules) retention_policy_rules,\n (select count(*) from auth.users) auth_accounts,\n (select count(*) from public.app_accounts) app_accounts,\n (select count(*) from public.needs) needs,\n (select count(*) from public.agreements) agreements,\n (select count(*) from private.dispatch_schedule) scheduled_dispatch_jobs,\n (select count(*) from pg_stat_activity where datname=current_database()) connections,\n (select count(*) from pg_stat_activity where datname=current_database() and wait_event_type='Lock') lock_waits,\n (select count(*) from pg_stat_activity where datname=current_database() and state='idle in transaction') idle_in_transaction;\nrollback;",
+      "rows": [
+        {
+          "observed_at": "2026-11-09 19:48:00.136448+00",
+          "legal_ready": false,
+          "legal_reason": "LEGAL_DOCUMENTS_NOT_PUBLISHED",
+          "legal_document_history": 4,
+          "legal_documents_active": 0,
+          "processor_maps_active": 0,
+          "retention_ai_source_ready": false,
+          "export_binding_null": true,
+          "retention_binding_null": true,
+          "closure_binding_null": true,
+          "retention_policy_sets": 0,
+          "retention_policy_rules": 0,
+          "auth_accounts": 18,
+          "app_accounts": 18,
+          "needs": 19,
+          "agreements": 7,
+          "scheduled_dispatch_jobs": 4,
+          "connections": 18,
+          "lock_waits": 0,
+          "idle_in_transaction": 0
+        }
+      ]
+    },
+    {
+      "part": 3,
+      "sql": "begin read only;\nset local statement_timeout='5s';\nselect clock_timestamp() observed_at, p.oid::regprocedure::text routine, p.prokind, p.prosecdef,\n pg_get_userbyid(p.proowner) owner,p.proconfig,p.proacl::text acl,\n md5(p.prosrc) body_md5,md5(pg_get_functiondef(p.oid)) definition_md5,\n case when p.proname='enqueue_on_need_change' then p.prosrc ~ 'private[.]dispatch_next_wave[[:space:]]*\\(' end publication_calls_wave,\n case when p.proname='enqueue_on_need_change' then position('private.enqueue_dispatch' in p.prosrc)>0 end publication_enqueues\nfrom pg_proc p join pg_namespace n on n.oid=p.pronamespace\nwhere n.nspname='private' and p.proname in('dispatch_one_job_v1','requeue_one_changed_worker_profile_v1','marketplace_tick_transactions_v1','enqueue_on_need_change','wake_push_worker','marketplace_tick','dispatch_tick','capacity4_transaction_probe_v1')\norder by routine;\nrollback;",
+      "rows": [
+        {
+          "observed_at": "2026-11-09 19:48:07.764225+00",
+          "routine": "private.capacity4_transaction_probe_v1()",
+          "prokind": "p",
+          "prosecdef": false,
+          "owner": "postgres",
+          "proconfig": null,
+          "acl": "{postgres=X/postgres}",
+          "body_md5": "62051bf43e88a090ab14e98ab453f245",
+          "definition_md5": "8341643055a38552ed514fab0669997d",
+          "publication_calls_wave": null,
+          "publication_enqueues": null
+        },
+        {
+          "observed_at": "2026-11-09 19:48:07.764266+00",
+          "routine": "private.dispatch_tick(integer,timestamp with time zone)",
+          "prokind": "f",
+          "prosecdef": true,
+          "owner": "postgres",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "acl": "{postgres=X/postgres}",
+          "body_md5": "76280b0ad653d2fc10199bca2c3971a8",
+          "definition_md5": "0884bde87ad3ac29dfd1ac5f0abc7a8c",
+          "publication_calls_wave": null,
+          "publication_enqueues": null
+        },
+        {
+          "observed_at": "2026-11-09 19:48:07.76427+00",
+          "routine": "private.enqueue_on_need_change()",
+          "prokind": "f",
+          "prosecdef": true,
+          "owner": "postgres",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "acl": "{postgres=X/postgres}",
+          "body_md5": "3f7d263b9e1724e683c9c920ed782550",
+          "definition_md5": "540000f63bf446ceda45523bdd8a8e28",
+          "publication_calls_wave": false,
+          "publication_enqueues": true
+        },
+        {
+          "observed_at": "2026-11-09 19:48:07.764273+00",
+          "routine": "private.marketplace_tick(integer,timestamp with time zone)",
+          "prokind": "f",
+          "prosecdef": true,
+          "owner": "postgres",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "acl": "{postgres=X/postgres}",
+          "body_md5": "3858404992f2ceaa30b65af1055e2b9c",
+          "definition_md5": "14a5c035e4fce70b1e2a3d1084d19c5f",
+          "publication_calls_wave": null,
+          "publication_enqueues": null
+        },
+        {
+          "observed_at": "2026-11-09 19:48:07.764275+00",
+          "routine": "private.wake_push_worker()",
+          "prokind": "f",
+          "prosecdef": true,
+          "owner": "postgres",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "acl": "{postgres=X/postgres}",
+          "body_md5": "e00bb01c0c20392ab004f39154cf1bf7",
+          "definition_md5": "097e2177f8828c2aec6b926b54a7a26a",
+          "publication_calls_wave": null,
+          "publication_enqueues": null
+        }
+      ]
+    },
+    {
+      "part": 4,
+      "sql": "begin read only;\nset local statement_timeout='5s';\nwith snap as (select statement_timestamp() at),\nwindows as (select 15 minutes union all select 60),\nr as(select j.jobid,j.jobname,w.minutes,s.at,\n count(d.runid) started,\n count(d.runid) filter(where d.status='succeeded') succeeded,\n count(d.runid) filter(where d.status='failed') failed,\n count(d.runid) filter(where d.status not in('succeeded','failed')) other,\n max(d.start_time) latest_started,\n percentile_cont(.50) within group(order by extract(epoch from (d.end_time-d.start_time))*1000) filter(where d.end_time is not null) p50_ms,\n percentile_cont(.95) within group(order by extract(epoch from (d.end_time-d.start_time))*1000) filter(where d.end_time is not null) p95_ms,\n percentile_cont(.99) within group(order by extract(epoch from (d.end_time-d.start_time))*1000) filter(where d.end_time is not null) p99_ms\nfrom cron.job j cross join windows w cross join snap s\nleft join cron.job_run_details d on d.jobid=j.jobid and d.start_time>=s.at-make_interval(mins=>w.minutes) and d.start_time<=s.at\ngroup by j.jobid,j.jobname,w.minutes,s.at)\nselect * from r order by jobid,minutes;\nrollback;",
+      "rows": [
+        {
+          "jobid": 1,
+          "jobname": "uskoci_marketplace_tick",
+          "minutes": 15,
+          "at": "2026-11-09 19:48:01.203054+00",
+          "started": 15,
+          "succeeded": 15,
+          "failed": 0,
+          "other": 0,
+          "latest_started": "2026-11-09 19:48:00.147157+00",
+          "p50_ms": 93.941,
+          "p95_ms": 339.2605,
+          "p99_ms": 408.9889
+        },
+        {
+          "jobid": 1,
+          "jobname": "uskoci_marketplace_tick",
+          "minutes": 60,
+          "at": "2026-11-09 19:48:01.203054+00",
+          "started": 60,
+          "succeeded": 60,
+          "failed": 0,
+          "other": 0,
+          "latest_started": "2026-11-09 19:48:00.147157+00",
+          "p50_ms": 104.595,
+          "p95_ms": 325.65295,
+          "p99_ms": 513.074499999999
+        },
+        {
+          "jobid": 2,
+          "jobname": "uskoci_edge_workers",
+          "minutes": 15,
+          "at": "2026-11-09 19:48:01.203054+00",
+          "started": 15,
+          "succeeded": 15,
+          "failed": 0,
+          "other": 0,
+          "latest_started": "2026-11-09 19:48:00.145194+00",
+          "p50_ms": 419.171,
+          "p95_ms": 967.5047,
+          "p99_ms": 1121.40334
+        },
+        {
+          "jobid": 2,
+          "jobname": "uskoci_edge_workers",
+          "minutes": 60,
+          "at": "2026-11-09 19:48:01.203054+00",
+          "started": 60,
+          "succeeded": 60,
+          "failed": 0,
+          "other": 0,
+          "latest_started": "2026-11-09 19:48:00.145194+00",
+          "p50_ms": 433.081,
+          "p95_ms": 915.9263,
+          "p99_ms": 2065.26254999999
+        },
+        {
+          "jobid": 3,
+          "jobname": "uskoci_taxonomy_postsave_tick_dev",
+          "minutes": 15,
+          "at": "2026-11-09 19:48:01.203054+00",
+          "started": 15,
+          "succeeded": 15,
+          "failed": 0,
+          "other": 0,
+          "latest_started": "2026-11-09 19:48:00.143218+00",
+          "p50_ms": 37.155,
+          "p95_ms": 73.8479,
+          "p99_ms": 78.52558
+        },
+        {
+          "jobid": 3,
+          "jobname": "uskoci_taxonomy_postsave_tick_dev",
+          "minutes": 60,
+          "at": "2026-11-09 19:48:01.203054+00",
+          "started": 60,
+          "succeeded": 60,
+          "failed": 0,
+          "other": 0,
+          "latest_started": "2026-11-09 19:48:00.143218+00",
+          "p50_ms": 36.8275,
+          "p95_ms": 71.75965,
+          "p99_ms": 117.87813
+        }
+      ]
+    },
+    {
+      "part": 5,
+      "sql": "begin read only;\nset local statement_timeout='5s';\nselect clock_timestamp() observed_at,\n (select count(*) from supabase_migrations.schema_migrations where name like '%transaction_probe_cleanup%') probe_cleanup_migrations,\n (select count(*) from private.capacity4_transaction_probe) probe_synthetic_rows,\n (select count(*) from cron.job where jobname='uskoci_dispatch_call_probe_20261108') probe_cron_jobs,\n (select jsonb_build_object('rls',relrowsecurity,'acl',relacl::text,'owner',pg_get_userbyid(relowner),'comment',obj_description(oid,'pg_class')) from pg_class where oid='private.capacity4_transaction_probe'::regclass) probe_table_metadata;\nrollback;",
+      "rows": [
+        {
+          "observed_at": "2026-11-09 19:48:32.139439+00",
+          "probe_cleanup_migrations": 0,
+          "probe_synthetic_rows": 2,
+          "probe_cron_jobs": 0,
+          "probe_table_metadata": {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "owner": "postgres",
+            "comment": "USKOCI disposable transaction CALL probe 20261108; synthetic diagnostic rows only"
+          }
+        }
+      ]
+    }
+  ],
+  "findings": {
+    "capacity6": "All three target routines absent; old main Cron retained.",
+    "probe_cleanup": "Not applied: no cleanup migration, diagnostic table has two rows, procedure remains. Probe Cron absent. No cleanup attempted by this reviewer.",
+    "r12": "Legal ready=false; no active legal documents or processor map.",
+    "r13_publication": "Enqueue-only body matches previously confirmed MD5; direct wave call absent.",
+    "retention": "AI source=false; export/retention/closure binding=NULL; policy sets/rules=0/0.",
+    "cron": "All three jobs have 15/15 successful starts in last15 minutes and60/60 in last60 minutes; no failed or other runs.",
+    "business_counts": "Auth18,app_accounts18,needs19,agreements7,dispatch_schedule4.",
+    "runtime_snapshot": "18 database connections,0 lock waits,0 idle-in-transaction sessions."
+  },
+  "limits": [
+    "No SQL DDL/DML, migration application, schedule changes, provider calls, keys, budget changes or repository edits.",
+    "Metrics are Cron execution duration for the recorded15/60-minute windows, not downstream HTTP/Edge/push/Android latency or capacity acceptance.",
+    "No Android, physical-device, API-as-user, load or end-to-end tests performed.",
+    "Project plan not refreshed; Edge versions are present in additional_readback.",
+    "Each SQL query ran in its own read-only transaction with5-second statement timeout."
+  ]
+}

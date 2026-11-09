@@ -1,0 +1,101 @@
+✔ P6 actual coordinator remains lazy with 100 matching tasks (667.495137ms)
+✔ P6 actual coordinator remains lazy with 1000 matching tasks (344.139028ms)
+✔ P6 actual coordinator remains lazy with 5000 matching tasks (277.032343ms)
+✔ P6 actual coordinator remains lazy with 5001 matching tasks (325.086636ms)
+✔ P6 actual coordinator remains lazy with 10000 matching tasks (225.485744ms)
+✔ P6 actual coordinator remains lazy with 30000 matching tasks (200.571585ms)
+✔ P6 rapid filter change fences a late previous PAGE and sends no remote MAP (192.955823ms)
+✔ P6 explicit refresh starts a fresh anchor and retains no previous continuation (237.03782ms)
+✔ P6 changed account/visit rejects the original in-flight answer and clears retired state (105.792184ms)
+✔ P6 suspended A-B-A lifecycle cannot accept the earlier account read (196.574979ms)
+✔ P6 expired anchor is renewed once before the requested next page (212.590318ms)
+✔ P6 repeated anchor refusal stays an error and never retries without a bound (207.596618ms)
+✔ P6 MAP failure does not erase a valid PAGE and MAP retry is independent (197.44984ms)
+✔ P6 EXACT_PUBLIC can select a task outside the loaded first PAGE (219.740235ms)
+✔ P6 HTTP transport deadline aborts a stalled request without automatic resend (65.014481ms)
+✖ P6 PAGE rejects a repeated continuation cursor and keeps a retryable page (87.901577ms)
+✖ P6 MEMBERS rejects a repeated continuation cursor and keeps a retryable page (74.259931ms)
+✖ P6 PLACES rejects a repeated continuation cursor and keeps a retryable page (82.962277ms)
+✖ P6 search PLACES rejects a foreign anchor and preserves the same retry request (117.014807ms)
+✖ P6 search PLACES rejects a repeated cursor without claiming successful loading (104.439593ms)
+✔ P6 actual route no longer reads a publication handoff; preview and production keep their declared gate (0.666966ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 16
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4163.878638
+
+✖ failing tests:
+
+test at scripts/p6-discovery-pagination.test.cjs:149:3
+✖ P6 PAGE rejects a repeated continuation cursor and keeps a retryable page (87.901577ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/workspace/scratch/78491a3df814/discovery/scripts/p6-discovery-pagination.test.cjs:165:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /CURSOR_STALLED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at scripts/p6-discovery-pagination.test.cjs:149:3
+✖ P6 MEMBERS rejects a repeated continuation cursor and keeps a retryable page (74.259931ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/workspace/scratch/78491a3df814/discovery/scripts/p6-discovery-pagination.test.cjs:165:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /CURSOR_STALLED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at scripts/p6-discovery-pagination.test.cjs:149:3
+✖ P6 PLACES rejects a repeated continuation cursor and keeps a retryable page (82.962277ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/workspace/scratch/78491a3df814/discovery/scripts/p6-discovery-pagination.test.cjs:165:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /CURSOR_STALLED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at scripts/p6-discovery-pagination.test.cjs:172:1
+✖ P6 search PLACES rejects a foreign anchor and preserves the same retry request (117.014807ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/workspace/scratch/78491a3df814/discovery/scripts/p6-discovery-pagination.test.cjs:183:37)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /ANCHOR_DRIFT/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at scripts/p6-discovery-pagination.test.cjs:191:1
+✖ P6 search PLACES rejects a repeated cursor without claiming successful loading (104.439593ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/workspace/scratch/78491a3df814/discovery/scripts/p6-discovery-pagination.test.cjs:199:37)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /CURSOR_STALLED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

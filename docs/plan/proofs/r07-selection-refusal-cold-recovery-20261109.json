@@ -1,0 +1,113 @@
+{
+  "schema": "USKOCI_R07_SELECTION_REFUSAL_COLD_RECOVERY_V1",
+  "recordedAtUtc": "2026-11-09T19:57:58.242916+00:00",
+  "status": "SOURCE_IMPLEMENTED_AND_LOCALLY_TESTED",
+  "baseCommit": "00b18e7e56b6e2835cab0aff7a5dc1f3007448f4",
+  "targetBranch": "work/uskoci-cist-proizvod-20261104",
+  "sourceIdentity": "Detached worktree based on baseCommit; the exact changed runtime/test bytes are bound by sourceFiles. The containing Git commit supplies the resulting source identity.",
+  "sourceFiles": [
+    {
+      "path": "src/data/selectionCommandJournal.ts",
+      "bytes": 10446,
+      "sha256": "835885fbd3c6c19ce3ddd3bd7881e8946b91bd48a1831cdf27d17e6005204c7a",
+      "preimageSha256": "885efea9c12bf6118752dedba241245c116cfb1820a154787d91fc1fbca9230c"
+    },
+    {
+      "path": "src/app/(app)/potrebe/[id]/kandidati.tsx",
+      "bytes": 33875,
+      "sha256": "0cbc41d025c6c598d7802b420c1c692756ce26a2a465fe3c699ebaafed6e8e60",
+      "preimageSha256": "06e2aef051a8cb91d2f03ee4eb5b67f2362c97329ded120d0db5dc134504fc60"
+    },
+    {
+      "path": "scripts/r07-selection-cold-restart.test.cjs",
+      "bytes": 45248,
+      "sha256": "013ac9c764a1f5fd02a4d880aa1856f15393ce237a3347373568503189c512bd",
+      "preimageSha256": "4ac0d7e2260ce2ab3d015501efc28274104112f70a5ecaf7bc57aec9e3255ca1"
+    }
+  ],
+  "cause": "The adapter already recognized exact no-write SQLSTATE refusals, but the selection journal retained only the command. A fresh Candidates session restored result:null, losing the known refusal and its existing explanation. NOT_FOUND could not reconstruct that outcome.",
+  "negativeControl": {
+    "runtime": "00b18e7e56b6e2835cab0aff7a5dc1f3007448f4",
+    "command": "node --test --test-name-pattern='a confirmed selection refusal keeps' scripts/r07-selection-cold-restart.test.cjs",
+    "testRuntime": "Only the new regression test was present; journal and Candidates runtime were unchanged preimage bytes.",
+    "exitCode": 1,
+    "tests": 1,
+    "pass": 0,
+    "fail": 1,
+    "actualAfterRestart": null,
+    "expectedAfterRestart": {
+      "ok": false,
+      "kod": "OVERFILL",
+      "poruka": "Prijava pokriva više ljudi nego što je još potrebno.",
+      "selectionRefusal": true
+    }
+  },
+  "implementation": [
+    "Keep the original account/Need storage key, immutable command, serialized native chain and five-second enqueue deadline.",
+    "Version 1 records remain valid and are not rewritten during reads. A proven refusal promotes only its exact existing command to version 2.",
+    "Version 2 stores only the existing allowlisted refusal code and canonical explanation. No candidate profile, mutable offer, note, location or newly authored UI text is added.",
+    "A retained sender cannot downgrade or resend a version 2 record. Explicit existing reset must retire the exact command before a new selection.",
+    "Cold loading restores the proven refusal into the existing UI state. The same read-only receipt RPC still runs; an exact authoritative receipt retains precedence.",
+    "Account/session/focus/deadline guards remain active at each asynchronous boundary. A late refusal cannot create a missing record or replace another command."
+  ],
+  "validation": {
+    "targetedAndAdjacent": {
+      "command": "node --test scripts/r07-selection-cold-restart.test.cjs scripts/r07-selection-recovery.test.cjs scripts/r07-application-recovery.test.cjs scripts/r07-application-receipt.test.cjs",
+      "exitCode": 0,
+      "tests": 91,
+      "pass": 91,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMs": 4177.064633,
+      "durationScope": "Local synthetic test process duration, not app, provider or native latency."
+    },
+    "typecheck": {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exitCode": 0,
+      "diagnostics": 0
+    },
+    "diffCheck": {
+      "command": "git diff --check",
+      "exitCode": 0
+    },
+    "dependencies": "Existing exact package-lock dependencies prepared by the coordinator; temporary node_modules symlink is not part of the commit.",
+    "covered": [
+      "Cold restart after real adapter OVERFILL/P0001, STALE_REVIEW_REQUIRED/P0001 and APPLICATION_PRICE_BASIS_REVIEW_REQUIRED/PT409 refusals preserves their existing text and reset action.",
+      "Legacy v1 and NOT_FOUND stay unknown; transport failures, missing SQLSTATE, SQLSTATE mismatch and idempotency-key collisions are never persisted as refusal.",
+      "Invalid schema, version, marker, code, arbitrary text and extra fields fail closed without erasure or RPC.",
+      "No downgrade/resend, immutable payload, existing refusal idempotency, explicit retirement, and no recreation by a stale result.",
+      "Logout, account change and same-account/new-session changes fence persistence; a late writer reply after focus or session replacement does not settle durable unknown state.",
+      "Failed and silent device writes keep current known refusal but do not invent persistence on restart.",
+      "Expired queued operations do not run; a late native refusal write remains serialized before clear and a newer command.",
+      "A matching authoritative completed Agreement receipt overrides a local refusal and retires the exact record using only the reader.",
+      "Existing selection receipt, pricing basis, ownership, editor recovery and application journal regressions."
+    ]
+  },
+  "independentReview": {
+    "agent": "current_source_reconcile",
+    "mode": "read-only diff and actual harness checks",
+    "result": "BOUNDED_PASS",
+    "reviewedSourceSha256": {
+      "journal": "835885fbd3c6c19ce3ddd3bd7881e8946b91bd48a1831cdf27d17e6005204c7a",
+      "route": "0cbc41d025c6c598d7802b420c1c692756ce26a2a465fe3c699ebaafed6e8e60",
+      "test": "013ac9c764a1f5fd02a4d880aa1856f15393ce237a3347373568503189c512bd"
+    },
+    "additionalAdversarialChecks": 3,
+    "checks": [
+      "Authoritative CONFIRMED receipt wins over local v2 without a writer.",
+      "A native v2 write followed by readback failure retains the known outcome and a fresh process reads the actually saved refusal.",
+      "A timed-out native refusal write cannot overtake a queued clear and newer save."
+    ]
+  },
+  "boundaries": [
+    "The tests execute production TypeScript journal, adapter, actual route callbacks and existing recovery presentation. RPC, AsyncStorage, account state, native rendering and clock seams are controlled.",
+    "No new UI design, user text, SQL, DEV operation, package dependency, feature flag or CODEX modification.",
+    "No new full CI, APK, emulator, physical-phone force-stop, Android bridge or E2E claim; coordinator performs integrated CI separately.",
+    "No claim of atomicity across the server reply and device persistence. Process loss before the refusal is durably saved, or a device write failure, leaves the original v1 unknown request for read-only reconciliation.",
+    "An already issued native write may finish after ownership loss; it remains under the original account/Need key and serial queue. It cannot update another account or overtake a newer command.",
+    "The previous application parser rejects v2 rather than silently replaying it if an older binary is installed. Retain the updated reader when rolling back unrelated code; do not delete journals as a downgrade workaround.",
+    "The persisted refusal explanation is intentionally restricted to the current approved code/copy map. A future approved copy change requires explicit reader compatibility for stored v2 text rather than accepting arbitrary persisted text."
+  ]
+}

@@ -1,0 +1,224 @@
+{
+  "observedAt": "2026-11-08T15:47:04.765628+00:00",
+  "sourceCommit": "4b515a58948cdd6e96621488b7609c073c3de021",
+  "baselineCommit": "559928efd0bf6de19988986e799d20e6c0f05dff",
+  "scope": "Actual P6 runtime integration, complete isolated pagination, ordinary authenticated HTTPS and narrow continuation guards.",
+  "implemented": [
+    "PAGE, POINT_MEMBERS and PLACES owner reject a repeated nonterminal cursor before replacing accepted data.",
+    "Search PLACES continuation checks all five anchor fields and rejects a repeated nonterminal cursor. Existing error path retains accepted rows and the previous retry request."
+  ],
+  "negativeControl": {
+    "method": "Immutable git-show baseline versions of only discoveryV1Owner.ts and discoveryV1SearchOwner.ts injected into readFileSync; final new 21-test suite unchanged. No checkout/source mutation.",
+    "pass": 16,
+    "expectedFail": 5,
+    "unexpectedFail": 0,
+    "failedCases": [
+      "PAGE replay cursor",
+      "POINT_MEMBERS replay cursor",
+      "PLACES replay cursor",
+      "search PLACES foreign anchor",
+      "search PLACES replay cursor"
+    ],
+    "assertion": "Missing expected rejection on the baseline; these are fault-injected response boundaries, not a claim that the present DEV SQL emits corrupt continuations.",
+    "log": "docs/plan/proofs/p6-client-negative-control-20261108.txt",
+    "command": "node <<'JS'\nconst fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process');\nconst baseline='559928efd0bf6de19988986e799d20e6c0f05dff';\nconst names=['src/data/discoveryV1Owner.ts','src/data/discoveryV1SearchOwner.ts'];\nconst before=new Map(names.map(name=>[path.resolve(name),execFileSync('git',['show',baseline+':'+name])]));\nconst original=fs.readFileSync;\nfs.readFileSync=function(file,options){const saved=typeof file==='string'?before.get(path.resolve(file)):undefined;if(!saved)return original.apply(this,arguments);const encoding=typeof options==='string'?options:options?.encoding;return encoding?saved.toString(encoding):Buffer.from(saved);};\nrequire('./scripts/p6-discovery-pagination.test.cjs');\nJS"
+  },
+  "validation": [
+    {
+      "command": "node --test --test-concurrency=2 scripts/p6-discovery-pagination.test.cjs scripts/r05-discovery-contract.test.cjs scripts/r02-discovery-schedule.test.cjs scripts/p0-discovery-materialization.test.cjs scripts/ux-discovery-for-me.test.cjs",
+      "pass": 71,
+      "fail": 0,
+      "skip": 0,
+      "newSuiteTests": 21
+    },
+    {
+      "command": "./node_modules/.bin/tsc --noEmit",
+      "exitCode": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    },
+    {
+      "runner": "scripts/p6-discovery-pagination-native.cjs",
+      "pass": 12,
+      "fail": 0,
+      "proof": "docs/plan/proofs/p6-pagination-native-20261108.json"
+    },
+    {
+      "runner": "scripts/p6-discovery-authenticated-http.cjs",
+      "pass": 13,
+      "fail": 0,
+      "proof": "docs/plan/proofs/p6-authenticated-http-20261108.json"
+    },
+    {
+      "runner": "scripts/legacy-discovery-boundary-probe.cjs --run",
+      "proof": "docs/plan/proofs/p6-legacy-boundary-20261108.json",
+      "legacy5001": "OPPORTUNITIES_TOO_MANY_PAGES"
+    }
+  ],
+  "nativeScale": [
+    {
+      "total": 100,
+      "pages": 1,
+      "acceptedRows": 100,
+      "duplicateRows": 0,
+      "missingRows": 0,
+      "maxResponseRows": 100,
+      "maxResponseBytes": 88546,
+      "p50Ms": 32.824186,
+      "p95Ms": 32.824186,
+      "p99Ms": 32.824186,
+      "stableAnchor": true,
+      "stableCursors": true,
+      "fullExpectedOrder": true
+    },
+    {
+      "total": 1000,
+      "pages": 10,
+      "acceptedRows": 1000,
+      "duplicateRows": 0,
+      "missingRows": 0,
+      "maxResponseRows": 100,
+      "maxResponseBytes": 88895,
+      "p50Ms": 26.254559,
+      "p95Ms": 38.183407,
+      "p99Ms": 38.183407,
+      "stableAnchor": true,
+      "stableCursors": true,
+      "fullExpectedOrder": true
+    },
+    {
+      "total": 5000,
+      "pages": 50,
+      "acceptedRows": 5000,
+      "duplicateRows": 0,
+      "missingRows": 0,
+      "maxResponseRows": 100,
+      "maxResponseBytes": 89054,
+      "p50Ms": 61.685151,
+      "p95Ms": 94.280419,
+      "p99Ms": 121.1633,
+      "stableAnchor": true,
+      "stableCursors": true,
+      "fullExpectedOrder": true
+    },
+    {
+      "total": 5001,
+      "pages": 51,
+      "acceptedRows": 5001,
+      "duplicateRows": 0,
+      "missingRows": 0,
+      "maxResponseRows": 100,
+      "maxResponseBytes": 89054,
+      "p50Ms": 62.622907,
+      "p95Ms": 95.690965,
+      "p99Ms": 134.473297,
+      "stableAnchor": true,
+      "stableCursors": true,
+      "fullExpectedOrder": true
+    },
+    {
+      "total": 10000,
+      "pages": 100,
+      "acceptedRows": 10000,
+      "duplicateRows": 0,
+      "missingRows": 0,
+      "maxResponseRows": 100,
+      "maxResponseBytes": 89057,
+      "p50Ms": 113.503974,
+      "p95Ms": 128.102477,
+      "p99Ms": 150.922991,
+      "stableAnchor": true,
+      "stableCursors": true,
+      "fullExpectedOrder": true
+    },
+    {
+      "total": 30000,
+      "pages": 300,
+      "acceptedRows": 30000,
+      "duplicateRows": 0,
+      "missingRows": 0,
+      "maxResponseRows": 100,
+      "maxResponseBytes": 89157,
+      "p50Ms": 345.422348,
+      "p95Ms": 494.605945,
+      "p99Ms": 572.979819,
+      "stableAnchor": true,
+      "stableCursors": true,
+      "fullExpectedOrder": true
+    }
+  ],
+  "liveReadback": {
+    "observedAt": "2026-11-08T15:30:32.999484Z",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "function": "public.rpc_discovery_v1(jsonb)",
+    "bodyMd5": "c75535d3f77b2216ed424843ef57ef04",
+    "owner": "postgres",
+    "securityDefiner": false,
+    "volatility": "s",
+    "searchPath": "pg_catalog",
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "fixtureExactBodyMatch": true
+  },
+  "privacy": {
+    "precision": "COARSE_1KM",
+    "actualContract": "Public latitude/longitude are restricted to two decimal degrees; this is a coarse angular grid, not a promised constant metric radius. EXACT_PUBLIC selects an exact task identity, never its exact private address. REMOTE rows have no pin.",
+    "ordinaryAuth": "Two existing dedicated QA users, four current visible tasks each. Whole needs row and both private closure columns denied with SQLSTATE 42501; anonymous P6 denied with 42501.",
+    "limitations": "This is not a complete R01/IDOR or all-private-media security audit."
+  },
+  "routeAndLimits": {
+    "publicationHandoff": "Current Zadaci route always passes publicationHandoff:false; previous independent review statement that active publication handoff keeps the route on LEGACY is stale for this source. Static route guard added; no new publication Android E2E claim.",
+    "initialRows": 50,
+    "continuationPageMaximum": 100,
+    "optionalOverlayRowsMaximum": 100,
+    "mapBucketMaximum": 256,
+    "phoneBulkRead": false,
+    "productionFlag": "0",
+    "previewFlag": "1",
+    "legacy5001StillOpen": true,
+    "hiddenLimitReview": "No second 5000-task hard cap found in inspected P6 owner/session/coordinator/transport. Eight-page restore recovery is an explicit bounded restore step, not the ordinary next-page limit. Agreement ALL reader still refuses after 20x100 and belongs to Home/calendar follow-up."
+  },
+  "documentationRead": {
+    "CODEX": "Current checkpoint and relevant R02/R03 sections; not the entire historical master.",
+    "Product": "Canonical authority and navigation; relevant S02/S03 screen contracts and privacy; S01 read for next data work; not the entire historical document.",
+    "proofs": "Current R02 native benchmark/source/preimage, R05 contract fixture, independent capacity review, and current Home/calendar four-counterexample proof."
+  },
+  "performanceInterpretation": "Scale times are sequential local RPC observations on PostgreSQL/PostGIS, not a before/after speedup of the 11-line client guard, hosted SLO, concurrency proof or 300000-user capacity acceptance. UI does not automatically traverse the corpus.",
+  "unchanged": {
+    "productionFlag": true,
+    "sqlFunctionsAndGrants": true,
+    "businessData": true,
+    "uiLayout": true,
+    "R12Quarantine": true,
+    "R13ShortPublication": true
+  },
+  "limits": [
+    "No Android emulator, physical device, two-phone, push delivery or full publication-to-Agreement E2E in this package.",
+    "Production remains LEGACY with the reproduced 5001 cap until P6 Android acceptance and separate rollout decision.",
+    "Native SQL fixture uses existing synthetic account/world lineage and taxonomy/eligibility boundaries; ordinary hosted Auth proof covers only the small real DEV sample.",
+    "CI/full integration is the coordinator next step; this local commit has not been pushed."
+  ],
+  "status": {
+    "clientGuards": "SOURCE IMPLEMENTIRANO / TESTIRANO",
+    "existingP6DevApi": "DEV POTVRĐENO for the specified ordinary-Auth read-only calls",
+    "completeSyntheticPagination": "TESTIRANO in isolated actual PostgreSQL/PostGIS",
+    "productionRollout": "BLOKIRANO on native acceptance; flag unchanged",
+    "android": "NIJE TESTIRANO",
+    "release": "NO-GO"
+  },
+  "sourceFiles": {
+    "src/data/discoveryV1Owner.ts": "1a30e41e726a6cca03d22015691bfce986dce51abc5a288271d237af3b8a2bbc",
+    "src/data/discoveryV1SearchOwner.ts": "d14c51f9288852898d40757c54ed225b0dd603183db7fa3563b380b3cc62a795",
+    "scripts/p6-discovery-pagination.test.cjs": "f04dd5aaf2152247171d246a77eb330bb7e5080c8358fadc69bffcb494ac4eb6",
+    "scripts/p6-discovery-integration-harness.cjs": "bcd8a363f455df6a60abb71cd96ec39a280890e345932b3b23ae25678ae7fae6",
+    "scripts/p6-discovery-pagination-native.cjs": "94fb37d505bff9becd20551028362ac918629389347938850d44253a8802195a",
+    "scripts/p6-discovery-authenticated-http.cjs": "7b7c8b81b833a0cd709a949653a396f3dcf10efad33f6cbcaeb411ce8d2184aa"
+  },
+  "proofFiles": {
+    "docs/plan/proofs/p6-pagination-native-20261108.json": "e5a3838c42e39cfc1b0c801efeb5aa4a5d095fcc95ba44502d193999f5b64f1b",
+    "docs/plan/proofs/p6-authenticated-http-20261108.json": "228bd80f60c28dd923d2fecdda271f9db6d622cc71651851ceba49ed1e805067",
+    "docs/plan/proofs/p6-legacy-boundary-20261108.json": "d688a8fc6cf3c876642537b1d1af94be10bf11f3295ea6e8e6bb7154b6c64924",
+    "docs/plan/proofs/p6-client-negative-control-20261108.txt": "6adbf09f0ca39885cb6b9aff3f79324d35f4125784ccdf7d9c66731c8b0323b6"
+  }
+}

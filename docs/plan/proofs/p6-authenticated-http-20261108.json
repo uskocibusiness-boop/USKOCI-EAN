@@ -1,0 +1,115 @@
+{
+  "observedAt": "2026-11-08T15:43:20.171Z",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceHead": "4b515a58948cdd6e96621488b7609c073c3de021",
+  "method": "Two pre-existing dedicated QA email/password logins; ordinary authenticated JWT via Supabase Auth and real HTTPS PostgREST. Actual P6 transport, decoders and owner.",
+  "sourceFiles": {
+    "src/data/discoveryV1Contract.ts": "beca5c34aafaca6a76b6bafba90dbf3cd23b6f4e61501bd5d6c128403d2cf3f5",
+    "src/data/discoveryV1SpatialContract.ts": "54c75735d619e70da01548de1bff4f68008a70380cb24ba36008d48f2fac6091",
+    "src/data/discoveryV1Owner.ts": "1a30e41e726a6cca03d22015691bfce986dce51abc5a288271d237af3b8a2bbc",
+    "src/data/discoveryV1ClientTransport.ts": "a6c164bafad9e479f45b451d73ff42571ed5269e0bac74cd2a1817f4ceabdcb2"
+  },
+  "actors": [
+    {
+      "label": "dedicated-qa-1",
+      "role": "authenticated",
+      "publicRows": 4,
+      "pageRequests": 4,
+      "p6Requests": 15
+    },
+    {
+      "label": "dedicated-qa-2",
+      "role": "authenticated",
+      "publicRows": 4,
+      "pageRequests": 4,
+      "p6Requests": 15
+    }
+  ],
+  "checks": [
+    {
+      "name": "QA actor 1: ordinary-Auth PAGE and complete keyset continuation",
+      "result": "PASS",
+      "pages": 4,
+      "publicRows": 4,
+      "duplicateRows": 0
+    },
+    {
+      "name": "QA actor 1: MAP, PLACES AREA and CITY pass actual decoders",
+      "result": "PASS",
+      "mapBuckets": 1,
+      "areas": 1,
+      "cities": 1
+    },
+    {
+      "name": "QA actor 1: EXACT_PUBLIC returns the requested coarse public projection",
+      "result": "PASS"
+    },
+    {
+      "name": "QA actor 1: onsite/remote, price, people, text and time filters are accepted",
+      "result": "PASS"
+    },
+    {
+      "name": "QA actor 1: ForMe gives a validated page or the explicit profile refusal",
+      "result": "PASS",
+      "outcome": "ACCEPTED_PUBLIC_PAGE"
+    },
+    {
+      "name": "QA actor 1: whole-row and private closure columns remain denied",
+      "result": "PASS",
+      "sqlstate": "42501",
+      "operations": 3
+    },
+    {
+      "name": "QA actor 2: ordinary-Auth PAGE and complete keyset continuation",
+      "result": "PASS",
+      "pages": 4,
+      "publicRows": 4,
+      "duplicateRows": 0
+    },
+    {
+      "name": "QA actor 2: MAP, PLACES AREA and CITY pass actual decoders",
+      "result": "PASS",
+      "mapBuckets": 1,
+      "areas": 1,
+      "cities": 1
+    },
+    {
+      "name": "QA actor 2: EXACT_PUBLIC returns the requested coarse public projection",
+      "result": "PASS"
+    },
+    {
+      "name": "QA actor 2: onsite/remote, price, people, text and time filters are accepted",
+      "result": "PASS"
+    },
+    {
+      "name": "QA actor 2: ForMe gives a validated page or the explicit profile refusal",
+      "result": "PASS",
+      "outcome": "ACCEPTED_PUBLIC_PAGE"
+    },
+    {
+      "name": "QA actor 2: whole-row and private closure columns remain denied",
+      "result": "PASS",
+      "sqlstate": "42501",
+      "operations": 3
+    },
+    {
+      "name": "Unauthenticated HTTPS P6 call is denied",
+      "result": "PASS",
+      "sqlstate": "42501"
+    }
+  ],
+  "limitations": [
+    "Small existing DEV corpus only. No synthetic business rows inserted and no hosted capacity claim.",
+    "Not Android, native rendering, physical installation, complete publication/matching flow or provider proof.",
+    "No legal acceptance/write is attempted. The legal release gate remains unchanged.",
+    "EXACT_PUBLIC names an exact task ID, never a private precise location. Coarse map privacy is checked at the wire decoder."
+  ],
+  "businessWrites": 0,
+  "providerCalls": 0,
+  "productionFlagChanged": false,
+  "summary": {
+    "pass": 13,
+    "fail": 0,
+    "ordinaryAuthenticatedActors": 2
+  }
+}

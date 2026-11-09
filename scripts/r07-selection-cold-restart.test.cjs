@@ -7,6 +7,7 @@ const ts = require('typescript');
 const { ROOT, ID, ownerId, needId, agreementId, command, savedRecord, storageKey, found, absent, compile, deferred, harness } = require('./r07-selection-recovery-harness.cjs');
 const seeded = (value = savedRecord()) => new Map([[storageKey(), JSON.stringify(value)]]);
 const rpcNames = h => h.calls.map(call => call.name);
+const refusalFor = (h, kod = 'OVERFILL') => ({ ok: false, kod, poruka: h.service.applicationSelectionErrors[kod], selectionRefusal: true });
 const flush = () => new Promise(resolve => setImmediate(resolve));
 function controlledClock() {
   let now = 1_800_000_000_000, sequence = 0;
@@ -70,12 +71,180 @@ test('a crash after durable intent but before dispatch restores the same unsent 
   assert.deepEqual(rpcNames(after), ['rpc_read_selection_result']);
   assert.equal(after.session.pending.reconciled, true);
   assert.equal(after.session.pending.candidate, after.candidate, 'only an exact current offer can restore its display');
+  assert.deepEqual(JSON.parse(after.memory.get(storageKey())), savedRecord(), 'legacy v1 remains unknown and is not rewritten by a read');
   after.control.failSet = true; // The identical durable record needs no redundant device write.
   await after.choose();
   assert.deepEqual(rpcNames(after), ['rpc_read_selection_result', 'rpc_select_response']);
   assert.equal(after.calls[1].args.p_client_request_id, savedRecord().command.clientRequestId);
   assert.equal(after.control.newKeys, 0);
   assert.equal(after.storageCalls.some(call => call.name === 'setItem'), false);
+});
+
+test('a confirmed selection refusal keeps its existing explanation after a cold restart and cannot be resent', async () => {
+  for (const [message, code] of [['OVERFILL', 'P0001'], ['STALE_REVIEW_REQUIRED', 'P0001'], ['APPLICATION_PRICE_BASIS_REVIEW_REQUIRED', 'PT409']]) {
+    const before = harness(absent, { fresh: true, pending: false });
+    assert.equal((await before.read()).ok, true);
+    before.control.selectError = { message, code };
+    const refusal = await before.choose();
+    assert.equal(before.service.conclusiveSelectionRefusal(refusal), true);
+    const after = harness(absent, { fresh: true, pending: false, memory: before.memory });
+    const recovered = await after.read();
+    assert.equal(recovered.ok, true); assert.equal(recovered.podatak.receipt, null);
+    assert.deepEqual(after.session.pending.result, refusal, 'the confirmed refusal and its existing explanation must survive process loss');
+    assert.equal(after.service.conclusiveSelectionRefusal(after.session.pending.result), true);
+    const view = recoveryPresentation()({ receipt: null, busy: false, uncertain: false, refresh: () => {},
+      resend: after.choose, back: () => {}, openAgreement: after.openAgreement, error: after.session.pending.result.poruka, reset: after.reset });
+    assert.ok(view.props.children.props.body.includes(refusal.poruka), 'existing recovery presentation receives the preserved explanation');
+    assert.equal(view.props.children.props.primary.label, 'Pregledajte prijave');
+    assert.equal(await after.choose(), undefined, 'a proven refusal offers current candidates, never same-command replay');
+    assert.equal(after.control.newKeys, 0);
+    assert.ok(rpcNames(after).every(name => name === 'rpc_read_selection_result'));
+    await after.reset();
+    assert.equal(after.session.pending, null); assert.equal(after.memory.has(storageKey()), false);
+  }
+});
+
+test('transport failures, key collisions and unproven rejection messages remain unknown after restart', async () => {
+  for (const error of [{ message: 'OVERFILL' }, { message: 'OVERFILL', code: '40001' },
+    { message: 'IDEMPOTENCY_KEY_REUSED', code: '22023' }, null]) {
+    const before = harness(absent, { fresh: true, pending: false }); await before.read();
+    before.control.selectError = error; before.control.selectThrows = error === null;
+    const result = await before.choose();
+    assert.equal(before.service.conclusiveSelectionRefusal(result), false);
+    assert.deepEqual(JSON.parse(before.memory.get(storageKey())), savedRecord());
+    const after = harness(absent, { pending: false, memory: before.memory });
+    assert.equal((await after.read()).podatak.receipt, null);
+    assert.equal(after.session.pending.result, null, 'NOT_FOUND provides no new outcome');
+    assert.deepEqual(rpcNames(after), ['rpc_read_selection_result']);
+    await after.reset(); assert.equal(after.memory.size, 1, 'unknown cannot retire its request');
+  }
+});
+
+test('a durable refusal is immutable, cannot be downgraded to a sendable command and never stores private copy', async () => {
+  const h = harness(absent, { pending: false, memory: seeded() }), refusal = refusalFor(h);
+  await h.journal.recordRefusal(savedRecord(), refusal, h.current);
+  const raw = h.memory.get(storageKey()), stored = h.journalModule.parseSelectionCommand(raw, ownerId, needId);
+  assert.equal(stored.version, 2); assert.deepEqual(stored.refusal, refusal);
+  assert.equal(Object.isFrozen(stored.refusal), true); assert.deepEqual(stored.command, command());
+  assert.equal(/1200|HOURLY|napomena|lokacija/.test(raw), false);
+  const writes = h.storageCalls.filter(call => call.name === 'setItem').length;
+  await h.journal.recordRefusal(savedRecord(), refusal, h.current);
+  assert.equal(h.storageCalls.filter(call => call.name === 'setItem').length, writes);
+  await assert.rejects(h.journal.save(savedRecord(), h.current), /SELECTION_COMMAND_REFUSED/);
+  await assert.rejects(h.journal.recordRefusal(savedRecord(), refusalFor(h, 'STALE_REVIEW_REQUIRED'), h.current), /SELECTION_COMMAND_REFUSAL_CHANGED/);
+  for (const patch of [{ clientRequestId: 'newer-selection-command' }, { mesta: 1 }, { prijavaHash: 'b'.repeat(64) }]) {
+    await assert.rejects(h.journal.recordRefusal(savedRecord({ command: command(patch) }), refusal, h.current), /SELECTION_COMMAND_(UNRESOLVED|PAYLOAD_CHANGED)/);
+  }
+  assert.equal(h.memory.get(storageKey()), raw);
+  await h.journal.clear(savedRecord(), h.current);
+  await assert.rejects(h.journal.recordRefusal(savedRecord(), refusal, h.current), /SELECTION_COMMAND_NOT_SAVED/);
+  assert.equal(h.memory.size, 0, 'a late refusal cannot recreate a retired command');
+});
+
+test('invalid refusal markers, codes, text and versions fail closed without clearing or dispatch', async () => {
+  const h = harness(), refusal = refusalFor(h), valid = { ...savedRecord(), version: 2, refusal };
+  const variants = [{ ...valid, version: 1 }, { ...valid, version: 3 },
+    ...[{ ...refusal, selectionRefusal: false }, { ...refusal, ok: true },
+      { ...refusal, kod: 'IDEMPOTENCY_KEY_REUSED' }, { ...refusal, kod: 'NOT_FOUND' },
+      { ...refusal, poruka: 'Untrusted private text' }, { ...refusal, privateNote: 'hidden' }].map(value => ({ ...valid, refusal: value }))];
+  for (const value of variants) {
+    const raw = JSON.stringify(value), after = harness(absent, { pending: false, memory: new Map([[storageKey(), raw]]) });
+    assert.equal((await after.read()).kod, 'SELECTION_COMMAND_JOURNAL_INVALID');
+    assert.equal(after.session.pending, null); assert.deepEqual(after.calls, []);
+    assert.equal(after.memory.get(storageKey()), raw);
+  }
+  await assert.rejects(h.journal.recordRefusal(savedRecord(), { ...refusal, selectionRefusal: false }, h.current), /SELECTION_COMMAND_JOURNAL_INVALID/);
+  assert.deepEqual(h.storageCalls, [], 'unproven outcome is rejected before native storage');
+});
+
+test('a retained sender must reload an already refused durable intent instead of dispatching it again', async () => {
+  const h = harness(absent, { pending: false, memory: seeded(), fresh: true }); await h.read();
+  const refusal = refusalFor(h); await h.journal.recordRefusal(savedRecord(), refusal, h.current);
+  assert.equal((await h.choose()).kod, 'SELECTION_COMMAND_NOT_SAVED');
+  assert.equal(h.session.pending, null);
+  assert.deepEqual(rpcNames(h), ['rpc_read_selection_result']);
+  await h.read(); assert.deepEqual(h.session.pending.result, refusal);
+  assert.equal(await h.choose(), undefined); assert.equal(h.control.newKeys, 0);
+});
+
+test('failed or silent refusal persistence preserves its current result but a legacy record stays unknown on restart', async () => {
+  for (const flag of ['failSet', 'silentSet']) {
+    const before = harness(absent, { fresh: true, pending: false }); await before.read();
+    before.control.selectError = { message: 'OVERFILL', code: 'P0001' };
+    before.control.hook = name => { if (name === 'rpc_select_response') before.control[flag] = true; };
+    assert.deepEqual(await before.choose(), refusalFor(before));
+    assert.equal(before.control.uncertain, false); assert.equal(await before.choose(), undefined);
+    assert.deepEqual(JSON.parse(before.memory.get(storageKey())), savedRecord());
+    const after = harness(absent, { pending: false, memory: before.memory });
+    await after.read(); assert.equal(after.session.pending.result, null);
+    assert.deepEqual(rpcNames(after), ['rpc_read_selection_result']);
+  }
+});
+
+test('refusal persistence is fenced at every await by account and session ownership', async () => {
+  for (const boundary of ['first-read', 'write', 'readback']) {
+    for (const target of ['logout', 'other', 'same-again']) {
+      const other = savedRecord({ accountId: ID(9) });
+      const memory = seeded(); memory.set(storageKey(ID(9)), JSON.stringify(other));
+      const h = harness(absent, { pending: false, memory }); let gets = 0;
+      h.control.storageHook = name => {
+        if (name === 'getItem') gets++;
+        if ((boundary === 'first-read' && name === 'getItem' && gets === 1)
+          || (boundary === 'write' && name === 'setItem') || (boundary === 'readback' && name === 'getItem' && gets === 2)) {
+          h.auth.user = target === 'logout' ? null : { id: target === 'other' ? ID(9) : ownerId };
+          h.auth.accountRevision = target === 'same-again' ? 3 : 2;
+        }
+      };
+      await assert.rejects(h.journal.recordRefusal(savedRecord(), refusalFor(h), h.current), /SELECTION_COMMAND_SCOPE_CHANGED/);
+      assert.equal(memory.get(storageKey(ID(9))), JSON.stringify(other));
+      assert.ok(h.storageCalls.every(call => call.key === storageKey()));
+      assert.deepEqual(h.calls, []);
+      if (boundary === 'first-read') assert.deepEqual(JSON.parse(memory.get(storageKey())), savedRecord());
+    }
+  }
+});
+
+test('a late writer refusal after focus or account replacement does not settle the durable unknown intent', async () => {
+  for (const change of [h => { h.session.focusToken++; }, h => { h.auth.user = { id: ID(9) }; h.auth.accountRevision++; },
+    h => { h.auth.user = { id: ownerId }; h.auth.accountRevision += 2; }]) {
+    const before = harness(absent, { fresh: true, pending: false }); await before.read();
+    before.control.selectError = { message: 'OVERFILL', code: 'P0001' };
+    before.control.hook = name => { if (name === 'rpc_select_response') change(before); };
+    await before.choose(); assert.deepEqual(JSON.parse(before.memory.get(storageKey())), savedRecord());
+    const after = harness(absent, { pending: false, memory: before.memory, accountRevision: 4 });
+    await after.read(); assert.equal(after.session.pending.result, null);
+    assert.deepEqual(rpcNames(after), ['rpc_read_selection_result']);
+  }
+});
+
+test('an exact authoritative receipt still wins over a locally retained refusal', async () => {
+  const before = harness(absent, { pending: false, memory: seeded() });
+  await before.journal.recordRefusal(savedRecord(), refusalFor(before), before.current);
+  const after = harness(found({ agreementStatus: 'COMPLETED' }), { pending: false, memory: before.memory });
+  const result = await after.read();
+  assert.deepEqual(result.podatak.receipt, { dogovorId: agreementId, agreementStatus: 'COMPLETED' });
+  assert.equal(after.session.pending.result.ok, true); assert.equal(after.memory.size, 0);
+  assert.deepEqual(rpcNames(after), ['rpc_read_selection_result']);
+});
+
+test('a timed out native refusal write stays serialized ahead of retirement and a newer command', async () => {
+  const clock = controlledClock(), h = harness(absent, { pending: false, memory: seeded(), clock });
+  const entered = deferred(), release = deferred();
+  h.control.storageHook = async name => { if (name === 'setItem') { entered.resolve(); await release.promise; } };
+  const recording = observe(h.journal.recordRefusal(savedRecord(), refusalFor(h), h.current)); await entered.promise;
+  try {
+    await clock.tick(5000); assert.equal(recording.state, 'REJECTED');
+    assert.match(recording.error.message, /SELECTION_COMMAND_JOURNAL_TIMEOUT/);
+    const calls = h.storageCalls.length, retiring = observe(h.journal.clear(savedRecord(), h.current));
+    const newer = savedRecord({ command: command({ clientRequestId: 'newer-after-refusal-timeout' }) });
+    const saving = observe(h.journal.save(newer, h.current)); await clock.tick(1000);
+    assert.equal(retiring.state, 'PENDING'); assert.equal(saving.state, 'PENDING'); assert.equal(h.storageCalls.length, calls);
+    release.resolve(); await retiring.done; await saving.done;
+    assert.equal(retiring.state, 'FULFILLED'); assert.equal(retiring.value, true); assert.equal(saving.state, 'FULFILLED');
+    assert.deepEqual(JSON.parse(h.memory.get(storageKey())), newer);
+    await assert.rejects(h.journal.recordRefusal(savedRecord(), refusalFor(h), h.current), /SELECTION_COMMAND_UNRESOLVED/);
+    assert.deepEqual(JSON.parse(h.memory.get(storageKey())), newer); assert.deepEqual(h.calls, []); assert.equal(clock.active(), 0);
+  } finally { release.resolve(); await flush(); }
 });
 
 test('NOT_FOUND retains the immutable request despite newer price, version and people; explicit replay sends only the original', async () => {
@@ -375,14 +544,15 @@ test('a successful explicit selection also returns its receipt when local cleanu
   } finally { release.resolve(); await flush(); }
 });
 
-test('queued load, save and clear each expire from enqueue time and never run after the blocked predecessor', async () => {
+test('queued load, save, refusal and clear each expire from enqueue time and never run after the blocked predecessor', async () => {
   const clock = controlledClock(), h = harness(absent, { pending: false, clock });
   const entered = deferred(), release = deferred();
   h.control.storageHook = async name => { if (name === 'getItem') { entered.resolve(); await release.promise; } };
   const blocked = observe(h.journal.load(ownerId, needId, h.current)); await entered.promise;
   await clock.tick(1000);
   const queued = [observe(h.journal.load(ownerId, needId, h.current)),
-    observe(h.journal.save(savedRecord(), h.current)), observe(h.journal.clear(savedRecord(), h.current))];
+    observe(h.journal.save(savedRecord(), h.current)), observe(h.journal.recordRefusal(savedRecord(), refusalFor(h), h.current)),
+    observe(h.journal.clear(savedRecord(), h.current))];
   try {
     await clock.tick(4000); assert.equal(blocked.state, 'REJECTED');
     assert.match(blocked.error.message, /SELECTION_COMMAND_JOURNAL_TIMEOUT/);

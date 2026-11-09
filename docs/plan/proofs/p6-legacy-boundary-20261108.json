@@ -1,0 +1,34 @@
+{
+  "source": {
+    "ref": "WORKTREE",
+    "file": "src/data/supabaseIzvor.ts",
+    "fileSha256": "944450891700c362981721d7e62f1e60932dc64232ecbd93152b20f38b2215a1",
+    "methodSha256": "9d5348ac02c25faa593886fff3ab1b11f8566202554b287ef5a5c1445d49338e",
+    "cursorHelpersSha256": "b3e9b9e9e7153721016119ed3a1d9d677b7f8f4fbd2ac9743736e0d5cc375957",
+    "calendarHelperSha256": "c260f30104b2efab3c62f3da2d61facb0168612f06cca63143fa72f9ce418c12"
+  },
+  "boundary": "Actual client pagination/cursor code; synthetic RPC/Auth and final card-enrichment seam. No real network, public-card decoder, hosted RLS or Android verification.",
+  "results": [
+    {
+      "total": 4999,
+      "calls": 25,
+      "acceptedCount": 4999,
+      "error": null,
+      "projectionBoundaryReached": true
+    },
+    {
+      "total": 5000,
+      "calls": 25,
+      "acceptedCount": 5000,
+      "error": null,
+      "projectionBoundaryReached": true
+    },
+    {
+      "total": 5001,
+      "calls": 25,
+      "acceptedCount": null,
+      "error": "OPPORTUNITIES_TOO_MANY_PAGES",
+      "projectionBoundaryReached": false
+    }
+  ]
+}

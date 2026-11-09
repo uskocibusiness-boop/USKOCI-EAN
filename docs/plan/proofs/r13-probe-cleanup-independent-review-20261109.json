@@ -1,0 +1,141 @@
+{
+  "schema": "USKOCI_PROBE_CLEANUP_INDEPENDENT_REVIEW_V1",
+  "reviewed_project": "leqcwgzvjsxugfgzdmth",
+  "read_only_dev": true,
+  "repository_edits": false,
+  "reviewed_files": [
+    {
+      "path": "scripts/sql/r13_transaction_probe_cleanup_20261109.sql",
+      "sha256": "cd1e9e490aaf891fb74d194adfc1c990f73cecfe852d417d93b9bcc38b92bf01"
+    },
+    {
+      "path": "scripts/sql/r13_transaction_probe_cleanup_20261109.rollback.sql",
+      "sha256": "6e7a53bbc0083c6a53f6cd67612aebc5c982b6edb4f9978ca257bcab3759f6d9"
+    },
+    {
+      "path": "scripts/r13-probe-cleanup.test.cjs",
+      "sha256": "cb226386fb5b5e1475885c612d9c713de95322e5f700b481702eab8024c24b1a"
+    }
+  ],
+  "preimage": "/workspace/scratch/78491a3df814/current-dev-readonly-20261109.json",
+  "review": {
+    "conclusion": "No remaining material blocker in reviewed cleanup SQL for the exact two confirmed disposable probe objects. Source review only; DEV cleanup not applied by this reviewer.",
+    "atomicity": "One explicit transaction wraps both DROP statements. A dependency error at DROP TABLE rolls back prior DROP PROCEDURE. Table ACCESS EXCLUSIVE lock precedes schema/data guards. Lock timeout2s and statement timeout10s bound database work.",
+    "preimage_match": "Procedure body/owner/ACL/kind/invoker/proconfig/language and table owner/ACL/RLS/comment/three-column schema/constraints/exact two rows match fresh readback.",
+    "initial_findings_closed": [
+      {
+        "finding": "Textual PL/pgSQL dependents are not guaranteed pg_depend entries; DROP RESTRICT alone misses them.",
+        "fix": "Added pg_proc.prosrc scan excluding the exact target procedure and negative test for another PL/pgSQL reader."
+      },
+      {
+        "finding": "Active-call guard literal omitted quoted identifiers or alternate whitespace.",
+        "fix": "Expanded to query ILIKE '%capacity4_transaction_probe%'."
+      }
+    ],
+    "new_targeted_observation": "One isolated inline experiment created an additional PL/pgSQL probe consumer. During review the SQL was updated; it rejected with R13_PROBE_CLEANUP_ROUTINE_REFERENCE. The old demonstration harness expected old-code success and exited1. This is not reported as a passed test suite or as a DEV failure.",
+    "test_scope": "Coordinator reports nativePG17 and PGlite suites; reviewer did not repeat identical suites. The reviewed success test restores using the exact rollback artifact. Recommendation sent to assert both restored phase/XID/timestamp rows and ACL/RLS, rather than row count plus body hash alone.",
+    "recovery": "Rollback source recreates exact table/procedure/ACL and both archived rows atomically, with no Cron job, and refuses existing target objects or a referencing Cron. Unknown apply outcome requires independent readback of objects and ledger before any retry; PREIMAGE_MISSING fails closed."
+  },
+  "advisors": {
+    "security": {
+      "type": "security",
+      "groups": [
+        {
+          "name": "rls_enabled_no_policy",
+          "level": "INFO",
+          "count": 124,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy",
+          "probe_findings": 1
+        },
+        {
+          "name": "function_search_path_mutable",
+          "level": "WARN",
+          "count": 1,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable",
+          "probe_findings": 1
+        },
+        {
+          "name": "extension_in_public",
+          "level": "WARN",
+          "count": 1,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public",
+          "probe_findings": 0
+        },
+        {
+          "name": "anon_security_definer_function_executable",
+          "level": "WARN",
+          "count": 3,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable",
+          "probe_findings": 0
+        },
+        {
+          "name": "authenticated_security_definer_function_executable",
+          "level": "WARN",
+          "count": 204,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+          "probe_findings": 0
+        },
+        {
+          "name": "auth_leaked_password_protection",
+          "level": "WARN",
+          "count": 1,
+          "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection",
+          "probe_findings": 0
+        }
+      ],
+      "totalFindings": 334
+    },
+    "performance": {
+      "type": "performance",
+      "groups": [
+        {
+          "name": "unindexed_foreign_keys",
+          "level": "INFO",
+          "count": 88,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys",
+          "probe_findings": 0
+        },
+        {
+          "name": "no_primary_key",
+          "level": "INFO",
+          "count": 7,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0004_no_primary_key",
+          "probe_findings": 0
+        },
+        {
+          "name": "unused_index",
+          "level": "INFO",
+          "count": 16,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index",
+          "probe_findings": 0
+        },
+        {
+          "name": "multiple_permissive_policies",
+          "level": "WARN",
+          "count": 5,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0006_multiple_permissive_policies",
+          "probe_findings": 0
+        }
+      ],
+      "totalFindings": 116
+    },
+    "interpretation": "Linter findings are review signals, not automatically exploitable vulnerabilities. Two scoped findings refer to the disposable probe: one RLS-without-policy table and one mutable-search-path invoker procedure. No remediation or grants changed."
+  },
+  "postgres_logs": {
+    "from": "2026-11-09T19:39:17Z",
+    "to": "2026-11-09T19:54:17Z",
+    "sql": "select log_attributes['parsed.error_severity'] as error_severity, log_attributes['parsed.sql_state_code'] as sql_state_code, count() as count from logs where source = 'postgres_logs' group by error_severity, sql_state_code order by count desc limit 30",
+    "result": {
+      "result": [
+        {
+          "count": 96,
+          "error_severity": "LOG",
+          "sql_state_code": "00000"
+        }
+      ]
+    },
+    "error_fatal_panic_count": 0,
+    "privacy": "Only grouped severity/SQLSTATE/count returned; no event messages, SQL payloads, identifiers or PII collected.",
+    "schema_discovery": "Initial unqualified severity keys were blank; mapKeys discovery identified parsed.error_severity and parsed.sql_state_code. Only the corrected query supports the error-count conclusion."
+  }
+}

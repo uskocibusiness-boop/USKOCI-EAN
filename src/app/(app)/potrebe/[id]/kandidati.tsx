@@ -148,7 +148,7 @@ export default function Kandidati() {
           if (stored.state === 'CORRUPT') return { ok: false, kod: 'SELECTION_COMMAND_JOURNAL_INVALID',
             poruka: 'Sačuvani izbor na telefonu nije moguće pročitati. Proverite svoje Dogovore; novi izbor još nije otvoren.' };
           if (stored.state === 'PRESENT') session.pending = { command: stored.record.command, need: null, candidate: null,
-            result: null, inFlight: false, reconciled: false };
+            result: stored.record.version === 2 ? stored.record.refusal : null, inFlight: false, reconciled: false };
         } catch { return { ok: false, kod: 'SELECTION_COMMAND_JOURNAL_READ_FAILED',
           poruka: 'Ne možemo da proverimo sačuvani izbor na telefonu. Pokušajte ponovo.' }; }
       }
@@ -263,7 +263,7 @@ export default function Kandidati() {
           // Another retained screen's unresolved record must be loaded instead
           // of being overwritten by this screen's newly allocated request.
           if (ownsWrite() && error instanceof Error && ['SELECTION_COMMAND_UNRESOLVED', 'SELECTION_COMMAND_PAYLOAD_CHANGED',
-            'SELECTION_COMMAND_JOURNAL_INVALID'].includes(error.message)) session.pending = null;
+            'SELECTION_COMMAND_JOURNAL_INVALID', 'SELECTION_COMMAND_REFUSED'].includes(error.message)) session.pending = null;
           result = { ok: false, kod: 'SELECTION_COMMAND_NOT_SAVED', poruka: NOT_SAVED_ON_DEVICE };
           request.result = result;
           return result;
@@ -273,6 +273,14 @@ export default function Kandidati() {
         if (result.ok && ownsWrite()) {
           const retired = await retirePendingSelection(request.command, accountId, ownsWrite);
           if (ownsWrite()) session.notice = retired ? null : NOT_RETIRED_ON_DEVICE;
+        } else if (conclusiveSelectionRefusal(result) && ownsWrite()) {
+          try {
+            await selectionCommandJournal.recordRefusal({ version: 1, accountId, needId: request.command.potrebaId, command: request.command }, result, ownsWrite);
+          } catch {
+            // Device failure cannot undo a known server refusal on this visit.
+            // Its unchanged v1 command remains UNKNOWN after a restart unless
+            // native persistence really succeeded; never invent that outcome.
+          }
         }
       }
       catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ne znamo da li je izbor sačuvan. Izaberite „Proverite da li je izabrano“.' }; }
