@@ -3,6 +3,21 @@
 > **ОБАВЕЗНА ВЛАСНИЧКА ОДЛУКА — 09.11.2026:** Стари UX master је повучен и уклоњен из активне гране. **НЕ ЧИТАТИ, НЕ КОРИСТИТИ, НЕ РЕКОНСТРУИСАТИ И НЕ ВРАЋАТИ** га, чак ни из Git историје. Све раније референце у овом великом техничком плану на Product/UX master, A–J/S01–S18 као извор дизајна и „два мастера” су неважеће. Последње изричите одлуке власника одређују жељени изглед, а код и тестови описују садашње стање. **Хоризонтални карусели на Почетној се задржавају; нема самовољних UX измена.** Види AGENTS.md.
 
 
+<!-- USKOCI_EXECUTION_20261109_VISUAL_PACK_V3 -->
+## Aktuelni izvršni krug — 09.11.2026, 22:40 UTC: Integracija V3 grafičkog paketa (3D pinovi, roboti, ilustracije i prazna stanja)
+
+**SOURCE IMPLEMENTIRANO / TESTIRANO — V3 vizuelni registar i prazna stanja aplikacije.**
+- **Integrisani vizuelni resursi:** U `assets/v3/` ugrađeno je 180 resursa: 12 namenskih 3D pinova za mapu sa sub-piksel kalibrisanim sidrima (`assets/v3/MAP_PINS.json`), 36 robot poza maskote (`assets/v3/robots/`) i 16 tematskih 3D ilustracija (`assets/v3/illustrations/`).
+- **Vizuelni registar:** Kreiran `src/ui/v3/UskociVisuals.ts` sa strogo tipiziranim registrima `MAP_PIN_SPECS`, `ROBOT_ASSETS` i `ILLUSTRATION_ASSETS`.
+- **StateView 3D podrška:** Proširen `src/ui/system/StateView.tsx` sa opcionim `illustration` propom koji prikazuje 3D ilustraciju umesto standardnog glifa kada je dostupna.
+- **Prazno sanduče poruka:** U `src/ui/messages/ConversationInboxPresentation.tsx` prazan inbox koristi `ILLUSTRATION_ASSETS.emptyMessages`.
+- **Prazan Dogovor chat:** U `src/ui/AgreementChat.tsx` prazan razgovor novog Dogovora dočekuje maskota saradnje `ROBOT_ASSETS.duoMessage`.
+- **Pretraga i filteri zadataka:** U `src/ui/v2/MarketplacePresentation.tsx` filter bez rezultata koristi `ROBOT_ASSETS.needNoResults`, odeljak nacrta `ROBOT_ASSETS.needWriting`, a prvi susret bez zadataka `ROBOT_ASSETS.needWelcome`.
+- **Obaveštenja:** U `src/ui/notifications/InboxPresentation.tsx` prazno sanduče obaveštenja koristi `ILLUSTRATION_ASSETS.waitingReply`.
+- **Radni profil:** U `src/ui/workerProfile/WorkerProfilePresentation.tsx` uvodni susret za radni profil koristi `ROBOT_ASSETS.canWelcome`, a stanje spremnosti za aktivaciju `ROBOT_ASSETS.canReady`.
+- **3D iglice na mapama:** U `src/ui/location/ResolvedPinMap.tsx` komponenta `ModernMapPin` koristi kalibrisane 3D pinove (`MAP_PIN_SPECS['map-route-start']`, `map-route-end`, `map-task-selected`) sa tačnim igličastim sidrom `y: 0.988`.
+- **Lokalna verifikacija:** `node --test scripts/agreement-incoming-lifecycle.test.cjs scripts/ux-home-waiting.test.cjs scripts/home-agreements-contract.test.cjs scripts/ux-checkpoint.test.cjs` PASS (49/49), `npx tsc --noEmit` PASS (0 grešaka), `git diff --check` čist.
+
 <!-- USKOCI_EXECUTION_20261109_DOGOVOR_UX -->
 ## Aktuelni izvršni krug — 09.11.2026, 22:00 UTC: Unifikacija Dogovora, prikaz učesnika, centriranje kartica i brend slogan
 
