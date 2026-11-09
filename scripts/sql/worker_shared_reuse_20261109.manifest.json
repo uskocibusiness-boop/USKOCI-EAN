@@ -1,0 +1,48 @@
+{
+  "schema": "worker-shared-reuse-operation-manifest-v1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "status": "PREPARED_NOT_DEPLOYED",
+  "changedFunctions": [
+    {
+      "signature": "private.taxonomy_resolve_turn_catalog_v1(uuid,text,jsonb,text)",
+      "before": "bdc9c0623132c3a93708c8d0e63ccef6",
+      "after": "639983846b4f6b51cfe62c91afe4b0d6"
+    },
+    {
+      "signature": "private.taxonomy_review_exact_projection_v1(text,jsonb,jsonb)",
+      "before": "68eea7a2a923f558f2c27cc6c58f7073",
+      "after": "7852b9b70555366fe476905badf1b2fc"
+    },
+    {
+      "signature": "rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)",
+      "before": "f1122a1dcbfa7bedbee5ecae2d6d9a3c",
+      "after": "2144b976268327b361b955b267583a48"
+    }
+  ],
+  "inputSha256": {
+    "candidate": "32b67dc7b2033953dc728c4abcf94a6a4dc54775e6537e9c1511dac3e9ab12d5",
+    "operationPreimage": "b431c87a5061b192fc9e83a419791ac609e0fad483771341674b0be4918c99a8"
+  },
+  "closureBefore": {
+    "sourceReady": false,
+    "schemaDigest": "7923a76b5add2e56f2ded9a173dd1638baa346a8742877cecb23aaf634229d50",
+    "sourceDigest": "753d79f470a01341046e53aa1846b6c314f059334627b0084dc96de67df93598",
+    "storedSource": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "erasureDigest": "6c0005eb31003b4377ec468a77e246507fb92c5179ecf240d6359503b8a5df7d",
+    "storedErasure": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+  },
+  "closurePredictedAfter": {
+    "sourceReady": false,
+    "schemaDigest": "7923a76b5add2e56f2ded9a173dd1638baa346a8742877cecb23aaf634229d50",
+    "sourceDigest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+    "storedSource": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "erasureDigest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+    "storedErasure": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+  },
+  "outputSha256": {
+    "worker_shared_reuse_20261109.preflight.sql": "67a262e35103108f99367e8bab7de1958ebe575e3fda62a134a12fb57abd7154",
+    "worker_shared_reuse_20261109.promotion.sql": "2cf5c113217d3d66e5837bc4d754b16ea48a21aae63bc20ef346f5df89072c5d",
+    "worker_shared_reuse_20261109.postflight.sql": "18c8d4735fe85c3d9df672b1745335b131b834c05a4beff9b7f1aa13a0cc2e5e",
+    "worker_shared_reuse_20261109.rollback.sql": "7fec2204b2594cec00215c406c4e3e6f8027f67d5653c27cbf0de1598a47eeb3"
+  }
+}
