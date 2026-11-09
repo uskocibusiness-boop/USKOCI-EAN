@@ -74,7 +74,7 @@ function readSourceReport(root = ROOT) {
   const read = filename => JSON.parse(fs.readFileSync(path.join(root, filename), 'utf8'));
   const app = read('app.json');
   let firebase = null;
-  try { firebase = read('config/firebase/google-services.json'); } catch { /* Missing/invalid file fails closed. */ }
+  try { firebase = read(androidReleaseIdentity.googleServicesFile); } catch { /* Missing/invalid file fails closed. */ }
   const report = inspectAndroidRelease({ app, eas: read('eas.json'), firebase });
   const identity = buildIdentity({ root, version: app?.expo?.version, environment: {} });
   report.source = { commit: identity.sourceCommit, dirty: identity.sourceDirty,

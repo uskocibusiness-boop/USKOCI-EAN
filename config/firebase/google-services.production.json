@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "383421751370",
+    "project_id": "uskoci-ed59b",
+    "storage_bucket": "uskoci-ed59b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:383421751370:android:81b3a7ef343a20e8a986b3",
+        "android_client_info": {
+          "package_name": "rs.uskoci"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkUE3OxI3Vrz4JPcwunZAN9z3wLJO206o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:383421751370:android:3e19dd87280aa317a986b3",
+        "android_client_info": {
+          "package_name": "rs.uskoci.preview"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkUE3OxI3Vrz4JPcwunZAN9z3wLJO206o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

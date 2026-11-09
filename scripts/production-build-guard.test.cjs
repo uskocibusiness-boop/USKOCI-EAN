@@ -76,13 +76,51 @@ test('release source inspection preserves blockers and separates unverified remo
   assert.equal(statuses['production-flags'], 'PASS');
   assert.equal(statuses['production-admission'], 'BLOCKED');
   assert.equal(statuses['production-backend'], 'UNVERIFIED');
-  assert.equal(statuses['production-firebase'], 'BLOCKED');
+  assert.equal(statuses['production-firebase'], 'UNVERIFIED');
   for (const key of ['upload-signing', 'play-artifact', 'backend-release-and-device-acceptance', 'play-console']) {
     assert.equal(statuses[key], 'UNVERIFIED');
   }
   assert.equal(typeof report.source.dirty, 'boolean');
   assert.match(report.source.commit, /^[0-9a-f]{40}$/);
   assert.ok(Object.values(report.source.sha256).every(hash => /^[0-9a-f]{64}$/.test(hash)));
+});
+
+test('registered store Firebase config matches its project and leaves preview bytes separate', () => {
+  const fs = require('node:fs');
+  const { androidReleaseIdentity } = require('../app.config.js');
+  const firebase = JSON.parse(fs.readFileSync(path.join(root, androidReleaseIdentity.googleServicesFile), 'utf8'));
+  assert.equal(firebase.project_info.project_id, 'uskoci-ed59b');
+  const client = firebase.client.find(item => item.client_info.android_client_info.package_name === 'rs.uskoci');
+  assert.equal(client.client_info.mobilesdk_app_id, '1:383421751370:android:81b3a7ef343a20e8a986b3');
+  assert.ok(client.api_key.some(item => typeof item.current_key === 'string' && item.current_key.length > 0));
+  assert.equal(firebase.private_key, undefined);
+  assert.notEqual(androidReleaseIdentity.googleServicesFile, './config/firebase/google-services.json');
+  const previewFirebase = require('../config/firebase/google-services.json');
+  assert.equal(previewFirebase.client.some(item => item.client_info.android_client_info.package_name === 'rs.uskoci'), false);
+});
+
+test('future admitted production selects its Firebase file without preview enrollment behavior', () => {
+  // Exercise the dormant mapping in an isolated VM only. The real production
+  // admission rejection is exercised above and remains unchanged in runtime.
+  const fs = require('node:fs');
+  const vm = require('node:vm');
+  const { createRequire } = require('node:module');
+  const configRequire = createRequire(path.join(root, 'app.config.js'));
+  let admissions = 0;
+  const sandbox = { module: { exports: {} }, __dirname: root,
+    process: { env: { EAS_BUILD_PROFILE: 'production', USKOCI_OTA_TARGET: 'production' } },
+    require(id) {
+      if (id === './scripts/build-contract.cjs') return { assertProductionTarget() { admissions++; } };
+      return configRequire(id);
+    } };
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'app.config.js'), 'utf8'), sandbox);
+  const resolved = sandbox.module.exports({ config: require('../app.json').expo });
+  assert.equal(admissions, 1);
+  assert.equal(resolved.android.package, 'rs.uskoci');
+  assert.equal(resolved.android.googleServicesFile, './config/firebase/google-services.production.json');
+  assert.equal(resolved.plugins.includes('./plugins/withFirebaseEnrollmentDisabled.js'), false);
+  assert.equal(resolved.updates.requestHeaders['expo-channel-name'], 'production');
+  assert.equal(resolved.runtimeVersion, 'uskoci-v1-production-r1');
 });
 
 test('a source endpoint, matching Firebase client or old override cannot confer release readiness', () => {

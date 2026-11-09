@@ -8,6 +8,7 @@ const { SOUND_ASSETS } = require('./scripts/notification-audio-assets.cjs');
 // The Google Play identity (owner, 2026-09-23: "rs.uskoci"). Only the EAS production profile, the store app bundle,
 // takes it; the preview APK and every CI build keep the package they are given. A package is permanent in Play Console.
 const STORE_PACKAGE = 'rs.uskoci';
+const STORE_FIREBASE_FILE = './config/firebase/google-services.production.json';
 const PREVIEW_RUNTIME = 'uskoci-v1-preview-r2';
 const PRODUCTION_RUNTIME = 'uskoci-v1-production-r1';
 const UPDATE_URL = 'https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6';
@@ -100,6 +101,8 @@ module.exports = ({ config }) => {
     // Ordinary preview builds stay consent-safe and provider-inert. The dedicated
     // push proof is the only build that may initialise Firebase Messaging.
     if (!pushProof) plugins.push(inertPlugin);
+  } else if (production && android.package === STORE_PACKAGE) {
+    android.googleServicesFile = STORE_FIREBASE_FILE;
   } else {
     // Preview Firebase has no Android client for proof/dev/unknown packages.
     delete android.googleServicesFile;
@@ -118,4 +121,5 @@ module.exports = ({ config }) => {
 
 module.exports.otaConfig = { PREVIEW_RUNTIME, PRODUCTION_RUNTIME, UPDATE_URL };
 // Public release identity only; inspection must not need to bypass the build guard.
-module.exports.androidReleaseIdentity = Object.freeze({ package: STORE_PACKAGE, runtimeVersion: PRODUCTION_RUNTIME });
+module.exports.androidReleaseIdentity = Object.freeze({ package: STORE_PACKAGE, runtimeVersion: PRODUCTION_RUNTIME,
+  googleServicesFile: STORE_FIREBASE_FILE });

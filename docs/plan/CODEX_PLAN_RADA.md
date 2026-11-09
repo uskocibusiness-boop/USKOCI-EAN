@@ -18,6 +18,18 @@
 - **3D iglice na mapama:** U `src/ui/location/ResolvedPinMap.tsx` komponenta `ModernMapPin` koristi kalibrisane 3D pinove (`MAP_PIN_SPECS['map-route-start']`, `map-route-end`, `map-task-selected`) sa tačnim igličastim sidrom `y: 0.988`.
 - **Lokalna verifikacija:** `node --test scripts/agreement-incoming-lifecycle.test.cjs scripts/ux-home-waiting.test.cjs scripts/home-agreements-contract.test.cjs scripts/ux-checkpoint.test.cjs` PASS (49/49), `npx tsc --noEmit` PASS (0 grešaka), `git diff --check` čist.
 
+## Infrastrukturni checkpoint — 09.11.2026: priprema Expo/Firebase produkcije
+
+**PARTIAL — konfiguracija servisa, nije produkciono izdanje.** Infrastrukturna priprema započeta je na `ea487a212b30a6cb7e04b60620ba0c1769d3b5d9`; povezivanje Firebase fajla nastavljeno je posle fast-forward-a na `58c81d5b6da9222c74ca68c7e09b415047cb8c0f`, grana `work/uskoci-cist-proizvod-20261104`. Novije V3/UI izmene su sačuvane. R06 ostaje SOURCE_ONLY.
+
+- Po izričitom nalogu vlasnika napravljen je zaseban Supabase `USKOCI-PROD`, ref `fvyqqudqvizjrxaflhex`, u organizaciji `Uskoci labaratorija`, Frankfurt. API readback je `ACTIVE_HEALTHY`. Aplikacione migracije, Edge funkcije, Auth i operativni poslovi još nisu preneti. DEV `leqcwgzvjsxugfgzdmth` nije menjan.
+- EAS `@sljivas-team/uskoci` / `1e6cc490-9851-4741-9226-128612122db6`: u project-scoped `production` okruženju upisani su URL novog projekta i njegov javni publishable ključ u postojeće `EXPO_PUBLIC_SUPABASE_*` promenljive. Readback potvrđuje obe vrednosti i odsustvo DEV URL-a; ključ se ne beleži u planu. Preview okruženje nije menjano.
+- Napravljen je nedostajući EAS kanal `production` (`01a1c27c-b6af-7f3b-8789-47a8595a8460`), vezan za istoimenu granu. `channel:view` potvrđuje 0 update grupa. Postojeći kanal `preview` ostaje vezan za `preview`. Nije objavljen OTA niti pokrenut build/submission.
+- Firebase konzola projekta `uskoci-ed59b` potvrđuje novu aplikaciju `USKOCI Android Production`, paket `rs.uskoci`, app ID `1:383421751370:android:81b3a7ef343a20e8a986b3`; postojeći `rs.uskoci.preview` je sačuvan. FCM V1 je već Enabled, Legacy Disabled, Spark plan ostaje nepromenjen.
+- EAS credentials read-only potvrđuje postojeći FCM V1 service-account ključ za **preview** iz istog Firebase projekta. Nije pravljen novi privatni ključ. Ovo ne dokazuje vezu produkcionog paketa, isporuku push-a ili APNs.
+- **SOURCE/LOCAL TEST potvrđeno:** vlasnik je dostavio `google-services (1).json`; bajt-identična kopija je `config/firebase/google-services.production.json`, SHA-256 `0575b8a684f2892d0cd9124368257502031942208b6b68f95c4299366e2a1b57`. Projekt, app ID i paket odgovaraju Firebase readback-u; nema privatnog ključa. `app.config.js` mapira fajl isključivo za production/`rs.uskoci`; postojeći preview fajl i izolovani QA ostaju nepromenjeni. Offline readiness proverava produkcioni fajl; prisustvo klijenta daje UNVERIFIED, nikada release PASS. `node --test scripts/production-build-guard.test.cjs`: **17/17 PASS**; `git diff --check` PASS. Produkciona grana mapiranja proverena je izolovanim VM testom sa stub-om admission-a; zasebni testovi stvarne konfiguracije potvrđuju da zabrana build-a i dalje važi. Nije pravljen native build.
+- Otvoreno: provera/vezivanje produkcionih FCM credentials, Apple bundle/signing/APNs i stvarna proba na uređajima. Produkcioni backend i release admission ostaju zasebni nezavršeni uslovi. Readiness CLI očekivano vraća BLOCKED; nije izveden deploy, OTA, store submission ili nova proba push isporuke.
+
 <!-- USKOCI_EXECUTION_20261109_DOGOVOR_UX -->
 ## Aktuelni izvršni krug — 09.11.2026, 22:00 UTC: Unifikacija Dogovora, prikaz učesnika, centriranje kartica i brend slogan
 
