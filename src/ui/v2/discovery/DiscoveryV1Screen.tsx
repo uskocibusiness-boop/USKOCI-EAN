@@ -311,7 +311,7 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     </View></SafeAreaView>;
   }
 
-  return <DiscoveryV1PresentationBridge snapshot={pendingKey
+  return <DiscoveryV1PresentationBridge snapshot={pendingKey && pendingKey !== state.selectedMarkerKey
       ? { ...state.screen, view: askedView.current ?? state.screen.view, exactTaskId: null, verifiedPlaceKey: null }
       : askedView.current ? { ...state.screen, view: askedView.current } : state.screen} overlay={state.overlay} search={state.search}
     selectedMarkerKey={pendingKey ?? state.selectedMarkerKey} loadingMore={state.loadingMore}

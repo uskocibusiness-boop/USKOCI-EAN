@@ -37,7 +37,8 @@ export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>;
   /** Production reads exact aggregate counts (and optional first-page items); full arrays remain the legacy proof/gallery adapter. */
   applications: HomeSection<MojaPrijavaProjekcija[] | ApplicationCounts | { counts: ApplicationCounts; items: MojaPrijavaProjekcija[] }>;
   agreements: HomeSection<HomeAgreementsSummary | DogovorProjekcija[]>; workerProfile?: HomeSection<HomeWorkProfileRead | null>;
-  opportunities?: HomeSection<PrilikaProjekcija[]>; };
+  opportunities?: HomeSection<PrilikaProjekcija[]>;
+  agreementCarousel?: HomeSection<DogovorProjekcija[]>; };
 export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'; needId: string }
   | { kind: 'APPLICATION'; applicationId: string } | { kind: 'AGREEMENT'; agreementId: string }
   /** R02: the Dogovor has no term yet. The row opens the form that proposes one (Izmene Dogovora, "Predloži termin"). */
@@ -338,7 +339,12 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       || (row.stanje === 'NACRT' && readableTitle(row.naslov) && draftIsFresh(row.azurirano, now))).slice(0, 6)
     : undefined;
   const applicationItems = applications ? applications.slice(0, 6) : undefined;
-  const agreementItems = agreements ? ordered.map(entry => entry.row).slice(0, 6) : undefined;
+  const agreementCarousel = reads.agreementCarousel?.kind === 'known' ? reads.agreementCarousel.value : null;
+  const agreementItems = agreementCarousel
+    ? agreementCarousel.slice(0, 6)
+    : agreements
+      ? ordered.map(entry => entry.row).slice(0, 6)
+      : undefined;
   const summaryQuietLine = summary && !nextFromSummary ? looseLine({ withoutTerm: summary.counts.withoutExactTerm,
     awaitingFinish: summary.counts.awaitingFinish }) : null;
 

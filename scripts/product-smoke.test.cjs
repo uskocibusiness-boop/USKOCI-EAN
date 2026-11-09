@@ -30,9 +30,10 @@
           });
           test('production tree has no historical QA corpora or extra masters',()=>{
             for(const p of ['supabase/proofs','supabase/candidates','supabase/operations',
-              'src/data/__tests__','src/designLab','docs/continuation','jest.config.cjs'])
+              'src/data/__tests__','src/designLab','docs/continuation','jest.config.cjs',
+              'docs/product/USKOCI_PRODUCT_UX_MASTER.md'])
               assert.equal(exists(p),false,p);
-            for(const p of ['docs/plan/CODEX_PLAN_RADA.md','docs/product/USKOCI_PRODUCT_UX_MASTER.md'])
+            for(const p of ['docs/plan/CODEX_PLAN_RADA.md','AGENTS.md'])
               assert.ok(exists(p),p);
           });
           test('normal product screens keep active visual resources',()=>{

@@ -357,16 +357,19 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
       sendFlight.current = flight;
       // The first word is what makes the conversation exist. `openRequestId` is fixed for this
       // screen, so a second tap or a retry asks for the same conversation rather than another one.
+      const command: PendingTurn = request.current ?? { id: noviUuidZahtevId(), body, submittedDraft, image,
+        ...(pointLease ? { locationContext: pointLease.context } : {}) };
+      request.current = command;
       let id = conversation.current;
       if (!id) {
         const opened = await aiNeedV2Izvor.openConversation(openRequestId);
         if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
-        if (!opened.ok) return opened;
+        if (!opened.ok) {
+          if (request.current === command) request.current = null;
+          return opened;
+        }
         conversation.current = id = opened.podatak.conversationId;
       }
-      const command: PendingTurn = request.current ?? { id: noviUuidZahtevId(), body, submittedDraft, image,
-        ...(pointLease ? { locationContext: pointLease.context } : {}) };
-      request.current = command;
       try {
         await aiTurnIntentJournal.save({ accountId: accountId!, conversationId: id, clientRequestId: command.id });
       } catch {
@@ -691,7 +694,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
     correction={correction && writable ? { ...correction, onDismiss: () => { if (canAct() && !request.current) setCorrection(null); } } : undefined}
     conversationOwnerKey={`${accountId}:${accountRevision}`}
     turnRoles={turnRoles.current}
-    conversation={stanje} value={unos} busy={radi}
+    conversation={stanje} value={sending && request.current?.submittedDraft ? '' : unos} busy={radi}
     busyLabel={radi && !sending ? abandoning.current ? 'Proveravamo da li je razgovor napušten…' : 'Proveravamo promenu…' : undefined}
     error={conversationErrorLine(greska, { hasDraft: stanje.facts.length > 0, unconfirmedSend: unconfirmedSend.current, statusCopy })}
     canSubmit={!!canSubmit && !voiceBusy && !!(request.current?.body ?? unos).trim()}

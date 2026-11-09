@@ -202,7 +202,7 @@ async function routeHarness({ initialFailure = false } = {}) {
     dogovoriZaPocetnu: async options => { calls.push(['summary', options]); if (failSummary) throw Error('MISSING_RPC'); return summary({ accountId: session.user.id }); },
     podsetniciDogovoraZaPocetnu: async request => { calls.push(['prompts', request]); return page(0, 45, session.user.id); },
     mojiDogovori: async () => assert.fail('Home must not read ALL Agreement history'),
-    prilikeZaPocetnu: async () => assert.fail('Home has no marketplace carousel'),
+    prilikeZaPocetnu: async () => [],
     paznjaZaPocetnu: async () => ({ rows: [], more: 0, asOf: AT, ratings: { due: 0, agreementId: null } }),
     mojRadnikProfil: async () => null,
   };
@@ -222,7 +222,7 @@ async function routeHarness({ initialFailure = false } = {}) {
 }
 test('Mounted Home retains its verified summary on partial refresh failure without ALL fallback', async () => {
   const h = await routeHarness(); assert.deepEqual(h.calls.map(c => c[0]), ['applications', 'summary']);
-  assert.equal(h.calls[0][1].limit, 1); assert.equal(h.props().home.agreements.value.rows.length, 1);
+  assert.equal(h.calls[0][1].limit, 6); assert.equal(h.props().home.agreements.value.rows.length, 1);
   assert.equal(h.props().home.ratingsDue, 1); assert.equal(h.props().home.agreementPrompts.total, 45);
   h.fail(); await RTR.act(async () => h.props().onRefresh());
   assert.equal(h.props().home.agreements.kind, 'known'); assert.equal(h.props().stale, true);

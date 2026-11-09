@@ -60,16 +60,27 @@ function Home() {
     signal.addEventListener('abort', retireRetry, { once: true });
     try {
       // Exact totals and the next accepted Agreement come from bounded server
-      // aggregates. Agreement prompt pages are read only by the open panel.
-      const [needs, applications, agreements, attention] = await Promise.all([
+      // aggregates; bounded preview carousels load alongside them. Agreement prompt pages are read only by the open panel.
+      const [needs, applications, agreements, attention, opportunities, agreementCarousel] = await Promise.all([
         readHomeSection(readSignal => source.mojePotrebe({ includeUrgency: false, signal: readSignal }), signal),
         readHomeSection(async () => {
-          const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 1, cursor: null });
+          const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 6, cursor: null });
           if (!page.counts) throw new Error('HOME_APPLICATION_COUNTS_UNAVAILABLE');
-          return page.counts;
+          return { counts: page.counts, items: page.items ?? [] };
         }, signal),
         readHomeSection(readSignal => source.dogovoriZaPocetnu({ signal: readSignal }), signal),
-        readHomeSection(() => source.paznjaZaPocetnu(), signal)]);
+        readHomeSection(() => source.paznjaZaPocetnu(), signal),
+        readHomeSection(readSignal => source.prilikeZaPocetnu({ signal: readSignal }), signal),
+        readHomeSection(async readSignal => {
+          if (typeof source.mojiDogovoriStrana !== 'function') throw new Error('HOME_AGREEMENT_CAROUSEL_UNAVAILABLE');
+          const page = await source.mojiDogovoriStrana({
+            view: { section: 'active', role: 'all', outcome: 'all', confirmationOnly: false, query: '' },
+            limit: 6,
+            cursor: null,
+            signal: readSignal,
+          });
+          return page.items.flatMap(g => g.items).slice(0, 6);
+        }, signal)]);
       // Every failed read is unavailable, never an account with nothing in it.
       if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
       // A partial refresh cannot erase a previously verified next appointment or
@@ -78,7 +89,7 @@ function Home() {
       // read still exposes its known sections, and account/source changes start over.
       if (retainedCompleteOverview.current && [needs, applications, agreements, attention].some(part => part.kind === 'unavailable'))
         throw new Error('HOME_PARTIAL_REFRESH_FAILED');
-      return { needs, applications, agreements, attention };
+      return { needs, applications, agreements, attention, opportunities, agreementCarousel };
     } finally { signal.removeEventListener('abort', retireRetry); }
   }, [source]);
   const resource = useFocusedResource(load, KEEP_LAST_READ);

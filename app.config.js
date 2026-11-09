@@ -23,7 +23,7 @@ module.exports = ({ config }) => {
   const production = profile === 'production' || otaTarget === 'production';
   const channel = production ? 'production' : 'preview';
   const runtimeVersion = production ? PRODUCTION_RUNTIME : PREVIEW_RUNTIME;
-  const android = { ...config.android };
+  const android = { ...config.android, largeHeap: true };
   // Expo's template includes overlay access, but USKOČI has no draw-over-other-apps feature.
   android.blockedPermissions = [...new Set([...(android.blockedPermissions ?? []), 'android.permission.SYSTEM_ALERT_WINDOW'])];
   if (production) android.package = STORE_PACKAGE;

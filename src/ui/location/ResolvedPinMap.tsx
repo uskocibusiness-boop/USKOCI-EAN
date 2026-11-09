@@ -111,8 +111,10 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   const initial = useRef(pin ? { center: [pin.longitude, pin.latitude] as [number, number], zoom: detailZoom }
     : singleHint && requestedHintZoom !== null
       ? { center: [singleHint.longitude, singleHint.latitude] as [number, number], zoom: requestedHintZoom }
-      : hintBounds ? { bounds: hintBounds, padding: { top: 24, bottom: 24, left: 24, right: 24 } }
-        : { center: [0, 0] as [number, number], zoom: 1 });
+      : singleHint
+        ? { center: [singleHint.longitude, singleHint.latitude] as [number, number], zoom: 13.5 }
+        : hintBounds ? { bounds: hintBounds, padding: { top: 24, bottom: 24, left: 24, right: 24 } }
+          : { center: [20.15, 44.95] as [number, number], zoom: 7.5 });
   const owns = () => active.current && props.owns() && latest.current.token === token;
   const cancelDrag = () => {
     if (drag.current) { clearTimeout(drag.current.timeout); drag.current.stop(); }
@@ -136,10 +138,15 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   }, []);
   useEffect(() => () => cancelDrag(), [token]);
   useEffect(() => {
-    if (pin && status === 'ready' && owns()) {
+    if (status !== 'ready' || !owns()) return;
+    if (pin) {
       camera.current?.jumpTo({ center: [pin.longitude, pin.latitude], zoom: detailZoom });
+    } else if (singleHint) {
+      camera.current?.jumpTo({ center: [singleHint.longitude, singleHint.latitude], zoom: requestedHintZoom ?? 13.5 });
+    } else if (hintBounds) {
+      camera.current?.fitBounds(hintBounds, { padding: { top: 24, bottom: 24, left: 24, right: 24 }, duration: 0 });
     }
-  }, [pin?.latitude, pin?.longitude, coarse, disabled, status]);
+  }, [pin?.latitude, pin?.longitude, singleHint?.latitude, singleHint?.longitude, requestedHintZoom, coarse, disabled, status]);
   const observeCenter = (value: unknown) => {
     if (!owns() || !pin || load.current !== 'ready') return;
     const state = value as { center?: unknown; zoom?: unknown } | null;
@@ -234,7 +241,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         frameSize.current = size;
       }
     }}>
-      {mapStyle ? <Map ref={map} style={styles.map} mapStyle={mapStyle} androidView="texture" dragPan={!offset}
+      {mapStyle ? <Map ref={map} style={styles.map} mapStyle={mapStyle} androidView="surface" dragPan={!offset}
         attribution={false} compass={false} logo={false}
         touchPitch={false} touchRotate={false} accessibilityLabel={mapName}
         importantForAccessibility={spokenByFrame ? 'no-hide-descendants' : 'auto'}

@@ -19,6 +19,7 @@
     "android": {
       "package": "rs.uskoci.preview",
       "versionCode": 36,
+      "largeHeap": true,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/brand/app-icon/android-icon-foreground.png"

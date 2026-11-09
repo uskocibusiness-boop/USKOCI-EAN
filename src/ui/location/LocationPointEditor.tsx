@@ -84,6 +84,73 @@ const candidateProvidesStreetContext = (query: string, label: string): boolean =
   return matched >= Math.max(2, Math.ceil(words.length * 0.75));
 };
 
+const SERBIAN_LOCATIVE_MAP: Record<string, string> = {
+  limanu: 'Liman', promenadi: 'Promenada', promenade: 'Promenada', detelinari: 'Detelinara',
+  grbavici: 'Grbavica', telepu: 'Telep', podbari: 'Podbara', centru: 'Centar',
+  bulevaru: 'Bulevar', zemunu: 'Zemun', dorcolu: 'Dorćol', vracaru: 'Vračar',
+  vozdovcu: 'Voždovac', paliluli: 'Palilula', cukarici: 'Čukarica', zvezdari: 'Zvezdara',
+  banovom: 'Banovo', brdu: 'brdo', novom: 'Novi', sadu: 'Sad', beogradu: 'Beograd',
+  nisu: 'Niš', kragujevcu: 'Kragujevac', subotici: 'Subotica', pancevu: 'Pančevo',
+  zrenjaninu: 'Zrenjanin', cacku: 'Čačak', kraljevu: 'Kraljevo', sapcu: 'Šabac',
+  poste: 'Pošta', posti: 'Pošta', pijace: 'Pijaca', pijaci: 'Pijaca',
+};
+
+const normalizeConversationalPlaceQuery = (rawQuery: string): string => {
+  const cleaned = rawQuery
+    .replace(/\b(preko\s+puta|nedaleko\s+od|u\s+blizini|blizu|ispred|iza|pored|kod|od|do|na|u)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned.split(/(\s+|,)/).map(part => {
+    const key = toSerbianLatin(part).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('sr-Latn-RS').replace(/đ/g, 'd');
+    return SERBIAN_LOCATIVE_MAP[key] ?? part;
+  }).join('').replace(/\s+,/g, ',').replace(/\s+/g, ' ').trim();
+};
+
+const fallbackSearchQueries = (query: string): string[] => {
+  const seen = new Set<string>([query.trim().toLowerCase()]);
+  const out: string[] = [];
+  const push = (candidate: string) => {
+    const trimmed = candidate.trim();
+    if (trimmed.length >= 2 && !seen.has(trimmed.toLowerCase())) {
+      seen.add(trimmed.toLowerCase());
+      out.push(trimmed);
+    }
+  };
+  const normalized = normalizeConversationalPlaceQuery(query);
+  push(normalized);
+  const parts = normalized.split(',').map(part => part.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    push(parts.slice(-2).join(', '));
+    push(parts[parts.length - 1]);
+  }
+  return out.slice(0, 3);
+};
+
+const LOCAL_PLACE_FALLBACKS: readonly { match: RegExp; position: ResolvedPinPosition }[] = [
+  { match: /\bpromenad[aei]?\b/i, position: { latitude: 45.2454, longitude: 19.8424 } },
+  { match: /\bliman[u]?\b/i, position: { latitude: 45.2415, longitude: 19.8428 } },
+  { match: /\bdetelinar[ai]?\b/i, position: { latitude: 45.2635, longitude: 19.8168 } },
+  { match: /\bgrbavic[ai]?\b/i, position: { latitude: 45.2484, longitude: 19.8329 } },
+  { match: /\btelep[u]?\b/i, position: { latitude: 45.2392, longitude: 19.8087 } },
+  { match: /\bnov(i|om)\s+sad[u]?\b/i, position: { latitude: 45.2551, longitude: 19.8452 } },
+  { match: /\bnov(i|om)\s+beograd[u]?\b/i, position: { latitude: 44.8154, longitude: 20.4125 } },
+  { match: /\bzemun[u]?\b/i, position: { latitude: 44.8431, longitude: 20.4015 } },
+  { match: /\bvracar[u]?|vra[čc]ar[u]?\b/i, position: { latitude: 44.7975, longitude: 20.4764 } },
+  { match: /\bdorcol[u]?|dor[ćc]ol[u]?\b/i, position: { latitude: 44.8236, longitude: 20.4622 } },
+  { match: /\bbeograd[u]?\b/i, position: { latitude: 44.8125, longitude: 20.4612 } },
+  { match: /\bni[šs][u]?\b/i, position: { latitude: 43.3209, longitude: 21.8958 } },
+  { match: /\bkragujev(ac|cu)\b/i, position: { latitude: 44.0128, longitude: 20.9114 } },
+  { match: /\bsubotic[ai]?\b/i, position: { latitude: 46.1004, longitude: 19.6651 } },
+];
+
+const resolveLocalPlaceFallback = (query: string): ResolvedPinPosition | null => {
+  const latin = toSerbianLatin(query);
+  for (const item of LOCAL_PLACE_FALLBACKS) {
+    if (item.match.test(latin)) return item.position;
+  }
+  return null;
+};
+
 type Props = {
   slot: LocationSlot; title: string; point?: ConfirmedLocationPoint; scopeKey: string; disabled: boolean;
   countryCode: string; initialQuery?: string; resolver?: ReturnType<typeof createConfiguredLocationResolver>;
@@ -246,28 +313,49 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const runSearch = async (notifyEdit: boolean) => {
     if (!owns() || lookup.status === 'LOADING') return;
     retireSearch(); setLookupMode('search'); setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); invalidate(notifyEdit); setLookup({ status: 'LOADING' });
-    if (conversation) { setAddress(''); setPlaceByHand(false); setCorrectionOpen(false); }
+    if (conversation) { setAddress(''); setPlaceByHand(true); setCorrectionOpen(false); }
     const epoch = requestEpoch.current;
     try {
-      const raw = await resolver.search({ text: searchText, countryCode, scopeKey });
+      const normalizedSeed = conversation ? normalizeConversationalPlaceQuery(searchText) : searchText;
+      let raw = await resolver.search({ text: searchText, countryCode, scopeKey });
       if (!alive.current || !focus.current || current.current.disabled || epoch !== requestEpoch.current) return;
-      const result = raw.status === 'PROPOSALS' ? { ...raw, candidates: samePlaceCandidates(searchText, raw.candidates) } : raw;
+      let usedFallbackQuery: string | null = null;
+      if (conversation && (raw.status !== 'PROPOSALS' || raw.candidates.length === 0)) {
+        for (const fallbackText of fallbackSearchQueries(searchText)) {
+          const fallbackRaw = await resolver.search({ text: fallbackText, countryCode, scopeKey });
+          if (!alive.current || !focus.current || current.current.disabled || epoch !== requestEpoch.current) return;
+          if (fallbackRaw.status === 'PROPOSALS' && fallbackRaw.candidates.length > 0) {
+            raw = fallbackRaw;
+            usedFallbackQuery = fallbackText;
+            break;
+          }
+        }
+      }
+      const matchQuery = usedFallbackQuery ?? normalizedSeed;
+      const result = raw.status === 'PROPOSALS' ? { ...raw, candidates: samePlaceCandidates(matchQuery, raw.candidates) } : raw;
       setLookup(result.status === 'CANCELLED' ? { status: 'IDLE' } : result);
-      // One result can be shown for human confirmation. Multiple results are unresolved:
-      // their labels contain no structured city authority, and rank is not a choice.
-      // The full form retains its separate explicit candidate selection.
       if (conversation && result.status === 'PROPOSALS' && result.candidates.length === 1) {
         const candidate = result.candidates[0];
-        // A city centre is only an orientation hint, even if its provider label matches.
-        if (!cityContextOnly && candidateFitsSeed(searchText, candidate.label)) {
+        if (!cityContextOnly && (candidateFitsSeed(matchQuery, candidate.label) || candidateFitsSeed(normalizedSeed, candidate.label))) {
           const shown = toSerbianLatin(candidate.label);
           setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(shown);
           setAddress(shown);
           setCorrectionOpen(false);
+          return;
         }
+        setCameraHint([candidate.position]);
+      } else if (conversation && result.status === 'PROPOSALS' && result.candidates.length > 1) {
+        setCameraHint(result.candidates.map(candidate => candidate.position));
+      } else if (conversation) {
+        const localHint = resolveLocalPlaceFallback(searchText);
+        if (localHint) setCameraHint([localHint]);
       }
     } catch {
-      if (alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current) setLookup({ status: 'UNAVAILABLE' });
+      if (alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current) {
+        const localHint = conversation ? resolveLocalPlaceFallback(searchText) : null;
+        if (localHint) setCameraHint([localHint]);
+        setLookup({ status: 'UNAVAILABLE' });
+      }
     }
   };
   const search = () => runSearch(true);
@@ -275,7 +363,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   // but dismissing an untouched suggestion must not claim an unsaved manual change.
   // A saved point wins: nothing here may move a point the person already confirmed.
   useEffect(() => {
-    if (!autoLocate || (initialQuestion && !cityContextOnly) || located.current || !focused || disabled || point || !searchText.trim()) return;
+    if (!autoLocate || located.current || !focused || disabled || point || !searchText.trim()) return;
     located.current = true;
     void runSearch(!conversation);
   }, [autoLocate, initialQuestion, cityContextOnly, focused, disabled, point, searchText]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -441,7 +529,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     // Ambiguous results and a weak single fallback are camera context only. A street-level
     // fallback may zoom close enough to read the street name, but still draws no pin and grants
     // no confirmation until the person touches/moves the point.
-    const providerCameraHint = ambiguous || contextOnly ? alternatives.map(candidate => ({ ...candidate.position })) : undefined;
+    const fallbackHint = resolveLocalPlaceFallback(searchText);
+    const providerCameraHint = ambiguous || contextOnly
+      ? alternatives.map(candidate => ({ ...candidate.position }))
+      : fallbackHint ? [fallbackHint] : undefined;
     const shownCameraHint = position ? undefined : cameraHint ?? providerCameraHint;
     const lastCandidatePage = Math.max(0, Math.ceil(alternatives.length / 3) - 1);
     const visibleCandidates = alternatives.slice(candidatePage * 3, candidatePage * 3 + 3);
@@ -463,96 +554,74 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       </View> : null}
     </>;
     const expandedPlace = address.trim() || selectedLabel || 'Tačka na mapi';
-    const lookupMessage = contextOnly
-      ? 'Nismo našli dovoljno preciznu tačku za opis iz razgovora. Mapa je samo orijentir — dodirni tačno mesto ili ispravi opis.'
-      : lookup.status === 'PROPOSALS' ? 'Mesto nije pronađeno. Obeleži ga na mapi ili ispravi opis u razgovoru.'
-      : lookup.status === 'RATE_LIMITED' ? 'Previše pretraga za kratko vreme. Obeleži mesto na mapi ili pokušaj kasnije.'
-        : lookup.status === 'INVALID_QUERY' ? 'Mesto iz razgovora nije dovoljno jasno. Obeleži ga na mapi ili ispravi opis.'
-          : lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? 'Pretraga mesta nije dostupna. Obeleži mesto na mapi.'
-            : 'Pretraga mesta nije uspela. Obeleži ga na mapi ili ispravi opis u razgovoru.';
     return <View style={{ gap: sys.space.sm }}>
       {!position ? <View style={{ gap: sys.space.xs }}>
-        {conversationSummary?.title === title ? null : <T variant="meta" tone="muted">{title}</T>}
+        {conversationSummary?.title === title ? null : <T variant="bodyStrong">{title}</T>}
         <T variant="note" tone="muted" accessibilityLiveRegion="polite">{loading
           ? 'Tražimo mesto iz razgovora…' : ambiguous
-            ? 'Pronađeno je više mesta. Izaberite ono koje tražite, pa proverite tačku.' : contextOnly
-              ? 'Tačna tačka nije pronađena. Dodirnite pravo mesto na mapi ili ispravite opis.'
-              : initialQuestion ?? 'Dopunite opis mesta ili ga označite na mapi.'}</T>
-        {initialQuery && conversationSummary?.description !== initialQuery
-          ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
+            ? 'Izaberite jedno od ponuđenih mesta ili dodirnite tačno mesto na mapi.'
+            : 'Dodirnite tačno mesto na mapi ili upišite adresu u pretragu.'}</T>
       </View> : null}
-      {!position && !loading && !ambiguous && !contextOnly && lookup.status !== 'IDLE' ? <T variant="meta" tone="muted">
-        {lookupMessage}
-      </T> : null}
-      {contextOnly ? <T variant="note" tone="muted">Mapa kao orijentir: {toSerbianLatin(alternatives[0].label)}</T> : null}
-      {/* Optional location shortcuts stay in one wrapping row, never three full-width actions. */}
+      {/* Clean, minimal location shortcuts: GPS or address search. Map is always visible right below. */}
       <View testID="location-quick-actions" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
         {!position || correctionOpen ? <Button tone="neutral" label={here === 'BUSY' ? 'Tražimo…' : 'Moja lokacija'}
           accessibilityLabel={here === 'BUSY' ? 'Tražimo gde si…' : 'Ovde gde sam'} kind="secondary" compact
           style={{ alignSelf: 'flex-start', borderRadius: sys.radius.pill, paddingHorizontal: 12 }}
           disabled={controlDisabled || !focused || here === 'BUSY'} onPress={useHere} /> : null}
-        {!position && !searchOpen && !loading ? <Button tone="neutral" label="Pronađi" accessibilityLabel="Pronađi drugo mesto" kind="quiet" compact
+        {(!position || correctionOpen) && !searchOpen && !loading ? <Button tone="neutral" label="Pretraži adresu" accessibilityLabel="Pronađi drugo mesto" kind="quiet" compact
           style={{ alignSelf: 'flex-start', borderRadius: sys.radius.pill, paddingHorizontal: 12 }}
           disabled={controlDisabled || !focused} onPress={() => { if (owns()) setSearchOpen(true); }} /> : null}
-        {!position && !placeByHand && !loading && !ambiguous && !contextOnly ? <Button tone="neutral" label="Na mapi" accessibilityLabel="Označi na mapi" kind="quiet" compact
-          style={{ alignSelf: 'flex-start', borderRadius: sys.radius.pill, paddingHorizontal: 12 }}
-          disabled={controlDisabled || !focused} onPress={openManualMap} /> : null}
       </View>
-      {(!position || correctionOpen) && here === 'DENIED' ? <T variant="note" accessibilityRole="alert">Lokacija nije dozvoljena. Reci ulicu ili označi mesto na mapi.</T> : null}
-      {(!position || correctionOpen) && here === 'UNAVAILABLE' ? <T variant="note" accessibilityRole="alert">Ne možemo da očitamo gde si. Reci ulicu ili označi mesto na mapi.</T> : null}
-      {!position && searchOpen ? <>
-        <LocationField label={`${title} — pronađi mesto`} shownLabel="Pronađi mesto" value={searchText}
+      {(!position || correctionOpen) && here === 'DENIED' ? <T variant="note" accessibilityRole="alert">Lokacija nije dozvoljena. Označite mesto direktno na mapi ispod.</T> : null}
+      {(!position || correctionOpen) && here === 'UNAVAILABLE' ? <T variant="note" accessibilityRole="alert">Ne možemo da očitamo trenutnu lokaciju. Označite mesto direktno na mapi ispod.</T> : null}
+      {(!position || correctionOpen) && searchOpen ? <>
+        <LocationField label={`${title} — pronađi mesto`} shownLabel="Adresa ili objekat" value={searchText}
           maxLength={1000} editable={!controlDisabled && focused && !loading} onChangeText={changeSearch} />
         <Button tone="neutral" label={loading ? 'Tražimo mesto…' : 'Pronađi na mapi'} kind="secondary"
           disabled={controlDisabled || !focused || !searchText.trim() || !countryCode || loading} onPress={search} />
       </> : null}
       {ambiguous ? candidateChoices : null}
-      {ambiguous && onCorrectInConversation ? <Button tone="neutral" label="Dopuni mesto u razgovoru" kind="quiet"
-        disabled={controlDisabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}
 
-      {position || placeByHand || ambiguous || contextOnly ? <>
-        {/* The expand control is the small map's own top-right corner (owner, 2026-10-07), not a button under it. */}
-        <ResolvedPinMap position={position} cameraHint={shownCameraHint}
-          cameraHintZoom={streetContextOnly ? 16.5 : initialQuestion && placeByHand ? 12 : undefined} onChoose={choose} scopeKey={scopeKey}
-          disabled={controlDisabled || !focused} height={156} compact slot={slot}
-          expand={{ label: `Uvećaj mapu za: ${title}`, disabled: controlDisabled || !focused,
-            onPress: () => { if (owns()) setExpandedMap(true); } }} />
-        <Modal visible={expandedMap} animationType="slide" onRequestClose={() => { if (owns()) setExpandedMap(false); }}>
-          <SafeAreaView style={editorStyles.fullScreen} edges={['top', 'bottom']} accessibilityViewIsModal>
-            <View style={editorStyles.fullHeader}>
-              <View style={editorStyles.fullHeaderCopy}>
-                <T variant="meta" tone="muted">{title}</T>
-                <T accessibilityRole="header" variant="title" style={editorStyles.fullTitle}>Podesi tačno mesto</T>
-              </View>
-              <Button tone="neutral" label="Zatvori" kind="quiet" onPress={() => { if (owns()) setExpandedMap(false); }} />
+      <ResolvedPinMap position={position} cameraHint={shownCameraHint}
+        cameraHintZoom={streetContextOnly ? 16.5 : shownCameraHint?.length === 1 ? 14 : undefined} onChoose={choose} scopeKey={scopeKey}
+        disabled={controlDisabled || !focused} height={210} compact slot={slot}
+        expand={{ label: `Uvećaj mapu za: ${title}`, disabled: controlDisabled || !focused,
+          onPress: () => { if (owns()) setExpandedMap(true); } }} />
+      <Modal visible={expandedMap} animationType="slide" onRequestClose={() => { if (owns()) setExpandedMap(false); }}>
+        <SafeAreaView style={editorStyles.fullScreen} edges={['top', 'bottom']} accessibilityViewIsModal>
+          <View style={editorStyles.fullHeader}>
+            <View style={editorStyles.fullHeaderCopy}>
+              <T variant="meta" tone="muted">{title}</T>
+              <T accessibilityRole="header" variant="title" style={editorStyles.fullTitle}>Podesi tačno mesto</T>
             </View>
-            <View style={editorStyles.fullMap}>
-              <ResolvedPinMap position={position} cameraHint={shownCameraHint}
-                cameraHintZoom={streetContextOnly ? 16.5 : initialQuestion && placeByHand ? 12 : undefined} onChoose={choose} scopeKey={`${scopeKey}:expanded`}
-                disabled={controlDisabled || !focused} compact fill slot={slot} />
-            </View>
-            <FlowFooter>
-              {position ? <>
-                <View testID="location-modal-place-card" style={editorStyles.placeCard}>
-                  <FactArt kind="pin" size={24} />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <T variant="bodyStrong" style={editorStyles.fullTitle}>{pointQuestion}</T>
-                    <T variant="note" tone="muted" accessibilityLiveRegion="polite">{lookup.status === 'LOADING' && lookupMode === 'reverse'
-                      ? 'Čitamo adresu za izabrani pin…' : expandedPlace}</T>
-                  </View>
+            <Button tone="neutral" label="Zatvori" kind="quiet" onPress={() => { if (owns()) setExpandedMap(false); }} />
+          </View>
+          <View style={editorStyles.fullMap}>
+            <ResolvedPinMap position={position} cameraHint={shownCameraHint}
+              cameraHintZoom={streetContextOnly ? 16.5 : shownCameraHint?.length === 1 ? 14 : undefined} onChoose={choose} scopeKey={`${scopeKey}:expanded`}
+              disabled={controlDisabled || !focused} compact fill slot={slot} />
+          </View>
+          <FlowFooter>
+            {position ? <>
+              <View testID="location-modal-place-card" style={editorStyles.placeCard}>
+                <FactArt kind="pin" size={24} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <T variant="bodyStrong" style={editorStyles.fullTitle}>{pointQuestion}</T>
+                  <T variant="note" tone="muted" accessibilityLiveRegion="polite">{lookup.status === 'LOADING' && lookupMode === 'reverse'
+                    ? 'Čitamo adresu za izabrani pin…' : expandedPlace}</T>
                 </View>
-                <T variant="note" tone="muted">Dodirnite mapu ili prevucite oznaku ako želite preciznije mesto.</T>
-                <Button tone="neutral" label={`✓ Potvrdite ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdite tačku: ${title}`}
-                  kind="secondary" style={brandAction} disabled={controlDisabled || !focused || lookup.status === 'LOADING'}
-                  onPress={() => { if (confirm()) setExpandedMap(false); }} />
-              </> : <>
-                <T variant="bodyStrong" style={editorStyles.fullTitle}>Označite tačno mesto</T>
-                <T variant="note" tone="muted">Uvećajte ulicu po potrebi i dodirnite mesto na mapi. Oznaka ostaje privatna dok je ne potvrdite.</T>
-              </>}
-            </FlowFooter>
-          </SafeAreaView>
-        </Modal>
-      </> : null}
+              </View>
+              <T variant="note" tone="muted">Dodirnite mapu ili prevucite oznaku ako želite preciznije mesto.</T>
+              <Button tone="neutral" label={`✓ Potvrdite ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdite tačku: ${title}`}
+                kind="secondary" style={brandAction} disabled={controlDisabled || !focused || lookup.status === 'LOADING'}
+                onPress={() => { if (confirm()) setExpandedMap(false); }} />
+            </> : <>
+              <T variant="bodyStrong" style={editorStyles.fullTitle}>Označite tačno mesto</T>
+              <T variant="note" tone="muted">Uvećajte ulicu po potrebi i dodirnite mesto na mapi. Oznaka ostaje privatna dok je ne potvrdite.</T>
+            </>}
+          </FlowFooter>
+        </SafeAreaView>
+      </Modal>
       {position ? <>
         <View testID="location-place-card" style={editorStyles.placeCard}>
           <FactArt kind="pin" size={24} />
@@ -573,7 +642,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.sm }}>
           <Button tone="neutral" label={`✓ Potvrdi ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
             style={confirmAsPrimary ? { ...brandAction, flex: 1 } : { flex: 1 }} disabled={controlDisabled || !focused || loading} onPress={confirm} />
-          <Button tone="neutral" label={correctionOpen ? 'Završi izmenu' : 'Nije tu'} kind="quiet"
+          <Button tone="neutral" label={correctionOpen ? 'Završi izmenu' : 'Pomeri pin'} kind="quiet"
             disabled={controlDisabled || !focused} onPress={() => {
               if (correctionOpen) { if (owns()) { retireEditing(); setCorrectionOpen(false); } }
               else if (correct()) setExpandedMap(true);
@@ -581,16 +650,9 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         </View>
       </> : null}
       {correctionOpen && !ambiguous ? <>
-        <T variant="note" tone="muted">Pomeri pin ili dodirni tačno mesto, pa potvrdi.</T>
+        <T variant="note" tone="muted">Pomerite pin ili dodirnite tačno mesto na mapi, pa potvrdite.</T>
         {candidateChoices}
       </> : null}
-      {!ambiguous && (correctionOpen || !position) && onCorrectInConversation ? <Button tone="neutral" label="Ispravi u razgovoru" kind="quiet"
-        disabled={controlDisabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}
-      {lookup.status === 'PROPOSALS' || cameraHint?.length ? <Press accessibilityRole="link" accessibilityLabel="Pretraga: LocationIQ · izvori podataka"
-        onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}
-        style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}>
-        <T variant="meta" tone="muted">Pretraga: LocationIQ · izvori podataka</T>
-      </Press> : null}
       {error ? <T accessibilityRole="alert" tone="danger">Proveri izabranu tačku i privatne podatke.</T> : null}
     </View>;
   }

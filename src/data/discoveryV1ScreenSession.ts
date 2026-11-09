@@ -258,7 +258,7 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
       // answer differs, a failed read keeps the known card, an answer without the task takes it away. A task that is not loaded waits for the exact read as before, and the card
       // that was showing stays until the new one lands.
       const loaded=owner.snapshot().page?.items.find(row=>row.id===marker.taskId)??null;
-      if(loaded) peek={kind:'TASK',item:discoveryV1Opportunities([loaded])[0]};
+      if(loaded){peek={kind:'TASK',item:discoveryV1Opportunities([loaded])[0]};if(priceReadGeneration===priceGeneration)exactTaskId=loaded.id;}
       let result;
       try{result=await owner.readExact(marker.taskId);}
       catch(error){
@@ -281,7 +281,7 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     const key=pointKey(marker.point),rows=owner.snapshot().page?.items??[];
     const here=key?rows.filter(row=>row.pin&&pointKey(row.pin)===key):[];
     const known=here.length>0&&here.length===marker.taskCount?here:null;
-    if(known) peek={kind:'PLACE',point:{...marker.point},items:discoveryV1Opportunities(known),totalCount:marker.taskCount};
+    if(known){peek={kind:'PLACE',point:{...marker.point},items:discoveryV1Opportunities(known),totalCount:marker.taskCount};if(priceReadGeneration===priceGeneration)verifiedPlaceKey=key;}
     let result;
     try{result=await owner.firstMembers(marker.point,50);}
     catch(error){

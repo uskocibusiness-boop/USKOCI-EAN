@@ -1029,7 +1029,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   };
   // "Poništi filtere" takes the conditions away, not the scope: "Za mene" is a choice of which tasks the list is about, so it stays.
   const reset = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); setOffMap(false); setAppliedMapPlace(null); pendingMapPlace.current = null;
-    props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport, sheet: view.sheet, ...(view.forMe ? { forMe: true } : {}) }); };
+    props.onView({ ...initialMarketplaceView(), ...(props.p6Seam ? { where: 'onsite' as const } : {}), mode: view.mode, viewport: view.viewport, sheet: view.sheet, ...(view.forMe ? { forMe: true } : {}) }); };
 
   // Quick chips: each toggles one existing filter at once, and is offered only when the tasks carry the fact it reads (or it is
   // already on and must be removable). The legacy reader holds every task, so its loaded rows say it. P6 holds one area's pages,
@@ -1072,8 +1072,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     // where the tasks can back it. Remote work has no stale map scope.
     ...(p6 ? [{ key: 'where:onsite', label: 'Na lokaciji', selected: view.where === 'onsite', onPress: () => toggle({ where: 'onsite' }) }] : []),
     ...(p6 || workModes || view.where === 'remote' ? [{ key: 'where:remote', label: said(WHERE, 'remote'), selected: view.where === 'remote',
-      onPress: () => toggle({ where: p6 ? 'remote' : view.where === 'remote' ? 'any' : 'remote' }) }] : []),
-    ...(p6 ? [{ key: 'where:any', label: 'Oba', selected: view.where === 'any', onPress: () => toggle({ where: 'any' }) }] : []),
+      onPress: () => toggle({ where: view.where === 'remote' ? (p6 ? 'onsite' : 'any') : 'remote' }) }] : []),
     ...QUICK_WHEN.filter(key => timed || currentWhen === key).map(key => ({ key: `when:${key}`, label: said(WHEN, key), selected: currentWhen === key,
       onPress: () => toggle({ when: currentWhen === key ? 'any' : key as WhenFilter, dates: null }) })),
     ...(view.price === 'MY_PRICE' || priceSaid('MY_PRICE') ? [{ key: 'price:MY_PRICE', label: said(PRICE, 'MY_PRICE'), selected: view.price === 'MY_PRICE',
@@ -1431,7 +1430,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     : props.collectionStatus === 'error' ? 'Ostali zadaci nisu učitani' : null;
   const replacingWords = refreshing && !loading ? 'Osvežavamo zadatke…' : null;
   // The focused point-free list distinguishes an exact total from a still-partial loaded count.
-  const shownCount = offMap && !loading && !error ? exactPinless : exactListed;
+  // On the map (where !== 'remote' and !offMap), count only tasks with a map point (or in the map area), never remote tasks.
+  const mapTaskCount = area || pinPlace ? exactInArea : Math.max(0, exactListed - exactPinless);
+  const shownCount = offMap && !loading && !error ? exactPinless : view.where === 'remote' ? exactListed : mapTaskCount;
   const offMapCountWords = pinlessCountKnown ? countWords(shownCount) : `${OFF_MAP_CHIP} · učitano: ${listed.length}`;
   const spoken = replacingWords ?? collectionWords ?? (offMap && !loading && !error
     ? pinlessCountKnown ? `${offMapCountWords} · ${OFF_MAP_CHIP.toLocaleLowerCase('sr-Latn-RS')}` : offMapCountWords : `${line.words}${line.extra}`);

@@ -365,8 +365,13 @@ export function IntakePresentation(props: Props) {
   // An existing confirmed place always remains editable from its own line.
   // A user-spoken area/POI can seed a map search without claiming an exact address.
   // The point is still unverified until the owner confirms it manually.
-  const addressReady = place?.geography?.mode !== 'STATIONARY' || (!!requestedPlace && !slotNeedsCloserPlace('start', requestedPlace));
-  const askOpen = !props.roleHandoff && showPlace && (placeComplete ? editingSavedPlace : addressReady && !pointAskHidden);
+  const addressReady = !!requestedPlace && (place?.geography?.mode === 'POINT_TO_POINT'
+    ? !slotNeedsCloserPlace('start', requestedPlace) || !slotNeedsCloserPlace('end', requestedPlace)
+    : place?.geography?.mode !== 'STATIONARY' || !slotNeedsCloserPlace('start', requestedPlace));
+  const proposedKeys = new Set(conversation.facts.filter(fact => fact.status !== 'UNKNOWN').map(fact => fact.key));
+  const coreFactsReady = (['need.description', 'need.schedule_kind', 'need.price_mode'] as const).every(key => proposedKeys.has(key));
+  const mapExplicitlyRequested = mapReveal?.placeKey === placeKey;
+  const askOpen = !props.roleHandoff && showPlace && (placeComplete ? editingSavedPlace : addressReady && (coreFactsReady || mapExplicitlyRequested) && !pointAskHidden);
   if (askOpen) askSeen.current = true;
   // Arrival animation keeps the route's stable key; retained history uses the durable ID after the first send.
   const orderScope = conversation.conversationId || props.conversationKey || '';
@@ -387,7 +392,7 @@ export function IntakePresentation(props: Props) {
   const anchor = placeComplete && ordered.state.active === null ? anchorPlace(conversation.conversationId, placeKey, confirmedPoints,
     ordered.placement ? ordered.placement.after : conversation.messages.at(-1)?.id ?? null, askSeen.current, !!ordered.placement) : null;
   const contextualReply = !!props.locationDialogueEnabled && askOpen && !!promptToken && !placeDisabled;
-  const send = () => { if (!editingPlaceNow.current || contextualReply) props.onSend(); };
+  const send = () => { props.onSend(); };
   const reviewContentReady = props.canReview && !editingPlace;
   const reviewAllowed = reviewContentReady && !props.reviewDisabledReason;
   // What is still missing, counted where the person is, including the map point (the server's required list cannot
@@ -442,15 +447,7 @@ export function IntakePresentation(props: Props) {
   // also works after a cold read, when ephemeral location-action receipts are gone.
   const contextBeforeMessageId = askOpen && lastReply?.fromAi && !lastReply.proposedFactIds.length
     && ordered.messages.some(message => message.id === lastReply.id) ? lastReply.id : undefined;
-  const canJumpToMap = askOpen && needsPoint && !placeDisabled;
-  const jumpToMap = () => {
-    if (!canJumpToMap) return;
-    Keyboard.dismiss();
-    setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1, messageId: lastReply?.id }));
-  };
-  const footerAction = canJumpToMap
-    ? <V2Action label="Prikažite mesto na mapi" kind="secondary" tone="neutral" onPress={jumpToMap} />
-    : completed && props.canReview
+  const footerAction = completed && props.canReview
     ? <V2Action label={props.reviewLabel} style={brandAction} disabled={!reviewAllowed} onPress={outsidePlace(props.onReview)} />
     : ended && props.onNewTask
       ? <V2Action label="Novi zadatak" kind="secondary" tone="neutral" disabled={props.newTaskDisabled} onPress={props.onNewTask} /> : undefined;
@@ -499,8 +496,8 @@ export function IntakePresentation(props: Props) {
     revealInteractiveContext={editingSavedPlace || (askOpen && mapReveal?.placeKey === placeKey && mapReveal.messageId === lastReply?.id)}
     contextBeforeMessageId={contextBeforeMessageId}
     threadNotes={notes.length ? notes : undefined}
-    value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
-    sendBlockedReason={editingPlace ? 'Prvo potvrdite mesto ili zatvorite mapu.' : undefined}
+    value={value} canEdit={props.canEdit} canSend={props.canSubmit}
+    sendBlockedReason={undefined}
     messages={messages} pending={pending} busy={busy} busyLabel={props.busyLabel} streamingText={props.streamingText}
     // The greeting is client-owned UI, not an LLM call or server-authored message.
     introMessage={messages.length===0 && !props.sentMessage ? taskInterviewOpening(!!conversation.review.boundNeedId) : undefined}
@@ -512,7 +509,7 @@ export function IntakePresentation(props: Props) {
     placeholder="Opišite šta Vam je potrebno"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
     onChange={props.onChange} onSend={send}
-    onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={editingPlace && !contextualReply ? undefined : props.voice}
+    onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={props.voice}
     // The "+" opens the photo sheet here, in the conversation, before the first word too: choosing a source is what opens
     // the conversation then, as the first word or the held microphone does.
     attach={attach ? { label: PHOTO_WORDS.add, hint: 'Galerija ili kamera.',

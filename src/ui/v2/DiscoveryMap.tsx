@@ -526,7 +526,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     {/* With the list at its full height the map is a strip: it takes no gesture and a screen reader skips it (the strip below asks for the half height). */}
     <View testID="discovery-map-box" style={s.mapBox} pointerEvents={locked ? 'none' : 'auto'} accessibilityElementsHidden={locked}
       importantForAccessibility={locked ? 'no-hide-descendants' : 'auto'}>
-    <Map ref={map} style={s.map} mapStyle={props.mapStyle} androidView="texture" logo={false}
+    <Map ref={map} style={s.map} mapStyle={props.mapStyle} androidView="surface" logo={false}
       attribution={false} tintColor={sys.color.muted}
       touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija zadatka"
       onDidFinishLoadingMap={() => { if (owns()) traceLoad('map-loaded'); mark('ready'); void readVisiblePins(); }}
