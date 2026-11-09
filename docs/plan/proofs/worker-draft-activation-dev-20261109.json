@@ -1,0 +1,316 @@
+{
+  "schema": "worker-draft-activation-dev-deployment-v1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceCommit": "4977f401f71db4a3d3c77b77e11d381337bfbdc6",
+  "ci": {
+    "id": 42632345116,
+    "conclusion": "SUCCESS",
+    "nodeTestsPassed": 1358
+  },
+  "scope": "Deployment only; ordinary Auth activation/readback is recorded separately.",
+  "preflight": [
+    {
+      "status": "WORKER_DRAFT_ACTIVATION_PREIMAGE_MATCH"
+    }
+  ],
+  "apply": {
+    "success": true
+  },
+  "ledger": [
+    {
+      "version": "20261109143049",
+      "name": "worker_draft_activation_20261109",
+      "statements": 1,
+      "bytes": 94893,
+      "sql_md5": "f07aadff6097b6a607feba78a792f17d"
+    }
+  ],
+  "promotionSha256": "4e197b041b89b6109bbcc7f943b9a9e7f92df229497438a89f9cd94b983e7be2",
+  "postflight": [
+    {
+      "observed": {
+        "closure": {
+          "sourceReady": false,
+          "schemaDigest": "7923a76b5add2e56f2ded9a173dd1638baa346a8742877cecb23aaf634229d50",
+          "sourceDigest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+          "storedSource": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+          "erasureDigest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+          "storedErasure": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+        },
+        "relations": [
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.taxonomy_confirmed_worker_modes_v1",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "FOREIGN KEY (worker_account_id, category_id) REFERENCES private.work_taxonomy_worker_capabilities(worker_account_id, category_id) ON DELETE RESTRICT",
+              "FOREIGN KEY (category_id, execution_scope) REFERENCES private.work_taxonomy_category_modes(category_id, execution_scope) ON DELETE RESTRICT",
+              "CHECK ((execution_scope = ANY (ARRAY['REMOTE'::text, 'ON_SITE'::text])))",
+              "PRIMARY KEY (worker_account_id, category_id, execution_scope)",
+              "CHECK (((handoff IS NULL) OR ((execution_scope = 'REMOTE'::text) AND private.taxonomy_handoff_valid_v1(handoff))))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+            "rls": true,
+            "name": "private.work_taxonomy_aliases",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "FOREIGN KEY (category_id) REFERENCES private.work_taxonomy_categories(id) ON DELETE RESTRICT",
+              "CHECK (((char_length(label) >= 3) AND (char_length(label) <= 120)))",
+              "CHECK ((locale ~ '^[a-z]{2}(-[A-Z]{2})?$'::text))",
+              "UNIQUE (locale, normalized_key)",
+              "PRIMARY KEY (id)"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+            "rls": true,
+            "name": "private.work_taxonomy_categories",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "CHECK (((char_length(canonical_key) >= 3) AND (char_length(canonical_key) <= 160)))",
+              "UNIQUE (canonical_key)",
+              "CHECK ((catalog_version > 0))",
+              "CHECK (((superseded_by IS NULL) OR (superseded_by <> id)))",
+              "CHECK (((parent_id IS NULL) OR (parent_id <> id)))",
+              "CHECK ((canonical_key = private.taxonomy_normalize_v1(label)))",
+              "CHECK (((char_length(label) >= 3) AND (char_length(label) <= 120)))",
+              "FOREIGN KEY (parent_id) REFERENCES private.work_taxonomy_categories(id) ON DELETE RESTRICT",
+              "PRIMARY KEY (id)",
+              "CHECK ((source = ANY (ARRAY['SYSTEM'::text, 'AI_REVIEWED'::text, 'OPERATOR'::text])))",
+              "CHECK ((state = ANY (ARRAY['AUTO_PROVISIONAL'::text, 'ESTABLISHED'::text, 'RETIRED'::text])))",
+              "FOREIGN KEY (superseded_by) REFERENCES private.work_taxonomy_categories(id)"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+            "rls": true,
+            "name": "private.work_taxonomy_category_modes",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "FOREIGN KEY (category_id) REFERENCES private.work_taxonomy_categories(id) ON DELETE RESTRICT",
+              "CHECK ((execution_scope = ANY (ARRAY['ON_SITE'::text, 'REMOTE'::text])))",
+              "PRIMARY KEY (category_id, execution_scope)",
+              "CHECK (((char_length(source_ref) >= 3) AND (char_length(source_ref) <= 120)))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.work_taxonomy_gemini_turn_hints_v1",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "UNIQUE (purpose, account_id, turn_id)",
+              "CHECK (((catalog_resolution IS NULL) OR ((jsonb_typeof(catalog_resolution) = 'object'::text) AND (pg_column_size(catalog_resolution) <= 12000) AND ((catalog_resolution ->> 'state'::text) = ANY (ARRAY['RESOLVED'::text, 'DEFERRED'::text])) AND ((catalog_resolution ->> 'inputDigest'::text) ~ '^[0-9a-f]{64}$'::text))))",
+              "CHECK ((catalog_version > 0))",
+              "CHECK ((payload_digest ~ '^[a-f0-9]{64}$'::text))",
+              "PRIMARY KEY (id)",
+              "CHECK (((jsonb_typeof(proposals) = 'array'::text) AND ((jsonb_array_length(proposals) >= 1) AND (jsonb_array_length(proposals) <= 24))))",
+              "CHECK ((purpose = ANY (ARRAY['WORKER_CAPABILITY'::text, 'NEED_SERVICE'::text])))",
+              "CHECK ((source_fingerprint ~ '^[a-f0-9]{64}$'::text))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": false,
+            "name": "private.work_taxonomy_review_batches_v1",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "PRIMARY KEY (id)",
+              "CHECK ((jsonb_typeof(plans) = 'array'::text))",
+              "CHECK ((plans_digest ~ '^[0-9a-f]{64}$'::text))",
+              "CHECK ((purpose = ANY (ARRAY['WORKER_CAPABILITY'::text, 'NEED_SERVICE'::text])))",
+              "CHECK ((review_digest ~ '^[0-9a-f]{64}$'::text))",
+              "UNIQUE (owner_account_id, request_key)"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.work_taxonomy_worker_bindings_v1",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "CHECK ((catalog_version > 0))",
+              "PRIMARY KEY (owner_account_id, request_key)",
+              "UNIQUE (source_review_id)"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+            "rls": true,
+            "name": "private.work_taxonomy_worker_capabilities",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "FOREIGN KEY (category_id) REFERENCES private.work_taxonomy_categories(id)",
+              "CHECK ((origin = ANY (ARRAY['WORKER_CONFIRMED'::text, 'WORKER_CORRECTED'::text])))",
+              "PRIMARY KEY (worker_account_id, category_id)"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.worker_ai_reviews",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "CHECK ((octet_length((envelope)::text) <= 524288))",
+              "PRIMARY KEY (id)"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.worker_ai_saves",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "UNIQUE (account_id, client_request_id)",
+              "PRIMARY KEY (review_id)",
+              "FOREIGN KEY (review_id) REFERENCES private.worker_ai_reviews(id)"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.worker_ai_sessions",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "UNIQUE (account_id, open_request_id)",
+              "CHECK ((octet_length((candidate)::text) <= 524288))",
+              "PRIMARY KEY (conversation_id)",
+              "CHECK ((revision >= 0))",
+              "CHECK ((safety = ANY (ARRAY['ALLOW'::text, 'CLARIFY'::text, 'REVIEW'::text, 'BLOCK'::text])))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.worker_ai_turns",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "CHECK (((cancelled_at IS NULL) OR ((state = 'FAILED'::text) AND (completion_hash IS NULL))))",
+              "UNIQUE (account_id, client_request_id)",
+              "FOREIGN KEY (conversation_id) REFERENCES private.worker_ai_sessions(conversation_id)",
+              "PRIMARY KEY (turn_id)",
+              "CHECK ((state = ANY (ARRAY['PROCESSING'::text, 'SUCCEEDED'::text, 'FAILED'::text])))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}",
+            "rls": true,
+            "name": "public.ai_conversations",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [
+              {
+                "name": "ai_conversations_owner_read",
+                "check": null,
+                "roles": "{16485}",
+                "using": "(account_id = ( SELECT auth.uid() AS uid))",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "v5_closed_account_visibility",
+                "check": null,
+                "roles": "{16485}",
+                "using": "rpc_storage_account_open()",
+                "command": "r",
+                "permissive": false
+              }
+            ],
+            "constraints": [
+              "FOREIGN KEY (account_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+              "FOREIGN KEY (bound_need_id) REFERENCES needs(id) ON DELETE SET NULL",
+              "CHECK ((fact_schema_version = ANY (ARRAY['LEGACY_TEXT_V1'::text, 'NEED_FACT_V2'::text])))",
+              "CHECK (((need_edit_base_fingerprint IS NULL) OR (need_edit_base_fingerprint ~ '^[0-9a-f]{64}$'::text)))",
+              "PRIMARY KEY (id)",
+              "CHECK ((purpose = ANY (ARRAY['NEED_INTAKE'::text, 'APPLICATION'::text, 'PROFILE'::text])))",
+              "CHECK ((status = ANY (ARRAY['OPEN'::text, 'COMPLETED'::text, 'ABANDONED'::text])))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,authenticated=arwDxtm/postgres,service_role=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "public.app_profiles",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [
+              {
+                "name": "app_profiles_insert_own",
+                "check": "(( SELECT auth.uid() AS uid) = account_id)",
+                "roles": "{16485}",
+                "using": null,
+                "command": "a",
+                "permissive": true
+              },
+              {
+                "name": "app_profiles_select_own",
+                "check": null,
+                "roles": "{16485}",
+                "using": "(( SELECT auth.uid() AS uid) = account_id)",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "app_profiles_update_own",
+                "check": "(( SELECT auth.uid() AS uid) = account_id)",
+                "roles": "{16485}",
+                "using": "(( SELECT auth.uid() AS uid) = account_id)",
+                "command": "w",
+                "permissive": true
+              },
+              {
+                "name": "v5_closed_account_visibility",
+                "check": null,
+                "roles": "{16485}",
+                "using": "rpc_storage_account_open()",
+                "command": "r",
+                "permissive": false
+              }
+            ],
+            "constraints": [
+              "FOREIGN KEY (account_id) REFERENCES app_accounts(id) ON DELETE CASCADE",
+              "UNIQUE (account_id, kind)",
+              "CHECK ((account_type = ANY (ARRAY['INDIVIDUAL'::text, 'TEAM'::text, 'COMPANY'::text])))",
+              "CHECK (((team_capacity >= 1) AND (team_capacity <= 50)))",
+              "CHECK ((kind = ANY (ARRAY['REQUESTER'::text, 'WORKER'::text])))",
+              "CHECK (((minimum_fee_rsd >= 0) AND (minimum_fee_rsd <= 10000000)))",
+              "CHECK (((operating_country_code IS NULL) OR (operating_country_code ~ '^[A-Z]{2}$'::text)))",
+              "PRIMARY KEY (id)",
+              "CHECK (((radius_km >= 1) AND (radius_km <= 200)))",
+              "CHECK ((profile_status = ANY (ARRAY['DRAFT'::text, 'ACTIVE'::text, 'SUSPENDED'::text, 'CLOSED'::text])))",
+              "CHECK ((((worker_dispatch_eligible_since IS NULL) AND (worker_dispatch_clock_source IS NULL)) OR ((kind = 'WORKER'::text) AND (worker_dispatch_eligible_since IS NOT NULL) AND isfinite(worker_dispatch_eligible_since) AND (worker_dispatch_clock_source IS NOT NULL) AND (worker_dispatch_clock_source = ANY (ARRAY['FIRST_ACTIVATION'::text, 'ROLLOUT_ACTIVE_OBSERVED'::text])))))",
+              "CHECK (((years_experience >= 0) AND (years_experience <= 80)))"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "noBudgetOrSecretOrReadinessChange": true
+}

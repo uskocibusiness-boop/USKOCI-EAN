@@ -1,0 +1,147 @@
+{
+  "schema": "worker-draft-activation-phone-acceptance-v1",
+  "sourceCommit": "4977f401f71db4a3d3c77b77e11d381337bfbdc6",
+  "phoneApkSource": "8c9dd14de620c1fa00f4cd7d2fb4d484c91519ce",
+  "migration": "20261109143049",
+  "authPath": "Ordinary logged-in physical Android phone; tapped Review then Save and Activate. No SQL user mutation, claims impersonation, extra provider call or manual queue execution.",
+  "limits": [
+    "One temporary local route unavailable error recovered with Reload; narrow mobile lifecycle review pending.",
+    "Does not prove push delivery, other-account matching, applications or agreements."
+  ],
+  "evidence": {
+    "save": {
+      "saved": true,
+      "savedAt": "2026-11-09T14:33:02.910398+00:00",
+      "activate": true,
+      "reviewId": "737d4b93-5336-4914-92c9-b579aa66db07",
+      "planCount": 7,
+      "digestValid": true,
+      "authoritative": true,
+      "profileStatus": "ACTIVE",
+      "classificationState": "READY",
+      "sameLabelsIdsModesHandoff": true,
+      "savedWithinReviewValidity": true
+    },
+    "areas": [
+      {
+        "city": "Novi Sad",
+        "kind": "CITY",
+        "label": "Novi Sad",
+        "latitude": 45.26,
+        "radiusKm": null,
+        "longitude": 19.85,
+        "sourceRef": "osm:relation:9273976",
+        "countryCode": "RS"
+      }
+    ],
+    "batch": {
+      "status": "COMMITTED",
+      "itemCount": 7,
+      "committedAt": "2026-11-09T14:33:07.303715+00:00",
+      "plansMatchReview": true,
+      "digestMatchesReview": true
+    },
+    "outbox": [
+      {
+        "state": "COMMITTED",
+        "attempts": 1,
+        "errorCode": null,
+        "updatedAt": "2026-11-09T14:33:07.681115+00:00",
+        "bindingState": "BOUND",
+        "bindingAttempts": 1,
+        "bindingErrorCode": null
+      }
+    ],
+    "skills": [
+      "Kurirske dostave",
+      "Nabavka i kupovina",
+      "Ručno iznošenje kutija i nošenje nameštaja bez prevoza",
+      "Košenje trave",
+      "Utovar i istovar",
+      "Izrada PowerPoint prezentacija",
+      "Pomoć pri nošenju stvari pri selidbi"
+    ],
+    "binding": {
+      "status": "BOUND_WORKER_SERVICES",
+      "boundAt": "2026-11-09T14:33:07.681115+00:00",
+      "serviceModeCount": 7,
+      "sourceModesMatch": true
+    },
+    "observedAt": "2026-11-09T14:33:10.358901+00:00",
+    "activeModes": [
+      {
+        "mode": "ON_SITE",
+        "handoff": null,
+        "categoryId": "00000000-0000-4000-8000-000000000203"
+      },
+      {
+        "mode": "ON_SITE",
+        "handoff": null,
+        "categoryId": "00000000-0000-4000-8000-000000000204"
+      },
+      {
+        "mode": "ON_SITE",
+        "handoff": null,
+        "categoryId": "00000000-0000-4000-8000-000000000601"
+      },
+      {
+        "mode": "ON_SITE",
+        "handoff": null,
+        "categoryId": "00000000-0000-4000-8000-000000000701"
+      },
+      {
+        "mode": "REMOTE",
+        "handoff": {
+          "required": false
+        },
+        "categoryId": "00000000-0000-4000-8000-000000000807"
+      }
+    ],
+    "conversation": {
+      "status": "COMPLETED",
+      "revision": 0,
+      "turnCount": 0,
+      "providerDispatchedTurns": 0
+    },
+    "profileStatus": "ACTIVE",
+    "exactFiveModes": true,
+    "expectedUniqueModes": [
+      {
+        "mode": "ON_SITE",
+        "handoff": null,
+        "categoryId": "00000000-0000-4000-8000-000000000203"
+      },
+      {
+        "mode": "ON_SITE",
+        "handoff": null,
+        "categoryId": "00000000-0000-4000-8000-000000000204"
+      },
+      {
+        "mode": "ON_SITE",
+        "handoff": null,
+        "categoryId": "00000000-0000-4000-8000-000000000601"
+      },
+      {
+        "mode": "ON_SITE",
+        "handoff": null,
+        "categoryId": "00000000-0000-4000-8000-000000000701"
+      },
+      {
+        "mode": "REMOTE",
+        "handoff": {
+          "required": false
+        },
+        "categoryId": "00000000-0000-4000-8000-000000000807"
+      }
+    ],
+    "savedAreasPreserved": true,
+    "activeCapabilityCount": 5,
+    "providerSinceBaseline": {
+      "usageCount": 0,
+      "usageTotal": 219,
+      "reservationCount": 0,
+      "newDispatchedTurns": 0
+    },
+    "allSevenLabelsPreserved": true
+  }
+}

@@ -1,6 +1,7 @@
 import type { StanjeProfila } from '../../contracts/projections';
 import { cityLabel } from './cityLabel';
 import type { WorkerExecutionModeView } from '../../hooks/useWorkerExecutionModes';
+import { workerAreasLabel, type WorkerArea } from '../../contracts/workerAreas';
 
 /** The longest stretch of one skill said in the summary line; the whole list is one tap away, in the work profile. */
 const SKILL_CLIP = 32;
@@ -10,7 +11,7 @@ const clip = (text: string): string => {
 };
 
 /** What the profile's row needs of a work profile: its state, its skills, its city and its radius. Anything it does not hold is not said. */
-export type WorkProfileFacts = { stanje: StanjeProfila | null; vestine?: readonly string[]; grad?: string | null; radijusKm?: number | null };
+export type WorkProfileFacts = { stanje: StanjeProfila | null; vestine?: readonly string[]; grad?: string | null; radijusKm?: number | null; workAreas?: readonly WorkerArea[] };
 
 /** The words of a state, as the adjective of "profil" (no grammatical gender of the person: "Aktivan" belongs to "radni profil"). */
 const STATE_WORD: Record<StanjeProfila, string> = { ACTIVE: 'Aktivan', DRAFT: 'Nacrt', SUSPENDED: 'Suspendovan' };
@@ -32,11 +33,12 @@ export function workProfileSummary(profile: WorkProfileFacts | null, executionMo
   const skills = (profile.vestine ?? []).map(skill => skill.trim()).filter(Boolean);
   const city = profile.grad?.trim() ? cityLabel(profile.grad) : '';
   const radius = typeof profile.radijusKm === 'number' && Number.isFinite(profile.radijusKm) && profile.radijusKm > 0 ? `${profile.radijusKm} km` : '';
+  const area = profile.workAreas?.length ? workerAreasLabel(profile.workAreas) : city ? `${city}${radius ? `, do ${radius}` : ''}` : '';
   const modes = executionModes?.kind === 'confirmed' ? executionModes.modes : [];
   const onSite = modes.includes('ON_SITE'), remote = modes.includes('REMOTE');
   const parts = [STATE_WORD[profile.stanje],
     skills.length ? `${clip(skills[0])}${skills.length > 1 ? ` +${skills.length - 1}` : ''}` : '',
     remote ? 'Na daljinu' : '',
-    onSite && city ? `Dolazak: ${city}${radius ? `, do ${radius}` : ''}` : ''];
+    onSite && area ? `Dolazak: ${area}` : ''];
   return parts.filter(Boolean).join(' · ');
 }

@@ -89,6 +89,12 @@ WORKER_SHARED_REUSE_SHA256 = "2cf5c113217d3d66e5837bc4d754b16ea48a21aae63bc20ef3
 WORKER_SHARED_REUSE_BYTES = 71652
 WORKER_SHARED_REUSE_PROOF = "docs/plan/proofs/worker-shared-reuse-dev-20261109.json"
 WORKER_SHARED_REUSE_PROOF_SHA256 = "bb39124a2f76bbec5bb7a46a5f6598237a6966e9db55ab161adf8046e7975bc1"
+WORKER_DRAFT_ACTIVATION_FILE = "20261109143049_worker_draft_activation_20261109.sql"
+WORKER_DRAFT_ACTIVATION_MD5 = "f07aadff6097b6a607feba78a792f17d"
+WORKER_DRAFT_ACTIVATION_SHA256 = "4e197b041b89b6109bbcc7f943b9a9e7f92df229497438a89f9cd94b983e7be2"
+WORKER_DRAFT_ACTIVATION_BYTES = 94893
+WORKER_DRAFT_ACTIVATION_PROOF = "docs/plan/proofs/worker-draft-activation-dev-20261109.json"
+WORKER_DRAFT_ACTIVATION_PROOF_SHA256 = "1a7a579b61fc0487c39398092583b889932e419da94166884d4fb1d49767ad47"
 
 
 def fail(message: str) -> None:
@@ -347,6 +353,53 @@ def check_worker_shared_reuse_provenance(section: dict, manifest_map: dict) -> s
             or hashlib.sha256(witness.read_bytes()).hexdigest() != WORKER_SHARED_REUSE_PROOF_SHA256):
         fail("Worker shared reuse DEV readback differs from pinned witness")
     return WORKER_SHARED_REUSE_FILE
+
+
+def check_worker_draft_activation_provenance(section: dict, manifest_map: dict) -> str:
+    """Pin this deployment only; subsequent phone activation is separate evidence."""
+    expected = {
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "project": "leqcwgzvjsxugfgzdmth",
+        "file": WORKER_DRAFT_ACTIVATION_FILE,
+        "version": "20261109143049",
+        "name": "worker_draft_activation_20261109",
+        "source_md5": WORKER_DRAFT_ACTIVATION_MD5,
+        "source_sha256": WORKER_DRAFT_ACTIVATION_SHA256,
+        "source_bytes": WORKER_DRAFT_ACTIVATION_BYTES,
+        "recorded_statement_md5": WORKER_DRAFT_ACTIVATION_MD5,
+        "recorded_statement_sha256": WORKER_DRAFT_ACTIVATION_SHA256,
+        "recorded_statement_count": 1,
+        "evidence": WORKER_DRAFT_ACTIVATION_PROOF,
+        "evidence_sha256": WORKER_DRAFT_ACTIVATION_PROOF_SHA256,
+        "dev_applied": True,
+        "dev_migration_count_after": 370,
+        "preserved_owner_metadata": 33,
+        "changed_owner_bodies": 3,
+        "preserved_relation_metadata": 14,
+        "post_source_digest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+        "post_erasure_digest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+        "stored_closure_certificates_unchanged": True,
+        "source_ready": False,
+        "closure_recertified": False,
+        "verified_auth_save": False,
+        "verified_android": False,
+        "verified_push_delivery": False,
+        "release": "NO-GO",
+    }
+    if not isinstance(section, dict) or any(section.get(k) != v for k, v in expected.items()):
+        fail("Worker DRAFT activation provenance differs from verified DEV deployment")
+    raw = (ROOT / WORKER_DRAFT_ACTIVATION_FILE).read_bytes()
+    if (len(raw) != WORKER_DRAFT_ACTIVATION_BYTES
+            or hashlib.md5(raw).hexdigest() != WORKER_DRAFT_ACTIVATION_MD5
+            or hashlib.sha256(raw).hexdigest() != WORKER_DRAFT_ACTIVATION_SHA256):
+        fail("Worker DRAFT activation canonical bytes differ from actual DEV ledger")
+    if manifest_map.get(WORKER_DRAFT_ACTIVATION_FILE) != WORKER_DRAFT_ACTIVATION_MD5:
+        fail("Worker DRAFT activation manifest differs from actual DEV ledger")
+    witness = ROOT.parent.parent / WORKER_DRAFT_ACTIVATION_PROOF
+    if (not witness.is_file()
+            or hashlib.sha256(witness.read_bytes()).hexdigest() != WORKER_DRAFT_ACTIVATION_PROOF_SHA256):
+        fail("Worker DRAFT activation DEV readback differs from pinned witness")
+    return WORKER_DRAFT_ACTIVATION_FILE
 
 
 def check_post_qa92_readmission(section: dict, manifest_map: dict) -> list[str]:
@@ -743,7 +796,14 @@ def main() -> None:
     if shared_reuse_file <= post_qa92_names[-1]:
         fail("Worker shared reuse must follow the readmitted ledger versions")
 
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names + applicant_names + post_qa92_names + shared_reuse_names != disk_names:
+    draft_activation_file = check_worker_draft_activation_provenance(
+        metadata.get("forward_execution_20261109_worker_draft_activation"), manifest_map
+    )
+    draft_activation_names = [draft_activation_file]
+    if draft_activation_file <= shared_reuse_file:
+        fail("Worker DRAFT activation must follow the shared reuse ledger version")
+
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names + applicant_names + post_qa92_names + shared_reuse_names + draft_activation_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -845,6 +905,7 @@ def main() -> None:
         f"r09_applicant={len(applicant_names)} "
         f"post_qa92_readmission={len(post_qa92_names)} "
         f"worker_shared_reuse={len(shared_reuse_names)} "
+        f"worker_draft_activation={len(draft_activation_names)} "
         f"nov7_forward={len(forward7_names)} "
         f"r08_forward={len(r08_names)} "
         f"r01_forward={len(r01_names)} "

@@ -19,6 +19,20 @@ const EXPIRY = START + 10_000;
 const iso = time => new Date(time).toISOString();
 const ok = podatak => ({ ok: true, podatak });
 
+// Keep Expo's actual isFocused/event ordering. The native navigation boundary
+// can expose the new state before delivering its focus event to retained hooks.
+function expoFocusEffect(navigation) {
+  const mod = { exports: {} };
+  const source = fs.readFileSync(path.join(ROOT, 'node_modules/expo-router/build/useFocusEffect.js'), 'utf8');
+  new Function('require', 'module', 'exports', source)(name => {
+    if (name === 'react') return React;
+    if (name === './link/useLoadedNavigation') return { useOptionalNavigation: () => navigation };
+    if (name === './useNavigation') return { useNavigation: () => navigation };
+    throw Error('UNEXPECTED_EXPO_FOCUS_IMPORT:' + name);
+  }, mod, mod.exports);
+  return mod.exports.useFocusEffect;
+}
+
 function harness(kind = 'task', options = {}) {
   const clock = { now: START, sequence: 0, jobs: new Map(),
     set(fn, delay) { const id = ++this.sequence; this.jobs.set(id, { fn, due: this.now + delay, delay }); return id; },
@@ -34,7 +48,13 @@ function harness(kind = 'task', options = {}) {
     assert.equal(type, 'change'); listeners.add(fn); return { remove: () => listeners.delete(fn) }; },
     emit(state) { this.currentState = state; for (const fn of [...listeners]) fn(state); } };
   const Focus = React.createContext(true);
-  const useFocusEffect = fn => { const focused = React.useContext(Focus); React.useEffect(() => focused ? fn() : undefined, [focused, fn]); };
+  const navigationListeners = { focus: new Set(), blur: new Set() };
+  const navigation = { focused: true, isFocused() { return this.focused; },
+    addListener(event, fn) { navigationListeners[event].add(fn); return () => navigationListeners[event].delete(fn); },
+    emit(event) { for (const fn of [...navigationListeners[event]]) fn(); } };
+  const useFocusEffect = options.focusEvents ? expoFocusEffect(navigation)
+    : fn => { const focused = React.useContext(Focus); React.useEffect(() => focused ? fn() : undefined, [focused, fn]); };
+  let routeParams = { conversationId: ID(2) };
   const session = { user: { id: ID(1) }, accountRevision: 1 };
   const calls = [];
   const profile = { displayName: 'Milan', bio: 'Programiranje', skills: ['Programiranje'], tools: [], vehicles: [], licenses: [], teamCapacity: 1,
@@ -80,7 +100,7 @@ function harness(kind = 'task', options = {}) {
       Easing: { bezier: () => ({}), out: () => ({}), inOut: () => ({}), ease: () => ({}), linear: () => ({}) },
       Animated: { timing: () => ({ start: cb => cb?.() }), Value: class { constructor(v) { this._v = v; } setValue(v) { this._v = v; } interpolate() { return this; } } } },
     'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
-    'expo-router': { useFocusEffect, useLocalSearchParams: () => ({ conversationId: ID(2) }),
+    'expo-router': { useFocusEffect, useLocalSearchParams: () => routeParams,
       router: { setParams() {}, replace() {}, push() {}, back() {}, canGoBack: () => true } },
     'src/store/sesija.ts': { useSesija: () => session, sesijaSada: () => session },
     'src/data/supabaseClient.ts': { supabaseKlijent: {}, supabaseKonfigurisan: () => false },
@@ -182,7 +202,15 @@ function harness(kind = 'task', options = {}) {
     async mount(probe) { component = probe ?? Route; await act(async () => { tree = create(React.createElement(Focus.Provider, { value: focus }, React.createElement(component))); }); },
     async advance(ms, deliver = true) { await act(async () => clock.jump(ms, deliver)); },
     async state(state) { await act(async () => app.emit(state)); },
-    async focus(value) { focus = value; await act(async () => tree.update(React.createElement(Focus.Provider, { value }, React.createElement(component)))); },
+    async focus(value) { focus = value; await act(async () => {
+      navigation.focused = value; if (options.focusEvents) navigation.emit(value ? 'focus' : 'blur');
+      tree.update(React.createElement(Focus.Provider, { value }, React.createElement(component)));
+    }); },
+    async activationEntryBeforeFocusEvent(focused = true) { await act(async () => {
+      navigation.focused = focused; routeParams = { ...routeParams, activationRequest: ID(9) };
+      tree.update(React.createElement(Focus.Provider, { value: focused }, React.createElement(component)));
+    }); },
+    async emitFocus() { await act(async () => navigation.emit('focus')); },
     async press(node) { await act(async () => { const result = node.props.onPress(); if (!options.pending) await result; }); },
     buttons(label) { return tree.root.findAll(node => node.type === 'V2Action' && node.props.label === label); },
     button(label) { const found = this.buttons(label); assert.equal(found.length, 1, `one action: ${label}`); return found[0]; },
@@ -192,7 +220,8 @@ function harness(kind = 'task', options = {}) {
       await act(async () => write({ ok: false, kod: 'UNKNOWN', poruka: 'Proverite stanje' })); },
     async savedWorker() { worker = { ...worker, status: 'COMPLETED', saved: { reviewId: review.reviewId, profileStatus: 'DRAFT' } };
       await act(async () => write(ok(worker.saved))); },
-    async close() { if (tree) await act(async () => tree.unmount()); assert.equal(clock.jobs.size, 0, 'no retained expiry timer'); assert.equal(listeners.size, 0, 'no retained AppState subscription'); },
+    async close() { if (tree) await act(async () => tree.unmount()); assert.equal(clock.jobs.size, 0, 'no retained expiry timer'); assert.equal(listeners.size, 0, 'no retained AppState subscription');
+      assert.equal(navigationListeners.focus.size + navigationListeners.blur.size, 0, 'no retained navigation subscription'); },
   };
 }
 
@@ -249,6 +278,32 @@ test('worker explicit renewal keeps draft choice and still requires confirmation
 test('worker save started before expiry can finish after it without a new request', () => scenario('worker', { pending: true }, async h => {
   await h.press(h.button('Pregledajte radni profil')); await h.press(h.button('Sačuvajte profil'));
   await h.advance(10_001); await h.savedWorker(); h.button('Otvorite sačuvani profil'); assert.equal(h.count('workerSave'), 1);
+}));
+
+test('worker activation entry reads immediately when navigation state precedes the retained focus event', () => scenario('worker', { focusEvents: true }, async h => {
+  const input = 'Moj neposlati unos';
+  await act(async () => h.tree.root.findByType('AiConversationShell').props.onChange(input));
+  await h.focus(false);
+  const reads = h.count('workerRead');
+  await h.activationEntryBeforeFocusEvent();
+  assert.equal(h.count('workerRead'), reads + 1, 'entry must read without a manual retry');
+  assert.equal(h.tree.root.findAllByType('WorkerProfileStatus').length, 0, 'no local unavailable error');
+  assert.equal(h.tree.root.findByType('AiConversationShell').props.value, input, 'retained unsent text survives');
+  assert.deepEqual(h.calls.filter(c => c[0] === 'workerPrepare').map(c => c[1]), [true]);
+  await h.emitFocus();
+  assert.equal(h.count('workerRead'), reads + 1, 'later focus delivery does not duplicate the read');
+  assert.equal(h.count('workerSave'), 0, 'an activation review does not save or activate');
+}));
+
+test('worker changed activation params while still blurred wait for focus without reading or saving', () => scenario('worker', { focusEvents: true }, async h => {
+  await h.focus(false); const reads = h.count('workerRead');
+  await h.activationEntryBeforeFocusEvent(false);
+  assert.equal(h.count('workerRead'), reads);
+  assert.equal(h.count('workerPrepare'), 0); assert.equal(h.count('workerSave'), 0);
+  await h.focus(true);
+  assert.equal(h.count('workerRead'), reads + 1);
+  assert.deepEqual(h.calls.filter(c => c[0] === 'workerPrepare').map(c => c[1]), [true]);
+  assert.equal(h.count('workerSave'), 0);
 }));
 
 if (!PREIMAGE) {

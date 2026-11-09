@@ -1,0 +1,90 @@
+{
+  "checkedAt": "2026-11-09T14:17:24Z",
+  "projectId": "leqcwgzvjsxugfgzdmth",
+  "reports": [
+    {
+      "type": "security",
+      "lints": [
+        {
+          "name": "rls_enabled_no_policy",
+          "level": "INFO",
+          "count": 124,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+        },
+        {
+          "name": "function_search_path_mutable",
+          "level": "WARN",
+          "count": 1,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable"
+        },
+        {
+          "name": "extension_in_public",
+          "level": "WARN",
+          "count": 1,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public"
+        },
+        {
+          "name": "anon_security_definer_function_executable",
+          "level": "WARN",
+          "count": 3,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable"
+        },
+        {
+          "name": "authenticated_security_definer_function_executable",
+          "level": "WARN",
+          "count": 204,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+        },
+        {
+          "name": "auth_leaked_password_protection",
+          "level": "WARN",
+          "count": 1,
+          "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+        }
+      ]
+    },
+    {
+      "type": "performance",
+      "lints": [
+        {
+          "name": "unindexed_foreign_keys",
+          "level": "INFO",
+          "count": 88,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys"
+        },
+        {
+          "name": "no_primary_key",
+          "level": "INFO",
+          "count": 7,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0004_no_primary_key"
+        },
+        {
+          "name": "unused_index",
+          "level": "INFO",
+          "count": 16,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index"
+        },
+        {
+          "name": "multiple_permissive_policies",
+          "level": "WARN",
+          "count": 5,
+          "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0006_multiple_permissive_policies"
+        }
+      ]
+    },
+    {
+      "type": "health",
+      "lints": []
+    }
+  ],
+  "triage": [
+    "Health reported no notices. This is not a load, uptime, RLS or release certification.",
+    "Private capacity4_transaction_probe_v1 has no fixed search_path, but is SECURITY INVOKER with EXECUTE limited to postgres. No ordinary-user privilege escalation was demonstrated; do not drop or move it during unrelated activation work.",
+    "rpc_delete_abandoned_intake_conversation rejects null auth.uid() first and scopes the conversation lookup to that UID. Its anon/PUBLIC EXECUTE lint does not itself demonstrate unauthenticated deletion. No destructive call or complete concurrency audit was performed.",
+    "rpc_get_legal_bundle deliberately serves public published legal documents, and scopes acceptance status to auth.uid(). rpc_closure_api_guard is the existing request guard. Blanket revocation would break intended contracts.",
+    "The other204 authenticated definer warnings require per-function owner/authorization analysis; not audited as a group here. RLS-without-policy on private tables and unindexed/unused-index suggestions are not authorization to add policies or indexes blindly.",
+    "Leaked-password protection remains reported disabled; production Auth policy review is outstanding.",
+    "pg_net public-extension location is a managed-platform compatibility item; no relocation attempted."
+  ],
+  "mutations": false
+}

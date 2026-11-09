@@ -5,6 +5,52 @@ const read=p=>fs.readFileSync(path.join(ROOT,p),'utf8');
 // Actual saved-profile route and owned editor; only native widgets/read services are fixtures.
 // Entry into signed preparation is not an activation write or installed-Android proof.
 const WORKER_AREA_CITY={kind:'CITY',countryCode:'RS',label:'Novi Sad',city:'Novi Sad',sourceRef:'osm:relation:123',latitude:45.26,longitude:19.84,radiusKm:null};
+test('account hub retains saved work areas in its mixed-mode Worker subtitle',async()=>{
+ const session={user:{id:'owner'},accountRevision:1};
+ const profile={id:'worker',stanje:'ACTIVE',ime:'Milan',grad:'',radijusKm:0,
+  vestine:['Kurirske dostave','Nabavka i kupovina','Nošenje kutija','Košenje trave','Utovar i istovar','PowerPoint','Pomoć pri selidbi'],workAreas:[WORKER_AREA_CITY]};
+ const identity={accountId:'owner',profileId:'requester',kind:'REQUESTER',ime:'Milan',grad:null,stanje:'ACTIVE'};
+ const source={mojRadnikProfil:async()=>profile};
+ const h=createHarness({
+  'expo-router':{router:{},useFocusEffect:fn=>React.useEffect(fn,[fn])},
+  'src/store/sesija.ts':{useSesija:()=>session,sesijaSada:()=>session},
+  'src/store/uloga.ts':{useIzvor:()=>source},
+  'src/data/ownProfileClientService.ts':{ownProfileClientService:{read:async()=>identity}},
+  'src/data/publicProfileClientService.ts':{publicProfileClientService:{}},
+  'src/hooks/useWorkerExecutionModes.ts':{useWorkerExecutionModes:()=>({view:{kind:'confirmed',modes:['ON_SITE','REMOTE']}})},
+  'src/ui/profile/useHubStates.ts':{useHubStates:()=>({})},
+  'src/ui/profile/hubStates.ts':{hubWords:()=>({})},
+ });
+ h.native.AppState={currentState:'active',addEventListener:()=>({remove(){}})};
+ for(const [file,name]of [['src/ui/reviews/AccountReputation.tsx','AccountReputation'],['src/ui/media/ContextPhotos.tsx','ProfilePhoto'],
+  ['src/ui/profile/ProfileWorkSummary.tsx','ProfileWorkSummary'],['src/ui/system/PublicProfileSheet.tsx','PublicProfileSheet'],
+  ['src/ui/profile/ProfileHubPresentation.tsx','ProfileHub']])h.stubs[file]={[name]:h.host(name),PROFILE_AVATAR:48};
+ const r=await mount(h.load('src/app/(app)/profil.tsx').default,{});
+ try{assert.equal(nodes(r,n=>n.type==='ProfileHub')[0].props.capabilityDetail,
+  'Aktivan · Kurirske dostave +6 · Na daljinu · Dolazak: Novi Sad');}
+ finally{await unmount(r);}
+});
+
+test('Worker summary uses existing area labels and keeps legacy city/radius compatibility',()=>{
+ const {workProfileSummary}=createHarness().load('src/ui/profile/workProfileSummary.ts');
+ const profile={stanje:'ACTIVE',vestine:['Dostava'],grad:'Stari grad',radijusKm:20};
+ const onSite={kind:'confirmed',modes:['ON_SITE']};
+ const radius={...WORKER_AREA_CITY,kind:'RADIUS',label:'Novi Sad · do 30 km',radiusKm:30};
+ const country={kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,latitude:null,longitude:null,radiusKm:null};
+ for(const [workAreas,label]of [[[WORKER_AREA_CITY],'Novi Sad'],[[radius],'Novi Sad · do 30 km'],[[country],'Cela Srbija']])
+  assert.equal(workProfileSummary({...profile,workAreas},onSite),`Aktivan · Dostava · Dolazak: ${label}`);
+ assert.equal(workProfileSummary({...profile,workAreas:[]},onSite),'Aktivan · Dostava · Dolazak: Stari Grad, do 20 km');
+});
+
+test('Worker summary never infers confirmed modes from saved area or absent legacy city',()=>{
+ const {workProfileSummary}=createHarness().load('src/ui/profile/workProfileSummary.ts');
+ const profile={stanje:'ACTIVE',vestine:['Lektura'],grad:'',workAreas:[WORKER_AREA_CITY]};
+ assert.equal(workProfileSummary(profile,{kind:'confirmed',modes:['REMOTE']}),'Aktivan · Lektura · Na daljinu');
+ for(const view of [undefined,{kind:'loading'},{kind:'unconfirmed'},{kind:'unavailable'}])
+  assert.equal(workProfileSummary(profile,view),'Aktivan · Lektura');
+ assert.equal(workProfileSummary({...profile,stanje:'SUSPENDED'},{kind:'confirmed',modes:['ON_SITE','REMOTE']}),'Suspendovan. Obratite se podršci.');
+});
+
 async function workerActivationRoute(profilePatch={},modeView={kind:'confirmed',modes:['ON_SITE']}){
  const session={user:{id:'owner'},accountRevision:1},routes=[],writes=[],listeners=new Set();
  const profile={id:'profile',stanje:'DRAFT',ime:'Milan',grad:'',biografija:'Dostavljam pakete i pomažem pri selidbi.',

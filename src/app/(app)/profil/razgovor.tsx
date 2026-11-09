@@ -90,9 +90,11 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const [turnIssue,setTurnIssue]=useState<{conversationId:string;message:string}|null>(null);
   // Leaving, or the app going to the background, makes an open question stale (its answer checks canAct), so it goes too.
   const confirmSheet=useConfirmSheet(),retireConfirmation=confirmSheet.close;
+  // Returning with a new activation intent can rerun the editor before Expo
+  // delivers focus. Renew this guard first, in the same parameter transition.
   useFocusEffect(useCallback(()=>{const token={};focus.current=token;setLeaving(false);return()=>{
     if(focus.current===token)focus.current=null;retireConfirmation();abort.current?.abort();abort.current=null;setStream('');setRoleSuggestion(null);
-  };},[retireConfirmation]));
+  };},[retireConfirmation,activationRequest]));
   useEffect(()=>{const subscription=AppState.addEventListener('change',state=>{
     // Duplicate native activity notifications are not a return from background.
     // Refreshing here would abort the current reply and unmount the voice composer.

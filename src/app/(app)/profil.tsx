@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import type { JavniProfilProjekcija } from '../../contracts/projections';
+import type { JavniProfilProjekcija, RadnikProfilProjekcija } from '../../contracts/projections';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { useIzvor } from '../../store/uloga';
 import { ownProfileClientService, type OwnProfileIdentity } from '../../data/ownProfileClientService';
@@ -22,8 +22,8 @@ import { PROFILE_AVATAR, ProfileHub, type ProfileHubIdentity, type ProfileHubPat
 type ActionScope = { accountId: string; accountRevision: number; busy: boolean };
 /** The rows that say their own state (open requests, blocked people, the export, the legal documents); read apart from the profile, so none of them can hold it up. */
 const STATE_ROWS: readonly HubStateKey[] = ['support'];
-/** The work profile as the hub reads it: the account's own row, with the two facts its one line needs (skills and radius). */
-type WorkCapability = OwnProfileIdentity & { vestine?: string[]; radijusKm?: number };
+/** The work profile's saved skills and territory, as read by the profile screen. */
+type WorkCapability = OwnProfileIdentity & Pick<RadnikProfilProjekcija, 'vestine' | 'radijusKm' | 'workAreas'>;
 
 export default function Profil() {
   const { user, accountRevision } = useSesija();
@@ -39,7 +39,7 @@ export default function Profil() {
   const loadCapability = useCallback(async (): Promise<WorkCapability | null> => {
     const worker = await izvor.mojRadnikProfil();
     const capability: WorkCapability | null = worker ? { accountId: accountId ?? '', profileId: worker.id, kind: 'WORKER', ime: worker.ime.trim() || null,
-      grad: worker.grad.trim() || null, stanje: worker.stanje, vestine: worker.vestine, radijusKm: worker.radijusKm } : null;
+      grad: worker.grad.trim() || null, stanje: worker.stanje, vestine: worker.vestine, radijusKm: worker.radijusKm, workAreas: worker.workAreas } : null;
     return capability;
   }, [accountId, izvor]);
   const requesterRead = useFocusedResource(loadIdentity);
