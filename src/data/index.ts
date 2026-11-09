@@ -13,6 +13,7 @@ import { supabaseKonfigurisan } from './supabaseClient';
 import { workerProfileClientService } from './workerProfileClientService';
 import { Izvor } from './ports';
 import { homeAttentionClientService } from './homeAttentionClientService';
+import { homeAgreementsClientService } from './homeAgreementsClientService';
 
 // Eksplicitna kompoziciona granica.
 //
@@ -61,6 +62,8 @@ const produkcijskiIzvor: Izvor = {
   ...needClientService,
   ...agreementClientService,
   ...homeAttentionClientService,
+  dogovoriZaPocetnu: homeAgreementsClientService.summary,
+  podsetniciDogovoraZaPocetnu: homeAgreementsClientService.promptsPage,
   poreklo: 'supabase',
 };
 

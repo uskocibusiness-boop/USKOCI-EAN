@@ -177,6 +177,8 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
         if (!sameAnchor(pageAnchor, decoded.anchor)) throw new Error('DISCOVERY_V1_OWNER_PAGE_ANCHOR_DRIFT');
         if (decoded.nextCursor && decoded.nextCursor.scopeKey !== previousCursor.scopeKey)
           throw new Error('DISCOVERY_V1_OWNER_PAGE_SCOPE_DRIFT');
+        if (decoded.nextCursor && cursorIdentity(decoded.nextCursor) === cursorIdentity(previousCursor))
+          throw new Error('DISCOVERY_V1_OWNER_PAGE_CURSOR_STALLED');
         const seen = new Set(previous.items.map(item => item.id)), items = [...previous.items];
         for (const item of decoded.items) if (!seen.has(item.id)) { seen.add(item.id); items.push(item); }
         page = { ...decoded, items };
@@ -263,6 +265,8 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
         if (!tokenCurrent(token, placesSequence)) return stale();
         const decoded = decodeDiscoveryV1Places(raw, base.limit);
         if (!sameAnchor(current.anchor, decoded.anchor)) throw new Error('DISCOVERY_V1_OWNER_PLACES_ANCHOR_DRIFT');
+        if (decoded.nextCursor && placeCursorIdentity(decoded.nextCursor) === placeCursorIdentity(previousCursor))
+          throw new Error('DISCOVERY_V1_OWNER_PLACES_CURSOR_STALLED');
         const seen = new Set(current.items.map(item => item.key)), items = [...current.items];
         for (const item of decoded.items) if (!seen.has(item.key)) { seen.add(item.key); items.push(item); }
         places = { ...decoded, items };
@@ -327,6 +331,8 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
         if (!sameAnchor(pageAnchor, decoded.anchor)) throw new Error('DISCOVERY_V1_OWNER_MEMBERS_ANCHOR_DRIFT');
         if (decoded.nextCursor && decoded.nextCursor.scopeKey !== previousCursor.scopeKey)
           throw new Error('DISCOVERY_V1_OWNER_MEMBERS_SCOPE_DRIFT');
+        if (decoded.nextCursor && cursorIdentity(decoded.nextCursor) === cursorIdentity(previousCursor))
+          throw new Error('DISCOVERY_V1_OWNER_MEMBERS_CURSOR_STALLED');
         const seen = new Set(current.items.map(item => item.id)), items = [...current.items];
         for (const item of decoded.items) if (!seen.has(item.id)) { seen.add(item.id); items.push(item); }
         members = { ...decoded, items };

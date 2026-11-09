@@ -149,11 +149,18 @@ export type HomeRaspored = Readonly<{ when: string; spoken: string; more: string
  */
 export function rasporedOf(featured: AcceptedTerm, others: readonly AcceptedTerm[], loose: LooseCounts, now: Date,
   phoneZone: string | undefined): HomeRaspored | null {
-  const when = rasporedWhen(featured, now);
-  if (!when) return null;
   const week = serbianWeek(now);
   const thisWeek = week ? others.filter(term => term.endAt !== null && inWeek(term, week)).length : 0;
-  return { when: when.text, spoken: when.spoken, more: moreLine(thisWeek, 0, 0),
+  return rasporedFromSummary(featured, thisWeek, now, phoneZone);
+}
+
+/** Same accepted-time wording, with the server's exact count of the remaining
+ * appointments this week. A bounded next row never stands in for that count. */
+export function rasporedFromSummary(featured: AcceptedTerm, remainingThisWeek: number, now: Date,
+  phoneZone: string | undefined): HomeRaspored | null {
+  const when = rasporedWhen(featured, now);
+  if (!when) return null;
+  return { when: when.text, spoken: when.spoken, more: moreLine(remainingThisWeek, 0, 0),
     zone: showScheduleZone(DOGOVORENA_ZONA, phoneZone) ? scheduleZone(DOGOVORENA_ZONA) : null };
 }
 

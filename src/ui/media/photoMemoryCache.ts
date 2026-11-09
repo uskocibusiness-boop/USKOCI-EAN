@@ -11,6 +11,8 @@ export function createPhotoMemoryCache(maxBytes = PHOTO_CACHE_MAX_BYTES, maxEntr
   return {
     mark: () => generation,
     clear() { entries.clear(); retainedBytes = 0; generation++; },
+    // A decoder failure retires only this binding; other in-flight reads remain valid.
+    forget: remove,
     get(key: string, now = Date.now()): string | undefined {
       const found = entries.get(key);
       if (!found) return undefined;

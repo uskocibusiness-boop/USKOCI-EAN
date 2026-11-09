@@ -1,9 +1,9 @@
 # USKOČI — PRODUCT + UX MASTER
 
-**Jedini glavni radni dokument.** Operativni presek: **29. oktobar 2026.**  
+**Jedini glavni radni dokument.** Operativni presek: **9. novembar 2026.**
 **Faza:** FINAL VISUAL PRODUCT PASS → specifikacija za Figma / prototip / React Native; **ne** pixel-final implementacija.  
-**Obim ove izmene:** Product/UX/UI ugovori, hijerarhija, ponašanje i implementation delta. **GitHub kod, Supabase, migracije, Edge Functions i produkcijski podaci nisu menjani.**  
-**Izvor koda — NAJNOVIJA PROVERA 29.10.2026:** Jedini aktuelni repo: **`uskocibusiness-boop/USKOCI-EAN`**, grana **`work/rev14-review-f17`**, PR **#43**; fiksirani HEAD u ovoj proveri **`4f6fc4f1f9358926195af356b6dfcdc7464f1a17`**. U odnosu na prethodni Master-pin `de8f838e56f96d29b99d2a1aaba1f9889b4e1a25`: **3 nova commita / 5 izmenjenih fajlova**, pretežno `AgreementVoiceControls`, `MyApplicationsPresentation`, njihovi testovi i `docs/plan/CODEX_PLAN_RADA.md`. Pinned auditi A–E ostaju relevantni za neizmenjene fajlove; svaki stariji SHA u nastavku predstavlja **datirani trag**, ne paralelni aktuelni HEAD. `AGENTS.md` i `docs/implementation/design-system/PREMIUM_WHITE_CANON.md` **nisu pronađeni na navedenim putanjama na ovom SHA (404)**; komentar u kodu koji ih pominje nije dokaz postojećeg fajla. Izvršni izvor za boje, tipografiju, dimenzije i animacije su stvarni `src/theme/*`, `src/ui/system/*` i konkretne RN komponente sa blob SHA. **Airbnb 2026 je visual benchmark, nikad izvor implementacionog identiteta.** Nema aktuelnog APK rendera, poređenja pixel-by-pixel, novog build SHA ni dokazano završenog vizuelnog freeze-a. GitHub/baza/produkcija ostaju strogo read-only. Obnovljen je samo ovaj Master.
+**Aktuelna dopuna 09.11.2026:** forenzika izvornog koda svih S01–S18 i integracija proverenih Home/Discovery/photo/apply delti. Operativni dokazi su u CODEX masteru. DEV, Edge, budžet, pravni status i produkcija ovim krugom nisu menjani. Istorijski obim od 29.10.2026. ispod ne opisuje današnje izmene izvornog koda.
+**Istorijski izvor provere 29.10.2026 — noviji status je u H0/J0 ispod:** Tada provereni repo: **`uskocibusiness-boop/USKOCI-EAN`**, grana **`work/rev14-review-f17`**, PR **#43**; fiksirani HEAD u toj proveri **`4f6fc4f1f9358926195af356b6dfcdc7464f1a17`**. U odnosu na prethodni Master-pin `de8f838e56f96d29b99d2a1aaba1f9889b4e1a25`: **3 nova commita / 5 izmenjenih fajlova**, pretežno `AgreementVoiceControls`, `MyApplicationsPresentation`, njihovi testovi i `docs/plan/CODEX_PLAN_RADA.md`. Pinned auditi A–E ostaju relevantni za neizmenjene fajlove; svaki stariji SHA u nastavku predstavlja **datirani trag**, ne paralelni aktuelni HEAD. `AGENTS.md` i `docs/implementation/design-system/PREMIUM_WHITE_CANON.md` **nisu pronađeni na navedenim putanjama na ovom SHA (404)**; komentar u kodu koji ih pominje nije dokaz postojećeg fajla. Izvršni izvor za boje, tipografiju, dimenzije i animacije su stvarni `src/theme/*`, `src/ui/system/*` i konkretne RN komponente sa blob SHA. **Airbnb 2026 je visual benchmark, nikad izvor implementacionog identiteta.** Nema aktuelnog APK rendera, poređenja pixel-by-pixel, novog build SHA ni dokazano završenog vizuelnog freeze-a. GitHub/baza/produkcija ostaju strogo read-only. Obnovljen je samo ovaj Master.
 
 > **Kako koristiti ovaj dokument:** za svaki vizuelni zadatak AI/dizajner prvo čita **B0 (kratki vizuelni i pokretni brief)**, **B1–B4 (stvarni tokeni)** i **samo relevantan S01–S18**, zatim E/J gate. Deo ispod `ISTORIJSKA EVIDENCIJA I DOKAZI` služi samo za proveru porekla i **ne prosleđuje se kao design prompt**. Od ovog zaglavlja do **J. FINAL VISUAL QA** ostaje jedina važeća izvršna product/UX/UI specifikacija. Ispod oznake **ISTORIJSKA EVIDENCIJA I DOKAZI** sačuvan je dosadašnji istraživački materijal, originalne numerisane sekcije, route audit, test matrice i raniji preseci. Služi za obrazloženje i implementacionu proveru, **ne** za ponovno biranje između zastarelih i novih rešenja. Ako tekst iz stare sekcije ne odgovara ovom kanonu, važi ovaj kanon; relevantne superseded oblasti dodatno su označene na mestu starog teksta. Nova odluka se od sada menja u odgovarajućem kanonskom odeljku, ne dopisuje kao nova glava na kraj dnevnika.
 
@@ -1388,6 +1388,25 @@ Radni izvor: **`uskocibusiness-boop/USKOCI-EAN`** → **`work/rev14-review-f17`*
 
 # H. IMPLEMENTATION DELTA — FINAL PRODUCT vs POSLEDNJI POZNATI KOD
 
+## H0. Актуелни implementation delta — 09.11.2026.
+
+Извор форензике је `work/uskoci-cist-proizvod-20261104@b066aaf9a8f1fd0b5895989fd2d8516abcc5c556`; извршни код те основе је исти као QA92. Накнадно су интегрисане независно проверена локална Home/Discovery целина из `b20346b1e8e2bcd200c6394379d5826f77a3acee` и уске photo/application исправке. [Пуна матрица и накнадни извршни статус](../plan/proofs/forensic-audit-20261109.md), [source/test доказ](../plan/proofs/forensic-integration-20261109.json). Ово је допуна постојећег уговора, не нови визуелни систем.
+
+| Фамилија | Ново потврђени source статус | Преостало |
+|---|---|---|
+| S01 | Четири карусела затечена су на b066; већ су локално уклоњена у b203, а та исправка је сада интегрисана. Следећи Договор/Чека Вас/намере/наставак/пречице остају. Summary и on-demand странице по 20. | Native први корисник, large text, own-task read, позитиван обични Auth Home прихват. |
+| S02 | P6 stagnant cursor/foreign anchor guards интегрисани из постојећег локалног рада. Preview/QA има P6=1, production остаје 0. | Legacy rollout/5001+, native map мерење, list/map/remote parity. |
+| S03 | Inline photo preserve-aspect, компактни loading/error/retry, неуспели cache binding се уклања. | Photo-first договорени распоред, потпуна стабилност распореда и физички proof. |
+| S04/S07 | Термин пријаве већ readonly; unit-aware кандидатске цене и durable selection journal већ постоје. Напомена више не предлаже други термин. | Позитиван избор/конкурентно последње место и native UNKNOWN. |
+| S06/S08 | Пријаве и даље имају јавни All таб; Договори већ имају серверску претрагу, али два улаза у историју. | Ускладити три јавна стања и један history улаз, без нових сервиса. |
+| S11/S12 | Приватна историја ограничена на 200 порука, anchor/UNKNOWN провере; календар месец/недеља/дан већ постоји. | Native media-rich/performance и Serbian timezone/DST прихват. |
+| S13/S14 | Једна заједничка репутација је ауторитет. Пасивна већ присутна услуга више не заузима блок; изричита потврда остаје. „Могу одмах“ је паузирано. | Cityless REMOTE директна пречица; постоји алтернативна активација преко разговора. |
+| S15/S17/S18 | Регистрација већ нема град. Постоје приватност/подршка/review/outcome guard-ови. | Правне/export/retention капије, стварни grant → revoke, native push/два налога. |
+| S16 | End-card и single-pass остају. AI буџет је сада fail-closed; false flag не отвара неограничен позив. | Контролисан admission, R06 recovery и мерени природни разговори. |
+
+Стари H/J налази о недостајућој претрази, обавезном граду у регистрацији, погрешном global rating моделу, алтернативном термину у новој пријави и RAM-only selection-у нису актуелни backlog. S07 старо „не account-blended“ чита се као SUPERSEDED за глобални score; S14 старо дозвољено „Могу одмах“ као SUPERSEDED паузом; S16 progressive summary као SUPERSEDED новијим end-card уговором. Историјски докази остају сачувани.
+
+
 **NOVI PIN / VIZUELNI DELTA (29.10.2026):** HEAD `4f6fc4f1f9358926195af356b6dfcdc7464f1a17` je +3 commit-a u odnosu na `de8f838e...`; izmenjeni su `src/ui/media/AgreementVoiceControls.tsx`, `src/ui/v2/MyApplicationsPresentation.tsx`, dva njihova testa i `docs/plan/CODEX_PLAN_RADA.md` (samo READ-ONLY compare). Ne tretirati tekstualne animacione ideje B0 kao već potvrđen APK. `AGENTS.md` i `docs/implementation/design-system/PREMIUM_WHITE_CANON.md` ne postoje na navedenim putevima na ovom ref-u; njihov istorijski citat u komentarima nije stvaran izvor. `src/ui/system/motionTokens.ts`, `Appear.tsx`, `AiConversationShell.tsx`, `useConversationArrival.ts` i `FactArt.tsx` jesu provereni izvori. Pre korišćenja nekog starog SHA iz H1/H2 čitati tačnu napomenu da je to istorijski pin.
 
 **Važno:** ovo je *handoff*, **nije komanda da se sada menja kod**. U tabeli „CURRENT CODE“ pojedine funkcije potiču iz **ranijeg** `feature/uskoci-cisto` audita; za potvrđene fajlove iz novije radne grane `work/rev14-review-f17` izričito se pozivamo na H1. Stariji dokaz *nije* automatski dokaz najnovijeg stanja; promenu označenu samo istorijskim izvorom treba ponovo proveriti pre implementacije. Sačuvati ispravnu autoritativnu infrastrukturu (idempotency/reconciliation, server-scoped reads, router auth).
@@ -1502,6 +1521,13 @@ Ovaj prioritet nije procenat rada na dizajnu; to je minimalni redosled da UI ne 
 5. Figma final i kompletan klikabilni prototip tek posle visual contract QA; prototip ne postaje autoritet kada odstupa od realnog RN sistema.
 
 # J. STATUS MATRIX I FINAL VISUAL QA — IZVRŠNA KONTROLA
+
+## J0. Актуелна visual QA граница — 09.11.2026.
+
+S01–S18 су прегледани у изворном коду. Нове компонентне и SQL провере не означавају ниједну породицу као pixel-final или кориснички прихваћену. Нема новог пакета физичких screenshot доказа за 360/430 dp, 1×/1,15×/1,3× и TalkBack/Reduce Motion/Back/keyboard у овом кругу. QA92 има проверен native APK и WAV бајтове, али нема доказа за FCM, чујни звук или инсталацију на уређају. Следећи CI/APK мора добити свој SHA и не наслеђује аутоматски QA92 visual статус.
+
+Обавезна матрица остаје постојећа J; [нови S01–S18 налази и E2E границе](../plan/proofs/forensic-audit-20261109.md) допуњују њене актуелне делте. Историјски J9 snapshot од 29. октобра не представља садашњи APK. Нови CI/source статус води се у [једном извршном мастеру](../plan/CODEX_PLAN_RADA.md), без другог конкурентног плана.
+
 
 **Airbnb-2026 benchmark / original USKOČI, novi visual-freeze gate:** B0 je obavezni kratki vizuelni brief pre svake Figma/RN scene. V1 proof set: S01 Home normal/empty, S02 PEEK/HALF/FULL + error nav collision, S03 sa/bez fotografije, S11 inbox + voice/private/group, S16 welcome/typing/stream/facts/review/unknown; za svaki 360dp i ~430dp, 1,3×, keyboard, TalkBack i Reduce Motion na **jednom poznatom Android APK build SHA-u**. Uporediti precizan screenshot sa B0, nema `pixel-final` dok ne postoji snimak + pregled. Reference fotografije Airbnb-a služe samo kao benchmark javnog dizajna, ne kao prihvaćen USKOČI render.
 

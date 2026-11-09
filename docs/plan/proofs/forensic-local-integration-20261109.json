@@ -1,0 +1,185 @@
+{
+  "created_at": "2026-11-09T01:11:28.872609+00:00",
+  "source_base": "b066aaf9a8f1fd0b5895989fd2d8516abcc5c556",
+  "verified_local_source_commit": "b20346b1e8e2bcd200c6394379d5826f77a3acee",
+  "policy": "SELECTIVE_EXACT_COMMITTED_FILES_AFTER_INDEPENDENT_PRODUCT_AND_ROOT_REVIEW",
+  "files": [
+    {
+      "path": "src/app/(app)/index.tsx",
+      "source_git_blob": "0ea36612aca07aedf6325b7774791b59461e01ad",
+      "sha256": "18d889342d3b52c0fa850a9b5706858781a3e3666b376fd264cc333f9b2382d2",
+      "bytes": 11782
+    },
+    {
+      "path": "src/data/homeAgreementPromptOwner.ts",
+      "source_git_blob": "8f821fb958e7fd8a3800decd7da79a6ce04de28d",
+      "sha256": "518832ed6e80996a03776263a03b5b81e3fd8cf700073e5433e66c09afdee31f",
+      "bytes": 3954
+    },
+    {
+      "path": "src/data/homeAgreementsClientService.ts",
+      "source_git_blob": "bf2ee7268bb56caa2035edefec799e67f0a2239d",
+      "sha256": "0cd6fc8bff37b77da61feec5ddd329fa08b72e3aa46713b282ff72c0599128e8",
+      "bytes": 2437
+    },
+    {
+      "path": "src/data/homeAgreementsContract.ts",
+      "source_git_blob": "6ef42f185bdded840f5fb386a1c04334e6504d6c",
+      "sha256": "3fc330d0947b5d5ecccfc4fcfc7c501f741d136e31819657bfe78e37815753c6",
+      "bytes": 9510
+    },
+    {
+      "path": "src/data/homeSnapshot.ts",
+      "source_git_blob": "367905a6c370b803a5eeafa46d2c671adec6a7b5",
+      "sha256": "bf76f7b4fcb6fecaa307286a8770a96571e3d07ef63c6aa1e38a11e5cf0c998e",
+      "bytes": 27485
+    },
+    {
+      "path": "src/data/index.ts",
+      "source_git_blob": "4052b3b9229e8745bf136c311fc083426ba88339",
+      "sha256": "c515665c90e6eb761fe88b00ae6aaa079cdf7a2a1670a327136a5ffbd37dc807",
+      "bytes": 3790
+    },
+    {
+      "path": "src/data/lazniIzvor.ts",
+      "source_git_blob": "7e930f62b8fb825cdeb4c8ffea4522653a487b1b",
+      "sha256": "1617fb7efbb2c344b256ba7a9f8560fe6859ac76290c9cba046680096756faff",
+      "bytes": 37438
+    },
+    {
+      "path": "src/data/ports.ts",
+      "source_git_blob": "49099ce62673e15de2646e9c1638aa6d5fb1da72",
+      "sha256": "9d493ff23f54a77955986c60da02414eb8b800a33d4221fdc4f9da0ad7048e04",
+      "bytes": 11393
+    },
+    {
+      "path": "src/data/supabaseIzvor.ts",
+      "source_git_blob": "a33b8955ee18f3693845c78e7716fb395eb7f55d",
+      "sha256": "daac7552d97055e53441c5bddb150170e96cc65822a1c3f4be8576bae23d88b7",
+      "bytes": 29531
+    },
+    {
+      "path": "src/ui/home/HomePresentation.tsx",
+      "source_git_blob": "f5125ef2f48c7d49a6083c2944f156caef3e7ab3",
+      "sha256": "0e5a58bc8c55eacb4546857d79bf651f8eebab0104668c022345a22fe5a00b68",
+      "bytes": 29082
+    },
+    {
+      "path": "src/ui/home/HomeWaitingPanel.tsx",
+      "source_git_blob": "aaab416814b28620bf98cd3741846cb887644b6f",
+      "sha256": "fe4d6cd76a2cd08814351e06aaf13456d4541d7e177b99c0c05609090f703a1a",
+      "bytes": 6667
+    },
+    {
+      "path": "src/ui/home/raspored.ts",
+      "source_git_blob": "0dd49e0e3d954696ee4853e30709768971838a7d",
+      "sha256": "cffc9fa0212b997d49bcd2023442b5f8ff8912c57b850e80d436c2c1bb4553d0",
+      "bytes": 12365
+    },
+    {
+      "path": "src/ui/product/ProductSheet.tsx",
+      "source_git_blob": "49157f4533d7f4b55b36d03587a90c088243a43b",
+      "sha256": "3a9067951ccfbdbb5463a58a3ae817dfa9fefe0f6de66981f056a402020572b4",
+      "bytes": 9303
+    },
+    {
+      "path": "src/data/discoveryV1Owner.ts",
+      "source_git_blob": "5eba096bafbb1c208143f18b5cf03c8bc1dbe2b5",
+      "sha256": "1a30e41e726a6cca03d22015691bfce986dce51abc5a288271d237af3b8a2bbc",
+      "bytes": 23584
+    },
+    {
+      "path": "src/data/discoveryV1SearchOwner.ts",
+      "source_git_blob": "aceedb30f3c3edac5d1200c25d7d7f276c2277a7",
+      "sha256": "d14c51f9288852898d40757c54ed225b0dd603183db7fa3563b380b3cc62a795",
+      "bytes": 12902
+    },
+    {
+      "path": "scripts/home-agreements-contract.test.cjs",
+      "source_git_blob": "2811578bc3621aa84a8bd9881c68e3c539eaf736",
+      "sha256": "c9e790aea35f451b3a5d3e9c5835c145336d251794d979db9e6954db4712f0a6",
+      "bytes": 29855
+    },
+    {
+      "path": "scripts/home-summary-integration.test.cjs",
+      "source_git_blob": "f28840b23f422c32f2f8ca041ed641e71092c2ce",
+      "sha256": "854d148aa7244a19ac2c395e1a6f8377899900d0f97c16ca6a17ec3163b7fde7",
+      "bytes": 21279
+    },
+    {
+      "path": "scripts/ux-home-waiting.test.cjs",
+      "source_git_blob": "a97e24a6a66f7f9d04ce5efc427d33245c161584",
+      "sha256": "aac83631f27fb054a3c0e55f0ca134930200fe2a4fb72c8371cc3475e6336db9",
+      "bytes": 6775
+    },
+    {
+      "path": "scripts/p6-discovery-pagination.test.cjs",
+      "source_git_blob": "08a25670906553f2e7aae3e7b9ca6aada74854a3",
+      "sha256": "f04dd5aaf2152247171d246a77eb330bb7e5080c8358fadc69bffcb494ac4eb6",
+      "bytes": 12447
+    },
+    {
+      "path": "scripts/p6-discovery-integration-harness.cjs",
+      "source_git_blob": "fa753c3937c7435e5301685c0ecc99189b140c87",
+      "sha256": "bcd8a363f455df6a60abb71cd96ec39a280890e345932b3b23ae25678ae7fae6",
+      "bytes": 6898
+    },
+    {
+      "path": "scripts/sql/home_agreements_summary_20261108.sql",
+      "source_git_blob": "31839f5fb7aab2624d7363bd40c4ecba6b9c16df",
+      "sha256": "26b797faa137fd631f823bddab243e628a8a5955188b86a26bbde2ec8016a337",
+      "bytes": 13202
+    },
+    {
+      "path": "scripts/sql/home_agreements_summary_20261108.rollback.sql",
+      "source_git_blob": "948607dfc5bfc70485bfd98f55c84d356382bff5",
+      "sha256": "c9c4d721cf70aa021adb9f8b1c27906e6986240e6cf23a06a80233dcb014f2fe",
+      "bytes": 1379
+    },
+    {
+      "path": "scripts/sql/home_agreements_summary_20261108.readback.sql",
+      "source_git_blob": "bd8e690abc1ecc66b535e2544772323fdfbc3d68",
+      "sha256": "c631119167e5527b10f71155b7e228157523f949692d59ee6019a7a1e474f66d",
+      "bytes": 6775
+    },
+    {
+      "path": "scripts/sql/home_agreements_summary_20261108.preimage.json",
+      "source_git_blob": "ec3a127972cb2b64eb59e59af0a7d5db5c20eb66",
+      "sha256": "57e4c0198ee297ea249d68af355dfe5911d20ce393d5c945fa4c68a23d12c941",
+      "bytes": 2671
+    },
+    {
+      "path": "scripts/home-agreements-native.cjs",
+      "source_git_blob": "ce77d81f2f18a37aa3e9ce3f2655c061ffbcfe8b",
+      "sha256": "53bdc0146a4d6475a47037e6cc0324c455f4e2362abae21bdd90b95caa224d01",
+      "bytes": 1341
+    }
+  ],
+  "not_imported": [
+    "dirty worktree edits",
+    "R13 candidates and activation",
+    "budget changes",
+    "historical provenance reclassification",
+    "unrelated R10 candidate tests"
+  ],
+  "dev_changed": false,
+  "android_tested": false,
+  "current_tests": "1259/1259 integrated Node PASS; TypeScript exit0",
+  "prior_receipts": {
+    "home-summary-integration-20261108.json": {
+      "sha256": "7d20035e450b68d20de0f4fff81297010ee58aa674724d734b17b76de20df443",
+      "bytes": 12411,
+      "status": "HISTORICAL_RECEIPT_READ_NOT_A_NEW_EXECUTION"
+    },
+    "home-summary-integrated-native-20261108.json": {
+      "sha256": "67c43d54289e6e26055097b5bb5266514e8ecf274e4d9566d9add1053f840a94",
+      "bytes": 3872,
+      "status": "HISTORICAL_RECEIPT_READ_NOT_A_NEW_EXECUTION"
+    },
+    "p6-discovery-integration-20261108.json": {
+      "sha256": "27c1014b31f19e4bb20021b5d1fedd58e3d93e66a1d82e1f37c75e31177b699e",
+      "bytes": 10409,
+      "status": "HISTORICAL_RECEIPT_READ_NOT_A_NEW_EXECUTION"
+    }
+  }
+}

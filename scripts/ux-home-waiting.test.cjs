@@ -1,7 +1,8 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const {React,RTR,createHarness,mount,nodes,target,press,unmount}=require('./ux-component-harness.cjs');
-const h=createHarness();
+const uiHarness=()=>createHarness({'src/store/sesija.ts':{sesijaSada:()=>({})},'src/data/supabaseClient.ts':{supabaseKlijent:()=>{throw Error('Unexpected transport');}}});
+const h=uiHarness();
 h.stubs['src/ui/product/ProductSheet.tsx']={ProductSheet:p=>React.createElement('ProductSheet',p,p.children(p.onClose))};
 const {HomeWaitingPanel}=h.load('src/ui/home/HomeWaitingPanel.tsx');
 const row=(id,target={kind:'AGREEMENT',agreementId:id})=>({id,title:'Potvrdite završetak',taskTitle:'Zadatak '+id,detail:'Završetak je označen.',target});
@@ -16,7 +17,7 @@ test('UX03 failed, stale or incomplete reads cannot announce an empty queue',asy
 test('UX03 refresh is explicit; merely opening the panel cannot execute a command',async()=>{const s=await setup();assert.deepEqual(s.calls,[]);await press(target(s.r,'Osvežite pregled'));assert.deepEqual(s.calls,['refresh']);await unmount(s.r);});
 test('UX03 refresh cannot be pressed twice while it is in flight',async()=>{const s=await setup({refreshing:true});assert.equal(target(s.r,'Osvežite pregled').props.disabled,true);await unmount(s.r);});
 test('UX03 overflow button actually opens the panel and leaving Home removes it',async()=>{
- const mocks=createHarness();mocks.stubs['src/ui/home/HomeWaitingPanel.tsx']={HomeWaitingPanel:mocks.host('HomeWaitingPanel')};
+ const mocks=uiHarness();mocks.stubs['src/ui/home/HomeWaitingPanel.tsx']={HomeWaitingPanel:mocks.host('HomeWaitingPanel')};
  const {composeHome}=mocks.load('src/data/homeSnapshot.ts');
  const snapshot=composeHome({needs:{kind:'known',value:[]},applications:{kind:'known',value:[]},agreements:{kind:'known',value:[]}},
  {kind:'known',value:{rows:[row('a'),row('b'),row('c')],more:2,asOf:'2026-11-07T12:00:00Z',ratings:{due:0,agreementId:null}}});
@@ -28,7 +29,7 @@ test('UX03 overflow button actually opens the panel and leaving Home removes it'
  await RTR.act(async()=>r.update(React.createElement(C,props)));assert.equal(nodes(r,n=>n.type==='HomeWaitingPanel').length,0);await unmount(r);
 });
 test('owner pause: Home hides the legacy immediate-availability control even if its saved value is true',async()=>{
- const mocks=createHarness();mocks.stubs['src/ui/home/HomeWaitingPanel.tsx']={HomeWaitingPanel:mocks.host('HomeWaitingPanel')};
+ const mocks=uiHarness();mocks.stubs['src/ui/home/HomeWaitingPanel.tsx']={HomeWaitingPanel:mocks.host('HomeWaitingPanel')};
  const {composeHome}=mocks.load('src/data/homeSnapshot.ts');
  const snapshot=composeHome({needs:{kind:'known',value:[]},applications:{kind:'known',value:[]},agreements:{kind:'known',value:[]},workerProfile:{kind:'known',value:{stanje:'ACTIVE',dostupanOdmah:true}}},
    {kind:'known',value:{rows:[],more:0,asOf:'2026-11-07T12:00:00Z',ratings:{due:0,agreementId:null}}});

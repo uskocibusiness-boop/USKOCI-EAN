@@ -157,6 +157,11 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
       const raw=await transport(request,own.signal);
       if(!ownsRead())return {kind:'stale' as const,snapshot:snapshot()};
       const decoded=decodeDiscoveryV1Places(raw,base.limit);
+      if(decoded.anchor.version!==anchor.version||decoded.anchor.filterKey!==anchor.filterKey
+        ||decoded.anchor.timeAt!==anchor.timeAt||decoded.anchor.publishedThrough!==anchor.publishedThrough
+        ||decoded.anchor.expiresAt!==anchor.expiresAt)throw new Error('DISCOVERY_V1_SEARCH_PLACES_ANCHOR_DRIFT');
+      if(decoded.nextCursor&&decoded.nextCursor.count===cursor.count&&decoded.nextCursor.text===cursor.text
+        &&decoded.nextCursor.key===cursor.key)throw new Error('DISCOVERY_V1_SEARCH_PLACES_CURSOR_STALLED');
       const seen=new Set(state.places.map(row=>row.key)),items=[...state.places];
       for(const row of decoded.items)if(!seen.has(row.key)){seen.add(row.key);items.push({...row});}
       state={...state,places:items,placeHasMore:decoded.hasMore,placePaging:false,everywhere:decoded.counts.everywhere,

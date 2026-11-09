@@ -1,0 +1,85 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "method": "Read-only catalog queries via authorized Supabase connector. No apply or data mutation.",
+  "existingDependencies": [
+    {
+      "observed_at": "2026-11-08 15:47:49.785544+00",
+      "signature": "private.agreement_list_instant_v1(text)",
+      "body_md5": "069eb961b036f7a2cc733c9f61d72d66",
+      "definer": false,
+      "volatility": "i",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres"
+    },
+    {
+      "observed_at": "2026-11-08 15:47:49.785544+00",
+      "signature": "private.agreement_review_deadline_v1(uuid)",
+      "body_md5": "a86bf830d7e536e75d1a6c680e4d2876",
+      "definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres"
+    },
+    {
+      "observed_at": "2026-11-08 15:47:49.785544+00",
+      "signature": "private.closure_account_restricted(uuid)",
+      "body_md5": "f4999250c315e0253374d4611291c7ad",
+      "definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres"
+    },
+    {
+      "observed_at": "2026-11-08 15:47:49.785544+00",
+      "signature": "rpc_home_attention()",
+      "body_md5": "f3bc12de53c96fb50f011350c6cb9c9d",
+      "definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "owner": "postgres"
+    },
+    {
+      "observed_at": "2026-11-08 15:47:49.785544+00",
+      "signature": "rpc_list_my_agreement_groups_page(jsonb,integer,jsonb)",
+      "body_md5": "9149868e6241948f89d3f54f378e4946",
+      "definer": true,
+      "volatility": "s",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "owner": "postgres"
+    },
+    {
+      "observed_at": "2026-11-08 15:47:49.785544+00",
+      "signature": "rpc_storage_account_open()",
+      "body_md5": "7350621ef256678e209aa6a28c79b58b",
+      "definer": true,
+      "volatility": "v",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "owner": "postgres"
+    }
+  ],
+  "additionsBefore": {
+    "observed_at": "2026-11-08 16:07:44.482609+00",
+    "helper": null,
+    "summary": null,
+    "prompts": null
+  },
+  "candidateState": "Not applied; new public EXECUTE rights require coordinator review."
+}

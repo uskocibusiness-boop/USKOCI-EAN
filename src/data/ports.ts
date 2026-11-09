@@ -26,6 +26,7 @@ import type { CandidatesPage, CandidatesPageRequest } from './candidatesPage';
 import type { OwnApplicationsPage, OwnApplicationsPageRequest } from './ownApplicationsPage';
 import type { OwnAgreementPage, OwnAgreementPageRequest } from './ownAgreementGroupsPage';
 import type { OwnTasksPage, OwnTasksPageRequest } from './ownTasksPage';
+import type { HomeAgreementsSummary, HomeAgreementPromptPage, HomeAgreementPromptPageRequest } from './homeAgreementsContract';
 
 /** Svaka komanda vraća ovo. Nikad goli rezultat. */
 export type Ishod<T> =
@@ -86,6 +87,10 @@ export interface PrijaveCitanje {
 }
 
 export interface DogovoriCitanje {
+  /** One bounded, exact Home aggregate. Full projections belong only to the explicit fake-source adapter. */
+  dogovoriZaPocetnu(options?: { signal?: AbortSignal }): Promise<HomeAgreementsSummary | DogovorProjekcija[]>;
+  /** On-demand Home prompts, one account-bound keyset page. Never walks the history automatically. */
+  podsetniciDogovoraZaPocetnu(request: HomeAgreementPromptPageRequest): Promise<HomeAgreementPromptPage>;
   /** Complete task groups in the visible view. The next page is explicitly requested by the list. */
   mojiDogovoriStrana(request: OwnAgreementPageRequest): Promise<OwnAgreementPage>;
   /** Defaults to reading my rating state. Non-rating surfaces may skip enrichment; all rows still load. */

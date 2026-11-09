@@ -51,9 +51,9 @@ export function PhotoPages({ context, photos, index, onIndex, onOpen, full = fal
       onMomentumScrollEnd={settled} contentOffset={{ x: index * size.width, y: 0 }} style={s.pager}>
       {photos.map((photo, i) => {
         const picture = <AuthorizedPhoto assetId={photo.assetId} {...context} label={`Fotografija ${i + 1} od ${photos.length}`}
-          contentFit={full ? 'contain' : 'cover'} style={{ width: size.width, height: size.height, aspectRatio: undefined, borderRadius: 0 }}
+          contentFit="contain" style={{ width: size.width, height: size.height, aspectRatio: undefined, borderRadius: 0 }}
           pending={full ? undefined : pending} unavailable={full ? undefined : unavailable?.(photo.assetId)}
-          open={full ? undefined : { label: `Otvori fotografiju ${i + 1} od ${photos.length}`,
+          open={full ? undefined : { label: `Otvorite fotografiju ${i + 1} od ${photos.length}`,
             hint: 'Otvara fotografiju preko celog ekrana.', onPress: () => onOpen?.(i) }} />;
         return <View key={photo.assetId} accessibilityElementsHidden={i !== index} importantForAccessibility={i === index ? 'auto' : 'no-hide-descendants'}
           style={{ width: size.width, height: size.height }}>{picture}</View>;
@@ -76,7 +76,7 @@ export function PhotoViewer({ title = 'Fotografije zadatka', context, photos, in
   return <Modal visible presentationStyle="fullScreen" animationType={reduced ? 'none' : 'fade'} onRequestClose={onClose}>
     <SafeAreaView edges={['top', 'bottom']} accessibilityViewIsModal accessibilityLabel={title} style={s.viewer}>
       <View style={s.viewerHeader}><T accessibilityRole="header" variant="bodyStrong" style={s.grow}>{title}</T>
-        <ChromeIconButton label="Zatvori fotografije" glyph="close" onPress={onClose} /></View>
+        <ChromeIconButton label="Zatvorite fotografije" glyph="close" onPress={onClose} /></View>
       <PhotoPages context={context} photos={photos} index={shown} onIndex={onIndex} full />
       <View style={s.viewerFooter}>
         <ChromeIconButton label="Prethodna fotografija" glyph="caret-left" disabled={shown === 0} onPress={() => onIndex(Math.max(0, shown - 1))} />

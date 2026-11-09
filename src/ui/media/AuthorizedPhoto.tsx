@@ -54,9 +54,10 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
   const fail = useCallback((attempt: PhotoAttempt) => {
     if (!current(attempt) || attempt.phase === 'failed') return;
     // A picture that could not be drawn is not kept for the next visit.
+    if (canRemember) inMemoryPhotoCache.forget(binding);
     if (scope) ownPhotoCache.forgetImage(scope, profileKey, p.assetId);
     attempt.phase = 'failed'; setState({ attempt, uri: null });
-  }, [current, scope, profileKey, p.assetId]);
+  }, [current, canRemember, binding, scope, profileKey, p.assetId]);
   const read = useCallback((visit: object, retry?: PhotoAttempt) => {
     if (!ownsVisit(visit)) return;
     // Retained presses belong to one failed attempt. The synchronous reservation

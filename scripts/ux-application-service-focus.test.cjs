@@ -5,6 +5,7 @@ const {React,RTR,createHarness,deferred,mount,nodes,target,press,unmount}=requir
 const MODULE='src/ui/workerProfile/ApplicationServiceOffer.tsx';
 const input={accountId:'owner',accountRevision:1,applicationId:'application',needId:'need',profileId:'profile'};
 const result=state=>({ok:true,podatak:{state}});
+const alreadyPresent={ok:false,kod:'APPLICATION_SERVICE_ALREADY_PRESENT',poruka:'Ova usluga i način rada već su u Vašem profilu.'};
 async function setup(reads=[result('SAVED')]){
  const calls=[],timers=new Map(),focus={};let i=0,tid=0;const control={valid:true,read:()=>reads[Math.min(i++,reads.length-1)],save:()=>result('SAVED')};
  const h=createHarness({
@@ -23,6 +24,40 @@ async function setup(reads=[result('SAVED')]){
 }
 const count=(h,kind)=>h.calls.filter(x=>x.kind===kind).length;
 const button=h=>nodes(h.r,n=>n.type==='V2Action')[0];
+const alreadyNotice=h=>nodes(h.r,n=>n.type==='T'&&JSON.stringify(n.props.children).includes('Ova usluga je već u Vašem profilu.'));
+
+test('UX01 passive already-present service has no redundant offer or write',async()=>{
+ const h=await setup([alreadyPresent]);
+ assert.equal(nodes(h.r,n=>n.props.testID==='application-service-offer').length,0);
+ assert.deepEqual(h.calls.map(x=>[x.kind,x.prepare]),[['read',false]]);await h.stop();
+});
+test('UX01 explicit add keeps already-present confirmation without a duplicate Save',async()=>{
+ const h=await setup([result('NONE'),alreadyPresent]);await press(target(h.r,'Dodajte'));
+ assert.equal(alreadyNotice(h).length,1);assert.equal(count(h,'save'),0);
+ assert.deepEqual(h.calls.filter(x=>x.kind==='read').map(x=>x.prepare),[false,true]);
+ await RTR.act(async()=>{h.blur();h.refocus();});assert.equal(alreadyNotice(h).length,1);
+ assert.equal(h.calls.at(-1).prepare,false);assert.equal(count(h,'save'),0);await h.stop();
+});
+test('UX01 uncertain explicit add can confirm already-present through a read-only retry',async()=>{
+ const h=await setup([result('NONE'),{ok:false,kod:'APPLICATION_SERVICE_UNCONFIRMED',poruka:'Nepoznat ishod.'},alreadyPresent]);
+ await press(target(h.r,'Dodajte'));assert.equal(button(h).props.error,'Nepoznat ishod.');
+ await press(target(h.r,'Pokušajte ponovo'));assert.equal(alreadyNotice(h).length,1);
+ assert.deepEqual(h.calls.filter(x=>x.kind==='read').map(x=>x.prepare),[false,true,false]);assert.equal(count(h,'save'),0);await h.stop();
+});
+test('UX01 hidden passive service does not hide a later check failure',async()=>{
+ const h=await setup([alreadyPresent,{ok:false,kod:'APPLICATION_SERVICE_UNCONFIRMED',poruka:'Nepoznat ishod.'}]);
+ await RTR.act(async()=>{h.blur();h.refocus();});
+ assert.equal(button(h).props.error,'Nepoznat ishod.');assert.equal(button(h).props.label,'Pokušajte ponovo');
+ assert.equal(alreadyNotice(h).length,0);assert.equal(count(h,'save'),0);await h.stop();
+});
+test('UX01 explicit confirmation does not carry over to a new account owner',async()=>{
+ const h=await setup([result('NONE'),alreadyPresent]);await press(target(h.r,'Dodajte'));
+ assert.equal(alreadyNotice(h).length,1);
+ await RTR.act(async()=>h.r.update(React.createElement(h.C,{input:{...input,accountId:'new-owner',accountRevision:2},openProfile:()=>{}})));
+ assert.equal(nodes(h.r,n=>n.props.testID==='application-service-offer').length,0);
+ assert.equal(h.calls.at(-1).input.accountId,'new-owner');assert.equal(h.calls.at(-1).prepare,false);
+ assert.equal(count(h,'save'),0);await h.stop();
+});
 
 test('UX01 blur while polling settles local wait; return reads once without Save',async()=>{
  const h=await setup([result('SAVED'),result('CONFIRMED')]);assert.equal(h.timers.size,1);

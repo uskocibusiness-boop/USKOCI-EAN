@@ -556,6 +556,10 @@ export const lazniIzvor: Izvor = {
       cursor: last ? { at: String(end), id: last.prijavaId, rank: applicationRank(last) } : null, asOf: new Date().toISOString() };
   },
 
+  // The explicit demo source has no hosted summary contract. Its local complete
+  // projections keep gallery behavior; production never falls back to them.
+  async dogovoriZaPocetnu() { return lazniIzvor.mojiDogovori(); },
+  async podsetniciDogovoraZaPocetnu() { throw new Error('HOME_PROMPTS_NOT_USED_BY_FAKE_SOURCE'); },
   async mojiDogovori() {
     await kasnjenje();
     return stanje.alokacije.map(dogovorIz);

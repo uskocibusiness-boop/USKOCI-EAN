@@ -1,0 +1,983 @@
+{
+  "date": "2026-11-09",
+  "local_backend_review": {
+    "schema": "USKOCI_BACKEND_LOCAL_INTEGRATION_REVIEW_V1",
+    "reviewDate": "2026-11-09",
+    "publishedSnapshot": "b066aaf9a8f1fd0b5895989fd2d8516abcc5c556",
+    "localCommittedSnapshot": "b20346b1e8e2bcd200c6394379d5826f77a3acee",
+    "method": "Read-only git show of committed b203; separate seven-line working-tree R13 diff; source manifests independently rehashed; no tests rerun or DEV mutation.",
+    "currentSourceChecks": {
+      "snapshot": "b20346b1e8e2bcd200c6394379d5826f77a3acee",
+      "checks": [
+        {
+          "proof": "docs/plan/proofs/capacity6-cutoff-full-native-20261108.json",
+          "pass": true,
+          "count": 8,
+          "files": [
+            {
+              "file": "scripts/capacity6-dispatch-real-wave.cjs",
+              "recorded": "3746f366369b0e6fc63be5ab227d1f8d07ef922fc782252c97060aee8f46185f",
+              "actual": "3746f366369b0e6fc63be5ab227d1f8d07ef922fc782252c97060aee8f46185f",
+              "equal": true
+            },
+            {
+              "file": "scripts/capacity6-dispatch-native-fixture.cjs",
+              "recorded": "2136b862fbc43661599b8be7ac67d56cf45662d8e5fd50b154ca45588ffa3a78",
+              "actual": "2136b862fbc43661599b8be7ac67d56cf45662d8e5fd50b154ca45588ffa3a78",
+              "equal": true
+            },
+            {
+              "file": "scripts/sql/capacity6_dispatch_split_candidate.sql",
+              "recorded": "8275a811d2d0a3211043d3d280bdb61a45a506c9347144ad440ff1cd06969f70",
+              "actual": "8275a811d2d0a3211043d3d280bdb61a45a506c9347144ad440ff1cd06969f70",
+              "equal": true
+            },
+            {
+              "file": "scripts/sql/capacity6_dispatch_cron_rollout.sql",
+              "recorded": "d90dc993fb1005e38cee27d98b341375897e62cca7436be772bb33bf370f7c0e",
+              "actual": "d90dc993fb1005e38cee27d98b341375897e62cca7436be772bb33bf370f7c0e",
+              "equal": true
+            },
+            {
+              "file": "scripts/sql/capacity6_dispatch_cron_rollback.sql",
+              "recorded": "37703e8c5ce1325ee586a65d26531939aa306135d4e544793425ab8337e95f8a",
+              "actual": "37703e8c5ce1325ee586a65d26531939aa306135d4e544793425ab8337e95f8a",
+              "equal": true
+            },
+            {
+              "file": "scripts/sql/capacity6_dispatch_clock_20261108.preimage.json",
+              "recorded": "322281ca91d43ee7b43ad50d32c525d801ab418e148738086a94b49e2866862b",
+              "actual": "322281ca91d43ee7b43ad50d32c525d801ab418e148738086a94b49e2866862b",
+              "equal": true
+            },
+            {
+              "file": "scripts/sql/capacity6_dispatch_latest_20261108.preimage.json",
+              "recorded": "e37934c46d43dd993c3ede72de6a9e5a324d5d081e9362eae0bb29fc90035732",
+              "actual": "e37934c46d43dd993c3ede72de6a9e5a324d5d081e9362eae0bb29fc90035732",
+              "equal": true
+            },
+            {
+              "file": "scripts/capacity6-profile-cutoff-regression.cjs",
+              "recorded": "494f98192cc3bf9f479bb6ad53937032d4b72772954d7a59c37c0a85744d27d9",
+              "actual": "494f98192cc3bf9f479bb6ad53937032d4b72772954d7a59c37c0a85744d27d9",
+              "equal": true
+            }
+          ]
+        },
+        {
+          "proof": "docs/plan/proofs/capacity6-push-wake-boundary-20261108.json",
+          "pass": true,
+          "count": 6,
+          "files": [
+            {
+              "file": "scripts/capacity6-push-wake-boundary.cjs",
+              "recorded": "94559e99ed20f57099467f5d065a1e4ae588ac453d8d03f29d78c3e5d09cc24b",
+              "actual": "94559e99ed20f57099467f5d065a1e4ae588ac453d8d03f29d78c3e5d09cc24b",
+              "equal": true
+            },
+            {
+              "file": "scripts/capacity6-dispatch-native-fixture.cjs",
+              "recorded": "2136b862fbc43661599b8be7ac67d56cf45662d8e5fd50b154ca45588ffa3a78",
+              "actual": "2136b862fbc43661599b8be7ac67d56cf45662d8e5fd50b154ca45588ffa3a78",
+              "equal": true
+            },
+            {
+              "file": "scripts/sql/capacity6_dispatch_split_candidate.sql",
+              "recorded": "8275a811d2d0a3211043d3d280bdb61a45a506c9347144ad440ff1cd06969f70",
+              "actual": "8275a811d2d0a3211043d3d280bdb61a45a506c9347144ad440ff1cd06969f70",
+              "equal": true
+            },
+            {
+              "file": "scripts/sql/r13_push_wake_20261108.preimage.json",
+              "recorded": "71285a7d3267a8e891140ebadfbe1b8dc4be350be6db27c255b4591fda58a292",
+              "actual": "71285a7d3267a8e891140ebadfbe1b8dc4be350be6db27c255b4591fda58a292",
+              "equal": true
+            },
+            {
+              "file": "supabase/migrations/20261108154914_r13_coalesce_push_wake_20261108.sql",
+              "recorded": "4f78f892cfc16ec130fb4dcc3a1b0f0ca37bda44f99b11ad0e8ed5d32599de03",
+              "actual": "4f78f892cfc16ec130fb4dcc3a1b0f0ca37bda44f99b11ad0e8ed5d32599de03",
+              "equal": true
+            },
+            {
+              "file": "scripts/r13-push-wake-fixture.cjs",
+              "recorded": "46fd82a447fabaedf545e4797bd615f9324246ff029a3edbbdfeb50c7491dd88",
+              "actual": "46fd82a447fabaedf545e4797bd615f9324246ff029a3edbbdfeb50c7491dd88",
+              "equal": true
+            }
+          ]
+        }
+      ],
+      "omitted_trigger_count": 90,
+      "omitted_constraints": [
+        {
+          "table": "private.ai_task_review_commands",
+          "name": "ai_task_review_commands_review_id_fkey",
+          "type": "f",
+          "definition": "FOREIGN KEY (review_id) REFERENCES private.ai_task_reviews(id)",
+          "references": "private.ai_task_reviews",
+          "reason": "referenced relation outside this fixture"
+        },
+        {
+          "table": "private.worker_ai_turns",
+          "name": "worker_ai_turns_conversation_id_fkey",
+          "type": "f",
+          "definition": "FOREIGN KEY (conversation_id) REFERENCES private.worker_ai_sessions(conversation_id)",
+          "references": "private.worker_ai_sessions",
+          "reason": "referenced relation outside this fixture"
+        },
+        {
+          "table": "public.agreements",
+          "name": "agreements_require_connection_activation_trg",
+          "type": "t",
+          "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+          "references": null,
+          "reason": "constraint trigger outside installed trigger scope"
+        },
+        {
+          "table": "public.needs",
+          "name": "resolved_location_need_binding_trg",
+          "type": "t",
+          "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+          "references": null,
+          "reason": "constraint trigger outside installed trigger scope"
+        }
+      ],
+      "omitted_trigger_names": [
+        "auth.users.on_uskoci_auth_user_created",
+        "auth.users.on_uskoci_auth_user_updated",
+        "private.agreement_reviews.pre_v3_closure_review",
+        "private.agreement_reviews.pre_v3_review_immutable",
+        "private.ai_need_turn_commands.pre_v3_closure_ai_command",
+        "private.ai_task_review_commands.taxonomy_enqueue_need_accepted_v1",
+        "private.ai_task_review_commands.taxonomy_pending_need_save_v1",
+        "private.qa_ai_commands.qa_ai_closure_guard",
+        "private.retention_holds.media_hold_evidence_v5",
+        "private.retention_jobs.pre_v3_closure_retention_claim",
+        "private.taxonomy_confirmed_worker_modes_v1.closure_f01_immutable",
+        "private.taxonomy_confirmed_worker_modes_v1.closure_f01_owned",
+        "private.work_taxonomy_categories.taxonomy_guard_parent_move",
+        "private.work_taxonomy_need_snapshots.closure_f01_immutable",
+        "private.work_taxonomy_need_snapshots.closure_f01_owned",
+        "private.work_taxonomy_related_acceptances.closure_f01_immutable",
+        "private.work_taxonomy_related_acceptances.closure_f01_owned",
+        "private.work_taxonomy_standard_coverage.taxonomy_check_standard_coverage",
+        "private.work_taxonomy_worker_capabilities.closure_f01_immutable",
+        "private.work_taxonomy_worker_capabilities.closure_f01_owned",
+        "private.worker_ai_reviews.worker_ai_review_immutable",
+        "private.worker_ai_saves.taxonomy_enqueue_worker_saved_v1",
+        "private.worker_ai_saves.taxonomy_pending_worker_save_v1",
+        "private.worker_ai_saves.worker_ai_area_source_continuity_v1",
+        "private.worker_execution_mode_choices.closure_f01_immutable",
+        "private.worker_execution_mode_choices.closure_f01_owned",
+        "public.agreement_change_proposals.pre_v3_closure_proposal",
+        "public.agreement_change_proposals.pre_v3_safety_proposal",
+        "public.agreement_execution.media_problem_evidence_v5",
+        "public.agreements.agreement_calendar_sync",
+        "public.agreements.chat_b3c_invalidation_lifecycle",
+        "public.agreements.pre_v3_closure_agreement",
+        "public.agreements.pre_v3_safety_agreement",
+        "public.agreements.trg_auto_grant_exact_location_on_agreement",
+        "public.agreements.v5_group_agreement_admission",
+        "public.ai_conversations.guard_need_edit_base_marker_trg",
+        "public.ai_conversations.guard_retention_ai_origin_trg",
+        "public.ai_conversations.pre_v3_closure_ai_conversation",
+        "public.app_accounts.app_accounts_set_updated_at",
+        "public.app_accounts.pre_v3_closure_account",
+        "public.app_profiles.app_profiles_set_updated_at",
+        "public.app_profiles.guard_profile_write_trg",
+        "public.app_profiles.guard_worker_equipment_retired_v1",
+        "public.app_profiles.pre_v3_closure_profile",
+        "public.app_profiles.pre_v3_requester_identity",
+        "public.app_profiles.pre_v3_worker_fact_authority",
+        "public.app_profiles.worker_profile_sync_taxonomy_capabilities_trg",
+        "public.app_profiles.z_w02_persistent_availability",
+        "public.data_export_requests.pre_v3_closure_export_claim",
+        "public.marketplace_responses.pre_v3_closure_response",
+        "public.marketplace_responses.pre_v3_safety_response",
+        "public.need_selections.pre_v3_closure_selection",
+        "public.needs.guard_unavailable_identity_requirement_v5_trg",
+        "public.needs.needs_guard_urgent",
+        "public.needs.needs_sync_taxonomy_category_trg",
+        "public.needs.pre_v3_closure_need",
+        "public.needs.resolved_location_need_binding_trg",
+        "public.needs.v5_group_need_lifecycle",
+        "public.notification_deliveries.trg_wake_push_on_delivery",
+        "public.notification_preferences.notification_preferences_guard",
+        "public.profile_availability_rules.pre_v3_closure_availability_rule",
+        "public.profile_availability_rules.profile_rules_set_updated_at",
+        "public.profile_availability_windows.pre_v3_closure_availability_window",
+        "public.profile_availability_windows.profile_windows_set_updated_at",
+        "public.worker_match_preferences.guard_wmp_write_trg",
+        "public.worker_match_preferences.pre_v3_closure_worker_preferences",
+        "public.worker_match_preferences.pre_v3_worker_preference_authority",
+        "public.worker_match_preferences.w02_availability_timezone",
+        "private.connection_activations.connection_activations_immutable_trg",
+        "private.connection_policy_versions.connection_policy_versions_immutable_trg",
+        "private.work_taxonomy_review_batches_v1.closure_f01_immutable",
+        "private.work_taxonomy_review_batches_v1.closure_f01_owned",
+        "private.work_taxonomy_worker_bindings_v1.closure_f01_immutable",
+        "private.work_taxonomy_worker_bindings_v1.closure_f01_owned",
+        "private.work_taxonomy_worker_bindings_v1.taxonomy_signed_worker_bound_requeue_v1",
+        "public.agreement_versions.agreement_version_calendar_sync",
+        "public.agreement_versions.media_agreement_snapshot_v5",
+        "public.agreement_versions.pre_v3_closure_terms",
+        "public.ai_action_proposals.guard_ai_proposal_write_trg",
+        "public.ai_action_proposals.guard_retention_ai_proposals_trg",
+        "public.ai_messages.guard_retention_ai_messages_trg",
+        "public.ai_messages.pre_v3_closure_ai_message",
+        "public.ai_structured_facts.guard_ai_fact_schema_trg",
+        "public.ai_structured_facts.guard_ai_fact_write_trg",
+        "public.ai_structured_facts.guard_resolved_location_fact_trg",
+        "public.ai_structured_facts.guard_retention_ai_facts_trg",
+        "public.ai_structured_facts.invalidate_resolved_location_fact_trg",
+        "public.ai_structured_facts.pre_v3_closure_ai_fact",
+        "public.marketplace_response_versions.pre_v3_application_event",
+        "public.marketplace_response_versions.pre_v3_closure_response_version"
+      ]
+    },
+    "separateDirtyR13Diff": "diff --git a/scripts/sql/r13_dispatch_transaction_routines_post_r09_20261108.sql b/scripts/sql/r13_dispatch_transaction_routines_post_r09_20261108.sql\nindex 9c125c0..01f5973 100644\n--- a/scripts/sql/r13_dispatch_transaction_routines_post_r09_20261108.sql\n+++ b/scripts/sql/r13_dispatch_transaction_routines_post_r09_20261108.sql\n@@ -234,10 +234,13 @@ begin\n     end loop;\n   end loop;\n   -- One found profile advances its tuple; only a no-row step advances to cutoff.\n+  -- An identical cutoff must retain the already processed account tie: clearing\n+  -- it would move the cursor backwards and replay that timestamp on retry.\n   update private.marketplace_config\n      set value=case when profiles>=1\n        then jsonb_set(jsonb_set(value,'{after}',to_jsonb(last_at)),'{afterAccount}',to_jsonb(last_acc))\n-       else jsonb_set(jsonb_set(value,'{after}',to_jsonb(cutoff)),'{afterAccount}',to_jsonb('00000000-0000-0000-0000-000000000000'::uuid)) end,\n+       else jsonb_set(jsonb_set(value,'{after}',to_jsonb(cutoff)),'{afterAccount}',\n+         to_jsonb(case when cutoff=after_at then after_acc else '00000000-0000-0000-0000-000000000000'::uuid end)) end,\n          updated_at=statement_timestamp()\n    where key='match_v1_profile_requeue';\n   return jsonb_build_object('status','DONE','profiles',profiles,'queued',queued,'more',profiles>=1);\n@@ -349,7 +352,7 @@ DO $installed_guard$\n DECLARE expected record; actual record;\n BEGIN\n  FOR expected IN SELECT * FROM (VALUES\n- ('private.requeue_one_changed_worker_profile_v1(timestamptz)','c7ded0820d08f0e3a8d0a27263661753',true,ARRAY['search_path=pg_catalog']::text[],'f'),\n+ ('private.requeue_one_changed_worker_profile_v1(timestamptz)','c61e23c67edc2a7592bcd604a845eaf3',true,ARRAY['search_path=pg_catalog']::text[],'f'),\n  ('private.dispatch_one_job_v1(timestamptz,uuid[])','81ee703d1cb89fa77048cb5c16b64b6a',true,ARRAY['search_path=pg_catalog']::text[],'f'),\n  ('private.marketplace_tick_transactions_v1(integer,timestamptz,jsonb)','f306df41c7b4577eaef852b0f11d4866',false,NULL::text[],'p')\n  ) v(signature,body_md5,definer,path,kind) LOOP\n",
+    "r13InstallationMismatch": {
+      "committedWrapper": "scripts/sql/r13_dispatch_transaction_routines_post_r09_20261108.sql",
+      "committedWrapperProfileBodyMd5": "c7ded0820d08f0e3a8d0a27263661753",
+      "committedCandidateRolloutRollbackExpectedProfileBodyMd5": "c61e23c67edc2a7592bcd604a845eaf3",
+      "workingTreeDiff": "5 insertions and 2 deletions; aligns wrapper to committed fixed cutoff semantics and hash",
+      "status": "Do not deploy from committed wrapper until source/proof identities are reconciled"
+    },
+    "aiCleanup": {
+      "file": "supabase/functions/_shared/aiTestBudget.ts",
+      "b066AndB203Identical": true,
+      "sha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+      "exactLiveVersions": {
+        "uskoci-ai-interview": 195,
+        "uskoci-worker-interview": 148,
+        "uskoci-speech-session": 33
+      },
+      "otherLiveVersionsWithSameLateDiscardLogicButDifferentLimits": {
+        "uskoci-publication-evaluate": 32,
+        "uskoci-qa-classify": 31
+      },
+      "conclusion": "Already source-published and DEV active; ancestry-only commit listing must not create a duplicate integration task"
+    },
+    "home": {
+      "project": "leqcwgzvjsxugfgzdmth",
+      "migration": "20261108230350",
+      "readOnlyQuery": "select now() as observed_at,p.oid::regprocedure::text as signature,md5(p.prosrc) as body_md5,pg_get_userbyid(p.proowner) as owner,p.prosecdef as security_definer,p.provolatile,p.proconfig as search_path,p.proacl::text as acl,has_function_privilege('anon',p.oid,'EXECUTE') as anon_execute,has_function_privilege('authenticated',p.oid,'EXECUTE') as authenticated_execute,has_function_privilege('service_role',p.oid,'EXECUTE') as service_execute from pg_proc p where p.oid=any(array[to_regprocedure('private.home_agreement_facts_v1()'),to_regprocedure('public.rpc_home_agreements_summary_v1()'),to_regprocedure('public.rpc_home_agreement_prompts_page_v1(integer,jsonb)')]) order by signature;",
+      "freshReadback": [
+        {
+          "observed_at": "2026-11-09 01:11:14.967992+00",
+          "signature": "private.home_agreement_facts_v1()",
+          "body_md5": "8c759e93b3dbb6cc58d073c73bfe9873",
+          "owner": "postgres",
+          "security_definer": false,
+          "provolatile": "s",
+          "search_path": [
+            "search_path=pg_catalog"
+          ],
+          "acl": "{postgres=X/postgres}",
+          "anon_execute": false,
+          "authenticated_execute": false,
+          "service_execute": false
+        },
+        {
+          "observed_at": "2026-11-09 01:11:14.967992+00",
+          "signature": "rpc_home_agreement_prompts_page_v1(integer,jsonb)",
+          "body_md5": "aa07862def7c2fc4a6b9ee7faef6d0f6",
+          "owner": "postgres",
+          "security_definer": true,
+          "provolatile": "s",
+          "search_path": [
+            "search_path=pg_catalog"
+          ],
+          "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+          "anon_execute": false,
+          "authenticated_execute": true,
+          "service_execute": false
+        },
+        {
+          "observed_at": "2026-11-09 01:11:14.967992+00",
+          "signature": "rpc_home_agreements_summary_v1()",
+          "body_md5": "1debcf182b1a333a974fb2fd352672fb",
+          "owner": "postgres",
+          "security_definer": true,
+          "provolatile": "s",
+          "search_path": [
+            "search_path=pg_catalog"
+          ],
+          "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+          "anon_execute": false,
+          "authenticated_execute": true,
+          "service_execute": false
+        }
+      ],
+      "source": "USKOCI-EAN/supabase/migrations/20261108230350_home_agreements_summary_20261108.sql",
+      "securityBlockingFinding": false,
+      "resultBounds": {
+        "summaryPromptItems": 4,
+        "pageLimitMin": 1,
+        "pageLimitMax": 30,
+        "cursorTtlMinutes": 30
+      },
+      "cursorCryptographicallySigned": false,
+      "cursorAccountBound": true,
+      "authorizationReevaluatedEveryRequest": true,
+      "fullHistoryScanWorkBounded": false,
+      "acceptedAgreementVersionJoin": "agreement_versions.version = agreements.current_version",
+      "privateLocationPriceRawTermsMessagesReturned": false,
+      "nextReturnsOwnAgreementCounterpartNameAndProfileId": true,
+      "freshAuthenticatedHttpOrAndroidTest": false
+    },
+    "limitations": [
+      "Historical 33/33 and 6/6 receipts were read and manifest hashes independently verified, not rerun.",
+      "R13 fixture omits 90 triggers and 4 constraints, hence is not a full hosted schema/RLS/Auth acceptance.",
+      "Capacity5 is historical pre-R09 local benchmark; no 300k capacity or deployed latency claim.",
+      "No DEV writers, budget changes, provider calls, notification calls, or source code changes in this review."
+    ]
+  },
+  "home_discovery_dependency_inventory": {
+    "observedAt": "2026-11-09T01:13:02.087250+00:00",
+    "baseline": "b066aaf9a8f1fd0b5895989fd2d8516abcc5c556",
+    "localGitObject": "b20346b1e8e2bcd200c6394379d5826f77a3acee",
+    "method": "Immutable git show only; no reads of dirty source files; no copied source or test execution in this review.",
+    "entries": {
+      "runtime_home": [
+        {
+          "path": "src/app/(app)/index.tsx",
+          "sha256": "18d889342d3b52c0fa850a9b5706858781a3e3666b376fd264cc333f9b2382d2",
+          "gitBlob": "0ea36612aca07aedf6325b7774791b59461e01ad",
+          "bytes": 11782,
+          "baselineStatus": "MODIFIED"
+        },
+        {
+          "path": "src/data/homeAgreementPromptOwner.ts",
+          "sha256": "518832ed6e80996a03776263a03b5b81e3fd8cf700073e5433e66c09afdee31f",
+          "gitBlob": "8f821fb958e7fd8a3800decd7da79a6ce04de28d",
+          "bytes": 3954,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "src/data/homeAgreementsClientService.ts",
+          "sha256": "0cd6fc8bff37b77da61feec5ddd329fa08b72e3aa46713b282ff72c0599128e8",
+          "gitBlob": "bf2ee7268bb56caa2035edefec799e67f0a2239d",
+          "bytes": 2437,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "src/data/homeAgreementsContract.ts",
+          "sha256": "3fc330d0947b5d5ecccfc4fcfc7c501f741d136e31819657bfe78e37815753c6",
+          "gitBlob": "6ef42f185bdded840f5fb386a1c04334e6504d6c",
+          "bytes": 9510,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "src/data/homeSnapshot.ts",
+          "sha256": "bf76f7b4fcb6fecaa307286a8770a96571e3d07ef63c6aa1e38a11e5cf0c998e",
+          "gitBlob": "367905a6c370b803a5eeafa46d2c671adec6a7b5",
+          "bytes": 27485,
+          "baselineStatus": "MODIFIED"
+        },
+        {
+          "path": "src/data/index.ts",
+          "sha256": "c515665c90e6eb761fe88b00ae6aaa079cdf7a2a1670a327136a5ffbd37dc807",
+          "gitBlob": "4052b3b9229e8745bf136c311fc083426ba88339",
+          "bytes": 3790,
+          "baselineStatus": "MODIFIED"
+        },
+        {
+          "path": "src/data/lazniIzvor.ts",
+          "sha256": "1617fb7efbb2c344b256ba7a9f8560fe6859ac76290c9cba046680096756faff",
+          "gitBlob": "7e930f62b8fb825cdeb4c8ffea4522653a487b1b",
+          "bytes": 37438,
+          "baselineStatus": "MODIFIED"
+        },
+        {
+          "path": "src/data/ports.ts",
+          "sha256": "9d493ff23f54a77955986c60da02414eb8b800a33d4221fdc4f9da0ad7048e04",
+          "gitBlob": "49099ce62673e15de2646e9c1638aa6d5fb1da72",
+          "bytes": 11393,
+          "baselineStatus": "MODIFIED"
+        },
+        {
+          "path": "src/data/supabaseIzvor.ts",
+          "sha256": "daac7552d97055e53441c5bddb150170e96cc65822a1c3f4be8576bae23d88b7",
+          "gitBlob": "a33b8955ee18f3693845c78e7716fb395eb7f55d",
+          "bytes": 29531,
+          "baselineStatus": "MODIFIED"
+        },
+        {
+          "path": "src/ui/home/HomePresentation.tsx",
+          "sha256": "0e5a58bc8c55eacb4546857d79bf651f8eebab0104668c022345a22fe5a00b68",
+          "gitBlob": "f5125ef2f48c7d49a6083c2944f156caef3e7ab3",
+          "bytes": 29082,
+          "baselineStatus": "MODIFIED"
+        },
+        {
+          "path": "src/ui/home/HomeWaitingPanel.tsx",
+          "sha256": "fe4d6cd76a2cd08814351e06aaf13456d4541d7e177b99c0c05609090f703a1a",
+          "gitBlob": "aaab416814b28620bf98cd3741846cb887644b6f",
+          "bytes": 6667,
+          "baselineStatus": "MODIFIED"
+        },
+        {
+          "path": "src/ui/home/raspored.ts",
+          "sha256": "cffc9fa0212b997d49bcd2023442b5f8ff8912c57b850e80d436c2c1bb4553d0",
+          "gitBlob": "0dd49e0e3d954696ee4853e30709768971838a7d",
+          "bytes": 12365,
+          "baselineStatus": "MODIFIED"
+        },
+        {
+          "path": "src/ui/product/ProductSheet.tsx",
+          "sha256": "3a9067951ccfbdbb5463a58a3ae817dfa9fefe0f6de66981f056a402020572b4",
+          "gitBlob": "49157f4533d7f4b55b36d03587a90c088243a43b",
+          "bytes": 9303,
+          "baselineStatus": "MODIFIED"
+        }
+      ],
+      "runtime_discovery": [
+        {
+          "path": "src/data/discoveryV1Owner.ts",
+          "sha256": "1a30e41e726a6cca03d22015691bfce986dce51abc5a288271d237af3b8a2bbc",
+          "gitBlob": "5eba096bafbb1c208143f18b5cf03c8bc1dbe2b5",
+          "bytes": 23584,
+          "baselineStatus": "MODIFIED"
+        },
+        {
+          "path": "src/data/discoveryV1SearchOwner.ts",
+          "sha256": "d14c51f9288852898d40757c54ed225b0dd603183db7fa3563b380b3cc62a795",
+          "gitBlob": "aceedb30f3c3edac5d1200c25d7d7f276c2277a7",
+          "bytes": 12902,
+          "baselineStatus": "MODIFIED"
+        }
+      ],
+      "required_test_files": [
+        {
+          "path": "scripts/home-agreements-contract.test.cjs",
+          "sha256": "c9e790aea35f451b3a5d3e9c5835c145336d251794d979db9e6954db4712f0a6",
+          "gitBlob": "2811578bc3621aa84a8bd9881c68e3c539eaf736",
+          "bytes": 29855,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "scripts/home-summary-integration.test.cjs",
+          "sha256": "854d148aa7244a19ac2c395e1a6f8377899900d0f97c16ca6a17ec3163b7fde7",
+          "gitBlob": "f28840b23f422c32f2f8ca041ed641e71092c2ce",
+          "bytes": 21279,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "scripts/ux-home-waiting.test.cjs",
+          "sha256": "aac83631f27fb054a3c0e55f0ca134930200fe2a4fb72c8371cc3475e6336db9",
+          "gitBlob": "a97e24a6a66f7f9d04ce5efc427d33245c161584",
+          "bytes": 6775,
+          "baselineStatus": "MODIFIED"
+        },
+        {
+          "path": "scripts/p6-discovery-pagination.test.cjs",
+          "sha256": "f04dd5aaf2152247171d246a77eb330bb7e5080c8358fadc69bffcb494ac4eb6",
+          "gitBlob": "08a25670906553f2e7aae3e7b9ca6aada74854a3",
+          "bytes": 12447,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "scripts/p6-discovery-integration-harness.cjs",
+          "sha256": "bcd8a363f455df6a60abb71cd96ec39a280890e345932b3b23ae25678ae7fae6",
+          "gitBlob": "fa753c3937c7435e5301685c0ecc99189b140c87",
+          "bytes": 6898,
+          "baselineStatus": "ADDED"
+        }
+      ],
+      "home_sql_fixture_and_provenance": [
+        {
+          "path": "scripts/sql/home_agreements_summary_20261108.sql",
+          "sha256": "26b797faa137fd631f823bddab243e628a8a5955188b86a26bbde2ec8016a337",
+          "gitBlob": "31839f5fb7aab2624d7363bd40c4ecba6b9c16df",
+          "bytes": 13202,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "scripts/sql/home_agreements_summary_20261108.rollback.sql",
+          "sha256": "c9c4d721cf70aa021adb9f8b1c27906e6986240e6cf23a06a80233dcb014f2fe",
+          "gitBlob": "948607dfc5bfc70485bfd98f55c84d356382bff5",
+          "bytes": 1379,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "scripts/sql/home_agreements_summary_20261108.readback.sql",
+          "sha256": "c631119167e5527b10f71155b7e228157523f949692d59ee6019a7a1e474f66d",
+          "gitBlob": "bd8e690abc1ecc66b535e2544772323fdfbc3d68",
+          "bytes": 6775,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "scripts/sql/home_agreements_summary_20261108.preimage.json",
+          "sha256": "57e4c0198ee297ea249d68af355dfe5911d20ce393d5c945fa4c68a23d12c941",
+          "gitBlob": "ec3a127972cb2b64eb59e59af0a7d5db5c20eb66",
+          "bytes": 2671,
+          "baselineStatus": "ADDED"
+        }
+      ],
+      "optional_existing_evidence_runners": [
+        {
+          "path": "scripts/home-agreements-native.cjs",
+          "sha256": "53bdc0146a4d6475a47037e6cc0324c455f4e2362abae21bdd90b95caa224d01",
+          "gitBlob": "ce77d81f2f18a37aa3e9ce3f2655c061ffbcfe8b",
+          "bytes": 1341,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "scripts/p6-discovery-pagination-native.cjs",
+          "sha256": "94fb37d505bff9becd20551028362ac918629389347938850d44253a8802195a",
+          "gitBlob": "12e31e27e9c7d1477b9b18421c8c87cf1dc37033",
+          "bytes": 16256,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "scripts/p6-discovery-authenticated-http.cjs",
+          "sha256": "7b7c8b81b833a0cd709a949653a396f3dcf10efad33f6cbcaeb411ce8d2184aa",
+          "gitBlob": "545ad857124b185a592fb73ba1e76896fd03fa48",
+          "bytes": 7715,
+          "baselineStatus": "ADDED"
+        }
+      ],
+      "focused_historical_proofs": [
+        {
+          "path": "docs/plan/proofs/home-summary-integration-20261108.json",
+          "sha256": "7d20035e450b68d20de0f4fff81297010ee58aa674724d734b17b76de20df443",
+          "gitBlob": "8699c1981ed938bc152ce0aabe7a63a3d5c854da",
+          "bytes": 12411,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "docs/plan/proofs/home-summary-integrated-native-20261108.json",
+          "sha256": "67c43d54289e6e26055097b5bb5266514e8ecf274e4d9566d9add1053f840a94",
+          "gitBlob": "1aa2cfd32a4927d2ef73363e560c1cdeed1ac665",
+          "bytes": 3872,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "docs/plan/proofs/home-agreements-dev-execution-20261108.json",
+          "sha256": "2e8c0feb5a8a410da69bef853bb439360dd551861f4f57ba48fd6b73e5dbc361",
+          "gitBlob": "e1e5c0a935509f7f4c6cfb0df0fb962c3bdeb76d",
+          "bytes": 16000,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "docs/plan/proofs/home-agreements-http-anonymous-20261108.json",
+          "sha256": "d55f89a5f1e10bb5fc996a4ed9e0ceed8a9f9c6a44ea9f16d8c45feac9c5f137",
+          "gitBlob": "24f2b5188dc0877d0a52725c589d11509a1d9868",
+          "bytes": 480,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "docs/plan/proofs/home-summary-predeploy-readonly-20261108.json",
+          "sha256": "23503d61aa4a1aec4ed4507364e253f24ff949b0e2c6a2394a6e436fa8e26be2",
+          "gitBlob": "8bde0cd087d6bd85fed47d161d7059145dfdbca2",
+          "bytes": 2606,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "docs/plan/proofs/p6-discovery-integration-20261108.json",
+          "sha256": "27c1014b31f19e4bb20021b5d1fedd58e3d93e66a1d82e1f37c75e31177b699e",
+          "gitBlob": "ddd05854f27181bc8af644788f630f51ab9026fe",
+          "bytes": 10409,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "docs/plan/proofs/p6-pagination-native-20261108.json",
+          "sha256": "e5a3838c42e39cfc1b0c801efeb5aa4a5d095fcc95ba44502d193999f5b64f1b",
+          "gitBlob": "5cf0e30d1866acd6dcf2887b2dd8cf8a720f037c",
+          "bytes": 9176,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "docs/plan/proofs/p6-authenticated-http-20261108.json",
+          "sha256": "228bd80f60c28dd923d2fecdda271f9db6d622cc71651851ceba49ed1e805067",
+          "gitBlob": "e950c600be68b53c0e5a986af47092cd01229447",
+          "bytes": 3756,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "docs/plan/proofs/p6-legacy-boundary-20261108.json",
+          "sha256": "d688a8fc6cf3c876642537b1d1af94be10bf11f3295ea6e8e6bb7154b6c64924",
+          "gitBlob": "f0e3d9c8fbf2d0ffdd4866020d56cb355dd18b4b",
+          "bytes": 1105,
+          "baselineStatus": "ADDED"
+        },
+        {
+          "path": "docs/plan/proofs/p6-client-negative-control-20261108.txt",
+          "sha256": "6adbf09f0ca39885cb6b9aff3f79324d35f4125784ccdf7d9c66731c8b0323b6",
+          "gitBlob": "0423302d237bc0e64cb46be420756c8fd7fc1803",
+          "bytes": 5294,
+          "baselineStatus": "ADDED"
+        }
+      ]
+    },
+    "existingDependencies": [
+      {
+        "path": "scripts/r08-blind-reviews-fixture.cjs",
+        "sameAtBothPins": true
+      },
+      {
+        "path": "scripts/ux-component-harness.cjs",
+        "sameAtBothPins": true
+      },
+      {
+        "path": "scripts/p0-discovery-native-benchmark.cjs",
+        "sameAtBothPins": true
+      },
+      {
+        "path": "scripts/sql/r09_agreement_groups_20261108.sql",
+        "sameAtBothPins": true
+      },
+      {
+        "path": "scripts/sql/r08_agreement_cancellation_20261107.fixture-schema.json",
+        "sameAtBothPins": true
+      },
+      {
+        "path": "scripts/sql/r02_discovery_schedule_20261108.sql",
+        "sameAtBothPins": true
+      },
+      {
+        "path": "scripts/sql/r02_discovery_schedule_20261108.preimage.json",
+        "sameAtBothPins": true
+      },
+      {
+        "path": "scripts/sql/r05_discovery_contract_20261107.preimage.json",
+        "sameAtBothPins": true
+      },
+      {
+        "path": "src/app/(app)/zadaci.tsx",
+        "sameAtBothPins": true
+      },
+      {
+        "path": "eas.json",
+        "sameAtBothPins": true
+      }
+    ],
+    "receiptHashChecks": [
+      {
+        "path": "docs/plan/proofs/home-summary-integration-20261108.json",
+        "checkedFiles": 21,
+        "mismatches": []
+      },
+      {
+        "path": "docs/plan/proofs/p6-discovery-integration-20261108.json",
+        "checkedFiles": 10,
+        "mismatches": []
+      }
+    ],
+    "appendToPackageTestOnly": [
+      "scripts/p6-discovery-pagination.test.cjs",
+      "scripts/home-agreements-contract.test.cjs",
+      "scripts/home-summary-integration.test.cjs"
+    ],
+    "exclude": [
+      "Entire b203 package.json",
+      "R10/R13/capacity/budget code or proofs unrelated to Home/P6",
+      "Reapplying the already-live Home SQL migration",
+      "Any native map flag or Android configuration change"
+    ],
+    "reviewBoundary": "No confirmed blocking runtime defect found in reviewed delta; integration tests, full TypeScript/CI and physical Android acceptance remain coordinator gates."
+  },
+  "website_pr48_checks": {
+    "schema": "USKOCI_PR48_SOURCE_ONLY_AUDIT_V1",
+    "observed_at_utc": "2026-11-09T01:13:57.639793+00:00",
+    "source_sha": "e06766bd2f44352bb33e8c395a7e905f3b1958da",
+    "files": [
+      {
+        "path": ".github/workflows/uskoci-site-check.yml",
+        "git_blob_sha": "598078bcd76f5d893dab41666776ca2f317694cd",
+        "bytes": 717,
+        "sha256": "a8aba730e30bdb5e74179f5381d7a5f87e883c441d008bfe5652f3db177b0940",
+        "matches_github": true
+      },
+      {
+        "path": "website/404.html",
+        "git_blob_sha": "812868e92a82783af283bbc66bb22b391ebcbf5b",
+        "bytes": 2701,
+        "sha256": "a8630dc91d43f6a59cadb48b152c60d6f0ec47bcb74a19b9baadbcd79ff9b088",
+        "matches_github": true
+      },
+      {
+        "path": "website/README.md",
+        "git_blob_sha": "4aecb6bfe1709d300a558f513e24d3f893344746",
+        "bytes": 3313,
+        "sha256": "798a9942d1b32ac1a0f67b4bf662b45638f06e105ae61cbc27d02160b4db8aba",
+        "matches_github": true
+      },
+      {
+        "path": "website/about.html",
+        "git_blob_sha": "6b8a5d72c51bbc3bc126e7279b5cf3a65704c1c8",
+        "bytes": 3638,
+        "sha256": "c2781d2d58caee49268b2959c666cd13db5d75e5b1a4b3882929a249f44192b5",
+        "matches_github": true
+      },
+      {
+        "path": "website/assets/mark.svg",
+        "git_blob_sha": "8160e95abda0c32a8b63abd10f74469aba2f904d",
+        "bytes": 383,
+        "sha256": "cb9029c785cf2feb69203bcaceb8c8c9768e52b8f383934126305a4028f56160",
+        "matches_github": true
+      },
+      {
+        "path": "website/check-site.cjs",
+        "git_blob_sha": "b14ce39323a986e5cf9941cd9f8be85e643687cf",
+        "bytes": 3045,
+        "sha256": "aafba0fe89da79474a3a1a1a50ef461c2d2b31b7903acedf4a9fc8b2fd128141",
+        "matches_github": true
+      },
+      {
+        "path": "website/complaints.html",
+        "git_blob_sha": "741d1298ddb64c29a70aa8b9e5241ec4953be315",
+        "bytes": 6333,
+        "sha256": "a5edf91f7812af42ed28c2e9a44bdf1ef13dea882797b1560f77b16cf4c7e558",
+        "matches_github": true
+      },
+      {
+        "path": "website/cookies.html",
+        "git_blob_sha": "d0285c5a18d78e85e9f11dcfc6c1ebf7194e1c61",
+        "bytes": 3987,
+        "sha256": "3ca1888dcf0324dd914e5f33a570f4cd80827d666d0c1edf0d208f0aec00da82",
+        "matches_github": true
+      },
+      {
+        "path": "website/data-safety.html",
+        "git_blob_sha": "80769652e862c9ebf23fffa9f9a87ad664b2c592",
+        "bytes": 5177,
+        "sha256": "c52f2ba1dee77182e5078bd9802b01019a01503e074b81c91275fcf10087512b",
+        "matches_github": true
+      },
+      {
+        "path": "website/delete-account.html",
+        "git_blob_sha": "5dc9aec9c853d2fd4e5c14c9aa70fffad8008d0a",
+        "bytes": 6540,
+        "sha256": "ecf3de4837c3fe52baed90d51f74355a5dab610322ddc9b3a5f9a592c53e1fb1",
+        "matches_github": true
+      },
+      {
+        "path": "website/documents.html",
+        "git_blob_sha": "5148df90292820ba8c8237e83af9c25af925dc71",
+        "bytes": 4419,
+        "sha256": "d1fb70c5aa0471f451623296b38247f1fd284933182aef15357855da3cb9be09",
+        "matches_github": true
+      },
+      {
+        "path": "website/download.html",
+        "git_blob_sha": "ccb63ac797597d99570c79d809d7389cd00ccf2d",
+        "bytes": 3010,
+        "sha256": "c1a2be2beef8ee285d204c1dac4e049c00e233eb2988b87909700ed4234263a7",
+        "matches_github": true
+      },
+      {
+        "path": "website/index.html",
+        "git_blob_sha": "af14ac81c3424e96c8891cfb6e21a1688758b941",
+        "bytes": 5099,
+        "sha256": "f4157f576ba31254dc97421d8630c61a308d298fd18e2493779225d07a11e9ae",
+        "matches_github": true
+      },
+      {
+        "path": "website/operator.html",
+        "git_blob_sha": "95bca5fa741a28985b512a6e3c0e92acb760d8d7",
+        "bytes": 4251,
+        "sha256": "986f6c3dd217475078cd83012dfffc56f80024339bc5d03c5e8544fa3ea6b136",
+        "matches_github": true
+      },
+      {
+        "path": "website/privacy-choices.html",
+        "git_blob_sha": "0fbab8f106179a02bac2bc651a17559ac3ac5f43",
+        "bytes": 5166,
+        "sha256": "a13ba29accf00a4fec02ccb531d2137fd827b1ebdab8a62fadd33c5529b100a7",
+        "matches_github": true
+      },
+      {
+        "path": "website/privacy.html",
+        "git_blob_sha": "602a0fb834fb482120425e8f6ed428227f95de5e",
+        "bytes": 12605,
+        "sha256": "bbe8f086a09cf26becde4fb6671941861650482d6ceaf8e2227ad25f0eaff782",
+        "matches_github": true
+      },
+      {
+        "path": "website/robots.txt",
+        "git_blob_sha": "3dfddb2b91a8012f578a4ef891bed425c6c5a576",
+        "bytes": 68,
+        "sha256": "dac10191d93f65ecd7b84df3103296af3fb08e034ebc07ca5565abb6d78705ae",
+        "matches_github": true
+      },
+      {
+        "path": "website/safety.html",
+        "git_blob_sha": "4a542cd02eb777ad7ed2afb446139c87fdaa298a",
+        "bytes": 6071,
+        "sha256": "9ed01931f2e01e1464d353e3f0cf014a7ec8fd59602dae1a7e1ed797db94ed63",
+        "matches_github": true
+      },
+      {
+        "path": "website/sitemap.xml",
+        "git_blob_sha": "7b6e1b238ec82ed3ffd779a2ff9260b4e543b4c9",
+        "bytes": 781,
+        "sha256": "4840bf26dab2da78c183ea372c1c428a6f7edd9d95430d18f6925e9ebf4264ff",
+        "matches_github": true
+      },
+      {
+        "path": "website/styles.css",
+        "git_blob_sha": "47e8220f70aab155a9f4e95e728147cbba6ad1c8",
+        "bytes": 6929,
+        "sha256": "bdabfaf68a285ec1c3219d8fee7602a06694bb725fb219aa022447c7fc5185b4",
+        "matches_github": true
+      },
+      {
+        "path": "website/support.html",
+        "git_blob_sha": "35959ffe554a312fc6b006fcc0e5c81c842bd467",
+        "bytes": 5000,
+        "sha256": "8b9fa6cb5738fcd581fe3096cf1b79a391eaa2037ffc7669d6c6a8c9ff3e2925",
+        "matches_github": true
+      },
+      {
+        "path": "website/terms.html",
+        "git_blob_sha": "728d103f336ed6c8408eb922e0a9b7eb7892e72f",
+        "bytes": 10029,
+        "sha256": "03a5b339b5dddd64f886a593815dadd85ab29cb502939bd1ad12c0cdcb4a9205",
+        "matches_github": true
+      },
+      {
+        "path": "website/vercel.json",
+        "git_blob_sha": "b085b91d536ee5fd5f6c84452fc2940edef52d0c",
+        "bytes": 968,
+        "sha256": "0eaf1e90f7707865fd0511fc366d9be5f19fbebf20f8f80431cec3b2773c0211",
+        "matches_github": true
+      }
+    ],
+    "html_pages": [
+      {
+        "route": "/",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/404",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/about",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/complaints",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/cookies",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/data-safety",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/delete-account",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/documents",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/download",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/operator",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/privacy",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/privacy-choices",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/safety",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/support",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      },
+      {
+        "route": "/terms",
+        "lang": "sr-Latn",
+        "main_count": 1,
+        "noindex": true,
+        "script_count": 0,
+        "duplicate_ids": []
+      }
+    ],
+    "source_checker": {
+      "exit_code": 0,
+      "stdout": "USKOCI_SITE_CHECK: PASS (15 HTML pages, internal links, metadata, staging guard, deletion and retention)"
+    },
+    "independent_errors": [],
+    "boundaries": [
+      "No website deployment, merge or messages.",
+      "No browser/device rendering, live HTTP response or email delivery verification.",
+      "No assertion of current legal compliance, retention activation or Play readiness."
+    ]
+  },
+  "scope": "Preserve evidence of existing candidates without blind merge, DEV apply or website publication"
+}

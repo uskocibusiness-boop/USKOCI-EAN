@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, StyleSheet, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { WORKER_AVAILABLE_NOW_ENABLED } from '../../contracts/workerNowFeature';
 import { Avatar } from '../system/Avatar';
@@ -7,6 +7,7 @@ import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeAttention, HomeRaspored, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import type { OwnedTaskCounts } from '../../data/marketplaceView';
 import type { ApplicationCounts } from '../../data/myApplicationsView';
+import type { HomeAgreementPromptSource } from '../../data/homeAgreementPromptOwner';
 import { ScreenHeader } from '../system/ScreenHeader';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
@@ -17,11 +18,6 @@ import { Surface } from '../system/Surface';
 import { layout } from '../system/layout';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
-import { TaskCard } from '../v2/TaskCard';
-import { TaskPublisherPortrait } from '../v2/TaskPublisherPortrait';
-import { OwnTaskCard } from '../v2/OwnTaskCard';
-import { ApplicationCard } from '../v2/ApplicationFace';
-import { AgreementRow } from '../agreements/AgreementListCard';
 import { sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useLayoutClass } from '../system/textScale';
@@ -55,6 +51,8 @@ export type HomePresentationProps = {
   onRatings: (agreementId: string | null) => void;
   onMyTasks: () => void; onMyApplications: () => void; onRefresh: () => void;
   onAgreements?: () => void;
+  /** Supplied by the focused route; no prompt read until the panel is opened. */
+  agreementPromptSource?: HomeAgreementPromptSource;
   /** Saved availability is a fact; its action continues the AI conversation. */
   availableNow?: { value: boolean; onEdit: () => void };
   /**
@@ -362,51 +360,6 @@ export function HomePresentation(p: HomePresentationProps) {
     <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
     {p.intakeResume}
 
-    {home?.opportunityItems && home.opportunityItems.length > 0 ? <Section title="Prilike za Vas"
-      action={{ label: 'Mapa zadataka', onPress: p.onEarn }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
-        {home.opportunityItems.map(item => <View key={item.id} style={s.carouselCard}>
-          <TaskCard item={item} portrait={<TaskPublisherPortrait item={item} size={40} />}
-            onOpen={() => p.onOpen({ kind: 'OPPORTUNITY', needId: item.id })} />
-        </View>)}
-      </ScrollView>
-    </Section> : null}
-
-    {home?.agreementItems && home.agreementItems.length > 0 ? <Section title="Aktuelni dogovori"
-      action={{ label: 'Svi dogovori', onPress: p.onAgreements ?? (() => p.onRatings(null)) }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
-        {home.agreementItems.map((item, index) => <View key={item.id} style={s.carouselCard}>
-          <AgreementRow item={item} index={index} now={Date.now()} animate={false} stale={!!p.stale}
-            onOpen={row => p.onOpen({ kind: 'AGREEMENT', agreementId: row.id })}
-            onRate={row => p.onRatings(row.id)} />
-        </View>)}
-      </ScrollView>
-    </Section> : null}
-
-    {home?.ownTaskItems && home.ownTaskItems.length > 0 ? <Section title="Vaši objavljeni zadaci"
-      action={{ label: 'Svi zadaci', onPress: p.onMyTasks }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
-        {home.ownTaskItems.map(item => <View key={item.id} style={s.carouselCard}>
-          <OwnTaskCard item={item}
-            onOpen={() => p.onOpen({ kind: 'NEED', needId: item.id })}
-            onApplications={() => p.onOpen({ kind: 'CANDIDATES', needId: item.id })} />
-        </View>)}
-      </ScrollView>
-    </Section> : null}
-
-    {home?.applicationItems && home.applicationItems.length > 0 ? <Section title="Vaše prijave"
-      action={{ label: 'Sve prijave', onPress: p.onMyApplications }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
-        {home.applicationItems.map(row => <View key={row.prijavaId} style={s.carouselCard}>
-          <ApplicationCard row={row}
-            onTask={() => p.onOpen({ kind: 'APPLICATION', applicationId: row.prijavaId })}
-            onAgreement={() => row.dogovorId ? p.onOpen({ kind: 'AGREEMENT', agreementId: row.dogovorId }) : p.onOpen({ kind: 'APPLICATION', applicationId: row.prijavaId })}
-            onWithdraw={() => p.onOpen({ kind: 'APPLICATION', applicationId: row.prijavaId })}
-            onReview={() => p.onOpen({ kind: 'APPLICATION', applicationId: row.prijavaId })} />
-        </View>)}
-      </ScrollView>
-    </Section> : null}
-
     {/* My lists stand in one group of rows directly under what is above, with the one section gap and no heading or line of their own. */}
     <View style={s.mineGroup}>
       <MineRow art="tasks" title="Moji zadaci" detail={tasksDetail} onPress={p.onMyTasks} />
@@ -421,6 +374,7 @@ export function HomePresentation(p: HomePresentationProps) {
     {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}
   </Screen>
   {waitingOpen && home && p.active !== false ? <HomeWaitingPanel home={home} stale={!!p.stale} refreshing={p.refreshing}
+    agreementPromptSource={p.agreementPromptSource}
     onClose={() => setWaitingOpen(false)} onOpen={p.onOpen} onRatings={p.onRatings}
     onMyTasks={p.onMyTasks} onMyApplications={p.onMyApplications} onAgreements={p.onAgreements ?? (() => p.onRatings(null))}
     onRefresh={p.onRefresh} /> : null}</>;
@@ -463,7 +417,5 @@ const s = StyleSheet.create({
   recovery: { gap: sys.space.sm, alignItems: 'flex-start' },
   initialLoading: { minHeight: INITIAL_READ_HEIGHT, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center', gap: sys.space.base },
   initialLoadingText: { textAlign: 'center' },
-  carousel: { gap: layout.group, paddingVertical: sys.space.xs, paddingRight: layout.gutter },
-  carouselCard: { width: 304, flexShrink: 0 },
   mineGroup: { gap: sys.space.sm },
 });

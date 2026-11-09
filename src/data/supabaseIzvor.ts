@@ -177,6 +177,8 @@ type SupabaseIzvor = Omit<
   Izvor,
   | 'mojiDogovori'
   | 'mojiDogovoriStrana'
+  | 'dogovoriZaPocetnu'
+  | 'podsetniciDogovoraZaPocetnu'
   | 'dogovor'
   | 'predloziIzmenu'
   | 'odgovoriNaIzmenu'

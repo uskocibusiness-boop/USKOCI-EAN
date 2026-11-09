@@ -12,7 +12,7 @@ import { V2Action } from '../v2/V2Action';
 export function ApplicationServiceOffer({ input, openProfile }: {
   input: ApplicationServiceIntent; openProfile: () => void;
 }) {
-  const owner = useMemo(() => ({ input: { ...input }, focused: false, generation: 0, busy: false,
+  const owner = useMemo(() => ({ input: { ...input }, focused: false, generation: 0, busy: false, explicitAddition: false,
     checkOnIdle: false, cancelWait: null as (() => void) | null }),
     [input.accountId, input.accountRevision, input.applicationId, input.needId, input.profileId]);
   const [value, setValue] = useState<ApplicationServiceResult | null>(null);
@@ -33,6 +33,9 @@ export function ApplicationServiceOffer({ input, openProfile }: {
     // A fast blur/focus can happen before an old read or Save settles. Queue one
     // read-only check, but never release the real in-flight writer or replay consent.
     if (owner.busy) { if (!add) owner.checkOnIdle = true; return; }
+    // Presentation only: a later read-only check can still confirm this click.
+    // It never grants permission to prepare or save again.
+    if (add) owner.explicitAddition = true;
     owner.checkOnIdle = false;
     owner.busy = true; setBusy(true); setUncertain(true); setError(null);
     try {
@@ -105,6 +108,7 @@ export function ApplicationServiceOffer({ input, openProfile }: {
   const saved = prepared?.state === 'SAVED';
   const changed = !uncertain && prepared?.state === 'CHANGED';
   const profileHelp = needsProfile || changed;
+  if (!uncertain && alreadyPresent && !owner.explicitAddition) return null;
   return <Section>
     <View style={styles.body} testID="application-service-offer">
       <T variant="bodyStrong" accessibilityLiveRegion="polite">{confirmed

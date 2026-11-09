@@ -3,8 +3,10 @@ import { prijava } from '../ui/system/plural';
 import { readableTitle } from './needDetailPresentation';
 import { hasNeedAttention, ownedTaskCounts, type OwnedTaskCounts } from './marketplaceView';
 import { applicationCounts, type ApplicationCounts } from './myApplicationsView';
-import { acceptedTerm, awaitingFinishCount, looseLine, notOver, rasporedOf, withoutTermCount, type HomeRaspored } from '../ui/home/raspored';
+import { acceptedTerm, awaitingFinishCount, looseLine, notOver, rasporedOf, rasporedFromSummary, withoutTermCount, type HomeRaspored } from '../ui/home/raspored';
 import { zonaTelefona } from '../lib/vreme';
+import { inicijali } from '../lib/inicijali';
+import type { HomeAgreementsSummary, HomeAgreementPrompt } from './homeAgreementsContract';
 
 /**
  * Početna (owner decision 1, 2026-09-19; the overview of the owner's information architecture, 2026-09-23): what
@@ -16,8 +18,9 @@ import { zonaTelefona } from '../lib/vreme';
  *
  * PKG-042 supplies server attention separately. The legacy attention composition stays as the
  * historical SQL proof oracle and test-source adapter, never a production fallback after an RPC failure.
- * Production application totals use the existing first-page aggregate. Task draft/total and
- * next-Agreement composition still use complete lists; cutting these lists would lose facts.
+ * Production application totals use the first-page aggregate. Agreement facts use their
+ * dedicated bounded summary; full Agreement arrays are the explicit fake/proof adapter only.
+ * Task draft/total still need the existing complete read until their own summary is available.
  *
  * Raspored (owner, 2026-10-07): the next accepted appointment is told day first in Serbian time, from its accepted
  * instants and from nothing else (`ui/home/raspored.ts`); no new read is made for it. With no appointment ahead, active
@@ -33,7 +36,7 @@ export type HomeWorkProfileRead = Pick<RadnikProfilProjekcija, 'stanje' | 'dostu
 export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>;
   /** Production reads exact aggregate counts (and optional first-page items); full arrays remain the legacy proof/gallery adapter. */
   applications: HomeSection<MojaPrijavaProjekcija[] | ApplicationCounts | { counts: ApplicationCounts; items: MojaPrijavaProjekcija[] }>;
-  agreements: HomeSection<DogovorProjekcija[]>; workerProfile?: HomeSection<HomeWorkProfileRead | null>;
+  agreements: HomeSection<HomeAgreementsSummary | DogovorProjekcija[]>; workerProfile?: HomeSection<HomeWorkProfileRead | null>;
   opportunities?: HomeSection<PrilikaProjekcija[]>; };
 export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'; needId: string }
   | { kind: 'APPLICATION'; applicationId: string } | { kind: 'AGREEMENT'; agreementId: string }
@@ -63,7 +66,7 @@ export type HomeRow = { id: string; title: string; detail: string; target: HomeT
    * side's public profile id and initials let the route draw their face (the Dogovori card does the same); null says the
    * server named no profile or no name to take letters from, and the face is then a drawn person.
    */
-  appointment?: { timeText: string; counterpartName: string; roleLabel: 'Tvoj zadatak' | 'Uskačeš' | null;
+  appointment?: { timeText: string; counterpartName: string; roleLabel: 'Tvoj zadatak' | 'Uskačeš' | 'Vaš zadatak' | 'Uskačete' | null;
     counterpartProfileId?: string | null; counterpartInitials?: string | null };
   /**
    * "Raspored" (owner, 2026-10-07): only the featured appointment has it, and only when it is `upcoming` with an accepted
@@ -92,6 +95,9 @@ export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; 
   /** Same confirmed own-task/Agreement reads, retained for the on-demand Home panel.
    * This is not a replacement for missing server attention or a new activity feed. */
   allPrompts?: HomeAttention[];
+  /** Production Agreement prompts are only a preview here. The panel explicitly
+   * pages the remaining rows; allPrompts then holds local task drafts only. */
+  agreementPrompts?: { accountId: string; asOf: string; total: number; preview: HomeAttention[] };
   /** R20, R06: absent when the profile was not read; `unavailable` when its read failed (nothing is then said about it). */
   workerProfile?: HomeSection<HomeWorkProfile>;
   /** The two front doors. A side that could not be read is unavailable, never zero. */
@@ -192,6 +198,35 @@ function agreementRow(row: DogovorProjekcija): HomeRow {
       counterpartProfileId: other?.profilId ?? null, counterpartInitials: other?.inicijali?.trim() || null } };
 }
 
+/** The bounded public contract carries no price, address or commercial terms to
+ * invent into a full Dogovor projection. Only its confirmed Home facts are used. */
+export function homeAgreementPromptRow(row: HomeAgreementPrompt): HomeAttention {
+  const title = readableTitle(row.title);
+  return { id: `agreement:${row.id}:${row.reason === 'CHANGE' ? 'change' : 'term'}`,
+    title: row.reason === 'CHANGE' ? 'Odgovorite na predlog izmene' : 'Predložite termin',
+    ...(title ? { taskTitle: title } : {}),
+    detail: row.reason === 'CHANGE' ? 'Druga strana predlaže izmenu uslova.' : 'Termin još nije dogovoren.',
+    target: { kind: row.reason === 'CHANGE' ? 'AGREEMENT_CHANGE' : 'AGREEMENT_TERM', agreementId: row.id } };
+}
+
+function summaryAgreementRow(summary: HomeAgreementsSummary, now: number, phoneZone: string | undefined): HomeRow | null {
+  const next = summary.next;
+  if (!next) return null;
+  const term = acceptedTerm({ prihvacenPocetak: next.startAt,
+    tacanTermin: next.endAt ? { pocetak: next.startAt, kraj: next.endAt } : null });
+  // The one accepted row cannot stand in for an unknown next row after it ends.
+  // A retained summary then needs a fresh server read, never a guessed successor.
+  if (!term || !Number.isSafeInteger(now) || !notOver(term, BigInt(now) * 1000n)) return null;
+  const raspored = term ? rasporedFromSummary(term, summary.counts.remainingThisWeek, new Date(now), phoneZone) : null;
+  if (!raspored) return null;
+  const roleLabel = next.role === 'narucilac' ? 'Vaš zadatak' : 'Uskačete';
+  const counterpartName = next.counterpartName || 'Druga strana';
+  return { id: `agreement:${next.id}`, title: next.title, target: { kind: 'AGREEMENT', agreementId: next.id },
+    detail: [roleLabel, counterpartName, raspored.when].join(' · '), upcoming: true, raspored,
+    appointment: { timeText: raspored.when, counterpartName, roleLabel,
+      counterpartProfileId: next.counterpartProfileId, counterpartInitials: inicijali(next.counterpartName) } };
+}
+
 export function composeHome(reads: HomeReads, serverAttention?: HomeSection<HomeAttentionPreview>, now = Date.now(),
   /** The phone's own zone: it never changes a time (agreed times read in Serbian time), only whether Raspored says so in words. */
   phoneZone: string | undefined = zonaTelefona()): HomeSnapshot {
@@ -207,7 +242,9 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
     : applicationRead && 'counts' in applicationRead
       ? applicationRead.counts
       : applicationRead;
-  const agreements = reads.agreements.kind === 'known' ? reads.agreements.value : null;
+  const agreementRead = reads.agreements.kind === 'known' ? reads.agreements.value : null;
+  const agreements = Array.isArray(agreementRead) ? agreementRead : null;
+  const summary = agreementRead && !Array.isArray(agreementRead) ? agreementRead : null;
   const opportunities = reads.opportunities?.kind === 'known' ? reads.opportunities.value : null;
 
   // A blocked completion first, then an open problem, then a changed task under my application,
@@ -266,18 +303,20 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
   // What waits for me that the phone knows from the reads it already makes (R02, R18). They follow the server's own rows and
   // never replace them: the server's aggregate stays the answer about applications, completions and problems.
   const subject = (title: string) => { const text = readableTitle(title); return text ? { taskTitle: text } : {}; };
-  const prompts: HomeAttention[] = [
+  const draftPrompts: HomeAttention[] = (needs ?? []).filter(row => row.stanje === 'NACRT' && readableTitle(row.naslov)
+    && draftIsFresh(row.azurirano, now)).slice(0, 1).map(row => ({
+    id: `need:${row.id}:draft`, title: 'Nastavite nacrt', ...subject(row.naslov), detail: 'Nacrt još nije objavljen.',
+    target: { kind: 'NEED' as const, needId: row.id } }));
+  const agreementPrompts: HomeAttention[] = summary ? summary.prompts.items.map(homeAgreementPromptRow) : [
     ...(agreements ?? []).filter(row => activeAgreement(row) && row.izmenaCeka && !row.izmenaCeka.mojPredlog).map(row => ({
       id: `agreement:${row.id}:change`, title: 'Odgovorite na predlog izmene', ...subject(row.naslov), detail: 'Druga strana predlaže izmenu uslova.',
       target: { kind: 'AGREEMENT_CHANGE' as const, agreementId: row.id } })),
     ...(agreements ?? []).filter(needsTerm).map(row => ({
       id: `agreement:${row.id}:term`, title: 'Predložite termin', ...subject(row.naslov), detail: 'Termin još nije dogovoren.',
       target: { kind: 'AGREEMENT_TERM' as const, agreementId: row.id } })),
-    ...(needs ?? []).filter(row => row.stanje === 'NACRT' && readableTitle(row.naslov)
-      && draftIsFresh(row.azurirano, now)).slice(0, 1).map(row => ({
-      id: `need:${row.id}:draft`, title: 'Nastavite nacrt', ...subject(row.naslov), detail: 'Nacrt još nije objavljen.',
-      target: { kind: 'NEED' as const, needId: row.id } })),
   ];
+  const prompts = [...agreementPrompts, ...draftPrompts];
+  const promptTotal = (summary ? summary.prompts.total : agreementPrompts.length) + draftPrompts.length;
   const room = Math.max(0, HOME_WAITING_LIMIT - Math.min(attention.length, HOME_ATTENTION_LIMIT));
   const profileRead = reads.workerProfile;
   const workerProfile: HomeSnapshot['workerProfile'] = profileRead === undefined ? undefined
@@ -285,10 +324,13 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       : { kind: 'known', value: profileRead.value ? { state: profileRead.value.stanje, availableNow: profileRead.value.dostupanOdmah }
         : { state: 'NONE', availableNow: false } };
   const due = (agreements ?? []).filter(ratingDue);
-  const serverRatings = serverAttention?.kind === 'known' ? serverAttention.value.ratings : undefined;
+  const serverRatings = summary?.ratings ?? (serverAttention?.kind === 'known' ? serverAttention.value.ratings : undefined);
   // The server's aggregate is the whole answer when it is there: a failed or slow Dogovori read then withholds the Dogovori, never the number of ratings.
   const ratingsKnown = !!serverRatings || agreements !== null && !agreements.some(row => row.stanje === 'COMPLETED' && row.stanjeProvereOcene === 'UNAVAILABLE');
-  const partial = !ratingsKnown || serverAttention?.kind === 'unavailable' || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable');
+  const nextFromSummary = summary ? summaryAgreementRow(summary, now, phoneZone) : null;
+  const summaryNextExpired = !!summary?.next && !nextFromSummary;
+  const partial = summaryNextExpired || !ratingsKnown || serverAttention?.kind === 'unavailable'
+    || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable');
 
   const opportunityItems = opportunities ? opportunities.slice(0, 6) : undefined;
   const ownTaskItems = needs
@@ -297,14 +339,21 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
     : undefined;
   const applicationItems = applications ? applications.slice(0, 6) : undefined;
   const agreementItems = agreements ? ordered.map(entry => entry.row).slice(0, 6) : undefined;
+  const summaryQuietLine = summary && !nextFromSummary ? looseLine({ withoutTerm: summary.counts.withoutExactTerm,
+    awaitingFinish: summary.counts.awaitingFinish }) : null;
 
   return {
     attention: attention.slice(0, HOME_ATTENTION_LIMIT), attentionMore: serverAttention
       ? serverAttention.kind === 'known' ? serverAttention.value.more : 0 : Math.max(0, attention.length - HOME_ATTENTION_LIMIT),
     ...(serverAttention ? { attentionState: serverAttention.kind } : {}),
-    ...(prompts.length ? { allPrompts: prompts, prompts: prompts.slice(0, room), ...(prompts.length > room ? { promptsMore: prompts.length - room } : {}) } : {}),
+    ...(prompts.length ? { allPrompts: summary ? draftPrompts : prompts, prompts: prompts.slice(0, room),
+      ...(promptTotal > Math.min(room, prompts.length) ? { promptsMore: promptTotal - Math.min(room, prompts.length) } : {}) } : {}),
+    ...(summary ? { agreementPrompts: { accountId: summary.accountId, asOf: summary.asOf,
+      total: summary.prompts.total, preview: agreementPrompts } } : {}),
     ...(workerProfile ? { workerProfile } : {}),
-    agreements: agreements ? { kind: 'known', value: { rows: activeAgreements.slice(0, HOME_AGREEMENT_LIMIT),
+    agreements: summaryNextExpired ? { kind: 'unavailable' } : summary ? { kind: 'known', value: { rows: nextFromSummary ? [nextFromSummary] : [],
+      more: Math.max(0, summary.counts.active - (nextFromSummary ? 1 : 0)), ...(summaryQuietLine ? { quietLine: summaryQuietLine } : {}) } }
+      : agreements ? { kind: 'known', value: { rows: activeAgreements.slice(0, HOME_AGREEMENT_LIMIT),
       more: Math.max(0, activeAgreements.length - HOME_AGREEMENT_LIMIT), ...(quietLine ? { quietLine } : {}) } } : { kind: 'unavailable' },
     mine: { tasks: needs ? { kind: 'known', value: ownedTaskCounts(needs) } : { kind: 'unavailable' },
       applications: applicationTotals ? { kind: 'known', value: applicationTotals } : { kind: 'unavailable' } },
@@ -313,7 +362,8 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
     ...(applicationItems ? { applicationItems } : {}),
     ...(agreementItems ? { agreementItems } : {}),
     partial,
-    firstRun: !partial && !attention.length && !needs?.length && !applicationTotals?.total && !agreements?.length,
+    firstRun: !partial && !attention.length && !needs?.length && !applicationTotals?.total
+      && !(summary ? summary.counts.hasAny : agreements?.length),
     ratingsDue: serverRatings ? serverRatings.due : ratingsKnown ? due.length : null,
     ratingDueAgreementId: serverRatings ? serverRatings.agreementId : ratingsKnown && due.length === 1 ? due[0].id : null,
   };

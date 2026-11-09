@@ -1,0 +1,269 @@
+{
+  "date": "2026-11-09T01:20:43.651255+00:00",
+  "source_base": "b066aaf9a8f1fd0b5895989fd2d8516abcc5c556",
+  "verified_local_import": "b20346b1e8e2bcd200c6394379d5826f77a3acee",
+  "stages": [
+    {
+      "stage": "bounded_ui_and_canonical_migrations",
+      "command": "npm test",
+      "exit_code": 0,
+      "tests": 1198,
+      "pass": 1198,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "duration_ms": 128635.515906,
+      "log_sha256": "699b7fe7bc35d2ee518feeec8b49d27653f81a9a77633c76905c47a63b3be3e8",
+      "log_bytes": 137438
+    },
+    {
+      "stage": "complete_after_verified_home_discovery_import",
+      "command": "npm test",
+      "exit_code": 0,
+      "tests": 1259,
+      "pass": 1259,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "duration_ms": 138987.370702,
+      "log_sha256": "015aa63aca6f2468b30b3409a2c74235b478556c20133a9ac5d6571a34e0eb9a",
+      "log_bytes": 144433
+    }
+  ],
+  "typescript": {
+    "command": "node node_modules/typescript/bin/tsc --noEmit",
+    "exit_code": 0,
+    "diagnostics": ""
+  },
+  "migration_integrity": {
+    "files": 231,
+    "tests": 60,
+    "passed": 60,
+    "failed": 0,
+    "exit_code": 0
+  },
+  "changed_executable_and_test_files": [
+    {
+      "path": "package.json",
+      "sha256": "4bd763eeadd251e953c5bbcb5bfddb91f30c89428da269e5fe13647451b833ea",
+      "bytes": 5545
+    },
+    {
+      "path": "scripts/home-agreements-contract.test.cjs",
+      "sha256": "c9e790aea35f451b3a5d3e9c5835c145336d251794d979db9e6954db4712f0a6",
+      "bytes": 29855
+    },
+    {
+      "path": "scripts/home-agreements-native.cjs",
+      "sha256": "53bdc0146a4d6475a47037e6cc0324c455f4e2362abae21bdd90b95caa224d01",
+      "bytes": 1341
+    },
+    {
+      "path": "scripts/home-summary-integration.test.cjs",
+      "sha256": "854d148aa7244a19ac2c395e1a6f8377899900d0f97c16ca6a17ec3163b7fde7",
+      "bytes": 21279
+    },
+    {
+      "path": "scripts/p6-discovery-integration-harness.cjs",
+      "sha256": "bcd8a363f455df6a60abb71cd96ec39a280890e345932b3b23ae25678ae7fae6",
+      "bytes": 6898
+    },
+    {
+      "path": "scripts/p6-discovery-pagination.test.cjs",
+      "sha256": "f04dd5aaf2152247171d246a77eb330bb7e5080c8358fadc69bffcb494ac4eb6",
+      "bytes": 12447
+    },
+    {
+      "path": "scripts/photo-cache-privacy.test.cjs",
+      "sha256": "d46d4087c7b9e36b46d5a2ee6dc9df3b88afef0ff076e27fd9f00df2a0878e67",
+      "bytes": 5916
+    },
+    {
+      "path": "scripts/photo-gallery-states.test.cjs",
+      "sha256": "a8210ae2c4410a3f8a8af4654e567e2ac7cc45f015e9942fe9648ca0c430dac3",
+      "bytes": 7989
+    },
+    {
+      "path": "scripts/sql/home_agreements_summary_20261108.preimage.json",
+      "sha256": "57e4c0198ee297ea249d68af355dfe5911d20ce393d5c945fa4c68a23d12c941",
+      "bytes": 2671
+    },
+    {
+      "path": "scripts/sql/home_agreements_summary_20261108.readback.sql",
+      "sha256": "c631119167e5527b10f71155b7e228157523f949692d59ee6019a7a1e474f66d",
+      "bytes": 6775
+    },
+    {
+      "path": "scripts/sql/home_agreements_summary_20261108.rollback.sql",
+      "sha256": "c9c4d721cf70aa021adb9f8b1c27906e6986240e6cf23a06a80233dcb014f2fe",
+      "bytes": 1379
+    },
+    {
+      "path": "scripts/sql/home_agreements_summary_20261108.sql",
+      "sha256": "26b797faa137fd631f823bddab243e628a8a5955188b86a26bbde2ec8016a337",
+      "bytes": 13202
+    },
+    {
+      "path": "scripts/ux-application-service-focus.test.cjs",
+      "sha256": "42a227403414eaf7f27c4376b8f0d1a5a937d2d4915ec0c5018de067980b83fc",
+      "bytes": 9252
+    },
+    {
+      "path": "scripts/ux-home-waiting.test.cjs",
+      "sha256": "aac83631f27fb054a3c0e55f0ca134930200fe2a4fb72c8371cc3475e6336db9",
+      "bytes": 6775
+    },
+    {
+      "path": "src/app/(app)/index.tsx",
+      "sha256": "18d889342d3b52c0fa850a9b5706858781a3e3666b376fd264cc333f9b2382d2",
+      "bytes": 11782
+    },
+    {
+      "path": "src/data/discoveryV1Owner.ts",
+      "sha256": "1a30e41e726a6cca03d22015691bfce986dce51abc5a288271d237af3b8a2bbc",
+      "bytes": 23584
+    },
+    {
+      "path": "src/data/discoveryV1SearchOwner.ts",
+      "sha256": "d14c51f9288852898d40757c54ed225b0dd603183db7fa3563b380b3cc62a795",
+      "bytes": 12902
+    },
+    {
+      "path": "src/data/homeAgreementPromptOwner.ts",
+      "sha256": "518832ed6e80996a03776263a03b5b81e3fd8cf700073e5433e66c09afdee31f",
+      "bytes": 3954
+    },
+    {
+      "path": "src/data/homeAgreementsClientService.ts",
+      "sha256": "0cd6fc8bff37b77da61feec5ddd329fa08b72e3aa46713b282ff72c0599128e8",
+      "bytes": 2437
+    },
+    {
+      "path": "src/data/homeAgreementsContract.ts",
+      "sha256": "3fc330d0947b5d5ecccfc4fcfc7c501f741d136e31819657bfe78e37815753c6",
+      "bytes": 9510
+    },
+    {
+      "path": "src/data/homeSnapshot.ts",
+      "sha256": "bf76f7b4fcb6fecaa307286a8770a96571e3d07ef63c6aa1e38a11e5cf0c998e",
+      "bytes": 27485
+    },
+    {
+      "path": "src/data/index.ts",
+      "sha256": "c515665c90e6eb761fe88b00ae6aaa079cdf7a2a1670a327136a5ffbd37dc807",
+      "bytes": 3790
+    },
+    {
+      "path": "src/data/lazniIzvor.ts",
+      "sha256": "1617fb7efbb2c344b256ba7a9f8560fe6859ac76290c9cba046680096756faff",
+      "bytes": 37438
+    },
+    {
+      "path": "src/data/ports.ts",
+      "sha256": "9d493ff23f54a77955986c60da02414eb8b800a33d4221fdc4f9da0ad7048e04",
+      "bytes": 11393
+    },
+    {
+      "path": "src/data/supabaseIzvor.ts",
+      "sha256": "daac7552d97055e53441c5bddb150170e96cc65822a1c3f4be8576bae23d88b7",
+      "bytes": 29531
+    },
+    {
+      "path": "src/ui/home/HomePresentation.tsx",
+      "sha256": "0e5a58bc8c55eacb4546857d79bf651f8eebab0104668c022345a22fe5a00b68",
+      "bytes": 29082
+    },
+    {
+      "path": "src/ui/home/HomeWaitingPanel.tsx",
+      "sha256": "fe4d6cd76a2cd08814351e06aaf13456d4541d7e177b99c0c05609090f703a1a",
+      "bytes": 6667
+    },
+    {
+      "path": "src/ui/home/raspored.ts",
+      "sha256": "cffc9fa0212b997d49bcd2023442b5f8ff8912c57b850e80d436c2c1bb4553d0",
+      "bytes": 12365
+    },
+    {
+      "path": "src/ui/media/AuthorizedPhoto.tsx",
+      "sha256": "ca47fce70a055812a5a1a3e71ee22a50847a0df726067cde0fedf2183cccb5d6",
+      "bytes": 10064
+    },
+    {
+      "path": "src/ui/media/ContextPhotos.tsx",
+      "sha256": "fe22b68947f8406205fa0ca30d4c5fde5800e346504feaf00091fde3522cb9ef",
+      "bytes": 9707
+    },
+    {
+      "path": "src/ui/media/PhotoViewer.tsx",
+      "sha256": "58b8e215f527f6dd102c0cc926f2da51dd812e44a5e81c5dc30f09c95361855e",
+      "bytes": 6856
+    },
+    {
+      "path": "src/ui/media/photoMemoryCache.ts",
+      "sha256": "e33928ac871aef3f478c1324bf6f3911a942589e644461bdf7dfd14003d266c1",
+      "bytes": 1828
+    },
+    {
+      "path": "src/ui/product/ProductSheet.tsx",
+      "sha256": "3a9067951ccfbdbb5463a58a3ae817dfa9fefe0f6de66981f056a402020572b4",
+      "bytes": 9303
+    },
+    {
+      "path": "src/ui/v2/ApplicationComposerPresentation.tsx",
+      "sha256": "cba49c38a850f0432b76283278b4cbfa28329e18c00bde11bc5a7d7113456f91",
+      "bytes": 34623
+    },
+    {
+      "path": "src/ui/workerProfile/ApplicationServiceOffer.tsx",
+      "sha256": "741b12ace8aae5176ce860befaabead63144483ab39b38bcca53aa66aa5cecea",
+      "bytes": 6886
+    },
+    {
+      "path": "supabase/migrations/20261108225909_r10_owned_usage_projection_post_r09_20261108.sql",
+      "sha256": "40f017a8d7dc1a42798e308c1783c8ae0e102f1187a40978a4c37b348ff194c2",
+      "bytes": 7114
+    },
+    {
+      "path": "supabase/migrations/20261108230350_home_agreements_summary_20261108.sql",
+      "sha256": "26b797faa137fd631f823bddab243e628a8a5955188b86a26bbde2ec8016a337",
+      "bytes": 13202
+    },
+    {
+      "path": "supabase/migrations/20261108230512_r13_hosted_transaction_probe_20261108.sql",
+      "sha256": "13ec4b987548b460784b756b1fae31e9300b522472e4e9821daaad91403e1e8f",
+      "bytes": 2367
+    },
+    {
+      "path": "supabase/migrations/MD5_MANIFEST.txt",
+      "sha256": "e16d7c15eb5a4ce19c0e59ca3dc60d8c9bc1ca6e723a4d57e036b691f33bc45d",
+      "bytes": 20117
+    },
+    {
+      "path": "supabase/migrations/MIGRATION_PROVENANCE.json",
+      "sha256": "6c1930215a5c54521b949a3527a22e4f6cd30c20bfe89475646e80bf95f1d799",
+      "bytes": 242152
+    },
+    {
+      "path": "supabase/migrations/check_migration_integrity.py",
+      "sha256": "031762f3c3cb804b01c15d2d0344f1ac5df50607a689de4c6da36aaa892c7e98",
+      "bytes": 45483
+    },
+    {
+      "path": "supabase/migrations/test_migration_integrity.py",
+      "sha256": "b1e9b425314f050ab1c5e964cc6b788423829ebf97f0329a83a55a36afd5a88a",
+      "bytes": 39611
+    }
+  ],
+  "native_boundary": "No physical Android, FPS, RAM, sound, FCM or screenshot assertion",
+  "side_effects": {
+    "dev_migration": false,
+    "edge_deploy": false,
+    "budget_change": false,
+    "paid_provider_call": false,
+    "actual_push": false,
+    "production": false
+  },
+  "source_publication": "Recorded separately after actual GitHub readback"
+}

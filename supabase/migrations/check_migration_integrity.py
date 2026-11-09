@@ -36,6 +36,7 @@ WORKER_NOW_SCHEDULE_FIT_FILES = ["20261107222231_worker_now_schedule_fit_paused_
 # Frozen catalog facts extracted from archived receipts and dated read-only captures.
 # Pin their canonical JSON bytes independently of the editable provenance entries.
 CATALOG_EVIDENCE_SHA256 = {
+    'inline:dev_readonly_catalog_20261109_post_qa92': '7a128d1df67c4532f6b476566fbef97bfae77f6654bf69e86766d3f203c1d1cf',
     'inline:dev_forward_catalog_20261108_capacity2': '41387cccbd1ec5518d151621de0b98209c0c213a6c2743a81f873341e5621803',
     'inline:dev_forward_catalog_20261108_capacity_readers': '95d75d56271bb33678d4ac5f53a6eeee576651576ca2d94f072726f6cda9179c',
     'inline:dev_forward_catalog_20261108_push_capacity': '2e7a2294e0f6f54dad9f364a2686be58d642db95c469e7e5c694617697a163fd',
@@ -293,6 +294,27 @@ def check_r09_applicant_provenance(section: dict, manifest_map: dict) -> str:
             or hashlib.sha256(witness.read_bytes()).hexdigest() != R09_APPLICANT_PROOF_SHA256):
         fail("R09 applicant DEV readback differs from pinned witness")
     return R09_APPLICANT_FILE
+
+
+def check_post_qa92_readmission(section: dict, manifest_map: dict) -> list[str]:
+    """Readmit three recorded DEV statements without replaying or reclassifying history."""
+    expected_files = [
+        "20261108225909_r10_owned_usage_projection_post_r09_20261108.sql",
+        "20261108230350_home_agreements_summary_20261108.sql",
+        "20261108230512_r13_hosted_transaction_probe_20261108.sql",
+    ]
+    if (not isinstance(section, dict)
+            or section.get("purpose") != "CANONICAL_SOURCE_READMISSION_ONLY"
+            or section.get("applied_by_this_source_change") is not False):
+        fail("post-QA92 readmission must be source-only reconciliation, not a new DEV application")
+    entries = section.get("entries", [])
+    if (not isinstance(entries, list)
+            or any(not isinstance(item, dict) for item in entries)
+            or [item.get("file") for item in entries] != expected_files
+            or any(item.get("classification") != "APPLIED_EXACT_LEDGER_BYTES"
+                   or item.get("version") != item.get("live_version") for item in entries)):
+        fail("post-QA92 readmission requires exactly three existing ledger-version records")
+    return check_physical_suffix(section, manifest_map, load_catalog_evidence(section))
 
 
 def main() -> None:
@@ -655,7 +677,13 @@ def main() -> None:
     if applicant_file <= activation_file:
         fail("R09 applicant suppression must follow the activation ledger version")
 
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names + applicant_names != disk_names:
+    post_qa92_names = check_post_qa92_readmission(
+        metadata.get("readonly_readmission_20261109_post_qa92"), manifest_map
+    )
+    if post_qa92_names[0] <= applicant_file:
+        fail("post-QA92 readmission must follow the R09 applicant ledger version")
+
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names + applicant_names + post_qa92_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -755,6 +783,7 @@ def main() -> None:
         f"r13_push_wake={len(push_wake_names)} "
         f"r09_activation={len(activation_names)} "
         f"r09_applicant={len(applicant_names)} "
+        f"post_qa92_readmission={len(post_qa92_names)} "
         f"nov7_forward={len(forward7_names)} "
         f"r08_forward={len(r08_names)} "
         f"r01_forward={len(r01_names)} "

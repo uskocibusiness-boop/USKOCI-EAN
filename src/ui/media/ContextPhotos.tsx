@@ -13,16 +13,18 @@ import { T } from '../Text';
 import { FactArt } from '../system/FactArt';
 import { inicijali } from '../../lib/inicijali';
 import { PhotoPages, PhotoViewer } from './PhotoViewer';
+import { V2Action } from '../v2/V2Action';
 
 /** The viewer is shared (both chats' photo tiles open it); it lives in its own file and is re-exported here. */
 export { PhotoViewer, type PhotoReadContext } from './PhotoViewer';
 
 /**
- * Only actual photos lead the detail, and only photos that can be seen (the owner's phone, 8 Oct 2026: a big grey plate with a dot and "1 / 1" stood
- * where a photo that would not load should have been). While a photo is read its page holds a picture of a photo; one that cannot be read is left
- * out, and a task whose photos can none of them be read draws no gallery at all. An authoritative empty list stays absent for either side; a failed
- * read of the LIST draws nothing either (the screen is read again on every visit), so no sentence says something is missing. `owned` is retained
- * for caller compatibility.
+ * A confirmed empty list draws no gallery. Until that answer arrives, a compact
+ * status distinguishes pending/failed reads from an actual task without photos.
+ * Failed pages are still left out (owner's 8 Oct request: no large grey plate or
+ * meaningless "1 / 1"); when none can be read, a compact explicit retry remains.
+ * No image bytes, access decision or persistent cache are owned here. `owned`
+ * is retained for caller compatibility.
  */
 export function NeedPhotos({ needId }: { needId: string; owned?: boolean }) {
   const { user, accountRevision } = useSesija();
@@ -33,7 +35,19 @@ export function NeedPhotos({ needId }: { needId: string; owned?: boolean }) {
   useFocusEffect(useCallback(() => { setLost(previous => previous.size ? new Set() : previous); }, []));
   const lose = useCallback((assetId: string) => setLost(previous => previous.has(assetId) ? previous : new Set(previous).add(assetId)), []);
   const all = editor.data?.photos ?? [], photos = all.filter(photo => !lost.has(photo.assetId));
-  if (!photos.length) return null;
+  if (!photos.length) {
+    const failed = !!editor.error || all.length > 0;
+    if (!editor.loading && !failed) return null;
+    return <View style={galleryStyles.status} testID="task-photo-status">
+      <T variant="note" tone="muted" accessibilityLiveRegion="polite" accessibilityState={{ busy: editor.loading }}>
+        {editor.loading ? 'Učitavanje fotografija…' : 'Fotografije trenutno nisu dostupne.'}
+      </T>
+      {!editor.loading && failed ? <V2Action compact kind="quiet" label="Pokušajte ponovo" onPress={() => {
+        if (editor.error) void editor.refresh();
+        else setLost(new Set());
+      }} /> : null}
+    </View>;
+  }
   // The key is what the task has, not what could be read: a page that is left out does not make the others read their photos again.
   return <NeedPhotoGallery key={`${user?.id}:${accountRevision}:${needId}:${all.map(photo => photo.assetId).join(':')}`}
     needId={needId} photos={photos} onLost={lose} />;
@@ -68,6 +82,7 @@ function NeedPhotoGallery({ needId, photos, onLost }: { needId: string; photos: 
 }
 
 const galleryStyles = StyleSheet.create({
+  status: { gap: 8, paddingVertical: 8 },
   inline: { borderRadius: sys.radius.cardCompact, overflow: 'hidden' },
   overlay: { position: 'absolute', bottom: 12, right: 12 },
   counter: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6,

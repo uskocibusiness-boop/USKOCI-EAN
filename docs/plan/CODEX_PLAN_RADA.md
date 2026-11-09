@@ -1,9 +1,48 @@
 # USKOČI — jedinstveni plan dovršavanja proizvoda i objavljivanja
 
+<!-- USKOCI_FORENSIC_AUDIT_20261109 -->
+## Актуелно стање — 09.11.2026: обједињена форензика и интеграција провереног локалног рада
+
+**Ово је најновији оперативни пресек.** Једини Product/UX мастер остаје `docs/product/USKOCI_PRODUCT_UX_MASTER.md`; цео извештај је [доказни прилог](proofs/forensic-audit-20261109.md), не други извршни план. Четири стварна агента прочитала су цео овај мастер и важећи Product/UX A–J, стварне S01–S18 owner-е, актуелни GitHub, DEV и QA92. Историјски „актуелно“ пасуси испод важе само на свом датуму.
+
+**Затечено:** remote `b066aaf9a8f1fd0b5895989fd2d8516abcc5c556`; runtime исти као QA92 `47fc6708ae7e9e8669fb1943f94d63b14647c7eb` (пет накнадних docs фајлова). DEV 368 миграција, последња `20261108230512`; Need/Worker/Speech/Publication/QA/Push/Media верзије 195/148/33/32/31/47/31. Cron и даље `select private.marketplace_tick(25);`. QA92 стварно има 1.185 тестова и проверен APK, али нема Firebase, FCM, audible sound или физички S01–S18 прихват. [Readback](proofs/forensic-readback-20261109.json).
+
+**Важна P0 исправка тумачења:** `reservation_cap_enforced=false` у живом `public.rpc_ai_test_budget_reserve_service` затвара нов admission са NOT_READY. Не доказује активну неограничену потрошњу. Ипак AI је функционално блокиран: интерна евиденција износи 65.486.681 µUSD = 10.386.681 settled + 55.100.000 UNKNOWN, за 221 резервацију. Settled већ прелази лимит од 5 USD. Нема доказане групе резервација за масовно ослобађање; Google рачун није прочитан. Не ресетовати бројач, не брисати редове, не повећавати лимит или покретати плаћене probe-ове без конкретног одобреног пакета. [Агрегатни доказ](proofs/forensic-budget-reconciliation-20261109.json).
+
+### Изведено после read-only checkpoint-а
+
+| Целина | Стварно изведено | Доказ / преостала граница |
+|---|---|---|
+| Source/DEV паритет | Три нове DEV миграције додате byte-identical у извор, manifest и immutable provenance. | 231 SQL / 60 Python PASS; ниједна миграција није поново примењена. |
+| Почетна | Независно прочитан и интегрисан постојећи b203 Home, без четири карусела, уз следећи Договор, важне радње, AI наставак и пречице. Summary + странице по 20 тек у отвореном прегледу. | 13 runtime фајлова; backend Auth/ACL/read projection проверен. Own-task read, календар и позитиван HTTPS/Android прихват остају. |
+| Discovery | Пренети постојећи b203 guards за nonprogressing cursor и foreign anchor. | 2 runtime фајла; P6 source тестови. Preview/QA flag 1, production flag 0 остаје. Нема surface/largeHeap промене. |
+| Фотографије | Inline contain; компактно loading/error/retry стање; decode-failed URI се избацује само из свог cache binding-а. | 6 gallery + 7 cache/privacy тестова; стварна регресија пре cache поправке. Нема тврдње да је потпуни native layout jump решен. |
+| Пријава / радна услуга | Пасивни already-present блок уклоњен, изричита потврда је сачувана, као и UNKNOWN/error стања; пример напомене не нуди други термин. | 16 focus/recovery тестова; без новог write admission-а. |
+| Заједничка регресија | 1.259/1.259 Node, TypeScript exit 0; 231/60 migration integrity. | ЛОКАЛНО ТЕСТИРАНО; објава/CI/APK се уписују тек после стварног readback-а. |
+
+[Тачни пренети Git blob-ови](proofs/forensic-local-integration-20261109.json), [интеграциона провера](proofs/forensic-integration-20261109.json). Други checkout и његов dirty рад нису мењани. Пренето је 25 тачно именованих Home/Discovery runtime/test/SQL fixture/runner датотека; package је допуњен само потребним suite-овима. Није спојен цео стари PR или локална грана.
+
+### Не понављати већ решено
+
+R09 applicant suppression је DEV активан; foreground identified recipient је у QA92. S08 серверска претрага, S04 readonly термин, S07 unit-aware sort и durable selectionCommandJournal, S12 календар и S17 регистрација без града већ постоје. AI late-response cleanup је byte-identical у b066/b203 и главном live runtime-у. „Могу одмах“ остаје намерно паузирано; један налог има једну заједничку репутацију.
+
+Локални b203 capacity6 већ има 6 фаза, INOUT diagnostics, per-profile/per-Need commit и cutoff tie поправку, са сачуваним 33/33 native и 6/6 wake доказима. Не писати тај механизам поново. Пре интеграције треба ускладити committed installer c7ded… са исправљеним c61e23…; постојећи dirty diff то ради, али није увезен без теста. Пуна hosted graph/overlap/restart/Cron активација остаје непотврђена. За R06 prepared-input потребан је rebase преко нове R10 пројекције, па стварна Need/Worker интеграција.
+
+### Следеће извршне целине и капије
+
+1. **P0 приступ и трошак:** provider billing/UNKNOWN reconciliation; конкретан затворен admission пакет пре одобрене мале AI пробе. Стварни admin revoke старог привилегованог кључа и затварање Edge legacy fallback-а уз positive modern Auth/Cron доказ. Нема тајни у извештају.
+2. **Backend истина:** проширити постојећи notification event envelope/ownership, довршити R06, материјалну измену задатка и R10 export/closure; интегрисати новији R13 кандидат са тачним installer-ом, trigger/FK/ACL и hosted rollback прихватом. Не уклањати `PUBLISHED_TASK_EDIT_NOT_READY` самостално.
+3. **Повезани кориснички токови:** два обична налога од обе намере до сарадње/порука/завршетка/оцене, три места и конкурентан избор, UNKNOWN и private grant → revoke. Home приступ радном AI-ју и cityless REMOTE пречицу проверити без увођења новог обавезног града.
+4. **S01–S18 visual/native:** три јавна стања пријава; један улаз у историју Договора; цена/loading, photos/layout, copy, accessibility, мапе и chat на 360/430 dp и 1×/1,15×/1,3×. Texture/surface одлучује се мерењем, не претпоставком. Нема тврдње о 60 FPS или 300k PASS.
+5. **Release:** retention source=false, export binding=NULL, legal/processor 0 active и policy 0/0 остају затворени. PR #48 је проверен draft сајт, али недостаје стварни OpenFreeMap recipient у списку и потврђен оператор/рокови/оперативна подршка. Android push кандидат са исправним Firebase идентитетом, два телефона и тек затим release QA/AAB. Јавно издање остаје NO-GO.
+
+Сви ови задаци остају у овом мастеру. [Обједињена S01–S18 матрица, E2E и приоритети](proofs/forensic-audit-20261109.md). Не тражити поново већ потврђене одлуке о Србији, бесплатном почетку, заједничкој репутацији и `uskoci.support@gmail.com`.
+
+
 <!-- USKOCI_RECOVERED_CONTINUATION_20261108 -->
 ## Aktuelno stanje — 08.11.2026: obnovljen nastavak, F20 DEV popravka i novi APK
 
-**Ovaj odeljak je aktuelan; odeljci ispod čuvaju datirane dokaze prethodnih krugova.** Nastavak je krenuo od fizički potvrđenog `work/uskoci-cist-proizvod-20261104@76dd409a929b7d133fb63da4ed840762778baa27`, dva commita posle priložene komande na `fea25188`. Prethodni rad nije ponovljen: DEV activation clock, originalni WAV resursi, kontekstualni vodiči i ispravka QA audio proveravača već postoje. Nezabeležena dva handoff pasusa iz prethodnog checkout-a sačuvana su; sve stare radne kopije ostale su netaknute. [Obnovljeni presek](proofs/recovered-continuation-20261108.json).
+**Историјски пресек од 08.11.2026; најновији оперативни статус је у одељку 09.11.2026 изнад.** Nastavak je krenuo od fizički potvrđenog `work/uskoci-cist-proizvod-20261104@76dd409a929b7d133fb63da4ed840762778baa27`, dva commita posle priložene komande na `fea25188`. Prethodni rad nije ponovljen: DEV activation clock, originalni WAV resursi, kontekstualni vodiči i ispravka QA audio proveravača već postoje. Nezabeležena dva handoff pasusa iz prethodnog checkout-a sačuvana su; sve stare radne kopije ostale su netaknute. [Obnovljeni presek](proofs/recovered-continuation-20261108.json).
 
 **Novi QA92 je SUCCESS i nezavisno proveren:** [run42533679348](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42533679348), oba posla uspešna, tačan source `47fc6708ae7e9e8669fb1943f94d63b14647c7eb`. Preuzeti CI dokazi potvrđuju1.185/1.185 Node testova, TypeScript exit0,228 migracionih fajlova i52/52 integrity testa. APK `USKOCI-QA-47fc6708a.apk` ima83.460.027 bajtova i SHA-256 `d45fb8a99335cd08a77959dcffcbb6dda719b926e790905db696304f79d08669`. Originalni checks/APK ZIP-ovi odgovaraju GitHub digest-ima; izvučeni APK posebno je upoređen pre nezavisne provere (`extractedApkCompared=true`). Paket `rs.uskoci.preview.qa`, DEV, ARM64,7DEX, embedded bundle, OTA off i sva tri tačna WAV resursa potvrđeni su u navedenom obimu. Nema Firebase konfiguracije u paketu niti stvarnog device/push/audible dokaza; custom sound kanali nisu aktivni. **QA92 ne uključuje naknadni Home klijent iz drugog checkout-a i nije dokaz potpune source/DEV usklađenosti nakon tri novije migracije.** [Tačan APK/CI dokaz](proofs/qa92-local-verifier-20261108.json), [identitet objavljenih Git stabala](proofs/source-publication-20261108.json).
 

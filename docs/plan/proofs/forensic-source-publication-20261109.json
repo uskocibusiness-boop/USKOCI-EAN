@@ -1,0 +1,9 @@
+{
+  "status": "PENDING_PUBLICATION",
+  "source_base": "b066aaf9a8f1fd0b5895989fd2d8516abcc5c556",
+  "target_branch": "work/uskoci-cist-proizvod-20261104",
+  "force": false,
+  "execution_proof": "forensic-integration-20261109.json",
+  "new_ci": "NOT_YET_CREATED",
+  "new_apk": "NOT_YET_CREATED"
+}

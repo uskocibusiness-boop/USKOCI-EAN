@@ -4838,5 +4838,87 @@
     "release": "NO-GO",
     "scope": "Exclude the existing active or SELECTED OFFER for the same account/Need/submitted revision from proactive dispatch and pending push. Existing Discovery, transport, UNKNOWN and inactive-state policies remain.",
     "rollback": "scripts/sql/r09_applicant_suppression_20261108.rollback.sql; guarded manual recovery only; restoring the old policy can reallow unwanted opportunities."
+  },
+  "readonly_readmission_20261109_post_qa92": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "evidence": "inline:dev_readonly_catalog_20261109_post_qa92",
+    "catalog_evidence": {
+      "project": "leqcwgzvjsxugfgzdmth",
+      "observed_at": "2026-11-09 00:49:20.500483+00",
+      "source": "Read-only supabase_migrations.schema_migrations SELECT; three recorded statements, no SQL replay or application.",
+      "liveMigrationCatalogHashes": [
+        {
+          "version": "20261108225909",
+          "name": "r10_owned_usage_projection_post_r09_20261108",
+          "statement_count": 1,
+          "joined_bytes": 7114,
+          "joined_md5": "dd61f10d1599d92b1a52dcff53d864b5",
+          "joined_sha256": "40f017a8d7dc1a42798e308c1783c8ae0e102f1187a40978a4c37b348ff194c2"
+        },
+        {
+          "version": "20261108230350",
+          "name": "home_agreements_summary_20261108",
+          "statement_count": 1,
+          "joined_bytes": 13202,
+          "joined_md5": "1b9e78d4a0da5080c9b565c6e1ceaee6",
+          "joined_sha256": "26b797faa137fd631f823bddab243e628a8a5955188b86a26bbde2ec8016a337"
+        },
+        {
+          "version": "20261108230512",
+          "name": "r13_hosted_transaction_probe_20261108",
+          "statement_count": 1,
+          "joined_bytes": 2367,
+          "joined_md5": "191353b645de51e34a89f5942129c4b4",
+          "joined_sha256": "13ec4b987548b460784b756b1fae31e9300b522472e4e9821daaad91403e1e8f"
+        }
+      ]
+    },
+    "purpose": "CANONICAL_SOURCE_READMISSION_ONLY",
+    "applied_by_this_source_change": false,
+    "scope": "Preserve the exact already-applied DEV ledger bytes missing from published b066aaf source. Historical snapshots, R06 prepared-input and cooperative R13 candidates remain unchanged. The Home SQL candidate comment is historical and is preserved byte-for-byte; this witness establishes its recorded application.",
+    "entries": [
+      {
+        "file": "20261108225909_r10_owned_usage_projection_post_r09_20261108.sql",
+        "version": "20261108225909",
+        "name": "r10_owned_usage_projection_post_r09_20261108",
+        "raw_md5": "dd61f10d1599d92b1a52dcff53d864b5",
+        "raw_sha256": "40f017a8d7dc1a42798e308c1783c8ae0e102f1187a40978a4c37b348ff194c2",
+        "raw_bytes": 7114,
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_version": "20261108225909",
+        "live_name": "r10_owned_usage_projection_post_r09_20261108",
+        "live_applied": true,
+        "live_recorded_md5": "dd61f10d1599d92b1a52dcff53d864b5",
+        "live_recorded_sha256": "40f017a8d7dc1a42798e308c1783c8ae0e102f1187a40978a4c37b348ff194c2"
+      },
+      {
+        "file": "20261108230350_home_agreements_summary_20261108.sql",
+        "version": "20261108230350",
+        "name": "home_agreements_summary_20261108",
+        "raw_md5": "1b9e78d4a0da5080c9b565c6e1ceaee6",
+        "raw_sha256": "26b797faa137fd631f823bddab243e628a8a5955188b86a26bbde2ec8016a337",
+        "raw_bytes": 13202,
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_version": "20261108230350",
+        "live_name": "home_agreements_summary_20261108",
+        "live_applied": true,
+        "live_recorded_md5": "1b9e78d4a0da5080c9b565c6e1ceaee6",
+        "live_recorded_sha256": "26b797faa137fd631f823bddab243e628a8a5955188b86a26bbde2ec8016a337"
+      },
+      {
+        "file": "20261108230512_r13_hosted_transaction_probe_20261108.sql",
+        "version": "20261108230512",
+        "name": "r13_hosted_transaction_probe_20261108",
+        "raw_md5": "191353b645de51e34a89f5942129c4b4",
+        "raw_sha256": "13ec4b987548b460784b756b1fae31e9300b522472e4e9821daaad91403e1e8f",
+        "raw_bytes": 2367,
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_version": "20261108230512",
+        "live_name": "r13_hosted_transaction_probe_20261108",
+        "live_applied": true,
+        "live_recorded_md5": "191353b645de51e34a89f5942129c4b4",
+        "live_recorded_sha256": "13ec4b987548b460784b756b1fae31e9300b522472e4e9821daaad91403e1e8f"
+      }
+    ]
   }
 }

@@ -2,12 +2,13 @@
 import contextlib
 import copy
 import io
+import hashlib
 import json
 import unittest
 from unittest import mock
 from pathlib import Path
 
-from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence, check_r13_push_wake_provenance, check_r09_activation_provenance, check_r09_applicant_provenance
+from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence, check_r13_push_wake_provenance, check_r09_activation_provenance, check_r09_applicant_provenance, check_post_qa92_readmission
 
 
 class ParticipantContractTests(unittest.TestCase):
@@ -606,6 +607,70 @@ class R09ApplicantProvenanceTests(unittest.TestCase):
             with self.subTest(suffix=suffix), mock.patch.object(Path, "read_bytes", tampered):
                 with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                     check_r09_applicant_provenance(self.section, self.manifest)
+
+
+class PostQA92ReadmissionTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).parent
+        self.section = json.loads((root / "MIGRATION_PROVENANCE.json").read_text())["readonly_readmission_20261109_post_qa92"]
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0]) for line in (root / "MD5_MANIFEST.txt").read_text().splitlines())
+
+    def rejects(self, section, manifest=None):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_post_qa92_readmission(section, self.manifest if manifest is None else manifest)
+
+    def test_exact_ledger_bytes_are_readmitted_without_new_application(self):
+        self.assertEqual(check_post_qa92_readmission(self.section, self.manifest),
+                         [row["file"] for row in self.section["entries"]])
+        self.assertFalse(self.section["applied_by_this_source_change"])
+
+    def test_missing_or_invented_application_section_fails(self):
+        self.rejects(None)
+        for key, value in (("purpose", "DEV_APPLIED"), ("applied_by_this_source_change", True)):
+            self.rejects({**self.section, key: value})
+
+    def test_missing_duplicate_and_reordered_records_fail(self):
+        for entries in (self.section["entries"][:-1], self.section["entries"] + self.section["entries"][-1:],
+                        list(reversed(self.section["entries"]))):
+            self.rejects({**self.section, "entries": entries})
+
+    def test_relabelled_versions_and_unproven_classes_fail(self):
+        for index in range(3):
+            for key, value in (("version", "20261109000000"), ("live_applied", False),
+                               ("classification", "SOURCE_ONLY_LIVE_BINDING_UNPROVEN")):
+                section = copy.deepcopy(self.section)
+                section["entries"][index][key] = value
+                self.rejects(section)
+
+    def test_rebound_catalog_cannot_change_immutable_live_evidence(self):
+        for index in range(3):
+            section = copy.deepcopy(self.section)
+            section["catalog_evidence"]["liveMigrationCatalogHashes"][index]["joined_sha256"] = "0" * 64
+            self.rejects(section)
+
+    def test_wrong_project_or_missing_manifest_fails(self):
+        self.rejects({**self.section, "project": "unverified-project"})
+        self.rejects(self.section, {})
+
+    def test_sql_mutation_cannot_pass_by_rehashing_its_source_metadata(self):
+        original = Path.read_bytes
+        for index in range(3):
+            section = copy.deepcopy(self.section)
+            entry = section["entries"][index]
+            filename = entry["file"]
+            altered = original(Path(__file__).with_name(filename)) + b"\n"
+            entry.update(raw_md5=hashlib.md5(altered).hexdigest(), raw_sha256=hashlib.sha256(altered).hexdigest(), raw_bytes=len(altered))
+            manifest = {**self.manifest, filename: entry["raw_md5"]}
+            def tampered(path, chosen=filename, data=altered):
+                return data if path.name == chosen else original(path)
+            with self.subTest(file=filename), mock.patch.object(Path, "read_bytes", tampered):
+                self.rejects(section, manifest)
+
+    def test_changed_recorded_hash_fails_even_when_file_is_untouched(self):
+        for index in range(3):
+            section = copy.deepcopy(self.section)
+            section["entries"][index]["live_recorded_md5"] = "0" * 32
+            self.rejects(section)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,306 @@
+{
+  "query": "-- R06 bounded reconciliation: READ ONLY, aggregate/metadata output only.\n-- Canonical DEV: leqcwgzvjsxugfgzdmth.\n-- Does not call reserve/release/settlement/provider procedures, read message\n-- bodies, expose account/operation IDs, or infer zero cost from missing usage.\nWITH command_links AS (\n  SELECT r.operation_id, 'NEED'::text AS surface, n.state, n.provider_dispatched\n  FROM private.ai_test_reservations_v5 r\n  JOIN private.ai_need_turn_commands n ON n.account_id=r.account_id AND n.client_request_id=r.operation_id\n  WHERE r.settled_microusd IS NULL\n  UNION ALL\n  SELECT r.operation_id, 'WORKER', w.state, w.provider_dispatched\n  FROM private.ai_test_reservations_v5 r\n  JOIN private.worker_ai_turns w ON w.account_id=r.account_id AND w.client_request_id=r.operation_id\n  WHERE r.settled_microusd IS NULL\n  UNION ALL\n  SELECT r.operation_id, 'QA', q.state, q.provider_dispatched\n  FROM private.ai_test_reservations_v5 r\n  JOIN private.qa_ai_commands q ON q.account_id=r.account_id AND q.id=r.operation_id\n  WHERE r.settled_microusd IS NULL\n  UNION ALL\n  SELECT r.operation_id, 'PUBLICATION_REVIEW', v.state, NULL::boolean\n  FROM private.ai_test_reservations_v5 r\n  JOIN private.ai_task_review_commands v ON v.account_id=r.account_id AND v.attempt_id=r.operation_id\n  WHERE r.settled_microusd IS NULL\n), unknown_groups AS (\n  SELECT r.kind, coalesce(l.surface,'NO_CURRENT_COMMAND_LINK') AS surface, l.state, l.provider_dispatched,\n    count(*) AS count, sum(r.max_cost_microusd) AS hold_microusd,\n    min(r.created_at) AS oldest, max(r.created_at) AS newest\n  FROM private.ai_test_reservations_v5 r LEFT JOIN command_links l USING(operation_id)\n  WHERE r.settled_microusd IS NULL\n  GROUP BY r.kind,l.surface,l.state,l.provider_dispatched\n), settlement_groups AS (\n  SELECT r.kind,r.settlement_basis,count(*) AS count,\n    sum(r.settled_microusd) AS settled_microusd,\n    sum(r.max_cost_microusd) AS allocated_microusd,count(u.operation_id) AS usage_count,\n    sum(private.ai_test_price_microusd(u.prompt_tokens,u.output_tokens))\n      FILTER(WHERE u.operation_id IS NOT NULL) AS usage_priced_microusd\n  FROM private.ai_test_reservations_v5 r LEFT JOIN private.ai_test_usage_v5 u USING(operation_id)\n  GROUP BY r.kind,r.settlement_basis\n), missing_measured_usage AS (\n  SELECT count(*) AS count,sum(r.settled_microusd) AS settled_microusd,\n    min(r.created_at) AS oldest,max(r.created_at) AS newest,\n    count(*) FILTER(WHERE a.id IS NULL) AS auth_row_absent,\n    count(*) FILTER(WHERE a.id IS NOT NULL AND a.deleted_at IS NOT NULL) AS auth_row_soft_deleted,\n    count(*) FILTER(WHERE a.id IS NOT NULL AND a.deleted_at IS NULL) AS auth_row_live\n  FROM private.ai_test_reservations_v5 r\n  LEFT JOIN private.ai_test_usage_v5 u USING(operation_id)\n  LEFT JOIN auth.users a ON a.id=r.account_id\n  WHERE r.settlement_basis='MEASURED' AND u.operation_id IS NULL\n), recent_usage AS (\n  SELECT '2026-11-07_UTC'::text AS sample,count(*) AS count,\n    sum(private.ai_test_price_microusd(prompt_tokens,output_tokens)) AS total_microusd,\n    round(avg(private.ai_test_price_microusd(prompt_tokens,output_tokens)),2) AS mean_microusd,\n    min(private.ai_test_price_microusd(prompt_tokens,output_tokens)) AS min_microusd,\n    max(private.ai_test_price_microusd(prompt_tokens,output_tokens)) AS max_microusd,\n    sum(prompt_tokens) AS prompt_tokens,sum(output_tokens) AS output_tokens,sum(total_tokens) AS total_tokens\n  FROM private.ai_test_usage_v5 WHERE recorded_at>='2026-11-07T00:00:00Z'\n    AND recorded_at<'2026-11-08T00:00:00Z'\n), function_metadata AS (\n  SELECT signature,md5(p.prosrc) AS body_md5,pg_get_userbyid(p.proowner) AS owner,p.prosecdef AS definer,\n    p.proconfig AS settings,p.proacl::text AS acl,\n    has_function_privilege('anon',p.oid,'EXECUTE') AS anon_execute,\n    has_function_privilege('authenticated',p.oid,'EXECUTE') AS authenticated_execute\n  FROM unnest(ARRAY[\n    'public.rpc_ai_test_budget_reserve_service(uuid,uuid,text,bigint)',\n    'public.rpc_ai_test_record_usage_service(uuid,text,integer,integer,integer)',\n    'public.rpc_ai_test_release_unused_reservation_service(uuid)',\n    'public.rpc_ai_test_settle_audio_service(uuid,bigint,integer)',\n    'private.ai_test_price_microusd(integer,integer)',\n    'private.ai_test_stt_price_microusd(bigint,integer)'\n  ]) signature JOIN pg_proc p ON p.oid=to_regprocedure(signature)\n)\nSELECT jsonb_build_object(\n  'checked_at',clock_timestamp(),\n  'budget',(SELECT to_jsonb(b) FROM private.ai_test_budget_v5 b WHERE singleton),\n  'reservations',(SELECT jsonb_build_object(\n    'count',count(*),'distinct_operations',count(DISTINCT operation_id),\n    'unknown_count',count(*) FILTER(WHERE settled_microusd IS NULL),\n    'unknown_hold_microusd',coalesce(sum(max_cost_microusd) FILTER(WHERE settled_microusd IS NULL),0),\n    'settled_microusd',coalesce(sum(settled_microusd),0),\n    'ledger_exposure_microusd',sum(coalesce(settled_microusd,max_cost_microusd)),\n    'earliest',min(created_at),'latest',max(created_at)\n    ) FROM private.ai_test_reservations_v5),\n  'usage',(SELECT jsonb_build_object(\n    'count',count(*),'distinct_operations',count(DISTINCT operation_id),\n    'internal_priced_microusd',sum(private.ai_test_price_microusd(prompt_tokens,output_tokens)),\n    'prompt_tokens',sum(prompt_tokens),'output_tokens',sum(output_tokens),'total_tokens',sum(total_tokens),\n    'earliest',min(recorded_at),'latest',max(recorded_at)\n    ) FROM private.ai_test_usage_v5),\n  'usage_consistency',(SELECT jsonb_build_object(\n    'orphan_usage',count(*) FILTER(WHERE r.operation_id IS NULL),\n    'account_mismatches',count(*) FILTER(WHERE u.account_id<>r.account_id),\n    'unsettled_with_usage',count(*) FILTER(WHERE r.settled_microusd IS NULL),\n    'nonmeasured_with_usage',count(*) FILTER(WHERE r.settlement_basis IS DISTINCT FROM 'MEASURED'),\n    'amount_mismatches',count(*) FILTER(WHERE r.settled_microusd IS DISTINCT FROM private.ai_test_price_microusd(u.prompt_tokens,u.output_tokens)),\n    'usage_above_reservation',count(*) FILTER(WHERE private.ai_test_price_microusd(u.prompt_tokens,u.output_tokens)>r.max_cost_microusd)\n    ) FROM private.ai_test_usage_v5 u LEFT JOIN private.ai_test_reservations_v5 r USING(operation_id)),\n  'settlement_groups',(SELECT jsonb_agg(g ORDER BY kind,settlement_basis) FROM settlement_groups g),\n  'unknown_command_groups',(SELECT jsonb_agg(g ORDER BY kind,surface,state,provider_dispatched) FROM unknown_groups g),\n  'multiple_command_links',(SELECT count(*) FROM(\n    SELECT operation_id FROM command_links GROUP BY operation_id HAVING count(*)>1) g),\n  'current_explicit_nondispatched_links',(SELECT count(*) FROM command_links WHERE provider_dispatched=false),\n  'missing_measured_usage',(SELECT to_jsonb(m) FROM missing_measured_usage m),\n  'recent_usage',(SELECT to_jsonb(u) FROM recent_usage u),\n  'allowlist',(SELECT jsonb_build_object('total',count(*),\n    'active',count(*) FILTER(WHERE retired_at IS NULL)) FROM private.ai_test_accounts_v5),\n  'functions',(SELECT jsonb_agg(m ORDER BY signature) FROM function_metadata m),\n  'relevant_constraints',(SELECT jsonb_agg(jsonb_build_object(\n    'relation',c.conrelid::regclass::text,'name',c.conname,'definition',pg_get_constraintdef(c.oid))\n    ORDER BY c.conrelid::regclass::text,c.conname)\n    FROM pg_constraint c WHERE c.conrelid IN(\n      'private.ai_test_budget_v5'::regclass,'private.ai_test_reservations_v5'::regclass,'private.ai_test_usage_v5'::regclass)\n    AND (c.contype IN('p','u','f') OR c.conname='ai_test_budget_v5_ceiling_microusd_check'))\n) AS evidence;\n\n",
+  "result": [
+    {
+      "evidence": {
+        "usage": {
+          "count": 1227,
+          "latest": "2026-11-07T12:33:15.625161+00:00",
+          "earliest": "2026-09-18T12:37:32.481917+00:00",
+          "total_tokens": 10309025,
+          "output_tokens": 428499,
+          "prompt_tokens": 9878097,
+          "distinct_operations": 1227,
+          "internal_priced_microusd": 9015893
+        },
+        "budget": {
+          "enabled": true,
+          "singleton": true,
+          "ceiling_microusd": 5000000,
+          "price_valid_until": "2027-01-01T00:00:00+00:00",
+          "reserved_microusd": 65486681,
+          "reservation_cap_enforced": false
+        },
+        "allowlist": {
+          "total": 17,
+          "active": 12
+        },
+        "functions": [
+          {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "definer": true,
+            "body_md5": "87ad940334ae78be5a3c0b19983d5981",
+            "settings": [
+              "search_path=pg_catalog"
+            ],
+            "signature": "private.ai_test_price_microusd(integer,integer)",
+            "anon_execute": false,
+            "authenticated_execute": false
+          },
+          {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "definer": true,
+            "body_md5": "ddbe2bb651ccc097b153ed4ec8ddb39b",
+            "settings": [
+              "search_path=pg_catalog"
+            ],
+            "signature": "private.ai_test_stt_price_microusd(bigint,integer)",
+            "anon_execute": false,
+            "authenticated_execute": false
+          },
+          {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "definer": true,
+            "body_md5": "91629b929aae24dc3a9b05b412ab1b2e",
+            "settings": [
+              "search_path=pg_catalog, public, private"
+            ],
+            "signature": "public.rpc_ai_test_budget_reserve_service(uuid,uuid,text,bigint)",
+            "anon_execute": false,
+            "authenticated_execute": false
+          },
+          {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "definer": true,
+            "body_md5": "584eecfd229477010ae1043257a04227",
+            "settings": [
+              "search_path=pg_catalog"
+            ],
+            "signature": "public.rpc_ai_test_record_usage_service(uuid,text,integer,integer,integer)",
+            "anon_execute": false,
+            "authenticated_execute": false
+          },
+          {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "definer": true,
+            "body_md5": "f3307b7e3c09b11d34f7e53ba19b7922",
+            "settings": [
+              "search_path=pg_catalog"
+            ],
+            "signature": "public.rpc_ai_test_release_unused_reservation_service(uuid)",
+            "anon_execute": false,
+            "authenticated_execute": false
+          },
+          {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "definer": true,
+            "body_md5": "443dd3877a4aac63eed7189d0e3eba1f",
+            "settings": [
+              "search_path=pg_catalog"
+            ],
+            "signature": "public.rpc_ai_test_settle_audio_service(uuid,bigint,integer)",
+            "anon_execute": false,
+            "authenticated_execute": false
+          }
+        ],
+        "checked_at": "2026-11-09T00:51:10.361387+00:00",
+        "recent_usage": {
+          "count": 13,
+          "sample": "2026-11-07_UTC",
+          "max_microusd": 11341,
+          "min_microusd": 1131,
+          "total_tokens": 84094,
+          "mean_microusd": 6105.38,
+          "output_tokens": 5432,
+          "prompt_tokens": 78662,
+          "total_microusd": 79370
+        },
+        "reservations": {
+          "count": 2324,
+          "latest": "2026-11-07T12:33:13.867776+00:00",
+          "earliest": "2026-09-13T13:09:25.253856+00:00",
+          "unknown_count": 221,
+          "settled_microusd": 10386681,
+          "distinct_operations": 2324,
+          "unknown_hold_microusd": 55100000,
+          "ledger_exposure_microusd": 65486681
+        },
+        "settlement_groups": [
+          {
+            "kind": "LLM",
+            "count": 19,
+            "usage_count": 0,
+            "settled_microusd": 58026,
+            "settlement_basis": "CONSERVATIVE_ESTIMATE_UNMEASURED",
+            "allocated_microusd": 4750000,
+            "usage_priced_microusd": null
+          },
+          {
+            "kind": "LLM",
+            "count": 1408,
+            "usage_count": 1227,
+            "settled_microusd": 9537381,
+            "settlement_basis": "MEASURED",
+            "allocated_microusd": 352000000,
+            "usage_priced_microusd": 9015893
+          },
+          {
+            "kind": "LLM",
+            "count": 218,
+            "usage_count": 0,
+            "settled_microusd": null,
+            "settlement_basis": null,
+            "allocated_microusd": 54500000,
+            "usage_priced_microusd": null
+          },
+          {
+            "kind": "STT",
+            "count": 554,
+            "usage_count": 0,
+            "settled_microusd": 791274,
+            "settlement_basis": "AUDIO_DURATION_AT_PUBLISHED_RATE",
+            "allocated_microusd": 110800000,
+            "usage_priced_microusd": null
+          },
+          {
+            "kind": "STT",
+            "count": 122,
+            "usage_count": 0,
+            "settled_microusd": 0,
+            "settlement_basis": "FAILED_NO_USAGE",
+            "allocated_microusd": 24400000,
+            "usage_priced_microusd": null
+          },
+          {
+            "kind": "STT",
+            "count": 3,
+            "usage_count": 0,
+            "settled_microusd": null,
+            "settlement_basis": null,
+            "allocated_microusd": 600000,
+            "usage_priced_microusd": null
+          }
+        ],
+        "usage_consistency": {
+          "orphan_usage": 0,
+          "amount_mismatches": 0,
+          "account_mismatches": 0,
+          "unsettled_with_usage": 0,
+          "nonmeasured_with_usage": 0,
+          "usage_above_reservation": 0
+        },
+        "relevant_constraints": [
+          {
+            "name": "ai_test_budget_v5_ceiling_microusd_check",
+            "relation": "private.ai_test_budget_v5",
+            "definition": "CHECK ((ceiling_microusd = 5000000))"
+          },
+          {
+            "name": "ai_test_budget_v5_pkey",
+            "relation": "private.ai_test_budget_v5",
+            "definition": "PRIMARY KEY (singleton)"
+          },
+          {
+            "name": "ai_test_reservations_v5_operation_id_key",
+            "relation": "private.ai_test_reservations_v5",
+            "definition": "UNIQUE (operation_id)"
+          },
+          {
+            "name": "ai_test_reservations_v5_pkey",
+            "relation": "private.ai_test_reservations_v5",
+            "definition": "PRIMARY KEY (id)"
+          },
+          {
+            "name": "ai_test_usage_v5_account_id_fkey",
+            "relation": "private.ai_test_usage_v5",
+            "definition": "FOREIGN KEY (account_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+          },
+          {
+            "name": "ai_test_usage_v5_pkey",
+            "relation": "private.ai_test_usage_v5",
+            "definition": "PRIMARY KEY (operation_id)"
+          }
+        ],
+        "missing_measured_usage": {
+          "count": 181,
+          "newest": "2026-10-13T18:11:29.229077+00:00",
+          "oldest": "2026-09-17T09:04:54.817152+00:00",
+          "auth_row_live": 0,
+          "auth_row_absent": 181,
+          "settled_microusd": 521488,
+          "auth_row_soft_deleted": 0
+        },
+        "multiple_command_links": 0,
+        "unknown_command_groups": [
+          {
+            "kind": "LLM",
+            "count": 51,
+            "state": "FAILED",
+            "newest": "2026-11-05T20:22:06.66694+00:00",
+            "oldest": "2026-09-17T18:23:05.868516+00:00",
+            "surface": "NEED",
+            "hold_microusd": 12750000,
+            "provider_dispatched": true
+          },
+          {
+            "kind": "LLM",
+            "count": 103,
+            "state": null,
+            "newest": "2026-11-01T14:42:24.853176+00:00",
+            "oldest": "2026-10-14T20:43:30.657059+00:00",
+            "surface": "NO_CURRENT_COMMAND_LINK",
+            "hold_microusd": 25750000,
+            "provider_dispatched": null
+          },
+          {
+            "kind": "LLM",
+            "count": 6,
+            "state": "EVALUATED",
+            "newest": "2026-10-10T12:44:37.297697+00:00",
+            "oldest": "2026-09-19T06:50:27.580624+00:00",
+            "surface": "PUBLICATION_REVIEW",
+            "hold_microusd": 1500000,
+            "provider_dispatched": null
+          },
+          {
+            "kind": "LLM",
+            "count": 53,
+            "state": "PUBLISHED",
+            "newest": "2026-11-02T15:13:18.177013+00:00",
+            "oldest": "2026-09-18T10:11:48.908618+00:00",
+            "surface": "PUBLICATION_REVIEW",
+            "hold_microusd": 13250000,
+            "provider_dispatched": null
+          },
+          {
+            "kind": "LLM",
+            "count": 1,
+            "state": "COMMITTED",
+            "newest": "2026-10-08T21:12:10.293935+00:00",
+            "oldest": "2026-10-08T21:12:10.293935+00:00",
+            "surface": "QA",
+            "hold_microusd": 250000,
+            "provider_dispatched": true
+          },
+          {
+            "kind": "LLM",
+            "count": 4,
+            "state": "REJECTED",
+            "newest": "2026-10-08T21:32:40.964445+00:00",
+            "oldest": "2026-10-08T21:11:49.816115+00:00",
+            "surface": "QA",
+            "hold_microusd": 1000000,
+            "provider_dispatched": true
+          },
+          {
+            "kind": "STT",
+            "count": 3,
+            "state": null,
+            "newest": "2026-09-17T16:51:53.44043+00:00",
+            "oldest": "2026-09-17T16:50:12.005644+00:00",
+            "surface": "NO_CURRENT_COMMAND_LINK",
+            "hold_microusd": 600000,
+            "provider_dispatched": null
+          }
+        ],
+        "current_explicit_nondispatched_links": 0
+      }
+    }
+  ]
+}

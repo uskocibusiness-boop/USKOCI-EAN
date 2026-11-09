@@ -31,6 +31,8 @@ export type ProductSheetProps = {
   /** Called once. The owner remains responsible for the command's result. */
   onClose: () => void;
   children: (dismiss: () => void) => ReactNode;
+  /** A bounded content page changed. Reset its viewport without remounting the dialog. */
+  contentKey?: string;
   /** Commands stay outside the content scroll. */
   footer?: (dismiss: () => void) => ReactNode;
   /** User dismissal asks before discarding; explicit commit may dismiss directly. */
@@ -45,12 +47,13 @@ export type ProductSheetProps = {
  * Keyboard avoidance bounds the whole surface; long content and unusually large actions can scroll independently.
  */
 export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHint = SHEET_BACKDROP_HINT, reduced: callerReduced,
-  onClose, children, footer, dirty = false, dismissible = true, closeButton = true }: ProductSheetProps) {
+  onClose, children, contentKey, footer, dirty = false, dismissible = true, closeButton = true }: ProductSheetProps) {
   const systemReduced = useSystemReducedMotion();
   const reduced = callerReduced ?? systemReduced;
   const insets = useContext(InsetsContext ?? fallbackInsets) ?? { top: 0, bottom: 0, left: 0, right: 0 };
   const closing = useRef(false);
   const [asking, setAsking] = useState(false);
+  const contentScroll = useRef<ScrollView>(null);
   const state = useRef({ dirty, dismissible, asking, onClose });
   state.current = { dirty, dismissible, asking, onClose };
   const scale = useSharedValue(reduced ? 1 : sys.motion.dialog.from);
@@ -60,6 +63,7 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
     return () => cancelAnimation(scale);
   }, [reduced, scale]);
   useEffect(() => { if (!dirty) setAsking(false); }, [dirty]);
+  useEffect(() => { if (contentKey !== undefined) contentScroll.current?.scrollTo({ y: 0, animated: false }); }, [contentKey]);
   const dismiss = useCallback(() => {
     if (closing.current) return;
     closing.current = true;
@@ -100,7 +104,7 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
               accessibilityState={{ disabled: !dismissible }} disabled={!dismissible} onPress={requestClose} haptic="none" style={s.close}>
               <Glyph name="close" size={24} /></Press> : null}
           </View> : null}
-          <ScrollView testID="product-sheet-content" style={s.body} contentContainerStyle={s.content}
+          <ScrollView ref={contentScroll} testID="product-sheet-content" style={s.body} contentContainerStyle={s.content}
             keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" persistentScrollbar>
             <View style={s.stack} accessibilityElementsHidden={asking} importantForAccessibility={asking ? 'no-hide-descendants' : 'auto'}
               pointerEvents={asking ? 'none' : 'auto'}>{children(dismiss)}</View>

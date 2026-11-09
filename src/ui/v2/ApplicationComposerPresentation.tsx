@@ -403,7 +403,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
       <Section title="Poruka uz prijavu">
         <View style={s.group}>
           <TextInput accessibilityLabel="Poruka uz prijavu" multiline maxLength={NOTE_LIMIT} value={draft.note} editable={!disabled}
-            style={[s.note, focused === 'note' && s.fieldFocused]} placeholder="Npr. šta donosite ili kada možete da dođete." placeholderTextColor={sys.color.muted}
+            style={[s.note, focused === 'note' && s.fieldFocused]} placeholder="Npr. koju opremu donosite ili šta je još važno za zadatak." placeholderTextColor={sys.color.muted}
             onFocus={() => setFocused('note')} onBlur={() => setFocused(null)}
             onChangeText={note => { if (!disabled) change({ ...draft, note }); }} />
           <T variant="note" tone="muted">Opciono.{draft.note.length >= NOTE_COUNTER_FROM ? ` Još ${noteLeft} ${plural(noteLeft, 'znak', 'znaka', 'znakova')}.` : ''}</T>

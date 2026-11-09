@@ -1,0 +1,983 @@
+{
+  "schema_version": 1,
+  "read_only_forensic": true,
+  "date": "2026-11-09",
+  "source": {
+    "repo": "uskocibusiness-boop/USKOCI-EAN",
+    "branch": "work/uskoci-cist-proizvod-20261104",
+    "published_head_at_initial_read": "b066aaf9a8f1fd0b5895989fd2d8516abcc5c556",
+    "qa92_source": "47fc6708ae7e9e8669fb1943f94d63b14647c7eb",
+    "runtime_equal_between_these_commits": true,
+    "newer_unpublished_local_commit": "b20346b1e8e2bcd200c6394379d5826f77a3acee",
+    "original_dirty_checkout_modified": false
+  },
+  "master_read_coverage": {
+    "execution_original_lines": 6026,
+    "execution_original_bytes": 1208960,
+    "ranges": {
+      "coordinator": [
+        [
+          1,
+          946
+        ]
+      ],
+      "backend_ai": [
+        [
+          947,
+          1676
+        ],
+        [
+          4501,
+          5082
+        ]
+      ],
+      "product_ui": [
+        [
+          1677,
+          1894
+        ],
+        [
+          5083,
+          5798
+        ]
+      ],
+      "qa_security": [
+        [
+          1895,
+          4500
+        ],
+        [
+          5799,
+          6026
+        ]
+      ]
+    },
+    "product_current_sections": "A-J",
+    "product_current_original_lines": [
+      1,
+      1692
+    ],
+    "product_history_read_this_turn": false,
+    "product_preimage_sha256": "9f1c2385e47f79c0d339bc34ecefc10b75524794e42fbf8642912d17bcf70cdb"
+  },
+  "dev": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "captured_at": "2026-11-09T00:43:30Z",
+    "status": "ACTIVE_HEALTHY",
+    "postgres": "17.6.1.165",
+    "migration_count": 368,
+    "latest_migrations": [
+      {
+        "name": "r13_hosted_transaction_probe_20261108",
+        "version": "20261108230512"
+      },
+      {
+        "name": "home_agreements_summary_20261108",
+        "version": "20261108230350"
+      },
+      {
+        "name": "r10_owned_usage_projection_post_r09_20261108",
+        "version": "20261108225909"
+      },
+      {
+        "name": "r09_applicant_suppression_20261108",
+        "version": "20261108222329"
+      },
+      {
+        "name": "r09_worker_activation_clock_20261108",
+        "version": "20261108211133"
+      },
+      {
+        "name": "r13_coalesce_push_wake_20261108",
+        "version": "20261108154914"
+      },
+      {
+        "name": "r13_short_publication_transaction_20261108",
+        "version": "20261108141444"
+      },
+      {
+        "name": "r12_quarantine_unverified_legal_v11_20261108",
+        "version": "20261108140731"
+      },
+      {
+        "name": "verify_legal_bundle_rpc",
+        "version": "20261108110019"
+      },
+      {
+        "name": "r12_reactivate_verified_counsel_bundle_20261108",
+        "version": "20261108110012"
+      }
+    ],
+    "cron": [
+      {
+        "name": "uskoci_marketplace_tick",
+        "jobid": 1,
+        "active": true,
+        "command": "select private.marketplace_tick(25);",
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "uskoci_edge_workers",
+        "jobid": 2,
+        "active": true,
+        "command": "select private.edge_worker_tick_v5()",
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "uskoci_taxonomy_postsave_tick_dev",
+        "jobid": 3,
+        "active": true,
+        "command": "[network call redacted]",
+        "schedule": "* * * * *"
+      }
+    ],
+    "cooperative_active": false,
+    "prepared_input_active": false,
+    "edge_inventory": [
+      {
+        "name": "uskoci-ai-interview",
+        "version": 195,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "663abedcda9b000b001f606ab6cb22dce4331d1f655d4358e1d7c1aabed4f3fc"
+      },
+      {
+        "name": "uskoci-location-search",
+        "version": 32,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "aa756f8daae61e5c8b07179a74ac05e9b5d7e9967393ea3cc21a16ad659ef39f"
+      },
+      {
+        "name": "uskoci-publication-evaluate",
+        "version": 32,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "d9764a7f319195719a411cd9afe4c9ad2e06d6927bdd5f63df70d83c0a001e3f"
+      },
+      {
+        "name": "uskoci-data-export-worker",
+        "version": 29,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "e70434a972d46b0af8216717490bd01f6995e0ee785f811c3873b69f6ec5dfff"
+      },
+      {
+        "name": "uskoci-data-export-download",
+        "version": 29,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "83581eb03346471b6a1f5575bdf63abea79a028cb0722c94664f0b1f6acb733d"
+      },
+      {
+        "name": "uskoci-worker-interview",
+        "version": 148,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "ddbf0bd3e5e15d64ebb650223dc2e573bb8408108c9342dc029e056709efc694"
+      },
+      {
+        "name": "uskoci-speech-session",
+        "version": 33,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "d6095a2cbec088d608bbf65172bb85296c400ad6f191a540ec2724175db2472a"
+      },
+      {
+        "name": "uskoci-qa-classify",
+        "version": 31,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "322bba9d34ad97e04c571288d469d5a3a0efbb66fa458bbfd943f056fc8e8929"
+      },
+      {
+        "name": "uskoci-push-transport",
+        "version": 47,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "3fce4c4b7d03a4bf6f533ee0721b43b86024a66da595603ff8eb5222080a472f"
+      },
+      {
+        "name": "uskoci-media",
+        "version": 31,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "baebc8575e0048a5b42897e7da52cdbfa1a612b0bed36aa97d399fb5274466b9"
+      },
+      {
+        "name": "uskoci-account-closure-worker",
+        "version": 19,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "fe4f56c67541bf60909418a48b7a7d614eb8f95e77e2d337121f3af24c4fd34e"
+      },
+      {
+        "name": "uskoci-taxonomy-postsave-worker",
+        "version": 14,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "b61376460dbc24bcacbddc5473fd882d126f607e8a6ebb422a6be25f6f7b9494"
+      },
+      {
+        "name": "sbfenv",
+        "version": 10,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18"
+      },
+      {
+        "name": "uskoci-gemini-schema-smoke",
+        "version": 11,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72"
+      },
+      {
+        "name": "uskoci-gemini-provider-probe-dev",
+        "version": 12,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0"
+      }
+    ]
+  },
+  "edge_parity": {
+    "edge-uskoci-ai-interview-parity.json": {
+      "files": 22,
+      "exact": 21,
+      "differences": [
+        {
+          "path": "supabase/functions/_shared/geminiContextCache.mjs",
+          "same": false,
+          "normalize_newlines_same": false,
+          "live_bytes": 3128,
+          "source_bytes": 2952
+        }
+      ]
+    },
+    "edge-uskoci-publication-evaluate-parity.json": {
+      "files": 5,
+      "exact": 2,
+      "differences": [
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "same": false,
+          "normalize_newlines_same": false,
+          "live_bytes": 9511,
+          "source_bytes": 9505
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "same": false,
+          "normalize_newlines_same": false,
+          "live_bytes": 19301,
+          "source_bytes": 20929
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "same": false,
+          "normalize_newlines_same": false,
+          "live_bytes": 467,
+          "source_bytes": 469
+        }
+      ]
+    },
+    "edge-uskoci-qa-classify-parity.json": {
+      "files": 7,
+      "exact": 5,
+      "differences": [
+        {
+          "path": "src/contracts/qaSubmission.ts",
+          "same": false,
+          "normalize_newlines_same": false,
+          "live_bytes": 4808,
+          "source_bytes": 4811
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "same": false,
+          "normalize_newlines_same": false,
+          "live_bytes": 7709,
+          "source_bytes": 9505
+        }
+      ]
+    },
+    "edge-uskoci-speech-session-parity.json": {
+      "files": 5,
+      "exact": 5,
+      "differences": []
+    },
+    "edge-uskoci-taxonomy-postsave-worker-parity.json": {
+      "files": 3,
+      "exact": 3,
+      "differences": []
+    },
+    "edge-uskoci-worker-interview-parity.json": {
+      "files": 23,
+      "exact": 22,
+      "differences": [
+        {
+          "path": "supabase/functions/_shared/geminiContextCache.mjs",
+          "same": false,
+          "normalize_newlines_same": false,
+          "live_bytes": 3128,
+          "source_bytes": 2952
+        }
+      ]
+    }
+  },
+  "cron_24h": [
+    {
+      "n": 1440,
+      "last": "2026-11-09T00:43:00.069466+00:00",
+      "first": "2026-11-08T00:44:00.727683+00:00",
+      "avg_ms": 442.48,
+      "max_ms": 5149.588,
+      "p50_ms": 364.909,
+      "p95_ms": 1102.65325,
+      "status": "succeeded",
+      "jobname": "uskoci_edge_workers"
+    },
+    {
+      "n": 1440,
+      "last": "2026-11-09T00:43:00.068216+00:00",
+      "first": "2026-11-08T00:44:00.730795+00:00",
+      "avg_ms": 105.46,
+      "max_ms": 2776.642,
+      "p50_ms": 65.719,
+      "p95_ms": 394.9723,
+      "status": "succeeded",
+      "jobname": "uskoci_marketplace_tick"
+    },
+    {
+      "n": 1440,
+      "last": "2026-11-09T00:43:00.065798+00:00",
+      "first": "2026-11-08T00:44:00.733181+00:00",
+      "avg_ms": 33.47,
+      "max_ms": 428.221,
+      "p50_ms": 25.156,
+      "p95_ms": 105.8061,
+      "status": "succeeded",
+      "jobname": "uskoci_taxonomy_postsave_tick_dev"
+    }
+  ],
+  "db_snapshot": {
+    "bytes": 123849875,
+    "activity": [
+      {
+        "n": 1,
+        "state": "active",
+        "wait_event": null,
+        "oldest_tx_s": 0,
+        "wait_event_type": null
+      },
+      {
+        "n": 7,
+        "state": "idle",
+        "wait_event": "ClientRead",
+        "oldest_tx_s": null,
+        "wait_event_type": "Client"
+      },
+      {
+        "n": 1,
+        "state": "idle",
+        "wait_event": "Extension",
+        "oldest_tx_s": null,
+        "wait_event_type": "Extension"
+      },
+      {
+        "n": 1,
+        "state": null,
+        "wait_event": "Extension",
+        "oldest_tx_s": null,
+        "wait_event_type": "Extension"
+      }
+    ],
+    "cooperative_exists": false
+  },
+  "gates": {
+    "query": "select jsonb_build_object('checked_at',clock_timestamp(),'legal',jsonb_build_object('ready',public.rpc_get_legal_bundle()->'ready','reason',public.rpc_get_legal_bundle()->'reason'),'retention_policy_sets',(select count(*) from private.retention_policy_sets),'retention_policy_rules',(select count(*) from private.retention_policy_rules),'retention_ai_source_ready',private.retention_ai_source_ready(),'data_export_policy_binding_null',private.data_export_policy_binding() is null,'legal_documents', (select jsonb_agg(x) from(select document_kind,count(*) as total,count(*) filter(where is_active and retired_at is null and published_at<=statement_timestamp() and effective_at<=statement_timestamp()) as active from private.legal_document_versions group by document_kind)x),'processor_active_maps',(select count(*) from private.processor_map_sets where retired_at is null and effective_at<=statement_timestamp()),'old_delete_tables',jsonb_build_object('need_facts_v2',to_regclass('public.need_facts_v2') is not null,'ai_conversation_messages',to_regclass('public.ai_conversation_messages') is not null),'projection_count',jsonb_array_length(private.data_export_dataset_catalog())) result",
+    "result": [
+      {
+        "result": {
+          "legal": {
+            "ready": false,
+            "reason": "LEGAL_DOCUMENTS_NOT_PUBLISHED"
+          },
+          "checked_at": "2026-11-09T00:51:11.004287+00:00",
+          "legal_documents": [
+            {
+              "total": 2,
+              "active": 0,
+              "document_kind": "PRIVACY"
+            },
+            {
+              "total": 2,
+              "active": 0,
+              "document_kind": "TERMS"
+            }
+          ],
+          "projection_count": 73,
+          "old_delete_tables": {
+            "need_facts_v2": false,
+            "ai_conversation_messages": false
+          },
+          "processor_active_maps": 0,
+          "retention_policy_sets": 0,
+          "retention_policy_rules": 0,
+          "retention_ai_source_ready": false,
+          "data_export_policy_binding_null": true
+        }
+      }
+    ]
+  },
+  "final_acl_and_historical_usage_boundary": {
+    "query": "select jsonb_build_object('checked_at',clock_timestamp(),'usage_total_consistency',(select jsonb_build_object('retained_rows',count(*),'nonbalancing_rows',count(*) filter(where total_tokens<>prompt_tokens+output_tokens),'total_residual',sum(total_tokens-prompt_tokens-output_tokens),'first_nonbalancing',min(recorded_at) filter(where total_tokens<>prompt_tokens+output_tokens),'last_nonbalancing',max(recorded_at) filter(where total_tokens<>prompt_tokens+output_tokens),'nonbalancing_last7d',count(*) filter(where total_tokens<>prompt_tokens+output_tokens and recorded_at>=now()-interval '7 days')) from private.ai_test_usage_v5),'no_rls_with_app_select',(select coalesce(jsonb_agg(jsonb_build_object('relation',c.oid::regclass::text,'anon_select',has_table_privilege('anon',c.oid,'SELECT'),'authenticated_select',has_table_privilege('authenticated',c.oid,'SELECT'))),'[]'::jsonb) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in('public','private','rls_private') and c.relkind in('r','p') and not c.relrowsecurity and (has_table_privilege('anon',c.oid,'SELECT') or has_table_privilege('authenticated',c.oid,'SELECT'))),'needs_privileges',jsonb_build_object('rls',(select relrowsecurity from pg_class where oid='public.needs'::regclass),'anon_table_select',has_table_privilege('anon','public.needs','SELECT'),'authenticated_table_select',has_table_privilege('authenticated','public.needs','SELECT'),'authenticated_reason_select',has_column_privilege('authenticated','public.needs','remaining_search_close_reason','SELECT'),'authenticated_actor_select',has_column_privilege('authenticated','public.needs','remaining_search_closed_by_account_id','SELECT')),'private_probe',jsonb_build_object('anon_execute',has_function_privilege('anon','private.capacity4_transaction_probe_v1()','EXECUTE'),'authenticated_execute',has_function_privilege('authenticated','private.capacity4_transaction_probe_v1()','EXECUTE'),'service_role_execute',has_function_privilege('service_role','private.capacity4_transaction_probe_v1()','EXECUTE'))) result",
+    "result": [
+      {
+        "result": {
+          "checked_at": "2026-11-09T01:01:34.704347+00:00",
+          "private_probe": {
+            "anon_execute": false,
+            "service_role_execute": false,
+            "authenticated_execute": false
+          },
+          "needs_privileges": {
+            "rls": true,
+            "anon_table_select": false,
+            "authenticated_actor_select": false,
+            "authenticated_table_select": false,
+            "authenticated_reason_select": false
+          },
+          "no_rls_with_app_select": [],
+          "usage_total_consistency": {
+            "retained_rows": 1227,
+            "total_residual": 2429,
+            "last_nonbalancing": "2026-10-19T06:22:22.539874+00:00",
+            "nonbalancing_rows": 9,
+            "first_nonbalancing": "2026-09-23T20:06:48.382107+00:00",
+            "nonbalancing_last7d": 0
+          }
+        }
+      }
+    ]
+  },
+  "prior_qa92": {
+    "date": "2026-11-09",
+    "archive_digest_matches": [
+      {
+        "local_name": "apk.zip",
+        "artifact_id": 13639480252,
+        "bytes": 48857005,
+        "sha256": "66bbbce1be524bcbcbe572c578be39634535fa16e9ee0d1a3c6377c66085d446",
+        "matches_github": true
+      },
+      {
+        "local_name": "checks.zip",
+        "artifact_id": 13638491789,
+        "bytes": 42570,
+        "sha256": "1020c3959a091be5dfd0919177a2d9efda35e9bcdb620cb9c712d3b5c332f6b6",
+        "matches_github": true
+      }
+    ],
+    "apk": {
+      "name": "USKOCI-QA-47fc6708a.apk",
+      "bytes": 83460027,
+      "sha256": "d45fb8a99335cd08a77959dcffcbb6dda719b926e790905db696304f79d08669"
+    },
+    "build_receipt": {
+      "status": "BUILD_OUTPUT_NOT_NATIVE_E2E",
+      "sourceCommit": "47fc6708ae7e9e8669fb1943f94d63b14647c7eb",
+      "filename": "USKOCI-QA-47fc6708a.apk",
+      "bytes": 83460027,
+      "sha256": "d45fb8a99335cd08a77959dcffcbb6dda719b926e790905db696304f79d08669",
+      "package": "rs.uskoci.preview.qa",
+      "signing": "EXPO_TEMPLATE_ANDROID_DEBUG_KEY",
+      "backend": "DEV",
+      "runtimeVersion": "uskoci-v1-preview-r2",
+      "abis": [
+        "arm64-v8a"
+      ],
+      "embeddedBundle": true,
+      "otaEnabled": false,
+      "nativePatchMarker": "USKOCI_RNR01",
+      "dexFiles": 7,
+      "bundledAudioSha256": {
+        "uskoci_confirm_v1.wav": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1",
+        "uskoci_message_v1.wav": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed",
+        "uskoci_opportunity_v1.wav": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+      },
+      "bundledAudioResources": {
+        "uskoci_confirm_v1.wav": {
+          "logicalName": "raw/uskoci_confirm_v1",
+          "resourceId": "0x7f120003",
+          "apkPath": "res/F2.wav",
+          "bytes": 20330,
+          "sha256": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1"
+        },
+        "uskoci_message_v1.wav": {
+          "logicalName": "raw/uskoci_message_v1",
+          "resourceId": "0x7f120004",
+          "apkPath": "res/ES.wav",
+          "bytes": 10628,
+          "sha256": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed"
+        },
+        "uskoci_opportunity_v1.wav": {
+          "logicalName": "raw/uskoci_opportunity_v1",
+          "resourceId": "0x7f120005",
+          "apkPath": "res/fp.wav",
+          "bytes": 18566,
+          "sha256": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+        }
+      },
+      "audioResourceTableVerification": {
+        "aapt2": {
+          "version": "Android Asset Packaging Tool (aapt) 2.20-15087165",
+          "sha256": "0f1c0e560f99db510a76ebc99ad5c3e68438f62e8e8617018a716ca4a589a699"
+        },
+        "resourceDump": {
+          "bytes": 2397493,
+          "sha256": "d2e300cef281d748a2eb01d243d1ae5fc4df2e13d7f9f6a2870268ff2f68098b"
+        }
+      },
+      "customSoundActivation": "NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED",
+      "configOverrides": {
+        "name": "USKOČI • QA",
+        "androidPackage": "rs.uskoci.preview.qa"
+      },
+      "push": "NOT_PROVEN",
+      "deviceInstall": "NOT_PERFORMED",
+      "replacesExistingPreview": false
+    },
+    "native_receipt": {
+      "abis": [
+        "arm64-v8a"
+      ],
+      "embeddedBundle": true,
+      "otaEnabled": false,
+      "nativePatchMarker": "USKOCI_RNR01",
+      "dexFiles": 7,
+      "bundledAudioSha256": {
+        "uskoci_confirm_v1.wav": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1",
+        "uskoci_message_v1.wav": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed",
+        "uskoci_opportunity_v1.wav": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+      },
+      "bundledAudioResources": {
+        "uskoci_confirm_v1.wav": {
+          "logicalName": "raw/uskoci_confirm_v1",
+          "resourceId": "0x7f120003",
+          "apkPath": "res/F2.wav",
+          "bytes": 20330,
+          "sha256": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1"
+        },
+        "uskoci_message_v1.wav": {
+          "logicalName": "raw/uskoci_message_v1",
+          "resourceId": "0x7f120004",
+          "apkPath": "res/ES.wav",
+          "bytes": 10628,
+          "sha256": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed"
+        },
+        "uskoci_opportunity_v1.wav": {
+          "logicalName": "raw/uskoci_opportunity_v1",
+          "resourceId": "0x7f120005",
+          "apkPath": "res/fp.wav",
+          "bytes": 18566,
+          "sha256": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+        }
+      },
+      "audioResourceTableVerification": {
+        "aapt2": {
+          "version": "Android Asset Packaging Tool (aapt) 2.20-15087165",
+          "sha256": "0f1c0e560f99db510a76ebc99ad5c3e68438f62e8e8617018a716ca4a589a699"
+        },
+        "resourceDump": {
+          "bytes": 2397493,
+          "sha256": "d2e300cef281d748a2eb01d243d1ae5fc4df2e13d7f9f6a2870268ff2f68098b"
+        }
+      },
+      "customSoundActivation": "NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED"
+    },
+    "device_test_this_audit": false,
+    "checks_archive_names": [
+      "migration-integrity.txt",
+      "tests.tap",
+      "typescript.txt"
+    ],
+    "migration_check_output": "PASS migration_integrity files=228 live_snapshot=87 pending=60 physical_suffix=43 oct26_suffix=3 nov7_suffix=7 r13_push_wake=1 r09_activation=1 r09_applicant=1 nov7_forward=3 r08_forward=1 r01_forward=1 r08_reviews_forward=1 r05_forward=1 continuation_forward=2 recovery_export_forward=2 191500=RECORDED_STATEMENT_RECONSTRUCTION exact_byte_mirror=false participant_contract=PASS\n....................................................\n----------------------------------------------------------------------\nRan 52 tests in 0.077s\n\nOK\n"
+  },
+  "canonical_source_validation": {
+    "observed_date": "2026-11-09",
+    "source_base": "b066aaf9a8f1fd0b5895989fd2d8516abcc5c556",
+    "change_status": "APPLIED_TO_ISOLATED_WORKTREE_NOT_COMMITTED",
+    "scope": "Three already applied DEV migration SQL files readmitted into source with immutable metadata and tests; no DEV execution",
+    "tests": [
+      {
+        "status": "fulfilled",
+        "value": {
+          "chunk_id": "e240ea",
+          "wall_time_seconds": 0.074111254,
+          "exit_code": 0,
+          "original_token_count": 101,
+          "output": "PASS migration_integrity files=231 live_snapshot=87 pending=60 physical_suffix=43 oct26_suffix=3 nov7_suffix=7 r13_push_wake=1 r09_activation=1 r09_applicant=1 post_qa92_readmission=3 nov7_forward=3 r08_forward=1 r01_forward=1 r08_reviews_forward=1 r05_forward=1 continuation_forward=2 recovery_export_forward=2 191500=RECORDED_STATEMENT_RECONSTRUCTION exact_byte_mirror=false participant_contract=PASS\n"
+        }
+      },
+      {
+        "status": "fulfilled",
+        "value": {
+          "chunk_id": "e346df",
+          "wall_time_seconds": 0.278633414,
+          "exit_code": 0,
+          "original_token_count": 40,
+          "output": "............................................................\n----------------------------------------------------------------------\nRan 60 tests in 0.137s\n\nOK\n"
+        }
+      },
+      {
+        "status": "fulfilled",
+        "value": {
+          "chunk_id": "3b692e",
+          "wall_time_seconds": 2.5348e-05,
+          "exit_code": 0,
+          "original_token_count": 83,
+          "output": " supabase/migrations/MD5_MANIFEST.txt             |  3 +\n supabase/migrations/MIGRATION_PROVENANCE.json    | 82 ++++++++++++++++++++++++\n supabase/migrations/check_migration_integrity.py | 31 ++++++++-\n supabase/migrations/test_migration_integrity.py  | 67 ++++++++++++++++++-\n 4 files changed, 181 insertions(+), 2 deletions(-)\n"
+        }
+      }
+    ],
+    "dev_apply": false,
+    "paid_ai": false,
+    "push_sent": false
+  },
+  "new_photo_retry_regression": {
+    "date": "2026-11-09",
+    "source_base": "b066aaf9a8f1fd0b5895989fd2d8516abcc5c556",
+    "status": "SOURCE_IMPLEMENTED_LOCAL_COMPONENT_TESTED",
+    "problem": "The gallery retry remount reused an image data URI whose Expo decoder had already rejected it; it did not readMedia again.",
+    "cause": "AuthorizedPhoto cached the URI before native decoding, but fail removed only the own-profile cache and left the session binding.",
+    "files": [
+      "src/ui/media/photoMemoryCache.ts",
+      "src/ui/media/AuthorizedPhoto.tsx",
+      "scripts/photo-cache-privacy.test.cjs"
+    ],
+    "change": "Forget only the failed current binding; preserve other cache entries, byte budgets and private media reauthorization.",
+    "regression_before": {
+      "command": "node --test --test-name-pattern 'forget evicts|decoded image failure' scripts/photo-cache-privacy.test.cjs",
+      "tests": 2,
+      "passed": 0,
+      "failed": 2,
+      "behavior_failure": "Expected reads ['failed','other','failed']; actual ['failed','other']. Other failing case: cache did not yet expose targeted forget."
+    },
+    "after": {
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "a37f6f",
+        "wall_time_seconds": 1.897487297,
+        "exit_code": 0,
+        "original_token_count": 401,
+        "output": "react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer\n✔ photo cache enforces both byte and entry budgets and evicts least recently used data (2.375669ms)\n✔ expired, future-dated and replaced photos release the retained byte budget (0.483173ms)\n✔ background invalidation prevents late network reads from repopulating the cache (0.32359ms)\n✔ forget evicts only the failed binding and releases its bytes without clearing other reads (0.166913ms)\nreact-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer\nreact-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer\nreact-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer\nreact-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer\n✔ a decoded image failure is read again after gallery retry while unrelated cached photos remain (473.595151ms)\nreact-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer\nreact-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer\n✔ private media rechecks access on a new visit and never displays cached bytes after denial: {\"agreementId\":\"agreement\",\"messageId\":\"message\"} (205.280983ms)\nreact-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer\n✔ private media rechecks access on a new visit and never displays cached bytes after denial: {\"caseId\":\"case\"} (117.030669ms)\nℹ tests 7\nℹ suites 0\nℹ pass 7\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 1679.623234\n"
+      }
+    },
+    "diff_check": {
+      "status": "fulfilled",
+      "value": {
+        "chunk_id": "a3ef61",
+        "wall_time_seconds": 2.2684e-05,
+        "exit_code": 0,
+        "original_token_count": 0,
+        "output": ""
+      }
+    },
+    "physical_android": false,
+    "dev_changed": false,
+    "limitations": "Actual React/source with inert native hosts; native image onError is injected, not a physical decoder measurement."
+  },
+  "limitations": [
+    "No physical Android installation, screenshots, logcat, FPS or RAM measurement in this audit",
+    "No paid AI call or actual push send",
+    "No DEV, secret, budget, legal or production mutation",
+    "No provider invoice access",
+    "No 300000-user capacity proof",
+    "No new ordinary-Auth two-user complete E2E"
+  ],
+  "official_reference_urls": {
+    "image_fit": "https://docs.expo.dev/versions/latest/sdk/image/",
+    "map_android_view": "https://maplibre.org/maplibre-react-native/docs/components/map/",
+    "map_v11": "https://maplibre.org/maplibre-react-native/docs/setup/migrations/v11/",
+    "gemini_prices": "https://ai.google.dev/gemini-api/docs/pricing"
+  },
+  "final_dev_recheck": {
+    "schema": "USKOCI_FINAL_DEV_READBACK_V1",
+    "project_id": "leqcwgzvjsxugfgzdmth",
+    "read_only": true,
+    "scope": "Narrow final readback before source publication: migrations, existing Cron metadata, budget/ledger aggregates, seven Edge identities, R06/R13 candidate absence, three Home body hashes. No provider calls, triggers, function invocation, writes or new broad scanning.",
+    "baseline_sources": [
+      "backend-dev-readback-20261109.json",
+      "backend-live-definitions-20261109.json",
+      "backend-b203-integration-readiness-20261109.json"
+    ],
+    "baseline": {
+      "captured_at": "2026-11-09T00:43:30Z",
+      "snapshot_at": "2026-11-09T00:42:56.187707+00:00",
+      "migration_count": 368,
+      "latest_migration": {
+        "name": "r13_hosted_transaction_probe_20261108",
+        "version": "20261108230512"
+      },
+      "cron": [
+        {
+          "name": "uskoci_marketplace_tick",
+          "jobid": 1,
+          "active": true,
+          "command": "select private.marketplace_tick(25);",
+          "schedule": "* * * * *"
+        },
+        {
+          "name": "uskoci_edge_workers",
+          "jobid": 2,
+          "active": true,
+          "command": "select private.edge_worker_tick_v5()",
+          "schedule": "* * * * *"
+        },
+        {
+          "name": "uskoci_taxonomy_postsave_tick_dev",
+          "jobid": 3,
+          "active": true,
+          "command": "[network call redacted]",
+          "schedule": "* * * * *"
+        }
+      ],
+      "budget": {
+        "enabled": true,
+        "ceiling_microusd": 5000000,
+        "price_valid_until": "2027-01-01T00:00:00+00:00",
+        "reserved_microusd": 65486681,
+        "reservation_cap_enforced": false
+      },
+      "ledger": {
+        "reservation_count": 2324,
+        "unknown_count": 221,
+        "unknown_hold_microusd": 55100000,
+        "settled_microusd": 10386681,
+        "ledger_exposure_microusd": 65486681
+      },
+      "usage": {
+        "count": 1227,
+        "latest": "2026-11-07T12:33:15.625161+00:00"
+      },
+      "edges": [
+        {
+          "slug": "uskoci-ai-interview",
+          "version": 195,
+          "status": "ACTIVE",
+          "verify_jwt": false,
+          "ezbr_sha256": "663abedcda9b000b001f606ab6cb22dce4331d1f655d4358e1d7c1aabed4f3fc"
+        },
+        {
+          "slug": "uskoci-publication-evaluate",
+          "version": 32,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "d9764a7f319195719a411cd9afe4c9ad2e06d6927bdd5f63df70d83c0a001e3f"
+        },
+        {
+          "slug": "uskoci-worker-interview",
+          "version": 148,
+          "status": "ACTIVE",
+          "verify_jwt": false,
+          "ezbr_sha256": "ddbf0bd3e5e15d64ebb650223dc2e573bb8408108c9342dc029e056709efc694"
+        },
+        {
+          "slug": "uskoci-speech-session",
+          "version": 33,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "d6095a2cbec088d608bbf65172bb85296c400ad6f191a540ec2724175db2472a"
+        },
+        {
+          "slug": "uskoci-qa-classify",
+          "version": 31,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "322bba9d34ad97e04c571288d469d5a3a0efbb66fa458bbfd943f056fc8e8929"
+        },
+        {
+          "slug": "uskoci-push-transport",
+          "version": 47,
+          "status": "ACTIVE",
+          "verify_jwt": false,
+          "ezbr_sha256": "3fce4c4b7d03a4bf6f533ee0721b43b86024a66da595603ff8eb5222080a472f"
+        },
+        {
+          "slug": "uskoci-media",
+          "version": 31,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "baebc8575e0048a5b42897e7da52cdbfa1a612b0bed36aa97d399fb5274466b9"
+        }
+      ],
+      "r06_readback": [
+        {
+          "prepared_rpc": false,
+          "prepared_columns": 0
+        }
+      ]
+    },
+    "previous_home_readback_at": "2026-11-09 01:11:14.967992+00",
+    "previous_home_hashes": [
+      {
+        "signature": "private.home_agreement_facts_v1()",
+        "body_md5": "8c759e93b3dbb6cc58d073c73bfe9873"
+      },
+      {
+        "signature": "rpc_home_agreement_prompts_page_v1(integer,jsonb)",
+        "body_md5": "aa07862def7c2fc4a6b9ee7faef6d0f6"
+      },
+      {
+        "signature": "rpc_home_agreements_summary_v1()",
+        "body_md5": "1debcf182b1a333a974fb2fd352672fb"
+      }
+    ],
+    "sql_query": "SELECT jsonb_build_object(\n 'observed_at',clock_timestamp(),\n 'migration_count',(SELECT count(*) FROM supabase_migrations.schema_migrations),\n 'latest_migration',(SELECT jsonb_build_object('version',version,'name',name) FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 1),\n 'cron',(SELECT jsonb_agg(jsonb_build_object('jobid',jobid,'name',jobname,'active',active,'schedule',schedule,'command',CASE WHEN jobname IN ('uskoci_marketplace_tick','uskoci_edge_workers') THEN command ELSE '[network call redacted]' END) ORDER BY jobid) FROM cron.job),\n 'budget',(SELECT jsonb_build_object('enabled',enabled,'reservation_cap_enforced',reservation_cap_enforced,'ceiling_microusd',ceiling_microusd,'reserved_microusd',reserved_microusd,'price_valid_until',price_valid_until) FROM private.ai_test_budget_v5 WHERE singleton),\n 'ledger',(SELECT jsonb_build_object('reservation_count',count(*),'unknown_count',count(*) FILTER(WHERE settled_microusd IS NULL),'unknown_hold_microusd',coalesce(sum(max_cost_microusd) FILTER(WHERE settled_microusd IS NULL),0),'settled_microusd',coalesce(sum(settled_microusd),0),'ledger_exposure_microusd',sum(coalesce(settled_microusd,max_cost_microusd))) FROM private.ai_test_reservations_v5),\n 'usage',(SELECT jsonb_build_object('count',count(*),'latest',max(recorded_at)) FROM private.ai_test_usage_v5),\n 'r06',jsonb_build_object('prepared_columns',(SELECT count(*) FROM information_schema.columns WHERE table_schema='private' AND table_name IN('ai_need_turn_commands','worker_ai_turns') AND column_name LIKE 'prepared%'),'prepared_rpc_present',to_regprocedure('public.rpc_ai_prepare_input_service(uuid,uuid,uuid,uuid,text,jsonb)') IS NOT NULL),\n 'r13',jsonb_build_object('transaction_procedure_present',to_regprocedure('private.marketplace_tick_transactions_v1(integer,timestamptz,jsonb)') IS NOT NULL,'profile_helper_present',to_regprocedure('private.requeue_one_changed_worker_profile_v1(timestamptz)') IS NOT NULL,'dispatch_helper_present',to_regprocedure('private.dispatch_one_job_v1(timestamptz,uuid[])') IS NOT NULL,'cooperative_candidate_count',(SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='private' AND p.proname='marketplace_cooperative_candidate')),\n 'home',(SELECT jsonb_agg(jsonb_build_object('signature',p.oid::regprocedure::text,'body_md5',md5(p.prosrc)) ORDER BY p.oid::regprocedure::text) FROM pg_proc p WHERE p.oid=ANY(ARRAY[to_regprocedure('private.home_agreement_facts_v1()'),to_regprocedure('public.rpc_home_agreements_summary_v1()'),to_regprocedure('public.rpc_home_agreement_prompts_page_v1(integer,jsonb)')]))\n) AS final_readback;",
+    "final_readback": {
+      "r06": {
+        "prepared_columns": 0,
+        "prepared_rpc_present": false
+      },
+      "r13": {
+        "profile_helper_present": false,
+        "dispatch_helper_present": false,
+        "cooperative_candidate_count": 0,
+        "transaction_procedure_present": false
+      },
+      "cron": [
+        {
+          "name": "uskoci_marketplace_tick",
+          "jobid": 1,
+          "active": true,
+          "command": "select private.marketplace_tick(25);",
+          "schedule": "* * * * *"
+        },
+        {
+          "name": "uskoci_edge_workers",
+          "jobid": 2,
+          "active": true,
+          "command": "select private.edge_worker_tick_v5()",
+          "schedule": "* * * * *"
+        },
+        {
+          "name": "uskoci_taxonomy_postsave_tick_dev",
+          "jobid": 3,
+          "active": true,
+          "command": "[network call redacted]",
+          "schedule": "* * * * *"
+        }
+      ],
+      "home": [
+        {
+          "body_md5": "8c759e93b3dbb6cc58d073c73bfe9873",
+          "signature": "private.home_agreement_facts_v1()"
+        },
+        {
+          "body_md5": "aa07862def7c2fc4a6b9ee7faef6d0f6",
+          "signature": "rpc_home_agreement_prompts_page_v1(integer,jsonb)"
+        },
+        {
+          "body_md5": "1debcf182b1a333a974fb2fd352672fb",
+          "signature": "rpc_home_agreements_summary_v1()"
+        }
+      ],
+      "usage": {
+        "count": 1227,
+        "latest": "2026-11-07T12:33:15.625161+00:00"
+      },
+      "budget": {
+        "enabled": true,
+        "ceiling_microusd": 5000000,
+        "price_valid_until": "2027-01-01T00:00:00+00:00",
+        "reserved_microusd": 65486681,
+        "reservation_cap_enforced": false
+      },
+      "ledger": {
+        "unknown_count": 221,
+        "settled_microusd": 10386681,
+        "reservation_count": 2324,
+        "unknown_hold_microusd": 55100000,
+        "ledger_exposure_microusd": 65486681
+      },
+      "observed_at": "2026-11-09T01:20:17.792407+00:00",
+      "migration_count": 368,
+      "latest_migration": {
+        "name": "r13_hosted_transaction_probe_20261108",
+        "version": "20261108230512"
+      }
+    },
+    "edge_functions": [
+      {
+        "slug": "uskoci-ai-interview",
+        "version": 195,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "663abedcda9b000b001f606ab6cb22dce4331d1f655d4358e1d7c1aabed4f3fc"
+      },
+      {
+        "slug": "uskoci-publication-evaluate",
+        "version": 32,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "d9764a7f319195719a411cd9afe4c9ad2e06d6927bdd5f63df70d83c0a001e3f"
+      },
+      {
+        "slug": "uskoci-worker-interview",
+        "version": 148,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "ddbf0bd3e5e15d64ebb650223dc2e573bb8408108c9342dc029e056709efc694"
+      },
+      {
+        "slug": "uskoci-speech-session",
+        "version": 33,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "d6095a2cbec088d608bbf65172bb85296c400ad6f191a540ec2724175db2472a"
+      },
+      {
+        "slug": "uskoci-qa-classify",
+        "version": 31,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "322bba9d34ad97e04c571288d469d5a3a0efbb66fa458bbfd943f056fc8e8929"
+      },
+      {
+        "slug": "uskoci-push-transport",
+        "version": 47,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "ezbr_sha256": "3fce4c4b7d03a4bf6f533ee0721b43b86024a66da595603ff8eb5222080a472f"
+      },
+      {
+        "slug": "uskoci-media",
+        "version": 31,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "ezbr_sha256": "baebc8575e0048a5b42897e7da52cdbfa1a612b0bed36aa97d399fb5274466b9"
+      }
+    ],
+    "comparison": {
+      "migration_count_unchanged": true,
+      "latest_migration_unchanged": true,
+      "cron_unchanged": true,
+      "budget_fields_unchanged": true,
+      "ledger_aggregates_unchanged": true,
+      "retained_usage_unchanged": true,
+      "r06_still_inactive": true,
+      "r13_still_inactive": true,
+      "home_body_hashes_unchanged": true,
+      "seven_edge_versions_status_jwt_and_bundle_hashes_unchanged": true
+    },
+    "all_requested_checks_unchanged": true,
+    "interpretation": {
+      "budget_guard": "The earlier audited reserve function fails closed when reservation_cap_enforced=false. This readback confirms flag and ledger continuity, not a new provider test.",
+      "reserved_amount": "65.486681 USD is internal ledger exposure: 10.386681 settled plus 55.1 unknown holds. It is not a provider invoice.",
+      "r13_probe": "The installed hosted transaction probe migration is separate from the absent cooperative marketplace candidate.",
+      "source_only": "Root source tests/publication do not deploy changes to DEV or produce Android evidence."
+    }
+  }
+}
