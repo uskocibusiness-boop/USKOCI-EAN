@@ -979,5 +979,239 @@
       "r13_probe": "The installed hosted transaction probe migration is separate from the absent cooperative marketplace candidate.",
       "source_only": "Root source tests/publication do not deploy changes to DEV or produce Android evidence."
     }
+  },
+  "delivery_dev_recheck": {
+    "source_evidence_sha256": "30ff415ac4a1d8f2dccdff4ee85b4bb6fc23084bcd2f363a596eecc3c9def0f5",
+    "evidence": {
+      "schema": "USKOCI_FINAL_DELIVERY_DEV_READBACK_V1",
+      "project_id": "leqcwgzvjsxugfgzdmth",
+      "read_only": true,
+      "prior_readback_file": "backend-final-dev-readback-20261109.json",
+      "prior_observed_at": "2026-11-09T01:20:17.792407+00:00",
+      "sql_query": "WITH snapshot AS MATERIALIZED(SELECT statement_timestamp() AS at),\ncron_window AS MATERIALIZED(\n SELECT j.jobid,j.jobname,d.status,d.start_time,d.end_time,\n   extract(epoch FROM (d.end_time-d.start_time))*1000 AS duration_ms\n FROM cron.job j JOIN cron.job_run_details d USING(jobid)\n CROSS JOIN snapshot s WHERE d.start_time>=s.at-interval '24 hours' AND d.start_time<=s.at\n),\ncron_metrics AS (\n SELECT jobid,jobname,count(*) AS started_count,\n  count(*) FILTER(WHERE end_time IS NOT NULL) AS completed_duration_samples,\n  count(*) FILTER(WHERE status='succeeded') AS succeeded_count,\n  count(*) FILTER(WHERE status='failed') AS error_count,\n  count(*) FILTER(WHERE status NOT IN('succeeded','failed')) AS nonterminal_or_other_count,\n  min(start_time) AS oldest_started_at,max(start_time) AS newest_started_at,\n  percentile_cont(0.50) WITHIN GROUP(ORDER BY duration_ms) FILTER(WHERE end_time IS NOT NULL) AS p50_ms,\n  percentile_cont(0.95) WITHIN GROUP(ORDER BY duration_ms) FILTER(WHERE end_time IS NOT NULL) AS p95_ms,\n  percentile_cont(0.99) WITHIN GROUP(ORDER BY duration_ms) FILTER(WHERE end_time IS NOT NULL) AS p99_ms,\n  max(duration_ms) FILTER(WHERE end_time IS NOT NULL) AS max_ms\n FROM cron_window GROUP BY jobid,jobname\n)\nSELECT jsonb_build_object(\n 'observed_at',(SELECT at FROM snapshot),\n 'migration_count',(SELECT count(*) FROM supabase_migrations.schema_migrations),\n 'latest_migration',(SELECT jsonb_build_object('version',version,'name',name) FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 1),\n 'marketplace_cron',(SELECT jsonb_build_object('jobid',jobid,'name',jobname,'active',active,'schedule',schedule,'command',command) FROM cron.job WHERE jobname='uskoci_marketplace_tick'),\n 'budget',(SELECT jsonb_build_object('enabled',enabled,'reservation_cap_enforced',reservation_cap_enforced,'ceiling_microusd',ceiling_microusd,'reserved_microusd',reserved_microusd,'price_valid_until',price_valid_until) FROM private.ai_test_budget_v5 WHERE singleton),\n 'ledger',(SELECT jsonb_build_object('reservation_count',count(*),'unknown_count',count(*) FILTER(WHERE settled_microusd IS NULL),'unknown_hold_microusd',coalesce(sum(max_cost_microusd) FILTER(WHERE settled_microusd IS NULL),0),'settled_microusd',coalesce(sum(settled_microusd),0),'ledger_exposure_microusd',sum(coalesce(settled_microusd,max_cost_microusd))) FROM private.ai_test_reservations_v5),\n 'usage',(SELECT jsonb_build_object('count',count(*),'latest',max(recorded_at)) FROM private.ai_test_usage_v5),\n 'r06',jsonb_build_object('prepared_columns',(SELECT count(*) FROM information_schema.columns WHERE table_schema='private' AND table_name IN('ai_need_turn_commands','worker_ai_turns') AND column_name LIKE 'prepared%'),'prepared_rpc_present',to_regprocedure('public.rpc_ai_prepare_input_service(uuid,uuid,uuid,uuid,text,jsonb)') IS NOT NULL),\n 'r13',jsonb_build_object('transaction_procedure_present',to_regprocedure('private.marketplace_tick_transactions_v1(integer,timestamptz,jsonb)') IS NOT NULL,'profile_helper_present',to_regprocedure('private.requeue_one_changed_worker_profile_v1(timestamptz)') IS NOT NULL,'dispatch_helper_present',to_regprocedure('private.dispatch_one_job_v1(timestamptz,uuid[])') IS NOT NULL,'cooperative_candidate_count',(SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='private' AND p.proname='marketplace_cooperative_candidate')),\n 'cron_last_24h',jsonb_build_object('from',(SELECT at-interval '24 hours' FROM snapshot),'to',(SELECT at FROM snapshot),'duration_scope','All completed runs whose start_time is inside the window; percentile_cont interpolation; milliseconds; cron execution duration is not provider, push delivery, UI latency or capacity acceptance.','jobs',(SELECT jsonb_agg(to_jsonb(m) ORDER BY jobid) FROM cron_metrics m))\n) AS delivery_readback;",
+      "snapshot": {
+        "r06": {
+          "prepared_columns": 0,
+          "prepared_rpc_present": false
+        },
+        "r13": {
+          "profile_helper_present": false,
+          "dispatch_helper_present": false,
+          "cooperative_candidate_count": 0,
+          "transaction_procedure_present": false
+        },
+        "usage": {
+          "count": 1227,
+          "latest": "2026-11-07T12:33:15.625161+00:00"
+        },
+        "budget": {
+          "enabled": true,
+          "ceiling_microusd": 5000000,
+          "price_valid_until": "2027-01-01T00:00:00+00:00",
+          "reserved_microusd": 65486681,
+          "reservation_cap_enforced": false
+        },
+        "ledger": {
+          "unknown_count": 221,
+          "settled_microusd": 10386681,
+          "reservation_count": 2324,
+          "unknown_hold_microusd": 55100000,
+          "ledger_exposure_microusd": 65486681
+        },
+        "observed_at": "2026-11-09T01:46:46.356959+00:00",
+        "cron_last_24h": {
+          "to": "2026-11-09T01:46:46.356959+00:00",
+          "from": "2026-11-08T01:46:46.356959+00:00",
+          "jobs": [
+            {
+              "jobid": 1,
+              "max_ms": 2776.642,
+              "p50_ms": 65.6875,
+              "p95_ms": 392.6151,
+              "p99_ms": 531.16143,
+              "jobname": "uskoci_marketplace_tick",
+              "error_count": 0,
+              "started_count": 1440,
+              "succeeded_count": 1440,
+              "newest_started_at": "2026-11-09T01:46:00.067658+00:00",
+              "oldest_started_at": "2026-11-08T01:47:00.117746+00:00",
+              "completed_duration_samples": 1440,
+              "nonterminal_or_other_count": 0
+            },
+            {
+              "jobid": 2,
+              "max_ms": 5149.588,
+              "p50_ms": 365.333,
+              "p95_ms": 1065.72685,
+              "p99_ms": 1451.58448,
+              "jobname": "uskoci_edge_workers",
+              "error_count": 0,
+              "started_count": 1440,
+              "succeeded_count": 1440,
+              "newest_started_at": "2026-11-09T01:46:00.066399+00:00",
+              "oldest_started_at": "2026-11-08T01:47:00.116398+00:00",
+              "completed_duration_samples": 1440,
+              "nonterminal_or_other_count": 0
+            },
+            {
+              "jobid": 3,
+              "max_ms": 428.221,
+              "p50_ms": 25.1585,
+              "p95_ms": 105.21075,
+              "p99_ms": 162.07797,
+              "jobname": "uskoci_taxonomy_postsave_tick_dev",
+              "error_count": 0,
+              "started_count": 1440,
+              "succeeded_count": 1440,
+              "newest_started_at": "2026-11-09T01:46:00.064567+00:00",
+              "oldest_started_at": "2026-11-08T01:47:00.122211+00:00",
+              "completed_duration_samples": 1440,
+              "nonterminal_or_other_count": 0
+            }
+          ],
+          "duration_scope": "All completed runs whose start_time is inside the window; percentile_cont interpolation; milliseconds; cron execution duration is not provider, push delivery, UI latency or capacity acceptance."
+        },
+        "migration_count": 368,
+        "latest_migration": {
+          "name": "r13_hosted_transaction_probe_20261108",
+          "version": "20261108230512"
+        },
+        "marketplace_cron": {
+          "name": "uskoci_marketplace_tick",
+          "jobid": 1,
+          "active": true,
+          "command": "select private.marketplace_tick(25);",
+          "schedule": "* * * * *"
+        }
+      },
+      "edge_functions": [
+        {
+          "slug": "sbfenv",
+          "version": 10,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18"
+        },
+        {
+          "slug": "uskoci-account-closure-worker",
+          "version": 19,
+          "status": "ACTIVE",
+          "verify_jwt": false,
+          "ezbr_sha256": "fe4f56c67541bf60909418a48b7a7d614eb8f95e77e2d337121f3af24c4fd34e"
+        },
+        {
+          "slug": "uskoci-ai-interview",
+          "version": 195,
+          "status": "ACTIVE",
+          "verify_jwt": false,
+          "ezbr_sha256": "663abedcda9b000b001f606ab6cb22dce4331d1f655d4358e1d7c1aabed4f3fc"
+        },
+        {
+          "slug": "uskoci-data-export-download",
+          "version": 29,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "83581eb03346471b6a1f5575bdf63abea79a028cb0722c94664f0b1f6acb733d"
+        },
+        {
+          "slug": "uskoci-data-export-worker",
+          "version": 29,
+          "status": "ACTIVE",
+          "verify_jwt": false,
+          "ezbr_sha256": "e70434a972d46b0af8216717490bd01f6995e0ee785f811c3873b69f6ec5dfff"
+        },
+        {
+          "slug": "uskoci-gemini-provider-probe-dev",
+          "version": 12,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0"
+        },
+        {
+          "slug": "uskoci-gemini-schema-smoke",
+          "version": 11,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72"
+        },
+        {
+          "slug": "uskoci-location-search",
+          "version": 32,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "aa756f8daae61e5c8b07179a74ac05e9b5d7e9967393ea3cc21a16ad659ef39f"
+        },
+        {
+          "slug": "uskoci-media",
+          "version": 31,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "baebc8575e0048a5b42897e7da52cdbfa1a612b0bed36aa97d399fb5274466b9"
+        },
+        {
+          "slug": "uskoci-publication-evaluate",
+          "version": 32,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "d9764a7f319195719a411cd9afe4c9ad2e06d6927bdd5f63df70d83c0a001e3f"
+        },
+        {
+          "slug": "uskoci-push-transport",
+          "version": 47,
+          "status": "ACTIVE",
+          "verify_jwt": false,
+          "ezbr_sha256": "3fce4c4b7d03a4bf6f533ee0721b43b86024a66da595603ff8eb5222080a472f"
+        },
+        {
+          "slug": "uskoci-qa-classify",
+          "version": 31,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "322bba9d34ad97e04c571288d469d5a3a0efbb66fa458bbfd943f056fc8e8929"
+        },
+        {
+          "slug": "uskoci-speech-session",
+          "version": 33,
+          "status": "ACTIVE",
+          "verify_jwt": true,
+          "ezbr_sha256": "d6095a2cbec088d608bbf65172bb85296c400ad6f191a540ec2724175db2472a"
+        },
+        {
+          "slug": "uskoci-taxonomy-postsave-worker",
+          "version": 14,
+          "status": "ACTIVE",
+          "verify_jwt": false,
+          "ezbr_sha256": "b61376460dbc24bcacbddc5473fd882d126f607e8a6ebb422a6be25f6f7b9494"
+        },
+        {
+          "slug": "uskoci-worker-interview",
+          "version": 148,
+          "status": "ACTIVE",
+          "verify_jwt": false,
+          "ezbr_sha256": "ddbf0bd3e5e15d64ebb650223dc2e573bb8408108c9342dc029e056709efc694"
+        }
+      ],
+      "comparison_to_0120": {
+        "migration_count_unchanged": true,
+        "latest_migration_unchanged": true,
+        "budget_unchanged": true,
+        "ledger_unchanged": true,
+        "usage_unchanged": true,
+        "r06_unchanged": true,
+        "r13_unchanged": true,
+        "marketplace_cron_unchanged": true,
+        "all_15_edge_identities_unchanged": true
+      },
+      "all_comparable_requested_state_unchanged": true,
+      "actual_state_differences": [],
+      "new_measurement": "24-hour Cron latency/count/error aggregates freshly calculated at the stated snapshot. The 01:20 readback did not contain a new 24h latency series, so no same-metric delta against 01:20 is asserted.",
+      "scope_limitations": [
+        "No schema-wide rescan, provider calls, business writes, tests, migrations, deployments, budget configuration changes or repository documentation changes.",
+        "Cron percentile_cont uses durations of completed runs starting inside the trailing 24-hour window; all 1440 runs per each of three jobs succeeded.",
+        "Cron success and duration describe the SQL scheduler invocation, not completion/success of asynchronous Edge provider work, push delivery, Android UX, or target-scale capacity.",
+        "AI ledger exposure is an internal conservative amount, not a verified provider invoice. Unchanged retained usage does not by itself prove all possible provider traffic is absent.",
+        "R13 hosted transaction probe presence is separate from absent cooperative/transaction scheduler candidate activation."
+      ]
+    }
   }
 }

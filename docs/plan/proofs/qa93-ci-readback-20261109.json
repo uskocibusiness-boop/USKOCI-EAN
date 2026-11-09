@@ -1,0 +1,146 @@
+{
+  "read_at_utc": "2026-11-09 01:47:13 UTC",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "run_id": 42545521019,
+  "run_number": 93,
+  "run_attempt": 1,
+  "source_commit": "05dcaf18a485bad6af2ce55ebe5ef55bbfffcbf5",
+  "status": "completed",
+  "conclusion": "success",
+  "created_at": "2026-11-09T01:25:43Z",
+  "updated_at": "2026-11-09T01:45:37Z",
+  "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42545521019",
+  "independent_apk_verification": "LOCAL_ARTIFACT_AND_NATIVE_AUDIO_BYTES_CONFIRMED_NOT_NATIVE_E2E",
+  "physical_android_test": false,
+  "local_verifier": "qa93-local-verifier-20261109.json",
+  "checks": {
+    "archive": {
+      "path": "/workspace/scratch/7a6307dbd381/audit-evidence/qa93/checks.zip",
+      "bytes": 45085,
+      "sha256": "5dbda1fb46a1b4905f432ae58a7fa111f0694d974aa13bbce92c636e0a4fba75",
+      "artifactId": 13643725639,
+      "artifactName": "uskoci-checks-05dcaf18a485bad6af2ce55ebe5ef55bbfffcbf5",
+      "matchesGithubDigestAndSize": true
+    },
+    "tests": {
+      "tests": 1259,
+      "pass": 1259,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "testReportFormat": "NODE_SPEC",
+    "typescript": {
+      "status": "PASS_FROM_SUCCESSFUL_CI_STEP_AND_EMPTY_OUTPUT",
+      "outputBytes": 0
+    },
+    "migrationIntegrity": {
+      "status": "PASS",
+      "physicalFiles": 231,
+      "pythonTests": {
+        "tests": 60,
+        "status": "OK"
+      }
+    },
+    "fileSha256": {
+      "migration-integrity.txt": "14f40d2ffeab246a99291a1649cc6974f258e9a7848522c335f3b6eeb829c9e6",
+      "typescript.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests.tap": "c6936d605faf2f86110165b9c6bb6edf8790895ecf3bea9805271980040c6588"
+    }
+  },
+  "source_archive": {
+    "status": "EXACT_GIT_TREE_AND_ARCHIVED_SOURCE_BYTES_MATCH",
+    "sourceCommit": "05dcaf18a485bad6af2ce55ebe5ef55bbfffcbf5",
+    "tree": "4d14335af68e1e2e0e66d412bef0808de01b823d",
+    "archive": {
+      "id": 13642864239,
+      "bytes": 23701355,
+      "sha256": "e105aa78c91d971bd415cfc07537f1f9d3b1438d63db0807ac13c70fdb02b491",
+      "matchesGitHubDigestAndSize": true
+    },
+    "gitInventoryMatches": true,
+    "verifiedBlobCount": 1499,
+    "differentPaths": [],
+    "missingPaths": [],
+    "boundaries": [
+      "Original GitHub source artifact only; not a reproducible APK rebuild.",
+      "Archive members read and hashed in memory, not executed or extracted."
+    ]
+  },
+  "build_receipt": {
+    "status": "BUILD_OUTPUT_NOT_NATIVE_E2E",
+    "sourceCommit": "05dcaf18a485bad6af2ce55ebe5ef55bbfffcbf5",
+    "filename": "USKOCI-QA-05dcaf18a.apk",
+    "bytes": 83492735,
+    "sha256": "1163838887059478424af9f0deebe38c48e5bb14f580f7ca4ce72875a05a21a8",
+    "package": "rs.uskoci.preview.qa",
+    "signing": "EXPO_TEMPLATE_ANDROID_DEBUG_KEY",
+    "backend": "DEV",
+    "runtimeVersion": "uskoci-v1-preview-r2",
+    "abis": [
+      "arm64-v8a"
+    ],
+    "embeddedBundle": true,
+    "otaEnabled": false,
+    "nativePatchMarker": "USKOCI_RNR01",
+    "dexFiles": 7,
+    "bundledAudioSha256": {
+      "uskoci_confirm_v1.wav": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1",
+      "uskoci_message_v1.wav": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed",
+      "uskoci_opportunity_v1.wav": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+    },
+    "bundledAudioResources": {
+      "uskoci_confirm_v1.wav": {
+        "logicalName": "raw/uskoci_confirm_v1",
+        "resourceId": "0x7f120003",
+        "apkPath": "res/F2.wav",
+        "bytes": 20330,
+        "sha256": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1"
+      },
+      "uskoci_message_v1.wav": {
+        "logicalName": "raw/uskoci_message_v1",
+        "resourceId": "0x7f120004",
+        "apkPath": "res/ES.wav",
+        "bytes": 10628,
+        "sha256": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed"
+      },
+      "uskoci_opportunity_v1.wav": {
+        "logicalName": "raw/uskoci_opportunity_v1",
+        "resourceId": "0x7f120005",
+        "apkPath": "res/fp.wav",
+        "bytes": 18566,
+        "sha256": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+      }
+    },
+    "audioResourceTableVerification": {
+      "aapt2": {
+        "version": "Android Asset Packaging Tool (aapt) 2.20-15087165",
+        "sha256": "0f1c0e560f99db510a76ebc99ad5c3e68438f62e8e8617018a716ca4a589a699"
+      },
+      "resourceDump": {
+        "bytes": 2397493,
+        "sha256": "c90f6d24b20fc40335f3a95af36e592f46748eb27e84fc511df810a2c24ea5a3"
+      }
+    },
+    "customSoundActivation": "NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED",
+    "configOverrides": {
+      "name": "USKOČI • QA",
+      "androidPackage": "rs.uskoci.preview.qa"
+    },
+    "push": "NOT_PROVEN",
+    "deviceInstall": "NOT_PERFORMED",
+    "replacesExistingPreview": false
+  },
+  "artifact": {
+    "path": "/workspace/scratch/7a6307dbd381/audit-evidence/qa93/apk.zip",
+    "bytes": 48865156,
+    "sha256": "f13cf5073132583eee5b06541ddea4a6d54ab234e4b2ab45d680f7c08284eacb",
+    "artifactId": 13642919867,
+    "artifactName": "uskoci-isolated-qa-apk-93",
+    "matchesGithubDigestAndSize": true
+  },
+  "source_dirty_flag": true,
+  "dirty_flag_explanation": "The pinned QA workflow deliberately changes app.json for the isolated QA package before the native build; exact source ZIP verification does not claim an unchanged native-build working tree."
+}

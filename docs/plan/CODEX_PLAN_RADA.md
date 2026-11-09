@@ -9,6 +9,10 @@
 
 **Важна P0 исправка тумачења:** `reservation_cap_enforced=false` у живом `public.rpc_ai_test_budget_reserve_service` затвара нов admission са NOT_READY. Не доказује активну неограничену потрошњу. Ипак AI је функционално блокиран: интерна евиденција износи 65.486.681 µUSD = 10.386.681 settled + 55.100.000 UNKNOWN, за 221 резервацију. Settled већ прелази лимит од 5 USD. Нема доказане групе резервација за масовно ослобађање; Google рачун није прочитан. Не ресетовати бројач, не брисати редове, не повећавати лимит или покретати плаћене probe-ове без конкретног одобреног пакета. [Агрегатни доказ](proofs/forensic-budget-reconciliation-20261109.json).
 
+**Објављено и проверено:** извршни commit `05dcaf18a485bad6af2ce55ebe5ef55bbfffcbf5` је на истој радној грани. [QA93 / run 42545521019](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42545521019) завршен је SUCCESS 09.11.2026. у 01:45:37 UTC: **1.259/1.259 Node**, TypeScript и **231 SQL / 60 integrity** PASS, native APK изграђен. Независно су проверени свих 1.499 source blob-ова, преузети APK и три WAV ресурса. `USKOCI-QA-05dcaf18a.apk`: 83.492.735 бајтова, SHA256 `1163838887059478424af9f0deebe38c48e5bb14f580f7ca4ce72875a05a21a8`. Package `rs.uskoci.preview.qa`, DEV, ARM64, OTA off, QA/debug потпис; Firebase конфигурација није присутна. CI документовано мења QA конфигурацију (`sourceDirtyFlag=true`); нема тврдње о непромењеном native build стаблу или reproducible rebuild-у. [Објава](proofs/forensic-source-publication-20261109.json), [CI](proofs/qa93-ci-readback-20261109.json), [независан APK verifier](proofs/qa93-local-verifier-20261109.json). **Физички Android/FCM/чујни звук/E2E нису потврђени.**
+
+**Завршни DEV readback у 01:46:46 UTC:** миграције, ledger/budget, стари Cron, R06/R13 неактивност и свих 15 Edge идентитета непромењени. Нови 24h Cron p50/p95/p99 је у истом [readback доказу](proofs/forensic-readback-20261109.json), не доказ асинхроног Edge/FCM или циљног капацитета.
+
 ### Изведено после read-only checkpoint-а
 
 | Целина | Стварно изведено | Доказ / преостала граница |
@@ -18,7 +22,7 @@
 | Discovery | Пренети постојећи b203 guards за nonprogressing cursor и foreign anchor. | 2 runtime фајла; P6 source тестови. Preview/QA flag 1, production flag 0 остаје. Нема surface/largeHeap промене. |
 | Фотографије | Inline contain; компактно loading/error/retry стање; decode-failed URI се избацује само из свог cache binding-а. | 6 gallery + 7 cache/privacy тестова; стварна регресија пре cache поправке. Нема тврдње да је потпуни native layout jump решен. |
 | Пријава / радна услуга | Пасивни already-present блок уклоњен, изричита потврда је сачувана, као и UNKNOWN/error стања; пример напомене не нуди други термин. | 16 focus/recovery тестова; без новог write admission-а. |
-| Заједничка регресија | 1.259/1.259 Node, TypeScript exit 0; 231/60 migration integrity. | ЛОКАЛНО ТЕСТИРАНО; објава/CI/APK се уписују тек после стварног readback-а. |
+| Заједничка регресија | 1.259/1.259 Node, TypeScript exit 0; 231/60 migration integrity. | ЛОКАЛНО ТЕСТИРАНО и CI ПОТВРЂЕНО у QA93; APK бајтови проверени, физички Android НЕПОТВРЂЕНО. |
 
 [Тачни пренети Git blob-ови](proofs/forensic-local-integration-20261109.json), [интеграциона провера](proofs/forensic-integration-20261109.json). Други checkout и његов dirty рад нису мењани. Пренето је 25 тачно именованих Home/Discovery runtime/test/SQL fixture/runner датотека; package је допуњен само потребним suite-овима. Није спојен цео стари PR или локална грана.
 

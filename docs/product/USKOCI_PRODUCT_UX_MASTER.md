@@ -1392,6 +1392,8 @@ Radni izvor: **`uskocibusiness-boop/USKOCI-EAN`** → **`work/rev14-review-f17`*
 
 Извор форензике је `work/uskoci-cist-proizvod-20261104@b066aaf9a8f1fd0b5895989fd2d8516abcc5c556`; извршни код те основе је исти као QA92. Накнадно су интегрисане независно проверена локална Home/Discovery целина из `b20346b1e8e2bcd200c6394379d5826f77a3acee` и уске photo/application исправке. [Пуна матрица и накнадни извршни статус](../plan/proofs/forensic-audit-20261109.md), [source/test доказ](../plan/proofs/forensic-integration-20261109.json). Ово је допуна постојећег уговора, не нови визуелни систем.
 
+**Текући CODE ауторитет:** овај H0 и усклађена J1 матрица односе се на објављени `uskocibusiness-boop/USKOCI-EAN`, грану `work/uskoci-cist-proizvod-20261104`, commit `05dcaf18a485bad6af2ce55ebe5ef55bbfffcbf5`. Објављени source није доказ приказа или прихвата на Android-у; визуелна граница остаје у J0.
+
 | Фамилија | Ново потврђени source статус | Преостало |
 |---|---|---|
 | S01 | Четири карусела затечена су на b066; већ су локално уклоњена у b203, а та исправка је сада интегрисана. Следећи Договор/Чека Вас/намере/наставак/пречице остају. Summary и on-demand странице по 20. | Native први корисник, large text, own-task read, позитиван обични Auth Home прихват. |
@@ -1406,6 +1408,9 @@ Radni izvor: **`uskocibusiness-boop/USKOCI-EAN`** → **`work/rev14-review-f17`*
 
 Стари H/J налази о недостајућој претрази, обавезном граду у регистрацији, погрешном global rating моделу, алтернативном термину у новој пријави и RAM-only selection-у нису актуелни backlog. S07 старо „не account-blended“ чита се као SUPERSEDED за глобални score; S14 старо дозвољено „Могу одмах“ као SUPERSEDED паузом; S16 progressive summary као SUPERSEDED новијим end-card уговором. Историјски докази остају сачувани.
 
+## Историјска матрица H — пресек од 29.10.2026.
+
+Матрица испод и пратећи H1/H2 трагови чувају тадашње читање кода. Ознаке „Aktivna grana“, „CURRENT CODE“ и „DELTA“ у том материјалу односе се на наведене историјске pin-ове, не на садашњи извор. Не користити их као текући списак исправки; актуелно стање и преостали рад одређују H0 и J1, уз наведене доказе. Историјски редови и SHA остају неизмењени.
 
 **NOVI PIN / VIZUELNI DELTA (29.10.2026):** HEAD `4f6fc4f1f9358926195af356b6dfcdc7464f1a17` je +3 commit-a u odnosu na `de8f838e...`; izmenjeni su `src/ui/media/AgreementVoiceControls.tsx`, `src/ui/v2/MyApplicationsPresentation.tsx`, dva njihova testa i `docs/plan/CODEX_PLAN_RADA.md` (samo READ-ONLY compare). Ne tretirati tekstualne animacione ideje B0 kao već potvrđen APK. `AGENTS.md` i `docs/implementation/design-system/PREMIUM_WHITE_CANON.md` ne postoje na navedenim putevima na ovom ref-u; njihov istorijski citat u komentarima nije stvaran izvor. `src/ui/system/motionTokens.ts`, `Appear.tsx`, `AiConversationShell.tsx`, `useConversationArrival.ts` i `FactArt.tsx` jesu provereni izvori. Pre korišćenja nekog starog SHA iz H1/H2 čitati tačnu napomenu da je to istorijski pin.
 
@@ -1524,7 +1529,9 @@ Ovaj prioritet nije procenat rada na dizajnu; to je minimalni redosled da UI ne 
 
 ## J0. Актуелна visual QA граница — 09.11.2026.
 
-S01–S18 су прегледани у изворном коду. Нове компонентне и SQL провере не означавају ниједну породицу као pixel-final или кориснички прихваћену. Нема новог пакета физичких screenshot доказа за 360/430 dp, 1×/1,15×/1,3× и TalkBack/Reduce Motion/Back/keyboard у овом кругу. QA92 има проверен native APK и WAV бајтове, али нема доказа за FCM, чујни звук или инсталацију на уређају. Следећи CI/APK мора добити свој SHA и не наслеђује аутоматски QA92 visual статус.
+S01–S18 су прегледани у изворном коду. QA93 на `05dcaf18a485bad6af2ce55ebe5ef55bbfffcbf5` завршен је SUCCESS 09.11.2026. у 01:45:37 UTC: 1.259/1.259 Node, TypeScript, 231 SQL / 60 integrity и native build. Преузети APK и три оригинална WAV ресурса независно су проверени; [CI и source доказ](../plan/proofs/qa93-ci-readback-20261109.json), [APK verifier](../plan/proofs/qa93-local-verifier-20261109.json). CI има документоване QA configuration overrides (`sourceDirtyFlag=true`), DEV/ARM64/OTA off и посебан QA package без Firebase конфигурације.
+
+Ниједна фамилија тиме није pixel-final или кориснички прихваћена. Нема новог физичког screenshot пакета за 360/430 dp, 1×/1,15×/1,3× и TalkBack/Reduce Motion/Back/keyboard. Нису изведени инсталација на уређају, FCM, чујни звук, FPS/RAM или двокориснички Android E2E. QA93 не наслеђује физички/визуелни прихват из QA92 или старог Design Lab-а.
 
 Обавезна матрица остаје постојећа J; [нови S01–S18 налази и E2E границе](../plan/proofs/forensic-audit-20261109.md) допуњују њене актуелне делте. Историјски J9 snapshot од 29. октобра не представља садашњи APK. Нови CI/source статус води се у [једном извршном мастеру](../plan/CODEX_PLAN_RADA.md), без другог конкурентног плана.
 
@@ -1533,30 +1540,32 @@ S01–S18 су прегледани у изворном коду. Нове ко�
 
 ### J1. Status rečnik
 
-**LOGIC:** `LOCKED` = product odluka zaključana, `NEEDS DECISION` = stvarno nerešena vlasnička odluka, `GAP` = nema jasnog ponašanja. **VISUAL:** `DIRECTION` = stil/smer, `CONTRACT` = definisana kompozicija i stanja, `PIXEL-FINAL NOT YET` = nema odobrene realne finalne scene. **CODE:** `ALIGNED` = dokumentovano odgovara, `PARTIAL` = deo postoji/treba dorada, `GAP` = nedostaje važna capability, `LEGACY CONFLICT` = postojeći UI/backend radi suprotno finalnoj odluci. **CODE statusi su kombinacija istorijskog `feature/uskoci-cisto` audita i direktnih čitanja navedenih u H1 iz `work/rev14-review-f17` (tačno provereni fajlovi imaju prednost). Ako je CODE delta samo iz istorije, potrebno je ponovno očitavanje aktuelne grane, ne tretira se kao utvrđena greška najnovijeg APK-a. `Zadaci` map/sheet, `Poruke` root i tri pogleda `Raspored` postoje na novijoj grani. Instalirani APK i vizuelne scene/screenshot nisu pregledani — sve ostaje PIXEL FINAL: NOT YET.**
+**LOGIC:** `LOCKED` = product odluka zaključana, `NEEDS DECISION` = stvarno nerešena vlasnička odluka, `GAP` = nema jasnog ponašanja. **VISUAL:** `DIRECTION` = stil/smer, `CONTRACT` = definisana kompozicija i stanja, `PIXEL-FINAL NOT YET` = nema odobrene realne finalne scene. **CODE:** `ALIGNED` = dokumentovano odgovara, `PARTIAL` = deo postoji/treba dorada, `GAP` = nedostaje važna capability, `LEGACY CONFLICT` = postojeći UI/backend radi suprotno finalnoj odluci.
 
-| Surface/familija | LOGIC | VISUAL | CODE (poslednji poznati) | PIXEL FINAL |
+**Aktuelni CODE presek, 09.11.2026:** `uskocibusiness-boop/USKOCI-EAN` / `work/uskoci-cist-proizvod-20261104` / `05dcaf18a485bad6af2ce55ebe5ef55bbfffcbf5`. Matrica objedinjuje direktni pregled b066 i proverenu integraciju Home/Discovery i photo/application izmena; vlasnici koda navedeni su u redovima, a detaljni nalazi i granice dokaza u [forenzičkom izveštaju](../plan/proofs/forensic-audit-20261109.md) i [integracionom dokazu](../plan/proofs/forensic-integration-20261109.json). H0 je tekući implementation delta; istorijske matrice H1/H2 i J2a/J9 ne zamenjuju ovaj presek. `PARTIAL` ne znači da navedena postojeća funkcija nedostaje: preostali rad i nedokazani prihvati izričito su odvojeni. Nema novog fizičkog visual QA dokaza za ove promene — svaka ćelija PIXEL FINAL ostaje NOT YET.
+
+| Surface/familija | LOGIC | VISUAL | CODE (provereno 09.11.2026, 05dcaf18) | PIXEL FINAL |
 |---|---|---|---|---|
-| S01 Početna / shell | LOCKED | CONTRACT | LEGACY CONFLICT (feed/carousels/copy); shell ALIGNED | NOT YET |
-| S02 Zadaci local/remote/search/filter | LOCKED | CONTRACT | PARTIAL (map/sheet exists; spatial/remote proof to verify) | NOT YET |
-| S03 Public Task detail | LOCKED | CONTRACT | PARTIAL (photo order, trust) | NOT YET |
-| S03 Owner Task detail | LOCKED | CONTRACT | PARTIAL (group destination/order) | NOT YET |
-| S04 Application/review/receipt | LOCKED | CONTRACT | LEGACY CONFLICT (time, team guard, hourly) | NOT YET |
-| S05 Moji zadaci/nacrti/prethodni | LOCKED | CONTRACT | PARTIAL | NOT YET |
-| S06 Moje prijave / changed task | LOCKED | CONTRACT | PARTIAL | NOT YET |
-| S07 Candidates/selection/compare | LOCKED | CONTRACT | LEGACY CONFLICT (price sort) | NOT YET |
-| S08 Dogovori root/history + uloga/search/kalendar | LOCKED | CONTRACT | PARTIAL (role/outcome/Raspored već postoje; root switch legacy, Search gap) | NOT YET |
-| S09 Task-group | LOCKED | CONTRACT | PARTIAL | NOT YET |
-| S10 Bilateralni Dogovor/change/complete | LOCKED | CONTRACT | PARTIAL | NOT YET |
-| S11 Poruke/private/group | LOCKED | CONTRACT | PARTIAL (root exists; group photos/authority to verify) | NOT YET |
-| S12 Raspored | LOCKED | CONTRACT | PARTIAL (3 views present; grouping/QA to verify) | NOT YET |
-| S13 Profil/ocene/public preview | LOCKED | CONTRACT | PARTIAL: zajednička ocena ALIGNED; public reader/preview QA otvoren | NOT YET |
-| S14 Radni profil/AI setup | LOCKED | CONTRACT | PARTIAL / VERIFIED CLIENT CONFLICT (remote-only lokacijski guard; TTL pending) | NOT YET |
-| S15 Podešavanja/Privatnost/Podrška | LOCKED | CONTRACT | PARTIAL (Privacy/Support/export routes present; provider-aware access/copy) | NOT YET |
-| S16 AI Need/Review/History/Worker AI | LOCKED | CONTRACT (S16.1–S16.9 prošireni) | PARTIAL/ALIGNED: chat/history/voice/photo/review/readback postoje; copy, progressive draft, review ordering DELTA; production runtime GATE | NOT YET |
-| S17 Entry/Auth | LOCKED | CONTRACT (ranije) | LEGACY CONFLICT (signup grad) | NOT YET |
-| S17 Obaveštenja/push | LOCKED | CONTRACT (ranije) | GAP (exact event mappings) | NOT YET |
-| S18 Q&A/ratings/safety children | LOCKED | CONTRACT | PARTIAL; ratings authority GAP | NOT YET |
+| S01 Početna / shell | LOCKED | CONTRACT | PARTIAL: četiri karusela uklonjena; sledeći Dogovor, najviše tri stavke „Čeka Vas“, namere, nastavak i prečice postoje (`src/ui/home/HomePresentation.tsx`). Summary i stranice po 20 integrisani; ostaju own-task read, pozitivan obični Auth prihvat i native QA. Shell ALIGNED. | NOT YET |
+| S02 Zadaci local/remote/search/filter | LOCKED | CONTRACT | PARTIAL: PEEK/HALF/FULL, remote/pinless i pretraga postoje (`src/ui/v2/DiscoveryPresentation.tsx`); P6 cursor/anchor zaštite integrisane (`src/data/discoveryV1Owner.ts`). P6 je uključen za preview/QA, ne za production; legacy 5001+, map/list parity i native ponašanje ostaju za proveru. | NOT YET |
+| S03 Public Task detail | LOCKED | CONTRACT | PARTIAL: postoje authorized fotografije i odvojena cenovna stanja; inline prikaz čuva proporcije i razlikuje loading/error/retry. U `src/ui/v2/PublicNeedPresentation.tsx` opis i dalje prethodi fotografijama; photo-first raspored i fizički QA ostaju. | NOT YET |
+| S03 Owner Task detail | LOCKED | CONTRACT | PARTIAL: owner statusi i radnje postoje (`src/ui/v2/NeedPresentation.tsx`), uz zajedničku photo ispravku. Opis i dalje prethodi fotografijama; ostaju ugovoreni redosled i fizički prihvat složenih owner stanja. Stari navod o pogrešnoj destinaciji nije potvrđen kao aktuelna greška. | NOT YET |
+| S04 Application/review/receipt | LOCKED | CONTRACT | PARTIAL: objavljeni termin je readonly, broj ljudi pripada prijavi, HOURLY čuva jedinicu po osobi po satu; review/readback i UNKNOWN zaštite postoje (`src/ui/v2/ApplicationComposerPresentation.tsx`). Napomena više ne nudi drugi termin. Ostaje povezani serverski i native prihvat; ne vraćati stare time/team/hourly tvrdnje kao dokazane greške. | NOT YET |
+| S05 Moji zadaci/nacrti/prethodni | LOCKED | CONTRACT | PARTIAL: aktivne grupe, nacrti, istorija, stranice i provera serverskih brojača postoje (`src/ui/v2/MarketplacePresentation.tsx`). Ostaje vizuelni i native prihvat praznih, dugih, stale i error stanja. | NOT YET |
+| S06 Moje prijave / changed task | LOCKED | CONTRACT | PARTIAL: paginacija, changed-task review i oporavak nepoznatog ishoda sa istim ključem postoje (`src/ui/v2/MyApplicationsPresentation.tsx`). Javni All tab ostaje odstupanje od tri ugovorene grupe; native Back/keyboard/UNKNOWN QA nije završen. | NOT YET |
+| S07 Candidates/selection/compare | LOCKED | CONTRACT | PARTIAL: sortiranje već normalizuje cenu prema broju ljudi i jedinici; potvrđeni uslovi i capacity guard postoje (`src/ui/v2/ApplicationSelectionPresentation.tsx`), kao i durable selection journal u ruti. Ostaje konkurentni izbor poslednjeg mesta i E2E prihvat; stari price-sort i RAM-only navodi su zastareli. | NOT YET |
+| S08 Dogovori root/history + uloga/search/kalendar | LOCKED | CONTRACT | PARTIAL: serverska pretraga, uloge, vremenske grupe, history outcome i Raspored postoje (`src/ui/v2/AgreementCollectionPresentation.tsx`). Preostali UI problem su dva ulaza u istoriju; Search nije nedostajuća funkcija. | NOT YET |
+| S09 Task-group | LOCKED | CONTRACT | PARTIAL: zajednička tekstualna koordinacija i odvojeni privatni Dogovori postoje (`src/ui/groups/GroupConversationPresentation.tsx`). Ostaje povezani prihvat više radnika, otkazivanja/zamene i privatnosti; group media nije deo potvrđenog text-only obima. | NOT YET |
+| S10 Bilateralni Dogovor/change/complete | LOCKED | CONTRACT | PARTIAL: pregled/poruke, prihvaćeni uslovi, izmena, završetak i provera ishoda postoje (`src/ui/v2/AgreementPresentation.tsx`). Ostaju E2E oba učesnika, grant → revoke i native prihvat; postojanje koda nije dokaz završenog toka. | NOT YET |
+| S11 Poruke/private/group | LOCKED | CONTRACT | PARTIAL: inbox i privatni/grupni razgovori postoje; privatna istorija je ograničena na 200 poruka, uz scroll anchor i read-only UNKNOWN proveru (`src/ui/AgreementChat.tsx`, `src/data/agreementHistoryModel.ts`). Group je text-only. Ostaju mediji, restart i native performance prihvat. | NOT YET |
+| S12 Raspored | LOCKED | CONTRACT | PARTIAL: Mesec/Nedelja/Dan, lokalno vreme za Srbiju i odvojeno nepoznato stanje dostupnosti postoje (`src/app/(app)/raspored.tsx`). ALL reader još ostaje; grupisanje, DST i fizički prikaz zahtevaju prihvat. | NOT YET |
+| S13 Profil/ocene/public preview | LOCKED | CONTRACT | PARTIAL: jedna zajednička reputacija naloga je ALIGNED (`src/ui/profile/ProfileHubPresentation.tsx`). Ostaju povezani public visibility/blind-publication i pregled na uređaju; ne uvoditi dva globalna proseka. | NOT YET |
+| S14 Radni profil/AI setup | LOCKED | CONTRACT | PARTIAL: pasivna ALREADY_PRESENT poruka je uklonjena, izričita potvrda i recovery ostaju (`src/ui/workerProfile/ApplicationServiceOffer.tsx`). Direktna prečica u `src/app/(app)/profil/radnik.tsx` još traži grad/radijus i za cityless REMOTE; alternativna aktivacija kroz razgovor postoji. „Mogu odmah“ je namerno pauzirano; TTL nije tekući implementacioni nalog. | NOT YET |
+| S15 Podešavanja/Privatnost/Podrška | LOCKED | CONTRACT | PARTIAL: settings/privacy/support/export i odvojena unknown/recovery stanja postoje (`src/ui/privacy/PrivacyPresentation.tsx`). Pravne, export/retention i stvarne Android permission granice ostaju; spremnost se ne zaključuje iz prisustva ekrana. | NOT YET |
+| S16 AI Need/Review/History/Worker AI | LOCKED | CONTRACT (S16.1–S16.9 prošireni) | PARTIAL: chat/history/voice/photo/review/readback i završni end-card postoje (`src/ui/v2/IntakePresentation.tsx`, `src/ui/aiFirst/AiConversationShell.tsx`); single-pass se čuva. Progressive summary je superseded. Budžetski admission, R06 recovery i merena prirodnost/brzina ostaju otvoreni; bez tvrdnje o provider/native E2E prihvatu. | NOT YET |
+| S17 Entry/Auth | LOCKED | CONTRACT (ranije) | PARTIAL: registracija već koristi ime/prezime/email/lozinku bez obaveznog grada (`src/ui/auth/AuthPresentation.tsx`). Ostaje prihvat podržanih provider/reset/returnTarget tokova i uređaja; signup grad nije aktuelna greška. | NOT YET |
+| S17 Obaveštenja/push | LOCKED | CONTRACT (ranije) | PARTIAL: Inbox resolver i provera primaoca identifikovanog foreground obaveštenja postoje (`src/ui/notifications/PushRuntime.tsx`). Legacy generic payload bez identiteta i stvarni FCM/background/killed-app/deep-link prihvat ostaju; nije dokazano da event logika u celini nedostaje. | NOT YET |
+| S18 Q&A/ratings/safety children | LOCKED | CONTRACT | PARTIAL: ocenjivanje čeka serverski ishod (`src/app/(app)/oceni-dogovor.tsx`), zajednička reputacija i safety/report/block tokovi postoje. Ostaju blind/public API, zatvoren nalog i native E2E prihvat; stari blanket ratings-authority GAP nije potvrđen aktuelnim pregledom. | NOT YET |
 
 ### J2. QA MATRIX — šta je definisano, a šta **nije** provereno u ovoj sesiji
 
