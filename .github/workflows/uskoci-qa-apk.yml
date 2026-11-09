@@ -97,6 +97,8 @@ jobs:
           python scripts/qa-gradle-bootstrap.test.py
           python scripts/test_apk_audio_resources.py
           python scripts/test_verify_qa_apk_r2.py
+          python -B -m unittest discover -s scripts/bootstrap -p test_generate.py 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/bootstrap-generator.txt"
+          node --test scripts/bootstrap/system-reference-seed.test.cjs 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/bootstrap-seed.tap"
           node scripts/record-ux-checkpoint.cjs --verify-source
           npm test 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/tests.tap"
           npx tsc --noEmit 2>&1 | tee "$RUNNER_TEMP/uskoci-checks/typescript.txt"
