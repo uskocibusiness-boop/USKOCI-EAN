@@ -2,6 +2,12 @@
 
 > **ОБАВЕЗНА ВЛАСНИЧКА ОДЛУКА — 09.11.2026:** Стари UX master је повучен и уклоњен из активне гране. **НЕ ЧИТАТИ, НЕ КОРИСТИТИ, НЕ РЕКОНСТРУИСАТИ И НЕ ВРАЋАТИ** га, чак ни из Git историје. Све раније референце у овом великом техничком плану на Product/UX master, A–J/S01–S18 као извор дизајна и „два мастера” су неважеће. Последње изричите одлуке власника одређују жељени изглед, а код и тестови описују садашње стање. **Хоризонтални карусели на Почетној се задржавају; нема самовољних UX измена.** Види AGENTS.md.
 
+## Dopuna 10.11.2026: čisti sistemski katalog za novi PROD
+
+**SOURCE KANDIDAT / PROD NIJE PRIMENJEN.** Read-only DEV upit odvojio je 54 `SYSTEM/ESTABLISHED` čvora V15 kataloga, 61 njihov režim rada i 69 sinonima. U `scripts/bootstrap/system-reference-seed.sql` pripremljen je atomski početni seed za **praznu, prethodno instaliranu** aplikacionu šemu. Ne prenosi 148 penzionisanih čvorova ni dve AI-review grane iz probnog rada; čuva stabilne ID-jeve sistemskih usluga. Provera stvarnih DEV kolona otkrila je `GENERATED ALWAYS` identity ID i normalizovani sinonim: seed koristi samo kontrolisani identity override, dok bazu pušta da izračuna normalizovani ključ. PGlite schema smoke **1/1 PASS** proverava 54/61/69, parent veze, sekvencu, transakciju i odbijanje drugog pokretanja; product-smoke 19/19, bootstrap11/11, integritet235 PASS. [Ograničen dokaz i SHA](proofs/production-bootstrap-source-20261110.json).
+
+Ovaj seed nije installer i nije izvršen na PROD-u. I dalje nedostaju dokazan prazan PG17/Supabase install i rollback, selekcija ostalih referentnih/policy redova, produkcioni AI admission/budžetski ugovor, Auth/Storage/Realtime, Edge, email/push i pravni release uslovi. Ne predstavljati source/PGlite rezultat kao produkcioni readback. Sledeći korak je nezavisna instalaciona proba, pa pregledan paket za konkretno produkciono odobrenje.
+
 
 ## Nastavak 10.11.2026: oporavak CI-ja i svež izvor za početnu šemu
 

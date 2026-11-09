@@ -49,6 +49,23 @@
     "retention_policy_sets": 0,
     "note": "Counts identify seed candidates, not an approved set. Historical retired categories and test-generated branches must not be copied automatically."
   },
+  "system_reference_seed_candidate": {
+    "path": "scripts/bootstrap/system-reference-seed.sql",
+    "sha256": "8e2cb486c2e88ab5a2ebc7949566e0a9f0c09fd9096484cdc382aac7d0f0d777",
+    "source": "2026-11-10 read-only DEV SYSTEM/ESTABLISHED selection, checked against V15 catalog",
+    "categories": 54,
+    "execution_modes": 61,
+    "aliases": 69,
+    "taxonomy_control_version": 15,
+    "excluded_retired_categories": 148,
+    "excluded_ai_reviewed_categories": 2,
+    "empty_target_guard": true,
+    "atomic_transaction": true,
+    "postflight_counts": true,
+    "pglite_schema_smoke": "1/1 PASS, including identity override, generated normalized key, sequence and second-run refusal",
+    "status": "SOURCE_CANDIDATE_RUNTIME_PROD_UNVERIFIED",
+    "production_applied": false
+  },
   "tests": {
     "ux_navigation_copy": "46/46 PASS",
     "typescript": "PASS",
@@ -57,13 +74,13 @@
     "ci_initial_failure": "42717970900 FAILURE on abc7fac6; png parsed as TypeScript",
     "ci_followup_failure": "42721223055 on 14c8a262: 1481 pass, 1 fail; product-smoke forbids supabase/proofs",
     "product_smoke_after_move": "18/18 PASS; bootstrap tools moved into scripts/bootstrap",
-    "full_ci_after_move": "NOT_YET_RUN"
+    "full_ci_after_move": "42722081383 in progress at latest check"
   },
   "open": [
     "Generated exact DEV source includes disposable capacity4 diagnostic table/procedure and is not a selected production baseline.",
     "No empty-platform installation or rollback test; local Docker/psql unavailable.",
     "Fresh PROD lacks PostGIS, pg_cron and pg_net; platform prerequisites and versions must be reviewed.",
-    "No approved reference seed, Auth/Storage/Realtime/email/FCM config or production AI admission.",
+    "SYSTEM taxonomy seed candidate exists; location/publication/legal policy, Auth/Storage/Realtime/email/FCM config and production AI admission remain unprepared or unapproved.",
     "No production write, Edge deploy, paid provider invocation or device proof."
   ]
 }

@@ -24,6 +24,20 @@ python -B -m unittest discover -s scripts/bootstrap -p 'test_*.py'
 The output directory must already exist, be outside this repository and have no
 conflicting output files. The three outputs are `current-application.sql`,
 `current-generation-manifest.json` and `current-generation-coverage.json`.
+
+`system-reference-seed.sql` is a separate, reviewable **source candidate** for a
+fresh empty application schema. A read-only DEV export selected exactly 54
+ESTABLISHED/SYSTEM categories, their 61 execution modes and 69 aliases. It
+excludes 148 retired and two AI-reviewed branches from the testing history. It
+also creates the taxonomy control row at the V15 system-catalog version. The
+transaction refuses a nonempty target and checks the resulting counts. The
+alias ID identity and normalized-key generated column were checked against the
+live DEV schema; only the identity value is overridden, and the database computes
+the normalized key. Run `node --test scripts/bootstrap/system-reference-seed.test.cjs`
+for a small PostgreSQL-compatible syntax and rollback smoke test. This test is
+**not** a full Supabase installation or production approval. The seed does not
+include location, publication/legal policy, retention, Auth, Storage or business
+rows. It must run only after an independently verified application schema install.
 Publication is a separate review step. The generation manifest records object
 provenance; the archived R01 parity runner owns the independent runtime comparison.
 Never publish the raw capture or reinterpret generation as successful parity.
