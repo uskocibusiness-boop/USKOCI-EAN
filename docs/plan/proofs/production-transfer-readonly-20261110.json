@@ -1,0 +1,398 @@
+{
+  "kind": "production_transfer_readonly_inventory",
+  "source": {
+    "branch": "work/uskoci-cist-proizvod-20261104",
+    "sha": "abc7fac6db5f37164df76e4ceb41f36f42fc4679",
+    "remote_equal": true
+  },
+  "scope": {
+    "database_reads_only": true,
+    "database_writes": 0,
+    "edge_deployments": 0,
+    "paid_provider_calls": 0,
+    "native_builds_started": 0,
+    "ui_changes": 0,
+    "live_edge_source_byte_parity_checked": false,
+    "production_auth_settings_checked": false
+  },
+  "dev": {
+    "project_ref": "leqcwgzvjsxugfgzdmth",
+    "checked_at": "2026-11-09 23:11:08.007579+00",
+    "postgres_version": "17.6",
+    "application_tables": 168,
+    "application_routines": 717,
+    "auth_users": 18,
+    "storage_buckets": 3,
+    "storage_objects": 38,
+    "extensions": [
+      {
+        "name": "pg_cron",
+        "schema": "pg_catalog",
+        "version": "1.6.4"
+      },
+      {
+        "name": "plpgsql",
+        "schema": "pg_catalog",
+        "version": "1.0"
+      },
+      {
+        "name": "postgis",
+        "schema": "extensions",
+        "version": "3.3.7"
+      },
+      {
+        "name": "pgcrypto",
+        "schema": "extensions",
+        "version": "1.3"
+      },
+      {
+        "name": "uuid-ossp",
+        "schema": "extensions",
+        "version": "1.1"
+      },
+      {
+        "name": "pg_stat_statements",
+        "schema": "extensions",
+        "version": "1.11"
+      },
+      {
+        "name": "supabase_vault",
+        "schema": "vault",
+        "version": "0.3.1"
+      },
+      {
+        "name": "pg_net",
+        "schema": "public",
+        "version": "0.20.4"
+      }
+    ],
+    "cron_table": "cron.job",
+    "migration_table": "supabase_migrations.schema_migrations",
+    "migration_count": 372,
+    "latest_migration": "20261109173026_worker_candidate_areas_20261109",
+    "edge": [
+      {
+        "name": "uskoci-ai-interview",
+        "version": 199,
+        "verify_jwt": false,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-location-search",
+        "version": 32,
+        "verify_jwt": true,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-publication-evaluate",
+        "version": 32,
+        "verify_jwt": true,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-data-export-worker",
+        "version": 29,
+        "verify_jwt": false,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-data-export-download",
+        "version": 29,
+        "verify_jwt": true,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-worker-interview",
+        "version": 152,
+        "verify_jwt": false,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-speech-session",
+        "version": 33,
+        "verify_jwt": true,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-qa-classify",
+        "version": 31,
+        "verify_jwt": true,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-push-transport",
+        "version": 47,
+        "verify_jwt": false,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-media",
+        "version": 31,
+        "verify_jwt": true,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-account-closure-worker",
+        "version": 19,
+        "verify_jwt": false,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-taxonomy-postsave-worker",
+        "version": 14,
+        "verify_jwt": false,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "sbfenv",
+        "version": 10,
+        "verify_jwt": true,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-gemini-schema-smoke",
+        "version": 11,
+        "verify_jwt": true,
+        "status": "ACTIVE"
+      },
+      {
+        "name": "uskoci-gemini-provider-probe-dev",
+        "version": 12,
+        "verify_jwt": true,
+        "status": "ACTIVE"
+      }
+    ]
+  },
+  "production": {
+    "project_ref": "fvyqqudqvizjrxaflhex",
+    "checked_at": "2026-11-09 23:11:08.725727+00",
+    "postgres_version": "17.11",
+    "application_tables": 0,
+    "application_routines": 0,
+    "auth_users": 0,
+    "storage_buckets": 0,
+    "storage_objects": 0,
+    "extensions": [
+      {
+        "name": "plpgsql",
+        "schema": "pg_catalog",
+        "version": "1.0"
+      },
+      {
+        "name": "pg_stat_statements",
+        "schema": "extensions",
+        "version": "1.11"
+      },
+      {
+        "name": "uuid-ossp",
+        "schema": "extensions",
+        "version": "1.1"
+      },
+      {
+        "name": "pgcrypto",
+        "schema": "extensions",
+        "version": "1.3"
+      },
+      {
+        "name": "supabase_vault",
+        "schema": "vault",
+        "version": "0.3.1"
+      }
+    ],
+    "cron_table": null,
+    "migration_table": null,
+    "migration_count": 0,
+    "edge": []
+  },
+  "dev_readiness": {
+    "checked_at": "2026-11-09 23:11:54.277545+00",
+    "legal_ready": false,
+    "active_legal_documents": 0,
+    "retention_source_ready": false,
+    "export_binding_null": true,
+    "retention_binding_null": true,
+    "closure_binding_null": true,
+    "cron": [
+      {
+        "name": "uskoci_marketplace_tick",
+        "active": true,
+        "command": "select private.marketplace_tick(25);",
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "uskoci_edge_workers",
+        "active": true,
+        "command": null,
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "uskoci_taxonomy_postsave_tick_dev",
+        "active": true,
+        "command": null,
+        "schedule": "* * * * *"
+      }
+    ],
+    "budget": {
+      "enabled": true,
+      "cap_enforced": true,
+      "ceiling_microusd": 100000000,
+      "price_valid_until": "2027-01-01T00:00:00+00:00"
+    },
+    "pending_owners": [
+      {
+        "name": "pg_prepared_xact",
+        "schema": "pg_catalog",
+        "identity": "OUT transaction xid, OUT gid text, OUT prepared timestamp with time zone, OUT ownerid oid, OUT dbid oid"
+      },
+      {
+        "name": "pg_prepared_statement",
+        "schema": "pg_catalog",
+        "identity": "OUT name text, OUT statement text, OUT prepare_time timestamp with time zone, OUT parameter_types regtype[], OUT result_types regtype[], OUT from_sql boolean, OUT generic_plans bigint, OUT custom_plans bigint"
+      },
+      {
+        "name": "build_prepared_statement_sql",
+        "schema": "realtime",
+        "identity": "prepared_statement_name text, entity regclass, columns realtime.wal_column[]"
+      }
+    ],
+    "buckets": [
+      {
+        "id": "profile-media",
+        "public": false,
+        "file_size_limit": 5242880,
+        "allowed_mime_types": [
+          "image/jpeg",
+          "image/png",
+          "image/webp"
+        ]
+      },
+      {
+        "id": "data-export-artifacts",
+        "public": false,
+        "file_size_limit": 8388608,
+        "allowed_mime_types": [
+          "application/json"
+        ]
+      },
+      {
+        "id": "agreement-voice",
+        "public": false,
+        "file_size_limit": 4194304,
+        "allowed_mime_types": [
+          "audio/mp4"
+        ]
+      }
+    ],
+    "realtime": [
+      {
+        "table": "agreement_invalidations_v1",
+        "schema": "public",
+        "publication": "supabase_realtime"
+      }
+    ]
+  },
+  "ci": {
+    "id": 42717970900,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42717970900",
+    "head_sha": "abc7fac6db5f37164df76e4ceb41f36f42fc4679",
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": [
+      {
+        "id": 129504299402,
+        "name": "qa-apk",
+        "conclusion": "failure",
+        "failed_steps": [
+          "Verify the active clean source"
+        ]
+      },
+      {
+        "id": 129506816516,
+        "name": "record-ux-checkpoint",
+        "conclusion": "skipped",
+        "failed_steps": []
+      }
+    ],
+    "observed_failure": "R11 contextual messages are in the scroll header and step aside for an unavailable inbox: AssertionError TypeScript syntax: assets/v3/maps/map-task-open.png",
+    "limitation": "Observed log failure, not independently reproduced or repaired in this analysis."
+  },
+  "source_checks": {
+    "migration_integrity": {
+      "result": "PASS",
+      "files": 235,
+      "command": "python -B supabase/migrations/check_migration_integrity.py"
+    },
+    "migration_integrity_tests": {
+      "result": "PASS",
+      "tests": 90,
+      "command": "python -B -m unittest discover -s supabase/migrations -p test_migration_integrity.py"
+    },
+    "limitation": "Integrity checks do not prove empty-database installation."
+  },
+  "transfer_findings": [
+    {
+      "code": "BASELINE_NOT_PORTABLE",
+      "status": "BLOCKED",
+      "source": "supabase/migrations/20261109173026_worker_candidate_areas_20261109.sql",
+      "finding": "Current migration set includes exact DEV OID/environment preconditions and historical fixture-dependent proofs. Do not replay as a clean production installer.",
+      "next": "Reuse reviewed historical bootstrap generator with fresh selected metadata and explicit reference seed; verify fresh installation and rollback."
+    },
+    {
+      "code": "AI_DEV_SCOPE",
+      "status": "SOURCE_CONFIRMED",
+      "source": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+      "finding": "taxonomyIntakeEnabled requires rollout scope DEV and exact allowed-project URL. DUAL_GEMINI is historical single-pass flag, not evidence of two model calls.",
+      "next": "Implement explicit production admission without impersonating DEV; preserve spend and identity guards."
+    },
+    {
+      "code": "AI_TEST_ALLOWLIST",
+      "status": "DEV_CONFIRMED",
+      "owner": "public.rpc_ai_test_budget_reserve_service(uuid,uuid,text,bigint)",
+      "finding": "Live reservation requires non-retired private.ai_test_accounts_v5 admission; normal production signup is not sufficient.",
+      "next": "Define production eligibility and account quotas while preserving atomic reservation, idempotence, closure and budget ceiling. No limit changed."
+    },
+    {
+      "code": "REFERENCE_SEED",
+      "status": "NOT_PREPARED",
+      "finding": "Only reviewed taxonomy/reference/configuration data should transfer. No business rows, Auth sessions, media, push tokens, test admissions, usage reservations or DEV secrets."
+    },
+    {
+      "code": "R06",
+      "status": "SOURCE_ONLY",
+      "source": "scripts/sql/r06_pre_provider_input_20261108.sql",
+      "finding": "Unpromoted guarded candidate is not installable production package. Remaining handler/native/recovery acceptance is recorded in existing R06 proof."
+    },
+    {
+      "code": "R13",
+      "status": "PARTIAL",
+      "finding": "Live cron still calls marketplace_tick(25); named transaction owners absent. Missing newer package and probe cleanup are not resolved."
+    },
+    {
+      "code": "R10_R12",
+      "status": "BLOCKED",
+      "finding": "Legal ready=false, zero active documents, retention source=false, policy bindings null; technical and legal approval remain separate."
+    },
+    {
+      "code": "EDGE_SELECTION",
+      "status": "PARTIAL",
+      "finding": "15 DEV functions inventoried. QA-classify is used for real task questions/answers by src/data/qaSubmissionClientService.ts; do not remove by name. sbfenv/schema-smoke/provider-probe-dev are diagnostic candidates for exclusion, pending final dependency review."
+    }
+  ],
+  "historical_bootstrap": {
+    "commit": "357d767d9f7ad61b0cd452c9c3a0e44b1b69664f",
+    "paths": [
+      "supabase/proofs/privacy/bootstrap/generate.py",
+      "supabase/proofs/privacy/bootstrap/README.md",
+      "supabase/proofs/privacy/r01-capture-bootstrap-metadata.sql"
+    ],
+    "snapshot_date": "2026-10-28",
+    "current_checkout_has_package": false,
+    "production_ready": false
+  },
+  "limitations": [
+    "No production runtime installation, credentials changes, signup/email/push/device proof or legal approval.",
+    "No claim that all DEV function bodies match current GitHub source.",
+    "235 source versus 372 ledger entries is inventory difference, not by itself a defect.",
+    "Latest CI failure is separate from production schema transfer."
+  ]
+}

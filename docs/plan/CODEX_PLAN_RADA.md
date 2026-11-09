@@ -18,6 +18,30 @@
 - **3D iglice na mapama:** U `src/ui/location/ResolvedPinMap.tsx` komponenta `ModernMapPin` koristi kalibrisane 3D pinove (`MAP_PIN_SPECS['map-route-start']`, `map-route-end`, `map-task-selected`) sa tačnim igličastim sidrom `y: 0.988`.
 - **Lokalna verifikacija:** `node --test scripts/agreement-incoming-lifecycle.test.cjs scripts/ux-home-waiting.test.cjs scripts/home-agreements-contract.test.cjs scripts/ux-checkpoint.test.cjs` PASS (49/49), `npx tsc --noEmit` PASS (0 grešaka), `git diff --check` čist.
 
+## Produkcioni prenos — 10.11.2026: read-only presek i sledeći izvršni korak
+
+**PARTIAL / PROD NIJE INSTALIRAN.** Proveren GitHub i fast-forward lokalnog checkout-a na `abc7fac6db5f37164df76e4ceb41f36f42fc4679`, grana `work/uskoci-cist-proizvod-20261104`; sačuvane novije UI izmene. Direktni read-only Supabase upiti 09.11. u 23:11 UTC (10.11. lokalno) potvrđuju sledeće. [Inventar, tačni brojevi i granice](proofs/production-transfer-readonly-20261110.json).
+
+| Oblast | Potvrđeno sada | Pre prenosa / javnog izdanja |
+| --- | --- | --- |
+| DEV `leqcwgzvjsxugfgzdmth` | 372 migracije, 168 aplikacionih tabela, 717 ne-extension rutina, 15 Edge funkcija; Need199/Worker152; PostgreSQL17.6. | Popis nije dokaz byte parity svih funkcija sa GitHub-om. |
+| PROD `fvyqqudqvizjrxaflhex` | PostgreSQL17.11; 0 aplikacionih tabela/rutina, migracija, Edge funkcija, Auth korisnika i Storage bucket-a. | Postoji prazan projekat, ne instaliran backend. Expo/Firebase priprema iz donjeg checkpointa nije serverski deploy. |
+| Instalacioni izvor | 235 SQL fajlova; integritet PASS i 90/90 testova porekla PASS. | Razlika prema372 nije sama kvar. Deo migracija sadrži DEV OID/environment preflight i istorijske fixture preduslove; nije bezbedan čist replay. |
+| AI prijem korisnika | Source `taxonomyRuntimeConfig.mjs` traži rollout scope DEV; live `rpc_ai_test_budget_reserve_service` traži aktivan `ai_test_accounts_v5` zapis. | Definisati eksplicitno produkciono uključivanje i prijem običnih korisnika; zadržati vlasništvo, closure, idempotentnost i budget guard. Ne predstavljati PROD kao DEV. Istorijski DUAL_GEMINI flag sada štiti single-pass, ne dokazuje drugi model. |
+| R06/R13 | Prepared-input je SOURCE_ONLY; live Cron i dalje poziva `marketplace_tick(25)`, noviji transakcioni owner-i odsutni. | Dovršiti odgovarajuće postojeće pakete i prihvat; ne uključiti sirove kandidate u produkciju. Sama priprema baseline-a ne mora da čeka njihove popravke. |
+| R10/R12 | Legal ready=false, 0 aktivnih dokumenata; retention source=false, sva tri policy binding-a NULL. | Završiti tehnički lifecycle i pravni sadržaj/odobrenje; bez prepisivanja sertifikata ili readiness-a. |
+
+**Redosled nastavka postojećeg plana:**
+1. Ponovo koristiti samo potrebne postojeće bootstrap alate iz pinovanog `357d767d9f7ad61b0cd452c9c3a0e44b1b69664f` (`supabase/proofs/privacy/bootstrap/generate.py`, README i metadata capture); snapshot28.10. je zastareo i nije PROD paket. Napraviti svež selektovan katalog i jedan prenosiv početni DDL, sa eksplicitnim mapiranjem platformnih owner/ACL/extension razlika. Ne prepisivati managed platformu radi parity prolaza.
+2. Pripremiti odvojen pregledan referentni seed: katalog usluga sa potrebnim ID vezama, režimi rada, geografija i tehničke konfiguracije. Izostaviti Auth/sesije, probne profile/zadatke/Dogovore/poruke/medije, push tokene, outbox/usage/rezervacije, testne allowlist-e, Vault tajne i DEV Cron URL-ove. Ne kopirati372 ledger zapisa kao izvršene PROD migracije.
+3. Proveriti instalaciju u praznoj izolovanoj bazi, RLS/prava i povratak na prethodno stanje. Zatim pripremiti pregledan paket za konkretno produkciono odobrenje. Najpre SQL/referentni seed, potom tačan Edge bundle i nova projektna konfiguracija; background poslovi ostaju isključeni do postflight-a.
+4. Uskladiti produkcioni AI admission i budžet, Auth/mail/redirect, privatne Storage bucket-e i Realtime. DEV ima tri privatna bucket-a i publication `agreement_invalidations_v1`; te ugovore obnoviti bez medijskih podataka. Ne kopirati testne dozvole ni stare ključeve. `uskoci-qa-classify` služi stvarnim pitanjima/odgovorima na zadatak (`src/data/qaSubmissionClientService.ts`), pa nije alat za uklanjanje samo zbog naziva. Tri dijagnostičke Edge funkcije izdvojiti nakon završne provere zavisnosti.
+5. Posle server prihvata uključiti potrebne Cron/dispatch/push poslove i uraditi dvokorisnički tok. Potom produkcioni FCM, Apple signing/APNs, odgovarajući AAB/iOS build i uređajski prihvat; javni izlaz tek nakon odvojenih release uslova. UI završavanje može teći paralelno uz sačuvane ugovore.
+
+**Aktuelni CI nije zelen:** QA118 / [42717970900](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42717970900), source `abc7fac6`, FAILURE u `Verify the active clean source`. Log: R11 contextual-messages provera, `AssertionError: TypeScript syntax: assets/v3/maps/map-task-open.png`. To je konkretan nalaz za reprodukciju test loader-a/resursa, nije dokaz da je slika neispravna niti da je UI tok testiran; ovaj pregled ga nije popravljao. Raniji zeleni CI ostaje dokaz samo svog SHA.
+
+**Granica izvršenja:** promenjena samo ova evidencija i prateći JSON. Nema SQL upisa, promene budžeta/tajni, Edge deploy-a, plaćenih poziva, novih build-ova ili UI izmene. Novi produkcioni installer još nije izrađen. Javno izdanje ostaje NO-GO; sledeći konkretan posao je svež baseline/referentni seed i eksplicitan produkcioni AI admission, u okviru ovog plana.
+
 ## Infrastrukturni checkpoint — 09.11.2026: priprema Expo/Firebase produkcije
 
 **PARTIAL — konfiguracija servisa, nije produkciono izdanje.** Infrastrukturna priprema započeta je na `ea487a212b30a6cb7e04b60620ba0c1769d3b5d9`; povezivanje Firebase fajla nastavljeno je posle fast-forward-a na `58c81d5b6da9222c74ca68c7e09b415047cb8c0f`, grana `work/uskoci-cist-proizvod-20261104`. Novije V3/UI izmene su sačuvane. R06 ostaje SOURCE_ONLY.
