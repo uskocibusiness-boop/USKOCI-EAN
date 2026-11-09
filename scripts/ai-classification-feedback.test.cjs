@@ -59,6 +59,29 @@ test('unconfirmed taxonomy never announces review or a successful category write
       assert.doesNotMatch(result.assistantMessage,/na lokaciji|onlajn/);
     }
   });
+  await t.test('complete Worker semantic proposals acknowledge conversation data without predicting SQL readiness or profile Save',()=>{
+    const source={...need(),patch:{skills:['Kurirske dostave','Lektura']}};
+    const built={clarifications:[],failures:[],unconfirmedModeServices:[],unresolvedServices:['Kurirske dostave','Lektura']};
+    const plan={proposals:[{service:'Kurirske dostave',action:'REUSE_EXISTING'},{service:'Lektura',action:'EXTEND_MODE'}]};
+    const result=guard(source,built,plan);
+    assert.equal(result.assistantMessage,'Podaci iz razgovora su sačuvani.');
+    assert.equal(result.dialogue.next,'ACK');
+    assert.equal(result.patch,source.patch);assert.equal(result.proposals,facts);assert.equal(result.safety,'ALLOW');
+    assert.doesNotMatch(result.assistantMessage,/profil|sprem|objavljen|aktiviran/);
+    const answer={...source,assistantMessage:'Objavljivanje zahteva Vašu potvrdu.',dialogue:{...source.dialogue,next:'ANSWER'}};
+    assert.equal(guard(answer,built,plan),answer);
+  });
+  await t.test('missing service plan or an actual validation failure cannot become a saved-data acknowledgement',()=>{
+    const built={clarifications:[],failures:[],unconfirmedModeServices:[],unresolvedServices:['Kurirske dostave','Lektura']};
+    const plan={proposals:[{service:'Kurirske dostave',action:'REUSE_EXISTING'},{service:'Lektura',action:'REUSE_EXISTING'}]};
+    for(const [b,p] of [[built,null],[built,{proposals:plan.proposals.slice(0,1)}],
+      [{...built,failures:[{code:'PROVIDER_INVALID_DECISION'}]},plan],
+      [built,{proposals:plan.proposals.map(p=>({...p,action:'CREATE_CHILD'}))}]]){
+      const result=guard(need(),b,p);
+      assert.match(result.assistantMessage,/Pregled još nije spreman/);
+      assert.doesNotMatch(result.assistantMessage,/Podaci iz razgovora su sačuvani/);
+    }
+  });
   await t.test('a direct explanation is not replaced by classification status',()=>{
     const source=need('ANSWER','Vaš zadatak se objavljuje tek kada Vi potvrdite pregled.');
     assert.equal(guard(source,null,null),source);

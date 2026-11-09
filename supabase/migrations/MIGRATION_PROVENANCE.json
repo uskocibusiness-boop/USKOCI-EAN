@@ -4920,5 +4920,36 @@
         "live_recorded_sha256": "13ec4b987548b460784b756b1fae31e9300b522472e4e9821daaad91403e1e8f"
       }
     ]
+  },
+  "forward_execution_20261109_worker_shared_reuse": {
+    "classification": "APPLIED_EXACT_LEDGER_BYTES",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "file": "20261109133503_worker_shared_reuse_20261109.sql",
+    "version": "20261109133503",
+    "name": "worker_shared_reuse_20261109",
+    "source_md5": "68e7fd8dfb619695acdf5df495083ede",
+    "source_sha256": "2cf5c113217d3d66e5837bc4d754b16ea48a21aae63bc20ef346f5df89072c5d",
+    "source_bytes": 71652,
+    "recorded_statement_md5": "68e7fd8dfb619695acdf5df495083ede",
+    "recorded_statement_sha256": "2cf5c113217d3d66e5837bc4d754b16ea48a21aae63bc20ef346f5df89072c5d",
+    "recorded_statement_count": 1,
+    "evidence": "docs/plan/proofs/worker-shared-reuse-dev-20261109.json",
+    "evidence_sha256": "bb39124a2f76bbec5bb7a46a5f6598237a6966e9db55ab161adf8046e7975bc1",
+    "dev_applied": true,
+    "dev_migration_count_after": 369,
+    "preserved_owner_metadata": 11,
+    "changed_owner_bodies": 3,
+    "preserved_relation_metadata": 11,
+    "post_source_digest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+    "post_erasure_digest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+    "stored_closure_certificates_unchanged": true,
+    "source_ready": false,
+    "closure_recertified": false,
+    "verified_auth_save": false,
+    "verified_android": false,
+    "verified_push_delivery": false,
+    "release": "NO-GO",
+    "scope": "Distinct Worker labels may share a verified existing category+mode with independent original-label risk checks and identical handoff. Three existing function bodies only; identity, ownership, signed review, revision, idempotency and unchanged binder remain.",
+    "rollback": "scripts/sql/worker_shared_reuse_20261109.rollback.sql; guarded manual recovery only, not executed on DEV."
   }
 }

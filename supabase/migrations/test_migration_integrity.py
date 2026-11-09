@@ -8,7 +8,7 @@ import unittest
 from unittest import mock
 from pathlib import Path
 
-from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence, check_r13_push_wake_provenance, check_r09_activation_provenance, check_r09_applicant_provenance, check_post_qa92_readmission
+from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence, check_r13_push_wake_provenance, check_r09_activation_provenance, check_r09_applicant_provenance, check_post_qa92_readmission, check_worker_shared_reuse_provenance
 
 
 class ParticipantContractTests(unittest.TestCase):
@@ -607,6 +607,77 @@ class R09ApplicantProvenanceTests(unittest.TestCase):
             with self.subTest(suffix=suffix), mock.patch.object(Path, "read_bytes", tampered):
                 with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                     check_r09_applicant_provenance(self.section, self.manifest)
+
+
+class WorkerSharedReuseProvenanceTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).parent
+        self.section = json.loads((root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))["forward_execution_20261109_worker_shared_reuse"]
+        self.manifest = dict(line.split("  ")[::-1] for line in (root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+
+    def rejects(self, section, manifest=None):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_worker_shared_reuse_provenance(section, self.manifest if manifest is None else manifest)
+
+    def test_actual_ledger_and_bounded_dev_postimage_are_bound(self):
+        self.assertEqual(check_worker_shared_reuse_provenance(self.section, self.manifest), self.section["file"])
+        self.assertEqual(self.section["version"], "20261109133503")
+        self.assertEqual(self.section["preserved_owner_metadata"], 11)
+        self.assertEqual(self.section["changed_owner_bodies"], 3)
+        self.assertFalse(self.section["source_ready"])
+        self.assertFalse(self.section["verified_android"])
+
+    def test_fabricated_ledger_identity_hash_or_scope_is_rejected(self):
+        for key, value in (("version", "20261109133504"), ("name", "unverified_worker_change"),
+                           ("source_sha256", "0" * 64), ("source_bytes", 71653),
+                           ("recorded_statement_count", 2), ("recorded_statement_md5", "0" * 32),
+                           ("dev_migration_count_after", 370), ("dev_applied", False),
+                           ("preserved_owner_metadata", 10), ("preserved_relation_metadata", 10),
+                           ("changed_owner_bodies", 4)):
+            with self.subTest(key=key):
+                self.rejects({**self.section, key: value})
+
+    def test_unearned_closure_auth_native_or_push_claims_are_rejected(self):
+        for key, value in (("source_ready", True), ("closure_recertified", True),
+                           ("verified_auth_save", True), ("verified_android", True),
+                           ("verified_push_delivery", True), ("release", "GO"),
+                           ("stored_closure_certificates_unchanged", False),
+                           ("post_source_digest", "0" * 64), ("post_erasure_digest", "0" * 64)):
+            with self.subTest(key=key):
+                self.rejects({**self.section, key: value})
+
+    def test_missing_section_manifest_or_witness_is_rejected(self):
+        self.rejects(None)
+        self.rejects(self.section, {})
+        with mock.patch.object(Path, "is_file", return_value=False):
+            self.rejects(self.section)
+
+    def test_modified_sql_cannot_pass_by_rehashing_manifest_and_provenance(self):
+        original = Path.read_bytes
+        filename = self.section["file"]
+        altered = original(Path(__file__).with_name(filename)) + b"\n-- unreviewed mutation\n"
+        md5 = hashlib.md5(altered).hexdigest()
+        sha256 = hashlib.sha256(altered).hexdigest()
+        rebound = {**self.section, "source_md5": md5, "recorded_statement_md5": md5,
+                   "source_sha256": sha256, "recorded_statement_sha256": sha256,
+                   "source_bytes": len(altered)}
+        def tampered(path):
+            return altered if path.name == filename else original(path)
+        with mock.patch.object(Path, "read_bytes", tampered):
+            self.rejects(self.section)
+            self.rejects(rebound, {**self.manifest, filename: md5})
+
+    def test_modified_dev_witness_cannot_pass_by_rebinding_its_hash(self):
+        original = Path.read_bytes
+        witness = self.section["evidence"]
+        path = Path(__file__).resolve().parents[2] / witness
+        altered = original(path) + b"\n"
+        rebound = {**self.section, "evidence_sha256": hashlib.sha256(altered).hexdigest()}
+        def tampered(item):
+            return altered if item.as_posix().endswith(witness) else original(item)
+        with mock.patch.object(Path, "read_bytes", tampered):
+            self.rejects(self.section)
+            self.rejects(rebound)
 
 
 class PostQA92ReadmissionTests(unittest.TestCase):

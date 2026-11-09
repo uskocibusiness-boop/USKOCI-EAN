@@ -291,7 +291,7 @@ function handlerHarness(domain, text, providerOutput, options = {}) {
     });
     if (name === 'rpc_claim_worker_ai_turn_service') return json({ acquired: !options.replay, turn: options.replay ? workerTurn() : processing });
     if (name === 'rpc_read_worker_ai_context_service') return json({ schemaVersion: 'WORKER_PROFILE_V1', accountId: ACCOUNT,
-      conversationId: CONVERSATION, status: 'OPEN', stale: false, safety: 'ALLOW', profileStatus: 'DRAFT', revision: 1, candidate,
+      conversationId: CONVERSATION, status: 'OPEN', stale: false, safety: 'ALLOW', profileStatus: 'DRAFT', revision: options.revision ?? 1, candidate,
       messages: options.history ?? [{ role: 'USER', body: text, id: id(6) }],
       serviceModeContext: options.serviceModeContext ?? { schemaVersion: 'WORKER_SERVICE_MODE_CONTEXT_V1', revision: 1, savedServices: [], draftServices: [], unresolvedServices: candidate.skills } });
     if (name === 'rpc_ai_test_budget_reserve_service') return json({ admitted: true, replay: false, reservationId: id(10), code: 'AI_TEST_RESERVED' });
@@ -500,6 +500,75 @@ test('Worker actual Edge: adding explicit digital and physical work to a modeles
   assert.deepEqual(planBindings(next),[binding(old[0],'ON_SITE',id(25)),...newBindings]);
   assert.equal(next.writes[0].args.p_output.assistantMessage,'Da li uslugu „Nabavka i kupovina“ pružate na lokaciji, onlajn ili na oba načina?');
   assertOnePaidAttempt(next);
+});
+
+test('Worker actual Edge: empty mode metadata recovers quoted historical choices while a current explanation replaces only its broad service', async () => {
+  const capture=JSON.parse(fs.readFileSync(path.join(ROOT,'scripts/sql/worker_catalog_conflict_20261109.preimage.json'),'utf8'));
+  const old=capture.proposals.map(p=>p.service);
+  const earlier='Prezentacije radim samo onlajn. Sve ostale navedene usluge radim isključivo na terenu u Novom Sadu. Nemam vozilo. Dostupan sam radnim danima od 9 do 17.';
+  const text='Pod fizičkim poslovima mislim na ručno iznošenje kutija i nošenje nameštaja, bez prevoza. Sve ostale usluge i podatke zadržite.';
+  const replacement='Ručno iznošenje kutija i nošenje nameštaja bez prevoza';
+  const skills=old.map((service,i)=>i===2?replacement:service);
+  const catalog=capture.catalog.categories.map(c=>({categoryId:c.id,label:c.label,parentId:c.parent_id,
+    isLeaf:!capture.catalog.categories.some(child=>child.parent_id===c.id),aliases:[],
+    modes:capture.catalog.modes.filter(m=>m.category_id===c.id).map(m=>m.execution_scope)}));
+  const decisions=capture.proposals.map((p,i)=>reuseDecision(skills[i],p.mode,
+    i===2?capture.proposals[6].categoryId:p.categoryId));
+  const output=providerWorker('WORKER_EDIT_SERVICE',text,{
+    serviceChanges:[{action:'REPLACE',service:old[2],replacement,evidence:text}],
+    serviceModeChangesJson:JSON.stringify(skills.map((service,i)=>({service,modes:[capture.proposals[i].mode],
+      evidence:i===2?text:earlier,...(i===5?{handoff:{required:false}}:{})}))),
+    taxonomyDecisions:decisions,
+  });
+  const result=await handlerHarness('WORKER',text,args=>{
+    const sent=JSON.stringify(args);
+    assert.ok(sent.includes(earlier),'The original owned USER answer reaches the one provider call');
+    assert.match(sent,/unresolvedServices means there is no current validated mode metadata, NOT that the person has not answered/);
+    assert.match(sent,/CURRENT USER concretely explains the work meant by an existing broad label/);
+    return output;
+  },{singlePass:true,skills:old,revision:3,catalog,
+    serviceModeContext:{...modeContext([],[],old),revision:3},
+    history:[{role:'USER',body:earlier},{role:'ASSISTANT',body:'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.'},
+      {role:'USER',body:text}]}).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.deepEqual(result.writes[0].args.p_output.patch,{skills});
+  assert.deepEqual(planBindings(result),decisions.map((p,i)=>binding(p.service,p.mode,p.categoryId,i===5?{required:false}:undefined)));
+  assert.equal(result.writes[0].args.p_taxonomy_plan.proposals.length,7);
+  assert.equal(result.writes[0].args.p_taxonomy_plan.anchors.some(a=>a.categoryId===capture.proposals[2].categoryId),false,
+    'The old broad or rejected category is not inherited by the replacement');
+  assert.doesNotMatch(result.writes[0].args.p_output.assistantMessage,/Da li uslugu|na lokaciji, onlajn ili na oba/);
+  assert.equal(result.writes[0].args.p_output.assistantMessage,'Podaci iz razgovora su sačuvani.');
+  assertOnePaidAttempt(result);
+  // Controlled model output proves the Edge contract, not natural model accuracy
+  // or SQL readiness; the neutral prose never claims that the profile was saved.
+});
+
+test('Worker historical mode recovery still rejects assistant-only quotes, invented evidence and historical service renaming', async () => {
+  const service='Košenje trave',text='Sve ostale usluge i podatke zadržite.',earlier='Košenje trave radim isključivo na terenu.';
+  for(const history of [[{role:'ASSISTANT',body:earlier},{role:'USER',body:text}],
+    [{role:'USER',body:'Košenje trave još nisam odredio.'},{role:'USER',body:text}]]){
+    const output=providerWorker('CONTINUE','',{
+      serviceModeChangesJson:JSON.stringify([{service,modes:['ON_SITE'],evidence:earlier}]),
+      taxonomyDecisions:[reuseDecision(service,'ON_SITE',id(22))],
+    });
+    const result=await handlerHarness('WORKER',text,output,{singlePass:true,skills:[service],history,
+      serviceModeContext:modeContext([],[],[service]),catalog:mutationCatalog}).run();
+    assert.equal(result.events.at(-1)?.kind,'final');
+    assert.equal(result.writes[0].name,'rpc_complete_worker_ai_turn_service');
+    assert.equal(Object.hasOwn(result.writes[0].args,'p_taxonomy_plan'),false);
+    assertOnePaidAttempt(result);
+  }
+  const old='Fizički poslovi',past='Pod fizičkim poslovima mislim na nošenje kutija bez prevoza.';
+  const result=await handlerHarness('WORKER',text,providerWorker('CONTINUE','',{
+    serviceChanges:[{action:'REPLACE',service:old,replacement:'Nošenje kutija bez prevoza',evidence:past}],
+    serviceModeChangesJson:'[]',taxonomyDecisions:[],
+  }),{singlePass:true,skills:[old],history:[{role:'USER',body:past},{role:'USER',body:text}],
+    serviceModeContext:modeContext([],[],[old]),catalog:mutationCatalog}).run();
+  assert.equal(result.events.at(-1)?.kind,'final');
+  assert.equal(Object.hasOwn(result.writes[0].args.p_output.patch,'skills'),false,
+    'Historical mode evidence does not relax current-user authority for service edits');
+  assert.equal(Object.hasOwn(result.writes[0].args,'p_taxonomy_plan'),false);
+  assertOnePaidAttempt(result);
 });
 
 for (const recovery of [false, true]) test('Worker actual Edge: ADD keeps an unrelated BOTH identity, including lost completion ACK=' + recovery, async () => {

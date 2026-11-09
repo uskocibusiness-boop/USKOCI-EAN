@@ -35,7 +35,7 @@ question names the next unconfirmed service. This proves the server wiring and
 existing quote binding; it does not prove live-model behavior or resolve the
 real SQL collision. Local log: `../verification/worker-clarification-source-20261109.log`.
 
-## Remaining live legacy-draft blocker
+## Historical legacy-draft blocker before shared-reuse promotion
 
 The subsequent real phone turn supplied explicit modes, but both `Kurirske
 dostave` and `Nabavka i kupovina` mapped to the same category/mode. The unchanged
@@ -52,3 +52,54 @@ public RPC supplies that per-original triage proof. A future bounded solution
 must preserve descriptions, owned bindings, full mode/handoff sets and those
 safety checks. The existing failed draft is preserved and is **not repaired** by
 this clarification change.
+
+## Follow-up: owned mode history and a concrete service explanation
+
+After the separately recorded shared-reuse SQL promotion, Worker 151 still
+asked about courier execution again when the user clarified `Fizički poslovi`.
+The owned SQL context at revision 3 had empty saved/draft modes and all seven
+services unresolved. Its prior hint was DEFERRED; the resolved-hints view emits
+no proposals for it, and a turn without a plan advances the source fingerprint.
+The earlier explicit USER answer still existed in conversation history. The
+Edge builder accepts only current saved/draft choices or quoted mode metadata,
+so omitted metadata became the named-service fallback question.
+
+The SOURCE follow-up changes only the Worker provider instructions:
+
+- Missing validated mode metadata is distinguished from an unanswered human
+  question. The same paid response must reconstruct complete per-service mode
+  sets from owned USER history with original quotes, respecting later changes
+  and the scope of historical group answers. Old rejected category IDs remain
+  untrusted; all proposed identities are classified and checked afresh.
+- A current concrete explanation of an existing broad service uses the existing
+  scoped `serviceChanges.REPLACE` contract with current-user evidence, then
+  classifies the replacement. Other services remain unchanged. This does not
+  authorize stylistic renaming or guessing a narrower activity.
+
+There is no new parser heuristic, SQL reader/writer, inference call or relaxed
+authority check. The actual Edge harness uses both exact phone utterances,
+revision 3 with empty mode context, controlled provider output and the captured
+catalog identities. It retains six unrelated labels, replaces only the explained
+broad label, captures seven fresh proposals, preserves REMOTE/ON_SITE and the
+explicit absence of transport, and does not ask for courier mode again. Negative
+cases reject assistant-only/invented evidence and use of a historical quote to
+authorize a current service rename. One reserve/dispatch/model/completion path
+is asserted; no Save or activation is issued.
+
+The same four-file focused command above now passes **92/92**, zero skipped;
+`npx tsc --noEmit --pretty false` passes with no diagnostics. This is a prompt
+and guarded-handler regression, **not proof of natural provider recovery** and
+not a new DEV/phone result. The separate phone repeat that explicitly restated
+the modes is not counted as natural-history recovery.
+
+The phone also exposed a prose mismatch: SQL can resolve a fresh semantic plan
+while the earlier Edge text says the review is not ready. A bounded follow-up
+now uses `Podaci iz razgovora su sačuvani.` only when a capture plan exists,
+there is no clarification/failure/missing mode, and every unresolved service
+has a retained REUSE_EXISTING or EXTEND_MODE proposal. The builder already
+removes incomplete or conflicting mode sets before this boundary. The reply
+acknowledges durable conversation data after completion; it claims neither
+READY nor profile Save/activation. Actual missing-plan/validation failures keep
+their existing fallback, and real answers/questions retain priority. Positive
+and negative tests exercise that distinction; the signed SQL review remains
+authoritative. This text correction is SOURCE-only until separately deployed.

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, BackHandler, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { RadnikProfilProjekcija } from '../../../contracts/projections';
+import { decodeWorkerAreas } from '../../../contracts/workerAreas';
 import type { AzurirajProfilKomanda, Ishod } from '../../../data/ports';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { useWorkerAvailability } from '../../../hooks/useWorkerAvailability';
@@ -257,8 +258,14 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   // The name this profile is activated under is the account's (`nameForSave`); its own only while the account's cannot be read.
   const profileName = accountName?.trim() || value?.ime.trim() || '';
   const basicsReady = !!value && profileName.length >= 2 && value.vestine.length > 0;
-  const locationReady = !!value && value.grad.trim().length >= 2 && /^\d{1,3}$/.test(value.radius)
+  const legacyLocationReady = !!value && value.grad.trim().length >= 2 && /^\d{1,3}$/.test(value.radius)
     && Number(value.radius) >= 1 && Number(value.radius) <= 200;
+  const savedAreasReady = (decodeWorkerAreas(value?.workAreas)?.length ?? 0) > 0;
+  const remoteOnly = executionModes.view.kind === 'confirmed' && executionModes.view.modes.length > 0
+    && executionModes.view.modes.every(mode => mode === 'REMOTE');
+  // Display and signed-review entry follow the saved territory/modes. They do not
+  // grant activation or relax the separate legacy writer's location requirements.
+  const locationReady = legacyLocationReady || savedAreasReady || remoteOnly;
   // `activates` marks the one branch that really offers activation; the status note says "ready" only then, never while
   // the primary still has to save a change first.
   const primary: { label: string; run: () => void; activates?: boolean } = (() => {
@@ -270,11 +277,13 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       ? { label: 'Sačuvajte profil', run: () => { void save(false); } }
       : { label: 'Uredite kroz razgovor', run: () => openConversation() };
     if (status !== 'DRAFT') return { label: 'Osvežite radni profil', run: refresh };
-    if (reading) return basicsReady && !!value && value.grad.trim().length >= 2
+    // Keep the existing city-only review entry: the signed server review decides
+    // which remaining facts are missing; the route never claims activation itself.
+    if (reading) return basicsReady && ((value?.grad.trim().length ?? 0) >= 2 || savedAreasReady || remoteOnly)
       ? { label: 'Pregled za aktivaciju', run: () => openConversation(undefined, true) }
       : { label: 'Nastavite kroz razgovor', run: () => openConversation() };
     if (localDirty) return { label: 'Sačuvajte izmene', run: () => { void save(false); } };
-    if (!locationReady) return { label: 'Podesite područje rada', run: () => navigate('/profil/lokacija') };
+    if (!legacyLocationReady) return { label: 'Podesite područje rada', run: () => navigate('/profil/lokacija') };
     // The name is not typed here: when it is missing, the primary leads to the one place it is written.
     if (!basicsReady) return profileName.length < 2
       ? { label: 'Dodajte ime', run: () => navigate('/profil/podaci') }

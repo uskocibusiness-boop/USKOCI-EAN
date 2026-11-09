@@ -2,6 +2,94 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),ts=require('typescript');
 const {ROOT,React,RTR,createHarness,deferred,mount,nodes,target,press,unmount}=require('./ux-component-harness.cjs');
 const read=p=>fs.readFileSync(path.join(ROOT,p),'utf8');
+// Actual saved-profile route and owned editor; only native widgets/read services are fixtures.
+// Entry into signed preparation is not an activation write or installed-Android proof.
+const WORKER_AREA_CITY={kind:'CITY',countryCode:'RS',label:'Novi Sad',city:'Novi Sad',sourceRef:'osm:relation:123',latitude:45.26,longitude:19.84,radiusKm:null};
+async function workerActivationRoute(profilePatch={},modeView={kind:'confirmed',modes:['ON_SITE']}){
+ const session={user:{id:'owner'},accountRevision:1},routes=[],writes=[],listeners=new Set();
+ const profile={id:'profile',stanje:'DRAFT',ime:'Milan',grad:'',biografija:'Dostavljam pakete i pomažem pri selidbi.',
+  vestine:['Kurirske dostave','Nabavka i kupovina','Pomoć pri selidbi'],alati:[],vozila:[],licence:[],radijusKm:0,dostupanOdmah:false,
+  workAreas:[WORKER_AREA_CITY],...profilePatch};
+ const source={mojRadnikProfil:async()=>profile,azurirajRadnikProfil:async command=>{writes.push(command);return{ok:false,kod:'UNEXPECTED_WRITE'};}};
+ const control={modes:modeView},router={navigate:route=>routes.push(route),canGoBack:()=>true,back:()=>{},replace:route=>routes.push(route)};
+ const h=createHarness({
+  'expo-router':{router,useLocalSearchParams:()=>({}),useFocusEffect:fn=>React.useEffect(fn,[fn])},
+  'src/store/sesija.ts':{useSesija:()=>session,sesijaSada:()=>session},
+  'src/store/uloga.ts':{useIzvor:()=>source},
+  'src/hooks/useWorkerAvailability.ts':{useWorkerAvailability:()=>({view:{kind:'unavailable'},refresh:()=>{}})},
+  'src/hooks/useWorkerExecutionModes.ts':{useWorkerExecutionModes:()=>({view:control.modes,refresh:()=>{}})},
+  'src/hooks/useUnsavedProfileBack.ts':{useUnsavedProfileBack:({onBack})=>({back:onBack,sheet:null})},
+  'src/ui/profile/useAccountName.ts':{useAccountName:()=>({state:'ready',name:'Milan',profileId:null})},
+  'src/lib/idempotencija.ts':{noviUuidZahtevId:()=> '00000000-0000-4000-8000-000000000123'},
+  'src/data/aiCorrectionIntent.ts':{rememberAiCorrection:()=>null},
+ });
+ h.native.AppState={currentState:'active',addEventListener:(_,fn)=>{listeners.add(fn);return{remove:()=>listeners.delete(fn)};}};
+ h.native.BackHandler={addEventListener:()=>({remove:()=>{}})};
+ for(const [file,names]of [
+  ['src/ui/workerProfile/WorkerProfilePresentation.tsx',['WorkerProfileFrame','WorkerProfileFooter','WorkerProfileForm','WorkerProfileStatus']],
+  ['src/ui/media/ContextPhotos.tsx',['ProfilePhoto']],['src/ui/profile/RatingLine.tsx',['RatingLine']],['src/ui/settings/InfoTitle.tsx',['HeaderInfo']],
+ ])h.stubs[file]=Object.fromEntries(names.map(name=>[name,h.host(name)]));
+ const C=h.load('src/app/(app)/profil/radnik.tsx').default,r=await mount(C,{});
+ return{r,C,session,control,routes,writes,profile,form:()=>nodes(r,n=>n.type==='WorkerProfileForm')[0],
+  redraw:()=>RTR.act(async()=>r.update(React.createElement(C,{}))),
+  background:()=>RTR.act(async()=>{h.native.AppState.currentState='background';for(const fn of listeners)fn('background');}),
+  stop:()=>unmount(r)};
+}
+
+test('saved Worker with signed CITY area and empty legacy city enters activation review without writing',async()=>{
+ const x=await workerActivationRoute();
+ assert.equal(x.form().props.checks.area,true);assert.equal(x.form().props.readyToActivate,false);
+ await press(target(x.r,'Pregled za aktivaciju'));
+ assert.deepEqual(x.routes,[{pathname:'/profil/razgovor',params:{activationRequest:'00000000-0000-4000-8000-000000000123'}}]);
+ assert.deepEqual(x.writes,[]);assert.equal(x.profile.stanje,'DRAFT');await x.stop();
+});
+
+test('saved Worker COUNTRY and RADIUS areas open the same signed review entry',async()=>{
+ for(const area of [{kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,latitude:null,longitude:null,radiusKm:null},
+  {...WORKER_AREA_CITY,kind:'RADIUS',label:'Novi Sad · do 30 km',radiusKm:30}]){
+  const x=await workerActivationRoute({workAreas:[area]});assert.equal(x.form().props.checks.area,true);
+  await press(target(x.r,'Pregled za aktivaciju'));assert.equal(x.routes[0].pathname,'/profil/razgovor');assert.deepEqual(x.writes,[]);await x.stop();
+ }
+});
+
+test('confirmed REMOTE-only Worker needs no invented city to request activation review',async()=>{
+ const x=await workerActivationRoute({workAreas:[],vestine:['Lektura']},{kind:'confirmed',modes:['REMOTE']});
+ assert.equal(x.form().props.checks.area,true);assert.equal(x.form().props.readyToActivate,false);
+ await press(target(x.r,'Pregled za aktivaciju'));assert.ok(x.routes[0].params.activationRequest);assert.deepEqual(x.writes,[]);await x.stop();
+});
+
+test('unknown or on-site modes without a valid area do not fabricate area readiness',async()=>{
+ for(const modes of [{kind:'loading'},{kind:'unavailable'},{kind:'unconfirmed'},
+  {kind:'confirmed',modes:['ON_SITE']},{kind:'confirmed',modes:['ON_SITE','REMOTE']}]){
+  const x=await workerActivationRoute({workAreas:[]},modes);assert.equal(x.form().props.checks.area,false);
+  await press(target(x.r,'Nastavite kroz razgovor'));assert.deepEqual(x.routes,['/profil/razgovor']);assert.deepEqual(x.writes,[]);await x.stop();
+ }
+ for(const workAreas of [[{...WORKER_AREA_CITY,sourceRef:null}],[{...WORKER_AREA_CITY,kind:'RADIUS',radiusKm:201}],[]]){
+  const x=await workerActivationRoute({workAreas});assert.equal(x.form().props.checks.area,false);
+  assert.ok(target(x.r,'Nastavite kroz razgovor'));await x.stop();
+ }
+});
+
+test('legacy saved area still opens review; a missing skill does not become activation readiness',async()=>{
+ for(const radijusKm of [25,0]){
+  const x=await workerActivationRoute({workAreas:[],grad:'Novi Sad',radijusKm});
+  assert.equal(x.form().props.checks.area,radijusKm>0);await press(target(x.r,'Pregled za aktivaciju'));assert.deepEqual(x.writes,[]);await x.stop();
+ }
+ const empty=await workerActivationRoute({vestine:[]});assert.equal(empty.form().props.checks.basics,false);
+ assert.ok(target(empty.r,'Nastavite kroz razgovor'));await empty.stop();
+});
+
+test('activation review entry retains suspended, dirty, account and background guards',async()=>{
+ const suspended=await workerActivationRoute({stanje:'SUSPENDED'});assert.equal(suspended.form().props.status,'SUSPENDED');
+ assert.equal(nodes(suspended.r,n=>n.props.label==='Pregled za aktivaciju').length,0);await suspended.stop();
+ const dirty=await workerActivationRoute();await RTR.act(async()=>dirty.form().props.change({...dirty.form().props.draft,biografija:'Izmenjen opis'}));
+ assert.ok(target(dirty.r,'Sačuvajte izmene'));assert.equal(nodes(dirty.r,n=>n.props.label==='Pregled za aktivaciju').length,0);await dirty.stop();
+ for(const invalidate of [async x=>{x.session.accountRevision++;},x=>x.background()]){
+  const x=await workerActivationRoute(),stale=target(x.r,'Pregled za aktivaciju').props.onPress;await invalidate(x);
+  await RTR.act(async()=>stale());assert.deepEqual(x.routes,[]);assert.deepEqual(x.writes,[]);await x.stop();
+ }
+});
+
 function literals(file){const ast=ts.createSourceFile(file,read(file),ts.ScriptTarget.Latest,true,file.endsWith('tsx')?ts.ScriptKind.TSX:ts.ScriptKind.TS),values=[];function visit(n){if(ts.isStringLiteralLike(n)||ts.isJsxText(n)||ts.isTemplateSpan(n))values.push(n.text??n.literal?.text??'');ts.forEachChild(n,visit)}visit(ast);return values.join('\n');}
 test('UX05 old archive address replaces navigation with existing previous collaborations only',async()=>{const h=createHarness({'expo-router':{Redirect:p=>React.createElement('Redirect',p)}}),C=h.load('src/app/(app)/arhiva.tsx').default,r=await mount(C,{});assert.deepEqual(nodes(r,n=>n.type==='Redirect')[0].props.href,{pathname:'/dogovori',params:{odeljak:'istorija'}});assert.equal(read('src/app/(app)/arhiva.tsx').match(/from /g).length,1);await unmount(r);});
 test('UX05 planner links directly to the existing history context, not generic archive',()=>{const code=read('src/app/(app)/raspored.tsx');assert.match(code,/onPreviousAgreements=\{\(\) => router\.navigate\(\{ pathname: '\/dogovori', params: \{ odeljak: 'istorija' \} \}\)\}/);assert.doesNotMatch(code,/['"]\/arhiva['"]/);});

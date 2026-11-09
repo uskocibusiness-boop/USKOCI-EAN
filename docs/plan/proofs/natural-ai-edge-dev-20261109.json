@@ -62,13 +62,80 @@
   },
   "unauthenticatedHttpSmoke": {
     "checkedAt": "2026-11-09T12:20:00Z",
-    "need": { "httpStatus": 401, "code": "AUTH_REQUIRED" },
-    "worker": { "httpStatus": 401, "code": "AUTH_REQUIRED" },
+    "need": {
+      "httpStatus": 401,
+      "code": "AUTH_REQUIRED"
+    },
+    "worker": {
+      "httpStatus": 401,
+      "code": "AUTH_REQUIRED"
+    },
     "providerCalls": 0
   },
   "boundaries": [
     "Full native build not yet complete at promotion.",
     "No claim of real provider naturality, Android acceptance, push delivery or store readiness.",
     "R06 prepared-input source candidate is not active or deployed."
-  ]
+  ],
+  "followup": {
+    "checkedAt": "2026-11-09T13:09:00Z",
+    "sourceCommit": "8f89568cd72b21c783feb58f8d240fe93d066387",
+    "sourceQualification": {
+      "runId": 42619622674,
+      "conclusion": "SUCCESS",
+      "node": {
+        "pass": 1329,
+        "fail": 0,
+        "skipped": 0
+      },
+      "typescript": "PASS",
+      "migrationFiles": 231,
+      "integrityTests": 60,
+      "nativeBuild": "SUCCESS"
+    },
+    "scope": "Retain validated partial Need time boundary; ask for the missing Worker mode or actual work meaning. No SQL, auth, flags, budgets or secrets changed.",
+    "functions": [
+      {
+        "name": "uskoci-ai-interview",
+        "previousVersion": 197,
+        "version": 198,
+        "status": "ACTIVE",
+        "verifyJwt": false,
+        "bundleSha256": "34cb242575c7620bbddba291b8411c599b545251466547a21c77e3e3562def3d",
+        "fileCount": 22,
+        "fullBundleByteIdenticalReadback": true
+      },
+      {
+        "name": "uskoci-worker-interview",
+        "previousVersion": 150,
+        "version": 151,
+        "status": "ACTIVE",
+        "verifyJwt": false,
+        "bundleSha256": "8b15ec51bc16613528f1791c4a4ff891028472d5600cadc3e50dae8b62a380dc",
+        "fileCount": 23,
+        "fullBundleByteIdenticalReadback": true
+      }
+    ],
+    "unauthenticatedHttpSmoke": {
+      "need": {
+        "status": 401,
+        "code": "AUTH_REQUIRED"
+      },
+      "worker": {
+        "status": 401,
+        "code": "AUTH_REQUIRED"
+      },
+      "providerCalls": 0
+    },
+    "rollback": "Complete v197/v150 preimage bundles saved locally. Redeploy exact preimage files if a confirmed regression requires rollback.",
+    "phoneReprobe": {
+      "checkedAt": "2026-11-09T13:15:52Z",
+      "need": "PASS for one actual remote Need: relative deadline retained, one missing-bound question, continuation, review, phone Publish and PUBLISHED server readback.",
+      "worker": "Pending controlled shared-capability SQL promotion and a new genuine clarification turn.",
+      "totalPaidCalls": 8,
+      "totalSettledMicrousd": 58328,
+      "unsettledThisRound": 0,
+      "evidence": "docs/plan/proofs/phone-intake-acceptance-20261109.md"
+    }
+  }
 }

@@ -28,7 +28,7 @@ export function singlePassTaxonomyInstruction(catalog, purpose) {
     + 'NEEDS_CLARIFICATION/AMBIGUOUS: only a real work distinction; ambiguityPrompt is the ONE plain-language question also asked in assistantMessage. Otherwise ambiguityPrompt="". Never turn a technical failure into a request to repeat known facts. reason is internal, 10–1000 characters. ';
   const scope = purpose === 'WORKER_CAPABILITY'
     ? 'One decision per offered service/mode; BOTH = ON_SITE + REMOTE with one ID/path. serviceModeChangesJson follows intended modes; preserve unchanged saved/draft IDs, including mode/handoff edits. Never restore removed services. UNKNOWN only for clarification. '
-      + 'A broad umbrella such as general physical work is not a concrete offer merely because a broad catalog leaf exists. Keep the owned service and return NEEDS_CLARIFICATION with one question about the actual work it includes; never substitute a guessed narrower service or silently remove it. If the person already explained that work, use that explanation instead of asking again. Equivalent NEW offers in the current message may be one specific natural ADD label preserving every stated activity, with one matching mode request and decision; never consolidate existing saved/draft labels behind the owner\'s back. '
+      + 'A broad umbrella such as general physical work is not a concrete offer merely because a broad catalog leaf exists. While its meaning is unclear, keep the owned service and return NEEDS_CLARIFICATION with one question about the actual work it includes; never substitute a guessed narrower service or silently remove it. When the CURRENT USER concretely explains the work meant by an existing broad label, use serviceChanges REPLACE for that exact old label, cite the current explanation verbatim, and use the specific replacement label in both taxonomyDecisions and serviceModeChangesJson. This is a user-supplied scope clarification, not stylistic renaming. Preserve all other services and explicit exclusions; do not leave the old broad label in place after applying its explanation or ask for the same explanation again. Equivalent NEW offers in the current message may be one specific natural ADD label preserving every stated activity, with one matching mode request and decision; never consolidate existing saved/draft labels behind the owner\'s back. '
     : 'Classify one effective service using typed task_geography, not city alone. Handoff/location/time/price stay in facts, not taxonomy metadata. Unknown mode: ask about execution and return no decision. ';
   if (!catalog?.verifiedComplete) return rules + scope
     + 'Catalog unavailable: taxonomyDecisions=[]; keep useful facts, do not assume missing categories or promise classification readiness.';
@@ -111,7 +111,18 @@ export function withUnresolvedSinglePassReply(turn, built, plan) {
   // A validated work distinction takes precedence over a generic invitation.
   if (!question && turn.dialogue?.next === 'ANSWER') return turn;
   if (!question && turn.dialogue?.next !== 'REVIEW' && turn.assistantMessage.includes('?')) return turn;
-  return { ...turn, assistantMessage: question || 'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.',
+  // A complete semantic proposal still awaits SQL's catalog decision. Neither
+  // READY nor failure is known here. This reply is stored/delivered only after
+  // the durable completion; acknowledge conversation data, never profile Save.
+  const pendingSemanticOnly = Array.isArray(plan?.proposals)
+    && Array.isArray(built?.clarifications) && built.clarifications.length === 0
+    && Array.isArray(built?.failures) && built.failures.length === 0
+    && Array.isArray(built?.unconfirmedModeServices) && built.unconfirmedModeServices.length === 0
+    && Array.isArray(built?.unresolvedServices) && built.unresolvedServices.length > 0
+    && built.unresolvedServices.every(service => plan.proposals.some(proposal => proposal.service === service
+      && ['REUSE_EXISTING', 'EXTEND_MODE'].includes(proposal.action)));
+  return { ...turn, assistantMessage: question || (pendingSemanticOnly ? 'Podaci iz razgovora su sačuvani.'
+    : 'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.'),
     ...(turn.dialogue ? { dialogue: { ...turn.dialogue, next: question ? 'CLARIFY' : 'ACK', questionKey: 'NONE' } } : {}) };
 }
 
