@@ -195,9 +195,12 @@ export function taskSpoken(parts: { status?: string | null; urgent?: boolean; va
 /** Line 1. The HITNO badge reads the card's one clock; the card says HITNO itself, so the badge is not a stop of its own. */
 export function CardStatus({ status, urgency, now }: { status: { text: string; quiet: boolean } | null; urgency?: NeedUrgencyProjection; now: number }) {
   const tone = status?.quiet ? sys.color.muted : sys.color.green;
+  const bg = status?.quiet ? sys.color.wash : sys.color.greenSoft;
   return <View style={s.statusRow}>
-    {status ? <View style={s.status}><View style={[s.dot, { backgroundColor: tone }]} />
-      <T variant="label" numberOfLines={1} style={[s.statusText, { color: tone }]}>{status.text}</T></View> : <View style={s.grow} />}
+    {status ? <View style={[s.status, { backgroundColor: bg }]}>
+      <View style={[s.dot, { backgroundColor: tone }]} />
+      <T variant="label" numberOfLines={1} style={[s.statusText, { color: tone }]}>{status.text}</T>
+    </View> : <View style={s.grow} />}
     <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><NeedUrgencyBadge urgency={urgency} now={now} /></View>
   </View>;
 }
@@ -226,7 +229,8 @@ const STATUS_TONES: Record<StatusTone, { dot: string; text: string }> = {
 /** Line 1 of a face with its own states: the dot and the word, on the task card's status geometry. */
 export function CardStatusLine({ text, tone }: { text: string; tone: StatusTone }) {
   const ink = STATUS_TONES[tone];
-  return <View style={s.status}>
+  const bg = tone === 'green' ? sys.color.greenSoft : tone === 'waiting' ? sys.color.orangeSoft : sys.color.wash;
+  return <View style={[s.status, { backgroundColor: bg }]}>
     <View testID="card-status-dot" style={[s.dot, { backgroundColor: ink.dot }]} />
     <T variant="label" numberOfLines={1} style={[s.statusText, { color: ink.text }]}>{text}</T>
   </View>;
@@ -243,7 +247,7 @@ export function CardTitle({ title, lines = 2, style }: { title: string; lines?: 
 const s = StyleSheet.create({
   grow: { flex: 1 },
   statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  status: { flexDirection: 'row', alignItems: 'center', gap: 7, flexShrink: 1 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 3, borderRadius: sys.radius.pill, flexShrink: 1 },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill },
   statusText: { flexShrink: 1, letterSpacing: 0.3 },
   title: { fontSize: TITLE_SIZE, lineHeight: 26, fontWeight: sys.type.cardTitle.fontWeight, letterSpacing: -0.3, color: sys.color.ink },

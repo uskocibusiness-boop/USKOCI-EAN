@@ -367,7 +367,7 @@ export function HomePresentation(p: HomePresentationProps) {
 
     {home?.opportunityItems && home.opportunityItems.length > 0 ? <Section title="Prilike za Vas"
       action={{ label: 'Mapa zadataka', onPress: p.onEarn }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
+      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
         {home.opportunityItems.map(item => <View key={item.id} style={s.carouselCard}>
           <TaskCard item={item} portrait={<TaskPublisherPortrait item={item} size={40} />}
             onOpen={() => p.onOpen({ kind: 'OPPORTUNITY', needId: item.id })} />
@@ -377,7 +377,7 @@ export function HomePresentation(p: HomePresentationProps) {
 
     {home?.agreementItems && home.agreementItems.length > 0 ? <Section title="Aktuelni dogovori"
       action={{ label: 'Svi dogovori', onPress: p.onAgreements ?? (() => p.onRatings(null)) }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
+      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
         {home.agreementItems.map((item, index) => <View key={item.id} style={s.carouselCard}>
           <AgreementRow item={item} index={index} now={Date.now()} animate={false} stale={!!p.stale}
             onOpen={row => p.onOpen({ kind: 'AGREEMENT', agreementId: row.id })}
@@ -388,7 +388,7 @@ export function HomePresentation(p: HomePresentationProps) {
 
     {home?.ownTaskItems && home.ownTaskItems.length > 0 ? <Section title="Vaši objavljeni zadaci"
       action={{ label: 'Svi zadaci', onPress: p.onMyTasks }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
+      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
         {home.ownTaskItems.map(item => <View key={item.id} style={s.carouselCard}>
           <OwnTaskCard item={item}
             onOpen={() => p.onOpen({ kind: 'NEED', needId: item.id })}
@@ -399,7 +399,7 @@ export function HomePresentation(p: HomePresentationProps) {
 
     {home?.applicationItems && home.applicationItems.length > 0 ? <Section title="Vaše prijave"
       action={{ label: 'Sve prijave', onPress: p.onMyApplications }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
+      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
         {home.applicationItems.map(row => <View key={row.prijavaId} style={s.carouselCard}>
           <ApplicationCard row={row}
             onTask={() => p.onOpen({ kind: 'APPLICATION', applicationId: row.prijavaId })}

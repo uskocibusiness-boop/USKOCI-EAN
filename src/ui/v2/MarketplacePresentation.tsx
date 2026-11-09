@@ -51,8 +51,8 @@ export type MarketplacePresentationProps = { items: readonly MarketplaceItem[]; 
 
 const PRICES = [['all', 'Svi načini'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Tražim ponude']] as const;
 const keyOf = (item: MarketplaceItem) => item.id;
-/** Cells scrolled out of view are detached on Android; iOS gains nothing from it. Rows here hold no text input that could lose focus. */
-const CLIP_OFFSCREEN = Platform.OS === 'android';
+/** Keep offscreen views rendered to avoid blank flash during fast scroll on Android. */
+const CLIP_OFFSCREEN = false;
 
 /**
  * One row of the list. Memoised on primitives and the row's own object, so a keystroke in the

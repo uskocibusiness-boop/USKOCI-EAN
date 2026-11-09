@@ -469,7 +469,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
   const sendsAllowed = writable && !terminal && !loading && !error;
   return (
     <View style={s.screen}>
-      <ScrollView ref={list} testID="agreement-chat-history" style={s.history} keyboardShouldPersistTaps="handled"
+      <ScrollView ref={list} testID="agreement-chat-history" style={s.history} keyboardShouldPersistTaps="handled" nestedScrollEnabled
         onContentSizeChange={(_width, height) => { geometry.current.content = height; restoreReading(); followLatest(); reportDisplayed(); }}
         onLayout={event => { if (event) geometry.current.viewport = event.nativeEvent.layout.height; restoreReading(); followLatest(); reportDisplayed(); }}
         accessibilityActions={[{ name: 'scrollBackward', label: 'Starije poruke' }, { name: 'scrollForward', label: 'Novije poruke' }]}
