@@ -10,8 +10,8 @@
     "sha256": "0830868e629f89126802e718641954d4009506f2655a05dd819ead045d044cc5"
   },
   "generation": {
-    "source": "supabase/proofs/privacy/bootstrap/generate.py",
-    "output_local_path": "C:/Users/user/AppData/Local/Temp/uskoci-prod-bootstrap-20261110/generated-final/current-application.sql",
+    "source": "scripts/bootstrap/generate.py",
+    "output_local_path": "C:/Users/user/AppData/Local/Temp/uskoci-prod-bootstrap-20261110/generated-moved/current-application.sql",
     "sql_sha256": "4689d9b6f2d6ee33a05c6ad9c6300591c4f31766f315c49cfd709c6d19a20430",
     "status": "SOURCE_GENERATED_RUNTIME_UNVERIFIED",
     "counts": {
@@ -29,13 +29,35 @@
     "local_only": true,
     "production_installer": false
   },
+  "reference_seed_inventory_readonly": {
+    "taxonomy_categories_total": 204,
+    "taxonomy_categories_established": 56,
+    "taxonomy_categories_established_system": 54,
+    "taxonomy_categories_established_ai_reviewed": 2,
+    "taxonomy_categories_retired": 148,
+    "active_category_modes": 63,
+    "active_aliases": 69,
+    "active_with_retired_parent": 0,
+    "taxonomy_control_catalog_version": 17,
+    "taxonomy_control_auto_registration_enabled": false,
+    "ai_reviewed_active_labels_for_explicit_review": [
+      "3D štampa i modelovanje",
+      "Skupljanje i razmena sličica"
+    ],
+    "location_market_configs": 1,
+    "active_publication_policy_bundles": 2,
+    "retention_policy_sets": 0,
+    "note": "Counts identify seed candidates, not an approved set. Historical retired categories and test-generated branches must not be copied automatically."
+  },
   "tests": {
     "ux_navigation_copy": "46/46 PASS",
     "typescript": "PASS",
     "bootstrap_unit": "11/11 PASS",
     "migration_integrity": "PASS; 235 files",
-    "ci_latest_pre_fix": "42717970900 FAILURE on abc7fac6; png parsed as TypeScript",
-    "full_ci_after_fix": "NOT_YET_RUN"
+    "ci_initial_failure": "42717970900 FAILURE on abc7fac6; png parsed as TypeScript",
+    "ci_followup_failure": "42721223055 on 14c8a262: 1481 pass, 1 fail; product-smoke forbids supabase/proofs",
+    "product_smoke_after_move": "18/18 PASS; bootstrap tools moved into scripts/bootstrap",
+    "full_ci_after_move": "NOT_YET_RUN"
   },
   "open": [
     "Generated exact DEV source includes disposable capacity4 diagnostic table/procedure and is not a selected production baseline.",

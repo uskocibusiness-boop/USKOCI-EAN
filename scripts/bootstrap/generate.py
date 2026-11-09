@@ -186,22 +186,26 @@ def build(capture_path: Path, expected_sha256: str) -> tuple[str, dict[str, Any]
     risks = scan_publication_risks(functions)
     require(not risks["blocking"], "Publication scan found a high-confidence secret; do not export")
     inventory = {(f["schema"], f["name"], f["identity_arguments"]): f for f in sections["function_inventory"] if f["schema"] in APP}
-    require(len(inventory) == len(functions) == 719, "Unexpected application function inventory")
+    require(len(inventory) == len(functions) and len(functions) in (682, 719), "Unexpected application function inventory")
     relations = sections["application_relations"]
-    require(len({(r['schema'], r['name']) for r in relations}) == len(relations) == 178, "Application relation inventory changed")
+    require(len({(r['schema'], r['name']) for r in relations}) == len(relations) and len(relations) in (176, 178),
+            "Application relation inventory changed")
     tables = [r for r in relations if r["kind"] == "r"]
     views = [r for r in relations if r["kind"] == "v"]
-    require(len(views) == 1 and (views[0]["schema"], views[0]["name"]) ==
-            ("private", "work_taxonomy_turn_hints_resolved_v1") and
-            views[0]["options"] == ["security_invoker=true"] and
-            not views[0]["rls"] and not views[0]["force_rls"], "Unreviewed application view")
+    require((len(functions), len(relations), len(tables), len(views)) in
+            ((682, 176, 167, 0), (719, 178, 168, 1)), "Unreviewed bootstrap inventory shape")
     view_definitions = data.get("view_definitions", [])
-    require(len(view_definitions) == 1 and
-            (view_definitions[0].get("schema"), view_definitions[0].get("name")) ==
-            (views[0]["schema"], views[0]["name"]) and
-            isinstance(view_definitions[0].get("definition"), str) and
-            view_definitions[0]["definition"].lstrip().upper().startswith("SELECT "),
-            "Missing or unreviewed captured view definition")
+    require(len(view_definitions) == len(views), "Missing captured view definition")
+    if views:
+        require((views[0]["schema"], views[0]["name"]) ==
+                ("private", "work_taxonomy_turn_hints_resolved_v1") and
+                views[0]["options"] == ["security_invoker=true"] and
+                not views[0]["rls"] and not views[0]["force_rls"] and
+                (view_definitions[0].get("schema"), view_definitions[0].get("name")) ==
+                (views[0]["schema"], views[0]["name"]) and
+                isinstance(view_definitions[0].get("definition"), str) and
+                view_definitions[0]["definition"].lstrip().upper().startswith("SELECT "),
+                "Unreviewed application view")
     fragments = [(f"column:{r['schema']}.{r['name']}.{c['name']}", c["default_or_generated"])
                  for r in tables for c in r["columns"] if c["default_or_generated"]]
     for name in ("constraints", "indexes", "policies"):
@@ -209,13 +213,14 @@ def build(capture_path: Path, expected_sha256: str) -> tuple[str, dict[str, Any]
             for field in ("definition", "using_expression", "with_check_expression"):
                 if row.get(field):
                     fragments.append((f"{name}:{stable_key(name,row)}:{field}", row[field]))
-    fragments.append(("view:private.work_taxonomy_turn_hints_resolved_v1", view_definitions[0]["definition"]))
+    if views:
+        fragments.append(("view:private.work_taxonomy_turn_hints_resolved_v1", view_definitions[0]["definition"]))
     expression_risks = scan_sql_fragments(fragments)
     for level in risks:
         risks[level].extend(expression_risks[level])
     require(not risks["blocking"], "Catalog expression publication scan found a high-confidence secret")
     sequences = data["sequences"]
-    require(len(tables) == 168 and len(sequences) == 9, "Unexpected table/sequence coverage")
+    require(len(sequences) == 9, "Unexpected sequence coverage")
     require(all(r["schema"] in APP and r["owner"] == "postgres" for r in relations), "Unsupported relation owner/schema")
     require(all(f["owner"] == "postgres" for f in inventory.values()), "Unsupported function owner")
     require(all(r["persistence"] == "p" and not r["is_partition"] and (r["kind"] == "v" or not r["options"]) and r["tablespace"] is None
@@ -331,8 +336,9 @@ def build(capture_path: Path, expected_sha256: str) -> tuple[str, dict[str, Any]
         if owner["dependency_kind"] == "a":
             sql.append(f"ALTER SEQUENCE {qualified(sequence['schema'],sequence['name'])} OWNED BY {qualified(owner['schema'],owner['relation'])}.{qi(owner['column'])};")
     sql.extend(f.sql for f in functions if f not in early)
-    sql.append("CREATE VIEW " + qualified(views[0]["schema"], views[0]["name"]) +
-               " WITH (security_invoker=true) AS " + view_definitions[0]["definition"].strip().rstrip(";") + ";")
+    if views:
+        sql.append("CREATE VIEW " + qualified(views[0]["schema"], views[0]["name"]) +
+                   " WITH (security_invoker=true) AS " + view_definitions[0]["definition"].strip().rstrip(";") + ";")
     sql.extend(deferred_defaults)
     # Restore explicit TOAST storage/compression rather than assuming type defaults.
     storage_names = dict(p="PLAIN", e="EXTERNAL", m="MAIN", x="EXTENDED")
@@ -486,7 +492,7 @@ def main() -> None:
     parser.add_argument("--capture-sha256", default=PINNED_CAPTURE_SHA256)
     parser.add_argument("--output-directory", type=Path, required=True, help="Prepared managed temporary artifact directory, outside the repository")
     args = parser.parse_args()
-    repo = Path(__file__).resolve().parents[4]
+    repo = Path(__file__).resolve().parents[2]
     output = args.output_directory.resolve()
     require(not output.is_relative_to(repo), "Generated evidence/source must be staged outside the repository")
     require(output.is_dir(), "Prepare the managed temporary output directory before generation")

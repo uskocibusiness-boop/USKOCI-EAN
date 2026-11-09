@@ -15,17 +15,17 @@ remains **LOCAL_ONLY R01 source generation**, not a production installer.
 Run with Python 3.10+ and its standard library:
 
 ```sh
-python -B supabase/proofs/privacy/bootstrap/generate.py \
+python -B scripts/bootstrap/generate.py \
   --capture /managed/evidence/20261028-bootstrap-metadata-v3.json \
   --output-directory /prepared/managed/temporary/directory
-python -B -m unittest discover -s supabase/proofs/privacy/bootstrap -p 'test_*.py'
+python -B -m unittest discover -s scripts/bootstrap -p 'test_*.py'
 ```
 
 The output directory must already exist, be outside this repository and have no
 conflicting output files. The three outputs are `current-application.sql`,
 `current-generation-manifest.json` and `current-generation-coverage.json`.
 Publication is a separate review step. The generation manifest records object
-provenance; `../r01-bootstrap-parity.mjs` owns the independent runtime comparison.
+provenance; the archived R01 parity runner owns the independent runtime comparison.
 Never publish the raw capture or reinterpret generation as successful parity.
 
 The historical output restored 167 application tables, 9 sequences, 682 functions,
