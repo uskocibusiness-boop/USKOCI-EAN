@@ -1,0 +1,161 @@
+{
+  "coordinate_system": "Normalized 0..1 from top-left of app export; position the anchor at the map coordinate.",
+  "pins": [
+    {
+      "id": "map-garden",
+      "label_sr": "Pin — baštenski posao",
+      "source": "assets/maps/map-garden.png",
+      "anchor": {
+        "x": 0.481428,
+        "y": 0.987692
+      },
+      "width_dp": 36,
+      "height_dp": 47.25,
+      "width_px": 64,
+      "height_px": 84
+    },
+    {
+      "id": "map-home",
+      "label_sr": "Pin — kućna lokacija",
+      "source": "assets/maps/map-home.png",
+      "anchor": {
+        "x": 0.483417,
+        "y": 0.98773
+      },
+      "width_dp": 36,
+      "height_dp": 47.81,
+      "width_px": 64,
+      "height_px": 85
+    },
+    {
+      "id": "map-meeting",
+      "label_sr": "Pin — mesto susreta",
+      "source": "assets/maps/map-meeting.png",
+      "anchor": {
+        "x": 0.483762,
+        "y": 0.987705
+      },
+      "width_dp": 36,
+      "height_dp": 47.25,
+      "width_px": 64,
+      "height_px": 84
+    },
+    {
+      "id": "map-pet",
+      "label_sr": "Pin — pomoć za ljubimce",
+      "source": "assets/maps/map-pet.png",
+      "anchor": {
+        "x": 0.481421,
+        "y": 0.987692
+      },
+      "width_dp": 36,
+      "height_dp": 47.81,
+      "width_px": 64,
+      "height_px": 85
+    },
+    {
+      "id": "map-route-end",
+      "label_sr": "Pin — odredište",
+      "source": "assets/maps/map-route-end.png",
+      "anchor": {
+        "x": 0.4827,
+        "y": 0.987667
+      },
+      "width_dp": 36,
+      "height_dp": 47.25,
+      "width_px": 64,
+      "height_px": 84
+    },
+    {
+      "id": "map-route-start",
+      "label_sr": "Pin — polazište",
+      "source": "assets/maps/map-route-start.png",
+      "anchor": {
+        "x": 0.481633,
+        "y": 0.987667
+      },
+      "width_dp": 36,
+      "height_dp": 47.81,
+      "width_px": 64,
+      "height_px": 85
+    },
+    {
+      "id": "map-task-open",
+      "label_sr": "Pin — otvoren zadatak",
+      "source": "assets/maps/map-task-open.png",
+      "anchor": {
+        "x": 0.481991,
+        "y": 0.988636
+      },
+      "width_dp": 36,
+      "height_dp": 47.25,
+      "width_px": 64,
+      "height_px": 84
+    },
+    {
+      "id": "map-task-selected",
+      "label_sr": "Pin — izabran zadatak",
+      "source": "assets/maps/map-task-selected.png",
+      "anchor": {
+        "x": 0.486613,
+        "y": 0.986987
+      },
+      "width_dp": 36,
+      "height_dp": 48.38,
+      "width_px": 64,
+      "height_px": 86
+    },
+    {
+      "id": "map-tools",
+      "label_sr": "Pin — majstorska pomoć",
+      "source": "assets/maps/map-tools.png",
+      "anchor": {
+        "x": 0.482274,
+        "y": 0.98768
+      },
+      "width_dp": 36,
+      "height_dp": 47.81,
+      "width_px": 64,
+      "height_px": 85
+    },
+    {
+      "id": "map-transport",
+      "label_sr": "Pin — prevoz",
+      "source": "assets/maps/map-transport.png",
+      "anchor": {
+        "x": 0.482222,
+        "y": 0.987692
+      },
+      "width_dp": 36,
+      "height_dp": 47.25,
+      "width_px": 64,
+      "height_px": 84
+    },
+    {
+      "id": "map-worker-available",
+      "label_sr": "Pin — dostupan pomagač",
+      "source": "assets/maps/map-worker-available.png",
+      "anchor": {
+        "x": 0.485555,
+        "y": 0.987743
+      },
+      "width_dp": 36,
+      "height_dp": 47.81,
+      "width_px": 64,
+      "height_px": 85
+    },
+    {
+      "id": "map-worker-selected",
+      "label_sr": "Pin — izabran pomagač",
+      "source": "assets/maps/map-worker-selected.png",
+      "anchor": {
+        "x": 0.480352,
+        "y": 0.98768
+      },
+      "width_dp": 36,
+      "height_dp": 47.25,
+      "width_px": 64,
+      "height_px": 84
+    }
+  ]
+}

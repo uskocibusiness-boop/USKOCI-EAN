@@ -1,4 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { Image } from 'expo-image';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { Arrive } from './Arrive';
@@ -42,6 +43,8 @@ const MEASURE = 280;
 export type StateViewProps = {
   kind?: StateKind;
   /** The picture; defaults to the kind's own. Null omits decoration when the surrounding view already provides it. */ art?: FactArtKind | null;
+  /** Optional custom 3D illustration from V3 visual pack, taking precedence over glyph art. */
+  illustration?: ImageSourcePropType | null;
   /** One line. While loading it is the quiet sentence under the placeholders. */ title: string;
   /** One sentence under the title. */ body?: string;
   /** The one way forward, drawn as the screen's green action. */ primary?: StateAction;
@@ -58,7 +61,7 @@ export type StateViewProps = {
   testID?: string;
 };
 
-export function StateView({ kind = 'empty', art, title, body, primary, quiet, skeleton, compact = false, hero = false, testID }: StateViewProps) {
+export function StateView({ kind = 'empty', art, illustration, title, body, primary, quiet, skeleton, compact = false, hero = false, testID }: StateViewProps) {
   if (kind === 'loading') return <View testID={testID} accessibilityLiveRegion="polite" style={s.loading}>
     <SkeletonList count={skeleton?.count ?? 3} rows={skeleton?.rows} variant={skeleton?.variant} face={skeleton?.face} heading={skeleton?.heading}
       switches={skeleton?.switches} foot={skeleton?.foot} />
@@ -68,13 +71,18 @@ export function StateView({ kind = 'empty', art, title, body, primary, quiet, sk
   const size = compact ? ART_COMPACT : hero ? ART_HERO : ART;
   // A failure never wears a picture that says "confirmed"; it falls back to the kind's quiet sign.
   const drawn = art == null || (trouble && SAYS_CONFIRMED.includes(art)) ? DEFAULT_ART[kind] : art;
-  const picture = kind === 'empty' && art === 'chat' ? <ConversationArt size={size} />
+  const picture = illustration ? <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden
+      style={{ width: size, height: size, flexShrink: 0, alignItems: 'center', justifyContent: 'center' }}>
+      <Image source={illustration} contentFit="contain" transition={0} cachePolicy="memory" allowDownscaling
+        accessible={false} style={{ width: size, height: size }} />
+    </View>
+    : kind === 'empty' && art === 'chat' ? <ConversationArt size={size} />
     : <FactArt kind={drawn} size={size} muted={trouble} />;
   return <View testID={testID} accessibilityLiveRegion="polite" style={[s.frame, compact ? s.frameCompact : s.frameScreen]}>
     {compact ? null : <View style={s.above} />}
     <View style={s.column}>
       {/* An empty list's picture settles in once (V41's art arrive); a failure's does not, because it is not a thing to be glad of. */}
-      {art === null ? null : <View style={compact ? s.artCompact : s.art}>{kind === 'empty' ? <Arrive>{picture}</Arrive> : picture}</View>}
+      {art === null && !illustration ? null : <View style={compact ? s.artCompact : s.art}>{kind === 'empty' ? <Arrive>{picture}</Arrive> : picture}</View>}
       <T variant={compact ? 'heading' : 'title'} accessibilityRole={trouble ? 'alert' : 'header'} {...BALANCED_LINES} style={[s.title, balancedStyle]}>{title}</T>
       {body ? <T variant={compact ? 'note' : 'copy'} tone="muted" {...BALANCED_LINES} style={[s.copy, balancedStyle]}>{body}</T> : null}
       {primary || quiet ? <View style={s.actions}>

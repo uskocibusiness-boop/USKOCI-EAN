@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Image } from 'expo-image';
 import type { PorukaProjekcija } from '../contracts/projections';
 import { sameMessagePhotos, sameMessageVoice, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
 import { voiceMessagesBuilt } from '../data/voiceMessagesGate';
@@ -25,6 +26,7 @@ import { SupportContextEntry } from './support/SupportContextEntry';
 import { serbianToday } from './calendar/serbianDays';
 import { PhotoBubble, TextBubble, VoiceBubble } from './messages/MessageBubbles';
 import { MessageMark } from './messages/MessageMark';
+import { ROBOT_ASSETS } from './v3/UskociVisuals';
 import { MARK_WORDS, buildThread, entryMark, messageSpoken, readMark, type ThreadMessage } from './messages/threadModel';
 
 // The day/clock words and the spoken summary live with the thread model; they stay importable from here.
@@ -546,7 +548,10 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           <ChatAction label="Ponovo učitaj poruke" text="Pokušajte ponovo" onPress={() => void refresh()} center />
         </View> : null}
         {empty ? <View style={s.stateBlock}>
-          <View style={s.stateArt}><FactArt kind="chat" size={56} muted={terminal} /></View>
+          <View style={s.stateArt}>
+            {terminal ? <FactArt kind="chat" size={56} muted />
+              : <Image source={ROBOT_ASSETS.duoMessage} contentFit="contain" accessible={false} style={{ width: 80, height: 80 }} />}
+          </View>
           {/* A finished Dogovor with no messages cannot take a first one; it says so instead of inviting it. */}
           {terminal ? <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>U ovom Dogovoru nije bilo poruka.</T> : <>
             <T accessibilityRole="header" variant="title" style={[s.ink, s.centerText]}>Napišite prvu poruku</T>

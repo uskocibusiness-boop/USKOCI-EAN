@@ -1,6 +1,7 @@
 import { createContext, isValidElement, useContext, useEffect, useState, type ReactNode, type RefObject } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ScrollViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
 import { HowItWorks } from '../home/HowItWorks';
@@ -12,6 +13,7 @@ import { sys } from '../system/tokens';
 import { ConversationArt } from '../system/ConversationArt';
 import { V2Action } from '../v2/V2Action';
 import { QuietReadState } from '../v2/QuietReadState';
+import { ROBOT_ASSETS } from '../v3/UskociVisuals';
 import type { WorkerDraft } from './workerProfileDraft';
 import { WorkerProfileSaved, type AvailableNowControl, type SavedProfilePart } from './WorkerProfileSaved';
 import type { WorkerAvailabilityView } from '../../hooks/useWorkerAvailability';
@@ -155,7 +157,12 @@ function ActivationStatus({ status, checks, readyToActivate, disabled, navigate 
       {checks[key] ? <FactArt kind="check" size={20} /> : <View style={s.emptyCheck} />}
       <T variant="note" style={[s.grow, s.ink]}>{label}</T>
     </View>)}</View> : null}
-    {draft && readyToActivate ? <T variant="note" tone="muted">Sve je spremno za aktivaciju.</T> : null}
+    {draft && readyToActivate ? (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+        <Image source={ROBOT_ASSETS.canReady} contentFit="contain" accessible={false} style={{ width: 44, height: 44 }} />
+        <T variant="note" style={[s.ink, { fontWeight: '600' }]}>Sve je spremno za aktivaciju.</T>
+      </View>
+    ) : null}
   </View>;
 }
 
@@ -185,7 +192,7 @@ export function WorkerProfileForm({ draft, disabled, status, navigate, openConve
   /** That write is in flight. */ nameWorking?: boolean;
 }) {
   if (introOnly || (!profileExists && status === null)) return <View testID="worker-profile-intro" style={s.setupIntro}>
-    <ConversationArt size={96} />
+    <Image source={ROBOT_ASSETS.canWelcome} contentFit="contain" accessible={false} style={{ width: 104, height: 104 }} />
     <T variant="heading" accessibilityRole="header" style={s.ink}>Ispričajte čime se bavite</T>
     <T variant="body" tone="muted">Koje zadatke želite da preuzimate, gde i kada Vam odgovara.</T>
     <T variant="note" tone="muted">Razgovor možete da nastavite kasnije. Profil aktivirate tek kada pregledate i potvrdite podatke.</T>

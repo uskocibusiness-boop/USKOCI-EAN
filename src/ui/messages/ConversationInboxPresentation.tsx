@@ -18,6 +18,7 @@ import { usePullRefresh } from '../system/usePullRefresh';
 import { V2Action } from '../v2/V2Action';
 import { TimedRow } from '../notifications/TimedRow';
 import { HowItWorks } from '../home/HowItWorks';
+import { ILLUSTRATION_ASSETS } from '../v3/UskociVisuals';
 
 /**
  * The admitted reader's contract owns these facts (`MY_CONVERSATIONS_PAGE_V1`). Two things the Poruke design draws are NOT in that
@@ -151,7 +152,7 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
       </View>
     : error ? null
       // Nobody has talked yet: clean empty state with direct action to Agreements
-      : <StateView kind="empty" hero compact={false} art="chat" title={emptyTitle} body={emptyBody}
+      : <StateView kind="empty" hero compact={false} art="chat" illustration={ILLUSTRATION_ASSETS.emptyMessages} title={emptyTitle} body={emptyBody}
           primary={onAgreements && emptyTitle === 'Još nema razgovora' ? { label: 'Otvorite Dogovore', onPress: onAgreements, disabled: openDisabled } : undefined} />;
   const footer = items !== null && (hasMore || pageError || paging) ? <View style={s.footer}>
     {pageError ? <T variant="note" accessibilityRole="alert">Stariji razgovori nisu učitani. Pokušajte ponovo da nastavite.</T> : null}

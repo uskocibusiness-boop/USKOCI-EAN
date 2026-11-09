@@ -13,6 +13,7 @@ import { tick } from '../system/haptics';
 import { MapCredits, MapSources } from '../v2/discovery/MapCredits';
 import { cameraHintBounds, displayedPinPosition, type ResolvedPinMapProps } from './ResolvedPinMap.types';
 import { useMapStyle } from './mapStyle';
+import { MAP_PIN_SPECS } from '../v3/UskociVisuals';
 export type { ResolvedPinMapProps, ResolvedPinPosition } from './ResolvedPinMap.types';
 
 type FocusOwner = { active: boolean; key: string; epoch: number };
@@ -34,8 +35,8 @@ type ModernMapPinProps = {
 
 export function ModernMapPin({ isDragging = false, disabled = false, slot }: ModernMapPinProps) {
   const isEnd = slot === 'end';
-  const pin = isEnd ? sys.color.mapPin.end : sys.color.mapPin.start;
-  const gradId = `uskociPin_${isEnd ? 'end' : 'start'}`;
+  const specKey = isEnd ? 'map-route-end' : slot === 'start' ? 'map-route-start' : 'map-task-selected';
+  const spec = MAP_PIN_SPECS[specKey];
 
   return (
     <View style={styles.modernPinRoot} pointerEvents="none">
@@ -45,29 +46,12 @@ export function ModernMapPin({ isDragging = false, disabled = false, slot }: Mod
         </Svg>
       </View>
       <View style={[styles.modernPinBody, isDragging && styles.modernPinBodyDragging]}>
-        <Svg width={38} height={46} viewBox="0 0 38 46">
-          <Defs>
-            <LinearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
-              <Stop offset="0%" stopColor={pin.top} />
-              <Stop offset="100%" stopColor={pin.base} />
-            </LinearGradient>
-          </Defs>
-          <Path
-            d="M19 44 C19 44 4 28 4 18 C4 9.7 10.7 3 19 3 C27.3 3 34 9.7 34 18 C34 28 19 44 19 44 Z"
-            fill={`url(#${gradId})`}
-            stroke={pin.stroke}
-            strokeWidth={1.5}
-          />
-          <Path
-            d="M8 15 C8 10 11.5 6 17 6"
-            stroke={sys.color.mapPin.shine}
-            strokeWidth={1.4}
-            strokeLinecap="round"
-            fill="none"
-          />
-          <Circle cx={19} cy={18} r={5.2} fill={sys.color.surface} />
-          <Circle cx={19} cy={18} r={2.2} fill={pin.base} />
-        </Svg>
+        <Image
+          source={spec.source}
+          style={{ width: spec.widthDp, height: spec.heightDp }}
+          resizeMode="contain"
+          accessible={false}
+        />
       </View>
     </View>
   );

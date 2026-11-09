@@ -22,6 +22,7 @@ import { brandAction, fieldBox, sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { T } from '../Text';
 import { withInter } from '../interFont';
+import { ROBOT_ASSETS } from '../v3/UskociVisuals';
 import { ChoiceRow } from './offer/ChoiceRow';
 import { OwnTaskCard } from './OwnTaskCard';
 import { ownTaskPhases } from './ownTaskPhases';
@@ -240,14 +241,14 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           primary={{ label: 'Proverite spisak zadataka', onPress: props.onRefresh }} />
         : paging?.moreError ? <StateView kind="error" art="tasks" title="Nismo učitali sve rezultate" body="Preostali zadaci trenutno nisu dostupni."
           primary={{ label: 'Pokušajte ponovo', onPress: paging.onLoadMore }} />
-        : filterActive ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promenite pretragu ili filtere."
+        : filterActive ? <StateView art="map" illustration={ROBOT_ASSETS.needNoResults} title="Nema zadataka u ovom prikazu" body="Promenite pretragu ili filtere."
           primary={{ label: 'Poništi filtere', onPress: () => change({ query: '', price: 'all', attention: false, selectedId: null }) }} />
-          : view.section === 'drafts' ? <StateView art="tasks" title="Nemate nacrt" body="Nacrt pregledate pre objave." />
+          : view.section === 'drafts' ? <StateView art="tasks" illustration={ROBOT_ASSETS.needWriting} title="Nemate nacrt" body="Nacrt pregledate pre objave." />
           : view.section === 'history' ? <StateView art="tasks" title="Istorija je prazna" body="Ovde su završeni, otkazani i istekli zadaci." />
           : items.length ? <StateView art="tasks" title="Nema aktivnih zadataka"
             primary={props.onNew ? { label: 'Objavite novi zadatak', onPress: props.onNew } : undefined} />
             // The first encounter: the paper with the pin and the pencil, the object of the door that fulfils it.
-            : <StateView hero art="publish" title="Još nemate zadatak" body="Navedite šta Vam treba. Nacrt pregledate pre objave."
+            : <StateView hero art="publish" illustration={ROBOT_ASSETS.needWelcome} title="Još nemate zadatak" body="Navedite šta Vam treba. Nacrt pregledate pre objave."
               primary={props.onNew ? { label: 'Objavite zadatak', onPress: props.onNew } : undefined}
               quiet={props.onExplore ? { label: 'Pogledajte zadatke', onPress: props.onExplore } : undefined} />}
   </View>;

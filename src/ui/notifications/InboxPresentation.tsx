@@ -17,6 +17,7 @@ import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
+import { ILLUSTRATION_ASSETS } from '../v3/UskociVisuals';
 import { INBOX_SET_LABEL, canMarkRead, inboxActionLabel, inboxDestination, inboxTaskTitle, readableServerCopy } from './inboxCopy';
 import { NotificationLoading } from './NotificationLoading';
 import { SwipeToRead, type SwipeableRowHandle } from './SwipeToRead';
@@ -272,7 +273,7 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
           body={error === 'load' ? 'Nismo uspeli da proverimo ima li novih. Osvežite obaveštenja kada budete mogli.'
             : error === 'page' ? 'Starija obaveštenja nisu učitana.' : 'Ishod radnje još nije potvrđen.'} />
         // A filtered empty is only this view, not proof that the whole inbox is empty. During a refresh it remains the last confirmed result.
-        : <StateView kind="empty" hero={!role} art="bell" title={EMPTY_TITLE[role ?? 'ALL']}
+        : <StateView kind="empty" hero={!role} art="bell" illustration={!role ? ILLUSTRATION_ASSETS.waitingReply : undefined} title={EMPTY_TITLE[role ?? 'ALL']}
             body={!role ? 'Nove prijave, poruke i važne promene stižu ovde.' : undefined}
             primary={!role ? { label: 'Podesi obaveštenja', onPress: onSettings }
               : { label: 'Prikaži sva obaveštenja', onPress: () => onRole(null), disabled: busy }} />;
