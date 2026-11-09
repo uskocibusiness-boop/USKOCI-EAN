@@ -8,9 +8,11 @@ brend-resurse i konfiguraciju izgradnje.
 Polazni izvor: work/uskoci-cleanroom-audit-20261104
 na commitu 357d767d9f7ad61b0cd452c9c3a0e44b1b69664f.
 
-## Jedina dva mastera
-- docs/plan/CODEX_PLAN_RADA.md — izvršni plan.
-- docs/product/USKOCI_PRODUCT_UX_MASTER.md — vlasnički UX i proizvod.
+## Radni autoritet — odluka vlasnika 09.11.2026
+- AGENTS.md — obavezna pravila za Codex i zastita potvrdjenih odluka.
+- docs/plan/CODEX_PLAN_RADA.md — tehnicki plan i istorija, **nije UX autoritet**.
+- Stari Product/UX master je povucen i obrisan iz aktivne grane; ne citati, ne vracati, ne koristiti.
+- Poslednje potvrdjene odluke vlasnika odredjuju nameravano ponasanje; kod i testovi pokazuju stvarno stanje.
 
 ## Čisti proizvod
 - src/app — ulazi Expo Router ekrana.
