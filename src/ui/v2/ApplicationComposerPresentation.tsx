@@ -287,7 +287,9 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
     const hidden = Keyboard.addListener('keyboardDidHide', () => setKeyboard(false));
     return () => { shown.remove(); hidden.remove(); };
   }, []);
-  const reviewing = !!review && review.key === reviewKey && !busy && !pending && !confirmed && canSubmit;
+  // Mount the review only after the native IME has closed. Opening the Modal
+  // during Android's keyboard resize can retain an offset below its price.
+  const reviewing = !!review && review.key === reviewKey && !keyboard && !busy && !pending && !confirmed && canSubmit;
   const liveReview = useRef<typeof review>(null);
   liveReview.current = reviewing ? review : null;
   const closeReview = () => { liveReview.current = null; setReview(null); };
@@ -317,7 +319,10 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   const locked = confirmed || pending || uncertain;
   const reviewReason = shownBlock?.reason ?? issue.reason;
   const openReview = () => {
-    if (!disabled && canSubmit && !reviewing && !issue.reason) { Keyboard.dismiss(); setReview({ key: reviewKey }); }
+    if (!disabled && canSubmit && !reviewing && !issue.reason) {
+      setKeyboard(Keyboard.isVisible());
+      Keyboard.dismiss(); setReview({ key: reviewKey });
+    }
   };
   // Every green action is label-only, as the brand action is drawn everywhere else (r6: two of them carried a glyph).
   const primary = confirmed ? <V2Action label="Otvorite moje prijave" onPress={openApplications} style={brandAction} />
@@ -360,7 +365,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
     proposed={proposedTaskTime} />;
   const noteLeft = NOTE_LIMIT - draft.note.length;
   // The sent receipt ("Etiketa odlazi") is a moment with its own way on right under it, not a form with a foot: it has no pinned footer.
-  return <ComposerFrame key={confirmed ? 'receipt' : 'form'} back={back} footer={confirmed ? undefined : footer} info={!confirmed}>
+  return <ComposerFrame key={confirmed ? 'receipt' : 'form'} back={() => { closeReview(); back(); }} footer={confirmed ? undefined : footer} info={!confirmed}>
     {/* A real confirmation is the first thing on the resulting screen, not below the old form's task summary. */}
     {confirmed ? <><SentReceipt hourly={hourly} fresh={!confirmedAtMount} price={shownPrice} title={readableTitle(opportunity.naslov)}
       people={count !== null ? osoba(count) : 'Proverite broj osoba'} time={time} error={error}
@@ -411,7 +416,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
       </Section>
     </>}
     </>}
-    {reviewing ? <ProductSheet title="Pregled prijave" closeLabel="Nazad na izmenu prijave" backdropHint="Vraća na izmenu prijave." onClose={closeReview}
+    {reviewing ? <ProductSheet title="Pregled prijave" contentKey={reviewKey} closeLabel="Nazad na izmenu prijave" backdropHint="Vraća na izmenu prijave." onClose={closeReview}
       footer={() => <>
         <V2Action label="Pošaljite ovu prijavu" onPress={confirmReview} style={brandAction} />
         <V2Action label="Izmenite prijavu" kind="quiet" onPress={closeReview} />

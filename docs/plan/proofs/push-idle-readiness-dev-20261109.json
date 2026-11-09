@@ -1,0 +1,74 @@
+{
+  "schema": "USKOCI_SCOPED_PUSH_IDLE_READBACK_V1",
+  "capturedWindowUtc": { "from": "2026-11-09T16:13:33.497240Z", "to": "2026-11-09T16:17:34Z" },
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "sourceCommit": "5ba9531ee49b12445409f14b292eb7bd1469bce5",
+  "scope": "Two owner-authorized TEST accounts; read-only DEV diagnostics. APK/device installation was reported by the coordinating agent, not performed by this review.",
+  "accounts": [
+    {
+      "label": "Uskoci Test",
+      "userId": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+      "registeredDeviceRows": 1,
+      "activeRevisionBoundValidSessionDevices": 1,
+      "activeDeviceLastSeenUtc": ["2026-11-09T12:37:45.190280Z"],
+      "requesterAndWorkerPushEnabled": true,
+      "requesterAndWorkerQuietHoursEnabled": false
+    },
+    {
+      "label": "Milos",
+      "userId": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+      "registeredDeviceRows": 5,
+      "activeRevisionBoundValidSessionDevices": 2,
+      "activeDeviceLastSeenUtc": ["2026-10-14T14:49:29.579758Z", "2026-10-18T13:46:40.084738Z"],
+      "newDeviceRegistrationOn20261109": false,
+      "requesterAndWorkerPushEnabled": true,
+      "requesterAndWorkerQuietHoursEnabled": false
+    }
+  ],
+  "readiness": {
+    "lastObservation": "TICK_OK",
+    "observedAt": "2026-11-08T15:50:33.941765Z",
+    "lastSuccessAt": "2026-11-08T15:50:33.941765Z",
+    "freshnessSeconds": 300,
+    "fresh": false,
+    "derivedFromCurrentReadModel": { "state": "UNKNOWN", "reason": "STALE_RUNTIME_OBSERVATION" },
+    "uiMessage": "Stanje slanja na telefon još nije potvrđeno.",
+    "explanation": "The global readiness receipt has expired. Phone permission and an active bound registration do not refresh or prove transport delivery."
+  },
+  "scheduler": {
+    "jobName": "uskoci_edge_workers",
+    "active": true,
+    "schedule": "* * * * *",
+    "lastTwoHours": { "succeeded": 120, "failed": 0, "latestStart": "2026-11-09T16:14:00.094169Z", "latestEnd": "2026-11-09T16:14:00.503097Z" },
+    "function": "private.edge_worker_tick_v5(timestamptz)",
+    "behavior": "Calls the existing push transport only while matching unstarted PUSH deliveries or live attempts exist. SQL cron success does not imply an Edge HTTP call.",
+    "globalPendingUnstartedPushDeliveries": 0,
+    "globalLivePushAttempts": 0,
+    "configBooleanChecks": { "basePresent": true, "baseIsExpectedProject": true, "basePassesCronPredicate": true, "basePassesWakePredicate": true, "workerKeyPresent": true, "workerKeyShapeValid": true },
+    "insertWake": { "trigger": "trg_wake_push_on_delivery", "enabled": true, "condition": "An inserted row has channel PUSH and state CREATED", "function": "private.wake_push_worker()" }
+  },
+  "transport": {
+    "slug": "uskoci-push-transport",
+    "version": 47,
+    "deploymentStatus": "ACTIVE",
+    "deployedSourceRead": true,
+    "runtimeEnabledFlagValue": "NOT_READ_OR_PROBED",
+    "sourceBehavior": "EXPO_PUSH_TRANSPORT_ENABLED gates tick. A disabled tick returns before database/provider I/O. An enabled successful global tick records TICK_OK; a single-target operation does not fabricate global readiness.",
+    "httpRequestsLast24Hours": 0,
+    "scopedAccountDeliveriesLast24Hours": 0,
+    "scopedAccountAttemptsLast24Hours": 0,
+    "supabaseHealthAdvisories": 0
+  },
+  "emulator": {
+    "finding": "No new registration is expected through the present client on an Android emulator.",
+    "source": "src/data/nativePushDevice.ts:13",
+    "guard": "!Device.isDevice returns UNSUPPORTED before permission/token acquisition.",
+    "dependencyEvidence": "Installed expo-device Android DeviceModule.kt exposes isDevice as !isRunningOnEmulator.",
+    "bootstrap": "PushRuntime reconciles/rotates an already bound session device; initial registration is an explicit settings action. Emulator UNSUPPORTED prevents either native token path.",
+    "deviceLogsRead": false
+  },
+  "conclusion": "The stale readiness UI is consistent with an idle work-driven scheduler. No failed or missing scheduler/configuration was established. Current provider delivery and the live transport-enabled flag remain unproven until an authorized real event exercises the existing path.",
+  "nextScopedObservation": "After the coordinator confirms an actual Application or Selection, read only notification event/delivery/attempt outcome and time for these two recipients, then inspect aggregate push HTTP status and readiness. Do not create a synthetic delivery, invoke a write-capable tick/probe, alter freshness, add polling, or expose payload/token/session identifiers.",
+  "privacy": "No push tokens, worker keys, Vault values, credentials, message bodies, session IDs or provider ticket IDs were returned or saved. Configuration was evaluated server-side into booleans only.",
+  "mutations": { "database": false, "edge": false, "deviceUiOrAdb": false, "providerCalls": false, "master": false, "localEvidenceFileOnly": true }
+}

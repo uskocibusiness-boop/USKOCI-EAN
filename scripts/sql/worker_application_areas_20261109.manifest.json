@@ -1,0 +1,48 @@
+{
+  "schema": "worker-application-areas-operation-manifest-v1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "status": "PREPARED_NOT_DEPLOYED",
+  "changedFunctions": [
+    {
+      "signature": "rpc_resolve_stale_response_after_need_edit(uuid,integer,integer,text,text,integer,integer,timestamp with time zone,timestamp with time zone,text)",
+      "before": "fb8132db33279190478b5be0480721fa",
+      "after": "91bd47ffdb1f0460c28f84815b6f1459"
+    },
+    {
+      "signature": "rpc_select_response(uuid,integer,uuid,integer,text,text)",
+      "before": "02934f7831db821a7b33fd6d40289b9a",
+      "after": "44ae50092bad09e66438afec2715c1db"
+    },
+    {
+      "signature": "rpc_submit_response(uuid,integer,uuid,integer,integer,timestamp with time zone,timestamp with time zone,text,text)",
+      "before": "398e85c4420da9c4765ae0ff6197a59e",
+      "after": "ad117da224ba9e4a3f7d70611aeaa6d8"
+    }
+  ],
+  "inputSha256": {
+    "candidate": "0f812a0914c16a57daf62a6e35ebe0a02339eed6471583b2e91d1314c5b789f8",
+    "operationPreimage": "8137c6846118d325d8a09b8904fa138206dfc9a6f9556d654e8e023479b130e7"
+  },
+  "closureBefore": {
+    "sourceReady": false,
+    "schemaDigest": "7923a76b5add2e56f2ded9a173dd1638baa346a8742877cecb23aaf634229d50",
+    "sourceDigest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+    "storedSource": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "erasureDigest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+    "storedErasure": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+  },
+  "closurePredictedAfter": {
+    "sourceReady": false,
+    "schemaDigest": "7923a76b5add2e56f2ded9a173dd1638baa346a8742877cecb23aaf634229d50",
+    "sourceDigest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+    "storedSource": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "erasureDigest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+    "storedErasure": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+  },
+  "outputSha256": {
+    "worker_application_areas_20261109.preflight.sql": "2ae265f7232c9e615dc3a4e78723cedde01e0716be40b3906c62969d08cb3cf5",
+    "worker_application_areas_20261109.promotion.sql": "806d7cda028fc2e157c4bd6741124f42e0a38d557bb8985f7d439e2c1fad804a",
+    "worker_application_areas_20261109.postflight.sql": "bbc2d9b5fe3fc221b484a012e8989862a33acd88392fb2921fda92b8147eac79",
+    "worker_application_areas_20261109.rollback.sql": "b0dfd062efb4a485e351ba9cb2ceab6260d6dc2adb80461264fd400db3eb0fab"
+  }
+}

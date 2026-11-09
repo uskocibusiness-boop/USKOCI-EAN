@@ -63,7 +63,12 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
     return () => cancelAnimation(scale);
   }, [reduced, scale]);
   useEffect(() => { if (!dirty) setAsking(false); }, [dirty]);
-  useEffect(() => { if (contentKey !== undefined) contentScroll.current?.scrollTo({ y: 0, animated: false }); }, [contentKey]);
+  const resetContent = useCallback(() => {
+    // A keyed overview starts at its first fact after native Modal focus too.
+    // Do not reset arbitrary sheets or later user scrolling on layout changes.
+    if (contentKey !== undefined) contentScroll.current?.scrollTo({ y: 0, animated: false });
+  }, [contentKey]);
+  useEffect(resetContent, [resetContent]);
   const dismiss = useCallback(() => {
     if (closing.current) return;
     closing.current = true;
@@ -87,7 +92,8 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
       onPress={() => setAsking(false)} style={s.command}>
       <T variant="action" style={s.quiet}>Nastavi uređivanje</T></Press>
   </View> : footer ? footer(dismiss) : null;
-  return <Modal visible transparent animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={requestClose}>
+  return <Modal visible transparent animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={requestClose}
+    onShow={resetContent}>
     <GestureHandlerRootView style={s.root}>
       <Pressable testID="product-sheet-backdrop" style={[StyleSheet.absoluteFill, s.dim]} onPress={requestClose}
         accessible={backdropSays !== null} accessibilityRole="button" accessibilityLabel={closeLabel}

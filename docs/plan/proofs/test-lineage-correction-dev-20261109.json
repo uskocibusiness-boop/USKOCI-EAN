@@ -1,0 +1,86 @@
+{
+  "schema": "USKOCI_DEV_TEST_LINEAGE_CORRECTION_V1",
+  "projectId": "leqcwgzvjsxugfgzdmth",
+  "appliedAtUtc": "2026-11-09T15:43:11Z",
+  "authorization": "Owner explicitly confirmed both accounts are their test accounts and approved this visibility correction in this conversation.",
+  "scope": {
+    "accountId": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+    "peerAccountId": "0640a1bd-5e0a-4462-9dca-f49420582c8a"
+  },
+  "applySha256": "20a277ea1e47db15d4260f0865a270e011a99c0a493bda63c2f7b7dc0a566d47",
+  "preflight": [
+    {
+      "result": {
+        "status": "ACCOUNT_LINEAGE_PREIMAGE_MATCH",
+        "observed": {
+          "world": "REAL",
+          "lineage": "UNCLASSIFIED",
+          "ownNeeds": 2,
+          "needsHash": "bb1725a54fda8c2963e6dca9292d45a4",
+          "peerWorld": "TEST",
+          "sameWorld": false,
+          "peerLineage": "OWNER_BUSINESS",
+          "profilesHash": "69088027b3b4d206bc035e1609e58c21",
+          "lineageEvents": 0,
+          "publishedNeeds": 1,
+          "savedAreasHash": "76929e5262fbae48dee918fc12b37937",
+          "lineageRevision": 0,
+          "capabilitiesHash": "fac4284ca4d9d443252cd7dc0612c09e",
+          "interactionCount": 0,
+          "needBindingsHash": "2e76fa0cc76fa758ff4a96ce2eb2a8ae",
+          "writerServiceOnly": true,
+          "confirmedModesHash": "c61b721cee7db3dd55d457e7979895e9",
+          "guardFunctionsHash": "903d86aa0a00da91dc0a15aaf54284d6",
+          "workerBindingsHash": "064f25f8f220cc2f5bffe1f0b5ddf0e4",
+          "activeWorkerPresent": true,
+          "aiTestAdmissionHash": "e50a800ef99f91e23e503c3ae1abfb01",
+          "publishedNeedPresent": true,
+          "needDiscoveryPolicyHash": "a6d682f65a5165cafb4d9876d605f027"
+        }
+      }
+    }
+  ],
+  "applyIsError": false,
+  "postflight": [
+    {
+      "result": {
+        "status": "ACCOUNT_LINEAGE_POSTIMAGE_MATCH",
+        "observed": {
+          "world": "TEST",
+          "lineage": "DEV_ACCEPTANCE_QA",
+          "ownNeeds": 2,
+          "needsHash": "bb1725a54fda8c2963e6dca9292d45a4",
+          "peerWorld": "TEST",
+          "sameWorld": true,
+          "peerLineage": "OWNER_BUSINESS",
+          "profilesHash": "69088027b3b4d206bc035e1609e58c21",
+          "lineageEvents": 1,
+          "publishedNeeds": 1,
+          "savedAreasHash": "76929e5262fbae48dee918fc12b37937",
+          "lineageRevision": 1,
+          "capabilitiesHash": "fac4284ca4d9d443252cd7dc0612c09e",
+          "interactionCount": 0,
+          "needBindingsHash": "2e76fa0cc76fa758ff4a96ce2eb2a8ae",
+          "writerServiceOnly": true,
+          "confirmedModesHash": "c61b721cee7db3dd55d457e7979895e9",
+          "guardFunctionsHash": "903d86aa0a00da91dc0a15aaf54284d6",
+          "workerBindingsHash": "064f25f8f220cc2f5bffe1f0b5ddf0e4",
+          "activeWorkerPresent": true,
+          "aiTestAdmissionHash": "e50a800ef99f91e23e503c3ae1abfb01",
+          "publishedNeedPresent": true,
+          "needDiscoveryPolicyHash": "a6d682f65a5165cafb4d9876d605f027"
+        }
+      }
+    }
+  ],
+  "limits": [
+    "One existing audited admission writer; no DDL/Edge/budget/secret changes.",
+    "Owned Need/Profile/capability/mode/binding/area hashes unchanged; zero relationships at promotion.",
+    "No application, Agreement, push or native acceptance inferred from this administrative correction."
+  ],
+  "archivedSql": {
+    "path": "docs/plan/proofs/test-lineage-correction-dev-20261109.sql",
+    "sha256": "20a277ea1e47db15d4260f0865a270e011a99c0a493bda63c2f7b7dc0a566d47",
+    "normalization": "Repository LF convention; applySha256 pins the original local package file. Only CRLF converted to LF."
+  }
+}

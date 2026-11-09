@@ -1,0 +1,58 @@
+{
+  "schema": "worker-application-areas-qualification-v1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceBase": "5ba9531",
+  "date": "2026-11-09",
+  "status": "SOURCE_AND_ISOLATION_PROVEN_NOT_DEPLOYED",
+  "rootCause": "ACTIVE workers whose location is a validated owned saved work area can have empty legacy city. The submit, select and stale KEEP/UPDATE writers still reject that profile before the independent manual responseAllowed matcher.",
+  "changedOwners": [
+    "public.rpc_submit_response",
+    "public.rpc_select_response",
+    "public.rpc_resolve_stale_response_after_need_edit"
+  ],
+  "preserved": [
+    "ACTIVE/name/skills",
+    "owned worker profile",
+    "TEST/REAL world",
+    "Need/application revisions",
+    "price basis and currency",
+    "remaining slots",
+    "hard matcher/calendar contract",
+    "idempotent receipts",
+    "WITHDRAW without ready profile"
+  ],
+  "local": {
+    "command": "node --test scripts/worker-application-areas.test.cjs",
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0,
+    "sourceGeneratorCheck": "PASS",
+    "packageGeneratorCheck": "PASS"
+  },
+  "devReadOnly": {
+    "preflight": "WORKER_APPLICATION_AREAS_PREIMAGE_MATCH",
+    "sourceDigest": {
+      "before": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+      "predicted": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab"
+    },
+    "erasureDigest": {
+      "before": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+      "predicted": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c"
+    },
+    "sourceReady": false,
+    "certificatesChanged": false,
+    "mutation": false
+  },
+  "hashes": {
+    "promotionSha256": "806d7cda028fc2e157c4bd6741124f42e0a38d557bb8985f7d439e2c1fad804a",
+    "manifestSha256": "117bbfe840a26bd78125918c8132990405edfe4c8a812a0bbbd0d4757356da4a",
+    "testSha256": "7d8144015cc1cc43ad0d44a819a3608e946689feafb2990e709f3a25c87989fa"
+  },
+  "boundaries": [
+    "Synthetic review/Save rows exercise exact owned saved-area reader and validator; they are not ordinary Auth or a new signed-AI Save proof.",
+    "Inherited isolated fixture substitutes world/Auth identity, hard matcher/calendar outcomes, signed remote readiness and notification/audit emission; their upstream implementation is not changed.",
+    "Generated promotion/postflight/rollback actually run in PGlite with local OIDs/metadata and clearly substituted closure functions. Forced bad postimage restores all function bodies/identity atomically.",
+    "Read-only exact live closure expressions predict unchanged digests: the three application writer bodies are outside current closure digest member lists. Unchanged sourceReady=false is not a passed closure certificate.",
+    "No migration version is invented. Actual DEV promotion requires fresh exact preflight and full CI, then ordinary Auth submit/selection readback."
+  ]
+}

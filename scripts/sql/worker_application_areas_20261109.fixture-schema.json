@@ -1,0 +1,95 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "capturedAt": "2026-11-09",
+  "scope": "Read-only captured columns for isolated owned Save projection. No real account rows.",
+  "tables": [
+    {
+      "name": "private.worker_ai_reviews",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "extensions.gen_random_uuid()",
+          "notNull": true
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "conversation_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "revision",
+          "type": "integer",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "base_hash",
+          "type": "text",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "envelope",
+          "type": "jsonb",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "clock_timestamp()",
+          "notNull": true
+        }
+      ]
+    },
+    {
+      "name": "private.worker_ai_saves",
+      "columns": [
+        {
+          "name": "review_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "client_request_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "receipt",
+          "type": "jsonb",
+          "default": null,
+          "notNull": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "clock_timestamp()",
+          "notNull": true
+        }
+      ]
+    }
+  ]
+}

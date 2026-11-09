@@ -1,0 +1,493 @@
+{
+  "observedAtUtc": "2026-11-09T16:22:50.985396+00:00",
+  "sourceCommit": "5ba9531ee49b12445409f14b292eb7bd1469bce5",
+  "ciRun": "42646085496",
+  "ciConclusion": "SUCCESS",
+  "sourceChecks": {
+    "nodeTestsPassed": 1380,
+    "typeScriptDiagnostics": 0,
+    "migrationFiles": 233,
+    "migrationIntegrityChecks": 72
+  },
+  "apk": {
+    "package": "rs.uskoci.preview",
+    "bytes": 121083252,
+    "sha256": "f3e54eb02f32327e67f4178ba8d9e2a829397dc481f47b3b6e135331db4bf80a",
+    "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+    "abis": [
+      "arm64-v8a",
+      "x86_64"
+    ],
+    "bothInstalledFilesMatchArtifact": true,
+    "backend": "DEV",
+    "otaEnabled": false,
+    "storeRelease": false
+  },
+  "phone": {
+    "model": "Honor VKP_NX9",
+    "android": 16,
+    "fontScale": 1.15,
+    "authPreserved": true
+  },
+  "emulator": {
+    "abi": "x86_64",
+    "authPreserved": true,
+    "secondAccountHomeObserved": true
+  },
+  "checks": [
+    {
+      "observation": "Discovery map renders with real task and approximate pin",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-discovery-ready.xml",
+          "bytes": 57462,
+          "sha256": "4b7351bf78d2d550537ff64ab1556eeee5463ff260a2f3adb662c0f57f3cade2"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-discovery-ready.png",
+          "bytes": 676789,
+          "sha256": "bf51d34f45bfcdf93f5c6e9ce88a8cb0a17474a59459a7b890701e585a6f9da8"
+        }
+      ]
+    },
+    {
+      "observation": "Map/list sheet expanded through real gesture",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-sheet-expanded.xml",
+          "bytes": 58460,
+          "sha256": "b299f93ea3af8c59316bb937f40d72d237f241528c706bd45c634675dfdbf456"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-sheet-expanded.png",
+          "bytes": 298964,
+          "sha256": "bf493558b340603e75658243164fdbad2babeeaa0996c70e1a59620b62e8734b"
+        }
+      ]
+    },
+    {
+      "observation": "Filters opened above map",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-filters.xml",
+          "bytes": 24923,
+          "sha256": "5be60a8dfcd4b21c6c574dab6bcde976f6059187a6506e8feb8bc8fb43569ddc"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-filters.png",
+          "bytes": 293212,
+          "sha256": "541427bc5e739741d8f349babe188ccde398a6654182f9e1be9b17a783014fe5"
+        }
+      ]
+    },
+    {
+      "observation": "Keyboard opens in filter modal; close/apply controls stay reachable",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-filter-keyboard.xml",
+          "bytes": 24921,
+          "sha256": "3be2dec276129b7e4a2ca8f1cc24608abca32d6a568f01d1902134c791bd9b7b"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-filter-keyboard.png",
+          "bytes": 359018,
+          "sha256": "bf6ef708c4d2273ecfca35476eeb23936ae0bec4425c86a968751d82d97d212a"
+        }
+      ]
+    },
+    {
+      "observation": "Map visible after keyboard/modal close",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-after-filter-close.xml",
+          "bytes": 32827,
+          "sha256": "d3588571c391153850fcf5f0b4c39d2fc2d67fecace6937e7bebc3cf27a497bf"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-after-filter-close.png",
+          "bytes": 780110,
+          "sha256": "622a98967b470dd8d26d2beda0b0697bc00473c25f3cdc889b7b50d9a3af3974"
+        }
+      ]
+    },
+    {
+      "observation": "Remote filter responds and reads four server tasks",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-remote-chip-tap.xml",
+          "bytes": 71166,
+          "sha256": "2eddcda913903333a2ff59e1b269a13da50d9d7f365c62442ec5219422295768"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-remote-chip-tap.png",
+          "bytes": 395715,
+          "sha256": "9eca8a9f5c613301561b392d168aa177d905679026eefab9036bb13e3f81df15"
+        }
+      ]
+    },
+    {
+      "observation": "Returns to Home with same logged-in user",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-home-return.xml",
+          "bytes": 57468,
+          "sha256": "b9c92d2b239ebed7e4325c733d7dba8c7f438c8427bb9d5e7bbbbfb104ccca08"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-home-return.png",
+          "bytes": 410652,
+          "sha256": "7229647684323d713737afd4a7a1d383702772762c04e463f05ceb5bffe6e4bb"
+        }
+      ]
+    },
+    {
+      "observation": "Returns to map tab and switches back from REMOTE to onsite",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-onsite-second-entry.xml",
+          "bytes": 58454,
+          "sha256": "ca091938fcdcbab775d4f0e3c387536f8578e50a9c49513dda1c451d2e60798b"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-onsite-second-entry.png",
+          "bytes": 299927,
+          "sha256": "0f1a8ae01341847d8b7ca8afe949ab1c38aab9047bf7a993f05b0d90d88f0251"
+        }
+      ]
+    },
+    {
+      "observation": "Actual onsite task detail renders its approximate location map",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-onsite-detail-bottom.xml",
+          "bytes": 43331,
+          "sha256": "53f47e0d8ec53f595857e7b9e4c0f86c23c896e54d383d141cce3fcb1ada838a"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-onsite-detail-bottom.png",
+          "bytes": 579052,
+          "sha256": "fa448a3a61aeff924a8b26c14b797537a93c7294474ef66d46f7e9810fc6f9a5"
+        }
+      ]
+    },
+    {
+      "observation": "Approximate location expands to full screen with privacy caption",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-location-fullscreen.xml",
+          "bytes": 13638,
+          "sha256": "cd075feeb9ed6aaf2be3c63135a7ea4b9da57ad81891a32f033081a84863f822"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-location-fullscreen.png",
+          "bytes": 824280,
+          "sha256": "5718c11aeb8875ae281db87e69a13bc51a1e4640e85806620430a871fde460de"
+        }
+      ]
+    },
+    {
+      "observation": "Full-screen map closes back to the same task without a recorded ANR",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-location-close.xml",
+          "bytes": 39820,
+          "sha256": "86f676402aa2ba38800857885f3e92e1a000e196395da8878772bf826cf04f80"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/mapfix-location-close.png",
+          "bytes": 399202,
+          "sha256": "19c8be535dee0056f1dce6262c2d05579570de6512125b754313314d9e0c3ea7"
+        }
+      ]
+    },
+    {
+      "observation": "Profile reads active saved profile and Novi Sad",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/profile-clean-loaded.xml",
+          "bytes": 28286,
+          "sha256": "4495ee5790cacee630d5bcec82634d776b5920f650d17244c13c1ac933998caa"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/profile-clean-loaded.png",
+          "bytes": 275587,
+          "sha256": "13e6b1df2014b2dd984e2a5d51da35c3b623f6ebf45d1cd145d2749f990ae587"
+        }
+      ]
+    },
+    {
+      "observation": "Single logout at bottom; activities and settings reachable",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/profile-clean-bottom.xml",
+          "bytes": 26597,
+          "sha256": "7928b2130608a3e37009a3b7524fa089fcffc179946166f9bfbff4fe4ebd133f"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/profile-clean-bottom.png",
+          "bytes": 278487,
+          "sha256": "49c6f9d4b9f6890c84524c17d33c319217a7a7bdcd873c89a825aea1fd7891e7"
+        }
+      ]
+    },
+    {
+      "observation": "Logout confirmation opened then cancelled without session loss",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/profile-logout-confirm.xml",
+          "bytes": 6344,
+          "sha256": "df3bcf351ac097973e421c4d9e2da80301946ca05a206702a00ccdd162b55bca"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/profile-logout-confirm.png",
+          "bytes": 305562,
+          "sha256": "6bec39fee1972c31992cadd7a4b31d0cb18dd88deab7f3deb5b0a1ba6bc8588f"
+        }
+      ]
+    },
+    {
+      "observation": "Account/app settings visible",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/settings-clean-top.xml",
+          "bytes": 42759,
+          "sha256": "57cc9a1715f0e5199a367191346eb10d971f23857b99a3551c5865637e179a4b"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/settings-clean-top.png",
+          "bytes": 270478,
+          "sha256": "32ee2038332451acf0ed953d13adb3daa039f6b4df73c743d2f3b2329d351e90"
+        }
+      ]
+    },
+    {
+      "observation": "Help/about/legal destinations visible without duplicate logout",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/settings-clean-bottom.xml",
+          "bytes": 47473,
+          "sha256": "affd2362dbe644d99630341cd458fdb50acbf95ff0af08bfc61acdebf33cd91c"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/settings-clean-bottom.png",
+          "bytes": 267657,
+          "sha256": "3fd321023a8443ff7bc8958d05168a6398af0812cbdda65eef831cc6dcc319c9"
+        }
+      ]
+    },
+    {
+      "observation": "Personal data shows real saved Novi Sad work area",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/personal-clean-initial.xml",
+          "bytes": 27223,
+          "sha256": "e20df77963f7b754c9bf43e8985800c208650b1bfdbc5daed761de8229d73483"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/personal-clean-initial.png",
+          "bytes": 255312,
+          "sha256": "d64b26d80ebf1c74f2bdcbcd0f19782df86a979de337ca1985c017abae06676f"
+        }
+      ]
+    },
+    {
+      "observation": "Notification screen opens; delivery state UNKNOWN, not delivery PASS",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/settings-notifications-open.xml",
+          "bytes": 26904,
+          "sha256": "9f8e160d1ae3382e4e624d17d389b187702d15e9ef8caaf27c1b06cb598c91c8"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/settings-notifications-open.png",
+          "bytes": 368902,
+          "sha256": "1d9862909d7a438ce03f613eaee1ad5293e450bc9e0ba86997463d99bd40359b"
+        }
+      ]
+    },
+    {
+      "observation": "Device management refresh performed; transport remains UNKNOWN",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/settings-device-refreshed.xml",
+          "bytes": 25766,
+          "sha256": "4a5d4649d6ec0cbc6d18cb9f60d916adb8e04f6bf5c00002a45e298ec018fbda"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/settings-device-refreshed.png",
+          "bytes": 337874,
+          "sha256": "f8f2af8b23a918bb68789fd8a5a7dd24542c23be5e9559980043d09314c1be04"
+        }
+      ]
+    },
+    {
+      "observation": "Privacy screen opens, legal versions not yet published",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/settings-privacy-new.xml",
+          "bytes": 29623,
+          "sha256": "d72ab9e244d208abeedd93f7facaadaf3b669b6fde538e20f5924932569bca26"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/settings-privacy-new.png",
+          "bytes": 164603,
+          "sha256": "21617903f1b5b1418ebbbb8626aee62682e817ea1528f8d4c172aee4678e5301"
+        }
+      ]
+    },
+    {
+      "observation": "Retention reports unavailable truthfully; no deletion/export requested",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/privacy-retention-open.xml",
+          "bytes": 29348,
+          "sha256": "41361b606f81098a9ca125537e7481a6415d6b77b5de9b55e9d8e1bf5750e4ce"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/privacy-retention-open.png",
+          "bytes": 207633,
+          "sha256": "0bb9f48e13b67c52a1cb207422054b17d2d4a5cc7434411ee5f2ec465535d01f"
+        }
+      ]
+    },
+    {
+      "observation": "Support opens own empty requests and FAQ; no message sent",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/settings-help-open.xml",
+          "bytes": 32017,
+          "sha256": "0065eeca6506f2fa1dfe756996f4edbf0d7fb5d1792293f7b2e81f75146d4a74"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/settings-help-open.png",
+          "bytes": 276343,
+          "sha256": "1c23564892e5b0262d6178dad60c909d9e663ac4d8167291f9caa72350104666"
+        }
+      ]
+    },
+    {
+      "observation": "About screen opens with expected brand and source version",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/settings-about-open.xml",
+          "bytes": 41697,
+          "sha256": "e210359b6a4308f85323083ab84ace0b5cb2fabb034c81d8e3074e6ae1efa869"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/settings-about-open.png",
+          "bytes": 467999,
+          "sha256": "8f9f7c821c4420b2fd4f4d7f7b825832a6edcab3a17d6a406cbde26f374a9ea3"
+        }
+      ]
+    },
+    {
+      "observation": "How-it-works guide opens through Settings",
+      "artifacts": [
+        {
+          "path": "verification/phone-acceptance-20261109/settings-how-it-works.xml",
+          "bytes": 24850,
+          "sha256": "80928951601769e5aeec8d6bd3f0205ac806eb5b665ff92078efd51884776e83"
+        },
+        {
+          "path": "verification/phone-acceptance-20261109/settings-how-it-works.png",
+          "bytes": 429726,
+          "sha256": "91a3258513dd724ac343f917d6a93cee4113964a4ea6e4d8f299183caacb6952"
+        }
+      ]
+    }
+  ],
+  "exitInfo": {
+    "path": "verification/phone-acceptance-20261109/exit-info-after-mapfix.txt",
+    "sha256": "7c6645f923bd794ab7db475e8510633b7e043ceef4ec3e18254771eb7b975e57",
+    "entries": [
+      {
+        "deviceLocalTimestamp": "2026-11-09 17:04:41.781",
+        "reason": 16,
+        "label": "PACKAGE UPDATED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-09 16:18:01.642",
+        "reason": 6,
+        "label": "ANR"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-09 16:02:06.521",
+        "reason": 16,
+        "label": "PACKAGE UPDATED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-09 15:35:13.838",
+        "reason": 10,
+        "label": "USER REQUESTED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-09 15:07:09.774",
+        "reason": 16,
+        "label": "PACKAGE UPDATED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-09 14:23:14.484",
+        "reason": 10,
+        "label": "USER REQUESTED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-08 19:32:11.168",
+        "reason": 10,
+        "label": "USER REQUESTED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-06 21:51:51.840",
+        "reason": 10,
+        "label": "USER REQUESTED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-04 13:55:53.152",
+        "reason": 10,
+        "label": "USER REQUESTED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-04 01:23:14.582",
+        "reason": 10,
+        "label": "USER REQUESTED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-03 19:35:18.136",
+        "reason": 2,
+        "label": "SIGNALED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-03 16:08:13.382",
+        "reason": 2,
+        "label": "SIGNALED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-03 11:33:05.164",
+        "reason": 10,
+        "label": "USER REQUESTED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-02 20:03:44.781",
+        "reason": 2,
+        "label": "SIGNALED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-02 01:41:37.341",
+        "reason": 2,
+        "label": "SIGNALED"
+      },
+      {
+        "deviceLocalTimestamp": "2026-11-01 10:48:02.691",
+        "reason": 13,
+        "label": "OTHER KILLS BY SYSTEM"
+      }
+    ],
+    "timeZone": "Europe/Warsaw",
+    "scope": "Own package only; unchanged prior ANR, latest exit is package update, not a new crash"
+  },
+  "limits": [
+    "Bounded phone acceptance, not all screens or all possible ANRs",
+    "Full transport delivery not proven",
+    "Actual application was rejected by stale legacy city guard; Agreement not yet created",
+    "No paid AI calls, logout, data wipe, account closure, production or store publication in this acceptance"
+  ]
+}
