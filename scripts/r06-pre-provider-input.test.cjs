@@ -1,5 +1,5 @@
 'use strict';
-const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),os=require('node:os');
 const {spawn}=require('node:child_process');
 const {fixture,source,candidate,preimage,input,A,C,R,ATT,T,TEXT}=require('./r06-pre-provider-input-fixture.cjs');
 const native=process.env.USKOCI_R06_NATIVE==='1',runtime=native?require('./p0-discovery-native-benchmark.cjs'):null;
@@ -14,7 +14,8 @@ const report={recordedAt:new Date().toISOString(),scope:'SOURCE_ONLY_BOUNDED_TEX
  'Known-usage and completion runtime paths are unchanged; no new receipt or billing improvement is claimed.',
  'Private export/redaction projections are tested; public policy certification, full erasure worker and large multi-command export capacity remain outside this proof.'
  ]};
-report.artifactSha256=Object.fromEntries(['r06-pre-provider-input-fixture.cjs','r06-pre-provider-input.test.cjs','r06-pre-provider-input-process.cjs',
+report.artifactSha256=Object.fromEntries(['r06-pre-provider-input-fixture.cjs','r06-pre-provider-input.test.cjs','r06-pre-provider-input-process.cjs','r06-pre-provider-input-cold-process.cjs',
+ '../supabase/migrations/20261107165752_r10_work_areas_projection_20261107.sql','../supabase/migrations/20261108225909_r10_owned_usage_projection_post_r09_20261108.sql',
  'sql/r06_pre_provider_input_20261108.preimage.json','sql/r06_pre_provider_input_20261108.budget-schema.json'].map(name=>[name,
  crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname,name))).digest('hex')]));
 const processRun=(operation,purpose,data)=>new Promise((resolve,reject)=>{
@@ -23,12 +24,21 @@ const processRun=(operation,purpose,data)=>new Promise((resolve,reject)=>{
  child.on('close',code=>resolve({code,out:out.trim()?JSON.parse(out.trim()):null,err}));
  child.stdin.end(data?JSON.stringify(data):'');
 });
+const coldProcessRun=(directory,operation,purpose,data)=>new Promise((resolve,reject)=>{
+ const child=spawn(process.execPath,[path.join(__dirname,'r06-pre-provider-input-cold-process.cjs'),operation,purpose,
+  JSON.stringify(operation==='prepare-crash'?[A,C,R,ATT]:[A,C,R])],{
+  env:{...process.env,USKOCI_R06_PGLITE_DIR:directory},stdio:['pipe','pipe','pipe'],timeout:60000});
+ let out='',err='';child.stdout.on('data',d=>out+=d);child.stderr.on('data',d=>err+=d);child.on('error',reject);
+ child.on('close',code=>{try{resolve({code,out:out.trim()?JSON.parse(out.trim()):null,err});}catch(e){reject(e);}});
+ child.stdin.end(data?JSON.stringify(data):'');
+});
 test('R06 source-only bounded input survives process loss without a second provider permission',async t=>{
  let f;
  const run=async(name,fn)=>t.test(name,async()=>{try{const result=await fn();report.cases.push({name,result:result??{},status:'PASS'});}catch(e){report.failures.push({name,error:e.message});throw e;}});
  const table=purpose=>purpose==='NEED_SERVICE'?'private.ai_need_turn_commands':'private.worker_ai_turns';
  try{
   f=native?await runtime.startFixture(Driver=>fixture({Driver,native:true})):await fixture();
+  const r10Catalog=await f.value('select private.data_export_dataset_catalog() as value');
   await run('whole candidate is blocked and does not install columns',async()=>{
    await assert.rejects(f.db.exec(source),/R06_PRE_PROVIDER_SOURCE_ONLY/);
    assert.equal(await f.value("select count(*)::int as value from pg_attribute where attrelid='private.ai_need_turn_commands'::regclass and attname='prepared_input'"),0);
@@ -40,10 +50,35 @@ test('R06 source-only bounded input survives process loss without a second provi
   });
   await run('new executors are service-only and command tables stay private',async()=>{
    for(const role of ['anon','authenticated']){
-    for(const fn of ['public.rpc_ai_prepare_input_service(uuid,uuid,uuid,uuid,text,jsonb)','public.rpc_ai_read_prepared_input_service(uuid,uuid,uuid,text)'])
+    for(const fn of ['public.rpc_ai_prepare_input_service(uuid,uuid,uuid,uuid,text,jsonb)','public.rpc_ai_read_prepared_input_service(uuid,uuid,uuid,text)',
+     'public.rpc_ai_dispatch_prepared_input_service(uuid,uuid,uuid,uuid,text,text)'])
      assert.equal(await f.value("select has_function_privilege($1,$2,'EXECUTE') as value",[role,fn]),false);
     for(const tbl of ['private.ai_need_turn_commands','private.worker_ai_turns'])assert.equal(await f.value("select has_table_privilege($1,$2,'SELECT') as value",[role,tbl]),false);
    }
+  });
+  await run('R10 post-R09 owned usage projection survives R06 without dropping any existing dataset or field',async()=>{
+   const after=await f.value('select private.data_export_dataset_catalog() as value');
+   assert.equal(after.length,73);
+   for(const prior of r10Catalog){
+    const current=after.find(x=>x.key===prior.key);assert.ok(current);
+    if(['taskAiTurns','workerAiTurns'].includes(prior.key)){
+     assert.deepEqual({...current,fields:current.fields.filter(x=>!['preparedAt','preparedInput'].includes(x))},prior);
+    }else assert.deepEqual(current,prior);
+   }
+   await f.seed();await f.prepare();
+   await f.db.query(`insert into private.ai_test_usage_v5(operation_id,account_id,model,prompt_tokens,output_tokens,total_tokens)
+    values($1,$2,'gemini-3.8-flash',123,45,168)`,[R,A]);
+   let allocations=(await f.snapshot()).datasets.testAllocations;
+   assert.equal(allocations.length,1);assert.equal(allocations[0].model,'gemini-3.8-flash');
+   assert.equal(allocations[0].promptTokens,123);assert.equal(allocations[0].outputTokens,45);assert.equal(allocations[0].totalTokens,168);
+   await f.db.query('update private.ai_test_usage_v5 set account_id=$1',[T]);
+   allocations=(await f.snapshot()).datasets.testAllocations;
+   assert.equal(allocations.length,1);assert.equal(allocations[0].model,null);assert.equal(allocations[0].promptTokens,null);
+   await f.db.query(`insert into private.ai_test_reservations_v5(operation_id,account_id,kind,max_cost_microusd,measured_audio_bytes,measured_transcript_chars,
+    settled_microusd,settlement_basis,settled_at)
+    values($1,$2,'STT',200000,9007199254740993,7,200000,'MEASURED',clock_timestamp())`,[T,A]);
+   const audio=(await f.snapshot()).datasets.testAllocations.find(x=>x.kind==='STT');
+   assert.equal(audio.measuredAudioBytes,'9007199254740993');assert.equal(audio.measuredTranscriptChars,7);
   });
   for(const purpose of ['NEED_SERVICE','WORKER_CAPABILITY']){
    await run(`${purpose}: prepare atomically reserves once and returns immutable reconstructible input`,async()=>{
@@ -66,6 +101,53 @@ test('R06 source-only bounded input survives process loss without a second provi
     const first=await f.dispatch(purpose);assert.equal(purpose==='NEED_SERVICE'?first:first.dispatched,true);
     assert.equal((await f.read(purpose)).state,'READ_ONLY');const second=await f.dispatch(purpose);assert.equal(purpose==='NEED_SERVICE'?second:second.dispatched,false);
     assert.equal(await f.value('select reserved_microusd::int as value from private.ai_test_budget_v5'),250000);
+   });
+   await run(`${purpose}: prepared dispatch binds the exact attempt and snapshot and never grants permission twice`,async()=>{
+    await f.seed(purpose);const prepared=await f.prepare(purpose);
+    await assert.rejects(f.dispatchPrepared(purpose,'a'.repeat(64)),/DISPATCH_MISMATCH/);
+    await assert.rejects(f.dispatchPrepared(purpose,prepared.inputSha256,{attempt:T}),/DISPATCH_MISMATCH/);
+    await assert.rejects(f.dispatchPrepared(purpose,prepared.inputSha256,{account:T}),/NOT_OWNED/);
+    const first=await f.dispatchPrepared(purpose,prepared.inputSha256);
+    assert.equal(first.state,'DISPATCHED');assert.equal(first.dispatched,true);assert.deepEqual(first.snapshot.input,input());
+    assert.deepEqual(await f.dispatchPrepared(purpose,prepared.inputSha256),{state:'READ_ONLY',dispatched:false});
+    assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),1);
+    assert.equal(await f.value('select reserved_microusd::int as value from private.ai_test_budget_v5'),250000);
+   });
+   await run(`${purpose}: a settled reservation after prepared read cannot be dispatched`,async()=>{
+    await f.seed(purpose);const prepared=await f.prepare(purpose);assert.equal((await f.read(purpose)).state,'PREPARED');
+    await f.db.exec("update private.ai_test_reservations_v5 set settled_microusd=250000,settlement_basis='CONSERVATIVE_ESTIMATE_UNMEASURED',settled_at=clock_timestamp()");
+    assert.deepEqual(await f.dispatchPrepared(purpose,prepared.inputSha256),{state:'READ_ONLY',dispatched:false});
+    assert.equal(await f.value(`select provider_dispatched as value from ${table(purpose)}`),false);
+   });
+   await run(`${purpose}: prepared read cannot bypass later admission, price, account or ceiling revocation`,async()=>{
+    const mutations=[
+     'update private.ai_test_budget_v5 set enabled=false',
+     'update private.ai_test_budget_v5 set reservation_cap_enforced=false',
+     "update private.ai_test_budget_v5 set price_valid_until=clock_timestamp()-interval '1 second'",
+     'update private.ai_test_budget_v5 set reserved_microusd=5000001',
+     'update private.ai_test_accounts_v5 set retired_at=clock_timestamp()',
+     'update auth.users set deleted_at=clock_timestamp()'
+    ];
+    for(const sql of mutations){
+     await f.seed(purpose);const prepared=await f.prepare(purpose);assert.equal((await f.read(purpose)).state,'PREPARED');
+     await f.db.exec(sql);
+     assert.deepEqual(await f.dispatchPrepared(purpose,prepared.inputSha256),{state:'NOT_ADMITTED',dispatched:false},sql);
+     assert.equal(await f.value(`select provider_dispatched as value from ${table(purpose)}`),false);
+     assert.equal(await f.value('select reserved_microusd::int as value from private.ai_test_budget_v5'),sql.includes('5000001')?5000001:250000);
+    }
+   });
+   await run(`${purpose}: absent, erased, expired and changed-source inputs cannot be dispatched`,async()=>{
+    await f.seed(purpose);assert.deepEqual(await f.dispatchPrepared(purpose,'a'.repeat(64)),{state:'ABSENT',dispatched:false});
+    const mutations=[
+     [`update ${table(purpose)} set prepared_input=null,prepared_input_sha256=null`,'ERASED'],
+     [`update ${table(purpose)} set lease_expires_at=clock_timestamp()-interval '1 second'`,'EXPIRED'],
+     [purpose==='NEED_SERVICE'?`update ${table(purpose)} set context_hash=repeat('0',64)`:'update private.worker_ai_sessions set revision=revision+1','STALE']
+    ];
+    for(const [sql,state] of mutations){
+     await f.seed(purpose);const prepared=await f.prepare(purpose);await f.db.exec(sql);
+     assert.deepEqual(await f.dispatchPrepared(purpose,prepared.inputSha256),{state,dispatched:false});
+     assert.equal(await f.value(`select provider_dispatched as value from ${table(purpose)}`),false);
+    }
    });
    await run(`${purpose}: expired, changed-source, cancelled and closing ownership stay closed`,async()=>{
     await f.seed(purpose);await f.prepare(purpose);
@@ -107,6 +189,31 @@ test('R06 source-only bounded input survives process loss without a second provi
     assert.deepEqual(await f.read(purpose),{state:'ERASED'});
     await assert.rejects(f.prepare(purpose),/INPUT_(?:ERASED|REQUEST_MISMATCH|NOT_PREPARABLE)/);
     assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),1);
+   });
+   if(!native)await run(`${purpose}: file-backed SQL survives abrupt preparation and dispatch exits without repeat permission`,async()=>{
+    for(const crashAfterDispatch of [false,true]){
+     const directory=fs.mkdtempSync(path.join(os.tmpdir(),'uskoci-r06-cold-'));
+     try{
+      const prepared=await coldProcessRun(directory,'prepare-crash',purpose,input());
+      assert.equal(prepared.code,73,prepared.err);assert.equal(prepared.out.state,'PREPARED');
+      if(crashAfterDispatch){
+       const dispatched=await coldProcessRun(directory,'dispatch-crash',purpose);
+       assert.equal(dispatched.code,74,dispatched.err);assert.deepEqual(dispatched.out,{state:'DISPATCHED',permission:true});
+      }
+      const resumed=await coldProcessRun(directory,'resume',purpose);
+      assert.equal(resumed.code,0,resumed.err);assert.equal(resumed.out.send,!crashAfterDispatch);
+      if(!crashAfterDispatch){assert.equal(resumed.out.inputSha256,prepared.out.inputSha256);assert.equal(resumed.out.userText,TEXT);}
+      const repeated=await coldProcessRun(directory,'resume',purpose);
+      assert.equal(repeated.code,0,repeated.err);assert.deepEqual(repeated.out,{state:'READ_ONLY',send:false});
+      const counts=await coldProcessRun(directory,'count',purpose);
+      assert.equal(counts.code,0,counts.err);assert.deepEqual(counts.out,{sends:crashAfterDispatch?0:1,reservations:1,reserved:250000});
+     }finally{
+      const resolved=fs.realpathSync(directory);
+      assert.equal(path.dirname(resolved),fs.realpathSync(os.tmpdir()));assert.ok(path.basename(resolved).startsWith('uskoci-r06-cold-'));
+      fs.rmSync(resolved,{recursive:true,force:true});
+     }
+    }
+    return {engine:'FILE_BACKED_PGLITE',prepareExit:73,dispatchExit:74,providerNetworkCalls:0,nativeLockProof:false};
    });
    if(native)await run(`${purpose}: committed preparation survives abrupt process exit; new process needs IDs only`,async()=>{
     await f.seed(purpose);const prepared=await processRun('prepare-crash',purpose,input());assert.equal(prepared.code,73,prepared.err);assert.equal(prepared.out.state,'PREPARED');

@@ -566,7 +566,7 @@ class R09ActivationProvenanceTests(unittest.TestCase):
         for suffix in (self.section["file"], self.section["evidence"]):
             def tampered(path, _suffix=suffix):
                 raw = original(path)
-                return raw + b"\n" if str(path).endswith(_suffix) else raw
+                return raw + b"\n" if path.as_posix().endswith(_suffix) else raw
             with self.subTest(suffix=suffix), mock.patch.object(Path, "read_bytes", tampered):
                 with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                     check_r09_activation_provenance(self.section, self.manifest)
@@ -603,7 +603,7 @@ class R09ApplicantProvenanceTests(unittest.TestCase):
         for suffix in (self.section["file"], self.section["evidence"]):
             def tampered(path, _suffix=suffix):
                 raw = original(path)
-                return raw + b"\n" if str(path).endswith(_suffix) else raw
+                return raw + b"\n" if path.as_posix().endswith(_suffix) else raw
             with self.subTest(suffix=suffix), mock.patch.object(Path, "read_bytes", tampered):
                 with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                     check_r09_applicant_provenance(self.section, self.manifest)

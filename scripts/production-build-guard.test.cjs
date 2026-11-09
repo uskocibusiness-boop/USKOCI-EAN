@@ -7,6 +7,8 @@ const root = path.resolve(__dirname, '..');
 const eas = require('../eas.json');
 const { assertProductionTarget, assertDevBuildContract } = require('./build-contract.cjs');
 const { validatePreview } = require('./check-eas-preview.cjs');
+const { inspectAndroidRelease, readSourceReport } = require('./check-android-release-readiness.cjs');
+const { selectTestCandidate, DEBUG_CERTIFICATE_SHA256 } = require('./android-test-candidate.cjs');
 const preview = { ...eas.build.preview.env, EAS_BUILD_PROFILE: 'preview', EAS_BUILD_PLATFORM: 'android' };
 
 test('the reviewed DEV preview still passes its build contract', () => {
@@ -62,4 +64,117 @@ test('the isolated QA package still rejects preview push-proof flags', () => {
   const result = resolveConfig(preview, 'rs.uskoci.preview.qa', '');
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /DEV_AUTO_PUSH_REQUIRES_ISOLATED_PREVIEW_PUSH_PROOF_BUILD|USKOCI_PUSH_PROOF_BUILD_REQUIRES_PREVIEW_PACKAGE/);
+});
+
+test('release source inspection preserves blockers and separates unverified remote state', () => {
+  const report = readSourceReport();
+  const statuses = Object.fromEntries(report.checks.map(check => [check.id, check.status]));
+  assert.equal(report.readiness, 'BLOCKED');
+  assert.equal(report.target.package, 'rs.uskoci');
+  assert.equal(report.target.artifact, 'aab');
+  assert.equal(statuses['store-profile'], 'PASS');
+  assert.equal(statuses['production-flags'], 'PASS');
+  assert.equal(statuses['production-admission'], 'BLOCKED');
+  assert.equal(statuses['production-backend'], 'UNVERIFIED');
+  assert.equal(statuses['production-firebase'], 'BLOCKED');
+  for (const key of ['upload-signing', 'play-artifact', 'backend-release-and-device-acceptance', 'play-console']) {
+    assert.equal(statuses[key], 'UNVERIFIED');
+  }
+  assert.equal(typeof report.source.dirty, 'boolean');
+  assert.match(report.source.commit, /^[0-9a-f]{40}$/);
+  assert.ok(Object.values(report.source.sha256).every(hash => /^[0-9a-f]{64}$/.test(hash)));
+});
+
+test('a source endpoint, matching Firebase client or old override cannot confer release readiness', () => {
+  const candidate = structuredClone(eas);
+  candidate.build.production.env = { ...candidate.build.production.env,
+    EXPO_PUBLIC_SUPABASE_URL: 'https://separate-project.supabase.co',
+    EXPO_PUBLIC_SUPABASE_ANON_KEY: 'DO_NOT_PRINT_THIS_CLIENT_VALUE',
+    USKOCI_ALLOW_STORE_BUILD: 'true' };
+  const firebase = { client: [{ client_info: { android_client_info: { package_name: 'rs.uskoci' } },
+    api_key: [{ current_key: 'DO_NOT_PRINT_THIS_FIREBASE_VALUE' }], private_key: 'DO_NOT_PRINT_PRIVATE_VALUE' }] };
+  const report = inspectAndroidRelease({ app: require('../app.json'), eas: candidate, firebase });
+  assert.equal(report.readiness, 'BLOCKED');
+  for (const key of ['production-backend', 'production-firebase', 'upload-signing', 'play-artifact']) {
+    assert.equal(report.checks.find(check => check.id === key).status, 'UNVERIFIED');
+  }
+  assert.equal(report.checks.find(check => check.id === 'production-admission').status, 'BLOCKED');
+  assert.doesNotMatch(JSON.stringify(report), /DO_NOT_PRINT|separate-project/);
+});
+
+test('release source inspection detects an APK profile, missing review and DEV leakage', () => {
+  const candidate = structuredClone(eas);
+  candidate.build.production.android.buildType = 'apk';
+  candidate.build.production.env.EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW = 'false';
+  candidate.build.production.env.EXPO_PUBLIC_SUPABASE_URL = preview.EXPO_PUBLIC_SUPABASE_URL;
+  candidate.build.production.env.USKOCI_PUSH_PROOF_BUILD = '1';
+  const report = inspectAndroidRelease({ app: require('../app.json'), eas: candidate, firebase: null });
+  for (const key of ['store-profile', 'production-flags', 'production-backend', 'production-firebase']) {
+    assert.equal(report.checks.find(check => check.id === key).status, 'BLOCKED');
+  }
+});
+
+test('EAS preinstall reports production admission instead of disguising it as a source read failure', () => {
+  const result = spawnSync(process.execPath, ['scripts/check-eas-preview.cjs'], { cwd: root,
+    env: { ...process.env, EAS_BUILD_PROFILE: 'production', USKOCI_ALLOW_STORE_BUILD: 'true' }, encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /USKOCI_PRODUCTION_NOT_CONFIGURED/);
+  assert.doesNotMatch(result.stderr, /could not read/);
+});
+
+test('readiness CLI remains nonzero and reports only bounded source facts', () => {
+  const result = spawnSync(process.execPath, ['scripts/check-android-release-readiness.cjs', '--json'], { cwd: root,
+    env: { ...process.env, EXPO_PUBLIC_SUPABASE_ANON_KEY: 'DO_NOT_PRINT_ENV_KEY',
+      EXPO_TOKEN: 'DO_NOT_PRINT_TOKEN', USKOCI_ALLOW_STORE_BUILD: 'true' }, encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.equal(JSON.parse(result.stdout).readiness, 'BLOCKED');
+  assert.doesNotMatch(result.stdout + result.stderr, /DO_NOT_PRINT/);
+});
+
+test('automatic APK builds keep the isolated package and strip all preview enrollment flags', () => {
+  const candidate = selectTestCandidate({ eventName: 'push', previewEnvironment: eas.build.preview.env });
+  assert.equal(candidate.target, 'isolated-qa');
+  assert.equal(candidate.package, 'rs.uskoci.preview.qa');
+  assert.equal(candidate.firebaseConfigured, false);
+  assert.equal(candidate.environment.USKOCI_PUSH_PROOF_BUILD, '0');
+  assert.equal(candidate.environment.EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL, '0');
+  assert.equal(candidate.environment.USKOCI_PHONE_PREVIEW_BUILD, '0');
+  assert.equal(candidate.expectedCertificateSha256, DEBUG_CERTIFICATE_SHA256);
+  assert.throws(() => selectTestCandidate({ target: 'phone-preview', eventName: 'push' }), /EXPLICIT_MANUAL_DISPATCH/);
+  assert.throws(() => selectTestCandidate({ target: 'production', eventName: 'workflow_dispatch' }), /UNKNOWN_ANDROID_TEST_TARGET/);
+});
+
+test('manual phone preview retains Firebase but pins the new embedded source with OTA disabled', () => {
+  const candidate = selectTestCandidate({ target: 'phone-preview', eventName: 'workflow_dispatch', previewEnvironment: eas.build.preview.env });
+  assert.equal(candidate.package, 'rs.uskoci.preview');
+  assert.equal(candidate.firebaseConfigured, true);
+  assert.equal(candidate.environment.USKOCI_PUSH_PROOF_BUILD, '1');
+  assert.equal(candidate.environment.EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL, '1');
+  const result = resolveConfig({ ...preview, ...candidate.environment }, candidate.package, `
+    assert.equal(resolved.android.package,'rs.uskoci.preview');
+    assert.equal(resolved.android.googleServicesFile,'./config/firebase/google-services.json');
+    assert.equal(resolved.updates.enabled,false);
+    assert.equal(resolved.updates.checkAutomatically,'NEVER');
+    assert.equal(resolved.updates.useEmbeddedUpdate,true);
+    assert.equal(resolved.plugins.includes('./plugins/withFirebaseEnrollmentDisabled.js'),false);
+  `);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('phone preview cannot disable OTA for an unrelated package, backend or ordinary build', () => {
+  for (const [env, packageName] of [
+    [{ ...preview }, 'rs.uskoci.preview.qa'],
+    [{ ...preview, EXPO_PUBLIC_SUPABASE_URL: 'https://other.supabase.co' }, 'rs.uskoci.preview'],
+    [{ ...preview, USKOCI_PUSH_PROOF_BUILD: '0', EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL: '0' }, 'rs.uskoci.preview'],
+    [{ ...preview, EAS_BUILD_PROFILE: 'unknown' }, 'rs.uskoci.preview'],
+  ]) {
+    const result = resolveConfig({ ...env, USKOCI_PHONE_PREVIEW_BUILD: '1' }, packageName, '');
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /PHONE_PREVIEW_REQUIRES_CANONICAL_PREVIEW_PUSH_PROOF_BUILD/);
+  }
+  const ordinary = resolveConfig({ ...preview, USKOCI_PHONE_PREVIEW_BUILD: '0' }, 'rs.uskoci.preview', `
+    assert.equal(resolved.updates.enabled,true);
+    assert.equal(resolved.updates.checkAutomatically,'ON_LOAD');
+  `);
+  assert.equal(ordinary.status, 0, ordinary.stderr);
 });

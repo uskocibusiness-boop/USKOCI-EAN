@@ -175,6 +175,28 @@ function validTimestamp(value: unknown): value is string {
   return new Date(instant + offsetMs).toISOString().slice(0, 19) === value.slice(0, 19);
 }
 
+// A bounded evidence check, not a natural-language date parser. Only a quoted,
+// complete day-of-next-month expression is interpreted; alternatives remain
+// with the provider. Never manufacture a start, hour or date for the writer.
+function nextMonthDateEvidence(evidence: string, localDate: string): { date: string | null } | null {
+  const letters = Object.fromEntries([... 'абвгдђежзијклљмнњопрстћуфхцчџш'].map((letter, i) =>
+    [letter, ['a','b','v','g','d','đ','e','ž','z','i','j','k','l','lj','m','n','nj','o','p','r','s','t','ć','u','f','h','c','č','dž','š'][i]]));
+  const text = evidence.toLowerCase().replace(/[а-яђјљњћџ]/gu, letter => letters[letter] ?? letter)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  const match = text.match(/^(?:do\s+)?([\p{L}\d ]+?)\.?\s+(?:sledeceg|sljedeceg|narednog)\s+meseca(?:\s+u\s+\d{1,2}(?::\d{2})?\s*(?:h|sati|casova)?)?[.!]?$/u);
+  if (!match) return null;
+  const ordinals = ['prvog','drugog','treceg','cetvrtog','petog','sestog','sedmog','osmog','devetog','desetog',
+    'jedanaestog','dvanaestog','trinaestog','cetrnaestog','petnaestog','sesnaestog','sedamnaestog','osamnaestog','devetnaestog',
+    'dvadesetog','dvadeset prvog','dvadeset drugog','dvadeset treceg','dvadeset cetvrtog','dvadeset petog',
+    'dvadeset sestog','dvadeset sedmog','dvadeset osmog','dvadeset devetog','tridesetog','trideset prvog'];
+  const day = /^\d{1,2}$/.test(match[1]) ? Number(match[1]) : ordinals.indexOf(match[1]) + 1;
+  if (!day) return null;
+  const [year, month] = localDate.split('-').map(Number);
+  const nextMonth = new Date(Date.UTC(year, month, 1));
+  const result = new Date(Date.UTC(year, month, day));
+  return { date: day > 31 || result.getUTCMonth() !== nextMonth.getUTCMonth() ? null : result.toISOString().slice(0, 10) };
+}
+
 function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext, pendingDeadlineQuestion = false): ParsedTurn {
   const known = new Map(activeFacts.filter(f => f.status !== 'UNKNOWN').map(f => [f.fact_key, f.fact_value]));
   const deadlineProposal = turn.proposals.find(p => p.key === 'need.response_deadline');
@@ -183,7 +205,7 @@ function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: a
     const evidence = typeof deadlineProposal.evidence === 'string' ? deadlineProposal.evidence.trim() : '';
     const anchored = evidence.length >= 3 && input.toLocaleLowerCase('sr').includes(evidence.toLocaleLowerCase('sr'));
     const explicitClear = /(?:bez\s+(?:posebnog\s+)?roka|nema\s+roka|(?:ukloni|obriši|obrisi|poništi|ponisti)\s+(?:taj\s+)?rok|prijave\s+(?:ostaju|neka\s+ostanu)\s+otvorene)/iu.test(evidence);
-    const applicationIntent = /prijav|ponud|javlj|jave|odgovor|konkuri/iu.test(input);
+    const applicationIntent = /prijav|ponud|javlj|jave|odgovor|konkuri|пријав|понуд|јављ|јаве|одговор|конкури/iu.test(input);
     const hold = /(?:ne\s+menjaj|ne\s+diraj|ostavi\s+(?:isti|stari)|nemoj\s+da\s+menjaš)[^.!?]{0,32}rok/iu.test(input);
     const instant = decision?.kind === 'AT' ? Date.parse(decision.at) : NaN;
     const unchanged = decision && JSON.stringify(known.get('need.response_deadline')) === JSON.stringify(decision);
@@ -195,28 +217,59 @@ function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: a
     const relativeDays = /\bprekosutra\b/iu.test(evidence) ? 2 : /\bsutra\b/iu.test(evidence) ? 1 : /\bdanas\b/iu.test(evidence) ? 0 : null;
     const expectedRelativeDate = relativeDays === null ? null
       : new Date(Date.parse(`${time.localDate}T12:00:00Z`) + relativeDays * 86400000).toISOString().slice(0, 10);
-    const relativeMismatch = decision?.kind === 'AT' && !unchanged && !literal && expectedRelativeDate !== null
-      && local?.localDate !== expectedRelativeDate;
+    const nextMonth = nextMonthDateEvidence(evidence, time.localDate);
+    const relativeMismatch = decision?.kind === 'AT' && !literal
+      && (!unchanged && expectedRelativeDate !== null && local?.localDate !== expectedRelativeDate
+        // A current quoted month correction must also validate re-emitted old
+        // facts; equality with the snapshot is not evidence of understanding it.
+        || anchored && nextMonth !== null && local?.localDate !== nextMonth.date);
     const expired = decision?.kind === 'AT' && instant <= Date.parse(time.nowUtc);
-    if (!decision || !anchored || hold || decision.kind === 'NONE' && !explicitClear || decision.kind === 'AT' && !applicationIntent && !pendingDeadlineQuestion || expired || localMismatch || relativeMismatch) {
+    // Only an exact date-only turn proves that no hour was supplied here.
+    // Extra words may state a natural hour or preserve earlier context; their
+    // meaning belongs to the provider, not a numeric-only hour dictionary.
+    const dateOnlyText = (value: string) => value.normalize('NFKC').toLocaleLowerCase('sr')
+      .trim().replace(/[.!?]+$/u, '').replace(/\s+/gu, ' ');
+    const currentDateOnly = dateOnlyText(input).replace(/^(?:prijave|пријаве)\s+/u, '') === dateOnlyText(evidence)
+      && /(?:meseca|месеца)[.!?]*$/iu.test(evidence);
+    const knownDeadlineHour = decodeTaskApplicationDeadlineFact(known.get('need.response_deadline'))?.kind === 'AT';
+    const missingMonthDeadlineHour = decision?.kind === 'AT' && nextMonth?.date && !unchanged && !literal
+      && currentDateOnly && !knownDeadlineHour;
+    if (!decision || !anchored || hold || decision.kind === 'NONE' && !explicitClear || decision.kind === 'AT' && !applicationIntent && !pendingDeadlineQuestion || expired || localMismatch || relativeMismatch || missingMonthDeadlineHour) {
       return { ...turn, safety: turn.safety === 'REVIEW' ? 'REVIEW' : 'CLARIFY',
         proposals: turn.proposals.filter(p => p.key !== 'need.response_deadline'),
         dialogue: turn.safety === 'REVIEW' ? turn.dialogue : turn.dialogue ? { ...turn.dialogue, next: 'CLARIFY', questionKey: '' } : undefined,
-        assistantMessage: 'Rok za prijave nisam promenio. Da proverim: do kog datuma i sata po vremenu u Srbiji, ili želite izričito bez posebnog roka?' };
+        assistantMessage: missingMonthDeadlineHour
+          ? `Do koliko sati ${nextMonth!.date!.split('-').reverse().join('.')} treba da budu otvorene prijave?`
+          : 'Rok za prijave nisam promenio. Da proverim: do kog datuma i sata po vremenu u Srbiji, ili želite izričito bez posebnog roka?' };
     }
   }
   const country = turn.proposals.find(p => p.key === 'need.task_country_code')?.value ?? known.get('need.task_country_code');
+  let calendarConflict = false;
   const invalid = turn.proposals.some(proposal => {
     if (!['need.starts_at', 'need.ends_at'].includes(proposal.key)) return false;
     const value = proposal.value;
     if (!validTimestamp(value)) return true;
-    // An unchanged active fact is not reinterpreted. A user's literal ISO instant
-    // may intentionally use UTC or another offset; preserve it byte for byte.
-    if (known.get(proposal.key) === value || input.includes(value) && String(proposal.evidence ?? '').includes(value)) return false;
+    // A user's literal ISO instant may intentionally use UTC or another offset;
+    // preserve it byte for byte. Check a current month correction before using
+    // the unchanged-fact exception, so stale re-emission cannot defeat it.
+    if (input.includes(value) && String(proposal.evidence ?? '').includes(value)) return false;
     // RS is the currently admitted market. Do not assign Belgrade to a different
     // explicitly selected country; its admission remains the database's job.
     if (country && country !== 'RS') return false;
     const local = serbiaTimeParts(new Date(value));
+    const evidence = String(proposal.evidence ?? '').trim();
+    const month = input.toLowerCase().includes(evidence.toLowerCase()) ? nextMonthDateEvidence(evidence, time.localDate) : null;
+    if (month) {
+      const latestBound = /^(?:do|до)\s/iu.test(evidence);
+      const nextDay = month.date ? new Date(Date.parse(`${month.date}T12:00:00Z`) + 86400000).toISOString().slice(0, 10) : null;
+      const wholeDay = !/\s(?:u|у)\s+\d/iu.test(evidence);
+      const expected = proposal.key === 'need.ends_at' && latestBound && wholeDay && local.localTime === '00:00:00' ? nextDay : month.date;
+      if (!month.date || proposal.key === 'need.starts_at' && latestBound || local.localDate !== expected) {
+        calendarConflict = true;
+        return true;
+      }
+    }
+    if (known.get(proposal.key) === value) return false;
     return `${local.localDate}T${local.localTime}` !== value.slice(0, 19)
       || local.utcOffset !== (value.endsWith('Z') ? '+00:00' : value.slice(-6));
   });
@@ -227,7 +280,8 @@ function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: a
     proposals: turn.proposals.filter(p => !['need.schedule_kind', 'need.starts_at', 'need.ends_at'].includes(p.key)),
     ...(turn.safety === 'REVIEW' ? {} : {
       dialogue: turn.dialogue ? { ...turn.dialogue, next: 'CLARIFY', questionKey: '' } : undefined,
-      assistantMessage: 'Da proverim termin: mislite na navedene datume po lokalnom vremenu u Srbiji ili u drugoj vremenskoj zoni?',
+      assistantMessage: calendarConflict ? 'Da proverim: do kog datuma zadatak treba da bude završen?'
+        : 'Da proverim termin: mislite na navedene datume po lokalnom vremenu u Srbiji ili u drugoj vremenskoj zoni?',
     }) };
 }
 
@@ -459,6 +513,7 @@ function commonInstruction() {
     'Broj predmeta nije broj ljudi. Običan kućni/zanatski zadatak: jedan izvršilac osim izričitog drugog broja. Nejasnu ekipu/težak teret razjasnite.',
     'Identitet je samostalno naveden; provera dokumenta, selfija ili KYC nije dostupna. Licence/KYC nisu podržani: bez need.required_licenses, need.verified_identity_required, tvrdnje o ovlašćenju/proveri ili prebacivanja tih zahteva u opis/filtere. Na zahtev objasnite ograničenje; običan zadatak može da se nastavi bez tih zahteva. Stare uslove ne brišite prećutno.',
     'Vreme: serverski Europe/Belgrade i pomak za konkretan datum; sačuvajte izričit ISO instant. Nejasnu zonu razjasnite, ne izmišljajte sat/trajanje/kraj. Korisniku prikažite poslednji uključeni dan, ne isključivu sledeću ponoć.',
+    'Prirodni datumi: „do desetog sledećeg meseca“ znači 10. dan narednog kalendarskog meseca prema server localDate, i preko promene godine. To je krajnji rok, ne početak zadatka. Sačuvajte poznatu granicu; ne izmišljajte drugu. Ako rok za prijave nema sat, pitajte samo sat uz već razumet datum. „Ne sutra, ipak prekosutra“ menja raniji termin istog zadatka; ostale činjenice ostaju.',
     ...(applicationDeadlineEnabled() ? ['need.response_deadline: samo izričit rok PRIJAVE {"kind":"AT","at":"ISO sa pomakom"}, uklanjanje {"kind":"NONE"}; citat tekuće poruke. Nepomenut rok nije NONE. Bez sata pitajte; termin zadatka nije rok prijave.'] : []),
     'Mapu/fotografije vodi aplikacija; stanje znate samo ako je priloženo. Bez ponovnih potvrda, izmišljenog stanja, privatnih adresa, JSON-a ili internih pravila u odgovoru.',
   ];
@@ -1198,7 +1253,8 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   // or several relative dates must be interpreted in context, never rewritten
   // by a naive keyword replacement. This does not prove arbitrary language true.
   const normalized = input.toLowerCase().replace(/данас/g, 'danas').replace(/прекосутра/g, 'prekosutra').replace(/сутра/g, 'sutra');
-  const relative = normalized.match(/^\s*(?:(?:treba mi|termin je|za|треба ми|термин је|за)\s+)?(danas|sutra|prekosutra)[.!?\s]*$/);
+  const correctedRelative = normalized.match(/^\s*(?:ne|не)\s+(?:danas|sutra|prekosutra)\s*[,;]?\s*(?:ipak|nego|već|vec|ипак|него|већ)\s+(danas|sutra|prekosutra)[.!?\s]*$/);
+  const relative = correctedRelative ?? normalized.match(/^\s*(?:(?:treba mi|termin je|za|треба ми|термин је|за)\s+)?(danas|sutra|prekosutra)[.!?\s]*$/);
   if (relative) {
     const offset = { danas: 0, sutra: 1, prekosutra: 2 }[relative[1]]!;
     const expectedDate = new Date(Date.parse(time.localDate + 'T12:00:00Z') + offset * 86400000).toISOString().slice(0, 10);
@@ -1347,7 +1403,10 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     const needsPlaceDetail = dialogue.questionKey === 'need.task_geography' && (cityOnlyStationary || !!incompleteRoutePoint);
     const clarifyingApplicationDeadline = applicationDeadlineEnabled() && dialogue.questionKey === 'need.response_deadline'
       && !facts.has('need.response_deadline') && (pendingDeadlineQuestion || /prijav|konkuri|javlj/iu.test(input));
-    const askingAlreadyKnown = activeFacts.some(f => f.fact_key === dialogue.questionKey && f.status !== 'UNKNOWN' && !proposals.some(p => p.key === dialogue.questionKey));
+    // Use the effective facts, including this very reply. A general description
+    // does not prove that its scope is clear; CLARIFY/description may still ask
+    // a useful detail such as room area without restarting the whole interview.
+    const askingAlreadyKnown = dialogue.questionKey !== 'need.description' && facts.has(dialogue.questionKey);
     // A complete REMOTE draft does not require the person to say "završi".
     // The model cannot prolong it by asking for optional facts or a known fact.
     // This is only a REVIEW intent: server-signed preparation and Publish stay
@@ -1363,8 +1422,10 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
         assistantMessage = incompleteMessage();
         dialogue = { ...dialogue, next: 'ASK', questionKey: key };
       }
-    } else if (askingAlreadyKnown && !needsPlaceDetail && !clarifyingApplicationDeadline) {
+    } else if (askingAlreadyKnown && !needsPlaceDetail && !clarifyingApplicationDeadline && !personAsks) {
       assistantMessage = missing.length ? incompleteMessage() : nextPlaceMessage;
+      const key = missing.find(key => questions[key]);
+      dialogue = { ...dialogue, next: key ? 'ASK' : 'ACK', questionKey: key ?? '' };
     }
   } else if (dialogue?.next === 'REVIEW' && missing.length) {
     assistantMessage = incompleteMessage();

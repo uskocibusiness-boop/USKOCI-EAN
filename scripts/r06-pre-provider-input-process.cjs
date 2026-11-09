@@ -17,9 +17,10 @@ const client=new Client({host:'127.0.0.1',port:Number(process.env.USKOCI_PG_FIXT
  const r=await client.query('select public.rpc_ai_read_prepared_input_service($1,$2,$3,$4) as value',[...identity.slice(0,3),purpose]);
  const result=r.rows[0].value;
  if(result.state!=='PREPARED'){process.stdout.write(JSON.stringify({state:result.state,send:false})+'\n');return;}
- const s=result.snapshot,owner=purpose==='NEED_SERVICE'?'rpc_ai_dispatch_need_turn_v2_service':'rpc_dispatch_worker_ai_turn_service';
- const d=(await client.query(`select public.${owner}($1,$2,$3,$4) as value`,[s.accountId,s.conversationId,s.clientRequestId,s.attemptId])).rows[0].value;
- const sent=purpose==='NEED_SERVICE'?d===true:d?.dispatched===true;
+ const read=result.snapshot;
+ const d=(await client.query('select public.rpc_ai_dispatch_prepared_input_service($1,$2,$3,$4,$5,$6) as value',
+  [read.accountId,read.conversationId,read.clientRequestId,read.attemptId,purpose,result.inputSha256])).rows[0].value;
+ const sent=d?.state==='DISPATCHED'&&d?.dispatched===true,s=sent?d.snapshot:read;
  if(sent)await client.query('insert into private.fixture_provider_sends values($1,$2,$3,$4)',[purpose,s.clientRequestId,s.attemptId,s.input.providerRequest]);
  process.stdout.write(JSON.stringify({state:'PREPARED',send:sent,inputSha256:result.inputSha256,
   providerBodySha256:crypto.createHash('sha256').update(JSON.stringify(s.input.providerRequest)).digest('hex')})+'\n');

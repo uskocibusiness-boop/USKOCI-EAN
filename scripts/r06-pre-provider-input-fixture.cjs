@@ -37,6 +37,13 @@ async function fixture(options={}){
    await db.exec(fn.definition);await db.exec(`revoke all on function ${sig(fn)} from public,anon,authenticated,service_role`);
    for(const grant of (fn.acl||'').matchAll(/[,{](anon|authenticated|service_role)=X\//g))await db.exec(`grant execute on function ${sig(fn)} to ${grant[1]}`);
   }
+  // Complete the earlier R10 work-area fixture with the exact source adapter
+  // and projector. The subsequent full migration validates their joined digest.
+  const workAreas=fs.readFileSync(path.join(__dirname,'../supabase/migrations/20261107165752_r10_work_areas_projection_20261107.sql'),'utf8');
+  await db.exec(workAreas.slice(workAreas.indexOf('CREATE FUNCTION private.data_export_worker_areas_v5'),workAreas.indexOf('-- Every existing dependency')));
+  // Execute the canonical later R10 migration, including its original guards,
+  // rather than testing R06 against the obsolete captured export definitions.
+  await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations/20261108225909_r10_owned_usage_projection_post_r09_20261108.sql'),'utf8'));
   // Narrow Worker context seams: profile projection/mode assembly are not the
   // unit under test. The captured read-context and both dispatch bodies execute
   // unchanged. Need context and all privacy projections execute real SQL.
@@ -78,12 +85,14 @@ async function fixture(options={}){
    [over.account||A,over.conversation||C,over.request||R,over.attempt||ATT,purpose,data]);
   const read=(purpose='NEED_SERVICE',over={})=>f.value('select public.rpc_ai_read_prepared_input_service($1,$2,$3,$4) as value',[over.account||A,over.conversation||C,over.request||R,purpose]);
   const dispatch=(purpose='NEED_SERVICE')=>f.value(`select public.${purpose==='NEED_SERVICE'?'rpc_ai_dispatch_need_turn_v2_service':'rpc_dispatch_worker_ai_turn_service'}($1,$2,$3,$4) as value`,[A,C,R,ATT]);
+  const dispatchPrepared=(purpose='NEED_SERVICE',digest,over={})=>f.value('select public.rpc_ai_dispatch_prepared_input_service($1,$2,$3,$4,$5,$6) as value',
+   [over.account||A,over.conversation||C,over.request||R,over.attempt||ATT,purpose,digest]);
   const snapshot=async(account=A)=>{
    const catalog=await f.value('select private.data_export_dataset_catalog() as value');
    const binding={policyId:'ISOLATED_NOT_APPROVED',policyVersion:'TEST',delivery:{datasets:catalog.map(x=>({key:x.key,mode:'INCLUDE',fields:x.fields}))}};
    return JSON.parse(await f.value('select private.data_export_snapshot($1,$2,$3,clock_timestamp()) as value',[account,T,binding]));
   };
-  return {...f,seed,service,prepare,read,dispatch,snapshot};
+  return {...f,seed,service,prepare,read,dispatch,dispatchPrepared,snapshot};
  }catch(e){await db.close();throw e;}
 }
 module.exports={fixture,source,candidate,preimage,input,A,C,R,ATT,T,P,TEXT};

@@ -17,8 +17,8 @@ BEGIN
  ('public.rpc_ai_test_record_usage_service(uuid,text,integer,integer,integer)','584eecfd229477010ae1043257a04227'),
  ('private.ai_need_turn_context(uuid)','972099be9f9429d87bc1566334e7d8f2'),
  ('public.rpc_read_worker_ai_context_service(uuid,uuid)','584ca4ae2d02e33823d9d75a92c14649'),
- ('private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)','3e20cccd6b54b161970c6960fa33136b'),
- ('private.data_export_dataset_catalog()','f897294aed6972dd1c41a88da42ea1ab'),
+ ('private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)','8130be4bf875702981ec408a33af62ca'),
+ ('private.data_export_dataset_catalog()','45a2458b8e93a33649e885ad1ba41b4d'),
  ('private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)','3b802baedd97cb0ab6e4a227690e7f5e')
  ) v(signature,body_md5) LOOP
   SELECT * INTO p FROM pg_proc WHERE oid=to_regprocedure(x.signature);
@@ -32,6 +32,7 @@ BEGIN
   AND attname IN('prepared_input','prepared_input_sha256','prepared_at','prepared_reservation_id') AND NOT attisdropped)
   OR to_regprocedure('public.rpc_ai_prepare_input_service(uuid,uuid,uuid,uuid,text,jsonb)') IS NOT NULL
   OR to_regprocedure('public.rpc_ai_read_prepared_input_service(uuid,uuid,uuid,text)') IS NOT NULL
+  OR to_regprocedure('public.rpc_ai_dispatch_prepared_input_service(uuid,uuid,uuid,uuid,text,text)') IS NOT NULL
  THEN RAISE EXCEPTION 'R06_INPUT_ALREADY_PRESENT';END IF;
 END $guard$;
 
@@ -236,6 +237,48 @@ BEGIN
 END $function$;
 REVOKE ALL ON FUNCTION public.rpc_ai_read_prepared_input_service(uuid,uuid,uuid,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_ai_read_prepared_input_service(uuid,uuid,uuid,text) TO service_role;
+
+-- A read is not permission to contact a provider. Revalidate the same snapshot
+-- and live admission while holding the existing global budget lock, then call
+-- the original owner exactly once in this transaction. No reservation is changed.
+CREATE FUNCTION public.rpc_ai_dispatch_prepared_input_service(p_account_id uuid,p_conversation_id uuid,
+ p_client_request_id uuid,p_attempt_id uuid,p_purpose text,p_input_sha256 text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $function$
+DECLARE prepared jsonb;snapshot jsonb;budget private.ai_test_budget_v5;reservation private.ai_test_reservations_v5;
+ dispatched boolean;
+BEGIN
+ IF auth.role() IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'SERVICE_ROLE_REQUIRED' USING errcode='42501';END IF;
+ IF p_attempt_id IS NULL OR p_input_sha256 IS NULL OR p_input_sha256!~'^[0-9a-f]{64}$'
+ THEN RAISE EXCEPTION 'R06_INPUT_DISPATCH_IDENTITY_REQUIRED' USING errcode='22023';END IF;
+ prepared:=public.rpc_ai_read_prepared_input_service(p_account_id,p_conversation_id,p_client_request_id,p_purpose);
+ IF prepared->>'state'<>'PREPARED' THEN RETURN jsonb_build_object('state',prepared->>'state','dispatched',false);END IF;
+ snapshot:=prepared->'snapshot';
+ IF snapshot->>'attemptId' IS DISTINCT FROM p_attempt_id::text OR prepared->>'inputSha256' IS DISTINCT FROM p_input_sha256
+ THEN RAISE EXCEPTION 'R06_INPUT_DISPATCH_MISMATCH' USING errcode='55000';END IF;
+ SELECT * INTO STRICT budget FROM private.ai_test_budget_v5 WHERE singleton FOR UPDATE;
+ -- Use the clock after the lock wait: neither a price window nor a lease can
+ -- be extended by a statement that began before it expired.
+ IF NOT budget.enabled OR NOT budget.reservation_cap_enforced OR budget.price_valid_until<=clock_timestamp()
+  OR budget.reserved_microusd>budget.ceiling_microusd
+  OR NOT EXISTS(SELECT 1 FROM private.ai_test_accounts_v5 WHERE account_id=p_account_id AND retired_at IS NULL)
+  OR NOT EXISTS(SELECT 1 FROM auth.users WHERE id=p_account_id AND deleted_at IS NULL)
+ THEN RETURN jsonb_build_object('state','NOT_ADMITTED','dispatched',false);END IF;
+ SELECT * INTO reservation FROM private.ai_test_reservations_v5
+  WHERE id=(snapshot->>'reservationId')::uuid FOR UPDATE;
+ IF NOT FOUND OR reservation.operation_id IS DISTINCT FROM p_client_request_id
+  OR reservation.account_id IS DISTINCT FROM p_account_id OR reservation.kind<>'LLM'
+  OR reservation.max_cost_microusd<>250000 OR reservation.settled_microusd IS NOT NULL
+ THEN RETURN jsonb_build_object('state','READ_ONLY','dispatched',false);END IF;
+ IF p_purpose='NEED_SERVICE' THEN
+  dispatched:=public.rpc_ai_dispatch_need_turn_v2_service(p_account_id,p_conversation_id,p_client_request_id,p_attempt_id);
+ ELSE
+  dispatched:=(public.rpc_dispatch_worker_ai_turn_service(p_account_id,p_conversation_id,p_client_request_id,p_attempt_id)->'dispatched')='true'::jsonb;
+ END IF;
+ IF dispatched IS DISTINCT FROM true THEN RETURN jsonb_build_object('state','NOT_DISPATCHED','dispatched',false);END IF;
+ RETURN jsonb_build_object('state','DISPATCHED','dispatched',true,'inputSha256',p_input_sha256,'snapshot',snapshot);
+END $function$;
+REVOKE ALL ON FUNCTION public.rpc_ai_dispatch_prepared_input_service(uuid,uuid,uuid,uuid,text,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.rpc_ai_dispatch_prepared_input_service(uuid,uuid,uuid,uuid,text,text) TO service_role;
 
 -- R06_PRIVACY_PATCHES_START
 DO $patch$ DECLARE d text; old_text text:=$old$select 'workerAiTurns' as key,jsonb_build_object('id',t.turn_id,'conversationId',t.conversation_id,'state',t.state,'createdAt',t.created_at,'cancelledAt',t.cancelled_at)$old$; BEGIN

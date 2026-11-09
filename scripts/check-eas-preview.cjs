@@ -96,6 +96,14 @@ function validatePreview({ app, eas, env, firebase }) {
 }
 
 function main() {
+  // Report the release boundary before resolving app.config. Otherwise its
+  // deliberate production rejection is disguised as a missing source file.
+  try {
+    assertProductionTarget(process.env);
+  } catch (error) {
+    console.error(`EAS preview preflight FAIL: ${error.message}`);
+    return 1;
+  }
   let app;
   let eas;
   let firebase;

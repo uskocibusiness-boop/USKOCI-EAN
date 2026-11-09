@@ -34,6 +34,12 @@ module.exports = ({ config }) => {
   } };
   const inertPlugin = './plugins/withFirebaseEnrollmentDisabled.js';
   const pushProof = process.env.USKOCI_PUSH_PROOF_BUILD === '1';
+  const phonePreview = process.env.USKOCI_PHONE_PREVIEW_BUILD === '1';
+  if (phonePreview && (production || profile !== 'preview' || !pushProof
+    || android.package !== 'rs.uskoci.preview'
+    || process.env.EXPO_PUBLIC_SUPABASE_URL !== 'https://leqcwgzvjsxugfgzdmth.supabase.co')) {
+    throw new Error('PHONE_PREVIEW_REQUIRES_CANONICAL_PREVIEW_PUSH_PROOF_BUILD');
+  }
   const devAutoPush = process.env.EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL === '1';
   const plugins = (config.plugins ?? []).filter(plugin =>
     (Array.isArray(plugin) ? plugin[0] : plugin) !== inertPlugin);
@@ -100,14 +106,16 @@ module.exports = ({ config }) => {
   }
   // The side-by-side QA APK must keep the exact bundle being attested, even online.
   // Ordinary preview builds retain their existing OTA channel and behaviour.
-  const isolatedQa = android.package === 'rs.uskoci.preview.qa';
-  const updates = { ...config.updates, url: UPDATE_URL, enabled: !isolatedQa,
-    checkAutomatically: isolatedQa ? 'NEVER' : 'ON_LOAD', fallbackToCacheTimeout: 0,
+  const embeddedOnly = android.package === 'rs.uskoci.preview.qa' || phonePreview;
+  const updates = { ...config.updates, url: UPDATE_URL, enabled: !embeddedOnly,
+    checkAutomatically: embeddedOnly ? 'NEVER' : 'ON_LOAD', fallbackToCacheTimeout: 0,
     requestHeaders: { ...(config.updates?.requestHeaders ?? {}), 'expo-channel-name': channel } };
-  if (isolatedQa) updates.useEmbeddedUpdate = true;
+  if (embeddedOnly) updates.useEmbeddedUpdate = true;
   return { ...config, android, ios, plugins, runtimeVersion, updates, extra: { ...config.extra,
     uskociBuild: { ...buildIdentity({ root: __dirname, version: config.version }), runtimeVersion, updateChannel: channel },
   } };
 };
 
 module.exports.otaConfig = { PREVIEW_RUNTIME, PRODUCTION_RUNTIME, UPDATE_URL };
+// Public release identity only; inspection must not need to bypass the build guard.
+module.exports.androidReleaseIdentity = Object.freeze({ package: STORE_PACKAGE, runtimeVersion: PRODUCTION_RUNTIME });

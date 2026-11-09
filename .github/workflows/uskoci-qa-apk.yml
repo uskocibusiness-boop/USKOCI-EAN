@@ -1,9 +1,17 @@
 name: USKOCI temporary isolated Android APK proof
 
 # Test-only; does not sign with the official EAS preview or Play keystore.
-# An independent package prevents uninstall/overwriting the owner's signed preview.
+# Default: independent QA package. Explicit phone-preview dispatch updates only
+# an existing template-debug preview; the installer must compare certificates.
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Test APK target (phone-preview requires matching installed debug certificate)'
+        required: true
+        default: isolated-qa
+        type: choice
+        options: [isolated-qa, phone-preview]
   push:
     branches: [work/uskoci-cist-proizvod-20261104]
     paths-ignore: ['docs/**', '**/*.md']
@@ -12,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: uskoci-qa-apk-${{ github.ref }}
+  group: uskoci-qa-apk-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.target || 'isolated-qa' }}
   cancel-in-progress: true
 
 jobs:
@@ -27,6 +35,7 @@ jobs:
       CI: '1'
       EAS_BUILD_PROFILE: preview
       USKOCI_OTA_TARGET: preview
+      USKOCI_ANDROID_TEST_TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'isolated-qa' }}
     steps:
       - name: Check out exact source
         uses: actions/checkout@v4
@@ -122,10 +131,10 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs');
           const {assertDevBuildContract} = require('./scripts/build-contract.cjs');
-          // The QA APK is deliberately a DIFFERENT package from the dedicated push-proof preview.
-          // Never inherit Firebase enrollment/proof flags from the shared EAS preview profile.
-          const config = { ...require('./eas.json').build.preview.env,
-            USKOCI_PUSH_PROOF_BUILD: '0', EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL: '0' };
+          const candidate = require('./scripts/android-test-candidate.cjs').selectTestCandidate({
+            target: process.env.USKOCI_ANDROID_TEST_TARGET, eventName: process.env.GITHUB_EVENT_NAME,
+            previewEnvironment: require('./eas.json').build.preview.env });
+          const config = candidate.environment;
           if (Object.keys(config).some(name => !/^\w+$/.test(name))) throw new Error('INVALID_PREVIEW_KEY');
           const env = {...process.env, ...config};
           assertDevBuildContract(env);
@@ -133,20 +142,25 @@ jobs:
             if (typeof value !== 'string' || /[\r\n]/.test(value)) throw new Error('INVALID_PREVIEW_VALUE');
             fs.appendFileSync(process.env.GITHUB_ENV, key + '=' + value + '\n');
           }
+          fs.appendFileSync(process.env.GITHUB_ENV, 'USKOCI_ANDROID_TEST_PACKAGE=' + candidate.package + '\n');
+          fs.appendFileSync(process.env.GITHUB_ENV, 'USKOCI_TEST_CERT_SHA256=' + candidate.expectedCertificateSha256 + '\n');
           const src = JSON.parse(fs.readFileSync('app.json', 'utf8'));
           if (src.expo?.android?.package !== 'rs.uskoci.preview') throw new Error('UNEXPECTED_SOURCE_PACKAGE');
-          // Ephemeral CI-only sideload package. NEVER overwrite the signed preview.
-          src.expo.name = 'USKOČI • QA';
-          src.expo.android.package = 'rs.uskoci.preview.qa';
+          src.expo.name = candidate.name;
+          src.expo.android.package = candidate.package;
           fs.writeFileSync('app.json', JSON.stringify(src, null, 2) + '\n');
           NODE
           node - <<'NODE'
-          Object.assign(process.env, require('./eas.json').build.preview.env, {
-            USKOCI_PUSH_PROOF_BUILD: '0', EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL: '0',
-          });
+          const candidate = require('./scripts/android-test-candidate.cjs').selectTestCandidate({
+            target: process.env.USKOCI_ANDROID_TEST_TARGET, eventName: process.env.GITHUB_EVENT_NAME,
+            previewEnvironment: require('./eas.json').build.preview.env });
+          Object.assign(process.env, candidate.environment);
           const expo=require('./app.config.js')({config: require('./app.json').expo});
-          if(expo.android.package!=='rs.uskoci.preview.qa'||expo.extra?.uskociBuild?.backendTarget!=='canonical'||expo.runtimeVersion!=='uskoci-v1-preview-r2') throw Error('QA_BUILD_IDENTITY_INVALID');
-          if (expo.android.googleServicesFile) throw Error('QA_MUST_HAVE_NO_FIREBASE');
+          if(expo.android.package!==candidate.package||expo.extra?.uskociBuild?.backendTarget!=='canonical'||expo.runtimeVersion!=='uskoci-v1-preview-r2') throw Error('QA_BUILD_IDENTITY_INVALID');
+          if (candidate.firebaseConfigured) {
+            require('./scripts/check-eas-preview.cjs').validateFirebase(require('./config/firebase/google-services.json'));
+            if (expo.android.googleServicesFile !== './config/firebase/google-services.json') throw Error('PHONE_PREVIEW_FIREBASE_REQUIRED');
+          } else if (expo.android.googleServicesFile) throw Error('QA_MUST_HAVE_NO_FIREBASE');
           if (expo.updates.enabled !== false || expo.updates.checkAutomatically !== 'NEVER' || expo.updates.useEmbeddedUpdate !== true) throw Error('QA_MUST_USE_EMBEDDED_SOURCE');
           if (expo.extra.uskociBuild.sourceCommit !== process.env.GITHUB_SHA) throw Error('QA_SOURCE_COMMIT_MISMATCH');
           console.log('QA package isolation, DEV backend and embedded-only source PASS');
@@ -239,14 +253,24 @@ jobs:
           export USKOCI_QA_AAPT2="$tools_dir/aapt2"
           "$tools_dir/apksigner" verify --verbose --print-certs "$apk" > artifacts/qa-apk/signature.txt
           "$tools_dir/aapt" dump badging "$apk" > artifacts/qa-apk/apk-badging.txt
-          grep -F "package: name='rs.uskoci.preview.qa'" artifacts/qa-apk/apk-badging.txt
+          grep -F "package: name='$USKOCI_ANDROID_TEST_PACKAGE'" artifacts/qa-apk/apk-badging.txt
           "$tools_dir/aapt" dump xmltree "$apk" AndroidManifest.xml > artifacts/qa-apk/AndroidManifest-tree.txt
           python - <<'PY'
-          import json, os, re, sys, zipfile
+          import json, os, re, subprocess, sys, zipfile
           from pathlib import Path
           sys.path.insert(0, str(Path('scripts').resolve()))
           from apk_audio_resources import verify_apk_audio
           directory = Path('artifacts/qa-apk')
+          package = os.environ['USKOCI_ANDROID_TEST_PACKAGE']
+          phone = os.environ['USKOCI_ANDROID_TEST_TARGET'] == 'phone-preview'
+          assert package == ('rs.uskoci.preview' if phone else 'rs.uskoci.preview.qa'), 'APK_TARGET_PACKAGE_MISMATCH'
+          signature = (directory / 'signature.txt').read_text()
+          certificates = re.findall(r'certificate SHA-256 digest: ([0-9a-f]{64})', signature)
+          assert certificates == [os.environ['USKOCI_TEST_CERT_SHA256']], 'APK_TEMPLATE_DEBUG_CERTIFICATE_MISMATCH'
+          badging = (directory / 'apk-badging.txt').read_text()
+          version = re.search(r"versionCode='(\d+)'", badging)
+          assert version and int(version.group(1)) >= 36, 'APK_VERSION_BELOW_INSTALLED_PHONE'
+          assert "targetSdkVersion:'36'" in badging, 'APK_TARGET_SDK_CHANGED_REQUIRES_REVIEW'
           manifest = (directory / 'AndroidManifest-tree.txt').read_text()
           blocks = re.split(r'(?m)^\s*E: ', manifest)
           enabled = [block for block in blocks if block.startswith('meta-data ') and '"expo.modules.updates.ENABLED"' in block]
@@ -263,11 +287,20 @@ jobs:
           # AGP8.12 shortens resource ZIP paths even without minify/shrink.
           # Resolve logical Android raw names/IDs through the actual table, then
           # compare the mapped packaged bytes exactly. Never infer by hash alone.
-          audio = verify_apk_audio(Path('android/app/build/outputs/apk/release/app-release.apk'), Path(os.environ['USKOCI_QA_AAPT2']), 'rs.uskoci.preview.qa', sources)
-          (directory / 'native-receipt.json').write_text(json.dumps({'abis': abis, 'embeddedBundle': True, 'otaEnabled': False, 'nativePatchMarker': 'USKOCI_RNR01', 'dexFiles': len(dex), 'bundledAudioSha256': {name: value['sha256'] for name, value in audio['resources'].items()}, 'bundledAudioResources': audio['resources'], 'audioResourceTableVerification': {'aapt2': audio['aapt2'], 'resourceDump': audio['resourceDump']}, 'customSoundActivation': 'NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED'}, indent=2) + '\n')
+          apk_path = Path('android/app/build/outputs/apk/release/app-release.apk')
+          resources = subprocess.run([os.environ['USKOCI_QA_AAPT2'], 'dump', 'resources', str(apk_path)], check=True, capture_output=True, text=True, timeout=30).stdout
+          google_app_ids = re.findall(r'(?m)^\s*resource [^\n]+ string/google_app_id\b[^\n]*\n([^\n]+)', resources)
+          if phone:
+            assert len(google_app_ids) == 1 and '1:383421751370:android:3e19dd87280aa317a986b3' in google_app_ids[0], 'APK_PREVIEW_FIREBASE_CLIENT_MISSING'
+          else:
+            assert not google_app_ids, 'QA_APK_MUST_HAVE_NO_FIREBASE_CLIENT'
+          audio = verify_apk_audio(apk_path, Path(os.environ['USKOCI_QA_AAPT2']), package, sources)
+          (directory / 'native-receipt.json').write_text(json.dumps({'abis': abis, 'embeddedBundle': True, 'otaEnabled': False, 'firebaseConfigured': phone, 'certificateSha256': certificates[0], 'nativePatchMarker': 'USKOCI_RNR01', 'dexFiles': len(dex), 'bundledAudioSha256': {name: value['sha256'] for name, value in audio['resources'].items()}, 'bundledAudioResources': audio['resources'], 'audioResourceTableVerification': {'aapt2': audio['aapt2'], 'resourceDump': audio['resourceDump']}, 'customSoundActivation': 'NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED'}, indent=2) + '\n')
           print('Final APK: ARM64, embedded bundle, OTA disabled and native patch marker PASS')
           PY
-          cp "$apk" artifacts/qa-apk/USKOCI-QA-$(git rev-parse --short=9 HEAD).apk
+          filename_prefix=USKOCI-QA
+          if [ "$USKOCI_ANDROID_TEST_TARGET" = phone-preview ]; then filename_prefix=USKOCI-PHONE-PREVIEW; fi
+          cp "$apk" "artifacts/qa-apk/$filename_prefix-$(git rev-parse --short=9 HEAD).apk"
           (cd artifacts/qa-apk && sha256sum *.apk > SHA256SUMS.txt)
           node - <<'NODE'
           const fs = require('node:fs'), crypto=require('node:crypto');
@@ -276,15 +309,19 @@ jobs:
           if(files.length!==1)throw Error('APK_COUNT_INVALID');
           const data=fs.readFileSync(dir + '/' + files[0]);
           const native=JSON.parse(fs.readFileSync(dir + '/native-receipt.json','utf8'));
-          const meta={status:'BUILD_OUTPUT_NOT_NATIVE_E2E',sourceCommit:process.env.GITHUB_SHA,filename:files[0],bytes:data.length,sha256:crypto.createHash('sha256').update(data).digest('hex'),package:'rs.uskoci.preview.qa',signing:'EXPO_TEMPLATE_ANDROID_DEBUG_KEY',backend:'DEV',runtimeVersion:'uskoci-v1-preview-r2',...native,configOverrides:{name:'USKOČI • QA',androidPackage:'rs.uskoci.preview.qa'},push:'NOT_PROVEN',deviceInstall:'NOT_PERFORMED',replacesExistingPreview:false};
+          const candidate=require('./scripts/android-test-candidate.cjs').selectTestCandidate({target:process.env.USKOCI_ANDROID_TEST_TARGET,eventName:process.env.GITHUB_EVENT_NAME,previewEnvironment:{}});
+          const phone=candidate.target==='phone-preview';
+          const meta={status:'BUILD_OUTPUT_NOT_NATIVE_E2E',sourceCommit:process.env.GITHUB_SHA,filename:files[0],bytes:data.length,sha256:crypto.createHash('sha256').update(data).digest('hex'),package:candidate.package,signing:'EXPO_TEMPLATE_ANDROID_DEBUG_KEY',backend:'DEV',runtimeVersion:'uskoci-v1-preview-r2',...native,configOverrides:{name:candidate.name,androidPackage:candidate.package},push:'NOT_PROVEN',deviceInstall:'NOT_PERFORMED',replacesExistingPreview:phone,candidateTarget:candidate.target,installationBoundary:phone?'Only update an existing preview whose certificate matches certificateSha256. Never uninstall or clear app data.':'Side-by-side QA package; does not replace preview.'};
           fs.writeFileSync(dir + '/build-receipt.json',JSON.stringify(meta,null,2)+'\n');
+          fs.writeFileSync(dir+'/README.txt',phone
+            ? 'Manual ARM64 phone preview test APK. Template debug certificate, DEV, embedded source only, OTA disabled, Firebase configured. Install -r only after matching the installed preview certificate. NOT EAS signing or Play; NO device/FCM acceptance is claimed.\n'
+            : 'Temporary side-by-side ARM64 QA APK only. Embedded source only; OTA disabled. New package/signing; NOT the signed EAS preview, NOT production/store, NO push or device-install proof.\n');
           NODE
-          printf 'Temporary side-by-side ARM64 QA APK only. Embedded source only; OTA disabled. New package/signing; NOT the signed EAS preview, NOT production/store, NO push or device-install proof.\n' > artifacts/qa-apk/README.txt
       - name: Upload installable APK and bounded receipt
         id: apk_upload
         uses: actions/upload-artifact@v4
         with:
-          name: uskoci-isolated-qa-apk-${{ github.run_number }}
+          name: uskoci-${{ env.USKOCI_ANDROID_TEST_TARGET }}-apk-${{ github.run_number }}
           path: artifacts/qa-apk/
           if-no-files-found: error
           retention-days: 7
@@ -294,7 +331,7 @@ jobs:
   # The recorder pins the original master blob and refuses concurrent movement.
   record-ux-checkpoint:
     needs: qa-apk
-    if: needs.qa-apk.result == 'success' && github.ref == 'refs/heads/work/uskoci-cist-proizvod-20261104'
+    if: needs.qa-apk.result == 'success' && github.ref == 'refs/heads/work/uskoci-cist-proizvod-20261104' && (github.event_name != 'workflow_dispatch' || inputs.target != 'phone-preview')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
