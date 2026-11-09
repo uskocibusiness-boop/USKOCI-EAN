@@ -9,13 +9,17 @@ DO $seed_guard$ BEGIN
   IF to_regclass('private.work_taxonomy_categories') IS NULL
      OR to_regclass('private.work_taxonomy_category_modes') IS NULL
      OR to_regclass('private.work_taxonomy_aliases') IS NULL
-     OR to_regclass('private.work_taxonomy_control') IS NULL THEN
+     OR to_regclass('private.work_taxonomy_control') IS NULL
+     OR to_regclass('private.location_market_configs') IS NULL
+     OR to_regclass('private.connection_policy_versions') IS NULL THEN
     RAISE EXCEPTION 'SYSTEM_SEED_SCHEMA_MISSING';
   END IF;
   IF EXISTS (SELECT 1 FROM private.work_taxonomy_categories)
      OR EXISTS (SELECT 1 FROM private.work_taxonomy_category_modes)
      OR EXISTS (SELECT 1 FROM private.work_taxonomy_aliases)
-     OR EXISTS (SELECT 1 FROM private.work_taxonomy_control) THEN
+     OR EXISTS (SELECT 1 FROM private.work_taxonomy_control)
+     OR EXISTS (SELECT 1 FROM private.location_market_configs)
+     OR EXISTS (SELECT 1 FROM private.connection_policy_versions) THEN
     RAISE EXCEPTION 'SYSTEM_SEED_TARGET_NOT_EMPTY';
   END IF;
 END $seed_guard$;
@@ -221,6 +225,20 @@ INSERT INTO private.work_taxonomy_control
   (singleton, auto_registration_enabled, max_auto_creates_per_hour, catalog_version)
 VALUES (true, false, 100, 15);
 
+-- First release is Serbia-only and free. BUILDING does not declare legal/release readiness.
+INSERT INTO private.location_market_configs
+  (country_code, product_status, default_currency_code, default_language_tag, default_timezone)
+VALUES ('RS', 'BUILDING', 'RSD', 'sr-Latn-RS', 'Europe/Belgrade');
+
+INSERT INTO private.connection_policy_versions
+  (policy_key, version, beneficiary_role, activation_reason, charge_mode,
+   unit_basis, platform_cost_rsd, policy_snapshot)
+VALUES (
+  'REQUESTER_SELECTION_V1', 1, 'REQUESTER', 'SELECTION', 'PROMOTIONAL_FREE',
+  'HEADCOUNT', 0,
+  '{"schema":"CONNECTION_POLICY_V1","version":1,"policyKey":"REQUESTER_SELECTION_V1","unitBasis":"HEADCOUNT","chargeMode":"PROMOTIONAL_FREE","beneficiaryRole":"REQUESTER","platformCostRsd":0,"activationReason":"SELECTION"}'::jsonb
+);
+
 SELECT setval('private.work_taxonomy_aliases_id_seq'::regclass,
   (SELECT max(id) FROM private.work_taxonomy_aliases), true);
 
@@ -229,6 +247,8 @@ DO $seed_postflight$ BEGIN
      OR (SELECT count(*) FROM private.work_taxonomy_category_modes) <> 61
      OR (SELECT count(*) FROM private.work_taxonomy_aliases) <> 69
      OR (SELECT catalog_version FROM private.work_taxonomy_control WHERE singleton) <> 15
+     OR (SELECT count(*) FROM private.location_market_configs WHERE country_code='RS' AND product_status='BUILDING' AND default_currency_code='RSD') <> 1
+     OR (SELECT count(*) FROM private.connection_policy_versions WHERE policy_key='REQUESTER_SELECTION_V1' AND version=1 AND charge_mode='PROMOTIONAL_FREE' AND platform_cost_rsd=0) <> 1
      OR EXISTS (SELECT 1 FROM private.work_taxonomy_categories c
        WHERE c.parent_id IS NOT NULL AND NOT EXISTS
        (SELECT 1 FROM private.work_taxonomy_categories p WHERE p.id=c.parent_id)) THEN

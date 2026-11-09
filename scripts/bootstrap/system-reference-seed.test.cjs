@@ -39,6 +39,24 @@ test('clean SYSTEM taxonomy seed installs atomically and refuses a second run', 
         max_auto_creates_per_hour integer NOT NULL,
         catalog_version bigint NOT NULL
       );
+      CREATE TABLE private.location_market_configs (
+        country_code text PRIMARY KEY,
+        product_status text NOT NULL,
+        default_currency_code text NOT NULL,
+        default_language_tag text NOT NULL,
+        default_timezone text NOT NULL
+      );
+      CREATE TABLE private.connection_policy_versions (
+        policy_key text NOT NULL,
+        version integer NOT NULL,
+        beneficiary_role text NOT NULL,
+        activation_reason text NOT NULL,
+        charge_mode text NOT NULL,
+        unit_basis text NOT NULL,
+        platform_cost_rsd integer NOT NULL,
+        policy_snapshot jsonb NOT NULL,
+        PRIMARY KEY (policy_key, version)
+      );
     `);
     await db.exec(seed);
     const result = await db.query(`
@@ -49,7 +67,9 @@ test('clean SYSTEM taxonomy seed installs atomically and refuses a second run', 
         (SELECT count(*) FROM private.work_taxonomy_categories WHERE state <> 'ESTABLISHED' OR source <> 'SYSTEM') AS stray,
         (SELECT count(*) FROM private.work_taxonomy_categories c LEFT JOIN private.work_taxonomy_categories p ON p.id=c.parent_id WHERE c.parent_id IS NOT NULL AND p.id IS NULL) AS missing_parents,
         (SELECT count(*) FROM private.work_taxonomy_aliases WHERE normalized_key IS NULL) AS missing_normalized,
-        (SELECT catalog_version FROM private.work_taxonomy_control) AS catalog_version
+        (SELECT catalog_version FROM private.work_taxonomy_control) AS catalog_version,
+        (SELECT product_status FROM private.location_market_configs WHERE country_code='RS') AS market_status,
+        (SELECT platform_cost_rsd FROM private.connection_policy_versions WHERE policy_key='REQUESTER_SELECTION_V1' AND version=1) AS platform_cost_rsd
     `);
     assert.deepEqual(result.rows[0], {
       categories: 54,
@@ -59,6 +79,8 @@ test('clean SYSTEM taxonomy seed installs atomically and refuses a second run', 
       missing_parents: 0,
       missing_normalized: 0,
       catalog_version: 15,
+      market_status: 'BUILDING',
+      platform_cost_rsd: 0,
     });
     const next = await db.query(`SELECT nextval('private.work_taxonomy_aliases_id_seq') AS id`);
     assert.equal(Number(next.rows[0].id), 266);

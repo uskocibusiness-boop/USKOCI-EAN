@@ -51,18 +51,20 @@
   },
   "system_reference_seed_candidate": {
     "path": "scripts/bootstrap/system-reference-seed.sql",
-    "sha256": "8e2cb486c2e88ab5a2ebc7949566e0a9f0c09fd9096484cdc382aac7d0f0d777",
+    "sha256": "4667b419fb4232e0f23b6ee47d8649b157aa0db4fb75ccc100fdc6b591c58cc9",
     "source": "2026-11-10 read-only DEV SYSTEM/ESTABLISHED selection, checked against V15 catalog",
     "categories": 54,
     "execution_modes": 61,
     "aliases": 69,
     "taxonomy_control_version": 15,
+    "serbia_market_status": "BUILDING",
+    "first_release_connection_charge": "PROMOTIONAL_FREE; 0 RSD",
     "excluded_retired_categories": 148,
     "excluded_ai_reviewed_categories": 2,
     "empty_target_guard": true,
     "atomic_transaction": true,
     "postflight_counts": true,
-    "pglite_schema_smoke": "1/1 PASS, including identity override, generated normalized key, sequence and second-run refusal",
+    "pglite_schema_smoke": "1/1 PASS, including identity override, generated normalized key, sequence, Serbia/free configuration and second-run refusal",
     "status": "SOURCE_CANDIDATE_RUNTIME_PROD_UNVERIFIED",
     "production_applied": false
   },
@@ -80,7 +82,7 @@
     "Generated exact DEV source includes disposable capacity4 diagnostic table/procedure and is not a selected production baseline.",
     "No empty-platform installation or rollback test; local Docker/psql unavailable.",
     "Fresh PROD lacks PostGIS, pg_cron and pg_net; platform prerequisites and versions must be reviewed.",
-    "SYSTEM taxonomy seed candidate exists; location/publication/legal policy, Auth/Storage/Realtime/email/FCM config and production AI admission remain unprepared or unapproved.",
+    "SYSTEM taxonomy, Serbia BUILDING market and free connection seed candidate exists; publication/legal policy, Auth/Storage/Realtime/email/FCM config and production AI admission remain unprepared or unapproved.",
     "No production write, Edge deploy, paid provider invocation or device proof."
   ]
 }
