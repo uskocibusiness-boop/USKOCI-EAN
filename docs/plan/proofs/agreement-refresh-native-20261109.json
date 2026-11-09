@@ -1,0 +1,518 @@
+{
+  "schema": "agreement-refresh-native-followup-v1",
+  "recordedAtUtc": "2026-11-09T18:17:00Z",
+  "sourceCommit": "8c6efba1b1116a410de562a01e38d69295db11df",
+  "priorNativeProof": "agreement-owner-native-20261109.json",
+  "sourceReproduction": "agreement-incoming-lifecycle-20261109.md",
+  "ci": {
+    "conclusion": "success",
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42667873455",
+    "headSha": "8c6efba1b1116a410de562a01e38d69295db11df",
+    "completedAt": "2026-11-09T18:09:32Z",
+    "runId": 42667873455
+  },
+  "sourceChecks": {
+    "sourceSha": "8c6efba1b1116a410de562a01e38d69295db11df",
+    "runId": 42667873455,
+    "artifactId": 13698051564,
+    "zipSha256": "4a37ff64c73d30aa1cb81ef7a108cec8512f961f6ef536726c0fda63d61a13b5",
+    "originalDigestMatches": true,
+    "sourceTests": {
+      "tests": 1409,
+      "pass": 1409,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "typescript": "PASS",
+    "migrationIntegrity": "PASS migration_integrity files=235 live_snapshot=87 pending=60 physical_suffix=43 oct26_suffix=3 nov7_suffix=7 r13_push_wake=1 r09_activation=1 r09_applicant=1 post_qa92_readmission=3 worker_shared_reuse=1 worker_draft_activation=1 worker_application_areas=1 worker_candidate_areas=1 nov7_forward=3 r08_forward=1 r01_forward=1 r08_reviews_forward=1 r05_forward=1 continuation_forward=2 recovery_export_forward=2 191500=RECORDED_STATEMENT_RECONSTRUCTION exact_byte_mirror=false participant_contract=PASS\n..........................................................................................\n----------------------------------------------------------------------\nRan 90 tests in 0.106s\n\nOK\n",
+    "scope": "Source checks PASS; native build completion and installation verified separately."
+  },
+  "artifact": {
+    "artifactId": 13699251682,
+    "name": "uskoci-phone-preview-apk-112",
+    "zipSha256": "4296fc3314dedd2c59bc237e001efcb4ba89755ea294a3ea641f92a33df6498b",
+    "githubDigestMatches": true
+  },
+  "binary": {
+    "apkName": "USKOCI-PHONE-PREVIEW-8c6efba1b.apk",
+    "bytes": 121083432,
+    "sha256": "af1c904cdcbd4aea704974ad5fea4d27021fa062fc3ecbb32042cf93bfaea121",
+    "package": "rs.uskoci.preview",
+    "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+    "installedCertificateMatches": true,
+    "targetSdk": 36,
+    "firebaseClientMatches": true,
+    "nativeOtaDisabled": true,
+    "embeddedSourceCommit": "8c6efba1b1116a410de562a01e38d69295db11df",
+    "sourceDirtyFlag": true,
+    "sourceDirtyReason": "Documented phone-preview CI app.json overrides; not a reproducible-build claim.",
+    "allElf16KbAligned": true,
+    "zip16KbAligned": true
+  },
+  "installation": {
+    "schema": "USKOCI_EMULATOR_INSTALLED_APK_V1",
+    "verifiedAtUtc": "2026-11-09T19:11:03.51573+01:00",
+    "serial": "emulator-5554",
+    "headSha": "8c6efba1b1116a410de562a01e38d69295db11df",
+    "package": "rs.uskoci.preview",
+    "installMode": "install -r",
+    "installationResult": "Performing Streamed Install\r\nSuccess",
+    "candidatePath": "verification\\phone-preview-42667873455\\apk\\USKOCI-PHONE-PREVIEW-8c6efba1b.apk",
+    "installedBasePath": "verification\\emulator-acceptance-20261109\\8c6-installed-base.apk",
+    "candidateSha256": "af1c904cdcbd4aea704974ad5fea4d27021fa062fc3ecbb32042cf93bfaea121",
+    "installedSha256": "af1c904cdcbd4aea704974ad5fea4d27021fa062fc3ecbb32042cf93bfaea121",
+    "installedBytesMatch": true,
+    "scope": "Emulator binary install/readback only. No app data clear, no physical-phone command. Auth checked separately in ordinary UI."
+  },
+  "nativeReceiptSha256": "f66a9718eb3079a75b3b3a8396cc34651e2063d0470ead3fa02bf17d0e2cd214",
+  "native": {
+    "schema": "USKOCI_EMULATOR_AGREEMENT_READONLY_RETEST_V1",
+    "recordedAtUtc": "2026-11-09T18:15:46.931268+00:00",
+    "status": "PASS_BOUNDED_EXISTING_AGREEMENT_NATIVE_RETEST",
+    "serial": "emulator-5554",
+    "package": "rs.uskoci.preview",
+    "headSha": "8c6efba1b1116a410de562a01e38d69295db11df",
+    "runId": "42667873455",
+    "fullCiConclusion": "success",
+    "sourceChecks": {
+      "node": {
+        "tests": 1409,
+        "pass": 1409,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "typescript": "PASS",
+      "migrationFiles": 235,
+      "migrationTests": 90
+    },
+    "apkSha256": "af1c904cdcbd4aea704974ad5fea4d27021fa062fc3ecbb32042cf93bfaea121",
+    "installedBytesMatch": true,
+    "authObserved": "Existing Milos session preserved after install -r; observed in own profile accessible label.",
+    "context": {
+      "agreementId": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+      "needId": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+      "identitySource": "Existing root-confirmed 36dd selection/readback context; UUID is not displayed in the native screen. Native retest navigated the same English task and Uskoci Test counterpart.",
+      "actorRole": "Milos requester",
+      "title": "Privatni časovi engleskog jezika",
+      "counterparty": "Uskoci Test",
+      "observedTerms": "1.000 RSD ukupno; Na daljinu; 1 osoba; termin nije dogovoren."
+    },
+    "observations": {
+      "initialOverviewSettled": true,
+      "menuActionsEnabled": true,
+      "originalTaskOpenedFromMenu": true,
+      "taskReturnSettled": true,
+      "overviewReopenedFromAgreementsListSettled": true,
+      "oneVisibleTermCtaNoDuplicateHeader": true,
+      "existingMessageRetained": "Probna poruka za proveru Dogovora. / Poslato",
+      "notificationInboxVisible": true,
+      "notificationRowsNotTapped": true,
+      "messageInboxShowsExistingConversation": true,
+      "existingConversationReopenedFromMessageInbox": true,
+      "finalOverviewSettledAfterExplicit12SecondIdle": true,
+      "settledScreenshotCount": 6,
+      "finalOverviewXmlByteIdenticalBeforeAfterIdle": true
+    },
+    "actions": "Ordinary own-app navigation only: Dogovori list, existing Agreement, options menu, original task, back, scroll, Poruke, list reopen, notification inbox view/back, message inbox, existing conversation, Pregled. No terminal deep link or server impersonation.",
+    "notPerformed": [
+      "No new send, response, candidate selection, service addition, price/date/term change, completion, cancellation or rating.",
+      "No app data clearing, credential/account change, physical-phone command, paid AI call, DEV/SQL write, or source edit.",
+      "No notification-row tap or mark-all action."
+    ],
+    "boundaries": [
+      "Bounded emulator requester-role native result on the existing Agreement; not physical phone or worker-role acceptance.",
+      "Normal application reads and any automatic internal read/heartbeat effects were not intercepted; no zero-database-write claim.",
+      "Poslato and prior server receipt do not prove recipient display/read or native push delivery/tap/audio.",
+      "No new scoped DEV readback by this agent; root provides final server invariant readback separately.",
+      "Template-debug DEV preview; not Play AAB, production release approval, or closure/sourceReady certification.",
+      "Evidence file times are filesystem capture timestamps; not per-tap server transaction times. Historical 36dd evidence was preserved unchanged."
+    ],
+    "finalScreen": "Existing Agreement Pregled, settled, no modal, no pending input.",
+    "references": [
+      {
+        "path": "verification\\phone-preview-42667873455\\artifact-download-verified.json",
+        "sha256": "248d9001bebf09943f7e992fac4794476dd93036db97159c8575741a0372d1b3",
+        "bytes": 735
+      },
+      {
+        "path": "verification\\phone-preview-42667873455\\binary-verified.json",
+        "sha256": "ab0ec435618ed1ec9a88778f625ebf871f56194273bcc8e301814cd50074bb4d",
+        "bytes": 15630
+      },
+      {
+        "path": "verification\\phone-preview-42667873455\\run-complete.json",
+        "sha256": "fe8a033034786605208702976881433f13385b77a11adab0eaff631f40b671d8",
+        "bytes": 15066
+      },
+      {
+        "path": "verification\\phone-preview-42667873455\\source-checks-summary.json",
+        "sha256": "8d51ad1942c484f9d35d3a10e01935fb37a15865f9284f802cf4df0341a7a390",
+        "bytes": 1221
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-install-verified.json",
+        "sha256": "678c72f1999b26db432bff6895474835ccd3a6e3da3ec090b8b574cf0f396bce",
+        "bytes": 1046
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\36dd-selection-message-receipt.json",
+        "sha256": "d70f18f84e2da0f6124108b630bb9be5e37ca1a4bb087e1e2384b931c3bea452",
+        "bytes": 13239
+      }
+    ],
+    "evidence": [
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-home-after-install.png",
+        "sha256": "c0ab8d6e13bda3dc6c41ad7a40a03d11a41757bc0532c91f55a0e47c7a426391",
+        "bytes": 378713,
+        "fileLastModifiedUtc": "2026-11-09T18:11:14.235679+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-home-after-install.xml",
+        "sha256": "277e295a0513b41f9e02ad70f95cab1a66974d806a9915e6583811a7fee3e63f",
+        "bytes": 73038,
+        "fileLastModifiedUtc": "2026-11-09T18:11:13.791803+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreements-list.png",
+        "sha256": "5a27d1c09048b357d6627a1e2044aa1a32a3a454f16b5b48a20590c78426ad1f",
+        "bytes": 254016,
+        "fileLastModifiedUtc": "2026-11-09T18:11:23.967747+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreements-list.xml",
+        "sha256": "c39a045dd34d45398dd2da2501667db06f8e81d7547bbed259420b5a6e0d7778",
+        "bytes": 45752,
+        "fileLastModifiedUtc": "2026-11-09T18:11:23.564130+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreement-initial-settled.png",
+        "sha256": "9b3f3f9e34daa14fd4e44eb3f37c16879797540046780220413311306fe03052",
+        "bytes": 271406,
+        "fileLastModifiedUtc": "2026-11-09T18:11:34.443918+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreement-initial-settled.xml",
+        "sha256": "d1e7f46d74ae9877e145a5fdbb55f42e79397089446b913272a7844be0aec40c",
+        "bytes": 45553,
+        "fileLastModifiedUtc": "2026-11-09T18:11:34.076472+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreement-menu-enabled.png",
+        "sha256": "8eb18497389807dc3ff345760bdab21e1894e950b24c18faffca8af0c8b53a33",
+        "bytes": 241997,
+        "fileLastModifiedUtc": "2026-11-09T18:11:48.957783+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreement-menu-enabled.xml",
+        "sha256": "4c2ce6e2c0e83457034c70057e6098ea7ed461b00f3679963984016d9e69d450",
+        "bytes": 26202,
+        "fileLastModifiedUtc": "2026-11-09T18:11:48.549181+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-original-task-opened.png",
+        "sha256": "162994fae7266ed53b388a17e4e7fbe37e4a8ef766b39959b28daa7a02c59310",
+        "bytes": 239498,
+        "fileLastModifiedUtc": "2026-11-09T18:11:58.062256+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-original-task-opened.xml",
+        "sha256": "5eb98f534ffb407187c8614eb9f1a847206794707e53b26df1a3a479e739a769",
+        "bytes": 43035,
+        "fileLastModifiedUtc": "2026-11-09T18:11:57.717434+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreement-after-task-back.png",
+        "sha256": "176ef84d74137a6c1db60b9758a3b864357edcc7033c2585db551742e357e2a1",
+        "bytes": 271868,
+        "fileLastModifiedUtc": "2026-11-09T18:12:08.643110+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreement-after-task-back.xml",
+        "sha256": "d1e7f46d74ae9877e145a5fdbb55f42e79397089446b913272a7844be0aec40c",
+        "bytes": 45553,
+        "fileLastModifiedUtc": "2026-11-09T18:12:08.292488+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreement-lower-single-term.png",
+        "sha256": "baa7c694b401a7a0440f440efab56de9aed985f75c40bb082277dba86934642b",
+        "bytes": 248756,
+        "fileLastModifiedUtc": "2026-11-09T18:12:19.009067+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreement-lower-single-term.xml",
+        "sha256": "1305838a482d745cb568d9edd7db5609d115dcbdb8e5e6342a15f76d123d8ec3",
+        "bytes": 45492,
+        "fileLastModifiedUtc": "2026-11-09T18:12:18.658645+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-existing-message-retained.png",
+        "sha256": "c650d07f5b027f2cc688c75f4574dc4644ce52c654b84789b1a2e6c38e88b060",
+        "bytes": 117296,
+        "fileLastModifiedUtc": "2026-11-09T18:12:36.115916+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-existing-message-retained.xml",
+        "sha256": "9fd681123d54fc564ddbb4492b94a7d5eee4baa7d85861ec1be9d14b80c1acdd",
+        "bytes": 29480,
+        "fileLastModifiedUtc": "2026-11-09T18:12:35.770677+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-after-messages-back.png",
+        "sha256": "aac4d423b15d2e1ff8b959903143c5483bc7a68c637d0e2556f427af89e03ee9",
+        "bytes": 271864,
+        "fileLastModifiedUtc": "2026-11-09T18:12:45.392850+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-after-messages-back.xml",
+        "sha256": "d1e7f46d74ae9877e145a5fdbb55f42e79397089446b913272a7844be0aec40c",
+        "bytes": 45553,
+        "fileLastModifiedUtc": "2026-11-09T18:12:45.046879+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-list-before-reopen.png",
+        "sha256": "562f9f93b0f4aab3e57846e2f2a4a1655d0e79b692a0b5a4b98367bbafc10968",
+        "bytes": 254543,
+        "fileLastModifiedUtc": "2026-11-09T18:12:53.782030+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-list-before-reopen.xml",
+        "sha256": "c39a045dd34d45398dd2da2501667db06f8e81d7547bbed259420b5a6e0d7778",
+        "bytes": 45752,
+        "fileLastModifiedUtc": "2026-11-09T18:12:53.431287+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreement-reopened-settled.png",
+        "sha256": "1b03fd940ce4b2c5f721b8bc59d9fec4092a4b4cc63b9870f75f6fd6b055a21b",
+        "bytes": 271976,
+        "fileLastModifiedUtc": "2026-11-09T18:13:04.499639+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-agreement-reopened-settled.xml",
+        "sha256": "d1e7f46d74ae9877e145a5fdbb55f42e79397089446b913272a7844be0aec40c",
+        "bytes": 45553,
+        "fileLastModifiedUtc": "2026-11-09T18:13:04.133514+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-list-before-inbox.png",
+        "sha256": "ac1738ce2cc61c0b5e836bbd4890e8419283917b609487683077e5bfce50bf80",
+        "bytes": 254660,
+        "fileLastModifiedUtc": "2026-11-09T18:13:20.135071+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-list-before-inbox.xml",
+        "sha256": "c39a045dd34d45398dd2da2501667db06f8e81d7547bbed259420b5a6e0d7778",
+        "bytes": 45752,
+        "fileLastModifiedUtc": "2026-11-09T18:13:19.778483+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-inbox-visible.png",
+        "sha256": "62b0d0c9fb0963c642f6d9aa901cc16a0abc8f6be8531aa12efa9bbbf2e59034",
+        "bytes": 218401,
+        "fileLastModifiedUtc": "2026-11-09T18:13:27.474760+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-inbox-visible.xml",
+        "sha256": "ef825a93fd1961bb5c197adf2d2e2c685f590b35bd9c6ee4d40020909f5fc425",
+        "bytes": 35538,
+        "fileLastModifiedUtc": "2026-11-09T18:13:27.100088+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-after-inbox-back.png",
+        "sha256": "ac1738ce2cc61c0b5e836bbd4890e8419283917b609487683077e5bfce50bf80",
+        "bytes": 254660,
+        "fileLastModifiedUtc": "2026-11-09T18:13:36.800436+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-after-inbox-back.xml",
+        "sha256": "c39a045dd34d45398dd2da2501667db06f8e81d7547bbed259420b5a6e0d7778",
+        "bytes": 45752,
+        "fileLastModifiedUtc": "2026-11-09T18:13:36.441868+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-message-inbox.png",
+        "sha256": "ca866766aa1daa71a5b945e848b8152b5d54927cf77e15fabcc6b1728744fbad",
+        "bytes": 170784,
+        "fileLastModifiedUtc": "2026-11-09T18:13:45.534434+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-message-inbox.xml",
+        "sha256": "7cd5de2757322f95730b18e482903bc23e8f6680c32b0922b278452c9c865d30",
+        "bytes": 32930,
+        "fileLastModifiedUtc": "2026-11-09T18:13:45.186966+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-message-reopened-from-inbox.png",
+        "sha256": "e778cb4c0e30792d7471b6fd8ab71126331e86f8ede79bdf0eb3f41a8f83425a",
+        "bytes": 117364,
+        "fileLastModifiedUtc": "2026-11-09T18:13:53.866060+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-message-reopened-from-inbox.xml",
+        "sha256": "9fd681123d54fc564ddbb4492b94a7d5eee4baa7d85861ec1be9d14b80c1acdd",
+        "bytes": 29480,
+        "fileLastModifiedUtc": "2026-11-09T18:13:53.524037+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-final-overview-from-inbox.png",
+        "sha256": "404a7ff722bd8a90768a555f1d693fbd2eaf660ccefbc9c1bb760fd63edc016a",
+        "bytes": 271721,
+        "fileLastModifiedUtc": "2026-11-09T18:14:06.526389+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-final-overview-from-inbox.xml",
+        "sha256": "d1e7f46d74ae9877e145a5fdbb55f42e79397089446b913272a7844be0aec40c",
+        "bytes": 45553,
+        "fileLastModifiedUtc": "2026-11-09T18:14:06.181372+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-final-overview-after-idle.png",
+        "sha256": "d6511253cf4dd7bcf493bdf52be360c9f371a6b3063c9e5e74371765c10a2da3",
+        "bytes": 271717,
+        "fileLastModifiedUtc": "2026-11-09T18:14:29.631689+00:00"
+      },
+      {
+        "path": "verification\\emulator-acceptance-20261109\\8c6-final-overview-after-idle.xml",
+        "sha256": "d1e7f46d74ae9877e145a5fdbb55f42e79397089446b913272a7844be0aec40c",
+        "bytes": 45553,
+        "fileLastModifiedUtc": "2026-11-09T18:14:29.278415+00:00"
+      }
+    ]
+  },
+  "finalDevReadback": {
+    "method": "Read-only SQL limited to the owner's two authorized TEST task/account pairs; ordinary Auth/native acceptance is in the separate native observations.",
+    "agreement": {
+      "needs": [
+        {
+          "id": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+          "mode": "OFFERS",
+          "status": "ACTIVE",
+          "revision": 1,
+          "categoryId": "00000000-0000-4000-8000-000000000802",
+          "coveredSlots": 1,
+          "requiredSlots": 1
+        },
+        {
+          "id": "bf62b479-f1d0-4d45-89a5-f849f2daa2b9",
+          "mode": "MY_PRICE",
+          "status": "PUBLISHED",
+          "revision": 1,
+          "categoryId": "00000000-0000-4000-8000-000000000806",
+          "coveredSlots": 0,
+          "requiredSlots": 1
+        }
+      ],
+      "responses": [
+        {
+          "id": "01eddaf6-51f6-46b1-ae34-ac80e72eee12",
+          "end": null,
+          "start": null,
+          "needId": "bf62b479-f1d0-4d45-89a5-f849f2daa2b9",
+          "status": "VIEWED",
+          "version": 1,
+          "priceRsd": 3000,
+          "priceBasis": "TOTAL",
+          "selectedAt": null,
+          "submittedAt": "2026-11-09T16:57:29.360332+00:00",
+          "coveredSlots": 1,
+          "needRevision": 1,
+          "versionCount": 1,
+          "workerAccountId": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+          "submitReceiptCount": 1
+        },
+        {
+          "id": "600c1009-ba32-4169-b672-d20bb37076a8",
+          "end": null,
+          "start": null,
+          "needId": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+          "status": "SELECTED",
+          "version": 1,
+          "priceRsd": 1000,
+          "priceBasis": "TOTAL",
+          "selectedAt": "2026-11-09T17:32:09.574107+00:00",
+          "submittedAt": "2026-11-09T16:57:11.690277+00:00",
+          "coveredSlots": 1,
+          "needRevision": 1,
+          "versionCount": 1,
+          "workerAccountId": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+          "submitReceiptCount": 1
+        }
+      ],
+      "agreements": [
+        {
+          "id": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+          "terms": {
+            "currency": "RSD",
+            "price_rsd": 1000,
+            "priceBasis": "TOTAL",
+            "scope_note": "",
+            "pricingMode": "OFFERS",
+            "covered_slots": 1,
+            "need_revision": 1,
+            "required_slots": 1,
+            "proposed_end_at": null,
+            "schedule_source": "UNSCHEDULED",
+            "response_version": 1,
+            "proposed_start_at": null
+          },
+          "needId": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+          "status": "CONFIRMED",
+          "version": 1,
+          "execution": {
+            "mode": "REMOTE",
+            "state": "CONFIRMED"
+          },
+          "responseId": "600c1009-ba32-4169-b672-d20bb37076a8",
+          "selectionId": "9cb1db88-574e-4141-9b3d-942cff5870cd",
+          "workerAccountId": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+          "requesterAccountId": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+          "selectionReceiptCount": 1
+        }
+      ],
+      "observedAt": "2026-11-09T18:14:57.296877+00:00"
+    },
+    "message": {
+      "messages": [
+        {
+          "id": "8bd882d5-ae31-45e5-ba0a-bf21de954e8c",
+          "body": "Probna poruka za proveru Dogovora.",
+          "read_at": null,
+          "created_at": "2026-11-09T17:34:19.922566+00:00",
+          "agreement_id": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+          "agreement_version": 1,
+          "sender_account_id": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+          "same_request_count": 1,
+          "sender_is_participant": true
+        }
+      ],
+      "agreements": [
+        {
+          "id": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+          "need_id": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+          "worker_account_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+          "requester_account_id": "0640a1bd-5e0a-4462-9dca-f49420582c8a"
+        }
+      ],
+      "observedAt": "2026-11-09T18:14:58.083923+00:00"
+    }
+  },
+  "providerFollowup": "agreement-push-provider-20261109.json",
+  "durableScreenshot": {
+    "path": "native-20261109/agreement-owner-8c6.png",
+    "sha256": "404a7ff722bd8a90768a555f1d693fbd2eaf660ccefbc9c1bb760fd63edc016a",
+    "bytes": 271721,
+    "unaltered": true
+  },
+  "limitations": [
+    "The old 36dd refresh failure remains preserved in its historical proof; only this same bounded scenario was rerun on 8c6.",
+    "Physical phone remains disconnected on b471. Worker-role, two-way media and system push tap are still unproven.",
+    "The second translation application remains VIEWED on a PUBLISHED task until its owner returns.",
+    "No completion, rating, cancellation, new message or new candidate selection was performed during this 8c6 retest.",
+    "This mobile fix contains no new DEV SQL/Edge deployment. Existing guarded DEV promotion proofs remain separate.",
+    "No production/store approval, R10 sourceReady override or paid Gemini calls."
+  ]
+}

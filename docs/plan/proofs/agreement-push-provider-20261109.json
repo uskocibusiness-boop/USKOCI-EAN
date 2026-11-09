@@ -1,0 +1,123 @@
+{
+  "schema": "agreement-push-provider-followup-v1",
+  "checkedAt": "2026-11-09T17:51:04.066263+00:00",
+  "projectId": "leqcwgzvjsxugfgzdmth",
+  "scope": "Two owner-authorized TEST events from the existing Agreement; scoped read-only follow-up.",
+  "priorProof": "agreement-owner-native-20261109.json",
+  "agreementId": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+  "events": [
+    {
+      "event": {
+        "id": "405cdf43-5fdd-4d61-ad22-ec55bdf34950",
+        "read_at": null,
+        "entity_id": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+        "created_at": "2026-11-09T17:34:19.922566+00:00",
+        "event_type": "MESSAGE_RECEIVED",
+        "entity_type": "AGREEMENT",
+        "entity_version": 1,
+        "recipient_role": "WORKER",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468"
+      },
+      "delivery": {
+        "id": "f0e00f76-7067-4664-b8b8-285694287d3b",
+        "state": "SENT",
+        "channel": "PUSH",
+        "read_at": null,
+        "sent_at": "2026-11-09T17:34:21.441063+00:00",
+        "event_id": "405cdf43-5fdd-4d61-ad22-ec55bdf34950",
+        "queued_at": "2026-11-09T17:34:20.75963+00:00",
+        "created_at": "2026-11-09T17:34:19.922566+00:00",
+        "expires_at": null,
+        "delivered_at": null,
+        "push_started_at": "2026-11-09T17:34:20.75963+00:00",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "suppression_reason": null
+      },
+      "attempt": {
+        "id": "444ec63c-670f-49c4-be94-91975eda3285",
+        "outcome": "OK",
+        "platform": "ANDROID",
+        "created_at": "2026-11-09T17:34:20.759343+00:00",
+        "error_code": null,
+        "send_count": 1,
+        "delivery_id": "f0e00f76-7067-4664-b8b8-285694287d3b",
+        "device_owner": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "device_active": true,
+        "next_attempt_at": null,
+        "transport_state": "PROVIDER_ACCEPTED",
+        "device_created_at": "2026-10-21T19:25:47.943498+00:00",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "receipt_checked_at": "2026-11-09T17:50:03.347684+00:00",
+        "ticket_received_at": "2026-11-09T17:34:21.441063+00:00",
+        "device_last_seen_at": "2026-11-09T12:37:45.19028+00:00",
+        "has_provider_ticket": true,
+        "device_session_valid": true,
+        "device_revision_matches": true,
+        "destination_owner_matches": true
+      }
+    },
+    {
+      "event": {
+        "id": "fb3780c9-0e69-4093-ba49-f1af053ddc0d",
+        "read_at": null,
+        "entity_id": "600c1009-ba32-4169-b672-d20bb37076a8",
+        "created_at": "2026-11-09T17:32:09.574107+00:00",
+        "event_type": "RESPONSE_SELECTED",
+        "entity_type": "RESPONSE",
+        "entity_version": 1,
+        "recipient_role": "WORKER",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468"
+      },
+      "delivery": {
+        "id": "7624e1a8-a072-434b-91af-4d10ff324a3b",
+        "state": "SENT",
+        "channel": "PUSH",
+        "read_at": null,
+        "sent_at": "2026-11-09T17:32:10.888834+00:00",
+        "event_id": "fb3780c9-0e69-4093-ba49-f1af053ddc0d",
+        "queued_at": "2026-11-09T17:32:10.376204+00:00",
+        "created_at": "2026-11-09T17:32:09.574107+00:00",
+        "expires_at": null,
+        "delivered_at": null,
+        "push_started_at": "2026-11-09T17:32:10.376204+00:00",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "suppression_reason": null
+      },
+      "attempt": {
+        "id": "2d9b3fd6-cdd9-4032-93f2-ae291dd601f0",
+        "outcome": "OK",
+        "platform": "ANDROID",
+        "created_at": "2026-11-09T17:32:10.376168+00:00",
+        "error_code": null,
+        "send_count": 1,
+        "delivery_id": "7624e1a8-a072-434b-91af-4d10ff324a3b",
+        "device_owner": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "device_active": true,
+        "next_attempt_at": null,
+        "transport_state": "PROVIDER_ACCEPTED",
+        "device_created_at": "2026-10-21T19:25:47.943498+00:00",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "receipt_checked_at": "2026-11-09T17:48:03.391431+00:00",
+        "ticket_received_at": "2026-11-09T17:32:10.888834+00:00",
+        "device_last_seen_at": "2026-11-09T12:37:45.19028+00:00",
+        "has_provider_ticket": true,
+        "device_session_valid": true,
+        "device_revision_matches": true,
+        "destination_owner_matches": true
+      }
+    }
+  ],
+  "heartbeat": {
+    "fresh": true,
+    "observedAt": "2026-11-09T17:51:01.936875+00:00",
+    "observation": "TICK_OK",
+    "lastSuccessAt": "2026-11-09T17:51:01.936875+00:00"
+  },
+  "limitations": [
+    "Provider receipt OK does not establish physical display, system notification tap, app readback or user acknowledgement.",
+    "The physical phone is disconnected and was not operated for this follow-up.",
+    "The emulator has no native push registration.",
+    "No token, provider ticket value, credential or message body is included.",
+    "No event was resent; no agreement terms, completion, rating or cancellation were changed."
+  ]
+}
