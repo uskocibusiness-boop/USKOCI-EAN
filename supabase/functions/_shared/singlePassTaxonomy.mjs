@@ -28,6 +28,7 @@ export function singlePassTaxonomyInstruction(catalog, purpose) {
     + 'NEEDS_CLARIFICATION/AMBIGUOUS: only a real work distinction; ambiguityPrompt is the ONE plain-language question also asked in assistantMessage. Otherwise ambiguityPrompt="". Never turn a technical failure into a request to repeat known facts. reason is internal, 10–1000 characters. ';
   const scope = purpose === 'WORKER_CAPABILITY'
     ? 'One decision per offered service/mode; BOTH = ON_SITE + REMOTE with one ID/path. serviceModeChangesJson follows intended modes; preserve unchanged saved/draft IDs, including mode/handoff edits. Never restore removed services. UNKNOWN only for clarification. '
+      + 'A broad umbrella such as general physical work is not a concrete offer merely because a broad catalog leaf exists. Keep the owned service and return NEEDS_CLARIFICATION with one question about the actual work it includes; never substitute a guessed narrower service or silently remove it. If the person already explained that work, use that explanation instead of asking again. Equivalent NEW offers in the current message may be one specific natural ADD label preserving every stated activity, with one matching mode request and decision; never consolidate existing saved/draft labels behind the owner\'s back. '
     : 'Classify one effective service using typed task_geography, not city alone. Handoff/location/time/price stay in facts, not taxonomy metadata. Unknown mode: ask about execution and return no decision. ';
   if (!catalog?.verifiedComplete) return rules + scope
     + 'Catalog unavailable: taxonomyDecisions=[]; keep useful facts, do not assume missing categories or promise classification readiness.';
@@ -97,7 +98,14 @@ export function singlePassCapturePlan(built, catalog) {
 export function withUnresolvedSinglePassReply(turn, built, plan) {
   if (!['ALLOW', 'CLARIFY'].includes(turn?.safety) || plan &&
       !built?.clarifications?.length && !built?.failures?.length && !built?.unresolvedServices?.length) return turn;
-  const question = built?.clarifications?.[0]?.ambiguityPrompt;
+  // Only the Worker builder emits this list, after validating current quoted
+  // requests and saved/draft choices. A catalog/provider failure is not a
+  // reason to make the person repeat an already stated mode. Ask one exact
+  // service so its next short answer can bind to that service alone.
+  const unconfirmedService = Array.isArray(built?.unconfirmedModeServices)
+    ? built.unconfirmedModeServices.find(service => boundedText(service, 120) && service.trim().length >= 3) : null;
+  const question = built?.clarifications?.[0]?.ambiguityPrompt
+    || (unconfirmedService ? `Da li uslugu „${unconfirmedService}“ pružate na lokaciji, onlajn ili na oba načina?` : null);
   // An ordinary question can still collect a missing business fact. An internal
   // REVIEW invitation, however natural the prose, cannot certify an absent plan.
   // A validated work distinction takes precedence over a generic invitation.

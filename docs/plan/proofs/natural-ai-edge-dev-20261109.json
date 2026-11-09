@@ -1,0 +1,74 @@
+{
+  "checkedAt": "2026-11-09T12:08:10Z",
+  "sourceCommit": "2d8ada07cc4e10616cc9c15619b9d87319cd0479",
+  "projectId": "leqcwgzvjsxugfgzdmth",
+  "scope": "Controlled DEV Edge-only natural intake promotion; no SQL, flags, secrets, budgets or production changes.",
+  "sourceQualification": {
+    "runId": 42613256327,
+    "sourceStep": "SUCCESS",
+    "node": {
+      "pass": 1312,
+      "fail": 0,
+      "skipped": 0
+    },
+    "typescript": "PASS",
+    "migrationFiles": 231,
+    "integrityTests": 60,
+    "nativeBuild": "in progress at promotion"
+  },
+  "functions": [
+    {
+      "name": "uskoci-ai-interview",
+      "previousVersion": 196,
+      "version": 197,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "authMode": "existing custom JWT authentication preserved",
+      "bundleSha256": "2a1b173446cf787d2b94d09d470cee06979c57fc7261feb8bb64d4874fb3e417",
+      "fileCount": 22,
+      "fullBundleByteIdenticalReadback": true,
+      "changedFiles": [
+        "supabase/functions/uskoci-ai-interview/index.ts",
+        "supabase/functions/_shared/interviewVoiceInstruction.mjs"
+      ]
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "previousVersion": 149,
+      "version": 150,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "authMode": "existing custom JWT authentication preserved",
+      "bundleSha256": "60b946c55140fcafe236e2e01e3dd3a4181abe1809c849fcfca5a155d519a5ed",
+      "fileCount": 23,
+      "fullBundleByteIdenticalReadback": true,
+      "changedFiles": [
+        "supabase/functions/uskoci-worker-interview/index.ts",
+        "supabase/functions/_shared/interviewVoiceInstruction.mjs"
+      ]
+    }
+  ],
+  "rollback": "Saved complete v196/v149 preimage bundles; redeploy exact old files preserving custom Auth if this change causes a confirmed runtime regression.",
+  "paidAcceptance": {
+    "authorizedMaxCalls": 20,
+    "authorizedMaxEur": 1,
+    "callsAtPromotion": 0,
+    "budgetChange": false,
+    "baselineAt": "2026-11-09T12:07:05.393066Z",
+    "reservationCount": 2332,
+    "usageCount": 1235,
+    "settledMicrousd": 10435565,
+    "unsettledCount": 221
+  },
+  "unauthenticatedHttpSmoke": {
+    "checkedAt": "2026-11-09T12:20:00Z",
+    "need": { "httpStatus": 401, "code": "AUTH_REQUIRED" },
+    "worker": { "httpStatus": 401, "code": "AUTH_REQUIRED" },
+    "providerCalls": 0
+  },
+  "boundaries": [
+    "Full native build not yet complete at promotion.",
+    "No claim of real provider naturality, Android acceptance, push delivery or store readiness.",
+    "R06 prepared-input source candidate is not active or deployed."
+  ]
+}

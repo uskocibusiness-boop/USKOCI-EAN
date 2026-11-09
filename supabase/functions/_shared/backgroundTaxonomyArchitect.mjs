@@ -698,6 +698,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
   const clarifications = [];
   const seenKeys = new Set();
   const unresolvedServices = [];
+  const unconfirmedModeServices = [];
 
   for (const service of cleanSkills) {
     const norm = normalizedClassificationIdentity(service);
@@ -738,6 +739,12 @@ export async function buildWorkerFullTreeTaxonomyProposals({
     };
     if (chosenEntries.length === 0) {
       unresolvedServices.push(service);
+      // A legacy skill can lack any owned execution choice. Keep that missing
+      // business fact separate from an invalid provider decision or a catalog
+      // failure: the user can answer a named-service question, not a status.
+      // Conflicting prior identities already contain mode choices. Their
+      // technical validation failure must not be reframed as a missing answer.
+      if (matchingPrior.length === 0) unconfirmedModeServices.push(service);
       // A valid actual question is distinct from unavailable/malformed output.
       if (matchingAi.length === 1 && validClarification(matchingAi[0])
           && ['UNKNOWN', 'ON_SITE', 'REMOTE'].includes(matchingAi[0].mode)) {
@@ -879,5 +886,6 @@ export async function buildWorkerFullTreeTaxonomyProposals({
     clarificationHint: clarifications[0] ?? null,
     failures,
     unresolvedServices: [...new Set(unresolvedServices)],
+    unconfirmedModeServices: [...new Set(unconfirmedModeServices)],
   };
 }

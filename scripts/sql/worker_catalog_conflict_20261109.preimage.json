@@ -1,0 +1,3167 @@
+{
+  "schema": "WORKER_CATALOG_CONFLICT_REPRO_V1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "status": "READ_ONLY_CAPTURE",
+  "functions": [
+    {
+      "signature": "private.taxonomy_resolve_turn_catalog_v1(uuid,text,jsonb,text)",
+      "body_md5": "bdc9c0623132c3a93708c8d0e63ccef6",
+      "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_resolve_turn_catalog_v1(p_hint_id uuid, p_input_digest text, p_anchors jsonb, p_safety text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE h private.work_taxonomy_gemini_turn_hints_v1%ROWTYPE;\n p jsonb;a jsonb;item jsonb;items jsonb:='[]'::jsonb;result jsonb;\n c private.work_taxonomy_categories%ROWTYPE;anchor_id uuid;parent uuid;category uuid;\n version bigint;label text;key text;mode text;action text;identity text;reason text;\n i integer;j integer;matches integer;last_step integer;\nBEGIN\n IF coalesce(auth.jwt()->>'role','')<>'service_role' THEN\n  RAISE EXCEPTION 'TURN_CATALOG_DENIED' USING errcode='42501'; END IF;\n SELECT * INTO h FROM private.work_taxonomy_gemini_turn_hints_v1 WHERE id=p_hint_id FOR UPDATE;\n IF NOT FOUND OR p_input_digest IS NULL OR p_input_digest !~ '^[0-9a-f]{64}$'\n OR jsonb_typeof(p_anchors) IS DISTINCT FROM 'array' OR jsonb_array_length(p_anchors)>384 THEN\n  RAISE EXCEPTION 'TURN_CATALOG_INVALID' USING errcode='22023'; END IF;\n PERFORM private.closure_assert_open(h.account_id);\n IF h.catalog_resolution IS NOT NULL THEN\n  IF h.catalog_resolution->>'inputDigest' IS DISTINCT FROM p_input_digest THEN\n   RAISE EXCEPTION 'TURN_CATALOG_REPLAY_CONFLICT' USING errcode='22023'; END IF;\n  RETURN h.catalog_resolution;\n END IF;\n -- Missing business details can still produce a useful conversation, but a\n -- safety clarification cannot become a global catalog mutation.\n IF p_safety IS DISTINCT FROM 'ALLOW' THEN\n  result:=jsonb_build_object('state','DEFERRED','inputDigest',p_input_digest,'code','SAFETY_UNRESOLVED');\n ELSE\n  BEGIN\n   SELECT catalog_version INTO version FROM private.work_taxonomy_control WHERE singleton FOR UPDATE;\n   IF version IS NULL OR version<h.catalog_version THEN\n    RAISE EXCEPTION 'CATALOG_CHANGED' USING errcode='PT409'; END IF;\n   -- Anchors are derived by Edge from its verified snapshot, not the model.\n   FOR a IN SELECT value FROM jsonb_array_elements(p_anchors) LOOP\n    IF jsonb_typeof(a) IS DISTINCT FROM 'object' OR NOT(a ?& array['categoryId','label','parentId'])\n    OR a-array['categoryId','label','parentId']<>'{}'::jsonb THEN\n     RAISE EXCEPTION 'TURN_CATALOG_INVALID_ANCHOR' USING errcode='22023'; END IF;\n    IF NOT EXISTS(SELECT 1 FROM private.work_taxonomy_categories node\n     WHERE node.id::text=a->>'categoryId' AND node.state='ESTABLISHED'\n      AND to_jsonb(node.label)=a->'label'\n      AND coalesce(to_jsonb(node.parent_id),'null'::jsonb)=a->'parentId'\n      AND private.taxonomy_turn_category_identity_v1(node.id) IS NOT NULL) THEN\n     RAISE EXCEPTION 'CATALOG_CHANGED' USING errcode='PT409'; END IF;\n   END LOOP;\n   FOR i IN 0..jsonb_array_length(h.proposals)-1 LOOP\n    p:=h.proposals->i;mode:=p->>'mode';action:=p->>'action';\n    key:=private.taxonomy_normalize_v1(p->>'service');\n    IF private.taxonomy_risk_triage_v1(p->>'service') IS DISTINCT FROM 'LOW_RISK_CANDIDATE' THEN\n     RAISE EXCEPTION 'CATALOG_SAFETY' USING errcode='PT409'; END IF;\n    anchor_id:=CASE WHEN action IN('REUSE_EXISTING','EXTEND_MODE') THEN (p->>'categoryId')::uuid\n      WHEN action='CREATE_CHILD' THEN (p->>'parentId')::uuid END;\n    IF anchor_id IS NOT NULL THEN\n     SELECT count(*) INTO matches FROM jsonb_array_elements(p_anchors) x\n      WHERE x->>'categoryId'=anchor_id::text;\n     IF matches<>1 THEN RAISE EXCEPTION 'TURN_CATALOG_ANCHOR_MISSING' USING errcode='22023'; END IF;\n    END IF;\n    IF action IN('REUSE_EXISTING','EXTEND_MODE') THEN\n     category:=anchor_id;\n     SELECT * INTO c FROM private.work_taxonomy_categories WHERE id=category AND state='ESTABLISHED';\n     IF NOT FOUND OR EXISTS(SELECT 1 FROM private.work_taxonomy_categories child\n       WHERE child.parent_id=c.id AND child.state='ESTABLISHED') THEN\n      RAISE EXCEPTION 'CATALOG_CHANGED' USING errcode='PT409'; END IF;\n     IF private.taxonomy_risk_triage_v1(c.label) IS DISTINCT FROM 'LOW_RISK_CANDIDATE' THEN\n      RAISE EXCEPTION 'CATALOG_SAFETY' USING errcode='PT409'; END IF;\n     -- A natural synonym need not be stored as a global alias. An explicit\n     -- conflicting canonical identity is not permission to merge two services.\n     IF EXISTS(SELECT 1 FROM private.work_taxonomy_categories other WHERE other.state<>'RETIRED'\n       AND other.id<>category AND (other.canonical_key=key OR EXISTS(\n        SELECT 1 FROM private.work_taxonomy_aliases alias WHERE alias.category_id=other.id AND alias.normalized_key=key))) THEN\n      RAISE EXCEPTION 'CATALOG_CONFLICT' USING errcode='PT409'; END IF;\n     IF NOT EXISTS(SELECT 1 FROM private.work_taxonomy_category_modes m\n       WHERE m.category_id=category AND m.execution_scope=mode) THEN\n      IF action<>'EXTEND_MODE' THEN RAISE EXCEPTION 'MODE_UNRESOLVED' USING errcode='PT409'; END IF;\n      UPDATE private.work_taxonomy_control SET catalog_version=catalog_version+1,updated_at=statement_timestamp()\n       WHERE singleton RETURNING catalog_version INTO version;\n      INSERT INTO private.work_taxonomy_category_modes(category_id,execution_scope,source_ref)\n       VALUES(category,mode,'TURN_CATALOG_V1');\n      INSERT INTO private.work_taxonomy_audit(action,category_id,normalized_key,catalog_version,source_ref)\n       VALUES('CORRECTED',category,c.canonical_key,version,'TURN_CATALOG_V1:'||h.id::text);\n     END IF;\n    ELSIF action IN('CREATE_CHILD','CREATE_NEW_BRANCH') THEN\n     parent:=anchor_id;last_step:=jsonb_array_length(p->'proposedPath')-1;\n     IF last_step NOT BETWEEN 0 AND 11 OR private.taxonomy_normalize_v1(p->'proposedPath'->>last_step) IS DISTINCT FROM key THEN\n      RAISE EXCEPTION 'TURN_CATALOG_INVALID_PATH' USING errcode='22023'; END IF;\n     FOR j IN 0..last_step LOOP\n      label:=btrim(p->'proposedPath'->>j);key:=private.taxonomy_normalize_v1(label);\n      IF jsonb_typeof(p->'proposedPath'->j) IS DISTINCT FROM 'string'\n       OR char_length(label) NOT BETWEEN 3 AND 120 OR label ~ '[<>{}\\\\]' OR label ~ '[[:cntrl:]]'\n       OR char_length(key) NOT BETWEEN 3 AND 160 OR key !~ '[[:alpha:]]'\n       OR private.taxonomy_risk_triage_v1(label) IN('BLOCKED','REVIEW_REQUIRED')\n       OR (j=last_step AND private.taxonomy_risk_triage_v1(label) IS DISTINCT FROM 'LOW_RISK_CANDIDATE') THEN\n       RAISE EXCEPTION 'CATALOG_SAFETY' USING errcode='PT409'; END IF;\n      IF EXISTS(SELECT 1 FROM private.work_taxonomy_aliases alias WHERE alias.normalized_key=key) THEN\n       RAISE EXCEPTION 'CATALOG_CONFLICT' USING errcode='PT409'; END IF;\n      SELECT * INTO c FROM private.work_taxonomy_categories WHERE canonical_key=key FOR UPDATE;\n      IF FOUND THEN\n       IF c.state<>'ESTABLISHED' OR c.parent_id IS DISTINCT FROM parent THEN\n        RAISE EXCEPTION 'CATALOG_CONFLICT' USING errcode='PT409'; END IF;\n       category:=c.id;\n       IF j=last_step AND NOT EXISTS(SELECT 1 FROM private.work_taxonomy_category_modes m\n         WHERE m.category_id=category AND m.execution_scope=mode) THEN\n        -- BOTH within this turn, or a concurrent creation after the snapshot.\n        -- An older known category needs the explicit EXTEND_MODE action.\n        IF c.catalog_version<=h.catalog_version THEN\n         RAISE EXCEPTION 'MODE_UNRESOLVED' USING errcode='PT409'; END IF;\n        UPDATE private.work_taxonomy_control SET catalog_version=catalog_version+1,updated_at=statement_timestamp()\n         WHERE singleton RETURNING catalog_version INTO version;\n        INSERT INTO private.work_taxonomy_category_modes(category_id,execution_scope,source_ref)\n         VALUES(category,mode,'TURN_CATALOG_V1');\n        INSERT INTO private.work_taxonomy_audit(action,category_id,normalized_key,catalog_version,source_ref)\n         VALUES('CORRECTED',category,key,version,'TURN_CATALOG_V1:'||h.id::text);\n       END IF;\n      ELSE\n       UPDATE private.work_taxonomy_control SET catalog_version=catalog_version+1,updated_at=statement_timestamp()\n        WHERE singleton RETURNING catalog_version INTO version;\n       INSERT INTO private.work_taxonomy_categories(canonical_key,label,parent_id,state,source,catalog_version)\n        VALUES(key,label,parent,'ESTABLISHED','AI_REVIEWED',version) RETURNING id INTO category;\n       INSERT INTO private.work_taxonomy_category_modes(category_id,execution_scope,source_ref)\n        VALUES(category,mode,'TURN_CATALOG_V1');\n       INSERT INTO private.work_taxonomy_audit(action,category_id,normalized_key,catalog_version,source_ref)\n        VALUES('AUTO_CREATED',category,key,version,'TURN_CATALOG_V1:'||h.id::text);\n      END IF;\n      parent:=category;\n     END LOOP;\n    ELSE RAISE EXCEPTION 'TURN_CATALOG_INVALID_ACTION' USING errcode='22023'; END IF;\n    IF EXISTS(SELECT 1 FROM private.work_taxonomy_categories child WHERE child.parent_id=category AND child.state='ESTABLISHED') THEN\n     RAISE EXCEPTION 'CATALOG_CONFLICT' USING errcode='PT409'; END IF;\n    FOR j IN 0..jsonb_array_length(items)-1 LOOP\n     item:=items->j;\n     IF (private.taxonomy_normalize_v1(h.proposals->j->>'service')=private.taxonomy_normalize_v1(p->>'service')\n          AND item->>'categoryId'<>category::text)\n       OR (item->>'categoryId'=category::text AND h.proposals->j->>'mode'=mode) THEN\n      RAISE EXCEPTION 'CATALOG_CONFLICT' USING errcode='PT409'; END IF;\n    END LOOP;\n    identity:=private.taxonomy_turn_category_identity_v1(category);\n    IF identity IS NULL THEN RAISE EXCEPTION 'CATALOG_CHANGED' USING errcode='PT409'; END IF;\n    items:=items||jsonb_build_array(jsonb_build_object('categoryId',category,'identity',identity));\n   END LOOP;\n   -- A later path in this same response must not turn an earlier service into\n   -- a grouping node. Roll the entire catalog batch back on that conflict.\n   IF EXISTS(SELECT 1 FROM jsonb_array_elements(items) x JOIN private.work_taxonomy_categories child\n      ON child.parent_id=(x->>'categoryId')::uuid AND child.state='ESTABLISHED') THEN\n    RAISE EXCEPTION 'CATALOG_CONFLICT' USING errcode='PT409'; END IF;\n   result:=jsonb_build_object('state','RESOLVED','inputDigest',p_input_digest,'catalogVersion',version,'items',items);\n  EXCEPTION WHEN SQLSTATE 'PT409' THEN\n   GET STACKED DIAGNOSTICS reason=MESSAGE_TEXT;\n   IF reason NOT IN('CATALOG_CHANGED','CATALOG_CONFLICT','CATALOG_SAFETY','MODE_UNRESOLVED') THEN RAISE; END IF;\n   -- This subtransaction rolls back every catalog write, but keeps the owned\n   -- dialogue and captured decision. Never spend another Gemini call here.\n   result:=jsonb_build_object('state','DEFERRED','inputDigest',p_input_digest,'code',reason);\n  END;\n END IF;\n UPDATE private.work_taxonomy_gemini_turn_hints_v1 SET catalog_resolution=result WHERE id=h.id;\n RETURN result;\nEND $function$\n"
+    },
+    {
+      "signature": "private.taxonomy_normalize_v1(text)",
+      "body_md5": "8c360cb0a05699cdae25485a5efc77ba",
+      "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_normalize_v1(p_value text)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE PARALLEL SAFE\n SET search_path TO 'pg_catalog'\nAS $function$\n SELECT btrim(regexp_replace(\n   translate(\n     replace(replace(replace(replace(replace(replace(lower(btrim(coalesce(p_value,''))),\n       'ђ','dj'),'љ','lj'),'њ','nj'),'џ','dz'),'đ','dj'),'ß','ss'),\n     'абвгдежзијклмнопрстћуфхцчшčćšž',\n     'abvgdezzijklmnoprstcufhccsccsz'\n   ),\n   '[[:space:]]+', ' ', 'g'\n ))\n$function$\n"
+    },
+    {
+      "signature": "private.taxonomy_risk_triage_v1(text)",
+      "body_md5": "93d94a6c7e21ce3ecb854cda239b546a",
+      "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_risk_triage_v1(p_label text)\n RETURNS text\n LANGUAGE plpgsql\n STABLE\n SET search_path TO 'pg_catalog', 'private'\nAS $function$\nDECLARE v_key text;\nBEGIN\n v_key:=private.taxonomy_normalize_v1(p_label);\n -- Screening is not semantic classification or proof of safety. Apply the\n -- enabled server rules before ambiguity checks so broad or single-word\n -- labels cannot hide a regulated/prohibited meaning behind CLARIFY.\n IF EXISTS (SELECT 1 FROM private.work_taxonomy_risk_rules\n            WHERE enabled AND decision='BLOCKED' AND v_key ~ pattern)\n THEN RETURN 'BLOCKED'; END IF;\n IF EXISTS (SELECT 1 FROM private.work_taxonomy_risk_rules\n            WHERE enabled AND decision='REVIEW_REQUIRED' AND v_key ~ pattern)\n THEN RETURN 'REVIEW_REQUIRED'; END IF;\n IF p_label IS NULL OR char_length(btrim(p_label)) NOT BETWEEN 3 AND 120\n    OR p_label ~ '[<>{}\\\\]' OR p_label ~ '[[:cntrl:]]'\n    OR v_key IS NULL OR char_length(v_key)<3 OR v_key !~ '^[[:alnum:]]'\n    OR v_key !~ '[[:alpha:]]' THEN\n   RETURN 'NEEDS_CLARIFICATION';\n END IF;\n IF v_key ~ '(^|[[:space:]])(ostalo|drugo|razno|sve|svasta)($|[[:space:]])'\n    OR v_key IN ('digitalni zanati','digitalne usluge','kucne usluge',\n      'zanatske usluge','fizicki poslovi','rucni rad','bilo sta','klima','namestaj','nameštaj')\n THEN RETURN 'NEEDS_CLARIFICATION'; END IF;\n -- Natural noun phrases (3D stampa, casovi engleskog, setnja pasa) must not\n -- depend on the first word being in a small Serbian action-verb allowlist.\n -- Existing model semantic/safety review and owner-signed Save are still\n -- required. A candidate result grants no competence or catalog authority.\n RETURN 'LOW_RISK_CANDIDATE';\nEND\n$function$\n"
+    },
+    {
+      "signature": "private.taxonomy_turn_category_identity_v1(uuid)",
+      "body_md5": "b8ccc18825305df690c1b9b2546e03c9",
+      "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_turn_category_identity_v1(p_category uuid)\n RETURNS text\n LANGUAGE sql\n STABLE\n SET search_path TO 'pg_catalog'\nAS $function$\n WITH RECURSIVE ancestry AS (\n  SELECT c.id,c.label,c.parent_id,ARRAY[c.id] path FROM private.work_taxonomy_categories c\n   WHERE c.id=p_category AND c.state='ESTABLISHED'\n  UNION ALL\n  SELECT c.id,c.label,c.parent_id,a.path||c.id FROM ancestry a\n   JOIN private.work_taxonomy_categories c ON c.id=a.parent_id\n   WHERE c.state='ESTABLISHED' AND NOT c.id=ANY(a.path)\n ) SELECT CASE WHEN EXISTS(SELECT 1 FROM ancestry WHERE parent_id IS NULL)\n  THEN encode(extensions.digest(coalesce(jsonb_agg(jsonb_build_array(id,label,parent_id)\n   ORDER BY cardinality(path)),'[]'::jsonb)::text,'sha256'),'hex') END FROM ancestry;\n$function$\n"
+    }
+  ],
+  "catalog": {
+    "modes": [
+      {
+        "category_id": "f73ce099-696a-43a1-bd75-5fbcac2f5a26",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "6cde1231-b255-4102-a654-ee90d1cc8a87",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "32a489a3-7b20-4c5d-a173-7dad02420ffb",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "1ad961b3-2603-4c4f-9de2-c130fd1f1c07",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "b49c0cb7-2d3d-4131-97b5-0ba3baf26089",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "c2d5908c-18ff-4673-a3d9-1796bf0da74d",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "9559161b-3c80-4adf-95ef-2b90fb1ef837",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "c30c8418-778c-47d8-b953-e53f5aae344b",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "d1c6fb66-6b42-4676-b70b-074f4fcedcc8",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "9e9f5cd8-2eeb-4a3c-b635-3221fd6012f6",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "a34c4f44-e621-4c02-8261-4dbf8585a86b",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "f0cc02f8-8307-4c2b-9c8a-8c7c7494a5a2",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "afa8bdb6-b480-4c9a-a258-7665f4dccb9d",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "2409b598-8d8c-4e5c-b3e3-ae7c99c69fa6",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "a694f586-0ffc-4214-9a85-5bb84daf6f8a",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "236dbbcf-4f6f-47c2-a5da-45262d6fd271",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "920f90b6-2827-41ef-b597-8cfb3a965d56",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "548c7d65-6c20-4a75-9880-9a0244027624",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "c5f255ee-0314-4f63-a308-e9abecfa415a",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "211632f6-02b0-446c-9bb6-0b085d812010",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "49ab8543-88a5-40af-9087-e929555f0767",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "c46ee057-a880-4315-802d-da6668051b7c",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "02b7888e-e4be-4255-9867-3c3f74c7cf50",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "84fd20fa-d07a-4fd1-aaeb-c5552c957953",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "f1d161e8-cebf-4bd4-a726-b45bb7d76b37",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "c06db484-9f63-4c4c-87fa-c0997003d5f7",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "b02a56aa-3491-4dcc-b9b1-d84da9d63a92",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "0ddf8a95-8fb6-4b61-9208-245eb4b93fb1",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "478cb9ed-984d-44d7-885a-0c1cc71369ee",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "f3223b2d-de9e-48c6-a9c3-3f74744dea60",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "33bb91b4-8780-4821-b49a-62922286b794",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "72da7856-c788-4280-baec-3f3023763624",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "ef7fd848-332f-47d9-ba67-a3e52ddcaac4",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "182c22c1-aa8c-4941-8245-cdb01dd49791",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "231d7d85-016e-4db5-9ddc-538df457550e",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "7569489d-d5ba-47f2-b465-259d1c9c0592",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "f7a2c0ca-4e15-492e-9024-350891889645",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "46a176f1-4929-4dcc-b75d-a3d2b808269d",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "0a3bc056-bdec-46b3-a5a8-a2c77bf55c74",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "83143fa9-b299-4818-9a27-66e41c1bd0bd",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "878b39d1-3867-481b-bfed-bbb9bda9a006",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "595ca5f1-3a86-4b15-be33-075b6c98c7aa",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "901d8b10-5f72-4d81-826e-89ed394efa38",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "0ed22a66-dbd1-44b7-a37c-d649f2d83420",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "d6eb501e-948d-441e-859f-7683444fbe98",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "9ed8dcfa-7035-48dc-84ba-937273379921",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "2d71dc97-ca09-4b0f-84d4-434503cb6aaf",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "febba95f-17ea-4ab7-be8e-a83fafc3aedf",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "21cf72e1-a2bb-4bf2-b15f-6b8516307f5c",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "7b53dc0e-52b2-4daf-8536-5526198a47f9",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "9d7c1502-317b-4557-a343-b7564ae5ad95",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "5c0a07ac-b9f2-4101-84b9-9d5ce16ceb8b",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "84e0da27-5c66-46e7-833b-2c8334851b08",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "d9ad2db1-ca0d-44ad-bf4d-5edcdea28842",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "21cbd423-8c40-49b3-bb0b-c8fb074bb44e",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "f88c9121-e181-4b5a-aa9e-459afa01058b",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "98204491-93f9-4401-8249-a1625aa72c2d",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "3be21b18-129c-4414-807c-1af344c6ffe9",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "8bb3e9dd-52bf-4377-905e-16f7c221c818",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "2fbc9c10-9aca-4bac-afdc-9341948a261a",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "5b8d2b3e-7381-45fc-8fd1-70f0d55f8c88",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "c0b4b4cd-e622-4791-b488-1e6072ffbb26",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "9c188c43-40ef-4d47-9197-86a2a14dcada",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "a189c1ad-6d33-43bb-9856-17c7f22fdc81",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "8e1befff-ac67-47de-94f2-3bc8f16d60b0",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "065e7a4e-7956-4fc6-9d42-2d10b3a3aafb",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "fdb62662-a6a1-48ea-94b7-285543c6d46f",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "0bc1ce17-eb1a-4242-9865-340233d5e109",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "4fe9b45e-7354-4b6d-9650-888559064a5c",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "23239706-20de-4ad7-930f-1934e92ed24f",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "368850c3-7107-4c69-abc5-86118aee3173",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "8766e4e3-5a44-4ddf-ab90-1cb607b6de53",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "12fa18f0-12d7-47ef-a56c-2e4e5029744f",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "3d375573-28d0-44b6-9b4b-51125beabfb3",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "541beade-d82a-488d-8ad0-cc37cd19c247",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "d9fd5b69-c925-40b9-8e47-911197f726cd",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "d183238e-8578-42b3-a9c2-af3867695e24",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "1434222c-f43a-460f-9b8a-abc567fbb378",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "0ff24269-d824-4eac-a2a1-58b055e0b017",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "ef63d6d2-7087-4d67-8a9d-b07952655d03",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "11e218ed-e072-4609-bcee-9576aa4c2e16",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "5f5d367b-d4c7-44e2-b364-c79eff37bfb3",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "11e218ed-e072-4609-bcee-9576aa4c2e16",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "99dae202-000d-4c5a-8967-ba1a9e17d7ac",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "6b7ed350-6947-4f7d-991c-caf03118db5d",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "ffe4daac-385b-44b8-9642-2a8bb28bec84",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "b3c58517-a95f-4875-aa2e-d8de3f617514",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "227aea33-1180-4400-a501-773c2816127c",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "f9fed243-359d-432a-ab2a-26e20e6220ec",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "077d45da-8cce-4bcc-9d38-8b5b16335339",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "2bd62421-817e-4aad-89bb-a983d29ce79e",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "3a120589-1f78-498b-ad5a-86ab9706aeda",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "e0d2dde3-8751-49b2-ba91-fbf2edf8f3dd",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "4e12f713-601a-4db9-80f7-eb0ea04a1b61",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "326e0271-8e4e-439d-972f-8e1157e3e3dc",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "02a55493-4001-445a-a97f-6377cccc7478",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "11c6df16-3445-474f-8a9d-79bc15ed8394",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "6e92b7d0-0db8-4a50-a7f4-65b4e037d439",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "c45a4819-240d-44fc-a1af-c836d7aa6f04",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "c04be55c-cbb7-42fe-9afc-8f3ca9bdce3c",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "2addf2dc-d2ed-44e5-aeae-1f5e07d1abcf",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "25355dda-6eef-4996-81ac-de0632eba195",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "48e26268-6c55-45e6-bdaa-54b50065c6e4",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "0a4cc1b1-a3a1-45b1-b349-93fcc2a7032c",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "2816e98e-c306-4504-812f-ba83e0b3a736",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "be2ec1e2-16ff-43ab-844b-7dd84ff88f79",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "31a73a4d-d1db-4cc5-bf01-a6ff516de7d4",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "3b005ef2-140d-4f40-9a91-a9a1141bb7b4",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "95fd8653-4950-4a61-8905-66ec73d67c3a",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "f8cae7e6-b8a0-4472-a7ee-c35baa2e8c9b",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "4f6e02c6-784d-4c70-b4e5-a462d698664d",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "e96c1f47-7793-4d25-b265-6e825d621c66",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "d1a25cf1-8c17-40db-902c-4afa9d6a4e6a",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "76f115a2-c9ce-4d8e-8fc2-d3c330b062ba",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "2362864b-adc0-42ee-a17e-a96adb3d059a",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "a71ac924-1de0-4b38-9f5e-b1e813fc80b3",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "b4c9b844-5c44-4934-b0a8-c20ac1d3ab8b",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "ad75dbf7-7017-4925-89c7-e0896e0fbdf0",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "4e06cb32-c159-466d-8101-81e3fae8af60",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "e96498f7-dd4f-49d9-ad8b-c80d843c3c6f",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "082ce4dc-f5b9-43c8-8970-11d2f7a0a63e",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "87d23f16-551e-4b3e-8968-ca0e05a424ec",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "9b454bf4-99e6-4d1d-b171-d49342cc23c0",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "abfc5754-073e-4b74-a607-6856ebdec723",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "ab9b3e18-8e16-432c-8494-0fa23d57b5be",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "d04702dd-a00f-430e-895b-86713f84c190",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "4a486cab-006a-40fa-9db3-ed8157da2dac",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "51e479a9-23a1-474b-978a-2d0d29355621",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "5b4d8f16-f064-43db-ba55-f183d5137e0b",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "c3a52a63-fea1-4a69-859a-63d1939f7003",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "60ec569b-5908-4950-b776-a5d5be656057",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "d5ae85ce-4e9a-46c8-a662-c55b0215e2e0",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "1496f3ef-89ed-4637-ad23-63409028bc4b",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "019d9094-4977-4da7-8113-b3d0a9f42b11",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "12324e63-69e7-47a1-83d1-f13c4672e32c",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "12324e63-69e7-47a1-83d1-f13c4672e32c",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "9bfcc3ec-f0eb-442d-8968-ec5eaac0f122",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000001",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000001",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000011",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000012",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000013",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000013",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000014",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000014",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000015",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000015",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000016",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000021",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000022",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000023",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000024",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000024",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000025",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000026",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "d9fd5b69-c925-40b9-8e47-911197f726cd",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "d7c4a865-1532-42cd-8204-a11178c16f67",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "952da6c6-2557-453e-b2aa-5e4261d3d6cb",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000017",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000018",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000101",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000102",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000103",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000104",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000105",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000106",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000107",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000108",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000109",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000110",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000201",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000202",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000203",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000204",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000205",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000206",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000207",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000301",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000302",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000303",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000401",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000402",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000403",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000404",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000404",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000501",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000502",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000503",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000504",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000505",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000601",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000602",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000603",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000604",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000701",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000702",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000703",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000704",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000705",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000801",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000801",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000802",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000802",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000803",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000804",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000805",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000806",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000807",
+        "execution_scope": "REMOTE"
+      },
+      {
+        "category_id": "cc1c6942-fc3c-40c1-be15-9c84239f04a0",
+        "execution_scope": "ON_SITE"
+      },
+      {
+        "category_id": "d014dc7d-cccc-46c1-9826-cf95a1949344",
+        "execution_scope": "REMOTE"
+      }
+    ],
+    "aliases": [
+      {
+        "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+        "normalized_key": "3d stampa"
+      },
+      {
+        "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+        "normalized_key": "izrada 3d figurica"
+      },
+      {
+        "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+        "normalized_key": "3d modelovanje i stampa"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000001",
+        "normalized_key": "svi zadaci i poslovi"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000001",
+        "normalized_key": "sve usluge i zadaci"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000011",
+        "normalized_key": "majstori i zanati"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000011",
+        "normalized_key": "majstori i zanatski radovi"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000012",
+        "normalized_key": "fizicki poslovi i rusenje"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000012",
+        "normalized_key": "gradjevinska ispomoc i fizicki rad"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000013",
+        "normalized_key": "selidbe i prevoz"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000013",
+        "normalized_key": "kombi transport i selidbe"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000014",
+        "normalized_key": "servis tehnike i aparata"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000014",
+        "normalized_key": "servis kucnih aparata"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000015",
+        "normalized_key": "ciscenje i odrzavanje"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000015",
+        "normalized_key": "higijena i ciscenje prostora"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000016",
+        "normalized_key": "dvoriste, basta i teren"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000016",
+        "normalized_key": "uredjenje dvorista i baste"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000101",
+        "normalized_key": "vodoinstalater"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000101",
+        "normalized_key": "zamena slavine"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000101",
+        "normalized_key": "odgusenje odvoda"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000101",
+        "normalized_key": "montaza bojlera"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000102",
+        "normalized_key": "elektricar"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000102",
+        "normalized_key": "zamena uticnica"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000102",
+        "normalized_key": "zamena osiguraca"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000102",
+        "normalized_key": "montaza rasvete"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000103",
+        "normalized_key": "krecenje"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000103",
+        "normalized_key": "moler"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000103",
+        "normalized_key": "gletovanje"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000103",
+        "normalized_key": "krecenje stana"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000104",
+        "normalized_key": "keramicar"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000104",
+        "normalized_key": "lepljenje plocica"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000105",
+        "normalized_key": "bravar"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000105",
+        "normalized_key": "otvaranje vrata"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000105",
+        "normalized_key": "zamena brave"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000106",
+        "normalized_key": "montaza namestaja"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000106",
+        "normalized_key": "ikea montaza"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000106",
+        "normalized_key": "sklapanje ormara"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000201",
+        "normalized_key": "fizicki poslovi"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000201",
+        "normalized_key": "radnik na dan"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000201",
+        "normalized_key": "pomocni radnik"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000202",
+        "normalized_key": "rusenje zida"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000202",
+        "normalized_key": "stemovanje betona"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000202",
+        "normalized_key": "skidanje plocica"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000203",
+        "normalized_key": "utovar i istovar"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000203",
+        "normalized_key": "pretovar"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000204",
+        "normalized_key": "nosenje na sprat"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000204",
+        "normalized_key": "prenos teskih stvari"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000205",
+        "normalized_key": "odvoz suta"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000205",
+        "normalized_key": "iznosenje suta"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000206",
+        "normalized_key": "cepanje drva"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000206",
+        "normalized_key": "unosenje drva"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000301",
+        "normalized_key": "kombi prevoz"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000301",
+        "normalized_key": "prevoz namestaja"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000302",
+        "normalized_key": "selidba"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000302",
+        "normalized_key": "selidba stana"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000601",
+        "normalized_key": "kosenje trave"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000601",
+        "normalized_key": "kosenje dvorista"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000602",
+        "normalized_key": "krcenje placa"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000701",
+        "normalized_key": "potrcko"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000701",
+        "normalized_key": "dostava lekova"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000701",
+        "normalized_key": "kupovina karata"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000104",
+        "normalized_key": "plocice"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000601",
+        "normalized_key": "trava"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000106",
+        "normalized_key": "namestaj"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000402",
+        "normalized_key": "klima"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000102",
+        "normalized_key": "struja"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000101",
+        "normalized_key": "voda"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000206",
+        "normalized_key": "drva"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000205",
+        "normalized_key": "sut"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000202",
+        "normalized_key": "beton"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000203",
+        "normalized_key": "pesak"
+      },
+      {
+        "category_id": "00000000-0000-4000-8000-000000000207",
+        "normalized_key": "zemlja"
+      }
+    ],
+    "riskRules": [
+      {
+        "enabled": true,
+        "pattern": "(oruzj|municij|eksploziv|bomb|droga|narkotik|kokain|heroin|falsifik|hakovanj|prostituc|pornograf)",
+        "decision": "BLOCKED"
+      },
+      {
+        "enabled": true,
+        "pattern": "(elektric|elektroinstal|solarn|gasn|plinsk|dron|baterij|medicin|hirurg|lekov|pesticid|hemij|azbest|visinsk|licenc|vatren|opasn)",
+        "decision": "REVIEW_REQUIRED"
+      }
+    ],
+    "categories": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "label": "Uskoci zadaci i usluge",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": null,
+        "canonical_key": "uskoci zadaci i usluge",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000011",
+        "label": "Majstori i zanatski radovi",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000001",
+        "canonical_key": "majstori i zanatski radovi",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000012",
+        "label": "Fizička pomoć, rušenje i građevinska ispomoć",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000001",
+        "canonical_key": "fizicka pomoc, rusenje i gradjevinska ispomoc",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000013",
+        "label": "Selidbe, transport i vozila",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000001",
+        "canonical_key": "selidbe, transport i vozila",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000014",
+        "label": "Tehnika i kućni aparati",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000001",
+        "canonical_key": "tehnika i kucni aparati",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000015",
+        "label": "Čišćenje i održavanje prostora",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000001",
+        "canonical_key": "ciscenje i odrzavanje prostora",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000016",
+        "label": "Dvorište, bašta i teren",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000001",
+        "canonical_key": "dvoriste, basta i teren",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000017",
+        "label": "Potrčko, svakodnevna pomoć i briga",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000001",
+        "canonical_key": "potrcko, svakodnevna pomoc i briga",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000018",
+        "label": "Časovi, digitalne i administrativne usluge",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000001",
+        "canonical_key": "casovi, digitalne i administrativne usluge",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000021",
+        "label": "Bela tehnika i kućni aparati [arh 00000000]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000013",
+        "canonical_key": "bela tehnika i kucni aparati [arh 00000000]",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000022",
+        "label": "Klima uređaji i grejanje [arh 00000000]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000013",
+        "canonical_key": "klima uredjaji i grejanje [arh 00000000]",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000023",
+        "label": "Auto-mehanika i dijagnostika [arh 00000000]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000013",
+        "canonical_key": "auto-mehanika i dijagnostika [arh 00000000]",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000024",
+        "label": "Servis računara i telefona [arh 00000000]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000013",
+        "canonical_key": "servis racunara i telefona [arh 00000000]",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000025",
+        "label": "Briga o kućnim ljubimcima [arh 00000000]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000015",
+        "canonical_key": "briga o kucnim ljubimcima [arh 00000000]",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000026",
+        "label": "Čuvanje dece i nega starijih [arh 00000000]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000015",
+        "canonical_key": "cuvanje dece i nega starijih [arh 00000000]",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000101",
+        "label": "Vodoinstalaterski radovi",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "vodoinstalaterski radovi",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000102",
+        "label": "Električarski radovi",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "elektricarski radovi",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000103",
+        "label": "Krečenje i moleraj",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "krecenje i moleraj",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000104",
+        "label": "Keramičarski radovi",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "keramicarski radovi",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000105",
+        "label": "Bravarski radovi",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "bravarski radovi",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000106",
+        "label": "Stolarski radovi i montaža nameštaja",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "stolarski radovi i montaza namestaja",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000107",
+        "label": "Parketarski i podopolagački radovi",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "parketarski i podopolagacki radovi",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000108",
+        "label": "Zidarski i gipsarski radovi",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "zidarski i gipsarski radovi",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000109",
+        "label": "Krovopokrivački i limarski radovi",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "krovopokrivacki i limarski radovi",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000110",
+        "label": "Sitne kućne popravke (Hausmajstor)",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "sitne kucne popravke (hausmajstor)",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000201",
+        "label": "Univerzalni fizički pomoćnik (ispomoć na dan)",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "univerzalni fizicki pomocnik (ispomoc na dan)",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000202",
+        "label": "Rušenje, štemovanje i razbijanje",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "rusenje, stemovanje i razbijanje",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000203",
+        "label": "Utovar, istovar i pretovar materijala",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "utovar, istovar i pretovar materijala",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000204",
+        "label": "Nošenje teškog tereta na sprat",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "nosenje teskog tereta na sprat",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000205",
+        "label": "Iznošenje i odvoz šuta",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "iznosenje i odvoz suta",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000206",
+        "label": "Cepanje i unošenje ogreva",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "cepanje i unosenje ogreva",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000207",
+        "label": "Kopanje i zemljani radovi",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "kopanje i zemljani radovi",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000301",
+        "label": "Kombi prevoz tereta i robe",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000013",
+        "canonical_key": "kombi prevoz tereta i robe",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000302",
+        "label": "Kompletne selidbe",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000013",
+        "canonical_key": "kompletne selidbe",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000303",
+        "label": "Šlep služba i pomoć na putu",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000013",
+        "canonical_key": "slep sluzba i pomoc na putu",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000401",
+        "label": "Servis bele tehnike",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000014",
+        "canonical_key": "servis bele tehnike",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000402",
+        "label": "Servis i montaža klima uređaja",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000014",
+        "canonical_key": "servis i montaza klima uredjaja",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000403",
+        "label": "Servis grejanja, kotlova i radijatora",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000014",
+        "canonical_key": "servis grejanja, kotlova i radijatora",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000404",
+        "label": "Servis računara, laptopova i telefona",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000014",
+        "canonical_key": "servis racunara, laptopova i telefona",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000501",
+        "label": "Čišćenje stanova, kuća i lokala",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000015",
+        "canonical_key": "ciscenje stanova, kuca i lokala",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000502",
+        "label": "Čišćenje nakon radova i krečenja",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000015",
+        "canonical_key": "ciscenje nakon radova i krecenja",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000503",
+        "label": "Dubinsko pranje nameštaja i tepiha",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000015",
+        "canonical_key": "dubinsko pranje namestaja i tepiha",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000504",
+        "label": "Pranje prozora i izloga",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000015",
+        "canonical_key": "pranje prozora i izloga",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000505",
+        "label": "Pranje i peglanje veša",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000015",
+        "canonical_key": "pranje i peglanje vesa",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000601",
+        "label": "Košenje trave i održavanje travnjaka",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000016",
+        "canonical_key": "kosenje trave i odrzavanje travnjaka",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000602",
+        "label": "Krčenje placeva i seča granja",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000016",
+        "canonical_key": "krcenje placeva i seca granja",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000603",
+        "label": "Šišanje žive ograde i baštovanstvo",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000016",
+        "canonical_key": "sisanje zive ograde i bastovanstvo",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000604",
+        "label": "Čišćenje snega i sakupljanje lišća",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000016",
+        "canonical_key": "ciscenje snega i sakupljanje lisca",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000701",
+        "label": "Potrčko i brza gradska dostava",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000017",
+        "canonical_key": "potrcko i brza gradska dostava",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000702",
+        "label": "Čekanje u redovima i administracija",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000017",
+        "canonical_key": "cekanje u redovima i administracija",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000703",
+        "label": "Čuvanje dece (Bejbisiting)",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000017",
+        "canonical_key": "cuvanje dece (bejbisiting)",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000704",
+        "label": "Pomoć i nega starijih lica",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000017",
+        "canonical_key": "pomoc i nega starijih lica",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000705",
+        "label": "Briga o kućnim ljubimcima",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000017",
+        "canonical_key": "briga o kucnim ljubimcima",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000801",
+        "label": "Privatni časovi i podučavanje",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000018",
+        "canonical_key": "privatni casovi i poducavanje",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000802",
+        "label": "Časovi stranih jezika",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000018",
+        "canonical_key": "casovi stranih jezika",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000803",
+        "label": "Izrada i održavanje web sajtova",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000018",
+        "canonical_key": "izrada i odrzavanje web sajtova",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000804",
+        "label": "Grafički dizajn i brending",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000018",
+        "canonical_key": "graficki dizajn i brending",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000805",
+        "label": "Video montaža i obrada fotografija",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000018",
+        "canonical_key": "video montaza i obrada fotografija",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000806",
+        "label": "Prevođenje i lektura tekstova",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000018",
+        "canonical_key": "prevodjenje i lektura tekstova",
+        "catalog_version": 15
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000807",
+        "label": "Virtuelna asistencija i unos podataka",
+        "state": "ESTABLISHED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000018",
+        "canonical_key": "virtuelna asistencija i unos podataka",
+        "catalog_version": 15
+      },
+      {
+        "id": "019d9094-4977-4da7-8113-b3d0a9f42b11",
+        "label": "Podučavanje [arh 019d9094]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "00000000-0000-4000-8000-000000000015",
+        "canonical_key": "poducavanje [arh 019d9094]",
+        "catalog_version": 15
+      },
+      {
+        "id": "02a55493-4001-445a-a97f-6377cccc7478",
+        "label": "Kurirski poslovi [arh 02a55493]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "canonical_key": "kurirski poslovi [arh 02a55493]",
+        "catalog_version": 15
+      },
+      {
+        "id": "02b7888e-e4be-4255-9867-3c3f74c7cf50",
+        "label": "Montaža rasvete [arh 02b7888e]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "b49c0cb7-2d3d-4131-97b5-0ba3baf26089",
+        "canonical_key": "montaza rasvete [arh 02b7888e]",
+        "catalog_version": 15
+      },
+      {
+        "id": "065e7a4e-7956-4fc6-9d42-2d10b3a3aafb",
+        "label": "Izrada jednostavnog sajta [arh 065e7a4e]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "920f90b6-2827-41ef-b597-8cfb3a965d56",
+        "canonical_key": "izrada jednostavnog sajta [arh 065e7a4e]",
+        "catalog_version": 15
+      },
+      {
+        "id": "077d45da-8cce-4bcc-9d38-8b5b16335339",
+        "label": "stolarija [arh 077d45da]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "32a489a3-7b20-4c5d-a173-7dad02420ffb",
+        "canonical_key": "stolarija [arh 077d45da]",
+        "catalog_version": 15
+      },
+      {
+        "id": "082ce4dc-f5b9-43c8-8970-11d2f7a0a63e",
+        "label": "montaža sanitarija [arh 082ce4dc]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "32a489a3-7b20-4c5d-a173-7dad02420ffb",
+        "canonical_key": "montaza sanitarija [arh 082ce4dc]",
+        "catalog_version": 15
+      },
+      {
+        "id": "0a3bc056-bdec-46b3-a5a8-a2c77bf55c74",
+        "label": "Sklapanje ormara [arh 0a3bc056]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "32a489a3-7b20-4c5d-a173-7dad02420ffb",
+        "canonical_key": "sklapanje ormara [arh 0a3bc056]",
+        "catalog_version": 15
+      },
+      {
+        "id": "0a4cc1b1-a3a1-45b1-b349-93fcc2a7032c",
+        "label": "Restauracija nameštaja [arh 0a4cc1b1]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "restauracija namestaja [arh 0a4cc1b1]",
+        "catalog_version": 15
+      },
+      {
+        "id": "0bc1ce17-eb1a-4242-9865-340233d5e109",
+        "label": "Montaža video snimka [arh 0bc1ce17]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "canonical_key": "montaza video snimka [arh 0bc1ce17]",
+        "catalog_version": 15
+      },
+      {
+        "id": "0ddf8a95-8fb6-4b61-9208-245eb4b93fb1",
+        "label": "Otpušavanje odvoda [arh 0ddf8a95]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "c2d5908c-18ff-4673-a3d9-1796bf0da74d",
+        "canonical_key": "otpusavanje odvoda [arh 0ddf8a95]",
+        "catalog_version": 15
+      },
+      {
+        "id": "0ed22a66-dbd1-44b7-a37c-d649f2d83420",
+        "label": "Čišćenje stana [arh 0ed22a66]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "9559161b-3c80-4adf-95ef-2b90fb1ef837",
+        "canonical_key": "ciscenje stana [arh 0ed22a66]",
+        "catalog_version": 15
+      },
+      {
+        "id": "0ff24269-d824-4eac-a2a1-58b055e0b017",
+        "label": "Krečenje plafona [arh 0ff24269]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "548c7d65-6c20-4a75-9880-9a0244027624",
+        "canonical_key": "krecenje plafona [arh 0ff24269]",
+        "catalog_version": 15
+      },
+      {
+        "id": "11c6df16-3445-474f-8a9d-79bc15ed8394",
+        "label": "Gradska dostava i potrčko [arh 11c6df16]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "canonical_key": "gradska dostava i potrcko [arh 11c6df16]",
+        "catalog_version": 15
+      },
+      {
+        "id": "11e218ed-e072-4609-bcee-9576aa4c2e16",
+        "label": "Popravka pisaćih mašina [arh 11e218ed]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "5f5d367b-d4c7-44e2-b364-c79eff37bfb3",
+        "canonical_key": "popravka pisacih masina [arh 11e218ed]",
+        "catalog_version": 15
+      },
+      {
+        "id": "12324e63-69e7-47a1-83d1-f13c4672e32c",
+        "label": "Časovi šaha [arh 12324e63]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "019d9094-4977-4da7-8113-b3d0a9f42b11",
+        "canonical_key": "casovi saha [arh 12324e63]",
+        "catalog_version": 15
+      },
+      {
+        "id": "12fa18f0-12d7-47ef-a56c-2e4e5029744f",
+        "label": "Pisanje opisa proizvoda [arh 12fa18f0]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "9e9f5cd8-2eeb-4a3c-b635-3221fd6012f6",
+        "canonical_key": "pisanje opisa proizvoda [arh 12fa18f0]",
+        "catalog_version": 15
+      },
+      {
+        "id": "1434222c-f43a-460f-9b8a-abc567fbb378",
+        "label": "Krečenje zidova [arh 1434222c]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "548c7d65-6c20-4a75-9880-9a0244027624",
+        "canonical_key": "krecenje zidova [arh 1434222c]",
+        "catalog_version": 15
+      },
+      {
+        "id": "1496f3ef-89ed-4637-ad23-63409028bc4b",
+        "label": "Restauracija mehaničke muzičke kutije [arh 1496f3ef]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "5f5d367b-d4c7-44e2-b364-c79eff37bfb3",
+        "canonical_key": "restauracija mehanicke muzicke kutije [arh 1496f3ef]",
+        "catalog_version": 15
+      },
+      {
+        "id": "182c22c1-aa8c-4941-8245-cdb01dd49791",
+        "label": "Pakovanje za selidbu [arh 182c22c1]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "f73ce099-696a-43a1-bd75-5fbcac2f5a26",
+        "canonical_key": "pakovanje za selidbu [arh 182c22c1]",
+        "catalog_version": 15
+      },
+      {
+        "id": "1ad961b3-2603-4c4f-9de2-c130fd1f1c07",
+        "label": "Sitne popravke [arh 1ad961b3]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "sitne popravke [arh 1ad961b3]",
+        "catalog_version": 15
+      },
+      {
+        "id": "211632f6-02b0-446c-9bb6-0b085d812010",
+        "label": "Priprema zidova [arh 211632f6]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "canonical_key": "priprema zidova [arh 211632f6]",
+        "catalog_version": 15
+      },
+      {
+        "id": "21cbd423-8c40-49b3-bb0b-c8fb074bb44e",
+        "label": "Lokalna dostava paketa [arh 21cbd423]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "canonical_key": "lokalna dostava paketa [arh 21cbd423]",
+        "catalog_version": 15
+      },
+      {
+        "id": "21cf72e1-a2bb-4bf2-b15f-6b8516307f5c",
+        "label": "Pranje posteljine [arh 21cf72e1]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "c30c8418-778c-47d8-b953-e53f5aae344b",
+        "canonical_key": "pranje posteljine [arh 21cf72e1]",
+        "catalog_version": 15
+      },
+      {
+        "id": "227aea33-1180-4400-a501-773c2816127c",
+        "label": "Nošenje kesa i stvari [arh 227aea33]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "f0cc02f8-8307-4c2b-9c8a-8c7c7494a5a2",
+        "canonical_key": "nosenje kesa i stvari [arh 227aea33]",
+        "catalog_version": 15
+      },
+      {
+        "id": "231d7d85-016e-4db5-9ddc-538df457550e",
+        "label": "Selidba stana [arh 231d7d85]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "f73ce099-696a-43a1-bd75-5fbcac2f5a26",
+        "canonical_key": "selidba stana [arh 231d7d85]",
+        "catalog_version": 15
+      },
+      {
+        "id": "23239706-20de-4ad7-930f-1934e92ed24f",
+        "label": "3D modelovanje [arh 23239706]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "canonical_key": "3d modelovanje [arh 23239706]",
+        "catalog_version": 15
+      },
+      {
+        "id": "2362864b-adc0-42ee-a17e-a96adb3d059a",
+        "label": "kombi prevoz [arh 2362864b]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "f73ce099-696a-43a1-bd75-5fbcac2f5a26",
+        "canonical_key": "kombi prevoz [arh 2362864b]",
+        "catalog_version": 15
+      },
+      {
+        "id": "236dbbcf-4f6f-47c2-a5da-45262d6fd271",
+        "label": "Grafički dizajn [arh 236dbbcf]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "canonical_key": "graficki dizajn [arh 236dbbcf]",
+        "catalog_version": 15
+      },
+      {
+        "id": "2409b598-8d8c-4e5c-b3e3-ae7c99c69fa6",
+        "label": "Administrativne obaveze [arh 2409b598]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "f0cc02f8-8307-4c2b-9c8a-8c7c7494a5a2",
+        "canonical_key": "administrativne obaveze [arh 2409b598]",
+        "catalog_version": 15
+      },
+      {
+        "id": "25355dda-6eef-4996-81ac-de0632eba195",
+        "label": "zamena starinskih okova [arh 25355dda]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "zamena starinskih okova [arh 25355dda]",
+        "catalog_version": 15
+      },
+      {
+        "id": "2816e98e-c306-4504-812f-ba83e0b3a736",
+        "label": "Restauracija antikviteta [arh 2816e98e]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "0a4cc1b1-a3a1-45b1-b349-93fcc2a7032c",
+        "canonical_key": "restauracija antikviteta [arh 2816e98e]",
+        "catalog_version": 15
+      },
+      {
+        "id": "2addf2dc-d2ed-44e5-aeae-1f5e07d1abcf",
+        "label": "fina stolarija [arh 2addf2dc]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "32a489a3-7b20-4c5d-a173-7dad02420ffb",
+        "canonical_key": "fina stolarija [arh 2addf2dc]",
+        "catalog_version": 15
+      },
+      {
+        "id": "2bd62421-817e-4aad-89bb-a983d29ce79e",
+        "label": "Gletovanje zidova [arh 2bd62421]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "canonical_key": "gletovanje zidova [arh 2bd62421]",
+        "catalog_version": 15
+      },
+      {
+        "id": "2d71dc97-ca09-4b0f-84d4-434503cb6aaf",
+        "label": "Pranje veša [arh 2d71dc97]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "c30c8418-778c-47d8-b953-e53f5aae344b",
+        "canonical_key": "pranje vesa [arh 2d71dc97]",
+        "catalog_version": 15
+      },
+      {
+        "id": "2fbc9c10-9aca-4bac-afdc-9341948a261a",
+        "label": "Predaja dokumentacije [arh 2fbc9c10]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "2409b598-8d8c-4e5c-b3e3-ae7c99c69fa6",
+        "canonical_key": "predaja dokumentacije [arh 2fbc9c10]",
+        "catalog_version": 15
+      },
+      {
+        "id": "31a73a4d-d1db-4cc5-bf01-a6ff516de7d4",
+        "label": "montaža kuhinja [arh 31a73a4d]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "32a489a3-7b20-4c5d-a173-7dad02420ffb",
+        "canonical_key": "montaza kuhinja [arh 31a73a4d]",
+        "catalog_version": 15
+      },
+      {
+        "id": "326e0271-8e4e-439d-972f-8e1157e3e3dc",
+        "label": "Izrada nakita [arh 326e0271]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "izrada nakita [arh 326e0271]",
+        "catalog_version": 15
+      },
+      {
+        "id": "32a489a3-7b20-4c5d-a173-7dad02420ffb",
+        "label": "Montaža nameštaja [arh 32a489a3]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "montaza namestaja [arh 32a489a3]",
+        "catalog_version": 15
+      },
+      {
+        "id": "33bb91b4-8780-4821-b49a-62922286b794",
+        "label": "Prenošenje stvari [arh 33bb91b4]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "6cde1231-b255-4102-a654-ee90d1cc8a87",
+        "canonical_key": "prenosenje stvari [arh 33bb91b4]",
+        "catalog_version": 15
+      },
+      {
+        "id": "368850c3-7107-4c69-abc5-86118aee3173",
+        "label": "Prevođenje tekstova [arh 368850c3]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "9e9f5cd8-2eeb-4a3c-b635-3221fd6012f6",
+        "canonical_key": "prevodjenje tekstova [arh 368850c3]",
+        "catalog_version": 15
+      },
+      {
+        "id": "3a120589-1f78-498b-ad5a-86ab9706aeda",
+        "label": "Postavljanje tapeta [arh 3a120589]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "canonical_key": "postavljanje tapeta [arh 3a120589]",
+        "catalog_version": 15
+      },
+      {
+        "id": "3b005ef2-140d-4f40-9a91-a9a1141bb7b4",
+        "label": "generalno čišćenje stanova [arh 3b005ef2]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "9559161b-3c80-4adf-95ef-2b90fb1ef837",
+        "canonical_key": "generalno ciscenje stanova [arh 3b005ef2]",
+        "catalog_version": 15
+      },
+      {
+        "id": "3be21b18-129c-4414-807c-1af344c6ffe9",
+        "label": "Kupovina proizvoda [arh 3be21b18]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "afa8bdb6-b480-4c9a-a258-7665f4dccb9d",
+        "canonical_key": "kupovina proizvoda [arh 3be21b18]",
+        "catalog_version": 15
+      },
+      {
+        "id": "3d375573-28d0-44b6-9b4b-51125beabfb3",
+        "label": "Transkripcija snimaka [arh 3d375573]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "9e9f5cd8-2eeb-4a3c-b635-3221fd6012f6",
+        "canonical_key": "transkripcija snimaka [arh 3d375573]",
+        "catalog_version": 15
+      },
+      {
+        "id": "46a176f1-4929-4dcc-b75d-a3d2b808269d",
+        "label": "Montaža polica [arh 46a176f1]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "32a489a3-7b20-4c5d-a173-7dad02420ffb",
+        "canonical_key": "montaza polica [arh 46a176f1]",
+        "catalog_version": 15
+      },
+      {
+        "id": "478cb9ed-984d-44d7-885a-0c1cc71369ee",
+        "label": "Montaža sifona [arh 478cb9ed]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "c2d5908c-18ff-4673-a3d9-1796bf0da74d",
+        "canonical_key": "montaza sifona [arh 478cb9ed]",
+        "catalog_version": 15
+      },
+      {
+        "id": "48e26268-6c55-45e6-bdaa-54b50065c6e4",
+        "label": "potrčko po gradu [arh 48e26268]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "canonical_key": "potrcko po gradu [arh 48e26268]",
+        "catalog_version": 15
+      },
+      {
+        "id": "49ab8543-88a5-40af-9087-e929555f0767",
+        "label": "Skidanje tapeta [arh 49ab8543]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "canonical_key": "skidanje tapeta [arh 49ab8543]",
+        "catalog_version": 15
+      },
+      {
+        "id": "4a486cab-006a-40fa-9db3-ed8157da2dac",
+        "label": "Dekorativne tehnike [arh 4a486cab]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "canonical_key": "dekorativne tehnike [arh 4a486cab]",
+        "catalog_version": 15
+      },
+      {
+        "id": "4e06cb32-c159-466d-8101-81e3fae8af60",
+        "label": "izrada web sajtova [arh 4e06cb32]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "canonical_key": "izrada web sajtova [arh 4e06cb32]",
+        "catalog_version": 15
+      },
+      {
+        "id": "4e12f713-601a-4db9-80f7-eb0ea04a1b61",
+        "label": "Sitne kućne popravke [arh 4e12f713]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "sitne kucne popravke [arh 4e12f713]",
+        "catalog_version": 15
+      },
+      {
+        "id": "4f6e02c6-784d-4c70-b4e5-a462d698664d",
+        "label": "bojenje zidova [arh 4f6e02c6]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "canonical_key": "bojenje zidova [arh 4f6e02c6]",
+        "catalog_version": 15
+      },
+      {
+        "id": "4fe9b45e-7354-4b6d-9650-888559064a5c",
+        "label": "Obrada fotografija [arh 4fe9b45e]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "canonical_key": "obrada fotografija [arh 4fe9b45e]",
+        "catalog_version": 15
+      },
+      {
+        "id": "51e479a9-23a1-474b-978a-2d0d29355621",
+        "label": "Fasaderski radovi [arh 51e479a9]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "canonical_key": "fasaderski radovi [arh 51e479a9]",
+        "catalog_version": 15
+      },
+      {
+        "id": "541beade-d82a-488d-8ad0-cc37cd19c247",
+        "label": "Časovi matematike [arh 541beade]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "a34c4f44-e621-4c02-8261-4dbf8585a86b",
+        "canonical_key": "casovi matematike [arh 541beade]",
+        "catalog_version": 15
+      },
+      {
+        "id": "548c7d65-6c20-4a75-9880-9a0244027624",
+        "label": "Krečenje [arh 548c7d65]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "canonical_key": "krecenje [arh 548c7d65]",
+        "catalog_version": 15
+      },
+      {
+        "id": "595ca5f1-3a86-4b15-be33-075b6c98c7aa",
+        "label": "Podešavanje šarki [arh 595ca5f1]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "1ad961b3-2603-4c4f-9de2-c130fd1f1c07",
+        "canonical_key": "podesavanje sarki [arh 595ca5f1]",
+        "catalog_version": 15
+      },
+      {
+        "id": "5b4d8f16-f064-43db-ba55-f183d5137e0b",
+        "label": "Kurirske dostave [arh 5b4d8f16]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "canonical_key": "kurirske dostave [arh 5b4d8f16]",
+        "catalog_version": 15
+      },
+      {
+        "id": "5b8d2b3e-7381-45fc-8fd1-70f0d55f8c88",
+        "label": "Preuzimanje dokumentacije [arh 5b8d2b3e]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "2409b598-8d8c-4e5c-b3e3-ae7c99c69fa6",
+        "canonical_key": "preuzimanje dokumentacije [arh 5b8d2b3e]",
+        "catalog_version": 15
+      },
+      {
+        "id": "5c0a07ac-b9f2-4101-84b9-9d5ce16ceb8b",
+        "label": "Sakupljanje lišća [arh 5c0a07ac]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "d1c6fb66-6b42-4676-b70b-074f4fcedcc8",
+        "canonical_key": "sakupljanje lisca [arh 5c0a07ac]",
+        "catalog_version": 15
+      },
+      {
+        "id": "5f5d367b-d4c7-44e2-b364-c79eff37bfb3",
+        "label": "Fina mehanika [arh 5f5d367b]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "fina mehanika [arh 5f5d367b]",
+        "catalog_version": 15
+      },
+      {
+        "id": "60ec569b-5908-4950-b776-a5d5be656057",
+        "label": "Transport i selidbe [arh 60ec569b]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "transport i selidbe [arh 60ec569b]",
+        "catalog_version": 15
+      },
+      {
+        "id": "6b7ed350-6947-4f7d-991c-caf03118db5d",
+        "label": "Izrada prezentacija [arh 6b7ed350]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "canonical_key": "izrada prezentacija [arh 6b7ed350]",
+        "catalog_version": 15
+      },
+      {
+        "id": "6cde1231-b255-4102-a654-ee90d1cc8a87",
+        "label": "Fizički poslovi [arh 6cde1231]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000016",
+        "canonical_key": "fizicki poslovi [arh 6cde1231]",
+        "catalog_version": 15
+      },
+      {
+        "id": "6e92b7d0-0db8-4a50-a7f4-65b4e037d439",
+        "label": "restauracija stilskog nameštaja [arh 6e92b7d0]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "32a489a3-7b20-4c5d-a173-7dad02420ffb",
+        "canonical_key": "restauracija stilskog namestaja [arh 6e92b7d0]",
+        "catalog_version": 15
+      },
+      {
+        "id": "72da7856-c788-4280-baec-3f3023763624",
+        "label": "Utovar i istovar [arh 72da7856]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "6cde1231-b255-4102-a654-ee90d1cc8a87",
+        "canonical_key": "utovar i istovar [arh 72da7856]",
+        "catalog_version": 15
+      },
+      {
+        "id": "7569489d-d5ba-47f2-b465-259d1c9c0592",
+        "label": "Prevoz nameštaja [arh 7569489d]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "f73ce099-696a-43a1-bd75-5fbcac2f5a26",
+        "canonical_key": "prevoz namestaja [arh 7569489d]",
+        "catalog_version": 15
+      },
+      {
+        "id": "76f115a2-c9ce-4d8e-8fc2-d3c330b062ba",
+        "label": "filigran [arh 76f115a2]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "filigran [arh 76f115a2]",
+        "catalog_version": 15
+      },
+      {
+        "id": "7b53dc0e-52b2-4daf-8536-5526198a47f9",
+        "label": "Košenje trave [arh 7b53dc0e]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "d1c6fb66-6b42-4676-b70b-074f4fcedcc8",
+        "canonical_key": "kosenje trave [arh 7b53dc0e]",
+        "catalog_version": 15
+      },
+      {
+        "id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "label": "Dostava [arh 822a7676]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000016",
+        "canonical_key": "dostava [arh 822a7676]",
+        "catalog_version": 15
+      },
+      {
+        "id": "83143fa9-b299-4818-9a27-66e41c1bd0bd",
+        "label": "Montaža kreveta [arh 83143fa9]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "32a489a3-7b20-4c5d-a173-7dad02420ffb",
+        "canonical_key": "montaza kreveta [arh 83143fa9]",
+        "catalog_version": 15
+      },
+      {
+        "id": "84e0da27-5c66-46e7-833b-2c8334851b08",
+        "label": "Preuzimanje paketa [arh 84e0da27]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "canonical_key": "preuzimanje paketa [arh 84e0da27]",
+        "catalog_version": 15
+      },
+      {
+        "id": "84fd20fa-d07a-4fd1-aaeb-c5552c957953",
+        "label": "Zamena utičnica [arh 84fd20fa]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "b49c0cb7-2d3d-4131-97b5-0ba3baf26089",
+        "canonical_key": "zamena uticnica [arh 84fd20fa]",
+        "catalog_version": 15
+      },
+      {
+        "id": "8766e4e3-5a44-4ddf-ab90-1cb607b6de53",
+        "label": "Lektura tekstova [arh 8766e4e3]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "9e9f5cd8-2eeb-4a3c-b635-3221fd6012f6",
+        "canonical_key": "lektura tekstova [arh 8766e4e3]",
+        "catalog_version": 15
+      },
+      {
+        "id": "878b39d1-3867-481b-bfed-bbb9bda9a006",
+        "label": "Zamena kvake [arh 878b39d1]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "1ad961b3-2603-4c4f-9de2-c130fd1f1c07",
+        "canonical_key": "zamena kvake [arh 878b39d1]",
+        "catalog_version": 15
+      },
+      {
+        "id": "87d23f16-551e-4b3e-8968-ca0e05a424ec",
+        "label": "donošenje i odnošenje [arh 87d23f16]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "canonical_key": "donosenje i odnosenje [arh 87d23f16]",
+        "catalog_version": 15
+      },
+      {
+        "id": "8bb3e9dd-52bf-4377-905e-16f7c221c818",
+        "label": "Preuzimanje robe u prodavnici [arh 8bb3e9dd]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "afa8bdb6-b480-4c9a-a258-7665f4dccb9d",
+        "canonical_key": "preuzimanje robe u prodavnici [arh 8bb3e9dd]",
+        "catalog_version": 15
+      },
+      {
+        "id": "8e1befff-ac67-47de-94f2-3bc8f16d60b0",
+        "label": "Dizajn banera [arh 8e1befff]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "236dbbcf-4f6f-47c2-a5da-45262d6fd271",
+        "canonical_key": "dizajn banera [arh 8e1befff]",
+        "catalog_version": 15
+      },
+      {
+        "id": "901d8b10-5f72-4d81-826e-89ed394efa38",
+        "label": "Postavljanje držača [arh 901d8b10]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "1ad961b3-2603-4c4f-9de2-c130fd1f1c07",
+        "canonical_key": "postavljanje drzaca [arh 901d8b10]",
+        "catalog_version": 15
+      },
+      {
+        "id": "920f90b6-2827-41ef-b597-8cfb3a965d56",
+        "label": "Izrada i održavanje sajtova [arh 920f90b6]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "canonical_key": "izrada i odrzavanje sajtova [arh 920f90b6]",
+        "catalog_version": 15
+      },
+      {
+        "id": "952da6c6-2557-453e-b2aa-5e4261d3d6cb",
+        "label": "Časovi arapskog jezika [arh 952da6c6]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "019d9094-4977-4da7-8113-b3d0a9f42b11",
+        "canonical_key": "casovi arapskog jezika [arh 952da6c6]",
+        "catalog_version": 15
+      },
+      {
+        "id": "9559161b-3c80-4adf-95ef-2b90fb1ef837",
+        "label": "Čišćenje [arh 9559161b]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "ciscenje [arh 9559161b]",
+        "catalog_version": 15
+      },
+      {
+        "id": "95fd8653-4950-4a61-8905-66ec73d67c3a",
+        "label": "pranje prozora [arh 95fd8653]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "9559161b-3c80-4adf-95ef-2b90fb1ef837",
+        "canonical_key": "pranje prozora [arh 95fd8653]",
+        "catalog_version": 15
+      },
+      {
+        "id": "98204491-93f9-4401-8249-a1625aa72c2d",
+        "label": "Kupovina karata [arh 98204491]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "afa8bdb6-b480-4c9a-a258-7665f4dccb9d",
+        "canonical_key": "kupovina karata [arh 98204491]",
+        "catalog_version": 15
+      },
+      {
+        "id": "99dae202-000d-4c5a-8967-ba1a9e17d7ac",
+        "label": "Servis kućnih aparata [arh 99dae202]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "5f5d367b-d4c7-44e2-b364-c79eff37bfb3",
+        "canonical_key": "servis kucnih aparata [arh 99dae202]",
+        "catalog_version": 15
+      },
+      {
+        "id": "9b454bf4-99e6-4d1d-b171-d49342cc23c0",
+        "label": "čekanje u redovima [arh 9b454bf4]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "f0cc02f8-8307-4c2b-9c8a-8c7c7494a5a2",
+        "canonical_key": "cekanje u redovima [arh 9b454bf4]",
+        "catalog_version": 15
+      },
+      {
+        "id": "9bfcc3ec-f0eb-442d-8968-ec5eaac0f122",
+        "label": "Poliranje dragog kamenja [arh 9bfcc3ec]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "poliranje dragog kamenja [arh 9bfcc3ec]",
+        "catalog_version": 15
+      },
+      {
+        "id": "9c188c43-40ef-4d47-9197-86a2a14dcada",
+        "label": "Kratka praktična ispomoć [arh 9c188c43]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "a694f586-0ffc-4214-9a85-5bb84daf6f8a",
+        "canonical_key": "kratka prakticna ispomoc [arh 9c188c43]",
+        "catalog_version": 15
+      },
+      {
+        "id": "9d7c1502-317b-4557-a343-b7564ae5ad95",
+        "label": "Orezivanje žive ograde [arh 9d7c1502]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "d1c6fb66-6b42-4676-b70b-074f4fcedcc8",
+        "canonical_key": "orezivanje zive ograde [arh 9d7c1502]",
+        "catalog_version": 15
+      },
+      {
+        "id": "9e9f5cd8-2eeb-4a3c-b635-3221fd6012f6",
+        "label": "Pisanje i jezici [arh 9e9f5cd8]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000014",
+        "canonical_key": "pisanje i jezici [arh 9e9f5cd8]",
+        "catalog_version": 15
+      },
+      {
+        "id": "9ed8dcfa-7035-48dc-84ba-937273379921",
+        "label": "Čišćenje nakon radova [arh 9ed8dcfa]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "9559161b-3c80-4adf-95ef-2b90fb1ef837",
+        "canonical_key": "ciscenje nakon radova [arh 9ed8dcfa]",
+        "catalog_version": 15
+      },
+      {
+        "id": "a189c1ad-6d33-43bb-9856-17c7f22fdc81",
+        "label": "Izrada logotipa [arh a189c1ad]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "236dbbcf-4f6f-47c2-a5da-45262d6fd271",
+        "canonical_key": "izrada logotipa [arh a189c1ad]",
+        "catalog_version": 15
+      },
+      {
+        "id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "label": "Zanati i popravke [arh a224630c]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "zanati i popravke [arh a224630c]",
+        "catalog_version": 15
+      },
+      {
+        "id": "a34c4f44-e621-4c02-8261-4dbf8585a86b",
+        "label": "Online podučavanje [arh a34c4f44]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000015",
+        "canonical_key": "online poducavanje [arh a34c4f44]",
+        "catalog_version": 15
+      },
+      {
+        "id": "a694f586-0ffc-4214-9a85-5bb84daf6f8a",
+        "label": "Pomoć na terenu [arh a694f586]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "f0cc02f8-8307-4c2b-9c8a-8c7c7494a5a2",
+        "canonical_key": "pomoc na terenu [arh a694f586]",
+        "catalog_version": 15
+      },
+      {
+        "id": "a71ac924-1de0-4b38-9f5e-b1e813fc80b3",
+        "label": "prenos teških stvari [arh a71ac924]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "f73ce099-696a-43a1-bd75-5fbcac2f5a26",
+        "canonical_key": "prenos teskih stvari [arh a71ac924]",
+        "catalog_version": 15
+      },
+      {
+        "id": "ab9b3e18-8e16-432c-8494-0fa23d57b5be",
+        "label": "orezivanje drveća [arh ab9b3e18]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "d1c6fb66-6b42-4676-b70b-074f4fcedcc8",
+        "canonical_key": "orezivanje drveca [arh ab9b3e18]",
+        "catalog_version": 15
+      },
+      {
+        "id": "abfc5754-073e-4b74-a607-6856ebdec723",
+        "label": "preuzimanje lekova i paketa [arh abfc5754]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "canonical_key": "preuzimanje lekova i paketa [arh abfc5754]",
+        "catalog_version": 15
+      },
+      {
+        "id": "ad75dbf7-7017-4925-89c7-e0896e0fbdf0",
+        "label": "prevod sa engleskog [arh ad75dbf7]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "9e9f5cd8-2eeb-4a3c-b635-3221fd6012f6",
+        "canonical_key": "prevod sa engleskog [arh ad75dbf7]",
+        "catalog_version": 15
+      },
+      {
+        "id": "afa8bdb6-b480-4c9a-a258-7665f4dccb9d",
+        "label": "Nabavka i kupovina [arh afa8bdb6]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "f0cc02f8-8307-4c2b-9c8a-8c7c7494a5a2",
+        "canonical_key": "nabavka i kupovina [arh afa8bdb6]",
+        "catalog_version": 15
+      },
+      {
+        "id": "b02a56aa-3491-4dcc-b9b1-d84da9d63a92",
+        "label": "Zamena slavine [arh b02a56aa]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "c2d5908c-18ff-4673-a3d9-1796bf0da74d",
+        "canonical_key": "zamena slavine [arh b02a56aa]",
+        "catalog_version": 15
+      },
+      {
+        "id": "b3c58517-a95f-4875-aa2e-d8de3f617514",
+        "label": "Izrada nakita od srebra [arh b3c58517]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "izrada nakita od srebra [arh b3c58517]",
+        "catalog_version": 15
+      },
+      {
+        "id": "b49c0cb7-2d3d-4131-97b5-0ba3baf26089",
+        "label": "Električarski radovi [arh b49c0cb7]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "elektricarski radovi [arh b49c0cb7]",
+        "catalog_version": 15
+      },
+      {
+        "id": "b4c9b844-5c44-4934-b0a8-c20ac1d3ab8b",
+        "label": "prevod sa nemačkog [arh b4c9b844]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "9e9f5cd8-2eeb-4a3c-b635-3221fd6012f6",
+        "canonical_key": "prevod sa nemackog [arh b4c9b844]",
+        "catalog_version": 15
+      },
+      {
+        "id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "label": "Molerski radovi [arh b4cf44dd]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "molerski radovi [arh b4cf44dd]",
+        "catalog_version": 15
+      },
+      {
+        "id": "be2ec1e2-16ff-43ab-844b-7dd84ff88f79",
+        "label": "IKEA montaža [arh be2ec1e2]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "32a489a3-7b20-4c5d-a173-7dad02420ffb",
+        "canonical_key": "ikea montaza [arh be2ec1e2]",
+        "catalog_version": 15
+      },
+      {
+        "id": "c04be55c-cbb7-42fe-9afc-8f3ca9bdce3c",
+        "label": "popravka antikviteta [arh c04be55c]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "popravka antikviteta [arh c04be55c]",
+        "catalog_version": 15
+      },
+      {
+        "id": "c06db484-9f63-4c4c-87fa-c0997003d5f7",
+        "label": "Ispitivanje elektroinstalacija [arh c06db484]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "b49c0cb7-2d3d-4131-97b5-0ba3baf26089",
+        "canonical_key": "ispitivanje elektroinstalacija [arh c06db484]",
+        "catalog_version": 15
+      },
+      {
+        "id": "c0b4b4cd-e622-4791-b488-1e6072ffbb26",
+        "label": "Provera dostupnosti proizvoda [arh c0b4b4cd]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "a694f586-0ffc-4214-9a85-5bb84daf6f8a",
+        "canonical_key": "provera dostupnosti proizvoda [arh c0b4b4cd]",
+        "catalog_version": 15
+      },
+      {
+        "id": "c2d5908c-18ff-4673-a3d9-1796bf0da74d",
+        "label": "Vodoinstalaterski radovi [arh c2d5908c]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000011",
+        "canonical_key": "vodoinstalaterski radovi [arh c2d5908c]",
+        "catalog_version": 15
+      },
+      {
+        "id": "c30c8418-778c-47d8-b953-e53f5aae344b",
+        "label": "Pranje i peglanje [arh c30c8418]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "pranje i peglanje [arh c30c8418]",
+        "catalog_version": 15
+      },
+      {
+        "id": "c3a52a63-fea1-4a69-859a-63d1939f7003",
+        "label": "Pomoć u gradu i potrčko [arh c3a52a63]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "canonical_key": "pomoc u gradu i potrcko [arh c3a52a63]",
+        "catalog_version": 15
+      },
+      {
+        "id": "c45a4819-240d-44fc-a1af-c836d7aa6f04",
+        "label": "intarzija [arh c45a4819]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "intarzija [arh c45a4819]",
+        "catalog_version": 15
+      },
+      {
+        "id": "c46ee057-a880-4315-802d-da6668051b7c",
+        "label": "Dekorativne molerske tehnike [arh c46ee057]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "canonical_key": "dekorativne molerske tehnike [arh c46ee057]",
+        "catalog_version": 15
+      },
+      {
+        "id": "c5f255ee-0314-4f63-a308-e9abecfa415a",
+        "label": "Gletovanje [arh c5f255ee]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "canonical_key": "gletovanje [arh c5f255ee]",
+        "catalog_version": 15
+      },
+      {
+        "id": "cc1c6942-fc3c-40c1-be15-9c84239f04a0",
+        "label": "Skupljanje i razmena sličica",
+        "state": "ESTABLISHED",
+        "source": "AI_REVIEWED",
+        "parent_id": "00000000-0000-4000-8000-000000000017",
+        "canonical_key": "skupljanje i razmena slicica",
+        "catalog_version": 16
+      },
+      {
+        "id": "d014dc7d-cccc-46c1-9826-cf95a1949344",
+        "label": "3D štampa i modelovanje",
+        "state": "ESTABLISHED",
+        "source": "AI_REVIEWED",
+        "parent_id": "00000000-0000-4000-8000-000000000018",
+        "canonical_key": "3d stampa i modelovanje",
+        "catalog_version": 17
+      },
+      {
+        "id": "d04702dd-a00f-430e-895b-86713f84c190",
+        "label": "krčenje placa [arh d04702dd]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "d1c6fb66-6b42-4676-b70b-074f4fcedcc8",
+        "canonical_key": "krcenje placa [arh d04702dd]",
+        "catalog_version": 15
+      },
+      {
+        "id": "d183238e-8578-42b3-a9c2-af3867695e24",
+        "label": "Časovi programiranja [arh d183238e]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "a34c4f44-e621-4c02-8261-4dbf8585a86b",
+        "canonical_key": "casovi programiranja [arh d183238e]",
+        "catalog_version": 15
+      },
+      {
+        "id": "d1a25cf1-8c17-40db-902c-4afa9d6a4e6a",
+        "label": "ugradnja rasvete [arh d1a25cf1]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "ugradnja rasvete [arh d1a25cf1]",
+        "catalog_version": 15
+      },
+      {
+        "id": "d1c6fb66-6b42-4676-b70b-074f4fcedcc8",
+        "label": "Bašta i dvorište [arh d1c6fb66]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "basta i dvoriste [arh d1c6fb66]",
+        "catalog_version": 15
+      },
+      {
+        "id": "d5ae85ce-4e9a-46c8-a662-c55b0215e2e0",
+        "label": "Prevoz stvari [arh d5ae85ce]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "60ec569b-5908-4950-b776-a5d5be656057",
+        "canonical_key": "prevoz stvari [arh d5ae85ce]",
+        "catalog_version": 15
+      },
+      {
+        "id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+        "label": "3D printovanje [arh d5e890a0]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "canonical_key": "3d printovanje [arh d5e890a0]",
+        "catalog_version": 15
+      },
+      {
+        "id": "d6eb501e-948d-441e-859f-7683444fbe98",
+        "label": "Čišćenje kancelarija [arh d6eb501e]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "9559161b-3c80-4adf-95ef-2b90fb1ef837",
+        "canonical_key": "ciscenje kancelarija [arh d6eb501e]",
+        "catalog_version": 15
+      },
+      {
+        "id": "d7c4a865-1532-42cd-8204-a11178c16f67",
+        "label": "Krečenje stana [arh d7c4a865]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "548c7d65-6c20-4a75-9880-9a0244027624",
+        "canonical_key": "krecenje stana [arh d7c4a865]",
+        "catalog_version": 15
+      },
+      {
+        "id": "d9ad2db1-ca0d-44ad-bf4d-5edcdea28842",
+        "label": "Dostava dokumenata [arh d9ad2db1]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "822a7676-b841-4913-9daf-fac7bc6497c3",
+        "canonical_key": "dostava dokumenata [arh d9ad2db1]",
+        "catalog_version": 15
+      },
+      {
+        "id": "d9fd5b69-c925-40b9-8e47-911197f726cd",
+        "label": "Časovi engleskog jezika [arh d9fd5b69]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "a34c4f44-e621-4c02-8261-4dbf8585a86b",
+        "canonical_key": "casovi engleskog jezika [arh d9fd5b69]",
+        "catalog_version": 15
+      },
+      {
+        "id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "label": "Digitalne usluge [arh df30eb84]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000014",
+        "canonical_key": "digitalne usluge [arh df30eb84]",
+        "catalog_version": 15
+      },
+      {
+        "id": "e0d2dde3-8751-49b2-ba91-fbf2edf8f3dd",
+        "label": "Gipsarski radovi [arh e0d2dde3]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "b4cf44dd-2b62-4f68-b97c-2d66763c8ed6",
+        "canonical_key": "gipsarski radovi [arh e0d2dde3]",
+        "catalog_version": 15
+      },
+      {
+        "id": "e96498f7-dd4f-49d9-ad8b-c80d843c3c6f",
+        "label": "odgušenje kanalizacije [arh e96498f7]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "c2d5908c-18ff-4673-a3d9-1796bf0da74d",
+        "canonical_key": "odgusenje kanalizacije [arh e96498f7]",
+        "catalog_version": 15
+      },
+      {
+        "id": "e96c1f47-7793-4d25-b265-6e825d621c66",
+        "label": "zamena osigurača [arh e96c1f47]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "b49c0cb7-2d3d-4131-97b5-0ba3baf26089",
+        "canonical_key": "zamena osiguraca [arh e96c1f47]",
+        "catalog_version": 15
+      },
+      {
+        "id": "ef63d6d2-7087-4d67-8a9d-b07952655d03",
+        "label": "3D modelovanje i izrada taktilnih karata [arh ef63d6d2]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "canonical_key": "3d modelovanje i izrada taktilnih karata [arh ef63d6d2]",
+        "catalog_version": 15
+      },
+      {
+        "id": "ef7fd848-332f-47d9-ba67-a3e52ddcaac4",
+        "label": "Ispomoć u skladištu [arh ef7fd848]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "6cde1231-b255-4102-a654-ee90d1cc8a87",
+        "canonical_key": "ispomoc u skladistu [arh ef7fd848]",
+        "catalog_version": 15
+      },
+      {
+        "id": "f0cc02f8-8307-4c2b-9c8a-8c7c7494a5a2",
+        "label": "Svakodnevna pomoć [arh f0cc02f8]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "svakodnevna pomoc [arh f0cc02f8]",
+        "catalog_version": 15
+      },
+      {
+        "id": "f1d161e8-cebf-4bd4-a726-b45bb7d76b37",
+        "label": "Zamena prekidača [arh f1d161e8]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "b49c0cb7-2d3d-4131-97b5-0ba3baf26089",
+        "canonical_key": "zamena prekidaca [arh f1d161e8]",
+        "catalog_version": 15
+      },
+      {
+        "id": "f3223b2d-de9e-48c6-a9c3-3f74744dea60",
+        "label": "Popravka vodokotlića [arh f3223b2d]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "c2d5908c-18ff-4673-a3d9-1796bf0da74d",
+        "canonical_key": "popravka vodokotlica [arh f3223b2d]",
+        "catalog_version": 15
+      },
+      {
+        "id": "f73ce099-696a-43a1-bd75-5fbcac2f5a26",
+        "label": "Selidbe i prevoz [arh f73ce099]",
+        "state": "RETIRED",
+        "source": "SYSTEM",
+        "parent_id": "00000000-0000-4000-8000-000000000012",
+        "canonical_key": "selidbe i prevoz [arh f73ce099]",
+        "catalog_version": 15
+      },
+      {
+        "id": "f7a2c0ca-4e15-492e-9024-350891889645",
+        "label": "Prevoz manjih stvari [arh f7a2c0ca]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "f73ce099-696a-43a1-bd75-5fbcac2f5a26",
+        "canonical_key": "prevoz manjih stvari [arh f7a2c0ca]",
+        "catalog_version": 15
+      },
+      {
+        "id": "f88c9121-e181-4b5a-aa9e-459afa01058b",
+        "label": "Kupovina namirnica [arh f88c9121]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "afa8bdb6-b480-4c9a-a258-7665f4dccb9d",
+        "canonical_key": "kupovina namirnica [arh f88c9121]",
+        "catalog_version": 15
+      },
+      {
+        "id": "f8cae7e6-b8a0-4472-a7ee-c35baa2e8c9b",
+        "label": "dubinsko pranje nameštaja [arh f8cae7e6]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "9559161b-3c80-4adf-95ef-2b90fb1ef837",
+        "canonical_key": "dubinsko pranje namestaja [arh f8cae7e6]",
+        "catalog_version": 15
+      },
+      {
+        "id": "f9fed243-359d-432a-ab2a-26e20e6220ec",
+        "label": "popravke [arh f9fed243]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "a224630c-e1e1-402b-a2a0-e2f92f7dcabe",
+        "canonical_key": "popravke [arh f9fed243]",
+        "catalog_version": 15
+      },
+      {
+        "id": "fdb62662-a6a1-48ea-94b7-285543c6d46f",
+        "label": "Održavanje sajta [arh fdb62662]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "920f90b6-2827-41ef-b597-8cfb3a965d56",
+        "canonical_key": "odrzavanje sajta [arh fdb62662]",
+        "catalog_version": 15
+      },
+      {
+        "id": "febba95f-17ea-4ab7-be8e-a83fafc3aedf",
+        "label": "Peglanje veša [arh febba95f]",
+        "state": "RETIRED",
+        "source": "OPERATOR",
+        "parent_id": "c30c8418-778c-47d8-b953-e53f5aae344b",
+        "canonical_key": "peglanje vesa [arh febba95f]",
+        "catalog_version": 15
+      },
+      {
+        "id": "ffe4daac-385b-44b8-9642-2a8bb28bec84",
+        "label": "Prevodilačke usluge [arh ffe4daac]",
+        "state": "RETIRED",
+        "source": "AI_REVIEWED",
+        "parent_id": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+        "canonical_key": "prevodilacke usluge [arh ffe4daac]",
+        "catalog_version": 15
+      }
+    ],
+    "observedAt": "2026-11-09T12:32:59.051329+00:00",
+    "catalogVersion": 17
+  },
+  "proposals": [
+    {
+      "mode": "ON_SITE",
+      "action": "REUSE_EXISTING",
+      "reason": "Usklađeno sa potrčko uslugama i brzom gradskom dostavom na terenu.",
+      "service": "Kurirske dostave",
+      "parentId": "",
+      "categoryId": "00000000-0000-4000-8000-000000000701",
+      "proposedPath": [],
+      "catalogVersion": 17
+    },
+    {
+      "mode": "ON_SITE",
+      "action": "REUSE_EXISTING",
+      "reason": "Usklađeno sa potrčko uslugama, nabavkom i obavljanjem kupovine na terenu.",
+      "service": "Nabavka i kupovina",
+      "parentId": "",
+      "categoryId": "00000000-0000-4000-8000-000000000701",
+      "proposedPath": [],
+      "catalogVersion": 17
+    },
+    {
+      "mode": "ON_SITE",
+      "action": "REUSE_EXISTING",
+      "reason": "Usklađeno sa kategorijom za univerzalnu fizičku ispomoć i poslove na terenu.",
+      "service": "Fizički poslovi",
+      "parentId": "",
+      "categoryId": "00000000-0000-4000-8000-000000000201",
+      "proposedPath": [],
+      "catalogVersion": 17
+    },
+    {
+      "mode": "ON_SITE",
+      "action": "REUSE_EXISTING",
+      "reason": "Usklađeno sa kategorijom za košenje trave i održavanje travnjaka na terenu.",
+      "service": "Košenje trave",
+      "parentId": "",
+      "categoryId": "00000000-0000-4000-8000-000000000601",
+      "proposedPath": [],
+      "catalogVersion": 17
+    },
+    {
+      "mode": "ON_SITE",
+      "action": "REUSE_EXISTING",
+      "reason": "Usklađeno sa utovarom, istovarom i pretovarom materijala i tereta.",
+      "service": "Utovar i istovar",
+      "parentId": "",
+      "categoryId": "00000000-0000-4000-8000-000000000203",
+      "proposedPath": [],
+      "catalogVersion": 17
+    },
+    {
+      "mode": "REMOTE",
+      "action": "REUSE_EXISTING",
+      "reason": "Sačuvan je isti serverski ID i način rada za uslugu „Izrada PowerPoint prezentacija“.",
+      "handoff": {
+        "required": false
+      },
+      "service": "Izrada PowerPoint prezentacija",
+      "parentId": "",
+      "categoryId": "00000000-0000-4000-8000-000000000807",
+      "proposedPath": [],
+      "catalogVersion": 17
+    },
+    {
+      "mode": "ON_SITE",
+      "action": "REUSE_EXISTING",
+      "reason": "Sačuvan je isti serverski ID i način rada za uslugu „Pomoć pri nošenju stvari pri selidbi“.",
+      "service": "Pomoć pri nošenju stvari pri selidbi",
+      "parentId": "",
+      "categoryId": "00000000-0000-4000-8000-000000000204",
+      "proposedPath": [],
+      "catalogVersion": 17
+    }
+  ],
+  "observedChecks": [
+    {
+      "ordinality": 1,
+      "service": "Kurirske dostave",
+      "proposed_id": "00000000-0000-4000-8000-000000000701",
+      "safety": "LOW_RISK_CANDIDATE",
+      "conflicting_categories": null
+    },
+    {
+      "ordinality": 2,
+      "service": "Nabavka i kupovina",
+      "proposed_id": "00000000-0000-4000-8000-000000000701",
+      "safety": "LOW_RISK_CANDIDATE",
+      "conflicting_categories": null
+    },
+    {
+      "ordinality": 3,
+      "service": "Fizički poslovi",
+      "proposed_id": "00000000-0000-4000-8000-000000000201",
+      "safety": "NEEDS_CLARIFICATION",
+      "conflicting_categories": null
+    },
+    {
+      "ordinality": 4,
+      "service": "Košenje trave",
+      "proposed_id": "00000000-0000-4000-8000-000000000601",
+      "safety": "LOW_RISK_CANDIDATE",
+      "conflicting_categories": null
+    },
+    {
+      "ordinality": 5,
+      "service": "Utovar i istovar",
+      "proposed_id": "00000000-0000-4000-8000-000000000203",
+      "safety": "LOW_RISK_CANDIDATE",
+      "conflicting_categories": null
+    },
+    {
+      "ordinality": 6,
+      "service": "Izrada PowerPoint prezentacija",
+      "proposed_id": "00000000-0000-4000-8000-000000000807",
+      "safety": "LOW_RISK_CANDIDATE",
+      "conflicting_categories": null
+    },
+    {
+      "ordinality": 7,
+      "service": "Pomoć pri nošenju stvari pri selidbi",
+      "proposed_id": "00000000-0000-4000-8000-000000000204",
+      "safety": "LOW_RISK_CANDIDATE",
+      "conflicting_categories": null
+    }
+  ]
+}

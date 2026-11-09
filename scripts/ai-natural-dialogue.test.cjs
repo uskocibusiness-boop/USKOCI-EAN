@@ -221,6 +221,81 @@ test('whole-day task deadline accepts the exclusive midnight after its last incl
   assert.equal(out.safety,'ALLOW'); assert.equal(out.proposals[0].value,'2026-12-11T00:00:00+01:00');
 });
 
+const flexibleTurn = (proposals=[]) => {
+  const value=turn('Rok je do 10. decembra 2026.',proposals,'','ACK');
+  value.dialogue.schedulePattern='FLEXIBLE_RANGE';
+  return value;
+};
+
+test('phone regression: a valid latest boundary survives while only the earliest date is requested',()=>{
+  const input='Treba mi prevod teksta od 1000 reci sa srpskog na engleski, sve onlajn. Rok je do desetog sledeceg meseca. Nudim ukupno 3000 dinara za jednu osobu.';
+  const end=fact('need.ends_at','2026-12-11T00:00:00+01:00','do desetog sledeceg meseca');
+  const out=run(flexibleTurn([end,fact('need.schedule_kind','FLEXIBLE','do desetog sledeceg meseca'),
+    fact('need.price_mode','MY_PRICE','Nudim ukupno 3000 dinara'),fact('need.price_rsd',3000,'3000 dinara'),
+    fact('need.price_basis','TOTAL','ukupno'),fact('need.people_needed',1,'jednu osobu')]),input);
+  assert.equal(out.safety,'CLARIFY');
+  assert.equal(out.proposals.find(p=>p.key==='need.ends_at')?.value,end.value);
+  assert.equal(out.proposals.some(p=>['need.starts_at','need.schedule_kind'].includes(p.key)),false);
+  assert.equal(out.proposals.find(p=>p.key==='need.price_rsd')?.value,3000);
+  assert.match(out.assistantMessage,/Od kog datuma/);
+  assert.doesNotMatch(out.assistantMessage,/do kog datuma|Od kog do kog|danas/i);
+  assert.equal(out.dialogue.next,'ASK'); assert.equal(out.dialogue.questionKey,'need.starts_at');
+});
+
+test('an earliest boundary survives while only the missing latest date is requested',()=>{
+  const start=fact('need.starts_at','2026-12-01T00:00:00+01:00','od prvog decembra');
+  const out=run(flexibleTurn([start,fact('need.schedule_kind','FLEXIBLE','od prvog decembra')]),'Može od prvog decembra.');
+  assert.equal(out.proposals.find(p=>p.key==='need.starts_at')?.value,start.value);
+  assert.equal(out.proposals.some(p=>['need.ends_at','need.schedule_kind'].includes(p.key)),false);
+  assert.match(out.assistantMessage,/Do kog datuma/); assert.doesNotMatch(out.assistantMessage,/Od kog/i);
+  assert.equal(out.dialogue.questionKey,'need.ends_at');
+});
+
+test('a saved latest boundary is preserved and not requested again during another answer',()=>{
+  const facts=active([['need.ends_at','2026-12-11T00:00:00+01:00']]),before=JSON.stringify(facts);
+  const out=run(flexibleTurn([fact('need.people_needed',2,'dve osobe')]),'Trebaju mi dve osobe.',facts);
+  assert.equal(JSON.stringify(facts),before);
+  assert.equal(out.proposals.find(p=>p.key==='need.people_needed')?.value,2);
+  assert.equal(out.proposals.some(p=>p.key==='need.ends_at'),false);
+  assert.equal(out.dialogue.questionKey,'need.starts_at');
+  assert.doesNotMatch(out.assistantMessage,/do kog datuma|Od kog do kog/i);
+});
+
+test('a new earliest boundary completes the range with the already saved latest boundary',()=>{
+  const facts=active([['need.ends_at','2026-12-11T00:00:00+01:00']]);
+  const out=run(flexibleTurn([fact('need.starts_at','2026-12-01T00:00:00+01:00','od prvog decembra'),
+    fact('need.schedule_kind','FLEXIBLE','od prvog decembra')]),'Može od prvog decembra.',facts);
+  assert.equal(out.safety,'ALLOW');
+  assert.equal(out.proposals.find(p=>p.key==='need.starts_at')?.value,'2026-12-01T00:00:00+01:00');
+  assert.equal(out.proposals.find(p=>p.key==='need.schedule_kind')?.value,'FLEXIBLE');
+});
+
+test('partial-range preservation cannot bypass the quoted next-month date guard',()=>{
+  const out=run(flexibleTurn([fact('need.ends_at','2026-11-11T00:00:00+01:00','do desetog sledeceg meseca'),
+    fact('need.people_needed',2,'dve osobe')]),'Treba završiti do desetog sledeceg meseca. Trebaju mi dve osobe.');
+  assert.equal(out.safety,'CLARIFY'); assert.equal(out.proposals.some(p=>p.key==='need.ends_at'),false);
+  assert.equal(out.proposals.find(p=>p.key==='need.people_needed')?.value,2);
+});
+
+test('an invalid application deadline cannot expose an unchecked boundary or incomplete schedule kind',()=>{
+  const out=run(flexibleTurn([
+    fact('need.response_deadline',{kind:'AT',at:'2026-11-10T17:00:00+01:00'},'do desetog sledeceg meseca u 17 sati'),
+    fact('need.ends_at','2026-11-11T00:00:00+01:00','do desetog sledeceg meseca'),
+    fact('need.schedule_kind','FLEXIBLE','do desetog sledeceg meseca'),fact('need.people_needed',2,'dve osobe')]),
+    'Prijave do desetog sledeceg meseca u 17 sati. Zadatak treba završiti do desetog sledeceg meseca. Trebaju mi dve osobe.');
+  assert.equal(out.safety,'CLARIFY');
+  assert.equal(out.proposals.some(p=>['need.starts_at','need.ends_at','need.schedule_kind','need.response_deadline'].includes(p.key)),false);
+  assert.equal(out.proposals.find(p=>p.key==='need.people_needed')?.value,2);
+});
+
+test('an inverted range does not preserve contradictory proposed boundaries',()=>{
+  const out=run(flexibleTurn([fact('need.starts_at','2026-12-12T00:00:00+01:00','od dvanaestog decembra'),
+    fact('need.ends_at','2026-12-11T00:00:00+01:00','do desetog decembra')]),
+    'Od dvanaestog decembra do desetog decembra.');
+  assert.equal(out.safety,'CLARIFY');
+  assert.equal(out.proposals.some(p=>['need.starts_at','need.ends_at','need.schedule_kind'].includes(p.key)),false);
+});
+
 test('an explicit midnight deadline stays on its stated date instead of adding another day',()=>{
   const evidence='do desetog sledećeg meseca u 00:00';
   const out=run(turn('U redu.',[fact('need.ends_at','2026-12-10T00:00:00+01:00',evidence)],'','ACK'),'Zadatak treba završiti '+evidence+'.');

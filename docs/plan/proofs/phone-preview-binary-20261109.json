@@ -1,0 +1,394 @@
+{
+  "schema": "USKOCI_PHONE_PREVIEW_BINARY_PROOF_V1",
+  "scope": "Source CI and independent offline APK verification; excludes device, FCM and production acceptance.",
+  "sourceCommit": "2d8ada07cc4e10616cc9c15619b9d87319cd0479",
+  "ci": {
+    "runId": 42613256327,
+    "runNumber": 95,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42613256327",
+    "conclusion": "success",
+    "event": "workflow_dispatch"
+  },
+  "artifactDownload": {
+    "schema": "USKOCI_GITHUB_ARTIFACT_DOWNLOAD_V1",
+    "verifiedAtUtc": "2026-11-09T12:21:09.021133+00:00",
+    "runId": "42613256327",
+    "headSha": "2d8ada07cc4e10616cc9c15619b9d87319cd0479",
+    "artifactId": 13672182579,
+    "artifactName": "uskoci-phone-preview-apk-95",
+    "originalZipPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-preview-42613256327\\phone-preview.zip",
+    "zipSha256": "c3dc70c70f58e46e5d8f9f90c23da4905b11d53c56295ff4b4fa086daaa1d2fd",
+    "githubDigestMatches": true,
+    "zipBytes": 48870790,
+    "extractedPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-preview-42613256327\\apk"
+  },
+  "sourceChecks": {
+    "sourceCommit": "2d8ada07cc4e10616cc9c15619b9d87319cd0479",
+    "runId": 42613256327,
+    "artifact": {
+      "id": 13670853267,
+      "name": "uskoci-checks-2d8ada07cc4e10616cc9c15619b9d87319cd0479",
+      "sha256": "8af7f1ef29d39ffdbe965181188eb427d5322ec530e6603c74363064f89ca112",
+      "githubDigestMatched": true
+    },
+    "node": {
+      "tests": 1312,
+      "pass": 1312,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "typescriptOutputBytes": 0,
+    "migrationSummary": [
+      "PASS migration_integrity files=231 live_snapshot=87 pending=60 physical_suffix=43 oct26_suffix=3 nov7_suffix=7 r13_push_wake=1 r09_activation=1 r09_applicant=1 post_qa92_readmission=3 nov7_forward=3 r08_forward=1 r01_forward=1 r08_reviews_forward=1 r05_forward=1 continuation_forward=2 recovery_export_forward=2 191500=RECORDED_STATEMENT_RECONSTRUCTION exact_byte_mirror=false participant_contract=PASS",
+      "............................................................",
+      "----------------------------------------------------------------------",
+      "Ran 60 tests in 0.090s",
+      "",
+      "OK"
+    ]
+  },
+  "sourceArchive": {
+    "sourceCommit": "2d8ada07cc4e10616cc9c15619b9d87319cd0479",
+    "runId": 42613256327,
+    "artifactId": 13671312513,
+    "originalZipSha256": "921d92f3aa9eee1065ab8e080c97605dc2800265fe480b75e90cff2e518deadf",
+    "githubDigestMatched": true,
+    "trackedBlobsMatched": 1506,
+    "sourceTarSha256": "b61b99c1875b0e20ce07c018cfd21f1a3d9874c3008acd3a07c827827b656586",
+    "allTarFileContentsMatchGitCommit": true,
+    "scope": "Exact pre-build source archive; CI later performs the documented phone app.json configuration overrides."
+  },
+  "binaryInspection": {
+    "schema": "USKOCI_PHONE_PREVIEW_LOCAL_ARTIFACT_V1",
+    "verifiedAtUtc": "2026-11-09T12:21:16.994380+00:00",
+    "status": "BINARY_VERIFIED_NOT_DEVICE_ACCEPTANCE",
+    "sourceCommit": "2d8ada07cc4e10616cc9c15619b9d87319cd0479",
+    "apk": {
+      "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-preview-42613256327\\apk\\USKOCI-PHONE-PREVIEW-2d8ada07c.apk",
+      "bytes": 83508815,
+      "sha256": "ba95caa8748b018431ace2e360ffa9dbbc21dc4e603994311c32dbb35fa33072"
+    },
+    "package": "rs.uskoci.preview",
+    "versionCode": 36,
+    "targetSdk": 36,
+    "compileSdk": 36,
+    "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+    "installedCertificateMatches": true,
+    "firebaseClientMatches": true,
+    "nativeOtaDisabled": true,
+    "embeddedSourceCommit": "2d8ada07cc4e10616cc9c15619b9d87319cd0479",
+    "sourceDirtyFlag": true,
+    "nativePatch": "USKOCI_RNR01",
+    "dexFiles": 7,
+    "audio": {
+      "uskoci_confirm_v1.wav": {
+        "logicalName": "raw/uskoci_confirm_v1",
+        "resourceId": "0x7f120003",
+        "apkPath": "res/F2.wav",
+        "bytes": 20330,
+        "sha256": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1"
+      },
+      "uskoci_message_v1.wav": {
+        "logicalName": "raw/uskoci_message_v1",
+        "resourceId": "0x7f120004",
+        "apkPath": "res/ES.wav",
+        "bytes": 10628,
+        "sha256": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed"
+      },
+      "uskoci_opportunity_v1.wav": {
+        "logicalName": "raw/uskoci_opportunity_v1",
+        "resourceId": "0x7f120005",
+        "apkPath": "res/fp.wav",
+        "bytes": 18566,
+        "sha256": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+      }
+    },
+    "strictAudioParserSha256": "b30290b28c24c53309f3fcaaf86d41282d1caace0fe54d855301387e44f4de45",
+    "nativeLibraries": [
+      {
+        "path": "lib/arm64-v8a/libandroidx.graphics.path.so",
+        "sha256": "41e9a793c43a0f4fddb19e33f346bace464f30f888ba7b9eaf96294ea115bfb6",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libanimation-decoder-gif.so",
+        "sha256": "1a36faccdc2df2d03b399bd20113768f04fe5f9c873c32974d89e588f63b6933",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libappmodules.so",
+        "sha256": "32dc5604a38f1999effcd9d1081cd9929b02dbabdae98c8a551e4b41f945dc23",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libavif_android.so",
+        "sha256": "278211a4aa0fe5034aef8ef9717736242b3b6868708dcd1e1b6d941c5f05150c",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libc++_shared.so",
+        "sha256": "3e852764502d06e0cf1080d532ae7c608b7649d946a3a9d7e84e3d4b7d683214",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libdatastore_shared_counter.so",
+        "sha256": "d3e48717c9aa147e0ab21063ba0e8e0211cabf8bf40b222640829519edbf58e1",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libexpo-modules-core.so",
+        "sha256": "1bcc37673001f7dd8d3417f6f345f6c188beceeb29facc50f95bd701272bc364",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libexpo-updates.so",
+        "sha256": "685e197f3262bd7fb67a0302343e235b53a1017ac52ba5c4c73aea74306f68eb",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libfbjni.so",
+        "sha256": "a9e35ba55d3f956920281f519385f8a72475ee24819799cb08375fdd4cce2b22",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libgesturehandler.so",
+        "sha256": "a39593cb8e855f9998f288b19ffabd9f498477c2256568b141f73894fed1147a",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libgifimage.so",
+        "sha256": "9f605249728da7091569772a38a4dde298ed48e1e73fed3da0e4b662ef38715c",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libhermestooling.so",
+        "sha256": "1db061bbbb050105fee9b208b861adc0cc02cc359551be6ba9562798a81f6cca",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libhermesvm.so",
+        "sha256": "bf38be45bf5d6ad8ba961eaf9deda5fa7e032f3ff7d3929ba2a624567093bffa",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libimagepipeline.so",
+        "sha256": "1b377992e4256fa9398ec057722f84a359c7d588e570c8a41f51d930c19ece7d",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libjsi.so",
+        "sha256": "5acb80d7eb93b2114a419c9e42b44476969299e806ad7eafe1b293e221b9a682",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libmaplibre.so",
+        "sha256": "b89ad36b224d0093a883f0b3f6b520e2ec3247436f074126762eac07ed7ee9b0",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libnative-filters.so",
+        "sha256": "4294b57460e70a6351ce7ae2733a79c088c907dfa54673a657227ec5bb669594",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libnative-imagetranscoder.so",
+        "sha256": "2aed28298a25afd52ac670cf9682398c6c7ba42a57195c01efd565e7ddfe17ca",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libreact_codegen_rnscreens.so",
+        "sha256": "dc2faaf4e4cd11aa98bac154cd2e526bf1432affe538b0ca3c5a07f84b6bdb6a",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+        "sha256": "d6df2ba722e20dd13e54b457a3589e9dbf654a55970b6a880528458e3d4db7c8",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+        "sha256": "20548021986702df83f206e94e7e3df26b9ec296baad37a72d68461b357bcb19",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libreactnative.so",
+        "sha256": "14bb860cebebb0e29eb2c96a52d70da9b73e60253916694af955f6e3ef1e6b64",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libreanimated.so",
+        "sha256": "3aa14d4ba26ea3b779bdd645d3bb07129dc7b5865c11f50cd7274c0716d2d2ff",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/librnscreens.so",
+        "sha256": "6d55838a674fda3ffd54e61c88a832b3d31734f4e4b02a285cccd4d0b668485d",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libsqliteJni.so",
+        "sha256": "5c4aa613a0bc34878ddc87d1bd02c3b0d10dee56473e3e34781d21db55346372",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libstatic-webp.so",
+        "sha256": "f3e5f9ab4f93f2a0a057285a2de9c93ba0ab59c76c22874d0356493ce283c4c7",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libworklets.so",
+        "sha256": "5b18ac97a4daefa0f853820e6a9b11ce188efb9e9927e3e540d89859a2e11dad",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      },
+      {
+        "path": "lib/arm64-v8a/libzstd-kmp.so",
+        "sha256": "10ec47f13bee884450b0911066019ba7aa6b4164a4c1f8c33c9d30dd3fd8868a",
+        "loadAlignments": [
+          16384,
+          16384,
+          16384
+        ]
+      }
+    ],
+    "allElf16KbAligned": true,
+    "zip16KbAligned": true,
+    "limits": [
+      "Independent offline native tools and ZIP-byte checks. No install, application launch, FCM delivery or audible-device acceptance.",
+      "Template-debug preview/DEV APK; not the EAS preview certificate, Play AAB or production approval.",
+      "Source is commit-bound with documented CI app.json overrides; not a reproducible-build claim."
+    ],
+    "embeddedBundle": {
+      "path": "assets/index.android.bundle",
+      "bytes": 14039696,
+      "sha256": "fc8b70664ea07ee7c58186251857332f8e8dab7a876a52ae115105706ac29eef"
+    }
+  },
+  "verifier": {
+    "localScript": "../verification/verify-phone-preview.py",
+    "sha256": "12f6e1933cb066fbd3030f20336e3a180eda682f18ee080bfe1abf66623af5ef",
+    "tools": [
+      "Android SDK build-tools 37.0.0 apksigner/aapt2/zipalign",
+      "Microsoft OpenJDK 17.0.20.8",
+      "Python 3.14 ZIP/ELF parser",
+      "tracked strict Android audio resource parser"
+    ]
+  },
+  "handoff": {
+    "installationOwner": "root agent",
+    "installedByThisInspection": false,
+    "launchPerformedByThisInspection": false,
+    "requiredInstallBoundary": "adb install -r only; package/certificate match the saved installed preview. Never uninstall or clear application data.",
+    "productionRelease": "NOT_APPROVED; preview/DEV package and template debug certificate, not EAS signing or Play AAB."
+  }
+}

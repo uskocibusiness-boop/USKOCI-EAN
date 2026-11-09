@@ -461,6 +461,47 @@ const assertOnePaidAttempt = result => {
   assert.equal(result.calls.some(call => /(?:publish|activate|save_worker|release_unused)/.test(call.name)), false);
 };
 
+test('Worker actual Edge: adding explicit digital and physical work to a modeless legacy draft asks one named service, then accepts its short answer', async () => {
+  const text='Želim da dodam izradu PowerPoint prezentacija onlajn I pomoć pri nošnju stvari pri selidbi. Nemam kombi. Postojeće usluge zadržite.';
+  const old=['Kurirske dostave','Nabavka i kupovina','Fizička pomoć','Košenje trave','Utovar i istovar'];
+  const digital='Izrada PowerPoint prezentacija',physical='Pomoć pri nošenju stvari pri selidbi';
+  const catalog=[...mutationCatalog,
+    {categoryId:id(24),label:digital,parentId:null,isLeaf:true,aliases:[],modes:['REMOTE']},
+    {categoryId:id(25),label:'Kurirske dostave',parentId:null,isLeaf:true,aliases:[],modes:['ON_SITE']}];
+  const output=providerWorker('WORKER_ADD_SERVICE',text,{
+    assistantMessage:'Dodate su obe usluge. Sve je spremno za pregled.',
+    patch:{availability:null,bio:'Izrađujem prezentacije onlajn i nosim stvari pri selidbi. Nemam kombi.'},
+    serviceChanges:[digital,physical].map(service=>({action:'ADD',service,replacement:'',evidence:text})),
+    serviceModeChangesJson:JSON.stringify([{service:digital,modes:['REMOTE'],evidence:text,handoff:{required:false}},
+      {service:physical,modes:['ON_SITE'],evidence:text}]),
+    taxonomyDecisions:[reuseDecision(digital,'REMOTE',id(24)),reuseDecision(physical,'ON_SITE',id(20))],
+  });
+  const result=await handlerHarness('WORKER',text,output,{singlePass:true,skills:old,
+    serviceModeContext:modeContext([],[],old),catalog}).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  const saved=result.writes[0].args.p_output;
+  assert.deepEqual(saved.patch.skills,[...old,digital,physical]);
+  assert.match(saved.patch.bio,/Nemam kombi/);
+  assert.equal(Object.hasOwn(saved.patch,'vehicles'),false);
+  assert.equal(saved.assistantMessage,'Da li uslugu „Kurirske dostave“ pružate na lokaciji, onlajn ili na oba načina?');
+  const newBindings=[binding(digital,'REMOTE',id(24),{required:false}),binding(physical,'ON_SITE',id(20))];
+  assert.deepEqual(planBindings(result),newBindings,'Missing legacy choices do not erase independently supported new work');
+  assertOnePaidAttempt(result);
+
+  const reply='Na lokaciji.';
+  const continuation=providerWorker('CONTINUE','',{
+    serviceModeChangesJson:JSON.stringify([{service:old[0],modes:['ON_SITE'],evidence:reply}]),
+    taxonomyDecisions:[reuseDecision(old[0],'ON_SITE',id(25))],
+  });
+  const next=await handlerHarness('WORKER',reply,continuation,{singlePass:true,skills:[...old,digital,physical],
+    history:[{role:'USER',body:text},{role:'ASSISTANT',body:saved.assistantMessage},{role:'USER',body:reply}],
+    serviceModeContext:modeContext([],newBindings,old),catalog}).run();
+  assert.equal(next.events.at(-1)?.kind,'final',JSON.stringify({events:next.events,logs:next.logs}));
+  assert.deepEqual(planBindings(next),[binding(old[0],'ON_SITE',id(25)),...newBindings]);
+  assert.equal(next.writes[0].args.p_output.assistantMessage,'Da li uslugu „Nabavka i kupovina“ pružate na lokaciji, onlajn ili na oba načina?');
+  assertOnePaidAttempt(next);
+});
+
 for (const recovery of [false, true]) test('Worker actual Edge: ADD keeps an unrelated BOTH identity, including lost completion ACK=' + recovery, async () => {
   const text = 'Takođe kosim travu na lokaciji, uz postojeću lekturu.', service = 'Košenje trave';
   const saved = [binding('Lektura', 'REMOTE', id(21), { required: false }), binding('Lektura', 'ON_SITE', id(21))];

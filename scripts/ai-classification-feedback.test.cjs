@@ -41,6 +41,24 @@ test('unconfirmed taxonomy never announces review or a successful category write
     const source=need('ASK','Kada Vam je potrebna pomoć?');
     assert.equal(guard(source,null,null),source);
   });
+  await t.test('Worker names one truly unconfirmed legacy service without changing facts or granting review',()=>{
+    const patch={skills:['Kurirske dostave','Izrada prezentacija']};
+    const result=guard({assistantMessage:'Sve je spremno.',safety:'ALLOW',patch},{
+      unresolvedServices:['Kurirske dostave'],unconfirmedModeServices:['Kurirske dostave'],
+    },{proposals:[{service:'Izrada prezentacija',mode:'REMOTE'}]});
+    assert.equal(result.assistantMessage,'Da li uslugu „Kurirske dostave“ pružate na lokaciji, onlajn ili na oba načina?');
+    assert.equal(result.patch,patch);
+    assert.equal(result.safety,'ALLOW');
+    assert.equal(Object.hasOwn(result,'dialogue'),false);
+  });
+  await t.test('known modes with a technical failure never become a repeated modes question',()=>{
+    const source={assistantMessage:'Sve je spremno.',safety:'ALLOW',patch:{}};
+    for(const code of ['WORKER_MODE_REQUEST_INVALID','PROVIDER_INVALID_DECISION','WORKER_SERVICE_MODE_SET_INCOMPLETE']){
+      const result=guard(source,{failures:[{code,service:'Lektura'}],unresolvedServices:['Lektura'],unconfirmedModeServices:[]},null);
+      assert.match(result.assistantMessage,/Pregled još nije spreman/);
+      assert.doesNotMatch(result.assistantMessage,/na lokaciji|onlajn/);
+    }
+  });
   await t.test('a direct explanation is not replaced by classification status',()=>{
     const source=need('ANSWER','Vaš zadatak se objavljuje tek kada Vi potvrdite pregled.');
     assert.equal(guard(source,null,null),source);

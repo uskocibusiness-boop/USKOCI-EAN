@@ -228,6 +228,22 @@ test('rejected mode metadata cannot reclassify an unmentioned preserved service'
   assert.equal(built.proposals[0].categoryId,'10000000-0000-0000-0000-000000000001');
 });
 
+test('Worker conflicting prior identities are not mislabeled as an unanswered execution mode',async()=>{
+  const {indexFullCatalog,buildWorkerFullTreeTaxonomyProposals}=await import('../supabase/functions/_shared/backgroundTaxonomyArchitect.mjs');
+  const first='10000000-0000-0000-0000-000000000001',second='10000000-0000-0000-0000-000000000002';
+  const catalog=indexFullCatalog(8,'test-fingerprint',[
+    {categoryId:first,parentId:null,label:'Lektura uživo',isLeaf:true,modes:['ON_SITE'],aliases:[]},
+    {categoryId:second,parentId:null,label:'Lektura onlajn',isLeaf:true,modes:['REMOTE'],aliases:[]},
+  ],true);
+  const built=await buildWorkerFullTreeTaxonomyProposals({skills:['Lektura'],messages:[],serviceModeChangesJson:'[]',draftRevision:3,
+    serviceModeContext:{savedServices:[{service:'Lektura',mode:'ON_SITE',categoryId:first},
+      {service:'Lektura',mode:'REMOTE',categoryId:second}],draftServices:[],unresolvedServices:[]},
+    suppliedCatalog:catalog,suppliedDecisions:[]});
+  assert.deepEqual(built.proposals,[]);
+  assert.deepEqual(built.unresolvedServices,['Lektura']);
+  assert.deepEqual(built.unconfirmedModeServices,[],'Both modes were already supplied; the identity conflict is technical');
+});
+
 test('actual Need invalid-fact diagnostic never logs private provider values',()=>{
   const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),ts=require('typescript');
   const source=fs.readFileSync(path.join(__dirname,'../supabase/functions/uskoci-ai-interview/index.ts'),'utf8');

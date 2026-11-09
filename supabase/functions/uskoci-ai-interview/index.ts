@@ -1300,12 +1300,26 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     const start = instant(effective.get('need.starts_at')), end = instant(effective.get('need.ends_at'));
     if (!['FLEXIBLE', 'REMOTE_ANYTIME'].includes(String(effective.get('need.schedule_kind')))
       || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+      // Preserve a partial boundary only after every existing time guard has
+      // accepted it. A deadline error may return before checking task bounds;
+      // retain the clarification but withhold all unconfirmed schedule proposals.
+      const checked = guardTimestampProposals(turn, input, activeFacts, time, pendingDeadlineQuestion);
+      if (checked !== turn) return { ...checked, proposals: checked.proposals.filter(proposal =>
+        !['need.schedule_kind', 'need.starts_at', 'need.ends_at'].includes(proposal.key)) };
+      const missingBoundary = Number.isFinite(start) !== Number.isFinite(end)
+        ? Number.isFinite(start) ? 'need.ends_at' : 'need.starts_at' : '';
       return { ...turn, safety: 'CLARIFY',
-        // A missing end must not silently turn a supplied start into an
-        // unbounded not-before task. Other answers still reach the owned writer.
-        proposals: turn.proposals.filter(proposal => !['need.schedule_kind', 'need.starts_at', 'need.ends_at'].includes(proposal.key)),
-        dialogue: { ...dialogue, next: 'CLARIFY', questionKey: '' },
-        assistantMessage: 'Dan može da bude fleksibilan unutar perioda. Od kog do kog datuma Vam odgovara da se zadatak uradi?' };
+        // Keep a validated partial boundary as a pending fact. Withhold the
+        // schedule kind until the range is complete; never invent its other end.
+        // A contradictory complete pair still withholds both proposed bounds.
+        proposals: turn.proposals.filter(proposal => proposal.key !== 'need.schedule_kind'
+          && (!['need.starts_at', 'need.ends_at'].includes(proposal.key)
+            || !!missingBoundary && proposal.key !== missingBoundary)),
+        dialogue: { ...dialogue, next: missingBoundary ? 'ASK' : 'CLARIFY', questionKey: missingBoundary },
+        assistantMessage: missingBoundary === 'need.starts_at'
+          ? 'Od kog datuma Vam odgovara da se zadatak uradi?'
+          : missingBoundary === 'need.ends_at' ? 'Do kog datuma zadatak treba da bude završen?'
+            : 'Dan može da bude fleksibilan unutar perioda. Od kog do kog datuma Vam odgovara da se zadatak uradi?' };
     }
   }
   const timeChecked = guardTimestampProposals(turn, input, activeFacts, time, pendingDeadlineQuestion);
