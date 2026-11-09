@@ -1,6 +1,6 @@
 import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
 import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
-import { taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
+import { aiProviderRuntimeEnabled, taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION } from '../../../src/contracts/aiAvailability.ts';
 import { decodeWorkerAreas } from '../../../src/contracts/workerAreas.ts';
@@ -347,7 +347,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   } catch { await fail(); return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
   // Configuration and reservations precede provider I/O. Failed admission is a
   // known failure; later settlement keeps dispatch and request identity intact.
-  if (Deno.env.get('AI_PROVIDER')!=='gemini' || model!=='gemini-3.8-flash' || !key || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED')!=='true') {
+  if (Deno.env.get('AI_PROVIDER')!=='gemini' || model!=='gemini-3.8-flash' || !key || !aiProviderRuntimeEnabled((name:string)=>Deno.env.get(name))) {
     try { await fail(); } catch {} return json(503,{code:'WORKER_AI_NOT_CONFIGURED'});
   }
   research = createResearchDeadline(req.signal, startedAt);

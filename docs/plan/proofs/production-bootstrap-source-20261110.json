@@ -1,0 +1,47 @@
+{
+  "kind": "fresh_bootstrap_source_generation",
+  "date_local": "2026-11-10",
+  "source_sha_at_capture": "e90c5c301abb0a8a267e70a70f1ea3a69ee16a56",
+  "dev_project_ref": "leqcwgzvjsxugfgzdmth",
+  "capture": {
+    "observed_at_utc": "2026-11-09T23:24:11.502741+00:00",
+    "transaction_read_only": true,
+    "private_local_path": "C:/Users/user/AppData/Local/Temp/uskoci-prod-bootstrap-20261110/capture-v2.json",
+    "sha256": "0830868e629f89126802e718641954d4009506f2655a05dd819ead045d044cc5"
+  },
+  "generation": {
+    "source": "supabase/proofs/privacy/bootstrap/generate.py",
+    "output_local_path": "C:/Users/user/AppData/Local/Temp/uskoci-prod-bootstrap-20261110/generated-final/current-application.sql",
+    "sql_sha256": "4689d9b6f2d6ee33a05c6ad9c6300591c4f31766f315c49cfd709c6d19a20430",
+    "status": "SOURCE_GENERATED_RUNTIME_UNVERIFIED",
+    "counts": {
+      "tables": 168,
+      "views": 1,
+      "sequences": 9,
+      "routines": 719,
+      "constraints": 1105,
+      "indexes": 371,
+      "policies": 91,
+      "triggers": 176
+    },
+    "publication_blockers": 0,
+    "publication_warnings": 12,
+    "local_only": true,
+    "production_installer": false
+  },
+  "tests": {
+    "ux_navigation_copy": "46/46 PASS",
+    "typescript": "PASS",
+    "bootstrap_unit": "11/11 PASS",
+    "migration_integrity": "PASS; 235 files",
+    "ci_latest_pre_fix": "42717970900 FAILURE on abc7fac6; png parsed as TypeScript",
+    "full_ci_after_fix": "NOT_YET_RUN"
+  },
+  "open": [
+    "Generated exact DEV source includes disposable capacity4 diagnostic table/procedure and is not a selected production baseline.",
+    "No empty-platform installation or rollback test; local Docker/psql unavailable.",
+    "Fresh PROD lacks PostGIS, pg_cron and pg_net; platform prerequisites and versions must be reviewed.",
+    "No approved reference seed, Auth/Storage/Realtime/email/FCM config or production AI admission.",
+    "No production write, Edge deploy, paid provider invocation or device proof."
+  ]
+}

@@ -482,4 +482,12 @@ test('taxonomy intake accepts a modern public default only after the existing DE
   assert.equal(taxonomyIntakeEnabled(get({ ...env, SUPABASE_PUBLISHABLE_KEYS: '{}' })), false);
   assert.equal(taxonomyIntakeEnabled(get({ ...env, USKOCI_GEMINI_PAID_TEST_ENABLED: 'false' })), false);
   assert.equal(taxonomyIntakeEnabled(get({ ...env, USKOCI_TAXONOMY_ROLLOUT_SCOPE: 'PROD' })), false);
+  assert.equal(taxonomyIntakeEnabled(get({ ...env, SUPABASE_URL: 'https://fvyqqudqvizjrxaflhex.supabase.co',
+    USKOCI_TAXONOMY_ROLLOUT_SCOPE: 'PROD', USKOCI_TAXONOMY_ALLOWED_PROJECT_REF: 'fvyqqudqvizjrxaflhex',
+    USKOCI_GEMINI_PAID_TEST_ENABLED: 'false', USKOCI_GEMINI_PRODUCTION_ENABLED: 'true' })), true);
+  assert.equal(taxonomyIntakeEnabled(get({ ...env, SUPABASE_URL: 'https://fvyqqudqvizjrxaflhex.supabase.co',
+    USKOCI_TAXONOMY_ROLLOUT_SCOPE: 'PROD', USKOCI_TAXONOMY_ALLOWED_PROJECT_REF: 'fvyqqudqvizjrxaflhex',
+    USKOCI_GEMINI_PRODUCTION_ENABLED: 'false' })), false);
+  assert.equal(taxonomyIntakeEnabled(get({ ...env, SUPABASE_URL: 'https://fvyqqudqvizjrxaflhex.supabase.co',
+    USKOCI_TAXONOMY_ROLLOUT_SCOPE: 'PROD', USKOCI_GEMINI_PRODUCTION_ENABLED: 'true' })), false);
 });

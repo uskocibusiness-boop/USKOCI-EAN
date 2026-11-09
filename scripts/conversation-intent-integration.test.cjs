@@ -820,3 +820,23 @@ test('Need fast-path confirmation cannot navigate through a retained callback fr
   confirm(); assert.equal(staged.length, 0); scope.restartOwner.current = {}; confirm(); assert.equal(staged.length, 0);
   scope.restartOwner.current = foreground; confirm(); assert.equal(staged.length, 1);
 });
+
+test('production intake uses its own exact-project admission before one paid provider dispatch', async () => {
+  const text = 'Koji podatak još nedostaje?';
+  const env = { SUPABASE_URL: 'https://fvyqqudqvizjrxaflhex.supabase.co',
+    USKOCI_TAXONOMY_ROLLOUT_SCOPE: 'PROD', USKOCI_TAXONOMY_ALLOWED_PROJECT_REF: 'fvyqqudqvizjrxaflhex',
+    USKOCI_GEMINI_PAID_TEST_ENABLED: 'false', USKOCI_GEMINI_PRODUCTION_ENABLED: 'true' };
+  for (const domain of ['NEED', 'WORKER']) {
+    const output = domain === 'NEED' ? providerNeed('QUESTION', text) : providerWorker('QUESTION', text);
+    const admitted = await handlerHarness(domain, text, output, { env, singlePass: true }).run();
+    assert.equal(admitted.calls.filter(call => call.name === 'rpc_ai_test_budget_reserve_service').length, 1);
+    assert.equal(admitted.calls.filter(call => call.url.includes('googleapis.com')).length, 1);
+    for (const rejectedEnv of [
+      { USKOCI_GEMINI_PRODUCTION_ENABLED: 'false' },
+      { USKOCI_TAXONOMY_ALLOWED_PROJECT_REF: 'leqcwgzvjsxugfgzdmth' },
+    ]) {
+      const rejected = await handlerHarness(domain, text, output, { env: { ...env, ...rejectedEnv }, singlePass: true }).run();
+      assert.equal(rejected.calls.some(call => call.url.includes('googleapis.com')), false);
+    }
+  }
+});

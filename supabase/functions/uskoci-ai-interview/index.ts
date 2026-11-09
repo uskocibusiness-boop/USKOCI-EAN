@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
 import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
-import { taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
+import { aiProviderRuntimeEnabled, taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../../../src/contracts/aiAvailability.ts';
 // USKOCI server-side AI intake boundary.
@@ -1644,7 +1644,7 @@ Deno.serve(async (req: Request) => {
       // conversations retain their history/manual writers, but have no durable
       // V2 operation identity with which to authorize a new paid attempt.
       if (schemaVersion !== NEED_FACT_SCHEMA_V2 || provider !== 'gemini' || geminiModel !== 'gemini-3.8-flash'
-        || !geminiKey || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED') !== 'true') {
+        || !geminiKey || !aiProviderRuntimeEnabled((key:string)=>Deno.env.get(key))) {
         await retireAttempt();
         return response(503, { code: 'AI_PROVIDER_NOT_CONFIGURED', message: 'AI obrada još nije aktivirana na serveru.' });
       }

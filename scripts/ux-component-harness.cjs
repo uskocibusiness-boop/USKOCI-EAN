@@ -23,6 +23,7 @@ function createHarness(extra = {}, timerModules = {}) {
     StyleSheet:{create:x=>x,hairlineWidth:1}, Platform:{OS:'android',select:x=>x.android??x.default} };
   const stubs = {
     'react-native': native,
+    'expo-image': { Image:host('Image') },
     'src/ui/system/Appear.tsx': { Appear:host('Appear'), useAppear:()=>({settle:()=>{},isNew:()=>false}) },
     'src/ui/system/textScale.ts': { useLayoutClass:()=>({stacked:false,wide:true}) },
     'src/ui/system/usePullRefresh.ts': { usePullRefresh:(fn,refreshing)=>({onRefresh:fn,refreshing}) },
@@ -49,6 +50,10 @@ function createHarness(extra = {}, timerModules = {}) {
     if (Object.hasOwn(stubs,rel)) return stubs[rel];
     if (cache.has(rel)) return cache.get(rel).exports;
     const filename = path.join(ROOT,rel);
+    if (/\.(?:png|jpe?g|webp)$/.test(rel)) {
+      assert.ok(fs.statSync(filename).isFile(), 'Asset exists: '+rel);
+      return 1; // Metro require() returns an opaque numeric asset ID.
+    }
     const out = ts.transpileModule(fs.readFileSync(filename,'utf8'),{fileName:filename.replace(/\.mjs$/,'.ts'),reportDiagnostics:true,
       compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}});
     assert.deepEqual((out.diagnostics??[]).filter(d=>d.category===1),[], 'TypeScript syntax: '+rel);

@@ -1,6 +1,7 @@
 // Native authenticated bounded audio proxy. Provider key never leaves this Edge boundary.
 import { releaseUnusedAiTestReservation, reserveAiTestBudget, settleAiTestAudio } from '../_shared/aiTestBudget.ts';
 import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
+import { aiProviderRuntimeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 import { bridgeSpeech } from './proxy.ts';
 // Supabase Edge background lifetimes are runtime-owned; no silent TypeScript escape.
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
@@ -57,7 +58,7 @@ Deno.serve(async (req: Request) => {
   // Named operator acknowledgement of the approved paid service; no free-tier/personal-data assumption.
   // Owner-approved controlled short probes with an internal reservation budget.
   // An operator verifies actual spend after each probe; this is not a provider billing guarantee.
-  if (!supabaseUrl || !anonKey || !serviceRoleKey || !providerKey || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED') !== 'true'
+  if (!supabaseUrl || !anonKey || !serviceRoleKey || !providerKey || !aiProviderRuntimeEnabled((name:string)=>Deno.env.get(name))
     || Deno.env.get('USKOCI_SPEECH_CONTROLLED_TEST_ENABLED') !== 'true') {
     return deny(503, 'SPEECH_NOT_READY');
   }

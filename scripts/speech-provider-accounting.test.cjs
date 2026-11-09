@@ -71,9 +71,10 @@ async function harness(options = {}) {
   const timer = clock(), client = new Socket(), upstreams = [], requests = [], background = [], logs = [];
   let handler, upgrades = 0;
   const env = {
-    SUPABASE_URL: 'https://speech-fixture.supabase.invalid', SUPABASE_ANON_KEY: 'public-fixture',
+    SUPABASE_URL: 'https://abcdefghijklmnopqrst.supabase.co', SUPABASE_ANON_KEY: 'public-fixture',
     SUPABASE_SERVICE_ROLE_KEY: 'fixture-service-key', GEMINI_API_KEY: 'fixture-provider-key',
-    USKOCI_GEMINI_PAID_TEST_ENABLED: 'true', USKOCI_SPEECH_CONTROLLED_TEST_ENABLED: 'true', ...options.env,
+    USKOCI_GEMINI_PAID_TEST_ENABLED: 'true', USKOCI_SPEECH_CONTROLLED_TEST_ENABLED: 'true',
+    USKOCI_TAXONOMY_ROLLOUT_SCOPE: 'DEV', USKOCI_TAXONOMY_ALLOWED_PROJECT_REF: 'abcdefghijklmnopqrst', ...options.env,
   };
   const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
   const network = async (url, init = {}) => {
