@@ -1,0 +1,403 @@
+{
+  "schema": "USKOCI_PHONE_PREVIEW_LOCAL_ARTIFACT_V1",
+  "verifiedAtUtc": "2026-11-09T15:01:41.015151+00:00",
+  "status": "BINARY_VERIFIED_NOT_DEVICE_ACCEPTANCE",
+  "sourceCommit": "a22d14d47b248dce52ea4a12e215816fbcdfc7b3",
+  "apk": {
+    "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-preview-42637068510\\apk\\USKOCI-PHONE-PREVIEW-a22d14d47.apk",
+    "bytes": 83509159,
+    "sha256": "c18359dfa978d99e21fc2c0677b94adba4c2657427fb9f4a8edcadfefbf070b4"
+  },
+  "package": "rs.uskoci.preview",
+  "versionCode": 36,
+  "targetSdk": 36,
+  "compileSdk": 36,
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "installedCertificateMatches": true,
+  "firebaseClientMatches": true,
+  "nativeOtaDisabled": true,
+  "embeddedSourceCommit": "a22d14d47b248dce52ea4a12e215816fbcdfc7b3",
+  "sourceDirtyFlag": true,
+  "nativePatch": "USKOCI_RNR01",
+  "dexFiles": 7,
+  "audio": {
+    "uskoci_confirm_v1.wav": {
+      "logicalName": "raw/uskoci_confirm_v1",
+      "resourceId": "0x7f120003",
+      "apkPath": "res/F2.wav",
+      "bytes": 20330,
+      "sha256": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1"
+    },
+    "uskoci_message_v1.wav": {
+      "logicalName": "raw/uskoci_message_v1",
+      "resourceId": "0x7f120004",
+      "apkPath": "res/ES.wav",
+      "bytes": 10628,
+      "sha256": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed"
+    },
+    "uskoci_opportunity_v1.wav": {
+      "logicalName": "raw/uskoci_opportunity_v1",
+      "resourceId": "0x7f120005",
+      "apkPath": "res/fp.wav",
+      "bytes": 18566,
+      "sha256": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+    }
+  },
+  "strictAudioParserSha256": "b30290b28c24c53309f3fcaaf86d41282d1caace0fe54d855301387e44f4de45",
+  "nativeLibraries": [
+    {
+      "path": "lib/arm64-v8a/libandroidx.graphics.path.so",
+      "sha256": "41e9a793c43a0f4fddb19e33f346bace464f30f888ba7b9eaf96294ea115bfb6",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libanimation-decoder-gif.so",
+      "sha256": "1a36faccdc2df2d03b399bd20113768f04fe5f9c873c32974d89e588f63b6933",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libappmodules.so",
+      "sha256": "32dc5604a38f1999effcd9d1081cd9929b02dbabdae98c8a551e4b41f945dc23",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libavif_android.so",
+      "sha256": "278211a4aa0fe5034aef8ef9717736242b3b6868708dcd1e1b6d941c5f05150c",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libc++_shared.so",
+      "sha256": "3e852764502d06e0cf1080d532ae7c608b7649d946a3a9d7e84e3d4b7d683214",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libdatastore_shared_counter.so",
+      "sha256": "d3e48717c9aa147e0ab21063ba0e8e0211cabf8bf40b222640829519edbf58e1",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libexpo-modules-core.so",
+      "sha256": "1bcc37673001f7dd8d3417f6f345f6c188beceeb29facc50f95bd701272bc364",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libexpo-updates.so",
+      "sha256": "685e197f3262bd7fb67a0302343e235b53a1017ac52ba5c4c73aea74306f68eb",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libfbjni.so",
+      "sha256": "a9e35ba55d3f956920281f519385f8a72475ee24819799cb08375fdd4cce2b22",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libgesturehandler.so",
+      "sha256": "a39593cb8e855f9998f288b19ffabd9f498477c2256568b141f73894fed1147a",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libgifimage.so",
+      "sha256": "9f605249728da7091569772a38a4dde298ed48e1e73fed3da0e4b662ef38715c",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libhermestooling.so",
+      "sha256": "1db061bbbb050105fee9b208b861adc0cc02cc359551be6ba9562798a81f6cca",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libhermesvm.so",
+      "sha256": "bf38be45bf5d6ad8ba961eaf9deda5fa7e032f3ff7d3929ba2a624567093bffa",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libimagepipeline.so",
+      "sha256": "1b377992e4256fa9398ec057722f84a359c7d588e570c8a41f51d930c19ece7d",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libjsi.so",
+      "sha256": "5acb80d7eb93b2114a419c9e42b44476969299e806ad7eafe1b293e221b9a682",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libmaplibre.so",
+      "sha256": "b89ad36b224d0093a883f0b3f6b520e2ec3247436f074126762eac07ed7ee9b0",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libnative-filters.so",
+      "sha256": "4294b57460e70a6351ce7ae2733a79c088c907dfa54673a657227ec5bb669594",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libnative-imagetranscoder.so",
+      "sha256": "2aed28298a25afd52ac670cf9682398c6c7ba42a57195c01efd565e7ddfe17ca",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libreact_codegen_rnscreens.so",
+      "sha256": "dc2faaf4e4cd11aa98bac154cd2e526bf1432affe538b0ca3c5a07f84b6bdb6a",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+      "sha256": "d6df2ba722e20dd13e54b457a3589e9dbf654a55970b6a880528458e3d4db7c8",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+      "sha256": "20548021986702df83f206e94e7e3df26b9ec296baad37a72d68461b357bcb19",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libreactnative.so",
+      "sha256": "14bb860cebebb0e29eb2c96a52d70da9b73e60253916694af955f6e3ef1e6b64",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libreanimated.so",
+      "sha256": "3aa14d4ba26ea3b779bdd645d3bb07129dc7b5865c11f50cd7274c0716d2d2ff",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/librnscreens.so",
+      "sha256": "6d55838a674fda3ffd54e61c88a832b3d31734f4e4b02a285cccd4d0b668485d",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libsqliteJni.so",
+      "sha256": "5c4aa613a0bc34878ddc87d1bd02c3b0d10dee56473e3e34781d21db55346372",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libstatic-webp.so",
+      "sha256": "f3e5f9ab4f93f2a0a057285a2de9c93ba0ab59c76c22874d0356493ce283c4c7",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libworklets.so",
+      "sha256": "5b18ac97a4daefa0f853820e6a9b11ce188efb9e9927e3e540d89859a2e11dad",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libzstd-kmp.so",
+      "sha256": "10ec47f13bee884450b0911066019ba7aa6b4164a4c1f8c33c9d30dd3fd8868a",
+      "loadAlignments": [
+        16384,
+        16384,
+        16384
+      ]
+    }
+  ],
+  "allElf16KbAligned": true,
+  "zip16KbAligned": true,
+  "limits": [
+    "Independent offline native tools and ZIP-byte checks. No install, application launch, FCM delivery or audible-device acceptance.",
+    "Template-debug preview/DEV APK; not the EAS preview certificate, Play AAB or production approval.",
+    "Source is commit-bound with documented CI app.json overrides; not a reproducible-build claim."
+  ],
+  "embeddedBundle": {
+    "path": "assets/index.android.bundle",
+    "bytes": 14040044,
+    "sha256": "85a0d02a3c364731e87162d5a23c75e8fcea6554040585930c8eb1258e3e9fbc"
+  },
+  "artifactDownload": {
+    "schema": "USKOCI_GITHUB_ARTIFACT_DOWNLOAD_V1",
+    "verifiedAtUtc": "2026-11-09T15:01:17.865509+00:00",
+    "runId": "42637068510",
+    "headSha": "a22d14d47b248dce52ea4a12e215816fbcdfc7b3",
+    "artifactId": 13685291000,
+    "artifactName": "uskoci-phone-preview-apk-103",
+    "originalZipPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-preview-42637068510\\phone-preview.zip",
+    "zipSha256": "24ce4dfce678ec2096a1ce0aec326ccc85f8340ba7e46f88243c2db71fba2df4",
+    "githubDigestMatches": true,
+    "zipBytes": 48871125,
+    "extractedPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-preview-42637068510\\apk"
+  },
+  "fullCi": {
+    "runId": 42637068510,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42637068510",
+    "headSha": "a22d14d47b248dce52ea4a12e215816fbcdfc7b3",
+    "conclusion": "success",
+    "nodePassed": 1363,
+    "nodeFailed": 0,
+    "typescriptDiagnostics": 0,
+    "migrationFiles": 233,
+    "migrationIntegrityPassed": 72,
+    "checkpointJob": "SKIPPED as expected for manual phone-preview dispatch",
+    "redundantAutomaticQaRun": {
+      "id": 42637048529,
+      "conclusion": "CANCELLED",
+      "reason": "Exact-source full phone-preview run selected; cancellation is not PASS."
+    }
+  },
+  "deviceFollowUp": {
+    "observedAtUtc": "2026-11-09T15:07:04Z",
+    "device": "Physical Honor VKP_NX9, Android 16, ARM64, font scale 1.15",
+    "authPath": "Existing ordinary signed-in account; guarded ADB input/capture only while own USKOCI activity was foreground.",
+    "install": "adb install -r SUCCESS; no uninstall or data clear",
+    "pulledInstalledApkSha256": "c18359dfa978d99e21fc2c0677b94adba4c2657427fb9f4a8edcadfefbf070b4",
+    "loginPreserved": true,
+    "publishedNeedVisibleOnHome": true,
+    "accountSummary": "Aktivan · Kurirske dostave +6 · Na daljinu · Dolazak: Novi Sad",
+    "summaryVisualInspection": "Two readable lines within the existing card; no text/chevron overlap at font scale 1.15.",
+    "workerProfileStatusVisible": "Profil je aktivan",
+    "ordinaryEditorEntry": "Opened without route-local error; greeting and enabled review action visible.",
+    "ordinaryReview": "All seven saved services displayed, six ON_SITE and one REMOTE with no physical handoff; no new message or Save was sent.",
+    "returnNavigation": "Review -> editor -> active worker profile succeeded; phone left on active worker profile.",
+    "paidProviderCallsInThisFollowUp": 0,
+    "screenshots": [
+      {
+        "name": "final-a22-installed-home",
+        "localPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-acceptance-20261109\\final-a22-installed-home.png",
+        "sha256": "1ec648642a20a38e768864ae6f0feafa27e84ae4583056feb09c978df7c820b9"
+      },
+      {
+        "name": "final-a22-profile-summary",
+        "localPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-acceptance-20261109\\final-a22-profile-summary.png",
+        "sha256": "2359828bf7b1e1c92372f98a5b1106ab8beeb64e88f1c60bf29b48fdd22f042b"
+      },
+      {
+        "name": "final-a22-worker-active",
+        "localPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-acceptance-20261109\\final-a22-worker-active.png",
+        "sha256": "f9bef8a266a7997982c4fc0299b68694f1e66317d9f3ae503d9173a719b3a36f"
+      },
+      {
+        "name": "final-a22-worker-editor-entry",
+        "localPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-acceptance-20261109\\final-a22-worker-editor-entry.png",
+        "sha256": "0d2ab25a8b09895c94c15dcfe66fd6635c6217229834da9923fd13541dc384aa"
+      },
+      {
+        "name": "final-a22-worker-review",
+        "localPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-acceptance-20261109\\final-a22-worker-review.png",
+        "sha256": "bd8875a4b4ac7d677abbe5cced649614ce72e6f0a850f7acfc1b766ca95a0ef4"
+      },
+      {
+        "name": "final-a22-editor-return",
+        "localPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-acceptance-20261109\\final-a22-editor-return.png",
+        "sha256": "0ecd3bf347110a3b659b12c4c25ac699039946885a5c7620c09c64ee2e468eaf"
+      },
+      {
+        "name": "final-a22-phone-left-on-profile",
+        "localPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-acceptance-20261109\\final-a22-phone-left-on-profile.png",
+        "sha256": "32d3595df401e91d58fb54baecff279b9200d7e4abe493e394cc8040ead79923"
+      }
+    ],
+    "limits": [
+      "The exact DRAFT activationRequest race was not replayed after installation because the real profile is already ACTIVE; real Expo focus-hook regression test is the fix evidence.",
+      "DRAFT -> ACTIVE and COMMITTED -> BOUND ordinary Auth acceptance occurred earlier on APK8c9 against the same applied SQL; see separate immutable phone proof.",
+      "No second-account application/selection, FCM delivery, messages/media, full A-T matrix, first REMOTE-only activation or new catalog branch is proved by this follow-up.",
+      "The offline binary proof above predates this device follow-up; its no-install scope remains historical. This is DEV preview, not production/store approval."
+    ]
+  }
+}

@@ -1,0 +1,211 @@
+{
+  "schema": "worker-natural-clarification-phone-v1",
+  "source": "8c9dd14de620c1fa00f4cd7d2fb4d484c91519ce",
+  "edgeWorkerVersion": 152,
+  "conversationId": "ef3727cc-7fd9-45f6-a75d-c7090aa9e921",
+  "callsInThisScenario": 2,
+  "wholeRoundCost": {
+    "calls": 12,
+    "unsettled": 0,
+    "cost_microusd": "96372"
+  },
+  "scenario": {
+    "initialMessage": "Pored postojećih poslova nudim i administrativna pomoć na daljinu. Ostalo zadržite.",
+    "assistantQuestion": "Da li ova pomoć podrazumeva isključivo digitalni rad preko računara ili obuhvata i slanje/preuzimanje fizičke dokumentacije?",
+    "clarification": "Isključivo digitalno, bez fizicke predaje. Mislim na unos i sredjivanje podataka u Excel tabelama. Sve prethodne usluge, područja i termine zadržite.",
+    "finalReply": "Podaci iz razgovora su sačuvani."
+  },
+  "evidence": {
+    "turns": [
+      {
+        "state": "SUCCEEDED",
+        "sourceRevision": 0,
+        "providerDispatched": true
+      },
+      {
+        "state": "SUCCEEDED",
+        "sourceRevision": 1,
+        "providerDispatched": true
+      }
+    ],
+    "review": {
+      "canAccept": true,
+      "missingRequired": [],
+      "classificationState": "READY",
+      "classificationCandidates": [
+        {
+          "mode": "ON_SITE",
+          "action": "REUSE_EXISTING",
+          "reason": "Sačuvan je isti serverski ID i način rada za uslugu „Kurirske dostave“.",
+          "service": "Kurirske dostave",
+          "categoryId": "00000000-0000-4000-8000-000000000701",
+          "categoryLabel": "Potrčko i brza gradska dostava",
+          "catalogVersion": 17,
+          "categoryParentId": "00000000-0000-4000-8000-000000000017"
+        },
+        {
+          "mode": "ON_SITE",
+          "action": "REUSE_EXISTING",
+          "reason": "Sačuvan je isti serverski ID i način rada za uslugu „Nabavka i kupovina“.",
+          "service": "Nabavka i kupovina",
+          "categoryId": "00000000-0000-4000-8000-000000000701",
+          "categoryLabel": "Potrčko i brza gradska dostava",
+          "catalogVersion": 17,
+          "categoryParentId": "00000000-0000-4000-8000-000000000017"
+        },
+        {
+          "mode": "ON_SITE",
+          "action": "REUSE_EXISTING",
+          "reason": "Sačuvan je isti serverski ID i način rada za uslugu „Ručno iznošenje kutija i nošenje nameštaja bez prevoza“.",
+          "service": "Ručno iznošenje kutija i nošenje nameštaja bez prevoza",
+          "categoryId": "00000000-0000-4000-8000-000000000204",
+          "categoryLabel": "Nošenje teškog tereta na sprat",
+          "catalogVersion": 17,
+          "categoryParentId": "00000000-0000-4000-8000-000000000012"
+        },
+        {
+          "mode": "ON_SITE",
+          "action": "REUSE_EXISTING",
+          "reason": "Verified existing canonical identity or registered server alias",
+          "service": "Košenje trave",
+          "categoryId": "00000000-0000-4000-8000-000000000601",
+          "catalogVersion": 17
+        },
+        {
+          "mode": "ON_SITE",
+          "action": "REUSE_EXISTING",
+          "reason": "Verified existing canonical identity or registered server alias",
+          "service": "Utovar i istovar",
+          "categoryId": "00000000-0000-4000-8000-000000000203",
+          "catalogVersion": 17
+        },
+        {
+          "mode": "REMOTE",
+          "action": "REUSE_EXISTING",
+          "reason": "Sačuvan je isti serverski ID i način rada za uslugu „Izrada PowerPoint prezentacija“.",
+          "handoff": {
+            "required": false
+          },
+          "service": "Izrada PowerPoint prezentacija",
+          "categoryId": "00000000-0000-4000-8000-000000000807",
+          "categoryLabel": "Virtuelna asistencija i unos podataka",
+          "catalogVersion": 17,
+          "categoryParentId": "00000000-0000-4000-8000-000000000018"
+        },
+        {
+          "mode": "ON_SITE",
+          "action": "REUSE_EXISTING",
+          "reason": "Sačuvan je isti serverski ID i način rada za uslugu „Pomoć pri nošenju stvari pri selidbi“.",
+          "service": "Pomoć pri nošenju stvari pri selidbi",
+          "categoryId": "00000000-0000-4000-8000-000000000204",
+          "categoryLabel": "Nošenje teškog tereta na sprat",
+          "catalogVersion": 17,
+          "categoryParentId": "00000000-0000-4000-8000-000000000012"
+        },
+        {
+          "mode": "REMOTE",
+          "action": "REUSE_EXISTING",
+          "reason": "Korisnik je precizirao da je reč o digitalnom radu (unos i sređivanje podataka u Excel tabelama na daljinu), što savršeno odgovara postojećo",
+          "handoff": {
+            "required": false
+          },
+          "service": "Administrativna pomoć na daljinu",
+          "categoryId": "00000000-0000-4000-8000-000000000807",
+          "categoryLabel": "Virtuelna asistencija i unos podataka",
+          "catalogVersion": 17,
+          "categoryParentId": "00000000-0000-4000-8000-000000000018"
+        }
+      ]
+    },
+    "session": {
+      "safety": "ALLOW",
+      "revision": 2,
+      "candidate": {
+        "bio": "Pružam pouzdane usluge gradske dostave, nabavke, košenja trave i fizičke ispomoći poput utovara, istovara i nošenja stvari pri selidbi na teritoriji Novog Sada (bez sopstvenog kombija). Takođe nudim administrativnu pomoć na daljinu i onlajn izradu PowerPoint prezentacija.",
+        "tools": [],
+        "skills": [
+          "Kurirske dostave",
+          "Nabavka i kupovina",
+          "Ručno iznošenje kutija i nošenje nameštaja bez prevoza",
+          "Košenje trave",
+          "Utovar i istovar",
+          "Izrada PowerPoint prezentacija",
+          "Pomoć pri nošenju stvari pri selidbi",
+          "Administrativna pomoć na daljinu"
+        ],
+        "licenses": [],
+        "location": {
+          "city": "",
+          "radiusKm": 15,
+          "approximatePosition": null,
+          "operatingCountryCode": null
+        },
+        "vehicles": [],
+        "workAreas": [
+          {
+            "city": "Novi Sad",
+            "kind": "CITY",
+            "label": "Novi Sad",
+            "latitude": 45.26,
+            "radiusKm": null,
+            "longitude": 19.85,
+            "sourceRef": "osm:relation:9273976",
+            "countryCode": "RS"
+          }
+        ],
+        "displayName": "Uskoci Test",
+        "availability": {
+          "rules": [
+            {
+              "id": "a4b7e35c-d3d9-4917-b46a-92ad9cfb9943",
+              "label": "Radnim danima od 9 do 17",
+              "active": true,
+              "endsOn": null,
+              "endTime": "17:00:00",
+              "startsOn": "2026-11-09",
+              "weekdays": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "startTime": "09:00:00"
+            }
+          ],
+          "windows": [
+            {
+              "id": "6ec2f822-a299-4d73-98f9-9986cee8656b",
+              "label": "Sredom do 19:00",
+              "state": "UNAVAILABLE",
+              "endsAt": "2026-11-04T21:00:00.000000Z",
+              "startsAt": "2026-11-04T18:00:00.000000Z"
+            }
+          ],
+          "timezone": "Europe/Belgrade",
+          "availableNow": false
+        },
+        "teamCapacity": 1
+      }
+    },
+    "observedAt": "2026-11-09T14:43:47.848258+00:00",
+    "savedProfile": {
+      "skills": [
+        "Kurirske dostave",
+        "Nabavka i kupovina",
+        "Ručno iznošenje kutija i nošenje nameštaja bez prevoza",
+        "Košenje trave",
+        "Utovar i istovar",
+        "Izrada PowerPoint prezentacija",
+        "Pomoć pri nošenju stvari pri selidbi"
+      ],
+      "status": "ACTIVE"
+    },
+    "savesForConversation": 0
+  },
+  "limits": [
+    "No save for this supplemental test proposal; already active seven-service profile unchanged.",
+    "Concrete preserved-history/handoff clarification proof, not complete A–T acceptance or category-creation proof.",
+    "Administrative label remained general; its review reason includes the Excel clarification. This does not establish arbitrary REPLACE semantics."
+  ]
+}
