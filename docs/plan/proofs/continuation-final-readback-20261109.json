@@ -1,0 +1,42 @@
+{
+  "schema": "USKOCI_CONTINUATION_FINAL_READBACK_V1",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "runtimeSource": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+  "runtimeTree": "9e44faa94ae62cdc0c8029f6d03c4596f57ece7a",
+  "sourceAncestry": {
+    "qa65Source": "559928efd0bf6de19988986e799d20e6c0f05dff",
+    "qa65SourceIsAncestor": true,
+    "latestPreRoundHead": "00b18e7e56b6e2835cab0aff7a5dc1f3007448f4",
+    "latestPreRoundHeadIsAncestor": true
+  },
+  "devProbeAfterCi": {
+    "observer": "root",
+    "method": "BEGIN READ ONLY; statement_timeout 5s; exact ledger name, catalog presence and other active probe sessions; COMMIT",
+    "rows": [
+      {
+        "captured_at": "2026-11-09 20:32:56.872443+00",
+        "migration_count": 372,
+        "cleanup_ledger": [],
+        "probe_table_present": true,
+        "probe_procedure_present": true,
+        "other_probe_sessions": 0
+      }
+    ],
+    "interpretation": "No cleanup effect observed at this readback. One earlier interrupted apply remains unconfirmed; no retry was sent. No applied migration version or rollback result is inferred."
+  },
+  "ciBoundary": {
+    "runId": 42690823995,
+    "number": 113,
+    "source": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+    "receipt": "current-ci-3b3ace9-20261109.json",
+    "finalDocumentationChanges": "Documentation/proof only after the runtime commit; not an additional native install or DEV deployment."
+  },
+  "scope": {
+    "newDevMutationsAfterInterruptedAttempt": 0,
+    "newProviderCalls": 0,
+    "newDeviceInstallations": 0,
+    "productionFlagChanged": false,
+    "release": "NO_GO"
+  }
+}

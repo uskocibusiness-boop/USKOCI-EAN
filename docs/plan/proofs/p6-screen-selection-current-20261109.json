@@ -1,0 +1,64 @@
+{
+  "recordedAt": "2026-11-09T20:16:44.345Z",
+  "sourceHead": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+  "sourceFiles": {
+    "src/data/discoveryV1ScreenSession.ts": "d520ce29127d0cbf69004710b74fc4841b314316f3d114e65bd772b20ef7a3ef",
+    "scripts/p6-discovery-integration-harness.cjs": "bcd8a363f455df6a60abb71cd96ec39a280890e345932b3b23ae25678ae7fae6"
+  },
+  "probeSha256": "882690e169ac38586a154d0565d91fc11822d7bb54a159d89251fdf91b87a486",
+  "checks": [
+    {
+      "kind": "TASK",
+      "result": "PASS",
+      "initialRows": 1,
+      "immediateAcceptedRowsBinding": true,
+      "authoritativeRefreshStarted": true,
+      "freshMapRetiresBinding": true,
+      "lateFailureDoesNotReviveBinding": true,
+      "transportBoundary": "Controlled decoded RPC answers; no SQL/HTTP."
+    },
+    {
+      "kind": "PLACE",
+      "result": "PASS",
+      "initialRows": 2,
+      "immediateAcceptedRowsBinding": true,
+      "authoritativeRefreshStarted": true,
+      "freshMapRetiresBinding": true,
+      "lateFailureDoesNotReviveBinding": true,
+      "transportBoundary": "Controlled decoded RPC answers; no SQL/HTTP."
+    }
+  ],
+  "negativeControls": [
+    {
+      "kind": "TASK",
+      "result": "EXPECTED_BASELINE_FAILURE",
+      "initialRows": 1,
+      "immediateAcceptedRowsBinding": false,
+      "authoritativeRefreshStarted": true,
+      "freshMapRetiresBinding": true,
+      "lateFailureDoesNotReviveBinding": true,
+      "transportBoundary": "Controlled decoded RPC answers; no SQL/HTTP."
+    },
+    {
+      "kind": "PLACE",
+      "result": "EXPECTED_BASELINE_FAILURE",
+      "initialRows": 2,
+      "immediateAcceptedRowsBinding": false,
+      "authoritativeRefreshStarted": true,
+      "freshMapRetiresBinding": true,
+      "lateFailureDoesNotReviveBinding": true,
+      "transportBoundary": "Controlled decoded RPC answers; no SQL/HTTP."
+    }
+  ],
+  "negativeControlMethod": "Replace only the two cf802823 additions in memory while loading the actual TS module; no file changes.",
+  "summary": {
+    "currentBranchesPassed": 2,
+    "expectedBaselineFailures": 2,
+    "unexpectedFailures": 0
+  },
+  "limitations": [
+    "Controlled transport and delayed failure, not real SQL/HTTP, Android rendering or native gestures.",
+    "The separate p6-pagination-native-20261109.json records actual PostgreSQL/PostGIS pagination.",
+    "No runtime, feature flag, package, migration or master-plan change."
+  ]
+}

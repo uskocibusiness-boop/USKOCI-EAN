@@ -1,0 +1,144 @@
+{
+  "schema": "USKOCI_PROBE_CLEANUP_DEV_ATTEMPT_V1",
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "status": "DEV_APPLICATION_NOT_CONFIRMED_BLOCKED_TOOL_COMMUNICATION",
+  "transport_outcome": "UNKNOWN",
+  "source": {
+    "source_commit": "e66b70c0ea8c3cb9df83987fe9bdd829b56ed58c",
+    "source_path": "scripts/sql/r13_transaction_probe_cleanup_20261109.sql",
+    "bytes": 5775,
+    "sha256": "cd1e9e490aaf891fb74d194adfc1c990f73cecfe852d417d93b9bcc38b92bf01",
+    "md5": "723a9a8fac47527c4868af3821b99d43",
+    "sql": "-- Remove only the completed, unscheduled synthetic CALL probe.\n-- The original two-row evidence is archived before this migration is applied.\n-- No business relation, scheduler command, dispatch routine or provider is changed.\nBEGIN;\nSET LOCAL lock_timeout = '2s';\nSET LOCAL statement_timeout = '10s';\nDO $cleanup$\nDECLARE\n  actual record;\n  columns_seen jsonb;\nBEGIN\n  IF current_user <> 'postgres' OR current_database() <> 'postgres' THEN\n    RAISE EXCEPTION 'R13_PROBE_CLEANUP_OWNER_REQUIRED';\n  END IF;\n  IF to_regclass('private.capacity4_transaction_probe') IS NULL\n     OR to_regprocedure('private.capacity4_transaction_probe_v1()') IS NULL THEN\n    RAISE EXCEPTION 'R13_PROBE_CLEANUP_PREIMAGE_MISSING';\n  END IF;\n  -- A concurrent diagnostic write must finish or cause a bounded refusal.\n  LOCK TABLE private.capacity4_transaction_probe IN ACCESS EXCLUSIVE MODE;\n  IF EXISTS (SELECT 1 FROM cron.job\n     WHERE jobname = 'uskoci_dispatch_call_probe_20261108'\n        OR command ILIKE '%capacity4_transaction_probe%') THEN\n    RAISE EXCEPTION 'R13_PROBE_CLEANUP_JOB_PRESENT';\n  END IF;\n  IF EXISTS (SELECT 1 FROM pg_stat_activity\n     WHERE pid <> pg_backend_pid() AND state IN ('active','idle in transaction')\n       AND query ILIKE '%capacity4_transaction_probe%') THEN\n    RAISE EXCEPTION 'R13_PROBE_CLEANUP_CALL_RUNNING';\n  END IF;\n  SELECT md5(p.prosrc) AS body_md5, p.proacl::text AS acl,\n         pg_get_userbyid(p.proowner) AS owner, p.proconfig, p.prosecdef,\n         p.prokind, l.lanname\n    INTO actual FROM pg_proc p JOIN pg_language l ON l.oid=p.prolang\n    WHERE p.oid='private.capacity4_transaction_probe_v1()'::regprocedure;\n  IF actual.body_md5 IS DISTINCT FROM '62051bf43e88a090ab14e98ab453f245'\n     OR actual.acl IS DISTINCT FROM '{postgres=X/postgres}'\n     OR actual.owner IS DISTINCT FROM 'postgres' OR actual.proconfig IS NOT NULL\n     OR actual.prosecdef OR actual.prokind <> 'p' OR actual.lanname <> 'plpgsql' THEN\n    RAISE EXCEPTION 'R13_PROBE_CLEANUP_PROCEDURE_DRIFT';\n  END IF;\n  -- PL/pgSQL body references are not always registered in pg_depend.\n  IF EXISTS (SELECT 1 FROM pg_proc\n     WHERE oid <> 'private.capacity4_transaction_probe_v1()'::regprocedure\n       AND prosrc ILIKE '%capacity4_transaction_probe%') THEN\n    RAISE EXCEPTION 'R13_PROBE_CLEANUP_ROUTINE_REFERENCE';\n  END IF;\n  SELECT pg_get_userbyid(c.relowner) AS owner, c.relacl::text AS acl,\n         c.relrowsecurity, c.relforcerowsecurity, c.relkind,\n         obj_description(c.oid,'pg_class') AS description\n    INTO actual FROM pg_class c WHERE c.oid='private.capacity4_transaction_probe'::regclass;\n  IF actual.owner IS DISTINCT FROM 'postgres'\n     OR actual.acl IS DISTINCT FROM '{postgres=arwdDxtm/postgres}'\n     OR actual.relrowsecurity IS NOT TRUE OR actual.relforcerowsecurity\n     OR actual.relkind <> 'r' OR actual.description IS DISTINCT FROM\n       'USKOCI disposable transaction CALL probe 20261108; synthetic diagnostic rows only' THEN\n    RAISE EXCEPTION 'R13_PROBE_CLEANUP_TABLE_DRIFT';\n  END IF;\n  SELECT jsonb_agg(jsonb_build_object('name',a.attname,'type',format_type(a.atttypid,a.atttypmod),\n         'notNull',a.attnotnull,'default',pg_get_expr(d.adbin,d.adrelid),\n         'identity',a.attidentity,'generated',a.attgenerated) ORDER BY a.attnum)\n    INTO columns_seen FROM pg_attribute a LEFT JOIN pg_attrdef d\n      ON d.adrelid=a.attrelid AND d.adnum=a.attnum\n    WHERE a.attrelid='private.capacity4_transaction_probe'::regclass\n      AND a.attnum>0 AND NOT a.attisdropped;\n  IF columns_seen IS DISTINCT FROM\n    '[{\"name\":\"phase\",\"type\":\"text\",\"notNull\":true,\"default\":null,\"identity\":\"\",\"generated\":\"\"},\n      {\"name\":\"transaction_id\",\"type\":\"bigint\",\"notNull\":true,\"default\":null,\"identity\":\"\",\"generated\":\"\"},\n      {\"name\":\"observed_at\",\"type\":\"timestamp with time zone\",\"notNull\":true,\"default\":\"clock_timestamp()\",\"identity\":\"\",\"generated\":\"\"}]'::jsonb\n     -- PostgreSQL 18 also catalogs NOT NULL; attnotnull is checked above.\n     OR (SELECT count(*) FROM pg_constraint\n           WHERE conrelid='private.capacity4_transaction_probe'::regclass AND contype<>'n') <> 2\n     OR NOT EXISTS (SELECT 1 FROM pg_constraint\n           WHERE conrelid='private.capacity4_transaction_probe'::regclass AND contype='p'\n             AND pg_get_constraintdef(oid)='PRIMARY KEY (phase)' AND convalidated)\n     OR NOT EXISTS (SELECT 1 FROM pg_constraint\n           WHERE conrelid='private.capacity4_transaction_probe'::regclass AND contype='c'\n             AND pg_get_constraintdef(oid)=$check$CHECK ((phase = ANY (ARRAY['before'::text, 'after'::text])))$check$\n             AND convalidated)\n     OR EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid='private.capacity4_transaction_probe'::regclass\n           AND NOT tgisinternal)\n     OR EXISTS (SELECT 1 FROM pg_constraint\n           WHERE confrelid='private.capacity4_transaction_probe'::regclass) THEN\n    RAISE EXCEPTION 'R13_PROBE_CLEANUP_SCHEMA_DRIFT';\n  END IF;\n  -- Pin the two diagnostic observations; an unexpected row is never deleted.\n  IF (SELECT count(*) FROM private.capacity4_transaction_probe) <> 2\n     OR NOT EXISTS (SELECT 1 FROM private.capacity4_transaction_probe\n           WHERE phase='before' AND transaction_id=203348825\n             AND observed_at='2026-11-08 23:06:00.153974+00'::timestamptz)\n     OR NOT EXISTS (SELECT 1 FROM private.capacity4_transaction_probe\n           WHERE phase='after' AND transaction_id=203348826\n             AND observed_at='2026-11-08 23:06:00.164508+00'::timestamptz) THEN\n    RAISE EXCEPTION 'R13_PROBE_CLEANUP_ROWS_DRIFT';\n  END IF;\n  -- RESTRICT is intentional. Any new dependent object aborts the transaction.\n  DROP PROCEDURE private.capacity4_transaction_probe_v1();\n  DROP TABLE private.capacity4_transaction_probe;\nEND $cleanup$;\nCOMMIT;\n"
+  },
+  "requested_migration_name": "r13_transaction_probe_cleanup_20261109",
+  "attempt_count": 1,
+  "retry_count": 0,
+  "authorization_scope": "Exactly the published reviewed cleanup SQL, two disposable synthetic probe objects only; no business data, existing Cron, budget, grants or other DDL changes authorized in this attempt.",
+  "preflight": {
+    "provenance": "Actual execute_sql result returned in this conversation; reproduced here after interrupted orchestration state was lost.",
+    "result": {
+      "observed_at": "2026-11-09 20:08:07.664316+00",
+      "current_user": "postgres",
+      "current_database": "postgres",
+      "migration_count": 372,
+      "existing_cleanup_migrations": 0,
+      "table_metadata": {
+        "acl": "{postgres=arwdDxtm/postgres}",
+        "rls": true,
+        "owner": "postgres",
+        "comment": "USKOCI disposable transaction CALL probe 20261108; synthetic diagnostic rows only",
+        "force_rls": false
+      },
+      "probe_row_count": 2,
+      "probe_rows": [
+        {
+          "phase": "after",
+          "observed_at": "2026-11-08T23:06:00.164508+00:00",
+          "transaction_id": 203348826
+        },
+        {
+          "phase": "before",
+          "observed_at": "2026-11-08T23:06:00.153974+00:00",
+          "transaction_id": 203348825
+        }
+      ],
+      "procedure_metadata": {
+        "acl": "{postgres=X/postgres}",
+        "kind": "p",
+        "owner": "postgres",
+        "config": null,
+        "body_md5": "62051bf43e88a090ab14e98ab453f245",
+        "security_definer": false
+      },
+      "other_routine_references": 0,
+      "probe_cron_references": 0,
+      "probe_active_or_idle_tx_backends": 0,
+      "cron_jobs": 3,
+      "marketplace_command": "select private.marketplace_tick(25);",
+      "business_counts": {
+        "needs": 19,
+        "agreements": 7,
+        "app_accounts": 18,
+        "auth_accounts": 18,
+        "dispatch_schedule": 4
+      }
+    }
+  },
+  "attempt": {
+    "functions_exec_requested_yield_time_ms": 1000,
+    "exact_start_timestamp_utc": null,
+    "start_timestamp_note": "A Date().toISOString() marker was written to orchestration store before awaiting apply_migration, but no marker was returned and the interrupted cell store did not retain it. Exact request start second is unavailable and is not fabricated.",
+    "start_lower_bound_utc": "2026-11-09T20:08:07.664316Z",
+    "start_upper_bound_utc": "2026-11-09T20:15:16Z",
+    "tool": "mcp__codex_apps__supabase_apply_migration",
+    "service_result_returned": false,
+    "returned_orchestration_message": "aborted by user after 703.3s",
+    "reported_wait_seconds": 703.3,
+    "explicit_approval_rejection": false,
+    "sql_error_returned": false,
+    "interpretation": "Client/tool wait interruption does not prove server cancellation, rollback, success or durable admission. No second mutation was sent."
+  },
+  "parent_reported_readbacks": [
+    {
+      "observed_at": "2026-11-09T20:15:16Z",
+      "provenance": "Root message; not this agent's query",
+      "migration_count": 372,
+      "cleanup_ledger": [],
+      "probe_table_present": true,
+      "probe_procedure_present": true,
+      "other_probe_sessions": 0
+    },
+    {
+      "observed_at": "2026-11-09T20:20:05.896433Z",
+      "provenance": "Root message; not this agent's query",
+      "migration_count": 372,
+      "cleanup_ledger": [],
+      "probe_table_present": true,
+      "probe_procedure_present": true,
+      "other_probe_sessions": 0
+    }
+  ],
+  "final_readback": {
+    "provenance": "One new read-only query by this agent after root interrupted waiting; statement_timeout5s.",
+    "query": "begin read only;\nset local statement_timeout='5s';\nselect clock_timestamp() observed_at,\n (select count(*) from supabase_migrations.schema_migrations) migration_count,\n coalesce((select jsonb_agg(jsonb_build_object('version',version,'name',name,'statements',statements)) from supabase_migrations.schema_migrations where name='r13_transaction_probe_cleanup_20261109'),'[]'::jsonb) cleanup_ledger,\n to_regclass('private.capacity4_transaction_probe') is not null probe_table_present,\n to_regprocedure('private.capacity4_transaction_probe_v1()') is not null probe_procedure_present,\n (select md5(prosrc) from pg_proc where oid=to_regprocedure('private.capacity4_transaction_probe_v1()')) probe_procedure_body_md5,\n (select count(*) from pg_stat_activity where pid<>pg_backend_pid() and state in('active','idle in transaction') and query ilike '%capacity4_transaction_probe%') other_probe_sessions,\n (select count(*) from cron.job where jobname='uskoci_dispatch_call_probe_20261108' or command ilike '%capacity4_transaction_probe%') probe_cron_references,\n (select count(*) from cron.job) cron_jobs,\n (select command from cron.job where jobname='uskoci_marketplace_tick') marketplace_command,\n jsonb_build_object('auth_accounts',(select count(*) from auth.users),'app_accounts',(select count(*) from public.app_accounts),'needs',(select count(*) from public.needs),'agreements',(select count(*) from public.agreements),'dispatch_schedule',(select count(*) from private.dispatch_schedule)) business_counts;\nrollback;",
+    "result": [
+      {
+        "observed_at": "2026-11-09 20:20:38.482886+00",
+        "migration_count": 372,
+        "cleanup_ledger": [],
+        "probe_table_present": true,
+        "probe_procedure_present": true,
+        "probe_procedure_body_md5": "62051bf43e88a090ab14e98ab453f245",
+        "other_probe_sessions": 0,
+        "probe_cron_references": 0,
+        "cron_jobs": 3,
+        "marketplace_command": "select private.marketplace_tick(25);",
+        "business_counts": {
+          "needs": 19,
+          "agreements": 7,
+          "app_accounts": 18,
+          "auth_accounts": 18,
+          "dispatch_schedule": 4
+        }
+      }
+    ]
+  },
+  "returned_ledger_migration_version": null,
+  "returned_ledger_sql": null,
+  "returned_ledger_source_hash": null,
+  "outcome": "At20:20:38.482886UTC the migration ledger has no cleanup entry, both original probe objects remain, original procedure MD5 matches, and no other probe session is active. No cleanup effect is observed. Transport outcome remains unconfirmed; do not claim applied, successful or rolled back.",
+  "preserved": {
+    "business_counts_equal_to_preflight": true,
+    "cron_jobs": 3,
+    "probe_cron_references": 0,
+    "marketplace_command": "select private.marketplace_tick(25);"
+  },
+  "canonical_source_rule": "The published script remains a candidate. No canonical applied migration file/version may be invented from this attempt; coordinator must use actual ledger readback if one becomes available.",
+  "limits": [
+    "No second apply or other DEV mutation.",
+    "No approval rejection was received.",
+    "No full final table row read was repeated; final presence and original procedure hash were checked.",
+    "No Android/provider/physical/load test or budget change."
+  ]
+}

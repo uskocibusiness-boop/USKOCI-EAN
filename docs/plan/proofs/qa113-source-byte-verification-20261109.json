@@ -1,0 +1,17 @@
+{
+  "sourceCommit": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+  "sourceTree": "9e44faa94ae62cdc0c8029f6d03c4596f57ece7a",
+  "artifactId": 13706213996,
+  "zipBytes": 24647831,
+  "zipSha256": "1de5e363e2aa144a641412075aac86c55627d7ead8a3c9af909e8655550c46ab",
+  "githubSizeAndDigestMatch": true,
+  "archiveCommitMatches": true,
+  "fileCount": 1627,
+  "rawContentBytes": 45482346,
+  "allGitBlobHashesAndModesMatch": true,
+  "missingFiles": [],
+  "extraFiles": [],
+  "mismatchedFiles": [],
+  "tarGzSha256": "f79005b3a298aa2a9f34f907b0334a7e2ab0140fa3d4ecdd95d968a5f0b81403",
+  "inventorySha256": "3cc6fdd9b026f8b4e25745ffa89786f404bceb8ef7a231551df5f2f48245d4b6"
+}

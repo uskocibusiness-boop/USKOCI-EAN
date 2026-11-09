@@ -1,0 +1,252 @@
+{
+  "schema": "uskoci-source-publication-v1",
+  "observedAt": "2026-11-09T20:16:11.364749+00:00",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "previousRemoteHead": "00b18e7e56b6e2835cab0aff7a5dc1f3007448f4",
+  "remoteCheckpoint": "e66b70c0ea8c3cb9df83987fe9bdd829b56ed58c",
+  "remoteHead": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+  "remoteTree": "9e44faa94ae62cdc0c8029f6d03c4596f57ece7a",
+  "localReviewedCommit": "13ee51d00d21a8678a4034be15678d8ef82728cd",
+  "localReviewedTree": "9e44faa94ae62cdc0c8029f6d03c4596f57ece7a",
+  "treeIdentity": "EXACT_MATCH",
+  "updateRef": {
+    "expectedPreviousHead": "00b18e7e56b6e2835cab0aff7a5dc1f3007448f4",
+    "force": false,
+    "result": "SUCCESS"
+  },
+  "localPreservation": {
+    "previousDirtyCheckout": "untouched on local/preserved-uskoci-20261108",
+    "testedLocalHistory": "preserved on local/uskoci-validated-20261109",
+    "canonicalCheckout": "clean tracking branch at published remoteHead"
+  },
+  "files": [
+    {
+      "path": "docs/plan/CODEX_PLAN_RADA.md",
+      "gitBlob": "916b2181e1143ab4792de52e0edb96563798e625",
+      "sha256": "6041ca312edeee46559e551a7075ed9afbc82a011bf3578c37905babd89453e1",
+      "bytes": 1242773
+    },
+    {
+      "path": "docs/plan/proofs/continuation-initial-regression-20261109.txt.gz",
+      "gitBlob": "54478838cde4b2e0d3eb6fc651ca2ab2e7dac43d",
+      "sha256": "ef7644924495e48dab2b77cef7fcd5210036bb6f10d49d71f7aaf490a936093f",
+      "bytes": 51149
+    },
+    {
+      "path": "docs/plan/proofs/continuation-integrated-validation-20261109.json",
+      "gitBlob": "f205a28ae07352983c70ced4d51c8fb5ddabb354",
+      "sha256": "731af479f9f1a885fbffc976080416c783242f51d0949ce8ede09daed6339902",
+      "bytes": 3494
+    },
+    {
+      "path": "docs/plan/proofs/continuation-migrations-20261109.txt.gz",
+      "gitBlob": "2b1b7ca36710d21ce4e385348da639811a68ca8a",
+      "sha256": "c686832671e4a9bf0c20e2705516b04e6151bf0ea22a37972b0a9ee66efeea5a",
+      "bytes": 359
+    },
+    {
+      "path": "docs/plan/proofs/continuation-npm-20261109.txt.gz",
+      "gitBlob": "0d04d3f99c4ed9ed2fa56a814527315e14b1beb2",
+      "sha256": "0ca87e52a2cb6dcc2b4688ae85cbbaa760190c46ad12ccf2af3b0dd14e36bdc8",
+      "bytes": 50668
+    },
+    {
+      "path": "docs/plan/proofs/continuation-typescript-20261109.txt.gz",
+      "gitBlob": "162b0c53711db974892dee2a73f0592d52c3c774",
+      "sha256": "934a9d56e1b77b540f21becd97102d1b7088e8e2eba852118cfc29df5c6f4bb7",
+      "bytes": 101
+    },
+    {
+      "path": "docs/plan/proofs/current-dev-readonly-20261109.json",
+      "gitBlob": "47485c58675dd0430de73366546acc7298a5abc4",
+      "sha256": "8b2c6274acee9951b32051eac0cca08ea5dfebed35260ce9fe03b382e5a29d11",
+      "bytes": 35785
+    },
+    {
+      "path": "docs/plan/proofs/p6-authenticated-http-20261108.json",
+      "gitBlob": "e950c600be68b53c0e5a986af47092cd01229447",
+      "sha256": "228bd80f60c28dd923d2fecdda271f9db6d622cc71651851ceba49ed1e805067",
+      "bytes": 3756
+    },
+    {
+      "path": "docs/plan/proofs/p6-client-negative-control-20261108.txt",
+      "gitBlob": "0423302d237bc0e64cb46be420756c8fd7fc1803",
+      "sha256": "6adbf09f0ca39885cb6b9aff3f79324d35f4125784ccdf7d9c66731c8b0323b6",
+      "bytes": 5294
+    },
+    {
+      "path": "docs/plan/proofs/p6-discovery-integration-20261108.json",
+      "gitBlob": "ddd05854f27181bc8af644788f630f51ab9026fe",
+      "sha256": "27c1014b31f19e4bb20021b5d1fedd58e3d93e66a1d82e1f37c75e31177b699e",
+      "bytes": 10409
+    },
+    {
+      "path": "docs/plan/proofs/p6-evidence-recovery-20261109.json",
+      "gitBlob": "5625859b1b7092d534e4c23fc48c743b8273c5b9",
+      "sha256": "132e19cc5cc712bd693b522e822d67c6c365efc22cbb41407912754e51ed89e1",
+      "bytes": 8738
+    },
+    {
+      "path": "docs/plan/proofs/p6-legacy-boundary-20261108.json",
+      "gitBlob": "f0e3d9c8fbf2d0ffdd4866020d56cb355dd18b4b",
+      "sha256": "d688a8fc6cf3c876642537b1d1af94be10bf11f3295ea6e8e6bb7154b6c64924",
+      "bytes": 1105
+    },
+    {
+      "path": "docs/plan/proofs/p6-pagination-native-20261108.json",
+      "gitBlob": "5cf0e30d1866acd6dcf2887b2dd8cf8a720f037c",
+      "sha256": "e5a3838c42e39cfc1b0c801efeb5aa4a5d095fcc95ba44502d193999f5b64f1b",
+      "bytes": 9176
+    },
+    {
+      "path": "docs/plan/proofs/r07-selection-refusal-cold-recovery-20261109.json",
+      "gitBlob": "75670905e31b92a4de7c09b141fe814b61da5969",
+      "sha256": "4363428568b06f2208f143459c1e1507fdce58e27eb23bddfde8a5a9c820662e",
+      "bytes": 7564
+    },
+    {
+      "path": "docs/plan/proofs/r09-applicant-suppression-native-clock-20261109.json",
+      "gitBlob": "5fa1359efbc8c53c0e65c04534ab7804c2e96f6d",
+      "sha256": "f0d0b72f02b676586e2dd3f3443dd65bdbed6a2f8566cc6af32ebf32e3c1ed49",
+      "bytes": 14769
+    },
+    {
+      "path": "docs/plan/proofs/r09-fixture-clock-native-followup-20261109.json",
+      "gitBlob": "c001074526c2ba3b840f773e62a8532b29a1897d",
+      "sha256": "fe9ccd15a721ba0bece943c2992d2f990493b5c921ff2c7386e03a535fd3923b",
+      "bytes": 4930
+    },
+    {
+      "path": "docs/plan/proofs/r09-fixture-publication-clock-20261109.json",
+      "gitBlob": "a4b3024d4359ffa5c4c7a820f35acd4667c250c8",
+      "sha256": "e421b11df5ff227dd302be325c31195f466e563ab2d3686a24e55be5f5edd38e",
+      "bytes": 6520
+    },
+    {
+      "path": "docs/plan/proofs/r13-probe-cleanup-independent-review-20261109.json",
+      "gitBlob": "345c35e27e97daa623ccc9cf5a6d7a6ba3f0e4ff",
+      "sha256": "cc49ad8cb6d096429b746e5eea2d7d5d52393e10dd23cb7bd2b5714caeb53add",
+      "bytes": 6994
+    },
+    {
+      "path": "docs/plan/proofs/r13-probe-cleanup-native-20261109.txt",
+      "gitBlob": "98b7c82875b595599bfde4fc9b0e4d1c366328f4",
+      "sha256": "ebf3660ac9300f8c6f34cb4af7d9654460e0c8ed72b071a665ea57a5c66daa17",
+      "bytes": 1760
+    },
+    {
+      "path": "docs/plan/proofs/r13-probe-cleanup-pglite-20261109.txt",
+      "gitBlob": "c3eadbac21847b2bb55ae74736d2f4837ffd1f86",
+      "sha256": "a8ec46ca6fc61353342cf75ef66eee028d23dd85570ad3c8fb3019c524cd4dda",
+      "bytes": 1538
+    },
+    {
+      "path": "docs/plan/proofs/r13-probe-cleanup-validation-20261109.json",
+      "gitBlob": "17ec9698cd05c581d1da2403544aba99fd25d6c4",
+      "sha256": "899fdb2a77c26e4292ab0359593e726ee45905ecbd19d934fefe2de234ef3853",
+      "bytes": 4793
+    },
+    {
+      "path": "package.json",
+      "gitBlob": "74015939136436bf3dbdbb3cf7f18b84fe3f6bbe",
+      "sha256": "82375aa82488419735eb88006e0dbcaeee2e375709aa8432f22e65ce7fb05d51",
+      "bytes": 5912
+    },
+    {
+      "path": "scripts/p6-discovery-authenticated-http.cjs",
+      "gitBlob": "545ad857124b185a592fb73ba1e76896fd03fa48",
+      "sha256": "7b7c8b81b833a0cd709a949653a396f3dcf10efad33f6cbcaeb411ce8d2184aa",
+      "bytes": 7715
+    },
+    {
+      "path": "scripts/p6-discovery-pagination-native.cjs",
+      "gitBlob": "12e31e27e9c7d1477b9b18421c8c87cf1dc37033",
+      "sha256": "94fb37d505bff9becd20551028362ac918629389347938850d44253a8802195a",
+      "bytes": 16256
+    },
+    {
+      "path": "scripts/p6-evidence-integrity.cjs",
+      "gitBlob": "a1c1a11b462762857bb456456643037a21b49334",
+      "sha256": "2580c24fee0cb68b1795fc7a3aa7853e52c411ef2a146a94bc27c1cac4b1f2d6",
+      "bytes": 2620
+    },
+    {
+      "path": "scripts/r07-selection-cold-restart.test.cjs",
+      "gitBlob": "c0299ff0579c00f54e7a965a89544d122a7de39b",
+      "sha256": "013ac9c764a1f5fd02a4d880aa1856f15393ce237a3347373568503189c512bd",
+      "bytes": 45248
+    },
+    {
+      "path": "scripts/r09-applicant-suppression.test.cjs",
+      "gitBlob": "02f50ea188d1b2f6d8b947c13194bd801a9e887c",
+      "sha256": "af1f1e8b1313b7a0a48e941a73ff086ef013e262dbcd450977c1002332783464",
+      "bytes": 30568
+    },
+    {
+      "path": "scripts/r09-worker-activation-fixture.cjs",
+      "gitBlob": "6ecc05fc819845965bd682cbc098dddb7a447fb5",
+      "sha256": "12b7cb1c1884c2c607d411e5654796e13d96d5ab623f07ecd11719e89854c123",
+      "bytes": 13825
+    },
+    {
+      "path": "scripts/r13-probe-cleanup-native.cjs",
+      "gitBlob": "13e176384a438eeba8f8c91f25af67d11cff30c6",
+      "sha256": "645024a42a0af08bb6d359a9ab8bc11d203aa583c34952f7788c8493a3f21024",
+      "bytes": 1212
+    },
+    {
+      "path": "scripts/r13-probe-cleanup.test.cjs",
+      "gitBlob": "34cf988e92dc7ba11ab54822e36c89d032db172c",
+      "sha256": "452bded8e4303f247947948f20c0170d525b2fd056bf9839a03710120b2eed2f",
+      "bytes": 7171
+    },
+    {
+      "path": "scripts/sql/r13_transaction_probe_cleanup_20261109.rollback.sql",
+      "gitBlob": "6dec473028fa76bab81d8e78166303649cd90bca",
+      "sha256": "6e7a53bbc0083c6a53f6cd67612aebc5c982b6edb4f9978ca257bcab3759f6d9",
+      "bytes": 2969
+    },
+    {
+      "path": "scripts/sql/r13_transaction_probe_cleanup_20261109.sql",
+      "gitBlob": "ee7aa40ece96413e06b071e2b92b4363fc04675e",
+      "sha256": "cd1e9e490aaf891fb74d194adfc1c990f73cecfe852d417d93b9bcc38b92bf01",
+      "bytes": 5775
+    },
+    {
+      "path": "src/app/(app)/potrebe/[id]/kandidati.tsx",
+      "gitBlob": "1c74195a93b18016617a52f73b00b81b239880c4",
+      "sha256": "0cbc41d025c6c598d7802b420c1c692756ce26a2a465fe3c699ebaafed6e8e60",
+      "bytes": 33875
+    },
+    {
+      "path": "src/data/selectionCommandJournal.ts",
+      "gitBlob": "e1a5e36e3a23770fbe5216516ebb0196888ca904",
+      "sha256": "835885fbd3c6c19ce3ddd3bd7881e8946b91bd48a1831cdf27d17e6005204c7a",
+      "bytes": 10446
+    }
+  ],
+  "scope": "Immutable blobs and tree were compared to local Git identity, then the branch advanced with an expected-head check and force=false. Connector commit metadata differs from local commit metadata; the entire reviewed source tree is identical.",
+  "ci": "Automatic push workflow42690823995 is a separate exact-source result; not inferred from publication.",
+  "independentReview": {
+    "recordedAt": "2026-11-09T20:21:58.001830+00:00",
+    "reviewer": "current_source_reconcile",
+    "result": "PASS",
+    "changedPaths": {
+      "expected": 34,
+      "actual": 34,
+      "missing": [],
+      "extra": []
+    },
+    "gitBlobSha256ByteCountMatches": 34,
+    "localRemoteTreeMatches": true,
+    "p6FollowupCommit": "ee30356",
+    "p6FollowupScope": "Four proof files only; runtime/src/Supabase/package/eas/.github diff empty.",
+    "flagsAtBasePublishedAndFollowup": {
+      "previewP6": 1,
+      "productionP6": 0
+    },
+    "validationLogs": "All three compressed and decompressed log hashes and byte counts match. The full local npm run remains attributed to a1fa468; the later native-launcher test-only followup remains separate. Exact published-source CI is a separate receipt.",
+    "proofPublicationBoundary": "This publication receipt is delivered with the final documentation commit, after the runtime commit it describes."
+  }
+}

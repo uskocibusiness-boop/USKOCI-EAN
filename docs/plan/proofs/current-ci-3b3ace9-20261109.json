@@ -1,0 +1,595 @@
+{
+  "schema": "USKOCI_CURRENT_CI_APK_RECONCILIATION_20261109_V1",
+  "observedAtUtc": "2026-11-09T20:35:17.565823+00:00",
+  "status": "CI_CONFIRMED_AND_LOCAL_APK_BYTES_CONFIRMED_NOT_ANDROID_E2E",
+  "scope": "Read-only observation of the existing automatic push workflow; no trigger, rerun, repository mutation or device execution by this verifier.",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "sourceCommit": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+  "sourceTree": "9e44faa94ae62cdc0c8029f6d03c4596f57ece7a",
+  "sourceArchiveVerification": {
+    "sourceCommit": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+    "sourceTree": "9e44faa94ae62cdc0c8029f6d03c4596f57ece7a",
+    "artifactId": 13706213996,
+    "zipBytes": 24647831,
+    "zipSha256": "1de5e363e2aa144a641412075aac86c55627d7ead8a3c9af909e8655550c46ab",
+    "githubSizeAndDigestMatch": true,
+    "archiveCommitMatches": true,
+    "fileCount": 1627,
+    "rawContentBytes": 45482346,
+    "allGitBlobHashesAndModesMatch": true,
+    "missingFiles": [],
+    "extraFiles": [],
+    "mismatchedFiles": [],
+    "tarGzSha256": "f79005b3a298aa2a9f34f907b0334a7e2ab0140fa3d4ecdd95d968a5f0b81403",
+    "inventorySha256": "3cc6fdd9b026f8b4e25745ffa89786f404bceb8ef7a231551df5f2f48245d4b6"
+  },
+  "ci": {
+    "number": 113,
+    "runId": 42690823995,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42690823995",
+    "workflow": ".github/workflows/uskoci-qa-apk.yml",
+    "event": "push",
+    "sourceCommit": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-11-09T20:13:06Z",
+    "updatedAt": "2026-11-09T20:32:19Z",
+    "jobs": [
+      {
+        "id": 129409774465,
+        "name": "qa-apk",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-11-09T20:13:10Z",
+        "completedAt": "2026-11-09T20:32:07Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:13:10Z",
+            "completedAt": "2026-11-09T20:13:12Z"
+          },
+          {
+            "name": "Check out exact source",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:13:12Z",
+            "completedAt": "2026-11-09T20:13:15Z"
+          },
+          {
+            "name": "Capture tracked source for offline audit",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:13:15Z",
+            "completedAt": "2026-11-09T20:13:16Z"
+          },
+          {
+            "name": "Upload exact source snapshot separately from APK",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:13:16Z",
+            "completedAt": "2026-11-09T20:13:18Z"
+          },
+          {
+            "name": "Set up Node",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:13:18Z",
+            "completedAt": "2026-11-09T20:13:22Z"
+          },
+          {
+            "name": "Set up Java 17",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:13:22Z",
+            "completedAt": "2026-11-09T20:13:22Z"
+          },
+          {
+            "name": "Set up Android SDK",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:13:22Z",
+            "completedAt": "2026-11-09T20:13:27Z"
+          },
+          {
+            "name": "Install exact dependencies and enforce the native patch",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:13:27Z",
+            "completedAt": "2026-11-09T20:13:43Z"
+          },
+          {
+            "name": "Archive bounded test runtime for reproducible offline checks",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:13:43Z",
+            "completedAt": "2026-11-09T20:13:45Z"
+          },
+          {
+            "name": "Upload bounded test runtime",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:13:45Z",
+            "completedAt": "2026-11-09T20:13:47Z"
+          },
+          {
+            "name": "Verify the active clean source",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:13:47Z",
+            "completedAt": "2026-11-09T20:16:57Z"
+          },
+          {
+            "name": "Upload source check results",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:16:57Z",
+            "completedAt": "2026-11-09T20:16:58Z"
+          },
+          {
+            "name": "Pin canonical DEV settings and isolate app identity",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:16:58Z",
+            "completedAt": "2026-11-09T20:16:58Z"
+          },
+          {
+            "name": "Generate only the Android native project",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:16:58Z",
+            "completedAt": "2026-11-09T20:17:02Z"
+          },
+          {
+            "name": "Verify generated native update isolation",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:17:02Z",
+            "completedAt": "2026-11-09T20:17:02Z"
+          },
+          {
+            "name": "Prepare pinned Gradle distribution with bounded retry",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:17:02Z",
+            "completedAt": "2026-11-09T20:17:04Z"
+          },
+          {
+            "name": "Build standalone installable release JS bundle and APK",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:17:04Z",
+            "completedAt": "2026-11-09T20:31:59Z"
+          },
+          {
+            "name": "Attest isolated APK and source identity",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:31:59Z",
+            "completedAt": "2026-11-09T20:32:01Z"
+          },
+          {
+            "name": "Upload installable APK and bounded receipt",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:01Z",
+            "completedAt": "2026-11-09T20:32:04Z"
+          },
+          {
+            "name": "Post Set up Java 17",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:04Z",
+            "completedAt": "2026-11-09T20:32:04Z"
+          },
+          {
+            "name": "Post Set up Node",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:04Z",
+            "completedAt": "2026-11-09T20:32:05Z"
+          },
+          {
+            "name": "Post Check out exact source",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:05Z",
+            "completedAt": "2026-11-09T20:32:05Z"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:05Z",
+            "completedAt": "2026-11-09T20:32:05Z"
+          }
+        ]
+      },
+      {
+        "id": 129420421832,
+        "name": "record-ux-checkpoint",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-11-09T20:32:09Z",
+        "completedAt": "2026-11-09T20:32:18Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:10Z",
+            "completedAt": "2026-11-09T20:32:10Z"
+          },
+          {
+            "name": "Run actions/checkout@v4",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:10Z",
+            "completedAt": "2026-11-09T20:32:14Z"
+          },
+          {
+            "name": "Run actions/setup-node@v4",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:14Z",
+            "completedAt": "2026-11-09T20:32:16Z"
+          },
+          {
+            "name": "Save verified evidence in the existing execution master",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:16Z",
+            "completedAt": "2026-11-09T20:32:16Z"
+          },
+          {
+            "name": "Post Run actions/setup-node@v4",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:16Z",
+            "completedAt": "2026-11-09T20:32:16Z"
+          },
+          {
+            "name": "Post Run actions/checkout@v4",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:16Z",
+            "completedAt": "2026-11-09T20:32:16Z"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success",
+            "startedAt": "2026-11-09T20:32:16Z",
+            "completedAt": "2026-11-09T20:32:16Z"
+          }
+        ]
+      }
+    ],
+    "checkpoint": {
+      "jobId": 129420421832,
+      "observedStatus": "SKIPPED_ALREADY_RECORDED",
+      "excerpt": "2026-11-09T20:32:16.3137519Z {\"status\":\"SKIPPED_ALREADY_RECORDED\"}",
+      "remoteBranchHeadAfterCompletion": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+      "rawLogRetained": false
+    },
+    "remoteBranchHeadAtFinalReadback": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+    "metadataObservedAt": "2026-11-09T20:32:56.073829+00:00"
+  },
+  "sourceChecks": {
+    "artifactId": 13708025931,
+    "sourceSha": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+    "runId": 42690823995,
+    "zipBytes": 51650,
+    "zipSha256": "0287b900e11ac778b7edecbb072341903353504666e64011e287252a7fa7333f",
+    "githubSizeAndDigestMatch": true,
+    "node": {
+      "tests": 1434,
+      "pass": 1434,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "typescript": "PASS_SUCCESSFUL_CI_STEP_AND_NO_DIAGNOSTICS",
+    "migrationFiles": 235,
+    "migrationTests": 90,
+    "migrationStatus": "PASS",
+    "fileSha256": {
+      "migration-integrity.txt": "3ee0a07ebc2ab9a4c15ccb9dceba40a4c65410d5bbc7f30933e0414344ecf37e",
+      "tests.tap": "df33bab7dd8b69b19fd18e87fb099c8fe600806bcbb01bb883e395cbbda2618b",
+      "typescript.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "artifacts": [
+    {
+      "id": 13708127494,
+      "name": "uskoci-isolated-qa-apk-113",
+      "size_in_bytes": 48869501,
+      "digest": "sha256:d504c7cada27274242604370ab1a488d0e58a18a4b43208d464f6edb01783744",
+      "created_at": "2026-11-09T20:32:04Z",
+      "expires_at": "2026-11-16T20:32:01Z",
+      "expired": false
+    },
+    {
+      "id": 13708025931,
+      "name": "uskoci-checks-3b3ace969e223ce53fd1c98910426a2eff04957c",
+      "size_in_bytes": 51650,
+      "digest": "sha256:0287b900e11ac778b7edecbb072341903353504666e64011e287252a7fa7333f",
+      "created_at": "2026-11-09T20:16:58Z",
+      "expires_at": "2026-11-12T20:16:57Z",
+      "expired": false
+    },
+    {
+      "id": 13706213996,
+      "name": "uskoci-source-3b3ace969e223ce53fd1c98910426a2eff04957c",
+      "size_in_bytes": 24647831,
+      "digest": "sha256:1de5e363e2aa144a641412075aac86c55627d7ead8a3c9af909e8655550c46ab",
+      "created_at": "2026-11-09T20:13:18Z",
+      "expires_at": "2026-11-12T20:13:16Z",
+      "expired": false
+    },
+    {
+      "id": 13706093950,
+      "name": "uskoci-test-runtime-3b3ace969e223ce53fd1c98910426a2eff04957c",
+      "size_in_bytes": 14753588,
+      "digest": "sha256:c7e9a94467fb772dee24c934d94bed4d2cbe16de7237d78e5fc00e648462476f",
+      "created_at": "2026-11-09T20:13:47Z",
+      "expires_at": "2026-11-12T20:13:45Z",
+      "expired": false
+    }
+  ],
+  "apk": {
+    "filename": "USKOCI-QA-3b3ace969.apk",
+    "bytes": 83487251,
+    "sha256": "89578c4ab4777377d42c140bfaeaa9032a63d1700a893053e515858c6833fe58",
+    "matchesBuildReceiptAndSha256sums": true,
+    "extractedApkCompared": true,
+    "package": "rs.uskoci.preview.qa",
+    "backend": "DEV",
+    "backendProject": "leqcwgzvjsxugfgzdmth",
+    "runtimeVersion": "uskoci-v1-preview-r2",
+    "artifactId": 13708127494,
+    "artifactName": "uskoci-isolated-qa-apk-113",
+    "artifactZipBytes": 48869501,
+    "artifactZipSha256": "d504c7cada27274242604370ab1a488d0e58a18a4b43208d464f6edb01783744",
+    "githubSizeAndDigestMatch": true,
+    "candidateTarget": "isolated-qa",
+    "buildProfile": "preview",
+    "profileEvidence": "Exact source workflow sets EAS_BUILD_PROFILE=preview and USKOCI_OTA_TARGET=preview; packaged app.config updateChannel=preview and runtimeVersion=uskoci-v1-preview-r2.",
+    "embedded": {
+      "sourceCommit": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+      "sourceCommitLocation": "assets/app.config -> extra.uskociBuild.sourceCommit",
+      "sourceDirtyFlag": true,
+      "backendTarget": "canonical",
+      "package": "rs.uskoci.preview.qa",
+      "runtimeVersion": "uskoci-v1-preview-r2",
+      "otaEnabled": false,
+      "otaCheckAutomatically": "NEVER",
+      "useEmbeddedUpdate": true,
+      "googleServicesFilePresent": false,
+      "configSha256": "221b6f65af17697d5f0b62d3f8c8ae986626ad0b8775dcf3be73c7785a9bf9a9",
+      "configBytes": 3363,
+      "manifestSha256": "3f9cbb6e9d0740452c1bf5b070716b809a8a6524b2f1d5063ce291e3b6181672",
+      "manifestBytes": 17947,
+      "manifestAssets": 66,
+      "manifestContainsSourceCommit": false,
+      "bundleBytes": 14020812,
+      "bundleSha256": "42a6637b36940d8cade0892df931426a5817517fd0d014b5622f827aa944d9c0",
+      "bundleSource": "assets/index.android.bundle from the exact APK entry in the verified artifact ZIP",
+      "standaloneBundleInArtifact": false,
+      "extractedBundleCompared": false,
+      "abis": [
+        "arm64-v8a"
+      ],
+      "dexFiles": 7,
+      "nativePatchMarkerPresent": true
+    },
+    "firebaseConfigured": false,
+    "hasGoogleAppIdResource": false,
+    "replacesExistingPreview": false,
+    "signing": "EXPO_TEMPLATE_ANDROID_DEBUG_KEY",
+    "signature": {
+      "basis": "Digest-bound CI apksigner receipt plus independently checked original ZIP/APK hashes; no local apksigner cryptographic invocation.",
+      "signatureReceiptVerified": true,
+      "schemeV2": true,
+      "signers": 1,
+      "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+      "sameCertificateAsQa47": true,
+      "publicKeyType": "RSA",
+      "publicKeyBits": 2048,
+      "localApksignerVerificationPerformed": false
+    }
+  },
+  "unchangedR2Verifier": {
+    "status": "LOCAL_ARTIFACT_AND_NATIVE_AUDIO_BYTES_CONFIRMED_NOT_NATIVE_E2E",
+    "failureCode": null,
+    "exitCode": 0,
+    "proof": {
+      "file": "r2-local-verification.json",
+      "bytes": 9946,
+      "sha256": "ada729f3de3ee7ddb773a8258c30b5513dc5f7fc6fd31bdc0d990b25fafe5557"
+    },
+    "inputsMatchedImmutableCommitImmediatelyBeforeFinalProof": true,
+    "inputs": [
+      {
+        "path": "scripts/verify-qa-apk-r2.py",
+        "sha256": "895d5aef073c0915cafa404eb6f3ed00c121842c63a6ef83224a0b0471f2e322",
+        "bytes": 9396,
+        "workingFileMatchesExactCommit": true
+      },
+      {
+        "path": "docs/plan/proofs/qa58-artifact-verifier.py",
+        "sha256": "6224dc5d3eedcc71d1c0791bbcc231c5effde5960406b2909078cb11311dc873",
+        "bytes": 28155,
+        "workingFileMatchesExactCommit": true
+      },
+      {
+        "path": "scripts/apk_audio_resources.py",
+        "sha256": "b30290b28c24c53309f3fcaaf86d41282d1caace0fe54d855301387e44f4de45",
+        "bytes": 12347,
+        "workingFileMatchesExactCommit": true
+      },
+      {
+        "path": "docs/plan/proofs/qa47-readback-20261107.json",
+        "sha256": "c4a2186372444f783107022df3791f83944c847af6990e902a264c517ca62433",
+        "bytes": 7565,
+        "workingFileMatchesExactCommit": true
+      }
+    ],
+    "command": "PYTHONDONTWRITEBYTECODE=1 python scripts/verify-qa-apk-r2.py --directory <evidence-directory> --head 3b3ace969e223ce53fd1c98910426a2eff04957c --run 113 --run-id 42690823995 --tests 1434 --migrations 235 --migration-tests 90 --repo <exact-source-repo> --aapt2 <verified-aapt2> --output <new-r2-proof-path>"
+  },
+  "independentLocalManifestVerification": {
+    "observedAtUtc": "2026-11-09T20:34:26.159573+00:00",
+    "status": "LOCAL_AAPT2_APK_MANIFEST_AND_RESOURCE_TABLE_CONFIRMED",
+    "apkSha256": "89578c4ab4777377d42c140bfaeaa9032a63d1700a893053e515858c6833fe58",
+    "aapt2Sha256": "3aefe9e14970ba7fcbd0209809adc85e560b6ce07cc90804ea8e1c0e6e1f84dd",
+    "package": "rs.uskoci.preview.qa",
+    "versionCode": 36,
+    "versionName": "1.0.0",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "abis": [
+      "arm64-v8a"
+    ],
+    "otaEnabled": false,
+    "otaCheckAutomatically": "NEVER",
+    "nativeHasEmbeddedUpdateExplicitlyDeclared": false,
+    "hasEmbeddedUpdateEvidence": "assets/app.config useEmbeddedUpdate=true plus actual nonempty assets/index.android.bundle; missing native meta-data is not misreported as explicit true",
+    "googleAppIdResourcePresent": false,
+    "manifestDumpSha256": "dd3adcb88c6106191287da6e64bd580ee9819dbc8dafed1584459a0b6b959fd1",
+    "badgingDumpSha256": "64ffb87516fc0e028e407e4028271c86b596e024817220852f4d6248c3ca3062",
+    "resourceDumpSha256": "c0a1e16888f8df819145974a205946192b4288cce6eb6ce1982848d7f3395673",
+    "ciReceiptFieldsAgree": true,
+    "signatureCryptographicallyVerifiedLocally": false,
+    "deviceExecutionPerformed": false
+  },
+  "nativeAudioByteVerification": {
+    "status": "APK_LOGICAL_RAW_RESOURCES_AND_BYTES_MATCH_EXACT_GIT_COMMIT_AND_BOTH_CI_RECEIPTS",
+    "sourceCommit": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+    "source": "git show <exact sourceCommit>:assets/audio/<filename>; not working-tree files",
+    "resources": {
+      "uskoci_confirm_v1.wav": {
+        "logicalName": "raw/uskoci_confirm_v1",
+        "resourceId": "0x7f120003",
+        "apkPath": "res/F2.wav",
+        "bytes": 20330,
+        "sha256": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1"
+      },
+      "uskoci_message_v1.wav": {
+        "logicalName": "raw/uskoci_message_v1",
+        "resourceId": "0x7f120004",
+        "apkPath": "res/ES.wav",
+        "bytes": 10628,
+        "sha256": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed"
+      },
+      "uskoci_opportunity_v1.wav": {
+        "logicalName": "raw/uskoci_opportunity_v1",
+        "resourceId": "0x7f120005",
+        "apkPath": "res/fp.wav",
+        "bytes": 18566,
+        "sha256": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+      }
+    },
+    "independentAapt2": {
+      "version": "Android Asset Packaging Tool (aapt) 2.20-13700139",
+      "sha256": "3aefe9e14970ba7fcbd0209809adc85e560b6ce07cc90804ea8e1c0e6e1f84dd"
+    },
+    "independentResourceDump": {
+      "bytes": 2397492,
+      "sha256": "c0a1e16888f8df819145974a205946192b4288cce6eb6ce1982848d7f3395673"
+    },
+    "customSoundActivation": "NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED",
+    "audibleOutputOrDeviceExecutionVerified": false
+  },
+  "boundedPackagedAssetScan": {
+    "scope": "Bounded Hermes string table; credential and Supabase-host patterns, not a full native binary audit",
+    "bytecodeVersion": 98,
+    "decodedStringCount": 51748,
+    "unmatchedStringRows": 0,
+    "decodedAsciiRows": 48898,
+    "decodedUtf16Rows": 2850,
+    "serviceRoleJwtFound": false,
+    "modernSecretLiteralFound": false,
+    "literalPrefixCount": 1,
+    "jwtCandidateCount": 0,
+    "jwtPayloadsDecoded": 0,
+    "supabaseHostCount": 1,
+    "canonicalDevHostOnly": true,
+    "journalMarkerPresent": true,
+    "journalMarkerRows": 1,
+    "sourceShaLiteralPresent": false,
+    "sourceShaLiteralRows": 0,
+    "sourceShaLiteralExpected": "3b3ace969e223ce53fd1c98910426a2eff04957c",
+    "sourceShaLiteralRequiredByBuildContract": false,
+    "rawStringsPublished": false,
+    "nativeBinaryFullAudit": false,
+    "compiler": {
+      "path": "/workspace/scratch/78491a3df814/current/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc",
+      "bytes": 4401040,
+      "sha256": "925ddf1bc2f17578e8af5df391c9d84dbd98441540fb43257aac3ef75c54b749"
+    },
+    "dumpBytes": 73126456,
+    "dumpSha256": "e7106606a8b37984118782376f990d5da4781e60f9ebcb629f81291380977852",
+    "rawDumpRetained": false,
+    "timeoutSeconds": 40,
+    "maxDumpBytes": 134217728
+  },
+  "aapt2Provenance": {
+    "observedAtUtc": "2026-11-09T20:14:53.980468+00:00",
+    "url": "https://dl.google.com/dl/android/maven2/com/android/tools/build/aapt2/8.12.0-13700139/aapt2-8.12.0-13700139-linux.jar",
+    "jarBytes": 2450069,
+    "jarSha256": "df85593b92c25199515750a30b14744acc42537b2d1176be61b248111484134f",
+    "officialSha1": "240beac906c7fc6c7f3f8c312c0a2f8c4acf0858",
+    "sha1Matches": true,
+    "historicalJarAndBinarySha256Match": true,
+    "binaryPath": "/workspace/scratch/78491a3df814/ci-3b3ace9-20261109/aapt2",
+    "binaryBytes": 6781712,
+    "binarySha256": "3aefe9e14970ba7fcbd0209809adc85e560b6ce07cc90804ea8e1c0e6e1f84dd",
+    "version": "Android Asset Packaging Tool (aapt) 2.20-13700139"
+  },
+  "evidenceFiles": [
+    {
+      "file": "github-metadata.json",
+      "bytes": 36497,
+      "sha256": "2b469ac846d6e99c20dc4f25707900085b7ab638c20e049806601b2c33430518"
+    },
+    {
+      "file": "source-byte-verification.json",
+      "bytes": 663,
+      "sha256": "8d6a57774a65a3d1b74050ecdbef8fd964ba6b4977923c79f803d5df8fb6fa8f"
+    },
+    {
+      "file": "checks-byte-verification.json",
+      "bytes": 812,
+      "sha256": "0876e2aa32ae085b26744a94e75337ba21b303ede05473e0803cc6e3ef4868a6"
+    },
+    {
+      "file": "apk-byte-verification.json",
+      "bytes": 3374,
+      "sha256": "797024371f910322c5c82ae89c058671aa54dfb14510862d11b55c12c775b841"
+    },
+    {
+      "file": "r2-local-verification.json",
+      "bytes": 9946,
+      "sha256": "ada729f3de3ee7ddb773a8258c30b5513dc5f7fc6fd31bdc0d990b25fafe5557"
+    },
+    {
+      "file": "independent-manifest-verification.json",
+      "bytes": 1183,
+      "sha256": "4445157c14950226fa68f484724583b5ea23559dff63e82808b08a0db7af0866"
+    },
+    {
+      "file": "aapt2-provenance.json",
+      "bytes": 679,
+      "sha256": "e5f62d2973f4afb4e1ed6fc55c308561a09b15820802da873cf90a713ba378e1"
+    },
+    {
+      "file": "verifier-inputs.json",
+      "bytes": 820,
+      "sha256": "f7907d01cf89bb8f3a810fc4bae796ea53a4663145ea341c2d697b027667cc9c"
+    },
+    {
+      "file": "checkpoint-result.json",
+      "bytes": 271,
+      "sha256": "d0a48c9c30afdaae759613499d6c107e7050ac9a6494366ca2a39ad8dfdd6c06"
+    }
+  ],
+  "deviceStatus": {
+    "apkBuilt": true,
+    "apkDownloaded": true,
+    "apkBytesVerifiedLocally": true,
+    "androidEmulatorInstalled": false,
+    "androidEmulatorTested": false,
+    "physicalAndroidInstalled": false,
+    "physicalAndroidTested": false,
+    "twoPhysicalPhonesTested": false,
+    "pushDelivered": false,
+    "audibleSoundsTested": false,
+    "fullUserFlowE2E": false,
+    "devDeploymentPerformedByThisTask": false
+  },
+  "boundaries": [
+    "This exact source commit is CI confirmed with 1434/1434 Node tests, TypeScript pass, 235 SQL files and 90 migration tests; it is not a new DEV deployment or Android user-flow acceptance.",
+    "The automatic build is isolated QA package rs.uskoci.preview.qa, ARM64 only, canonical DEV, embedded r2 bundle, OTA disabled, no configured Firebase client. It does not replace an installed preview.",
+    "APK bytes and native manifest/resource table were inspected locally with pinned official AAPT2. Signature validity remains supported by the digest-bound successful CI apksigner receipt, not a new independent local cryptographic verification.",
+    "The preserved r2 verifier reports its own manifest scope as CI receipt based. The separate independentLocalManifestVerification in this proof adds a local AAPT2 manifest read without changing that historical verifier or its output.",
+    "Packaged sourceDirty=true is recorded, not hidden. The exact tracked source archive matches the commit; the reviewed workflow intentionally modifies app name/package for QA isolation before native generation. No bit-for-bit reproducible-build claim is made.",
+    "The native HAS_EMBEDDED_UPDATE metadata key is absent; embedded configuration and actual nonempty bundle establish the embedded bundle. Absence is not reported as an explicit native true value.",
+    "Three logical raw resources resolve through the actual APK resource table and match exact Git audio bytes and both CI receipts. They remain NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED; audible output and push delivery were not tested.",
+    "Bounded Hermes scanning found only the canonical DEV Supabase host and no matched service-role JWT or modern-secret literals. It is not a complete native binary security audit.",
+    "No adb/emulator or physical device was used for this APK. Previous build/device evidence does not establish installation, recovery UX, FCM delivery or E2E for QA113.",
+    "No public release, production signing, Play upload, legal readiness or capacity for 300000 users is implied."
+  ]
+}

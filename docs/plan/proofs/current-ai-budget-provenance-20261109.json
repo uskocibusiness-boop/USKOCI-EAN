@@ -1,0 +1,421 @@
+{
+  "schema": "USKOCI_AI_BUDGET_PROVENANCE_READONLY_V1",
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "status": "CURRENT_VALUE_AND_SCHEMA_DRIFT_CONFIRMED_PROVENANCE_NOT_AVAILABLE",
+  "read_only": true,
+  "database_query_count": 2,
+  "provider_calls": 0,
+  "budget_mutations": 0,
+  "repository_edits": false,
+  "observed_window": {
+    "from": "2026-11-09 20:25:32.733234+00",
+    "to": "2026-11-09 20:26:34.31564+00"
+  },
+  "conclusion": "Current100USD ceiling and broadened CHECK constraint are confirmed. No available confirmed provenance or authorization for that change was found in this bounded review. No conclusion is made about who changed it or whether they had approval.",
+  "observed_budget": {
+    "enabled": true,
+    "ceiling_microusd": 100000000,
+    "reserved_microusd": 65662284,
+    "reservation_cap_enforced": true
+  },
+  "canonical_source_path": "supabase/migrations/20260912214126_clean_v5_bounded_ai_test_budget.sql",
+  "live_constraint": {
+    "name": "ai_test_budget_v5_ceiling_microusd_check",
+    "type": "c",
+    "definition": "CHECK ((ceiling_microusd = ANY (ARRAY[(5000000)::bigint, (100000000)::bigint])))",
+    "definition_sha256": "4af28fbfaed73fc19cedcea98dfdeb71d769c6a37b7de1f577d72550e51820f0",
+    "definition_md5": "b5ba9741fe4601da664945b15dc48cb8",
+    "hash_basis": "Exact UTF-8 pg_get_constraintdef string, without trailing newline."
+  },
+  "historical_evidence": [
+    {
+      "file": "docs/plan/proofs/ai-budget-live-readonly-20261108.json",
+      "observed_at": "2026-11-08T10:00:15.47826+00:00",
+      "ceiling_microusd": 5000000,
+      "reservation_cap_enforced": true
+    },
+    {
+      "file": "docs/plan/proofs/forensic-budget-reconciliation-20261109.json",
+      "observed_at": "2026-11-09T00:51:10.361387+00:00",
+      "ceiling_microusd": 5000000,
+      "reservation_cap_enforced": false
+    },
+    {
+      "file": "docs/plan/proofs/forensic-readback-20261109.json",
+      "json_path": "delivery_dev_recheck.evidence.snapshot",
+      "observed_at": "2026-11-09T01:46:46.356959+00:00",
+      "ceiling_microusd": 5000000,
+      "reservation_cap_enforced": false
+    },
+    {
+      "file": "docs/plan/proofs/current-dev-readonly-20261109.json",
+      "observed_at": "2026-11-09T19:49:51.209645+00:00",
+      "ceiling_microusd": 100000000,
+      "reservation_cap_enforced": true
+    }
+  ],
+  "time_interpretation": {
+    "value_transition": "At least one singleton value transition occurred between the last observed5USD value at01:46:46.356959 and first observed100USD value at19:49:51.209645 on2026-11-09. This is an evidence window, not an exact update timestamp.",
+    "constraint_transition": "Current constraint differs from canonical creation source; the budget-value timeline does not date the constraint change. track_commit_timestamp is off, so current catalog xmin203361740 does not provide a commit timestamp."
+  },
+  "migration_coverage": {
+    "total": 372,
+    "with_sql": 152,
+    "without_sql": 220,
+    "any_sql_with_100m_literal": 0
+  },
+  "matching_migration_metadata": [
+    {
+      "name": "clean_v5_qa_owner_product_activation",
+      "version": "20260913081242",
+      "source_md5": "d6a5fe56a8a17469af2994ebfe5d67bf",
+      "statement_count": 6,
+      "has_100m_literal": false,
+      "mentions_ceiling": false,
+      "mentions_budget_constraint": false
+    },
+    {
+      "name": "dev_owner_requested_test_data_reset_v1",
+      "version": "20261102114148",
+      "source_md5": "bbea54cfd6cb58c05c132de5541a9d50",
+      "statement_count": 1,
+      "has_100m_literal": false,
+      "mentions_ceiling": false,
+      "mentions_budget_constraint": true
+    },
+    {
+      "name": "r06_budget_accounting_20261107",
+      "version": "20261107152928",
+      "source_md5": "092e24021a33ec79119ae11a56cab287",
+      "statement_count": 1,
+      "has_100m_literal": false,
+      "mentions_ceiling": true,
+      "mentions_budget_constraint": true
+    }
+  ],
+  "later_migration_metadata": [
+    {
+      "name": "worker_shared_reuse_20261109",
+      "has_sql": true,
+      "version": "20261109133503",
+      "mentions_budget": false,
+      "mentions_ceiling": false
+    },
+    {
+      "name": "worker_draft_activation_20261109",
+      "has_sql": true,
+      "version": "20261109143049",
+      "mentions_budget": false,
+      "mentions_ceiling": false
+    },
+    {
+      "name": "worker_application_areas_20261109",
+      "has_sql": true,
+      "version": "20261109165413",
+      "mentions_budget": false,
+      "mentions_ceiling": false
+    },
+    {
+      "name": "worker_candidate_areas_20261109",
+      "has_sql": true,
+      "version": "20261109173026",
+      "mentions_budget": false,
+      "mentions_ceiling": false
+    }
+  ],
+  "audit_limitations": {
+    "budget_table_has_updated_at": false,
+    "budget_table_user_triggers": [],
+    "available_audit_relation_metadata": [
+      {
+        "table": "marketplace_audit_log",
+        "schema": "private",
+        "columns": [
+          "id",
+          "actor_user_id",
+          "event_type",
+          "entity_type",
+          "entity_id",
+          "entity_version",
+          "detail",
+          "created_at"
+        ]
+      },
+      {
+        "table": "support_operator_audit_v5",
+        "schema": "private",
+        "columns": [
+          "id",
+          "actor_account_id",
+          "action",
+          "case_id",
+          "grant_revision",
+          "created_at"
+        ]
+      },
+      {
+        "table": "work_taxonomy_audit",
+        "schema": "private",
+        "columns": [
+          "id",
+          "action",
+          "category_id",
+          "normalized_key",
+          "catalog_version",
+          "source_ref",
+          "at"
+        ]
+      }
+    ],
+    "marketplace_aggregate": {
+      "all_rows": 49,
+      "budget_named_rows": 0,
+      "budget_named_rows_after_last_5usd": 0
+    },
+    "support_aggregate": {
+      "all_rows": 0,
+      "budget_named_actions": 0
+    },
+    "filter_scope": "Only event/entity/action names containing budget or ceiling were counted; no actor IDs, entity IDs, detail payloads or raw prompts were read. Zero name matches does not prove absence of a generically named audit event.",
+    "incomplete_migration_history": "220 of372 migration rows have no stored SQL; none of152 stored SQL payloads contains literal100000000. This does not prove all historical execution paths are known.",
+    "authorization": "No new owner approval, operator action record or executable source for100USD was found in inspected repository material. External chat decisions, dashboard history and provider billing were not inspected."
+  },
+  "source_search_scope": {
+    "directories": [
+      "docs/plan/proofs",
+      "supabase/migrations",
+      "scripts/sql"
+    ],
+    "terms": [
+      "ceiling_microusd",
+      "100000000",
+      "100 USD",
+      "100USD"
+    ],
+    "focused_files": [
+      "docs/plan/proofs/ai-budget-live-readonly-20261108.json",
+      "docs/plan/proofs/forensic-budget-reconciliation-20261109.json",
+      "docs/plan/proofs/forensic-readback-20261109.json",
+      "docs/plan/proofs/forensic-ai-metrics-20261109.json",
+      "supabase/migrations/20260912214126_clean_v5_bounded_ai_test_budget.sql",
+      "supabase/migrations/20261107152928_r06_budget_accounting_20261107.sql"
+    ],
+    "master_scope": "Only targeted matching lines were inspected; not a full CODEX reread. Its new100USD entry points back to the current readback, not to an authorization record."
+  },
+  "queries": [
+    {
+      "sql": "begin read only;\nset local statement_timeout='5s';\nselect clock_timestamp() observed_at,\n (select jsonb_build_object('enabled',enabled,'ceiling_microusd',ceiling_microusd,'reserved_microusd',reserved_microusd,'reservation_cap_enforced',reservation_cap_enforced) from private.ai_test_budget_v5 where singleton) budget,\n (select jsonb_agg(jsonb_build_object('version',version,'name',name,'statement_count',coalesce(array_length(statements,1),0),'source_md5',md5(array_to_string(statements,E'\\n')),'mentions_ceiling',array_to_string(statements,E'\\n') ilike '%ceiling_microusd%','has_100m_literal',array_to_string(statements,E'\\n') like '%100000000%','mentions_budget_constraint',array_to_string(statements,E'\\n') ilike '%ai_test_budget_v5_%check%') order by version)\n from supabase_migrations.schema_migrations where array_to_string(statements,E'\\n') ilike '%ai_test_budget_v5%' or array_to_string(statements,E'\\n') ilike '%ceiling_microusd%') budget_related_migration_metadata,\n (select jsonb_agg(jsonb_build_object('name',conname,'type',contype,'definition',pg_get_constraintdef(oid)) order by conname) from pg_constraint where conrelid='private.ai_test_budget_v5'::regclass) budget_constraints,\n (select jsonb_agg(jsonb_build_object('column',column_name,'type',data_type,'default',column_default) order by ordinal_position) from information_schema.columns where table_schema='private' and table_name='ai_test_budget_v5') budget_columns,\n (select jsonb_agg(jsonb_build_object('trigger',tgname,'function',tgfoid::regprocedure::text,'enabled',tgenabled)) from pg_trigger where tgrelid='private.ai_test_budget_v5'::regclass and not tgisinternal) budget_triggers,\n (select jsonb_agg(jsonb_build_object('schema',table_schema,'table',table_name,'columns',columns) order by table_schema,table_name) from(\n select table_schema,table_name,array_agg(column_name order by ordinal_position) columns\n from information_schema.columns where table_schema in('private','public') and (table_name ilike '%audit%' or table_name ilike '%budget%history%' or table_name ilike '%budget%change%')\n group by table_schema,table_name)x) audit_relation_metadata;\nrollback;",
+      "result": [
+        {
+          "observed_at": "2026-11-09 20:25:32.733234+00",
+          "budget": {
+            "enabled": true,
+            "ceiling_microusd": 100000000,
+            "reserved_microusd": 65662284,
+            "reservation_cap_enforced": true
+          },
+          "budget_related_migration_metadata": [
+            {
+              "name": "clean_v5_qa_owner_product_activation",
+              "version": "20260913081242",
+              "source_md5": "d6a5fe56a8a17469af2994ebfe5d67bf",
+              "statement_count": 6,
+              "has_100m_literal": false,
+              "mentions_ceiling": false,
+              "mentions_budget_constraint": false
+            },
+            {
+              "name": "dev_owner_requested_test_data_reset_v1",
+              "version": "20261102114148",
+              "source_md5": "bbea54cfd6cb58c05c132de5541a9d50",
+              "statement_count": 1,
+              "has_100m_literal": false,
+              "mentions_ceiling": false,
+              "mentions_budget_constraint": true
+            },
+            {
+              "name": "r06_budget_accounting_20261107",
+              "version": "20261107152928",
+              "source_md5": "092e24021a33ec79119ae11a56cab287",
+              "statement_count": 1,
+              "has_100m_literal": false,
+              "mentions_ceiling": true,
+              "mentions_budget_constraint": true
+            }
+          ],
+          "budget_constraints": [
+            {
+              "name": "ai_test_budget_v5_ceiling_microusd_check",
+              "type": "c",
+              "definition": "CHECK ((ceiling_microusd = ANY (ARRAY[(5000000)::bigint, (100000000)::bigint])))"
+            },
+            {
+              "name": "ai_test_budget_v5_pkey",
+              "type": "p",
+              "definition": "PRIMARY KEY (singleton)"
+            },
+            {
+              "name": "ai_test_budget_v5_price_valid_until_check",
+              "type": "c",
+              "definition": "CHECK ((price_valid_until <= '2027-01-01 00:00:00+00'::timestamp with time zone))"
+            },
+            {
+              "name": "ai_test_budget_v5_reserved_microusd_check",
+              "type": "c",
+              "definition": "CHECK ((reserved_microusd >= 0))"
+            },
+            {
+              "name": "ai_test_budget_v5_singleton_check",
+              "type": "c",
+              "definition": "CHECK (singleton)"
+            }
+          ],
+          "budget_columns": [
+            {
+              "type": "boolean",
+              "column": "singleton",
+              "default": "true"
+            },
+            {
+              "type": "boolean",
+              "column": "enabled",
+              "default": "false"
+            },
+            {
+              "type": "bigint",
+              "column": "ceiling_microusd",
+              "default": "5000000"
+            },
+            {
+              "type": "bigint",
+              "column": "reserved_microusd",
+              "default": "0"
+            },
+            {
+              "type": "timestamp with time zone",
+              "column": "price_valid_until",
+              "default": "'2027-01-01 00:00:00+00'::timestamp with time zone"
+            },
+            {
+              "type": "boolean",
+              "column": "reservation_cap_enforced",
+              "default": "true"
+            }
+          ],
+          "budget_triggers": null,
+          "audit_relation_metadata": [
+            {
+              "table": "marketplace_audit_log",
+              "schema": "private",
+              "columns": [
+                "id",
+                "actor_user_id",
+                "event_type",
+                "entity_type",
+                "entity_id",
+                "entity_version",
+                "detail",
+                "created_at"
+              ]
+            },
+            {
+              "table": "support_operator_audit_v5",
+              "schema": "private",
+              "columns": [
+                "id",
+                "actor_account_id",
+                "action",
+                "case_id",
+                "grant_revision",
+                "created_at"
+              ]
+            },
+            {
+              "table": "work_taxonomy_audit",
+              "schema": "private",
+              "columns": [
+                "id",
+                "action",
+                "category_id",
+                "normalized_key",
+                "catalog_version",
+                "source_ref",
+                "at"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sql": "begin read only;\nset local statement_timeout='5s';\nselect clock_timestamp() observed_at,\n jsonb_build_object('total',(select count(*) from supabase_migrations.schema_migrations),'with_sql',(select count(*) from supabase_migrations.schema_migrations where coalesce(cardinality(statements),0)>0),'without_sql',(select count(*) from supabase_migrations.schema_migrations where coalesce(cardinality(statements),0)=0),'any_sql_with_100m_literal',(select count(*) from supabase_migrations.schema_migrations where array_to_string(statements,E'\\n') like '%100000000%')) migration_source_coverage,\n (select jsonb_agg(jsonb_build_object('version',version,'name',name,'has_sql',coalesce(cardinality(statements),0)>0,'mentions_budget',coalesce(array_to_string(statements,E'\\n') ilike '%ai_test_budget_v5%',false),'mentions_ceiling',coalesce(array_to_string(statements,E'\\n') ilike '%ceiling_microusd%',false)) order by version) from supabase_migrations.schema_migrations where version>'20261109014646') migrations_after_last_5usd_evidence,\n current_setting('track_commit_timestamp') track_commit_timestamp,\n (select jsonb_build_object('catalog_xmin',xmin::text,'commit_time',case when current_setting('track_commit_timestamp')='on' then pg_xact_commit_timestamp(xmin) else null end) from pg_constraint where conrelid='private.ai_test_budget_v5'::regclass and conname='ai_test_budget_v5_ceiling_microusd_check') ceiling_constraint_catalog,\n (select jsonb_build_object('all_rows',count(*),'budget_named_rows',count(*) filter(where event_type::text ilike '%budget%' or entity_type::text ilike '%budget%' or event_type::text ilike '%ceiling%' or entity_type::text ilike '%ceiling%'),'budget_named_rows_after_last_5usd',count(*) filter(where created_at>'2026-11-09T01:46:46.356959Z'::timestamptz and (event_type::text ilike '%budget%' or entity_type::text ilike '%budget%' or event_type::text ilike '%ceiling%' or entity_type::text ilike '%ceiling%'))) from private.marketplace_audit_log) marketplace_audit_aggregate,\n (select jsonb_build_object('all_rows',count(*),'budget_named_actions',count(*) filter(where action::text ilike '%budget%' or action::text ilike '%ceiling%')) from private.support_operator_audit_v5) support_audit_aggregate;\nrollback;",
+      "result": [
+        {
+          "observed_at": "2026-11-09 20:26:34.31564+00",
+          "migration_source_coverage": {
+            "total": 372,
+            "with_sql": 152,
+            "without_sql": 220,
+            "any_sql_with_100m_literal": 0
+          },
+          "migrations_after_last_5usd_evidence": [
+            {
+              "name": "worker_shared_reuse_20261109",
+              "has_sql": true,
+              "version": "20261109133503",
+              "mentions_budget": false,
+              "mentions_ceiling": false
+            },
+            {
+              "name": "worker_draft_activation_20261109",
+              "has_sql": true,
+              "version": "20261109143049",
+              "mentions_budget": false,
+              "mentions_ceiling": false
+            },
+            {
+              "name": "worker_application_areas_20261109",
+              "has_sql": true,
+              "version": "20261109165413",
+              "mentions_budget": false,
+              "mentions_ceiling": false
+            },
+            {
+              "name": "worker_candidate_areas_20261109",
+              "has_sql": true,
+              "version": "20261109173026",
+              "mentions_budget": false,
+              "mentions_ceiling": false
+            }
+          ],
+          "track_commit_timestamp": "off",
+          "ceiling_constraint_catalog": {
+            "commit_time": null,
+            "catalog_xmin": "203361740"
+          },
+          "marketplace_audit_aggregate": {
+            "all_rows": 49,
+            "budget_named_rows": 0,
+            "budget_named_rows_after_last_5usd": 0
+          },
+          "support_audit_aggregate": {
+            "all_rows": 0,
+            "budget_named_actions": 0
+          }
+        }
+      ]
+    }
+  ],
+  "accounting_boundary": "The100USD cap is a configured allowance, not a provider invoice or measured payment. reserved_microusd65662284 is internal ledger exposure, not proof of provider billing.",
+  "action": "No correction, reset, provider call, Auth change, constraint alteration or new SQL object was performed.",
+  "canonical_source": {
+    "path": "supabase/migrations/20260912214126_clean_v5_bounded_ai_test_budget.sql",
+    "bytes": 5219,
+    "sha256": "7bc6e3995632e1f22217cfe0c3ecbfffb202cbcaa1856cff5024a82d31be80e9",
+    "md5": "cd41c1465e51342cecedf6d0dcf9ee10",
+    "ceiling_column_clause": "  ceiling_microusd bigint not null default 5000000 check (ceiling_microusd = 5000000),",
+    "clause_sha256": "fd0ea634653d33d5a99fce0b8140d5d230b1bad661b779125ade0ac83743aca1",
+    "clause_md5": "b63812ef914e7d2a87929ef36637047c",
+    "clause_hash_basis": "Exact UTF-8 source line including leading spaces, without trailing newline."
+  }
+}
