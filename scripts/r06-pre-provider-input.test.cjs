@@ -3,9 +3,9 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {spawn}=require('node:child_process');
 const {fixture,source,candidate,preimage,input,A,C,R,ATT,T,TEXT}=require('./r06-pre-provider-input-fixture.cjs');
 const native=process.env.USKOCI_R06_NATIVE==='1',runtime=native?require('./p0-discovery-native-benchmark.cjs'):null;
-const report={recordedAt:new Date().toISOString(),scope:'SOURCE_ONLY_BOUNDED_TEXT_COMMAND_CONTRACT',runtimeHandlersChanged:false,
+const report={recordedAt:new Date().toISOString(),scope:'SOURCE_ONLY_BOUNDED_TEXT_SQL_CONTRACT',runtimeActivation:'DISABLED_UNTIL_CONTROLLED_PROMOTION',
  sourceSha256:crypto.createHash('sha256').update(source).digest('hex'),cases:[],failures:[],limitations:[
- 'No active Edge handler invokes this contract. This is not end-to-end Need/Worker restart or production activation.',
+ 'The paired Edge path is opt-in. This SQL proof alone is not end-to-end Need/Worker restart or production activation.',
  'Photos/location replies are outside this bounded text-only contract. Existing accepted input/runtime behavior is unchanged.',
  'Synthetic data, no external model/HTTP/Auth/device call. A fixture row represents an invocation decision, not provider billing or delivery.',
  'Captured Need context, both dispatch owners, budget reservation, export and held-aware redaction bodies execute real SQL.',
@@ -24,6 +24,7 @@ const processRun=(operation,purpose,data)=>new Promise((resolve,reject)=>{
  child.on('close',code=>resolve({code,out:out.trim()?JSON.parse(out.trim()):null,err}));
  child.stdin.end(data?JSON.stringify(data):'');
 });
+
 const coldProcessRun=(directory,operation,purpose,data)=>new Promise((resolve,reject)=>{
  const child=spawn(process.execPath,[path.join(__dirname,'r06-pre-provider-input-cold-process.cjs'),operation,purpose,
   JSON.stringify(operation==='prepare-crash'?[A,C,R,ATT]:[A,C,R])],{
@@ -84,7 +85,7 @@ test('R06 source-only bounded input survives process loss without a second provi
    await run(`${purpose}: prepare atomically reserves once and returns immutable reconstructible input`,async()=>{
     await f.seed(purpose);const first=await f.prepare(purpose);assert.equal(first.state,'PREPARED');assert.equal(first.replay,false);
     const second=await f.prepare(purpose);assert.equal(second.replay,true);assert.equal(second.inputSha256,first.inputSha256);
-    const read=await f.read(purpose);assert.equal(read.state,'PREPARED');assert.deepEqual(read.snapshot.input,input());
+    const read=await f.read(purpose);assert.equal(read.state,'PREPARED');assert.deepEqual(read.snapshot.input,input(purpose));
     assert.equal(read.snapshot.attemptId,ATT);assert.equal(read.snapshot.clientRequestId,R);assert.ok(read.snapshot.sourceContext);
     assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),1);
     assert.equal(await f.value('select reserved_microusd::int as value from private.ai_test_budget_v5'),250000);
@@ -92,9 +93,37 @@ test('R06 source-only bounded input survives process loss without a second provi
    });
    await run(`${purpose}: altered same-key input and wrong account/attempt cannot replace the snapshot`,async()=>{
     await f.seed(purpose);await f.prepare(purpose);
-    const changed=input();changed.runtime.clock='2026-11-09T00:00:00Z';await assert.rejects(f.prepare(purpose,changed),/IMMUTABLE/);
-    await assert.rejects(f.prepare(purpose,input(),{attempt:T}),/NOT_PREPARABLE/);
+    const changed=input(purpose);changed.runtime.clock='2026-11-09T00:00:00Z';await assert.rejects(f.prepare(purpose,changed),/IMMUTABLE/);
+    await assert.rejects(f.prepare(purpose,input(purpose),{attempt:T}),/NOT_PREPARABLE/);
     await assert.rejects(f.read(purpose,{account:T}),/NOT_OWNED/);assert.equal((await f.read(purpose)).snapshot.input.runtime.clock,input().runtime.clock);
+   });
+   await run(`${purpose}: preparation binds the exact owned context used to build the provider request`,async()=>{
+    await f.seed(purpose);
+    for(const context of [undefined,null,[],{history:[],candidate:{skills:['different-source']}}]){
+     const stale=input(purpose);
+     if(context===undefined)delete stale.runtime.sourceContext;else stale.runtime.sourceContext=context;
+     await assert.rejects(f.prepare(purpose,stale),/R06_INPUT_(?:INVALID|SOURCE_MISMATCH)/);
+    }
+    assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),0);
+    assert.equal((await f.read(purpose)).state,'ABSENT');
+    await f.prepare(purpose);
+    const changed=input(purpose);changed.runtime.sourceContext.unownedValue='cannot replace snapshot';
+    await assert.rejects(f.prepare(purpose,changed),/R06_INPUT_SOURCE_MISMATCH/);
+    assert.deepEqual((await f.read(purpose)).snapshot.input,input(purpose));
+   });
+   await run(`${purpose}: provider final message must be the claimed user text before reserving money`,async()=>{
+    await f.seed(purpose);
+    for(const last of [
+     {role:'model',parts:[{text:TEXT}]},
+     {role:'user',parts:[{text:'a different request'}]},
+     {role:'user',parts:[]},
+     {role:'user',parts:[{text:TEXT},{text:'hidden additional request'}]}
+    ]){
+     const changed=input(purpose);changed.providerRequest.contents=[last];
+     await assert.rejects(f.prepare(purpose,changed),/R06_INPUT_REQUEST_MISMATCH/);
+    }
+    assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),0);
+    assert.equal((await f.read(purpose)).state,'ABSENT');
    });
    await run(`${purpose}: existing dispatch still wins once; post-dispatch recovery never renews permission`,async()=>{
     await f.seed(purpose);await f.prepare(purpose);
@@ -108,7 +137,7 @@ test('R06 source-only bounded input survives process loss without a second provi
     await assert.rejects(f.dispatchPrepared(purpose,prepared.inputSha256,{attempt:T}),/DISPATCH_MISMATCH/);
     await assert.rejects(f.dispatchPrepared(purpose,prepared.inputSha256,{account:T}),/NOT_OWNED/);
     const first=await f.dispatchPrepared(purpose,prepared.inputSha256);
-    assert.equal(first.state,'DISPATCHED');assert.equal(first.dispatched,true);assert.deepEqual(first.snapshot.input,input());
+    assert.equal(first.state,'DISPATCHED');assert.equal(first.dispatched,true);assert.deepEqual(first.snapshot.input,input(purpose));
     assert.deepEqual(await f.dispatchPrepared(purpose,prepared.inputSha256),{state:'READ_ONLY',dispatched:false});
     assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),1);
     assert.equal(await f.value('select reserved_microusd::int as value from private.ai_test_budget_v5'),250000);
@@ -194,7 +223,7 @@ test('R06 source-only bounded input survives process loss without a second provi
     for(const crashAfterDispatch of [false,true]){
      const directory=fs.mkdtempSync(path.join(os.tmpdir(),'uskoci-r06-cold-'));
      try{
-      const prepared=await coldProcessRun(directory,'prepare-crash',purpose,input());
+      const prepared=await coldProcessRun(directory,'prepare-crash',purpose,input(purpose));
       assert.equal(prepared.code,73,prepared.err);assert.equal(prepared.out.state,'PREPARED');
       if(crashAfterDispatch){
        const dispatched=await coldProcessRun(directory,'dispatch-crash',purpose);
@@ -216,7 +245,7 @@ test('R06 source-only bounded input survives process loss without a second provi
     return {engine:'FILE_BACKED_PGLITE',prepareExit:73,dispatchExit:74,providerNetworkCalls:0,nativeLockProof:false};
    });
    if(native)await run(`${purpose}: committed preparation survives abrupt process exit; new process needs IDs only`,async()=>{
-    await f.seed(purpose);const prepared=await processRun('prepare-crash',purpose,input());assert.equal(prepared.code,73,prepared.err);assert.equal(prepared.out.state,'PREPARED');
+    await f.seed(purpose);const prepared=await processRun('prepare-crash',purpose,input(purpose));assert.equal(prepared.code,73,prepared.err);assert.equal(prepared.out.state,'PREPARED');
     const resumed=await processRun('resume',purpose);assert.equal(resumed.code,0,resumed.err);assert.equal(resumed.out.send,true);assert.equal(resumed.out.inputSha256,prepared.out.inputSha256);
     const repeated=await processRun('resume',purpose);assert.equal(repeated.code,0,repeated.err);assert.equal(repeated.out.send,false);assert.equal(repeated.out.state,'READ_ONLY');
     assert.equal(await f.value('select count(*)::int as value from private.fixture_provider_sends'),1);
@@ -230,7 +259,7 @@ test('R06 source-only bounded input survives process loss without a second provi
      await f.db.exec(`update ${table(purpose)} set lease_expires_at=clock_timestamp()+interval '1 second'`);
      await writer.query("select set_config('request.jwt.claim.role','service_role',false)");
      const hp=(await holder.query('select pg_backend_pid() pid')).rows[0].pid,wp=(await writer.query('select pg_backend_pid() pid')).rows[0].pid;
-     pending=writer.query('select public.rpc_ai_prepare_input_service($1,$2,$3,$4,$5,$6) as value',[A,C,R,ATT,purpose,input()]).then(value=>({value}),error=>({error}));
+     pending=writer.query('select public.rpc_ai_prepare_input_service($1,$2,$3,$4,$5,$6) as value',[A,C,R,ATT,purpose,input(purpose)]).then(value=>({value}),error=>({error}));
      const deadline=Date.now()+5000;let witnessed=false;
      while(Date.now()<deadline){
       const v=await f.value(`select $1::int=any(pg_blocking_pids($2)) and (select lease_expires_at<=clock_timestamp() from ${table(purpose)}) as value`,[hp,wp]);
@@ -245,6 +274,20 @@ test('R06 source-only bounded input survives process loss without a second provi
     }finally{await holder.query('rollback');await holder.end();if(pending)await pending;await writer.end();}
    });
   }
+  await run('Worker context drift without a claim revision change cannot be rebound to an older provider request',async()=>{
+   await f.seed('WORKER_CAPABILITY');
+   const original=input('WORKER_CAPABILITY');
+   await f.db.exec("update private.worker_ai_sessions set candidate=jsonb_set(candidate,'{bio}','\"Changed after Edge read\"')");
+   assert.equal(await f.value('select revision as value from private.worker_ai_sessions'),1);
+   await assert.rejects(f.prepare('WORKER_CAPABILITY',original),/R06_INPUT_SOURCE_MISMATCH/);
+   assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),0);
+   const current=input('WORKER_CAPABILITY');
+   current.runtime.sourceContext=await f.value('select public.rpc_read_worker_ai_context_service($1,$2) as value',[A,C]);
+   const prepared=await f.prepare('WORKER_CAPABILITY',current);
+   await f.db.exec("update private.worker_ai_sessions set candidate=jsonb_set(candidate,'{bio}','\"Changed after prepare\"')");
+   assert.deepEqual(await f.dispatchPrepared('WORKER_CAPABILITY',prepared.inputSha256),{state:'STALE',dispatched:false});
+   assert.equal(await f.value('select provider_dispatched as value from private.worker_ai_turns'),false);
+  });
   await run('unprepared legacy reservation is never adopted or reset',async()=>{
    await f.seed();await f.value("select public.rpc_ai_test_budget_reserve_service($1,$2,'LLM',250000) as value",[A,R]);
    await assert.rejects(f.prepare(),/BUDGET_NOT_ADMITTED/);assert.equal((await f.read()).state,'ABSENT');
@@ -258,8 +301,12 @@ test('R06 source-only bounded input survives process loss without a second provi
   });
   await run('post-reservation size failure rolls snapshot and actual budget owner back together',async()=>{
    await f.seed('WORKER_CAPABILITY');
-   await f.db.query("update private.worker_ai_sessions set candidate=jsonb_build_object('skills','[]'::jsonb,'bio',$1::text)",['c'.repeat(320000)]);
-   const large=input();large.runtime.large='x'.repeat(220000);
+   // The exact source context now occurs in both the validated input and the
+   // database witness. Stay below the input cap but cross the assembled cap.
+   await f.db.query("update private.worker_ai_sessions set candidate=jsonb_build_object('skills','[]'::jsonb,'bio',$1::text)",['c'.repeat(260950)]);
+   const large=input('WORKER_CAPABILITY');
+   large.runtime.sourceContext=await f.value('select public.rpc_read_worker_ai_context_service($1,$2) as value',[A,C]);
+   assert.ok(await f.value('select octet_length($1::jsonb::text)<=262144 as value',[large]));
    await assert.rejects(f.prepare('WORKER_CAPABILITY',large),/PREPARED_INPUT_TOO_LARGE/);
    assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),0);
    assert.equal(await f.value('select reserved_microusd::int as value from private.ai_test_budget_v5'),0);
@@ -286,3 +333,8 @@ test('R06 source-only bounded input survives process loss without a second provi
   if(process.env.USKOCI_R06_PROOF)fs.writeFileSync(process.env.USKOCI_R06_PROOF,JSON.stringify(report,null,2)+'\n');
  }
 });
+
+// Keep the prepared SQL gate and its paired real-handler regressions in the
+// existing R06 CI entry point; activation still requires controlled promotion.
+require('./r06-worker-prepared-handler.test.cjs');
+require('./r06-prepared-runtime.test.cjs');

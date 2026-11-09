@@ -28,6 +28,7 @@ import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts'
 import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion, withUnresolvedSinglePassReply } from '../_shared/singlePassTaxonomy.mjs';
 import { completeFirstPlan } from '../_shared/completeFirstPlan.ts';
+import { preparedAiInputEnabled, readPreparedInput, prepareAiInput, dispatchPreparedInput, type PreparedInput } from '../_shared/preparedAiInput.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { decodeServiceHandoff } from '../_shared/serviceHandoff.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
@@ -38,6 +39,7 @@ import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationI
 import {
   buildFullTreeTaxonomyProposals,
   loadFullCatalogTree,
+  indexFullCatalog,
   taskTaxonomyMode,
   taskTaxonomyScope,
   taskClassificationFingerprint,
@@ -811,6 +813,7 @@ async function callGemini(
   clarificationHint?: { ambiguityPrompt?: string; service?: string } | null,
   maxProposals = 12,
   singlePass?: { catalog: any; onDecisions: (decisions: any[]) => void },
+  prepared?: { current: PreparedInput | null; admit: (request: Record<string, unknown>) => Promise<PreparedInput> },
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
@@ -885,7 +888,7 @@ async function callGemini(
 
   let payloadBody: string;
   let cachedContentResource: string | null = null;
-  if (singlePass?.catalog?.catalogVersion) {
+  if (!prepared && singlePass?.catalog?.catalogVersion) {
     cachedContentResource = await getOrCreateGeminiContextCache({
       geminiApiKey: key,
       catalogVersion: singlePass.catalog.catalogVersion,
@@ -924,6 +927,13 @@ async function callGemini(
         },
       },
     });
+  }
+  if (prepared) {
+    // The first invocation persists this exact body before dispatch. A new
+    // process uses its saved body, not a newly assembled prompt or cache handle.
+    const saved = prepared.current ?? await prepared.admit(JSON.parse(geminiRequestBody(payloadBody)));
+    if (prepared.current) await prepared.admit(saved.snapshot.input.providerRequest);
+    payloadBody = JSON.stringify(saved.snapshot.input.providerRequest);
   }
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
   if (onText) {
@@ -1515,15 +1525,23 @@ Deno.serve(async (req: Request) => {
   let completedIntentHint: ReturnType<typeof conversationIntentHint> = null;
   let detachedRelease = false;
   let requestId = '', attemptId: string | null = null, claimedTurnId: string | null = null;
+  // Media/location have distinct admission/hash contracts; the bounded text
+  // rollout does not silently reinterpret them or widen its SQL payload.
+  const preparedPath = preparedAiInputEnabled(name => Deno.env.get(name)) && !locationMode && !imageBase64;
+  let preparedRecovery: PreparedInput | null = null, preparedSourceContext: any = null;
+  let preparationStarted = false, preparedPermissionGranted = false;
   let retirementStarted = false;
   let serviceRoleKey = '';
   const rpc = (name: string, args: Record<string, unknown>, signal?: AbortSignal, timeout = 8000) => boundedJson(supabaseUrl + '/rest/v1/rpc/' + name, {
     method: 'POST', headers: supabaseServiceHeaders(serviceRoleKey, { 'Content-Type': 'application/json' }),
     body: JSON.stringify(args),
-  }, 524288, timeout, signal);
+  }, name.includes('_prepared_input_') ? 1048576 : 524288, timeout, signal);
   const identityArgs = () => ({ p_account_id: accountId, p_conversation_id: conversationId, p_client_request_id: requestId });
   const retireAttempt = async () => {
     if (!attemptId || retirementStarted) return;
+    // A lost preparation acknowledgement or disconnected phone can still have
+    // a recoverable, undispatched snapshot. Preserve its original lease/state.
+    if (preparedPath && (preparationStarted || preparedRecovery) && !preparedPermissionGranted) return;
     retirementStarted = true;
     try {
       // Independent bounded metadata settlement. PKG-039 SQL only ends the same
@@ -1568,17 +1586,27 @@ Deno.serve(async (req: Request) => {
       const value = result.data;
       if (!exact(value, ['turn', 'claim']) || !validTurn(value.turn, conversationId, requestId)) throw new Error('AI_CLAIM_INVALID');
       if (value.claim === null) {
-        if (!locationContext) return turnResponse(value.turn);
+        if (preparedPath && value.turn.state === 'PROCESSING') {
+          const saved = await readPreparedInput({rpc,identity:identityArgs(),purpose:'NEED_SERVICE',userText:effectiveUserMessage,signal:req.signal});
+          if (saved.state === 'PREPARED' && saved.snapshot) {
+            if (saved.snapshot.turnId !== value.turn.turnId) throw new Error('AI_CLAIM_INVALID');
+            preparedRecovery = saved as PreparedInput;
+          }
+        }
+        if (!locationContext && !preparedRecovery) return turnResponse(value.turn);
+        if (locationContext) {
         const read = await rpc('rpc_ai_read_need_location_turn_v1_service', identityArgs(), req.signal);
         if (!read.ok || !validLocationEnvelope(read.data, locationContext, turn => validTurn(turn, conversationId, requestId))) throw new Error('AI_TURN_RECEIPT_INVALID');
         return response(read.data.turn.state === 'SUCCEEDED' ? 200 : read.data.turn.state === 'PROCESSING' ? 202 : 409, read.data);
+        }
       }
-      const claim = value.claim;
-      if (value.turn.state !== 'PROCESSING' || !exact(claim, ['attemptId', 'leaseExpiresAt', 'context']) || !isUuid(claim.attemptId) ||
+      const claim = preparedRecovery ? {attemptId:preparedRecovery.snapshot.attemptId,context:preparedRecovery.snapshot.sourceContext} : value.claim;
+      if (!preparedRecovery && (value.turn.state !== 'PROCESSING' || !exact(claim, ['attemptId', 'leaseExpiresAt', 'context']) || !isUuid(claim.attemptId) ||
         typeof claim.leaseExpiresAt !== 'string' || !Number.isFinite(Date.parse(claim.leaseExpiresAt)) || Date.parse(claim.leaseExpiresAt) <= Date.now())
-        throw new Error('AI_CLAIM_INVALID');
+        ) throw new Error('AI_CLAIM_INVALID');
       attemptId = claim.attemptId; claimedTurnId = value.turn.turnId;
       if (!validClaimContext(claim.context)) throw new Error('AI_CONTEXT_INVALID');
+      preparedSourceContext = claim.context;
       history = claim.context.history; activeFacts = claim.context.activeFacts;
     } else {
       const headers = { apikey: anonKey, Authorization: authorization };
@@ -1594,14 +1622,14 @@ Deno.serve(async (req: Request) => {
     }
     const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '', geminiModel = Deno.env.get('GEMINI_MODEL') ?? '';
     const provider = Deno.env.get('AI_PROVIDER') ?? '';
-    const timeContext = serverTimeContext(new Date());
+    const timeContext = preparedRecovery?.snapshot.input.runtime.timeContext ?? serverTimeContext(new Date());
     const execute = async (onText?: (delta: string) => void, signal: AbortSignal = req.signal) => {
     let aiTurn: ParsedTurn;
     // One paid response; usage is accounted even if its semantic output is refused.
     let reportedUsage: GeminiUsage | null = null;
     let research: ReturnType<typeof createResearchDeadline> | null = null;
-    let pendingClarificationHint: any = null;
-    const singlePassActive = isLiveTaxonomyIntake();
+    let pendingClarificationHint: any = preparedRecovery?.snapshot.input.runtime.pendingClarificationHint ?? null;
+    const singlePassActive = preparedRecovery?.snapshot.input.runtime.singlePassActive ?? isLiveTaxonomyIntake();
     let fullCatalog: Awaited<ReturnType<typeof loadFullCatalogTree>> | null = null;
     let taxonomyDecisions: any[] = [];
     const taskDraftRevision = history.reduce((latest: number, row: any) =>
@@ -1620,6 +1648,7 @@ Deno.serve(async (req: Request) => {
         await retireAttempt();
         return response(503, { code: 'AI_PROVIDER_NOT_CONFIGURED', message: 'AI obrada još nije aktivirana na serveru.' });
       }
+      if (!preparedPath) {
       const budget = await reserveAiTestBudget({ supabaseUrl, serviceRoleKey, accountId, operationId: requestId, kind: 'LLM', signal });
       if (!budget.admitted || budget.replay) {
         await retireAttempt();
@@ -1634,11 +1663,15 @@ Deno.serve(async (req: Request) => {
           return response(409, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Proverite ishod poruke pre nastavka.' });
         }
       }
+      }
       // The same deadline covers catalog loading and the foreground model.
       research = createResearchDeadline(signal, requestStartedAt);
       // Historical rollout flag now selects the full-catalog, one-call path.
       // Keep the same DEV/account admission until a separately verified rollout.
-      if (singlePassActive) {
+      if (preparedRecovery) {
+        const catalog = preparedRecovery.snapshot.input.catalog;
+        fullCatalog = catalog ? indexFullCatalog(catalog.catalogVersion,catalog.catalogFingerprint,catalog.categories,true) : null;
+      } else if (singlePassActive) {
         fullCatalog = await measureAiPhase('NEED_FULL_CATALOG', () => loadFullCatalogTree(
           (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? research!.signal, t ?? 2500),
           research.signal)).catch(() => null);
@@ -1650,12 +1683,30 @@ Deno.serve(async (req: Request) => {
       }
       const existingCategoryFact = activeFacts.find((f: any) => f.fact_key === 'need.category' && f.status !== 'UNKNOWN')?.fact_value;
       const isExplicitReclassify = /(?:promen(?:i|ite)|drugi\s+(?:zadatak|posao)|ipak\s+(?:nesto|nešto)\s+drugo|pogre(?:s|š)na\s+kategorija)/iu.test(effectiveUserMessage);
-      const needsTree = singlePassActive && (!existingCategoryFact || isExplicitReclassify);
+      const needsTree = preparedRecovery?.snapshot.input.runtime.needsTree ?? (singlePassActive && (!existingCategoryFact || isExplicitReclassify));
+      const maxProposals = preparedRecovery?.snapshot.input.runtime.maxProposals
+        ?? (!locationContext && req.headers.get(NEED_FACT_TURN_CAPABILITY_HEADER) === NEED_FACT_TURN_CAPABILITY_VERSION ? MAX_AI_NEED_FACT_V2_PROPOSALS : 12);
+      const admitPrepared = async (providerRequest: Record<string,unknown>): Promise<PreparedInput> => {
+        const options = {rpc,identity:identityArgs(),purpose:'NEED_SERVICE' as const,userText:effectiveUserMessage,signal:research!.signal};
+        if (!preparedRecovery) preparationStarted = true;
+        const prepared = preparedRecovery ?? await prepareAiInput({...options,attemptId:attemptId!,input:{
+          schemaVersion:'R06_TEXT_INPUT_V1',model:geminiModel,userText:effectiveUserMessage,providerRequest,
+          catalog:fullCatalog ? {catalogVersion:fullCatalog.catalogVersion,catalogFingerprint:fullCatalog.catalogFingerprint,categories:fullCatalog.categories} : null,
+          runtime:{schemaVersion:'R06_NEED_RUNTIME_V1',sourceContext:preparedSourceContext,timeContext,singlePassActive,
+            pendingClarificationHint,needsTree,maxProposals},
+        }});
+        if (prepared.snapshot.turnId !== claimedTurnId || prepared.snapshot.attemptId !== attemptId) throw new Error('AI_CLAIM_INVALID');
+        const dispatched = await dispatchPreparedInput({...options,prepared});
+        if (!dispatched.dispatched) throw new Error('R06_INPUT_NOT_DISPATCHED');
+        preparedPermissionGranted = true;
+        return prepared;
+      };
 
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, effectiveUserMessage, timeContext, research.signal, onText,
         (usage) => { reportedUsage = usage; }, locationContext, imageBase64, imageMime, pendingClarificationHint,
-        !locationContext && req.headers.get(NEED_FACT_TURN_CAPABILITY_HEADER) === NEED_FACT_TURN_CAPABILITY_VERSION ? MAX_AI_NEED_FACT_V2_PROPOSALS : 12,
-        needsTree ? {catalog:fullCatalog,onDecisions:(decisions) => { taxonomyDecisions=decisions; }} : undefined);
+        maxProposals,
+        needsTree ? {catalog:fullCatalog,onDecisions:(decisions) => { taxonomyDecisions=decisions; }} : undefined,
+        preparedPath ? {current:preparedRecovery,admit:admitPrepared} : undefined);
       if (locationContext) {
         // A validated answer to the shown question (e.g. 'to je to') stays a map
         // confirmation. Explicit task publication can never take that route.

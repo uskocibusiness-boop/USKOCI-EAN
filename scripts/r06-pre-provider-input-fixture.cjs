@@ -8,7 +8,11 @@ const sig=x=>x.identity.includes('.')?x.identity:'public.'+x.identity;
 const q=s=>'"'+s.replaceAll('"','""')+'"';
 const A='a1000000-0000-4000-8000-000000000001',C='a2000000-0000-4000-8000-000000000001',R='a3000000-0000-4000-8000-000000000001',ATT='a4000000-0000-4000-8000-000000000001',T='a5000000-0000-4000-8000-000000000001',P='a6000000-0000-4000-8000-000000000001';
 const TEXT='Synthetic authorized current text';
-const input=()=>({schemaVersion:'R06_TEXT_INPUT_V1',model:'gemini-3.8-flash',userText:TEXT,catalog:null,runtime:{decoder:'ISOLATED_TEXT_CONTRACT_V1',clock:'2026-11-08T00:00:00Z'},
+const input=(purpose='NEED_SERVICE')=>({schemaVersion:'R06_TEXT_INPUT_V1',model:'gemini-3.8-flash',userText:TEXT,catalog:null,runtime:{decoder:'ISOLATED_TEXT_CONTRACT_V1',clock:'2026-11-08T00:00:00Z',
+ sourceContext:purpose==='NEED_SERVICE'?{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[]}:
+  {schemaVersion:'WORKER_PROFILE_V1',accountId:A,conversationId:C,status:'OPEN',safety:'ALLOW',stale:false,revision:1,
+   candidate:{skills:[],bio:'Synthetic current biography'},messages:[{id:T,role:'USER',body:TEXT,sequence:1}],
+   serviceModeContext:{savedServices:[],draftServices:[],unresolvedServices:[]}}},
  providerRequest:{systemInstruction:{parts:[{text:'Synthetic fixed instruction, no secret'}]},contents:[{role:'user',parts:[{text:TEXT}]}],
  generationConfig:{temperature:0.2,maxOutputTokens:2048,responseMimeType:'application/json',responseSchema:{type:'OBJECT',properties:{answer:{type:'STRING'}}},thinkingConfig:{thinkingBudget:0}}}});
 async function fixture(options={}){
@@ -78,10 +82,10 @@ async function fixture(options={}){
      values($1,$2,$3,$4,repeat('a',64),'{"skills":[],"bio":"Synthetic current biography"}',1)`,[C,A,R,P]);
     await db.query(`insert into private.worker_ai_turns(turn_id,account_id,conversation_id,client_request_id,body_hash,source_revision,attempt_id,state,lease_expires_at)
      values($1,$2,$3,$4,encode(extensions.digest($6,'sha256'),'hex'),1,$5,'PROCESSING',clock_timestamp()+interval '60 seconds')`,[T,A,C,R,ATT,TEXT]);
-    await db.query(`insert into public.ai_messages(id,account_id,conversation_id,role,body,sequence_no) values(gen_random_uuid(),$1,$2,'USER',$3,1)`,[A,C,TEXT]);
+    await db.query(`insert into public.ai_messages(id,account_id,conversation_id,role,body,sequence_no) values($4,$1,$2,'USER',$3,1)`,[A,C,TEXT,T]);
    }
   };
-  const prepare=(purpose='NEED_SERVICE',data=input(),over={})=>f.value('select public.rpc_ai_prepare_input_service($1,$2,$3,$4,$5,$6) as value',
+  const prepare=(purpose='NEED_SERVICE',data=input(purpose),over={})=>f.value('select public.rpc_ai_prepare_input_service($1,$2,$3,$4,$5,$6) as value',
    [over.account||A,over.conversation||C,over.request||R,over.attempt||ATT,purpose,data]);
   const read=(purpose='NEED_SERVICE',over={})=>f.value('select public.rpc_ai_read_prepared_input_service($1,$2,$3,$4) as value',[over.account||A,over.conversation||C,over.request||R,purpose]);
   const dispatch=(purpose='NEED_SERVICE')=>f.value(`select public.${purpose==='NEED_SERVICE'?'rpc_ai_dispatch_need_turn_v2_service':'rpc_dispatch_worker_ai_turn_service'}($1,$2,$3,$4) as value`,[A,C,R,ATT]);

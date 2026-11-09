@@ -1,5 +1,6 @@
--- SOURCE-ONLY R06 bounded text preparation contract. No runtime caller uses it.
--- Photos/location replies and paired Edge integration are deliberately not enabled.
+-- SOURCE-ONLY R06 bounded text preparation contract. The paired Edge path is
+-- opt-in and must remain disabled until a controlled schema/runtime promotion.
+-- Photos/location replies are deliberately outside this text-only contract.
 DO $source_only$ BEGIN RAISE EXCEPTION 'R06_PRE_PROVIDER_SOURCE_ONLY'; END $source_only$;
 -- R06_PRE_PROVIDER_ISOLATED_START
 BEGIN;
@@ -115,7 +116,8 @@ BEGIN
   OR p_input->>'schemaVersion' IS DISTINCT FROM 'R06_TEXT_INPUT_V1'
   OR p_input->>'model' IS DISTINCT FROM 'gemini-3.8-flash'
   OR jsonb_typeof(p_input->'userText') IS DISTINCT FROM 'string' OR char_length(btrim(p_input->>'userText')) NOT BETWEEN 1 AND 4000
-  OR jsonb_typeof(p_input->'runtime') IS DISTINCT FROM 'object' OR octet_length(p_input::text)>262144
+  OR jsonb_typeof(p_input->'runtime') IS DISTINCT FROM 'object'
+  OR jsonb_typeof(p_input#>'{runtime,sourceContext}') IS DISTINCT FROM 'object' OR octet_length(p_input::text)>262144
  THEN RAISE EXCEPTION 'R06_INPUT_INVALID' USING errcode='22023';END IF;
  request:=p_input->'providerRequest';
  IF jsonb_typeof(request) IS DISTINCT FROM 'object' OR request-array['systemInstruction','contents','generationConfig']<>'{}'::jsonb
@@ -148,6 +150,12 @@ BEGIN
    THEN RAISE EXCEPTION 'R06_TEXT_ONLY_INPUT' USING errcode='22023';END IF;
   END LOOP;
  END LOOP;
+ -- The final provider message is the claimed text itself, not a different
+ -- request supplied alongside the correct hash. Location/media use other paths.
+ item:=request->'contents'->-1;
+ IF item->>'role' IS DISTINCT FROM 'user' OR jsonb_array_length(item->'parts')<>1
+  OR item#>>'{parts,0,text}' IS DISTINCT FROM p_input->>'userText'
+ THEN RAISE EXCEPTION 'R06_INPUT_REQUEST_MISMATCH' USING errcode='22023';END IF;
  IF p_input->'catalog'<>'null'::jsonb AND (jsonb_typeof(p_input->'catalog') IS DISTINCT FROM 'object'
   OR (p_input->'catalog')-ARRAY['catalogVersion','catalogFingerprint','categories']<>'{}'::jsonb
   OR NOT(p_input->'catalog'?&ARRAY['catalogVersion','catalogFingerprint','categories'])
@@ -160,6 +168,11 @@ BEGIN
  owned:=private.r06_prepared_input_owner_v1(p_account_id,p_conversation_id,p_client_request_id,p_purpose);command:=owned->'command';
  IF owned->>'state'<>'READY' OR command->>'attempt_id' IS DISTINCT FROM p_attempt_id::text
  THEN RAISE EXCEPTION 'R06_INPUT_NOT_PREPARABLE' USING errcode='55000';END IF;
+ -- Reading current ownership here must not silently bind an older Edge-built
+ -- request to a newer context. Both initial preparation and replay keep the
+ -- exact context used by that request; retries reconstruct it from the snapshot.
+ IF p_input#>'{runtime,sourceContext}' IS DISTINCT FROM owned->'context'
+ THEN RAISE EXCEPTION 'R06_INPUT_SOURCE_MISMATCH' USING errcode='55000';END IF;
  input_text:=p_input->>'userText';
  hash:=CASE WHEN p_purpose='NEED_SERVICE' THEN private.ai_location_request_hash(p_conversation_id,input_text,null)
   ELSE encode(extensions.digest(input_text,'sha256'),'hex') END;

@@ -8,15 +8,16 @@ import { WORKER_AVAILABLE_NOW_ENABLED } from '../../../src/contracts/workerNowFe
 // Distinct owned WORKER_PROFILE_V1 proposals. No task facts or canonical writes.
 import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.mjs';
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
-import { GeminiCreditsUnavailableError, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
+import { GeminiCreditsUnavailableError, geminiRequestBody, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion, withUnresolvedSinglePassReply } from '../_shared/singlePassTaxonomy.mjs';
 import { completeFirstPlan } from '../_shared/completeFirstPlan.ts';
+import { preparedAiInputEnabled, readPreparedInput, prepareAiInput, dispatchPreparedInput } from '../_shared/preparedAiInput.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction } from '../_shared/workerServiceModeContext.mjs';
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
-import { loadFullCatalogTree, buildWorkerFullTreeTaxonomyProposals, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
+import { indexFullCatalog, loadFullCatalogTree, buildWorkerFullTreeTaxonomyProposals, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
 import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationIntentSchema, conversationIntentInstruction,
   takeConversationIntent, intentAllowsDomain, guardInterviewIntentOutput, conversationIntentHint,
@@ -292,18 +293,27 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     if (!authenticated.ok || !id(authenticated.data?.id)) return json(503,{code:'AUTH_UNAVAILABLE'});
     account=authenticated.data.id;
   } catch { return json(503,{code:'AUTH_UNAVAILABLE'}); }
-  const requestRpc=(name:string,args:Record<string,unknown>,signal:AbortSignal,timeout:number)=>
-    boundedJson(url+'/rest/v1/rpc/'+name,{method:'POST',headers:supabaseServiceHeaders(service,{'Content-Type':'application/json'}),body:JSON.stringify(args)},524288,timeout,signal);
+  const requestRpc=(name:string,args:Record<string,unknown>,signal:AbortSignal=req.signal,timeout=8000)=>
+    // The SQL snapshot has its own 512 KiB bound; read/dispatch add an envelope.
+    boundedJson(url+'/rest/v1/rpc/'+name,{method:'POST',headers:supabaseServiceHeaders(service,{'Content-Type':'application/json'}),body:JSON.stringify(args)},
+      name.includes('_prepared_input_')?1048576:524288,timeout,signal);
   const rpc=async(name:string,args:Record<string,unknown>,signal=req.signal,timeout=8000)=> {
     const result=await requestRpc(name,args,signal,timeout);
     if (!result.ok) throw new Error('WORKER_AI_RPC_FAILED'); return result.data;
   };
   const identity={p_account_id:account,p_conversation_id:input.conversationId,p_client_request_id:input.clientRequestId};
+  const durableInput=preparedAiInputEnabled((name:string)=>Deno.env.get(name));
+  const preparedOptions={rpc:requestRpc,identity,purpose:'WORKER_CAPABILITY' as const,userText:input.text,signal:req.signal};
+  let prepared: Awaited<ReturnType<typeof prepareAiInput>> | null = null;
+  let preparationStarted=false, providerDispatchConfirmed=false;
   let ownedAttempt: string | null = null, retirementStarted = false;
   let research: ReturnType<typeof createResearchDeadline> | null = null;
   const fail=async()=>{
     research?.dispose();
     if(!ownedAttempt||retirementStarted)return;
+    // A lost prepare/read/dispatch acknowledgement is not permission to retire
+    // another invocation's snapshot. Leave it readable under the original lease.
+    if(durableInput && (preparationStarted||prepared) && !providerDispatchConfirmed)return;
     retirementStarted=true;
     // SQL locks this exact turn and cannot overwrite success or clear dispatch.
     // Cleanup must not inherit a disconnected client's aborted signal.
@@ -317,9 +327,16 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     if (!object(value) || typeof value.acquired!=='boolean' || !object(value.turn) || !id(value.turn.turnId) || !id(value.turn.attemptId)
       || value.turn.conversationId!==input.conversationId || value.turn.clientRequestId!==input.clientRequestId) throw new Error('WORKER_AI_INVALID');
     claim=value;
-    if (!claim.acquired) return json(200,claim.turn);
+    if(durableInput && claim.turn.state==='PROCESSING') {
+      const read=await readPreparedInput(preparedOptions);
+      if(read.state==='PREPARED')prepared=read as Awaited<ReturnType<typeof prepareAiInput>>;
+      else if(read.state!=='ABSENT' || !claim.acquired)return json(200,claim.turn);
+    }
+    if (!claim.acquired && !prepared) return json(200,claim.turn);
+    if(prepared && (prepared.snapshot.turnId!==claim.turn.turnId || prepared.snapshot.attemptId!==claim.turn.attemptId))
+      throw new Error('WORKER_AI_INVALID');
     ownedAttempt=claim.turn.attemptId;
-    context=await rpc('rpc_read_worker_ai_context_service',{p_account_id:account,p_conversation_id:input.conversationId});
+    context=prepared ? prepared.snapshot.sourceContext : await rpc('rpc_read_worker_ai_context_service',{p_account_id:account,p_conversation_id:input.conversationId});
     if (!object(context) || context.schemaVersion!=='WORKER_PROFILE_V1' || context.accountId!==account || context.conversationId!==input.conversationId
       || context.status!=='OPEN' || context.stale!==false || !['ALLOW','CLARIFY'].includes(context.safety)
       || !object(context.candidate) || !Array.isArray(context.messages)) throw new Error('WORKER_AI_INVALID');
@@ -334,12 +351,24 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     try { await fail(); } catch {} return json(503,{code:'WORKER_AI_NOT_CONFIGURED'});
   }
   research = createResearchDeadline(req.signal, startedAt);
-  const singlePassActive = isLiveTaxonomyIntake();
+  let singlePassActive = isLiveTaxonomyIntake();
   // Historical flag, same scoped rollout. The selected implementation now uses
   // one foreground call and reuses its catalog/decisions for local validation.
   let fullCatalog: Awaited<ReturnType<typeof loadFullCatalogTree>> | null = null;
   let pendingWorkerClarificationHint: any = null;
-  if (singlePassActive) {
+  if(prepared) {
+    const runtime=object(prepared.snapshot.input.runtime);
+    if(!runtime || !keys(runtime,['schemaVersion','singlePassActive','pendingWorkerClarificationHint','sourceContext'])
+      || runtime.schemaVersion!=='R06_WORKER_RUNTIME_V1' || typeof runtime.singlePassActive!=='boolean'
+      || !(runtime.pendingWorkerClarificationHint===null || object(runtime.pendingWorkerClarificationHint))) {
+      research.dispose();return json(409,{code:'WORKER_AI_NOT_CONFIRMED'});
+    }
+    singlePassActive=runtime.singlePassActive;
+    pendingWorkerClarificationHint=runtime.pendingWorkerClarificationHint;
+    const catalog=prepared.snapshot.input.catalog;
+    try {fullCatalog=catalog ? indexFullCatalog(catalog.catalogVersion,catalog.catalogFingerprint,catalog.categories,true) : null;}
+    catch {research.dispose();return json(409,{code:'WORKER_AI_NOT_CONFIRMED'});}
+  } else if (singlePassActive) {
     fullCatalog = await measureAiPhase('WORKER_FULL_CATALOG', () => loadFullCatalogTree(
       (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? research!.signal, t ?? 2500),
       research.signal)).catch(() => null);
@@ -354,6 +383,12 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     try { serviceModeContext=readWorkerServiceModeContext(context); }
     catch { await fail(); return json(503,{code:'WORKER_AI_NOT_CONFIRMED'}); }
   }
+  // Cold recovery uses the database's exact provider body and owned validation
+  // context. It does not reload the catalog, rebuild prompts or fetch a cache.
+  let body: string;
+  const needsWorkerTree = singlePassActive;
+  if(prepared) body=JSON.stringify(prepared.snapshot.input.providerRequest);
+  else {
   const history=context.messages.slice(-30).map((row:any)=>({role:row.role==='ASSISTANT'?'model':'user',parts:[{text:String(row.body).slice(0,4000)}]}));
   // Keep a stable instruction prefix; current owned data always follows it.
   const stableParts=[{text:instruction()}, {text:serviceExecutionInstruction('WORKER_CAPABILITY')}];
@@ -369,7 +404,6 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   // A natural service addition/removal is decided inside this existing call,
   // not by a pre-model phrase gate. Reuse the already loaded full catalog;
   // the builder preserves unchanged owned service/category identities.
-  const needsWorkerTree = singlePassActive;
   const stableSystemParts=[...stableParts,
     ...(needsWorkerTree ? [{text:singlePassTaxonomyInstruction(fullCatalog,'WORKER_CAPABILITY')}] : []),
     ...modeParts];
@@ -393,7 +427,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   if (singlePassActive && serviceModeContext)
     responseSchema.required=[...(responseSchema.required ?? []),'serviceModeChangesJson'];
   let cachedContentResource: string | null = null;
-  if (needsWorkerTree && fullCatalog?.catalogVersion) {
+  if (!durableInput && needsWorkerTree && fullCatalog?.catalogVersion) {
     cachedContentResource = await getOrCreateGeminiContextCache({
       geminiApiKey: key,
       catalogVersion: fullCatalog.catalogVersion,
@@ -404,7 +438,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     });
   }
 
-  const body = cachedContentResource
+  body = cachedContentResource
     ? JSON.stringify({
         cachedContent: cachedContentResource,
         contents: augmentedHistory,
@@ -431,7 +465,30 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           },
         },
       });
+  }
   if (new TextEncoder().encode(body).byteLength>AI_TEST_LIMITS.llmRequestBytes) { try { await fail(); } catch {} return json(413,{code:'WORKER_AI_CONTEXT_TOO_LARGE'}); }
+  if(durableInput) {
+    try {
+      if(research.signal.aborted || research.remainingMs()<=0)throw new Error('WORKER_AI_CANCELLED');
+      if(!prepared) {
+        // Freeze the actual provider schema, including its existing wire
+        // normalization, so a cold process cannot change the dispatched input.
+        body=geminiRequestBody(body);
+        preparationStarted=true;
+        prepared=await prepareAiInput({...preparedOptions,signal:research.signal,attemptId:claim.turn.attemptId,input:{
+          schemaVersion:'R06_TEXT_INPUT_V1',model,userText:input.text,providerRequest:JSON.parse(body),
+          catalog:fullCatalog ? {catalogVersion:fullCatalog.catalogVersion,catalogFingerprint:fullCatalog.catalogFingerprint,categories:fullCatalog.categories} : null,
+          runtime:{schemaVersion:'R06_WORKER_RUNTIME_V1',singlePassActive,pendingWorkerClarificationHint,sourceContext:context},
+        }});
+      }
+      const dispatched=await dispatchPreparedInput({...preparedOptions,signal:research.signal,prepared});
+      if(!dispatched.dispatched) {research.dispose();return json(200,claim.turn);}
+      // The permission and payload were read under the same SQL command locks.
+      // A lost dispatch response never reaches provider I/O on this invocation.
+      providerDispatchConfirmed=true;
+      body=JSON.stringify(dispatched.snapshot!.input.providerRequest);
+    } catch {research.dispose();return json(409,{code:'WORKER_AI_NOT_CONFIRMED'});}
+  } else {
   try {
     if (research.signal.aborted || research.remainingMs() <= 0) throw new Error('WORKER_AI_CANCELLED');
     const reserved=await reserveAiTestBudget({supabaseUrl:url,serviceRoleKey:service,accountId:account,operationId:input.clientRequestId,kind:'LLM',signal:research.signal});
@@ -450,6 +507,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       ||t.retryAllowed!==false||t.authoritative!==true||(dispatched.dispatched&&t.state!=='PROCESSING')) throw new Error('WORKER_AI_INVALID');
     if (!dispatched.dispatched) { research.dispose(); return json(200,t); }
   } catch { await fail(); return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
+  }
   // Versioned opt-in: older APKs retain completed-only text instead of an unverified preview.
   const previewStream=req.headers.get('x-uskoci-worker-preview-stream')==='v1';
   const wantsIntent=req.headers.get(INTERVIEW_INTENT_HEADER)===INTERVIEW_INTENT_CAPABILITY;
