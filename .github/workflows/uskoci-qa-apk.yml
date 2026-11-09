@@ -283,7 +283,7 @@ jobs:
             abis = sorted({name.split('/')[1] for name in names if name.startswith('lib/') and name.endswith('.so')})
             assert abis == (['arm64-v8a', 'x86_64'] if phone else ['arm64-v8a']), 'APK_ABI_MISMATCH'
             for abi in abis:
-              for library in ('libreactnative.so', 'libhermes.so'):
+              for library in ('libreactnative.so', 'libhermesvm.so'):
                 native_path = f'lib/{abi}/{library}'
                 assert native_path in names and apk.getinfo(native_path).file_size > 0, f'APK_REQUIRED_NATIVE_LIBRARY_MISSING:{native_path}'
             assert 'assets/index.android.bundle' in names and apk.getinfo('assets/index.android.bundle').file_size > 0, 'APK_EMBEDDED_BUNDLE_MISSING'
