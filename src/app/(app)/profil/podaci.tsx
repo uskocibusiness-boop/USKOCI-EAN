@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { requesterProfileClientService } from '../../../data/requesterProfileClientService';
+import { workerAreasLabel } from '../../../contracts/workerAreas';
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
@@ -52,6 +53,7 @@ function OwnedPersonalProfile() {
   const about: AboutView = work.loading ? { kind: 'loading' } : work.error ? { kind: 'error' } : !work.data ? { kind: 'none' }
     : work.data.biografija.trim() ? { kind: 'text', text: work.data.biografija } : { kind: 'empty' };
   const city: CityView = work.loading ? { kind: 'loading' } : work.error ? { kind: 'error' }
+    : work.data?.workAreas?.length ? { kind: 'city', city: workerAreasLabel(work.data.workAreas) }
     : work.data?.grad.trim() ? { kind: 'city', city: cityLabel(work.data.grad) } : { kind: 'none' };
   // One way onward at a time, and a fresh one on every visit.
   const going = useRef(false);
@@ -98,7 +100,7 @@ function OwnedPersonalProfile() {
         })} />
       {showWorkNameRepair ? <WorkNameNotice retrying={retrying} onRetry={() => { void retryWorkName(); }} /> : null}
       {/* "O meni" is the work profile's text, written where the work profile is: its editor opens on that part. */}
-      {dirty?<T variant="note" tone="muted">Sačuvajte ime pre izmene profila majstora.</T>:null}
+      {dirty?<T variant="note" tone="muted">Sačuvajte ime pre izmene radnog profila.</T>:null}
       <ProfileFactRows about={about} city={city} onAbout={() => editWithAi('identity')} onCity={() => editWithAi('area')}
         disabled={dirty||editor.busy||editor.uncertain||retrying} />
       <VisibilityNote />

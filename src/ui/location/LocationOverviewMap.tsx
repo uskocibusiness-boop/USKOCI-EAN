@@ -94,7 +94,8 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
           setFrame(previous => previous?.width === width && previous.height === height ? previous : { width, height });
       }}>
       {/* Keep the owned native attempt behind the deadline notice so its actual late success can recover. */}
-      {mapStyle && status !== 'failed' ? <Map style={s.map} mapStyle={mapStyle} androidView="surface"
+      {/* Surface resize blocked Android's UI thread in the physical-phone ANR; texture keeps layout off that wait path. */}
+      {mapStyle && status !== 'failed' ? <Map style={s.map} mapStyle={mapStyle} androidView="texture"
         attribution={false} logo={false} compass={false} dragPan={props.interactive} touchZoom={props.interactive}
         doubleTapZoom={props.interactive} doubleTapHoldZoom={props.interactive} touchPitch={false} touchRotate={false}
         accessibilityLabel={props.coarse ? 'Mapa približnih mesta' : 'Mapa potvrđenih mesta'}

@@ -241,7 +241,8 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         frameSize.current = size;
       }
     }}>
-      {mapStyle ? <Map ref={map} style={styles.map} mapStyle={mapStyle} androidView="surface" dragPan={!offset}
+      {/* A native SurfaceView resize can stall the UI when the editor/keyboard changes its bounds. */}
+      {mapStyle ? <Map ref={map} style={styles.map} mapStyle={mapStyle} androidView="texture" dragPan={!offset}
         attribution={false} compass={false} logo={false}
         touchPitch={false} touchRotate={false} accessibilityLabel={mapName}
         importantForAccessibility={spokenByFrame ? 'no-hide-descendants' : 'auto'}

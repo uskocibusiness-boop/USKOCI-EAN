@@ -9,11 +9,11 @@ import { profileLift, sys } from '../system/tokens';
 import { Avatar, FaceEdge } from '../system/Avatar';
 import { Glyph } from '../system/Glyph';
 import { Screen } from '../system/Screen';
+import { Section } from '../system/Section';
 import { Surface } from '../system/Surface';
 import { V2Action } from '../v2/V2Action';
 import { FigureRow } from './ProfileFigures';
 import { AccountHeader } from './AccountHeader';
-import type { HubWords } from './hubStates';
 
 /**
  * Figma 2:126: an 88 dp face inside the identity card. The route uses this same
@@ -36,12 +36,12 @@ export type ProfileHubIdentity =
       /** The photo screen can be opened (a profile exists and the read settled). */ photoReady: boolean; openPhoto: () => void;
       /** The rating, the first of the figures under the name (a cell of their row), or nothing. */ reputation: ReactNode };
 
-/** Identity and activity for one account. Account controls live in their dedicated settings route.
+/** Identity, activity and the account's logout. Other account controls live in settings.
  * The route owns reads, navigation admission and public-profile privacy; this view only arranges them.
  */
 export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttention = false, capabilityError = false, onRetryCapability,
-  workSummary, stats, busy, open, onBack,
-  onViewPublic, sheet, words = {} }: {
+  workSummary, stats, busy, open, onBack, email, logoutError, onLogout,
+  onViewPublic, sheet }: {
   identity: ProfileHubIdentity;
   /** What the work profile says about itself in one line (state, skills, area); left out while it reads, and when its state is not known. */
   capabilityDetail?: string;
@@ -54,10 +54,10 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
   /** The second figure: how many Dogovori were finished (it opens them). */ workSummary?: ReactNode;
   /** The third figure: how reliably the person comes as agreed. */ stats?: ReactNode;
   busy: boolean;
+  email?: string | null; logoutError: boolean; onLogout: () => void;
   open: (path: ProfileHubPath) => void; onBack: () => void;
   /** Opens the public profile as other people read it. Left out (no profile to open yet): the row is not drawn. */ onViewPublic?: () => void;
   /** What stands over the screen once it is open (the public profile sheet). */ sheet?: ReactNode;
-  /** The state of the rows that have one (open requests, blocked people, the export, the legal documents); a part left out has no word. */ words?: HubWords;
 }) {
   const go = (path: ProfileHubPath) => () => open(path);
   return <Screen kind="detail" background="wash" contentStyle={s.content}
@@ -102,13 +102,25 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
     <ProfileLink label="Radni profil" subtitle="Usluge, područje i dostupnost" detail={capabilityDetail}
       attention={capabilityNeedsAttention} disabled={busy} onPress={go('/profil/radnik')}
       onRetry={capabilityError ? onRetryCapability : undefined} />
-    <ProfileLink label="Moje prijave" subtitle="Pogledajte status i odgovore" disabled={busy} onPress={go('/moje-prijave')} />
-    <ProfileLink label="Podešavanja" subtitle="Nalog, privatnost i obaveštenja" settings disabled={busy} onPress={go('/profil/podesavanja')} />
-    <ProfileLink label="Pomoć i podrška" subtitle="Pronađite odgovor ili prijavite problem" detail={words.support} disabled={busy} onPress={go('/podrska')} />
-    <ProfileLink label="Moj raspored" subtitle="Dogovori i dostupnost" disabled={busy} onPress={go('/raspored')} />
-    {/* The prototype's generic activity card becomes the actual published-task destination.
-        Finished collaborations remain reachable through their live figure above. */}
-    <ProfileLink label="Moji zadaci" subtitle="Vaše objave i izbor ko uskače" disabled={busy} onPress={go('/potrebe')} />
+    <Section title="Moje aktivnosti">
+      <View style={s.activityLinks}>
+        <ProfileLink label="Moji zadaci" subtitle="Vaše objave i izbor ko uskače" disabled={busy} onPress={go('/potrebe')} />
+        <ProfileLink label="Moje prijave" subtitle="Pogledajte status i odgovore" disabled={busy} onPress={go('/moje-prijave')} />
+        <ProfileLink label="Moj raspored" subtitle="Dogovori i dostupnost" disabled={busy} onPress={go('/raspored')} />
+      </View>
+    </Section>
+    <Section title="Nalog">
+      <ProfileLink label="Podešavanja" subtitle="Nalog, privatnost, obaveštenja i podrška" settings disabled={busy} onPress={go('/profil/podesavanja')} />
+    </Section>
+    <View style={s.exit}>
+      {logoutError ? <T tone="danger" accessibilityRole="alert" style={s.detail}>Odjava nije uspela. Pokušajte ponovo.</T> : null}
+      <Press accessibilityRole="button" accessibilityLabel="Odjavi se" accessibilityHint="Otvara potvrdu odjave."
+        accessibilityState={{ disabled: busy, busy }} disabled={busy} onPress={onLogout} haptic="select" style={s.logout}>
+        <Glyph name="logout" size={20} tone={busy ? 'muted' : 'ink'} />
+        <T style={s.linkTitle} tone={busy ? 'muted' : 'ink'}>{busy ? 'Sačekajte…' : 'Odjavi se'}</T>
+      </Press>
+      {email ? <T style={[s.detail, s.center]} tone="muted">{email}</T> : null}
+    </View>
     {sheet}
   </Screen>;
 }
@@ -145,6 +157,10 @@ function ProfileLink({ label, subtitle, detail, attention, settings, disabled, o
 
 const s = StyleSheet.create({
   content: { gap: 20 },
+  activityLinks: { gap: 12 },
+  exit: { gap: 8, alignItems: 'stretch' },
+  logout: { minHeight: 48, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, backgroundColor: sys.color.surface,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   identity: { ...profileLift, backgroundColor: sys.color.surface, borderRadius: 24, padding: 20, alignItems: 'center', gap: 16 },
   name: { fontSize: 26, lineHeight: 32, fontWeight: '700', letterSpacing: 0, maxWidth: '100%' },
   identityDetails: { gap: 4, alignItems: 'center', maxWidth: '100%' },

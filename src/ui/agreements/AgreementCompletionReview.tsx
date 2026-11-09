@@ -40,7 +40,7 @@ export function AgreementCompletionReview({ agreement, worker, confirm, back }: 
           <T variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
           <T variant="body" tone="muted">{worker
             ? 'Prijavljeni problem ostaje sačuvan. Automatski završetak je zaustavljen.'
-            : 'Prijavljeni problem ostaje sačuvan. Ovom potvrdom ipak završavaš Dogovor; problem sam po sebi ne određuje krivicu ili dug.'}</T>
+            : 'Prijavljeni problem ostaje sačuvan. Ovom potvrdom ipak završavate Dogovor; problem sam po sebi ne određuje krivicu ili dug.'}</T>
         </View> : null}
     </>}
   </ProductSheet>;

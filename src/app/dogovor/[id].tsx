@@ -431,7 +431,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   // ---- presentation (state above is untouched by PKG-011) ----
   // The words of the one action, and of the one that is its result: "Zadatak je gotov" is the worker's, "Potvrdi završetak" the
   // requester's - on the button, in the review it opens and in the sentences around them.
-  const completeLabel = worker ? 'Zadatak je gotov' : 'Potvrdi završetak';
+  const completeLabel = worker ? 'Zadatak je gotov' : 'Potvrdite završetak';
   // A quiet line, never a skeleton: the page is being read again (back from the background, or "Osveži") or is saving.
   const footerStatus = resumeRequired || workspace.loading ? 'Osvežavamo…'
     : workspace.busy && !completing ? 'Čuvamo promenu…' : null;
@@ -447,8 +447,8 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   // for the person and the footer says so. A read that did not answer keeps the offer; the rating screen re-reads.
   const ratingOpen = dogovor.ownRating === 'DUE' || dogovor.ownRating === 'UNKNOWN';
   const brand = canComplete ? { label: completeLabel, disabled: !enabled, onPress: openCompletionReview }
-    : pendingChange?.mozeOdgovoriti ? { label: 'Odgovori na predlog', disabled: !enabled, onPress: openChanges }
-      : dogovor.stanje === 'COMPLETED' && me && ratingOpen ? { label: 'Oceni saradnju', disabled: !enabled, onPress: review }
+    : pendingChange?.mozeOdgovoriti ? { label: 'Odgovorite na predlog', disabled: !enabled, onPress: openChanges }
+      : dogovor.stanje === 'COMPLETED' && me && ratingOpen ? { label: 'Ocenite saradnju', disabled: !enabled, onPress: review }
         : null;
   // The one place the state is said (round-1 critique A13); the words live beside the step card.
   const stepChange = { waits: !!changeWaits, mine: pendingChange ? pendingChange.moj : null };

@@ -237,8 +237,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Same bounded ARM64-only ABI and memory settings as the earlier successful owner APK.
-          printf '\nreactNativeArchitectures=arm64-v8a\norg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8\n' >> android/gradle.properties
+          # The signed-in phone and x86_64 emulator must run the same embedded source.
+          # Keep automatic isolated QA ARM64-only; the explicit preview also includes the emulator ABI.
+          build_abis=arm64-v8a
+          if [ "$USKOCI_ANDROID_TEST_TARGET" = phone-preview ]; then build_abis=arm64-v8a,x86_64; fi
+          printf '\nreactNativeArchitectures=%s\norg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8\n' "$build_abis" >> android/gradle.properties
           cd android
           chmod +x gradlew
           ./gradlew :app:assembleRelease --no-daemon --stacktrace --max-workers=2
@@ -278,7 +281,11 @@ jobs:
           with zipfile.ZipFile('android/app/build/outputs/apk/release/app-release.apk') as apk:
             names = apk.namelist()
             abis = sorted({name.split('/')[1] for name in names if name.startswith('lib/') and name.endswith('.so')})
-            assert abis == ['arm64-v8a'], 'APK_ABI_MISMATCH'
+            assert abis == (['arm64-v8a', 'x86_64'] if phone else ['arm64-v8a']), 'APK_ABI_MISMATCH'
+            for abi in abis:
+              for library in ('libreactnative.so', 'libhermes.so'):
+                native_path = f'lib/{abi}/{library}'
+                assert native_path in names and apk.getinfo(native_path).file_size > 0, f'APK_REQUIRED_NATIVE_LIBRARY_MISSING:{native_path}'
             assert 'assets/index.android.bundle' in names and apk.getinfo('assets/index.android.bundle').file_size > 0, 'APK_EMBEDDED_BUNDLE_MISSING'
             dex = [name for name in names if re.fullmatch(r'classes\d*\.dex', name)]
             assert dex and any(b'USKOCI_RNR01' in apk.read(name) for name in dex), 'APK_NATIVE_PATCH_MISSING'
@@ -296,7 +303,7 @@ jobs:
             assert not google_app_ids, 'QA_APK_MUST_HAVE_NO_FIREBASE_CLIENT'
           audio = verify_apk_audio(apk_path, Path(os.environ['USKOCI_QA_AAPT2']), package, sources)
           (directory / 'native-receipt.json').write_text(json.dumps({'abis': abis, 'embeddedBundle': True, 'otaEnabled': False, 'firebaseConfigured': phone, 'certificateSha256': certificates[0], 'nativePatchMarker': 'USKOCI_RNR01', 'dexFiles': len(dex), 'bundledAudioSha256': {name: value['sha256'] for name, value in audio['resources'].items()}, 'bundledAudioResources': audio['resources'], 'audioResourceTableVerification': {'aapt2': audio['aapt2'], 'resourceDump': audio['resourceDump']}, 'customSoundActivation': 'NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED'}, indent=2) + '\n')
-          print('Final APK: ARM64, embedded bundle, OTA disabled and native patch marker PASS')
+          print('Final APK: ' + ', '.join(abis) + ', React Native/Hermes, embedded bundle, OTA disabled and native patch marker PASS')
           PY
           filename_prefix=USKOCI-QA
           if [ "$USKOCI_ANDROID_TEST_TARGET" = phone-preview ]; then filename_prefix=USKOCI-PHONE-PREVIEW; fi
@@ -314,8 +321,8 @@ jobs:
           const meta={status:'BUILD_OUTPUT_NOT_NATIVE_E2E',sourceCommit:process.env.GITHUB_SHA,filename:files[0],bytes:data.length,sha256:crypto.createHash('sha256').update(data).digest('hex'),package:candidate.package,signing:'EXPO_TEMPLATE_ANDROID_DEBUG_KEY',backend:'DEV',runtimeVersion:'uskoci-v1-preview-r2',...native,configOverrides:{name:candidate.name,androidPackage:candidate.package},push:'NOT_PROVEN',deviceInstall:'NOT_PERFORMED',replacesExistingPreview:phone,candidateTarget:candidate.target,installationBoundary:phone?'Only update an existing preview whose certificate matches certificateSha256. Never uninstall or clear app data.':'Side-by-side QA package; does not replace preview.'};
           fs.writeFileSync(dir + '/build-receipt.json',JSON.stringify(meta,null,2)+'\n');
           fs.writeFileSync(dir+'/README.txt',phone
-            ? 'Manual ARM64 phone preview test APK. Template debug certificate, DEV, embedded source only, OTA disabled, Firebase configured. Install -r only after matching the installed preview certificate. NOT EAS signing or Play; NO device/FCM acceptance is claimed.\n'
-            : 'Temporary side-by-side ARM64 QA APK only. Embedded source only; OTA disabled. New package/signing; NOT the signed EAS preview, NOT production/store, NO push or device-install proof.\n');
+            ? `Manual phone/emulator preview test APK (${native.abis.join(', ')}). Template debug certificate, DEV, embedded source only, OTA disabled, Firebase configured. Install -r only after matching the installed preview certificate. NOT EAS signing or Play; NO device/FCM acceptance is claimed.\n`
+            : `Temporary side-by-side QA APK only (${native.abis.join(', ')}). Embedded source only; OTA disabled. New package/signing; NOT the signed EAS preview, NOT production/store, NO push or device-install proof.\n`);
           NODE
       - name: Upload installable APK and bounded receipt
         id: apk_upload

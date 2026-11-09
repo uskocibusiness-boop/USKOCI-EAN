@@ -81,3 +81,77 @@ test('UX06 closing search clears its filter, and normal scroll survives search',
  await press(target(h.r,'Zatvorite pretragu Dogovora'));assert.equal(input(h.r),undefined);assert.equal(data(h.r).length,2);assert.equal(nodes(h.r,n=>n.type==='FlatList')[0].props.contentOffset.y,420);await h.stop();
 });
 test('UX06 empty initial list has no useless search control',async()=>{const h=await setup({items:[]});assert.equal(nodes(h.r,n=>n.props.label==='Pretražite Dogovore').length,0);await h.stop();});
+
+const sectionTabs=r=>nodes(r,n=>n.type==='Segmented'&&n.props.options?.some(option=>option.key==='history'));
+const historyLinks=r=>nodes(r,n=>n.type==='Press'&&n.props.accessibilityLabel==='Prethodne saradnje');
+test('Agreement history has one entry when the upper section selector is available, including filtered-empty results',async()=>{
+ const h=await setup({confirmationOnly:true});
+ assert.equal(sectionTabs(h.r).length,1);assert.equal(historyLinks(h.r).length,0);
+ await press(target(h.r,'Pretražite Dogovore'));await enter(h.r,'nepostojeci');assert.equal(data(h.r).length,0);
+ assert.equal(sectionTabs(h.r).length,1);assert.equal(historyLinks(h.r).length,0);
+ await RTR.act(async()=>sectionTabs(h.r)[0].props.onChange('history'));
+ assert.deepEqual(h.calls,[['section','history'],['confirmation',false]]);await h.stop();
+});
+test('Agreement empty source keeps history access when the upper selector is absent',async()=>{
+ const h=await setup({items:[]});assert.equal(sectionTabs(h.r).length,0);assert.equal(historyLinks(h.r).length,1);
+ await press(target(h.r,'Prethodne saradnje'));assert.deepEqual(h.calls,[['section','history'],['confirmation',false]]);
+ await h.update({section:'history'});assert.equal(historyLinks(h.r).length,0);
+ const chrome=nodes(h.r,n=>n.type==='ScreenChrome')[0];await RTR.act(async()=>chrome.props.onBack());
+ assert.deepEqual(h.calls.at(-1),['section','active']);await h.stop();
+});
+test('Agreement history access survives stale reads and recovers after loading or failure',async()=>{
+ const h=await setup({refreshError:true});assert.equal(sectionTabs(h.r).length,1);assert.equal(historyLinks(h.r).length,0);
+ await h.update({items:[]});assert.equal(historyLinks(h.r).length,1);
+ for(const state of [{loading:true,error:false},{loading:false,error:true}]){
+  await h.update(state);assert.equal(sectionTabs(h.r).length,0);assert.equal(historyLinks(h.r).length,0);
+ }
+ await h.update({loading:false,error:false,refreshError:false});assert.equal(historyLinks(h.r).length,1);await h.stop();
+});
+
+const {agreementMenuActions, MENU_WAIT_REASON}=h.load('src/ui/agreements/agreementMenu.ts');
+const menuInput={party:true,hasOther:true,active:true,requester:true,canChange:true,hasLocation:true,problemFree:true,enabled:true};
+const menuLabels={task:'Otvorite izvorni zadatak',change:'Promenite termin ili uslove',location:'Tačna adresa i lokacija',problem:'Prijavite problem u Dogovoru',cancel:'Otkažite Dogovor',safety:'Prijavite ili blokirajte osobu'};
+const menuCommandNames={task:'onOpenTask',change:'onChange',location:'onLocation',problem:'onProblem',cancel:'onCancel',safety:'onSafety'};
+test('Agreement menu uses professional actions for both roles and preserves each original command',()=>{
+ const calls=[];const commands=Object.fromEntries(Object.entries(menuCommandNames).map(([key,name])=>[name,()=>calls.push(key)]));
+ for(const requester of [true,false]){
+  const actions=agreementMenuActions({...menuInput,requester},commands);
+  const keys=requester?['task','change','location','problem','cancel','safety']:['task','change','problem','cancel','safety'];
+  assert.deepEqual(actions.map(x=>x.key),keys);assert.deepEqual(calls,[]);
+  for(const action of actions){assert.equal(action.label,menuLabels[action.key]);assert.equal(action.disabled,false);assert.equal(action.onPress,commands[menuCommandNames[action.key]]);action.onPress();}
+  assert.deepEqual(calls.splice(0),keys);assert.deepEqual(actions.filter(x=>x.destructive).map(x=>x.key),['cancel','safety']);
+ }
+});
+test('Agreement menu keeps unauthorized, terminal, problem and pending-command boundaries',()=>{
+ const noop=()=>{};const commands=Object.fromEntries(Object.values(menuCommandNames).map(name=>[name,noop]));
+ assert.deepEqual(agreementMenuActions({...menuInput,party:false},commands),[]);
+ assert.deepEqual(agreementMenuActions({...menuInput,active:false},commands).map(x=>x.key),['task','safety']);
+ assert.deepEqual(agreementMenuActions({...menuInput,canChange:false,problemFree:false},commands).map(x=>x.key),['task','location','safety']);
+ for(const action of agreementMenuActions({...menuInput,enabled:false},commands)){assert.equal(action.disabled,true);assert.equal(action.reason,MENU_WAIT_REASON);}
+});
+
+async function completionSetup(worker,patch={}){
+ const mocks=createHarness();
+ mocks.stubs['src/ui/product/ProductSheet.tsx']={ProductSheet:p=>React.createElement('ProductSheet',p,p.children(),p.footer())};
+ mocks.stubs['src/ui/product/ProductDetails.tsx']={ProductFacts:mocks.host('ProductFacts'),ProductFact:mocks.host('ProductFact')};
+ const Component=mocks.load('src/ui/agreements/AgreementCompletionReview.tsx').AgreementCompletionReview;
+ const calls=[];const agreement=row('accepted',{vremeTekst:'10. novembar u 14:00',pokrivenost:{popunjeno:2},osnovaCene:'HOURLY',problemOtvoren:true,...patch});
+ const r=await mount(Component,{agreement,worker,confirm:()=>calls.push('confirm'),back:()=>calls.push('back')});
+ return{r,calls,agreement,stop:()=>unmount(r)};
+}
+for(const worker of [true,false])test('Agreement completion '+(worker?'worker':'owner')+' preserves accepted facts and confirms only after explicit action',async()=>{
+ const h=await completionSetup(worker);
+ const facts=nodes(h.r,n=>n.type==='ProductFact');
+ assert.deepEqual(facts.map(n=>[n.props.label,n.props.value]),[
+  ['Dogovoreni termin','10. novembar u 14:00'],['Dogovoreni broj ljudi','2 osobe'],['Sačuvani iznos · po osobi po satu','1.200 RSD']]);
+ const copy=nodes(h.r,n=>n.type==='T').flatMap(n=>n.children).filter(x=>typeof x==='string');
+ assert.ok(copy.includes(worker?'Prijavljeni problem ostaje sačuvan. Automatski završetak je zaustavljen.':'Prijavljeni problem ostaje sačuvan. Ovom potvrdom ipak završavate Dogovor; problem sam po sebi ne određuje krivicu ili dug.'));
+ assert.deepEqual(h.calls,[]);
+ await press(target(h.r,worker?'Da, zadatak je gotov':'Da, potvrdite završetak'));assert.deepEqual(h.calls,['confirm']);
+ await RTR.act(async()=>nodes(h.r,n=>n.type==='ProductSheet')[0].props.onClose());assert.deepEqual(h.calls,['confirm','back']);await h.stop();
+});
+test('Agreement completion never invents a price or basis when accepted metadata is absent',async()=>{
+ const h=await completionSetup(false,{cena:{prikaz:''},osnovaCene:null,problemOtvoren:false});
+ const price=nodes(h.r,n=>n.type==='ProductFact'&&n.props.art==='money')[0];
+ assert.equal(price.props.value,'Iznos nije sačuvan');assert.equal(price.props.label,'Sačuvani iznos · osnovica cene nije potvrđena');assert.equal(price.props.prominentAs,'label');assert.deepEqual(h.calls,[]);await h.stop();
+});

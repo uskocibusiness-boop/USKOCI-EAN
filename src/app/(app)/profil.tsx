@@ -5,23 +5,21 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { useIzvor } from '../../store/uloga';
 import { ownProfileClientService, type OwnProfileIdentity } from '../../data/ownProfileClientService';
 import { publicProfileClientService } from '../../data/publicProfileClientService';
+import { authClientService } from '../../data/authClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { useWorkerExecutionModes } from '../../hooks/useWorkerExecutionModes';
 import { AccountReputation } from '../../ui/reviews/AccountReputation';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 import { ProfileWorkSummary } from '../../ui/profile/ProfileWorkSummary';
 import { cityLabel } from '../../ui/profile/cityLabel';
-import { hubWords } from '../../ui/profile/hubStates';
-import { useHubStates, type HubStateKey } from '../../ui/profile/useHubStates';
 import { workProfileSummary } from '../../ui/profile/workProfileSummary';
 import { Avatar } from '../../ui/system/Avatar';
 import { PublicProfileSheet, type PublicProfileState } from '../../ui/system/PublicProfileSheet';
+import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { inicijali } from '../../lib/inicijali';
 import { PROFILE_AVATAR, ProfileHub, type ProfileHubIdentity, type ProfileHubPath } from '../../ui/profile/ProfileHubPresentation';
 
 type ActionScope = { accountId: string; accountRevision: number; busy: boolean };
-/** The rows that say their own state (open requests, blocked people, the export, the legal documents); read apart from the profile, so none of them can hold it up. */
-const STATE_ROWS: readonly HubStateKey[] = ['support'];
 /** The work profile's saved skills and territory, as read by the profile screen. */
 type WorkCapability = OwnProfileIdentity & Pick<RadnikProfilProjekcija, 'vestine' | 'radijusKm' | 'workAreas'>;
 
@@ -45,10 +43,12 @@ export default function Profil() {
   const requesterRead = useFocusedResource(loadIdentity);
   const capabilityRead = useFocusedResource(loadCapability);
   const executionModes = useWorkerExecutionModes(capabilityRead.data?.profileId ?? null);
-  const words = hubWords(useHubStates(STATE_ROWS));
   const actionScope = useRef<ActionScope | null>(null);
+  const logoutQuestion = useRef<ActionScope | null>(null);
   const [renderedScope, setRenderedScope] = useState<ActionScope | null>(null);
   const [busy, setBusy] = useState(false);
+  const [logoutError, setLogoutError] = useState(false);
+  const confirmation = useConfirmSheet(), retireConfirmation = confirmation.close;
   // "Kako te drugi vide" (Airbnb's standard): the person's own public profile, as a sheet over this screen. Opened only by an explicit
   // press and retired with the focus and the account, like every sheet of a read that can arrive late.
   const [publicView, setPublicView] = useState<PublicProfileState>(null);
@@ -60,8 +60,11 @@ export default function Profil() {
     actionScope.current = scope;
     setRenderedScope(scope);
     setBusy(false);
-    return () => { if (actionScope.current === scope) actionScope.current = null; publicRequest.current++; setPublicView(null); };
-  }, [accountId, accountRevision]));
+    setLogoutError(false);
+    return () => { if (actionScope.current === scope) actionScope.current = null;
+      if (logoutQuestion.current === scope) logoutQuestion.current = null;
+      retireConfirmation(); publicRequest.current++; setPublicView(null); };
+  }, [accountId, accountRevision, retireConfirmation]));
 
   function isCurrent(scope: ActionScope) {
     return actionScope.current === scope && sesijaSada().user?.id === scope.accountId &&
@@ -71,7 +74,7 @@ export default function Profil() {
   function beginAction() {
     // A retained callback belongs to the visit that rendered it, never a later account or focus.
     const scope = renderedScope;
-    if (!scope || scope.busy || !isCurrent(scope)) return null;
+    if (!scope || scope.busy || logoutQuestion.current || !isCurrent(scope)) return null;
     scope.busy = true;
     setBusy(true);
     return scope;
@@ -82,9 +85,30 @@ export default function Profil() {
     action();
   }
 
+  async function logout() {
+    const scope = beginAction(); if (!scope) return;
+    setLogoutError(false);
+    try { await authClientService.signOutLocal({ accountId: scope.accountId, accountRevision: scope.accountRevision }); }
+    catch { if (isCurrent(scope)) setLogoutError(true); }
+    finally { if (isCurrent(scope)) { scope.busy = false; setBusy(false); } }
+  }
+
+  function askLogout() {
+    const scope = renderedScope;
+    if (!scope || scope.busy || logoutQuestion.current || !isCurrent(scope)) return;
+    logoutQuestion.current = scope;
+    confirmation.ask({ title: 'Odjaviti se?',
+      message: 'Ako se odjavite, neposlate poruke u Dogovorima i lokalni glasovni snimci možda više neće biti dostupni na ovom uređaju.',
+      confirmLabel: 'Odjavi se', cancelLabel: 'Ostani prijavljen', tone: 'danger',
+      onCancel: () => { if (logoutQuestion.current === scope) logoutQuestion.current = null; },
+      onConfirm: () => { if (logoutQuestion.current !== scope || !isCurrent(scope)) return;
+        logoutQuestion.current = null; return logout(); },
+    });
+  }
+
   function retryRead(refresh: () => Promise<void>) {
     const scope = renderedScope;
-    if (!scope || scope.busy || !isCurrent(scope)) return;
+    if (!scope || scope.busy || logoutQuestion.current || !isCurrent(scope)) return;
     void refresh();
   }
 
@@ -115,7 +139,7 @@ export default function Profil() {
   const publicProfileId = (capability?.stanje === 'ACTIVE' ? capability.profileId : null) ?? identity?.profileId ?? null;
   function openPublicProfile() {
     const scope = renderedScope, profileId = publicProfileId;
-    if (!scope || scope.busy || !isCurrent(scope) || !profileId || publicView?.loading) return;
+    if (!scope || scope.busy || logoutQuestion.current || !isCurrent(scope) || !profileId || publicView?.loading) return;
     const request = ++publicRequest.current;
     setPublicView({ loading: true, data: null });
     const settle = (data: JavniProfilProjekcija | null, notFound = false) => {
@@ -138,9 +162,9 @@ export default function Profil() {
 
   // Something waits for the person when the work profile is not set up or is still a draft: the row says so with its dot (and says nothing while it reads).
   const capabilityNeedsAttention = !capabilityRead.loading && !capabilityRead.error && (!capability || capability.stanje === 'DRAFT');
-  return <ProfileHub identity={hubIdentity} capabilityDetail={capabilityDetail} capabilityNeedsAttention={capabilityNeedsAttention}
+  return <><ProfileHub identity={hubIdentity} capabilityDetail={capabilityDetail} capabilityNeedsAttention={capabilityNeedsAttention}
     capabilityError={capabilityRead.error} onRetryCapability={() => retryRead(capabilityRead.refresh)}
-    busy={busy} words={words}
+    busy={busy} email={user?.email} logoutError={logoutError} onLogout={askLogout}
     workSummary={hubIdentity.state === 'ready' ? <ProfileWorkSummary
       requesterProfileId={identity?.kind === 'REQUESTER' ? identity.profileId : null}
       workerProfileId={capability?.profileId ?? null} onOpen={openFinished} /> : undefined}
@@ -148,5 +172,5 @@ export default function Profil() {
     sheet={publicView ? <PublicProfileSheet state={publicView} onClose={closePublicProfile} onRetry={openPublicProfile}
       photo={(profileId, size) => <ProfilePhoto profileId={profileId} size={size} initial={identity?.ime} own />} /> : undefined}
     open={(path: ProfileHubPath) => navigate(() => router.navigate(path))}
-    onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/'))} />;
+    onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/'))} />{confirmation.sheet}</>;
 }

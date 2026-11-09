@@ -48,7 +48,7 @@ export function aboutDetail(view: AboutView): string {
   switch (view.kind) {
     case 'loading': return 'Učitavamo…';
     case 'error': return 'Opis trenutno nije dostupan';
-    case 'none': case 'empty': return 'Dodaj opis';
+    case 'none': case 'empty': return 'Dodajte opis';
     case 'text': return clipText(view.text);
   }
 }
@@ -72,13 +72,13 @@ export const WORK_NAME_NOT_WRITTEN = 'Ime je sačuvano na nalogu, ali nije upisa
 /** The photo, one control: the picture the way others see it, the camera mark on its edge, and under it what pressing does. */
 export function ProfilePhotoBlock({ photo, ready, onOpen }: { photo: ReactNode; ready: boolean; onOpen: () => void }) {
   return <View style={s.photoBlock}>
-    <Press accessibilityRole="button" accessibilityLabel="Promeni fotografiju" accessibilityHint="Otvara izbor fotografije profila."
+    <Press accessibilityRole="button" accessibilityLabel="Promenite fotografiju" accessibilityHint="Otvara izbor fotografije profila."
       accessibilityState={{ disabled: !ready }} disabled={!ready} haptic="select" scaleTo={sys.motion.scale.button} onPress={onOpen} style={s.photoPress}>
       <View style={s.photoFrame}>
         {photo}
         {ready ? <View style={s.camera} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><Glyph name="camera" size={16} /></View> : null}
       </View>
-      <T variant="bodyStrong" style={[s.photoWord, !ready && s.photoWordOff]}>Promeni fotografiju</T>
+      <T variant="bodyStrong" style={[s.photoWord, !ready && s.photoWordOff]}>Promenite fotografiju</T>
     </Press>
   </View>;
 }
@@ -96,7 +96,7 @@ export function ProfileFactRows({ about, city, onAbout, onCity, disabled=false }
  * differs from the saved one (the form reports it, `NameSaveControl`). It is grey while the save cannot be pressed and says "Čuvamo…" while it runs.
  */
 export function NameSaveButton({ control }: { control: NameSaveControl }) {
-  return <ChromeIconButton glyph="check" caption={control.loading ? 'Čuvamo…' : 'Sačuvaj'} label="Sačuvaj ime" tone="green"
+  return <ChromeIconButton glyph="check" caption={control.loading ? 'Čuvamo…' : 'Sačuvajte'} label="Sačuvajte ime" tone="green"
     disabled={control.disabled || control.loading} onPress={control.press} />;
 }
 
@@ -116,7 +116,7 @@ export function VisibilityNote() {
 export function WorkNameNotice({ retrying, onRetry }: { retrying: boolean; onRetry: () => void }) {
   return <View testID="work-name-notice" style={s.workName}>
     <InlineNote tone="warn" art="info" alert>{WORK_NAME_NOT_WRITTEN}</InlineNote>
-    <SettingsAction label="Pokušaj ponovo" loading={retrying} disabled={retrying} onPress={onRetry} />
+    <SettingsAction label="Pokušajte ponovo" loading={retrying} disabled={retrying} onPress={onRetry} />
   </View>;
 }
 

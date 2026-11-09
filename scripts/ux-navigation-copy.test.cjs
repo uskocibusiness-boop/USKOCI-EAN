@@ -17,6 +17,8 @@ test('account hub retains saved work areas in its mixed-mode Worker subtitle',as
   'src/store/uloga.ts':{useIzvor:()=>source},
   'src/data/ownProfileClientService.ts':{ownProfileClientService:{read:async()=>identity}},
   'src/data/publicProfileClientService.ts':{publicProfileClientService:{}},
+  'src/data/authClientService.ts':{authClientService:{signOutLocal:async()=>{throw Error('UNEXPECTED_LOGOUT');}}},
+  'src/ui/system/ConfirmSheet.tsx':{useConfirmSheet:()=>({close:closeNoop,sheet:null})},
   'src/hooks/useWorkerExecutionModes.ts':{useWorkerExecutionModes:()=>({view:{kind:'confirmed',modes:['ON_SITE','REMOTE']}})},
   'src/ui/profile/useHubStates.ts':{useHubStates:()=>({})},
   'src/ui/profile/hubStates.ts':{hubWords:()=>({})},
@@ -29,6 +31,163 @@ test('account hub retains saved work areas in its mixed-mode Worker subtitle',as
  try{assert.equal(nodes(r,n=>n.type==='ProfileHub')[0].props.capabilityDetail,
   'Aktivan · Kurirske dostave +6 · Na daljinu · Dolazak: Novi Sad');}
  finally{await unmount(r);}
+});
+
+function closeNoop(){}
+
+// Actual profile route, presentation and confirmation flow; account reads and Auth
+// are synthetic. This verifies admission and command ownership, not native layout.
+async function accountMenuRoute({empty=false,readFailure=false,logout=async()=>{}}={}){
+ const session={user:{id:'owner',email:'owner@example.test'},accountRevision:1},calls=[],routes=[],effects=new Set();
+ const profile=empty?null:{id:'worker',stanje:'ACTIVE',ime:'Milan',grad:'',radijusKm:0,
+  vestine:['Kurirske dostave'],workAreas:[WORKER_AREA_CITY]};
+ const identity=empty?null:{accountId:'owner',profileId:'requester',kind:'REQUESTER',ime:'Milan',grad:null,stanje:'ACTIVE'};
+ const source={mojRadnikProfil:async()=>profile};
+ const h=createHarness({
+  'expo-router':{router:{navigate:path=>routes.push(path),push:path=>routes.push(path),canGoBack:()=>false,replace:path=>routes.push(path)},
+   useFocusEffect:fn=>React.useEffect(()=>{const cleanup=fn();effects.add(cleanup);return()=>{effects.delete(cleanup);cleanup?.();};},[fn])},
+  'src/store/sesija.ts':{useSesija:()=>session,sesijaSada:()=>session},
+  'src/store/uloga.ts':{useIzvor:()=>source},
+  'src/data/ownProfileClientService.ts':{ownProfileClientService:{read:async()=>{if(readFailure)throw Error('OFFLINE');return identity;}}},
+  'src/data/publicProfileClientService.ts':{publicProfileClientService:{}},
+  'src/data/authClientService.ts':{authClientService:{signOutLocal:async scope=>{calls.push(scope);return logout();}}},
+  'src/hooks/useWorkerExecutionModes.ts':{useWorkerExecutionModes:()=>({view:{kind:'confirmed',modes:['ON_SITE']}})},
+  'src/ui/system/motion.ts':{useReducedMotion:()=>true},
+ });
+ h.native.AppState={currentState:'active',addEventListener:()=>({remove(){}})};
+ h.native.Modal='Modal';h.native.Pressable='Pressable';h.native.useWindowDimensions=()=>({width:360,height:800});
+ h.native.Easing={bezier:()=>()=>0};h.native.Animated={View:'AnimatedView',Value:class{setValue(){}},timing:()=>({start(){},stop(){}})};
+ h.stubs['src/ui/system/tokens.ts'].sheetLift={detached:{}};
+ for(const [file,names]of [
+  ['src/ui/reviews/AccountReputation.tsx',['AccountReputation']],['src/ui/media/ContextPhotos.tsx',['ProfilePhoto']],
+  ['src/ui/profile/ProfileWorkSummary.tsx',['ProfileWorkSummary']],['src/ui/system/PublicProfileSheet.tsx',['PublicProfileSheet']],
+  ['src/ui/system/Avatar.tsx',['Avatar','FaceEdge']],['src/ui/product/ProductSheet.tsx',['ProductSheet']],
+  ['src/ui/settings/SettingsPresentation.tsx',['SettingsAction']],
+ ])h.stubs[file]=Object.fromEntries(names.map(name=>[name,h.host(name)]));
+ const C=h.load('src/app/(app)/profil.tsx').default,r=await mount(C,{});
+ return{r,h,C,session,calls,routes,blur:()=>RTR.act(async()=>{for(const cleanup of [...effects])cleanup?.();}),
+  redraw:()=>RTR.act(async()=>r.update(React.createElement(C,{}))),stop:()=>unmount(r)};
+}
+const confirmButton=r=>nodes(r,n=>n.props.testID==='confirm-sheet-confirm')[0];
+const cancelButton=r=>nodes(r,n=>n.props.testID==='confirm-sheet-cancel')[0];
+const visibleText=r=>nodes(r,n=>n.type==='T').flatMap(n=>n.children.filter(child=>typeof child==='string')).join(' ');
+
+test('profile has one ordered activity menu and one final logout for empty and populated accounts',async()=>{
+ for(const empty of [false,true]){
+  const x=await accountMenuRoute({empty});
+  const labels=nodes(x.r,n=>n.props.onPress&&n.props.accessibilityLabel).map(n=>n.props.accessibilityLabel);
+  assert.deepEqual(labels.slice(-6),['Radni profil','Moji zadaci','Moje prijave','Moj raspored','Podešavanja','Odjavi se']);
+  assert.equal(labels.filter(label=>label==='Pomoć i podrška').length,0);
+  assert.equal(nodes(x.r,n=>n.props.accessibilityLabel==='Odjavi se').length,1);
+  assert.ok(target(x.r,'Odjavi se').props.style.minHeight>=48);
+  assert.deepEqual(nodes(x.r,n=>n.type==='Section').map(n=>n.props.title),['Moje aktivnosti','Nalog']);
+  assert.deepEqual(x.calls,[]);await x.stop();
+ }
+});
+
+test('profile logout remains available after an identity read failure and keeps the existing warning',async()=>{
+ const x=await accountMenuRoute({readFailure:true});await press(target(x.r,'Odjavi se'));
+ assert.ok(visibleText(x.r).includes('neposlate poruke u Dogovorima i lokalni glasovni snimci'));
+ assert.equal(confirmButton(x.r).props.accessibilityLabel,'Odjavi se');
+ assert.equal(cancelButton(x.r).props.accessibilityLabel,'Ostani prijavljen');assert.deepEqual(x.calls,[]);
+ await press(cancelButton(x.r));assert.equal(confirmButton(x.r),undefined);assert.deepEqual(x.calls,[]);
+ await press(target(x.r,'Podešavanja'));assert.deepEqual(x.routes,['/profil/podesavanja']);await x.stop();
+});
+
+test('profile logout requires one confirmation, blocks competing taps and sends captured ownership once',async()=>{
+ const pending=deferred(),x=await accountMenuRoute({logout:()=>pending.promise});
+ const ask=target(x.r,'Odjavi se').props.onPress,open=target(x.r,'Podešavanja').props.onPress;
+ await RTR.act(async()=>{ask();ask();open();});assert.deepEqual(x.calls,[]);assert.deepEqual(x.routes,[]);
+ const confirm=confirmButton(x.r).props.onPress;
+ await RTR.act(async()=>{confirm();confirm();ask();open();});
+ assert.deepEqual(x.calls,[{accountId:'owner',accountRevision:1}]);assert.deepEqual(x.routes,[]);
+ assert.equal(confirmButton(x.r).props.disabled,true);
+ await RTR.act(async()=>pending.resolve());assert.equal(confirmButton(x.r),undefined);await x.stop();
+});
+
+test('profile logout retires confirmation on blur or account change and fences retained callbacks',async()=>{
+ for(const invalidate of [x=>x.blur(),async x=>{x.session.user={id:'other'};x.session.accountRevision++;await x.redraw();}]){
+  const x=await accountMenuRoute(),ask=target(x.r,'Odjavi se').props.onPress;
+  await press(target(x.r,'Odjavi se'));const confirm=confirmButton(x.r).props.onPress;
+  await invalidate(x);assert.equal(confirmButton(x.r),undefined);
+  await RTR.act(async()=>{confirm();ask();});assert.deepEqual(x.calls,[]);await x.stop();
+ }
+});
+
+test('profile logout checks current session even before an account-change render',async()=>{
+ const x=await accountMenuRoute();await press(target(x.r,'Odjavi se'));
+ x.session.accountRevision++;await press(confirmButton(x.r));assert.deepEqual(x.calls,[]);await x.stop();
+});
+
+test('profile logout shows a retryable error only for the owning visit',async()=>{
+ const x=await accountMenuRoute({logout:async()=>{throw Error('OFFLINE');}});
+ await press(target(x.r,'Odjavi se'));await press(confirmButton(x.r));
+ assert.ok(visibleText(x.r).includes('Odjava nije uspela. Pokušajte ponovo.'));
+ assert.equal(target(x.r,'Odjavi se').props.disabled,false);
+ await press(target(x.r,'Odjavi se'));await press(confirmButton(x.r));assert.equal(x.calls.length,2);await x.stop();
+ for(const invalidate of [x=>x.blur(),async x=>{x.session.user={id:'other'};x.session.accountRevision++;await x.redraw();}]){
+  const pending=deferred(),late=await accountMenuRoute({logout:()=>pending.promise});
+  await press(target(late.r,'Odjavi se'));await press(confirmButton(late.r));await invalidate(late);
+  await RTR.act(async()=>pending.reject(Error('LATE_OFFLINE')));
+  assert.ok(!visibleText(late.r).includes('Odjava nije uspela. Pokušajte ponovo.'));await late.stop();
+ }
+});
+
+test('settings retains each destination once and leaves logout to the profile',async()=>{
+ const h=createHarness(),C=h.load('src/ui/settings/AccountSettingsPresentation.tsx').AccountSettings,calls=[];
+ const r=await mount(C,{busy:false,words:{support:'Jedan zahtev'},open:path=>calls.push(path),onBack:()=>{}});
+ const targets=nodes(r,n=>n.type==='Press'&&n.props.onPress);
+ for(const node of targets)await press(node);
+ assert.equal(calls.length,10);assert.equal(new Set(calls).size,calls.length);
+ assert.equal(calls.filter(path=>path==='/podrska').length,1);assert.ok(calls.includes('/profil/prijava-greske'));
+ assert.equal(nodes(r,n=>n.props.accessibilityLabel==='Odjavi se').length,0);await unmount(r);
+});
+
+async function personalDataRoute(workAreas,grad='',workFailure=false){
+ const session={user:{id:'owner'},accountRevision:1},writes=[],routes=[];
+ const source={mojRadnikProfil:async()=>{if(workFailure)throw Error('OFFLINE');return{ime:'Milan',biografija:'Dostava',grad,workAreas};},
+  azurirajRadnikProfil:async command=>{writes.push(command);throw Error('UNEXPECTED_WRITE');}};
+ const h=createHarness({
+  'expo-router':{router:{navigate:path=>routes.push(path)},useFocusEffect:fn=>React.useEffect(fn,[fn])},
+  'src/store/sesija.ts':{useSesija:()=>session,sesijaSada:()=>session},
+  'src/store/uloga.ts':{useIzvor:()=>source},
+  'src/data/requesterProfileClientService.ts':{requesterProfileClientService:{
+   read:async()=>({ok:true,podatak:{profileId:'requester',displayName:'Milan',revision:1}}),
+   save:async command=>{writes.push(command);throw Error('UNEXPECTED_WRITE');}}},
+  'src/hooks/useUnsavedProfileBack.ts':{useUnsavedProfileBack:()=>({back:()=>{},sheet:null})},
+  'src/data/aiCorrectionIntent.ts':{rememberAiCorrection:()=>({token:'area-correction'})},
+ });
+ h.native.AppState={currentState:'active',addEventListener:()=>({remove(){}})};
+ for(const [file,names]of [
+  ['src/ui/settings/SettingsPresentation.tsx',['SettingsScreen','SettingsAction','SettingsGroup','SettingsRow','SettingsText']],
+  ['src/ui/profile/DisplayNameForm.tsx',['DisplayNameForm']],['src/ui/system/StateView.tsx',['StateView']],
+  ['src/ui/v2/QuietReadState.tsx',['QuietReadState']],['src/ui/media/ContextPhotos.tsx',['ProfilePhoto']],
+  ['src/ui/privacy/InlineNote.tsx',['InlineNote']],['src/ui/system/InfoButton.tsx',['InfoButton']],
+  ['src/ui/system/ScreenChrome.tsx',['ChromeIconButton']],
+ ])h.stubs[file]=Object.fromEntries(names.map(name=>[name,h.host(name)]));
+ const r=await mount(h.load('src/app/(app)/profil/podaci.tsx').default,{});
+ return{r,writes,routes,stop:()=>unmount(r)};
+}
+
+test('personal data reads saved CITY, RADIUS and COUNTRY work areas ahead of legacy city without writing',async()=>{
+ for(const [areas,label]of [
+  [[WORKER_AREA_CITY],'Novi Sad'],
+  [[{...WORKER_AREA_CITY,kind:'RADIUS',label:'Novi Sad · do 30 km',radiusKm:30}],'Novi Sad · do 30 km'],
+  [[{kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,latitude:null,longitude:null,radiusKm:null}],'Cela Srbija'],
+ ]){
+  const x=await personalDataRoute(areas,'Stari grad');assert.equal(target(x.r,'Područje rada').props.value,label);
+  await press(target(x.r,'Područje rada'));
+  assert.deepEqual(x.routes,[{pathname:'/profil/razgovor',params:{aiCorrection:'area-correction'}}]);
+  assert.deepEqual(x.writes,[]);await x.stop();
+ }
+});
+
+test('personal data keeps unknown, empty and legacy work area states honest',async()=>{
+ for(const [areas,grad,failed,label]of [[[],'',false,'Još nije podešeno'],[[],'novi sad',false,'Novi Sad'],
+  [[WORKER_AREA_CITY],'',true,'Trenutno nedostupno']]){
+  const x=await personalDataRoute(areas,grad,failed);assert.equal(target(x.r,'Područje rada').props.value,label);
+  assert.deepEqual(x.writes,[]);await x.stop();
+ }
 });
 
 test('Worker summary uses existing area labels and keeps legacy city/radius compatibility',()=>{

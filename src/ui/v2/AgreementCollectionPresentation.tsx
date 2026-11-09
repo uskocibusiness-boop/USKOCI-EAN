@@ -296,7 +296,7 @@ export function AgreementCollectionPresentation(props: Props) {
             <T variant="note" tone="green">{props.pagination.loadingMore ? 'Učitavamo još saradnji…' : props.pagination.moreError ? 'Pokušajte ponovo' : 'Učitajte još saradnji'}</T>
           </Press>
         </View> : null}
-        {section === 'active' ? <Press accessibilityRole="button" accessibilityLabel="Prethodne saradnje"
+        {section === 'active' && items.length === 0 ? <Press accessibilityRole="button" accessibilityLabel="Prethodne saradnje"
           onPress={() => { props.onSection('history'); props.onConfirmationOnly(false); }} style={s.historyLink}>
           <T variant="body" style={s.attentionText}>Prethodne saradnje</T><Glyph name="caret-right" size={20} />
         </Press> : null}

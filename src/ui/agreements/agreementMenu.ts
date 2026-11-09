@@ -45,16 +45,16 @@ export function agreementMenuActions(input: AgreementMenuInput, commands: Agreem
   const live = { disabled: off, reason: off ? MENU_WAIT_REASON : undefined };
   const rows: SheetAction[] = [];
   if (commands.onOpenTask) {
-    rows.push({ key: 'task', label: 'Otvori izvorni zadatak', icon: 'tasks', onPress: commands.onOpenTask, ...live });
+    rows.push({ key: 'task', label: 'Otvorite izvorni zadatak', icon: 'tasks', onPress: commands.onOpenTask, ...live });
   }
-  if (input.active && input.canChange) rows.push({ key: 'change', label: 'Promeni termin ili uslove', icon: 'calendar', onPress: commands.onChange, ...live });
+  if (input.active && input.canChange) rows.push({ key: 'change', label: 'Promenite termin ili uslove', icon: 'calendar', onPress: commands.onChange, ...live });
   if (input.active && input.requester && input.hasLocation) {
     rows.push({ key: 'location', label: 'Tačna adresa i lokacija', icon: 'pin', onPress: commands.onLocation, hint: 'Otvara odeljak Tačna adresa i lokacija.', ...live });
   }
-  if (input.active && input.problemFree) rows.push({ key: 'problem', label: 'Prijavi problem u Dogovoru', icon: 'alert', onPress: commands.onProblem, ...live });
+  if (input.active && input.problemFree) rows.push({ key: 'problem', label: 'Prijavite problem u Dogovoru', icon: 'alert', onPress: commands.onProblem, ...live });
   if (input.active && input.canChange) {
-    rows.push({ key: 'cancel', label: 'Otkaži Dogovor', icon: 'tasks', destructive: true, onPress: commands.onCancel, ...live });
+    rows.push({ key: 'cancel', label: 'Otkažite Dogovor', icon: 'tasks', destructive: true, onPress: commands.onCancel, ...live });
   }
-  if (input.hasOther) rows.push({ key: 'safety', label: 'Prijavi ili blokiraj osobu', icon: 'shield', destructive: true, onPress: commands.onSafety, ...live });
+  if (input.hasOther) rows.push({ key: 'safety', label: 'Prijavite ili blokirajte osobu', icon: 'shield', destructive: true, onPress: commands.onSafety, ...live });
   return rows;
 }

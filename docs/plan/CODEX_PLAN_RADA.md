@@ -4,6 +4,10 @@
 
 
 <!-- USKOCI_FINISH_20261109 -->
+## Aktuelni nastavak — 09.11.2026, posle 15:31 UTC: zastoj telefona, profil i Dogovori
+
+**Stvarni Android ANR potvrđen:** u 15:16:25 UTC UI thread a22 APK-a čeka `MapLibreSurfaceView.onWindowResize`, uz input timeout 5 s. Tri mape prelaze na podržani TextureView renderer, bez promene pinova/privatnosti ili novih biblioteka. Profil dobija jednu odjavu na dnu i uklanja duplu podršku; Lični podaci koriste stvarno sačuvana područja rada. Dogovor akcije su formalizovane i uklonjen dupli pristup istoriji. Fokusirane provere **23/23 + 46/46 + 61/61**, TypeScript exit 0; native rezultat novog paketa još nije potvrđen. Eksplicitni phone-preview dobija i x86_64 za drugi već prijavljeni emulator. [Reprodukcija, tačan obim i kriterijum zatvaranja](proofs/phone-map-anr-profile-20261109.md). DEV/Edge/budžet ostaju nepromenjeni. Telefonski nalog još nema Dogovor; ne zamenjivati stvarnu prijavu/izbor lažnim prikazom saradnje. Puni CI i novi APK slede kao jedna povezana celina.
+
 ## Aktuelni nastavak — 09.11.2026: prirodan AI i novi APK za povezani telefon
 
 **Dodatni stvarni AI prihvat, 14:46 UTC:** Worker152 na telefonu prihvatio je novu uslugu posle jednog pitanja o fizičkoj predaji; jasno pojašnjenje dalo je READY pregled uz očuvanih7 ranijih usluga/ID-jeva/režima, područje i raspored, bez ponovnog ispitivanja poznatog. Probni osmi predlog nije sačuvan; običan Napustite razgovor ostavio je aktivan profil sa7 usluga. [Tačan obim modelskog dokaza](proofs/worker-natural-clarification-phone-20261109.json). Ukupno12 poziva,96372µUSD,0 unsettled; ne menja se limit niti proglašava cela A–T matrica uspešnom.
