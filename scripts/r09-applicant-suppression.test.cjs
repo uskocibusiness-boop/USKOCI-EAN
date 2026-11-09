@@ -20,6 +20,36 @@ const report={recordedAt:new Date().toISOString(),sourceBase:'76dd409a929b7d133f
   native?'Native cases use multiple real PostgreSQL connections and observed blocking; this is not hosted load/capacity evidence.':'PGlite cases prove SQL semantics; real multi-connection races require the separate native invocation.'
  ]};
 
+test('PGlite fixture publication clock is strictly after activation even within one host clock tick',async()=>{
+ let f;const realNow=Date.now;
+ try{
+  f=await fixture();
+  const fixedNow=realNow();let clockReads=0,pair;
+  try{
+   // PGlite's host clock is millisecond based. Freeze only data setup so the
+   // activation/publication race is deterministic, without replacing any SQL.
+   Date.now=()=>{clockReads++;return fixedNow;};
+   pair=await f.addPair();
+  }finally{Date.now=realNow;}
+  assert.ok(clockReads>0,'the actual PGlite host clock was controlled');
+  const clocks=await f.value(`select jsonb_build_object(
+   'activation',p.worker_dispatch_eligible_since::text,
+   'publishedAfter',n.published_at>p.worker_dispatch_eligible_since,
+   'deltaMicros',extract(epoch from(n.published_at-p.worker_dispatch_eligible_since))*1000000)
+   as value from public.app_profiles p cross join public.needs n where p.id=$1 and n.id=$2`,[pair.profile,pair.need]);
+  assert.equal(clocks.publishedAfter,true,'default fixture represents a publication after activation, never a same-tick tie');
+  assert.equal(clocks.deltaMicros,1,'synthetic ordering barrier adds only one microsecond');
+  assert.equal(await f.match(pair),true);assert.equal(await f.gate(pair),true);
+  for(const [number,offset]of [[100001,'0 microseconds'],[100002,'-1 microsecond']]){
+   const exact=await f.value('select ($1::timestamptz+$2::interval)::text as value',[clocks.activation,offset]);
+   const need=await f.addNeed(number,{publishedAt:exact}),boundary={...pair,need};
+   assert.equal(await f.value('select published_at=$2::timestamptz as value from public.needs where id=$1',[need,exact]),true,
+    'explicit historical and equal-time fixture inputs must remain unchanged');
+   assert.equal(await f.match(boundary),true);assert.equal(await f.gate(boundary),false,'strict production > boundary is preserved');
+  }
+ }finally{Date.now=realNow;if(f)await f.db.close();}
+});
+
 test('R09/F20 prevents an active or accepted applicant receiving the same opportunity',async t=>{
  let f;const clients=[];
  const run=async(name,fn)=>t.test(name,async()=>{

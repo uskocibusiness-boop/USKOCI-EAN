@@ -120,10 +120,16 @@ async function fixture(options={}) {
   }
   async function addNeed(number,opts={}) {
    const nid=needId(number),remote=opts.mode==='REMOTE';
+   // Default synthetic tasks are published after all workers already set up.
+   // PGlite can give consecutive statements the same millisecond timestamp;
+   // express that ordering explicitly without relaxing the real strict gate.
+   // to_jsonb also works before the activation-clock migration adds its column.
    await db.query(`insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,category_id,
     execution_location_mode,schedule_kind,published_at,approximate_city,approximate_lat,approximate_lng,task_country_code,task_timezone,mode)
     values($1,$2,$3,'PUBLISHED',$4,'Synthetic isolated SQL task','Sintetička usluga',$5,$6,$7,
-    coalesce($8::timestamptz,clock_timestamp()),$9,$10,$11,'RS','Europe/Belgrade','OFFERS')`,
+    coalesce($8::timestamptz,greatest(clock_timestamp(),
+     (select max((to_jsonb(p)->>'worker_dispatch_eligible_since')::timestamptz)+interval '1 microsecond' from public.app_profiles p))),
+    $9,$10,$11,'RS','Europe/Belgrade','OFFERS')`,
     [nid,REQUESTER,REQUESTER_PROFILE,'Synthetic task '+number,CATEGORY,opts.mode||'STATIONARY',opts.schedule||'FLEXIBLE',opts.publishedAt||null,remote?'':'Novi Sad',!remote&&options.native?45.25:null,!remote&&options.native?19.84:null]);
    await db.query(`insert into private.work_taxonomy_need_snapshots(need_id,need_revision,category_id,catalog_version,reviewed_by_requester,source,classification_state)
     values($1,1,$2,1,true,'REQUESTER_CORRECTED','CONFIRMED')`,[nid,CATEGORY]);

@@ -1,0 +1,87 @@
+{
+  "schema": "uskoci-continuation-integrated-validation-v1",
+  "recordedAt": "2026-11-09T20:09:11.126698+00:00",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "base": "00b18e7e56b6e2835cab0aff7a5dc1f3007448f4",
+  "testedCommit": "a1fa4682552a84fdf0fc075203cbf4acdfa26315",
+  "testedTree": "95947cffd838b4f72de12925529fe098f8da6d7d",
+  "initialRun": {
+    "tests": 1433,
+    "pass": 1429,
+    "fail": 4,
+    "cause": "Three applicant-suppression subcases and their parent failed because of equal synthetic activation/publication timestamps. Production strict > gate was correct. See r09-fixture-publication-clock-20261109.json.",
+    "archive": "docs/plan/proofs/continuation-initial-regression-20261109.txt.gz"
+  },
+  "finalRun": {
+    "command": "npm test",
+    "exitCode": 0,
+    "tests": 1434,
+    "pass": 1434,
+    "fail": 0,
+    "skipped": 0,
+    "durationMs": 89821.04155
+  },
+  "typescript": {
+    "command": "npx tsc --noEmit",
+    "exitCode": 0,
+    "diagnostics": 0
+  },
+  "migrations": {
+    "commands": [
+      "sh supabase/migrations/check_md5.sh",
+      "python supabase/migrations/check_migration_integrity.py"
+    ],
+    "exitCode": 0,
+    "files": 235,
+    "integrityTests": 90
+  },
+  "logs": {
+    "npm": {
+      "sourceLogSha256": "9c02e92d4da610efdd3a3153d4cee75cebf1cb7d83824027c1d8867cdff3040a",
+      "sourceLogBytes": 168638,
+      "archive": "docs/plan/proofs/continuation-npm-20261109.txt.gz",
+      "archiveSha256": "0ca87e52a2cb6dcc2b4688ae85cbbaa760190c46ad12ccf2af3b0dd14e36bdc8"
+    },
+    "typescript": {
+      "sourceLogSha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f",
+      "sourceLogBytes": 99,
+      "archive": "docs/plan/proofs/continuation-typescript-20261109.txt.gz",
+      "archiveSha256": "934a9d56e1b77b540f21becd97102d1b7088e8e2eba852118cfc29df5c6f4bb7"
+    },
+    "migrations": {
+      "sourceLogSha256": "0a5087d39f5a5f02b78115b5823b4fb412d020d050dcfa54a8523b2d90013664",
+      "sourceLogBytes": 1195,
+      "archive": "docs/plan/proofs/continuation-migrations-20261109.txt.gz",
+      "archiveSha256": "c686832671e4a9bf0c20e2705516b04e6151bf0ea22a37972b0a9ee66efeea5a"
+    }
+  },
+  "optionalNativeProbeCleanup": {
+    "runtime": "PostgreSQL17.11",
+    "tests": 14,
+    "pass": 14,
+    "fail": 0,
+    "proof": "docs/plan/proofs/r13-probe-cleanup-native-20261109.txt"
+  },
+  "boundaries": [
+    "No Android or provider execution is inferred from these tests.",
+    "Cleanup source is tested; the actual DEV application and canonical ledger require a separate observed receipt.",
+    "P6 original full30k and ordinary Auth proof is historical, not silently attributed to this execution.",
+    "The package preserves the newer Home carousels, worker readiness fixes, AI199/152 source and stable Agreement subscriptions."
+  ],
+  "followup": {
+    "sourceCommit": "572ff7c422fff25ce8e39e7d85f6797bcef1a6c1",
+    "scope": "Only the additional PGlite clock test is separated from the optional native launcher lifecycle; application runtime, business SQL and original R09/F20 suite body are unchanged.",
+    "focusedClockTest": {
+      "pass": 1,
+      "fail": 0
+    },
+    "nativeOptionalRun": {
+      "pass": 46,
+      "fail": 0,
+      "nativeScenarios": 44,
+      "runtime": "PostgreSQL17.11/PostGIS3.5.2",
+      "proof": "docs/plan/proofs/r09-fixture-clock-native-followup-20261109.json"
+    },
+    "finalCommitFullCi": "Pending separate exact-source GitHub run; local1434 full run remains tied to testedCommit."
+  }
+}

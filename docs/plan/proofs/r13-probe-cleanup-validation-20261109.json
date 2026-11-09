@@ -71,13 +71,21 @@
       "new PLpgSQL textual dependency rejected before either DROP",
       "rollback exact microsecond observations and private owner/ACL/RLS independently asserted"
     ],
-    "pgliteScope": "All14 cleanup cases passed in the integrated npm run; that whole run had three unrelated applicant-suppression subcase failures plus their parent. Their investigation and full-suite revalidation are separate; no full-suite success is claimed here.",
+    "pgliteScope": "All14 cleanup cases passed again in the final integrated npm run:1434/1434 PASS,0 skipped.",
     "additionalPgliteGuardPass": 1,
     "integratedInitialRun": {
       "tests": 1433,
       "pass": 1429,
       "fail": 4,
       "cleanupCasesPassed": 14
+    },
+    "integratedFinalRun": {
+      "tests": 1434,
+      "pass": 1434,
+      "fail": 0,
+      "skipped": 0,
+      "durationMs": 89821.04155,
+      "sourceCommit": "a1fa4682552a84fdf0fc075203cbf4acdfa26315"
     }
   },
   "preserved": [

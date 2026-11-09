@@ -1,0 +1,77 @@
+{
+  "schema": "USKOCI_R09_PGLITE_CLOCK_NATIVE_COMPATIBILITY_V1",
+  "recordedAtUtc": "2026-11-09T20:09:46.842679+00:00",
+  "baseCommit": "fa2bf2b292e22f2e6b6bc22c8c80b6bbfd024c06",
+  "status": "TEST_RUNNER_COMPATIBILITY_FIXED_AND_TESTED",
+  "sourceFile": {
+    "path": "scripts/r09-applicant-suppression.test.cjs",
+    "preimageSha256": "7d7440a2f53ea633710dee8207615132666eae0cad42a68c84aa51cd9a875abb",
+    "postimageSha256": "af1f1e8b1313b7a0a48e941a73ff086ef013e262dbcd450977c1002332783464"
+  },
+  "finding": {
+    "origin": "Coordinator review, then verified by reading the native launcher source.",
+    "cause": "The newly added top-level clock test selected the native launcher when USKOCI_F20_NATIVE=1. The launcher owns one module-level temporary directory; its stopFixture removes that directory, so starting it again in the existing native suite reuses removed state.",
+    "preimageExecution": "No second original native failure was executed by this agent; the source-lifetime defect was accepted and narrowly fixed."
+  },
+  "change": "The added Date.now test is now explicitly named PGlite and always uses fixture() plus db.close(). Both host-clock and exact +1 microsecond assertions are unconditional. The existing R09/F20 suite still owns its single native startFixture/stopFixture lifecycle.",
+  "unchanged": {
+    "existingR09F20SuiteBodyByteIdentical": true,
+    "startFixtureCalls": 1,
+    "stopFixtureCalls": 1,
+    "priorNegativeProof": {
+      "path": "docs/plan/proofs/r09-fixture-publication-clock-20261109.json",
+      "sha256": "e421b11df5ff227dd302be325c31195f466e563ab2d3686a24e55be5f5edd38e",
+      "byteIdentical": true
+    },
+    "fixtureDataLogic": "Unchanged from fa2bf2b; this follow-up changes only test runner selection and evidence.",
+    "businessRuntime": "No application runtime, SQL, DEV, package, feature flag or CODEX changes."
+  },
+  "validation": {
+    "focusedPGlite": {
+      "command": "node --test --test-name-pattern='PGlite fixture publication clock' scripts/r09-applicant-suppression.test.cjs",
+      "exitCode": 0,
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skipped": 0
+    },
+    "fullOptionalNative": {
+      "command": "USKOCI_F20_NATIVE=1 USKOCI_POSTGRES_ROOT=/workspace/scratch/792f3e12eb9e/pg-runtime/root USKOCI_PG_MODULE=/workspace/scratch/792f3e12eb9e/pg-runtime/node/node_modules/pg USKOCI_PG_FIXTURE_PORT=55443 USKOCI_F20_PROOF=/workspace/scratch/78491a3df814/r09-native-clock-followup-20261109.json node --test scripts/r09-applicant-suppression.test.cjs",
+      "exitCode": 0,
+      "tests": 46,
+      "pass": 46,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "nativeScenarios": 44,
+      "testCountNote": "44 PostgreSQL/PostGIS subcases plus their parent and the separately executed PGlite clock test.",
+      "postgres": "PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+      "postgis": "POSTGIS=\"3.5.2 dea6d0a\" [EXTENSION] PGSQL=\"170\" GEOS=\"3.13.1-CAPI-1.19.2\" PROJ=\"9.6.0 NETWORK_ENABLED=OFF URL_ENDPOINT=https://cdn.proj.org USER_WRITABLE_DIRECTORY=/home/agent/.local/share/proj DATABASE_PATH=/usr/share/proj/proj.db\" (compiled against PROJ 9.5.1) LIBXML=\"2.9.14\" LIBJSON=\"0.18\" LIBPROTOBUF=\"1.5.1\" WAGYU=\"0.5.0 (Internal)\"",
+      "durationMs": 5155.027012,
+      "rawProof": {
+        "path": "docs/plan/proofs/r09-applicant-suppression-native-clock-20261109.json",
+        "bytes": 14769,
+        "sha256": "f0d0b72f02b676586e2dd3f3443dd65bdbed6a2f8566cc6af32ebf32e3c1ed49"
+      },
+      "rawSourceBaseNote": "The raw report retains its original package sourceBase metadata 76dd409...; actual current test bytes are bound by harnessSha256 and this baseCommit/postimage manifest.",
+      "portClosedAfterExit": true
+    },
+    "diffCheck": {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  },
+  "nativeCoverage": [
+    "Observed Need lock wait when submit commits before dispatch; no opportunity is created.",
+    "Observed reverse Need lock order; committed submit marks the existing opportunity responded before claim.",
+    "Two leased device begin calls run concurrently, suppress both without deadlock and do not start a send.",
+    "Existing partial unique index is used with 10,001 synthetic history rows; no production index added.",
+    "Existing queue/UNKNOWN/deduplication, privilege, rollback and exact owner checks remain active."
+  ],
+  "boundaries": [
+    "Local synthetic PostgreSQL/PostGIS and PGlite only; no hosted DEV, real Auth/JWT, Expo/FCM, Android, phone or E2E delivery claim.",
+    "Provider calls remain mocked; database lock observations and SQL owners are real within the isolated native fixture.",
+    "The native launcher was not refactored; the extra test no longer consumes its lifecycle.",
+    "The full combined npm suite is owned by the coordinator and was not repeated here."
+  ]
+}

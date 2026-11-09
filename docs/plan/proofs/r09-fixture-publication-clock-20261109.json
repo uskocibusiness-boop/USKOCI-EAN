@@ -1,0 +1,139 @@
+{
+  "schema": "USKOCI_R09_FIXTURE_PUBLICATION_CLOCK_V1",
+  "recordedAtUtc": "2026-11-09T20:06:24.599348+00:00",
+  "status": "TEST_FIXTURE_FIXED_AND_LOCALLY_TESTED",
+  "baseCommit": "4d7c9588449131ff93197ee4618ef0c204893f9f",
+  "sourceFiles": [
+    {
+      "path": "scripts/r09-worker-activation-fixture.cjs",
+      "bytes": 13825,
+      "sha256": "12b7cb1c1884c2c607d411e5654796e13d96d5ab623f07ecd11719e89854c123",
+      "preimageSha256": "b899405659f08437442966566ff56268cce9671164564cc15575d6f48ace75f3"
+    },
+    {
+      "path": "scripts/r09-applicant-suppression.test.cjs",
+      "bytes": 30699,
+      "sha256": "7d7440a2f53ea633710dee8207615132666eae0cad42a68c84aa51cd9a875abb",
+      "preimageSha256": "4da0238194b385a3dfa6ece9db27ba5ff9e6e4277078b6bacee02c1657da0f1f"
+    }
+  ],
+  "trigger": {
+    "coordinatorLog": "integrated-tests-20261109.txt",
+    "sha256": "77725c354d1aa3b9fe4dd40c8ba0bc5e1a01a012d78dcd5b8f6b53ee04a384bb",
+    "tests": 1433,
+    "pass": 1429,
+    "fail": 4,
+    "scope": "Three existing applicant-suppression subcases plus their parent failed in the combined local suite. New selection-journal and cleanup tests passed."
+  },
+  "cause": "Default addNeed used clock_timestamp immediately after real worker activation. PGlite host time has millisecond granularity, so independent consecutive SQL statements could assign equal timestamps. The unchanged production gate deliberately requires publication strictly after activation. Default synthetic fixtures intended a later publication but did not establish that ordering.",
+  "observedPreimage": {
+    "method": "50 sequential fresh synthetic addPair/reset samples with actual captured SQL; timestamps compared inside SQL at microsecond precision, with match and admission both read.",
+    "pairs": 50,
+    "equalTimestamps": 15,
+    "equalTimestampGateFalse": 15,
+    "equalTimestampMatchTrue": 15,
+    "strictlyLaterGateTrue": 35,
+    "example": {
+      "activation": "2026-11-09 21:01:58.29+01",
+      "publication": "2026-11-09 21:01:58.29+01",
+      "deltaMicros": 0,
+      "gate": false,
+      "match": true
+    },
+    "scope": "Observed fixture chronology, not production latency or capacity."
+  },
+  "controlledNegative": {
+    "command": "node --test --test-name-pattern='fixture publication clock' scripts/r09-applicant-suppression.test.cjs",
+    "source": "New regression test against unchanged fixture at baseCommit",
+    "exitCode": 1,
+    "tests": 1,
+    "pass": 0,
+    "fail": 1,
+    "assertion": "default fixture represents a publication after activation, never a same-tick tie",
+    "actual": false,
+    "expected": true,
+    "supportingPreimageProbe": {
+      "fixedHostClockMs": 1794254626658,
+      "actualPGliteHostClockReads": 219,
+      "activation": "2026-11-09 21:03:46.658+01",
+      "publication": "2026-11-09 21:03:46.658+01",
+      "deltaMicros": 0,
+      "match": true,
+      "gate": false
+    }
+  },
+  "change": {
+    "defaultPublication": "greatest(clock_timestamp(), max(existing worker_dispatch_eligible_since) + interval 1 microsecond)",
+    "explicitPublication": "COALESCE preserves supplied publishedAt exactly, including equal/older boundaries.",
+    "preMigrationCompatibility": "to_jsonb(profile) reads the optional activation clock as NULL before its column exists; GREATEST retains clock_timestamp in that case.",
+    "productionRule": "n.published_at > p.worker_dispatch_eligible_since is unchanged.",
+    "scope": "Only synthetic data setup and one new regression test. No sleeps, retry-until-green, relaxed assertions, changed business SQL, package dependencies or runtime behavior."
+  },
+  "validation": [
+    {
+      "command": "node --test scripts/r09-applicant-suppression.test.cjs scripts/r09-worker-activation.test.cjs scripts/r09-rollout-preflight.test.cjs",
+      "exitCode": 0,
+      "tests": 73,
+      "pass": 73,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "durationMs": 6570.787232
+    },
+    {
+      "command": "node --test scripts/r13-profile-sweep.test.cjs scripts/r13-marketplace-cooperative.test.cjs",
+      "exitCode": 0,
+      "tests": 13,
+      "pass": 13,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "durationMs": 14821.391934
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "newRegression": [
+    "Freeze actual PGlite host Date.now only during addPair, restore in finally and verify the host clock was exercised.",
+    "Default publication is exactly one microsecond after activation under the frozen tick; real matching and proactive admission both succeed.",
+    "Explicit equal-time and one-microsecond-earlier publications remain byte-for-byte the supplied timestamps; real matching succeeds while proactive admission remains false."
+  ],
+  "unchangedBusinessSql": [
+    {
+      "path": "scripts/sql/r09_worker_activation_20261108.sql",
+      "sha256": "51d8d087bfe4b92cd9d3498d8aaa4a1b81feabd28b5cf59e1eb36207aeca1b92",
+      "byteIdenticalToBase": true
+    },
+    {
+      "path": "scripts/sql/r09_applicant_suppression_20261108.sql",
+      "sha256": "715df990f04338ea12dd460651368be06511a53c6a1c74427f0c7be54a015acc",
+      "byteIdenticalToBase": true
+    },
+    {
+      "path": "scripts/sql/r09_applicant_suppression_20261108.rollback.sql",
+      "sha256": "cae0a4af5e989f15511bbd1a0d3bcf39e491e4d93adde5f9861b16ce3b05b798",
+      "byteIdenticalToBase": true
+    }
+  ],
+  "independentReview": {
+    "agent": "current_source_reconcile",
+    "result": "BOUNDED_PASS",
+    "fileSha256": {
+      "fixture": "12b7cb1c1884c2c607d411e5654796e13d96d5ab623f07ecd11719e89854c123",
+      "test": "7d7440a2f53ea633710dee8207615132666eae0cad42a68c84aa51cd9a875abb"
+    },
+    "additionalSqlProbes": 2,
+    "probes": [
+      "to_jsonb missing-key pre-column fallback retains the current clock.",
+      "Maximum activation tied to clock gets exactly one microsecond ordering."
+    ]
+  },
+  "boundaries": [
+    "Source/test-only correction. No DEV, SQL migration, Edge deployment, API privilege, profile activation policy, push limit, Android or APK change.",
+    "Actual captured SQL owners execute in PGlite; Auth and provider seams retain the existing synthetic scope. This does not claim hosted SQL/Auth, FCM or phone delivery.",
+    "New negative control is deterministic; the 50-pair observation is a single diagnostic sample, not a capacity result.",
+    "Only directly related local R09/R13 scopes were rerun. The coordinator owns the subsequent complete integrated suite and GitHub CI."
+  ]
+}
