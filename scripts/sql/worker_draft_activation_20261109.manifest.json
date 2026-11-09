@@ -1,0 +1,48 @@
+{
+  "schema": "worker-draft-activation-operation-manifest-v1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "status": "PREPARED_NOT_DEPLOYED",
+  "changedFunctions": [
+    {
+      "signature": "private.complete_worker_profile_v1(uuid,uuid,text)",
+      "before": "2a0a7c10a3671d6cd49fad21fe65d824",
+      "after": "e414dcc307dfebe8b3d86d090c93410f"
+    },
+    {
+      "signature": "private.worker_ai_service_mode_context_v1(uuid,uuid)",
+      "before": "33a6f4373714490c6d6957cd556df853",
+      "after": "9a73b092724bfdf136a5bbbf45d0361a"
+    },
+    {
+      "signature": "rpc_prepare_worker_ai_review_taxonomy(uuid,integer,boolean)",
+      "before": "d4609b081d71eaeef45310c3bac46cab",
+      "after": "19be5fcc361ad0b4f79872ac8cd4166d"
+    }
+  ],
+  "inputSha256": {
+    "candidate": "bd2c695fce5c85d0420a66bf204d6b0014af46e714aa677e7b3a278735b2fb15",
+    "operationPreimage": "62af7d08810c39075c80b3c9ca1a06e6c8dbaf9ed1c81ffb4b8be734b6af9ab6"
+  },
+  "closureBefore": {
+    "sourceReady": false,
+    "schemaDigest": "7923a76b5add2e56f2ded9a173dd1638baa346a8742877cecb23aaf634229d50",
+    "sourceDigest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+    "storedSource": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "erasureDigest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+    "storedErasure": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+  },
+  "closurePredictedAfter": {
+    "sourceReady": false,
+    "schemaDigest": "7923a76b5add2e56f2ded9a173dd1638baa346a8742877cecb23aaf634229d50",
+    "sourceDigest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+    "storedSource": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "erasureDigest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+    "storedErasure": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+  },
+  "outputSha256": {
+    "worker_draft_activation_20261109.preflight.sql": "0c5f49cf53c909adda6f9db560e362af47eb8263b89c1d85a4261f06bb7c49e7",
+    "worker_draft_activation_20261109.promotion.sql": "4e197b041b89b6109bbcc7f943b9a9e7f92df229497438a89f9cd94b983e7be2",
+    "worker_draft_activation_20261109.postflight.sql": "b59c3b2e4a52199fb78955745f34024f21735ecaf7c57a58bae25e3fdc9a01cc",
+    "worker_draft_activation_20261109.rollback.sql": "9e558c5c39598bd49be4ac24991f7dc2d5131b50a90ea4ed21bccf0a0c38eeeb"
+  }
+}

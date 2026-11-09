@@ -1,0 +1,58 @@
+{
+  "schema": "USKOCI_WORKER_CONVERSATION_EDGE_DEV_V1",
+  "checkedAt": "2026-11-09T14:09:00Z",
+  "projectId": "leqcwgzvjsxugfgzdmth",
+  "sourceCommit": "8c9dd14de620c1fa00f4cd7d2fb4d484c91519ce",
+  "qualification": {
+    "runId": 42628573094,
+    "status": "SUCCESS",
+    "nodePassed": 1348,
+    "nodeFailed": 0,
+    "nodeSkipped": 0,
+    "typescript": "PASS",
+    "migrationFiles": 232,
+    "migrationIntegrityTests": 66,
+    "nativeBuild": "SUCCESS"
+  },
+  "functions": [
+    {
+      "name": "uskoci-ai-interview",
+      "previousVersion": 198,
+      "version": 199,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "customAuthenticationPreserved": true,
+      "bundleSha256": "6fcdf6c0d911782ade167a6a74d462ca9d9194c18b06454d325684a465bede1a",
+      "fileCount": 22,
+      "exactSourceReadback": true,
+      "changedFiles": [
+        "supabase/functions/_shared/singlePassTaxonomy.mjs",
+        "supabase/functions/_shared/workerServiceModeContext.mjs"
+      ],
+      "unauthenticatedHttpStatus": 401,
+      "unauthenticatedCode": "AUTH_REQUIRED"
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "previousVersion": 151,
+      "version": 152,
+      "status": "ACTIVE",
+      "verifyJwt": false,
+      "customAuthenticationPreserved": true,
+      "bundleSha256": "3f37b16252ecf4b0db17d6fcb49f822a0e42c043001ace82742c9ed09e638fef",
+      "fileCount": 23,
+      "exactSourceReadback": true,
+      "changedFiles": [
+        "supabase/functions/_shared/singlePassTaxonomy.mjs",
+        "supabase/functions/_shared/workerServiceModeContext.mjs"
+      ],
+      "unauthenticatedHttpStatus": 401,
+      "unauthenticatedCode": "AUTH_REQUIRED"
+    }
+  ],
+  "scope": "Controlled existing DEV Edge update. No SQL, auth policy, secrets, budget, or production change.",
+  "limits": [
+    "Exact deployed code and unauthenticated denial verified. Natural-language correction on Worker152 is not yet exercised with the paid model on the phone.",
+    "DRAFT activation SQL is a separate candidate, not included in this Edge proof."
+  ]
+}

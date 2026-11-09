@@ -52,3 +52,17 @@ Full CI `42622875858` succeeded on `e7a93dca83f5b78870283218c67d131ffd353568`: 1
 - Two defects remain visible: the assistant's earlier “Pregled još nije spreman” conflicts with the newly ready server review; the saved-profile route tests legacy city before offering activation review, despite the signed work area, and its ordinary conversation action reopens the completed review. These are recorded for narrow source repair, not hidden by filling a fabricated home city.
 
 **Ten provider calls total, 78868µUSD /0.078868USD, all settled**, within the approved20-call/1EUR bound. Call10 repeated known facts to isolate the backend path; it is explicitly not proof that the natural-continuation defect is fixed. Raw screenshots stay outside Git; no credentials or push tokens are included.
+
+## Additional physical navigation, about14:03–14:05 UTC
+
+On the installed2d8ada07 phone preview, the published translation remained visible in the Home carousel. The ON_SITE Discovery view rendered the real map and an empty result; dismissing its help text exposed the empty-state action. Switching to **Na daljinu** displayed one task, marked **Vaš**, with3000RSD total,10Nov–10Dec and no physical handoff. The remote view displayed no map/pin. Opening that card loaded the same published own-task details and **Još nema prijava**; it did not offer applying to one's own task. Screenshots were inspected at the existing1.15 font scale. This checks this phone, record and navigation path; it does not prove every map/filter/viewport or another account's eligibility.
+
+Fresh read-only DEV checks also confirmed that the actual saved Worker DRAFT has a valid displayed-content digest, was saved before its review expired, still matches the current catalogue version/fingerprint, and that its prior session candidate/base hash match the current profile-derived initial candidate/source hash. These are preconditions for the pending activation repair, not evidence that the repair has been deployed or that this profile is ACTIVE.
+
+## APK8c9 and Edge199/152, about14:07–14:10 UTC
+
+Full run42628573094 passed on8c9dd14de620c1fa00f4cd7d2fb4d484c91519ce:1348/1348 Node, TypeScript,232/66 migration integrity and native APK. Downloaded artifact13680577847 matched its GitHub ZIP digest. Independent binary checks passed; `adb install -r` succeeded, and the installed base.apk was pulled and hashed byte-for-byte equal to the built APK (`76751b253593ceecb2831a8ae0d451f25eacbf961602ed7799efa2e589e29a6a`). Home retained the signed-in test account and published task. [Binary and bounded phone proof](phone-preview-8c9-binary-20261109.json).
+
+Worker screen now correctly shows **Područje rada: spremno** and **Pregled za aktivaciju**, replacing the old false missing-area state. Tapping the latter opened a fresh ordinary authenticated conversation at revision0 with zero turns. The still-old SQL returned all seven modes unresolved, reproducing the remaining activation defect without another provider call. This is an actual mobile entry fix plus an actual backend failure reproduction, not successful activation.
+
+After fresh exact preimage checks, Need199 and Worker152 were deployed from the qualified8c9 source. All22/23 deployed files were read back byte-identical; both reject unauthenticated HTTP with401/AUTH_REQUIRED. [Edge proof](worker-conversation-edge-dev-20261109.json). SQL activation promotion and natural-model confirmation of the Worker clarification change remain separate.
