@@ -542,7 +542,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
   // The person's name is the sheet's title (review r4 rk item 3): a real heading for a screen reader, and the sheet's own
   // visible × beside it, which a sighted person on iOS had no way to find before (only the handle, a tap outside and
   // Android Back closed it). The row under it keeps the picture and the rating, and opens the public profile.
-  return <ProductSheet title={candidate.ime} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvorite prijavu'}
+  return <ProductSheet title={candidate.ime} contentKey={offerKey} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvorite prijavu'}
     backdropHint={pending ? 'Vraća na zadatak.' : 'Zatvara prijavu i vraća na prijave.'} dismissible={!busy} onClose={back}
     footer={primary || quiet ? () => <>{primary}{quiet}</> : undefined}>
     {() => <View style={s.offerContent}>

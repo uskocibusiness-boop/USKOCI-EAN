@@ -1,0 +1,52 @@
+{
+  "schema": "worker-candidate-areas-source-qualification-v1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "status": "SOURCE_TESTED_NOT_DEPLOYED",
+  "changedOwnerBodies": 2,
+  "preservedFunctionMetadata": 13,
+  "preservedRelationMetadata": 13,
+  "tests": {
+    "command": "node --test scripts/worker-candidate-areas.test.cjs",
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0,
+    "coverage": [
+      "Exact current reader preimages reject an application accepted by the applied writer",
+      "Validated CITY/RADIUS/COUNTRY: submit, both public reader variants, count, select and replay",
+      "Existing legacy city and signed remote-only outcome preserved",
+      "Missing/malformed/foreign/obsolete areas remain blocked",
+      "Ownership, ACTIVE/name/skills, status/revision/hash/price/capacity, matcher/calendar and page scope remain",
+      "Generated promotion guard failure rolls back both functions; OID drift rejected; rollback/reapply proven"
+    ]
+  },
+  "preflight": [
+    {
+      "status": "WORKER_CANDIDATE_AREAS_PREIMAGE_MATCH"
+    }
+  ],
+  "closurePrediction": [
+    {
+      "name": "erasure",
+      "baseline": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+      "predicted": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c"
+    },
+    {
+      "name": "source",
+      "baseline": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+      "predicted": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab"
+    }
+  ],
+  "sourceReady": false,
+  "closureRecertified": false,
+  "devApplied": false,
+  "verifiedAuthSelection": false,
+  "verifiedAndroid": false,
+  "verifiedPush": false,
+  "release": "NO-GO",
+  "limitations": [
+    "SQL fixture uses current captured reader/writer/area definitions and synthetic owned Save/review rows; Auth identity/world/matcher/calendar/notifications are declared substitutes.",
+    "Public count retains its existing semantics; calendarConflict and priceReviewRequired continue to disable canSelect in public readers.",
+    "Read-only DEV reproduction uses two real ordinary-Auth applications, but no new selection or agreement was written by this task.",
+    "Original immutable applied migrations and current deployment reconciliation files are unchanged by this source candidate."
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "schema": "worker-candidate-areas-readonly-reproduction-v1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "observedAt": "2026-11-09",
+  "readOnly": true,
+  "authImpersonation": false,
+  "scope": "Actual submitted ordinary-Auth applications. Read-only private state helpers, not a simulated selection or new agreement.",
+  "responses": [
+    {
+      "response_id": "01eddaf6-51f6-46b1-ae34-ac80e72eee12",
+      "need_id": "bf62b479-f1d0-4d45-89a5-f849f2daa2b9",
+      "response_status": "VIEWED",
+      "current_version": 1,
+      "need_status": "PUBLISHED",
+      "need_revision": 1,
+      "unpaged_state": "STALE",
+      "page_state": "STALE",
+      "kind": "WORKER",
+      "profile_status": "ACTIVE",
+      "profile_owned": true,
+      "name_ready": true,
+      "legacy_city_ready": false,
+      "skills_ready": true,
+      "remote_only_ready": false,
+      "saved_area_count": 1,
+      "revisions_current": true,
+      "hash_present": true,
+      "covered_slots": 1,
+      "price_rsd": 3000,
+      "price_basis": "TOTAL",
+      "remaining_slots": 1,
+      "search_open": true,
+      "deadline_open": true,
+      "calendar_conflict": false,
+      "response_allowed": true,
+      "hard_blockers": [],
+      "existing_agreement": false
+    },
+    {
+      "response_id": "600c1009-ba32-4169-b672-d20bb37076a8",
+      "need_id": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+      "response_status": "VIEWED",
+      "current_version": 1,
+      "need_status": "PUBLISHED",
+      "need_revision": 1,
+      "unpaged_state": "STALE",
+      "page_state": "STALE",
+      "kind": "WORKER",
+      "profile_status": "ACTIVE",
+      "profile_owned": true,
+      "name_ready": true,
+      "legacy_city_ready": false,
+      "skills_ready": true,
+      "remote_only_ready": false,
+      "saved_area_count": 1,
+      "revisions_current": true,
+      "hash_present": true,
+      "covered_slots": 1,
+      "price_rsd": 1000,
+      "price_basis": "TOTAL",
+      "remaining_slots": 1,
+      "search_open": true,
+      "deadline_open": true,
+      "calendar_conflict": false,
+      "response_allowed": true,
+      "hard_blockers": [],
+      "existing_agreement": false
+    }
+  ],
+  "sourceBefore": [
+    {
+      "signature": "private.need_candidate_states_v5(uuid,uuid[])",
+      "body_md5": "465332ecc0b1f96b0b17c62169a76db6"
+    },
+    {
+      "signature": "private.need_candidate_states_v5(uuid)",
+      "body_md5": "71f37ef83aab3ef10385c3fc72e98c48"
+    }
+  ]
+}

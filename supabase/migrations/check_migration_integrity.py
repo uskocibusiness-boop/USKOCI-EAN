@@ -97,6 +97,13 @@ WORKER_DRAFT_ACTIVATION_PROOF = "docs/plan/proofs/worker-draft-activation-dev-20
 WORKER_DRAFT_ACTIVATION_PROOF_SHA256 = "1a7a579b61fc0487c39398092583b889932e419da94166884d4fb1d49767ad47"
 
 
+WORKER_APPLICATION_AREAS_FILE = '20261109165413_worker_application_areas_20261109.sql'
+WORKER_APPLICATION_AREAS_MD5 = 'dad8241576ab5c39374c94f907386e67'
+WORKER_APPLICATION_AREAS_SHA256 = '806d7cda028fc2e157c4bd6741124f42e0a38d557bb8985f7d439e2c1fad804a'
+WORKER_APPLICATION_AREAS_BYTES = 95196
+WORKER_APPLICATION_AREAS_PROOF = 'docs/plan/proofs/worker-application-areas-dev-20261109.json'
+WORKER_APPLICATION_AREAS_PROOF_SHA256 = 'd72ab2ea3936815bd3dc1d225d7922d376c2e138a438b67b81f9326eeac557d1'
+
 def fail(message: str) -> None:
     print(f"FAIL migration_integrity: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -130,6 +137,14 @@ def check_later_participant_contract(filename: str, sql: str) -> None:
         # permitted by this byte-specific exception or by a relabelled file.
         if hashlib.sha256(sql.encode("utf-8")).hexdigest() != R05_DISCOVERY_SHA256:
             fail("R05 participant read-only fence differs from reviewed ledger bytes")
+        return
+    if filename == WORKER_APPLICATION_AREAS_FILE:
+        # The exact applied statement names participant RLS only inside the
+        # immutable before/after relation snapshots. Its three writer changes
+        # do not replace that policy or helper. No altered or appended SQL is
+        # admitted by this byte-specific exception.
+        if hashlib.sha256(sql.encode("utf-8")).hexdigest() != WORKER_APPLICATION_AREAS_SHA256:
+            fail("Worker application areas participant fence differs from reviewed ledger bytes")
         return
     if filename in (
         "20260913045824_clean_v5_support_case_authority.sql",
@@ -400,6 +415,56 @@ def check_worker_draft_activation_provenance(section: dict, manifest_map: dict) 
             or hashlib.sha256(witness.read_bytes()).hexdigest() != WORKER_DRAFT_ACTIVATION_PROOF_SHA256):
         fail("Worker DRAFT activation DEV readback differs from pinned witness")
     return WORKER_DRAFT_ACTIVATION_FILE
+
+
+def check_worker_application_areas_provenance(section: dict, manifest_map: dict) -> str:
+    """Pin deployment only; actual Auth application/selection acceptance is separate."""
+    expected = {
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "project": "leqcwgzvjsxugfgzdmth",
+        "file": WORKER_APPLICATION_AREAS_FILE,
+        "version": '20261109165413',
+        "name": "worker_application_areas_20261109",
+        "source_md5": WORKER_APPLICATION_AREAS_MD5,
+        "source_sha256": WORKER_APPLICATION_AREAS_SHA256,
+        "source_bytes": WORKER_APPLICATION_AREAS_BYTES,
+        "recorded_statement_md5": WORKER_APPLICATION_AREAS_MD5,
+        "recorded_statement_sha256": WORKER_APPLICATION_AREAS_SHA256,
+        "recorded_statement_count": 1,
+        "evidence": WORKER_APPLICATION_AREAS_PROOF,
+        "evidence_sha256": WORKER_APPLICATION_AREAS_PROOF_SHA256,
+        "dev_applied": True,
+        "dev_migration_count_after": 371,
+        "preserved_owner_metadata": 9,
+        "changed_owner_bodies": 3,
+        "preserved_relation_metadata": 13,
+        "post_source_digest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+        "post_erasure_digest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+        "stored_closure_certificates_unchanged": True,
+        "source_ready": False,
+        "closure_recertified": False,
+        "verified_auth_save": False,
+        "verified_android": False,
+        "verified_push_delivery": False,
+        "release": "NO-GO",
+        "source_commit": 'b47198a8fd8ebe6e8a95957a7fb531327bdcc65e',
+        "ci_run": 42655437662,
+        "ci_conclusion": "SUCCESS",
+    }
+    if not isinstance(section, dict) or any(section.get(k) != v for k, v in expected.items()):
+        fail("Worker application areas provenance differs from verified DEV deployment")
+    raw = (ROOT / WORKER_APPLICATION_AREAS_FILE).read_bytes()
+    if (len(raw) != WORKER_APPLICATION_AREAS_BYTES
+            or hashlib.md5(raw).hexdigest() != WORKER_APPLICATION_AREAS_MD5
+            or hashlib.sha256(raw).hexdigest() != WORKER_APPLICATION_AREAS_SHA256):
+        fail("Worker application areas canonical bytes differ from actual DEV ledger")
+    if manifest_map.get(WORKER_APPLICATION_AREAS_FILE) != WORKER_APPLICATION_AREAS_MD5:
+        fail("Worker application areas manifest differs from actual DEV ledger")
+    witness = ROOT.parent.parent / WORKER_APPLICATION_AREAS_PROOF
+    if (not witness.is_file()
+            or hashlib.sha256(witness.read_bytes()).hexdigest() != WORKER_APPLICATION_AREAS_PROOF_SHA256):
+        fail("Worker application areas DEV readback differs from pinned witness")
+    return WORKER_APPLICATION_AREAS_FILE
 
 
 def check_post_qa92_readmission(section: dict, manifest_map: dict) -> list[str]:
@@ -803,7 +868,14 @@ def main() -> None:
     if draft_activation_file <= shared_reuse_file:
         fail("Worker DRAFT activation must follow the shared reuse ledger version")
 
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names + applicant_names + post_qa92_names + shared_reuse_names + draft_activation_names != disk_names:
+    application_areas_file = check_worker_application_areas_provenance(
+        metadata.get("forward_execution_20261109_worker_application_areas"), manifest_map
+    )
+    application_areas_names = [application_areas_file]
+    if application_areas_file <= draft_activation_file:
+        fail("Worker application areas must follow the DRAFT activation ledger version")
+
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names + applicant_names + post_qa92_names + shared_reuse_names + draft_activation_names + application_areas_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -906,6 +978,7 @@ def main() -> None:
         f"post_qa92_readmission={len(post_qa92_names)} "
         f"worker_shared_reuse={len(shared_reuse_names)} "
         f"worker_draft_activation={len(draft_activation_names)} "
+        f"worker_application_areas={len(application_areas_names)} "
         f"nov7_forward={len(forward7_names)} "
         f"r08_forward={len(r08_names)} "
         f"r01_forward={len(r01_names)} "

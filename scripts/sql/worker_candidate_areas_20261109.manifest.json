@@ -1,0 +1,43 @@
+{
+  "schema": "worker-candidate-areas-operation-manifest-v1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "status": "PREPARED_NOT_DEPLOYED",
+  "changedFunctions": [
+    {
+      "signature": "private.need_candidate_states_v5(uuid,uuid[])",
+      "before": "465332ecc0b1f96b0b17c62169a76db6",
+      "after": "7b10a953cf2e7ae7b1da64055d1a169e"
+    },
+    {
+      "signature": "private.need_candidate_states_v5(uuid)",
+      "before": "71f37ef83aab3ef10385c3fc72e98c48",
+      "after": "53e10b28a4c784f5d0866d58db80a94b"
+    }
+  ],
+  "inputSha256": {
+    "candidate": "80b4e2dd32e34a61207a681b31d52ad4911a41d3b85f40e325da210197db17e3",
+    "operationPreimage": "1c51b54efdbbefa8b8a8e7f4df6b0359e41076cb2d5d6eb6258332f57808ee96"
+  },
+  "closureBefore": {
+    "sourceReady": false,
+    "schemaDigest": "7923a76b5add2e56f2ded9a173dd1638baa346a8742877cecb23aaf634229d50",
+    "sourceDigest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+    "storedSource": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "erasureDigest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+    "storedErasure": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+  },
+  "closurePredictedAfter": {
+    "sourceReady": false,
+    "schemaDigest": "7923a76b5add2e56f2ded9a173dd1638baa346a8742877cecb23aaf634229d50",
+    "sourceDigest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+    "storedSource": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "erasureDigest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+    "storedErasure": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+  },
+  "outputSha256": {
+    "worker_candidate_areas_20261109.preflight.sql": "9a2540e2f239d99cd73c1519274b2748df2db96612236c541a7556d3a26bf939",
+    "worker_candidate_areas_20261109.promotion.sql": "e352b0da202deba26a4488d62dba2ea3f23ee5c66705260be1eec8af7642bd93",
+    "worker_candidate_areas_20261109.postflight.sql": "92c720eaf97d59ac028a0379ace85ece18efc9626d4eb006e28a0d950740c6a5",
+    "worker_candidate_areas_20261109.rollback.sql": "2fe7b92bb81aa85e2d6b26043f517013efe18c94017ababc3aeb45773d56006d"
+  }
+}

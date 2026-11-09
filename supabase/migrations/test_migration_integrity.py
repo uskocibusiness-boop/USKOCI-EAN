@@ -9,7 +9,7 @@ from unittest import mock
 from pathlib import Path
 
 from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence, check_r13_push_wake_provenance, check_r09_activation_provenance, check_r09_applicant_provenance, check_post_qa92_readmission, check_worker_shared_reuse_provenance
-from check_migration_integrity import check_worker_draft_activation_provenance
+from check_migration_integrity import check_worker_draft_activation_provenance, check_worker_application_areas_provenance
 
 
 class ParticipantContractTests(unittest.TestCase):
@@ -742,6 +742,101 @@ class WorkerDraftActivationProvenanceTests(unittest.TestCase):
         with mock.patch.object(Path, "read_bytes", lambda p: altered if p.as_posix().endswith(witness) else original(p)):
             self.rejects(self.section)
             self.rejects(rebound)
+
+
+class WorkerApplicationAreasProvenanceTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).parent
+        self.section = json.loads((root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))["forward_execution_20261109_worker_application_areas"]
+        self.manifest = dict(line.split("  ")[::-1] for line in (root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+
+    def rejects(self, section, manifest=None):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_worker_application_areas_provenance(section, self.manifest if manifest is None else manifest)
+
+    def test_exact_deployment_scope_is_pinned(self):
+        self.assertEqual(check_worker_application_areas_provenance(self.section, self.manifest), self.section["file"])
+        self.assertEqual(self.section["version"], '20261109165413')
+        self.assertEqual(self.section["preserved_owner_metadata"], 9)
+        self.assertEqual(self.section["preserved_relation_metadata"], 13)
+        self.assertFalse(self.section["verified_android"])
+
+    def test_fabricated_ledger_identity_or_scope_is_rejected(self):
+        for key, value in (("version", '20261109165414'), ("name", "unverified_application"),
+                           ("source_sha256", "0" * 64), ("source_bytes", 95197),
+                           ("recorded_statement_count", 2), ("recorded_statement_md5", "0" * 32),
+                           ("dev_migration_count_after", 372), ("dev_applied", False),
+                           ("preserved_owner_metadata", 8), ("preserved_relation_metadata", 12),
+                           ("changed_owner_bodies", 4), ("source_commit", "0" * 40),
+                           ("ci_run", 1), ("ci_conclusion", "FAILURE")):
+            with self.subTest(key=key):
+                self.rejects({**self.section, key: value})
+
+    def test_deployment_does_not_invent_closure_auth_android_or_push_acceptance(self):
+        for key, value in (("source_ready", True), ("closure_recertified", True),
+                           ("verified_auth_save", True), ("verified_android", True),
+                           ("verified_push_delivery", True), ("release", "GO"),
+                           ("stored_closure_certificates_unchanged", False),
+                           ("post_source_digest", "0" * 64), ("post_erasure_digest", "0" * 64)):
+            with self.subTest(key=key):
+                self.rejects({**self.section, key: value})
+
+    def test_missing_provenance_manifest_or_witness_is_rejected(self):
+        self.rejects(None)
+        self.rejects(self.section, {})
+        with mock.patch.object(Path, "is_file", return_value=False):
+            self.rejects(self.section)
+
+    def test_rehashing_modified_sql_does_not_reauthorize_it(self):
+        original = Path.read_bytes
+        filename = self.section["file"]
+        altered = original(Path(__file__).with_name(filename)) + b"\n-- unreviewed mutation\n"
+        md5, sha = hashlib.md5(altered).hexdigest(), hashlib.sha256(altered).hexdigest()
+        rebound = {**self.section, "source_md5": md5, "recorded_statement_md5": md5,
+                   "source_sha256": sha, "recorded_statement_sha256": sha, "source_bytes": len(altered)}
+        with mock.patch.object(Path, "read_bytes", lambda p: altered if p.name == filename else original(p)):
+            self.rejects(self.section)
+            self.rejects(rebound, {**self.manifest, filename: md5})
+
+    def test_rehashing_modified_dev_witness_does_not_reauthorize_it(self):
+        original = Path.read_bytes
+        witness = self.section["evidence"]
+        altered = original(Path(__file__).resolve().parents[2] / witness) + b"\n"
+        rebound = {**self.section, "evidence_sha256": hashlib.sha256(altered).hexdigest()}
+        with mock.patch.object(Path, "read_bytes", lambda p: altered if p.as_posix().endswith(witness) else original(p)):
+            self.rejects(self.section)
+            self.rejects(rebound)
+
+    def test_participant_references_are_only_frozen_before_after_metadata(self):
+        sql = Path(__file__).with_name(self.section["file"]).read_text(encoding="utf-8")
+        blocks = sql.split("$environment$")
+        self.assertEqual(len(blocks), 5)
+        for snapshot in blocks[1::2]:
+            needs = next(r for r in json.loads(snapshot)["relations"] if r["name"] == "public.needs")
+            participant = next(p for p in needs["policies"] if p["name"] == "needs_participant_read")
+            self.assertEqual(participant["using"], "rls_private.need_participant_can_read(id)")
+        executable = "".join(blocks[::2])
+        self.assertNotIn("needs_participant_read", executable)
+        self.assertNotIn("need_participant_can_read", executable)
+        check_later_participant_contract(self.section["file"], sql)
+
+    def test_participant_exception_rejects_added_ddl_and_modified_snapshot(self):
+        filename = self.section["file"]
+        sql = Path(__file__).with_name(filename).read_text(encoding="utf-8")
+        for altered in (
+            sql + "\ndrop policy needs_participant_read on public.needs;",
+            sql + "\ndrop function rls_private.need_participant_can_read(uuid);",
+            sql.replace("rls_private.need_participant_can_read(id)", "true"),
+            sql + "\n-- changed byte\n",
+        ):
+            with self.subTest(change=altered[-90:]):
+                with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    check_later_participant_contract(filename, altered)
+
+    def test_participant_exception_does_not_follow_a_renamed_file(self):
+        sql = Path(__file__).with_name(self.section["file"]).read_text(encoding="utf-8")
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_later_participant_contract("20261109165414_other_operation.sql", sql)
 
 
 class PostQA92ReadmissionTests(unittest.TestCase):

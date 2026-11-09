@@ -1,0 +1,403 @@
+{
+  "source_sha": "b47198a8fd8ebe6e8a95957a7fb531327bdcc65e",
+  "ci": {
+    "run": 42655437662,
+    "conclusion": "SUCCESS",
+    "nodeTests": 1394,
+    "typescript": "PASS",
+    "canonicalMigrations": 233,
+    "integrityTests": 72
+  },
+  "apk": {
+    "sha256": "7aec67b4c07bbc85b193a627bdf53dc3c6a81818e044abc11786a599c5bdc2fb",
+    "package": "rs.uskoci.preview",
+    "bothDevicesInstalledBytesMatch": true,
+    "dataPreserved": true,
+    "storeRelease": false
+  },
+  "devMigration": "20261109165413_worker_application_areas_20261109",
+  "readback": {
+    "needs": [
+      {
+        "id": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+        "mode": "OFFERS",
+        "status": "PUBLISHED",
+        "revision": 1,
+        "categoryId": "00000000-0000-4000-8000-000000000802",
+        "coveredSlots": 0,
+        "requiredSlots": 1
+      },
+      {
+        "id": "bf62b479-f1d0-4d45-89a5-f849f2daa2b9",
+        "mode": "MY_PRICE",
+        "status": "PUBLISHED",
+        "revision": 1,
+        "categoryId": "00000000-0000-4000-8000-000000000806",
+        "coveredSlots": 0,
+        "requiredSlots": 1
+      }
+    ],
+    "responses": [
+      {
+        "id": "01eddaf6-51f6-46b1-ae34-ac80e72eee12",
+        "end": null,
+        "start": null,
+        "needId": "bf62b479-f1d0-4d45-89a5-f849f2daa2b9",
+        "status": "SUBMITTED",
+        "version": 1,
+        "priceRsd": 3000,
+        "priceBasis": "TOTAL",
+        "selectedAt": null,
+        "submittedAt": "2026-11-09T16:57:29.360332+00:00",
+        "coveredSlots": 1,
+        "needRevision": 1,
+        "versionCount": 1,
+        "workerAccountId": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+        "submitReceiptCount": 1
+      },
+      {
+        "id": "600c1009-ba32-4169-b672-d20bb37076a8",
+        "end": null,
+        "start": null,
+        "needId": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+        "status": "SUBMITTED",
+        "version": 1,
+        "priceRsd": 1000,
+        "priceBasis": "TOTAL",
+        "selectedAt": null,
+        "submittedAt": "2026-11-09T16:57:11.690277+00:00",
+        "coveredSlots": 1,
+        "needRevision": 1,
+        "versionCount": 1,
+        "workerAccountId": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "submitReceiptCount": 1
+      }
+    ],
+    "agreements": [],
+    "observedAt": "2026-11-09T16:57:59.058543+00:00"
+  },
+  "push": {
+    "observedAt": "2026-11-09T16:57:58.308366+00:00",
+    "deliveries": [
+      {
+        "id": "11835f37-e50b-41cd-a831-eb08abe55ac2",
+        "state": "CREATED",
+        "channel": "IN_APP",
+        "read_at": null,
+        "sent_at": null,
+        "event_id": "9390a68e-aff3-4c72-9afe-02722159d6e9",
+        "queued_at": null,
+        "created_at": "2026-11-09T16:57:29.360332+00:00",
+        "expires_at": null,
+        "delivered_at": null,
+        "push_started_at": null,
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "suppression_reason": null
+      },
+      {
+        "id": "94c37fb0-06af-4fbd-ba17-595edda4a6c7",
+        "state": "SENT",
+        "channel": "PUSH",
+        "read_at": null,
+        "sent_at": "2026-11-09T16:57:30.094186+00:00",
+        "event_id": "9390a68e-aff3-4c72-9afe-02722159d6e9",
+        "queued_at": "2026-11-09T16:57:29.721767+00:00",
+        "created_at": "2026-11-09T16:57:29.360332+00:00",
+        "expires_at": null,
+        "delivered_at": null,
+        "push_started_at": "2026-11-09T16:57:29.721767+00:00",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "suppression_reason": null
+      },
+      {
+        "id": "4db9f2a0-d6b2-42dc-a214-6bde7480c700",
+        "state": "CREATED",
+        "channel": "IN_APP",
+        "read_at": null,
+        "sent_at": null,
+        "event_id": "64ad64d6-bfce-4a71-acad-d75bddf303a6",
+        "queued_at": null,
+        "created_at": "2026-11-09T16:57:11.690277+00:00",
+        "expires_at": null,
+        "delivered_at": null,
+        "push_started_at": null,
+        "recipient_user_id": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+        "suppression_reason": null
+      },
+      {
+        "id": "7e471ec0-1ebd-4af0-bcd6-42d157ac86af",
+        "state": "SENT",
+        "channel": "PUSH",
+        "read_at": null,
+        "sent_at": "2026-11-09T16:57:12.704998+00:00",
+        "event_id": "64ad64d6-bfce-4a71-acad-d75bddf303a6",
+        "queued_at": "2026-11-09T16:57:12.232914+00:00",
+        "created_at": "2026-11-09T16:57:11.690277+00:00",
+        "expires_at": null,
+        "delivered_at": null,
+        "push_started_at": "2026-11-09T16:57:12.232914+00:00",
+        "recipient_user_id": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+        "suppression_reason": null
+      }
+    ],
+    "attempts": [
+      {
+        "id": "29ff38c6-5fc6-4698-8b47-164227354214",
+        "outcome": "QUEUED",
+        "platform": "ANDROID",
+        "created_at": "2026-11-09T16:57:29.721724+00:00",
+        "error_code": null,
+        "send_count": 1,
+        "delivery_id": "94c37fb0-06af-4fbd-ba17-595edda4a6c7",
+        "device_owner": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "device_active": true,
+        "next_attempt_at": "2026-11-09T17:12:30.094186+00:00",
+        "transport_state": "TICKET_PENDING",
+        "device_created_at": "2026-10-21T19:25:47.943498+00:00",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "receipt_checked_at": null,
+        "ticket_received_at": "2026-11-09T16:57:30.094186+00:00",
+        "device_last_seen_at": "2026-11-09T12:37:45.19028+00:00",
+        "has_provider_ticket": true,
+        "device_session_valid": true,
+        "device_revision_matches": true,
+        "destination_owner_matches": true
+      },
+      {
+        "id": "c4d96fe3-d5c7-49f6-be90-6dc8050f5d45",
+        "outcome": "QUEUED",
+        "platform": "ANDROID",
+        "created_at": "2026-11-09T16:57:12.232316+00:00",
+        "error_code": null,
+        "send_count": 1,
+        "delivery_id": "7e471ec0-1ebd-4af0-bcd6-42d157ac86af",
+        "device_owner": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+        "device_active": true,
+        "next_attempt_at": "2026-11-09T17:12:12.704998+00:00",
+        "transport_state": "TICKET_PENDING",
+        "device_created_at": "2026-10-18T13:46:40.084738+00:00",
+        "recipient_user_id": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+        "receipt_checked_at": null,
+        "ticket_received_at": "2026-11-09T16:57:12.704998+00:00",
+        "device_last_seen_at": "2026-10-18T13:46:40.084738+00:00",
+        "has_provider_ticket": true,
+        "device_session_valid": true,
+        "device_revision_matches": true,
+        "destination_owner_matches": true
+      },
+      {
+        "id": "6db4dff6-5345-461e-a875-1560ef10a4ab",
+        "outcome": "QUEUED",
+        "platform": "ANDROID",
+        "created_at": "2026-11-09T16:57:12.232316+00:00",
+        "error_code": null,
+        "send_count": 1,
+        "delivery_id": "7e471ec0-1ebd-4af0-bcd6-42d157ac86af",
+        "device_owner": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+        "device_active": true,
+        "next_attempt_at": "2026-11-09T17:12:12.897146+00:00",
+        "transport_state": "TICKET_PENDING",
+        "device_created_at": "2026-10-14T14:49:29.579758+00:00",
+        "recipient_user_id": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+        "receipt_checked_at": null,
+        "ticket_received_at": "2026-11-09T16:57:12.897146+00:00",
+        "device_last_seen_at": "2026-10-14T14:49:29.579758+00:00",
+        "has_provider_ticket": true,
+        "device_session_valid": true,
+        "device_revision_matches": true,
+        "destination_owner_matches": true
+      }
+    ],
+    "heartbeat": {
+      "fresh": true,
+      "observedAt": "2026-11-09T16:57:30.437912+00:00",
+      "observation": "TICK_OK",
+      "lastSuccessAt": "2026-11-09T16:57:30.437912+00:00"
+    }
+  },
+  "native": {
+    "phoneAccount": "Uskoci Test",
+    "emulatorAccount": "Milos",
+    "applicationReview": {
+      "keyboardOpen": "PASS",
+      "keyboardClosed": "PASS",
+      "titleAnd1000RsdVisibleAtTop": true
+    },
+    "applications": "Both ordinary Android final-submit actions returned receipts",
+    "candidateSelection": "BLOCKED: both list reads remain STALE after refresh; no selection writer called",
+    "candidateScroll": "FAIL: physical candidate sheet opens below its heading facts",
+    "inAppNotificationTap": "PASS: own translation candidate target",
+    "systemNotificationTap": "NOT_EXECUTED",
+    "phoneEvidence": [
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-review-from-keyboard.xml",
+        "bytes": 22025,
+        "sha256": "6df43b76341f131779abedac3d5c5d8eb881e181c24603ff071c51eb88162e95"
+      },
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-review-from-keyboard.png",
+        "bytes": 318360,
+        "sha256": "f21f43a446eec1766fdee445c6766f486db108ef141013ffe49f6091902e537d"
+      },
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-review-no-keyboard.xml",
+        "bytes": 22025,
+        "sha256": "6df43b76341f131779abedac3d5c5d8eb881e181c24603ff071c51eb88162e95"
+      },
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-review-no-keyboard.png",
+        "bytes": 318450,
+        "sha256": "979fe89a29a577f4ebfd77968b29c05511d8734a030d142addbd3d657a108dc8"
+      },
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-phone-offer-sent.xml",
+        "bytes": 22808,
+        "sha256": "31a5820248e5591771ee4ecdf6c5e12c1d94819c4088aada4e3491fc48ca29b1"
+      },
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-phone-offer-sent.png",
+        "bytes": 241221,
+        "sha256": "78f8cf9045ec6758b029d97d7d96694560417845331addfaa39c12f10a112134"
+      },
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-phone-response-notification.xml",
+        "bytes": 22385,
+        "sha256": "199fdf5e6a40d433613c5418a48aac7dddbeeb29c5d01344fd21d1f58cddfa33"
+      },
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-phone-response-notification.png",
+        "bytes": 171423,
+        "sha256": "73ecf6b68a445af4b25a01322cefc19e36e2654ec0fdb0c912ebda6466771f4b"
+      },
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-owner-candidate-list.xml",
+        "bytes": 24422,
+        "sha256": "4a65ec344999f8ff3a70c17aa10c8a1200aafc161a238b01fbd352cd3e0ac617"
+      },
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-owner-candidate-list.png",
+        "bytes": 303232,
+        "sha256": "bb6f2bfa98e37d824ceab16c9926f2857ec81a9eb96a278b2591fc93fc2023cc"
+      },
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-candidate-refreshed.xml",
+        "bytes": 26651,
+        "sha256": "c17e701cffb16994149ed16a2c200eaf0818161e5e746bed73c7713f96f47f69"
+      },
+      {
+        "localEvidence": "verification/phone-acceptance-20261109/b471-candidate-refreshed.png",
+        "bytes": 251714,
+        "sha256": "043c83ea99c2f3d2522a9e0029f99a4e6f36f0bc599467a27014cd1850fa33c4"
+      }
+    ],
+    "systemNotificationRecords": {
+      "observedAt": "2026-11-09T17:08:25.415737+00:00",
+      "package": "rs.uskoci.preview",
+      "records": [
+        {
+          "package": "rs.uskoci.preview",
+          "createdAt": "2026-11-09T17:01:50.323000+00:00",
+          "title": null,
+          "text": null,
+          "groupSummary": true,
+          "ownActivityTarget": true,
+          "seen": "false"
+        },
+        {
+          "package": "rs.uskoci.preview",
+          "createdAt": "2026-11-09T17:01:50.117000+00:00",
+          "title": "String (Prijava je pregledana)",
+          "text": "String (Vaša prijava je pregledana.)",
+          "groupSummary": false,
+          "ownActivityTarget": true,
+          "seen": "false"
+        },
+        {
+          "package": "rs.uskoci.preview",
+          "createdAt": "2026-11-09T16:57:30.591000+00:00",
+          "title": "String (Nova prijava)",
+          "text": "String (Stigla je nova prijava na Vaš zadatak.)",
+          "groupSummary": false,
+          "ownActivityTarget": true,
+          "seen": "false"
+        }
+      ],
+      "scope": "Android notification records only; not a visual shade or tap acceptance test."
+    },
+    "emulatorSelectionBlocker": {
+      "recordedAtUtc": "2026-11-09T17:02:35.964628+00:00",
+      "device": "emulator-5554",
+      "account": "Milos",
+      "apkCommit": "b47198a8fd8ebe6e8a95957a7fb531327bdcc65e",
+      "needPrefix": "aa6cd7a1",
+      "needTitle": "Privatni časovi engleskog jezika",
+      "responseIdFromRootReadback": "600c1009-ba32-4169-b672-d20bb37076a8",
+      "candidate": "Uskoci Test",
+      "offer": {
+        "amountRsd": 1000,
+        "basis": "TOTAL",
+        "people": 1,
+        "dates": "2026-11-14/2026-11-15",
+        "note": null
+      },
+      "observed": "1 prijava · 0 za izbor; Prijava trenutno nije dostupna za izbor.",
+      "actions": [
+        "opened owned task",
+        "opened applications",
+        "opened candidate; UI status became Viđena",
+        "used ordinary Osvežite prijave once"
+      ],
+      "result": "Selection unavailable after refresh; no selection or agreement command sent.",
+      "boundaries": [
+        "No phone interaction",
+        "No optional service addition",
+        "No completion or rating",
+        "No AI call",
+        "No SQL write"
+      ],
+      "evidence": [
+        {
+          "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\b471-owner-english-task.png",
+          "sha256": "ee8ed327792c48e611a888d7e4bb8cb8fa7c9fae6575af4e9bc1a1b1eafd33fd",
+          "capturedAtUtc": "2026-11-09T16:59:53.197433+00:00"
+        },
+        {
+          "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\b471-owner-english-task.xml",
+          "sha256": "492ae05523d4a437971b33c9f9119495667f52843560a94765f50ed552797776",
+          "capturedAtUtc": "2026-11-09T16:59:52.837075+00:00"
+        },
+        {
+          "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\b471-owner-english-applications.png",
+          "sha256": "e116446d118178bd880b12423ad1855298e3ac0682776e2489244dad9d27954f",
+          "capturedAtUtc": "2026-11-09T17:01:39.955527+00:00"
+        },
+        {
+          "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\b471-owner-english-applications.xml",
+          "sha256": "629cc28d65c78adb5ee3358e38630770531d66ef55bb033e2abeaefd99fc41e7",
+          "capturedAtUtc": "2026-11-09T17:01:39.622672+00:00"
+        },
+        {
+          "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\b471-owner-english-candidate.png",
+          "sha256": "9995d9ef680dbd67be2f0d73a36249b33beccae732643bc4453d916fa9eca1e2",
+          "capturedAtUtc": "2026-11-09T17:01:52.376517+00:00"
+        },
+        {
+          "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\b471-owner-english-candidate.xml",
+          "sha256": "1a1ad1a179ab563df39cae73883aa22908b33d64c3ae8b9b04588b90d45758f8",
+          "capturedAtUtc": "2026-11-09T17:01:52.018197+00:00"
+        },
+        {
+          "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\b471-owner-english-candidate-refreshed.png",
+          "sha256": "990385aa1b97251e0e5eb684caf2f368f5acb4335ff839ecad92497385023831",
+          "capturedAtUtc": "2026-11-09T17:02:10.783605+00:00"
+        },
+        {
+          "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\b471-owner-english-candidate-refreshed.xml",
+          "sha256": "9760a1b8d7524b1428d6852e3c387447469c3d6cb0ff1c69f9bdc8d20c90df4c",
+          "capturedAtUtc": "2026-11-09T17:02:10.447906+00:00"
+        }
+      ]
+    }
+  },
+  "scope": "Two owner-authorized TEST accounts. No service-created Agreement, profile/category change, extra AI call or production claim."
+}
