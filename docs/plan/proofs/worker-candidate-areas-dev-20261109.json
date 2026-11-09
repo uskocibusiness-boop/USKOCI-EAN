@@ -1,0 +1,535 @@
+{
+  "schema": "worker-candidate-areas-dev-deployment-v1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "observedAt": "2026-11-09T17:30:57.188007+00:00",
+  "sourceCommit": "36dd3bee92160379d1caed89b5c09543b1f9f432",
+  "ci": {
+    "id": 42661973934,
+    "conclusion": "SUCCESS",
+    "nodeTestsPassed": 1402,
+    "typescript": "PASS",
+    "migrationFiles": 234,
+    "migrationIntegrityTestsPassed": 81,
+    "nativeBuild": "PASS"
+  },
+  "scope": "DEV deployment and scoped internal reader verification only. Ordinary Auth selection and native Agreement/message acceptance are separate evidence.",
+  "preflight": [
+    {
+      "status": "WORKER_CANDIDATE_AREAS_PREIMAGE_MATCH"
+    }
+  ],
+  "apply": {
+    "success": true
+  },
+  "ledger": [
+    {
+      "name": "worker_candidate_areas_20261109",
+      "bytes": 63939,
+      "sql_md5": "cfb6618666ec12a18e66c8e7dc7ebae5",
+      "version": "20261109173026",
+      "sql_sha256": "e352b0da202deba26a4488d62dba2ea3f23ee5c66705260be1eec8af7642bd93",
+      "statements": 1
+    }
+  ],
+  "devMigrationCountAfter": 372,
+  "promotionSha256": "e352b0da202deba26a4488d62dba2ea3f23ee5c66705260be1eec8af7642bd93",
+  "changedFunctions": [
+    {
+      "signature": "private.need_candidate_states_v5(uuid,uuid[])",
+      "before": "465332ecc0b1f96b0b17c62169a76db6",
+      "after": "7b10a953cf2e7ae7b1da64055d1a169e"
+    },
+    {
+      "signature": "private.need_candidate_states_v5(uuid)",
+      "before": "71f37ef83aab3ef10385c3fc72e98c48",
+      "after": "53e10b28a4c784f5d0866d58db80a94b"
+    }
+  ],
+  "postflight": [
+    {
+      "observed": {
+        "closure": {
+          "sourceReady": false,
+          "schemaDigest": "7923a76b5add2e56f2ded9a173dd1638baa346a8742877cecb23aaf634229d50",
+          "sourceDigest": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+          "storedSource": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+          "erasureDigest": "24613a2985b790b6fa4445b021861a2bf25e7bb44d907da148900870bdccb11c",
+          "storedErasure": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+        },
+        "relations": [
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.response_application_snapshots",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "CHECK (((need_remaining_slots_before_submit >= 1) AND (need_remaining_slots_before_submit <= 50)))",
+              "CHECK (((need_selected_slots_before_submit >= 0) AND (need_selected_slots_before_submit <= 50)))",
+              "FOREIGN KEY (response_id, response_version) REFERENCES marketplace_response_versions(response_id, version) ON DELETE CASCADE",
+              "CHECK (((covered_slots >= 1) AND (covered_slots <= 50)))",
+              "CHECK (((need_required_slots >= 1) AND (need_required_slots <= 50)))",
+              "PRIMARY KEY (response_id, response_version)",
+              "CHECK ((pricing_mode = ANY (ARRAY['MY_PRICE'::text, 'OFFERS'::text])))",
+              "CHECK (((requester_price_rsd IS NULL) OR (requester_price_rsd > 0)))",
+              "CHECK ((response_version >= 1))",
+              "CHECK ((snapshot_schema = 'APPLICATION_V1_SELF_DECLARED'::text))",
+              "FOREIGN KEY (worker_profile_id) REFERENCES app_profiles(id) ON DELETE RESTRICT",
+              "CHECK (((worker_team_capacity >= 1) AND (worker_team_capacity <= 50)))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.response_revision_resolution_commands",
+            "owner": "postgres",
+            "forceRls": true,
+            "policies": [],
+            "constraints": [
+              "PRIMARY KEY (worker_account_id, client_request_id)",
+              "FOREIGN KEY (response_id) REFERENCES marketplace_responses(id) ON DELETE RESTRICT",
+              "FOREIGN KEY (worker_account_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+              "CHECK ((request_hash ~ '^[0-9a-f]{64}$'::text))",
+              "CHECK (((char_length(btrim(client_request_id)) >= 8) AND (char_length(btrim(client_request_id)) <= 200)))",
+              "CHECK ((jsonb_typeof(result) = 'object'::text))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.response_submit_commands",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "CHECK (((char_length(btrim(client_request_id)) >= 8) AND (char_length(btrim(client_request_id)) <= 200)))",
+              "PRIMARY KEY (worker_account_id, client_request_id)",
+              "CHECK ((char_length(request_hash) = 64))",
+              "FOREIGN KEY (response_id, response_version) REFERENCES marketplace_response_versions(response_id, version) ON DELETE CASCADE",
+              "CHECK ((response_version >= 1))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.selection_commands",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "FOREIGN KEY (agreement_id) REFERENCES agreements(id) ON DELETE RESTRICT",
+              "UNIQUE (agreement_id)",
+              "CHECK (((char_length(btrim(client_request_id)) >= 8) AND (char_length(btrim(client_request_id)) <= 200)))",
+              "CHECK (((covered_slots >= 1) AND (covered_slots <= 50)))",
+              "FOREIGN KEY (need_id) REFERENCES needs(id) ON DELETE RESTRICT",
+              "CHECK ((need_revision >= 1))",
+              "PRIMARY KEY (requester_account_id, client_request_id)",
+              "CHECK ((char_length(request_hash) = 64))",
+              "FOREIGN KEY (requester_account_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+              "CHECK ((char_length(response_content_hash) = 64))",
+              "CHECK ((response_version >= 1))",
+              "FOREIGN KEY (response_id, response_version) REFERENCES marketplace_response_versions(response_id, version) ON DELETE RESTRICT",
+              "FOREIGN KEY (selection_id) REFERENCES need_selections(id) ON DELETE RESTRICT",
+              "UNIQUE (selection_id)"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.worker_ai_reviews",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "CHECK ((octet_length((envelope)::text) <= 524288))",
+              "PRIMARY KEY (id)"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "private.worker_ai_saves",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [],
+            "constraints": [
+              "UNIQUE (account_id, client_request_id)",
+              "PRIMARY KEY (review_id)",
+              "FOREIGN KEY (review_id) REFERENCES private.worker_ai_reviews(id)"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "public.agreement_versions",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [
+              {
+                "name": "agreement_versions_read",
+                "check": null,
+                "roles": "{16485}",
+                "using": "(EXISTS ( SELECT 1\n   FROM agreements a\n  WHERE ((a.id = agreement_versions.agreement_id) AND ((a.requester_account_id = ( SELECT auth.uid() AS uid)) OR (a.worker_account_id = ( SELECT auth.uid() AS uid))))))",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "v5_closed_account_visibility",
+                "check": null,
+                "roles": "{16485}",
+                "using": "rpc_storage_account_open()",
+                "command": "r",
+                "permissive": false
+              }
+            ],
+            "constraints": [
+              "FOREIGN KEY (agreement_id) REFERENCES agreements(id) ON DELETE CASCADE",
+              "CHECK (((supersedes_version IS NULL) OR (supersedes_version < version)))",
+              "CHECK ((char_length(content_hash) >= 16))",
+              "FOREIGN KEY (created_by_account_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+              "PRIMARY KEY (agreement_id, version)",
+              "CHECK ((status = ANY (ARRAY['CONFIRMED'::text, 'SUPERSEDED'::text, 'CANCELLED'::text])))",
+              "CHECK ((version >= 1))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "public.agreements",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [
+              {
+                "name": "agreements_parties_read",
+                "check": null,
+                "roles": "{16485}",
+                "using": "((requester_account_id = ( SELECT auth.uid() AS uid)) OR (worker_account_id = ( SELECT auth.uid() AS uid)))",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "v5_closed_account_visibility",
+                "check": null,
+                "roles": "{16485}",
+                "using": "rpc_storage_account_open()",
+                "command": "r",
+                "permissive": false
+              }
+            ],
+            "constraints": [
+              "CHECK ((current_version >= 1))",
+              "FOREIGN KEY (need_id) REFERENCES needs(id) ON DELETE RESTRICT",
+              "PRIMARY KEY (id)",
+              "FOREIGN KEY (requester_account_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+              "FOREIGN KEY (requester_profile_id) REFERENCES app_profiles(id) ON DELETE RESTRICT",
+              "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+              "FOREIGN KEY (selected_response_id) REFERENCES marketplace_responses(id) ON DELETE RESTRICT",
+              "UNIQUE (selected_response_id)",
+              "FOREIGN KEY (selection_id) REFERENCES need_selections(id) ON DELETE RESTRICT",
+              "UNIQUE (selection_id)",
+              "CHECK ((status = ANY (ARRAY['CONFIRMED'::text, 'SUPERSEDED'::text, 'CANCELLED'::text, 'COMPLETED'::text])))",
+              "FOREIGN KEY (worker_account_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+              "FOREIGN KEY (worker_profile_id) REFERENCES app_profiles(id) ON DELETE RESTRICT"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,authenticated=arwDxtm/postgres,service_role=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "public.app_profiles",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [
+              {
+                "name": "app_profiles_insert_own",
+                "check": "(( SELECT auth.uid() AS uid) = account_id)",
+                "roles": "{16485}",
+                "using": null,
+                "command": "a",
+                "permissive": true
+              },
+              {
+                "name": "app_profiles_select_own",
+                "check": null,
+                "roles": "{16485}",
+                "using": "(( SELECT auth.uid() AS uid) = account_id)",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "app_profiles_update_own",
+                "check": "(( SELECT auth.uid() AS uid) = account_id)",
+                "roles": "{16485}",
+                "using": "(( SELECT auth.uid() AS uid) = account_id)",
+                "command": "w",
+                "permissive": true
+              },
+              {
+                "name": "v5_closed_account_visibility",
+                "check": null,
+                "roles": "{16485}",
+                "using": "rpc_storage_account_open()",
+                "command": "r",
+                "permissive": false
+              }
+            ],
+            "constraints": [
+              "FOREIGN KEY (account_id) REFERENCES app_accounts(id) ON DELETE CASCADE",
+              "UNIQUE (account_id, kind)",
+              "CHECK ((account_type = ANY (ARRAY['INDIVIDUAL'::text, 'TEAM'::text, 'COMPANY'::text])))",
+              "CHECK (((team_capacity >= 1) AND (team_capacity <= 50)))",
+              "CHECK ((kind = ANY (ARRAY['REQUESTER'::text, 'WORKER'::text])))",
+              "CHECK (((minimum_fee_rsd >= 0) AND (minimum_fee_rsd <= 10000000)))",
+              "CHECK (((operating_country_code IS NULL) OR (operating_country_code ~ '^[A-Z]{2}$'::text)))",
+              "PRIMARY KEY (id)",
+              "CHECK (((radius_km >= 1) AND (radius_km <= 200)))",
+              "CHECK ((profile_status = ANY (ARRAY['DRAFT'::text, 'ACTIVE'::text, 'SUSPENDED'::text, 'CLOSED'::text])))",
+              "CHECK ((((worker_dispatch_eligible_since IS NULL) AND (worker_dispatch_clock_source IS NULL)) OR ((kind = 'WORKER'::text) AND (worker_dispatch_eligible_since IS NOT NULL) AND isfinite(worker_dispatch_eligible_since) AND (worker_dispatch_clock_source IS NOT NULL) AND (worker_dispatch_clock_source = ANY (ARRAY['FIRST_ACTIVATION'::text, 'ROLLOUT_ACTIVE_OBSERVED'::text])))))",
+              "CHECK (((years_experience >= 0) AND (years_experience <= 80)))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,anon=rDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "public.marketplace_response_versions",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [
+              {
+                "name": "response_versions_read",
+                "check": null,
+                "roles": "{16485}",
+                "using": "(EXISTS ( SELECT 1\n   FROM marketplace_responses r\n  WHERE ((r.id = marketplace_response_versions.response_id) AND ((r.worker_account_id = ( SELECT auth.uid() AS uid)) OR ((r.status <> 'DRAFT'::text) AND (EXISTS ( SELECT 1\n           FROM needs n\n          WHERE ((n.id = r.need_id) AND is_my_task(n.id)))))))))",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "v5_closed_account_visibility",
+                "check": null,
+                "roles": "{16485}",
+                "using": "rpc_storage_account_open()",
+                "command": "r",
+                "permissive": false
+              }
+            ],
+            "constraints": [
+              "CHECK ((char_length(content_hash) >= 16))",
+              "CHECK (((covered_slots >= 1) AND (covered_slots <= 50)))",
+              "CHECK ((need_revision >= 1))",
+              "PRIMARY KEY (response_id, version)",
+              "CHECK ((price_basis = ANY (ARRAY['TOTAL'::text, 'HOURLY'::text])))",
+              "CHECK ((price_rsd > 0))",
+              "FOREIGN KEY (response_id) REFERENCES marketplace_responses(id) ON DELETE CASCADE",
+              "CHECK ((version >= 1))"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,anon=rDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "public.marketplace_responses",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [
+              {
+                "name": "responses_requester_read",
+                "check": null,
+                "roles": "{16485}",
+                "using": "((status <> 'DRAFT'::text) AND (EXISTS ( SELECT 1\n   FROM needs n\n  WHERE ((n.id = marketplace_responses.need_id) AND is_my_task(n.id)))))",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "responses_worker_read",
+                "check": null,
+                "roles": "{16485}",
+                "using": "(worker_account_id = ( SELECT auth.uid() AS uid))",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "v5_closed_account_visibility",
+                "check": null,
+                "roles": "{16485}",
+                "using": "rpc_storage_account_open()",
+                "command": "r",
+                "permissive": false
+              }
+            ],
+            "constraints": [
+              "CHECK ((char_length(bounded_message) <= 1000))",
+              "CHECK ((((proposed_start_at IS NULL) AND (proposed_end_at IS NULL)) OR ((proposed_start_at IS NOT NULL) AND (proposed_end_at IS NOT NULL) AND (proposed_start_at < proposed_end_at))))",
+              "CHECK (((covered_slots >= 1) AND (covered_slots <= 50)))",
+              "CHECK ((current_version >= 1))",
+              "FOREIGN KEY (need_id) REFERENCES needs(id) ON DELETE CASCADE",
+              "PRIMARY KEY (id)",
+              "CHECK ((price_basis = ANY (ARRAY['TOTAL'::text, 'HOURLY'::text])))",
+              "CHECK ((price_rsd > 0))",
+              "CHECK ((response_kind = ANY (ARRAY['APPLICATION'::text, 'OFFER'::text])))",
+              "CHECK ((status = ANY (ARRAY['DRAFT'::text, 'SUBMITTED'::text, 'DELIVERED'::text, 'VIEWED'::text, 'SHORTLISTED'::text, 'SELECTED'::text, 'NOT_SELECTED'::text, 'WITHDRAWN'::text, 'EXPIRED'::text, 'STALE'::text, 'STALE_REVIEW_REQUIRED'::text])))",
+              "CHECK ((submitted_against_need_revision >= 1))",
+              "FOREIGN KEY (worker_account_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+              "FOREIGN KEY (worker_profile_id) REFERENCES app_profiles(id) ON DELETE RESTRICT"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "public.need_selections",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [
+              {
+                "name": "selections_requester",
+                "check": null,
+                "roles": "{16485}",
+                "using": "(selected_by_account_id = ( SELECT auth.uid() AS uid))",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "v5_closed_account_visibility",
+                "check": null,
+                "roles": "{16485}",
+                "using": "rpc_storage_account_open()",
+                "command": "r",
+                "permissive": false
+              }
+            ],
+            "constraints": [
+              "CHECK (((char_length(btrim(client_request_id)) >= 8) AND (char_length(btrim(client_request_id)) <= 200)))",
+              "CHECK (((covered_slots >= 1) AND (covered_slots <= 50)))",
+              "UNIQUE (need_id, client_request_id)",
+              "FOREIGN KEY (need_id) REFERENCES needs(id) ON DELETE CASCADE",
+              "CHECK ((need_revision >= 1))",
+              "PRIMARY KEY (id)",
+              "FOREIGN KEY (response_id) REFERENCES marketplace_responses(id) ON DELETE RESTRICT",
+              "FOREIGN KEY (selected_by_account_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+              "CHECK ((selection_mode = ANY (ARRAY['REQUESTER_SELECTS'::text, 'BIDDING'::text])))",
+              "CHECK ((status = ANY (ARRAY['SELECTED'::text, 'CANCELLED'::text, 'SUPERSEDED'::text])))",
+              "FOREIGN KEY (worker_account_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+              "FOREIGN KEY (worker_profile_id) REFERENCES app_profiles(id) ON DELETE RESTRICT"
+            ]
+          },
+          {
+            "acl": "{postgres=arwdDxtm/postgres,anon=Dxtm/postgres,authenticated=awDxtm/postgres,service_role=arwdDxtm/postgres}",
+            "rls": true,
+            "name": "public.needs",
+            "owner": "postgres",
+            "forceRls": false,
+            "policies": [
+              {
+                "name": "needs_owner_insert",
+                "check": "((requester_account_id = ( SELECT auth.uid() AS uid)) AND (status = 'DRAFT'::text))",
+                "roles": "{16485}",
+                "using": null,
+                "command": "a",
+                "permissive": true
+              },
+              {
+                "name": "needs_owner_select",
+                "check": null,
+                "roles": "{16485}",
+                "using": "(requester_account_id = ( SELECT auth.uid() AS uid))",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "needs_owner_update",
+                "check": "((requester_account_id = ( SELECT auth.uid() AS uid)) AND (status = 'DRAFT'::text))",
+                "roles": "{16485}",
+                "using": "((requester_account_id = ( SELECT auth.uid() AS uid)) AND (status = 'DRAFT'::text))",
+                "command": "w",
+                "permissive": true
+              },
+              {
+                "name": "needs_participant_read",
+                "check": null,
+                "roles": "{16485}",
+                "using": "rls_private.need_participant_can_read(id)",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "needs_public_discovery",
+                "check": null,
+                "roles": "{16485}",
+                "using": "((status = ANY (ARRAY['PUBLISHED'::text, 'SELECTION'::text])) AND (( SELECT auth.uid() AS uid) IS NOT NULL) AND ((requester_account_id = ANY (COALESCE(( SELECT rls_private.p6_discovery_test_world_accounts() AS p6_discovery_test_world_accounts), ARRAY[]::uuid[]))) = (( SELECT auth.uid() AS uid) = ANY (COALESCE(( SELECT rls_private.p6_discovery_test_world_accounts() AS p6_discovery_test_world_accounts), ARRAY[]::uuid[])))))",
+                "command": "r",
+                "permissive": true
+              },
+              {
+                "name": "v5_closed_account_visibility",
+                "check": null,
+                "roles": "{16485}",
+                "using": "( SELECT rpc_storage_account_open() AS rpc_storage_account_open)",
+                "command": "r",
+                "permissive": false
+              }
+            ],
+            "constraints": [
+              "CHECK (((char_length(btrim(category)) >= 1) AND (char_length(btrim(category)) <= 120)))",
+              "FOREIGN KEY (category_id) REFERENCES private.work_taxonomy_categories(id)",
+              "CHECK (((ends_at IS NULL) OR (starts_at IS NULL) OR (ends_at > starts_at)))",
+              "CHECK (((char_length(btrim(description)) >= 1) AND (char_length(btrim(description)) <= 6000)))",
+              "CHECK ((execution_location_mode = ANY (ARRAY['STATIONARY'::text, 'POINT_TO_POINT'::text, 'MULTI_STOP'::text, 'AREA_BASED'::text, 'REMOTE'::text])))",
+              "CHECK (((minimum_experience_years IS NULL) OR ((minimum_experience_years >= 0) AND (minimum_experience_years <= 60))))",
+              "CHECK ((mode = ANY (ARRAY['MY_PRICE'::text, 'OFFERS'::text])))",
+              "PRIMARY KEY (id)",
+              "CHECK (((price_basis IS NULL) OR ((price_basis = ANY (ARRAY['TOTAL'::text, 'PER_PERSON'::text, 'HOURLY'::text])) AND (mode = 'MY_PRICE'::text))))",
+              "CHECK (((remaining_search_close_reason IS NULL) OR (char_length(remaining_search_close_reason) <= 500)))",
+              "FOREIGN KEY (remaining_search_closed_by_account_id) REFERENCES auth.users(id) ON DELETE SET NULL",
+              "FOREIGN KEY (requester_account_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+              "CHECK (((requester_price_rsd IS NULL) OR (requester_price_rsd > 0)))",
+              "FOREIGN KEY (requester_profile_id) REFERENCES app_profiles(id) ON DELETE RESTRICT",
+              "CHECK (((required_slots >= 1) AND (required_slots <= 50)))",
+              "CHECK ((revision >= 1))",
+              "CHECK ((schedule_kind = ANY (ARRAY['FIXED_WINDOW'::text, 'FLEXIBLE'::text, 'REMOTE_ANYTIME'::text, 'TODAY_FLEXIBLE'::text, 'TOMORROW_FLEXIBLE'::text, 'WEEK_FLEXIBLE'::text])))",
+              "CHECK ((status = ANY (ARRAY['DRAFT'::text, 'PUBLISHED'::text, 'SELECTION'::text, 'ACTIVE'::text, 'COMPLETED'::text, 'CANCELLED'::text, 'EXPIRED'::text, 'ARCHIVED'::text])))",
+              "CHECK (((task_country_code IS NULL) OR (task_country_code ~ '^[A-Z]{2}$'::text)))",
+              "CHECK (((char_length(btrim(title)) >= 1) AND (char_length(btrim(title)) <= 140)))",
+              "CHECK (((NOT urgent) OR ((urgent_activated_at IS NOT NULL) AND (urgent_expires_at IS NOT NULL) AND (urgent_expires_at > urgent_activated_at))))",
+              "TRIGGER DEFERRABLE INITIALLY DEFERRED"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "guardedFunctionCount": 13,
+  "guardedRelationCount": 13,
+  "candidatesAfter": [
+    {
+      "paged": [
+        {
+          "response_id": "600c1009-ba32-4169-b672-d20bb37076a8",
+          "candidate_state": "SELECTABLE"
+        }
+      ],
+      "needId": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+      "unpaged": [
+        {
+          "response_id": "600c1009-ba32-4169-b672-d20bb37076a8",
+          "candidate_state": "SELECTABLE"
+        }
+      ]
+    },
+    {
+      "paged": [
+        {
+          "response_id": "01eddaf6-51f6-46b1-ae34-ac80e72eee12",
+          "candidate_state": "SELECTABLE"
+        }
+      ],
+      "needId": "bf62b479-f1d0-4d45-89a5-f849f2daa2b9",
+      "unpaged": [
+        {
+          "response_id": "01eddaf6-51f6-46b1-ae34-ac80e72eee12",
+          "candidate_state": "SELECTABLE"
+        }
+      ]
+    }
+  ],
+  "closureCertificatesChanged": false,
+  "sourceReady": false,
+  "globalFlagsOrSecretsChanged": false
+}

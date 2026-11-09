@@ -203,14 +203,6 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   }, [foreground, resumeRequired, resumeEpoch, workspace.busy, workspace.refresh]);
   const messages = useAgreementHistory(accountId, accountRevision, id, chatReadingPosition);
   const dogovor = workspace.data;
-  useAgreementIncomingRefresh({
-    accountId,
-    accountRevision,
-    agreementId: id,
-    enabled: !!accountId && dogovor?.stanje !== 'CANCELLED',
-    source: izvor,
-    refresh: workspace.refresh,
-  });
   // When, by whom and why a cancelled Dogovor was cancelled (CANCEL-INFO): asked once the read says it is cancelled, in one call. A read that
   // fails, or has not come, leaves the step bar saying only "Otkazano" - nothing is guessed.
   const cancelled = dogovor?.stanje === 'CANCELLED';
@@ -245,15 +237,19 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   // authorized group even for a legacy or initially one-person agreement.
   const groupModel = useGroupContext(id, enabled && !!dogovor
     && dogovor.ucesnici.some(party => party.viSte && party.id === accountId));
+  const incomingChatAvailable = useRef(false);
+  incomingChatAvailable.current = dogovor?.chatDostupan === true;
   const refreshIncoming = useCallback(async () => {
-    if (tabRef.current === 'poruke') {
-      await messages.refresh('silent');
-    } else {
-      await workspace.refresh();
-    }
+    // Independent owned reads: permissions/terms stay fresh even while Poruke is
+    // open. History never sends a message or acknowledges its display.
+    await Promise.all([workspace.refresh(),
+      ...(tabRef.current === 'poruke' && incomingChatAvailable.current ? [messages.refresh('silent')] : [])]);
   }, [messages.refresh, workspace.refresh]);
+  // A join itself schedules a fresh read. Tying this owner to `enabled` would
+  // close its channel on loading, rejoin after the read, then repeat forever.
+  // Transient write/read fences still disable actions; they do not own a channel.
   useAgreementIncomingRefresh({ accountId, accountRevision, agreementId: id, source: izvor,
-    enabled: enabled && !!dogovor && (tab === 'pregled' || dogovor.chatDostupan === true)
+    enabled: !!dogovor && dogovor.stanje !== 'CANCELLED'
       && dogovor.ucesnici.some(party => party.viSte && party.id === accountId),
     refresh: refreshIncoming });
   const { model: outbox, state: outboxState } = useAgreementOutbox(accountId, id, writable);

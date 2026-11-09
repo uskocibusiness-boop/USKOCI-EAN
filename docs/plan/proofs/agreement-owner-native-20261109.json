@@ -1,0 +1,603 @@
+{
+  "schema": "agreement-owner-native-dev-acceptance-v1",
+  "recordedAt": "2026-11-09T17:39:28Z",
+  "sourceCommit": "36dd3bee92160379d1caed89b5c09543b1f9f432",
+  "ci": {
+    "runId": 42661973934,
+    "conclusion": "SUCCESS",
+    "nodeTestsPassed": 1402,
+    "typescript": "PASS",
+    "nativeBuild": "PASS"
+  },
+  "artifact": {
+    "schema": "USKOCI_GITHUB_ARTIFACT_DOWNLOAD_V1",
+    "verifiedAtUtc": "2026-11-09T17:30:23.352589+00:00",
+    "runId": "42661973934",
+    "headSha": "36dd3bee92160379d1caed89b5c09543b1f9f432",
+    "artifactId": 13696910217,
+    "artifactName": "uskoci-phone-preview-apk-110",
+    "originalZipPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-preview-42661973934\\phone-preview.zip",
+    "zipSha256": "952f607999dae3d57f3a65afa3bdf2a4a8bccc172a17655c45134f511bae6d98",
+    "githubDigestMatches": true,
+    "zipBytes": 61788785,
+    "extractedPath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-preview-42661973934\\apk"
+  },
+  "installation": {
+    "schema": "USKOCI_EMULATOR_INSTALLED_APK_V1",
+    "verifiedAtUtc": "2026-11-09T17:31:03.896485+00:00",
+    "serial": "emulator-5554",
+    "headSha": "36dd3bee92160379d1caed89b5c09543b1f9f432",
+    "package": "rs.uskoci.preview",
+    "installMode": "install -r",
+    "installationResult": "Performing Streamed Install\nSuccess",
+    "candidatePath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\phone-preview-42661973934\\apk\\USKOCI-PHONE-PREVIEW-36dd3bee9.apk",
+    "installedBasePath": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-installed-base.apk",
+    "candidateSha256": "ea913a47a213d66cfe83f8ccf5fb4b14a2626508bdc845da76c5295824de21a1",
+    "installedSha256": "ea913a47a213d66cfe83f8ccf5fb4b14a2626508bdc845da76c5295824de21a1",
+    "installedBytesMatch": true,
+    "scope": "Emulator binary install/readback only. No app data clear, no physical-phone command. Auth checked separately in ordinary UI."
+  },
+  "nativeReceiptSha256": "d70f18f84e2da0f6124108b630bb9be5e37ca1a4bb087e1e2384b931c3bea452",
+  "native": {
+    "schema": "USKOCI_EMULATOR_OWNED_SELECTION_MESSAGE_V1",
+    "recordedAtUtc": "2026-11-09T17:38:48.246704+00:00",
+    "device": "emulator-5554",
+    "actor": "Milos/requester",
+    "headSha": "36dd3bee92160379d1caed89b5c09543b1f9f432",
+    "runId": 42661973934,
+    "apkSha256": "ea913a47a213d66cfe83f8ccf5fb4b14a2626508bdc845da76c5295824de21a1",
+    "installedBaseMatches": true,
+    "authPreserved": "Milos visible in36dd-home-after-install",
+    "responseId": "600c1009-ba32-4169-b672-d20bb37076a8",
+    "agreementId": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+    "needTitle": "Privatni časovi engleskog jezika",
+    "approvedTerms": {
+      "priceRsd": 1000,
+      "priceBasis": "TOTAL",
+      "people": 1,
+      "mode": "REMOTE",
+      "flexibleNeedWindow": "2026-11-14/2026-11-15"
+    },
+    "actions": {
+      "selectionConfirmTaps": 1,
+      "messageSendTaps": 1,
+      "messageText": "Probna poruka za proveru Dogovora.",
+      "reopenedVia": "Dogovori active list then same Agreement then Poruke",
+      "changedTerms": false,
+      "completion": false,
+      "rating": false,
+      "cancellation": false,
+      "phoneCommands": false,
+      "paidAiCalls": 0
+    },
+    "observed": {
+      "candidateReviewInitiallyTop": true,
+      "exactTermsShownInConfirmation": true,
+      "selectionSuccessUI": "Dogovoreno!",
+      "agreementOverview": "English/UskociTest/1,000RSDtotal/REMOTE",
+      "messageReceiptUI": "Poslato",
+      "messageRetainedAfterReopen": true,
+      "originalTaskOpenedFromAgreement": false,
+      "originalTaskReadBlocked": "All menu controls disabled while persistent Osvežavamo state; not forced."
+    },
+    "rootAuthoritativeReadback": {
+      "source": "Parent agent scoped DEV readback; not queried by this emulator agent.",
+      "agreementStatus": "CONFIRMED",
+      "selectionReceiptCount": 1,
+      "selectedAtUtc": "2026-11-09T17:32:09.574107Z",
+      "needStatus": "ACTIVE",
+      "selectedSlots": 1,
+      "requiredSlots": 1,
+      "messageId": "8bd882d5-ae31-45e5-ba0a-bf21de954e8c",
+      "messageCreatedAtUtc": "2026-11-09T17:34:19.922566Z",
+      "messageRequestCount": 1
+    },
+    "remainingFindings": [
+      {
+        "kind": "REFRESH_LIFECYCLE",
+        "scope": "Actual emulator requester Agreement overview after ordinary reopen",
+        "observationsUtc": [
+          "17:35:41",
+          "17:36:02",
+          "17:36:18",
+          "17:36:50",
+          "17:37:14"
+        ],
+        "symptom": "Osvežavamo remains and all menu controls disabled. Own app responds to scroll/tab/menu. UIAutomator idle dump unavailable; guarded screenshot fallback used.",
+        "diagnostics": "No allowlisted max-update/hook/FATAL signature in bounded ownPID logcat; not proof of absence."
+      },
+      {
+        "kind": "DUPLICATE_TERM_ACTION",
+        "symptom": "Predloži termin in note and Postavi termin beside Dogovoreni uslovi shown together; no action used."
+      }
+    ],
+    "boundaries": [
+      "Actual emulator requester role only; no new physical-phone or worker-role selection acceptance.",
+      "UI Poslato/server persistence do not establish recipient native delivery/read.",
+      "Agreement and Need remain active; no completion/rating/cancel."
+    ],
+    "evidence": [
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-after-agreement-back.png",
+        "sha256": "d886b711cac7c18fadf4939934e1989f71c3387dc989910df169e6f5f5757976",
+        "capturedAtUtc": "2026-11-09T17:34:45.413700+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-after-agreement-back.xml",
+        "sha256": "ab1e5e8d3cd0e4b9f291adb1cb05b05d87b8b60926d930e33cfc6d29098c1716",
+        "capturedAtUtc": "2026-11-09T17:34:45.051569+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-agreement-after-menu.png",
+        "sha256": "c8879be1a9b8ca40c18c2aeb5c731f2278e011fe3f74de56b90e2d3143176c68",
+        "capturedAtUtc": "2026-11-09T17:37:14.091452+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-agreement-bottom.png",
+        "sha256": "e7b02a365ca5a0393eeed43ee65c4b528b37c8788e7fb666ce631fec24de583d",
+        "capturedAtUtc": "2026-11-09T17:36:18.388152+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-agreement-lower.png",
+        "sha256": "ab86c9c354ddebcd60475a1613fc183b86a47d00bbaec99c8804d73c84f07f4f",
+        "capturedAtUtc": "2026-11-09T17:36:02.106142+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-agreement-options-screen.png",
+        "sha256": "b4d04b618cd8ad8caa0cfa4628a965b274db558e0c282a0ae4d7434d2a23701f",
+        "capturedAtUtc": "2026-11-09T17:36:50.514785+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-agreement-reopened-screen.png",
+        "sha256": "0f4b264900e2ac17f575ebd4e338cf7531b87e3d49e4e88253ef0042b759b4e8",
+        "capturedAtUtc": "2026-11-09T17:35:41.756125+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-agreements-list-after-selection.png",
+        "sha256": "3557d9592fa15de206d6e0f6dc83f71f9d920e557df3b1ab67a00baebe91ce94",
+        "capturedAtUtc": "2026-11-09T17:34:59.563372+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-agreements-list-after-selection.xml",
+        "sha256": "d1acd2eedb5065cba04b614e431558b19ef8defc690dfe57d47e1e7d913c466a",
+        "capturedAtUtc": "2026-11-09T17:34:59.221875+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-agreement-screen-only.png",
+        "sha256": "c167d2fab4083f52f3fdcfa16f87407ad5a4842631db4b411041cb746742dd97",
+        "capturedAtUtc": "2026-11-09T17:33:17.875741+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-applications.png",
+        "sha256": "fa9453631c33d0dfa45683faf7a584427d1670b069eea2894be315ac542dc714",
+        "capturedAtUtc": "2026-11-09T17:31:35.498087+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-applications.xml",
+        "sha256": "8e23817f05286cb65d463fa388c391bd09f8ebbde18868120668b80fbebff8e5",
+        "capturedAtUtc": "2026-11-09T17:31:35.074733+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-candidate-review-top.png",
+        "sha256": "c43d173d2ef621a968c6cfd997ce65c8f65bce2d3ac9f89da24bb26f29f6135d",
+        "capturedAtUtc": "2026-11-09T17:31:46.301358+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-candidate-review-top.xml",
+        "sha256": "2b11a62c42b4a4c64b6b55ab565644515759d736df12f67123a153b3ccec59a1",
+        "capturedAtUtc": "2026-11-09T17:31:45.907817+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-message-before-send.png",
+        "sha256": "a3d51ce61cba103b4bdbc75f9e9f904b52ac59b9b321eb0367b831196e21335d",
+        "capturedAtUtc": "2026-11-09T17:34:12.365258+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-message-before-send.xml",
+        "sha256": "9e6a30305fc0e2d519de308680228c54c57493bdc457149749f65af9dfbb4220",
+        "capturedAtUtc": "2026-11-09T17:34:11.994989+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-message-reopened.png",
+        "sha256": "75114dc952a3d4c74664b8953c55d3344e75dcb3151d4aed02e2c1561242c5c0",
+        "capturedAtUtc": "2026-11-09T17:37:37.107066+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-message-reopened.xml",
+        "sha256": "9fd681123d54fc564ddbb4492b94a7d5eee4baa7d85861ec1be9d14b80c1acdd",
+        "capturedAtUtc": "2026-11-09T17:37:36.753924+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-message-sent.png",
+        "sha256": "5618907ae514ee0dc4770237cdd9eb31f04845419b1c8b395a18beaa944016a7",
+        "capturedAtUtc": "2026-11-09T17:34:26.477170+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-message-sent.xml",
+        "sha256": "9c89ce4a5936a42e140fa70616a7355e9b05f58f30db9cf49b92c1bd1d911b07",
+        "capturedAtUtc": "2026-11-09T17:34:26.124680+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-messages-empty.png",
+        "sha256": "387946527ee0b08f38f2b25ead89b060eb432f9a99fe5be19ad35c731233e06b",
+        "capturedAtUtc": "2026-11-09T17:33:56.061759+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-messages-empty.xml",
+        "sha256": "94aec2adc330b37889770423a5d67e22f6ccf4925f46ca81ca8c6338219d7857",
+        "capturedAtUtc": "2026-11-09T17:33:55.701806+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-select-confirmation.png",
+        "sha256": "6fba54796054cf0f532768f38267b38eccbe551effb52c4aebdc06908c6d3eae",
+        "capturedAtUtc": "2026-11-09T17:32:04.702867+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-select-confirmation.xml",
+        "sha256": "c5622a9789dd18db8ffda4b0659023efa88756c29ccd9f6cc5f2d067ae1112d4",
+        "capturedAtUtc": "2026-11-09T17:32:04.336361+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-selected.png",
+        "sha256": "8cac11532a210a546ea717148537d16c048d200c73374f9e1ab5370c391744ff",
+        "capturedAtUtc": "2026-11-09T17:32:15.717362+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-english-selected.xml",
+        "sha256": "53e4e720b48f3968ff43513f04e77680f6368ada21900a07b8313ecb8ce15417",
+        "capturedAtUtc": "2026-11-09T17:32:15.379609+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-home-after-install.png",
+        "sha256": "4126070d6c1277c919cc54b4b4a04b13b51b6cc95de8ab51a5886c164ce095d4",
+        "capturedAtUtc": "2026-11-09T17:31:17.890966+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-home-after-install.xml",
+        "sha256": "8cadce3ca85ad17a03aebf2cc9acbec5cfd2ed3a53c1adac52244e41603e01b5",
+        "capturedAtUtc": "2026-11-09T17:31:17.425399+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-install-verified.json",
+        "sha256": "bdb4355ddcabf6062bfa1798321536fcb45b13efd91071780d6d43f7c537be9f",
+        "capturedAtUtc": "2026-11-09T17:31:03.896690+00:00"
+      },
+      {
+        "path": "C:\\Users\\user\\Documents\\Codex\\2026-11-01\\usko-i-glavna-komanda-za-nastavak\\verification\\emulator-acceptance-20261109\\36dd-own-process-diagnostics.json",
+        "sha256": "5e86a635168f00bae2c43a37d3aea7685ff48d5d422ed0fa8cbf58b086bf5da2",
+        "capturedAtUtc": "2026-11-09T17:38:22.512142+00:00"
+      }
+    ]
+  },
+  "authoritativeAgreementReadback": {
+    "needs": [
+      {
+        "id": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+        "mode": "OFFERS",
+        "status": "ACTIVE",
+        "revision": 1,
+        "categoryId": "00000000-0000-4000-8000-000000000802",
+        "coveredSlots": 1,
+        "requiredSlots": 1
+      },
+      {
+        "id": "bf62b479-f1d0-4d45-89a5-f849f2daa2b9",
+        "mode": "MY_PRICE",
+        "status": "PUBLISHED",
+        "revision": 1,
+        "categoryId": "00000000-0000-4000-8000-000000000806",
+        "coveredSlots": 0,
+        "requiredSlots": 1
+      }
+    ],
+    "responses": [
+      {
+        "id": "01eddaf6-51f6-46b1-ae34-ac80e72eee12",
+        "end": null,
+        "start": null,
+        "needId": "bf62b479-f1d0-4d45-89a5-f849f2daa2b9",
+        "status": "VIEWED",
+        "version": 1,
+        "priceRsd": 3000,
+        "priceBasis": "TOTAL",
+        "selectedAt": null,
+        "submittedAt": "2026-11-09T16:57:29.360332+00:00",
+        "coveredSlots": 1,
+        "needRevision": 1,
+        "versionCount": 1,
+        "workerAccountId": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+        "submitReceiptCount": 1
+      },
+      {
+        "id": "600c1009-ba32-4169-b672-d20bb37076a8",
+        "end": null,
+        "start": null,
+        "needId": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+        "status": "SELECTED",
+        "version": 1,
+        "priceRsd": 1000,
+        "priceBasis": "TOTAL",
+        "selectedAt": "2026-11-09T17:32:09.574107+00:00",
+        "submittedAt": "2026-11-09T16:57:11.690277+00:00",
+        "coveredSlots": 1,
+        "needRevision": 1,
+        "versionCount": 1,
+        "workerAccountId": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "submitReceiptCount": 1
+      }
+    ],
+    "agreements": [
+      {
+        "id": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+        "terms": {
+          "currency": "RSD",
+          "price_rsd": 1000,
+          "priceBasis": "TOTAL",
+          "scope_note": "",
+          "pricingMode": "OFFERS",
+          "covered_slots": 1,
+          "need_revision": 1,
+          "required_slots": 1,
+          "proposed_end_at": null,
+          "schedule_source": "UNSCHEDULED",
+          "response_version": 1,
+          "proposed_start_at": null
+        },
+        "needId": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+        "status": "CONFIRMED",
+        "version": 1,
+        "execution": {
+          "mode": "REMOTE",
+          "state": "CONFIRMED"
+        },
+        "responseId": "600c1009-ba32-4169-b672-d20bb37076a8",
+        "selectionId": "9cb1db88-574e-4141-9b3d-942cff5870cd",
+        "workerAccountId": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "requesterAccountId": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+        "selectionReceiptCount": 1
+      }
+    ],
+    "observedAt": "2026-11-09T17:33:18.424931+00:00"
+  },
+  "authoritativeMessageReadback": {
+    "messages": [
+      {
+        "id": "8bd882d5-ae31-45e5-ba0a-bf21de954e8c",
+        "body": "Probna poruka za proveru Dogovora.",
+        "read_at": null,
+        "created_at": "2026-11-09T17:34:19.922566+00:00",
+        "agreement_id": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+        "agreement_version": 1,
+        "sender_account_id": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+        "same_request_count": 1,
+        "sender_is_participant": true
+      }
+    ],
+    "agreements": [
+      {
+        "id": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+        "need_id": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+        "worker_account_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "requester_account_id": "0640a1bd-5e0a-4462-9dca-f49420582c8a"
+      }
+    ],
+    "observedAt": "2026-11-09T17:34:43.639808+00:00"
+  },
+  "pushReadback": {
+    "scope": {
+      "to": "2026-11-09T17:35:10+00:00",
+      "from": "2026-11-09T17:30:00+00:00",
+      "needs": [
+        "bf62b479-f1d0-4d45-89a5-f849f2daa2b9",
+        "aa6cd7a1-352b-4422-bf7f-b947d82d4b54"
+      ],
+      "owners": [
+        "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "0640a1bd-5e0a-4462-9dca-f49420582c8a"
+      ]
+    },
+    "events": [
+      {
+        "id": "405cdf43-5fdd-4d61-ad22-ec55bdf34950",
+        "read_at": null,
+        "entity_id": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+        "created_at": "2026-11-09T17:34:19.922566+00:00",
+        "event_type": "MESSAGE_RECEIVED",
+        "entity_type": "AGREEMENT",
+        "entity_version": 1,
+        "recipient_role": "WORKER",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468"
+      },
+      {
+        "id": "fb3780c9-0e69-4093-ba49-f1af053ddc0d",
+        "read_at": null,
+        "entity_id": "600c1009-ba32-4169-b672-d20bb37076a8",
+        "created_at": "2026-11-09T17:32:09.574107+00:00",
+        "event_type": "RESPONSE_SELECTED",
+        "entity_type": "RESPONSE",
+        "entity_version": 1,
+        "recipient_role": "WORKER",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468"
+      }
+    ],
+    "attempts": [
+      {
+        "id": "444ec63c-670f-49c4-be94-91975eda3285",
+        "outcome": "QUEUED",
+        "platform": "ANDROID",
+        "created_at": "2026-11-09T17:34:20.759343+00:00",
+        "error_code": null,
+        "send_count": 1,
+        "delivery_id": "f0e00f76-7067-4664-b8b8-285694287d3b",
+        "device_owner": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "device_active": true,
+        "next_attempt_at": "2026-11-09T17:49:21.441063+00:00",
+        "transport_state": "TICKET_PENDING",
+        "device_created_at": "2026-10-21T19:25:47.943498+00:00",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "receipt_checked_at": null,
+        "ticket_received_at": "2026-11-09T17:34:21.441063+00:00",
+        "device_last_seen_at": "2026-11-09T12:37:45.19028+00:00",
+        "has_provider_ticket": true,
+        "device_session_valid": true,
+        "device_revision_matches": true,
+        "destination_owner_matches": true
+      },
+      {
+        "id": "2d9b3fd6-cdd9-4032-93f2-ae291dd601f0",
+        "outcome": "QUEUED",
+        "platform": "ANDROID",
+        "created_at": "2026-11-09T17:32:10.376168+00:00",
+        "error_code": null,
+        "send_count": 1,
+        "delivery_id": "7624e1a8-a072-434b-91af-4d10ff324a3b",
+        "device_owner": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "device_active": true,
+        "next_attempt_at": "2026-11-09T17:47:10.888834+00:00",
+        "transport_state": "TICKET_PENDING",
+        "device_created_at": "2026-10-21T19:25:47.943498+00:00",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "receipt_checked_at": null,
+        "ticket_received_at": "2026-11-09T17:32:10.888834+00:00",
+        "device_last_seen_at": "2026-11-09T12:37:45.19028+00:00",
+        "has_provider_ticket": true,
+        "device_session_valid": true,
+        "device_revision_matches": true,
+        "destination_owner_matches": true
+      }
+    ],
+    "checkedAt": "2026-11-09T17:35:09.219235+00:00",
+    "heartbeat": {
+      "fresh": true,
+      "observedAt": "2026-11-09T17:35:02.481034+00:00",
+      "observation": "TICK_OK",
+      "lastSuccessAt": "2026-11-09T17:35:02.481034+00:00"
+    },
+    "responses": [
+      {
+        "id": "600c1009-ba32-4169-b672-d20bb37076a8",
+        "status": "SELECTED",
+        "need_id": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+        "updated_at": "2026-11-09T17:32:09.574107+00:00",
+        "selected_at": "2026-11-09T17:32:09.574107+00:00",
+        "submitted_at": "2026-11-09T16:57:11.690277+00:00",
+        "current_version": 1,
+        "worker_account_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468"
+      },
+      {
+        "id": "01eddaf6-51f6-46b1-ae34-ac80e72eee12",
+        "status": "VIEWED",
+        "need_id": "bf62b479-f1d0-4d45-89a5-f849f2daa2b9",
+        "updated_at": "2026-11-09T16:59:16.126167+00:00",
+        "selected_at": null,
+        "submitted_at": "2026-11-09T16:57:29.360332+00:00",
+        "current_version": 1,
+        "worker_account_id": "0640a1bd-5e0a-4462-9dca-f49420582c8a"
+      }
+    ],
+    "agreements": [
+      {
+        "id": "5cb2e08a-d7cf-45db-8bb1-9393b3a3e155",
+        "status": "CONFIRMED",
+        "need_id": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+        "created_at": "2026-11-09T17:32:09.574107+00:00",
+        "updated_at": "2026-11-09T17:32:09.574107+00:00",
+        "current_version": 1,
+        "worker_account_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "requester_account_id": "0640a1bd-5e0a-4462-9dca-f49420582c8a",
+        "selected_response_id": "600c1009-ba32-4169-b672-d20bb37076a8"
+      }
+    ],
+    "deliveries": [
+      {
+        "id": "d3245fa4-b228-487b-9c06-e8acead18b60",
+        "state": "CREATED",
+        "channel": "IN_APP",
+        "read_at": null,
+        "sent_at": null,
+        "event_id": "405cdf43-5fdd-4d61-ad22-ec55bdf34950",
+        "queued_at": null,
+        "created_at": "2026-11-09T17:34:19.922566+00:00",
+        "expires_at": null,
+        "delivered_at": null,
+        "push_started_at": null,
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "suppression_reason": null
+      },
+      {
+        "id": "f0e00f76-7067-4664-b8b8-285694287d3b",
+        "state": "SENT",
+        "channel": "PUSH",
+        "read_at": null,
+        "sent_at": "2026-11-09T17:34:21.441063+00:00",
+        "event_id": "405cdf43-5fdd-4d61-ad22-ec55bdf34950",
+        "queued_at": "2026-11-09T17:34:20.75963+00:00",
+        "created_at": "2026-11-09T17:34:19.922566+00:00",
+        "expires_at": null,
+        "delivered_at": null,
+        "push_started_at": "2026-11-09T17:34:20.75963+00:00",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "suppression_reason": null
+      },
+      {
+        "id": "99ac7f42-7827-4030-9895-098e3a7a7196",
+        "state": "CREATED",
+        "channel": "IN_APP",
+        "read_at": null,
+        "sent_at": null,
+        "event_id": "fb3780c9-0e69-4093-ba49-f1af053ddc0d",
+        "queued_at": null,
+        "created_at": "2026-11-09T17:32:09.574107+00:00",
+        "expires_at": null,
+        "delivered_at": null,
+        "push_started_at": null,
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "suppression_reason": null
+      },
+      {
+        "id": "7624e1a8-a072-434b-91af-4d10ff324a3b",
+        "state": "SENT",
+        "channel": "PUSH",
+        "read_at": null,
+        "sent_at": "2026-11-09T17:32:10.888834+00:00",
+        "event_id": "fb3780c9-0e69-4093-ba49-f1af053ddc0d",
+        "queued_at": "2026-11-09T17:32:10.376204+00:00",
+        "created_at": "2026-11-09T17:32:09.574107+00:00",
+        "expires_at": null,
+        "delivered_at": null,
+        "push_started_at": "2026-11-09T17:32:10.376204+00:00",
+        "recipient_user_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "suppression_reason": null
+      }
+    ],
+    "selections": [
+      {
+        "id": "9cb1db88-574e-4141-9b3d-942cff5870cd",
+        "status": "SELECTED",
+        "need_id": "aa6cd7a1-352b-4422-bf7f-b947d82d4b54",
+        "created_at": "2026-11-09T17:32:09.574107+00:00",
+        "updated_at": "2026-11-09T17:32:09.574107+00:00",
+        "response_id": "600c1009-ba32-4169-b672-d20bb37076a8",
+        "worker_account_id": "9d34d27a-f947-4e0f-9442-b7d192a9b468",
+        "selected_by_account_id": "0640a1bd-5e0a-4462-9dca-f49420582c8a"
+      }
+    ]
+  },
+  "repositoryScreenshot": {
+    "path": "docs/plan/proofs/native-20261109/agreement-owner-36dd.png",
+    "sha256": "c167d2fab4083f52f3fdcfa16f87407ad5a4842631db4b411041cb746742dd97"
+  },
+  "scope": {
+    "ordinaryAuthSelection": true,
+    "agreementCreated": true,
+    "oneMessageSavedAndReopened": true,
+    "ownerRoleNative": true,
+    "workerRoleNative": false,
+    "physicalPhoneCurrentBuild": false,
+    "systemNotificationTap": false,
+    "pushProviderReceiptAtThisRead": false,
+    "completeNativeFlow": false,
+    "storeReady": false
+  },
+  "openFinding": "Reopened Agreement overview stays refreshing and actions disabled. Actual source has two incoming subscriptions; the second gates its own subscription on workspace.loading, so SUBSCRIBED -> refresh -> teardown -> rejoin repeats. This receipt does not mark that defect fixed."
+}

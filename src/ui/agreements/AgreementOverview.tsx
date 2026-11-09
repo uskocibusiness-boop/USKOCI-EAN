@@ -83,7 +83,7 @@ export function AgreementOverview({ agreement, step, steps, info, headExtra, par
     {on.proposeTerm ? <AgreementTermNote disabled={!enabled} onPropose={on.proposeTerm} /> : null}
     {problem?.note}
     {problem?.exits}
-    <AgreementTerms agreement={agreement} onProposeTerm={on.openChange ? () => { if (enabled) on.openChange!(); } : undefined} />
+    <AgreementTerms agreement={agreement} onProposeTerm={!on.proposeTerm && on.openChange ? () => { if (enabled) on.openChange!(); } : undefined} />
     {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
     {isGroupAgreement(agreement) && !groupReady ? <AgreementPeople agreement={agreement} /> : null}
     {/* The real next step and accepted personal terms stay ahead of a potentially long roster.
