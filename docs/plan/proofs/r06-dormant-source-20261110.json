@@ -3,9 +3,32 @@
   "scope": "SOURCE_LOCAL_AND_READONLY_DEV; NOT_HOSTED_INSTALL_OR_ANDROID_RUNTIME",
   "branch": "work/uskoci-cist-proizvod-20261104",
   "baselineCommit": "4b6f5fb9adc95d0915b3c3eea74cb6dfc7e31bcc",
-  "sourceCommit": null,
+  "sourceCommit": "6a03cdba2ba1cb40c43f6a662ce0fbcfe8eae702",
   "ci": {
-    "status": "NOT_YET_RUN_FOR_THIS_PATCH"
+    "status": "SUCCESS",
+    "runId": 42747689759,
+    "runNumber": 126,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42747689759",
+    "sourceChecks": {
+      "status": "PASS",
+      "tests": 1569,
+      "pass": 1569,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "typescriptDiagnostics": 0,
+      "migrationSqlFiles": 235,
+      "migrationPythonTests": 90,
+      "bootstrapGeneratorTests": 11,
+      "bootstrapSeedTests": 1,
+      "artifactId": 13732865708,
+      "archiveBytes": 56227,
+      "archiveSha256": "95b76144a520de0ba9710439ffb93b86f30f5d2df3077d86b040cdd022f5fbad",
+      "originalGithubArchiveDigestMatched": true
+    },
+    "completedAt": "2026-11-10T03:35:06Z",
+    "sourceCommit": "6a03cdba2ba1cb40c43f6a662ce0fbcfe8eae702"
   },
   "changedSource": {
     "package.json": {
@@ -198,6 +221,31 @@
   "formattingFollowup": {
     "scope": "Remove three whitespace-only generated SQL lines; no function body or SQL logic change.",
     "source": "scripts/r06-prepared-dev-package.cjs",
-    "fullSuite": "1569 passed before this formatting-only followup; package-specific checks repeated afterward; full CI required on commit."
+    "fullSuite": "1569 passed before this formatting-only followup; package-specific checks repeated afterward; full CI required on commit.",
+    "fullCiResult": "1569/1569 PASS on the exact published commit, after formatting followup"
+  },
+  "sourceTree": "95e5b0cf8925dd05ad5a364a52c514061f449ed2",
+  "apk": {
+    "filename": "USKOCI-QA-6a03cdba2.apk",
+    "bytes": 122317333,
+    "sha256": "560d9fd4d2aaf2f79f48fff232a65eb542d9f76d50f7bee7044f4ecb0b9cfbf6",
+    "matchesBuildReceiptAndSha256sums": true,
+    "extractedApkCompared": false,
+    "package": "rs.uskoci.preview.qa",
+    "backend": "DEV",
+    "backendProject": "leqcwgzvjsxugfgzdmth",
+    "runtimeVersion": "uskoci-v1-preview-r2",
+    "artifact": {
+      "path": "/workspace/scratch/1876218cd0a5/qa126-6a03cdba/apk.zip",
+      "bytes": 87577281,
+      "sha256": "28e4e4114b41198af455e3dd89a3e0b3b5c2c34ded9f47359ababdfaf02bee45",
+      "artifactId": 13732783322,
+      "artifactName": "uskoci-isolated-qa-apk-126",
+      "matchesGithubDigestAndSize": true
+    },
+    "verifierProof": "qa126-local-verification-20261110.json",
+    "deliveryFilename": "USKOCI-QA126-6a03cdba.apk",
+    "deliveryBytesComparedToOriginalZip": true,
+    "androidInstalled": false
   }
 }
