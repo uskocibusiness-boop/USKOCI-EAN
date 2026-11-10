@@ -1,0 +1,140 @@
+{
+  "schema": "USKOCI_QA128_CI_ARTIFACT_SUMMARY_V1",
+  "observedAtUtc": "2026-11-10T16:16:13.505735+00:00",
+  "status": "CI_SUCCESS_ARTIFACT_VERIFIED_NOT_ANDROID",
+  "run": {
+    "id": 42848651945,
+    "run_number": 128,
+    "head_branch": "work/uskoci-cist-proizvod-20261104",
+    "head_sha": "acdd932f4f3bb132b4b81ac3e1c22580f9cf6bc9",
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42848651945",
+    "run_started_at": "2026-11-10T15:50:58Z",
+    "updated_at": "2026-11-10T16:14:21Z"
+  },
+  "jobs": [
+    {
+      "id": 129942918805,
+      "name": "qa-apk",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-11-10T16:14:06Z"
+    },
+    {
+      "id": 129956538360,
+      "name": "record-ux-checkpoint",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-11-10T16:14:20Z"
+    }
+  ],
+  "checks": {
+    "node": {
+      "tests": 1639,
+      "pass": 1639,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "typescript": {
+      "status": "PASS_FROM_SUCCESSFUL_CI_STEP_AND_EMPTY_OUTPUT",
+      "outputBytes": 0
+    },
+    "migrationIntegrity": {
+      "status": "PASS",
+      "physicalFiles": 235,
+      "pythonTests": {
+        "tests": 90,
+        "status": "OK"
+      }
+    },
+    "bootstrap": {
+      "status": "PASS",
+      "generator": {
+        "tests": 11,
+        "status": "OK"
+      },
+      "seed": {
+        "stats": {
+          "tests": 1,
+          "pass": 1,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "testReportFormat": "NODE_SPEC",
+        "status": "PASS"
+      }
+    }
+  },
+  "githubArtifact": {
+    "id": 13781307258,
+    "node_id": "MDg6QXJ0aWZhY3QxMzc4MTMwNzI1OA==",
+    "name": "uskoci-isolated-qa-apk-128",
+    "size_in_bytes": 87577714,
+    "url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13781307258",
+    "archive_download_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13781307258/zip",
+    "expired": false,
+    "digest": "sha256:0bf0080d83cc7ab018eb1bdedab3b976e5271c819ce1654460842322808b33e9",
+    "created_at": "2026-11-10T16:14:02Z",
+    "updated_at": "2026-11-10T16:14:02Z",
+    "expires_at": "2026-11-17T16:13:57Z",
+    "workflow_run": {
+      "id": 42848651945,
+      "repository_id": 1408220883,
+      "head_repository_id": 1408220883,
+      "head_branch": "work/uskoci-cist-proizvod-20261104",
+      "head_sha": "acdd932f4f3bb132b4b81ac3e1c22580f9cf6bc9"
+    }
+  },
+  "originalZip": {
+    "path": "/workspace/scratch/421c8c8b28c8/qa128-proof/apk.zip",
+    "bytes": 87577714,
+    "sha256": "0bf0080d83cc7ab018eb1bdedab3b976e5271c819ce1654460842322808b33e9",
+    "artifactId": 13781307258,
+    "artifactName": "uskoci-isolated-qa-apk-128",
+    "matchesGithubDigestAndSize": true
+  },
+  "extractedApk": {
+    "path": "/workspace/scratch/421c8c8b28c8/qa128-proof/USKOCI-QA-acdd932f4.apk",
+    "bytes": 122290201,
+    "sha256": "59fb823dd6eb1ec9cf0003292f911d075ec1f1e7d3550bee26335a5b1183b426",
+    "byteExactFromVerifiedOriginalZip": true,
+    "package": "rs.uskoci.preview.qa",
+    "runtimeVersion": "uskoci-v1-preview-r2",
+    "backendProject": "leqcwgzvjsxugfgzdmth"
+  },
+  "localVerification": {
+    "proofPath": "/workspace/scratch/421c8c8b28c8/qa128-proof/qa128-artifact-verification.json",
+    "proofSha256": "29b3cab8ca9da989d3ed3b736f70761e9658ef0bcc1b8b8135b61281e377f26c",
+    "status": "LOCAL_ARTIFACT_AND_NATIVE_AUDIO_BYTES_CONFIRMED_NOT_NATIVE_E2E",
+    "sourceIdentity": "CONFIRMED",
+    "dexFiles": 7,
+    "abis": [
+      "arm64-v8a"
+    ],
+    "nativePatchMarkerPresent": true,
+    "nativeAudio": "APK_LOGICAL_RAW_RESOURCES_AND_BYTES_MATCH_EXACT_GIT_COMMIT_AND_BOTH_CI_RECEIPTS",
+    "otaEnabled": false,
+    "googleServicesFilePresent": false,
+    "sameQaCertificate": true,
+    "canonicalDevHostOnly": true
+  },
+  "boundaries": [
+    "Offline verification of supplied GitHub metadata and original artifact ZIPs; no network or build is performed.",
+    "Native package/SDK/manifest/signature details use digest-bound CI aapt/apksigner receipts; no independent local aapt manifest or apksigner invocation is claimed.",
+    "Embedded config/source/runtime/OTA flags, APK hashes, native WAV bytes and bounded Hermes strings are checked locally.",
+    "A supplied verified AAPT2 binary independently resolves logical raw resource names and IDs to optimized APK paths; exact Git WAV bytes remain mandatory.",
+    "The preserved QA47 debug certificate and seven-DEX continuity checks remain mandatory; unexpected change fails for review.",
+    "No device execution, audible sound, push delivery, production signing, Play AAB or public-release readiness is established."
+  ],
+  "operations": {
+    "workflowDispatch": 0,
+    "sourceOrPlanChanges": 0,
+    "androidDeviceExecution": 0,
+    "libraryUpload": 0
+  }
+}

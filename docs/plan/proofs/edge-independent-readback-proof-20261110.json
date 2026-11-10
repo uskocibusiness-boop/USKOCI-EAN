@@ -1,0 +1,441 @@
+{
+  "schema": "USKOCI_EDGE_INDEPENDENT_READBACK_V1",
+  "recordedAt": "2026-11-10T16:02:24.820Z",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "reviewer": "Agent C /root/ai_dialogue",
+  "scope": "INDEPENDENT_LIVE_GET_EDGE_READBACK_ONLY",
+  "sourceBaseline": "334d0f9dc3a896fe2e3f3718d5ed995d7e2d10c1",
+  "candidateManifestSha256": "d26abbaf64bdae566b1a12d810f8fc60b2232db5bc5736f00e8b4961b8d17d8c",
+  "canonicalFilesShaDefinition": "SHA256(JSON.stringify(files sorted by name, each as {name,sha256:SHA256(UTF8 content)}))",
+  "pathMapping": "Preserve each preimage bundle name; functions/* reads repository supabase/functions/*; all other names read the identical repository path.",
+  "functions": [
+    {
+      "name": "uskoci-ai-interview",
+      "beforeVersion": 202,
+      "version": 203,
+      "status": "ACTIVE",
+      "relativeEntrypoint": "supabase/functions/uskoci-ai-interview/index.ts",
+      "candidateJsonSha256": "d815059f4963e926b3f2a54204d1f56b4c4e6765f5b9c89a502db7e476cd174d",
+      "independentReadbackJsonSha256": "fde80b4bdb8e00c9d46205cac983dc9143a2dd5106368075190bc3f451368a19",
+      "candidateAndLiveCanonicalFilesSha256": "4d144d3810fa93bc15629928c6c2859f7cd611e221db0c975e9152a81dbda6ed",
+      "fileCount": 23,
+      "filesByteExact": true,
+      "metadataSchemaExact": true,
+      "unchangedMetadata": {
+        "id": "e0e3181b-e87b-4b8f-9c90-abfc30ddf938",
+        "slug": "uskoci-ai-interview",
+        "name": "uskoci-ai-interview",
+        "created_at": 1788261764727,
+        "verify_jwt": false,
+        "import_map": false,
+        "status": "ACTIVE"
+      },
+      "updatedAt": 1794326319581,
+      "liveEntrypointPath": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_203/source/supabase/functions/uskoci-ai-interview/index.ts",
+      "liveEzbrSha256": "5c60a0970cdc05e755ec5a012dd4eb156febfa5847a5e07094e18d63eb4f3956",
+      "files": [
+        {
+          "name": "supabase/functions/uskoci-ai-interview/index.ts",
+          "repositoryPath": "supabase/functions/uskoci-ai-interview/index.ts",
+          "bytes": 138618,
+          "sha256": "4b7af6fe1184179f47376580b75027795b1b8eafc27813d85dc529fb0e442e3b"
+        },
+        {
+          "name": "supabase/functions/_shared/aiPhaseTiming.mjs",
+          "repositoryPath": "supabase/functions/_shared/aiPhaseTiming.mjs",
+          "bytes": 1121,
+          "sha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2"
+        },
+        {
+          "name": "supabase/functions/_shared/supabaseKeys.mjs",
+          "repositoryPath": "supabase/functions/_shared/supabaseKeys.mjs",
+          "bytes": 4452,
+          "sha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61"
+        },
+        {
+          "name": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+          "repositoryPath": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+          "bytes": 1856,
+          "sha256": "5a41a1a179704b5878f44414923319b6b074449dbe30a6bd380f899656d8dfc5"
+        },
+        {
+          "name": "src/contracts/aiAvailability.ts",
+          "repositoryPath": "src/contracts/aiAvailability.ts",
+          "bytes": 470,
+          "sha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8"
+        },
+        {
+          "name": "src/contracts/needFactsV2.ts",
+          "repositoryPath": "src/contracts/needFactsV2.ts",
+          "bytes": 7942,
+          "sha256": "f5f9eed0f9ed17278d805982d036feae3b910a413e98d20f8e93e0e9fe1d5099"
+        },
+        {
+          "name": "src/contracts/taskApplicationDeadline.ts",
+          "repositoryPath": "src/contracts/taskApplicationDeadline.ts",
+          "bytes": 1681,
+          "sha256": "6561ccfe5530ae34944d304abeb8400e8f3e5e8d29d16d5a5d517226b5e5ff5a"
+        },
+        {
+          "name": "supabase/functions/_shared/locationReply.ts",
+          "repositoryPath": "supabase/functions/_shared/locationReply.ts",
+          "bytes": 7313,
+          "sha256": "e58382d12212257801fdbfdb5271ea5488891533e2208943cf18b81fe49770e3"
+        },
+        {
+          "name": "supabase/functions/_shared/interviewVoiceInstruction.mjs",
+          "repositoryPath": "supabase/functions/_shared/interviewVoiceInstruction.mjs",
+          "bytes": 4545,
+          "sha256": "e745c61fb3b7bd02c729d212d0faadd20a1a54f74716693f33500e96dbf30ea0"
+        },
+        {
+          "name": "supabase/functions/_shared/aiTestBudget.ts",
+          "repositoryPath": "supabase/functions/_shared/aiTestBudget.ts",
+          "bytes": 9505,
+          "sha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf"
+        },
+        {
+          "name": "supabase/functions/_shared/geminiTaskStream.ts",
+          "repositoryPath": "supabase/functions/_shared/geminiTaskStream.ts",
+          "bytes": 20929,
+          "sha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69"
+        },
+        {
+          "name": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+          "repositoryPath": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+          "bytes": 12891,
+          "sha256": "e64fdeafc46580bb5bc100c79a643359fcc433a7558efc2410d877b84eaf0c9c"
+        },
+        {
+          "name": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+          "repositoryPath": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+          "bytes": 42362,
+          "sha256": "97df6ed6d5e1c4289a9ce4ee677599538cf29fa670da8ad30cc561300a8735ee"
+        },
+        {
+          "name": "supabase/functions/_shared/classificationEngine.mjs",
+          "repositoryPath": "supabase/functions/_shared/classificationEngine.mjs",
+          "bytes": 16217,
+          "sha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971"
+        },
+        {
+          "name": "supabase/functions/_shared/serviceHandoff.mjs",
+          "repositoryPath": "supabase/functions/_shared/serviceHandoff.mjs",
+          "bytes": 2910,
+          "sha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e"
+        },
+        {
+          "name": "supabase/functions/_shared/workerServiceModeContext.mjs",
+          "repositoryPath": "supabase/functions/_shared/workerServiceModeContext.mjs",
+          "bytes": 23114,
+          "sha256": "78552bf6e33f173f596cbfd8df7c6eef0508f51d226b05c275a61ec007af48f3"
+        },
+        {
+          "name": "supabase/functions/_shared/completeFirstPlan.ts",
+          "repositoryPath": "supabase/functions/_shared/completeFirstPlan.ts",
+          "bytes": 3118,
+          "sha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de"
+        },
+        {
+          "name": "supabase/functions/_shared/preparedAiInput.ts",
+          "repositoryPath": "supabase/functions/_shared/preparedAiInput.ts",
+          "bytes": 11021,
+          "sha256": "7ee8653fc6ba0e6ab78aa31d857a49c906d46ed51caf78cc4da034c76295903b"
+        },
+        {
+          "name": "supabase/functions/_shared/serviceExecutionInstruction.mjs",
+          "repositoryPath": "supabase/functions/_shared/serviceExecutionInstruction.mjs",
+          "bytes": 1897,
+          "sha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314"
+        },
+        {
+          "name": "supabase/functions/_shared/researchDeadline.ts",
+          "repositoryPath": "supabase/functions/_shared/researchDeadline.ts",
+          "bytes": 900,
+          "sha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9"
+        },
+        {
+          "name": "supabase/functions/_shared/geminiContextCache.mjs",
+          "repositoryPath": "supabase/functions/_shared/geminiContextCache.mjs",
+          "bytes": 2958,
+          "sha256": "94daaefe13749a01f5cfde4d933be07824b930f2e7a0517f3c96d73eb4d0c7cf"
+        },
+        {
+          "name": "supabase/functions/_shared/craftQuestionMatrix.mjs",
+          "repositoryPath": "supabase/functions/_shared/craftQuestionMatrix.mjs",
+          "bytes": 17772,
+          "sha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b"
+        },
+        {
+          "name": "supabase/functions/_shared/conversationIntent.mjs",
+          "repositoryPath": "supabase/functions/_shared/conversationIntent.mjs",
+          "bytes": 13317,
+          "sha256": "7e10183a86e5f92c9c9949cf6eb0d7650f51178a04f64d835c13621a7076920d"
+        }
+      ]
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "beforeVersion": 154,
+      "version": 155,
+      "status": "ACTIVE",
+      "relativeEntrypoint": "supabase/functions/uskoci-worker-interview/index.ts",
+      "candidateJsonSha256": "150cbbc76b43f22bb8836306d836633df17c82634e0cc43a17f430a9151ea441",
+      "independentReadbackJsonSha256": "652c6136ce7ffb8773595c388120f014c0c2a1063c83d5863b13c1f8359ea22d",
+      "candidateAndLiveCanonicalFilesSha256": "b28f3c2f905588438e32bcdfffea7e922d1f685c98eeb106b45830a01e63d054",
+      "fileCount": 24,
+      "filesByteExact": true,
+      "metadataSchemaExact": true,
+      "unchangedMetadata": {
+        "id": "dc1d633c-416a-4a10-bac7-ecc9a4c4a92a",
+        "slug": "uskoci-worker-interview",
+        "name": "uskoci-worker-interview",
+        "created_at": 1789291116219,
+        "verify_jwt": false,
+        "import_map": false,
+        "status": "ACTIVE"
+      },
+      "updatedAt": 1794326392899,
+      "liveEntrypointPath": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_155/source/supabase/functions/uskoci-worker-interview/index.ts",
+      "liveEzbrSha256": "31444416aad7198302212c9918982e47198725fb09c9c6afed4924028e4caf99",
+      "files": [
+        {
+          "name": "supabase/functions/uskoci-worker-interview/index.ts",
+          "repositoryPath": "supabase/functions/uskoci-worker-interview/index.ts",
+          "bytes": 61394,
+          "sha256": "fd42830e971cdba3120e613b247a9a80af6248b2633205bcac9349524ca22355"
+        },
+        {
+          "name": "supabase/functions/_shared/aiPhaseTiming.mjs",
+          "repositoryPath": "supabase/functions/_shared/aiPhaseTiming.mjs",
+          "bytes": 1121,
+          "sha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2"
+        },
+        {
+          "name": "supabase/functions/_shared/supabaseKeys.mjs",
+          "repositoryPath": "supabase/functions/_shared/supabaseKeys.mjs",
+          "bytes": 4452,
+          "sha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61"
+        },
+        {
+          "name": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+          "repositoryPath": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+          "bytes": 1856,
+          "sha256": "5a41a1a179704b5878f44414923319b6b074449dbe30a6bd380f899656d8dfc5"
+        },
+        {
+          "name": "src/contracts/aiAvailability.ts",
+          "repositoryPath": "src/contracts/aiAvailability.ts",
+          "bytes": 470,
+          "sha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8"
+        },
+        {
+          "name": "src/contracts/workerAreas.ts",
+          "repositoryPath": "src/contracts/workerAreas.ts",
+          "bytes": 2317,
+          "sha256": "42043ac28b6be3443a9837d855bada914513e267e45710111698da2c0163c33d"
+        },
+        {
+          "name": "src/contracts/workerNowFeature.ts",
+          "repositoryPath": "src/contracts/workerNowFeature.ts",
+          "bytes": 384,
+          "sha256": "78bf2b510f531420f4b0accdc121ee7c5c147d50751956f9fc2cf8610664ca6a"
+        },
+        {
+          "name": "supabase/functions/_shared/interviewVoiceInstruction.mjs",
+          "repositoryPath": "supabase/functions/_shared/interviewVoiceInstruction.mjs",
+          "bytes": 4545,
+          "sha256": "e745c61fb3b7bd02c729d212d0faadd20a1a54f74716693f33500e96dbf30ea0"
+        },
+        {
+          "name": "supabase/functions/_shared/aiTestBudget.ts",
+          "repositoryPath": "supabase/functions/_shared/aiTestBudget.ts",
+          "bytes": 9505,
+          "sha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf"
+        },
+        {
+          "name": "supabase/functions/_shared/geminiTaskStream.ts",
+          "repositoryPath": "supabase/functions/_shared/geminiTaskStream.ts",
+          "bytes": 20929,
+          "sha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69"
+        },
+        {
+          "name": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+          "repositoryPath": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+          "bytes": 12891,
+          "sha256": "e64fdeafc46580bb5bc100c79a643359fcc433a7558efc2410d877b84eaf0c9c"
+        },
+        {
+          "name": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+          "repositoryPath": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+          "bytes": 42362,
+          "sha256": "97df6ed6d5e1c4289a9ce4ee677599538cf29fa670da8ad30cc561300a8735ee"
+        },
+        {
+          "name": "supabase/functions/_shared/classificationEngine.mjs",
+          "repositoryPath": "supabase/functions/_shared/classificationEngine.mjs",
+          "bytes": 16217,
+          "sha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971"
+        },
+        {
+          "name": "supabase/functions/_shared/serviceHandoff.mjs",
+          "repositoryPath": "supabase/functions/_shared/serviceHandoff.mjs",
+          "bytes": 2910,
+          "sha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e"
+        },
+        {
+          "name": "supabase/functions/_shared/workerServiceModeContext.mjs",
+          "repositoryPath": "supabase/functions/_shared/workerServiceModeContext.mjs",
+          "bytes": 23114,
+          "sha256": "78552bf6e33f173f596cbfd8df7c6eef0508f51d226b05c275a61ec007af48f3"
+        },
+        {
+          "name": "supabase/functions/_shared/completeFirstPlan.ts",
+          "repositoryPath": "supabase/functions/_shared/completeFirstPlan.ts",
+          "bytes": 3118,
+          "sha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de"
+        },
+        {
+          "name": "supabase/functions/_shared/preparedAiInput.ts",
+          "repositoryPath": "supabase/functions/_shared/preparedAiInput.ts",
+          "bytes": 11021,
+          "sha256": "7ee8653fc6ba0e6ab78aa31d857a49c906d46ed51caf78cc4da034c76295903b"
+        },
+        {
+          "name": "supabase/functions/_shared/serviceExecutionInstruction.mjs",
+          "repositoryPath": "supabase/functions/_shared/serviceExecutionInstruction.mjs",
+          "bytes": 1897,
+          "sha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314"
+        },
+        {
+          "name": "supabase/functions/_shared/researchDeadline.ts",
+          "repositoryPath": "supabase/functions/_shared/researchDeadline.ts",
+          "bytes": 900,
+          "sha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9"
+        },
+        {
+          "name": "supabase/functions/_shared/workerAreaAdmission.mjs",
+          "repositoryPath": "supabase/functions/_shared/workerAreaAdmission.mjs",
+          "bytes": 21850,
+          "sha256": "27e41e614301d73b55c61782ea1b885cbf76a634b0d25ae814eb9b09038f9c99"
+        },
+        {
+          "name": "supabase/functions/_shared/workerAreaResolver.mjs",
+          "repositoryPath": "supabase/functions/_shared/workerAreaResolver.mjs",
+          "bytes": 7145,
+          "sha256": "6890d942d88a845054abea2b0651b3c5db6dbf5554468d87840e59f67fc0e0ab"
+        },
+        {
+          "name": "supabase/functions/_shared/geminiContextCache.mjs",
+          "repositoryPath": "supabase/functions/_shared/geminiContextCache.mjs",
+          "bytes": 2958,
+          "sha256": "94daaefe13749a01f5cfde4d933be07824b930f2e7a0517f3c96d73eb4d0c7cf"
+        },
+        {
+          "name": "supabase/functions/_shared/craftQuestionMatrix.mjs",
+          "repositoryPath": "supabase/functions/_shared/craftQuestionMatrix.mjs",
+          "bytes": 17772,
+          "sha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b"
+        },
+        {
+          "name": "supabase/functions/_shared/conversationIntent.mjs",
+          "repositoryPath": "supabase/functions/_shared/conversationIntent.mjs",
+          "bytes": 13317,
+          "sha256": "7e10183a86e5f92c9c9949cf6eb0d7650f51178a04f64d835c13621a7076920d"
+        }
+      ]
+    },
+    {
+      "name": "uskoci-push-transport",
+      "beforeVersion": 48,
+      "version": 49,
+      "status": "ACTIVE",
+      "relativeEntrypoint": "functions/uskoci-push-transport/index.ts",
+      "candidateJsonSha256": "37083a6ca4d9e4bc84e4051413ffc88a096f0119547b8bb42500d3be57eeb7ae",
+      "independentReadbackJsonSha256": "4572f913c183766532c3957e5ede4b9c8d651108675aba440be0c4fe3e92ee7d",
+      "candidateAndLiveCanonicalFilesSha256": "4d2ec1d48000d706bd2c86d1171886d59b1e000ce39d9c90cbb554d43ac424af",
+      "fileCount": 3,
+      "filesByteExact": true,
+      "metadataSchemaExact": true,
+      "unchangedMetadata": {
+        "id": "d9bde875-0cd9-4998-b395-76fa3de0af92",
+        "slug": "uskoci-push-transport",
+        "name": "uskoci-push-transport",
+        "created_at": 1789291177945,
+        "verify_jwt": false,
+        "import_map": false,
+        "status": "ACTIVE"
+      },
+      "updatedAt": 1794326422977,
+      "liveEntrypointPath": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_d9bde875-0cd9-4998-b395-76fa3de0af92_49/source/functions/uskoci-push-transport/index.ts",
+      "liveEzbrSha256": "78e4041e8e51e6708c6a069c0c6f0dc587f9bff703c48d85580df37397b4aec8",
+      "files": [
+        {
+          "name": "functions/uskoci-push-transport/index.ts",
+          "repositoryPath": "supabase/functions/uskoci-push-transport/index.ts",
+          "bytes": 26352,
+          "sha256": "a0030dc16695f3a669621e8c2316c420ed7251b70a5098063e887f050fa67c6b"
+        },
+        {
+          "name": "functions/_shared/pushNotificationCopy.mjs",
+          "repositoryPath": "supabase/functions/_shared/pushNotificationCopy.mjs",
+          "bytes": 2862,
+          "sha256": "bd7171c544c3b42527940137b863f3641f96d063143d2850e5f5000621912215"
+        },
+        {
+          "name": "functions/_shared/supabaseKeys.mjs",
+          "repositoryPath": "supabase/functions/_shared/supabaseKeys.mjs",
+          "bytes": 4452,
+          "sha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61"
+        }
+      ]
+    }
+  ],
+  "operations": {
+    "getEdgeCalls": 3,
+    "deploys": 0,
+    "httpInvocations": 0,
+    "modelCalls": 0,
+    "sqlWrites": 0,
+    "sourceEdits": 0,
+    "prodActions": 0
+  },
+  "limits": [
+    "Byte-exact source readback proves installed package contents and metadata, not authenticated conversation correctness, Android acceptance or push delivery.",
+    "No runtime flag, secret, budget, policy, Cron or database state was read or changed in this independent Edge check."
+  ],
+  "workerQa127TaxonomyDelta": {
+    "file": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+    "preimage154Sha256": "6009239c1871a1a4fcc579e8aa79b772895d102f04dee0539477ac985f01463c",
+    "candidateAndLive155Sha256": "e64fdeafc46580bb5bc100c79a643359fcc433a7558efc2410d877b84eaf0c9c",
+    "parityProofSha256": "9c6c2dad590870c89b22db700fa1295eeebf0ea85fadc3afdca78cdba26c9d86",
+    "scope": "LOCAL_DETERMINISTIC_ONLY_NO_PROVIDER",
+    "passed": 3,
+    "total": 3,
+    "cases": [
+      {
+        "scenario": "ABSENT",
+        "workerInstructionByteExact": true,
+        "workerBytes": 2722,
+        "workerSha256": "f9063390585d8667ff773223847785029aaccf552a6460298e81cf5235ebab33",
+        "needOnlyByteDelta": 419
+      },
+      {
+        "scenario": "UNVERIFIED",
+        "workerInstructionByteExact": true,
+        "workerBytes": 2722,
+        "workerSha256": "f9063390585d8667ff773223847785029aaccf552a6460298e81cf5235ebab33",
+        "needOnlyByteDelta": 419
+      },
+      {
+        "scenario": "VERIFIED_SINGLE_LEAF",
+        "workerInstructionByteExact": true,
+        "workerBytes": 2826,
+        "workerSha256": "04fcbc50e65d20aeb4924e4c8ba71a93ad5a5644d75aef6e5b4caf08d8333ac3",
+        "needOnlyByteDelta": 419
+      }
+    ]
+  },
+  "totalFiles": 50,
+  "passed": true
+}

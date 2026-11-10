@@ -1,0 +1,124 @@
+{
+  "schema": "USKOCI_R06_INDEPENDENT_DEV_POSTFLIGHT_V1",
+  "recordedAt": "2026-11-10T15:59:23.305Z",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "scope": "INDEPENDENT_READ_ONLY_POST_DEPLOYMENT",
+  "coordinatorReportedSource": "acdd932f",
+  "queries": {
+    "postflight": {
+      "path": "scripts/sql/r06_terminal_dev_20261110.postflight.sql",
+      "sha256": "9b9146fc2c88787be05828dfb5dda4a26141fc90103e56e7404b48ac41c4d36e",
+      "result": [
+        {
+          "status": "R06_TERMINAL_DEV_POSTFLIGHT_PASS"
+        }
+      ]
+    },
+    "ledger": {
+      "version": "20261110155755",
+      "result": [
+        {
+          "version": "20261110155755",
+          "name": "r06_terminal_input_bounded_sweep_20261110",
+          "statement_entries": 1,
+          "statements_bytes": 77264,
+          "statements_sha256": "c2ec39adc05aaf1f9f6e6887ac583673c5f9b9b56e330e5cbddc4ca5bd199d4b"
+        }
+      ]
+    },
+    "state": {
+      "path": "r06-terminal-dev-state-20261110.sql",
+      "sha256": "e91af03d43279c5dbe52dccfc70d8416d80c3291d393e1230442ff7080be99c4",
+      "result": {
+        "cron": [
+          {
+            "name": "uskoci_marketplace_tick",
+            "active": true,
+            "schedule": "* * * * *"
+          },
+          {
+            "name": "uskoci_edge_workers",
+            "active": true,
+            "schedule": "* * * * *"
+          },
+          {
+            "name": "uskoci_taxonomy_postsave_tick_dev",
+            "active": true,
+            "schedule": "* * * * *"
+          }
+        ],
+        "gates": {
+          "erasureBound": false,
+          "exportPolicyBound": false,
+          "retentionAiSourceReady": false
+        },
+        "sweep": {
+          "acl": "{postgres=X/postgres}",
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "3eb933c2c2cc076cbc7528a7817ed45b"
+        },
+        "usage": {
+          "count": 1252,
+          "latest": "2026-11-09T15:16:14.429052+00:00",
+          "outputTokens": 442144,
+          "promptTokens": 10043994
+        },
+        "budget": {
+          "enabled": true,
+          "ceilingMicrousd": 100000000,
+          "priceValidUntil": "2027-01-01T00:00:00+00:00",
+          "reservedMicrousd": 65662284,
+          "reservationCapEnforced": true
+        },
+        "business": {
+          "needs": 19,
+          "users": 18,
+          "profiles": 24,
+          "agreements": 8,
+          "groupMessages": 0,
+          "agreementMessages": 13
+        },
+        "checkedAt": "2026-11-10T15:58:38.039412+00:00",
+        "needTurns": {
+          "active": 0,
+          "preparedInputs": 0,
+          "preparedMarkers": 0,
+          "expiredProcessing": 0
+        },
+        "migrations": {
+          "count": 373,
+          "latest": "20261110155755"
+        },
+        "workerTurns": {
+          "active": 0,
+          "preparedInputs": 0,
+          "preparedMarkers": 0,
+          "expiredProcessing": 0
+        },
+        "reservations": {
+          "count": 2349,
+          "unsettled": 221,
+          "settledMicrousd": 10562284,
+          "unsettledHoldMicrousd": 55100000
+        }
+      }
+    }
+  },
+  "verified": [
+    "Installed sweep body, owner, ACL, config, captured dependencies and exact QA table contract match the final generated postflight.",
+    "Migration ledger stores the exact 77,264-byte reviewed installer, not a regenerated or partial variant.",
+    "All scoped business/budget/usage/Cron aggregates match the coordinator's before/after report and earlier captured stable metrics.",
+    "No prepared input, prepared marker, active or expired-processing Need/Worker turn exists in this snapshot."
+  ],
+  "boundaries": [
+    "The installer changes the function definition and migration history; it contains no executed business-data UPDATE/DELETE/INSERT outside definition bodies. Temporary owner-guard inserts are transaction-local metadata.",
+    "Aggregate equality is not a row-by-row historical data-content diff. No claim of such a diff is made.",
+    "No end-user recovery scenario, live provider call, authenticated HTTP acceptance, Android scenario or final lifecycle/policy activation is proved by this postflight.",
+    "Retention source/export/erasure gates remain false; runtime feature-flag value was not observed or changed.",
+    "This agent executed read-only SQL only; no rollback, tick, provider, dispatch, settlement or data mutation was invoked."
+  ],
+  "status": "PASS"
+}

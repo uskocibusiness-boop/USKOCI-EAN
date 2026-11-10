@@ -1,0 +1,399 @@
+{
+  "schema": "USKOCI_CONTROLLED_DEV_CONTINUATION_V1",
+  "sourceCommit": "acdd932f4f3bb132b4b81ac3e1c22580f9cf6bc9",
+  "sourceTree": "1b0687104cc408c39e19bf1818c1d992b5dad827",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "ciSourceGate": {
+    "run": 42848651945,
+    "runNumber": 128,
+    "sourceChecks": "SUCCESS",
+    "tests": 1639,
+    "typescript": "PASS",
+    "sqlFiles": 235,
+    "sqlTests": 90,
+    "apk": "STILL_BUILDING_AT_THIS_DEPLOYMENT_CHECKPOINT"
+  },
+  "sql": {
+    "name": "r06_terminal_input_bounded_sweep_20261110",
+    "version": "20261110155755",
+    "installerSha256": "c2ec39adc05aaf1f9f6e6887ac583673c5f9b9b56e330e5cbddc4ca5bd199d4b",
+    "installerBytes": 77264,
+    "started": {
+      "current_time": "2026-11-10 15:57:51 UTC"
+    },
+    "preflight": "R06_TERMINAL_DEV_PREFLIGHT_PASS",
+    "postflight": "R06_TERMINAL_DEV_POSTFLIGHT_PASS",
+    "beforeHash": "8228461b045f87eebe7f00c646d99720",
+    "afterHash": "3eb933c2c2cc076cbc7528a7817ed45b",
+    "metadataUnchanged": true,
+    "migrationsBefore": 372,
+    "migrationsAfter": 373,
+    "independentProof": "r06-independent-dev-postflight-20261110.json",
+    "rollback": {
+      "executed": false,
+      "type": "CODE_ONLY",
+      "path": "scripts/sql/r06_terminal_dev_20261110.rollback.sql",
+      "sha256": "514321cf639025f12ceec975266a42d92725fe8bbada87003356e9c6d04366e9",
+      "retainedData": "Preserves retained user text and command markers; removed technical prompt is not reconstructed."
+    }
+  },
+  "edgeFunctions": [
+    {
+      "slug": "uskoci-ai-interview",
+      "previousVersion": 202,
+      "version": 203,
+      "files": 23,
+      "preimageBundleSha256": "9e185d8c592444f96fbd4ded66d2ddeec478d0d16cbb1c1207b80c3bfb05822d",
+      "bundleSha256": "5c60a0970cdc05e755ec5a012dd4eb156febfa5847a5e07094e18d63eb4f3956",
+      "verify_jwt": false,
+      "import_map": false,
+      "fullFileReadback": "BYTE_EXACT",
+      "deploymentStarted": {
+        "current_time": "2026-11-10 15:58:38 UTC"
+      }
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "previousVersion": 154,
+      "version": 155,
+      "files": 24,
+      "preimageBundleSha256": "d2dc80c0ea38a90306b6c02994ace552166d8d77a0f09703d496f730cf160bc1",
+      "bundleSha256": "31444416aad7198302212c9918982e47198725fb09c9c6afed4924028e4caf99",
+      "verify_jwt": false,
+      "import_map": false,
+      "fullFileReadback": "BYTE_EXACT",
+      "deploymentStarted": {
+        "current_time": "2026-11-10 15:59:52 UTC"
+      }
+    },
+    {
+      "slug": "uskoci-push-transport",
+      "previousVersion": 48,
+      "version": 49,
+      "files": 3,
+      "preimageBundleSha256": "3fce4c4b7d03a4bf6f533ee0721b43b86024a66da595603ff8eb5222080a472f",
+      "bundleSha256": "78e4041e8e51e6708c6a069c0c6f0dc587f9bff703c48d85580df37397b4aec8",
+      "verify_jwt": false,
+      "import_map": false,
+      "fullFileReadback": "BYTE_EXACT",
+      "deploymentStarted": {
+        "current_time": "2026-11-10 16:00:22 UTC"
+      }
+    }
+  ],
+  "authHttp": {
+    "need203": {
+      "method": "POST",
+      "authenticated": false,
+      "status": 401,
+      "code": "AUTH_REQUIRED"
+    },
+    "worker155": {
+      "method": "POST",
+      "authenticated": false,
+      "status": 401,
+      "code": "AUTH_REQUIRED"
+    },
+    "push49": {
+      "method": "POST",
+      "authenticated": false,
+      "status": 403,
+      "code": "FORBIDDEN"
+    }
+  },
+  "before": {
+    "cron": [
+      {
+        "name": "uskoci_marketplace_tick",
+        "active": true,
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "uskoci_edge_workers",
+        "active": true,
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "uskoci_taxonomy_postsave_tick_dev",
+        "active": true,
+        "schedule": "* * * * *"
+      }
+    ],
+    "gates": {
+      "erasureBound": false,
+      "exportPolicyBound": false,
+      "retentionAiSourceReady": false
+    },
+    "sweep": {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "8228461b045f87eebe7f00c646d99720"
+    },
+    "usage": {
+      "count": 1252,
+      "latest": "2026-11-09T15:16:14.429052+00:00",
+      "outputTokens": 442144,
+      "promptTokens": 10043994
+    },
+    "budget": {
+      "enabled": true,
+      "ceilingMicrousd": 100000000,
+      "priceValidUntil": "2027-01-01T00:00:00+00:00",
+      "reservedMicrousd": 65662284,
+      "reservationCapEnforced": true
+    },
+    "business": {
+      "needs": 19,
+      "users": 18,
+      "profiles": 24,
+      "agreements": 8,
+      "groupMessages": 0,
+      "agreementMessages": 13
+    },
+    "checkedAt": "2026-11-10T15:56:08.968868+00:00",
+    "needTurns": {
+      "active": 0,
+      "preparedInputs": 0,
+      "preparedMarkers": 0,
+      "expiredProcessing": 0
+    },
+    "migrations": {
+      "count": 372,
+      "latest": "20261109173026"
+    },
+    "workerTurns": {
+      "active": 0,
+      "preparedInputs": 0,
+      "preparedMarkers": 0,
+      "expiredProcessing": 0
+    },
+    "reservations": {
+      "count": 2349,
+      "unsettled": 221,
+      "settledMicrousd": 10562284,
+      "unsettledHoldMicrousd": 55100000
+    }
+  },
+  "after": {
+    "cron": [
+      {
+        "name": "uskoci_marketplace_tick",
+        "active": true,
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "uskoci_edge_workers",
+        "active": true,
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "uskoci_taxonomy_postsave_tick_dev",
+        "active": true,
+        "schedule": "* * * * *"
+      }
+    ],
+    "gates": {
+      "erasureBound": false,
+      "exportPolicyBound": false,
+      "retentionAiSourceReady": false
+    },
+    "sweep": {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "3eb933c2c2cc076cbc7528a7817ed45b"
+    },
+    "usage": {
+      "count": 1252,
+      "latest": "2026-11-09T15:16:14.429052+00:00",
+      "outputTokens": 442144,
+      "promptTokens": 10043994
+    },
+    "budget": {
+      "enabled": true,
+      "ceilingMicrousd": 100000000,
+      "priceValidUntil": "2027-01-01T00:00:00+00:00",
+      "reservedMicrousd": 65662284,
+      "reservationCapEnforced": true
+    },
+    "business": {
+      "needs": 19,
+      "users": 18,
+      "profiles": 24,
+      "agreements": 8,
+      "groupMessages": 0,
+      "agreementMessages": 13
+    },
+    "checkedAt": "2026-11-10T16:01:05.229943+00:00",
+    "needTurns": {
+      "active": 0,
+      "preparedInputs": 0,
+      "preparedMarkers": 0,
+      "expiredProcessing": 0
+    },
+    "migrations": {
+      "count": 373,
+      "latest": "20261110155755"
+    },
+    "workerTurns": {
+      "active": 0,
+      "preparedInputs": 0,
+      "preparedMarkers": 0,
+      "expiredProcessing": 0
+    },
+    "reservations": {
+      "count": 2349,
+      "unsettled": 221,
+      "settledMicrousd": 10562284,
+      "unsettledHoldMicrousd": 55100000
+    }
+  },
+  "invariantChecks": {
+    "cron": true,
+    "gates": true,
+    "usage": true,
+    "budget": true,
+    "business": true,
+    "needTurns": true,
+    "workerTurns": true,
+    "reservations": true
+  },
+  "pushPostflight": {
+    "attempts": [
+      {
+        "count": 4,
+        "outcome": "OK",
+        "error_code": null,
+        "max_send_count": 1,
+        "transport_state": "PROVIDER_ACCEPTED"
+      },
+      {
+        "count": 6,
+        "outcome": "QUEUED",
+        "error_code": "RECEIPT_PENDING",
+        "max_send_count": 1,
+        "transport_state": "TICKET_PENDING"
+      },
+      {
+        "count": 2,
+        "outcome": "FATAL",
+        "error_code": "RECEIPT_UNAVAILABLE",
+        "max_send_count": 1,
+        "transport_state": "UNKNOWN"
+      }
+    ],
+    "checkedAt": "2026-11-10T16:08:41.401843+00:00",
+    "readiness": {
+      "singleton": true,
+      "observation": "TICK_OK",
+      "observed_at": "2026-11-10T16:08:02.178728+00:00",
+      "sender_version": "PRE_V3_PUSH_READINESS_V1",
+      "last_success_at": "2026-11-10T16:08:02.178728+00:00"
+    },
+    "maxSendCount": 1,
+    "totalAttempts": 12,
+    "totalSendCount": 12,
+    "duplicateDeviceDeliveryGroups": 0
+  },
+  "logWindow": {
+    "from": "2026-11-10T15:57:50Z",
+    "to": "2026-11-10T16:02:15Z",
+    "edge": [
+      {
+        "events": 1,
+        "path": "/functions/v1/uskoci-ai-interview",
+        "status": "401",
+        "version": "203"
+      },
+      {
+        "events": 3,
+        "path": "/functions/v1/uskoci-push-transport",
+        "status": "200",
+        "version": "48"
+      },
+      {
+        "events": 2,
+        "path": "/functions/v1/uskoci-push-transport",
+        "status": "200",
+        "version": "49"
+      },
+      {
+        "events": 1,
+        "path": "/functions/v1/uskoci-push-transport",
+        "status": "403",
+        "version": "49"
+      },
+      {
+        "events": 5,
+        "path": "/functions/v1/uskoci-taxonomy-postsave-worker",
+        "status": "200",
+        "version": "15"
+      },
+      {
+        "events": 1,
+        "path": "/functions/v1/uskoci-worker-interview",
+        "status": "401",
+        "version": "155"
+      }
+    ],
+    "postgres": [
+      {
+        "events": 28,
+        "severity": "LOG",
+        "sqlstate": "00000"
+      },
+      {
+        "events": 1,
+        "severity": "WARNING",
+        "sqlstate": "25001"
+      },
+      {
+        "events": 1,
+        "severity": "WARNING",
+        "sqlstate": "25P01"
+      }
+    ],
+    "migrationWarnings": [
+      {
+        "event_message": "there is already a transaction in progress",
+        "sqlstate": "25001",
+        "timestamp": "2026-11-10T15:57:55.079000"
+      },
+      {
+        "event_message": "there is no transaction in progress",
+        "sqlstate": "25P01",
+        "timestamp": "2026-11-10T15:57:55.262000"
+      }
+    ],
+    "interpretation": "Explicit BEGIN/COMMIT in the standalone installer met the managed migration transaction wrapper. Both warning timestamps are in the apply interval. Exact code, complete postflight and the registered single-statement ledger were verified independently; no SQL ERROR was observed in this bounded post-window."
+  },
+  "edgeRollback": {
+    "executed": false,
+    "needAndPushBaseCommit": "334d0f9dc3a896fe2e3f3718d5ed995d7e2d10c1",
+    "workerBaseCommit": "334d0f9dc3a896fe2e3f3718d5ed995d7e2d10c1",
+    "workerSinglePassTaxonomyPreimageCommit": "5a59021a15a95fc8b34507e01bf49e2a8b085619",
+    "procedure": "Reconstruct the exact full preimage files using their preserved path layout, redeploy as a new version and compare every file; do not assume a version-number decrement."
+  },
+  "limits": {
+    "realModelCalls": 0,
+    "manualPushSends": 0,
+    "paidBudgetIncrease": false,
+    "secretChanges": false,
+    "runtimeFlagChanges": false,
+    "runtimePreparedFlag": "UNKNOWN",
+    "diagnosticEndpoint": "Existing sbfenv v11 source is permanently retired and returns DIAGNOSTIC_DISABLED; it was inspected only, not invoked or re-enabled.",
+    "actualConversationRecovery": false,
+    "android": false,
+    "productionMutation": false,
+    "retentionExportErasureGates": "STILL_FALSE"
+  },
+  "failedAttempts": [
+    "Terminal git push had no HTTPS write credential; the authenticated connector published the identical verified tree with an expected-HEAD guard and no force.",
+    "A first logs query asked for nonexistent body; corrected to the actual event_message field. This was a read-only logs API query, not a PostgreSQL mutation."
+  ]
+}
