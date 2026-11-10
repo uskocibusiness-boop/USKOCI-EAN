@@ -1,0 +1,2239 @@
+{
+  "schema": "USKOCI_QA131_CI_ARTIFACT_SUMMARY_V1",
+  "observedAtUtc": "2026-11-10T19:12:18.108398+00:00",
+  "status": "CI_SUCCESS_ARTIFACT_VERIFIED_NOT_ANDROID",
+  "run": {
+    "id": 42878467123,
+    "run_number": 131,
+    "head_branch": "work/uskoci-cist-proizvod-20261104",
+    "head_sha": "bb3cc00e7778d52862220c14f7dbbf46a2fba2cf",
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42878467123",
+    "run_started_at": "2026-11-10T18:45:49Z",
+    "updated_at": "2026-11-10T19:10:03Z"
+  },
+  "jobs": [
+    {
+      "id": 130048011664,
+      "name": "qa-apk",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-11-10T19:09:50Z"
+    },
+    {
+      "id": 130062102189,
+      "name": "record-ux-checkpoint",
+      "status": "completed",
+      "conclusion": "success",
+      "completed_at": "2026-11-10T19:10:02Z"
+    }
+  ],
+  "checks": {
+    "node": {
+      "tests": 1714,
+      "pass": 1714,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "typescript": {
+      "status": "PASS_FROM_SUCCESSFUL_CI_STEP_AND_EMPTY_OUTPUT",
+      "outputBytes": 0
+    },
+    "migrationIntegrity": {
+      "status": "PASS",
+      "physicalFiles": 235,
+      "pythonTests": {
+        "tests": 90,
+        "status": "OK"
+      }
+    },
+    "bootstrap": {
+      "status": "PASS",
+      "generator": {
+        "tests": 11,
+        "status": "OK"
+      },
+      "seed": {
+        "stats": {
+          "tests": 1,
+          "pass": 1,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "testReportFormat": "NODE_SPEC",
+        "status": "PASS"
+      }
+    },
+    "originalZip": {
+      "path": "/workspace/scratch/e3e59e0c2a16/qa131-proof/checks-original.zip",
+      "bytes": 61717,
+      "sha256": "e7fcc8b5795e5116681f6174b9677c76963f05355979ac83fa36b75c08a58f8a",
+      "artifactId": 13793381286,
+      "artifactName": "uskoci-checks-bb3cc00e7778d52862220c14f7dbbf46a2fba2cf",
+      "matchesGithubDigestAndSize": true
+    }
+  },
+  "githubArtifact": {
+    "id": 13793519445,
+    "node_id": "MDg6QXJ0aWZhY3QxMzc5MzUxOTQ0NQ==",
+    "name": "uskoci-isolated-qa-apk-131",
+    "size_in_bytes": 87586694,
+    "url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13793519445",
+    "archive_download_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/artifacts/13793519445/zip",
+    "expired": false,
+    "digest": "sha256:994097e64f9d980d1a046c5a9e26eea22b352a2ae358c3c0e8a22326eccfb256",
+    "created_at": "2026-11-10T19:09:46Z",
+    "updated_at": "2026-11-10T19:09:46Z",
+    "expires_at": "2026-11-17T19:09:42Z",
+    "workflow_run": {
+      "id": 42878467123,
+      "repository_id": 1408220883,
+      "head_repository_id": 1408220883,
+      "head_branch": "work/uskoci-cist-proizvod-20261104",
+      "head_sha": "bb3cc00e7778d52862220c14f7dbbf46a2fba2cf"
+    }
+  },
+  "originalZip": {
+    "path": "/workspace/scratch/e3e59e0c2a16/qa131-proof/apk-original.zip",
+    "bytes": 87586694,
+    "sha256": "994097e64f9d980d1a046c5a9e26eea22b352a2ae358c3c0e8a22326eccfb256",
+    "artifactId": 13793519445,
+    "artifactName": "uskoci-isolated-qa-apk-131",
+    "matchesGithubDigestAndSize": true
+  },
+  "apk": {
+    "filename": "USKOCI-QA-bb3cc00e7.apk",
+    "bytes": 122325505,
+    "sha256": "ec1846a300ab3036288daa311cf17782eec3cc3e8e9fbb693b3a337e7de102d9",
+    "matchesBuildReceiptAndSha256sums": true,
+    "extractedApkCompared": false,
+    "package": "rs.uskoci.preview.qa",
+    "backend": "DEV",
+    "backendProject": "leqcwgzvjsxugfgzdmth",
+    "runtimeVersion": "uskoci-v1-preview-r2"
+  },
+  "delivery": {
+    "filename": "USKOCI-QA131-bb3cc00e.apk",
+    "bytes": 122325505,
+    "sha256": "ec1846a300ab3036288daa311cf17782eec3cc3e8e9fbb693b3a337e7de102d9",
+    "matchesVerifiedOriginalApkBytes": true,
+    "renameOnly": true
+  },
+  "ciAndroidEvidence": {
+    "scope": "aapt/apksigner receipts in GitHub-digest-verified artifact; APK bytes independently matched to the build receipt",
+    "localAaptVerificationPerformed": false,
+    "localApksignerVerificationPerformed": false,
+    "localToolsAvailable": {
+      "aapt": false,
+      "apksigner": false
+    },
+    "package": "rs.uskoci.preview.qa",
+    "versionCode": 36,
+    "versionName": "1.0.0",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "otaEnabled": false,
+    "otaCheckAutomatically": "NEVER",
+    "signatureReceiptVerified": true,
+    "schemeV2": true,
+    "signers": 1,
+    "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+    "sameCertificateAsQa47": true,
+    "publicKeyType": "RSA",
+    "publicKeyBits": 2048
+  },
+  "runtime": {
+    "backend": "DEV",
+    "runtimeVersion": "uskoci-v1-preview-r2",
+    "abis": [
+      "arm64-v8a"
+    ],
+    "embeddedBundle": true,
+    "otaEnabled": false,
+    "firebaseConfigured": false,
+    "nativePatchMarker": "USKOCI_RNR01",
+    "dexFiles": 7,
+    "customSoundActivation": "NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED",
+    "push": "NOT_PROVEN",
+    "deviceInstall": "NOT_PERFORMED",
+    "signing": "EXPO_TEMPLATE_ANDROID_DEBUG_KEY"
+  },
+  "nativeAudio": {
+    "status": "APK_LOGICAL_RAW_RESOURCES_AND_BYTES_MATCH_EXACT_GIT_COMMIT_AND_BOTH_CI_RECEIPTS",
+    "sourceCommit": "bb3cc00e7778d52862220c14f7dbbf46a2fba2cf",
+    "source": "git show <exact sourceCommit>:assets/audio/<filename>; not working-tree files",
+    "resources": {
+      "uskoci_confirm_v1.wav": {
+        "logicalName": "raw/uskoci_confirm_v1",
+        "resourceId": "0x7f120003",
+        "apkPath": "res/F2.wav",
+        "bytes": 20330,
+        "sha256": "bdd2081d31cb6a7f03f7a7913b422c7ee0fda905ecfe6da3d063996531c41cb1"
+      },
+      "uskoci_message_v1.wav": {
+        "logicalName": "raw/uskoci_message_v1",
+        "resourceId": "0x7f120004",
+        "apkPath": "res/ES.wav",
+        "bytes": 10628,
+        "sha256": "ef4572916f44cfc4fdb8bc7e50fd93790624833ac3779a6341f03ee35a045aed"
+      },
+      "uskoci_opportunity_v1.wav": {
+        "logicalName": "raw/uskoci_opportunity_v1",
+        "resourceId": "0x7f120005",
+        "apkPath": "res/fp.wav",
+        "bytes": 18566,
+        "sha256": "79a7e5de0e636f2e25e6803ad8b7e2cc155324f60e1f9269ce85684f4d68ee3d"
+      }
+    },
+    "independentAapt2": {
+      "version": "Android Asset Packaging Tool (aapt) 2.20-13700139",
+      "sha256": "3aefe9e14970ba7fcbd0209809adc85e560b6ce07cc90804ea8e1c0e6e1f84dd"
+    },
+    "independentResourceDump": {
+      "bytes": 2409794,
+      "sha256": "ab2f721852eafec6e405626aab4537ef6da61ae34b8c486d5c4c948db9215ebd"
+    },
+    "customSoundActivation": "NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED",
+    "audibleOutputOrDeviceExecutionVerified": false
+  },
+  "verifier": {
+    "path": "scripts/verify-qa-apk-r2.py",
+    "unchangedFromSourceCommit": true,
+    "proof": "qa131-artifact-verification.json",
+    "proofSha256": "2545177f49e364c54942ccd234ed60681730b0116ce726b4da57d1eca635bec8",
+    "status": "LOCAL_ARTIFACT_AND_NATIVE_AUDIO_BYTES_CONFIRMED_NOT_NATIVE_E2E"
+  },
+  "dev": {
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "needVersion": 203,
+    "workerVersion": 156,
+    "pushVersion": 49,
+    "migrationCount": 375,
+    "latestMigration": "20261110182542",
+    "proof": "continuation-dev-rollout-qa130-20261110.json"
+  },
+  "scopeLimits": [
+    "Original GitHub ZIP digest/size, source/run and CI receipt identity verified; no APK rebuild or modification.",
+    "Standalone AAPT2 independently resolves the exact three Git audio resources. Signature and Android badging receipts are checked against the original artifact; no local apksigner invocation.",
+    "No Android installation, native process-kill, physical file erasure, microphone, sound, push delivery, accessibility or complete multi-account marketplace E2E.",
+    "No production signing/AAB, Google Play distribution, paid AI probes or release readiness certification.",
+    "R06 runtime flag UNKNOWN and retention/source/export/erasure gates remain open; the status-only fix does not close the entire R06 lifecycle."
+  ],
+  "nativeStaticInspection": {
+    "schema": "uskoci.qa131.native-elf-zip-readonly.v1",
+    "checkedAtUtc": "2026-11-10T19:14:27.523445+00:00",
+    "sourceCommit": "bb3cc00e7778d52862220c14f7dbbf46a2fba2cf",
+    "runId": 42878467123,
+    "apk": {
+      "path": "/workspace/scratch/e3e59e0c2a16/USKOCI-QA131-bb3cc00e.apk",
+      "bytes": 122325505,
+      "sha256": "ec1846a300ab3036288daa311cf17782eec3cc3e8e9fbb693b3a337e7de102d9",
+      "unchangedAfterInspection": true
+    },
+    "method": {
+      "kind": "NEW_AD_HOC_READ_ONLY_INSPECTION",
+      "primarySource": "https://developer.android.com/guide/practices/page-sizes",
+      "sourceReadBeforeInspection": true,
+      "readelfExecutable": "/usr/bin/readelf",
+      "readelfVersion": "GNU readelf (GNU Binutils for Debian) 2.44",
+      "readelfArguments": [
+        "-hW",
+        "-lW"
+      ],
+      "loadsArrayColumns": [
+        "fileOffset",
+        "virtualAddress",
+        "memorySize",
+        "flags",
+        "alignment"
+      ],
+      "loadCriterion": "Each LOAD p_align >= 0x4000; additionally check p_vaddr and p_offset congruence modulo 0x4000.",
+      "relroExplicitCriteria": "End address modulo 0x4000 = 0 OR end equals end of LOAD containing RELRO start. No absent RELRO in this APK.",
+      "relroPaddingTreatment": "Two actual ELF RELRO MemSiz ranges extend beyond the LOAD that contains their start. They are separately reported, not silently counted as the explicit equality formula. For each RELRO, inspect every writable LOAD for overlap outside RELRO within [floor(start/16384)*16384, ceil(end/16384)*16384). Zero such overlap is a static observation, not a runtime compatibility claim.",
+      "zipCriterion": "Actual ZIP_STORED .so data offset = local header offset + 30 + local filename bytes + local extra bytes; modulo 16384 checked. Local name/method checked against central directory.",
+      "zipalignToolExecuted": false,
+      "historicalQa94VerifierExecuted": false,
+      "apkModified": false,
+      "repoModified": false
+    },
+    "summary": {
+      "nativeLibraries": 28,
+      "architectures": [
+        "AArch64"
+      ],
+      "elfClasses": [
+        "ELF64"
+      ],
+      "loadSegments": 85,
+      "allLoadAlignmentsAtLeast16384": true,
+      "allLoadVaddrFileOffsetCongruent16384": true,
+      "librariesWithRelro": 28,
+      "relroSegments": 28,
+      "relroExplicitFormulaPass": 26,
+      "relroEndAligned": 4,
+      "relroExactLoadEnd": 22,
+      "relroPaddedBeyondLoadEnd": 2,
+      "relroRoundedProtectionWritableOutsideRelroOverlaps": 0,
+      "uncompressedNativeLibraries": 28,
+      "allUncompressedSoDataOffsetsAligned16384": true,
+      "uncompressedSoElfMagicAtComputedDataOffset": 28
+    },
+    "status": {
+      "elfArchitecture": "AARCH64_ELF64_VERIFIED",
+      "elfLoadAlignment": "PASS_STATIC_INSPECTION",
+      "zipStoredSoDataOffsets": "PASS_NUMERICAL_OFFSET_INSPECTION",
+      "relro": "26_EXPLICIT_FORMULA_PASS_2_PADDED_LOAD_VARIANTS_NO_WRITABLE_OVERLAP_OBSERVED",
+      "zipalign": "NOT_EXECUTED_TOOL_UNAVAILABLE",
+      "android16KbRuntime": "BLOCKED_NO_DEVICE",
+      "aabPlayCompatibility": "NOT_VERIFIED"
+    },
+    "libraries": [
+      {
+        "entry": "lib/arm64-v8a/libandroidx.graphics.path.so",
+        "bytes": 10096,
+        "sha256": "41e9a793c43a0f4fddb19e33f346bace464f30f888ba7b9eaf96294ea115bfb6",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            7232,
+            "RE",
+            16384
+          ],
+          [
+            7232,
+            23616,
+            912,
+            "RW",
+            16384
+          ],
+          [
+            8144,
+            40912,
+            16,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 23616,
+            "memSize": 960,
+            "end": 24576,
+            "endModulo16384": 8192,
+            "loadEnd": 24528,
+            "nextWritableLoadStart": 40912,
+            "roundedProtectionRange": [
+              16384,
+              32768
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "PADDED_BEYOND_LOAD_END_REVIEW",
+            "explicitFormulaPass": false,
+            "followingWritableLoadRanges": [
+              [
+                40912,
+                40928
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 22145826,
+          "filenameBytes": 42,
+          "extraBytes": 5270,
+          "dataOffset": 22151168,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libanimation-decoder-gif.so",
+        "bytes": 275368,
+        "sha256": "1a36faccdc2df2d03b399bd20113768f04fe5f9c873c32974d89e588f63b6933",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            256304,
+            "RE",
+            16384
+          ],
+          [
+            256304,
+            272688,
+            18128,
+            "RW",
+            16384
+          ],
+          [
+            272800,
+            305568,
+            2896,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 272688,
+            "memSize": 18128,
+            "end": 290816,
+            "endModulo16384": 12288,
+            "loadEnd": 290816,
+            "nextWritableLoadStart": 305568,
+            "roundedProtectionRange": [
+              262144,
+              294912
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                305568,
+                308464
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 22161264,
+          "filenameBytes": 41,
+          "extraBytes": 6217,
+          "dataOffset": 22167552,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libappmodules.so",
+        "bytes": 2545968,
+        "sha256": "78e8de425f2bb95013042933988d46ed8397b083c7bb6fccaa2d15c0ecd5fce1",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            2456288,
+            "RE",
+            16384
+          ],
+          [
+            2456288,
+            2472672,
+            91424,
+            "RW",
+            16384
+          ],
+          [
+            2543696,
+            2576464,
+            38552,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 2472672,
+            "memSize": 91424,
+            "end": 2564096,
+            "endModulo16384": 8192,
+            "loadEnd": 2564096,
+            "nextWritableLoadStart": 2576464,
+            "roundedProtectionRange": [
+              2457600,
+              2572288
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                2576464,
+                2615016
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 22442920,
+          "filenameBytes": 30,
+          "extraBytes": 3100,
+          "dataOffset": 22446080,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libavif_android.so",
+        "bytes": 899752,
+        "sha256": "278211a4aa0fe5034aef8ef9717736242b3b6868708dcd1e1b6d941c5f05150c",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            879632,
+            "RE",
+            16384
+          ],
+          [
+            884736,
+            884736,
+            16384,
+            "RW",
+            16384
+          ],
+          [
+            897488,
+            913872,
+            236512,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 884736,
+            "memSize": 16384,
+            "end": 901120,
+            "endModulo16384": 0,
+            "loadEnd": 901120,
+            "nextWritableLoadStart": 913872,
+            "roundedProtectionRange": [
+              884736,
+              901120
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "END_16KB_ALIGNED",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                913872,
+                1150384
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 24992048,
+          "filenameBytes": 32,
+          "extraBytes": 9874,
+          "dataOffset": 25001984,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libc++_shared.so",
+        "bytes": 1292904,
+        "sha256": "3e852764502d06e0cf1080d532ae7c608b7649d946a3a9d7e84e3d4b7d683214",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            634024,
+            "R",
+            16384
+          ],
+          [
+            634032,
+            650416,
+            616000,
+            "RE",
+            16384
+          ],
+          [
+            1250032,
+            1282800,
+            40208,
+            "RW",
+            16384
+          ],
+          [
+            1289792,
+            1338944,
+            32016,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 1282800,
+            "memSize": 40208,
+            "end": 1323008,
+            "endModulo16384": 12288,
+            "loadEnd": 1323008,
+            "nextWritableLoadStart": 1338944,
+            "roundedProtectionRange": [
+              1277952,
+              1327104
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                1338944,
+                1370960
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 25901736,
+          "filenameBytes": 30,
+          "extraBytes": 1308,
+          "dataOffset": 25903104,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libdatastore_shared_counter.so",
+        "bytes": 7112,
+        "sha256": "d3e48717c9aa147e0ab21063ba0e8e0211cabf8bf40b222640829519edbf58e1",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            4544,
+            "RE",
+            16384
+          ],
+          [
+            4544,
+            20928,
+            616,
+            "RW",
+            16384
+          ],
+          [
+            5160,
+            37928,
+            1,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 20928,
+            "memSize": 3648,
+            "end": 24576,
+            "endModulo16384": 8192,
+            "loadEnd": 21544,
+            "nextWritableLoadStart": 37928,
+            "roundedProtectionRange": [
+              16384,
+              32768
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "PADDED_BEYOND_LOAD_END_REVIEW",
+            "explicitFormulaPass": false,
+            "followingWritableLoadRanges": [
+              [
+                37928,
+                37929
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 27196008,
+          "filenameBytes": 44,
+          "extraBytes": 1358,
+          "dataOffset": 27197440,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libexpo-modules-core.so",
+        "bytes": 1482616,
+        "sha256": "2722c1175abcd7f5f71978d5e27c502f98c30b510777ca25a0d5462a7feb62f8",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            1440032,
+            "RE",
+            16384
+          ],
+          [
+            1440032,
+            1456416,
+            42720,
+            "RW",
+            16384
+          ],
+          [
+            1480328,
+            1513096,
+            5632,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 1456416,
+            "memSize": 42720,
+            "end": 1499136,
+            "endModulo16384": 8192,
+            "loadEnd": 1499136,
+            "nextWritableLoadStart": 1513096,
+            "roundedProtectionRange": [
+              1441792,
+              1507328
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                1513096,
+                1518728
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 27204552,
+          "filenameBytes": 37,
+          "extraBytes": 9205,
+          "dataOffset": 27213824,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libexpo-updates.so",
+        "bytes": 101912,
+        "sha256": "4da098f63fe874f05cc3971630590438d8bff6c04055c2462f9ad5aa6fdd90d7",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            95216,
+            "RE",
+            16384
+          ],
+          [
+            95216,
+            111600,
+            3088,
+            "RW",
+            16384
+          ],
+          [
+            96672,
+            129440,
+            5232,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 111600,
+            "memSize": 3088,
+            "end": 114688,
+            "endModulo16384": 0,
+            "loadEnd": 114688,
+            "nextWritableLoadStart": 129440,
+            "roundedProtectionRange": [
+              98304,
+              114688
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "END_16KB_ALIGNED",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                129440,
+                134672
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 28696440,
+          "filenameBytes": 32,
+          "extraBytes": 8266,
+          "dataOffset": 28704768,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libfbjni.so",
+        "bytes": 177000,
+        "sha256": "a9e35ba55d3f956920281f519385f8a72475ee24819799cb08375fdd4cce2b22",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            171152,
+            "RE",
+            16384
+          ],
+          [
+            171152,
+            187536,
+            4976,
+            "RW",
+            16384
+          ],
+          [
+            174656,
+            207424,
+            3528,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 187536,
+            "memSize": 4976,
+            "end": 192512,
+            "endModulo16384": 12288,
+            "loadEnd": 192512,
+            "nextWritableLoadStart": 207424,
+            "roundedProtectionRange": [
+              180224,
+              196608
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                207424,
+                210952
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 28806680,
+          "filenameBytes": 25,
+          "extraBytes": 12721,
+          "dataOffset": 28819456,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libgesturehandler.so",
+        "bytes": 38456,
+        "sha256": "7289c087fffe4f7c2c562b23a9df8db657b5ed1a43f64ed1dc28bc396dff1407",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            34976,
+            "RE",
+            16384
+          ],
+          [
+            34976,
+            51360,
+            1888,
+            "RW",
+            16384
+          ],
+          [
+            36216,
+            68984,
+            2160,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 51360,
+            "memSize": 1888,
+            "end": 53248,
+            "endModulo16384": 4096,
+            "loadEnd": 53248,
+            "nextWritableLoadStart": 68984,
+            "roundedProtectionRange": [
+              49152,
+              65536
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                68984,
+                71144
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 28996456,
+          "filenameBytes": 34,
+          "extraBytes": 3160,
+          "dataOffset": 28999680,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libgifimage.so",
+        "bytes": 318992,
+        "sha256": "9f605249728da7091569772a38a4dde298ed48e1e73fed3da0e4b662ef38715c",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            298608,
+            "RE",
+            16384
+          ],
+          [
+            298608,
+            314992,
+            20880,
+            "RW",
+            16384
+          ],
+          [
+            316016,
+            348784,
+            3632,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 314992,
+            "memSize": 20880,
+            "end": 335872,
+            "endModulo16384": 8192,
+            "loadEnd": 335872,
+            "nextWritableLoadStart": 348784,
+            "roundedProtectionRange": [
+              311296,
+              344064
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                348784,
+                352416
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 29038136,
+          "filenameBytes": 28,
+          "extraBytes": 10638,
+          "dataOffset": 29048832,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libhermestooling.so",
+        "bytes": 141432,
+        "sha256": "1db061bbbb050105fee9b208b861adc0cc02cc359551be6ba9562798a81f6cca",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            132944,
+            "RE",
+            16384
+          ],
+          [
+            132944,
+            149328,
+            6320,
+            "RW",
+            16384
+          ],
+          [
+            139040,
+            171808,
+            2258,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 149328,
+            "memSize": 6320,
+            "end": 155648,
+            "endModulo16384": 8192,
+            "loadEnd": 155648,
+            "nextWritableLoadStart": 171808,
+            "roundedProtectionRange": [
+              147456,
+              163840
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                171808,
+                174066
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 29367824,
+          "filenameBytes": 33,
+          "extraBytes": 8625,
+          "dataOffset": 29376512,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libhermesvm.so",
+        "bytes": 2477320,
+        "sha256": "bf38be45bf5d6ad8ba961eaf9deda5fa7e032f3ff7d3929ba2a624567093bffa",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            2437104,
+            "RE",
+            16384
+          ],
+          [
+            2437104,
+            2453488,
+            40976,
+            "RW",
+            16384
+          ],
+          [
+            2474504,
+            2507272,
+            17328,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 2453488,
+            "memSize": 40976,
+            "end": 2494464,
+            "endModulo16384": 4096,
+            "loadEnd": 2494464,
+            "nextWritableLoadStart": 2507272,
+            "roundedProtectionRange": [
+              2441216,
+              2506752
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                2507272,
+                2524600
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 29517944,
+          "filenameBytes": 28,
+          "extraBytes": 5966,
+          "dataOffset": 29523968,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libimagepipeline.so",
+        "bytes": 8760,
+        "sha256": "1b377992e4256fa9398ec057722f84a359c7d588e570c8a41f51d930c19ece7d",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            5952,
+            "RE",
+            16384
+          ],
+          [
+            5952,
+            22336,
+            2240,
+            "RW",
+            16384
+          ],
+          [
+            6520,
+            39288,
+            216,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 22336,
+            "memSize": 2240,
+            "end": 24576,
+            "endModulo16384": 8192,
+            "loadEnd": 24576,
+            "nextWritableLoadStart": 39288,
+            "roundedProtectionRange": [
+              16384,
+              32768
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                39288,
+                39504
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 32001288,
+          "filenameBytes": 33,
+          "extraBytes": 12985,
+          "dataOffset": 32014336,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libjsi.so",
+        "bytes": 412696,
+        "sha256": "5acb80d7eb93b2114a419c9e42b44476969299e806ad7eafe1b293e221b9a682",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            400880,
+            "RE",
+            16384
+          ],
+          [
+            400880,
+            417264,
+            12816,
+            "RW",
+            16384
+          ],
+          [
+            410384,
+            443152,
+            67960,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 417264,
+            "memSize": 12816,
+            "end": 430080,
+            "endModulo16384": 4096,
+            "loadEnd": 430080,
+            "nextWritableLoadStart": 443152,
+            "roundedProtectionRange": [
+              409600,
+              442368
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                443152,
+                511112
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 32023096,
+          "filenameBytes": 23,
+          "extraBytes": 7571,
+          "dataOffset": 32030720,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libmaplibre.so",
+        "bytes": 10522752,
+        "sha256": "b89ad36b224d0093a883f0b3f6b520e2ec3247436f074126762eac07ed7ee9b0",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            10258032,
+            "RE",
+            16384
+          ],
+          [
+            10258032,
+            10274416,
+            248208,
+            "RW",
+            16384
+          ],
+          [
+            10505032,
+            10537800,
+            64112,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 10274416,
+            "memSize": 248208,
+            "end": 10522624,
+            "endModulo16384": 4096,
+            "loadEnd": 10522624,
+            "nextWritableLoadStart": 10537800,
+            "roundedProtectionRange": [
+              10272768,
+              10534912
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                10537800,
+                10601912
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 32443416,
+          "filenameBytes": 28,
+          "extraBytes": 13230,
+          "dataOffset": 32456704,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libnative-filters.so",
+        "bytes": 23712,
+        "sha256": "4294b57460e70a6351ce7ae2733a79c088c907dfa54673a657227ec5bb669594",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            20960,
+            "RE",
+            16384
+          ],
+          [
+            20960,
+            37344,
+            3616,
+            "RW",
+            16384
+          ],
+          [
+            21544,
+            54312,
+            144,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 37344,
+            "memSize": 3616,
+            "end": 40960,
+            "endModulo16384": 8192,
+            "loadEnd": 40960,
+            "nextWritableLoadStart": 54312,
+            "roundedProtectionRange": [
+              32768,
+              49152
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                54312,
+                54456
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 42979456,
+          "filenameBytes": 34,
+          "extraBytes": 12096,
+          "dataOffset": 42991616,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libnative-imagetranscoder.so",
+        "bytes": 585376,
+        "sha256": "2aed28298a25afd52ac670cf9682398c6c7ba42a57195c01efd565e7ddfe17ca",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            565168,
+            "RE",
+            16384
+          ],
+          [
+            565168,
+            581552,
+            20560,
+            "RW",
+            16384
+          ],
+          [
+            582872,
+            615640,
+            3032,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 581552,
+            "memSize": 20560,
+            "end": 602112,
+            "endModulo16384": 12288,
+            "loadEnd": 602112,
+            "nextWritableLoadStart": 615640,
+            "roundedProtectionRange": [
+              573440,
+              606208
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                615640,
+                618672
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 43015328,
+          "filenameBytes": 42,
+          "extraBytes": 8984,
+          "dataOffset": 43024384,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libreact_codegen_rnscreens.so",
+        "bytes": 1200424,
+        "sha256": "6034db6c233f8c4f65c7eb4bbab494377ff1ce26b92540a47b59034007f89188",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            1155104,
+            "RE",
+            16384
+          ],
+          [
+            1155104,
+            1171488,
+            45024,
+            "RW",
+            16384
+          ],
+          [
+            1198168,
+            1230936,
+            58888,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 1171488,
+            "memSize": 45024,
+            "end": 1216512,
+            "endModulo16384": 4096,
+            "loadEnd": 1216512,
+            "nextWritableLoadStart": 1230936,
+            "roundedProtectionRange": [
+              1163264,
+              1228800
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                1230936,
+                1289824
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 43609760,
+          "filenameBytes": 43,
+          "extraBytes": 4375,
+          "dataOffset": 43614208,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+        "bytes": 789032,
+        "sha256": "4deeb8983a2c14f251be598a1b3d34f70ab667e77c7860e4c15daba014ef36c2",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            763360,
+            "RE",
+            16384
+          ],
+          [
+            763360,
+            779744,
+            27168,
+            "RW",
+            16384
+          ],
+          [
+            786776,
+            819544,
+            74664,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 779744,
+            "memSize": 27168,
+            "end": 806912,
+            "endModulo16384": 4096,
+            "loadEnd": 806912,
+            "nextWritableLoadStart": 819544,
+            "roundedProtectionRange": [
+              770048,
+              819200
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                819544,
+                894208
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 44814632,
+          "filenameBytes": 39,
+          "extraBytes": 11923,
+          "dataOffset": 44826624,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+        "bytes": 159208,
+        "sha256": "0f5430acfe8fdc8e5b43b8b5a61eb65c83e57337f5e30c4138070fe057212d40",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            151568,
+            "RE",
+            16384
+          ],
+          [
+            151568,
+            167952,
+            8176,
+            "RW",
+            16384
+          ],
+          [
+            156960,
+            189728,
+            5840,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 167952,
+            "memSize": 8176,
+            "end": 176128,
+            "endModulo16384": 12288,
+            "loadEnd": 176128,
+            "nextWritableLoadStart": 189728,
+            "roundedProtectionRange": [
+              163840,
+              180224
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                189728,
+                195568
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 45615656,
+          "filenameBytes": 49,
+          "extraBytes": 13705,
+          "dataOffset": 45629440,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libreactnative.so",
+        "bytes": 6985168,
+        "sha256": "14bb860cebebb0e29eb2c96a52d70da9b73e60253916694af955f6e3ef1e6b64",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            6815632,
+            "RE",
+            16384
+          ],
+          [
+            6815632,
+            6832016,
+            163952,
+            "RW",
+            16384
+          ],
+          [
+            6977824,
+            7010592,
+            143832,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 6832016,
+            "memSize": 163952,
+            "end": 6995968,
+            "endModulo16384": 0,
+            "loadEnd": 6995968,
+            "nextWritableLoadStart": 7010592,
+            "roundedProtectionRange": [
+              6815744,
+              6995968
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "END_16KB_ALIGNED",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                7010592,
+                7154424
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 45788648,
+          "filenameBytes": 31,
+          "extraBytes": 4571,
+          "dataOffset": 45793280,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libreanimated.so",
+        "bytes": 1500888,
+        "sha256": "543e3fa9f8c40ee8b936f54348cd541764e953a2ee4b8ee826b228364dbeb1cd",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            1445088,
+            "RE",
+            16384
+          ],
+          [
+            1445088,
+            1461472,
+            54048,
+            "RW",
+            16384
+          ],
+          [
+            1498560,
+            1531328,
+            4976,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 1461472,
+            "memSize": 54048,
+            "end": 1515520,
+            "endModulo16384": 8192,
+            "loadEnd": 1515520,
+            "nextWritableLoadStart": 1531328,
+            "roundedProtectionRange": [
+              1458176,
+              1523712
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                1531328,
+                1536304
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 52778448,
+          "filenameBytes": 30,
+          "extraBytes": 10740,
+          "dataOffset": 52789248,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/librnscreens.so",
+        "bytes": 100904,
+        "sha256": "6edceeab9485ed3cd96335721616b3a285f599558db90b245442cedaa1a71ee9",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            94912,
+            "RE",
+            16384
+          ],
+          [
+            94912,
+            111296,
+            7488,
+            "RW",
+            16384
+          ],
+          [
+            98664,
+            131432,
+            2464,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 111296,
+            "memSize": 7488,
+            "end": 118784,
+            "endModulo16384": 4096,
+            "loadEnd": 118784,
+            "nextWritableLoadStart": 131432,
+            "roundedProtectionRange": [
+              98304,
+              131072
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                131432,
+                133896
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 54290136,
+          "filenameBytes": 29,
+          "extraBytes": 6381,
+          "dataOffset": 54296576,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libsqliteJni.so",
+        "bytes": 1096032,
+        "sha256": "5c4aa613a0bc34878ddc87d1bd02c3b0d10dee56473e3e34781d21db55346372",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            306956,
+            "R",
+            16384
+          ],
+          [
+            311296,
+            311296,
+            738448,
+            "RE",
+            16384
+          ],
+          [
+            1064960,
+            1064960,
+            34208,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 1081344,
+            "memSize": 16384,
+            "end": 1097728,
+            "endModulo16384": 0,
+            "loadEnd": 1099168,
+            "nextWritableLoadStart": null,
+            "roundedProtectionRange": [
+              1081344,
+              1097728
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "END_16KB_ALIGNED",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": []
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 54397480,
+          "filenameBytes": 29,
+          "extraBytes": 13725,
+          "dataOffset": 54411264,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libstatic-webp.so",
+        "bytes": 501856,
+        "sha256": "f3e5f9ab4f93f2a0a057285a2de9c93ba0ab59c76c22874d0356493ce283c4c7",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            482096,
+            "RE",
+            16384
+          ],
+          [
+            482096,
+            498480,
+            17616,
+            "RW",
+            16384
+          ],
+          [
+            498760,
+            531528,
+            5544,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 498480,
+            "memSize": 17616,
+            "end": 516096,
+            "endModulo16384": 8192,
+            "loadEnd": 516096,
+            "nextWritableLoadStart": 531528,
+            "roundedProtectionRange": [
+              491520,
+              524288
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                531528,
+                537072
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 55507296,
+          "filenameBytes": 31,
+          "extraBytes": 1635,
+          "dataOffset": 55508992,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libworklets.so",
+        "bytes": 1101120,
+        "sha256": "c6359f9da67eca2c3449f2151d1fd5b2f91ecffb24f4e045d85870c8825d4683",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            1064992,
+            "RE",
+            16384
+          ],
+          [
+            1064992,
+            1081376,
+            36832,
+            "RW",
+            16384
+          ],
+          [
+            1098824,
+            1131592,
+            2944,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 1081376,
+            "memSize": 36832,
+            "end": 1118208,
+            "endModulo16384": 4096,
+            "loadEnd": 1118208,
+            "nextWritableLoadStart": 1131592,
+            "roundedProtectionRange": [
+              1081344,
+              1130496
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                1131592,
+                1134536
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 56010848,
+          "filenameBytes": 28,
+          "extraBytes": 5990,
+          "dataOffset": 56016896,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      },
+      {
+        "entry": "lib/arm64-v8a/libzstd-kmp.so",
+        "bytes": 731872,
+        "sha256": "10ec47f13bee884450b0911066019ba7aa6b4164a4c1f8c33c9d30dd3fd8868a",
+        "elf": {
+          "Class": "ELF64",
+          "Data": "2's complement, little endian",
+          "Type": "DYN (Shared object file)",
+          "Machine": "AArch64"
+        },
+        "loads": [
+          [
+            0,
+            0,
+            712640,
+            "RE",
+            16384
+          ],
+          [
+            712640,
+            729024,
+            20544,
+            "RW",
+            16384
+          ],
+          [
+            729328,
+            762096,
+            2864,
+            "RW",
+            16384
+          ]
+        ],
+        "loadAtLeast16384": true,
+        "loadVaddrFileOffsetCongruent16384": true,
+        "relro": [
+          {
+            "vaddr": 729024,
+            "memSize": 20544,
+            "end": 749568,
+            "endModulo16384": 12288,
+            "loadEnd": 749568,
+            "nextWritableLoadStart": 762096,
+            "roundedProtectionRange": [
+              720896,
+              753664
+            ],
+            "writableOutsideRelroOverlaps": [],
+            "criterion": "EXACT_LOAD_END",
+            "explicitFormulaPass": true,
+            "followingWritableLoadRanges": [
+              [
+                762096,
+                764960
+              ]
+            ]
+          }
+        ],
+        "zip": {
+          "method": 0,
+          "stored": true,
+          "headerOffset": 57118016,
+          "filenameBytes": 28,
+          "extraBytes": 12934,
+          "dataOffset": 57131008,
+          "dataOffsetModulo16384": 0,
+          "elfMagicAtDataOffset": true
+        }
+      }
+    ],
+    "limits": [
+      "Static program-header and numerical native ZIP offset inspection only; not zipalign or the unavailable historical QA94 checker.",
+      "The two padded RELRO variants require separate interpretation; no blanket RELRO or full 16 KB compatibility PASS is asserted.",
+      "No Android emulator/physical-device run, 16 KB startup, audio test or app-process-kill test.",
+      "No AAB/bundletool/Play-generated split inspection. General non-native ZIP alignment not checked."
+    ]
+  },
+  "nativeStaticInspectionEvidenceSha256": "209ddfd737d951e8e47988c2314fa25949a562423683534d900bb8ad68ce1a0d"
+}

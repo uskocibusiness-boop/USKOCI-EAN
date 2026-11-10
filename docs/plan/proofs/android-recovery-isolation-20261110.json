@@ -305,5 +305,48 @@
       "Cross-device closure without a current authoritative read and process-kill during erasure remain separate acceptance checks.",
       "The 14-test and 83-test groups overlap and must not be added together."
     ]
+  },
+  "deviceAcceptanceDelta": {
+    "sourceCommit": "bb3cc00e7778d52862220c14f7dbbf46a2fba2cf",
+    "status": "BLOCKED_NOT_EXECUTED",
+    "reason": "No Android device/emulator/ADB, permitted live test sessions or native fault instrumentation available.",
+    "recordForEachCase": [
+      "device model",
+      "Android version",
+      "APK SHA-256",
+      "account revisions",
+      "original client command/message/upload identity",
+      "matching server readback"
+    ],
+    "cases": [
+      {
+        "case": "Late logout A→A/new revision and A→B",
+        "expected": "New recording/playback waits for old native cleanup and survives the late prior logout; the old microphone cannot restart; cleanup alone never sends a message."
+      },
+      {
+        "case": "Actual Auth logout failure",
+        "expected": "A real Auth failure cancels erasure and preserves valid session/drafts/audio; later successful logout clears only old owners. Offline alone is not proof of Auth failure."
+      },
+      {
+        "case": "Authoritative current CLOSED",
+        "expected": "All three local namespaces and native owners are retired for the same account/revision; stale A→B→A response cannot erase new state. Native/disk failure remains visibly incomplete. Never fabricate CLOSED to bypass disabled policy gates."
+      },
+      {
+        "case": "Private text/photo/voice journal through account transition and process death",
+        "expected": "Old late writes cannot restore erased data; new draft survives; another account cannot access it; canonical historical messages remain."
+      },
+      {
+        "case": "Private lost ACK and equal-text newer draft",
+        "expected": "After process death recover the original clientMessageId and voiceAssetId, one canonical message, no resend of unknown outcome, newer identical draft retained. Verify rpc_read_agreement_messages_page_v2/window."
+      },
+      {
+        "case": "Group lost ACK and draft with at least three permitted accounts",
+        "expected": "Publisher plus two different selected workers; recover the same group command/message and preserve new identical draft. Group membership never grants access to a separate private conversation. Verify rpc_read_group_context_v5, rpc_read_group_command_v5 and rpc_read_group_messages_v5."
+      }
+    ],
+    "limits": [
+      "UI disappearance alone does not prove physical native-cache erasure.",
+      "The complete publish/apply/agreement/complete/rating flow, cold launch, keyboard, small screen, TalkBack, permissions, media, sound and actual push remain separate unexecuted device acceptance."
+    ]
   }
 }

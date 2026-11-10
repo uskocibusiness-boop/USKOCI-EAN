@@ -891,5 +891,73 @@
     },
     "authenticated": false,
     "providerCallAttempted": false
+  },
+  "laterReadOnlyContinuity": {
+    "cron": [
+      {
+        "jobid": 1,
+        "other": 0,
+        "active": true,
+        "failed": 0,
+        "from_at": "2026-11-10T18:27:00+00:00",
+        "jobname": "uskoci_marketplace_tick",
+        "until_at": "2026-11-10T19:00:00+00:00",
+        "succeeded": 33,
+        "executions": 33,
+        "latest_end": "2026-11-10T18:59:00.133278+00:00"
+      },
+      {
+        "jobid": 2,
+        "other": 0,
+        "active": true,
+        "failed": 0,
+        "from_at": "2026-11-10T18:27:00+00:00",
+        "jobname": "uskoci_edge_workers",
+        "until_at": "2026-11-10T19:00:00+00:00",
+        "succeeded": 33,
+        "executions": 33,
+        "latest_end": "2026-11-10T18:59:00.406117+00:00"
+      },
+      {
+        "jobid": 3,
+        "other": 0,
+        "active": true,
+        "failed": 0,
+        "from_at": "2026-11-10T18:27:00+00:00",
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "until_at": "2026-11-10T19:00:00+00:00",
+        "succeeded": 33,
+        "executions": 33,
+        "latest_end": "2026-11-10T18:59:00.089352+00:00"
+      }
+    ],
+    "budget": {
+      "ceilingMicrousd": 100000000,
+      "reservedMicrousd": 65662284
+    },
+    "business": {
+      "needs": 19,
+      "users": 18,
+      "profiles": 24,
+      "agreements": 8,
+      "groupMessages": 0,
+      "agreementMessages": 13
+    },
+    "migrations": {
+      "count": 375,
+      "latest": "20261110182542"
+    },
+    "observedAt": "2026-11-10T19:01:44.096959+00:00",
+    "reservations": 2349,
+    "usageRecords": 1252,
+    "scope": "Aggregate read-only counts and completed cron interval after rollout; no user data contents, business operation, provider call or schedule change.",
+    "queryCorrection": {
+      "rejectedReadOnlyQueries": 2,
+      "code": "42P01",
+      "reason": "The coordinator initially used public.profiles instead of the physically present public.app_profiles; both statements failed before mutation. Corrected SELECT above succeeded."
+    },
+    "limits": [
+      "33/33 per each of three jobs proves continuity only for this bounded small DEV interval, not throughput, queue latency, provider acceptance, phone delivery or 300,000-user capacity."
+    ]
   }
 }

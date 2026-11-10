@@ -130,5 +130,131 @@
     "Zero real Gemini/provider requests; exactly one mocked provider attempt per tested turn. No real latency, tokens or cost measurement and no speed claim.",
     "No DEV or PROD deployment, Android test, GitHub CI or artifact verification was performed by this agent.",
     "The guard validates provenance and current owned continuity, not arbitrary natural-language semantics. Explicit signed review/Save remains authoritative."
-  ]
+  ],
+  "deterministicPayloadComparison": {
+    "observedAt": "2026-11-10T18:50:20.181Z",
+    "status": "PASS_DETERMINISTIC_PAYLOAD_COMPARISON",
+    "sourceBase": "e1034ff3c4d1d621e7e00ae6d9e9a6bdb066969c",
+    "worker156Source": "b6ef9fb27b2f41cf765c51f21261a513fb82f940",
+    "currentClientSource": "bb3cc00e7778d52862220c14f7dbbf46a2fba2cf",
+    "identity": {
+      "all24BaselineFilesMatchGit": true,
+      "all24CandidateFilesIdenticalBetweenB6efAndBb3cc": true
+    },
+    "method": {
+      "actualHandler": true,
+      "sameHarness": true,
+      "harnessSourceSha256": "631229f4b218e27c80c6d2f19e975a9c8f4b51ed6a8f692cf2686f0bb306ce87",
+      "harnessInstrumentation": "Only suppress test registration and capture the exact string body at the existing mock fetch boundary",
+      "fixedSyntheticClock": "2026-11-10T18:45:00.000Z",
+      "fixtureSha256": "90d97fee4f0ebf19af5aab66a825cc6099c2328b674370cf1c769319fdbb499d",
+      "runtime": "Controlled single-pass full-tree Worker fixture; prepared-input runtime disabled in the fixture; no cachedContent; all Auth/SQL/provider HTTP substituted",
+      "realNetworkOrProviderCalls": 0,
+      "fixture": "Existing latest-draft regression: Lektura saved BOTH, effective owned draft REMOTE with handoff.required=false, independent Košenje trave ON_SITE; the same three-message USER history ends in an unrelated biography edit; identical mocked stale BOTH proposal and four-category catalog on both versions.",
+      "reservationMeaning": "The reported microusd value is the unchanged synthetic reservation cap supplied to the mock budget RPC, not provider spend or a live budget measurement."
+    },
+    "measurements": [
+      {
+        "label": "Worker155/e103",
+        "sourceCommit": "e1034ff3c4d1d621e7e00ae6d9e9a6bdb066969c",
+        "model": "gemini-3.8-flash",
+        "serializedRequestBytes": 29031,
+        "serializedRequestSha256": "6dc63e81f9a2f8fe80314f765260fdfd7a4586fe5c597fb90f0c4c2c23012207",
+        "systemInstructionSerializedBytes": 22004,
+        "contentsSerializedBytes": 1482,
+        "responseSchemaSerializedBytes": 5355,
+        "responseSchemaSha256": "9120b794debb3740189e6e4750f3ae0e034c7d18e4e8b2bce2d99aecaad41ddd",
+        "generationConfigSha256": "acf83cfe2fdb281a7627037bc67d2f86d846cf927a43c353581ac110dfac3113",
+        "contentEntries": 5,
+        "syntheticHistoryEntries": 3,
+        "syntheticCatalogEntries": 4,
+        "cachedContentUsed": false,
+        "mockProviderCalls": 1,
+        "mockDispatchCalls": 1,
+        "mockReservationCalls": 1,
+        "mockUsageReceiptCalls": 1,
+        "mockCompletionCalls": 1,
+        "budgets": {
+          "requestBytesLimit": 10485760,
+          "maxOutputTokens": 2048,
+          "thinkingConfig": {
+            "thinkingBudget": 0
+          },
+          "perCallReservationCapMicrousd": 250000
+        },
+        "completionModesForAffectedService": [
+          "REMOTE",
+          "ON_SITE"
+        ],
+        "status": 200,
+        "finalEvent": "final",
+        "mockUnusedReservationReleaseCalls": 0
+      },
+      {
+        "label": "Worker156/b6ef (identical AI sources at bb3cc)",
+        "sourceCommit": "b6ef9fb27b2f41cf765c51f21261a513fb82f940",
+        "model": "gemini-3.8-flash",
+        "serializedRequestBytes": 29203,
+        "serializedRequestSha256": "64796b42bbc25c8b5077aa335700c4b0e64c5d24ff573920beb650ccd3c48b41",
+        "systemInstructionSerializedBytes": 22176,
+        "contentsSerializedBytes": 1482,
+        "responseSchemaSerializedBytes": 5355,
+        "responseSchemaSha256": "9120b794debb3740189e6e4750f3ae0e034c7d18e4e8b2bce2d99aecaad41ddd",
+        "generationConfigSha256": "acf83cfe2fdb281a7627037bc67d2f86d846cf927a43c353581ac110dfac3113",
+        "contentEntries": 5,
+        "syntheticHistoryEntries": 3,
+        "syntheticCatalogEntries": 4,
+        "cachedContentUsed": false,
+        "mockProviderCalls": 1,
+        "mockDispatchCalls": 1,
+        "mockReservationCalls": 1,
+        "mockUsageReceiptCalls": 1,
+        "mockCompletionCalls": 1,
+        "budgets": {
+          "requestBytesLimit": 10485760,
+          "maxOutputTokens": 2048,
+          "thinkingConfig": {
+            "thinkingBudget": 0
+          },
+          "perCallReservationCapMicrousd": 250000
+        },
+        "completionModesForAffectedService": [
+          "REMOTE"
+        ],
+        "status": 200,
+        "finalEvent": "final",
+        "mockUnusedReservationReleaseCalls": 0
+      }
+    ],
+    "comparison": {
+      "requestBytesDelta": 172,
+      "requestBytesDeltaPercent": 0.59247,
+      "onlyPayloadChange": "One 172-byte English continuity instruction in systemInstruction; removing that exact clause makes the entire parsed payload identical",
+      "systemInstructionDeltaBytes": 172,
+      "contentsUnchanged": true,
+      "responseSchemaUnchanged": true,
+      "generationConfigUnchanged": true,
+      "budgetsUnchanged": true,
+      "mockProviderCallsDelta": 0,
+      "mockDispatchCallsDelta": 0,
+      "additionalModelOrRetryIntroduced": false
+    },
+    "limitations": [
+      "UTF-8 serialized request-body bytes only, excluding headers and network framing; not Gemini token counts, charge, provider latency, time to useful information or phone performance.",
+      "Mock usageMetadata constants in the existing harness are excluded from measurements; no real provider usage or pricing inference.",
+      "One deterministic synthetic context; no claim about every conversation, cache/prepared-input runtime or live DEV request size.",
+      "No source changes, paid calls, budget changes, deploy or Android execution were performed. No acceleration claim: the measured payload is slightly larger."
+    ]
+  },
+  "coordinatorDevRollout": {
+    "status": "POTVRĐENO NA DEV-U",
+    "sourceCommit": "b6ef9fb27b2f41cf765c51f21261a513fb82f940",
+    "clientFollowupSource": "bb3cc00e7778d52862220c14f7dbbf46a2fba2cf",
+    "all24AiFilesIdenticalBetweenSourceCommits": true,
+    "version": 156,
+    "all24LiveFilesVerifiedByTwoReviewers": true,
+    "proof": "continuation-dev-rollout-qa130-20261110.json",
+    "actualProviderCalls": 0,
+    "runtimeConversation": "NOT_EXERCISED"
+  }
 }

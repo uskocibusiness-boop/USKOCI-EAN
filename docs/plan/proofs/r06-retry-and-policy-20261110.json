@@ -216,5 +216,254 @@
     "Current prepared Need and Worker marker counts are both zero; no live same-request recovery exercised.",
     "The proposed status change participates in the closure source digest, so any later authorized deployment will change that digest again; no pin is silently refreshed.",
     "All local records are synthetic and isolated; no existing user data was read or changed."
-  ]
+  ],
+  "coordinatorDevRollout": {
+    "note": "The earlier agent verification/operations sections remain the historical read-only preflight; the coordinator subsequently installed the exact guarded candidate.",
+    "status": "POTVRĐENO NA DEV-U",
+    "migration": "20261110182530",
+    "name": "r06_prepared_retry_identity_20261110",
+    "afterBodyMd5": "ee2ee08b805a98127427f0515c2c6b04",
+    "claimAndSweepBodiesUnchanged": true,
+    "proof": "continuation-dev-rollout-qa130-20261110.json",
+    "actualClosureSourceDigestAfterInstall": "435d92ebbf017bde1e8fd51dd1763ced27f2fa51687311a61925e9c68176c6ed",
+    "policyPinsChanged": false,
+    "policyGatesRemainFalse": true,
+    "runtimeFlag": "UNKNOWN",
+    "actualProviderCalls": 0,
+    "liveSameRequestInterruptionProof": false
+  },
+  "preparedCopyLifecycleFollowup": {
+    "schemaVersion": "R06_PREPARED_COPY_MAP_READONLY_V1",
+    "recordedAt": "2026-11-10 18:56:04 UTC",
+    "sourceCommit": "bb3cc00e7778d52862220c14f7dbbf46a2fba2cf",
+    "devProjectRef": "leqcwgzvjsxugfgzdmth",
+    "scope": "Narrow original prepared userText copy/projection/erasure and retention-owner readback; not a new complete privacy audit.",
+    "hostedWrites": false,
+    "providerCalls": 0,
+    "productionAccess": false,
+    "sourceOwners": [
+      {
+        "signature": "private.ai_turn_sweep_v5(timestamp with time zone)",
+        "bodyMd5": "3eb933c2c2cc076cbc7528a7817ed45b"
+      },
+      {
+        "signature": "private.closure_erasure_binding_v5()",
+        "bodyMd5": "d6d7e7f6f108fff45a4df5126949fa04"
+      },
+      {
+        "signature": "private.closure_erasure_hard_blockers_v5(uuid)",
+        "bodyMd5": "f88717dbf53fd88a5b9d13b5b19f47d2",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "securityDefiner": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb)",
+        "bodyMd5": "7fabcc71502e065e638364fc3d58b761"
+      },
+      {
+        "signature": "private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)",
+        "bodyMd5": "4dc63d33c8d69482f3ea883be75d9817"
+      },
+      {
+        "signature": "private.closure_redaction_relations_v5()",
+        "bodyMd5": "102e417ab6d52ab0eec421a8bda5c0c4"
+      },
+      {
+        "signature": "private.closure_redaction_scope_v5(text)",
+        "bodyMd5": "81dbe706544b14990da7fe2bebb6bbb2"
+      },
+      {
+        "signature": "private.data_export_dataset_catalog()",
+        "bodyMd5": "91ca08529dad0631846463ee68c5181c"
+      },
+      {
+        "signature": "private.data_export_lock(uuid,uuid,boolean)",
+        "bodyMd5": "1559387a910f6f74940e338acad4d2ec"
+      },
+      {
+        "signature": "private.data_export_maintenance(integer)",
+        "bodyMd5": "95448ab2792ff3ff1929c39c33166993"
+      },
+      {
+        "signature": "private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)",
+        "bodyMd5": "229bae101282b7e283a658da9a2ca597",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "securityDefiner": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "private.execute_retention_job(uuid,uuid)",
+        "bodyMd5": "2842dd02281aa105962a323bd0cd9a86"
+      },
+      {
+        "signature": "private.retention_ai_candidate(uuid)",
+        "bodyMd5": "10d5582f39de68ed47afa28042246d22"
+      },
+      {
+        "signature": "private.retention_execution_binding()",
+        "bodyMd5": "24adda1c25a113b458c0209cdf91065a"
+      },
+      {
+        "signature": "rpc_authorize_data_export_download(uuid,uuid)",
+        "bodyMd5": "22825b5b7314449ce6f66e52baca1115",
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "securityDefiner": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "rpc_claim_data_export_cleanup(uuid,uuid)",
+        "bodyMd5": "9d4ff0a063106235761626263f005cfd"
+      },
+      {
+        "signature": "rpc_claim_data_export(uuid,uuid)",
+        "bodyMd5": "e345ff7df6247b4cb0ca4dc431eed196",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "securityDefiner": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "rpc_complete_data_export_cleanup(uuid,uuid,uuid,boolean)",
+        "bodyMd5": "1a922ab9e75a15db8faf2b380f330777"
+      },
+      {
+        "signature": "rpc_redact_account_closure_step_service(uuid,uuid,uuid,uuid)",
+        "bodyMd5": "0fd89c6c870f3496d485f97d8016ba7c",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "securityDefiner": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "rpc_resolve_data_export_download(uuid,uuid,uuid)",
+        "bodyMd5": "784675d211635f66518e86e0e0629fe8",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "securityDefiner": true,
+        "config": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "rpc_start_account_closure_execution(uuid,uuid,integer,uuid,text)",
+        "bodyMd5": "3fc04b344892a252956219ce85f4de34"
+      }
+    ],
+    "copyMap": [
+      {
+        "copy": "Original Need current input; transient provider prompt/history/runtime duplicates in the same JSON",
+        "relation": "private.ai_need_turn_commands",
+        "field": "prepared_input.input.userText",
+        "exportDataset": "taskAiTurns",
+        "dataClass": "COMMAND_LEDGERS",
+        "exportProjection": "preparedInput={userText}; raw provider/history/runtime is not exported",
+        "ownership": "t.account_id=REQUEST_ACCOUNT",
+        "terminalOwner": "private.ai_turn_sweep_v5",
+        "erasureOwner": "private.closure_redaction_patch_v5",
+        "erasure": "prepared_input=NULL and prepared_input_sha256=NULL under the actual account-scoped certified executor",
+        "retentionGap": "Old AI_ABANDONED_UNBOUND candidate excludes any durable Need turn; a sole R06_RETAINED_TEXT_V1 userText has no final expiry executor."
+      },
+      {
+        "copy": "Original Worker current input; transient provider prompt/history/runtime duplicates in the same JSON",
+        "relation": "private.worker_ai_turns",
+        "field": "prepared_input.input.userText",
+        "exportDataset": "workerAiTurns",
+        "dataClass": "COMMAND_LEDGERS",
+        "exportProjection": "preparedInput={userText}; raw provider/history/runtime is not exported",
+        "ownership": "t.account_id=REQUEST_ACCOUNT",
+        "terminalOwner": "private.ai_turn_sweep_v5",
+        "erasureOwner": "private.closure_redaction_patch_v5",
+        "erasure": "prepared_input=NULL and prepared_input_sha256=NULL under the actual account-scoped certified executor",
+        "retentionGap": "Old candidate excludes durable Worker turns/sessions and purpose PROFILE; a sole R06_RETAINED_TEXT_V1 userText has no final expiry executor."
+      },
+      {
+        "copy": "Canonical USER message for Need and Worker",
+        "relation": "public.ai_messages",
+        "field": "body",
+        "exportDataset": "aiMessages",
+        "dataClass": "AI_VOLATILE",
+        "ownership": "t.account_id=REQUEST_ACCOUNT AND joined conversation.account_id=REQUEST_ACCOUNT",
+        "canonicalProof": "Need: SUCCEEDED + authoritative receipt.userMessageId; Worker: user_message_id. Both must identify same owner/conversation, role USER and exact userText.",
+        "erasure": "DELETE under exact account-scoped certified closure; conversation holds defer it",
+        "retentionGap": "Old abandoned-conversation adapter is inapplicable while durable prepared-turn ledgers exist; metadata ledger must not be removed merely to make candidate pass."
+      },
+      {
+        "copy": "Exported JSON snapshot with policy-selected preparedInput and canonical content",
+        "relation": "private.data_export_artifacts",
+        "field": "snapshot_text",
+        "exportDataset": null,
+        "ownership": "claim derives account from locked export receipt; direct snapshot owner postgres-only",
+        "normalCleanup": "private.data_export_maintenance clears expired snapshot_text when lease expired or artifact verified; rpc_complete_data_export_cleanup also clears expired snapshot_text",
+        "closureCleanup": "account-specific STORAGE_DELETE actions first; private.closure_redaction_patch_v5 then DELETE artifact row and refuses while object is still in storage.objects",
+        "gap": "Cleanup owner exists. End-to-end actual export generation/delivery/expiry/closure has not been exercised under an approved policy. Current policy does not define how a future prepared-text retention expiry coordinates with already issued artifact generations."
+      },
+      {
+        "copy": "External export object with the JSON snapshot",
+        "relation": "Storage bucket data-export-artifacts",
+        "field": "account_id/receipt_id/attempt_id.json",
+        "exportDataset": null,
+        "normalCleanup": "rpc_claim_data_export_cleanup returns exact retired generation/path; rpc_complete_data_export_cleanup checks cleanup attempt and lease, then keeps the same retired path eligible for late-commit reconciliation",
+        "closureCleanup": "rpc_start_account_closure_execution includes exact account-owned artifact paths in STORAGE_DELETE actions; relational erasure waits for verified storage actions",
+        "gap": "Existing cleanup mechanism, not a missing object executor. No actual Storage delivery/deletion probe in this followup; no claim that a phone/user-downloaded copy can be remotely erased."
+      }
+    ],
+    "exportPolicyShape": {
+      "datasetCount": 73,
+      "source": "private.data_export_dataset_catalog / private.data_export_snapshot",
+      "selection": "Only policy datasets with mode INCLUDE and listed fields are projected; EXCLUDE appears in reviewedOmissions.",
+      "notes": "Catalogue presence alone is not exportPolicyBound acceptance."
+    },
+    "intendedFailClosed": [
+      "No active approved policy/legal document or valid reviewed source binding => retention/export/erasure binding remains unavailable.",
+      "Whole-account retention hold blocks closure execution; applicable conversation holds defer AI content redaction.",
+      "Existing agreement/protected-source exceptions remain governed by closure owners; this followup does not override their lawful-preservation decision.",
+      "Prepared processing input, unknown/corrupt format and active restrictions are not evidence authorizing destructive cleanup."
+    ],
+    "concreteMissingContract": {
+      "existingAdapter": "P3_AI_ABANDONED_UNBOUND_V1",
+      "existingAllowedDataClass": "AI_VOLATILE",
+      "existingAllowedDataset": "AI_ABANDONED_UNBOUND",
+      "existingAllowedAction": "DELETE",
+      "existingAllowedTrigger": "OBSERVED_ABANDONMENT",
+      "existingExecution": "DELETE public.ai_conversations only after candidate/policy/hold/digest validation",
+      "whyInsufficient": "It cannot express payload-only deletion of retained original text inside COMMAND_LEDGERS, Worker PROFILE eligibility, the terminal event starting that policy, or coordination with exported artifact copies. It rejects other shapes; valid digest alone cannot add these semantics.",
+      "minimumSafeTechnicalWork": "A separate, inactive, fail-closed payload-only candidate/executor and explicit reviewed binding contract. No default duration or legal trigger. Derive eventual cutoff only from approved policy, recheck owner/request/attempt/prepared_at/content digest under closure/retention/row locks, preserve command/provider/accounting identities, and reuse existing artifact cleanup for exact generations. Without explicit binding it must return NOT_READY and change no row. Keep full account erasure on the existing certified owner.",
+      "doNotDo": "Do not remove durable-turn exclusions from the old conversation DELETE candidate, null text on mere timeout, activate policy, or repair digest pins to simulate readiness."
+    },
+    "localProbe": {
+      "runtime": "PGlite, isolated existing R06 fixture",
+      "cases": 2,
+      "passed": 2,
+      "failed": 0,
+      "projectorMd5": "229bae101282b7e283a658da9a2ca597",
+      "casesPassed": [
+        "Existing Need accounts A and B with same client_request_id: 73-dataset projections return only each owner's prepared userText and canonical USER message.",
+        "Existing Worker accounts A and B with same client_request_id: same isolation; raw provider/history context is not exposed by the projection."
+      ],
+      "limits": [
+        "Direct projector with synthetic INCLUDE binding, not authenticated public export RPC or Storage acceptance.",
+        "Reduced fixture omits retention_ai_candidate: retention exclusion evidence is exact installed-source inspection, not a completed runtime retention test.",
+        "Earlier privacy/terminal/native/certification proofs were reused where owner hashes match; no repeated 100-row sweep test.",
+        "No full Worker closure execution, Android test, actual export download or final erasure claimed."
+      ]
+    },
+    "newCriticalPrivacyRegression": false,
+    "sourceChanges": false,
+    "workingTreeClean": true
+  },
+  "preparedCopyLifecycleFollowupEvidenceSha256": "d836fa7805cf46f091c33254abce406907496ddfc99aa1995bbebe7b7d094eba"
 }

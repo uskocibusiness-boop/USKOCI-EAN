@@ -79,6 +79,23 @@ Pre unosa u upitnik potrebno je potvrditi stvarni tok podataka u konačnom build
 
 Ove lokalne zaštite ne potvrđuju kompletan serverski izvoz/brisanje, niti javni kanal za zahteve. Retention/export/erasure i pravne kapije ostaju otvorene prema izvršnom planu. Za publiku, sadržaj, finansijske funkcije i ostale delove konzole pripremiti odgovore prema stvarnom prvom izdanju; ovde nema konačno odobrenog obrasca.
 
+
+### Google Play — pravila proverena 10.11.2026.
+
+Ovo je poređenje aktuelnih zvaničnih zahteva sa dokazima USKOČI projekta. Play Console nalog, tip i datum njegovog otvaranja, podneti obrasci, testeri i production access nisu provereni. Pravila prodavnice ne potvrđuju zakonitost konkretnog poslovnog modela u Srbiji.
+
+| Zahtev | Zvanično pravilo | Stanje USKOČI / potreban dokaz |
+|---|---|---|
+| Brisanje naloga | Putanja iz aplikacije i funkcionalna spoljašnja web putanja za zahtev. Javna stranica može ponuditi podršku/email ili formular; poseban automatizovan portal nije obavezan. Korisnik ne sme morati ponovo da instalira aplikaciju. [Google — account deletion](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en) | Source CLOSED/lokalno čišćenje ne dokazuju ceo serverski postupak niti prijem spoljašnjeg zahteva. Potvrditi javnu rutu, identitet podnosioca, obradu, povezane podatke i jasno saopštene opravdane izuzetke. |
+| Politika privatnosti | Veza u konzoli i veza ili tekst u aplikaciji; aktivan javni URL, bez geografskog ograničenja, PDF-a i javnog uređivanja. Politika objašnjava obradu, primaoce, zaštitu, čuvanje i brisanje. [Google — User Data](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en) | HTML je nacrt, ne efektivna politika. Potrebni su stvarno objavljen i važeći sadržaj i potvrđena usklađenost sa aplikacijom; trenutno nema efektivnih internih pravnih verzija. |
+| Data Safety | Tačna obrada aplikacije i SDK-ova deklarisana je i za closed/open/production track. Samo aplikacija isključivo na internal testing track-u ima izuzeće od tog obrasca. [Google — Data safety](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en) | Gornji inventar je priprema, ne popunjen/odobren obrazac. Samo lokalni nacrt razlikovati od prenosa van uređaja; angažovanje pružaoca usluge nije automatski dokaz ni odsustva ni prisustva „sharing“-a. |
+| Target API | Od 31.08.2026. nove mobilne aplikacije i update moraju ciljati Android 16 / API 36 ili više. [Google — Target API](https://support.google.com/googleplay/android-developer/answer/11926878?hl=en) | Poznati target 36 ispunjava brojčani uslov. Konačni AAB, produkcioni potpis i ostala usklađenost nisu potvrđeni QA APK-om. |
+| Personal nalog i closed test | Za personal naloge otvorene posle 13.11.2023. potrebno je najmanje 12 testera neprekidno opted-in najmanje 14 dana, zatim zahtev za production access. [Google — Personal testing](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en) | Prvo utvrditi primenljivost na stvarni nalog. GitHub CI i direktno podeljen QA APK ne predstavljaju Google Play closed test ili odobrenje produkcije. |
+
+**Native 16 KB provera:** [Android vodič](https://developer.android.com/guide/practices/page-sizes) razdvaja ELF poravnanje, RELRO, ZIP pakovanje i izvršavanje na 16 KB uređaju. QA131 ima pozitivan statički LOAD/ZIP-offset nalaz za svih 28 biblioteka, uz dve izdvojene RELRO varijante bez zatečenog writable preseka. Nije izvršen `zipalign`, 16 KB uređajski test ili pregled Play AAB/split paketa; broj SDK-a i ovaj ograničeni nalaz ne zatvaraju R12d. [Tačan QA131 dokaz](plan/proofs/qa131-summary.json).
+
+Pokušaj javnog čitanja četiri predložene privacy/deletion/terms/support putanje 10.11.2026. nije uspeo kroz dostupni web alat. To nije pouzdan nov HTTP 404 dokaz niti potvrda dostupnosti; URL-ovi ostaju **nepotvrđeni**. Nije podnet obrazac, kreiran nalog, poslat mejl ili promenjena javna konfiguracija.
+
 ---
 
 ## 3. APPLE APP STORE CONNECT — RADNI PODACI ZA PROVERU
