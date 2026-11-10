@@ -53,11 +53,12 @@ function userHeaders(actual, modern = true, jwt = USER_JWT) {
 function edge(name, env = modernEnv, respond = () => assert.fail('Unexpected HTTP request')) {
   let handler;
   const calls = [], logs = [], configured = { SUPABASE_URL: ORIGIN, ...env };
+  const expectedOrigin = new URL(configured.SUPABASE_URL).origin;
   const load = interview.sourceLoader({}, {
     Deno: { env: { get: get(configured) }, serve: value => { handler = value; } }, crypto: webcrypto,
     console: { warn: (...args) => logs.push(args), error: (...args) => logs.push(args), log: (...args) => logs.push(args) },
     fetch: async (input, init = {}) => {
-      const url = new URL(input); assert.equal(url.origin, ORIGIN, 'No live/provider network can escape the fixture');
+      const url = new URL(input); assert.equal(url.origin, expectedOrigin, 'No live/provider network can escape the fixture');
       const call = { path: url.pathname, method: init.method ?? 'GET', headers: new Headers(init.headers),
         args: typeof init.body === 'string' ? JSON.parse(init.body) : null, body: init.body };
       calls.push(call); return respond(call, calls);
@@ -229,6 +230,7 @@ test('actual cron handlers retain the explicit legacy path while modern maps are
 
 test('actual taxonomy tick and closure maintenance use modern service keys with existing authority gates', async () => {
   const taxonomy = edge('uskoci-taxonomy-postsave-worker', { ...modernEnv,
+    SUPABASE_URL: 'https://leqcwgzvjsxugfgzdmth.supabase.co',
     USKOCI_TAXONOMY_POSTSAVE_WORKER_ENABLED: 'true', USKOCI_TAXONOMY_CATALOG_ONLY_ACK: 'true', USKOCI_TAXONOMY_BINDING_ENABLED: 'false' }, call => {
     serviceHeaders(call.headers);
     if (call.path.endsWith('/rpc_taxonomy_reconcile_reviewed_outbox_service')) return json(0);
@@ -242,6 +244,33 @@ test('actual taxonomy tick and closure maintenance use modern service keys with 
   });
   const c = await closure.handler(request({ action: 'maintenance', maxSteps: 1 }, { apikey: SECRET }));
   assert.equal(c.status, 200); assert.equal((await c.json()).checked, 0); assert.equal(closure.calls.length, 1);
+});
+
+test('taxonomy post-save requires exact production project and explicit gates', async () => {
+  const prodRef = 'fvyqqudqvizjrxaflhex';
+  const prod = { ...modernEnv, SUPABASE_URL: `https://${prodRef}.supabase.co`,
+    USKOCI_TAXONOMY_ROLLOUT_SCOPE: 'PROD', USKOCI_TAXONOMY_ALLOWED_PROJECT_REF: prodRef,
+    USKOCI_TAXONOMY_POSTSAVE_WORKER_ENABLED: 'true', USKOCI_TAXONOMY_CATALOG_ONLY_ACK: 'true',
+    USKOCI_TAXONOMY_BINDING_ENABLED: 'false' };
+  for (const [overrides, admitted] of [
+    [{}, true],
+    [{ USKOCI_TAXONOMY_POSTSAVE_WORKER_ENABLED: 'false' }, false],
+    [{ USKOCI_TAXONOMY_CATALOG_ONLY_ACK: undefined }, false],
+    [{ USKOCI_TAXONOMY_ROLLOUT_SCOPE: 'DEV' }, false],
+    [{ USKOCI_TAXONOMY_ALLOWED_PROJECT_REF: 'leqcwgzvjsxugfgzdmth' }, false],
+    [{ SUPABASE_URL: 'https://unrelated-project.supabase.co' }, false],
+  ]) {
+    const h = edge('uskoci-taxonomy-postsave-worker', { ...prod, ...overrides }, call => {
+      serviceHeaders(call.headers);
+      if (call.path.endsWith('/rpc_taxonomy_reconcile_reviewed_outbox_service')) return json(0);
+      if (call.path.endsWith('/rpc_taxonomy_claim_reviewed_batches_service')) return json([]);
+      assert.fail('No review job authorizes commit or binding');
+    });
+    const response = await h.handler(request({}, { apikey: SECRET }));
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).kind === 'DISABLED', !admitted);
+    assert.equal(h.calls.length, admitted ? 2 : 0);
+  }
 });
 
 test('real export Transport retains user JWT and strips stale Headers Authorization on modern Storage requests', async () => {
