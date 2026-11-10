@@ -1,0 +1,115 @@
+{
+  "schema": "USKOCI_GROUP_DRAFT_FROZEN_UI_REVIEW_V1",
+  "recordedAt": "2026-11-10T16:33:11.478Z",
+  "scope": "LOCAL_MOUNTED_PRODUCTION_PRESENTATION_AND_PILL_COMPOSER_WITH_INERT_NATIVE_HOSTS",
+  "sourceHashes": {
+    "src/ui/groups/GroupConversationScreen.tsx": "aecc8f6158b1ce1ec7e93fcd48aa542add55a995eea8c7c699d33da277514251",
+    "src/ui/groups/GroupConversationPresentation.tsx": "013160eadc3e06517dbaf5edd5314764bb40b88c8bd6d32aee4c4900bdff52ec",
+    "src/ui/auth/AccountClosingState.tsx": "c78fec3865c91c83c2f14e44344e6afe4375cf6bfb4adb0ec9b70a46f7c1fb5a",
+    "src/ui/system/PillComposer.tsx": "1e48407a77a340223e5641e5b7f42a4ebbf0f70554657f9b6d0b9b4610b5aa3c"
+  },
+  "cases": [
+    {
+      "name": "READY: editable valid draft retains the single explicit send action",
+      "status": "PASS"
+    },
+    {
+      "name": "SENDING before capture: visible original input is held and the send is disabled",
+      "status": "PASS"
+    },
+    {
+      "name": "SENDING after capture: typing remains available while a second send stays disabled",
+      "status": "PASS"
+    },
+    {
+      "name": "UNKNOWN without retry permission: edit locally and check the receipt without another send",
+      "status": "PASS"
+    },
+    {
+      "name": "UNKNOWN saved retry: current draft and earlier retry payload have distinct copy and action",
+      "status": "PASS"
+    },
+    {
+      "name": "CONFIRMED cleanup: editing remains possible while the recovery action cannot resubmit",
+      "status": "PASS"
+    },
+    {
+      "name": "Local save error: alert and explicit retry-save invoke only the local save callback",
+      "status": "PASS"
+    },
+    {
+      "name": "Save in progress: retry-save is disabled and the text remains editable",
+      "status": "PASS"
+    },
+    {
+      "name": "Terminal conversation: no composer or fresh send is exposed",
+      "status": "PASS"
+    },
+    {
+      "name": "CLOSED local erasure error: the formal copy matches its available sign-out action",
+      "status": "PASS"
+    }
+  ],
+  "failures": [],
+  "boundaries": [
+    "The actual GroupConversationPresentation, PillComposer and AccountClosingScreen execute under React test renderer.",
+    "Native surfaces, icons, scrolling and styling dependencies are inert boundaries; no Android rendering, keyboard, pixels or TalkBack execution is claimed.",
+    "Screen hooks are reviewed in source and covered separately by the production screen lifecycle suite; this focused UI probe does not replace storage/ACK/logout protocol tests.",
+    "No RPC, server, model, deploy, source edit or workflow dispatch is performed."
+  ],
+  "testedSourcesUnchangedDuringRun": true,
+  "passed": true,
+  "total": 10,
+  "pass": 10,
+  "harnessSha256": "1db21252d76456f4f5d4349ed8b2c39b5c90c09c4d589bf6a4d36c4d89aabaf5",
+  "runnerSha256": "e8b38e3819a38b98eb16b38698032f62ebf61792e2e80c002472ab232be0fbe3",
+  "frozenScopeConfirmedAt": "2026-11-10T16:35:19.983Z",
+  "status": "NO_BLOCKER_IN_REVIEWED_FROZEN_UI_SCOPE",
+  "freezeManifestSha256": "7974d76ea567d3ced1d230bea658052699b58c9d83795acb1706440a42b657fa",
+  "sourceBaseline": "acdd932f4f3bb132b4b81ac3e1c22580f9cf6bc9",
+  "sourceOnlyReviewedFiles": {
+    "src/ui/groups/GroupConversationController.ts": "7c7b000702970dd2946a1886f8f81f58891974fb8edbcc2f8882670359f6a502"
+  },
+  "reviewedHookOwnership": [
+    "draftModel memo identity includes accountId, accountRevision and agreementId; activate/dispose are in the matching effect.",
+    "useSyncExternalStore receives stable methods and a cached immutable snapshot; scope changes select a new model.",
+    "Focus and foreground controller lifetimes retain existing owner/session checks and clean up the timer and AppState listener.",
+    "SENDING input becomes editable only after durable capture and the published journal match request ID plus body hash; server send stays disabled.",
+    "No new send is enabled in UNKNOWN without retry authorization or CONFIRMED cleanup; those actions read a receipt or retire the confirmed local command.",
+    "Local save retry invokes only model.flush and remains fenced by the current screen owner and edit permission."
+  ],
+  "resolvedReviewFindings": [
+    {
+      "issue": "No composer while a previous server send was pending",
+      "resolution": "Composer remains visible; typing after the original capture is sealed is allowed while sending another message is disabled."
+    },
+    {
+      "issue": "A failed local draft save had no explicit user retry",
+      "resolution": "Accessible error plus Sačuvajte nacrt ponovo invokes the local save callback and no send or refresh callback."
+    },
+    {
+      "issue": "Recovery asked to retype a message already stored for retry",
+      "resolution": "Receipt check label and controller copy distinguish a saved-message retry from legacy reentry; newer visible text is preserved."
+    },
+    {
+      "issue": "CLOSED cleanup-error copy offered a missing check action and used informal older labels",
+      "resolution": "Copy and available action consistently direct the user to Odjavite se; touched closure labels use the formal address."
+    }
+  ],
+  "appendableRegressionSnippet": {
+    "path": "/workspace/scratch/421c8c8b28c8/group-ui-appendable-tests.cjs.txt",
+    "sha256": "cb289e3ce0b7f7bb0d378a93ec2433e591153a1545ab024ae91b24ac113bc123",
+    "tests": 2,
+    "pass": 2,
+    "fail": 0,
+    "logSha256": "ecfd3d94448d66fe00f866fa58e2a14a7759e1a9d29a2fb94a8d095419ba2c65",
+    "note": "Independent adapter first used an exact string comparison for native T children, which this existing inert host wraps in an array. Adapter assertion corrected with React.Children.toArray and both tests passed; no production edit was made."
+  },
+  "operations": {
+    "sourceEdits": 0,
+    "planEdits": 0,
+    "serverCalls": 0,
+    "modelCalls": 0,
+    "androidExecution": 0
+  }
+}

@@ -1,0 +1,247 @@
+{
+  "schema": "USKOCI_GROUP_DRAFT_COLD_PROCESS_SOURCE_PROOF_V1",
+  "recordedAt": "2026-11-10T16:37:01.243788+00:00",
+  "baseHead": "acdd932f4f3bb132b4b81ac3e1c22580f9cf6bc9",
+  "branch": "work/group-draft-cold-20261110",
+  "purpose": "Sačuvati grupni nacrt i originalni nepotvrđeni tekst kroz hladni restart, uz postojeći četvoropoljni journal i isključivo izričito slanje.",
+  "evidenceLevels": {
+    "SOURCE": true,
+    "LOCAL_TEST": true,
+    "CI": false,
+    "DEV": false,
+    "ANDROID": false,
+    "PROD": false
+  },
+  "sourceSha256": {
+    "src/data/groupConversationDraft.ts": "dadd27154caa136af9e25b92bb4d058dc3e219388d50eb5ce72eecd02b223d28",
+    "src/data/authClientService.ts": "036becbf199d322941faba3cbf4579b47db9c579b4c337992de7c78182740fa4",
+    "src/ui/auth/AccountClosingState.tsx": "c78fec3865c91c83c2f14e44344e6afe4375cf6bfb4adb0ec9b70a46f7c1fb5a",
+    "src/ui/groups/GroupConversationController.ts": "7c7b000702970dd2946a1886f8f81f58891974fb8edbcc2f8882670359f6a502",
+    "src/ui/groups/GroupConversationScreen.tsx": "aecc8f6158b1ce1ec7e93fcd48aa542add55a995eea8c7c699d33da277514251",
+    "src/ui/groups/GroupConversationPresentation.tsx": "013160eadc3e06517dbaf5edd5314764bb40b88c8bd6d32aee4c4900bdff52ec",
+    "scripts/group-conversation-lifecycle.test.cjs": "e83d879d9d983e3e31b4fb75edfeec8abf2406fbdb7bbd99b28720207e09516b"
+  },
+  "implementation": [
+    {
+      "file": "src/data/groupConversationDraft.ts",
+      "change": "Zaseban strogo validiran AsyncStorage zapis po nalogu, Dogovoru i grupi; tekući tekst/revizija i originalni capture imaju odvojeno vlasništvo. Account queue, runtime incarnation i revisionsko poređenje odbijaju kasna tuđa čitanja/upise."
+    },
+    {
+      "file": "src/ui/groups/GroupConversationController.ts",
+      "change": "Capture je trajan pre postojećeg četvoropoljnog journal-a; hladni prekid između njih obnavlja isti request ID bez slanja. ACK prvo trajno uklanja samo pripadajući tekst i čuva confirmed marker, zatim uklanja journal. Potvrđeni capture se ne ponavlja ni kada server readback trenutno nije dostupan."
+    },
+    {
+      "file": "src/ui/groups/GroupConversationScreen.tsx",
+      "change": "Aktivan nalog/revizija i autoritativni group context upravljaju prikazom nacrta. Novi unos se može pisati tokom čekanja servera tek nakon trajnog capture+journal upisa. Nema automatskog send-a ni retry-a."
+    },
+    {
+      "file": "src/ui/groups/GroupConversationPresentation.tsx",
+      "change": "Vidljiv uređiv unos dok staro slanje čeka, odvojena oznaka ponovnog slanja sačuvane poruke, potvrda slanja i eksplicitno ponovno lokalno čuvanje nakon disk greške. Nema lažnog serverskog uspeha."
+    },
+    {
+      "file": "src/data/authClientService.ts",
+      "change": "Granica brisanja group draft-a rezerviše se pre Auth await-a; nova prijava istog UID-a čeka staro čišćenje i zadržava sopstvene kasnije upise. Neuspešna Auth odjava otpušta granicu bez brisanja."
+    },
+    {
+      "file": "src/ui/auth/AccountClosingState.tsx",
+      "change": "Samo trenutni autoritativni CLOSED odgovor penzioniše aktivne draft pisce i briše namespace tog naloga; direktni accountId/accountRevision guard radi pre React effect zamene. Greška čišćenja nudi dostupnu odjavu, uz Vi obraćanje."
+    }
+  ],
+  "failBeforePassAfter": {
+    "method": "Isti završni regression test izvršen nad arhiviranim fizičkim src/ iz git acdd932f; native/RPC/storage fixture ostaje kontrolisan. Oba testa su uključena u završni PASS skup.",
+    "command": "node --test --test-name-pattern='an unsent draft survives a cold screen remount|a new identical draft revision survives readback' scripts/group-conversation-lifecycle.test.cjs",
+    "before": {
+      "source": "acdd932f4f3bb132b4b81ac3e1c22580f9cf6bc9",
+      "exitCode": 1,
+      "tests": 2,
+      "passed": 0,
+      "failed": 2,
+      "logSha256": "5401f19095368587cdcd901a9775d9686c6ab4506434f7e99b676f4ab4b02df4"
+    },
+    "cases": [
+      {
+        "test": "group: an unsent draft survives a cold screen remount without sending or creating a command",
+        "beforeActual": "",
+        "expected": "Nacrt sačuvan za kasnije.",
+        "after": "PASS"
+      },
+      {
+        "test": "group: a new identical draft revision survives readback of an older unknown send",
+        "beforeActual": "",
+        "expected": "Isti tekst u novoj poruci.",
+        "after": "PASS"
+      }
+    ]
+  },
+  "validation": {
+    "connected": {
+      "command": "node --test scripts/group-conversation-lifecycle.test.cjs scripts/r09-agreement-groups-client.test.cjs scripts/agreement-incoming-lifecycle.test.cjs",
+      "exitCode": 0,
+      "tests": 82,
+      "passed": 82,
+      "failed": 0,
+      "durationMs": 4953.868032,
+      "logSha256": "bae096b5311624f4ee5fa6df9d2b98ebeed229ef66eda3c79cd126ab52599302"
+    },
+    "groupLifecycle": {
+      "tests": 40,
+      "sourceBeforeCount": 19,
+      "newTests": 21,
+      "independentlyRepeated": true,
+      "independentLogSha256": "581f0edf0ca4509316d553b11fad8a08044589404a8b8ed39b9956bd01422e96"
+    },
+    "typeScript": {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0,
+      "logSha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f",
+      "note": "Samo npm http-proxy config upozorenje, bez TypeScript grešaka."
+    },
+    "diffCheck": {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  },
+  "coveredScenarios": [
+    "Hladni runtime/remount vraća neposlati tekst bez novog journal-a ili server send-a.",
+    "Originalni nepotvrđeni body i noviji unos prežive zajedno; explicit retry šalje originalni body i request ID.",
+    "Novi unos identičnih bajtova ima noviju reviziju i stari ACK ga ne briše.",
+    "Prekid između trajnog capture-a i journal-a vraća istu idempotentnu komandu.",
+    "Neuspešan ili kasni ACK upis zadržava journal; potvrđeni payload ne vraća se kao svež send.",
+    "Confirmed marker + missing readback ili capture/journal mismatch zabranjuju dispatch/recapture.",
+    "Account A→B→A, zakasnele native disk operacije, stale instance CAS i kasno disk čitanje.",
+    "Explicit logout čeka započete upise, briše samo account draft namespace, čuva četvoropoljni identity journal i drugog korisnika.",
+    "Nova prijava istog UID-a pre završetka stare odjave ne gubi novi draft; odbijena Auth odjava ne briše stari.",
+    "Aktivan navigator ispod CLOSED overlay-a ne može rekreirati obrisani draft; stale/foreign/unconfirmed/nonterminal/offline odgovori ga ne brišu.",
+    "Pokvarena šema, tuđi account/Agreement/group, nepoznata polja, neispravan capture i hash mismatch ostaju zatvoreni bez prikaza ili slanja.",
+    "Offline context ne prikazuje disk tekst bez autoritativnog context-a; unknown readback ne šalje ponovo.",
+    "Disk greška čuva RAM tekst i nudi lokalni retry-save, bez RPC send-a.",
+    "Stvarni Presentation/PillComposer render odvaja editable input, disabled send, stari saved retry, ACK i local-save akciju; CLOSED nudi najavljenu odjavu."
+  ],
+  "independentReviews": {
+    "dataProtocol": {
+      "reviewer": "r06_server",
+      "result": "PASS",
+      "proofSha256": "eb75a0739d82038d4a37d6d0fe227fbe960e02e060e117f651fa8300b9a6747c",
+      "sourceStable": true,
+      "direct": {
+        "confirmedRetry": {
+          "result": "PASS",
+          "serverFound": false,
+          "canRetry": false,
+          "dispatches": 0,
+          "recaptureRejected": true,
+          "journalRetained": true
+        },
+        "captureJournalMismatches": [
+          {
+            "confirmed": false,
+            "result": "PASS",
+            "readbacks": 0,
+            "dispatches": 0,
+            "diskEvidenceUnchanged": true
+          },
+          {
+            "confirmed": true,
+            "result": "PASS",
+            "readbacks": 0,
+            "dispatches": 0,
+            "diskEvidenceUnchanged": true
+          }
+        ],
+        "lateLogout": {
+          "result": "PASS",
+          "newAccountRevision": 3,
+          "newReaderWaitedForOldBoundary": true,
+          "newSessionDraftPreserved": true,
+          "newSessionStillWritable": true,
+          "oldWriterRetired": true,
+          "otherAccountUnchanged": true
+        }
+      },
+      "remainingBlockers": [],
+      "proofFile": "group-draft-independent-r06-review.json"
+    },
+    "ui": {
+      "reviewer": "ai_dialogue",
+      "result": "PASS",
+      "tests": 10,
+      "passed": 10,
+      "proofSha256": "28460f171693cdf9624907d34a2b3faa9801fdf01dd42a98aee320d5d86bf208",
+      "cases": [
+        {
+          "name": "READY: editable valid draft retains the single explicit send action",
+          "status": "PASS"
+        },
+        {
+          "name": "SENDING before capture: visible original input is held and the send is disabled",
+          "status": "PASS"
+        },
+        {
+          "name": "SENDING after capture: typing remains available while a second send stays disabled",
+          "status": "PASS"
+        },
+        {
+          "name": "UNKNOWN without retry permission: edit locally and check the receipt without another send",
+          "status": "PASS"
+        },
+        {
+          "name": "UNKNOWN saved retry: current draft and earlier retry payload have distinct copy and action",
+          "status": "PASS"
+        },
+        {
+          "name": "CONFIRMED cleanup: editing remains possible while the recovery action cannot resubmit",
+          "status": "PASS"
+        },
+        {
+          "name": "Local save error: alert and explicit retry-save invoke only the local save callback",
+          "status": "PASS"
+        },
+        {
+          "name": "Save in progress: retry-save is disabled and the text remains editable",
+          "status": "PASS"
+        },
+        {
+          "name": "Terminal conversation: no composer or fresh send is exposed",
+          "status": "PASS"
+        },
+        {
+          "name": "CLOSED local erasure error: the formal copy matches its available sign-out action",
+          "status": "PASS"
+        }
+      ],
+      "integratedRegressions": 2,
+      "proofFile": "group-ui-independent-review-20261110-final.json"
+    }
+  },
+  "reviewFindingsFixedBeforeFreeze": [
+    "Nezavisno reprodukovan confirmed capture + leftover journal + found=false ranije je dopuštao jedan ponovni dispatch istog request ID-a; sada 0 dispatch i recapture odbijen. Nije dokazivan serverski duplikat.",
+    "Odloženo cleanup pozivanje moglo je penzionisati noviju prijavu istog UID-a; granica je sada uhvaćena pre Auth await-a.",
+    "SENDING je ranije skrivao composer; sada je unos vidljiv i posle trajnog capture-a uređiv, uz blokirano novo slanje.",
+    "Dodati su direktan session guard za destructive CLOSED cleanup i dostupna lokalna retry-save akcija."
+  ],
+  "unsuccessfulAttempts": [
+    "Prvi povezani lifecycle prolazi tokom razvoja bili su 15/20, 17/20 i 19/20. Stare RAM-only pretpostavke su usklađene sa odobrenim trajnim skladištem; zasebno je popravljen stvarni refresh posle neuspelog journal upisa, koji mora rekonstruisati capture identitet.",
+    "Prva proširena matrica bila je 11/14: Auth/CLOSED adapter je nedostajao direktni AsyncStorage default export, a test je za offline pending journal očekivao ERROR umesto postojećeg UNKNOWN. Fixture i očekivanje ispravljeni; negativna provera context-a, praznog prikaza i bez slanja ostala obavezna.",
+    "Prvi nezavisni final hash guard zaustavio je pregled zbog dodavanja testa, bez source promene. Konačan manifest i svih 40 testova provereni su ponovo.",
+    "Prvi C UI adapter pokušaj imao je children-array harness grešku; korišćen je React.Children.toArray, bez izmene produkcionog koda zbog tog pada."
+  ],
+  "privacyAndLifecycle": {
+    "namespace": "uskoci:group-draft:v1:<accountId>:<agreementId>:<groupId>",
+    "maximumDraftUtf16Length": 32000,
+    "journalProtocolChanged": false,
+    "automaticSend": false,
+    "originalBodyRemovedOnConfirmedReconciliation": true,
+    "confirmedMarkerRetainedUntilNextExplicitCaptureOrAccountErasure": true,
+    "explicitLogoutCleanup": "Account-scoped, queue-aware, captured before Auth; best-effort disk erasure after successful Auth. A storage failure is not reported as failed Auth logout.",
+    "closedCleanup": "Only current authoritative CLOSED readback; retires mounted old writers before waiting for disk. Failure remains explicit and offers sign-out.",
+    "remoteDeletionWithoutReadback": "Not proven. A device that has not received an authoritative CLOSED result or explicit local logout is not claimed to have purged its disk."
+  },
+  "limits": [
+    "SOURCE/LOCAL TEST only for this patch. CI/APK generation remains the parent integration step.",
+    "No Android phone/emulator/adb execution. Cold restart is simulated with fresh production module instances and shared controlled storage.",
+    "Native AsyncStorage completion, OS kill during an unfinished native disk write, Android keyboard/layout/TalkBack and physical-device two-account acceptance are not proven.",
+    "No hosted database/Edge/RLS/Auth writes, no model calls, no push delivery/media scenario and no production action.",
+    "Existing Agreement/media journals and server group command protocol are not changed."
+  ],
+  "integrationEvidenceNote": "Parent integration binds the same reviewed source hashes to the final frozen UI proof, replacing the earlier stage1 proof reference. No production or test source changed."
+}

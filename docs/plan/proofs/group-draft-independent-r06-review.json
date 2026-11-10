@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-10T16:35:56.762Z",
+  "reviewer": "r06_server",
+  "scope": "Independent read-only source and controlled local fixture review; no hosted writes or Android execution",
+  "base": "acdd932f",
+  "sourceHashes": {
+    "src/data/groupConversationDraft.ts": "dadd27154caa136af9e25b92bb4d058dc3e219388d50eb5ce72eecd02b223d28",
+    "src/data/authClientService.ts": "036becbf199d322941faba3cbf4579b47db9c579b4c337992de7c78182740fa4",
+    "src/ui/auth/AccountClosingState.tsx": "c78fec3865c91c83c2f14e44344e6afe4375cf6bfb4adb0ec9b70a46f7c1fb5a",
+    "src/ui/groups/GroupConversationController.ts": "7c7b000702970dd2946a1886f8f81f58891974fb8edbcc2f8882670359f6a502",
+    "src/ui/groups/GroupConversationScreen.tsx": "aecc8f6158b1ce1ec7e93fcd48aa542add55a995eea8c7c699d33da277514251",
+    "src/ui/groups/GroupConversationPresentation.tsx": "013160eadc3e06517dbaf5edd5314764bb40b88c8bd6d32aee4c4900bdff52ec"
+  },
+  "sourceHashesMatchedBeforeAndAfter": true,
+  "targetedTest": {
+    "command": "node --test --test-reporter=tap scripts/group-conversation-lifecycle.test.cjs",
+    "passed": 40,
+    "failed": 0,
+    "log": "/workspace/scratch/421c8c8b28c8/group-draft-independent-r06-tests.log",
+    "sha256": "581f0edf0ca4509316d553b11fad8a08044589404a8b8ed39b9956bd01422e96",
+    "testedScriptSha256": "e83d879d9d983e3e31b4fb75edfeec8abf2406fbdb7bbd99b28720207e09516b",
+    "previousRun": "37/37 passed before B added a same-text regression and C added two mounted UI tests. Six production source hashes remained unchanged. The final 40-test suite was repeated independently."
+  },
+  "direct": {
+    "confirmedRetry": {
+      "result": "PASS",
+      "serverFound": false,
+      "canRetry": false,
+      "dispatches": 0,
+      "recaptureRejected": true,
+      "journalRetained": true
+    },
+    "captureJournalMismatches": [
+      {
+        "confirmed": false,
+        "result": "PASS",
+        "readbacks": 0,
+        "dispatches": 0,
+        "diskEvidenceUnchanged": true
+      },
+      {
+        "confirmed": true,
+        "result": "PASS",
+        "readbacks": 0,
+        "dispatches": 0,
+        "diskEvidenceUnchanged": true
+      }
+    ],
+    "lateLogout": {
+      "result": "PASS",
+      "newAccountRevision": 3,
+      "newReaderWaitedForOldBoundary": true,
+      "newSessionDraftPreserved": true,
+      "newSessionStillWritable": true,
+      "oldWriterRetired": true,
+      "otherAccountUnchanged": true
+    }
+  },
+  "reviewedInvariants": [
+    "Account, Agreement and group binding, current ownership, strict stored revision comparison.",
+    "Capture durable before four-field journal; original body retained separately from newer text.",
+    "Confirmed draft reconciliation durable before journal retirement.",
+    "Known confirmed command never retried or recaptured; mismatches preserve evidence.",
+    "New text while pending admitted only after durable capture and journal.",
+    "Logout erasure boundary captured before Auth; newer same-UID incarnation is preserved.",
+    "Only current authoritative CLOSED erases; retired writers cannot recreate erased text."
+  ],
+  "remainingBlockers": [],
+  "evidenceLevels": {
+    "SOURCE": true,
+    "LOCAL_TEST": true,
+    "CI": false,
+    "DEV": false,
+    "ANDROID": false,
+    "PROD": false
+  },
+  "limitations": [
+    "Storage, RPC and native APIs are controlled local fixtures. Fresh runtime/remount cases do not prove Android process death or native disk durability.",
+    "No two-device acceptance, hosted storage mutation, push delivery or media path executed in this review.",
+    "Remote account deletion without delivered authoritative CLOSED readback is not proven by this local cleanup test."
+  ],
+  "observedReviewInterruption": "First final direct invocation stopped at hash guard because a new regression changed only the test file. Confirmed by B; final source review pins the six unchanged source files.",
+  "earlyFindingProof": "/workspace/scratch/421c8c8b28c8/group-draft-early-review-reproduction.json",
+  "reproductionScript": "/workspace/scratch/421c8c8b28c8/group-draft-independent-r06-repro.cjs"
+}

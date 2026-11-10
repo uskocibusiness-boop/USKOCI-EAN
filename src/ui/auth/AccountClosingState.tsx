@@ -24,11 +24,11 @@ export const accountClosingCopy = {
   steps: (done: number, total: number) => `Provereni koraci: ${done} od ${total}.`,
   closedAt: (at: string) => `Završeno: ${vreme(at)}`,
   unavailable: 'Zadaci, prijave i Dogovori nisu dostupni dok traje zatvaranje.',
-  check: 'Proveri stanje',
-  support: 'Otvori privatnu podršku',
-  signOut: 'Odjavi se sa ovog uređaja',
-  checkFailed: 'Ne možemo da proverimo stanje. Pokušaj ponovo.',
-  signOutFailed: 'Odjava trenutno nije uspela. Pokušaj ponovo.',
+  check: 'Proverite stanje',
+  support: 'Otvorite privatnu podršku',
+  signOut: 'Odjavite se sa ovog uređaja',
+  checkFailed: 'Ne možemo da proverimo stanje. Pokušajte ponovo.',
+  signOutFailed: 'Odjava trenutno nije uspela. Pokušajte ponovo.',
 } as const;
 
 type Found = { key: string; execution: ClosureExecutionState | null };
@@ -64,7 +64,22 @@ export function useAccountClosing(scope: AccountClosingScope) {
     } catch { result = null; }
     if (visit.current !== owner) return;
     if (manual) setWorking(null);
-    if (result?.ok) setFound(result.podatak.closing ? { key: owner.key, execution: result.podatak.execution } : null);
+    if (result?.ok) {
+      setFound(result.podatak.closing ? { key: owner.key, execution: result.podatak.execution } : null);
+      if (result.podatak.closing && result.podatak.execution?.state === 'CLOSED'
+        && result.podatak.execution.authoritative && result.podatak.execution.accountId === owner.scope.accountId) {
+        // The navigator remains mounted under this overlay. The purge retires
+        // all old draft writers before waiting for disk, including on CLOSED.
+        try {
+          const { sesijaSada } = require('../../store/sesija') as typeof import('../../store/sesija');
+          if (sesijaSada().user?.id !== owner.scope.accountId || sesijaSada().accountRevision !== owner.scope.accountRevision) return;
+          const { forgetGroupConversationDrafts } = require('../../data/groupConversationDraft') as typeof import('../../data/groupConversationDraft');
+          await forgetGroupConversationDrafts(owner.scope.accountId, require('@react-native-async-storage/async-storage').default);
+        } catch {
+          if (visit.current === owner) setMessage('Lokalni nacrti nisu potpuno uklonjeni. Odjavite se da uređaj ponovo pokuša da ih ukloni.');
+        }
+      }
+    }
     else if (manual) setMessage(accountClosingCopy.checkFailed);
   }, []);
 

@@ -3,6 +3,7 @@ import { groupConversationService, parseGroupJournal, groupBody, groupBodyHash, 
 import { uuid } from '../../data/serverReceipt';
 import type { ReceiptAccount } from '../../data/serverReceipt';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
+import type { GroupConversationDraft } from '../../data/groupConversationDraft';
 export type GroupState={phase:'LOADING'|'READY'|'SENDING'|'UNKNOWN'|'CONFIRMED'|'ERROR';context:GroupContext|null;messages:GroupMessage[];
  before:string|null;olderPageUnavailable:boolean;journal:GroupJournal|null;receipt:GroupReceipt|null;canRetry:boolean;message:string|null;syncUnavailable?:boolean;targetMessageId?:string};
 export const initialGroupState:GroupState={phase:'LOADING',context:null,messages:[],before:null,olderPageUnavailable:false,journal:null,receipt:null,canRetry:false,message:null};
@@ -23,7 +24,7 @@ export class GroupConversationController{
  private syncing=false;private syncHasMore=false;private targetPending=true;
  readonly key:string;
  constructor(private deps:{agreementId:string;initialTarget?:{groupId:string;messageId:string;sequence:string};account:ReceiptAccount;current:()=>boolean;storage:{getItem(k:string):Promise<string|null>;setItem(k:string,v:string):Promise<unknown>;removeItem(k:string):Promise<unknown>};
- service?:typeof groupConversationService;uuid?:()=>string}){this.key=`uskoci:group-message:v5:${deps.account.accountId}:${deps.agreementId}`;}
+ service?:typeof groupConversationService;uuid?:()=>string;draft?:GroupConversationDraft}){this.key=`uskoci:group-message:v5:${deps.account.accountId}:${deps.agreementId}`;}
  private get service(){return this.deps.service??groupConversationService;}
  private current=()=>!this.disposed&&this.deps.current();snapshot=()=>this.state;
  subscribe=(fn:()=>void)=>{this.listeners.add(fn);return()=>{this.listeners.delete(fn);};};
@@ -34,8 +35,24 @@ export class GroupConversationController{
  load=()=>this.run(async()=>{
   this.journalLoaded=false;this.update({...initialGroupState});
   const raw=await journalOperation(this.key,()=>this.deps.storage.getItem(this.key));if(!this.current())return;
-  const journal=raw===null?null:parseGroupJournal(raw);this.journalLoaded=true;this.update({journal});
+  let journal=raw===null?null:parseGroupJournal(raw);this.update({journal});
   if(!await this.context())return;
+  const group=this.state.context?.group;
+  if(group&&this.deps.draft){
+   const draft=await this.deps.draft.load(group.groupId);if(!this.current())return;
+   // Capture is durable BEFORE the four-field command journal. A crash in that
+   // gap restores the original identity; it never invents a new command/send.
+   if(!journal&&draft.capture&&!draft.capture.confirmed){
+    journal={version:1,groupId:group.groupId,clientRequestId:draft.capture.clientRequestId,bodySha256:draft.capture.bodySha256};
+    const recovered=journal;
+    await journalOperation(this.key,async()=>{if(this.current())await this.deps.storage.setItem(this.key,JSON.stringify(recovered));});
+    if(!this.current())return;this.update({journal});
+   }
+   if(journal&&draft.capture&&(draft.capture.clientRequestId!==journal.clientRequestId||draft.capture.bodySha256!==journal.bodySha256)){
+    this.update({phase:'ERROR',context:null,messages:[],canRetry:false,message:'Sačuvani nacrt ne odgovara zahtevu. Slanje je zaustavljeno. Proverite razgovor.'});return;
+   }
+  }
+  this.journalLoaded=true;
   if(journal){if(journal.groupId!==this.state.context?.group?.groupId){this.update({phase:'ERROR',message:'Sačuvani zahtev ne pripada ovom razgovoru.'});return;}await this.recover();}
   else await this.page();
  });
@@ -86,7 +103,7 @@ export class GroupConversationController{
   const ids=new Set<string>(),messages=merged.filter(m=>!ids.has(m.messageId)&&!!ids.add(m.messageId));
   this.update({phase:'READY',messages,...(target?{targetMessageId:target.messageId}:{}),before:result.podatak.nextBeforeSequence,olderPageUnavailable:false,message:null});
  }
- refresh=()=>!this.journalLoaded?this.load():this.run(async()=>{
+ refresh=()=>!this.journalLoaded||(!this.state.journal&&this.deps.draft?.getSnapshot().capture?.confirmed===false)?this.load():this.run(async()=>{
   this.targetPending=false;this.update({targetMessageId:undefined});
   this.update({phase:'LOADING',canRetry:false,olderPageUnavailable:false,message:null,syncUnavailable:false});if(!await this.context())return;
   if(this.state.journal)await this.recover();else await this.page();
@@ -143,7 +160,13 @@ export class GroupConversationController{
   const result=await this.service.recover(j,this.deps.account);if(!this.current())return;
   if(!result.ok){this.update({phase:'UNKNOWN',canRetry:false,message:result.poruka});return;}
   if(result.podatak.found){await this.confirm(result.podatak.receipt!);return;}
-  this.update({phase:'UNKNOWN',canRetry:!!this.state.context?.group?.canSend,message:'Ne znamo da li je poruka stigla. Za novi pokušaj upišite istu poruku.'});
+  const capture=this.deps.draft?.getSnapshot().capture;
+  if(capture?.confirmed&&capture.clientRequestId===j.clientRequestId&&capture.bodySha256===j.bodySha256){
+   this.update({phase:'UNKNOWN',canRetry:false,message:'Prethodno slanje je već potvrđeno, ali potvrda trenutno nije dostupna. Proverite razgovor bez ponovnog slanja.'});return;
+  }
+  this.update({phase:'UNKNOWN',canRetry:!!this.state.context?.group?.canSend,message:capture&&!capture.confirmed
+   ?'Slanje još nije potvrđeno. Proverite stanje ili ponovite slanje sačuvane poruke.'
+   :'Slanje još nije potvrđeno. Za novi pokušaj upišite istu poruku.'});
  }
  private async confirm(receipt:GroupReceipt){
   this.inMemoryBody=null;this.update({phase:'CONFIRMED',receipt,canRetry:false,message:'Poruka je sačuvana u ovom grupnom razgovoru.'});
@@ -153,8 +176,9 @@ export class GroupConversationController{
   const body=normalizeGroupBody(input),g=this.state.context?.group;if(this.state.phase!=='READY'||this.state.syncUnavailable||this.state.journal||!g?.canSend||!groupBody(body))return;
   const journal:GroupJournal={version:1,groupId:g.groupId,clientRequestId:(this.deps.uuid??noviUuidZahtevId)(),bodySha256:groupBodyHash(body)};
   this.update({phase:'SENDING',message:null,canRetry:false});
-  // Persist four opaque identity/hash fields before dispatch. No group text is
-  // written locally. A restart may recover a receipt or require exact re-entry.
+  await this.deps.draft?.capture(journal,body);if(!this.current())return;
+  // The command journal stays four identity/hash fields. The separate draft
+  // owns the captured text; neither a cold restore nor readback sends it.
   await journalOperation(this.key,async()=>{if(this.current())await this.deps.storage.setItem(this.key,JSON.stringify(journal));});if(!this.current())return;
   this.inMemoryBody=body;this.update({journal});await this.write(body);
  });
@@ -163,15 +187,24 @@ export class GroupConversationController{
   if(result.ok)await this.confirm(result.podatak);else this.update({phase:'UNKNOWN',canRetry:false,message:result.poruka});
  }
  retry=(reentry?:string)=>this.run(async()=>{
-  const j=this.state.journal,body=reentry===undefined?this.inMemoryBody:normalizeGroupBody(reentry);
+  const j=this.state.journal,capture=this.deps.draft?.getSnapshot().capture;
+  if(capture?.confirmed&&j&&capture.clientRequestId===j.clientRequestId&&capture.bodySha256===j.bodySha256)return;
+  const saved=j&&capture&&!capture.confirmed&&capture.clientRequestId===j.clientRequestId&&capture.bodySha256===j.bodySha256?capture.body:null;
+  const body=saved??(reentry===undefined?this.inMemoryBody:normalizeGroupBody(reentry));
   if(this.state.phase!=='UNKNOWN'||!this.state.canRetry||!j||!this.state.context?.group?.canSend)return;
   if(!groupBody(body)||groupBodyHash(body)!==j.bodySha256){this.update({message:'Tekst se razlikuje od poslate poruke. Upišite istu poruku, bez izmena.'});return;}
+  await this.deps.draft?.capture(j,body);if(!this.current())return;
   await this.write(body);
  });
  // The receipt is final: continue reading without another tap, never dispatch again.
  // If local cleanup fails, keep that confirmed receipt and its explicit recovery action.
  private async resumeConfirmed(){if(!this.current()||this.state.phase!=='CONFIRMED')return;
-  try{await journalOperation(this.key,async()=>{if(this.current())await this.deps.storage.removeItem(this.key);});}catch{
+  try{
+   // The durable draft is reconciled first. If disk fails, retain the confirmed
+   // receipt AND journal so a cold restart cannot offer its payload as new text.
+   if(this.state.receipt)await this.deps.draft?.confirm(this.state.receipt);
+   if(!this.current())return;
+   await journalOperation(this.key,async()=>{if(this.current())await this.deps.storage.removeItem(this.key);});}catch{
    this.update({phase:'CONFIRMED',canRetry:false,message:'Poruka je poslata. Nastavite razgovor kada bude moguće.'});return;
   }
   if(!this.current())return;

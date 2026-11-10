@@ -1,0 +1,65 @@
+{
+  "schema": "USKOCI_GROUP_DRAFT_INTEGRATED_PROOF_V1",
+  "recordedAt": "2026-11-10T16:40:25.476076+00:00",
+  "publishedParent": "5d26f36293f65cc54cc4c5e402754c2c3a59e94d",
+  "developmentBranch": "work/uskoci-cist-proizvod-20261104",
+  "agentCommit": "e6a250e0d4eb1582384011eec775c69c8360350b",
+  "localIntegrationBeforeDocumentation": "ad0235eaaed373011868e21010da0ad2f3c11ac3",
+  "sourceSha256": {
+    "src/data/groupConversationDraft.ts": "dadd27154caa136af9e25b92bb4d058dc3e219388d50eb5ce72eecd02b223d28",
+    "src/data/authClientService.ts": "036becbf199d322941faba3cbf4579b47db9c579b4c337992de7c78182740fa4",
+    "src/ui/auth/AccountClosingState.tsx": "c78fec3865c91c83c2f14e44344e6afe4375cf6bfb4adb0ec9b70a46f7c1fb5a",
+    "src/ui/groups/GroupConversationController.ts": "7c7b000702970dd2946a1886f8f81f58891974fb8edbcc2f8882670359f6a502",
+    "src/ui/groups/GroupConversationScreen.tsx": "aecc8f6158b1ce1ec7e93fcd48aa542add55a995eea8c7c699d33da277514251",
+    "src/ui/groups/GroupConversationPresentation.tsx": "013160eadc3e06517dbaf5edd5314764bb40b88c8bd6d32aee4c4900bdff52ec",
+    "scripts/group-conversation-lifecycle.test.cjs": "e83d879d9d983e3e31b4fb75edfeec8abf2406fbdb7bbd99b28720207e09516b"
+  },
+  "fullTest": {
+    "command": "npm test",
+    "exitCode": 0,
+    "tests": 1660,
+    "pass": 1660,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "durationMs": 111692.065825,
+    "logSha256": "9ba1093617c614fc9abe7627a0a23db2d89ac7966963bef54b8109ba49c7e62b"
+  },
+  "typeScript": {
+    "command": "npx tsc --noEmit",
+    "exitCode": 0,
+    "logSha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f",
+    "note": "Only existing npm http-proxy environment warning; no TypeScript diagnostics."
+  },
+  "sqlIntegrity": {
+    "command": "sh supabase/migrations/check_md5.sh",
+    "exitCode": 0,
+    "files": 235,
+    "tests": 90,
+    "logSha256": "032b5381a7701995374c47bb741e5042d1f49fe72af890c6e8676716479566f8"
+  },
+  "nativePatch": "PASS, reviewed react-native-reanimated 4.5.1 patch unchanged",
+  "uxSourceVerifier": "HISTORICAL_CHECKPOINT_ALREADY_RECORDED; no new device proof",
+  "frozenSourceVerified": true,
+  "evidenceLevels": {
+    "SOURCE": true,
+    "LOCAL_TEST": true,
+    "CI": false,
+    "DEV": false,
+    "ANDROID": false,
+    "PROD": false
+  },
+  "operations": {
+    "hostedWrites": 0,
+    "modelCalls": 0,
+    "pushSends": 0,
+    "androidRuns": 0
+  },
+  "next": "Publish the exact tree with the expected remote parent, then verify the new CI and its original APK artifact.",
+  "limitations": [
+    "Local production components execute against controlled storage, RPC and native boundaries.",
+    "No physical Android disk durability, process kill, keyboard, TalkBack, two-device or authenticated hosted group readback has been demonstrated.",
+    "No claim that the separate R06 prepared recovery lifecycle is complete."
+  ]
+}

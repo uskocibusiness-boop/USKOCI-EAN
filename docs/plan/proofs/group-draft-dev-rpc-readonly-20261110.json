@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "scope": "READ_ONLY_DEV_GROUP_RPC_CONTRACT_COMPARISON",
+  "projectId": "leqcwgzvjsxugfgzdmth",
+  "systemIdentifier": "7676203829645141156",
+  "observedAt": {
+    "functions": "2026-11-10T16:36:58.801611+00:00",
+    "dependencies": "2026-11-10T16:37:20.606779+00:00",
+    "state": "2026-11-10T16:38:17.450822+00:00"
+  },
+  "sourceHead": "ad0235eaaed373011868e21010da0ad2f3c11ac3",
+  "files": {
+    "originalSql": {
+      "path": "supabase/migrations/20260913002405_clean_v5_group_conversation.sql",
+      "sha256": "ae0ffd78e00e84b3191168368ba3b5bdf844c78e2864bd42ba5a9f1e0d2a0029"
+    },
+    "historicalProofMigration": {
+      "path": "supabase/migrations/20261021104256_group_first_admission_history.sql",
+      "sha256": "934014ee0b0214df09e2659c6a413a3fdae23b14ce66fb3bc2827751c1ec4a7e",
+      "ledgerVersion": "20261021104256",
+      "ledgerName": "group_first_admission_history",
+      "ledgerBytes": 18792,
+      "ledgerMatchesExactFile": true
+    },
+    "clientService": {
+      "path": "src/data/groupConversationService.ts",
+      "sha256": "e8525e158622f3bdc013f8845940884fa95b0919debd716730f807b3b6f701ed"
+    }
+  },
+  "functions": [
+    {
+      "identity": "public.rpc_read_group_command_v5(uuid,uuid,uuid)",
+      "definitionMd5": "af08f153761e509c8fca502177e01c5f",
+      "bodyMd5": "60f0a180b430a1141064093c5c0d1d72",
+      "bodySha256": "fe92a76702b139fc0d46638e0dc8968bfa3d3707c2260ceed1bd9dc8b3b2f026",
+      "matchesOriginalSourceBytes": true,
+      "owner": "postgres",
+      "securityDefiner": true,
+      "settings": [
+        "search_path=pg_catalog"
+      ],
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "anonExecute": false,
+      "authenticatedExecute": true,
+      "serviceExecute": true
+    },
+    {
+      "identity": "public.rpc_read_group_context_v5(uuid,uuid,uuid)",
+      "definitionMd5": "63d83fc150b35536b3a5f343249b8c8c",
+      "bodyMd5": "be76c434c8a1e796757872ffbffc0db4",
+      "bodySha256": "ebcecc6d4ea00ea1499536dfc10e03e868ca9454c54aa6978989e9ab086b536a",
+      "matchesOriginalSourceBytes": true,
+      "owner": "postgres",
+      "securityDefiner": true,
+      "settings": [
+        "search_path=pg_catalog"
+      ],
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "anonExecute": false,
+      "authenticatedExecute": true,
+      "serviceExecute": true
+    },
+    {
+      "identity": "public.rpc_send_group_message_v5(uuid,uuid,uuid,text)",
+      "definitionMd5": "8c91547c0d0111f8e069383b1944a1fa",
+      "bodyMd5": "422795cdb5822e1b4dbaf5c6acf34ffb",
+      "bodySha256": "7d7433d248fc9eaf81d9025aa940db11b3b4b79dbe127af3bc27c7a17fb4cf5c",
+      "matchesOriginalSourceBytes": true,
+      "owner": "postgres",
+      "securityDefiner": true,
+      "settings": [
+        "search_path=pg_catalog"
+      ],
+      "acl": [
+        "postgres=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "anonExecute": false,
+      "authenticatedExecute": true,
+      "serviceExecute": true
+    },
+    {
+      "identity": "private.group_can_send_v5(private.group_conversations_v5,uuid)",
+      "definitionMd5": "3ba1a952ff1d5f3689ab04025f07d765",
+      "bodyMd5": "aa01d555b78ea2dfbab3b10d1ac92d37",
+      "bodySha256": "85b2d0ed5d1b241f06260bc293e51becb02a497a3adc745aad072f8d37030b1e",
+      "matchesOriginalSourceBytes": true,
+      "owner": "postgres",
+      "securityDefiner": true,
+      "settings": [
+        "search_path=pg_catalog"
+      ],
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "anonExecute": false,
+      "authenticatedExecute": false,
+      "serviceExecute": false
+    },
+    {
+      "identity": "private.group_member_v5(private.group_conversations_v5,uuid)",
+      "definitionMd5": "daa065d23b1ef0db2e39f9606fda2f1a",
+      "bodyMd5": "f65ad5a98b153cef560b3a1530b6af50",
+      "bodySha256": "1352a8025b9ee9ec89bec7f5fe4e6d06bb217f38856ea8514a68ed30d2dd8341",
+      "matchesOriginalSourceBytes": true,
+      "owner": "postgres",
+      "securityDefiner": true,
+      "settings": [
+        "search_path=pg_catalog"
+      ],
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "anonExecute": false,
+      "authenticatedExecute": false,
+      "serviceExecute": false
+    },
+    {
+      "identity": "private.group_message_receipt_v5(private.group_messages_v5,boolean)",
+      "definitionMd5": "0f7bcd581ab0739612511c18b1bb7c9c",
+      "bodyMd5": "91a694dc2e349e5bdfec6e05bd04ca98",
+      "bodySha256": "49ef772894079f46d699503c306d6ba112d61245c16029a878c48eb944712026",
+      "matchesOriginalSourceBytes": true,
+      "owner": "postgres",
+      "securityDefiner": false,
+      "settings": [
+        "search_path=pg_catalog"
+      ],
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "anonExecute": false,
+      "authenticatedExecute": false,
+      "serviceExecute": false
+    }
+  ],
+  "tableChecks": {
+    "tables": [
+      {
+        "identity": "private.group_conversations_v5",
+        "owner": "postgres",
+        "rls": true,
+        "forceRls": false,
+        "acl": [
+          "postgres=arwdDxtm/postgres"
+        ],
+        "directApiPrivilegesDenied": true,
+        "constraintsValidated": true,
+        "indexesValid": true
+      },
+      {
+        "identity": "private.group_memberships_v5",
+        "owner": "postgres",
+        "rls": true,
+        "forceRls": false,
+        "acl": [
+          "postgres=arwdDxtm/postgres"
+        ],
+        "directApiPrivilegesDenied": true,
+        "constraintsValidated": true,
+        "indexesValid": true
+      },
+      {
+        "identity": "private.group_message_visibility_v5",
+        "owner": "postgres",
+        "rls": true,
+        "forceRls": false,
+        "acl": [
+          "postgres=arwdDxtm/postgres"
+        ],
+        "directApiPrivilegesDenied": true,
+        "constraintsValidated": true,
+        "indexesValid": true
+      },
+      {
+        "identity": "private.group_messages_v5",
+        "owner": "postgres",
+        "rls": true,
+        "forceRls": false,
+        "acl": [
+          "postgres=arwdDxtm/postgres"
+        ],
+        "directApiPrivilegesDenied": true,
+        "constraintsValidated": true,
+        "indexesValid": true
+      }
+    ],
+    "dedupeConstraint": "UNIQUE (sender_account_id, client_request_id)",
+    "sequenceConstraint": "UNIQUE (group_id, sequence)"
+  },
+  "findings": [
+    "All three public RPCs require non-null auth.uid() equal to p_expected_user_id. Context additionally requires an Agreement where the actor is a party and matching group membership.",
+    "Send locks account+request with pg_advisory_xact_lock and locks the group row. Existing sender+request returns its original receipt; different group or body raises GROUP_MESSAGE_KEY_REUSED.",
+    "New send requires current membership/send permission and closure/safety barriers. The original body is stored with SHA-256 of its UTF-8 bytes; sequence and immutable visibility rows are committed in the same transaction.",
+    "Recovery is a separate STABLE read bound to group+sender+request; its own body and receipt helper contain no send invocation or DML. The client validates account, group, client request and bodySha256 before accepting a receipt.",
+    "Private group tables have no observed direct read/write grants for API roles. Deliberate public SECURITY DEFINER entry points have owner postgres and fixed pg_catalog search_path; internal group helpers are not callable by API roles.",
+    "Client draft recovery remains compatible with the unchanged four-field journal and these current server contracts. No server migration is required for the reviewed client-only change."
+  ],
+  "localHashVectors": [
+    {
+      "case": "latin",
+      "codePoints": 14,
+      "sha256": "a3e3c2b8f2c93e988c1755f4f47ca23ac9ca10965aa68d4ad56aaf200a8c867f",
+      "matchedUtf8Sha256": true
+    },
+    {
+      "case": "cyrillic_emoji",
+      "codePoints": 20,
+      "sha256": "9abe49d08568d04028a525b5141aa253db9b039b6f8375ce5477bf42d085f384",
+      "matchedUtf8Sha256": true
+    },
+    {
+      "case": "trim_nfc",
+      "codePoints": 3,
+      "sha256": "db72d846bf734897e03ea12fe4d7f70c2d007fe03a161f95dc88a6adc4ed496f",
+      "matchedUtf8Sha256": true
+    },
+    {
+      "case": "max_emoji",
+      "codePoints": 2000,
+      "sha256": "e002b42118675c4b468d71f738c1c4b0168e50809c377f9bf178094fc95ab9a6",
+      "matchedUtf8Sha256": true
+    }
+  ],
+  "currentGroupCounts": {
+    "messages": 0,
+    "visibility": 0,
+    "memberships": 0,
+    "conversations": 0,
+    "duplicateRequestGroups": 0
+  },
+  "historicalProof": {
+    "migrationByteMatched": true,
+    "containsRollbackIsolatedSqlScenarioProof": true,
+    "reexecutedInThisReview": false,
+    "originalVersionPresentInExactLedgerQuery": false
+  },
+  "result": "NO_CONFIRMED_CONTRACT_BLOCKER",
+  "evidence": {
+    "sourceBodiesMatched": 6,
+    "hostedCatalogQueries": 3,
+    "hostedRpcInvocations": 0,
+    "hostedWrites": 0,
+    "impersonation": 0,
+    "authenticatedEndToEnd": false,
+    "android": false,
+    "productionTouched": false
+  },
+  "limitations": [
+    "Read-only catalog/schema inspection is not an authenticated end-to-end send/readback or two-client acceptance test.",
+    "DEV currently has zero group conversations, memberships, messages and visibility rows; duplicate count zero is therefore not a live-data load or delivery proof.",
+    "The original 20260913002405 version was not returned by the exact migration-ledger query; exact function-body equality establishes current source compatibility independently. The 20261021104256 applied ledger statement does match its local proof-containing SQL file byte-for-byte.",
+    "No provider, push, message send, synthetic hosted fixture, JWT impersonation or production action was used."
+  ],
+  "captureFile": "/workspace/scratch/421c8c8b28c8/group-draft-dev-rpc-capture-20261110.json",
+  "stateFile": "/workspace/scratch/421c8c8b28c8/group-draft-dev-rpc-state-20261110.json"
+}

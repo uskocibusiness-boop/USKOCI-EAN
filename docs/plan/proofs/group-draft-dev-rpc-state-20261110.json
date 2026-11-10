@@ -1,0 +1,19 @@
+{
+  "counts": {
+    "messages": 0,
+    "visibility": 0,
+    "memberships": 0,
+    "conversations": 0,
+    "duplicateRequestGroups": 0
+  },
+  "migrations": [
+    {
+      "name": "group_first_admission_history",
+      "version": "20261021104256",
+      "sqlBytes": 18792,
+      "sqlSha256": "934014ee0b0214df09e2659c6a413a3fdae23b14ce66fb3bc2827751c1ec4a7e",
+      "statementCount": 1
+    }
+  ],
+  "observedAt": "2026-11-10T16:38:17.450822+00:00"
+}

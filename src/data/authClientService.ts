@@ -6,6 +6,7 @@ import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
 import { revokePushBeforeLogout } from './pushDeviceClientService';
 import { forgetAgreementOutboxes } from './agreementOutbox';
+import { prepareGroupDraftErasure } from './groupConversationDraft';
 import { recentSearchesKey } from './recentSearchesKey';
 import { writeSettledMapPlace } from './confirmedDiscoveryMapPlace';
 import { voiceMessagesBuilt } from './voiceMessagesGate';
@@ -135,8 +136,14 @@ export const authClientService: AuthClientPort = {
     assertCurrentAccount(expected);
     // Only the captured current account may begin the SDK's local logout.
     // Its Auth event, not this command or the screen, owns session cleanup.
-    const { error } = await client.auth.signOut({ scope: 'local' });
-    if (error) throw error;
+    const groupErasure = prepareGroupDraftErasure(expected.accountId, require('@react-native-async-storage/async-storage').default);
+    try {
+      const { error } = await client.auth.signOut({ scope: 'local' });
+      if (error) throw error;
+    } catch (error) { await groupErasure.cancel(); throw error; }
+    // Commit the captured boundary before other cleanup awaits. A newly signed
+    // in incarnation may already exist; it waits behind this purge and survives.
+    try { await groupErasure.confirm(); } catch { /* Auth succeeded; failed disk erasure is not a failed logout */ }
     // The device forgets this account's Agreement message text (deep read 7.28). A storage failure never
     // blocks a logout that has already happened.
     try {

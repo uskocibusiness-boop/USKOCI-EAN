@@ -38,12 +38,14 @@ export type GroupConversationPresentationProps = {
   state: GroupState; draft: string; showPeople: boolean; listKey: number;
   /** The draft's length as the group counts it, and whether it is a message that can go (the screen's own rule). */
   draftLength: number; draftSendable: boolean;
+  draftError?: string | null; draftSaving?: boolean; draftEditable?: boolean; retryBody?: string; newerDraft?: boolean;
   viewability: { viewAreaCoveragePercentThreshold: number; minimumViewTime: number };
   onVisible: (info: { viewableItems: ViewToken<GroupMessage>[] }) => void;
   onBack: () => void; onTogglePeople: () => void; onRefresh: () => void; onOlder: () => void; onManagementNext: () => void;
   backLabel?: string;
   onPrivate?: (id: string) => void;
   onOpenAgreement: (id: string) => void; onDraft: (value: string) => void; onSend: () => void; onAcknowledge: () => void;
+  onSaveDraft?: () => void;
   /** The member's photo, drawn by the screen (it reads media); the gallery leaves it out and the initials stand. */
   photo?: (member: Member, fallback: ReactNode) => ReactNode;
   /** The support entry under a message, drawn by the screen (it opens support); the gallery leaves it out. */
@@ -95,7 +97,9 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
   appear.settle(state.messages.map(message => message.messageId));
   const length = p.draftLength;
   const invalidText = length > 0 && length <= LIMIT && !p.draftSendable;
-  const composer = (ready && group?.canSend) || retry;
+  const composer = group?.canSend && ['READY', 'SENDING', 'UNKNOWN', 'CONFIRMED'].includes(state.phase);
+  const editable = p.draftEditable ?? (ready || retry);
+  const sendAvailable = ready || retry;
   const name = (message: GroupMessage) => message.mine ? 'Vi' : group?.members.find(member => member.accountId === message.senderAccountId)?.displayName ?? 'Učesnik';
   // The same runs, Serbian day lines and tails as the Dogovor's conversation (proposal R): the group only adds the sender's
   // name at the start of another person's run. The thread is text only (decision A07).
@@ -220,19 +224,24 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
           {state.phase === 'LOADING' ? <T variant="meta" tone="muted">Učitavamo poruke…</T> : null}
           {state.phase === 'SENDING' ? <T variant="meta" tone="muted">Čekamo potvrdu slanja…</T> : null}
           {(state.phase === 'UNKNOWN' || state.phase === 'CONFIRMED') && state.message ? <T variant="note" tone="muted">{state.message}</T> : null}
-          {state.phase === 'UNKNOWN' ? <V2Action label="Proverite da li je poruka stigla" style={brandAction} onPress={refresh} /> : null}
+          {state.phase === 'UNKNOWN' ? <V2Action label="Proverite potvrdu slanja" style={brandAction} onPress={refresh} /> : null}
           {state.phase === 'CONFIRMED' ? <V2Action label="Nastavite razgovor" style={brandAction} onPress={p.onAcknowledge} /> : null}
         </View> : null}
       {reading.showLatest ? <View style={[s.gutter, s.latest]}>
         {reading.readingLost ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Razgovor je osvežen. Prethodno mesto nije u prikazanom delu.</T> : null}
         <V2Action label="Najnovije poruke" kind="quiet" tone="neutral" compact onPress={reading.chooseLatest} />
       </View> : null}
-      {composer ? <PillComposer value={p.draft} onChange={p.onDraft} label={retry ? 'Upišite istu poruku' : 'Poruka grupi'}
-        placeholder={retry ? 'Prvobitna poruka…' : 'Napišite poruku grupi…'} sendLabel={retry ? 'Ponovite slanje iste poruke' : 'Pošaljite poruku grupi'}
-        canSend={p.draftSendable && !state.syncUnavailable} reason={state.syncUnavailable ? 'Sačekajte da se veza obnovi.' : length === 0 ? 'Upišite poruku pre slanja.' : length > LIMIT ? 'Poruka je duža od 2.000 znakova.' : invalidText ? 'Tekst sadrži nepodržan znak. Ispravite ga pre slanja.' : null}
+      {p.draftError ? <View style={s.gutter}><PillNote tone="danger" alert>{p.draftError}</PillNote>
+        {p.onSaveDraft && editable ? <V2Action label="Sačuvajte nacrt ponovo" compact kind="quiet" disabled={!!p.draftSaving} onPress={p.onSaveDraft} /> : null}
+      </View> : null}
+      {p.draftSaving ? <PillNote>Čuvamo nacrt na uređaju…</PillNote> : null}
+      {composer ? <PillComposer value={p.draft} onChange={p.onDraft} label={retry && !p.retryBody ? 'Upišite istu poruku' : 'Poruka grupi'}
+        placeholder={retry && !p.retryBody ? 'Prvobitna poruka…' : 'Napišite poruku grupi…'} sendLabel={retry ? p.retryBody ? 'Ponovite slanje prethodne poruke' : 'Ponovite slanje iste poruke' : 'Pošaljite poruku grupi'}
+        editable={editable} canSend={sendAvailable && (!!p.retryBody || p.draftSendable) && !state.syncUnavailable} reason={!sendAvailable ? 'Prvo proverite potvrdu prethodnog slanja.' : state.syncUnavailable ? 'Sačekajte da se veza obnovi.' : length === 0 ? 'Upišite poruku pre slanja.' : length > LIMIT ? 'Poruka je duža od 2.000 znakova.' : invalidText ? 'Tekst sadrži nepodržan znak. Ispravite ga pre slanja.' : null}
         onSend={p.onSend} maxLength={4000}
         above={<>
-          {retry ? <PillNote>Prvobitna poruka</PillNote> : null}
+          {retry ? <PillNote>{p.retryBody ? p.newerDraft ? 'Ponovni pokušaj šalje prethodnu poruku. Vaš noviji unos ostaje u polju.' : 'Prethodna poruka je sačuvana za ponovni pokušaj.' : 'Prvobitna poruka'}</PillNote> : null}
+          {retry && p.retryBody && p.newerDraft ? <T variant="note" numberOfLines={3}>{p.retryBody}</T> : null}
           {invalidText ? <PillNote tone="danger" alert>Tekst sadrži nepodržan znak. Ispravite ga pre slanja.</PillNote> : null}
           {length > NEAR ? <PillNote tone={length > LIMIT ? 'danger' : 'muted'}>{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova</PillNote> : null}
         </>} />
