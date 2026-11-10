@@ -24,6 +24,31 @@ const voiceDirectory = () => new Directory(Paths.cache, VOICE_CACHE_DIRECTORY);
 const EXPO_RECORDING_DIRS = ['Audio', 'ExpoAudio'] as const;
 const EXPO_RECORDING_LEAF = /^recording-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.m4a$/i;
 const nativeCleanup = new Set<() => Promise<void>>();
+export type VoiceFileOwner = Readonly<{ generation: number }>;
+let generation = 0;
+let currentOwner: VoiceFileOwner = Object.freeze({ generation });
+const owners = new Set<VoiceFileOwner>([currentOwner]);
+let erasureTail: Promise<void> = Promise.resolve();
+let erasureFailed = false;
+
+/** A native adapter belongs to the incarnation that created it, including pending starts. */
+export const captureVoiceFileOwner = (): VoiceFileOwner => currentOwner;
+export const voiceFileOwnerCurrent = (owner: VoiceFileOwner): boolean => owners.has(owner);
+
+/** Admission and native cleanup registration happen together, before another erasure can capture them. */
+export async function withVoiceFileAccess<T>(owner: VoiceFileOwner, work: () => T | Promise<T>): Promise<T> {
+  for (;;) {
+    const pending = erasureTail;
+    await pending;
+    if (!voiceFileOwnerCurrent(owner)) throw new Error('VOICE_FILES_RETIRED');
+    if (pending !== erasureTail) continue;
+    if (erasureFailed) throw new Error('VOICE_ERASURE_INCOMPLETE');
+    const value = await work();
+    if (!voiceFileOwnerCurrent(owner)) throw new Error('VOICE_FILES_RETIRED');
+    return value;
+  }
+}
+
 /** Registration is passive: importing file helpers does not import/initialize ExpoAudio. */
 export function registerVoiceNativeCleanup(cleanup: () => Promise<void>): () => void {
   nativeCleanup.add(cleanup);
@@ -37,32 +62,81 @@ export function isExpoVoiceRecordingUri(uri: string): boolean {
     return uri.startsWith(prefix) && EXPO_RECORDING_LEAF.test(uri.slice(prefix.length));
   });
 }
-async function stopNativeAudioBeforePurge(): Promise<void> {
-  const results = await Promise.allSettled([...nativeCleanup].map(cleanup => cleanup()));
+async function stopNativeAudioBeforePurge(captured: readonly (() => Promise<void>)[]): Promise<void> {
+  const results = await Promise.allSettled(captured.map(async cleanup => cleanup()));
   // No cache removal while native code might still be writing/playing one of its files.
   if (results.some(result => result.status === 'rejected')) throw new Error('VOICE_NATIVE_RELEASE_FAILED');
 }
 
+export type VoiceFileErasure = Readonly<{ confirm(): Promise<void>; cancel(): Promise<void> }>;
+
+/** Reserve before Auth. New files/native starts wait; only confirmed old owners are retired. */
+export function prepareVoiceFileErasure(): VoiceFileErasure {
+  const capturedOwners = [...owners], capturedNative = [...nativeCleanup], previous = erasureTail;
+  currentOwner = Object.freeze({ generation: ++generation }); owners.add(currentOwner);
+  let decided: boolean | null = null;
+  let decide!: (confirmed: boolean) => void;
+  const decision = new Promise<boolean>(resolve => { decide = resolve; });
+  const operation = previous.then(async () => {
+    if (!await decision) return;
+    try {
+      await stopNativeAudioBeforePurge(capturedNative);
+      const directory = voiceDirectory();
+      if (directory.exists) directory.delete();
+      // Pending old prepares/finalizations have settled before scanning SDK output.
+      // Only SDK UUID M4A leaves belong to voice; never delete an Expo directory.
+      for (const name of EXPO_RECORDING_DIRS) {
+        const recordings = new Directory(Paths.cache, name);
+        if (!recordings.exists) continue;
+        for (const entry of recordings.list()) {
+          if (entry instanceof File && isExpoVoiceRecordingUri(entry.uri)) entry.delete();
+        }
+      }
+      erasureFailed = false;
+    } catch (error) {
+      // A failed native release keeps its handle/file. New voice work fails
+      // closed until a later successful purge; logout itself can still succeed.
+      erasureFailed = true; throw error;
+    }
+  });
+  erasureTail = operation.then(() => undefined, () => undefined);
+  return {
+    confirm() {
+      if (decided === null) {
+        decided = true;
+        for (const owner of capturedOwners) owners.delete(owner);
+        decide(true);
+      }
+      return operation;
+    },
+    cancel() { if (decided === null) { decided = false; decide(false); } return operation; },
+  };
+}
+
 export const nativeVoiceFiles: VoiceFilePort = {
   async read(uri) {
-    if (!insideCache(uri)) throw new Error('VOICE_FILE_PATH');
-    const file = new File(uri);
-    if (!file.exists) throw new Error('VOICE_FILE_MISSING');
-    const size = file.size;
-    if (!Number.isInteger(size) || size <= 0 || size > VOICE_FILE_MAX_BYTES) throw new Error('VOICE_FILE_SIZE');
-    const bytes = await file.arrayBuffer();
-    if (bytes.byteLength !== size) throw new Error('VOICE_FILE_SIZE');
-    return bytes;
+    return withVoiceFileAccess(captureVoiceFileOwner(), async () => {
+      if (!insideCache(uri)) throw new Error('VOICE_FILE_PATH');
+      const file = new File(uri);
+      if (!file.exists) throw new Error('VOICE_FILE_MISSING');
+      const size = file.size;
+      if (!Number.isInteger(size) || size <= 0 || size > VOICE_FILE_MAX_BYTES) throw new Error('VOICE_FILE_SIZE');
+      const bytes = await file.arrayBuffer();
+      if (bytes.byteLength !== size) throw new Error('VOICE_FILE_SIZE');
+      return bytes;
+    });
   },
   async writeTemp(name, bytes) {
-    if (!LEAF.test(name) || /^\.+$/.test(name)) throw new Error('VOICE_FILE_NAME');
-    if (!(bytes instanceof ArrayBuffer) || bytes.byteLength <= 0 || bytes.byteLength > VOICE_FILE_MAX_BYTES) throw new Error('VOICE_FILE_SIZE');
-    const directory = voiceDirectory();
-    directory.create({ intermediates: true, idempotent: true });
-    const file = new File(directory, name);
-    file.create({ overwrite: true, intermediates: true });
-    file.write(new Uint8Array(bytes));
-    return file.uri;
+    return withVoiceFileAccess(captureVoiceFileOwner(), () => {
+      if (!LEAF.test(name) || /^\.+$/.test(name)) throw new Error('VOICE_FILE_NAME');
+      if (!(bytes instanceof ArrayBuffer) || bytes.byteLength <= 0 || bytes.byteLength > VOICE_FILE_MAX_BYTES) throw new Error('VOICE_FILE_SIZE');
+      const directory = voiceDirectory();
+      directory.create({ intermediates: true, idempotent: true });
+      const file = new File(directory, name);
+      file.create({ overwrite: true, intermediates: true });
+      file.write(new Uint8Array(bytes));
+      return file.uri;
+    });
   },
   async remove(uri) {
     if (!insideCache(uri)) throw new Error('VOICE_FILE_PATH');
@@ -70,17 +144,7 @@ export const nativeVoiceFiles: VoiceFilePort = {
     if (file.exists) file.delete();
   },
   async purgeAll() {
-    await stopNativeAudioBeforePurge();
-    const directory = voiceDirectory();
-    if (directory.exists) directory.delete();
-    // Only SDK-generated UUID M4A leaves. Never delete an Expo directory, another codec or a foreign filename.
-    for (const name of EXPO_RECORDING_DIRS) {
-      const recordingDirectory = new Directory(Paths.cache, name);
-      if (!recordingDirectory.exists) continue;
-      for (const entry of recordingDirectory.list()) {
-        if (entry instanceof File && isExpoVoiceRecordingUri(entry.uri)) entry.delete();
-      }
-    }
+    await prepareVoiceFileErasure().confirm();
   },
 };
 

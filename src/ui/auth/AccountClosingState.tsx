@@ -11,6 +11,7 @@ import type { AccountClosingStanding } from '../../data/accountClosingStanding';
 import type { Ishod } from '../../data/ports';
 import { vreme } from '../../lib/vreme';
 import { PrimaryButton } from './AuthControls';
+import { voiceMessagesBuilt } from '../../data/voiceMessagesGate';
 
 /** The signed-in account the check belongs to; null while signed out or on the public recovery link. */
 export type AccountClosingScope = { accountId: string; accountRevision: number } | null;
@@ -76,12 +77,19 @@ export function useAccountClosing(scope: AccountClosingScope) {
           const { forgetGroupConversationDrafts } = require('../../data/groupConversationDraft') as typeof import('../../data/groupConversationDraft');
           const { forgetAgreementOutboxes } = require('../../data/agreementOutbox') as typeof import('../../data/agreementOutbox');
           const storage = require('@react-native-async-storage/async-storage').default;
-          // Capture both boundaries before either disk operation can yield to a
-          // new account. A failure in one namespace must not skip the other.
-          const erased = await Promise.allSettled([
+          // Capture every boundary before disk or native teardown can yield to
+          // a new account. Failure in one namespace must not skip the others.
+          const erasures: Promise<unknown>[] = [
             forgetGroupConversationDrafts(owner.scope.accountId, storage),
             forgetAgreementOutboxes(owner.scope.accountId, storage),
-          ]);
+          ];
+          if (voiceMessagesBuilt()) {
+            try {
+              const { prepareVoiceFileErasure } = require('../../features/voiceMessages/nativeVoiceFiles') as typeof import('../../features/voiceMessages/nativeVoiceFiles');
+              erasures.push(prepareVoiceFileErasure().confirm());
+            } catch (error) { erasures.push(Promise.reject(error)); }
+          }
+          const erased = await Promise.allSettled(erasures);
           if (erased.some(result => result.status === 'rejected')) throw new Error('LOCAL_DRAFT_ERASURE_FAILED');
         } catch {
           if (visit.current === owner) setMessage('Lokalni nacrti nisu potpuno uklonjeni. Odjavite se da uređaj ponovo pokuša da ih ukloni.');

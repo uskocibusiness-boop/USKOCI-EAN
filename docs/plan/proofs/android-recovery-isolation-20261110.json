@@ -190,5 +190,120 @@
       "bytes": 1584,
       "sha256": "e34f54a2a168f17625dc9fe65206b8a413ae7563a7025b1c013cb190544625fd"
     }
-  ]
+  ],
+  "nativeVoiceFollowup": {
+    "recordedAt": "2026-11-10T18:39:19.415821+00:00",
+    "baseCommit": "b6ef9fb27b2f41cf765c51f21261a513fb82f940",
+    "status": {
+      "source": "IMPLEMENTED",
+      "localTests": "PASS",
+      "typescript": "PASS",
+      "independentReview": "PASS",
+      "android": "BLOCKED",
+      "ci": "ROOT_INTEGRATION_PENDING",
+      "dev": "NOT_REQUIRED_CLIENT_ONLY"
+    },
+    "changes": [
+      "Reserve native voice erasure before awaiting Auth. New file/native admissions wait behind the captured boundary; confirmed old owners are retired before cache deletion.",
+      "Wait for old pending prepare, stop, duration probe and native player work before deleting voice/SDK UUID M4A cache files. New-session files and native handles survive late logout cleanup.",
+      "Failed Auth cancels the reservation without deleting files or stopping still-owned native audio.",
+      "A current authoritative CLOSED read also captures native erasure before any disk/native await; stale identity, foreign/unconfirmed receipt and offline reads cannot erase voice bytes.",
+      "Native-release or disk failure leaves an explicit incomplete-erasure boundary. CLOSED shows the existing incomplete-local-data message; new voice work fails until a successful purge."
+    ],
+    "tests": [
+      {
+        "command": "node --test scripts/voice-native-lifecycle.test.cjs",
+        "passed": 14,
+        "failed": 0,
+        "scope": "Actual TypeScript Auth/file/native-adapter and mounted CLOSED code at synthetic Expo filesystem/audio seams."
+      },
+      {
+        "command": "node --test scripts/voice-native-lifecycle.test.cjs scripts/voice-gesture-lifecycle.test.cjs scripts/voice-recovery-ownership.test.cjs scripts/agreement-outbox-lifecycle.test.cjs scripts/group-conversation-lifecycle.test.cjs",
+        "passed": 83,
+        "failed": 0,
+        "scope": "Integrated native-adapter, gesture, recovered-asset, private-outbox and group-draft lifecycle tests. Includes the 14 above."
+      },
+      {
+        "command": "node node_modules/typescript/bin/tsc --noEmit",
+        "exitCode": 0,
+        "diagnostics": []
+      },
+      {
+        "command": "git diff --check",
+        "exitCode": 0
+      }
+    ],
+    "negativeControls": [
+      {
+        "source": "b6ef9fb27b2f41cf765c51f21261a513fb82f940, before voice edits",
+        "passed": 0,
+        "failed": 2,
+        "assertion": "Late old logout erased a new same-account/new-revision or different-account download; scratch reproduction also stopped the new recorder and removed its SDK raw file."
+      },
+      {
+        "source": "AccountClosingState.tsx from b6ef9fb27b2f41cf765c51f21261a513fb82f940 before native CLOSED binding",
+        "passed": 0,
+        "failed": 1,
+        "assertion": "Current authoritative CLOSED left voice cache bytes and active native recorder until logout."
+      }
+    ],
+    "independentReview": {
+      "agent": "/root/ai_context",
+      "result": "NO_BLOCKERS",
+      "integratedTests": {
+        "passed": 83,
+        "failed": 0
+      },
+      "additionalSyntheticProbes": {
+        "passed": 6,
+        "failed": 0,
+        "scope": [
+          "pending duration probe",
+          "pending player load",
+          "CLOSED native release failure retains bytes and reports incomplete erasure",
+          "flag-off has zero native imports",
+          "two reserved boundaries with confirm/cancel",
+          "old asynchronous read cannot return bytes after erasure"
+        ]
+      },
+      "receipt": {
+        "path": "/workspace/scratch/e3e59e0c2a16/voice-independent-review.json",
+        "sha256": "118c1506ad535a13e14a741a1bd1616e4561d0c8e69b70c5d3eda64be8933ddc"
+      }
+    },
+    "files": [
+      {
+        "path": "src/features/voiceMessages/nativeVoiceFiles.ts",
+        "sha256": "f5a90464b53b212420642798b63beec52797ed3dd81b31c70e14059a445d6bf2"
+      },
+      {
+        "path": "src/features/voiceMessages/nativeAudioAdapters.ts",
+        "sha256": "c38d7a33a1added9ba5bebde7fbc11253a4a591f379fab8e209bbbb0fc936b90"
+      },
+      {
+        "path": "src/data/authClientService.ts",
+        "sha256": "4d1b9dba321e384c703b6a10cef008fe0ee32724a9507917fef2a844f87a4e8b"
+      },
+      {
+        "path": "src/ui/auth/AccountClosingState.tsx",
+        "sha256": "75f6f65f65eb4c1e732b6ddfeb7d7bd0a2033c35464a0a7d4fa8ae2e126303fe"
+      },
+      {
+        "path": "scripts/voice-native-lifecycle.test.cjs",
+        "sha256": "a80d383aa3d30fba218c400df946efe2dd31d154f07efdb96e561faa6becb695"
+      }
+    ],
+    "log": {
+      "path": "/workspace/scratch/e3e59e0c2a16/voice-native-integrated-tests.log",
+      "bytes": 18403,
+      "sha256": "285b105b51b7a989f1f431e3ef1903ed5cdc81b67a1b095f7d5db0b0008e0273"
+    },
+    "limits": [
+      "No real Android device/emulator, native filesystem, microphone, audio playback or force-kill was exercised.",
+      "The existing helper ports use inert Expo seams; these results do not certify physical bytes removed when a real native/disk operation fails.",
+      "No backend, Auth session, provider, budget, push or production action was performed by this follow-up.",
+      "Cross-device closure without a current authoritative read and process-kill during erasure remain separate acceptance checks.",
+      "The 14-test and 83-test groups overlap and must not be added together."
+    ]
+  }
 }

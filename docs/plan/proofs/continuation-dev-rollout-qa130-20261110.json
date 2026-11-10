@@ -1,0 +1,895 @@
+{
+  "schema": "USKOCI_DEV_PROMOTION_AFTER_QA130_SOURCE_GATE_V1",
+  "sourceCommit": "b6ef9fb27b2f41cf765c51f21261a513fb82f940",
+  "sourceTree": "5bc007b9e678cb8e47cee94db035ff9baed126a2",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "startedAtUtc": "2026-11-10 18:25:29 UTC",
+  "sourceCi": {
+    "run": 130,
+    "runId": 42873923637,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42873923637",
+    "step": "Verify the active clean source",
+    "conclusion": "success",
+    "tests": 1700,
+    "checksArtifactId": 13790618141,
+    "checksArtifactSha256": "cfa531f4366d14236596ff8bca4573b3baa7c9c81a51de7c00c9ee7eab33992d"
+  },
+  "r06": {
+    "preflight": [
+      {
+        "status": "R06_RETRY_DEV_PREFLIGHT_PASS"
+      }
+    ],
+    "apply": {
+      "success": true
+    },
+    "postflight": [
+      {
+        "status": "R06_RETRY_DEV_POSTFLIGHT_PASS"
+      }
+    ],
+    "file": "scripts/sql/r06_prepared_retry_dev_20261110.install.sql",
+    "rollbackPrepared": true,
+    "rollbackExecuted": false
+  },
+  "r13": {
+    "preflight": [
+      {
+        "checked_at": "2026-11-10 18:20:35.360922+00",
+        "current_user": "postgres",
+        "current_database": "postgres",
+        "physical_id": "7676203829645141156",
+        "body_md5": "d3cdfe2bdd6e5d40a74e6029793c89c5",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=pg_catalog"
+        ],
+        "prokind": "f"
+      }
+    ],
+    "apply": {
+      "success": true
+    },
+    "postflight": [
+      {
+        "checked_at": "2026-11-10 18:25:54.782818+00",
+        "signature": "private.dispatch_next_wave(uuid)",
+        "body_md5": "bd1d2fd351d8273ddc0cce9e29514ca7",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=pg_catalog"
+        ],
+        "prokind": "f"
+      }
+    ],
+    "unchangedTickOwners": [
+      {
+        "checked_at": "2026-11-10 18:26:19.414239+00",
+        "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+        "body_md5": "76280b0ad653d2fc10199bca2c3971a8",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "checked_at": "2026-11-10 18:26:19.414252+00",
+        "signature": "private.marketplace_tick(integer,timestamp with time zone)",
+        "body_md5": "3858404992f2ceaa30b65af1055e2b9c",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=pg_catalog"
+        ]
+      }
+    ],
+    "file": "scripts/sql/r13_dispatch_reason_20261110.sql",
+    "rollbackPrepared": true,
+    "rollbackExecuted": false
+  },
+  "migrationLedger": [
+    {
+      "version": "20261110182530",
+      "name": "r06_prepared_retry_identity_20261110",
+      "statement_count": 1,
+      "bytes": 69631,
+      "sha256": "0a911677fe342b90058db8cecc989a097f8059e0dbac854b1274a1f2da9c063a"
+    },
+    {
+      "version": "20261110182542",
+      "name": "r13_dispatch_stop_reason_20261110",
+      "statement_count": 1,
+      "bytes": 2136,
+      "sha256": "fcc8753685383f1abb5bceeaa9c1f9118cbbbf06daccc276314b2099d0a72d7d"
+    }
+  ],
+  "worker": {
+    "beforeVersion": 155,
+    "afterVersion": 156,
+    "files": 24,
+    "exactByteMatch": true,
+    "changedFiles": 3,
+    "unchangedFiles": 21,
+    "verifyJwt": false,
+    "importMap": false,
+    "bundleSha256": "c67b8281fa9e1be4344f4482188c489b1a68fd4794c01f817b3bfb82082a2924",
+    "entrypoint": "supabase/functions/uskoci-worker-interview/index.ts",
+    "needVersion": 203,
+    "pushVersion": 49,
+    "rollbackPreimageSha256": "1ff411785cd590a2c6d045faeaa60cb7097c1c40adb1dc6c03252fce847e42eb"
+  },
+  "boundedLogs": {
+    "start": "2026-11-10T18:25:20Z",
+    "end": "2026-11-10T18:27:25Z",
+    "summary": {
+      "result": [
+        {
+          "events": 2,
+          "function_id": "9883163f-e66e-4501-b398-4ef2c6634214",
+          "function_level": "",
+          "function_version": "15",
+          "http_status": "200",
+          "source": "function_edge_logs",
+          "sql_severity": "",
+          "sql_state": ""
+        },
+        {
+          "events": 2,
+          "function_id": "d9bde875-0cd9-4998-b395-76fa3de0af92",
+          "function_level": "",
+          "function_version": "49",
+          "http_status": "200",
+          "source": "function_edge_logs",
+          "sql_severity": "",
+          "sql_state": ""
+        },
+        {
+          "events": 1,
+          "function_id": "dc1d633c-416a-4a10-bac7-ecc9a4c4a92a",
+          "function_level": "",
+          "function_version": "156",
+          "http_status": "401",
+          "source": "function_edge_logs",
+          "sql_severity": "",
+          "sql_state": ""
+        },
+        {
+          "events": 1,
+          "function_id": "dc1d633c-416a-4a10-bac7-ecc9a4c4a92a",
+          "function_level": "log",
+          "function_version": "156",
+          "http_status": "",
+          "source": "function_logs",
+          "sql_severity": "",
+          "sql_state": ""
+        },
+        {
+          "events": 2,
+          "function_id": "d9bde875-0cd9-4998-b395-76fa3de0af92",
+          "function_level": "log",
+          "function_version": "49",
+          "http_status": "",
+          "source": "function_logs",
+          "sql_severity": "",
+          "sql_state": ""
+        },
+        {
+          "events": 3,
+          "function_id": "9883163f-e66e-4501-b398-4ef2c6634214",
+          "function_level": "log",
+          "function_version": "15",
+          "http_status": "",
+          "source": "function_logs",
+          "sql_severity": "",
+          "sql_state": ""
+        },
+        {
+          "events": 14,
+          "function_id": "",
+          "function_level": "",
+          "function_version": "",
+          "http_status": "",
+          "source": "postgres_logs",
+          "sql_severity": "LOG",
+          "sql_state": "00000"
+        },
+        {
+          "events": 2,
+          "function_id": "",
+          "function_level": "",
+          "function_version": "",
+          "http_status": "",
+          "source": "postgres_logs",
+          "sql_severity": "WARNING",
+          "sql_state": "25P01"
+        },
+        {
+          "events": 2,
+          "function_id": "",
+          "function_level": "",
+          "function_version": "",
+          "http_status": "",
+          "source": "postgres_logs",
+          "sql_severity": "WARNING",
+          "sql_state": "25001"
+        }
+      ]
+    },
+    "interpretation": "No ERROR/FATAL SQL or function-error level in this bounded window. Four SQL transaction warnings (25001/25P01) coincide with two standalone BEGIN/COMMIT packages inside the managed migration wrapper; exact ledger bytes, installed code and postflight were verified. Worker156 HTTP401 is the intentional unauthenticated probe; push49 HTTP200 is not proof of phone delivery."
+  },
+  "operations": {
+    "sqlMigrations": 2,
+    "edgeDeployments": 1,
+    "businessWrites": 0,
+    "authAccountsCreated": 0,
+    "emailsSent": 0,
+    "paidProviderCalls": 0,
+    "manualPushSends": 0,
+    "budgetChanges": 0,
+    "reservationsReleased": 0,
+    "flagOrSecretChanges": 0,
+    "cronScheduleChanges": 0,
+    "productionMutations": 0,
+    "policyOrDigestPinChanges": 0
+  },
+  "limitations": [
+    "Runtime flag UNKNOWN; no authorized live same-request recovery.",
+    "R06 policy gates remain false; installed source is not legal certification.",
+    "No Android execution, real Gemini measurement, push delivery or large-load test."
+  ],
+  "independentDatabase": {
+    "schema": "USKOCI_QA130_INDEPENDENT_DEV_R06_R13_POSTFLIGHT_V1",
+    "sourceCommit": "b6ef9fb27b2f41cf765c51f21261a513fb82f940",
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "validatorScope": "Read-only installed-code, ledger, privileges, dependencies, policy and aggregate verification. No business command or provider invocation.",
+    "exactR06Postflight": {
+      "status": "R06_RETRY_DEV_POSTFLIGHT_PASS",
+      "path": "scripts/sql/r06_prepared_retry_dev_20261110.postflight.sql",
+      "bytes": 33511,
+      "sha256": "e2b9fffb6cccc6d31712aed5a146a18852daac79622e08d28dab817924d7d261",
+      "localMatchesSource": true
+    },
+    "checks": {
+      "r06StatusPostimage": true,
+      "r06ClaimUnchanged": true,
+      "r06DependenciesAndTableContract": true,
+      "r06PrivateAclUnchanged": true,
+      "r06MigrationStatementExactlyMatchesSource": true,
+      "r13PostimageAndUnchangedTickFunctions": true,
+      "r13PrivateAclUnchanged": true,
+      "r13MigrationStatementExactlyMatchesSource": true,
+      "businessCountsUnchangedSinceIndependentPreflight": true
+    },
+    "r06": {
+      "usage": {
+        "count": 1252,
+        "outputTokens": 442144,
+        "promptTokens": 10043994
+      },
+      "budget": {
+        "enabled": true,
+        "ceilingMicrousd": 100000000,
+        "priceValidUntil": "2027-01-01T00:00:00+00:00",
+        "reservedMicrousd": 65662284,
+        "reservationCapEnforced": true
+      },
+      "policy": {
+        "closureBound": false,
+        "erasureBound": false,
+        "activePolicySets": 0,
+        "exportPolicyBound": false,
+        "closureSourceDigest": "435d92ebbf017bde1e8fd51dd1763ced27f2fa51687311a61925e9c68176c6ed",
+        "retentionAiSourceReady": false,
+        "retentionExecutionBound": false,
+        "activeRequiredDataClasses": 15,
+        "effectiveActiveLegalVersions": 0
+      },
+      "business": {
+        "needs": 19,
+        "users": 18,
+        "profiles": 24,
+        "agreements": 8,
+        "groupMessages": 0,
+        "agreementMessages": 13
+      },
+      "functions": [
+        {
+          "acl": "{postgres=X/postgres}",
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "114bd0b4b9d6e60a0abb0d0d64e63c69",
+          "signature": "private.ai_claim_need_turn_context_v1(uuid,uuid,uuid,text,jsonb)",
+          "anonExecute": false,
+          "securityDefiner": true,
+          "definitionSha256": "c13e3479ea254022cf5470fe3763e25fb9e3d134b629bfa552704e5bc30067f6",
+          "serviceRoleExecute": false,
+          "authenticatedExecute": false
+        },
+        {
+          "acl": "{postgres=X/postgres}",
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "ee2ee08b805a98127427f0515c2c6b04",
+          "signature": "private.ai_need_turn_status(uuid,uuid,uuid)",
+          "anonExecute": false,
+          "securityDefiner": false,
+          "definitionSha256": "e9b7d526d98652f6c84cf68c7dc71a8ddfcf15da4bcc8c0ff7f39daaccd232f8",
+          "serviceRoleExecute": false,
+          "authenticatedExecute": false
+        },
+        {
+          "acl": "{postgres=X/postgres}",
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "3eb933c2c2cc076cbc7528a7817ed45b",
+          "signature": "private.ai_turn_sweep_v5(timestamp with time zone)",
+          "anonExecute": false,
+          "securityDefiner": true,
+          "definitionSha256": "d15031eaa779e0eb0634980b0d1fd3e272e135dee10aed8a79fcd043689d1a5e",
+          "serviceRoleExecute": false,
+          "authenticatedExecute": false
+        },
+        {
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "0b3c7f1d276a3b4349aeebee4f111af7",
+          "signature": "public.rpc_ai_claim_need_turn_v2_service(uuid,uuid,uuid,text)",
+          "anonExecute": false,
+          "securityDefiner": true,
+          "definitionSha256": "1887a48d5a9084cd5be1d3083b4e80ef180c73f57047c8c94980dcf3e08a2d7b",
+          "serviceRoleExecute": true,
+          "authenticatedExecute": false
+        }
+      ],
+      "needTurns": {
+        "active": 0,
+        "preparedInputs": 0,
+        "preparedMarkers": 0,
+        "expiredProcessing": 0
+      },
+      "migrations": {
+        "r06": [
+          {
+            "name": "r06_prepared_retry_identity_20261110",
+            "version": "20261110182530",
+            "statements": [
+              {
+                "bytes": 69631,
+                "sha256": "0a911677fe342b90058db8cecc989a097f8059e0dbac854b1274a1f2da9c063a",
+                "position": 1,
+                "characters": 69631
+              }
+            ],
+            "joinedBytes": 69631,
+            "joinedSha256": "0a911677fe342b90058db8cecc989a097f8059e0dbac854b1274a1f2da9c063a",
+            "statementCount": 1,
+            "joinedCharacters": 69631
+          }
+        ],
+        "count": 375,
+        "latest": "20261110182542"
+      },
+      "observedAt": "2026-11-10T18:26:42.397429+00:00",
+      "workerTurns": {
+        "active": 0,
+        "preparedInputs": 0,
+        "preparedMarkers": 0,
+        "expiredProcessing": 0
+      },
+      "reservations": {
+        "count": 2349,
+        "unsettled": 221,
+        "settledMicrousd": 10562284,
+        "unsettledHoldMicrousd": 55100000
+      },
+      "projectSystemIdentifier": "7676203829645141156"
+    },
+    "r13": {
+      "source": {
+        "sourceCommit": "b6ef9fb27b2f41cf765c51f21261a513fb82f940",
+        "path": "scripts/sql/r13_dispatch_reason_20261110.sql",
+        "bytes": 2136,
+        "sha256": "fcc8753685383f1abb5bceeaa9c1f9118cbbbf06daccc276314b2099d0a72d7d",
+        "localMatchesSource": true
+      },
+      "functions": [
+        {
+          "acl": "{postgres=X/postgres}",
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "bd1d2fd351d8273ddc0cce9e29514ca7",
+          "signature": "private.dispatch_next_wave(uuid)",
+          "anonExecute": false,
+          "securityDefiner": true,
+          "serviceRoleExecute": false,
+          "authenticatedExecute": false
+        },
+        {
+          "acl": "{postgres=X/postgres}",
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "76280b0ad653d2fc10199bca2c3971a8",
+          "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+          "anonExecute": false,
+          "securityDefiner": true,
+          "serviceRoleExecute": false,
+          "authenticatedExecute": false
+        },
+        {
+          "acl": "{postgres=X/postgres}",
+          "owner": "postgres",
+          "config": [
+            "search_path=pg_catalog"
+          ],
+          "bodyMd5": "3858404992f2ceaa30b65af1055e2b9c",
+          "signature": "private.marketplace_tick(integer,timestamp with time zone)",
+          "anonExecute": false,
+          "securityDefiner": true,
+          "serviceRoleExecute": false,
+          "authenticatedExecute": false
+        }
+      ],
+      "migration": [
+        {
+          "name": "r13_dispatch_stop_reason_20261110",
+          "version": "20261110182542",
+          "statements": [
+            {
+              "bytes": 2136,
+              "sha256": "fcc8753685383f1abb5bceeaa9c1f9118cbbbf06daccc276314b2099d0a72d7d",
+              "position": 1,
+              "characters": 2136
+            }
+          ],
+          "joinedBytes": 2136,
+          "joinedSha256": "fcc8753685383f1abb5bceeaa9c1f9118cbbbf06daccc276314b2099d0a72d7d",
+          "statementCount": 1,
+          "joinedCharacters": 2136
+        }
+      ],
+      "observedAt": "2026-11-10T18:27:28.605565+00:00"
+    },
+    "limitations": {
+      "fullR06LifecycleClosed": false,
+      "retentionExportErasurePolicyGatesClosed": false,
+      "preparedRuntimeFlag": "UNKNOWN_NOT_READ_BY_THIS_VALIDATOR",
+      "liveSameRequestInterruptionExecuted": false,
+      "androidExecuted": false,
+      "providerInvoked": false,
+      "runtimeDispatchInvoked": false,
+      "productionAccessed": false,
+      "databaseWritesByValidator": false,
+      "repositoryProofsModified": false
+    }
+  },
+  "independentWorker": {
+    "observedAt": "2026-11-10T18:20:58.352250+00:00",
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "functionSlug": "uskoci-worker-interview",
+    "sourceBase": "e1034ff3c4d1d621e7e00ae6d9e9a6bdb066969c",
+    "candidateCommit": "b6ef9fb27b2f41cf765c51f21261a513fb82f940",
+    "preflight": {
+      "status": "PASS",
+      "liveVersion": 155,
+      "fileCount": 24,
+      "all24MatchGitE103": true,
+      "all24MatchSavedRollback": true,
+      "metadataMatchesSavedRollback": true,
+      "entrypoint": "supabase/functions/uskoci-worker-interview/index.ts",
+      "verifyJwt": false,
+      "importMap": false,
+      "bundleSha256": "31444416aad7198302212c9918982e47198725fb09c9c6afed4924028e4caf99",
+      "candidateChangedFileCount": 3,
+      "candidateChangedFiles": [
+        "supabase/functions/uskoci-worker-interview/index.ts",
+        "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+        "supabase/functions/_shared/workerServiceModeContext.mjs"
+      ],
+      "unchangedFileCount": 21,
+      "unchangedNeighborBaselines": [
+        {
+          "slug": "uskoci-ai-interview",
+          "version": 203,
+          "status": "ACTIVE",
+          "updated_at": 1794326319581,
+          "verify_jwt": false,
+          "import_map": false,
+          "ezbr_sha256": "5c60a0970cdc05e755ec5a012dd4eb156febfa5847a5e07094e18d63eb4f3956"
+        },
+        {
+          "slug": "uskoci-push-transport",
+          "version": 49,
+          "status": "ACTIVE",
+          "updated_at": 1794326422977,
+          "verify_jwt": false,
+          "import_map": false,
+          "ezbr_sha256": "78e4041e8e51e6708c6a069c0c6f0dc587f9bff703c48d85580df37397b4aec8"
+        }
+      ]
+    },
+    "rollback": {
+      "path": "worker-live-preimage.json",
+      "sha256": "1ff411785cd590a2c6d045faeaa60cb7097c1c40adb1dc6c03252fce847e42eb",
+      "notModified": true
+    },
+    "files": [
+      {
+        "path": "supabase/functions/uskoci-worker-interview/index.ts",
+        "rollbackMatchesE103": true,
+        "candidateChanged": true,
+        "preimageSha256": "fd42830e971cdba3120e613b247a9a80af6248b2633205bcac9349524ca22355",
+        "candidateSha256": "5bce7a84bae884b2df969d487eb18523d74e2444a9fe72b97043e88330b42998",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/aiPhaseTiming.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2",
+        "candidateSha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/supabaseKeys.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+        "candidateSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "5a41a1a179704b5878f44414923319b6b074449dbe30a6bd380f899656d8dfc5",
+        "candidateSha256": "5a41a1a179704b5878f44414923319b6b074449dbe30a6bd380f899656d8dfc5",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "src/contracts/aiAvailability.ts",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+        "candidateSha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "src/contracts/workerAreas.ts",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "42043ac28b6be3443a9837d855bada914513e267e45710111698da2c0163c33d",
+        "candidateSha256": "42043ac28b6be3443a9837d855bada914513e267e45710111698da2c0163c33d",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "src/contracts/workerNowFeature.ts",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "78bf2b510f531420f4b0accdc121ee7c5c147d50751956f9fc2cf8610664ca6a",
+        "candidateSha256": "78bf2b510f531420f4b0accdc121ee7c5c147d50751956f9fc2cf8610664ca6a",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/interviewVoiceInstruction.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "e745c61fb3b7bd02c729d212d0faadd20a1a54f74716693f33500e96dbf30ea0",
+        "candidateSha256": "e745c61fb3b7bd02c729d212d0faadd20a1a54f74716693f33500e96dbf30ea0",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/aiTestBudget.ts",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+        "candidateSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/geminiTaskStream.ts",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+        "candidateSha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "e64fdeafc46580bb5bc100c79a643359fcc433a7558efc2410d877b84eaf0c9c",
+        "candidateSha256": "e64fdeafc46580bb5bc100c79a643359fcc433a7558efc2410d877b84eaf0c9c",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": true,
+        "preimageSha256": "97df6ed6d5e1c4289a9ce4ee677599538cf29fa670da8ad30cc561300a8735ee",
+        "candidateSha256": "4560fe4686f24afb16f5b9cc898dd58a686005644f39ef12780ad5c560bf73d8",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/classificationEngine.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+        "candidateSha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/serviceHandoff.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e",
+        "candidateSha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/workerServiceModeContext.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": true,
+        "preimageSha256": "78552bf6e33f173f596cbfd8df7c6eef0508f51d226b05c275a61ec007af48f3",
+        "candidateSha256": "ade38cc2f0030c6f1f277be36021eea38d17f3eb2642aa302c53580a61353dd8",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/completeFirstPlan.ts",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de",
+        "candidateSha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/preparedAiInput.ts",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "7ee8653fc6ba0e6ab78aa31d857a49c906d46ed51caf78cc4da034c76295903b",
+        "candidateSha256": "7ee8653fc6ba0e6ab78aa31d857a49c906d46ed51caf78cc4da034c76295903b",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/serviceExecutionInstruction.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314",
+        "candidateSha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/researchDeadline.ts",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9",
+        "candidateSha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/workerAreaAdmission.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "27e41e614301d73b55c61782ea1b885cbf76a634b0d25ae814eb9b09038f9c99",
+        "candidateSha256": "27e41e614301d73b55c61782ea1b885cbf76a634b0d25ae814eb9b09038f9c99",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/workerAreaResolver.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "6890d942d88a845054abea2b0651b3c5db6dbf5554468d87840e59f67fc0e0ab",
+        "candidateSha256": "6890d942d88a845054abea2b0651b3c5db6dbf5554468d87840e59f67fc0e0ab",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/geminiContextCache.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "94daaefe13749a01f5cfde4d933be07824b930f2e7a0517f3c96d73eb4d0c7cf",
+        "candidateSha256": "94daaefe13749a01f5cfde4d933be07824b930f2e7a0517f3c96d73eb4d0c7cf",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/craftQuestionMatrix.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b",
+        "candidateSha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b",
+        "postflightMatchesCandidate": true
+      },
+      {
+        "path": "supabase/functions/_shared/conversationIntent.mjs",
+        "rollbackMatchesE103": true,
+        "candidateChanged": false,
+        "preimageSha256": "7e10183a86e5f92c9c9949cf6eb0d7650f51178a04f64d835c13621a7076920d",
+        "candidateSha256": "7e10183a86e5f92c9c9949cf6eb0d7650f51178a04f64d835c13621a7076920d",
+        "postflightMatchesCandidate": true
+      }
+    ],
+    "postflight": {
+      "status": "PASS",
+      "observedAt": "2026-11-10T18:26:31.070811+00:00",
+      "liveVersion": 156,
+      "liveStatus": "ACTIVE",
+      "fileCount": 24,
+      "all24MatchGitB6ef": true,
+      "sameFileInventory": true,
+      "changedFileCount": 3,
+      "unchangedFileCount": 21,
+      "changedFiles": [
+        "supabase/functions/uskoci-worker-interview/index.ts",
+        "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+        "supabase/functions/_shared/workerServiceModeContext.mjs"
+      ],
+      "functionIdUnchanged": true,
+      "entrypointUnchanged": true,
+      "entrypoint": "supabase/functions/uskoci-worker-interview/index.ts",
+      "verifyJwtUnchanged": true,
+      "verifyJwt": false,
+      "importMapUnchanged": true,
+      "importMap": false,
+      "bundleSha256": "c67b8281fa9e1be4344f4482188c489b1a68fd4794c01f817b3bfb82082a2924",
+      "edgeListAndGetConsistent": true,
+      "rollbackPreimageStillUnmodified": true,
+      "neighbors": [
+        {
+          "slug": "uskoci-ai-interview",
+          "version": 203,
+          "allMetadataUnchanged": true,
+          "bundleSha256": "5c60a0970cdc05e755ec5a012dd4eb156febfa5847a5e07094e18d63eb4f3956"
+        },
+        {
+          "slug": "uskoci-push-transport",
+          "version": 49,
+          "allMetadataUnchanged": true,
+          "bundleSha256": "78e4041e8e51e6708c6a069c0c6f0dc587f9bff703c48d85580df37397b4aec8"
+        }
+      ],
+      "evidenceLimit": "Installed source/configuration identity verified; no real Gemini conversation, latency, token/cost, account E2E or Android behavior was exercised."
+    },
+    "scope": [
+      "Read-only source and metadata comparison",
+      "No provider requests",
+      "No deployment by this validator",
+      "No production project access"
+    ]
+  },
+  "closedAccountGuardValidation": {
+    "recordedAt": "2026-11-10T18:26:28.691Z",
+    "head": "b6ef9fb27b2f41cf765c51f21261a513fb82f940",
+    "scope": "CLOSED_ACCOUNT_OLD_IDENTITY_BOUNDARY",
+    "hosted": {
+      "projectRef": "leqcwgzvjsxugfgzdmth",
+      "readOnly": true,
+      "guard": {
+        "acl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "body_md5": "09d52badff732c2b22ba7b69adfa4d66",
+        "signature": "rpc_closure_api_guard()",
+        "definition": "CREATE OR REPLACE FUNCTION public.rpc_closure_api_guard()\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\ndeclare u uuid:=auth.uid();path text:=coalesce(current_setting('request.path',true),'');begin\n if auth.role()='authenticated' and private.closure_account_restricted(u) then\n  if path in('/rpc/rpc_read_account_closure_execution','/rpc/rpc_start_account_closure_execution') then return;end if;\n  if path in('/rpc/rpc_support_capabilities_v5','/rpc/rpc_support_inbox_v5','/rpc/rpc_support_detail_v5',\n   '/rpc/rpc_support_find_context_v5','/rpc/rpc_support_mark_read_v5','/rpc/rpc_support_read_command_v5',\n   '/rpc/rpc_support_cancel_command_v5','/rpc/rpc_support_submit_v5') then\n   perform private.support_auth_v5(u);return;\n  end if;\n  raise exception 'ACCOUNT_CLOSING' using errcode='42501';\n end if;\nend $function$\n",
+        "security_definer": true
+      },
+      "database": "postgres",
+      "observed_at": "2026-11-10T18:22:30.013894+00:00",
+      "pre_request_settings": [
+        {
+          "role": "authenticator",
+          "setting": "pgrst.db_pre_request=public.rpc_closure_api_guard",
+          "database": "*"
+        }
+      ]
+    },
+    "cases": [
+      {
+        "name": "DEV hook definition and config match frozen source",
+        "status": "PASS"
+      },
+      {
+        "name": "Open account keeps all 20 ordinary endpoint paths",
+        "status": "PASS"
+      },
+      {
+        "name": "READY: old authenticated identity denied at all 20 ordinary paths",
+        "status": "PASS"
+      },
+      {
+        "name": "EXECUTING: old authenticated identity denied at all 20 ordinary paths",
+        "status": "PASS"
+      },
+      {
+        "name": "FAILED: old authenticated identity denied at all 20 ordinary paths",
+        "status": "PASS"
+      },
+      {
+        "name": "CLOSED: old authenticated identity denied at all 20 ordinary paths",
+        "status": "PASS"
+      },
+      {
+        "name": "CLOSED identity cannot expand exact safe-exit allowlist",
+        "status": "PASS"
+      },
+      {
+        "name": "CLOSED receipt and start recovery remain deliberate exact hook exceptions",
+        "status": "PASS"
+      },
+      {
+        "name": "CLOSED support identity rejected for soft-erased user, removed or expired session",
+        "status": "PASS"
+      },
+      {
+        "name": "READY valid support exit stays allowed; malformed session claim rejected",
+        "status": "PASS"
+      },
+      {
+        "name": "Storage and Realtime own-account wrapper denies CLOSED but preserves other account",
+        "status": "PASS"
+      },
+      {
+        "name": "CLOSED profile/need/message write seams deny without hook",
+        "status": "PASS"
+      },
+      {
+        "name": "Group CLOSED requester denied before send/replay/read ownership",
+        "status": "PASS"
+      },
+      {
+        "name": "NEED_SERVICE: CLOSED denies claim, prepared read/prepare and both dispatch permissions",
+        "status": "PASS"
+      },
+      {
+        "name": "WORKER_CAPABILITY: CLOSED denies claim, prepared read/prepare and both dispatch permissions",
+        "status": "PASS"
+      },
+      {
+        "name": "Authenticated caller cannot execute service-only prepared RPCs",
+        "status": "PASS"
+      }
+    ],
+    "limitations": [
+      "No production changes, hosted users, real JWT issuance/revocation or HTTP request with an actual stale JWT.",
+      "PGlite uses synthetic auth claims/users/sessions and existing reduced fixtures; no complete closure executor, erasure policy or Android acceptance.",
+      "DEV proof covers stored authenticator pre-request setting and exact guard definition, not running PostgREST cache or per-endpoint HTTP behavior.",
+      "R06 direct service entry checks execute captured real SQL bodies; Worker document/hash/catalog helpers keep the existing fixture seams.",
+      "Ordinary RPC path matrix invokes the exact pre-request hook, not every endpoint body; profile/need/message writes separately exercise actual closure triggers.",
+      "Successful checks do not close public retention/export/erasure policy gates."
+    ],
+    "result": "PASS",
+    "scenarios": 16,
+    "ordinaryPathCount": 20,
+    "restrictedPathEvaluations": 80
+  },
+  "unauthenticatedWorkerProbe": {
+    "checkedAtUtc": "2026-11-10T18:26:45.247228+00:00",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "function": "uskoci-worker-interview",
+    "httpStatus": 401,
+    "response": {
+      "code": "AUTH_REQUIRED"
+    },
+    "authenticated": false,
+    "providerCallAttempted": false
+  }
+}

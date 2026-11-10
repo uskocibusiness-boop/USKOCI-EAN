@@ -2,7 +2,8 @@ import { AppState, Platform } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
 import type { AudioPlayer, AudioRecorder, AudioStatus, RecordingOptions } from 'expo-audio';
 import type { InterruptReason, PlayerStatus, VoicePlayerPort, VoiceRecorderPort } from './ports';
-import { VOICE_CACHE_DIRECTORY, VOICE_FILE_MAX_BYTES, isExpoVoiceRecordingUri, registerVoiceNativeCleanup } from './nativeVoiceFiles';
+import { VOICE_CACHE_DIRECTORY, VOICE_FILE_MAX_BYTES, isExpoVoiceRecordingUri, registerVoiceNativeCleanup,
+  captureVoiceFileOwner, voiceFileOwnerCurrent, withVoiceFileAccess } from './nativeVoiceFiles';
 import { permissionAsk } from '../../ui/permissions/permissionAsk';
 
 // Importing a flag-off screen must not initialize ExpoAudio. Factories are called only by the enabled native seam.
@@ -49,11 +50,13 @@ export async function cancelAllNativeVoiceRecordings(): Promise<void> {
 
 /** Caller holds the shared audio-arbiter claim. This adapter never asks permission as a side effect of start(). */
 export function createNativeVoiceRecorder(): VoiceRecorderPort {
+  const owner = captureVoiceFileOwner();
   const audio = supported() ? nativeAudio() : null;
   const enqueue = serial();
   const interrupted = new Set<(reason: InterruptReason) => void>();
   const levels = new Set<(level: number) => void>();
   let epoch = 0, preparing = false, capturing = false, finishing = false, interruptionSent = false;
+  const current = (own: number) => own === epoch && voiceFileOwnerCurrent(owner);
   let recorder: AudioRecorder | null = null, probe: AudioPlayer | null = null;
   let rawUri: string | null = null, finalUri: string | null = null;
   let nativeFailed = false, releaseFailed = false, recordingStartedAt = 0;
@@ -108,7 +111,7 @@ export function createNativeVoiceRecorder(): VoiceRecorderPort {
     const own = epoch;
     finishing = true;
     stopTask = enqueue(async () => {
-      if (own !== epoch || !recorder || !audio) throw new Error('VOICE_RECORDING_RETIRED');
+      if (!current(own) || !recorder || !audio) throw new Error('VOICE_RECORDING_RETIRED');
       stopObserving();
       try {
         rawUri = recorder.uri ?? rawUri;
@@ -116,17 +119,17 @@ export function createNativeVoiceRecorder(): VoiceRecorderPort {
         const state = recorder.getStatus();
         if (state.isRecording || state.canRecord) await recorder.stop();
         releaseNative();
-        if (own !== epoch) throw new Error('VOICE_RECORDING_RETIRED');
+        if (!current(own)) throw new Error('VOICE_RECORDING_RETIRED');
         if (nativeFailed || !rawUri || !isExpoVoiceRecordingUri(rawUri)) throw new Error('VOICE_RECORDING_FAILED');
         const file = new File(rawUri);
         if (!file.exists || !Number.isInteger(file.size) || file.size <= 0 || file.size > VOICE_FILE_MAX_BYTES) throw new Error('VOICE_FILE_SIZE');
         // Recorder duration resets to zero after stop on both native implementations. Read the finalized container's real duration without playing it.
         probe = audio.createAudioPlayer({ uri: rawUri }, { updateInterval: 100, downloadFirst: false, keepAudioSessionActive: false });
-        const status = await waitForLoaded(probe, () => own === epoch, true);
+        const status = await waitForLoaded(probe, () => current(own), true);
         const durationMs = Math.ceil(status.duration * 1000);
         try { probe.remove(); probe = null; } catch (error) { releaseFailed = true; throw error; }
         if (!Number.isFinite(durationMs) || durationMs <= 0 || durationMs > MAX_MS) throw new Error('VOICE_DURATION_INVALID');
-        if (own !== epoch) throw new Error('VOICE_RECORDING_RETIRED');
+        if (!current(own)) throw new Error('VOICE_RECORDING_RETIRED');
         const directory = new Directory(Paths.cache, VOICE_CACHE_DIRECTORY);
         directory.create({ intermediates: true, idempotent: true });
         const destination = new File(directory, file.name);
@@ -157,47 +160,55 @@ export function createNativeVoiceRecorder(): VoiceRecorderPort {
     if (releaseFailed || preparing || capturing || finishing || recorder || probe) throw new Error('VOICE_RECORDING_BUSY');
     const own = ++epoch;
     preparing = true; nativeFailed = false; interruptionSent = false; stopTask = null; finalUri = null;
-    unregister = registerVoiceNativeCleanup(cancel); recordings.add(cancel);
-    appSubscription = AppState.addEventListener('change', state => { if (state !== 'active') interrupt('BACKGROUND'); });
-    return enqueue(async () => {
-      try {
-        if (own !== epoch || !foreground()) throw new Error('VOICE_RECORDING_RETIRED');
-        const permission = await audio.getRecordingPermissionsAsync();
-        if (!permission.granted || own !== epoch || !foreground()) throw new Error('VOICE_MIC_NOT_GRANTED');
-        await audio.setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true, interruptionMode: 'doNotMix',
-          shouldPlayInBackground: false, allowsBackgroundRecording: false, shouldRouteThroughEarpiece: false });
-        if (own !== epoch || !foreground()) throw new Error('VOICE_RECORDING_RETIRED');
-        recorder = new audio.AudioModule.AudioRecorder({ ...options, ...(Platform.OS === 'ios' ? options.ios : options.android) });
-        await recorder.prepareToRecordAsync();
-        rawUri = recorder.uri;
-        if (own !== epoch || !foreground()) throw new Error('VOICE_RECORDING_RETIRED');
-        recorderSubscription = recorder.addListener('recordingStatusUpdate', status => {
-          if (status.hasError || status.mediaServicesDidReset) nativeFailed = true;
-          if (!finishing && (status.isFinished || status.hasError || status.mediaServicesDidReset)) interrupt(status.hasError ? 'FAILED' : 'AUDIO_FOCUS');
-        });
-        // Leave room for the encoder's final AAC frame; validate the actual container duration below.
-        recordingStartedAt = Date.now();
-        recorder.record({ forDuration: (MAX_MS - 200) / 1000 });
-        if (!recorder.getStatus().isRecording) throw new Error('VOICE_RECORDING_NOT_STARTED');
-        preparing = false; capturing = true;
-        poll = setInterval(() => {
-          if (!recorder || !capturing || finishing) return;
+    try {
+      return await withVoiceFileAccess(owner, () => {
+        if (!current(own) || !foreground()) throw new Error('VOICE_RECORDING_RETIRED');
+        unregister = registerVoiceNativeCleanup(cancel); recordings.add(cancel);
+        appSubscription = AppState.addEventListener('change', state => { if (state !== 'active') interrupt('BACKGROUND'); });
+        return enqueue(async () => {
           try {
-            const status = recorder.getStatus();
-            if (!foreground()) { interrupt('BACKGROUND'); return; }
-            if (status.mediaServicesDidReset || !status.isRecording) { interrupt('AUDIO_FOCUS'); return; }
-            if (rawUri && new File(rawUri).size >= VOICE_FILE_MAX_BYTES) { interrupt('FAILED'); return; }
-            if (typeof status.metering === 'number' && Number.isFinite(status.metering)) {
-              const level = Math.max(0, Math.min(1, Math.pow(10, status.metering / 20)));
-              for (const listener of [...levels]) { try { listener(level); } catch { /* optional meter observer */ } }
-            }
-          } catch { nativeFailed = true; interrupt('FAILED'); }
-        }, 100);
-      } catch (error) {
-        await cleanup();
-        throw error;
-      }
-    });
+            if (!current(own) || !foreground()) throw new Error('VOICE_RECORDING_RETIRED');
+            const permission = await audio.getRecordingPermissionsAsync();
+            if (!permission.granted || !current(own) || !foreground()) throw new Error('VOICE_MIC_NOT_GRANTED');
+            await audio.setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true, interruptionMode: 'doNotMix',
+              shouldPlayInBackground: false, allowsBackgroundRecording: false, shouldRouteThroughEarpiece: false });
+            if (!current(own) || !foreground()) throw new Error('VOICE_RECORDING_RETIRED');
+            recorder = new audio.AudioModule.AudioRecorder({ ...options, ...(Platform.OS === 'ios' ? options.ios : options.android) });
+            await recorder.prepareToRecordAsync();
+            rawUri = recorder.uri;
+            if (!current(own) || !foreground()) throw new Error('VOICE_RECORDING_RETIRED');
+            recorderSubscription = recorder.addListener('recordingStatusUpdate', status => {
+              if (status.hasError || status.mediaServicesDidReset) nativeFailed = true;
+              if (!finishing && (status.isFinished || status.hasError || status.mediaServicesDidReset)) interrupt(status.hasError ? 'FAILED' : 'AUDIO_FOCUS');
+            });
+            // Leave room for the encoder's final AAC frame; validate the actual container duration below.
+            recordingStartedAt = Date.now();
+            recorder.record({ forDuration: (MAX_MS - 200) / 1000 });
+            if (!recorder.getStatus().isRecording) throw new Error('VOICE_RECORDING_NOT_STARTED');
+            preparing = false; capturing = true;
+            poll = setInterval(() => {
+              if (!recorder || !capturing || finishing) return;
+              try {
+                const status = recorder.getStatus();
+                if (!foreground()) { interrupt('BACKGROUND'); return; }
+                if (status.mediaServicesDidReset || !status.isRecording) { interrupt('AUDIO_FOCUS'); return; }
+                if (rawUri && new File(rawUri).size >= VOICE_FILE_MAX_BYTES) { interrupt('FAILED'); return; }
+                if (typeof status.metering === 'number' && Number.isFinite(status.metering)) {
+                  const level = Math.max(0, Math.min(1, Math.pow(10, status.metering / 20)));
+                  for (const listener of [...levels]) { try { listener(level); } catch { /* optional meter observer */ } }
+                }
+              } catch { nativeFailed = true; interrupt('FAILED'); }
+            }, 100);
+          } catch (error) {
+            await cleanup();
+            throw error;
+          }
+        });
+      });
+    } catch (error) {
+      if (!recorder && !probe) { preparing = false; finishing = false; }
+      throw error;
+    }
   }
   return {
     async requestPermission() {
@@ -207,7 +218,7 @@ export function createNativeVoiceRecorder(): VoiceRecorderPort {
         // Expo's Android request path delegates to Activity.requestPermissions even when granted.
         // Read first so repeated holds do not reopen that lifecycle path unnecessarily.
         const permission = await audio.getRecordingPermissionsAsync();
-        if (own !== epoch || !foreground()) return 'unavailable';
+        if (!current(own) || !foreground()) return 'unavailable';
         if (permission.granted) return 'granted';
         if (!permission.canAskAgain) return 'blocked';
         // The system is about to ask: say why first (design proposal N). "Ne sada" asks it nothing. The person may let go of the
@@ -219,7 +230,7 @@ export function createNativeVoiceRecorder(): VoiceRecorderPort {
           if (!foreground()) return 'unavailable';
         }
         const answer = await audio.requestRecordingPermissionsAsync();
-        if (own !== epoch || !foreground()) return 'unavailable';
+        if (!current(own) || !foreground()) return 'unavailable';
         return answer.granted ? 'granted' : answer.canAskAgain ? 'denied' : 'blocked';
       } catch { return 'unavailable'; }
     },
@@ -231,9 +242,11 @@ export function createNativeVoiceRecorder(): VoiceRecorderPort {
 
 /** Local files only. Each preview/received-message player has its own instance; the shared arbiter owns exclusivity. */
 export function createNativeVoicePlayer(): VoicePlayerPort {
+  const owner = captureVoiceFileOwner();
   const audio = supported() ? nativeAudio() : null;
   const enqueue = serial(), listeners = new Set<(status: PlayerStatus) => void>();
   let player: AudioPlayer | null = null, epoch = 0;
+  const current = (own: number) => own === epoch && voiceFileOwnerCurrent(owner);
   let sourceUri: string | null = null, wanted = false, releaseFailed = false;
   let subscription: { remove(): void } | null = null, appSubscription: ReturnType<typeof AppState.addEventListener> | null = null;
   let unregister: (() => void) | null = null;
@@ -263,16 +276,16 @@ export function createNativeVoicePlayer(): VoicePlayerPort {
     void enqueue(async () => { await releaseNative(); emit(); }).catch(() => { /* permanent releaseFailed fence blocks the next play/load */ });
   }
   async function prepare(uri: string, own: number) {
-    if (!audio || own !== epoch || !foreground() || releaseFailed) throw new Error('VOICE_PLAYER_UNAVAILABLE');
+    if (!audio || !current(own) || !foreground() || releaseFailed) throw new Error('VOICE_PLAYER_UNAVAILABLE');
     localVoiceFile(uri);
     unregister ??= registerVoiceNativeCleanup(release);
     player = audio.createAudioPlayer({ uri }, { updateInterval: 100, downloadFirst: false, keepAudioSessionActive: false });
     const mine = player;
     appSubscription = AppState.addEventListener('change', state => { if (state !== 'active') interruptedPause(); });
-    const status = await waitForLoaded(mine, () => own === epoch && foreground());
-    if (own !== epoch) throw new Error('VOICE_PLAYER_RETIRED');
+    const status = await waitForLoaded(mine, () => current(own) && foreground());
+    if (!current(own)) throw new Error('VOICE_PLAYER_RETIRED');
     subscription = mine.addListener('playbackStatusUpdate', status => {
-      if (own !== epoch || player !== mine) return;
+      if (!current(own) || player !== mine) return;
       const unexpectedlyPaused = wanted && latest.playing && !status.playing && !status.isBuffering && !status.didJustFinish;
       if (status.mediaServicesDidReset || status.error || !foreground() || unexpectedlyPaused) {
         latest = { ...latest, playing: false }; emit(); interruptedPause(); return;
@@ -285,17 +298,22 @@ export function createNativeVoicePlayer(): VoicePlayerPort {
     async load(uri) {
       const own = ++epoch;
       wanted = false; sourceUri = null;
-      return enqueue(async () => {
-        await releaseNative();
-        if (own !== epoch) throw new Error('VOICE_PLAYER_RETIRED');
-        latest = { positionMs: 0, durationMs: null, playing: false, ended: false };
-        try { await prepare(uri, own); if (own !== epoch) throw new Error('VOICE_PLAYER_RETIRED'); sourceUri = uri; } catch (error) { await releaseNative(); throw error; }
+      return withVoiceFileAccess(owner, () => {
+        if (!current(own)) throw new Error('VOICE_PLAYER_RETIRED');
+        // Register before the queued release/prepare can yield to logout.
+        unregister ??= registerVoiceNativeCleanup(release);
+        return enqueue(async () => {
+          await releaseNative();
+          if (!current(own)) throw new Error('VOICE_PLAYER_RETIRED');
+          latest = { positionMs: 0, durationMs: null, playing: false, ended: false };
+          try { await prepare(uri, own); if (!current(own)) throw new Error('VOICE_PLAYER_RETIRED'); sourceUri = uri; } catch (error) { await releaseNative(); throw error; }
+        });
       });
     },
     async play() {
       const own = epoch;
-      return enqueue(async () => {
-        if (!audio || !sourceUri || own !== epoch || !foreground()) throw new Error('VOICE_PLAYER_RETIRED');
+      return withVoiceFileAccess(owner, () => enqueue(async () => {
+        if (!audio || !sourceUri || !current(own) || !foreground()) throw new Error('VOICE_PLAYER_RETIRED');
         try {
           if (!player) {
             const position = latest.positionMs;
@@ -305,19 +323,19 @@ export function createNativeVoicePlayer(): VoicePlayerPort {
           }
           await audio.setAudioModeAsync({ allowsRecording: false, interruptionMode: 'doNotMix', playsInSilentMode: true,
             shouldPlayInBackground: false, allowsBackgroundRecording: false, shouldRouteThroughEarpiece: false });
-          if (!player || own !== epoch || !foreground()) throw new Error('VOICE_PLAYER_RETIRED');
+          if (!player || !current(own) || !foreground()) throw new Error('VOICE_PLAYER_RETIRED');
           wanted = true; player.play();
         } catch (error) { wanted = false; await releaseNative(); throw error; }
-      });
+      }));
     },
     async pause() {
       const own = epoch; wanted = false;
-      return enqueue(async () => { if (player && own === epoch) player.pause(); });
+      return enqueue(async () => { if (player && current(own)) player.pause(); });
     },
     async stop() {
       const own = epoch; wanted = false;
       return enqueue(async () => {
-        if (own !== epoch) return;
+        if (!current(own)) return;
         if (player) { player.pause(); await player.seekTo(0); }
         latest = { ...latest, positionMs: 0, playing: false, ended: false }; emit();
       });
@@ -325,7 +343,7 @@ export function createNativeVoicePlayer(): VoicePlayerPort {
     async seek(positionMs) {
       const own = epoch;
       return enqueue(async () => {
-        if (own !== epoch || !Number.isFinite(positionMs)) return;
+        if (!current(own) || !Number.isFinite(positionMs)) return;
         const position = Math.max(0, Math.min(positionMs, latest.durationMs ?? positionMs));
         if (player) await player.seekTo(position / 1000);
         else { latest = { ...latest, positionMs: position }; emit(); }

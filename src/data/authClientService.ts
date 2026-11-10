@@ -10,6 +10,7 @@ import { prepareGroupDraftErasure } from './groupConversationDraft';
 import { recentSearchesKey } from './recentSearchesKey';
 import { writeSettledMapPlace } from './confirmedDiscoveryMapPlace';
 import { voiceMessagesBuilt } from './voiceMessagesGate';
+import type { VoiceFileErasure } from '../features/voiceMessages/nativeVoiceFiles';
 import { signupConfirmationRedirect } from './authSignupRedirect';
 import {
   PROVIDER_UNAVAILABLE_COPY, RATE_LIMITED_COPY, SignInFailureError, authFailureSignals, classifySignInFailure,
@@ -139,13 +140,21 @@ export const authClientService: AuthClientPort = {
     const storage = require('@react-native-async-storage/async-storage').default;
     const groupErasure = prepareGroupDraftErasure(expected.accountId, storage);
     const privateErasure = prepareAgreementOutboxErasure(expected.accountId, storage);
+    // Native cleanup and new file admission share this pre-Auth boundary too.
+    // Flag-off builds never load Expo's filesystem/audio modules.
+    let voiceErasure: VoiceFileErasure | null = null;
+    if (voiceMessagesBuilt()) {
+      try { voiceErasure = require('../features/voiceMessages/nativeVoiceFiles').prepareVoiceFileErasure(); }
+      catch { /* unavailable native cleanup must not prevent local Auth logout */ }
+    }
+    const erasures = [groupErasure, privateErasure, ...(voiceErasure ? [voiceErasure] : [])];
     try {
       const { error } = await client.auth.signOut({ scope: 'local' });
       if (error) throw error;
-    } catch (error) { await Promise.allSettled([groupErasure.cancel(), privateErasure.cancel()]); throw error; }
+    } catch (error) { await Promise.allSettled(erasures.map(erasure => erasure.cancel())); throw error; }
     // Commit the captured boundary before other cleanup awaits. A newly signed
     // in incarnation may already exist; it waits behind this purge and survives.
-    await Promise.allSettled([groupErasure.confirm(), privateErasure.confirm()]);
+    await Promise.allSettled(erasures.map(erasure => erasure.confirm()));
     // The device forgets this account's Agreement message text (deep read 7.28). A storage failure never
     // blocks a logout that has already happened.
     try {
@@ -154,10 +163,5 @@ export const authClientService: AuthClientPort = {
     } catch { /* the text stays where it was; the session is gone either way */ }
     // The confirmed camera place is local account context, and leaves with this session.
     try { await writeSettledMapPlace(expected.accountId, null); } catch { /* logout already succeeded */ }
-    // Voice recordings and downloaded voice messages exist only as files in the private cache; every one of them goes with the session.
-    // A build without the voice flag never loads the file module.
-    if (voiceMessagesBuilt()) {
-      try { await require('../features/voiceMessages/nativeVoiceFiles').purgeVoiceFiles(); } catch { /* the operating system evicts the cache */ }
-    }
   },
 };
