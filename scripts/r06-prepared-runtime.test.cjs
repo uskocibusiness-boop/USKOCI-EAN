@@ -326,6 +326,33 @@ test('R06 actual Need and Worker handlers reconnect a durable text turn without 
         const again = await (await handlerHarness(f, purpose)).run();
         assert.equal(providers(again).length, 0); await assertSingleReservation(f);
       });
+      if (purpose === 'NEED_SERVICE') await t.test('NEED_SERVICE: legacy needsTree=false keeps its frozen body and decoder after taxonomy becomes always available', async () => {
+        await f.seed(purpose);
+        // Build a real bounded provider body without the taxonomy schema. Seed
+        // the prior supported runtime combination through the actual prepare
+        // owner; never mutate an already prepared snapshot or its stored hash.
+        const seed = await (await handlerHarness(f, purpose, { losePrepareAck: true, blockReadAfterPrepare: true,
+          env: { USKOCI_TAXONOMY_DUAL_GEMINI: 'false' } })).run();
+        const frozen = clone(seed.calls.find(c => c.name === 'rpc_ai_prepare_input_service').args.p_input);
+        assert.equal(providers(seed).length, 0);
+        assert.equal(frozen.runtime.needsTree, false);
+        assert.equal(Object.hasOwn(frozen.providerRequest.generationConfig.responseSchema.properties, 'taxonomyDecisions'), false);
+        frozen.runtime.singlePassActive = true;
+        frozen.catalog = { catalogVersion: 1, catalogFingerprint: 'a'.repeat(32), categories: [{ categoryId: T,
+          label: 'Lektura tekstova', parentId: null, isLeaf: true, aliases: [], modes: ['REMOTE'] }] };
+        await f.seed(purpose);
+        const stored = await sqlRpc(f)('rpc_ai_prepare_input_service', { ...IDENTITY, p_attempt_id: ATT, p_purpose: purpose, p_input: frozen });
+        assert.equal(stored.ok, true); assert.equal(stored.data.state, 'PREPARED');
+        const resumed = await (await handlerHarness(f, purpose, { catalogVersion: 99, clockOffsetMs: 1000 }))
+          .run(undefined, { mode: 'RESUME_PREPARED' });
+        assertFinal(resumed); assert.equal(providers(resumed).length, 1);
+        assert.deepEqual(providers(resumed)[0].args, frozen.providerRequest);
+        assert.equal(Object.hasOwn(providers(resumed)[0].args.generationConfig.responseSchema.properties, 'taxonomyDecisions'), false);
+        assert.equal(resumed.calls.some(c => /claim|fetch_snapshot|query_catalog|prepare_input_service|budget_reserve/.test(c.name)), false);
+        const again = await (await handlerHarness(f, purpose)).run(undefined, { mode: 'RESUME_PREPARED' });
+        assert.equal(again.status, 409); assert.equal(providers(again).length, 0);
+        await assertSingleReservation(f);
+      });
       await t.test(`${purpose}: lost dispatch ACK stays read-only on a fresh invocation`, async () => {
         await f.seed(purpose);
         const first = await (await handlerHarness(f, purpose, { loseDispatchAck: true })).run();

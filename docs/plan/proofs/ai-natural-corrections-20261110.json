@@ -1,0 +1,93 @@
+{
+  "baseline": "5a59021a15a95fc8b34507e01bf49e2a8b085619",
+  "scope": "SOURCE + controlled LOCAL TEST; DEV catalog read-only; no hosted mutation, provider I/O, paid calls or Android proof",
+  "changes": [
+    {
+      "file": "supabase/functions/uskoci-ai-interview/index.ts",
+      "result": "Keep explicit CLARIFY description question in otherwise complete REMOTE draft; keep compact catalog and taxonomy schema in same fresh request regardless of existing category or Serbian script; preserve stored needsTree on recovery."
+    },
+    {
+      "file": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+      "result": "Unchanged service/scope/execution/handoff returns empty decision list; no redundant new branches or repeated classification prose."
+    }
+  ],
+  "negative_control": {
+    "command": "node --test --test-name-pattern=\"complete REMOTE fields|scope clarification retains|NEED actual Edge: (complete REMOTE|natural service)\" scripts/ai-natural-dialogue.test.cjs scripts/conversation-intent-integration.test.cjs",
+    "before": {
+      "pass": 0,
+      "fail": 5
+    }
+  },
+  "local_tests": [
+    {
+      "command": "node --test scripts/ai-natural-dialogue.test.cjs scripts/conversation-intent-integration.test.cjs",
+      "pass": 97,
+      "fail": 0
+    },
+    {
+      "command": "node --test scripts/ai-classification-feedback.test.cjs scripts/conversation-intent-server.test.cjs scripts/need-currency-guard.test.cjs scripts/context-cache-matrix.test.cjs scripts/r06-prepared-runtime.test.cjs scripts/r06-worker-prepared-handler.test.cjs",
+      "pass": 102,
+      "fail": 0,
+      "note": "Before one added backwards-compatibility case; current runtime group independently rerun next."
+    },
+    {
+      "command": "node --test scripts/r06-prepared-runtime.test.cjs",
+      "pass": 39,
+      "fail": 0,
+      "note": "Includes explicit singlePassActive=true, needsTree=false immutable snapshot, one original body/dispatch, read-only repeat."
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "payload_measurement": {
+    "before": {
+      "label": "before",
+      "fixture": "Synthetic user text + current DEV catalog; actual handler request; no external provider I/O",
+      "catalogCount": 56,
+      "catalogVersion": 17,
+      "catalogFingerprint": "7d6aa8404395203c7a128d7ac85a7ac4",
+      "totalRequestBytes": 20717,
+      "systemInstructionBytes": 16783,
+      "responseSchemaBytes": 2112,
+      "taxonomySchemaPresent": false,
+      "providerCalls": 1,
+      "dispatchCalls": 1,
+      "final": "final",
+      "realTokens": null,
+      "realLatencyMs": null
+    },
+    "after": {
+      "label": "after",
+      "fixture": "Synthetic user text + current DEV catalog; actual handler request; no external provider I/O",
+      "catalogCount": 56,
+      "catalogVersion": 17,
+      "catalogFingerprint": "7d6aa8404395203c7a128d7ac85a7ac4",
+      "totalRequestBytes": 29593,
+      "systemInstructionBytes": 25028,
+      "responseSchemaBytes": 2743,
+      "taxonomySchemaPresent": true,
+      "providerCalls": 1,
+      "dispatchCalls": 1,
+      "final": "final",
+      "realTokens": null,
+      "realLatencyMs": null
+    },
+    "increaseBytes": 8876,
+    "increasePercent": 42.84,
+    "note": "Synthetic same prior facts/current message + actual live DEV catalog snapshot56/v17. Actual current handler serialization. Explicit cache owner remains no-op; no claims about real token usage, implicit cache hit rate, provider latency or speed improvement."
+  },
+  "new_test_count": 8,
+  "files": [
+    "supabase/functions/uskoci-ai-interview/index.ts",
+    "supabase/functions/_shared/singlePassTaxonomy.mjs",
+    "scripts/ai-natural-dialogue.test.cjs",
+    "scripts/conversation-intent-integration.test.cjs",
+    "scripts/r06-prepared-runtime.test.cjs"
+  ]
+}

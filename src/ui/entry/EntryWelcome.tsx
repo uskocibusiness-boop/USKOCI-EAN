@@ -15,7 +15,7 @@ import { BrandLockup } from './BrandAssets';
 type Intent = 'REQUESTER' | 'WORKER';
 export type EntryIntentSelection = { isCurrent: () => boolean };
 
-// Official 3D clay natural illustrations matching Home doors ("Objavite zadatak" & "Uskočite i zaradite")
+// Official 3D clay natural illustrations matching Home doors ("Objavi zadatak" & "Uskoči i zaradi")
 const publish = require('../../../assets/illustrations/natural-v1/publish.webp');
 const discover = require('../../../assets/illustrations/natural-v1/money.webp');
 
@@ -149,30 +149,30 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
       <Animated.View testID="entry-card" style={[styles.card, { padding: cardPadding, opacity: enterAnim, transform: [{ translateY: enterAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
         <View testID="entry-logo" style={{ alignSelf: 'center', alignItems: 'center', marginBottom: 12 }}>
           <BrandLockup width={Math.min(220, logoWidth)} />
-          <T style={styles.slogan}>Vaš partner za svaki zadatak</T>
+          <T style={styles.slogan}>USKOČI — Vaš partner za svaki zadatak.</T>
         </View>
-        <T testID="entry-title" style={[styles.title, width < 350 && styles.narrowTitle]}>Za svaki zadatak,{`\n`}prava osoba.</T>
+        <T testID="entry-title" style={[styles.title, width < 350 && styles.narrowTitle]}>Kako želite da počnete?</T>
         <T style={styles.description}>Objavite šta Vam treba ili uskočite svojim vremenom i znanjem.</T>
         <View style={[styles.choices, { gap: artGap }]}>
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-            <Press testID="entry-requester" accessibilityRole="button" accessibilityLabel="Objavite zadatak"
+            <Press testID="entry-requester" accessibilityRole="button" accessibilityLabel="Objavi zadatak"
               accessibilityHint="Pripremite objavljivanje zadatka. Isti nalog može i da se prijavljuje na zadatke."
               accessibilityState={{ disabled: !available, busy: selected === 'REQUESTER' }}
               disabled={!available} haptic={available ? 'select' : 'none'} scaleTo={sys.motion.scale.button}
               onPress={() => choose('REQUESTER')} style={[styles.choice, { width: artSize }]}>
               <Image testID="entry-art-publish" source={publish} contentFit="contain" transition={0}
                 style={{ width: artSize, height: artSize }} accessible={false} onLoad={() => acknowledgeImage('publish')} />
-              <T style={styles.choiceLabel}>Objavite zadatak</T>
+              <T style={styles.choiceLabel}>Objavi zadatak</T>
             </Press>
           </Animated.View>
-          <Press testID="entry-worker" accessibilityRole="button" accessibilityLabel="Uskočite i zaradite"
+          <Press testID="entry-worker" accessibilityRole="button" accessibilityLabel="Uskoči i zaradi"
             accessibilityHint="Pronađite zadatke koji Vam odgovaraju. Isti nalog može i da objavljuje zadatke."
             accessibilityState={{ disabled: !available, busy: selected === 'WORKER' }}
             disabled={!available} haptic={available ? 'select' : 'none'} scaleTo={sys.motion.scale.button}
             onPress={() => choose('WORKER')} style={[styles.choice, { width: artSize }]}>
             <Image testID="entry-art-discover" source={discover} contentFit="contain" transition={0}
               style={{ width: artSize, height: artSize }} accessible={false} onLoad={() => acknowledgeImage('discover')} />
-            <T style={styles.choiceLabel}>Uskočite i zaradite</T>
+            <T style={styles.choiceLabel}>Uskoči i zaradi</T>
           </Press>
         </View>
       </Animated.View>

@@ -40,7 +40,7 @@ export const LIST_STATE_WORDS = {
   forMeTitle: 'Za sada nema zadataka za Vas', forMeBody: 'Gledamo potvrđene usluge koje nudite, područje i dostupnost. Ako ste upravo podesili profil, proverite da li su Vaše usluge sačuvane i potvrđene.',
   forMeEdit: 'Otvorite radni profil',
   noneTitle: 'Još niko nije tražio pomoć', noneBody: 'Čim neko objavi zadatak, pojaviće se ovde i na mapi.',
-  refresh: 'Osvežite', publish: 'Objavite zadatak',
+  refresh: 'Osvežite', publish: 'Objavi zadatak',
 } as const;
 
 const ERROR_BODY: Readonly<Record<ReadFailureReason, string>> = {

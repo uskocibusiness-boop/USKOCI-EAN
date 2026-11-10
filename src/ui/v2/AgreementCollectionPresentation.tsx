@@ -191,7 +191,7 @@ export function AgreementCollectionPresentation(props: Props) {
   // Reading, a failed read, nothing in this set and nothing yet remain distinct. Nothing yet leads to the two
   // ways a Dogovor begins (look at the tasks; publish one) when the route can take the person there, and otherwise to Početna.
   const first = props.onTasks ? { label: 'Pogledajte zadatke', onPress: props.onTasks } : { label: 'Idite na Početnu', onPress: props.onHome };
-  const second = props.onTasks ? props.onPublish ? { label: 'Objavite zadatak', onPress: props.onPublish } : { label: 'Idite na Početnu', onPress: props.onHome } : undefined;
+  const second = props.onTasks ? props.onPublish ? { label: 'Objavi zadatak', onPress: props.onPublish } : { label: 'Idite na Početnu', onPress: props.onHome } : undefined;
   const empty = <View style={s.empty}>
     {loading ? <QuietReadState art="users" title="Učitavamo Dogovore…" body={section === 'history' ? 'Proveravamo prethodne saradnje.' : 'Proveravamo trenutne saradnje.'} />
       : error ? <StateView kind="error" art="agreements" title="Ne možemo da učitamo Dogovore" body="Pokušajte ponovo da proverite stanje."

@@ -1,0 +1,144 @@
+{
+  "schema": "USKOCI_AUTONOMOUS_SOURCE_20261110",
+  "recordedAt": "2026-11-10T14:32:27.143839+00:00",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "baseCommit": "5a59021a15a95fc8b34507e01bf49e2a8b085619",
+  "sourceFiles": [
+    {
+      "path": "package.json",
+      "sha256": "c96c6170bce8a570d7821f5299ad513269f969b79dafde83ec205b4bb9f5a9aa"
+    },
+    {
+      "path": "scripts/ai-natural-dialogue.test.cjs",
+      "sha256": "dc98bed1494328f5409de4969576f7259edd4d323dadd16395d58914d15cc88a"
+    },
+    {
+      "path": "scripts/conversation-intent-integration.test.cjs",
+      "sha256": "7ac5abc3397427b6883f0a62ebd3774d74808ddea75dac644d458600f9b9aeb4"
+    },
+    {
+      "path": "scripts/group-conversation-lifecycle.test.cjs",
+      "sha256": "dde0cc78afd994b7d9fbf07bf8a4bdb691e234560a48132bc7f7723d7f344ef0"
+    },
+    {
+      "path": "scripts/r06-prepared-runtime.test.cjs",
+      "sha256": "e46162d73ddb5cb79310356b8f57decf988d0864177dc9e2528ee6e19ef7d677"
+    },
+    {
+      "path": "src/app/(app)/pregled-zadatka.tsx",
+      "sha256": "4da7539592ba99e76a4674a49276ba94879614453b54bee924088e27daaf13b8"
+    },
+    {
+      "path": "src/ui/entry/EntryWelcome.tsx",
+      "sha256": "65dbed78a3108e4613200f8a2fd32e1186c1c0af3e8567f399a09ac1a48b6afa"
+    },
+    {
+      "path": "src/ui/groups/GroupConversationScreen.tsx",
+      "sha256": "96791886afd37fb541f12ce38e99ab830dddb168ceb5f7bb4fa791eb89b4cfa0"
+    },
+    {
+      "path": "src/ui/home/HomePresentation.tsx",
+      "sha256": "e548debd9d1ab18cb299de2c2c41ea73d7288e4b7cd6ee439941b491e6da2d31"
+    },
+    {
+      "path": "src/ui/home/HowItWorks.tsx",
+      "sha256": "5c742a3d3646a41b461953a51383d70c4593a14dcae8ab0fdbf770afad5fb410"
+    },
+    {
+      "path": "src/ui/settings/AboutPresentation.tsx",
+      "sha256": "bfc88e53c8aabc7f32924d3098b27444aa7cf018942d180d35c4de6730bb713c"
+    },
+    {
+      "path": "src/ui/system/ScreenChrome.tsx",
+      "sha256": "2c65e88622926548a2df73ba932ce8b81f494f1454e5d39fe921702f5b34a575"
+    },
+    {
+      "path": "src/ui/v2/AgreementCollectionPresentation.tsx",
+      "sha256": "0fd1c28afd477b5f8cfd170178d5a3c7062f255a0e3e61a4ee84bfa85a6ef332"
+    },
+    {
+      "path": "src/ui/v2/MarketplacePresentation.tsx",
+      "sha256": "21e1a23ebfbed00f0cc56c375ba817dbcb8449214c3931a3c8ab3f7f2b658743"
+    },
+    {
+      "path": "src/ui/v2/discovery/DiscoveryListState.tsx",
+      "sha256": "a6175b66edc17a498e83a739a73afb52314973b30b890f38eb219d0e76388750"
+    },
+    {
+      "path": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+      "sha256": "e64fdeafc46580bb5bc100c79a643359fcc433a7558efc2410d877b84eaf0c9c"
+    },
+    {
+      "path": "supabase/functions/uskoci-ai-interview/index.ts",
+      "sha256": "09fe702209ba600fcb7ac8be92df08c860c1397f095c75dc82560b49e91baf67"
+    },
+    {
+      "path": "scripts/r06-prepared-terminal-input.test.cjs",
+      "sha256": "e6cf727922a24ce8e09946c135ab94c77dcded50101689eaa527803e4b9c3826"
+    },
+    {
+      "path": "scripts/sql/r06_prepared_terminal_input_20261110.sql",
+      "sha256": "cad076011aea35a826c2da55e8b70a0080aa2a1fece7211830c9b9ef2ccca729"
+    },
+    {
+      "path": "scripts/sql/r06_prepared_terminal_input_20261110.rollback.sql",
+      "sha256": "79442b3602cc1375bcf537fccf515f01425dd6aaff40f4d60c8ea49d09049a4a"
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm test",
+      "tests": 1600,
+      "pass": 1600,
+      "fail": 0,
+      "skipped": 0,
+      "duration_ms": 115696.546331,
+      "log_sha256": "1873609317bcc01f9c4717795db43354cfe8ebfd1393d1c05f62a27297ab0f45"
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0,
+      "log_sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f"
+    },
+    {
+      "command": "sh supabase/migrations/check_md5.sh",
+      "files": 235,
+      "tests": 90,
+      "exitCode": 0,
+      "log_sha256": "79395d9ebe817e97e9b9741915ff1e118672afd440b0a0e53e131502299505e3"
+    },
+    {
+      "command": "node scripts/record-ux-checkpoint.cjs --verify-source",
+      "result": "HISTORICAL_CHECKPOINT_ALREADY_RECORDED",
+      "newVisualAcceptance": false
+    },
+    {
+      "command": "USKOCI_R06_TERMINAL_NATIVE=1 node --test --test-force-exit --test-reporter=tap scripts/r06-prepared-terminal-input.test.cjs",
+      "tests": 18,
+      "pass": 18,
+      "fail": 0,
+      "skipped": 0,
+      "runtime": "PostgreSQL 17.11 (Debian 17.11-0+deb13u1), PostGIS 3.5.2, pg 8.23.1; isolated temporary cluster",
+      "log_sha256": "2183675916924460d091d8c404dbf4ee7ca1e0e7446ae3a048ca16021398ae44",
+      "proof": "r06-terminal-native-20261110.json"
+    }
+  ],
+  "negativeControls": [
+    "AI: 5 new scenarios fail on baseline, then pass after code fix.",
+    "Group: warm pending-text loss, newer draft cleared on original confirmation and failed journal removal followed by warm return reproduced before fixes.",
+    "R06: unchanged sweep yields 8 pass / 8 fail including parent; 16/16 PGlite and 18/18 native pass after incremental candidate."
+  ],
+  "independentReview": {
+    "role": "D",
+    "result": "No remaining blocker in inspected source after fixing failed journal cleanup.",
+    "completionOwnerReadback": "Live Need/Worker completion locks command then refuses expired lease; no dependency on prepared_input for completion."
+  },
+  "releaseReadiness": "BLOCKED; no production admission or actual Android acceptance",
+  "limits": [
+    "No fresh real-model token or latency measurements. Payload grows 8,876 bytes in the recorded correction scenario.",
+    "R06 incremental SQL is SOURCE_ONLY with guarded code rollback; no new policy or deletion deadline.",
+    "Group draft text is retained only while process/screen memory survives; persisted journal remains identifiers/hash only.",
+    "No ADB/emulator/physical Android test; no FCM display/tap or full two-account E2E.",
+    "CI and DEV deployment are recorded in a later checkpoint only after observation."
+  ]
+}

@@ -384,3 +384,42 @@ test('C/S: complete remote draft stops optional questions and retains cityless g
   assert.equal(out.dialogue.next,'REVIEW'); assert.doesNotMatch(out.assistantMessage,/adresa|grad|\?/i);
   assert.equal(out.proposals.length,0);
 });
+
+const remotePhotoFacts = () => active([
+  ['need.title','Obrada fotografije'],['need.category','Obrada fotografija'],
+  ['need.description','Potrebna je obrada jedne fotografije'],['need.people_needed',1],
+  ['need.price_mode','OFFERS'],['need.schedule_kind','REMOTE_ANYTIME'],
+  ['need.task_country_code','RS'],['need.task_geography',{mode:'REMOTE'}],['need.handoff',{required:false}],
+]);
+
+test('complete REMOTE fields do not erase one still-needed scope clarification',()=>{
+  const facts=remotePhotoFacts(),before=JSON.stringify(facts);
+  const reply='Da li želite samo uklanjanje pozadine ili i retuširanje fotografije?';
+  const out=run({...turn(reply,[],'need.description'),safety:'CLARIFY'},'Fotografiju ću poslati onlajn.',facts);
+  assert.equal(out.assistantMessage,reply);
+  assert.equal(out.safety,'CLARIFY'); assert.equal(out.dialogue.next,'ASK');
+  assert.equal(out.dialogue.questionKey,'need.description');
+  assert.equal(JSON.stringify(facts),before); assert.equal(out.proposals.length,0);
+});
+
+test('scope clarification retains an independent current correction and never invents work details',()=>{
+  const reply='Да ли желите само уклањање позадине или и ретуширање фотографије?';
+  const out=run({...turn(reply,[fact('need.people_needed',2,'две особе')],'need.description'),safety:'CLARIFY'},
+    'Ипак су потребне две особе.',remotePhotoFacts());
+  assert.equal(out.assistantMessage,reply); assert.equal(out.dialogue.next,'ASK');
+  assert.equal(out.proposals.length,1); assert.equal(out.proposals[0].value,2);
+  assert.equal(out.proposals.some(p=>['need.category','need.description'].includes(p.key)),false);
+});
+
+test('known REMOTE count and address questions still stop even when marked CLARIFY',()=>{
+  for(const [key,question] of [['need.people_needed','Koliko ljudi Vam treba?'],['need.exact_address','Koja je Vaša kućna adresa?']]){
+    const out=run({...turn(question,[],key),safety:'CLARIFY'},'Sve je onlajn.',remotePhotoFacts());
+    assert.equal(out.dialogue.next,'REVIEW'); assert.notEqual(out.assistantMessage,question);
+    assert.equal(out.proposals.length,0);
+  }
+});
+
+test('a complete remote task still stops optional description questions without an ambiguity decision',()=>{
+  const out=run(turn('Želite li da dodate još detalja?',[],'need.description'),'Ostalo zadržite.',remotePhotoFacts());
+  assert.equal(out.dialogue.next,'REVIEW'); assert.doesNotMatch(out.assistantMessage,/\?/u);
+});

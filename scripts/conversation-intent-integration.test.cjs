@@ -349,6 +349,84 @@ function providerWorker(kind, text, patch = {}) {
     availabilityChange: { kind: 'NONE', scope: 'NONE', evidence: '' }, serviceChanges: [], conversationIntent: { kind, evidence: text }, ...patch };
 }
 
+test('NEED actual Edge: complete REMOTE draft keeps a genuine scope question through one confirmed turn', async()=>{
+  const text='Fotografiju ću poslati onlajn.';
+  const reply='Da li želite samo uklanjanje pozadine ili i retuširanje fotografije?';
+  const definitions=sourceLoader({})('src/contracts/needFactsV2.ts').NEED_FACT_V2_DEFINITIONS;
+  const activeFacts=[
+    ['need.title','Obrada fotografije'],['need.category','Obrada fotografija'],
+    ['need.description','Potrebna je obrada jedne fotografije'],['need.people_needed',1],
+    ['need.price_mode','OFFERS'],['need.schedule_kind','REMOTE_ANYTIME'],
+    ['need.task_country_code','RS'],['need.task_geography',{mode:'REMOTE'}],['need.handoff',{required:false}],
+  ].map(([fact_key,fact_value])=>({fact_key,fact_value,value_type:definitions[fact_key].valueType,
+    display_value:typeof fact_value==='object'?JSON.stringify(fact_value):String(fact_value),
+    fact_schema_version:'NEED_FACT_V2',status:'CONFIRMED',source:'USER',created_at:'2026-11-10T10:00:00Z'}));
+  const before=JSON.stringify(activeFacts);
+  const output=args=>providerNeed('CONTINUE',text,{safety:'CLARIFY',assistantMessage:reply,
+    dialogue:{next:'ASK',questionKey:'need.description',taskRelation:'CONTINUE',priceUnit:'UNSPECIFIED',schedulePattern:'UNSPECIFIED'},
+    ...(args.generationConfig.responseSchema.properties.taxonomyDecisions?{taxonomyDecisions:[]}:{}),
+  });
+  const result=await handlerHarness('NEED',text,output,{singlePass:true,activeFacts,
+    catalog:[{categoryId:id(20),label:'Obrada fotografija',parentId:null,isLeaf:true,aliases:[],modes:['REMOTE']}],
+  }).run();
+  assert.equal(result.status,200,JSON.stringify(result.json));
+  assert.equal(result.events.at(-1).kind,'final',JSON.stringify({events:result.events,logs:result.logs,calls:result.calls.map(c=>c.name)}));
+  assert.equal(result.events.at(-1).turn.state,'SUCCEEDED');
+  assert.equal(result.writes.length,1);
+  assert.equal(result.writes[0].args.p_assistant_message,reply);
+  assert.equal(result.writes[0].args.p_safety,'CLARIFY'); assert.deepEqual(result.writes[0].args.p_proposals,[]);
+  assert.equal(JSON.stringify(activeFacts),before);
+  assert.equal(result.calls.filter(call=>call.name.endsWith(':streamGenerateContent')).length,1);
+  assert.equal(result.calls.filter(call=>call.name==='rpc_ai_dispatch_need_turn_v2_service').length,1);
+  assert.equal(result.calls.filter(call=>call.name==='rpc_ai_test_record_usage_service').length,1);
+  assert.equal(result.calls.some(call=>call.name==='rpc_ai_fail_need_turn_v2_service'),false);
+});
+
+for(const text of [
+  'Ne lektura, treba prevesti tekst na nemački. Ostalo zadržite.',
+  'Уместо лектуре, треба превести текст на немачки. Остало задржите.',
+])test('NEED actual Edge: natural service correction keeps classification in the same request: '+text, async()=>{
+  const definitions=sourceLoader({})('src/contracts/needFactsV2.ts').NEED_FACT_V2_DEFINITIONS;
+  const activeFacts=[
+    ['need.title','Lektura teksta'],['need.category','Lektura'],['need.description','Potrebna je lektura teksta'],
+    ['need.people_needed',1],['need.price_mode','MY_PRICE'],['need.price_rsd',1500],['need.price_basis','TOTAL'],
+    ['need.schedule_kind','REMOTE_ANYTIME'],['need.task_country_code','RS'],
+    ['need.task_geography',{mode:'REMOTE'}],['need.handoff',{required:false}],
+  ].map(([fact_key,fact_value])=>({fact_key,fact_value,value_type:definitions[fact_key].valueType,
+    display_value:typeof fact_value==='object'?JSON.stringify(fact_value):String(fact_value),
+    fact_schema_version:'NEED_FACT_V2',status:'CONFIRMED',source:'USER',created_at:'2026-11-10T10:00:00Z'}));
+  const before=JSON.stringify(activeFacts),service='Prevođenje teksta na nemački';
+  const output=args=>providerNeed('NEED_EDIT',text,{
+    assistantMessage:'U nacrtu je prevod na nemački. Ostali uslovi ostaju isti.',
+    dialogue:{next:'ACK',questionKey:'NONE',taskRelation:'CONTINUE',priceUnit:'UNSPECIFIED',schedulePattern:'UNSPECIFIED'},
+    facts:[['need.category',service],['need.description','Potrebno je prevesti tekst na nemački']]
+      .map(([key,value])=>({key,valueJson:JSON.stringify(value),displayValue:value,confidence:1,evidence:text})),
+    ...(args.generationConfig.responseSchema.properties.taxonomyDecisions?{taxonomyDecisions:[{
+      service,mode:'REMOTE',action:'REUSE_EXISTING',categoryId:id(21),parentId:'',proposedPath:[],ambiguityPrompt:'',
+      reason:'The supplied correction asks for translation into German, not proofreading.',
+    }]}:{}),
+  });
+  const result=await handlerHarness('NEED',text,output,{singlePass:true,activeFacts,catalog:[
+    {categoryId:id(20),label:'Lektura',parentId:null,isLeaf:true,aliases:[],modes:['REMOTE']},
+    {categoryId:id(21),label:'Prevođenje',parentId:null,isLeaf:true,aliases:[],modes:['REMOTE']},
+  ]}).run();
+  const requests=result.calls.filter(call=>call.name.endsWith(':streamGenerateContent'));
+  assert.equal(requests.length,1,'classification stays in the original model request');
+  assert.ok(requests[0].args.generationConfig.responseSchema.properties.taxonomyDecisions,
+    'the existing category must not hide classification from a natural or Cyrillic correction');
+  assert.match(JSON.stringify(requests[0].args.systemInstruction),/Prevođenje/);
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.equal(result.writes.length,1);
+  const args=result.writes[0].args;
+  assert.equal(args.p_taxonomy_plan.proposals[0].service,service);
+  assert.equal(args.p_taxonomy_plan.proposals[0].categoryId,id(21));
+  assert.equal(args.p_taxonomy_plan.proposals[0].mode,'REMOTE');
+  assert.deepEqual(args.p_proposals.map(p=>p.key),['need.category','need.description']);
+  assert.equal(JSON.stringify(activeFacts),before);
+  assert.equal(result.calls.filter(call=>call.name==='rpc_ai_dispatch_need_turn_v2_service').length,1);
+  assert.equal(result.calls.filter(call=>call.name==='rpc_ai_test_record_usage_service').length,1);
+});
+
 for (const domain of ['NEED', 'WORKER']) {
   test(`${domain} actual Edge: opposite, mixed, pure questions and unclear intent freeze malicious provider writes before SQL`, async () => {
     const cases = domain === 'NEED'

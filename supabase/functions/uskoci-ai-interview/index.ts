@@ -1435,7 +1435,11 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     // This is only a REVIEW intent: server-signed preparation and Publish stay
     // separate; an explicit user question is answered before any next step.
     const personAsks = /[?？]\s*$/u.test(input.trim());
-    if (!missing.length && geography?.mode === 'REMOTE' && !clarifyingApplicationDeadline && !personAsks) {
+    // Filled fields do not prove that a generic description is unambiguous.
+    // Keep one explicit scope clarification; optional ALLOW questions and
+    // repeated scalar/location questions still stop at the complete draft.
+    const clarifyingScope = turn.safety === 'CLARIFY' && dialogue.questionKey === 'need.description';
+    if (!missing.length && geography?.mode === 'REMOTE' && !clarifyingApplicationDeadline && !clarifyingScope && !personAsks) {
       assistantMessage = 'Osnovni podaci su zabeleženi. Možete da ih pregledate čim server potvrdi da je nacrt spreman; ništa još nije objavljeno.';
       dialogue = { ...dialogue, next: 'REVIEW', questionKey: '' };
     } else if (missing.length && !questions[dialogue.questionKey] && !needsPlaceDetail && !clarifyingApplicationDeadline && !personAsks) {
@@ -1707,9 +1711,11 @@ Deno.serve(async (req: Request) => {
           taskDraftRevision
         ).catch(() => null);
       }
-      const existingCategoryFact = activeFacts.find((f: any) => f.fact_key === 'need.category' && f.status !== 'UNKNOWN')?.fact_value;
-      const isExplicitReclassify = /(?:promen(?:i|ite)|drugi\s+(?:zadatak|posao)|ipak\s+(?:nesto|nešto)\s+drugo|pogre(?:s|š)na\s+kategorija)/iu.test(effectiveUserMessage);
-      const needsTree = preparedRecovery?.snapshot.input.runtime.needsTree ?? (singlePassActive && (!existingCategoryFact || isExplicitReclassify));
+      // An existing category cannot predict whether this message changes work,
+      // scope or execution. Keep the already loaded compact catalog and its
+      // decision schema in the SAME request, including natural/Cyrillic edits.
+      // Cold recovery still obeys the exact stored request and parser contract.
+      const needsTree = preparedRecovery?.snapshot.input.runtime.needsTree ?? singlePassActive;
       const maxProposals = preparedRecovery?.snapshot.input.runtime.maxProposals
         ?? (!locationContext && req.headers.get(NEED_FACT_TURN_CAPABILITY_HEADER) === NEED_FACT_TURN_CAPABILITY_VERSION ? MAX_AI_NEED_FACT_V2_PROPOSALS : 12);
       const admitPrepared = async (providerRequest: Record<string,unknown>): Promise<PreparedInput> => {

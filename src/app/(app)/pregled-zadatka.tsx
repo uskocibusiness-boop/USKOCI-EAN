@@ -462,7 +462,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     return () => subscription.remove();
   }, [momentOpen]));
   // The signed replacement retains edit language even after reopening its private candidate.
-  const acceptLabel = revising ? 'Potvrdite izmene' : 'Objavite zadatak';
+  const acceptLabel = revising ? 'Potvrdite izmene' : 'Objavi zadatak';
   // What the server would refuse about the facts themselves: no amount for "Moja cena", a fixed time without
   // both ends, or one that has already begun (deep read 8.5, 5.1).
   const factProblem = review && !published && !command ? reviewFactProblem(review) : null;

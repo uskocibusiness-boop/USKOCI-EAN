@@ -5,20 +5,21 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { React, RTR, createHarness, deferred } = require('./ux-component-harness.cjs');
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-const ACCOUNT = id(1), OTHER = id(2), AGREEMENT = id(3), GROUP = id(4), REQUEST = id(5);
+const ACCOUNT = id(1), OTHER = id(2), AGREEMENT = id(3), GROUP = id(4);
 const CREATED = '2026-11-10T00:00:00Z';
 
 function harness(options = {}) {
   const session = { user: { id: ACCOUNT }, accountRevision: 1 };
-  const state = { agreementId: AGREEMENT, groupId: GROUP, sendWait: null, storageWait: null, messages: [], receipt: null };
+  const state = { agreementId: AGREEMENT, groupId: GROUP, sendWait: null, sendError: false, storageWait: null, removeError: false, messages: [], receipt: null };
   const calls = [], stored = new Map(), listeners = new Set(), Focus = React.createContext(true);
+  let requestNumber = 5;
   const app = { currentState: options.background ? 'background' : 'active', addEventListener: (_type, fn) => {
     listeners.add(fn); return { remove: () => listeners.delete(fn) };
   } };
   const storage = {
     getItem: async key => stored.get(key) ?? null,
     setItem: async (key, value) => { stored.set(key, value); if (state.storageWait) await state.storageWait.promise; },
-    removeItem: async key => { stored.delete(key); },
+    removeItem: async key => { if (state.removeError) throw Error('DISK_UNAVAILABLE'); stored.delete(key); },
   };
   let service;
   const rpc = async (name, args) => {
@@ -40,6 +41,7 @@ function harness(options = {}) {
     } };
     if (name === 'rpc_send_group_message_v5') {
       if (state.sendWait) await state.sendWait.promise;
+      if (state.sendError) throw Error('TRANSPORT_LOST');
       const message = { messageId: id(8), sequence: '1', senderAccountId: accountId,
         body: args.p_body, createdAt: CREATED, mine: true };
       state.messages = [message];
@@ -55,7 +57,7 @@ function harness(options = {}) {
     '@react-native-async-storage/async-storage': storage,
     'src/store/sesija.ts': { useSesija: () => session, sesijaSada: () => session },
     'src/data/supabaseClient.ts': { supabaseKlijent: () => ({ rpc }) },
-    'src/lib/idempotencija.ts': { noviUuidZahtevId: () => REQUEST },
+    'src/lib/idempotencija.ts': { noviUuidZahtevId: () => id(requestNumber++) },
     'expo-router': { useFocusEffect: callback => {
       const focused = React.useContext(Focus);
       React.useEffect(() => focused ? callback() : undefined, [focused, callback]);
@@ -85,6 +87,7 @@ function harness(options = {}) {
     }); },
     async type(text) { await RTR.act(async () => props().onDraft(text)); },
     async send() { await RTR.act(async () => props().onSend()); },
+    async refresh() { await RTR.act(async () => props().onRefresh()); },
     async resolve(wait) { await RTR.act(async () => wait.resolve()); },
     async close() { if (tree) await RTR.act(async () => tree.unmount()); assert.equal(listeners.size, 0); },
   };
@@ -180,6 +183,174 @@ test('group: real background and in-app Back preserve only the same unsent draft
     assert.equal(h.props().draft, 'Moja sledeća poruka.');
     assert.equal(h.count('rpc_send_group_message_v5'), 0); assert.equal(h.stored.size, 0);
   } finally { await h.close(); }
+});
+
+test('group: warm return retains the exact pending text after an unknown send without automatic resubmission', async () => {
+  for (const leave of [h => h.activity('background'), h => h.focus(false)]) {
+    const h = harness();
+    try {
+      await h.mount(); await h.type('  Stižem sa kutijama u deset.  ');
+      h.state.sendWait = deferred(); h.state.sendError = true; await h.send();
+      const journal = [...h.stored.values()][0];
+      await leave(h); await h.resolve(h.state.sendWait);
+      await h.activity('active'); await h.focus(true);
+      assert.equal(h.props().state.phase, 'UNKNOWN');
+      assert.equal(h.props().draft, '  Stižem sa kutijama u deset.  ');
+      assert.equal(h.props().state.canRetry, true);
+      assert.equal(h.count('rpc_send_group_message_v5'), 1, 'readback never repeats the write');
+      assert.equal([...h.stored.values()][0], journal, 'the original command identity is preserved');
+      assert.ok(!journal.includes('kutijama'), 'pending text stays in memory only');
+      h.state.sendError = false; h.state.sendWait = null;
+      await h.send();
+      assert.equal(h.count('rpc_send_group_message_v5'), 2, 'only an explicit retry writes');
+      const sends = h.calls.filter(call => call.name === 'rpc_send_group_message_v5');
+      assert.equal(sends[1].args.p_client_request_id, sends[0].args.p_client_request_id);
+      assert.equal(sends[1].args.p_body, sends[0].args.p_body);
+      assert.equal(h.props().state.phase, 'READY'); assert.equal(h.props().draft, '');
+      await h.activity('background'); await h.activity('active');
+      assert.equal(h.props().draft, '', 'confirmed text never reappears as a new draft');
+    } finally { h.state.sendWait?.resolve(); await h.close(); }
+  }
+});
+
+test('group: a pending draft never follows an account change or mismatched command', async () => {
+  for (const change of ['account', 'session', 'group', 'request', 'body']) {
+    const h = harness();
+    try {
+      await h.mount(); await h.type('Privatna poruka sa nepoznatim ishodom.');
+      h.state.sendError = true; await h.send();
+      assert.equal(h.props().state.phase, 'UNKNOWN');
+      await h.activity('background');
+      if (change === 'account' || change === 'session') {
+        if (change === 'account') h.session.user = { id: OTHER };
+        h.session.accountRevision++;
+        await h.render();
+      } else if (change === 'group') {
+        h.state.groupId = id(44);
+      } else {
+        const [key, value] = [...h.stored.entries()][0], journal = JSON.parse(value);
+        h.stored.set(key, JSON.stringify({ ...journal,
+          ...(change === 'request' ? { clientRequestId: id(55) } : { bodySha256: 'a'.repeat(64) }) }));
+      }
+      await h.activity('active');
+      assert.equal(h.props().draft, '');
+      assert.equal(h.count('rpc_send_group_message_v5'), 1);
+    } finally { await h.close(); }
+  }
+});
+
+test('group: leaving during journal persistence retains text and admits no delayed old-owner write', async () => {
+  const h = harness();
+  try {
+    await h.mount(); await h.type('Početak je u dvanaest.');
+    h.state.storageWait = deferred(); await h.send();
+    const journal = [...h.stored.values()][0];
+    await h.activity('background'); await h.activity('active');
+    assert.equal(h.props().state.phase, 'UNKNOWN');
+    assert.equal(h.props().draft, 'Početak je u dvanaest.');
+    assert.equal([...h.stored.values()][0], journal);
+    await h.resolve(h.state.storageWait); h.state.storageWait = null;
+    assert.equal(h.count('rpc_send_group_message_v5'), 0);
+    await h.send();
+    assert.equal(h.count('rpc_send_group_message_v5'), 1);
+    assert.equal(h.props().state.phase, 'READY'); assert.equal(h.props().draft, '');
+  } finally { h.state.storageWait?.resolve(); await h.close(); }
+});
+
+test('group: edited retry text survives warm return but cannot change the original command payload', async () => {
+  const h = harness();
+  try {
+    await h.mount(); await h.type('Prvobitna poruka.'); h.state.sendError = true; await h.send();
+    await h.activity('background'); await h.activity('active');
+    await h.type('Izmenjen neposlat unos.');
+    await h.activity('background'); await h.activity('active');
+    assert.equal(h.props().draft, 'Izmenjen neposlat unos.');
+    await h.send();
+    assert.equal(h.count('rpc_send_group_message_v5'), 1);
+    assert.equal(h.props().state.phase, 'UNKNOWN');
+    assert.match(h.props().state.message, /Tekst se razlikuje/);
+    assert.equal(h.props().draft, 'Izmenjen neposlat unos.');
+  } finally { await h.close(); }
+});
+
+test('group: confirming the old command preserves a different newer draft without reusing its identity', async () => {
+  const h = harness();
+  try {
+    await h.mount(); await h.type('Prvobitna poruka.'); h.state.sendError = true; await h.send();
+    await h.refresh();
+    await h.type('Druga, još neposlata poruka.');
+    const journal = JSON.parse([...h.stored.values()][0]);
+    h.state.messages = [{ messageId: id(8), sequence: '1', senderAccountId: ACCOUNT,
+      body: 'Prvobitna poruka.', createdAt: CREATED, mine: true }];
+    h.state.receipt = { accountId: ACCOUNT, groupId: GROUP, clientRequestId: journal.clientRequestId,
+      messageId: id(8), sequence: '1', bodySha256: journal.bodySha256,
+      createdAt: CREATED, idempotentReplay: false, authoritative: true };
+    await h.refresh();
+    assert.equal(h.props().state.phase, 'READY');
+    assert.equal(h.props().draft, 'Druga, još neposlata poruka.');
+    assert.equal(h.stored.size, 0);
+    assert.equal(h.count('rpc_send_group_message_v5'), 1);
+    await h.activity('background'); await h.activity('active');
+    assert.equal(h.props().draft, 'Druga, još neposlata poruka.');
+    h.state.sendError = false; await h.send();
+    const sends = h.calls.filter(call => call.name === 'rpc_send_group_message_v5');
+    assert.equal(sends.length, 2);
+    assert.notEqual(sends[1].args.p_client_request_id, sends[0].args.p_client_request_id);
+    assert.equal(sends[1].args.p_body, 'Druga, još neposlata poruka.');
+    assert.equal(h.props().draft, '');
+  } finally { await h.close(); }
+});
+
+test('group: a newer draft survives a confirmed old journal cleanup failure and gets a new identity only after retirement', async () => {
+  const h = harness();
+  try {
+    await h.mount(); await h.type('Prvobitna poruka.'); h.state.sendError = true; await h.send(); await h.refresh();
+    await h.type('Druga, još neposlata poruka.');
+    const journal = JSON.parse([...h.stored.values()][0]);
+    h.state.messages = [{ messageId: id(8), sequence: '1', senderAccountId: ACCOUNT,
+      body: 'Prvobitna poruka.', createdAt: CREATED, mine: true }];
+    h.state.receipt = { accountId: ACCOUNT, groupId: GROUP, clientRequestId: journal.clientRequestId,
+      messageId: id(8), sequence: '1', bodySha256: journal.bodySha256,
+      createdAt: CREATED, idempotentReplay: false, authoritative: true };
+    h.state.removeError = true; await h.refresh();
+    assert.equal(h.props().state.phase, 'CONFIRMED'); assert.equal(h.stored.size, 1);
+    assert.equal(h.props().draft, 'Druga, još neposlata poruka.');
+    await h.activity('background'); await h.activity('active');
+    assert.equal(h.props().state.phase, 'CONFIRMED');
+    assert.equal(h.props().draft, 'Druga, još neposlata poruka.');
+    assert.equal(h.count('rpc_send_group_message_v5'), 1);
+    h.state.removeError = false;
+    await RTR.act(async () => h.props().onAcknowledge());
+    assert.equal(h.props().state.phase, 'READY'); assert.equal(h.stored.size, 0);
+    assert.equal(h.props().draft, 'Druga, još neposlata poruka.');
+    h.state.sendError = false; await h.send();
+    const sends = h.calls.filter(call => call.name === 'rpc_send_group_message_v5');
+    assert.equal(sends.length, 2);
+    assert.notEqual(sends[1].args.p_client_request_id, journal.clientRequestId);
+    assert.equal(sends[1].args.p_body, 'Druga, još neposlata poruka.');
+    assert.equal(h.props().draft, '');
+  } finally { await h.close(); }
+});
+
+test('group: confirmed-journal recovery never carries a newer draft into a changed account or session', async () => {
+  for (const change of ['account', 'session']) {
+    const h = harness();
+    try {
+      await h.mount(); await h.type('Prvobitna poruka.'); h.state.sendError = true; await h.send(); await h.refresh();
+      await h.type('Privatna nova poruka.');
+      const journal = JSON.parse([...h.stored.values()][0]);
+      h.state.receipt = { accountId: ACCOUNT, groupId: GROUP, clientRequestId: journal.clientRequestId,
+        messageId: id(8), sequence: '1', bodySha256: journal.bodySha256,
+        createdAt: CREATED, idempotentReplay: false, authoritative: true };
+      h.state.removeError = true; await h.refresh();
+      assert.equal(h.props().state.phase, 'CONFIRMED');
+      await h.activity('background');
+      if (change === 'account') h.session.user = { id: OTHER };
+      h.session.accountRevision++; await h.render(); await h.activity('active');
+      assert.equal(h.props().draft, '');
+      assert.equal(h.count('rpc_send_group_message_v5'), 1);
+    } finally { await h.close(); }
+  }
 });
 
 test('group: account or group changes never restore a foreign draft or admit a captured action', async () => {

@@ -209,7 +209,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           onApplications={hasApplications ? openApplications : undefined} />
       </View>;
       case 'none': return <StateView compact art="tasks" title="Nema aktivnih zadataka" body="Nacrti i završeni zadaci su ispod."
-        primary={latest.current.onNew ? { label: 'Objavi novi zadatak', onPress: latest.current.onNew } : undefined} />;
+        primary={latest.current.onNew ? { label: 'Objavi zadatak', onPress: latest.current.onNew } : undefined} />;
       case 'foot': return <View style={s.foot}>
         {row.state === 'error' ? <>
           <T variant="note" tone="muted">Ne možemo da učitamo ostale zadatke.</T>
@@ -246,10 +246,10 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
           : view.section === 'drafts' ? <StateView art="tasks" illustration={ROBOT_ASSETS.needWriting} title="Nemate nacrt" body="Nacrt pregledate pre objave." />
           : view.section === 'history' ? <StateView art="tasks" title="Istorija je prazna" body="Ovde su završeni, otkazani i istekli zadaci." />
           : items.length ? <StateView art="tasks" title="Nema aktivnih zadataka"
-            primary={props.onNew ? { label: 'Objavite novi zadatak', onPress: props.onNew } : undefined} />
+            primary={props.onNew ? { label: 'Objavi zadatak', onPress: props.onNew } : undefined} />
             // The first encounter: the paper with the pin and the pencil, the object of the door that fulfils it.
             : <StateView hero art="publish" illustration={ROBOT_ASSETS.needWelcome} title="Još nemate zadatak" body="Navedite šta Vam treba. Nacrt pregledate pre objave."
-              primary={props.onNew ? { label: 'Objavite zadatak', onPress: props.onNew } : undefined}
+              primary={props.onNew ? { label: 'Objavi zadatak', onPress: props.onNew } : undefined}
               quiet={props.onExplore ? { label: 'Pogledajte zadatke', onPress: props.onExplore } : undefined} />}
   </View>;
 

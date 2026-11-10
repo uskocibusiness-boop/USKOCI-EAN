@@ -34,8 +34,8 @@ export function AboutView({ onBack, onRules, onPrivacy }: { onBack: () => void; 
     </View>
     <SettingsGroup title="Tražite pomoć ili uskačete — na istom nalogu">
       <View style={s.facts}>
-        <FactRow size="detail" art="publish" value="Objavite zadatak" note="Recite šta Vam treba. Izaberite ko će pomoći." />
-        <FactRow size="detail" art="money" value="Uskočite i zaradite" note="Pronađite zadatak za svoje veštine." />
+        <FactRow size="detail" art="publish" value="Objavi zadatak" note="Recite šta Vam treba. Izaberite ko će pomoći." />
+        <FactRow size="detail" art="money" value="Uskoči i zaradi" note="Pronađite zadatak za svoje veštine." />
       </View>
       <T variant="note" tone="muted" style={s.ai}>Asistent pomaže da sastavite zadatak. Vi pregledate i potvrđujete.</T>
     </SettingsGroup>

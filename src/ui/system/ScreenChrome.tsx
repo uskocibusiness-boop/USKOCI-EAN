@@ -145,7 +145,6 @@ export function ScreenChrome(props: ScreenChromeProps) {
     <View pointerEvents="none" style={s.brand}>
       <View accessible accessibilityRole="header" accessibilityLabel={`USKOČI, ${props.title}`}>
         <BrandLockup width={112} />
-        <T style={s.slogan}>Vaš partner za svaki zadatak</T>
       </View>
     </View>
     <View style={s.side}>
@@ -245,7 +244,6 @@ const s = StyleSheet.create({
   step: { fontVariant: ['tabular-nums'] },
   rootBar: { flexWrap: 'wrap', rowGap: sys.space.sm },
   brand: { flexBasis: 112, flexGrow: 1, flexShrink: 0, alignItems: 'flex-start', justifyContent: 'center' },
-  slogan: { fontStyle: 'italic', fontSize: 10, color: sys.color.muted, marginTop: 1 },
   side: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: sys.space.sm,
     maxWidth: '100%', marginLeft: 'auto' },
   control: { width: chrome.control, height: chrome.control, alignItems: 'center', justifyContent: 'center' },

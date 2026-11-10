@@ -22,9 +22,9 @@ Aktuelni SHA, CI run, broj migracija i Edge verzije pripadaju datiranom checkpoi
 
 ## 3. Proizvodne odluke koje treba sačuvati
 
-- Početna ima četiri horizontalna karusela: Prilike za Vas, Aktuelni dogovori, Vaši objavljeni zadaci i Vaše prijave. Sekcije se prikazuju prema stvarnim podacima. Čuvaj postojeću implementaciju; ne zamenjuj je vertikalnim preklopnikom.
+- Procenjuj postojeću Početnu i njene karusele prema korisničkoj svrsi i poslednjoj odluci vlasnika od 10.11.2026. Dobre funkcije sačuvaj; jasno pokvareno ili zbunjujuće iskustvo popravi u odobrenom obimu. Veće promene rasporeda ili navigacije pripremi kao pregledan pre/posle predlog, bez samovoljnog redizajna.
 - Četiri taba su Početna, Zadaci, Dogovori i Poruke. Profil se otvara preko avatara.
-- Primarne akcije su „Objavite zadatak“ i „Uskočite i zaradite“. Slogan je „USKOČI — Vaš partner za svaki zadatak.“
+- Primarne akcije su tačno „Objavi zadatak“ i „Uskoči i zaradi“. Jedini zvanični slogan je „USKOČI — Vaš partner za svaki zadatak.“ Ne menjaj ove formulacije u druge gramatičke oblike i ne vraćaj istorijske slogane. U ostalom razgovoru i podršci zadrži Vi/Vam/Vas.
 - Jedan nalog ima jednu zajedničku reputaciju. Predlog AI-ja nije potvrđena objava ili aktivacija.
 - Sačuvaj cenu, valutu, jedinicu obračuna i satnicu po osobi. Ne pretvaraj jednu vrstu cene u drugu bez korisničke potvrde.
 - Pre Dogovora javna lokacija je približna; precizna lokacija dostupna je samo učesnicima kada je dozvoljeno. REMOTE ne zahteva izmišljenu adresu; prevoz A→B čuva obe tačke.
@@ -34,7 +34,7 @@ Aktuelni SHA, CI run, broj migracija i Edge verzije pripadaju datiranom checkpoi
 
 Važi odobrenje koje je vlasnik već dao za konkretan posao; ne traži ga ponovo za istu radnju. Tehničke ispravke koje ostvaruju odobreno ponašanje, bez nove proizvodne odluke, izvršavaj samostalno.
 
-Predlog novog rasporeda, kartice, korisničkog teksta ili ikonice opiši kroz pre/posle i pribavi odobrenje ako ta promena nije već obuhvaćena izričitim nalogom. Analiza nije odobrenje za novi dizajn. Preklapanje, odsečen tekst ili dugme zaklonjeno tastaturom popravljaj u okviru odobrenog popravnog zahvata, čuvajući postojeći izgled i značenje.
+Aktuelni nalog od 10.11.2026. odobrava manje popravke jasno lošeg UX-a, modernizaciju postojećih tokova i usklađivanje teksta sa potvrđenim identitetom. Takve zahvate izvršavaj samostalno. Veću promenu navigacije ili identiteta koja nije odobrena pripremi kao konkretan pre/posle predlog. Ne vraćaj stare ideje samo zato što su bile dokumentovane; ne ruši potvrđene funkcionalnosti.
 
 Produkcija, objavljivanje u prodavnicama, plaćeni pozivi, promene budžeta, tajni i rizične migracije traže odgovarajuće konkretno odobrenje. Instalacija skilla ne predstavlja takvo odobrenje.
 

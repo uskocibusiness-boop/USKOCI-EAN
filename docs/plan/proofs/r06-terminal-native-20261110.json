@@ -1,0 +1,86 @@
+{
+  "recordedAt": "2026-11-10T14:29:35.158Z",
+  "scope": "SOURCE_ONLY_TERMINAL_INPUT_MINIMIZATION",
+  "native": true,
+  "baseline": false,
+  "sourceSha256": "cad076011aea35a826c2da55e8b70a0080aa2a1fece7211830c9b9ef2ccca729",
+  "rollbackSha256": "79442b3602cc1375bcf537fccf515f01425dd6aaff40f4d60c8ea49d09049a4a",
+  "cases": [
+    {
+      "name": "negative control: installed lifecycle keeps the unusable prompt after original lease expiry",
+      "status": "PASS"
+    },
+    {
+      "name": "whole source is blocked; incremental owner change preserves all metadata and rejects reapplication",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: failed, cancelled, unconfirmed-success and expired single inputs retain only exact user text",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: active prepared and active dispatched input are not prematurely minimized",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: minimized input cannot be redispatched, re-prepared or exposed to another account",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: account/conversation holds and closure restrictions retain the original snapshot",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: corrupt or unknown snapshot is retained instead of silently losing its context",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: real row or retention lock contention preserves input until the lock is released",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: failed, cancelled, unconfirmed-success and expired single inputs retain only exact user text",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: active prepared and active dispatched input are not prematurely minimized",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: minimized input cannot be redispatched, re-prepared or exposed to another account",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: account/conversation holds and closure restrictions retain the original snapshot",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: corrupt or unknown snapshot is retained instead of silently losing its context",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: real row or retention lock contention preserves input until the lock is released",
+      "status": "PASS"
+    },
+    {
+      "name": "the sweep shares one bounded 100-row budget and canonical copies have priority over old single inputs",
+      "status": "PASS"
+    },
+    {
+      "name": "a caller-supplied future time cannot minimize an active prepared input",
+      "status": "PASS"
+    },
+    {
+      "name": "guarded code rollback retains minimized data, original markers and refusal of another dispatch",
+      "status": "PASS"
+    }
+  ],
+  "failures": [],
+  "limits": [
+    "Exact captured SQL owners with existing reduced context/closure fixture; not the complete hosted schema or policy execution.",
+    "No live provider, Android, final user-text retention period or public export/closure acceptance.",
+    "Native lock checks execute only when explicitly enabled with the isolated PostgreSQL runtime."
+  ],
+  "finishedAt": "2026-11-10T14:29:37.119Z",
+  "passed": true
+}

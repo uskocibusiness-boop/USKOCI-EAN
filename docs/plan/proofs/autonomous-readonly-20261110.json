@@ -1,0 +1,579 @@
+{
+  "schema": "USKOCI_AUTONOMOUS_READONLY_20261110",
+  "sourceBaseline": "5a59021a15a95fc8b34507e01bf49e2a8b085619",
+  "qa": [
+    {
+      "number": 126,
+      "id": 42747689759,
+      "sha": "6a03cdba2ba1cb40c43f6a662ce0fbcfe8eae702",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42747689759",
+      "updated": "2026-11-10T03:35:06Z"
+    },
+    {
+      "number": 125,
+      "id": 42738540550,
+      "sha": "6ae082879ef6089bfe55ea09b7b97e366847ce8b",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42738540550",
+      "updated": "2026-11-10T02:10:04Z"
+    },
+    {
+      "number": 124,
+      "id": 42731488413,
+      "sha": "bd00eb8b462783fa38a4133eef4e401163c13c7b",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42731488413",
+      "updated": "2026-11-10T01:10:03Z"
+    }
+  ],
+  "dev": {
+    "cron": [
+      {
+        "jobid": 1,
+        "jobname": "uskoci_marketplace_tick",
+        "schedule": "* * * * *",
+        "active": true,
+        "command": "select private.marketplace_tick(25);"
+      },
+      {
+        "jobid": 2,
+        "jobname": "uskoci_edge_workers",
+        "schedule": "* * * * *",
+        "active": true,
+        "command": "select private.edge_worker_tick_v5()"
+      },
+      {
+        "jobid": 3,
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "schedule": "* * * * *",
+        "active": true,
+        "command": "taxonomy-postsave HTTP outbox guarded by enabled control"
+      }
+    ],
+    "needs": 19,
+    "users": 18,
+    "budget": {
+      "enabled": true,
+      "singleton": true,
+      "ceiling_microusd": 100000000,
+      "price_valid_until": "2027-01-01T00:00:00+00:00",
+      "reserved_microusd": 65662284,
+      "reservation_cap_enforced": true
+    },
+    "messages": 13,
+    "profiles": 24,
+    "agreements": 8,
+    "migrations": 372,
+    "captured_at": "2026-11-10T14:16:24.894132+00:00",
+    "latest_migration": "20261109173026",
+    "reservation_unknown": 221
+  },
+  "operational": {
+    "ai_72h": {
+      "last": "2026-11-09T15:16:14.429052+00:00",
+      "first": "2026-11-09T10:00:21.458155+00:00",
+      "requests": 25,
+      "input_mean": 6635.88,
+      "output_max": 1546,
+      "output_mean": 545.8
+    },
+    "cron_24h": [
+      {
+        "n": 1440,
+        "jobid": 1,
+        "latest": "2026-11-10T14:17:00.262463+00:00",
+        "status": "succeeded",
+        "p95_seconds": 0.3854937,
+        "mean_seconds": 0.125
+      },
+      {
+        "n": 1440,
+        "jobid": 2,
+        "latest": "2026-11-10T14:17:00.575921+00:00",
+        "status": "succeeded",
+        "p95_seconds": 1.0294772,
+        "mean_seconds": 0.493
+      },
+      {
+        "n": 1440,
+        "jobid": 3,
+        "latest": "2026-11-10T14:17:00.187307+00:00",
+        "status": "succeeded",
+        "p95_seconds": 0.09305945,
+        "mean_seconds": 0.04
+      }
+    ],
+    "captured_at": "2026-11-10T14:17:23.703933+00:00",
+    "push_groups": [
+      {
+        "n": 4,
+        "newest": "2026-11-09T17:34:20.759343+00:00",
+        "oldest": "2026-11-09T16:57:29.721724+00:00",
+        "outcome": "OK",
+        "error_code": null,
+        "ticket_count": 4,
+        "checked_count": 4,
+        "max_send_count": 1,
+        "transport_state": "PROVIDER_ACCEPTED"
+      },
+      {
+        "n": 6,
+        "newest": "2026-11-09T23:31:45.791881+00:00",
+        "oldest": "2026-11-09T16:57:12.232316+00:00",
+        "outcome": "QUEUED",
+        "error_code": "RECEIPT_PENDING",
+        "ticket_count": 6,
+        "checked_count": 6,
+        "max_send_count": 1,
+        "transport_state": "TICKET_PENDING"
+      },
+      {
+        "n": 2,
+        "newest": "2026-11-06T17:36:01.71557+00:00",
+        "oldest": "2026-11-06T17:36:01.71557+00:00",
+        "outcome": "FATAL",
+        "error_code": "RECEIPT_UNAVAILABLE",
+        "ticket_count": 2,
+        "checked_count": 2,
+        "max_send_count": 1,
+        "transport_state": "UNKNOWN"
+      }
+    ],
+    "push_pending": [
+      {
+        "case": 1,
+        "state": "UNKNOWN",
+        "outcome": "FATAL",
+        "created_at": "2026-11-06T17:36:01.71557+00:00",
+        "error_code": "RECEIPT_UNAVAILABLE",
+        "send_count": 1,
+        "ticket_present": true,
+        "next_attempt_at": "2026-11-07T17:41:01.831629+00:00",
+        "receipt_checked_at": "2026-11-07T17:26:01.831629+00:00"
+      },
+      {
+        "case": 2,
+        "state": "UNKNOWN",
+        "outcome": "FATAL",
+        "created_at": "2026-11-06T17:36:01.71557+00:00",
+        "error_code": "RECEIPT_UNAVAILABLE",
+        "send_count": 1,
+        "ticket_present": true,
+        "next_attempt_at": "2026-11-07T17:48:01.506603+00:00",
+        "receipt_checked_at": "2026-11-07T17:33:01.506603+00:00"
+      },
+      {
+        "case": 3,
+        "state": "TICKET_PENDING",
+        "outcome": "QUEUED",
+        "created_at": "2026-11-09T23:31:45.791881+00:00",
+        "error_code": "RECEIPT_PENDING",
+        "send_count": 1,
+        "ticket_present": true,
+        "next_attempt_at": "2026-11-10T14:22:02.743627+00:00",
+        "receipt_checked_at": "2026-11-10T14:07:02.743627+00:00"
+      },
+      {
+        "case": 4,
+        "state": "TICKET_PENDING",
+        "outcome": "QUEUED",
+        "created_at": "2026-11-09T23:31:45.791881+00:00",
+        "error_code": "RECEIPT_PENDING",
+        "send_count": 1,
+        "ticket_present": true,
+        "next_attempt_at": "2026-11-10T14:22:02.744761+00:00",
+        "receipt_checked_at": "2026-11-10T14:07:02.744761+00:00"
+      },
+      {
+        "case": 5,
+        "state": "TICKET_PENDING",
+        "outcome": "QUEUED",
+        "created_at": "2026-11-09T16:59:16.486384+00:00",
+        "error_code": "RECEIPT_PENDING",
+        "send_count": 1,
+        "ticket_present": true,
+        "next_attempt_at": "2026-11-10T14:29:02.935146+00:00",
+        "receipt_checked_at": "2026-11-10T14:14:02.935146+00:00"
+      },
+      {
+        "case": 6,
+        "state": "TICKET_PENDING",
+        "outcome": "QUEUED",
+        "created_at": "2026-11-09T16:57:12.232316+00:00",
+        "error_code": "RECEIPT_PENDING",
+        "send_count": 1,
+        "ticket_present": true,
+        "next_attempt_at": "2026-11-10T14:29:02.94672+00:00",
+        "receipt_checked_at": "2026-11-10T14:14:02.94672+00:00"
+      },
+      {
+        "case": 7,
+        "state": "TICKET_PENDING",
+        "outcome": "QUEUED",
+        "created_at": "2026-11-09T16:59:16.486384+00:00",
+        "error_code": "RECEIPT_PENDING",
+        "send_count": 1,
+        "ticket_present": true,
+        "next_attempt_at": "2026-11-10T14:29:02.986254+00:00",
+        "receipt_checked_at": "2026-11-10T14:14:02.986254+00:00"
+      },
+      {
+        "case": 8,
+        "state": "TICKET_PENDING",
+        "outcome": "QUEUED",
+        "created_at": "2026-11-09T16:57:12.232316+00:00",
+        "error_code": "RECEIPT_PENDING",
+        "send_count": 1,
+        "ticket_present": true,
+        "next_attempt_at": "2026-11-10T14:29:02.995075+00:00",
+        "receipt_checked_at": "2026-11-10T14:14:02.995075+00:00"
+      }
+    ],
+    "dispatch_queue": {
+      "due": 0,
+      "total": 3,
+      "active_lease": 0,
+      "max_attempts": 24
+    }
+  },
+  "existingR06PackagePostflight": [
+    {
+      "status": "R06_DEV_POSTFLIGHT_PASS_DORMANT_ONLY"
+    }
+  ],
+  "prod": {
+    "cron": [
+      {
+        "active": false,
+        "jobname": "uskoci_marketplace_tick"
+      },
+      {
+        "active": false,
+        "jobname": "uskoci_edge_workers"
+      },
+      {
+        "active": false,
+        "jobname": "uskoci_taxonomy_postsave_tick_prod"
+      }
+    ],
+    "needs": 0,
+    "users": 0,
+    "ai_budget": {
+      "cap": true,
+      "enabled": false,
+      "ceiling_microusd": 5000000,
+      "reserved_microusd": 0
+    },
+    "agreements": 0,
+    "captured_at": "2026-11-10T14:21:45.972012+00:00",
+    "r06_prepare_present": false
+  },
+  "budget": {
+    "usage": {
+      "count": 1252,
+      "latest": "2026-11-09T15:16:14.429052+00:00",
+      "earliest": "2026-09-18T12:37:32.481917+00:00",
+      "total_tokens": 10488567,
+      "output_tokens": 442144,
+      "prompt_tokens": 10043994,
+      "distinct_operations": 1252,
+      "internal_priced_microusd": 9191496
+    },
+    "budget": {
+      "enabled": true,
+      "singleton": true,
+      "ceiling_microusd": 100000000,
+      "price_valid_until": "2027-01-01T00:00:00+00:00",
+      "reserved_microusd": 65662284,
+      "reservation_cap_enforced": true
+    },
+    "allowlist": {
+      "total": 17,
+      "active": 12
+    },
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "definer": true,
+        "body_md5": "87ad940334ae78be5a3c0b19983d5981",
+        "settings": [
+          "search_path=pg_catalog"
+        ],
+        "signature": "private.ai_test_price_microusd(integer,integer)",
+        "anon_execute": false,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "definer": true,
+        "body_md5": "ddbe2bb651ccc097b153ed4ec8ddb39b",
+        "settings": [
+          "search_path=pg_catalog"
+        ],
+        "signature": "private.ai_test_stt_price_microusd(bigint,integer)",
+        "anon_execute": false,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "definer": true,
+        "body_md5": "91629b929aae24dc3a9b05b412ab1b2e",
+        "settings": [
+          "search_path=pg_catalog, public, private"
+        ],
+        "signature": "public.rpc_ai_test_budget_reserve_service(uuid,uuid,text,bigint)",
+        "anon_execute": false,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "definer": true,
+        "body_md5": "584eecfd229477010ae1043257a04227",
+        "settings": [
+          "search_path=pg_catalog"
+        ],
+        "signature": "public.rpc_ai_test_record_usage_service(uuid,text,integer,integer,integer)",
+        "anon_execute": false,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "definer": true,
+        "body_md5": "f3307b7e3c09b11d34f7e53ba19b7922",
+        "settings": [
+          "search_path=pg_catalog"
+        ],
+        "signature": "public.rpc_ai_test_release_unused_reservation_service(uuid)",
+        "anon_execute": false,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "definer": true,
+        "body_md5": "443dd3877a4aac63eed7189d0e3eba1f",
+        "settings": [
+          "search_path=pg_catalog"
+        ],
+        "signature": "public.rpc_ai_test_settle_audio_service(uuid,bigint,integer)",
+        "anon_execute": false,
+        "authenticated_execute": false
+      }
+    ],
+    "checked_at": "2026-11-10T14:23:48.723866+00:00",
+    "recent_usage": {
+      "count": 13,
+      "sample": "2026-11-07_UTC",
+      "max_microusd": 11341,
+      "min_microusd": 1131,
+      "total_tokens": 84094,
+      "mean_microusd": 6105.38,
+      "output_tokens": 5432,
+      "prompt_tokens": 78662,
+      "total_microusd": 79370
+    },
+    "reservations": {
+      "count": 2349,
+      "latest": "2026-11-09T15:16:09.658246+00:00",
+      "earliest": "2026-09-13T13:09:25.253856+00:00",
+      "unknown_count": 221,
+      "settled_microusd": 10562284,
+      "distinct_operations": 2349,
+      "unknown_hold_microusd": 55100000,
+      "ledger_exposure_microusd": 65662284
+    },
+    "settlement_groups": [
+      {
+        "kind": "LLM",
+        "count": 19,
+        "usage_count": 0,
+        "settled_microusd": 58026,
+        "settlement_basis": "CONSERVATIVE_ESTIMATE_UNMEASURED",
+        "allocated_microusd": 4750000,
+        "usage_priced_microusd": null
+      },
+      {
+        "kind": "LLM",
+        "count": 1433,
+        "usage_count": 1252,
+        "settled_microusd": 9712984,
+        "settlement_basis": "MEASURED",
+        "allocated_microusd": 358250000,
+        "usage_priced_microusd": 9191496
+      },
+      {
+        "kind": "LLM",
+        "count": 218,
+        "usage_count": 0,
+        "settled_microusd": null,
+        "settlement_basis": null,
+        "allocated_microusd": 54500000,
+        "usage_priced_microusd": null
+      },
+      {
+        "kind": "STT",
+        "count": 554,
+        "usage_count": 0,
+        "settled_microusd": 791274,
+        "settlement_basis": "AUDIO_DURATION_AT_PUBLISHED_RATE",
+        "allocated_microusd": 110800000,
+        "usage_priced_microusd": null
+      },
+      {
+        "kind": "STT",
+        "count": 122,
+        "usage_count": 0,
+        "settled_microusd": 0,
+        "settlement_basis": "FAILED_NO_USAGE",
+        "allocated_microusd": 24400000,
+        "usage_priced_microusd": null
+      },
+      {
+        "kind": "STT",
+        "count": 3,
+        "usage_count": 0,
+        "settled_microusd": null,
+        "settlement_basis": null,
+        "allocated_microusd": 600000,
+        "usage_priced_microusd": null
+      }
+    ],
+    "usage_consistency": {
+      "orphan_usage": 0,
+      "amount_mismatches": 0,
+      "account_mismatches": 0,
+      "unsettled_with_usage": 0,
+      "nonmeasured_with_usage": 0,
+      "usage_above_reservation": 0
+    },
+    "relevant_constraints": [
+      {
+        "name": "ai_test_budget_v5_ceiling_microusd_check",
+        "relation": "private.ai_test_budget_v5",
+        "definition": "CHECK ((ceiling_microusd = ANY (ARRAY[(5000000)::bigint, (100000000)::bigint])))"
+      },
+      {
+        "name": "ai_test_budget_v5_pkey",
+        "relation": "private.ai_test_budget_v5",
+        "definition": "PRIMARY KEY (singleton)"
+      },
+      {
+        "name": "ai_test_reservations_v5_operation_id_key",
+        "relation": "private.ai_test_reservations_v5",
+        "definition": "UNIQUE (operation_id)"
+      },
+      {
+        "name": "ai_test_reservations_v5_pkey",
+        "relation": "private.ai_test_reservations_v5",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "name": "ai_test_usage_v5_account_id_fkey",
+        "relation": "private.ai_test_usage_v5",
+        "definition": "FOREIGN KEY (account_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "ai_test_usage_v5_pkey",
+        "relation": "private.ai_test_usage_v5",
+        "definition": "PRIMARY KEY (operation_id)"
+      }
+    ],
+    "missing_measured_usage": {
+      "count": 181,
+      "newest": "2026-10-13T18:11:29.229077+00:00",
+      "oldest": "2026-09-17T09:04:54.817152+00:00",
+      "auth_row_live": 0,
+      "auth_row_absent": 181,
+      "settled_microusd": 521488,
+      "auth_row_soft_deleted": 0
+    },
+    "multiple_command_links": 0,
+    "unknown_command_groups": [
+      {
+        "kind": "LLM",
+        "count": 51,
+        "state": "FAILED",
+        "newest": "2026-11-05T20:22:06.66694+00:00",
+        "oldest": "2026-09-17T18:23:05.868516+00:00",
+        "surface": "NEED",
+        "hold_microusd": 12750000,
+        "provider_dispatched": true
+      },
+      {
+        "kind": "LLM",
+        "count": 103,
+        "state": null,
+        "newest": "2026-11-01T14:42:24.853176+00:00",
+        "oldest": "2026-10-14T20:43:30.657059+00:00",
+        "surface": "NO_CURRENT_COMMAND_LINK",
+        "hold_microusd": 25750000,
+        "provider_dispatched": null
+      },
+      {
+        "kind": "LLM",
+        "count": 6,
+        "state": "EVALUATED",
+        "newest": "2026-10-10T12:44:37.297697+00:00",
+        "oldest": "2026-09-19T06:50:27.580624+00:00",
+        "surface": "PUBLICATION_REVIEW",
+        "hold_microusd": 1500000,
+        "provider_dispatched": null
+      },
+      {
+        "kind": "LLM",
+        "count": 53,
+        "state": "PUBLISHED",
+        "newest": "2026-11-02T15:13:18.177013+00:00",
+        "oldest": "2026-09-18T10:11:48.908618+00:00",
+        "surface": "PUBLICATION_REVIEW",
+        "hold_microusd": 13250000,
+        "provider_dispatched": null
+      },
+      {
+        "kind": "LLM",
+        "count": 1,
+        "state": "COMMITTED",
+        "newest": "2026-10-08T21:12:10.293935+00:00",
+        "oldest": "2026-10-08T21:12:10.293935+00:00",
+        "surface": "QA",
+        "hold_microusd": 250000,
+        "provider_dispatched": true
+      },
+      {
+        "kind": "LLM",
+        "count": 4,
+        "state": "REJECTED",
+        "newest": "2026-10-08T21:32:40.964445+00:00",
+        "oldest": "2026-10-08T21:11:49.816115+00:00",
+        "surface": "QA",
+        "hold_microusd": 1000000,
+        "provider_dispatched": true
+      },
+      {
+        "kind": "STT",
+        "count": 3,
+        "state": null,
+        "newest": "2026-09-17T16:51:53.44043+00:00",
+        "oldest": "2026-09-17T16:50:12.005644+00:00",
+        "surface": "NO_CURRENT_COMMAND_LINK",
+        "hold_microusd": 600000,
+        "provider_dispatched": null
+      }
+    ],
+    "current_explicit_nondispatched_links": 0
+  },
+  "limits": [
+    "All hosted queries in this checkpoint were read-only; no provider calls, messages or changes to flags, budgets, secrets or Cron.",
+    "Existing dormant R06 package installed before this turn; installation time/author/ledger not established by readback.",
+    "No Android device/emulator is available. Native DB proof is recorded separately."
+  ]
+}

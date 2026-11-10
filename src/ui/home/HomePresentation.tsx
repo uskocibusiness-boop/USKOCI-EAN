@@ -94,22 +94,22 @@ export const WAITING_LIMIT = 3;
 function StartActions({ onPublish, onEarn }: { onPublish: () => void; onEarn: () => void }) {
   const { stacked } = useLayoutClass();
   return <View testID="home-intentions" style={[s.actions, stacked && s.actionsStacked]}>
-    <Press accessibilityRole="button" accessibilityLabel="Objavite zadatak" accessibilityHint="Opišite šta Vam treba."
+    <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" accessibilityHint="Opišite šta Vam treba."
       haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.door, s.publishDoor, stacked && s.doorStacked]}>
       <View style={[s.doorMain, stacked && s.doorMainStacked]}>
         <HomeLaunchArt kind="publish" size={DOOR_ART} />
         <View style={[s.doorCopy, stacked && { alignItems: 'flex-start' }]}>
-          <T variant="heading" style={s.doorTitle}>Objavite zadatak</T>
+          <T variant="heading" style={s.doorTitle}>Objavi zadatak</T>
           <T variant="note" tone="muted" style={!stacked ? { textAlign: 'center' } : undefined}>Opišite šta Vam treba.</T>
         </View>
       </View>
     </Press>
-    <Press accessibilityRole="button" accessibilityLabel="Uskočite i zaradite" accessibilityHint="Pronađite zadatak."
+    <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Pronađite zadatak."
       haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.door, s.earnDoor, stacked && s.doorStacked]}>
       <View style={[s.doorMain, stacked && s.doorMainStacked]}>
         <HomeLaunchArt kind="discover" size={DOOR_ART} />
         <View style={[s.doorCopy, stacked && { alignItems: 'flex-start' }]}>
-          <T variant="heading" style={s.doorTitle}>Uskočite i zaradite</T>
+          <T variant="heading" style={s.doorTitle}>Uskoči i zaradi</T>
           <T variant="note" tone="muted" style={!stacked ? { textAlign: 'center' } : undefined}>Pronađite zadatak.</T>
         </View>
       </View>

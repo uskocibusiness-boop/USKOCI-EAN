@@ -19,7 +19,7 @@ export const HOW_IT_WORKS_KEY = 'uskoci.home.how-it-works-hidden.v1';
 export const HOW_IT_WORKS_TOPICS = ['home', 'tasks', 'forMe', 'agreements', 'messages', 'workerProfile'] as const;
 export type HowItWorksTopic = typeof HOW_IT_WORKS_TOPICS[number];
 export const HOW_IT_WORKS_GUIDES: Readonly<Record<HowItWorksTopic, { version: number; title: string; body: string }>> = {
-  home: { version: 1, title: 'Kako radi', body: '„Meni treba“ — tražite pomoć. „Ja mogu“ — nudite pomoć. Isti nalog koristite za obe mogućnosti.' },
+  home: { version: 2, title: 'Kako radi', body: 'Izaberite „Objavi zadatak“ kada Vam treba pomoć ili „Uskoči i zaradi“ kada želite da pružite uslugu. Isti nalog koristite za obe mogućnosti.' },
   tasks: { version: 1, title: 'Zadaci', body: 'Ovde su dostupni zadaci. Koristite listu, mapu i filtere da pronađete ono što Vam odgovara.' },
   forMe: { version: 1, title: 'Zadaci za Vas', body: 'U prikazu „Za Vas“ su zadaci koji odgovaraju Vašem aktivnom radnom profilu. Pre prijave proverite cenu, termin i uslove zadatka.' },
   agreements: { version: 1, title: 'Dogovori', body: 'Kada autor prihvati prijavu, nastaje Dogovor. U njemu proveravate uslove i termin, razgovarate i potvrđujete završetak saradnje.' },
@@ -167,7 +167,7 @@ export function HowItWorksReference() {
   return <View style={s.reference}>
     <T variant="body">USKOČI povezuje ljude za svakodnevne zadatke. Jedan nalog i jedna reputacija važe i kada tražite i kada pružate pomoć.</T>
     <T variant="note" tone="muted">Ova uputstva možete pročitati i kada ste isključili njihov automatski prikaz.</T>
-    {HOW_IT_WORKS_TOPICS.map(topic => <Section key={topic} title={topic === 'home' ? 'Meni treba. Ja mogu.' : HOW_IT_WORKS_GUIDES[topic].title}>
+    {HOW_IT_WORKS_TOPICS.map(topic => <Section key={topic} title={HOW_IT_WORKS_GUIDES[topic].title}>
       <View style={s.content}>
         <HowItWorksContent topic={topic} stacked />
         {topic === 'home' ? <>

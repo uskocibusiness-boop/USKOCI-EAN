@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router,useFocusEffect } from 'expo-router';
 import { useSesija,sesijaSada } from '../../store/sesija';
 
-import { groupBody,normalizeGroupBody,type GroupMessage } from '../../data/groupConversationService';
+import { groupBody,groupBodyHash,normalizeGroupBody,type GroupMessage } from '../../data/groupConversationService';
 import { GroupConversationController,initialGroupState } from './GroupConversationController';
 import { GroupConversationPresentation } from './GroupConversationPresentation';
 import { privateConversationChoices } from './ConversationChannels';
@@ -14,7 +14,8 @@ export function GroupConversationScreen({agreementId,fromInbox=false,initialTarg
  const {user,accountRevision}=useSesija(),accountId=user?.id??'';
  const [state,setState]=useState(initialGroupState),[epoch,setEpoch]=useState(0),[generation,setGeneration]=useState(0),[draft,setDraft]=useState(''),[showPeople,setShowPeople]=useState(false);
  const owner=useRef<object|null>(null),engine=useRef<GroupConversationController|null>(null),input=useRef('');
- const heldDraft=useRef<{accountId:string;accountRevision:number;agreementId:string;groupId:string;text:string}|null>(null);
+ const heldDraft=useRef<{accountId:string;accountRevision:number;agreementId:string;groupId:string;text:string;
+  pending?:{clientRequestId:string;bodySha256:string;confirmed?:boolean}}|null>(null);
  if(heldDraft.current&&(heldDraft.current.accountId!==accountId||heldDraft.current.accountRevision!==accountRevision||heldDraft.current.agreementId!==agreementId))heldDraft.current=null;
  useFocusEffect(useCallback(()=>{
   const scope={};owner.current=scope;setGeneration(x=>x+1);setState(initialGroupState);input.current='';setDraft('');setShowPeople(false);
@@ -23,12 +24,37 @@ export function GroupConversationScreen({agreementId,fromInbox=false,initialTarg
   const controller=new GroupConversationController({agreementId,initialTarget,account:{accountId,accountRevision},current,storage:AsyncStorage});engine.current=controller;
   controller.subscribe(()=>{if(current()){
    const next=controller.snapshot();setState(next);
-   if(next.journal||next.phase==='CONFIRMED')heldDraft.current=null;
-   if(next.phase==='CONFIRMED'){input.current='';setDraft('');}
-   const held=heldDraft.current,group=next.context?.group;
+   if(next.phase==='CONFIRMED'){
+    const held=heldDraft.current,receipt=next.receipt;
+    // A receipt confirms its own payload, not text the person typed later while
+    // checking an unknown result. Keep differing text as a new unsent draft.
+    const newer=held&&receipt&&held.groupId===receipt.groupId&&groupBodyHash(held.text)!==receipt.bodySha256
+     &&(!held.pending||(held.pending.clientRequestId===receipt.clientRequestId&&held.pending.bodySha256===receipt.bodySha256));
+    // Keep the receipt's identity until the old disk journal is retired. If
+    // cleanup fails, a warm return must not compare this NEW text with the old
+    // command hash and discard it before reading its already confirmed receipt.
+    heldDraft.current=newer?{...held,pending:{clientRequestId:receipt.clientRequestId,bodySha256:receipt.bodySha256,confirmed:true}}:null;
+    input.current=newer?held.text:'';setDraft(input.current);
+   }
+   // Keep this visit's text in memory until authoritative confirmation. The
+   // persisted journal remains identifiers/hash only; a warm return may restore
+   // text solely for that exact command, never submit it automatically.
+   let held=heldDraft.current;
+   const journal=next.journal,group=next.context?.group;
+   if(held?.pending?.confirmed&&next.phase==='READY'&&!journal){
+    held={...held,pending:undefined};heldDraft.current=held;
+   }
+   if(held&&journal&&next.phase!=='CONFIRMED'){
+    const matches=held.groupId===journal.groupId&&(held.pending
+     ?held.pending.clientRequestId===journal.clientRequestId&&held.pending.bodySha256===journal.bodySha256
+     :groupBodyHash(held.text)===journal.bodySha256);
+    if(!matches){heldDraft.current=null;held=null;input.current='';setDraft('');}
+    else if(!held.pending){held={...held,pending:{clientRequestId:journal.clientRequestId,bodySha256:journal.bodySha256}};heldDraft.current=held;}
+   }
    if(held&&next.context?.authoritative&&(!group?.canSend||group.groupId!==held.groupId)){
     heldDraft.current=null;input.current='';setDraft('');
-   }else if(held&&next.phase==='READY'&&!next.journal&&group?.canSend&&group.groupId===held.groupId){
+   }else if(held&&group?.canSend&&group.groupId===held.groupId
+    &&((next.phase==='READY'&&!journal&&!held.pending)||(next.phase==='UNKNOWN'&&journal&&held.pending))){
     input.current=held.text;setDraft(held.text);
    }
   }});void controller.load();
@@ -53,8 +79,9 @@ export function GroupConversationScreen({agreementId,fromInbox=false,initialTarg
  const change=(value:string)=>{if(current()&&(state.phase==='READY'||state.phase==='UNKNOWN')){
   input.current=value;setDraft(value);
   const group=state.context?.group;
-  heldDraft.current=state.phase==='READY'&&!state.journal&&group?.canSend&&value
-   ?{accountId,accountRevision,agreementId,groupId:group.groupId,text:value}:null;
+  heldDraft.current=group?.canSend&&value
+   ?{accountId,accountRevision,agreementId,groupId:group.groupId,text:value,
+    ...(state.journal?{pending:{clientRequestId:state.journal.clientRequestId,bodySha256:state.journal.bodySha256}}:{})}:null;
  }};
  const retry=state.phase==='UNKNOWN'&&state.canRetry;
  const onVisible=useMemo(()=>({viewableItems}:{viewableItems:ViewToken<GroupMessage>[]})=>{
