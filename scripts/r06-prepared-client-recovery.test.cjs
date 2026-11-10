@@ -81,7 +81,7 @@ for (const domain of ['Need', 'Worker']) {
 function routeHarness(domain, options = {}) {
   const state = { status: 'PROCESSING', providerDispatched: false, cancelled: false, capability: 'PREPARED',
     refusal: false, responseLostAfterSuccess: false, ...options };
-  let resumeWait = null, checkWait = null, journalSaveWait = null,
+  let resumeWait = null, checkWait = null, journalSaveWait = null, namePatchWait = null, normalSendWait = null,
     journalValue = { accountId: ACCOUNT, conversationId: CID, clientRequestId: KEY };
   const calls = [], listeners = new Set(), Focus = React.createContext(true);
   const transport = transportHarness(async ({ body }) => {
@@ -96,7 +96,7 @@ function routeHarness(domain, options = {}) {
     return state.responseLostAfterSuccess ? json({ code: 'AI_CREDITS_UNAVAILABLE' }, 503) : stream(domain);
   });
   const unexpected = name => () => { calls.push(name); throw Error('UNEXPECTED_' + name); };
-  const profile = { displayName: 'Milan', bio: '', skills: [], tools: [], vehicles: [], licenses: [], teamCapacity: 1, workAreas: [],
+  const profile = { displayName: state.alignAccountName ? 'Ranije ime' : 'Milan', bio: '', skills: [], tools: [], vehicles: [], licenses: [], teamCapacity: 1, workAreas: [],
     location: { city: '', operatingCountryCode: null, radiusKm: 1, approximatePosition: null },
     availability: { timezone: 'Europe/Belgrade', availableNow: false, rules: [], windows: [] } };
   const needSnapshot = () => ({ conversationId: CID, schemaVersion: 'NEED_FACT_V2', status: 'OPEN', safety: 'ALLOW', facts: [],
@@ -105,7 +105,8 @@ function routeHarness(domain, options = {}) {
   const workerSnapshot = () => ({ schemaVersion: 'WORKER_PROFILE_V1', accountId: ACCOUNT, conversationId: CID, profileId: id(6), revision: 1,
     status: 'OPEN', stale: false, safety: 'ALLOW', profileStatus: 'DRAFT', candidate: profile, review: null, saved: null,
     messages: state.status === 'SUCCEEDED' ? [{ id: id(8), role: 'USER', body: 'Originalna poruka.', sequence: 1 },
-      { id: id(9), role: 'ASSISTANT', body: 'Potvrđen odgovor.', sequence: 2 }] : [], turn: turn('Worker', state.status) });
+      { id: id(9), role: 'ASSISTANT', body: 'Potvrđen odgovor.', sequence: 2 }] : [],
+    turn: { ...turn('Worker', state.status), clientRequestId: state.lastRequestId ?? KEY } });
   const api = { checkPrepared: transport[domain].checkPrepared, resumePrepared: transport[domain].resumePrepared,
     recoverTurn: async (cid, key) => { calls.push('recover'); assert.equal(cid, CID); assert.equal(key, KEY);
       return ok({ accountId: ACCOUNT, conversationId: CID, clientRequestId: KEY, conversationStatus: 'OPEN',
@@ -113,18 +114,31 @@ function routeHarness(domain, options = {}) {
         canCancel: false, authoritative: true, ...(domain === 'Worker' ? { schemaVersion: 'WORKER_PROFILE_V1', profileId: id(6), retryAllowed: false } : {}) }); },
     loadConversation: async () => { calls.push('read'); return needSnapshot(); },
     read: async () => { calls.push('read'); return ok(workerSnapshot()); },
-    send: unexpected('send'), sendMessage: async (cid, body, key) => {
+    send: async (cid, body, key) => {
+      if (!state.normalSend) return unexpected('send')();
+      calls.push('send'); assert.equal(cid, CID); assert.equal(key, id(80));
+      assert.equal(body, 'Treba mi pomoć oko nošenja.');
+      if (normalSendWait) await normalSendWait.promise;
+      state.status = 'SUCCEEDED'; state.providerDispatched = true; state.lastRequestId = key;
+      return ok({ ...turn('Worker'), clientRequestId: key });
+    }, sendMessage: async (cid, body, key) => {
       if (!state.normalSend) return unexpected('sendMessage')();
       calls.push('sendMessage'); assert.equal(cid, CID); assert.equal(key, id(80));
       assert.equal(body, 'Treba mi pomoć oko nošenja.');
       return { ok: false, kod: 'AI_CREDITS_UNAVAILABLE', poruka: 'AI trenutno nije dostupan.' };
     }, open: unexpected('open'), openConversation: unexpected('openConversation'),
-    prepare: unexpected('prepare'), patch: unexpected('patch'), save: unexpected('save'), abandon: unexpected('abandon'), cancelTurn: unexpected('cancelTurn'),
+    prepare: unexpected('prepare'), patch: async (cid, revision, value) => {
+      if (!state.alignAccountName) return unexpected('patch')();
+      calls.push('namePatch'); assert.equal(cid, CID); assert.equal(revision, 1);
+      assert.deepEqual(value, { displayName: 'Milan' });
+      if (namePatchWait) await namePatchWait.promise;
+      profile.displayName = 'Milan'; return ok(workerSnapshot());
+    }, save: unexpected('save'), abandon: unexpected('abandon'), cancelTurn: unexpected('cancelTurn'),
   };
   const journal = { load: async account => account === ACCOUNT ? journalValue : null,
     save: async value => { if (!state.normalSend) return unexpected('journalSave')();
       calls.push('journalSave'); if (journalSaveWait) await journalSaveWait.promise; journalValue = { ...value }; },
-    clear: async value => { assert.deepEqual(value, { accountId: ACCOUNT, conversationId: CID, clientRequestId: KEY });
+    clear: async value => { assert.deepEqual(value, journalValue);
       calls.push('journalClear'); journalValue = null; } };
   const app = { currentState: 'active', addEventListener: (_type, fn) => { listeners.add(fn); return { remove: () => listeners.delete(fn) }; } };
   const voice = { state: { phase: 'IDLE' }, controller: { getSnapshot: () => voice.state, cancel() {}, subscribe: () => () => {} } };
@@ -193,6 +207,8 @@ function routeHarness(domain, options = {}) {
     copy: () => tree.root.findAll(node => node.type === 'T').flatMap(node => [node.props.children].flat(Infinity)).filter(value => typeof value === 'string'),
     holdResume() { resumeWait = deferred(); return resumeWait; }, holdCheck() { checkWait = deferred(); return checkWait; },
     holdJournalSave() { journalSaveWait = deferred(); return journalSaveWait; },
+    holdNamePatch() { namePatchWait = deferred(); return namePatchWait; },
+    holdNormalSend() { normalSendWait = deferred(); return normalSendWait; },
     async close() { if (tree) await RTR.act(async () => tree.unmount()); assert.equal(listeners.size, 0); },
   };
 }
@@ -251,6 +267,61 @@ test('Need: a current foreground send persists its IDs and dispatches once witho
     assert.equal(h.calls.filter(call => call === 'journalSave').length, 1);
   } finally { await h.close(); }
 });
+for (const transition of ['background', 'background-return', 'account-return']) {
+  test(`Worker: name alignment cannot revive an ordinary send after ${transition}`, async () => {
+    const h = routeHarness('Worker', { status: 'SUCCEEDED', providerDispatched: true, normalSend: true, alignAccountName: true });
+    const patch = h.holdNamePatch(), network = h.holdNormalSend();
+    try {
+      await h.mount(); assert.equal(h.journal(), null);
+      await RTR.act(async () => h.shell().props.onChange('Treba mi pomoć oko nošenja.'));
+      assert.equal(h.shell().props.canSend, true);
+      await RTR.act(async () => h.shell().props.onSend());
+      assert.equal(h.calls.filter(call => call === 'namePatch').length, 1);
+      assert.equal(h.calls.includes('journalSave'), false);
+      const ids = h.calls.filter(call => call === 'newId').length;
+      if (transition === 'account-return') {
+        h.transport.session.user = { id: id(99) }; h.transport.session.accountRevision++;
+        h.transport.session.user = { id: ACCOUNT }; h.transport.session.accountRevision++;
+      } else {
+        await h.background('background');
+        if (transition === 'background-return') await h.background('active');
+      }
+      await RTR.act(async () => patch.resolve());
+      assert.equal(h.calls.includes('send'), false, 'a retired action must never dispatch a provider request');
+      assert.equal(h.calls.includes('journalSave'), false, 'name alignment alone must not create a new AI request');
+      assert.equal(h.calls.filter(call => call === 'newId').length, ids);
+      assert.equal(h.journal(), null);
+      if (transition === 'background-return') {
+        assert.equal(h.shell().props.value, 'Treba mi pomoć oko nošenja.');
+        await h.check();
+        assert.equal(h.shell().props.canSend, true, 'fresh authoritative read enables an explicit new send');
+      }
+    } finally { await h.close(); await RTR.act(async () => { patch.resolve(); network.resolve(); }); }
+  });
+}
+test('Worker: current name alignment preserves one explicit send and clears only its confirmed draft', async () => {
+  const h = routeHarness('Worker', { status: 'SUCCEEDED', providerDispatched: true, normalSend: true, alignAccountName: true });
+  const patch = h.holdNamePatch(), network = h.holdNormalSend();
+  try {
+    await h.mount(); await RTR.act(async () => h.shell().props.onChange('Treba mi pomoć oko nošenja.'));
+    const send = h.shell().props.onSend;
+    await RTR.act(async () => { send(); send(); });
+    assert.equal(h.calls.filter(call => call === 'namePatch').length, 1);
+    assert.equal(h.calls.includes('send'), false);
+    await h.background('active'); // A duplicate native event is not a new foreground generation.
+    await RTR.act(async () => patch.resolve());
+    assert.equal(h.calls.filter(call => call === 'journalSave').length, 1);
+    assert.equal(h.calls.filter(call => call === 'send').length, 1);
+    assert.deepEqual(h.journal(), { accountId: ACCOUNT, conversationId: CID, clientRequestId: id(80) });
+    assert.equal(h.shell().props.value, 'Treba mi pomoć oko nošenja.');
+    await RTR.act(async () => network.resolve());
+    assert.equal(h.journal(), null);
+    assert.equal(h.shell().props.value, '', 'only the confirmed typed revision is cleared');
+    assert.equal(h.calls.filter(call => call === 'journalClear').length, 2, 'initial recovery plus this exact success');
+    assert.equal(h.calls.filter(call => call === 'send').length, 1);
+  } finally { await h.close(); await RTR.act(async () => { patch.resolve(); network.resolve(); }); }
+});
+
 for (const domain of ['Need', 'Worker']) {
   test(`${domain}: actual cold screen reads only, actual explicit button resumes once and canonical success clears its journal`, async () => {
     const h = routeHarness(domain);

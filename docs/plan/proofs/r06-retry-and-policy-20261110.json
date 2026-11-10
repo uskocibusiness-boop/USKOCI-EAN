@@ -1,0 +1,220 @@
+{
+  "schema": "USKOCI_R06_RETRY_AND_POLICY_20261110",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "sourceBaseline": "e1034ff3c4d1d621e7e00ae6d9e9a6bdb066969c",
+  "scope": "STATUS_ONLY_SOURCE_FIX; DEV_READ_ONLY_PREFLIGHT_AND_POLICY_METADATA; NO_HOSTED_WRITE",
+  "implemented": {
+    "problem": "A FAILED Need command with provider_dispatched=false and a prepared snapshot advertised retryAllowed=true. The original claim rotated attempt_id and lease under the same request; immutable snapshot retained old attemptId and later read returned STALE.",
+    "change": "The existing private.ai_need_turn_status allows a FAILED retry only when prepared_at IS NULL. Active same-attempt prepared recovery and legacy unprepared retries remain unchanged.",
+    "signature": "private.ai_need_turn_status(uuid,uuid,uuid)",
+    "beforeBodyMd5": "3e282af463b21b4fbbcd5ede077878d6",
+    "afterBodyMd5": "ee2ee08b805a98127427f0515c2c6b04",
+    "preserved": [
+      "Original request, turn, attempt, snapshot and reservation",
+      "Provider-dispatched and cancelled fences",
+      "Account/conversation ownership and closure checks",
+      "All function catalog attributes",
+      "Explicit new request admission after terminal failure"
+    ],
+    "package": "scripts/sql/r06_prepared_retry_dev_20261110.manifest.json"
+  },
+  "verification": {
+    "pglite": {
+      "command": "node --test scripts/r06-prepared-retry.test.cjs",
+      "tests": 14,
+      "pass": 14,
+      "fail": 0
+    },
+    "negativeControl": {
+      "command": "USKOCI_R06_RETRY_BASELINE=1 node --test scripts/r06-prepared-retry.test.cjs",
+      "regressionFailures": 4,
+      "nodeReportedTests": 14,
+      "nodeReportedPass": 9,
+      "nodeReportedFail": 5,
+      "explanation": "Four leaf regressions fail on the previous status; the fifth reported failure is their parent test."
+    },
+    "native": {
+      "command": "USKOCI_R06_RETRY_NATIVE=1 USKOCI_POSTGRES_ROOT=<isolated PostgreSQL17> USKOCI_PG_MODULE=<node-postgres> USKOCI_PG_FIXTURE_PORT=55543 node --test scripts/r06-prepared-retry.test.cjs",
+      "tests": 15,
+      "pass": 15,
+      "fail": 0,
+      "recordedAt": "2026-11-10T18:06:58.045Z",
+      "scope": "R06_PREPARED_TERMINAL_RETRY_IDENTITY",
+      "native": true,
+      "baseline": false,
+      "cases": [
+        {
+          "name": "negative control: old status rotates the command attempt behind the immutable prepared snapshot",
+          "status": "PASS"
+        },
+        {
+          "name": "read-only preflight verifies the current owner; wrong project, metadata and active turn stop installation",
+          "status": "PASS"
+        },
+        {
+          "name": "the increment changes only the status body and leaves data, admission and full function metadata intact",
+          "status": "PASS"
+        },
+        {
+          "name": "FAILED: same request cannot acquire a new attempt or replace its original reservation",
+          "status": "PASS"
+        },
+        {
+          "name": "SWEPT: same request cannot acquire a new attempt or replace its original reservation",
+          "status": "PASS"
+        },
+        {
+          "name": "MINIMIZED: same request cannot acquire a new attempt or replace its original reservation",
+          "status": "PASS"
+        },
+        {
+          "name": "ERASED: same request cannot acquire a new attempt or replace its original reservation",
+          "status": "PASS"
+        },
+        {
+          "name": "an active prepared request still resumes the same attempt and grants provider dispatch at most once",
+          "status": "PASS"
+        },
+        {
+          "name": "legacy failed input without a prepared marker keeps its original bounded retry behavior",
+          "status": "PASS"
+        },
+        {
+          "name": "an explicit new request can proceed after the old terminal prepared request without mutating the old identity",
+          "status": "PASS"
+        },
+        {
+          "name": "unknown dispatched, cancelled and closed requests remain fenced",
+          "status": "PASS"
+        },
+        {
+          "name": "changed text, another account and account closure cannot bypass ownership checks",
+          "status": "PASS"
+        },
+        {
+          "name": "two real concurrent claim connections return the same terminal identity without mutation",
+          "status": "PASS"
+        },
+        {
+          "name": "code rollback preserves all state and the operation can be installed again",
+          "status": "PASS"
+        }
+      ],
+      "failures": [],
+      "limitations": [
+        "Actual captured status, claim, prepared, dispatch, budget and sweep SQL; reduced existing R06 context/closure fixture.",
+        "The unused location-review dependency raises if called: only text claim is tested here.",
+        "No hosted mutation, provider call, runtime activation, policy certification or Android proof."
+      ],
+      "finishedAt": "2026-11-10T18:06:59.641Z",
+      "passed": true
+    },
+    "devPreflight": {
+      "status": "R06_RETRY_DEV_PREFLIGHT_PASS",
+      "mode": "BEGIN READ ONLY",
+      "path": "scripts/sql/r06_prepared_retry_dev_20261110.preflight.sql",
+      "bytes": 33510,
+      "sha256": "2ffba5b0eec0625b93bd44daf647253d18192336ffea2f5defd582222cb4d20f",
+      "sourceAndClaimBodiesMatchedLive": true
+    },
+    "hostedInstall": false,
+    "android": false,
+    "paidProviderCalls": 0
+  },
+  "policyReadback": {
+    "captured_at": "2026-11-10 18:10:08.182777+00",
+    "retention_source_ready": false,
+    "retention_policy_bound": false,
+    "export_policy_bound": false,
+    "erasure_bound": false,
+    "actual_closure_source_sha256": "8d17c48b2b00d9a8be4f0b99ab2227f0c1493b6a88a6bdf7818aaf8592f688bc",
+    "pinned_closure_source_sha256": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "pinned_erasure_source_sha256": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "actual_schema_digest": "81abf8a33b5b153504328553928b0847efd4dcafcb8a41c035f98a5199dd309b",
+    "export_projection_sha256": "f4c333aa2dd9670da8e0b2c18bb0d20d3d44f5bb4f5b329834ecfab7a9b325c2",
+    "active_policy_sets": 0,
+    "effective_legal_versions": 0,
+    "required_data_classes": 15,
+    "current_schema_relation_count": 169,
+    "export_dataset_count": 73,
+    "prepared_need_markers": 0,
+    "prepared_worker_markers": 0,
+    "closure_policy_bound": false,
+    "actual_conversation_dependents": [
+      "ai_action_proposals",
+      "ai_messages",
+      "ai_structured_facts",
+      "private.need_draft_save_commands"
+    ],
+    "message_foreign_dependencies": 0
+  },
+  "inventory": {
+    "currentSchemaRelations": 169,
+    "schemaInventoryFunction": "private.closure_schema_digest_v5_139()",
+    "schemaInventoryFunctionScope": "All public/private tables plus storage.objects; its historical suffix 139 is not the current relation count.",
+    "redactionRelations": 96,
+    "taxonomyInventoryEntries": 20,
+    "completeSemanticInventoryReviewPerformed": false,
+    "functionBodyPins": [
+      {
+        "signature": "private.data_export_policy_binding()",
+        "bodyMd5": "21ae94d4425396da941359cd834913fb"
+      },
+      {
+        "signature": "private.retention_ai_source_ready()",
+        "bodyMd5": "b89891cd3eb5f327bd642a160e5a2e81"
+      },
+      {
+        "signature": "private.retention_execution_binding()",
+        "bodyMd5": "24adda1c25a113b458c0209cdf91065a"
+      },
+      {
+        "signature": "private.closure_source_digest_v5()",
+        "bodyMd5": "41e54d223122b58decd25cf66191470a"
+      },
+      {
+        "signature": "private.closure_erasure_binding_v5()",
+        "bodyMd5": "d6d7e7f6f108fff45a4df5126949fa04"
+      }
+    ]
+  },
+  "blockers": [
+    {
+      "gate": "retentionAiSourceReady",
+      "evidence": "private.retention_ai_source_ready() = false and its fixed closure digest differs from current private.closure_source_digest_v5().",
+      "missing": "Current full schema/trigger/copy lifecycle must be reviewed and exercised before any new certification. Prepared lone text is minimized but its eventual deletion is not covered by a new approved policy."
+    },
+    {
+      "gate": "retentionPolicyBound",
+      "evidence": "private.retention_execution_binding() = NULL; active policy sets = 0; effective legal versions = 0.",
+      "missing": "An approved effective privacy version and retention policy rules for all 15 required classes, including a justified original-input lifetime and legal holds. Existing adapter only handles AI_ABANDONED_UNBOUND; it is not proof of all AI inputs."
+    },
+    {
+      "gate": "exportPolicyBound",
+      "evidence": "private.data_export_policy_binding() = NULL; current catalog has 73 datasets.",
+      "missing": "Effective privacy policy, exact OWN_ACCOUNT_V5_11 projection binding and coherent 73-dataset delivery manifest; prove complete owned export, other-account denial, expiry and revocation with current content."
+    },
+    {
+      "gate": "erasureBound",
+      "evidence": "private.closure_erasure_binding_v5() = NULL; both pinned closure/erasure source hashes differ from current source; closure policy binding also NULL.",
+      "missing": "Current full redaction and exception/hold coverage, relational/media/Auth execution receipts and authorized account lifecycle proof. The binding explicitly has legalPolicyAttested=false; changing a digest is not legal approval."
+    }
+  ],
+  "nextEligibleStep": "Use the existing R10 fixture/complete current bootstrap to prove the current 73-dataset export and full account closure coverage (including retained input, archives, holds, media and old-session denial), then bind only the reviewed technical program to the owner's finalized legal policy. Keep current gate refusals until these conditions are actually satisfied.",
+  "operations": {
+    "hostedSqlWrites": 0,
+    "migrationsApplied": 0,
+    "edgeDeployments": 0,
+    "providerCalls": 0,
+    "budgetChanges": 0,
+    "reservationsReleased": 0,
+    "policyOrDigestPinChanges": 0,
+    "productionCalls": 0
+  },
+  "limitations": [
+    "Metadata counts and source comparisons do not prove execution of complete export/erasure.",
+    "Current prepared Need and Worker marker counts are both zero; no live same-request recovery exercised.",
+    "The proposed status change participates in the closure source digest, so any later authorized deployment will change that digest again; no pin is silently refreshed.",
+    "All local records are synthetic and isolated; no existing user data was read or changed."
+  ]
+}

@@ -74,7 +74,15 @@ export function useAccountClosing(scope: AccountClosingScope) {
           const { sesijaSada } = require('../../store/sesija') as typeof import('../../store/sesija');
           if (sesijaSada().user?.id !== owner.scope.accountId || sesijaSada().accountRevision !== owner.scope.accountRevision) return;
           const { forgetGroupConversationDrafts } = require('../../data/groupConversationDraft') as typeof import('../../data/groupConversationDraft');
-          await forgetGroupConversationDrafts(owner.scope.accountId, require('@react-native-async-storage/async-storage').default);
+          const { forgetAgreementOutboxes } = require('../../data/agreementOutbox') as typeof import('../../data/agreementOutbox');
+          const storage = require('@react-native-async-storage/async-storage').default;
+          // Capture both boundaries before either disk operation can yield to a
+          // new account. A failure in one namespace must not skip the other.
+          const erased = await Promise.allSettled([
+            forgetGroupConversationDrafts(owner.scope.accountId, storage),
+            forgetAgreementOutboxes(owner.scope.accountId, storage),
+          ]);
+          if (erased.some(result => result.status === 'rejected')) throw new Error('LOCAL_DRAFT_ERASURE_FAILED');
         } catch {
           if (visit.current === owner) setMessage('Lokalni nacrti nisu potpuno uklonjeni. Odjavite se da uređaj ponovo pokuša da ih ukloni.');
         }

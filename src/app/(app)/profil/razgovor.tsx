@@ -231,7 +231,10 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const reviewNeedsRestart=!!rejectedReviewId&&data?.review?.reviewId===rejectedReviewId&&!data.saved;
   useEffect(()=>{if(data&&data.review?.reviewId!==rejectedReviewId)setRejectedReviewId(null);},[data?.review?.reviewId,rejectedReviewId]);
   const reviewHasExpired=useReviewExpiry(data?.review&&!data.saved?data.review.expiresAt:null);
-  const current=()=>!!renderedFocus&&focus.current===renderedFocus&&owns()&&active.current;
+  // A return to foreground starts a new command owner. In particular, a pending
+  // account-name patch must not revive Send before its abort controller exists.
+  const current=()=>!!renderedFocus&&focus.current===renderedFocus&&owns()&&active.current
+    &&!!renderedForeground&&foregroundGeneration.current===renderedForeground;
   const canAct=()=>current()&&panelScope.current===renderedPanel&&!resuming&&!editor.busy&&!editor.loading&&editor.loaded&&!editor.uncertain&&!!data;
   const savePanel=async(activity:Exclude<ReviewActivity,null>,command:()=>Promise<Ishod<WorkerAiSnapshot>>)=>{
     setReviewActivity(activity);

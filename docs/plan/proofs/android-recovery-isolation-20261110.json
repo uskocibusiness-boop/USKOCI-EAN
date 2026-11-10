@@ -1,0 +1,194 @@
+{
+  "schemaVersion": "USKOCI_ANDROID_RECOVERY_ISOLATION_V1",
+  "recordedAt": "2026-11-10T18:13:48.975090+00:00",
+  "baseline": {
+    "sourceCommit": "e1034ff3c4d1d621e7e00ae6d9e9a6bdb066969c",
+    "qa": 129,
+    "worktree": "/workspace/scratch/e3e59e0c2a16/android-qa129-baseline"
+  },
+  "status": {
+    "source": "IMPLEMENTED",
+    "localTests": "PASS",
+    "typescript": "PASS",
+    "android": "BLOCKED",
+    "dev": "NOT_EXECUTED",
+    "production": "NOT_MODIFIED",
+    "ci": "ROOT_INTEGRATION_PENDING"
+  },
+  "changes": [
+    {
+      "owner": "R06/Worker client",
+      "behavior": "Foreground generation fences ordinary commands while account-name alignment is pending, including before an AbortController exists. Fresh explicit sends and duplicate active notifications remain valid."
+    },
+    {
+      "owner": "R09/R10 private local storage",
+      "behavior": "Capture group and private erasure boundaries before awaiting Auth. A new same-account incarnation waits for erasure and retains its newer drafts. Auth failure cancels both boundaries without deleting data."
+    },
+    {
+      "owner": "R10 authoritative CLOSED",
+      "behavior": "A current authoritative CLOSED read erases private text/voice outboxes, drafts and upload identity journals, as well as group drafts. Existing private writers are retired and late receipts cannot recreate erased payloads."
+    },
+    {
+      "owner": "R09 local upload identity lifecycle",
+      "behavior": "Photo and voice journals share the local account storage queue; an admitted write finishes before erasure and cannot reappear after it."
+    }
+  ],
+  "tests": [
+    {
+      "command": "node --test scripts/r06-prepared-client-recovery.test.cjs",
+      "pass": 33,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "newCases": 4
+    },
+    {
+      "command": "node --test scripts/agreement-outbox-lifecycle.test.cjs",
+      "pass": 11,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "scope": "Real production local outbox/journals, Auth logout and mounted closing hook; inert storage/SDK/native boundaries. No live backend or device."
+    },
+    {
+      "command": "node --test scripts/agreement-outbox-lifecycle.test.cjs scripts/group-conversation-lifecycle.test.cjs scripts/r06-prepared-client-recovery.test.cjs scripts/agreement-incoming-lifecycle.test.cjs scripts/agreement-photo-efficiency.test.cjs scripts/photo-cache-privacy.test.cjs scripts/voice-gesture-lifecycle.test.cjs",
+      "pass": 122,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMs": 11197.199897,
+      "scope": "Earlier integrated milestone included the first 10 private outbox tests. The later eleventh test passed in the separate final 11/11 run. Do not describe this as a final 123-test execution."
+    },
+    {
+      "command": "node --test scripts/worker-draft-activation.test.cjs scripts/ai-role-handoff.test.cjs scripts/ai-budget-client-recovery.test.cjs scripts/voice-recovery-ownership.test.cjs scripts/worker-catalog-conflict.test.cjs scripts/worker-shared-reuse.test.cjs",
+      "pass": 93,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "scope": "Relevant neighboring Worker checks, executed before the private storage changes; historical within this development round."
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc --noEmit",
+      "exitCode": 0,
+      "diagnosticBytes": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "negativeControls": [
+    {
+      "sourceCommit": "e1034ff3c4d1d621e7e00ae6d9e9a6bdb066969c",
+      "command": "node --test --test-name-pattern='Worker: (name alignment|current name alignment)' scripts/r06-prepared-client-recovery.test.cjs",
+      "pass": 3,
+      "fail": 1,
+      "observedFailure": "Old Worker action dispatched a provider request after background-return while the name patch was pending. Provider is a local fixture, not Gemini."
+    },
+    {
+      "sourceCommit": "e1034ff3c4d1d621e7e00ae6d9e9a6bdb066969c",
+      "command": "node --test scripts/agreement-outbox-lifecycle.test.cjs",
+      "pass": 5,
+      "fail": 6,
+      "observedFailures": [
+        "Old logout erased newer same-account text.",
+        "CLOSED left private/voice stored payloads.",
+        "Photo and voice already-started journal writes reappeared after erasure.",
+        "New erasure boundary and incomplete-erasure UI were absent."
+      ],
+      "qualification": "Six failing scenarios are not six independent defects. Failure of Auth-cancel boundary timing is a check of the new synchronization contract; terminal preservation also has separate positive proof."
+    }
+  ],
+  "androidAvailability": {
+    "adbPath": null,
+    "emulatorPath": null,
+    "devKvm": false,
+    "usbBus": false,
+    "androidSdkEnvironmentConfigured": false,
+    "nativeDiskVerified": false,
+    "processKillVerified": false,
+    "keyboardVerified": false,
+    "talkBackVerified": false,
+    "realPushVerified": false
+  },
+  "limits": [
+    "Disk erasure failure can leave bytes on disk; old writers are retired and current CLOSED reports incomplete erasure.",
+    "Remote account deletion without a received authoritative CLOSED read is not proven to remove local data.",
+    "Server rejection of stale JWTs after account closure is a separate backend gate.",
+    "No actual Auth session, provider, push, DEV business action or device was used.",
+    "Test groups overlap and must not be added together."
+  ],
+  "files": [
+    {
+      "path": "src/app/(app)/profil/razgovor.tsx",
+      "bytes": 53279,
+      "sha256": "4c72922d2262d59cecb1e84f85db80628bf79feb7e388b60ec05b4e703d7a2ff"
+    },
+    {
+      "path": "src/data/agreementOutbox.ts",
+      "bytes": 32650,
+      "sha256": "c3eea99cc03b259ccf513bcec2ac4e845ac326f43294ba8320191eb4589f25fa"
+    },
+    {
+      "path": "src/data/agreementOutboxStorage.ts",
+      "bytes": 3219,
+      "sha256": "4be5a162c1b89c33c00357bf6e983949be252f1f0a20e13dfae72e8adaed45be"
+    },
+    {
+      "path": "src/data/agreementPhotoJournal.ts",
+      "bytes": 5010,
+      "sha256": "7f0017296345a3acffe5f83b58db780e7b04b6fc5cc38e726f4cc21f47893699"
+    },
+    {
+      "path": "src/data/authClientService.ts",
+      "bytes": 9581,
+      "sha256": "d1bfa86b38b7ee4a8539ed9a850101288cfd29eef5ac6a06a0a74563da9defa7"
+    },
+    {
+      "path": "src/ui/auth/AccountClosingState.tsx",
+      "bytes": 11131,
+      "sha256": "4b33e1a2bd66bd2e0be12954997d96b3a9a13aea59c390b705b45b2505f40ed9"
+    },
+    {
+      "path": "scripts/r06-prepared-client-recovery.test.cjs",
+      "bytes": 31064,
+      "sha256": "36d40dffc0d0a98277ffc0ad701a5660346dfcf4334bd511bd133af025f8312b"
+    },
+    {
+      "path": "scripts/agreement-outbox-lifecycle.test.cjs",
+      "bytes": 17626,
+      "sha256": "ed774a100d8f1672d55d3434b2a84131f9ffaed3428345dbaa30501e9c4293e2"
+    }
+  ],
+  "logs": [
+    {
+      "path": "/workspace/scratch/e3e59e0c2a16/android-integrated-tests.log",
+      "bytes": 26548,
+      "sha256": "d40a1e35ff3dba40d11d65ea95de75a8af9c80e04250ea17e03ef5815b83cfd4"
+    },
+    {
+      "path": "/workspace/scratch/e3e59e0c2a16/android-neighbor-tests.log",
+      "bytes": 8433,
+      "sha256": "8a620637b95954acd91d2c241b166c2c2a1a3bc5d4dfe89805346602319fb93c"
+    },
+    {
+      "path": "/workspace/scratch/e3e59e0c2a16/android-typecheck.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/scratch/e3e59e0c2a16/android-private-negative-control.log",
+      "bytes": 6911,
+      "sha256": "d1fe1da789fc1152ef4a08b69b03de36040cf550e02d011d1709ebd181f793ea"
+    },
+    {
+      "path": "/workspace/scratch/e3e59e0c2a16/android-worker-negative-control.log",
+      "bytes": 1584,
+      "sha256": "e34f54a2a168f17625dc9fe65206b8a413ae7563a7025b1c013cb190544625fd"
+    }
+  ]
+}

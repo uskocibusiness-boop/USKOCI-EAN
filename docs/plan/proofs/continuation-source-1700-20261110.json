@@ -1,0 +1,202 @@
+{
+  "schema": "USKOCI_QA129_CONTINUATION_SOURCE_V1",
+  "recordedAtUtc": "2026-11-10T18:17:29.337892+00:00",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "baselineHead": "e1034ff3c4d1d621e7e00ae6d9e9a6bdb066969c",
+  "status": [
+    "REŠENO U KODU",
+    "PROŠLO TESTOVE"
+  ],
+  "ci": "PENDING_FOR_NEW_SOURCE",
+  "devRollout": "NOT_YET_APPLIED",
+  "android": "BLOCKED_NO_DEVICE",
+  "fullTests": {
+    "command": "npm test",
+    "tests": 1700,
+    "pass": 1700,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "duration_ms": 118888.112113,
+    "sha256": "a8eb59d7f549922e589557352039f54d20ec4dfa6b67df2b34491d554af5073f"
+  },
+  "typeScript": {
+    "command": "npx tsc --noEmit",
+    "exitCode": 0,
+    "typeScriptDiagnostics": 0,
+    "toolWarning": "npm http-proxy env configuration deprecation warning only"
+  },
+  "sqlIntegrity": {
+    "command": "sh supabase/migrations/check_md5.sh",
+    "exitCode": 0,
+    "files": 235,
+    "tests": 90
+  },
+  "nativePatch": {
+    "command": "node scripts/verify-native-patches.cjs --repo",
+    "status": "PASS"
+  },
+  "diffCheck": "PASS",
+  "r13": {
+    "pgliteRelated": {
+      "tests": 15,
+      "pass": 15
+    },
+    "nativePostgreSql17": {
+      "tests": 5,
+      "pass": 5
+    },
+    "negativeControl": {
+      "test": "exact empty ON_SITE wave",
+      "baselineFailures": 1,
+      "fixedPass": 1
+    },
+    "beforeBodyMd5": "d3cdfe2bdd6e5d40a74e6029793c89c5",
+    "afterBodyMd5": "bd1d2fd351d8273ddc0cce9e29514ca7",
+    "independentReview": "PASS_NO_BLOCKERS; 5/5 PGlite by agent C",
+    "scope": "Truthful diagnostic only; no hosted dispatch or 300000-user capacity proof."
+  },
+  "independentReviews": {
+    "r06": "PASS_NO_BLOCKERS; C 14/14 + success receipt parity",
+    "ai": "PASS_NO_BLOCKERS; B 230/230 +5 adverse handler probes; A two-turn confirmation",
+    "privateStorage": "PASS_NO_BLOCKERS; A 11/11+94/94 neighbors+3 injected adverse probes",
+    "react": "Scoped TSX ownership/effect review; no new hooks or visual redesign"
+  },
+  "proofs": [
+    "r06-retry-and-policy-20261110.json",
+    "worker-context-continuity-20261110.json",
+    "android-recovery-isolation-20261110.json"
+  ],
+  "productionAuthReadOnly": {
+    "checkedAtUtc": "2026-11-10T18:10:27.873113+00:00",
+    "project": "fvyqqudqvizjrxaflhex",
+    "method": "GET",
+    "path": "/auth/v1/settings",
+    "httpStatus": 200,
+    "disableSignup": false,
+    "emailEnabled": true,
+    "emailAutoconfirm": false,
+    "mutation": false,
+    "accountsCreated": 0,
+    "emailsSent": 0
+  },
+  "productionAdmissionRecommendation": {
+    "requiresSeparateOwnerApproval": true,
+    "executed": false,
+    "method": "PATCH",
+    "managementPath": "/v1/projects/fvyqqudqvizjrxaflhex/config/auth",
+    "body": {
+      "disable_signup": true
+    },
+    "verification": "Read back disable_signup=true through management config and public Auth settings; preserve email verification; no account creation or test mail."
+  },
+  "runtimeFlag": {
+    "name": "USKOCI_AI_PREPARED_INPUT_ENABLED",
+    "status": "UNKNOWN",
+    "evidence": "Connected management tools expose no config/secret read; dashboard opens sign-in without an authorized session. No retired diagnostic enabled.",
+    "leastIntrusiveNextStep": "Read only the named nonsecret flag through an authorized dashboard session or GET /v1/projects/leqcwgzvjsxugfgzdmth/secrets; filter before displaying any response and never disclose other secret values."
+  },
+  "sourceFiles": {
+    "package.json": {
+      "bytes": 6251,
+      "sha256": "46a22d7e81faadcadb4e9a16d65a2b8fcf8e7ce4ebf21be5ec7976c223c50ea1"
+    },
+    "scripts/agreement-outbox-lifecycle.test.cjs": {
+      "bytes": 17626,
+      "sha256": "ed774a100d8f1672d55d3434b2a84131f9ffaed3428345dbaa30501e9c4293e2"
+    },
+    "scripts/conversation-intent-integration.test.cjs": {
+      "bytes": 90107,
+      "sha256": "631229f4b218e27c80c6d2f19e975a9c8f4b51ed6a8f692cf2686f0bb306ce87"
+    },
+    "scripts/r06-prepared-client-recovery.test.cjs": {
+      "bytes": 31064,
+      "sha256": "36d40dffc0d0a98277ffc0ad701a5660346dfcf4334bd511bd133af025f8312b"
+    },
+    "scripts/r06-prepared-retry-dev-package.cjs": {
+      "bytes": 6616,
+      "sha256": "7160afc9ae0a52e7be211edf64470f512775b5674ba0147f4f8af59dd860e058"
+    },
+    "scripts/r06-prepared-retry.test.cjs": {
+      "bytes": 11540,
+      "sha256": "d29dee7155fe42111430706eb156148293c0c44fd2f7a6551b45464b771e7a4a"
+    },
+    "scripts/r13-real-wave-budget.test.cjs": {
+      "bytes": 13566,
+      "sha256": "854fa8b8554b3b9a6f5fec4781b4948c94ab3acee1bbe418411918796120f332"
+    },
+    "scripts/sql/r06_prepared_retry_dev_20261110.install.sql": {
+      "bytes": 69631,
+      "sha256": "0a911677fe342b90058db8cecc989a097f8059e0dbac854b1274a1f2da9c063a"
+    },
+    "scripts/sql/r06_prepared_retry_dev_20261110.manifest.json": {
+      "bytes": 1662,
+      "sha256": "846ff9af140474a726aee8c1d5a39f080b78d29f453b41064f25d50c7cd7ce19"
+    },
+    "scripts/sql/r06_prepared_retry_dev_20261110.postflight.sql": {
+      "bytes": 33511,
+      "sha256": "e2b9fffb6cccc6d31712aed5a146a18852daac79622e08d28dab817924d7d261"
+    },
+    "scripts/sql/r06_prepared_retry_dev_20261110.preflight.sql": {
+      "bytes": 33510,
+      "sha256": "2ffba5b0eec0625b93bd44daf647253d18192336ffea2f5defd582222cb4d20f"
+    },
+    "scripts/sql/r06_prepared_retry_dev_20261110.rollback.sql": {
+      "bytes": 69609,
+      "sha256": "a76c82675ccdf746f57b6222986688e29619d760f100e0734a4c990704bed022"
+    },
+    "scripts/sql/r13_dispatch_reason_20261110.rollback.sql": {
+      "bytes": 2111,
+      "sha256": "52ef454747f5fde655215286ca418792c0031a4e2f65bca42477c4e57fd24c59"
+    },
+    "scripts/sql/r13_dispatch_reason_20261110.sql": {
+      "bytes": 2136,
+      "sha256": "fcc8753685383f1abb5bceeaa9c1f9118cbbbf06daccc276314b2099d0a72d7d"
+    },
+    "src/app/(app)/profil/razgovor.tsx": {
+      "bytes": 53279,
+      "sha256": "4c72922d2262d59cecb1e84f85db80628bf79feb7e388b60ec05b4e703d7a2ff"
+    },
+    "src/data/agreementOutbox.ts": {
+      "bytes": 32650,
+      "sha256": "c3eea99cc03b259ccf513bcec2ac4e845ac326f43294ba8320191eb4589f25fa"
+    },
+    "src/data/agreementOutboxStorage.ts": {
+      "bytes": 3219,
+      "sha256": "4be5a162c1b89c33c00357bf6e983949be252f1f0a20e13dfae72e8adaed45be"
+    },
+    "src/data/agreementPhotoJournal.ts": {
+      "bytes": 5010,
+      "sha256": "7f0017296345a3acffe5f83b58db780e7b04b6fc5cc38e726f4cc21f47893699"
+    },
+    "src/data/authClientService.ts": {
+      "bytes": 9581,
+      "sha256": "d1bfa86b38b7ee4a8539ed9a850101288cfd29eef5ac6a06a0a74563da9defa7"
+    },
+    "src/ui/auth/AccountClosingState.tsx": {
+      "bytes": 11131,
+      "sha256": "4b33e1a2bd66bd2e0be12954997d96b3a9a13aea59c390b705b45b2505f40ed9"
+    },
+    "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs": {
+      "bytes": 42536,
+      "sha256": "4560fe4686f24afb16f5b9cc898dd58a686005644f39ef12780ad5c560bf73d8"
+    },
+    "supabase/functions/_shared/workerServiceModeContext.mjs": {
+      "bytes": 25351,
+      "sha256": "ade38cc2f0030c6f1f277be36021eea38d17f3eb2642aa302c53580a61353dd8"
+    },
+    "supabase/functions/uskoci-worker-interview/index.ts": {
+      "bytes": 62243,
+      "sha256": "5bce7a84bae884b2df969d487eb18523d74e2444a9fe72b97043e88330b42998"
+    }
+  },
+  "limitations": [
+    "No Android device, emulator, ADB or SDK: no true process-kill, disk, keyboard, TalkBack or push proof.",
+    "R06 retention/source/export/erasure bindings remain false and runtime flag UNKNOWN.",
+    "No paid AI/provider probes or new latency/token/billing measurements.",
+    "No production mutation, budget increase, unexplained reservation release or push replay.",
+    "R13 diagnostic correction does not close long transactions, missing original capacity6 source or capacity readiness."
+  ]
+}

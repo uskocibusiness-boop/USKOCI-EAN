@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { agreementStorageSerial, captureAgreementStorageOwner } from './agreementOutboxStorage';
 import type { AgreementUploadRef } from './agreementPhotoClientService';
 import { positiveInteger, record, uuid } from './serverReceipt';
 
@@ -7,7 +8,6 @@ type Storage = { getItem(key: string): Promise<string | null>; setItem(key: stri
 type Kind = Readonly<{ namespace: 'photos' | 'voice'; capacity: number; prefix: 'PHOTO' | 'VOICE' }>;
 const PHOTOS: Kind = { namespace: 'photos', capacity: 6, prefix: 'PHOTO' };
 const VOICE: Kind = { namespace: 'voice', capacity: 3, prefix: 'VOICE' };
-const queues = new Map<string, Promise<unknown>>();
 const exactRef = (a: AgreementUploadRef, b: AgreementUploadRef) => a.agreementId === b.agreementId
   && a.agreementVersion === b.agreementVersion && a.clientRequestId === b.clientRequestId;
 function parse(kind: Kind, raw: string | null, accountId: string, agreementId: string): AgreementUploadRef[] {
@@ -26,22 +26,27 @@ function parse(kind: Kind, raw: string | null, accountId: string, agreementId: s
   if (new Set(refs.map(ref => ref.clientRequestId)).size !== refs.length) throw invalid();
   return refs;
 }
-/** Opaque identities only. A per-account/Agreement queue prevents stale cleanup
+/** Opaque identities only. The shared account queue prevents stale erasure
  * or two mounted editors from overwriting an unresolved upload. */
 function createJournal(kind: Kind, storage: Storage) {
-  function run<T>(accountId: string, agreementId: string, work: (key: string) => Promise<T>): Promise<T> {
+  function run<T>(accountId: string, agreementId: string, work: (key: string, owned: () => boolean) => Promise<T>): Promise<T> {
     if (!uuid(accountId) || !uuid(agreementId) || accountId !== accountId.toLowerCase() || agreementId !== agreementId.toLowerCase())
       return Promise.reject(new Error(`${kind.prefix}_JOURNAL_INVALID`));
     const key = `uskoci.agreement.${kind.namespace}.v1.${accountId}.${agreementId}`;
-    const task = (queues.get(key) ?? Promise.resolve()).catch(() => undefined).then(() => work(key));
-    queues.set(key, task); void task.finally(() => { if (queues.get(key) === task) queues.delete(key); }).catch(() => undefined); return task;
+    const owner = captureAgreementStorageOwner(accountId);
+    return agreementStorageSerial(accountId, async () => {
+      if (!owner.current()) throw new Error(`${kind.prefix}_SCOPE_CHANGED`);
+      const value = await work(key, owner.current);
+      if (!owner.current()) throw new Error(`${kind.prefix}_SCOPE_CHANGED`);
+      return value;
+    });
   }
   async function mutate(accountId: string, ref: AgreementUploadRef, current: () => boolean, remove: boolean) {
     const captured = { ...ref };
     parse(kind, JSON.stringify({ version: 1, accountId, agreementId: captured.agreementId, uploads: [captured] }), accountId, captured.agreementId);
-    return run(accountId, captured.agreementId, async key => {
+    return run(accountId, captured.agreementId, async (key, owned) => {
       const old = parse(kind, await storage.getItem(key), accountId, captured.agreementId);
-      if (!current()) throw new Error(`${kind.prefix}_SCOPE_CHANGED`);
+      if (!owned() || !current()) throw new Error(`${kind.prefix}_SCOPE_CHANGED`);
       const found = old.find(v => v.clientRequestId === captured.clientRequestId);
       if (found && !exactRef(found, captured)) throw new Error(`${kind.prefix}_JOURNAL_CONFLICT`);
       const uploads = remove ? old.filter(v => !exactRef(v, captured)) : found ? old : [...old, captured];

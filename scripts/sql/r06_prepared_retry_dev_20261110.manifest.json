@@ -1,0 +1,35 @@
+{
+  "schema": "USKOCI_R06_PREPARED_RETRY_DEV_PACKAGE_V1",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "systemIdentifier": "7676203829645141156",
+  "signature": "private.ai_need_turn_status(uuid,uuid,uuid)",
+  "beforeHash": "3e282af463b21b4fbbcd5ede077878d6",
+  "afterHash": "ee2ee08b805a98127427f0515c2c6b04",
+  "unchangedClaim": {
+    "signature": "private.ai_claim_need_turn_context_v1(uuid,uuid,uuid,text,jsonb)",
+    "bodyMd5": "114bd0b4b9d6e60a0abb0d0d64e63c69"
+  },
+  "baselinePostflightSha256": "9b9146fc2c88787be05828dfb5dda4a26141fc90103e56e7404b48ac41c4d36e",
+  "generatorSha256": "7160afc9ae0a52e7be211edf64470f512775b5674ba0147f4f8af59dd860e058",
+  "files": {
+    "preflight": {
+      "bytes": 33510,
+      "sha256": "2ffba5b0eec0625b93bd44daf647253d18192336ffea2f5defd582222cb4d20f"
+    },
+    "install": {
+      "bytes": 69631,
+      "sha256": "0a911677fe342b90058db8cecc989a097f8059e0dbac854b1274a1f2da9c063a"
+    },
+    "postflight": {
+      "bytes": 33511,
+      "sha256": "e2b9fffb6cccc6d31712aed5a146a18852daac79622e08d28dab817924d7d261"
+    },
+    "rollback": {
+      "bytes": 69609,
+      "sha256": "a76c82675ccdf746f57b6222986688e29619d760f100e0734a4c990704bed022"
+    }
+  },
+  "scope": "Terminal prepared requests cannot receive a new attempt under the same request identity. Active same-attempt recovery and legacy unprepared retry remain unchanged.",
+  "rollback": "CODE_ONLY; restores legacy retry admission and preserves all data/identities/reservations; the original retry defect would return.",
+  "limitations": "Does not activate R06, change policy/retention/erasure gates, prove provider outcomes, or complete Android acceptance."
+}

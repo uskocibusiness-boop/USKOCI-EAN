@@ -42,7 +42,7 @@ export function workerServiceModeInstruction(context, includeContext = true, inc
     + 'serviceModeChangesJson is a STRING array of {service,modes,evidence,handoff?}, or "[]" for no change. service exactly matches an offered skill; modes is its COMPLETE intended REMOTE/ON_SITE set. evidence: verbatim USER quote (6–1000 characters) stating initial scope or a mode/handoff change. A standalone choice such as "Uživo", "Lično", "Onlajn" or "Oba" is valid evidence only for the immediately previous question that uniquely names this service and offers online/on-site alternatives at the same server revision. Return exactly the selected mode set and the actual USER quote, including its original script; never pad or invent a quote. A mode-only reply does not authorize a new handoff, so omit handoff and preserve any saved one. An ambiguous "Da", "Ne" or "Može" is not a mode choice. Obvious initial work can establish mode; a multi-service statement gives each service the same quote. '
     + 'handoff requires REMOTE. Handoff-only changes preserve modes; omitted handoff preserves its prior value. '
     + (includeClassification ? 'Its handoff must equal the new REMOTE classification proposal. ' : 'Declare handoff here once; the server attaches it to classification. ')
-    + 'Unchanged server draft choices need no repeated declaration. unresolvedServices means there is no current validated mode metadata, NOT that the person has not answered: a rejected catalog plan or later edit can leave savedServices/draftServices empty while earlier USER answers remain in the owned history. Before asking about a mode, read that history. For each still-offered service whose mode is explicit there, reconstruct serviceModeChangesJson with its complete intended set and the original verbatim USER quote, even when the CURRENT message only clarifies another service or says to retain everything else. A historical group answer covers only the services it clearly referred to at that point; never extend it to a later addition, override a later correction, or infer execution from a catalog category. Classify each reconstructed choice afresh; absent metadata does not authorize reuse of an old rejected category ID. Never cite assistant/catalog/bio/unrelated text as consent or invent it. Unclear mode: ask about execution, never default BOTH. '
+    + 'Unchanged server draft choices need no repeated declaration. Changing an existing owned mode/handoff requires CURRENT USER evidence; an older quote can only preserve the same owned choices or recover a service with no owned choices. unresolvedServices means there is no current validated mode metadata, NOT that the person has not answered: a rejected catalog plan or later edit can leave savedServices/draftServices empty while earlier USER answers remain in the owned history. Before asking about a mode, read that history. For each still-offered service whose mode is explicit there, reconstruct serviceModeChangesJson with its complete intended set and the original verbatim USER quote, even when the CURRENT message only clarifies another service or says to retain everything else. A historical group answer covers only the services it clearly referred to at that point; never extend it to a later addition, override a later correction, or infer execution from a catalog category. Classify each reconstructed choice afresh; absent metadata does not authorize reuse of an old rejected category ID. Never cite assistant/catalog/bio/unrelated text as consent or invent it. Unclear mode: ask about execution, never default BOTH. '
     + (includeClassification ? 'Keep classificationShadowJson full snapshot consistent with these choices. ' : '')
     + 'These remain draft choices until explicit Save.'
     + (includeContext ? ' Server-owned service mode context: ' + JSON.stringify(context) + '.' : '');
@@ -108,6 +108,28 @@ function modeEvidenceAllowed(change, context, offered, userTexts) {
   return expected ? boundedModeReply(change, context, offered, expected) : change.evidence.trim().length >= 6;
 }
 
+// History may repair missing metadata, but it cannot undo a newer owned
+// choice during an unrelated turn. Draft choices replace the entire saved
+// mode set for that service, including removal of one half of BOTH. This
+// validates provenance/continuity; it does not infer consent from keywords.
+function historicalModeEvidencePreservesOwned(change, context) {
+  const current = context.messages.at(-1);
+  if (current?.role === 'USER' && typeof current.body === 'string'
+      && current.body.includes(change.evidence)) return true;
+  const key = normalizedClassificationIdentity(change.service);
+  const matching = entries => Array.isArray(entries)
+    ? entries.filter(entry => normalizedClassificationIdentity(entry?.service) === key) : [];
+  const draft = matching(context.serviceModeContext?.draftServices);
+  const owned = draft.length ? draft : matching(context.serviceModeContext?.savedServices);
+  if (!owned.length) return true;
+  const modes = new Set(owned.map(entry => entry.mode));
+  if (change.modes.length !== modes.size || !change.modes.every(mode => modes.has(mode))) return false;
+  if (!Object.hasOwn(change, 'handoff')) return true;
+  const previous = owned.find(entry => entry.mode === 'REMOTE');
+  return JSON.stringify(decodeServiceHandoff(change.handoff))
+    === JSON.stringify(decodeServiceHandoff(previous?.handoff));
+}
+
 /** Quote checks bind a model proposal to owned USER text, not semantic proof of consent.
  * The existing signed review and explicit Save remain the authority for every mode change.
  */
@@ -118,32 +140,40 @@ export function inspectWorkerModeRequests(serviceModeChangesJson, context, offer
   // declaration must not disappear and look like an unrelated profile edit.
   if (typeof serviceModeChangesJson === 'string' && serviceModeChangesJson.trim() !== '') {
     if (new TextEncoder().encode(serviceModeChangesJson).byteLength > 12288)
-      return { requests: new Map(), invalidServices: new Set(offered.keys()) };
+      return { requests: new Map(), invalidServices: new Set(offered.keys()), discardedHistoricalServices: new Set() };
     try {
       const value = JSON.parse(serviceModeChangesJson);
       if (!Array.isArray(value) || value.length > 12)
-        return { requests: new Map(), invalidServices: new Set(offered.keys()) };
+        return { requests: new Map(), invalidServices: new Set(offered.keys()), discardedHistoricalServices: new Set() };
       changes = value;
     } catch {
-      return { requests: new Map(), invalidServices: new Set(offered.keys()) };
+      return { requests: new Map(), invalidServices: new Set(offered.keys()), discardedHistoricalServices: new Set() };
     }
   }
-  const requests = new Map(), declared = new Set();
+  const requests = new Map(), declared = new Set(), discardedHistoricalServices = new Set();
   for (const change of changes) {
     const key = normalizedClassificationIdentity(change?.service);
     if (!key || !offered.has(key)) continue;
     // Count BEFORE validating the row: a valid row plus a malformed duplicate
     // is still ambiguous. Keep the key poisoned for every later occurrence.
-    if (declared.has(key)) { requests.delete(key); continue; }
+    if (declared.has(key)) { requests.delete(key); discardedHistoricalServices.delete(key); continue; }
     declared.add(key);
     if (!exact(change, ['service', 'modes', 'evidence', ...(Object.hasOwn(change??{}, 'handoff') ? ['handoff'] : [])]) || !label(change.service)
         || !Array.isArray(change.modes) || change.modes.length < 1 || change.modes.length > 2
         || !change.modes.every(mode) || new Set(change.modes).size !== change.modes.length
         || (Object.hasOwn(change, 'handoff') && (!change.modes.includes('REMOTE') || !decodeServiceHandoff(change.handoff)))
         || !modeEvidenceAllowed(change, context, offered, userTexts)) continue;
+    // A well-formed historical declaration that contradicts owned choices is
+    // obsolete, not a new unresolved user edit. Preserve the current owned
+    // draft through normal catalog validation into the next revision; omitting
+    // its hint could otherwise revive an older saved mode on the next turn.
+    if (!historicalModeEvidencePreservesOwned(change, context)) {
+      discardedHistoricalServices.add(key); continue;
+    }
     requests.set(key, change);
   }
-  return { requests, invalidServices: new Set([...declared].filter(key => !requests.has(key))) };
+  return { requests, invalidServices: new Set([...declared].filter(key => !requests.has(key) && !discardedHistoricalServices.has(key))),
+    discardedHistoricalServices };
 }
 
 // Retain the existing Map API for supported preservation/recovery callers.

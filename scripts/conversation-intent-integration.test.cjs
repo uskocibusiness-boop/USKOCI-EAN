@@ -1023,3 +1023,152 @@ test('Worker actual Edge: finishing never confirms Save or bypasses REVIEW', asy
     assertOnePaidAttempt(result);
   }
 });
+
+for (const scope of ['saved','draft']) test(`Worker actual Edge: historical quote cannot undo the latest ${scope} mode during an unrelated edit`,async()=>{
+  const service='Lektura',previous='Lekturu radim i na lokaciji i onlajn.',correction='Lekturu sada radim samo onlajn, bez lične predaje.';
+  const text='U opisu napišite da imam deset godina iskustva.';
+  const retained=binding(service,'REMOTE',id(21),{required:false});
+  const independent=binding('Košenje trave','ON_SITE',id(22));
+  const output=providerWorker('CONTINUE',text,{
+    assistantMessage:'Opis je dopunjen. Lekturu ponovo radite i na lokaciji i onlajn.',
+    patch:{availability:null,bio:'Imam deset godina iskustva.'},
+    serviceModeChangesJson:JSON.stringify([{service,modes:['REMOTE','ON_SITE'],evidence:previous}]),
+    taxonomyDecisions:[reuseDecision(service,'REMOTE',id(21)),reuseDecision(service,'ON_SITE',id(21))],
+  });
+  const baseline=scope==='saved' ? modeContext([retained,independent])
+    : modeContext([retained,binding(service,'ON_SITE',id(21)),independent],[retained]);
+  const result=await handlerHarness('WORKER',text,output,{singlePass:true,skills:[service,independent.service],
+    history:[{role:'USER',body:previous},{role:'USER',body:correction},{role:'USER',body:text}],
+    serviceModeContext:baseline,catalog:mutationCatalog}).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.deepEqual(planBindings(result),[retained,independent],'The latest owned choices must reach the signed next-revision plan');
+  assert.deepEqual(result.writes[0].args.p_output.patch,{},'A full provider bio cannot be trusted beside a rejected execution change');
+  assert.equal(result.writes[0].args.p_output.assistantMessage,'Prethodni način rada, predaja i opis profila su zadržani. Pregledajte nacrt pre čuvanja.');
+  assert.doesNotMatch(result.writes[0].args.p_output.assistantMessage,/ponovo radite|i na lokaciji i onlajn/);
+  assertOnePaidAttempt(result);
+  // Completion replaces the draft hint revision. Carry the actual first plan
+  // into the next turn: an omitted REMOTE hint would revive saved BOTH here.
+  const nextText='Promenite ime u Ana.';
+  const next=await handlerHarness('WORKER',nextText,providerWorker('CONTINUE',nextText,{
+    patch:{availability:null,displayName:'Ana'},serviceModeChangesJson:'[]',taxonomyDecisions:[],
+  }),{singlePass:true,skills:[service,independent.service],revision:2,
+    history:[{role:'USER',body:previous},{role:'USER',body:correction},{role:'USER',body:text},{role:'USER',body:nextText}],
+    serviceModeContext:{...modeContext(baseline.savedServices,planBindings(result)),revision:2},catalog:mutationCatalog}).run();
+  assert.equal(next.events.at(-1)?.kind,'final',JSON.stringify({events:next.events,logs:next.logs}));
+  assert.deepEqual(next.writes[0].args.p_output.patch,{displayName:'Ana'});
+  assert.deepEqual(planBindings(next),[retained,independent],'The next revision cannot resurrect an older saved mode');
+  assertOnePaidAttempt(next);
+});
+
+test('Worker actual Edge: historical handoff cannot broaden a later owned exchange area',async()=>{
+  const service='Lektura',previous='Lekturu preuzimam lično u Beogradu.',text='Dodajte da imam deset godina iskustva.';
+  const currentHandoff={required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}};
+  const oldHandoff={required:true,localExchange:{countryCode:'RS',city:'Beograd'}};
+  const independent=binding('Košenje trave','ON_SITE',id(22));
+  const result=await handlerHarness('WORKER',text,providerWorker('CONTINUE',text,{
+    assistantMessage:'Predaja je ponovo u Beogradu.',patch:{availability:null,bio:'Imam deset godina iskustva.'},
+    serviceModeChangesJson:JSON.stringify([{service,modes:['REMOTE'],evidence:previous,handoff:oldHandoff}]),
+    taxonomyDecisions:[reuseDecision(service,'REMOTE',id(21))],
+  }),{singlePass:true,skills:[service,independent.service],
+    history:[{role:'USER',body:previous},{role:'USER',body:'Predaja je od sada isključivo u Novom Sadu.'},{role:'USER',body:text}],
+    serviceModeContext:modeContext([independent,binding(service,'REMOTE',id(21),oldHandoff)],[binding(service,'REMOTE',id(21),currentHandoff)]),
+    catalog:mutationCatalog}).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.deepEqual(planBindings(result),[binding(service,'REMOTE',id(21),currentHandoff),independent]);
+  assert.equal(result.writes[0].args.p_output.assistantMessage,'Prethodni način rada, predaja i opis profila su zadržani. Pregledajte nacrt pre čuvanja.');
+  assert.doesNotMatch(result.writes[0].args.p_output.assistantMessage,/ponovo u Beogradu/);
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: rejected historical mode cannot remain in a proposed biography or prefixed question',async()=>{
+  const service='Lektura',previous='Lekturu radim i na lokaciji i onlajn.',text='Promenite ime u Ana.';
+  const result=await handlerHarness('WORKER',text,providerWorker('CONTINUE',text,{
+    assistantMessage:'Lekturu opet radite i na lokaciji. Kojim danima ste dostupni?',
+    patch:{availability:null,displayName:'Ana',bio:'Radim lekturu i na lokaciji i onlajn.'},
+    serviceModeChangesJson:JSON.stringify([{service,modes:['ON_SITE','REMOTE'],evidence:previous}]),
+    taxonomyDecisions:[reuseDecision(service,'ON_SITE',id(21)),reuseDecision(service,'REMOTE',id(21))],
+  }),{singlePass:true,skills:[service],
+    history:[{role:'USER',body:previous},{role:'USER',body:'Ipak samo onlajn.'},{role:'USER',body:text}],
+    serviceModeContext:modeContext([binding(service,'REMOTE',id(21),{required:false})]),catalog:mutationCatalog}).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.deepEqual(result.writes[0].args.p_output.patch,{displayName:'Ana'});
+  assert.deepEqual(planBindings(result),[binding(service,'REMOTE',id(21),{required:false})]);
+  assert.equal(result.writes[0].args.p_output.assistantMessage,'Prethodni način rada, predaja i opis profila su zadržani. Pregledajte nacrt pre čuvanja.');
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: historical declaration of the same owned choices preserves the draft and current biography',async()=>{
+  const service='Lektura',prior='Lekturu radim onlajn i na lokaciji, bez fizičke predaje.',text='U opisu napišite da imam deset godina iskustva.';
+  const remote=binding(service,'REMOTE',id(21),{required:false}),onsite=binding(service,'ON_SITE',id(21));
+  const result=await handlerHarness('WORKER',text,providerWorker('CONTINUE',text,{
+    patch:{availability:null,bio:'Imam deset godina iskustva.'},
+    serviceModeChangesJson:JSON.stringify([{service,modes:['ON_SITE','REMOTE'],evidence:prior,handoff:{required:false}}]),
+    taxonomyDecisions:[reuseDecision(service,'REMOTE',id(21)),reuseDecision(service,'ON_SITE',id(21))],
+  }),{singlePass:true,skills:[service],history:[{role:'USER',body:prior},{role:'USER',body:text}],
+    serviceModeContext:modeContext([remote],[remote,onsite]),catalog:mutationCatalog}).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.deepEqual(result.writes[0].args.p_output.patch,{bio:'Imam deset godina iskustva.'});
+  assert.deepEqual(planBindings(result),[onsite,remote]);
+  assert.doesNotMatch(result.writes[0].args.p_output.assistantMessage,/Pregled još nije spreman/);
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: current explicit mode and handoff correction still replaces the owned draft',async()=>{
+  const service='Lektura',prior='Lekturu radim samo onlajn, preuzimanje je u Novom Sadu.';
+  const text='Lekturu od sada radim i onlajn i na lokaciji. Lična predaja je isključivo u Beogradu.';
+  const handoff={required:true,localExchange:{countryCode:'RS',city:'Beograd'}};
+  const result=await handlerHarness('WORKER',text,providerWorker('CORRECTION',text,{
+    patch:{availability:null,bio:'Radim lekturu onlajn i na lokaciji. Lična predaja je u Beogradu.'},
+    serviceModeChangesJson:JSON.stringify([{service,modes:['REMOTE','ON_SITE'],evidence:text,handoff}]),
+    taxonomyDecisions:[reuseDecision(service,'REMOTE',id(21)),reuseDecision(service,'ON_SITE',id(21))],
+  }),{singlePass:true,skills:[service],history:[{role:'USER',body:prior},{role:'USER',body:text}],
+    serviceModeContext:modeContext([],[binding(service,'REMOTE',id(21),{required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}})]),
+    catalog:mutationCatalog}).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.deepEqual(planBindings(result),[binding(service,'REMOTE',id(21),handoff),binding(service,'ON_SITE',id(21))]);
+  assert.match(result.writes[0].args.p_output.patch.bio,/Beogradu/);
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: an obsolete historical change cannot conceal a duplicate or malformed current declaration',async()=>{
+  const service='Lektura',previous='Lekturu radim i na lokaciji i onlajn.';
+  const text='Lekturu od sada radim samo na lokaciji.';
+  const stale={service,modes:['REMOTE','ON_SITE'],evidence:previous};
+  const current={service,modes:['ON_SITE'],evidence:text};
+  for(const changes of [[stale,current],[current,stale],[{...current,modes:['ANYWHERE']}],
+    [stale,{...current,unexpected:true}]]) {
+    const independent=binding('Košenje trave','ON_SITE',id(22));
+    const result=await handlerHarness('WORKER',text,providerWorker('CORRECTION',text,{
+      assistantMessage:'Lekturu sada radite na lokaciji. Sve je spremno za čuvanje.',
+      patch:{availability:null,bio:'Radim lekturu na lokaciji.'},
+      serviceModeChangesJson:JSON.stringify(changes),
+      taxonomyDecisions:[reuseDecision(service,'REMOTE',id(21)),reuseDecision(service,'ON_SITE',id(21))],
+    }),{singlePass:true,skills:[service,independent.service],
+      history:[{role:'USER',body:previous},{role:'USER',body:'Lekturu za sada radim samo onlajn.'},{role:'USER',body:text}],
+      serviceModeContext:modeContext([independent],[binding(service,'REMOTE',id(21),{required:false})]),
+      catalog:mutationCatalog}).run();
+    assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+    assert.deepEqual(planBindings(result),[independent],'A genuinely ambiguous current change remains unresolved');
+    assert.deepEqual(result.writes[0].args.p_output.patch,{});
+    assert.equal(result.writes[0].args.p_output.assistantMessage,'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.');
+    assertOnePaidAttempt(result);
+  }
+});
+
+test('Worker actual Edge: ignoring a historical change never preserves an archived category identity',async()=>{
+  const service='Lektura',previous='Lekturu radim i na lokaciji i onlajn.',text='Promenite ime u Ana.';
+  const independent=binding('Košenje trave','ON_SITE',id(22));
+  const result=await handlerHarness('WORKER',text,providerWorker('CONTINUE',text,{
+    patch:{availability:null,displayName:'Ana'},
+    serviceModeChangesJson:JSON.stringify([{service,modes:['ON_SITE','REMOTE'],evidence:previous}]),
+    taxonomyDecisions:[reuseDecision(service,'ON_SITE',id(21)),reuseDecision(service,'REMOTE',id(21))],
+  }),{singlePass:true,skills:[service,independent.service],
+    history:[{role:'USER',body:previous},{role:'USER',body:'Ipak samo onlajn.'},{role:'USER',body:text}],
+    serviceModeContext:modeContext([independent],[binding(service,'REMOTE',id(21),{required:false})]),
+    catalog:mutationCatalog.filter(item=>item.categoryId!==id(21))}).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.deepEqual(result.writes[0].args.p_output.patch,{displayName:'Ana'});
+  assert.deepEqual(planBindings(result),[independent]);
+  assert.equal(result.writes[0].args.p_output.assistantMessage,'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.');
+  assertOnePaidAttempt(result);
+});

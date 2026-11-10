@@ -5,7 +5,7 @@ import type { AuthAccountScope, AuthClientPort } from '../contracts/auth';
 import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
 import { revokePushBeforeLogout } from './pushDeviceClientService';
-import { forgetAgreementOutboxes } from './agreementOutbox';
+import { prepareAgreementOutboxErasure } from './agreementOutbox';
 import { prepareGroupDraftErasure } from './groupConversationDraft';
 import { recentSearchesKey } from './recentSearchesKey';
 import { writeSettledMapPlace } from './confirmedDiscoveryMapPlace';
@@ -136,19 +136,19 @@ export const authClientService: AuthClientPort = {
     assertCurrentAccount(expected);
     // Only the captured current account may begin the SDK's local logout.
     // Its Auth event, not this command or the screen, owns session cleanup.
-    const groupErasure = prepareGroupDraftErasure(expected.accountId, require('@react-native-async-storage/async-storage').default);
+    const storage = require('@react-native-async-storage/async-storage').default;
+    const groupErasure = prepareGroupDraftErasure(expected.accountId, storage);
+    const privateErasure = prepareAgreementOutboxErasure(expected.accountId, storage);
     try {
       const { error } = await client.auth.signOut({ scope: 'local' });
       if (error) throw error;
-    } catch (error) { await groupErasure.cancel(); throw error; }
+    } catch (error) { await Promise.allSettled([groupErasure.cancel(), privateErasure.cancel()]); throw error; }
     // Commit the captured boundary before other cleanup awaits. A newly signed
     // in incarnation may already exist; it waits behind this purge and survives.
-    try { await groupErasure.confirm(); } catch { /* Auth succeeded; failed disk erasure is not a failed logout */ }
+    await Promise.allSettled([groupErasure.confirm(), privateErasure.confirm()]);
     // The device forgets this account's Agreement message text (deep read 7.28). A storage failure never
     // blocks a logout that has already happened.
     try {
-      const storage = require('@react-native-async-storage/async-storage').default;
-      await forgetAgreementOutboxes(expected.accountId, storage);
       // The recent searches of Zadaci belong to this account too and go with its session.
       await storage.removeItem(recentSearchesKey(expected.accountId));
     } catch { /* the text stays where it was; the session is gone either way */ }

@@ -4,11 +4,20 @@
 const test=require('node:test'), assert=require('node:assert/strict');
 const fs=require('node:fs'), path=require('node:path'), crypto=require('node:crypto');
 const {PGlite}=require('@electric-sql/pglite');
+const native=process.env.USKOCI_R13_WAVE_NATIVE==='1';
+const runtime=native?require('./p0-discovery-native-benchmark.cjs'):null;
+const closeDatabase=async db=>{if(native)await runtime.stopFixture();else await db.close();};
 const root=path.join(__dirname,'..');
 const capture=name=>JSON.parse(fs.readFileSync(path.join(root,'docs/plan/proofs/dispatch-boundary-20261108/recovered',name),'utf8'));
 const dispatch=capture('capacity3_dispatch_dependencies_20261108.preimage.json').functions.find(x=>x.signature==='private.dispatch_next_wave(uuid)');
 const config=capture('capacity4_dispatch_wave_dependencies_20261108.preimage.json').functions.find(x=>x.signature==='private.dispatch_config_v1b(jsonb)');
 const candidate=fs.readFileSync(path.join(__dirname,'sql/r13_dispatch_cooperative_candidate.sql'),'utf8');
+const reasonSql=name=>fs.readFileSync(path.join(__dirname,'sql',name),'utf8');
+const reasonPatch=reasonSql('r13_dispatch_reason_20261110.sql');
+const reasonRollback=reasonSql('r13_dispatch_reason_20261110.rollback.sql');
+const isolatedReason=sql=>'BEGIN;\n'+sql.slice(sql.indexOf('-- R13_REASON_ISOLATED_START'));
+const liveTick=JSON.parse(fs.readFileSync(path.join(__dirname,'sql/capacity2_dispatch_transaction_20261108.preimage.json'),'utf8'))
+ .functions.find(f=>f.signature==='private.dispatch_tick(integer,timestamp with time zone)');
 // Real wave/budget suite with the profile step stubbed at its named boundary.
 // Non-idle profile/cursor transactions have their own captured-SQL/native suite.
 const isolated=candidate.slice(candidate.indexOf('-- R13_ISOLATED_TEST_PROCEDURE_START')).split('-- R13_ISOLATED_TEST_PROFILE_STEP_START')[0];
@@ -24,7 +33,7 @@ function sourceVerified(){
 }
 async function fixture(){
  sourceVerified();
- const db=new PGlite();
+ const db=native?(await runtime.startFixture(Driver=>({db:new Driver()}))).db:new PGlite();
  await db.exec(`
  create schema private;
  create role anon;create role authenticated;create role service_role;
@@ -70,6 +79,7 @@ async function fixture(){
  `);
  await db.exec(config.definition);
  await db.exec(dispatch.definition);
+ await db.exec('revoke all on function private.dispatch_next_wave(uuid) from public,anon,authenticated,service_role;');
  await db.exec(isolated);
  for(const need of [NEED_1,NEED_2]){
   await db.query('insert into public.needs(id) values($1)',[need]);
@@ -100,7 +110,52 @@ test('captured real ON_SITE dispatch with 60 workers respects cross-Need 50 noti
   assert.equal(await count(db,'select count(*)::int as n from private.probe_push'),120);
   const grouped=await row(db,'select need_id,count(*)::int as n from public.opportunity_deliveries group by 1 order by need_id');
   assert.deepEqual(grouped,[{need_id:NEED_1,n:60},{need_id:NEED_2,n:60}]);
- } finally { await db.close(); }
+ } finally { await closeDatabase(db); }
+});
+
+test('R13 exact empty ON_SITE wave returns the recorded cause and the live tick retains retry backoff',async()=>{
+ const db=await fixture();try{
+  if(process.env.USKOCI_R13_REASON_BASELINE!=='1')await db.exec(isolatedReason(reasonPatch));
+  await db.exec('delete from public.app_profiles;');
+  const out=(await db.query('select private.dispatch_next_wave($1) as value',[NEED_1])).rows[0].value;
+  assert.equal(out.status,'STOPPED');
+  assert.equal(out.reason,'NO_ELIGIBLE_CANDIDATES');
+  assert.equal(await count(db,'select count(*)::int as n from private.probe_push'),0);
+  await db.exec("create function private.requeue_changed_worker_profiles_v1(timestamptz) returns jsonb language sql as $$select '{}'::jsonb$$;");
+  await db.exec(liveTick.definition);
+  const before=(await db.query('select statement_timestamp() as at')).rows[0].at;
+  await db.query('select private.dispatch_tick(1,$1)',[before]);
+  const schedule=(await db.query('select last_status,last_reason,attempts,locked_until,next_run_at > $2::timestamptz as delayed from private.dispatch_schedule where need_id=$1',[NEED_1,before])).rows[0];
+  assert.deepEqual(schedule,{last_status:'STOPPED',last_reason:'NO_ELIGIBLE_CANDIDATES',attempts:1,locked_until:null,delayed:true});
+ }finally{await closeDatabase(db);}
+});
+
+test('R13 reason correction preserves successful wave fields, notification budget and exact rollback owner',async()=>{
+ const db=await fixture();try{
+  await db.exec(isolatedReason(reasonPatch));
+  const out=(await db.query('select private.dispatch_next_wave($1) as value',[NEED_1])).rows[0].value;
+  assert.equal(out.status,'SENT');assert.equal(Object.hasOwn(out,'reason'),false);
+  assert.equal(out.inserted,50);assert.equal(out.chunk,true);
+  assert.equal(await count(db,'select count(*)::int as n from private.probe_push'),50);
+  await db.exec(isolatedReason(reasonRollback));
+  const restored=(await db.query("select md5(prosrc) as md5,proacl::text as acl,proconfig from pg_proc where oid='private.dispatch_next_wave(uuid)'::regprocedure")).rows[0];
+  assert.deepEqual(restored,{md5:dispatch.bodyMd5,acl:'{postgres=X/postgres}',proconfig:['search_path=pg_catalog']});
+  assert.equal(await count(db,'select count(*)::int as n from private.probe_push'),50);
+ }finally{await closeDatabase(db);}
+});
+
+test('R13 reason package refuses changed source and unexpected API grants atomically',async()=>{
+ const db=await fixture();try{
+  await db.exec('grant execute on function private.dispatch_next_wave(uuid) to authenticated;');
+  await assert.rejects(db.exec(isolatedReason(reasonPatch)),/R13_REASON_PREIMAGE_DRIFT/);
+  await db.exec('rollback;');
+  assert.equal((await db.query("select md5(prosrc) as md5 from pg_proc where oid='private.dispatch_next_wave(uuid)'::regprocedure")).rows[0].md5,dispatch.bodyMd5);
+  await db.exec('revoke execute on function private.dispatch_next_wave(uuid) from authenticated;');
+  await db.exec(dispatch.definition.replace('  n public.needs;','  n public.needs; -- changed source'));
+  await assert.rejects(db.exec(isolatedReason(reasonPatch)),/R13_REASON_PREIMAGE_DRIFT/);
+  await db.exec('rollback;');
+  assert.equal(await count(db,'select count(*)::int as n from private.probe_push'),0);
+ }finally{await closeDatabase(db);}
 });
 
 test('captured real wave survives crash after first 50 deliveries; restart sends remaining without duplicates',async()=>{
@@ -120,5 +175,5 @@ test('captured real wave survives crash after first 50 deliveries; restart sends
   assert.equal(await count(db,'select count(distinct dedupe)::int as n from private.probe_push'),120);
   const after=await row(db,'select need_id,count(*)::int as n from public.opportunity_deliveries group by 1 order by need_id');
   assert.deepEqual(after,[{need_id:NEED_1,n:60},{need_id:NEED_2,n:60}]);
- }finally{await db.close();}
+ }finally{await closeDatabase(db);}
 });

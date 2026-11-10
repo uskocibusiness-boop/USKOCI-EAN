@@ -659,10 +659,11 @@ export async function buildWorkerFullTreeTaxonomyProposals({
   const drafted = new Set(draftModes.map(item => normalizedClassificationIdentity(item?.service)));
   const priorModes = [...savedModes.filter(item => !drafted.has(normalizedClassificationIdentity(item?.service))), ...draftModes];
   const ownedMessages = Array.isArray(messages) ? messages : [];
-  const { requests, invalidServices: invalidChanges } = inspectWorkerModeRequests(
+  const offeredSkills = new Map(cleanSkills.map(service => [normalizedClassificationIdentity(service), service]));
+  const { requests, invalidServices: invalidChanges, discardedHistoricalServices } = inspectWorkerModeRequests(
     serviceModeChangesJson, { messages: ownedMessages,
       revision: Number.isSafeInteger(draftRevision) ? draftRevision - 1 : null, serviceModeContext },
-    new Map(cleanSkills.map(service => [normalizedClassificationIdentity(service), service])));
+    offeredSkills);
 
   const savedEntriesValid = entries => entries.length > 0
     && new Set(entries.map(entry => entry.categoryId)).size === 1
@@ -887,5 +888,6 @@ export async function buildWorkerFullTreeTaxonomyProposals({
     failures,
     unresolvedServices: [...new Set(unresolvedServices)],
     unconfirmedModeServices: [...new Set(unconfirmedModeServices)],
+    discardedHistoricalModeServices: [...discardedHistoricalServices].map(key => offeredSkills.get(key)),
   };
 }

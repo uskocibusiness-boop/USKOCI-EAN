@@ -1,3 +1,5 @@
+import { agreementStorageSerial as serial, captureAgreementStorageOwner, prepareAgreementOutboxErasure } from './agreementOutboxStorage';
+export { prepareAgreementOutboxErasure } from './agreementOutboxStorage';
 import { AgreementMessageError, validMessagePhotos, validMessageVoice, type AgreementMessageCommand, type AgreementMessageErrorCode, type AgreementMessagePort } from '../contracts/agreementMessages';
 
 export type OutboxError = AgreementMessageErrorCode | 'STORAGE_UNAVAILABLE' | 'STORAGE_INVALID' | 'CAPACITY' | 'NOT_READY';
@@ -52,39 +54,18 @@ export const sameMessageVoice = (a: AgreementMessageCommand['voice'], b: Agreeme
 const sameCommand = (a: AgreementMessageCommand, b: AgreementMessageCommand) => a.accountId === b.accountId && a.agreementId === b.agreementId && a.clientMessageId === b.clientMessageId && a.body === b.body
   && sameMessagePhotos(a.photos, b.photos) && sameMessageVoice(a.voice, b.voice);
 
-// One read/merge/write queue per durable account+Agreement key, including across
-// remounted instances with different storage wrapper objects. No network awaits
-// occupy this queue: late acknowledgments merge into the newest durable record.
-const queues = new Map<string, Promise<void>>();
+// The shared account queue includes drafts, both outboxes and upload journals.
+// Network awaits stay outside it; late acknowledgments merge only while owned.
 const channels = new Map<string, Set<(record: Stored) => void>>();
-function serial<T>(key: string, work: () => Promise<T>): Promise<T> {
-  const task = (queues.get(key) ?? Promise.resolve()).then(work);
-  const tail = task.then(() => undefined, () => undefined);
-  queues.set(key, tail);
-  void tail.then(() => { if (queues.get(key) === tail) queues.delete(key); });
-  return task;
-}
+const EMPTY_SNAPSHOT: OutboxSnapshot = Object.freeze({ phase: 'idle', draft: '', capturing: false,
+  entries: Object.freeze([]), error: null });
 
-/**
- * An explicit logout forgets this account's Agreement message text on the device (deep read 7.28): the outbox
- * kept every pending message and up to fifty sent ones, with their full text, and nothing ever removed them.
- * Another account could not read them through the app, but the text stayed on the phone.
- */
-export async function forgetAgreementOutboxes(accountId: string, storage: {
-  getAllKeys(): Promise<readonly string[]>; multiRemove(keys: readonly string[]): Promise<void>;
+/** An authoritative closed account retires existing writers immediately. Logout
+ * instead captures prepareAgreementOutboxErasure before awaiting the Auth SDK. */
+export function forgetAgreementOutboxes(accountId: string, storage: {
+  getAllKeys(): Promise<readonly string[]>; multiRemove(keys: readonly string[]): Promise<unknown>;
 }): Promise<number> {
-  if (!uuid(accountId)) return 0;
-  const prefixes = [`uskoci:agreement-outbox:v1:${accountId}:`, `uskoci:agreement-draft:v1:${accountId}:`,
-    `uskoci:agreement-voice-outbox:v1:${accountId}:`, `uskoci:agreement-voice-draft:v1:${accountId}:`,
-    // The upload journals hold identities only, but they are this account's local trace of what it tried to send: they go with the rest.
-    `uskoci.agreement.photos.v1.${accountId}.`, `uskoci.agreement.voice.v1.${accountId}.`];
-  const scoped = (key: string) => prefixes.some(prefix => key.startsWith(prefix));
-  // Logout has retired the account. Let already-issued local writes finish before
-  // removing keys, including a draft key that was absent when logout began.
-  await Promise.all([...queues].filter(([key]) => scoped(key)).map(([, tail]) => tail));
-  const keys = (await storage.getAllKeys()).filter(scoped);
-  if (keys.length) await storage.multiRemove(keys);
-  return keys.length;
+  return prepareAgreementOutboxErasure(accountId, storage).confirm();
 }
 
 export function createAgreementOutbox(input: AgreementOutboxOptions) {
@@ -95,7 +76,9 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
   const voiceJournal = options.namespace === 'voice';
   const storageKey = `uskoci:agreement-${voiceJournal ? 'voice-outbox' : 'outbox'}:v1:${options.accountId}:${options.agreementId}`;
   const draftKey = `uskoci:agreement-${voiceJournal ? 'voice-draft' : 'draft'}:v1:${options.accountId}:${options.agreementId}`;
-  let snapshot: OutboxSnapshot = Object.freeze({ phase: 'idle', draft: '', capturing: false, entries: [], error: null });
+  const storageOwner = captureAgreementStorageOwner(options.accountId);
+  let stopRetirement: (() => void) | null = null;
+  let snapshot: OutboxSnapshot = EMPTY_SNAPSHOT;
   let active = false, generation = 0, draftRevision = 0, appliedRevision = -1;
   let starting: Promise<void> | null = null;
   let draftLoaded = false;
@@ -105,7 +88,7 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
   const listeners = new Set<() => void>();
   const inFlight = new Map<string, symbol>();
   const unsaved = new Map<string, OutboxEntry>();
-  const owns = () => { try { return options.isCurrent(); } catch { return false; } };
+  const owns = () => { try { return storageOwner.current() && options.isCurrent(); } catch { return false; } };
   const current = () => active && owns();
   const maySendNew = () => { try { return options.canSendNew(); } catch { return false; } };
   const publish = (patch: Partial<OutboxSnapshot>) => {
@@ -138,7 +121,7 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
     } catch { throw new Fault('STORAGE_INVALID'); }
   }
   function writeDraft(text: string, revision: number, capture?: { clientMessageId: string; clear?: boolean }, admitted?: number, protectNewerDraft = false): Promise<void> {
-    return serial(draftKey, async () => {
+    return serial(options.accountId, async () => {
       // An accepted edit survives route blur, but never a changed account incarnation.
       // Queue order also places an old instance's write before a new instance's load.
       if (!owns() || revision !== draftRevision) return;
@@ -203,7 +186,7 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
     } catch { throw new Fault('STORAGE_INVALID'); }
   }
   function update(change: (record: Stored) => void, requireActive = true, admitted?: number): Promise<Stored> {
-    return serial(storageKey, async () => {
+    return serial(options.accountId, async () => {
       if (!owns() || (requireActive && !active) || (admitted !== undefined && admitted !== generation)) throw new Fault('AUTH_CONTEXT_CHANGED');
       const record = await read();
       const before = JSON.stringify(record.entries);
@@ -216,7 +199,8 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       let confirmed = record.entries.filter(entry => entry.state === 'confirmed').length;
       if (confirmed > limit) {
         let marker: string | undefined, canPrune = true;
-        try { marker = (await serial(draftKey, readDraft))?.capturedClientMessageId; }
+        // Already inside the account queue: the draft cannot change until this update leaves.
+        try { marker = (await readDraft())?.capturedClientMessageId; }
         catch { canPrune = false; }
         // An uncleared capture marker still needs this exact command as proof.
         // If optional draft storage is unavailable, defer cache pruning rather
@@ -280,10 +264,22 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
     record.entries.push(immutable({ command, state: 'sending', persisted: true, attempt: record.revision + 1 }));
   }
 
+  const detach = () => {
+    const receivers = channels.get(storageKey); receivers?.delete(apply);
+    if (receivers?.size === 0) channels.delete(storageKey);
+  };
+  const retire = () => {
+    active = false; generation += 1; inFlight.clear(); unsaved.clear();
+    draftDirty = false; draftLoaded = false; durableDraft = null; draftError = null;
+    snapshot = EMPTY_SNAPSHOT; detach();
+    for (const listener of listeners) { try { listener(); } catch { /* Clear all mounted consumers. */ } }
+  };
   return {
-    getSnapshot: () => snapshot,
+    getSnapshot: () => storageOwner.current() ? snapshot : EMPTY_SNAPSHOT,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     start(): Promise<void> {
+      if (!owns()) return Promise.resolve();
+      if (!stopRetirement) stopRetirement = storageOwner.subscribe(retire);
       if (active && starting) return starting;
       active = true; const admitted = ++generation;
       appliedRevision = -1;
@@ -293,9 +289,9 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
       // A failed write still belongs to this mounted model. A focus/reload must
       // retry that text, not replace it with the older value remaining on disk.
       const pendingDraft = draftDirty ? saveDraft(snapshot.draft, restoringRevision, undefined, true) : Promise.resolve();
-      const draftRead = pendingDraft.then(() => serial(draftKey, readDraft)).then(value => ({ value, error: null as OutboxError | null }),
+      const draftRead = pendingDraft.then(() => serial(options.accountId, readDraft)).then(value => ({ value, error: null as OutboxError | null }),
         error => ({ value: null, error: failureCode(error) }));
-      const task = Promise.all([serial(storageKey, read), draftRead]).then(async ([record, restored]) => {
+      const task = Promise.all([serial(options.accountId, read), draftRead]).then(async ([record, restored]) => {
         if (!current() || admitted !== generation) return;
         apply(record);
         // Typing during a late load owns the input. Draft failure does not hide
@@ -330,8 +326,7 @@ export function createAgreementOutbox(input: AgreementOutboxOptions) {
     stop() {
       active = false; generation += 1;
       inFlight.clear();
-      const receivers = channels.get(storageKey); receivers?.delete(apply);
-      if (receivers?.size === 0) channels.delete(storageKey);
+      detach(); stopRetirement?.(); stopRetirement = null;
     },
     setDraft(draft: string) {
       if (!current()) return Promise.resolve();

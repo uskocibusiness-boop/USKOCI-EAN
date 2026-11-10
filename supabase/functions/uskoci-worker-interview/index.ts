@@ -671,6 +671,17 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             })).catch(() => null);
           }
         }
+        const invalidModeRequest=builtTaxonomy?.failures?.some((failure: any) => failure.code === 'WORKER_MODE_REQUEST_INVALID');
+        if (invalidModeRequest || builtTaxonomy?.discardedHistoricalModeServices?.length) {
+          // A rejected mode/handoff may already be reflected in model prose or
+          // its full biography. Keep the prior description with the prior
+          // choices; independently admitted services/calendar/name survive.
+          const {bio: _unconfirmedModeBio, ...independent}=output.patch;
+          output={...output,patch:independent,
+            assistantMessage:invalidModeRequest
+              ? 'Promena načina rada ili predaje nije potvrđena. Ostali jasni podaci ostaju u nacrtu.'
+              : 'Prethodni način rada, predaja i opis profila su zadržani. Pregledajte nacrt pre čuvanja.'};
+        }
         const taxonomyPlan = singlePassCapturePlan(builtTaxonomy, fullCatalog);
         if (singlePassActive && intentAllowsChanges && serviceChangesValid && (output.patch.skills ?? context.candidate?.skills ?? []).length > 0)
           output = withUnresolvedSinglePassReply(output, builtTaxonomy, taxonomyPlan);
