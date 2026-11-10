@@ -1,0 +1,92 @@
+{
+  "schema": "USKOCI_R06_DEV_READONLY_20261110",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "baseSourceCommit": "f0b05523c55a02447d353f8f8d860214d36504bd",
+  "mode": "READ_ONLY",
+  "databaseSnapshot": {
+    "observedAtUtc": "2026-11-10T01:26:33.838317Z",
+    "migrations": 372,
+    "preparedInputRpc": null,
+    "preparedDispatchRpc": null
+  },
+  "candidateOwnerPreimages": [
+    {
+      "signature": "private.ai_need_turn_context(uuid)",
+      "body_md5": "972099be9f9429d87bc1566334e7d8f2",
+      "owner": "postgres",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)",
+      "body_md5": "3b802baedd97cb0ab6e4a227690e7f5e",
+      "owner": "postgres",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "private.data_export_dataset_catalog()",
+      "body_md5": "45a2458b8e93a33649e885ad1ba41b4d",
+      "owner": "postgres",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)",
+      "body_md5": "8130be4bf875702981ec408a33af62ca",
+      "owner": "postgres",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "rpc_ai_dispatch_need_turn_v2_service(uuid,uuid,uuid,uuid)",
+      "body_md5": "fa90211a3fb9297eeebc74463845c7ca",
+      "owner": "postgres",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "rpc_ai_test_budget_reserve_service(uuid,uuid,text,bigint)",
+      "body_md5": "91629b929aae24dc3a9b05b412ab1b2e",
+      "owner": "postgres",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "rpc_ai_test_record_usage_service(uuid,text,integer,integer,integer)",
+      "body_md5": "584eecfd229477010ae1043257a04227",
+      "owner": "postgres",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "rpc_dispatch_worker_ai_turn_service(uuid,uuid,uuid,uuid)",
+      "body_md5": "05c6f257e25baec1ea39abbc4246b36f",
+      "owner": "postgres",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "rpc_read_worker_ai_context_service(uuid,uuid)",
+      "body_md5": "584ca4ae2d02e33823d9d75a92c14649",
+      "owner": "postgres",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    }
+  ],
+  "pricingDependency": {
+    "observedAtUtc": "2026-11-10T01:31:27.329841Z",
+    "signature": "private.ai_test_price_microusd(integer,integer)",
+    "bodyMd5": "87ad940334ae78be5a3c0b19983d5981",
+    "owner": "postgres",
+    "acl": "{postgres=X/postgres}"
+  },
+  "outcome": "All nine existing owner body hashes/owners/ACLs match the guarded source-only R06 candidate. Prepared RPCs are absent on DEV.",
+  "mutations": [],
+  "paidProviderCalls": 0,
+  "limitations": [
+    "Metadata readback is not a hosted install/rollback, full dependency-graph or Edge-runtime proof.",
+    "PROD was not queried or changed by this R06 continuation.",
+    "No admission, budget, secret, cron or paid-provider setting was modified."
+  ]
+}

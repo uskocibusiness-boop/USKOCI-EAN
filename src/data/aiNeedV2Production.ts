@@ -14,6 +14,7 @@ import { readPublicSupabaseConfig } from './publicSupabaseConfig';
 import { listOpenIntakes } from './aiOpenIntakes';
 import { sesijaSada } from '../store/sesija';
 import { aiAvailabilityFromSdkError, requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStream';
+import { checkAiPreparedRecovery, resumeAiPreparedRecovery } from './aiPreparedRecovery';
 import { capabilityTerms } from '../lib/capabilityTerms';
 import { countryCode } from '../lib/market';
 import { locationPayloadFits, normalizeNeedLocation, normalizeTaskGeography } from '../lib/location';
@@ -372,6 +373,12 @@ export const aiNeedV2Production = {
       errors: ERRORS, fallback: 'AI_TURN_READ_FAILED', invalid: 'AI_TURN_INVALID_RESPONSE',
       decode: raw => turnRecovery(raw, account.accountId, conversationId, clientRequestId) });
   },
+
+  checkPrepared: (conversationId: string, clientRequestId: string) =>
+    checkAiPreparedRecovery('uskoci-ai-interview', conversationId, clientRequestId),
+  resumePrepared: (conversationId: string, clientRequestId: string, stream: AiTurnStreamOptions) =>
+    resumeAiPreparedRecovery('uskoci-ai-interview', conversationId, clientRequestId,
+      raw => turnStatus(raw, conversationId, clientRequestId), stream),
 
   async cancelTurn(conversationId: string, clientRequestId: string): Promise<Ishod<AiNeedTurnRecovery>> {
     const account = scope();

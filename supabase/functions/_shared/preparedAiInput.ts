@@ -10,6 +10,8 @@ export type PreparedInputOptions = {
   identity: { p_account_id: string; p_conversation_id: string; p_client_request_id: string };
   purpose: 'NEED_SERVICE' | 'WORKER_CAPABILITY'; userText: string; signal?: AbortSignal;
 };
+export type PreparedRecoveryOptions = Omit<PreparedInputOptions, 'userText'>;
+type PreparedReadOptions = PreparedRecoveryOptions & { userText?: string };
 export type PreparedInput = { state: 'PREPARED'; inputSha256: string; snapshot: ObjectValue };
 export type PreparedRead = PreparedInput | { state: string; inputSha256?: never; snapshot?: never };
 const object = (v: any): v is ObjectValue => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -20,12 +22,13 @@ const states = new Set(['ABSENT','CLOSED','READ_ONLY','EXPIRED','STALE','ERASED'
 const canonical = (v: any): string => JSON.stringify(v, (_key, value) => object(value)
   ? Object.fromEntries(Object.keys(value).sort().map(k => [k,value[k]])) : value);
 const assertActive = (signal?: AbortSignal) => { if (signal?.aborted) throw new Error('R06_INPUT_CANCELLED'); };
-const args = (options: PreparedInputOptions) => ({ ...options.identity, p_purpose: options.purpose });
+const args = (options: PreparedReadOptions) => ({ ...options.identity, p_purpose: options.purpose });
 
-function validInput(input: any, options: PreparedInputOptions): boolean {
+function validInput(input: any, options: PreparedReadOptions): boolean {
   if (!exact(input,['schemaVersion','model','userText','providerRequest','catalog','runtime'])
     || input.schemaVersion !== 'R06_TEXT_INPUT_V1' || input.model !== 'gemini-3.8-flash'
-    || input.userText !== options.userText || !input.userText.trim() || input.userText.length > 4000
+    || typeof input.userText !== 'string' || options.userText !== undefined && input.userText !== options.userText
+    || !input.userText.trim() || input.userText.length > 4000
     || new TextEncoder().encode(JSON.stringify(input)).byteLength > 262144) return false;
   const request = input.providerRequest;
   if (!exact(request,['systemInstruction','contents','generationConfig'])
@@ -55,7 +58,7 @@ function validInput(input: any, options: PreparedInputOptions): boolean {
     && (runtime.pendingWorkerClarificationHint === null || object(runtime.pendingWorkerClarificationHint));
 }
 
-function decodePrepared(data: any, options: PreparedInputOptions): PreparedInput {
+function decodePrepared(data: any, options: PreparedReadOptions): PreparedInput {
   if (!exact(data,['state','inputSha256','snapshot']) || data.state !== 'PREPARED' || !hash(data.inputSha256))
     throw new Error('R06_INPUT_RECEIPT_INVALID');
   const s = data.snapshot;
@@ -73,6 +76,26 @@ function decodePrepared(data: any, options: PreparedInputOptions): PreparedInput
 
 /** A read never grants provider permission. Only the dispatch RPC below can. */
 export async function readPreparedInput(options: PreparedInputOptions): Promise<PreparedRead> {
+  if (typeof options.userText !== 'string') throw new Error('R06_INPUT_INVALID');
+  return readOwnedPreparedInput(options);
+}
+
+/** Cold recovery has only the journal's owned IDs. The service-only SQL reader
+ * verifies the original request hash, context, lease and immutable snapshot.
+ * Unlike a new send, it cannot accept substitute text or create a command. */
+export async function readPreparedInputByIdentity(options: PreparedRecoveryOptions): Promise<PreparedRead> {
+  const { rpc, identity, purpose, signal } = options;
+  return readOwnedPreparedInput({ rpc, identity, purpose, signal });
+}
+
+/** Public capability metadata contains no prompt, context, reservation or keys.
+ * A positive read is not provider permission: dispatch rechecks all SQL gates. */
+export function preparedRecoveryStatus(identity: PreparedRecoveryOptions['identity'], state: string) {
+  return { schemaVersion: 'AI_PREPARED_RECOVERY_V1', conversationId: identity.p_conversation_id,
+    clientRequestId: identity.p_client_request_id, state, canResume: state === 'PREPARED', authoritative: true };
+}
+
+async function readOwnedPreparedInput(options: PreparedReadOptions): Promise<PreparedRead> {
   assertActive(options.signal);
   const result = await options.rpc('rpc_ai_read_prepared_input_service',args(options),options.signal,5000);
   assertActive(options.signal);
@@ -84,7 +107,7 @@ export async function readPreparedInput(options: PreparedInputOptions): Promise<
 /** One atomic prepare/reservation, then owned readback. An ambiguous prepare
  * gets one read, never another reservation or a changed request key. */
 export async function prepareAiInput(options: PreparedInputOptions & { attemptId: string; input: ObjectValue }): Promise<PreparedInput> {
-  if (!uuid(options.attemptId) || !validInput(options.input,options)) throw new Error('R06_INPUT_INVALID');
+  if (typeof options.userText !== 'string' || !uuid(options.attemptId) || !validInput(options.input,options)) throw new Error('R06_INPUT_INVALID');
   // Freeze before I/O; caller mutation cannot change a replay comparison.
   const input = JSON.parse(JSON.stringify(options.input));
   assertActive(options.signal);
@@ -108,6 +131,7 @@ export async function prepareAiInput(options: PreparedInputOptions & { attemptId
 export async function dispatchPreparedInput(options: PreparedInputOptions & { prepared: PreparedInput }): Promise<{
   state: string; dispatched: boolean; snapshot?: ObjectValue;
 }> {
+  if (typeof options.userText !== 'string') throw new Error('R06_INPUT_INVALID');
   const prepared = decodePrepared(options.prepared,options);
   assertActive(options.signal);
   const result = await options.rpc('rpc_ai_dispatch_prepared_input_service',{...args(options),

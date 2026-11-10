@@ -5,7 +5,8 @@ Supply original GitHub artifact ZIPs and API run/jobs/artifacts metadata.
 All run/source/test-count expectations and a NEW output path are explicit.
 The original verifier keeps its certificate/DEX/source/OTA/security checks.
 This runner additionally compares native WAV bytes to the exact Git commit,
-and to both CI receipts. It never rewrites historical verifier/proof files.
+and to both CI receipts, and validates the current five-file checks artifact.
+It never rewrites historical verifier/proof files.
 """
 from __future__ import annotations
 
@@ -30,6 +31,80 @@ SPEC.loader.exec_module(BASE)
 RUNTIME = "uskoci-v1-preview-r2"
 AUDIO = ("uskoci_message_v1.wav", "uskoci_opportunity_v1.wav", "uskoci_confirm_v1.wav")
 ACTIVATION = "NOT_ACTIVE_SERVER_DEFAULT_CHANNEL_RETAINED"
+CORE_CHECKS = {"tests.tap", "typescript.txt", "migration-integrity.txt"}
+BOOTSTRAP_CHECKS = {"bootstrap-generator.txt", "bootstrap-seed.tap"}
+
+
+def node_summary(raw, expected, prefix=""):
+    text = raw.decode("utf-8")
+    stats = {}
+    for key in ("tests", "pass", "fail", "cancelled", "skipped", "todo"):
+        found = re.findall(r"^(?:#|ℹ) " + key + r" (\d+)\s*$", text, re.M)
+        BASE.require(len(found) == 1, prefix + "TEST_SUMMARY_MISSING_OR_DUPLICATE")
+        stats[key] = int(found[0])
+    BASE.require(stats == {"tests": expected, "pass": expected, "fail": 0,
+                           "cancelled": 0, "skipped": 0, "todo": 0}, prefix + "TAP_TOTAL_MISMATCH")
+    return stats, "NODE_SPEC" if "ℹ tests " in text else "TAP"
+
+
+def checks_proof(path, metadata, expected_tests, expected_migrations, expected_migration_tests,
+                 expected_bootstrap_generator_tests=11, expected_bootstrap_seed_tests=1):
+    """Validate original ZIP bytes and either exact, explicitly reported layout.
+
+    The historical parser's core assertions remain here because its source is
+    immutable. No projected/repacked ZIP or invented GitHub digest is used.
+    Three-file archives retain their historical scope; both bootstrap outputs
+    are mandatory together in the current five-file format.
+    """
+    BASE.require(path.stat().st_size <= 10 * BASE.MIB, "ARTIFACT_SIZE_LIMIT")
+    verified = BASE.verify_zip(path, metadata)
+    raw = path.read_bytes()
+    BASE.require(BASE.sha(raw) == verified["sha256"] and len(raw) == verified["bytes"],
+                 "ARTIFACT_CHANGED_DURING_VERIFICATION")
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        names = BASE.bounded_members(archive, 10 * BASE.MIB, 8 * BASE.MIB)
+        BASE.require(set(names) in (CORE_CHECKS, CORE_CHECKS | BOOTSTRAP_CHECKS), "CHECKS_FILES_MISMATCH")
+        values = {name: archive.read(name) for name in names}
+    stats, report_format = node_summary(values["tests.tap"], expected_tests)
+    BASE.require(values["typescript.txt"] == b"", "TYPESCRIPT_DIAGNOSTICS_PRESENT")
+    migration = values["migration-integrity.txt"].decode("utf-8")
+    summaries = re.findall(r"^PASS migration_integrity files=(\d+)[^\r\n]*$", migration, re.M)
+    BASE.require(len(summaries) == 1 and not re.search(r"^(?:FAIL|ERROR)\b", migration, re.M), "MIGRATION_CHECK_FAILED")
+    BASE.require(int(summaries[0]) == expected_migrations, "MIGRATION_FILE_COUNT_MISMATCH")
+    python_summary = re.findall(r"^Ran (\d+) tests in [0-9.]+s\r?$", migration, re.M)
+    BASE.require(len(python_summary) == 1 and int(python_summary[0]) == expected_migration_tests,
+                 "MIGRATION_PYTHON_TEST_COUNT_MISMATCH")
+    BASE.require(re.search(r"\nOK\s*\Z", migration) is not None
+                 and not re.search(r"^(?:FAILED|FAIL:|ERROR:)", migration, re.M), "MIGRATION_PYTHON_TESTS_FAILED")
+    result = {
+        "archive": verified, "tests": stats, "testReportFormat": report_format,
+        "typescript": {"status": "PASS_FROM_SUCCESSFUL_CI_STEP_AND_EMPTY_OUTPUT", "outputBytes": 0},
+        "migrationIntegrity": {"status": "PASS", "physicalFiles": int(summaries[0]),
+                               "pythonTests": {"tests": expected_migration_tests, "status": "OK"}},
+        "fileSha256": {name: BASE.sha(data) for name, data in values.items()},
+        "format": "CORE_THREE_FILES",
+        "bootstrap": {"status": "NOT_PRESENT_IN_LEGACY_THREE_FILE_ARTIFACT"},
+    }
+    if set(names) == CORE_CHECKS | BOOTSTRAP_CHECKS:
+        BASE.require(all(isinstance(value, int) and value > 0 for value in
+                         (expected_bootstrap_generator_tests, expected_bootstrap_seed_tests)),
+                     "EXPECTED_BOOTSTRAP_TEST_COUNT_INVALID")
+        generator = values["bootstrap-generator.txt"].decode("utf-8")
+        summaries = re.findall(r"^Ran (\d+) tests? in [0-9.]+s\r?$", generator, re.M)
+        BASE.require(len(summaries) == 1 and int(summaries[0]) == expected_bootstrap_generator_tests,
+                     "BOOTSTRAP_GENERATOR_TEST_COUNT_MISMATCH")
+        BASE.require(re.search(r"\nOK\s*\Z", generator) is not None
+                     and not re.search(r"^(?:FAILED|FAIL:|ERROR:|Traceback\b)", generator, re.M),
+                     "BOOTSTRAP_GENERATOR_TESTS_FAILED")
+        seed_stats, seed_format = node_summary(values["bootstrap-seed.tap"], expected_bootstrap_seed_tests, "BOOTSTRAP_SEED_")
+        BASE.require(not re.search(r"^(?:not ok\b|✖|\s*Bail out!)", values["bootstrap-seed.tap"].decode("utf-8"), re.M),
+                     "BOOTSTRAP_SEED_TESTS_FAILED")
+        result.update(format="CORE_AND_BOOTSTRAP_FIVE_FILES", bootstrap={
+            "status": "PASS",
+            "generator": {"tests": expected_bootstrap_generator_tests, "status": "OK"},
+            "seed": {"stats": seed_stats, "testReportFormat": seed_format, "status": "PASS"},
+        })
+    return result
 
 
 def git_audio(repo, head):
@@ -53,7 +128,18 @@ def verify(args, proof):
     BASE.require(args.runtime == RUNTIME, "EXPECTED_RUNTIME_NOT_R2")
     for value in (args.run, args.run_id, args.tests, args.migrations, args.migration_tests):
         BASE.require(isinstance(value, int) and value > 0, "EXPECTED_RUN_OR_COUNT_INVALID")
-    BASE.verify(args, proof)
+    # The imported historical module is private to this runner. Replace only
+    # its checks decoder for this invocation; every other base gate still runs.
+    historical_checks = BASE.checks_proof
+    def current_checks(path, metadata, tests, migrations, migration_tests):
+        return checks_proof(path, metadata, tests, migrations, migration_tests,
+                            getattr(args, "bootstrap_generator_tests", 11),
+                            getattr(args, "bootstrap_seed_tests", 1))
+    try:
+        BASE.checks_proof = current_checks
+        BASE.verify(args, proof)
+    finally:
+        BASE.checks_proof = historical_checks
     # Do not expose the base success as final before checking the extension.
     proof["status"] = "INCOMPLETE_R2_NATIVE_AUDIO_CHECK"
     source = git_audio(args.repo.resolve(), args.head)
@@ -110,6 +196,10 @@ def parse_args(argv=None):
     parser.add_argument("--tests", type=int, required=True)
     parser.add_argument("--migrations", type=int, required=True)
     parser.add_argument("--migration-tests", type=int, required=True)
+    parser.add_argument("--bootstrap-generator-tests", type=int, default=11,
+                        help="Expected Python test count when both bootstrap reports are present")
+    parser.add_argument("--bootstrap-seed-tests", type=int, default=1,
+                        help="Expected Node test count when both bootstrap reports are present")
     parser.add_argument("--output", type=Path, required=True, help="New proof path; existing files are never overwritten")
     parser.add_argument("--repo", type=Path, default=ROOT, help="Git repository containing the exact source commit")
     parser.add_argument("--hermesc", type=Path, default=ROOT / "node_modules/hermes-compiler/hermesc/linux64-bin/hermesc")

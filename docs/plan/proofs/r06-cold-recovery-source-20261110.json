@@ -1,0 +1,99 @@
+{
+  "schema": "USKOCI_R06_COLD_RECOVERY_SOURCE_20261110",
+  "recordedAt": "2026-11-10T01:42:21.262Z",
+  "baseCommit": "f0b05523c55a02447d353f8f8d860214d36504bd",
+  "status": "SOURCE_LOCAL_VERIFIED_CI_PENDING",
+  "sourceFiles": {
+    "package.json": "5dbcfae3d689961b9fe8c914023b110d430ab695710832758934e37ee9ccd86d",
+    "scripts/r06-pre-provider-input-fixture.cjs": "2846c59bdc6a4ff33211a921bb31117bcb6a114d805e4c607a1af7f22d6a1055",
+    "scripts/r06-pre-provider-input.test.cjs": "f0cb40823d39c0f07b6e4b3523d60881c9e2b003a71717d796db70bad80a9628",
+    "scripts/r06-prepared-runtime.test.cjs": "b410d364372ff769efe10f03e5da6cf96a090c68ea1e9b4610ee796a51e2a1c0",
+    "src/app/(app)/nova.tsx": "3f65cf49b3b064e7d978e8be9b9eb1b8fcbf967dc70eb39586331bc352b87703",
+    "src/app/(app)/profil/razgovor.tsx": "8ce2a6f36674be1e80190fed126749c9e98cab3bb38d140f56e541a92c21b754",
+    "src/data/aiNeedTurnStream.ts": "97d269ad7162b0f6452b9ee8ee9c828b50a08db567984903be07d1daf0faed45",
+    "src/data/aiNeedV2Production.ts": "6104b94fb8ca67998a8dedd7907312901505fbbced69b00ff053fde956413038",
+    "src/data/workerAiClientService.ts": "9c84bf78b4b35d7ad26cc78fae519346d76ab1484ea75dc05cd7c306607f2f14",
+    "src/ui/v2/IntakePresentation.tsx": "f2875b73009cc9a77996d88633593234acea1124f184c941eaf3b03b63688336",
+    "supabase/functions/_shared/preparedAiInput.ts": "7ee8653fc6ba0e6ab78aa31d857a49c906d46ed51caf78cc4da034c76295903b",
+    "supabase/functions/uskoci-ai-interview/index.ts": "b21a35fbcb5bdcb20fe6109f8ba335ca6cda69769d8373d6aa9237223012e45c",
+    "supabase/functions/uskoci-worker-interview/index.ts": "93f43493258b5cad0fc60fe2d02f9dadf739d70e7349c793a8eb430114b3d617",
+    "scripts/r06-prepared-client-recovery.test.cjs": "0ec2fb837e7aa5953b2f813fff381c96b8ac2aac5b51f19e364ed6354d9c5e8e",
+    "src/data/aiPreparedRecovery.ts": "c95b4e6a15d7d21efa9c88f479a0826ae71b29d4994b46baaa7e0596ea2db288",
+    "scripts/verify-qa-apk-r2.py": "74f1cc726262e75234a0a0bae2f9ab549f697971e2e68544aee05b6a114138ba",
+    "scripts/test_verify_qa_apk_r2.py": "0b4fb09d4b6af2b8815dc5cb6f8a113231efe04f5556db263e165e07a2fe29be"
+  },
+  "checks": {
+    "fullNode": {
+      "command": "npm test",
+      "tests": 1519,
+      "pass": 1519,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "typeScript": {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0
+    },
+    "migrationIntegrity": {
+      "command": "sh supabase/migrations/check_md5.sh",
+      "files": 235,
+      "tests": 90,
+      "exitCode": 0
+    },
+    "uxSource": {
+      "command": "node scripts/record-ux-checkpoint.cjs --verify-source",
+      "exitCode": 0,
+      "result": "HISTORICAL_CHECKPOINT_ALREADY_RECORDED"
+    },
+    "clientRecovery": {
+      "tests": 26,
+      "passed": 26,
+      "scope": "Production transports and mounted routes/owned editor, inert native boundaries and synthetic canonical APIs"
+    },
+    "nativePostgres": {
+      "version": "17.11",
+      "sqlCases": 46,
+      "failed": 0,
+      "evidence": "r06-prepared-dispatch-native-20261110.json"
+    },
+    "negativeControl": {
+      "baseCommit": "f0b05523c55a02447d353f8f8d860214d36504bd",
+      "command": "node --test --test-name-pattern='R06 actual|journal IDs alone' scripts/r06-prepared-runtime.test.cjs",
+      "testCode": "current regression, original handlers/helper",
+      "passedOldCases": 15,
+      "failedNewCases": 10,
+      "parentFailed": true,
+      "representative": "Need CHECK returned LOCATION_CONTEXT_INVALID; Worker rejected IDs-only recovery instead of returning an owned PREPARED capability"
+    },
+    "releaseReadiness": {
+      "command": "node scripts/check-android-release-readiness.cjs",
+      "result": "BLOCKED",
+      "scope": "source-only; unchanged rs.uskoci store admission and acceptance gates"
+    },
+    "apkVerifier": {
+      "command": "python3 scripts/test_verify_qa_apk_r2.py",
+      "tests": 26,
+      "passed": 26,
+      "exitCode": 0,
+      "scope": "strict original3/current5 ZIP proof compatibility; historical base unchanged"
+    }
+  },
+  "operations": {
+    "dev": "READ_ONLY",
+    "prod": "UNCHANGED",
+    "paidProviderCalls": 0,
+    "migrationsApplied": 0,
+    "edgeDeployments": 0,
+    "budgetChanges": 0,
+    "secretChanges": 0,
+    "cronChanges": 0
+  },
+  "limits": [
+    "Prepared-input flag remains disabled; source-only SQL whole-file execution guard remains.",
+    "No hosted activation, Android install, FCM delivery or two-user E2E proof.",
+    "Bounded text cold-journal recovery only; photos/location-reply and expired leases are not resumed.",
+    "Lost dispatch acknowledgement remains read-only; business idempotency is not proof of exactly-once provider billing.",
+    "QA APK uses DEV and has no Firebase transport; it is not a store AAB."
+  ]
+}

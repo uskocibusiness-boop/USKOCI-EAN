@@ -16,7 +16,8 @@ const report={recordedAt:new Date().toISOString(),scope:'SOURCE_ONLY_BOUNDED_TEX
  ]};
 report.artifactSha256=Object.fromEntries(['r06-pre-provider-input-fixture.cjs','r06-pre-provider-input.test.cjs','r06-pre-provider-input-process.cjs','r06-pre-provider-input-cold-process.cjs',
  '../supabase/migrations/20261107165752_r10_work_areas_projection_20261107.sql','../supabase/migrations/20261108225909_r10_owned_usage_projection_post_r09_20261108.sql',
- 'sql/r06_pre_provider_input_20261108.preimage.json','sql/r06_pre_provider_input_20261108.budget-schema.json'].map(name=>[name,
+ 'sql/r06_pre_provider_input_20261108.preimage.json','sql/r06_pre_provider_input_20261108.budget-schema.json',
+ 'sql/r06_budget_accounting_20261107.preimage.json'].map(name=>[name,
  crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname,name))).digest('hex')]));
 const processRun=(operation,purpose,data)=>new Promise((resolve,reject)=>{
  const child=spawn(process.execPath,[path.join(__dirname,'r06-pre-provider-input-process.cjs'),operation,purpose,JSON.stringify(operation==='prepare-crash'?[A,C,R,ATT]:[A,C,R])],{env:process.env,stdio:['pipe','pipe','pipe']});
@@ -272,6 +273,68 @@ test('R06 source-only bounded input survives process loss without a second provi
      assert.equal(await f.value(`select prepared_input is null and not provider_dispatched as value from ${table(purpose)}`),true);
      return {observedBudgetLockWait:true,originalLeaseExpired:true,reservations:0,counter:0,preparedInputs:0};
     }finally{await holder.query('rollback');await holder.end();if(pending)await pending;await writer.end();}
+   });
+   if(native)for(const boundary of ['lease','price','settlement'])await run(`${purpose}: prepared dispatch rechecks ${boundary} after a witnessed budget lock wait`,async()=>{
+    await f.seed(purpose);const prepared=await f.prepare(purpose);
+    const holder=await runtime.connectFixtureClient(),writer=await runtime.connectFixtureClient();let pending;
+    try{
+     for(const client of [holder,writer])await client.query("select set_config('request.jwt.claim.role','service_role',false),set_config('statement_timeout','10s',false)");
+     if(boundary==='lease')await f.db.exec(`update ${table(purpose)} set lease_expires_at=clock_timestamp()+interval '1 second'`);
+     if(boundary==='price')await f.db.exec("update private.ai_test_budget_v5 set price_valid_until=clock_timestamp()+interval '1 second'");
+     await holder.query('begin');await holder.query('select 1 from private.ai_test_budget_v5 where singleton for update');
+     const hp=(await holder.query('select pg_backend_pid() pid')).rows[0].pid,wp=(await writer.query('select pg_backend_pid() pid')).rows[0].pid;
+     pending=writer.query('select public.rpc_ai_dispatch_prepared_input_service($1,$2,$3,$4,$5,$6) as value',
+      [A,C,R,ATT,purpose,prepared.inputSha256]).then(value=>({value}),error=>({error}));
+     const expired=boundary==='lease'?`(select lease_expires_at<=clock_timestamp() from ${table(purpose)})`:
+      boundary==='price'?'(select price_valid_until<=clock_timestamp() from private.ai_test_budget_v5)':'true';
+     const deadline=Date.now()+5000;let witnessed=false;
+     while(Date.now()<deadline){
+      if(await f.value(`select $1::int=any(pg_blocking_pids($2)) and ${expired} as value`,[hp,wp])){witnessed=true;break;}
+      await new Promise(resolve=>setTimeout(resolve,10));
+     }
+     assert.equal(witnessed,true,'dispatch must actually wait on the budget holder across the tested boundary');
+     if(boundary==='settlement')await holder.query('select public.rpc_ai_test_record_usage_service($1,$2,100,30,130)',[R,'gemini-3.8-flash']);
+     await holder.query('commit');const result=await pending;
+     assert.equal(result.error,undefined,result.error?.message);
+     assert.deepEqual(result.value.rows[0].value,{state:boundary==='lease'?'NOT_DISPATCHED':boundary==='price'?'NOT_ADMITTED':'READ_ONLY',dispatched:false});
+     assert.equal(await f.value(`select provider_dispatched as value from ${table(purpose)}`),false);
+     assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),1);
+     assert.equal(await f.value('select count(*)::int as value from private.ai_test_usage_v5'),boundary==='settlement'?1:0);
+     const reservation=await f.value('select to_jsonb(r) as value from private.ai_test_reservations_v5 r');
+     const balance=await f.value('select reserved_microusd::int as value from private.ai_test_budget_v5');
+     assert.equal(balance,boundary==='settlement'?Number(reservation.settled_microusd):250000);
+     return {observedBudgetLockWait:true,boundary,providerPermissions:0,reservations:1,usageWrittenByExistingOwner:boundary==='settlement'};
+    }finally{await holder.query('rollback');await holder.end();if(pending)await pending;await writer.end();}
+   });
+   if(native)await run(`${purpose}: two live dispatch contenders receive only one permission`,async()=>{
+    await f.seed(purpose);const prepared=await f.prepare(purpose);
+    const holder=await runtime.connectFixtureClient(),first=await runtime.connectFixtureClient(),second=await runtime.connectFixtureClient();
+    const pending=[];
+    try{
+     for(const client of [holder,first,second])await client.query("select set_config('request.jwt.claim.role','service_role',false),set_config('statement_timeout','10s',false)");
+     const ids=await Promise.all([holder,first,second].map(async client=>(await client.query('select pg_backend_pid() pid')).rows[0].pid));
+     await holder.query('begin');await holder.query('select 1 from private.ai_test_budget_v5 where singleton for update');
+     const dispatch=client=>client.query('select public.rpc_ai_dispatch_prepared_input_service($1,$2,$3,$4,$5,$6) as value',
+      [A,C,R,ATT,purpose,prepared.inputSha256]).then(value=>({value}),error=>({error}));
+     pending.push(dispatch(first));
+     const observe=async(blocker,waiter)=>{
+      const deadline=Date.now()+5000;
+      while(Date.now()<deadline){if(await f.value('select $1::int=any(pg_blocking_pids($2)) as value',[blocker,waiter]))return true;await new Promise(resolve=>setTimeout(resolve,10));}
+      return false;
+     };
+     assert.equal(await observe(ids[0],ids[1]),true,'first dispatch is blocked at the budget');
+     pending.push(dispatch(second));
+     assert.equal(await observe(ids[1],ids[2]),true,'second dispatch is blocked behind the same operation owner');
+     await holder.query('commit');const results=await Promise.all(pending);
+     for(const result of results)assert.equal(result.error,undefined,result.error?.message);
+     const receipts=results.map(result=>result.value.rows[0].value);
+     assert.equal(receipts.filter(receipt=>receipt.state==='DISPATCHED'&&receipt.dispatched===true).length,1);
+     assert.equal(receipts.filter(receipt=>receipt.state==='READ_ONLY'&&receipt.dispatched===false).length,1);
+     assert.equal(await f.value(`select provider_dispatched as value from ${table(purpose)}`),true);
+     assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),1);
+     assert.equal(await f.value('select reserved_microusd::int as value from private.ai_test_budget_v5'),250000);
+     return {observedBudgetAndOperationLockWaits:true,concurrentRequests:2,providerPermissions:1,reservations:1};
+    }finally{await holder.query('rollback');await holder.end();await Promise.all(pending);await first.end();await second.end();}
    });
   }
   await run('Worker context drift without a claim revision change cannot be rebound to an older provider request',async()=>{

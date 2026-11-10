@@ -252,11 +252,13 @@ async function handlerHarness(f, purpose, options = {}) {
     console: Object.fromEntries(['log', 'warn', 'error', 'info'].map(name => [name, (...args) => logs.push(args)])) });
   loader(purpose === 'NEED_SERVICE' ? 'supabase/functions/uskoci-ai-interview/index.ts' : 'supabase/functions/uskoci-worker-interview/index.ts');
   assert.equal(handlers.length, 1);
-  return { calls, logs, async run(text = TEXT) {
+  return { calls, logs, async run(text = TEXT, requestOptions = {}) {
     const response = await handlers[0](new Request(ORIGIN + '/functions/v1/fixture', { method: 'POST',
       headers: { authorization: 'Bearer synthetic-test-token', 'content-type': 'application/json',
         accept: options.stream === false ? 'application/json' : 'text/event-stream', 'x-uskoci-interview-intent': 'v1' },
-      body: JSON.stringify({ conversationId: C, clientRequestId: R, text }) }));
+      body: JSON.stringify(requestOptions.mode
+        ? { mode: requestOptions.mode, conversationId: C, clientRequestId: R, ...requestOptions.extra }
+        : { conversationId: C, clientRequestId: R, text }) }));
     const raw = await response.text(); await Promise.allSettled(background);
     const events = response.headers.get('content-type')?.includes('text/event-stream')
       ? raw.split('\n\n').filter(Boolean).map(part => JSON.parse(part.slice(6))) : [];
@@ -357,6 +359,107 @@ test('R06 actual Need and Worker handlers reconnect a durable text turn without 
         const results = await Promise.all([a.run(), b.run()]);
         assert.equal(results.reduce((sum, result) => sum + providers(result).length, 0), 1);
         assert.ok(results.some(result => result.events.at(-1)?.kind === 'final'));
+        await assertSingleReservation(f);
+      });
+      await t.test(`${purpose}: journal IDs alone can check and resume a prepared input without another claim or reservation`, async () => {
+        await f.seed(purpose);
+        const first = await (await handlerHarness(f, purpose, { losePrepareAck: true, blockReadAfterPrepare: true })).run();
+        assert.equal(providers(first).length, 0);
+        const frozen = first.calls.find(c => c.name === 'rpc_ai_prepare_input_service').args.p_input;
+        const before = await f.value(`select to_jsonb(t) as value from ${table(purpose)} t`);
+        const live = await handlerHarness(f, purpose, { catalogVersion: 99, clockOffsetMs: 1000 });
+        const checked = await live.run(undefined, { mode: 'CHECK_PREPARED' });
+        assert.deepEqual(checked.json, { schemaVersion: 'AI_PREPARED_RECOVERY_V1', conversationId: C,
+          clientRequestId: R, state: 'PREPARED', canResume: true, authoritative: true });
+        assert.equal(checked.events.length, 0);
+        assert.deepEqual(await f.value(`select to_jsonb(t) as value from ${table(purpose)} t`), before, 'CHECK cannot mutate the command');
+        assert.equal(checked.calls.some(c => /claim|dispatch|complete|budget|prepare_input_service/.test(c.name)), false);
+        for (let index = 0; index < 7; index++) {
+          const repeatedCheck = await live.run(undefined, { mode: 'CHECK_PREPARED' });
+          assert.equal(repeatedCheck.status, 200, 'Read-only checks do not consume the inference rate window');
+          assert.equal(repeatedCheck.json.canResume, true);
+        }
+        const resumed = await live.run(undefined, { mode: 'RESUME_PREPARED' });
+        assertFinal(resumed); assert.equal(providers(resumed).length, 1);
+        assert.deepEqual(providers(resumed)[0].args, frozen.providerRequest);
+        assert.equal(resumed.calls.some(c => /claim|fetch_snapshot|query_catalog|prepare_input_service|budget_reserve|read_worker_ai_context/.test(c.name)), false);
+        assert.equal(resumed.events.some(event => Object.hasOwn(event, 'conversationIntent')), false, 'ID-only recovery cannot manufacture a client-verifiable handoff');
+        const completedCheck = await (await handlerHarness(f, purpose)).run(undefined, { mode: 'CHECK_PREPARED' });
+        assert.equal(completedCheck.json.canResume, false); assert.equal(completedCheck.json.state, 'READ_ONLY');
+        const repeated = await (await handlerHarness(f, purpose)).run(undefined, { mode: 'RESUME_PREPARED' });
+        assert.equal(repeated.status, 409); assert.equal(providers(repeated).length, 0);
+        await assertSingleReservation(f);
+      });
+      await t.test(`${purpose}: disabled, absent or unavailable prepared recovery never creates a command or paid request`, async () => {
+        for (const options of [{ enabled: false }, {}, { missingPreparedRpc: true }, { env: { GEMINI_API_KEY: '' } }]) {
+          await f.seed(purpose);
+          const before = await f.value(`select to_jsonb(t) as value from ${table(purpose)} t`);
+          const checked = await (await handlerHarness(f, purpose, options)).run(undefined, { mode: 'CHECK_PREPARED' });
+          if (options.missingPreparedRpc) assert.equal(checked.status, 409);
+          else assert.equal(checked.json.canResume, false);
+          const resumed = await (await handlerHarness(f, purpose, options)).run(undefined, { mode: 'RESUME_PREPARED' });
+          assert.equal(resumed.status, 409);
+          for (const result of [checked, resumed]) {
+            assert.equal(providers(result).length, 0);
+            assert.equal(result.calls.some(c => /claim|dispatch|complete|budget|prepare_input_service/.test(c.name)), false);
+          }
+          assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'), 0);
+          assert.deepEqual(await f.value(`select to_jsonb(t) as value from ${table(purpose)} t`), before);
+        }
+      });
+      await t.test(`${purpose}: ID-only recovery rejects foreign ownership, closed/stale/expired/erased snapshots and text substitution`, async () => {
+        const cases = [
+          { options: { account: T } },
+          { sql: `update ${table(purpose)} set state='FAILED',cancelled_at=clock_timestamp()` },
+          { sql: `update ${table(purpose)} set lease_expires_at=clock_timestamp()-interval '1 second'` },
+          { sql: `update ${table(purpose)} set prepared_input=null,prepared_input_sha256=null` },
+          { sql: purpose === 'NEED_SERVICE' ? `update ${table(purpose)} set context_hash=repeat('0',64)` : 'update private.worker_ai_sessions set revision=revision+1' },
+        ];
+        for (const invalid of cases) {
+          await f.seed(purpose);
+          await (await handlerHarness(f, purpose, { losePrepareAck: true, blockReadAfterPrepare: true })).run();
+          if (invalid.sql) await f.db.exec(invalid.sql);
+          const checked = await (await handlerHarness(f, purpose, invalid.options)).run(undefined, { mode: 'CHECK_PREPARED' });
+          assert.ok(checked.status === 409 || checked.json.canResume === false);
+          const resumed = await (await handlerHarness(f, purpose, invalid.options)).run(undefined, { mode: 'RESUME_PREPARED' });
+          assert.equal(resumed.status, 409); assert.equal(providers(resumed).length, 0);
+          assert.equal(resumed.calls.some(c => /claim|dispatch|budget|prepare_input_service/.test(c.name)), false);
+          await assertSingleReservation(f);
+        }
+        await f.seed(purpose);
+        for (const mode of ['CHECK_PREPARED', 'RESUME_PREPARED']) {
+          const invalid = await (await handlerHarness(f, purpose)).run(undefined, { mode, extra: { text: 'Substitute text is forbidden' } });
+          assert.equal(invalid.status, 400); assert.equal(invalid.calls.length, 0);
+        }
+      });
+      await t.test(`${purpose}: a lost identifier-only dispatch acknowledgement stays read-only after restart`, async () => {
+        await f.seed(purpose);
+        await (await handlerHarness(f, purpose, { losePrepareAck: true, blockReadAfterPrepare: true })).run();
+        const lost = await (await handlerHarness(f, purpose, { loseDispatchAck: true })).run(undefined, { mode: 'RESUME_PREPARED' });
+        assert.equal(providers(lost).length, 0);
+        assert.equal(await f.value(`select provider_dispatched as value from ${table(purpose)}`), true);
+        const checked = await (await handlerHarness(f, purpose)).run(undefined, { mode: 'CHECK_PREPARED' });
+        assert.equal(checked.json.state, 'READ_ONLY'); assert.equal(checked.json.canResume, false);
+        const retry = await (await handlerHarness(f, purpose)).run(undefined, { mode: 'RESUME_PREPARED' });
+        assert.equal(retry.status, 409); assert.equal(providers(retry).length, 0);
+        await assertSingleReservation(f);
+      });
+      await t.test(`${purpose}: concurrent identifier-only resumes and revoked admission cannot bypass the dispatch owner`, async () => {
+        await f.seed(purpose);
+        await (await handlerHarness(f, purpose, { losePrepareAck: true, blockReadAfterPrepare: true })).run();
+        const pair = await Promise.all([handlerHarness(f, purpose), handlerHarness(f, purpose)]);
+        const results = await Promise.all(pair.map(h => h.run(undefined, { mode: 'RESUME_PREPARED' })));
+        assert.equal(results.reduce((sum, result) => sum + providers(result).length, 0), 1);
+        assert.equal(results.filter(result => result.events.at(-1)?.kind === 'final').length, 1);
+        await assertSingleReservation(f);
+        await f.seed(purpose);
+        await (await handlerHarness(f, purpose, { losePrepareAck: true, blockReadAfterPrepare: true })).run();
+        const checked = await (await handlerHarness(f, purpose)).run(undefined, { mode: 'CHECK_PREPARED' });
+        assert.equal(checked.json.canResume, true);
+        await f.db.exec('update private.ai_test_budget_v5 set enabled=false');
+        const refused = await (await handlerHarness(f, purpose)).run(undefined, { mode: 'RESUME_PREPARED' });
+        assert.equal(providers(refused).length, 0); assert.notEqual(refused.events.at(-1)?.kind, 'final');
+        assert.equal(await f.value(`select provider_dispatched as value from ${table(purpose)}`), false);
         await assertSingleReservation(f);
       });
     }

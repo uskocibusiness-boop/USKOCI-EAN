@@ -15,6 +15,7 @@ import { failure, readOwnedResult, record, sameId, uuid, type ReceiptAccount } f
 import { supabaseKlijent } from './supabaseClient';
 import { readPublicSupabaseConfig } from './publicSupabaseConfig';
 import { requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStream';
+import { checkAiPreparedRecovery, resumeAiPreparedRecovery } from './aiPreparedRecovery';
 
 export type WorkerAiProfile = Readonly<{
   displayName: string; bio: string; skills: string[]; tools: string[]; vehicles: string[]; licenses: string[];
@@ -313,6 +314,11 @@ const signedWorkerReviewEnabled=()=>process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED
 export const workerExplicitModeReviewEnabled=()=>signedWorkerReviewEnabled()
   &&process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES==='true';
 export const workerAiClientService={
+  checkPrepared:(conversationId:string,clientRequestId:string)=>
+    checkAiPreparedRecovery('uskoci-worker-interview',conversationId,clientRequestId),
+  resumePrepared:(conversationId:string,clientRequestId:string,stream:AiTurnStreamOptions)=>
+    resumeAiPreparedRecovery('uskoci-worker-interview',conversationId,clientRequestId,
+      raw=>decodeWorkerAiTurn(raw,conversationId,clientRequestId),stream),
   recoverTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_read_worker_ai_turn_recovery',conversationId,clientRequestId),
   cancelTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_cancel_worker_ai_turn',conversationId,clientRequestId),
   open:(clientRequestId:string)=>!uuid(clientRequestId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvorite radni profil.')):

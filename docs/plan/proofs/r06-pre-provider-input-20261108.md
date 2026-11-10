@@ -1,5 +1,13 @@
 # R06 bounded durable input contract — source-only boundary
 
+## Current continuation — 2026-11-10
+
+The existing opt-in Need/Worker handlers and mobile clients now have an explicit identifier-only recovery route. `CHECK_PREPARED` reads owned capability metadata without a provider call; `RESUME_PREPARED` uses the same frozen input, turn, attempt and one-time dispatch permission. Both cold journals can offer an explicit continuation without storing or reconstructing the original text. Default-off, lease, budget, erasure and unknown-dispatch boundaries remain closed. This is source/local evidence, **not DEV or production activation**.
+
+The current native report is [r06-prepared-dispatch-native-20261110.json](r06-prepared-dispatch-native-20261110.json): 46 SQL scenarios, including witnessed concurrent dispatch, lease/price expiry while blocked and actual usage settlement under the budget lock. The exact original pricing dependency is installed in the fixture. Current DEV metadata is [r06-cold-recovery-dev-readonly-20261110.json](r06-cold-recovery-dev-readonly-20261110.json); the new RPCs are still absent. The active CODEX plan records the client/handler/CI result and remaining controlled promotion gates. Historical paragraphs below describe their dated contract, not an assertion that today's handlers have no prepared path.
+
+## Historical contract and evidence — 2026-11-08/09
+
 This unit implements an isolated database contract for **bounded text input** on the two existing command rows. Updated 2026-11-09: it is rebased over the canonical R10 owned-usage projection and adds an atomic prepared-dispatch wrapper. It is **not active**, is not a canonical migration or deployment package, and does not complete end-to-end Need/Worker restart. No shared Edge handler, `completeFirstPlan.ts`, frontend, budget/usage owner, lease rule or existing dispatch function was changed. No hosted mutation, model call or provider charge was performed.
 
 ## What the candidate implements

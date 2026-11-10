@@ -32,6 +32,150 @@ def zip_bytes(values):
     return output.getvalue()
 
 
+BOOTSTRAP_GENERATOR = b"...........\n----------------------------------------------------------------------\nRan 11 tests in 0.001s\n\nOK\n"
+BOOTSTRAP_SEED = "\n".join(f"ℹ {key} {value}" for key, value in
+                            {"tests": 1, "pass": 1, "fail": 0, "cancelled": 0, "skipped": 0, "todo": 0}.items()).encode() + b"\n"
+
+
+class CurrentChecksTests(unittest.TestCase):
+    def setUp(self):
+        self.legacy = LEGACY.VerifierTests("test_node24_spec_and_node22_tap_formats")
+        self.legacy.setUp()
+        self.addCleanup(self.legacy.doCleanups)
+        self.path, self.metadata = self.legacy.checks_archive()
+        self.core_proof = RUNNER.BASE.checks_proof(self.path, self.metadata, 963, 221, 39)
+        with zipfile.ZipFile(self.path) as archive:
+            self.values = {name: archive.read(name) for name in archive.namelist()}
+        self.values.update({"bootstrap-generator.txt": BOOTSTRAP_GENERATOR, "bootstrap-seed.tap": BOOTSTRAP_SEED})
+        self.refresh()
+
+    def refresh(self):
+        self.path.write_bytes(zip_bytes(self.values))
+        self.metadata.update(digest="sha256:" + RUNNER.BASE.file_hash(self.path), size_in_bytes=self.path.stat().st_size)
+
+    def check(self, **kwargs):
+        return RUNNER.checks_proof(self.path, self.metadata, 963, 221, 39, **kwargs)
+
+    def rejected(self, code):
+        with self.assertRaisesRegex(RUNNER.BASE.Rejected, "^" + code + "$"):
+            self.check()
+
+    def test_current_five_files_validate_every_output_and_original_zip(self):
+        proof = self.check()
+        self.assertEqual(proof["format"], "CORE_AND_BOOTSTRAP_FIVE_FILES")
+        self.assertEqual(proof["bootstrap"]["generator"], {"tests": 11, "status": "OK"})
+        self.assertEqual(proof["bootstrap"]["seed"]["stats"], {"tests": 1, "pass": 1, "fail": 0,
+                                                               "cancelled": 0, "skipped": 0, "todo": 0})
+        self.assertEqual(proof["archive"]["sha256"], self.metadata["digest"][7:])
+        self.assertEqual(proof["fileSha256"], {name: RUNNER.BASE.sha(raw) for name, raw in self.values.items()})
+        for key in ("tests", "testReportFormat", "typescript", "migrationIntegrity"):
+            self.assertEqual(proof[key], self.core_proof[key])
+
+    def test_legacy_three_files_preserve_core_proof_with_limited_scope(self):
+        for name in RUNNER.BOOTSTRAP_CHECKS:
+            del self.values[name]
+        self.refresh()
+        proof = self.check()
+        self.assertEqual(proof["format"], "CORE_THREE_FILES")
+        self.assertEqual(proof["bootstrap"], {"status": "NOT_PRESENT_IN_LEGACY_THREE_FILE_ARTIFACT"})
+        for key in ("tests", "testReportFormat", "typescript", "migrationIntegrity", "fileSha256"):
+            self.assertEqual(proof[key], self.core_proof[key])
+
+    def test_partial_bootstrap_or_unknown_files_are_never_discarded(self):
+        original = self.values.copy()
+        for missing in RUNNER.BOOTSTRAP_CHECKS:
+            with self.subTest(missing=missing):
+                self.values = {name: raw for name, raw in original.items() if name != missing}
+                self.refresh()
+                self.rejected("CHECKS_FILES_MISMATCH")
+        self.values = {**original, "unreviewed.txt": b"unexpected"}
+        self.refresh()
+        self.rejected("CHECKS_FILES_MISMATCH")
+
+    def test_bootstrap_generator_wrong_or_duplicate_count_fails(self):
+        for raw in (BOOTSTRAP_GENERATOR.replace(b"Ran 11", b"Ran 10"),
+                    BOOTSTRAP_GENERATOR + BOOTSTRAP_GENERATOR, b"OK\n"):
+            with self.subTest(raw=raw):
+                self.values["bootstrap-generator.txt"] = raw
+                self.refresh()
+                self.rejected("BOOTSTRAP_GENERATOR_TEST_COUNT_MISMATCH")
+
+    def test_bootstrap_generator_fail_skip_error_or_contradictory_success_fails(self):
+        for final in (b"FAILED (failures=1)", b"OK (skipped=1)", b"OK (expected failures=1)", b"OK\nERROR: earlier failure\nOK"):
+            with self.subTest(final=final):
+                self.values["bootstrap-generator.txt"] = BOOTSTRAP_GENERATOR.replace(b"\nOK\n", b"\n" + final + b"\n")
+                self.refresh()
+                self.rejected("BOOTSTRAP_GENERATOR_TESTS_FAILED")
+
+    def test_bootstrap_seed_supports_both_node_reporters(self):
+        for prefix, expected_format in (("ℹ", "NODE_SPEC"), ("#", "TAP")):
+            with self.subTest(prefix=prefix):
+                self.values["bootstrap-seed.tap"] = BOOTSTRAP_SEED.decode().replace("ℹ", prefix).encode()
+                self.refresh()
+                self.assertEqual(self.check()["bootstrap"]["seed"]["testReportFormat"], expected_format)
+
+    def test_bootstrap_seed_every_missing_or_duplicate_counter_fails(self):
+        for key in ("tests", "pass", "fail", "cancelled", "skipped", "todo"):
+            for duplicate in (False, True):
+                with self.subTest(key=key, duplicate=duplicate):
+                    lines = BOOTSTRAP_SEED.decode().splitlines(keepends=True)
+                    row = next(line for line in lines if line.startswith("ℹ " + key + " "))
+                    self.values["bootstrap-seed.tap"] = ("".join(lines) + row if duplicate else "".join(line for line in lines if line != row)).encode()
+                    self.refresh()
+                    self.rejected("BOOTSTRAP_SEED_TEST_SUMMARY_MISSING_OR_DUPLICATE")
+
+    def test_bootstrap_seed_wrong_count_or_nonzero_terminal_counter_fails(self):
+        for key, original, changed in (("tests", 1, 2), ("pass", 1, 0), ("fail", 0, 1),
+                                       ("cancelled", 0, 1), ("skipped", 0, 1), ("todo", 0, 1)):
+            with self.subTest(key=key):
+                self.values["bootstrap-seed.tap"] = BOOTSTRAP_SEED.decode().replace(f"ℹ {key} {original}", f"ℹ {key} {changed}").encode()
+                self.refresh()
+                self.rejected("BOOTSTRAP_SEED_TAP_TOTAL_MISMATCH")
+
+    def test_bootstrap_seed_contradictory_failure_or_bailout_fails(self):
+        for line in (b"not ok 1 - failed\n", "✖ seed failed\n".encode(), b"Bail out!\n"):
+            with self.subTest(line=line):
+                self.values["bootstrap-seed.tap"] = line + BOOTSTRAP_SEED
+                self.refresh()
+                self.rejected("BOOTSTRAP_SEED_TESTS_FAILED")
+
+    def test_expected_bootstrap_counts_remain_explicit_and_positive(self):
+        self.values["bootstrap-generator.txt"] = BOOTSTRAP_GENERATOR.replace(b"Ran 11", b"Ran 12")
+        self.values["bootstrap-seed.tap"] = BOOTSTRAP_SEED.decode().replace("ℹ tests 1", "ℹ tests 2").replace("ℹ pass 1", "ℹ pass 2").encode()
+        self.refresh()
+        proof = self.check(expected_bootstrap_generator_tests=12, expected_bootstrap_seed_tests=2)
+        self.assertEqual(proof["bootstrap"]["generator"]["tests"], 12)
+        self.assertEqual(proof["bootstrap"]["seed"]["stats"]["tests"], 2)
+        with self.assertRaisesRegex(RUNNER.BASE.Rejected, "^EXPECTED_BOOTSTRAP_TEST_COUNT_INVALID$"):
+            self.check(expected_bootstrap_seed_tests=0)
+
+    def test_current_format_keeps_all_core_failures(self):
+        original = self.values.copy()
+        cases = [
+            ("tests.tap", original["tests.tap"].replace(b"963", b"962"), "TAP_TOTAL_MISMATCH"),
+            ("tests.tap", original["tests.tap"] + "ℹ tests 963\n".encode(), "TEST_SUMMARY_MISSING_OR_DUPLICATE"),
+            ("typescript.txt", b"error TS2322\n", "TYPESCRIPT_DIAGNOSTICS_PRESENT"),
+            ("migration-integrity.txt", original["migration-integrity.txt"].replace(b"files=221", b"files=220"), "MIGRATION_FILE_COUNT_MISMATCH"),
+            ("migration-integrity.txt", original["migration-integrity.txt"].replace(b"Ran 39", b"Ran 38"), "MIGRATION_PYTHON_TEST_COUNT_MISMATCH"),
+            ("migration-integrity.txt", original["migration-integrity.txt"].replace(b"\nOK\n", b"\nOK (skipped=1)\n"), "MIGRATION_PYTHON_TESTS_FAILED"),
+            ("migration-integrity.txt", original["migration-integrity.txt"] + b"FAIL migration_integrity\n", "MIGRATION_CHECK_FAILED"),
+        ]
+        for filename, raw, code in cases:
+            with self.subTest(code=code):
+                self.values = {**original, filename: raw}
+                self.refresh()
+                self.rejected(code)
+
+    def test_current_format_original_digest_and_duplicate_entry_are_checked(self):
+        self.metadata["digest"] = "sha256:" + "0" * 64
+        self.rejected("ARTIFACT_ZIP_DIGEST_MISMATCH")
+        with zipfile.ZipFile(self.path, "a") as archive:
+            with self.assertWarns(UserWarning):
+                archive.writestr("bootstrap-seed.tap", BOOTSTRAP_SEED)
+        self.metadata.update(digest="sha256:" + RUNNER.BASE.file_hash(self.path), size_in_bytes=self.path.stat().st_size)
+        self.rejected("ZIP_DUPLICATE_ENTRY")
+
+
 class R2VerifierTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="uskoci-r2-verifier-test-")
@@ -127,6 +271,25 @@ class R2VerifierTests(unittest.TestCase):
         self.assertEqual(proof["nativeAudio"]["sourceCommit"], self.head)
         self.assertEqual(set(proof["nativeAudio"]["resources"]), set(RUNNER.AUDIO))
         self.assertFalse(proof["nativeAudio"]["audibleOutputOrDeviceExecutionVerified"])
+
+    def test_current_checks_decoder_is_used_by_full_runner_and_base_is_restored(self):
+        path = self.args.directory / "checks.zip"
+        with zipfile.ZipFile(path) as archive:
+            values = {name: archive.read(name) for name in archive.namelist()}
+        values.update({"bootstrap-generator.txt": BOOTSTRAP_GENERATOR, "bootstrap-seed.tap": BOOTSTRAP_SEED})
+        path.write_bytes(zip_bytes(values))
+        metadata = json.loads(self.args.metadata.read_text())
+        record = next(item for item in metadata["artifacts"]["artifacts"] if item["name"].startswith("uskoci-checks-"))
+        record.update(digest="sha256:" + RUNNER.BASE.file_hash(path), size_in_bytes=path.stat().st_size)
+        self.args.metadata.write_text(json.dumps(metadata))
+        historical_checks = RUNNER.BASE.checks_proof
+        proof = self.verify()
+        self.assertEqual(proof["checks"]["format"], "CORE_AND_BOOTSTRAP_FIVE_FILES")
+        self.assertEqual(proof["checks"]["bootstrap"]["status"], "PASS")
+        self.assertIs(RUNNER.BASE.checks_proof, historical_checks)
+        self.args.tests += 1
+        self.rejected("TAP_TOTAL_MISMATCH")
+        self.assertIs(RUNNER.BASE.checks_proof, historical_checks)
 
     def test_working_tree_change_cannot_change_expected_audio(self):
         (self.repo / "assets/audio" / RUNNER.AUDIO[0]).write_bytes(b"uncommitted changed audio")

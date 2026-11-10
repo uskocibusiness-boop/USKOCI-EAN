@@ -6,6 +6,7 @@ import type { AiNeedTurnRecovery, AiNeedTurnStatus, AiNeedV2Conversation } from 
 import { aiNeedV2Izvor } from '../../data';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope } from '../../data/aiTaskReviewClientService';
 import { aiTurnIntentJournal } from '../../data/aiTurnIntentJournal';
+import type { AiPreparedRecovery } from '../../data/aiPreparedRecovery';
 import { isExplicitWorkerOffer, stageWorkerText, stageAiRoleText, takeNeedText } from '../../data/aiRoleHandoff';
 import { oppositeInterviewDomain, type AiConversationIntent, type AiRoleSuggestion } from '../../contracts/aiConversationIntent';
 import { locationDialogueEnabled, resolveLocationDialogue } from '../../data/locationDialogueClientService';
@@ -32,7 +33,8 @@ import type { PhotoSource } from '../../features/media/nativePhotoPicker';
 import { useTaskPhotoUploads } from '../../ui/media/useTaskPhotoUploads';
 
 type IntakeSnapshot = { conversation: AiNeedV2Conversation; turn: AiNeedTurnStatus | null; recovery: AiNeedTurnRecovery | null;
-  readyReview?: AiTaskReviewEnvelope | null; reviewPreparationProblem?: string | null; publicationPending?: boolean };
+  readyReview?: AiTaskReviewEnvelope | null; reviewPreparationProblem?: string | null; publicationPending?: boolean;
+  preparedRecovery?: AiPreparedRecovery | null };
 type SubmittedDraft = { value: string; revision: number };
 type PendingTurn = { id: string; body: string | null; submittedDraft: SubmittedDraft | null; locationContext?: LocationDialogueRequest['locationContext']; image?: { base64: string; mimeType: string } };
 
@@ -83,6 +85,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
   const [recoveryConversation, setRecoveryConversation] = useState<string | null>(null);
   const [corruptLocalIntent, setCorruptLocalIntent] = useState(false);
   const [streamingText, setStreamingText] = useState('');
+  const [resumeIssue, setResumeIssue] = useState<{ conversationId: string; clientRequestId: string; message: string } | null>(null);
+  const preparedFlight = useRef<object | null>(null);
   const streamAbort = useRef<AbortController | null>(null);
   // The send command that is running right now, if any. While it runs its outcome is not unknown, it is not here yet:
   // the owned editor is busy with exactly this command, and only once it settles may the screen say what is uncertain.
@@ -93,7 +97,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
       if (state === 'active') return;
       const hadContext = !!locationFlight.current;
       retireLocation();
-      if (hadContext) streamAbort.current?.abort();
+      if (hadContext || preparedFlight.current) streamAbort.current?.abort();
     });
     return () => subscription.remove();
   }, [retireLocation]);
@@ -123,8 +127,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
       streamAbort.current?.abort(); streamAbort.current = null; setStreamingText(''); setPhotoSourceAfterOpen(null); };
   }, [accountId, accountRevision, retireConfirmation]));
   const read = useCallback(async (confirmedTurn?: AiNeedTurnStatus): Promise<Ishod<IntakeSnapshot>> => {
-    const scope = focus.current;
-    const current = () => scope !== null && scope === focus.current && !!accountId
+    const scope = focus.current, presence = restartOwner.current;
+    const current = () => scope !== null && scope === focus.current && presence !== null && presence === restartOwner.current && !!accountId
       && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     const unavailable = (): Ishod<never> => ({ ok: false, kod: 'AI_INTAKE_UNAVAILABLE',
       poruka: 'Razgovor trenutno nije dostupan. Proverite vezu i učitajte ga ponovo.' });
@@ -206,6 +210,19 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
           setStreamingText('');
         }
       }
+      // A cold journal owns IDs, never the original text. A capability read may
+      // offer explicit server-snapshot recovery, but cannot itself call Gemini.
+      let preparedRecovery: AiPreparedRecovery | null = null;
+      if (pending?.body === null && request.current === pending && next.status === 'OPEN'
+        && recovery?.conversationStatus === 'OPEN' && !recovery.providerDispatched && !recovery.cancelled
+        && turn?.state === 'PROCESSING') {
+        try {
+          const prepared = await aiNeedV2Izvor.checkPrepared(id, pending.id);
+          if (!current()) return unavailable();
+          if (prepared.ok) preparedRecovery = prepared.podatak;
+        } catch { /* Older/offline servers keep the existing read-only recovery path. */ }
+        if (!current()) return unavailable();
+      }
       let readyReview: AiTaskReviewEnvelope | null = null, reviewPreparationProblem: string | null = null, publicationPending = false;
       // Prepare an immutable server review only once the business facts and map
       // are complete. This neither calls Gemini nor accepts/publishes the task.
@@ -241,7 +258,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
           if (!current()) return unavailable();
         }
       } else preparedReview.current = null;
-      return { ok: true, podatak: { conversation: next, turn, recovery, readyReview, reviewPreparationProblem, publicationPending } };
+      setResumeIssue(null);
+      return { ok: true, podatak: { conversation: next, turn, recovery, readyReview, reviewPreparationProblem, publicationPending, preparedRecovery } };
     } catch (error) {
       if (error instanceof Error && error.message === 'AI_LOCAL_INTENT_INVALID' && current()) {
         setCorruptLocalIntent(true);
@@ -265,7 +283,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
     const next = takeAiCorrection(correctionToken, { accountId, accountRevision }, 'task', razgovorId);
     if (next) setCorrection(next);
   }, [correctionToken, accountId, accountRevision, razgovorId, stanje?.status]));
-  const radi = editor.busy, greska = editor.error;
+  const radi = editor.busy, greska = editor.error ?? (resumeIssue?.conversationId === razgovorId
+    && resumeIssue.clientRequestId === request.current?.id ? resumeIssue.message : null);
   const [, expireReview] = useState(0);
   useEffect(() => {
     const review = editor.data?.readyReview;
@@ -299,6 +318,10 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
   const knownRetry = !!pending?.body && (!pending.locationContext || dialogueEnabled) && turn?.clientRequestId === pending.id && turn.retryAllowed;
   const writable = stanje?.status === 'OPEN' && stanje.safety !== 'BLOCK' && !abandoning.current;
   const canSubmit = writable && editor.loaded && !editor.loading && !radi && !editor.uncertain && (!pending || knownRetry);
+  const prepared = editor.data?.preparedRecovery;
+  const preparedAvailable = !!pending && pending.body === null && prepared?.canResume === true && prepared.state === 'PREPARED'
+    && prepared.conversationId === razgovorId && prepared.clientRequestId === pending.id
+    && editor.data?.recovery?.providerDispatched === false && turn?.state === 'PROCESSING';
 
   // Worker -> Need arrives only after a human choice, as an editable unsent draft.
   useEffect(() => {
@@ -465,6 +488,32 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
       pointLease?.cancel();
       if (locationFlight.current === pointLease) locationFlight.current = null;
     }
+  };
+  const resumePrepared = async () => {
+    const command = request.current, id = razgovorId;
+    if (!canAct() || !writable || !preparedAvailable || !id || !command || command !== pending
+      || !renderedForeground || restartOwner.current !== renderedForeground
+      || voice.controller.getSnapshot().phase !== 'IDLE') return;
+    const flight = {};
+    try { await editor.save(async () => {
+      sendFlight.current = flight; preparedFlight.current = flight; setRoleSuggestion(null); setResumeIssue(null); setStreamingText('');
+      const abort = new AbortController(); streamAbort.current?.abort(); streamAbort.current = abort;
+      const currentResume = () => isCurrent() && restartOwner.current === renderedForeground && !abort.signal.aborted;
+      try {
+        const sent = await aiNeedV2Izvor.resumePrepared(id, command.id, { signal: abort.signal,
+          onText: delta => { if (currentResume() && request.current === command) setStreamingText(value => value + delta); } });
+        if (!currentResume()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
+        // Even a lost/declined resume is reconciled by the same journal IDs.
+        // No new key, text reconstruction, confirmation or automatic retry.
+        const checked = await read(sent.ok ? sent.podatak : undefined);
+        if (!currentResume()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
+        setStreamingText('');
+        if (checked.ok && !sent.ok && request.current === command && checked.podatak.turn?.state !== 'SUCCEEDED')
+          setResumeIssue({ conversationId: id, clientRequestId: command.id, message: sent.poruka });
+        return checked.ok ? checked : sent.ok ? checked : sent;
+      } finally { if (streamAbort.current === abort) streamAbort.current = null;
+        if (preparedFlight.current === flight) preparedFlight.current = null; }
+    }); } finally { if (sendFlight.current === flight) sendFlight.current = null; }
   };
   const cancelPendingTurn = () => {
     const command = request.current;
@@ -676,6 +725,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
       // function had already logged AI_PROVIDER_FAILED. The server still cannot call the turn
       // failed - it does not know what the provider did with the money - but the screen must stop
       // implying that an answer is on its way, and must name the way out.
+      : preparedAvailable ? 'Prethodna poruka je sačuvana. Možete da nastavite odgovor bez ponovnog unosa.'
       : pending ? turn?.state === 'PROCESSING'
         ? editor.data?.recovery?.canCancel && editor.data.recovery.providerDispatched
           ? 'Asistent još nije odgovorio na ovu poruku. Ako odgovor ne stigne, otkažite slanje pa pošaljite ponovo.'
@@ -724,6 +774,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
     reviewLabel={canOpenOutcome ? 'Proverite sačuvani zadatak' : stanje.review.boundNeedId ? 'Pregledajte izmene' : 'Pregledajte zadatak'}
     showReadback={!sending && !!(editor.uncertain || ((request.current || abandoning.current) && stanje.status === 'OPEN') || greska || preparationProblem)}
     readbackDisabled={radi || editor.loading}
+    onResumePrepared={!sending && preparedAvailable ? () => { void resumePrepared(); } : undefined}
+    resumePreparedDisabled={!canAct() || !writable || voiceBusy || !renderedForeground}
     onCancelPending={!sending && pending && editor.data?.recovery?.canCancel ? cancelPendingTurn : undefined}
     cancelPendingDisabled={!canAct()}
     cancelPendingDispatched={editor.data?.recovery?.providerDispatched}

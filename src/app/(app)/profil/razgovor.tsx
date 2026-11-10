@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { workerAiClientService as api, WORKER_AI_READ_TRANSPORT_UNAVAILABLE, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurn, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
+import type { AiPreparedRecovery } from '../../../data/aiPreparedRecovery';
 import { takeWorkerText, stageAiRoleText } from '../../../data/aiRoleHandoff';
 import { oppositeInterviewDomain, type AiConversationIntent, type AiRoleSuggestion } from '../../../contracts/aiConversationIntent';
 import type { Ishod } from '../../../data/ports';
@@ -80,6 +81,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const draftText=useRef(input);draftText.current=input;
   const draftRevision=useRef(0);
   const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[corruptLocalIntent,setCorruptLocalIntent]=useState(false),[,intentChanged]=useState(0);
+  const [preparedRecovery,setPreparedRecovery]=useState<AiPreparedRecovery|null>(null);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
   const [rejectedReviewId,setRejectedReviewId]=useState<string|null>(null);
   // A prepared review is authoritative. Retain its activation choice when a
@@ -107,7 +109,10 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const owns=useCallback(()=>!!accountId&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision,
     [accountId,accountRevision]);
   const read=useCallback(async(confirmedTurn?:WorkerAiTurn):Promise<Ishod<WorkerAiSnapshot>>=>{
-    const scope=focus.current;if(invalid||!scope||!owns()||!active.current)return unavailable();
+    const scope=focus.current,presence=foregroundGeneration.current;
+    const readCurrent=()=>!!scope&&focus.current===scope&&owns()&&active.current&&!!presence&&foregroundGeneration.current===presence;
+    if(invalid||!readCurrent())return unavailable();
+    setPreparedRecovery(null);
     // Restore before opening a conversation or sending anything. Storage holds
     // only three IDs; canonical history restores text after an accepted turn.
     let saved:WorkerAiTurnIntent|null;
@@ -116,7 +121,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
         return {ok:false,kod:'WORKER_AI_LOCAL_INTENT_INVALID',poruka:'Lokalni zapis prethodnog slanja nije ispravan. Ne šaljemo novu poruku dok ne izaberete oporavak.'};}
       return unavailable();
     }
-    if(focus.current!==scope||!owns()||!active.current)return unavailable();
+    if(!readCurrent())return unavailable();
     setCorruptLocalIntent(false);
     if(saved){
       if(cid.current!==saved.conversationId){cid.current=saved.conversationId;router.setParams({conversationId:saved.conversationId});}
@@ -128,7 +133,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       let outcome:WorkerAiTurnRecovery|null=null;
       if(!confirmed){
         const recovered=await api.recoverTurn(saved.conversationId,saved.clientRequestId);
-        if(focus.current!==scope||!owns()||!active.current)return unavailable();
+        if(!readCurrent())return unavailable();
         if(!recovered.ok)return recovered;
         outcome=recovered.podatak;
       }
@@ -137,7 +142,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       const terminal=succeeded||!!outcome&&(outcome.conversationStatus!=='OPEN'||outcome.cancelled||outcome.turn?.state==='FAILED');
       if(terminal){
         try{await journal.clear(saved);}catch{return {ok:false,kod:'WORKER_AI_LOCAL_INTENT_INVALID',poruka:'Ishod je potvrđen. Ponovite proveru da nastavite.'};}
-        if(focus.current!==scope||!owns()||!active.current)return unavailable();
+        if(!readCurrent())return unavailable();
         // Text equality cannot establish ownership: spoken turns and restored IDs own no typed
         // draft. A typed Send owns only the raw value and edit revision captured at admission.
         const submittedDraft=pending.current?.submittedDraft;
@@ -147,12 +152,21 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
         }
         pending.current=null;intentChanged(n=>n+1);setStream('');
       }
+      else if(pending.current?.text===null&&outcome?.conversationStatus==='OPEN'
+        &&!outcome.providerDispatched&&!outcome.cancelled&&outcome.turn?.state==='PROCESSING'){
+        try{
+          const prepared=await api.checkPrepared(saved.conversationId,saved.clientRequestId);
+          if(!readCurrent())return unavailable();
+          if(prepared.ok)setPreparedRecovery(prepared.podatak);
+        }catch{/* Optional capability failure cannot turn a read into another send. */}
+        if(!readCurrent())return unavailable();
+      }
     }else if(pending.current){
       // A failed local save did not authorize network I/O. Keep the typed draft.
       pending.current=null;setRecovery(null);intentChanged(n=>n+1);
     }
     let result=cid.current?await api.read(cid.current):await api.open(activationRequest??openKey);
-    if(focus.current!==scope||!owns()||!active.current)return unavailable();
+    if(!readCurrent())return unavailable();
     // Only the receipt layer's proved no-response read can retain a same-account last-good transcript.
     // Ownership/refusal, malformed server data and unknown results still go through the fail-closed editor path.
     if(!result.ok&&result.kod===WORKER_AI_READ_TRANSPORT_UNAVAILABLE)throw new Error(result.kod);
@@ -162,7 +176,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     if(result.ok&&activationRequest&&activationEntryRead.current!==activationRequest&&!pending.current){
       if(result.podatak.status==='COMPLETED'){
         result=await api.open(activationRequest);
-        if(focus.current!==scope||!owns()||!active.current)return unavailable();
+        if(!readCurrent())return unavailable();
         if(result.ok&&result.podatak.conversationId!==cid.current){
           cid.current=result.podatak.conversationId;router.setParams({conversationId:cid.current});
         }
@@ -184,7 +198,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
         if(!workerReviewReady(snapshot)||snapshot.review?.activate!==activate){
           try{
             const prepared=await api.prepare(snapshot.conversationId,snapshot.revision,activate);
-            if(focus.current!==scope||!owns()||!active.current)return unavailable();
+            if(!readCurrent())return unavailable();
             if(prepared.ok){
               const reviewed={...snapshot,review:prepared.podatak};
               result={ok:true,podatak:reviewed};
@@ -199,7 +213,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
                 message:'Priprema pregleda nije potvrđena. Proverite razgovor; nije potrebno da ponavljate opis svojih usluga.'});
             }
           }catch{
-            if(focus.current!==scope||!owns()||!active.current)return unavailable();
+            if(!readCurrent())return unavailable();
             result={ok:true,podatak:{...snapshot,review:null}};
             setPreparationIssue({conversationId:snapshot.conversationId,revision:snapshot.revision,
               message:'Potvrda pregleda trenutno nije dostupna. Proverite vezu i stanje razgovora.'});
@@ -331,6 +345,30 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     setAdding(false);setMenu(false);setCorrection(owned);showPanel('chat');
   };
   const canRetry=canAct()&&!voiceBusy&&!awaiting&&!!writable&&!!pending.current?.text&&recovery?.retryAllowed===true;
+  const preparedAvailable=!!pending.current&&pending.current.text===null&&preparedRecovery?.canResume===true
+    &&preparedRecovery.state==='PREPARED'&&preparedRecovery.conversationId===data?.conversationId
+    &&preparedRecovery.clientRequestId===pending.current.id&&recovery?.providerDispatched===false&&turn?.state==='PROCESSING';
+  const resumePrepared=async()=>{
+    const command=pending.current;
+    if(!canAct()||!writable||!data||!command||!preparedAvailable||voice.controller.getSnapshot().phase!=='IDLE'
+      ||!renderedForeground||foregroundGeneration.current!==renderedForeground)return;
+    await editor.save(async()=>{
+      setPreparedRecovery(null);setRoleSuggestion(null);setTurnIssue(null);setStream('');
+      const controller=new AbortController();abort.current=controller;
+      const currentResume=()=>current()&&foregroundGeneration.current===renderedForeground&&!controller.signal.aborted;
+      try{
+        const sent=await api.resumePrepared(data.conversationId,command.id,{signal:controller.signal,
+          onText:delta=>{if(currentResume()&&pending.current===command)setStream(value=>value+delta);}});
+        if(!currentResume())return unavailable();
+        const checked=await read(sent.ok?sent.podatak:undefined);
+        if(!currentResume())return unavailable();
+        setStream('');
+        if(checked.ok&&!sent.ok&&pending.current===command&&checked.podatak.turn?.state!=='SUCCEEDED')
+          setTurnIssue({conversationId:checked.podatak.conversationId,message:sent.poruka});
+        return checked.ok?checked:sent.ok?checked:sent;
+      }finally{if(abort.current===controller)abort.current=null;}
+    });
+  };
   const leave=(navigate:()=>void)=>{
     if(!current()||panelScope.current!==renderedPanel)return;
     // Retire immediately, before navigation emits blur. Aborting the local stream is not a
@@ -478,7 +516,8 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       }});
   };
   const statusCopy=data?.saved?'Profil je sačuvan.':data?.status!=='OPEN'?'Ovaj razgovor je završen.':data.stale?'Sačuvani profil je promenjen. Novi razgovor će početi od tih podataka.':
-    data.safety==='BLOCK'||data.safety==='REVIEW'?'Ovaj predlog trenutno ne može da se sačuva.':awaiting?turn?.state==='UNKNOWN_OUTCOME'?
+    data.safety==='BLOCK'||data.safety==='REVIEW'?'Ovaj predlog trenutno ne može da se sačuva.':preparedAvailable?
+      'Prethodna poruka je sačuvana. Možete da nastavite odgovor bez ponovnog unosa.':awaiting?turn?.state==='UNKNOWN_OUTCOME'?
       'Ne znamo da li je prethodna poruka stigla. Proverite to; poruka se neće poslati dvaput.':'AI još obrađuje poruku. Proverite stanje.':pending.current?'Proverite prethodno slanje. Novi unos i pregled su dostupni kada potvrdimo ishod.':
       recovery?.cancelled&&recovery.providerDispatched?'Odgovor je zaustavljen. Poruka je ipak poslata jer je asistent već počeo da je obrađuje; profil je ostao isti.':null;
   const lastGoodUnverified=!!data&&!editor.loaded&&!editor.loading;
@@ -616,6 +655,8 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
           if(!pending.current&&!awaiting&&!editor.uncertain&&data.review?.missingRequired.includes('Ime')&&rename(data))void review();
           else refresh();
         }}/>:null}
+      {preparedAvailable&&!editor.busy?<V2Action label="Nastavite odgovor" disabled={!canAct()||!writable||voiceBusy}
+        onPress={()=>{void resumePrepared();}}/>:null}
       {writable&&!data.saved&&data.review?.missingRequired.includes('Ime')?<V2Action label="Lični podaci" kind="quiet"
         disabled={!enabled} onPress={()=>leave(()=>router.push('/profil/podaci'))}/>:null}
       {pending.current&&recovery?.canCancel?<>

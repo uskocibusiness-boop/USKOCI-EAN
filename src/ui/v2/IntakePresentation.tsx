@@ -142,6 +142,8 @@ type Props = {
   /** The source the person chose; the screen opens the conversation first when there is none yet. */
   onPhotoSource?: (source: PhotoSource) => void;
   onCancelPending?: () => void; cancelPendingDisabled?: boolean; cancelPendingDispatched?: boolean;
+  /** Explicit continuation of an owned server snapshot; readback never triggers it. */
+  onResumePrepared?: () => void; resumePreparedDisabled?: boolean;
 };
 
 // The live card's public summary is the shared pure one (src/ui/v2/draftSummary.ts), also used by the publish review.
@@ -581,6 +583,8 @@ export function IntakePresentation(props: Props) {
           what it costs written right above it. */}
       {props.showReadback ? <V2Action tone="neutral" label={OUTCOME_ACTION.check} accessibilityLabel={`${OUTCOME_ACTION.check} da li je poruka poslata`}
         disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
+      {props.onResumePrepared ? <V2Action label="Nastavite odgovor" disabled={props.resumePreparedDisabled}
+        onPress={props.onResumePrepared} /> : null}
       {props.onCancelPending ? <>
         <T variant="note" style={s.muted}>Ako odustanete, odgovor asistenta neće promeniti zadatak. Ako je asistent već počeo da odgovara, poruka je ipak poslata.</T>
         <V2Action tone="neutral" kind="quiet" label={props.cancelPendingDispatched ? 'Odustanite od odgovora' : 'Otkažite slanje poruke'}

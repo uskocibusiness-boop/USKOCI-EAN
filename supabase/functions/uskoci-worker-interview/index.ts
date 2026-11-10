@@ -11,7 +11,7 @@ import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts'
 import { GeminiCreditsUnavailableError, geminiRequestBody, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion, withUnresolvedSinglePassReply } from '../_shared/singlePassTaxonomy.mjs';
 import { completeFirstPlan } from '../_shared/completeFirstPlan.ts';
-import { preparedAiInputEnabled, readPreparedInput, prepareAiInput, dispatchPreparedInput } from '../_shared/preparedAiInput.ts';
+import { preparedAiInputEnabled, readPreparedInput, readPreparedInputByIdentity, preparedRecoveryStatus, prepareAiInput, dispatchPreparedInput } from '../_shared/preparedAiInput.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction } from '../_shared/workerServiceModeContext.mjs';
@@ -278,11 +278,14 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   if (!authorization.startsWith('Bearer ') || authorization.length>16384) return json(401,{code:'AUTH_REQUIRED'});
   if (!url || !anon || !service) return json(503,{code:'WORKER_AI_UNAVAILABLE'});
   let input: Record<string, any>, account: string;
+  let recoveryMode: 'CHECK_PREPARED' | 'RESUME_PREPARED' | null = null;
   try {
     const body = await requestText(req);
     if (new TextEncoder().encode(body).byteLength>20000) return json(413,{code:'WORKER_AI_INPUT_INVALID'});
     const parsed=object(JSON.parse(body));
-    if (!parsed || !keys(parsed,['conversationId','clientRequestId','text']) || !id(parsed.conversationId) || !id(parsed.clientRequestId) || !text(parsed.text,4000))
+    recoveryMode=parsed?.mode==='CHECK_PREPARED'||parsed?.mode==='RESUME_PREPARED'?parsed.mode:null;
+    if (!parsed || !keys(parsed,recoveryMode?['mode','conversationId','clientRequestId']:['conversationId','clientRequestId','text'])
+      || !id(parsed.conversationId) || !id(parsed.clientRequestId) || !recoveryMode&&!text(parsed.text,4000))
       return json(400,{code:'WORKER_AI_INPUT_INVALID'});
     input=parsed;
   } catch { return json(400,{code:'WORKER_AI_INPUT_INVALID'}); }
@@ -323,6 +326,23 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   let claim: Record<string,any>, context:Record<string,any>;
   let ownedAreas: ReturnType<typeof decodeWorkerAreas> = null;
   try {
+    if(recoveryMode) {
+      const runtimeReady=durableInput && Deno.env.get('AI_PROVIDER')==='gemini' && model==='gemini-3.8-flash'
+        && !!key && aiProviderRuntimeEnabled((name:string)=>Deno.env.get(name));
+      if(!runtimeReady)return recoveryMode==='CHECK_PREPARED'
+        ? json(200,preparedRecoveryStatus(identity,'UNAVAILABLE'))
+        : json(409,{code:'AI_PREPARED_RECOVERY_UNAVAILABLE'});
+      const saved=await readPreparedInputByIdentity({rpc:requestRpc,identity,purpose:'WORKER_CAPABILITY',signal:req.signal});
+      if(recoveryMode==='CHECK_PREPARED')return json(200,preparedRecoveryStatus(identity,saved.state));
+      if(saved.state!=='PREPARED'||!saved.snapshot)return json(409,{code:'AI_PREPARED_RECOVERY_UNAVAILABLE'});
+      prepared=saved as Awaited<ReturnType<typeof prepareAiInput>>;
+      // The journal restores IDs, never private text. Only the owned snapshot
+      // supplies the exact original input and attempt for the existing decoder.
+      input={...input,text:prepared.snapshot.input.userText};
+      preparedOptions.userText=input.text;
+      claim={acquired:false,turn:{turnId:prepared.snapshot.turnId,attemptId:prepared.snapshot.attemptId,
+        conversationId:input.conversationId,clientRequestId:input.clientRequestId}};
+    } else {
     const value=await rpc('rpc_claim_worker_ai_turn_service',{...identity,p_text:input.text});
     if (!object(value) || typeof value.acquired!=='boolean' || !object(value.turn) || !id(value.turn.turnId) || !id(value.turn.attemptId)
       || value.turn.conversationId!==input.conversationId || value.turn.clientRequestId!==input.clientRequestId) throw new Error('WORKER_AI_INVALID');
@@ -335,6 +355,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     if (!claim.acquired && !prepared) return json(200,claim.turn);
     if(prepared && (prepared.snapshot.turnId!==claim.turn.turnId || prepared.snapshot.attemptId!==claim.turn.attemptId))
       throw new Error('WORKER_AI_INVALID');
+    }
     ownedAttempt=claim.turn.attemptId;
     context=prepared ? prepared.snapshot.sourceContext : await rpc('rpc_read_worker_ai_context_service',{p_account_id:account,p_conversation_id:input.conversationId});
     if (!object(context) || context.schemaVersion!=='WORKER_PROFILE_V1' || context.accountId!==account || context.conversationId!==input.conversationId
@@ -344,7 +365,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       ownedAreas=decodeWorkerAreas(context.candidate.workAreas);
       if (!ownedAreas) throw new Error('WORKER_AI_INVALID');
     }
-  } catch { await fail(); return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
+  } catch { await fail(); return json(409,{code:recoveryMode?'AI_PREPARED_RECOVERY_NOT_CONFIRMED':'WORKER_AI_NOT_CONFIRMED'}); }
   // Configuration and reservations precede provider I/O. Failed admission is a
   // known failure; later settlement keeps dispatch and request identity intact.
   if (Deno.env.get('AI_PROVIDER')!=='gemini' || model!=='gemini-3.8-flash' || !key || !aiProviderRuntimeEnabled((name:string)=>Deno.env.get(name))) {
@@ -482,7 +503,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         }});
       }
       const dispatched=await dispatchPreparedInput({...preparedOptions,signal:research.signal,prepared});
-      if(!dispatched.dispatched) {research.dispose();return json(200,claim.turn);}
+      if(!dispatched.dispatched) {research.dispose();return recoveryMode
+        ? json(409,{code:'AI_PREPARED_RECOVERY_UNAVAILABLE'}) : json(200,claim.turn);}
       // The permission and payload were read under the same SQL command locks.
       // A lost dispatch response never reaches provider I/O on this invocation.
       providerDispatchConfirmed=true;
@@ -510,7 +532,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   }
   // Versioned opt-in: older APKs retain completed-only text instead of an unverified preview.
   const previewStream=req.headers.get('x-uskoci-worker-preview-stream')==='v1';
-  const wantsIntent=req.headers.get(INTERVIEW_INTENT_HEADER)===INTERVIEW_INTENT_CAPABILITY;
+  const wantsIntent=!recoveryMode&&req.headers.get(INTERVIEW_INTENT_HEADER)===INTERVIEW_INTENT_CAPABILITY;
   const abort=new AbortController(),stop=()=>{abort.abort();research?.dispose();}; req.signal.addEventListener('abort',stop,{once:true}); if(req.signal.aborted)stop();
   const encoder=new TextEncoder(); let sequence=0;
   const stream=new ReadableStream<Uint8Array>({

@@ -66,6 +66,8 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
   text: string; current: () => boolean; deadline: number;
   endpoint?: 'uskoci-ai-interview' | 'uskoci-worker-interview';
   imageBase64?: string; imageMime?: string;
+  /** Recovery names only the existing command. No new text, media or intent is submitted. */
+  preparedMode?: 'CHECK_PREPARED' | 'RESUME_PREPARED';
 }): Promise<{ data: unknown; error: { message: string } | null; conversationIntent?: AiConversationIntent | null }> {
   const abort = new AbortController(), stop = () => abort.abort();
   const timer = setTimeout(stop, Math.max(0, input.deadline - Date.now()));
@@ -76,14 +78,14 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     if (!current()) throw new Error('AI_STREAM_STOPPED');
     const response = await expoFetch(input.url + '/functions/v1/' + (input.endpoint ?? 'uskoci-ai-interview'), {
       method: 'POST', signal: abort.signal, redirect: 'error',
-      headers: { Authorization: 'Bearer ' + input.accessToken, apikey: input.anonKey, 'Content-Type': 'application/json', Accept: 'text/event-stream', [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION,
-        ...(input.onConversationIntent ? { [AI_CONVERSATION_INTENT_HEADER]: AI_CONVERSATION_INTENT_CAPABILITY } : {}),
+      headers: { Authorization: 'Bearer ' + input.accessToken, apikey: input.anonKey, 'Content-Type': 'application/json', Accept: input.preparedMode === 'CHECK_PREPARED' ? 'application/json' : 'text/event-stream', [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION,
+        ...(input.onConversationIntent && !input.preparedMode ? { [AI_CONVERSATION_INTENT_HEADER]: AI_CONVERSATION_INTENT_CAPABILITY } : {}),
         ...(input.endpoint === 'uskoci-worker-interview' ? { 'x-uskoci-worker-preview-stream': 'v1' } : { [NEED_FACT_TURN_CAPABILITY_HEADER]: NEED_FACT_TURN_CAPABILITY_VERSION }) },
       body: JSON.stringify({
         conversationId: input.conversationId,
-        text: input.text,
         clientRequestId: input.clientRequestId,
-        ...(input.imageBase64 && input.imageMime ? { imageBase64: input.imageBase64, imageMime: input.imageMime } : {}),
+        ...(input.preparedMode ? { mode: input.preparedMode } : { text: input.text,
+          ...(input.imageBase64 && input.imageMime ? { imageBase64: input.imageBase64, imageMime: input.imageMime } : {}) }),
       }),
     });
     if (!current() || response.redirected || !response.body) throw new Error('AI_STREAM_STOPPED');
@@ -94,12 +96,13 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     }
     const contentType = response.headers.get('content-type') ?? '';
     const streaming = contentType.includes('text/event-stream');
+    if (input.preparedMode === 'CHECK_PREPARED' && streaming) throw new Error('AI_STREAM_INVALID');
     if (!streaming && !contentType.includes('application/json')) throw new Error('AI_STREAM_INVALID');
     const declared = response.headers.get('content-length'), maximum = streaming ? 262144 : 8192;
     if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > maximum)) throw new Error('AI_STREAM_INVALID');
     reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8', { fatal: true });
-    const events = createAiTurnStreamDecoder({ ...input, current, allowConversationIntent: !!input.onConversationIntent });
+    const events = createAiTurnStreamDecoder({ ...input, current, allowConversationIntent: !!input.onConversationIntent && !input.preparedMode });
     let buffer = '', total = 0;
     const event = (body: string) => {
       const lines = body.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart());

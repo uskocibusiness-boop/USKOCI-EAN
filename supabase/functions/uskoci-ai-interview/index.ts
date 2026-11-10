@@ -28,7 +28,7 @@ import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts'
 import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion, withUnresolvedSinglePassReply } from '../_shared/singlePassTaxonomy.mjs';
 import { completeFirstPlan } from '../_shared/completeFirstPlan.ts';
-import { preparedAiInputEnabled, readPreparedInput, prepareAiInput, dispatchPreparedInput, type PreparedInput } from '../_shared/preparedAiInput.ts';
+import { preparedAiInputEnabled, readPreparedInput, readPreparedInputByIdentity, preparedRecoveryStatus, prepareAiInput, dispatchPreparedInput, type PreparedInput } from '../_shared/preparedAiInput.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { decodeServiceHandoff } from '../_shared/serviceHandoff.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
@@ -815,20 +815,6 @@ async function callGemini(
   singlePass?: { catalog: any; onDecisions: (decisions: any[]) => void },
   prepared?: { current: PreparedInput | null; admit: (request: Record<string, unknown>) => Promise<PreparedInput> },
 ) {
-  const contents = history.slice(-30).map((row) => ({
-    role: row.role === 'ASSISTANT' ? 'model' : 'user',
-    parts: [{ text: String(row.body ?? '').slice(0, 4000) }],
-  }));
-  const userParts: any[] = [{ text: text || 'Ovo je fotografija zadatka. Molim Vas analizirajte sliku i predložite opis ili detalje zadatka.' }];
-  if (imageBase64 && imageMime) {
-    userParts.push({
-      inlineData: {
-        mimeType: imageMime,
-        data: imageBase64,
-      },
-    });
-  }
-  contents.push({ role: 'user', parts: userParts });
   const parseOutput = async (value: any) => {
     const intentDecision = takeConversationIntent(value, text);
     value = guardInterviewIntentOutput(intentDecision.output, intentDecision, 'NEED');
@@ -853,6 +839,20 @@ async function callGemini(
     return { ...guardConversationTurn(parsedTurn,text,history,activeFacts,timeContext,locationContext,pendingDeadlineQuestion),
       intentDecision, intentAllowsChanges };
   };
+  let payloadBody: string;
+  if (prepared?.current) {
+    // An ID-only restart must not rebuild prompts, schemas, cache handles or
+    // the server clock. Only the exact owned, dispatched snapshot is sent.
+    const saved = await prepared.admit(prepared.current.snapshot.input.providerRequest);
+    payloadBody = JSON.stringify(saved.snapshot.input.providerRequest);
+  } else {
+  const contents = history.slice(-30).map((row) => ({
+    role: row.role === 'ASSISTANT' ? 'model' : 'user',
+    parts: [{ text: String(row.body ?? '').slice(0, 4000) }],
+  }));
+  const userParts: any[] = [{ text: text || 'Ovo je fotografija zadatka. Molim Vas analizirajte sliku i predložite opis ili detalje zadatka.' }];
+  if (imageBase64 && imageMime) userParts.push({ inlineData: { mimeType: imageMime, data: imageBase64 } });
+  contents.push({ role: 'user', parts: userParts });
   // Stable rules precede private per-turn data. This permits provider prefix
   // caching without sharing application context or trusting stale catalog data.
   const instruction = schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext, false, false) : legacyInstruction(activeFacts, timeContext);
@@ -886,7 +886,6 @@ async function callGemini(
     ...contents,
   ];
 
-  let payloadBody: string;
   let cachedContentResource: string | null = null;
   if (!prepared && singlePass?.catalog?.catalogVersion) {
     cachedContentResource = await getOrCreateGeminiContextCache({
@@ -931,9 +930,9 @@ async function callGemini(
   if (prepared) {
     // The first invocation persists this exact body before dispatch. A new
     // process uses its saved body, not a newly assembled prompt or cache handle.
-    const saved = prepared.current ?? await prepared.admit(JSON.parse(geminiRequestBody(payloadBody)));
-    if (prepared.current) await prepared.admit(saved.snapshot.input.providerRequest);
+    const saved = await prepared.admit(JSON.parse(geminiRequestBody(payloadBody)));
     payloadBody = JSON.stringify(saved.snapshot.input.providerRequest);
+  }
   }
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
   if (onText) {
@@ -1479,9 +1478,12 @@ Deno.serve(async (req: Request) => {
   if (!object(body) || Object.keys(body).some(key => !['conversationId', 'text', 'clientRequestId', 'mode', 'locationContext', 'imageBase64', 'imageMime'].includes(key)))
     return response(400, { code: 'REQUEST_INVALID', message: 'Zahtev nije ispravan.' });
   const locationMode = body.mode === 'locationReply';
+  const recoveryMode = body.mode === 'CHECK_PREPARED' || body.mode === 'RESUME_PREPARED' ? body.mode : null;
+  if (recoveryMode && (!exact(body, ['mode', 'conversationId', 'clientRequestId']) || !isUuid(body.clientRequestId)))
+    return response(400, { code: 'REQUEST_INVALID', message: 'Zahtev nije ispravan.' });
   const locationContext: LocationContext | undefined = locationMode && validLocationContext(body.locationContext) ? body.locationContext : undefined;
   if (locationMode && (!locationContext || !exact(body, ['mode', 'conversationId', 'text', 'clientRequestId', 'locationContext']))
-    || !locationMode && (Object.hasOwn(body, 'mode') || Object.hasOwn(body, 'locationContext')))
+    || !locationMode && !recoveryMode && (Object.hasOwn(body, 'mode') || Object.hasOwn(body, 'locationContext')))
     return response(400, { code: 'LOCATION_CONTEXT_INVALID', message: 'Ponovo otvori prikaz mesta.' });
   if (locationMode && req.headers.get('Accept')?.split(',').some(value => value.trim() === 'text/event-stream'))
     return response(406, { code: 'LOCATION_STREAM_UNSUPPORTED', message: 'Odgovor o mestu koristi potvrđen pojedinačni odgovor.' });
@@ -1499,8 +1501,8 @@ Deno.serve(async (req: Request) => {
     imageMime = body.imageMime;
   }
   if (!isUuid(conversationId)) return response(400, { code: 'CONVERSATION_ID_INVALID', message: 'Nacrt Zadatka nije ispravan.' });
-  if ((!text && !imageBase64) || text.length > 4000) return response(400, { code: 'MESSAGE_INVALID', message: 'Unesite poruku do 4.000 znakova ili fotografiju.' });
-  const effectiveUserMessage = text || (imageBase64 ? 'Poslao sam fotografiju zadatka.' : '');
+  if (!recoveryMode && ((!text && !imageBase64) || text.length > 4000)) return response(400, { code: 'MESSAGE_INVALID', message: 'Unesite poruku do 4.000 znakova ili fotografiju.' });
+  let effectiveUserMessage = text || (imageBase64 ? 'Poslao sam fotografiju zadatka.' : '');
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const anonKey = readSupabasePublishableKey(name => Deno.env.get(name)) ?? '';
   if (!supabaseUrl || !anonKey) return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
@@ -1517,11 +1519,15 @@ Deno.serve(async (req: Request) => {
       return response(503, { code: 'AUTH_UNAVAILABLE', message: 'Provera naloga trenutno nije dostupna. Pokušaj ponovo.' });
     accountId = verified.data.id.toLowerCase();
   } catch { return response(503, { code: 'AUTH_UNAVAILABLE', message: 'Provera naloga trenutno nije dostupna. Pokušaj ponovo.' }); }
-  const release = admitUser(accountId);
+  // A capability read cannot consume the six inference admissions or make a
+  // later explicit resume unavailable merely because the person checked it.
+  const release = recoveryMode === 'CHECK_PREPARED' ? () => {} : admitUser(accountId);
   if (!release) return response(429, { code: 'AI_RATE_LIMITED', message: 'Sačekajte trenutak pre sledeće poruke.' });
   const availabilityDiagnostics = req.headers.get(AI_DIAGNOSTICS_HEADER) === AI_DIAGNOSTICS_VERSION;
   const wantsStream = req.headers.get('Accept')?.split(',').some(value => value.trim() === 'text/event-stream') === true;
-  const wantsIntent = req.headers.get(INTERVIEW_INTENT_HEADER) === INTERVIEW_INTENT_CAPABILITY;
+  // ID-only recovery has no caller-owned text against which a client could
+  // validate a role handoff. The canonical conversation remains authoritative.
+  const wantsIntent = !recoveryMode && req.headers.get(INTERVIEW_INTENT_HEADER) === INTERVIEW_INTENT_CAPABILITY;
   let completedIntentHint: ReturnType<typeof conversationIntentHint> = null;
   let detachedRelease = false;
   let requestId = '', attemptId: string | null = null, claimedTurnId: string | null = null;
@@ -1560,7 +1566,7 @@ Deno.serve(async (req: Request) => {
       return response(404, { code: 'CONVERSATION_NOT_FOUND', message: 'Nacrt nije dostupan ovom nalogu.' });
     const schemaVersion: FactSchemaVersion = rows[0].fact_schema_version === NEED_FACT_SCHEMA_V2 ? NEED_FACT_SCHEMA_V2 : LEGACY_FACT_SCHEMA_V1;
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
-      const allowedKeys = locationMode
+      const allowedKeys = recoveryMode ? ['mode', 'conversationId', 'clientRequestId'] : locationMode
         ? ['mode', 'conversationId', 'text', 'clientRequestId', 'locationContext']
         : ['conversationId', 'text', 'clientRequestId', ...(imageBase64 ? ['imageBase64', 'imageMime'] : [])];
       if (!exact(body, allowedKeys) || !isUuid(body.clientRequestId))
@@ -1572,7 +1578,27 @@ Deno.serve(async (req: Request) => {
     serviceRoleKey = readSupabaseServiceKey(name => Deno.env.get(name)) ?? '';
     if (!serviceRoleKey) return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
     let history: any[], activeFacts: any[];
-    if (schemaVersion === NEED_FACT_SCHEMA_V2) {
+    if (recoveryMode) {
+      const runtimeReady = preparedPath && schemaVersion === NEED_FACT_SCHEMA_V2
+        && Deno.env.get('AI_PROVIDER') === 'gemini' && Deno.env.get('GEMINI_MODEL') === 'gemini-3.8-flash'
+        && !!Deno.env.get('GEMINI_API_KEY') && aiProviderRuntimeEnabled(name => Deno.env.get(name));
+      if (!runtimeReady) return recoveryMode === 'CHECK_PREPARED'
+        ? response(200, preparedRecoveryStatus(identityArgs(), 'UNAVAILABLE'))
+        : response(409, { code: 'AI_PREPARED_RECOVERY_UNAVAILABLE' });
+      let saved;
+      try { saved = await readPreparedInputByIdentity({rpc,identity:identityArgs(),purpose:'NEED_SERVICE',signal:req.signal}); }
+      catch { return response(409, { code: 'AI_PREPARED_RECOVERY_NOT_CONFIRMED' }); }
+      if (recoveryMode === 'CHECK_PREPARED') return response(200, preparedRecoveryStatus(identityArgs(), saved.state));
+      if (saved.state !== 'PREPARED' || !saved.snapshot) return response(409, { code: 'AI_PREPARED_RECOVERY_UNAVAILABLE' });
+      // Resume the existing SQL-owned command. No claim, text substitution,
+      // new reservation or lease extension is permitted by this route.
+      preparedRecovery = saved as PreparedInput;
+      effectiveUserMessage = preparedRecovery.snapshot.input.userText;
+      attemptId = preparedRecovery.snapshot.attemptId; claimedTurnId = preparedRecovery.snapshot.turnId;
+      preparedSourceContext = preparedRecovery.snapshot.sourceContext;
+      if (!validClaimContext(preparedSourceContext)) throw new Error('AI_CONTEXT_INVALID');
+      history = preparedSourceContext.history; activeFacts = preparedSourceContext.activeFacts;
+    } else if (schemaVersion === NEED_FACT_SCHEMA_V2) {
       const result = await rpc(locationMode ? 'rpc_ai_claim_need_location_turn_v1_service' : 'rpc_ai_claim_need_turn_v2_service',
         { ...identityArgs(), p_user_message: effectiveUserMessage, ...(locationContext ? { p_location_context: locationContext } : {}) }, req.signal);
       if (!result.ok) {

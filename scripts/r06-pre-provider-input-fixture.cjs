@@ -41,6 +41,14 @@ async function fixture(options={}){
    await db.exec(fn.definition);await db.exec(`revoke all on function ${sig(fn)} from public,anon,authenticated,service_role`);
    for(const grant of (fn.acl||'').matchAll(/[,{](anon|authenticated|service_role)=X\//g))await db.exec(`grant execute on function ${sig(fn)} to ${grant[1]}`);
   }
+  // The native dispatch/settlement race executes the real usage owner above.
+  // Install its exact captured price dependency, not a test-only calculator.
+  const priceOwner=JSON.parse(fs.readFileSync(path.join(__dirname,'sql/r06_budget_accounting_20261107.preimage.json'),'utf8'))
+   .functions.find(fn=>fn.signature==='private.ai_test_price_microusd(integer,integer)');
+  assert.ok(priceOwner);assert.equal(priceOwner.owner,'postgres');assert.equal(priceOwner.acl,'{postgres=X/postgres}');
+  assert.equal(crypto.createHash('md5').update(priceOwner.definition.split('AS $function$')[1].split('$function$')[0]).digest('hex'),priceOwner.body_md5);
+  await db.exec(priceOwner.definition);
+  await db.exec(`revoke all on function ${priceOwner.signature} from public,anon,authenticated,service_role`);
   // Complete the earlier R10 work-area fixture with the exact source adapter
   // and projector. The subsequent full migration validates their joined digest.
   const workAreas=fs.readFileSync(path.join(__dirname,'../supabase/migrations/20261107165752_r10_work_areas_projection_20261107.sql'),'utf8');
