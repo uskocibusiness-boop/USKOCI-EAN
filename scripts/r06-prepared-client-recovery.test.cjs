@@ -81,7 +81,8 @@ for (const domain of ['Need', 'Worker']) {
 function routeHarness(domain, options = {}) {
   const state = { status: 'PROCESSING', providerDispatched: false, cancelled: false, capability: 'PREPARED',
     refusal: false, responseLostAfterSuccess: false, ...options };
-  let resumeWait = null, checkWait = null, journalValue = { accountId: ACCOUNT, conversationId: CID, clientRequestId: KEY };
+  let resumeWait = null, checkWait = null, journalSaveWait = null,
+    journalValue = { accountId: ACCOUNT, conversationId: CID, clientRequestId: KEY };
   const calls = [], listeners = new Set(), Focus = React.createContext(true);
   const transport = transportHarness(async ({ body }) => {
     if (body.mode === 'CHECK_PREPARED') {
@@ -112,11 +113,18 @@ function routeHarness(domain, options = {}) {
         canCancel: false, authoritative: true, ...(domain === 'Worker' ? { schemaVersion: 'WORKER_PROFILE_V1', profileId: id(6), retryAllowed: false } : {}) }); },
     loadConversation: async () => { calls.push('read'); return needSnapshot(); },
     read: async () => { calls.push('read'); return ok(workerSnapshot()); },
-    send: unexpected('send'), sendMessage: unexpected('sendMessage'), open: unexpected('open'), openConversation: unexpected('openConversation'),
+    send: unexpected('send'), sendMessage: async (cid, body, key) => {
+      if (!state.normalSend) return unexpected('sendMessage')();
+      calls.push('sendMessage'); assert.equal(cid, CID); assert.equal(key, id(80));
+      assert.equal(body, 'Treba mi pomoć oko nošenja.');
+      return { ok: false, kod: 'AI_CREDITS_UNAVAILABLE', poruka: 'AI trenutno nije dostupan.' };
+    }, open: unexpected('open'), openConversation: unexpected('openConversation'),
     prepare: unexpected('prepare'), patch: unexpected('patch'), save: unexpected('save'), abandon: unexpected('abandon'), cancelTurn: unexpected('cancelTurn'),
   };
   const journal = { load: async account => account === ACCOUNT ? journalValue : null,
-    save: unexpected('journalSave'), clear: async value => { assert.deepEqual(value, { accountId: ACCOUNT, conversationId: CID, clientRequestId: KEY });
+    save: async value => { if (!state.normalSend) return unexpected('journalSave')();
+      calls.push('journalSave'); if (journalSaveWait) await journalSaveWait.promise; journalValue = { ...value }; },
+    clear: async value => { assert.deepEqual(value, { accountId: ACCOUNT, conversationId: CID, clientRequestId: KEY });
       calls.push('journalClear'); journalValue = null; } };
   const app = { currentState: 'active', addEventListener: (_type, fn) => { listeners.add(fn); return { remove: () => listeners.delete(fn) }; } };
   const voice = { state: { phase: 'IDLE' }, controller: { getSnapshot: () => voice.state, cancel() {}, subscribe: () => () => {} } };
@@ -184,9 +192,65 @@ function routeHarness(domain, options = {}) {
       assert.equal(buttons.length, 1); await RTR.act(async () => buttons[0].props.onPress()); },
     copy: () => tree.root.findAll(node => node.type === 'T').flatMap(node => [node.props.children].flat(Infinity)).filter(value => typeof value === 'string'),
     holdResume() { resumeWait = deferred(); return resumeWait; }, holdCheck() { checkWait = deferred(); return checkWait; },
+    holdJournalSave() { journalSaveWait = deferred(); return journalSaveWait; },
     async close() { if (tree) await RTR.act(async () => tree.unmount()); assert.equal(listeners.size, 0); },
   };
 }
+test('Need: ordinary send captured before background cannot create a turn after foreground returns', async () => {
+  const h = routeHarness('Need', { status: 'SUCCEEDED', providerDispatched: true });
+  try {
+    await h.mount(); assert.equal(h.journal(), null);
+    await RTR.act(async () => h.shell().props.onChange('Treba mi pomoć oko nošenja.'));
+    assert.equal(h.shell().props.canSend, true);
+    const send = h.shell().props.onSend;
+    const ids = h.calls.filter(call => call === 'newId').length;
+    await h.background('background'); assert.equal(h.shell().props.canSend, false);
+    await h.background('active'); assert.equal(h.shell().props.canSend, true);
+    await RTR.act(async () => send());
+    assert.equal(h.calls.includes('journalSave'), false);
+    assert.equal(h.calls.includes('sendMessage'), false);
+    assert.equal(h.calls.filter(call => call === 'newId').length, ids);
+    assert.equal(h.shell().props.value, 'Treba mi pomoć oko nošenja.');
+  } finally { await h.close(); }
+});
+test('Need: background while persisting an ordinary turn keeps its journal and draft without starting the provider', async () => {
+  for (const returnToActive of [false, true]) {
+    const h = routeHarness('Need', { status: 'SUCCEEDED', providerDispatched: true, normalSend: true });
+    try {
+      await h.mount(); await RTR.act(async () => h.shell().props.onChange('Treba mi pomoć oko nošenja.'));
+      const wait = h.holdJournalSave();
+      await RTR.act(async () => h.shell().props.onSend());
+      assert.equal(h.calls.filter(call => call === 'journalSave').length, 1);
+      assert.equal(h.calls.includes('sendMessage'), false);
+      const ids = h.calls.filter(call => call === 'newId').length;
+      await h.background('background');
+      if (returnToActive) await h.background('active');
+      await RTR.act(async () => wait.resolve());
+      assert.equal(h.calls.includes('sendMessage'), false, 'foreground cannot revive the retired send');
+      assert.deepEqual(h.journal(), { accountId: ACCOUNT, conversationId: CID, clientRequestId: id(80) });
+      assert.equal(h.shell().props.value, 'Treba mi pomoć oko nošenja.');
+      assert.equal(h.shell().props.canSend, false);
+      assert.equal(h.calls.filter(call => call === 'newId').length, ids);
+      assert.equal(h.calls.filter(call => call === 'journalClear').length, 1, 'only the old confirmed turn was cleared at mount');
+    } finally { await h.close(); }
+  }
+});
+test('Need: a current foreground send persists its IDs and dispatches once without automatic retry after refusal', async () => {
+  const h = routeHarness('Need', { status: 'SUCCEEDED', providerDispatched: true, normalSend: true });
+  try {
+    await h.mount(); await RTR.act(async () => h.shell().props.onChange('Treba mi pomoć oko nošenja.'));
+    await h.background('background'); await h.background('active');
+    const send = h.shell().props.onSend;
+    await RTR.act(async () => send());
+    assert.equal(h.calls.filter(call => call === 'sendMessage').length, 1);
+    assert.equal(h.calls.filter(call => call === 'journalSave').length, 1);
+    assert.deepEqual(h.journal(), { accountId: ACCOUNT, conversationId: CID, clientRequestId: id(80) });
+    assert.equal(h.shell().props.value, 'Treba mi pomoć oko nošenja.');
+    await RTR.act(async () => send());
+    assert.equal(h.calls.filter(call => call === 'sendMessage').length, 1);
+    assert.equal(h.calls.filter(call => call === 'journalSave').length, 1);
+  } finally { await h.close(); }
+});
 for (const domain of ['Need', 'Worker']) {
   test(`${domain}: actual cold screen reads only, actual explicit button resumes once and canonical success clears its journal`, async () => {
     const h = routeHarness(domain);

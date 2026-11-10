@@ -1,0 +1,116 @@
+{
+  "schema": "USKOCI_R13_SOURCE_RECOVERY_READONLY_20261110",
+  "recordedAt": "2026-11-10T14:40:11.929511+00:00",
+  "sourceCommit": "334d0f9dc3a896fe2e3f3718d5ed995d7e2d10c1",
+  "targetBranch": "work/uskoci-cist-proizvod-20261104",
+  "status": "BLOCKED_MISSING_EXACT_CAPACITY6_PACKAGE",
+  "historicalProducingCommit": "b20346b1e8e2bcd200c6394379d5826f77a3acee",
+  "sourceChecks": [
+    {
+      "path": "scripts/sql/r13_dispatch_cooperative_candidate.sql",
+      "priorSha256": "d2d97f4a303b188678e85f69e7e624cce0a0a82b0b360eb0e00b9f7acee26d71",
+      "currentSha256": "d2d97f4a303b188678e85f69e7e624cce0a0a82b0b360eb0e00b9f7acee26d71",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/sql/r13_marketplace_cooperative_candidate.sql",
+      "priorSha256": "ce4bce60f9dfbe9bc9933073814a1b82f9d362ec9fdd4afe604683ce4303c2a4",
+      "currentSha256": "ce4bce60f9dfbe9bc9933073814a1b82f9d362ec9fdd4afe604683ce4303c2a4",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/r13-profile-sweep-fixture.cjs",
+      "priorSha256": "14f6bbcc0131f7bac5d6ff3ca6c84bcff55b4ff09ef27d753ba519e6ec7f2837",
+      "currentSha256": "14f6bbcc0131f7bac5d6ff3ca6c84bcff55b4ff09ef27d753ba519e6ec7f2837",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/r13-profile-sweep.test.cjs",
+      "priorSha256": "e7606ff3ac028da1b3cf3469496ad36fc299bf9065be8bb193137a8afb36333b",
+      "currentSha256": "e7606ff3ac028da1b3cf3469496ad36fc299bf9065be8bb193137a8afb36333b",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/r13-marketplace-cooperative.test.cjs",
+      "priorSha256": "7a10f1c801b095b424827bd9941aa817d79426e11a2fcaa202231442f00b8cf2",
+      "currentSha256": "7a10f1c801b095b424827bd9941aa817d79426e11a2fcaa202231442f00b8cf2",
+      "unchanged": true
+    },
+    {
+      "path": "docs/plan/proofs/forensic-consolidation-20261109.json",
+      "priorSha256": "021991d7858012db2a82e4ca41e01a94a1dde03a8b55f5bbdcd29bc0c9c65353",
+      "currentSha256": "021991d7858012db2a82e4ca41e01a94a1dde03a8b55f5bbdcd29bc0c9c65353",
+      "unchanged": true
+    }
+  ],
+  "objectStores": [
+    {
+      "repo": "/workspace/scratch/547e01d52d68/USKOCI-EAN",
+      "treesInspected": 535,
+      "sourceFileMatches": [],
+      "onlyMatchingBlob": "295a88fcab2844a5b00096e586c2218fb2c4e845 (historical recovery report)"
+    },
+    {
+      "repo": "/workspace/scratch/1876218cd0a5/USKOCI-EAN",
+      "treesInspected": 569,
+      "sourceFileMatches": [],
+      "onlyMatchingBlob": "295a88fcab2844a5b00096e586c2218fb2c4e845 (historical recovery report)"
+    }
+  ],
+  "remote": {
+    "method": "git ls-remote --heads origin; then direct depth=1 fetch into isolated scratch bare repository",
+    "advertisedHeadEqualsProducingCommit": false,
+    "olderBranch": "work/rev14-review-f17",
+    "olderBranchHead": "a3623973450130fcf0e770f9ed28f315f366d5b2",
+    "olderBranchUnchangedFromPriorProof": true,
+    "directFetchExitCode": 128,
+    "directFetchError": "fatal: remote error: upload-pack: not our ref b20346b1e8e2bcd200c6394379d5826f77a3acee"
+  },
+  "dev": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "capturedAt": "2026-11-10T14:38:40.232885+00:00",
+    "method": "read-only pg_proc metadata; no call to business writer/scheduler",
+    "bodyMd5": {
+      "private.marketplace_tick(integer,timestamp with time zone)": "3858404992f2ceaa30b65af1055e2b9c",
+      "private.dispatch_tick(integer,timestamp with time zone)": "76280b0ad653d2fc10199bca2c3971a8",
+      "private.dispatch_next_wave(uuid)": "d3cdfe2bdd6e5d40a74e6029793c89c5",
+      "private.dispatch_config_v1b(jsonb)": "7aa34ff0b5f4a3637c433bec317c1c13",
+      "private.requeue_changed_worker_profiles_v1(timestamp with time zone)": "9104edac66d52ba630b91fac58c7fcbc",
+      "private.ai_turn_sweep_v5(timestamp with time zone)": "8228461b045f87eebe7f00c646d99720"
+    },
+    "allReturnedOwners": "postgres",
+    "allReturnedAcl": "{postgres=X/postgres}",
+    "allReturnedSearchPath": [
+      "search_path=pg_catalog"
+    ],
+    "absent": [
+      "private.requeue_one_changed_worker_profile_v1(timestamp with time zone)",
+      "private.dispatch_one_job_v1(timestamp with time zone,uuid[])",
+      "private.marketplace_tick_transactions_v1(integer,timestamp with time zone,jsonb)"
+    ],
+    "materialDependencyDelta": "AI sweep now includes the installed R06 prepared-input lifecycle; recovered historical R13 graph must preserve this newer owner and later approved R06 changes."
+  },
+  "reusedEvidence": {
+    "source": "docs/plan/proofs/r13-capacity6-source-recovery-20261109.md",
+    "unchangedFiles": true,
+    "localProfileTestsReported": 8,
+    "localMarketplaceTestsReported": 5,
+    "rerunThisSubtask": false,
+    "capacity6Historical33AndWake6": "REPORTED_ONLY_NOT_CURRENT_EXECUTABLE_PROOF"
+  },
+  "recoveredExecutableFiles": [],
+  "operations": {
+    "sourceEdits": 0,
+    "testsRun": 0,
+    "hostedWrites": 0,
+    "cronChanges": 0,
+    "providerCalls": 0,
+    "prodWrites": 0
+  },
+  "limits": [
+    "Bounded search of available workspace/home filenames, both local Git object stores and currently advertised remote refs; not a claim of loss everywhere.",
+    "Prior older-branch recursive-tree absence proof reused because the exact remote head is unchanged; no unrelated branches were merged.",
+    "No retired Product/UX document content was opened or reconstructed.",
+    "Installer alignment, complete trigger/FK/ACL graph, bounded maintenance, concurrent scheduler/restart and exact hosted rollout/rollback remain unverified."
+  ]
+}

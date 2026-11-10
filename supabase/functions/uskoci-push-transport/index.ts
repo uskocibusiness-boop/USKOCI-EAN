@@ -14,6 +14,7 @@ const ticket = (x: unknown): x is string => typeof x === 'string' && /^[A-Za-z0-
 const live = (x: unknown): x is string => typeof x === 'string' && Number.isFinite(Date.parse(x)) && Date.parse(x) > Date.now();
 const json = (x: unknown, status = 200) => new Response(JSON.stringify(x), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 class Invalid extends Error {}
+class StreamReadFailure extends Error {}
 let running = false;
 // A minute cron may drain several recipients, but never run unbounded work.
 // Four send lanes and one receipt batch lane share the DB's six-lease limit;
@@ -45,7 +46,14 @@ async function read(stream: ReadableStream<Uint8Array> | null, max: number, sign
  const cancel = () => { void reader.cancel().catch(() => undefined); };
  signal.addEventListener('abort', cancel, { once: true });
  try {
-  while (true) { if (signal.aborted) throw new Invalid(); const part = await reader.read(); if (signal.aborted) throw new Invalid(); if (part.done) break; total += part.value.length; if (total > max) throw new Invalid(); chunks.push(part.value); }
+  while (true) {
+   if (signal.aborted) throw new Invalid();
+   let part: ReadableStreamReadResult<Uint8Array>;
+   try { part = await reader.read(); } catch { throw new StreamReadFailure(); }
+   if (signal.aborted) throw new Invalid();
+   if (part.done) break;
+   total += part.value.length; if (total > max) throw new Invalid(); chunks.push(part.value);
+  }
   const bytes = new Uint8Array(total); let offset = 0; for (const c of chunks) { bytes.set(c, offset); offset += c.length; }
   return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
  } finally { signal.removeEventListener('abort', cancel); cancel(); }
@@ -167,6 +175,39 @@ Deno.serve(async req => {
    if (!row(done) || !only(done, ['attemptId', 'state']) || done.attemptId !== claim.attemptId || !states[parsed.result].includes(String(done.state))) throw new Invalid();
    return String(done.state);
   }
+  // An unreadable provider response is not a valid "receipt not ready" reply.
+  // Keep both outcomes pending in SQL (never resend), but do not report an
+  // upstream outage as a healthy tick. Counts contain no tickets or raw errors.
+  const receiptReadFailures = { http: 0, transport: 0, invalid: 0 };
+  const failedReceiptReads = () => receiptReadFailures.http + receiptReadFailures.transport + receiptReadFailures.invalid;
+  async function readReceipts(ids: string[]): Promise<Map<string, ProviderResult>> {
+   const outcomes = new Map<string, ProviderResult>();
+   let failure: 'transport' | 'invalid' = 'transport';
+   try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
+    const access = Deno.env.get('EXPO_ACCESS_TOKEN'); if (access) headers.Authorization = `Bearer ${access}`;
+    await bounded(PROVIDER_DEADLINE_MS, async localSignal => {
+     const response = await request('https://exp.host/--/api/v2/push/getReceipts',
+      { method: 'POST', headers, body: JSON.stringify({ ids }), signal: localSignal, redirect: 'error' });
+     if (!response.ok) { void response.body?.cancel().catch(() => undefined); receiptReadFailures.http += 1; return; }
+     failure = 'invalid';
+     try {
+      const envelope = await read(response.body, 32768, localSignal);
+      if (!row(envelope) || !only(envelope, ['data']) || !row(envelope.data)
+       || Object.keys(envelope.data).some(id => !ids.includes(id))) throw new Invalid();
+      for (const id of ids) {
+       if (!Object.hasOwn(envelope.data, id)) continue;
+       try { outcomes.set(id, expoResult(envelope.data[id], true)); }
+       catch { receiptReadFailures.invalid += 1; }
+      }
+     } catch (error) {
+      if (localSignal.aborted || error instanceof StreamReadFailure) failure = 'transport';
+      throw error;
+     }
+    });
+   } catch { receiptReadFailures[failure] += 1; }
+   return outcomes;
+  }
   async function once(kind: 'SEND' | 'RECEIPT', admissionId?: string) {
    const claim = admissionId
     ? await rpc(kind === 'SEND' ? 'rpc_claim_push_single_target' : 'rpc_claim_push_single_target_receipt', { p_admission_id: admissionId })
@@ -229,25 +270,24 @@ Deno.serve(async req => {
     if (kind === 'SEND' && deliveryExpiresAt !== null && deliveryExpiresAt <= Date.now()) {
      // No provider request was made. Close a now-expired claimed attempt.
      parsed = { result: 'FATAL', ticketId: null };
+    } else if (kind === 'RECEIPT') {
+     if (signal.aborted || !live(claim.leaseExpiresAt)) throw new Invalid();
+     const outcomes = await readReceipts([claim.ticketId as string]);
+     parsed = outcomes.get(claim.ticketId as string) ?? parsed;
     } else await bounded(PROVIDER_DEADLINE_MS, async localSignal => {
-    const response = await request(kind === 'SEND' ? 'https://exp.host/--/api/v2/push/send' : 'https://exp.host/--/api/v2/push/getReceipts',
+    const response = await request('https://exp.host/--/api/v2/push/send',
      { method: 'POST', headers, body: JSON.stringify(body), signal: localSignal, redirect: 'error' });
     if (!response.ok) {
      void response.body?.cancel().catch(() => undefined);
      // Only explicit throttle rejection is known safe to resend. 5xx/network/
      // deadline may follow provider acceptance; SQL preserves them as UNKNOWN.
-     parsed.result = kind === 'RECEIPT' ? 'RECEIPT_PENDING' : response.status === 429 ? 'RETRYABLE'
+     parsed.result = response.status === 429 ? 'RETRYABLE'
       : response.status >= 400 && response.status < 500 ? 'FATAL' : 'UNKNOWN';
     } else {
      const envelope = await read(response.body, 32768, localSignal);
      if (!row(envelope) || !only(envelope, ['data'])) throw new Invalid();
-     if (kind === 'SEND') {
-      if (!Array.isArray(envelope.data) || envelope.data.length !== 1) throw new Invalid();
-      parsed = expoResult(envelope.data[0], false);
-     } else {
-      if (!row(envelope.data) || Object.keys(envelope.data).some(k => k !== claim.ticketId)) throw new Invalid();
-      parsed = String(claim.ticketId) in envelope.data ? expoResult(envelope.data[String(claim.ticketId)], true) : { result: 'RECEIPT_PENDING', ticketId: null };
-     }
+     if (!Array.isArray(envelope.data) || envelope.data.length !== 1) throw new Invalid();
+     parsed = expoResult(envelope.data[0], false);
     }
     });
    } catch { /* No blind resend and no raw provider exception reaches output. */ }
@@ -256,7 +296,7 @@ Deno.serve(async req => {
   // Exactly one selected lane. Never fall through to global receipt/send scans.
   if (targeted) {
    const state = await once(input.action === 'single_target' ? 'SEND' : 'RECEIPT', input.admissionId as string);
-   return json({ kind: 'SINGLE_TARGET_COMPLETED', state });
+   return json({ kind: 'SINGLE_TARGET_COMPLETED', state, receiptReadFailures });
   }
   type Summary = { processed: number; failures: number; states: Record<string, number>; lastState: string };
   const summaries: Record<'SEND' | 'RECEIPT', Summary> = {
@@ -296,24 +336,11 @@ Deno.serve(async req => {
      if (active.length > 0) {
       const ids = [...new Set(active.map(claim => claim.ticketId as string))];
       const pending: ProviderResult = { result: 'RECEIPT_PENDING', ticketId: null };
-      const outcomes = new Map<string, ProviderResult>();
-      try {
-       const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
-       const access = Deno.env.get('EXPO_ACCESS_TOKEN'); if (access) headers.Authorization = `Bearer ${access}`;
-       await bounded(PROVIDER_DEADLINE_MS, async localSignal => {
-        const response = await request('https://exp.host/--/api/v2/push/getReceipts',
-         { method: 'POST', headers, body: JSON.stringify({ ids }), signal: localSignal, redirect: 'error' });
-        if (!response.ok) { void response.body?.cancel().catch(() => undefined); return; }
-        const envelope = await read(response.body, 32768, localSignal);
-        if (!row(envelope) || !only(envelope, ['data']) || !row(envelope.data)
-         || Object.keys(envelope.data).some(id => !ids.includes(id))) throw new Invalid();
-        for (const id of ids) {
-         if (!Object.hasOwn(envelope.data, id)) continue;
-         try { outcomes.set(id, expoResult(envelope.data[id], true)); }
-         catch { /* One malformed receipt must not erase other valid outcomes. */ }
-        }
-       });
-      } catch { /* A receipt read may be repeated; it can never become a SEND. */ }
+      const failuresBefore = failedReceiptReads();
+      const outcomes = await readReceipts(ids);
+      // Settle this batch, then leave new tickets for a later bounded tick.
+      // Valid-but-missing receipts remain ordinary pending work and do not stop.
+      if (failedReceiptReads() > failuresBefore) stop = true;
       // Settle independently, including after another member loses its SQL ACK.
       // A failed member keeps its durable lease for the existing SQL recovery.
       const settled = await Promise.allSettled(active.map(claim => settle(claim, outcomes.get(claim.ticketId as string) ?? pending)));
@@ -356,11 +383,11 @@ Deno.serve(async req => {
     || ages.some(key => metrics[key] !== null && (typeof metrics[key] !== 'number' || !Number.isFinite(metrics[key]) || Number(metrics[key]) < 0))) throw new Invalid();
    queue = metrics;
   } catch { /* Deployment bridge: unavailable telemetry never resends or masks a settled push. */ }
-  const unhealthy = Object.values(summaries).some(s => s.failures > 0 || ['UNKNOWN', 'FINAL', 'RETRYABLE'].some(state => s.states[state] > 0));
+  const unhealthy = failedReceiptReads() > 0 || Object.values(summaries).some(s => s.failures > 0 || ['UNKNOWN', 'FINAL', 'RETRYABLE'].some(state => s.states[state] > 0));
   await observe(unhealthy ? 'TICK_DEGRADED' : 'TICK_OK');
   return json({ kind: 'TICK_COMPLETED', receipt: summaries.RECEIPT.lastState, send: summaries.SEND.lastState,
    processed: { send: summaries.SEND.processed, receipt: summaries.RECEIPT.processed },
-   failures: { send: summaries.SEND.failures, receipt: summaries.RECEIPT.failures }, queue });
+   failures: { send: summaries.SEND.failures, receipt: summaries.RECEIPT.failures }, receiptReadFailures, queue });
  } catch {
   // No late writes after cancellation; failed telemetry never masks the original
   // unknown outcome and never causes a resend. Stale/no observation stays UNKNOWN.

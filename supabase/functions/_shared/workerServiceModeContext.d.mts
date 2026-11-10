@@ -10,6 +10,7 @@ export function workerServiceModeInstruction(context: WorkerServiceModeContext, 
 export type WorkerModeRequest = {service: string; modes: Array<'REMOTE' | 'ON_SITE'>; evidence: string; handoff?: ServiceHandoff};
 export function workerModeRequests(serviceModeChangesJson: unknown, context: {messages: Array<{role: string; body?: unknown}>},
   offered: ReadonlyMap<string, unknown>): Map<string, WorkerModeRequest>;
+export function workerFinishModeChanges(serviceModeChangesJson: unknown, context: Record<string, any>, currentText: string): string;
 export function recoverWorkerExistingIdentity(input: {
   raw: Record<string, any>; inspection: any; context: Record<string, any>;
   modeContext: WorkerServiceModeContext; catalog: any;

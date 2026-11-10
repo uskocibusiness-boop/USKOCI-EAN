@@ -309,6 +309,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
   const renderedFocus = focus.current;
   const renderedForeground = restartOwner.current;
   const isCurrent = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
+    && renderedForeground !== null && restartOwner.current === renderedForeground
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const canAct = () => isCurrent() && !navigating.current && editor.loaded && !editor.loading && !editor.busy && !editor.uncertain && !!stanje;
   const navigate = (action: () => void) => { if (!isCurrent() || navigating.current) return;
@@ -317,7 +318,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
   const pending = request.current;
   const knownRetry = !!pending?.body && (!pending.locationContext || dialogueEnabled) && turn?.clientRequestId === pending.id && turn.retryAllowed;
   const writable = stanje?.status === 'OPEN' && stanje.safety !== 'BLOCK' && !abandoning.current;
-  const canSubmit = writable && editor.loaded && !editor.loading && !radi && !editor.uncertain && (!pending || knownRetry);
+  const canSubmit = isCurrent() && writable && editor.loaded && !editor.loading && !radi && !editor.uncertain && (!pending || knownRetry);
   const prepared = editor.data?.preparedRecovery;
   const preparedAvailable = !!pending && pending.body === null && prepared?.canResume === true && prepared.state === 'PREPARED'
     && prepared.conversationId === razgovorId && prepared.clientRequestId === pending.id
@@ -398,8 +399,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
       } catch {
         return { ok: false, kod: 'AI_LOCAL_INTENT_NOT_SAVED', poruka: 'Poruka nije poslata. Pokušajte ponovo.' };
       }
-      // Backgrounding can retire the map question while storage is pending, before an HTTP abort
-      // controller exists. Returning to the foreground does not revive that confirmation lease.
+      // Backgrounding retires this command even while storage is pending, before an HTTP abort
+      // controller exists. Returning to the foreground cannot revive it or a map confirmation.
       if (!isCurrent() || (!command.body && !command.image) || (pointLease && !pointLease.isCurrent()))
         return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
       const abort = new AbortController(); streamAbort.current?.abort(); streamAbort.current = abort;

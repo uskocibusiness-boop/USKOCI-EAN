@@ -19,7 +19,7 @@ const skillLabel = value => safeText(value, 120) && value.trim().length >= 3 && 
 // Preserve a useful local clarification, without retaining a prefixed claim
 // of Save/publication/navigation. This is formatting admission, not an intent
 // classifier; the structured decision still freezes all proposed writes.
-function clarificationQuestion(value) {
+export function clarificationQuestion(value) {
   if (!safeText(value, 500)) return null;
   const match = value.trim().match(/(?:^|[.!]\s+)([^.!?]+\?)$/u);
   const question = match?.[1]?.trim();

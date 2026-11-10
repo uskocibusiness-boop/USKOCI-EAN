@@ -1,0 +1,338 @@
+{
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "tables": [
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "client_request_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "command_type",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "need_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "need_revision",
+          "type": "integer",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "question_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "text_sha256",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "request_hash",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "content_fingerprint",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "source_hash",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "policy_bundle_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "policy_hash",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "attempt_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "lease_expires_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "provider_dispatched",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "materiality",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "rule_ids",
+          "type": "text[]",
+          "default": "'{}'::text[]",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "safe_reason_codes",
+          "type": "text[]",
+          "default": "'{}'::text[]",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "policy_decision_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "materiality_decision_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "output_hash",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "receipt",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "clock_timestamp()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "clock_timestamp()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "policies": [],
+      "relation": "private.qa_ai_commands",
+      "triggers": [
+        {
+          "name": "qa_ai_closure_guard",
+          "enabled": "O",
+          "function": "private.closure_guard_owned_write()",
+          "internal": false,
+          "definition": "CREATE TRIGGER qa_ai_closure_guard BEFORE INSERT OR UPDATE ON private.qa_ai_commands FOR EACH ROW EXECUTE FUNCTION private.closure_guard_owned_write('ACCOUNT', 'account_id')"
+        }
+      ],
+      "force_rls": true,
+      "constraints": [
+        {
+          "name": "qa_ai_commands_account_id_client_request_id_key",
+          "type": "u",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "UNIQUE (account_id, client_request_id)"
+        },
+        {
+          "name": "qa_ai_commands_check",
+          "type": "c",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "CHECK ((command_type = 'ASK'::text) = (question_id IS NULL))"
+        },
+        {
+          "name": "qa_ai_commands_check1",
+          "type": "c",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "CHECK ((state = 'COMMITTED'::text) = (receipt IS NOT NULL))"
+        },
+        {
+          "name": "qa_ai_commands_check2",
+          "type": "c",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "CHECK (state <> 'READY'::text OR outcome = 'ALLOW'::text AND (command_type = 'ASK'::text OR materiality = 'NON_MATERIAL'::text))"
+        },
+        {
+          "name": "qa_ai_commands_command_type_check",
+          "type": "c",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "CHECK (command_type = ANY (ARRAY['ASK'::text, 'ANSWER'::text]))"
+        },
+        {
+          "name": "qa_ai_commands_materiality_check",
+          "type": "c",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "CHECK (materiality = ANY (ARRAY['NON_MATERIAL'::text, 'MATERIAL'::text]))"
+        },
+        {
+          "name": "qa_ai_commands_need_revision_check",
+          "type": "c",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "CHECK (need_revision > 0)"
+        },
+        {
+          "name": "qa_ai_commands_outcome_check",
+          "type": "c",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "CHECK (outcome = ANY (ARRAY['ALLOW'::text, 'CLARIFY'::text, 'REVIEW'::text, 'BLOCK'::text]))"
+        },
+        {
+          "name": "qa_ai_commands_pkey",
+          "type": "p",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "qa_ai_commands_request_hash_check",
+          "type": "c",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "CHECK (request_hash ~ '^[a-f0-9]{64}$'::text)"
+        },
+        {
+          "name": "qa_ai_commands_state_check",
+          "type": "c",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "CHECK (state = ANY (ARRAY['PROCESSING'::text, 'READY'::text, 'REJECTED'::text, 'STALE'::text, 'COMMITTED'::text, 'CANCELLED'::text]))"
+        },
+        {
+          "name": "qa_ai_commands_text_sha256_check",
+          "type": "c",
+          "deferred": false,
+          "validated": true,
+          "deferrable": false,
+          "definition": "CHECK (text_sha256 ~ '^[a-f0-9]{64}$'::text)"
+        }
+      ]
+    }
+  ]
+}

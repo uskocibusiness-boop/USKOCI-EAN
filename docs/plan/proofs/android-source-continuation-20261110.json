@@ -1,0 +1,247 @@
+{
+  "schema": "USKOCI_ANDROID_SOURCE_CONTINUATION_20261110",
+  "recordedAt": "2026-11-10T15:46:49.035691+00:00",
+  "agent": "B - Android, UX, poruke",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "baseCommit": "334d0f9dc3a896fe2e3f3718d5ed995d7e2d10c1",
+  "headAtCapture": "334d0f9dc3a896fe2e3f3718d5ed995d7e2d10c1",
+  "sourceState": "Uncommitted changes in the coordinator checkout; coordinator owns integration and CI.",
+  "SOURCE": true,
+  "LOCAL_TEST": true,
+  "CI": false,
+  "DEV": false,
+  "ANDROID": false,
+  "PROD": false,
+  "levelMeaning": "These flags describe evidence collected by Agent B for this new source package, not prior QA127 or later coordinator execution.",
+  "sourceFiles": [
+    {
+      "path": "src/ui/groups/GroupConversationController.ts",
+      "sha256": "930b57933d2296856d58a18fa132128dba0bb4e4b7e8f1c0503ee67b298d478a"
+    },
+    {
+      "path": "src/data/groupConversationService.ts",
+      "sha256": "e8525e158622f3bdc013f8845940884fa95b0919debd716730f807b3b6f701ed"
+    },
+    {
+      "path": "src/ui/groups/GroupConversationPresentation.tsx",
+      "sha256": "778616915720b44ebf8f9723e5bc27391bc04570c36450de5bdff0edf9749706"
+    },
+    {
+      "path": "src/ui/groups/GroupConversationScreen.tsx",
+      "sha256": "b18b6833a63b4d77b232b3bc8800de07459fcd071285f6e35d7104c7a1aeda0a"
+    },
+    {
+      "path": "scripts/group-conversation-lifecycle.test.cjs",
+      "sha256": "dbf0b6f51d4678408cfef0307cf22c5ee425fef79857e9d2b3731bac696013eb"
+    },
+    {
+      "path": "src/app/(app)/nova.tsx",
+      "sha256": "f1f4b757b037140f6044ab2c7ffb945baade6849f7d248c736aebc6857ad4a7e"
+    },
+    {
+      "path": "scripts/r06-prepared-client-recovery.test.cjs",
+      "sha256": "ed49a2e3a2eba880369d16291713e3be95fa00cf45890fc2ca6c4c55edd38321"
+    }
+  ],
+  "changes": [
+    {
+      "id": "GROUP_JOURNAL_STORAGE_ORDER",
+      "status": [
+        "RESENO_U_KODU",
+        "PROSLO_TESTOVE"
+      ],
+      "problem": "A new controller could read an empty journal while an older native write was still pending before visibility; late cleanup could similarly overlap the replacement controller.",
+      "fix": "Serialize only journal reads/writes/removals by existing account+Agreement key, across controller instances. Check the current owner before queued writes/removals. Keep all network calls outside the queue.",
+      "invariants": [
+        "Original request key retained",
+        "No automatic message send or retry",
+        "Failed storage releases queue",
+        "Other accounts are not blocked",
+        "Only the existing four identity/hash fields are persisted"
+      ]
+    },
+    {
+      "id": "GROUP_INVALID_UNICODE",
+      "status": [
+        "RESENO_U_KODU",
+        "PROSLO_TESTOVE"
+      ],
+      "problem": "NUL and lone UTF-16 surrogate code points passed local validation and could capture a journal for a payload rejected by text transport/storage.",
+      "fix": "Reject invalid text before journal or RPC, retain the editable input, and show a bounded formal error. Preserve valid Serbian scripts, combining marks and emoji pairs."
+    },
+    {
+      "id": "NEED_FOREGROUND_SEND_OWNERSHIP",
+      "status": [
+        "RESENO_U_KODU",
+        "PROSLO_TESTOVE"
+      ],
+      "problem": "Ordinary Need sends were fenced by account/focus/view but not the foreground generation; a stale callback or a delayed journal completion could start a new send after backgrounding.",
+      "fix": "Include the existing foreground generation in isCurrent and canSubmit. Pending identity and text remain for canonical recovery; returning to foreground does not revive the old command.",
+      "invariants": [
+        "No new paid model call in the retired scope",
+        "No synthetic AI result",
+        "Original journal remains intact",
+        "Fresh user action in the new foreground still dispatches once"
+      ]
+    },
+    {
+      "id": "GROUP_FORMAL_COPY",
+      "status": [
+        "RESENO_U_KODU",
+        "PROSLO_TESTOVE"
+      ],
+      "fix": "Existing group-screen labels and accessible actions use Vi/Vam. The support hint correctly describes selecting a message for a report, not already sending a report."
+    }
+  ],
+  "negativeControls": [
+    {
+      "test": "group: returning before a journal write becomes visible waits for its identity instead of admitting a fresh command",
+      "before": "FAIL: actual READY, expected LOADING while the older write had not become visible.",
+      "after": "PASS; retains original identity, waits for persistence, reconciles without sending, and permits only explicit same-key retry."
+    },
+    {
+      "test": "group: invalid text never captures a journal; the editable draft and valid Serbian/emoji text are preserved",
+      "before": "FAIL: draftSendable was true for an invalid NUL-containing input.",
+      "after": "PASS for NUL and both lone-surrogate forms; valid mixed Serbian text and family emoji send normally."
+    },
+    {
+      "test": "Need: ordinary send captured before background cannot create a turn after foreground returns",
+      "before": "FAIL: journalSave was called by the callback captured before the foreground transition.",
+      "after": "PASS; no journalSave, no sendMessage, no replacement ID; text remains."
+    },
+    {
+      "test": "Need: background while persisting an ordinary turn keeps its journal and draft without starting the provider",
+      "before": "FAIL: sendMessage was called after backgrounding while journal persistence had been pending.",
+      "after": "PASS both while still backgrounded and after returning active; same journal and text remain and canSend stays false until recovery."
+    }
+  ],
+  "tests": [
+    {
+      "command": "node --test scripts/group-conversation-lifecycle.test.cjs scripts/agreement-incoming-lifecycle.test.cjs",
+      "note": "Earlier targeted group/incoming lifecycle execution; counts overlap the final regression set.",
+      "tests": 26,
+      "pass": 26,
+      "fail": 0,
+      "exitCode": 0
+    },
+    {
+      "command": "node --test scripts/group-conversation-lifecycle.test.cjs scripts/ux-navigation-copy.test.cjs",
+      "tests": 65,
+      "pass": 65,
+      "fail": 0,
+      "exitCode": 0,
+      "note": "After formal copy updates; overlaps final regression set."
+    },
+    {
+      "command": "node --test scripts/r06-prepared-client-recovery.test.cjs scripts/ai-budget-client-recovery.test.cjs",
+      "tests": 44,
+      "pass": 44,
+      "fail": 0,
+      "exitCode": 0,
+      "note": "After Need foreground source fix; overlaps final regression set."
+    },
+    {
+      "command": "node --test scripts/r06-prepared-client-recovery.test.cjs scripts/ai-budget-client-recovery.test.cjs scripts/conversation-intent-integration.test.cjs scripts/product-smoke.test.cjs scripts/ai-role-handoff.test.cjs scripts/group-conversation-lifecycle.test.cjs scripts/ux-navigation-copy.test.cjs",
+      "tests": 235,
+      "pass": 235,
+      "fail": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "exitCode": 0,
+      "duration_ms": 7757.337565,
+      "log_sha256": "bffb0a3d0bb0717854d15daf23f5f24ea896a5938104c7eed3a48dd64b5ffd33",
+      "note": "Final connected regression run in the shared coordinator checkout. Node/React fixtures at native boundaries; not an Android or real provider execution."
+    },
+    {
+      "command": "./node_modules/.bin/tsc --noEmit",
+      "exitCode": 0,
+      "diagnostics": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "finalReview": {
+    "blockingFinding": false,
+    "scope": "nova.tsx, GroupConversationPresentation.tsx, GroupConversationScreen.tsx, and the shared PillComposer/ConfirmSheet boundaries used by those changes.",
+    "react": [
+      "No new conditional hooks or hook-order changes.",
+      "Existing stable confirmation.close callback keeps the foreground subscription stable.",
+      "Foreground invalidation changes the owner ref and schedules a render; only a real inactive/active transition creates a new owner.",
+      "Need callbacks capture their rendered owner, retain account-revision/focus/view checks, and cannot revive after a foreground transition.",
+      "Group changes preserve account/revision/Agreement/group ownership and do not change list identity, navigation or existing viewability dependencies."
+    ],
+    "accessibility": [
+      "Invalid group text has a visible alert with polite live-region behavior.",
+      "The disabled send button retains an accessible reason and disabled state through PillComposer.",
+      "Input, send, retry and support selection have formal action labels.",
+      "Existing 48-pixel command targets and layout remain unchanged."
+    ],
+    "limits": [
+      "Source review and local mounted React fixtures only.",
+      "No TalkBack run, native keyboard check, screen-size rendering or on-device timing measurement."
+    ]
+  },
+  "coldProcessTextContract": {
+    "groupPersistedFields": [
+      "version",
+      "groupId",
+      "clientRequestId",
+      "bodySha256"
+    ],
+    "groupJournalParser": "src/data/groupConversationService.ts: parseGroupJournal requires exactly those four fields.",
+    "groupJournalWriter": "src/ui/groups/GroupConversationController.ts: IDs/hash are written before send; no body is persisted.",
+    "groupDraftLifetime": "src/ui/groups/GroupConversationScreen.tsx: heldDraft is React ref memory scoped by account/revision/Agreement/group. It cannot survive process death.",
+    "previousEvidence": "docs/plan/proofs/autonomous-source-20261110.json explicitly records warm-memory-only text retention and IDs/hash-only disk journal.",
+    "existingDurableTextFacility": {
+      "exists": true,
+      "source": "src/data/agreementOutbox.ts",
+      "scope": "Private bilateral Agreement messages only.",
+      "draftKey": "uskoci:agreement-draft:v1:<accountId>:<agreementId>",
+      "storedFields": [
+        "version",
+        "accountId",
+        "agreementId",
+        "revision",
+        "text",
+        "capturedClientMessageId (optional)"
+      ],
+      "protections": [
+        "Per-account/Agreement disk serialization",
+        "Draft revision and captured-command ownership",
+        "Newer-draft protection",
+        "Explicit-logout cleanup via forgetAgreementOutboxes from authClientService"
+      ],
+      "dropInGroupReuse": false,
+      "reason": "It is coupled to AgreementMessageCommand, agreementId, private-message receipts and private outbox lifecycle. Group journal and receipts have different identity and replay semantics."
+    },
+    "otherDraftCaches": "applicationComposerDraftMemory.ts and agreementUnsentDraft.ts explicitly store text in process RAM only.",
+    "conclusion": "The current group contract is IDs/hash only, but this is not a product-wide prohibition on persistent draft text. No existing generic or group-specific durable text store was found that can be reused unchanged. The private Agreement implementation provides an existing pattern for a later scoped integration; it has not been connected to group conversations here.",
+    "remainingGap": "Unsent or unconfirmed group text is not preserved through Android process death. Server-confirmed messages may be recovered from authoritative history; an unknown journal can require exact re-entry. Android process-kill acceptance remains open."
+  },
+  "pushReview": {
+    "files": [
+      "supabase/functions/uskoci-push-transport/index.ts",
+      "scripts/capacity2-push-receipt-batch.test.cjs"
+    ],
+    "blockingAuthLeaseOrDuplicateFinding": false,
+    "diagnosticFinding": "An HTTP-200 receipt body stream rejection was initially classified invalid rather than transport. Reproduced with the real handler fixture; zero SEND calls.",
+    "coordinatorResolutionReviewed": "Dedicated StreamReadFailure wraps reader.read rejection only; UTF-8/JSON errors stay invalid; timeout/body-network scenarios are in the existing outage regression.",
+    "deliveryEvidence": false,
+    "writesByAgentB": false
+  },
+  "runtimeLimits": {
+    "adbAvailable": false,
+    "emulatorAvailable": false,
+    "physicalDeviceUsed": false,
+    "apkInstalled": false,
+    "androidAcceptance": false,
+    "liveProviderCallsByAgentB": 0,
+    "devWritesByAgentB": 0,
+    "prodWritesByAgentB": 0,
+    "r06Complete": false,
+    "coldGroupDraftComplete": false,
+    "reason": "No Android runtime was available. CI, DEV rollout and full user/server acceptance are coordinator-owned subsequent evidence."
+  }
+}

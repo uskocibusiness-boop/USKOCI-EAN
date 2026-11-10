@@ -1,0 +1,393 @@
+{
+  "schemaVersion": "USKOCI_READONLY_AI_TELEMETRY_V1",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "queriedAtUtc": "2026-11-10T14:36:28Z",
+  "window": {
+    "startInclusiveUtc": "2026-11-09T14:36:28Z",
+    "endUtc": "2026-11-10T14:36:28Z",
+    "hours": 24
+  },
+  "sourceInspection": {
+    "localCommit": "334d0f9dc3a896fe2e3f3718d5ed995d7e2d10c1",
+    "timingOwner": "supabase/functions/_shared/aiPhaseTiming.mjs",
+    "providerOwner": "supabase/functions/_shared/geminiTaskStream.ts",
+    "runtimeFunctionVersionsObserved": [
+      {
+        "surface": "NEED",
+        "version": 199
+      },
+      {
+        "surface": "WORKER",
+        "version": 152
+      }
+    ],
+    "notNewCommitMeasurement": true
+  },
+  "evidence": {
+    "phaseCount": 26,
+    "allMatchedPhaseRowsRetrieved": true,
+    "phaseOutcomes": {
+      "SUCCEEDED": 26,
+      "FAILED": 0
+    },
+    "phaseRows": [
+      {
+        "surface": "WORKER",
+        "deploymentVersion": 152,
+        "observedAtUtc": "2026-11-09T14:42:35.257000Z",
+        "phase": "WORKER_FULL_CATALOG",
+        "durationMs": 164,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "WORKER",
+        "deploymentVersion": 152,
+        "observedAtUtc": "2026-11-09T14:42:40.831000Z",
+        "phase": "PROVIDER",
+        "durationMs": 5350,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "WORKER",
+        "deploymentVersion": 152,
+        "observedAtUtc": "2026-11-09T14:42:40.911000Z",
+        "phase": "WORKER_TAXONOMY_VALIDATE",
+        "durationMs": 1,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "WORKER",
+        "deploymentVersion": 152,
+        "observedAtUtc": "2026-11-09T14:42:41.517000Z",
+        "phase": "WORKER_COMPLETE",
+        "durationMs": 605,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "WORKER",
+        "deploymentVersion": 152,
+        "observedAtUtc": "2026-11-09T14:43:20.566000Z",
+        "phase": "WORKER_FULL_CATALOG",
+        "durationMs": 0,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "WORKER",
+        "deploymentVersion": 152,
+        "observedAtUtc": "2026-11-09T14:43:25.509000Z",
+        "phase": "PROVIDER",
+        "durationMs": 4665,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "WORKER",
+        "deploymentVersion": 152,
+        "observedAtUtc": "2026-11-09T14:43:25.532000Z",
+        "phase": "WORKER_TAXONOMY_VALIDATE",
+        "durationMs": 1,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "WORKER",
+        "deploymentVersion": 152,
+        "observedAtUtc": "2026-11-09T14:43:25.830000Z",
+        "phase": "WORKER_COMPLETE",
+        "durationMs": 298,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:10:25.769000Z",
+        "phase": "NEED_FULL_CATALOG",
+        "durationMs": 118,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:10:28.896000Z",
+        "phase": "PROVIDER",
+        "durationMs": 3126,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:10:29.072000Z",
+        "phase": "NEED_COMPLETE",
+        "durationMs": 164,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:12:19.402000Z",
+        "phase": "NEED_FULL_CATALOG",
+        "durationMs": 155,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:12:26.150000Z",
+        "phase": "PROVIDER",
+        "durationMs": 6747,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:12:26.352000Z",
+        "phase": "NEED_COMPLETE",
+        "durationMs": 188,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:14:02.703000Z",
+        "phase": "NEED_FULL_CATALOG",
+        "durationMs": 141,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:14:05.688000Z",
+        "phase": "PROVIDER",
+        "durationMs": 2984,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:14:05.702000Z",
+        "phase": "NEED_TAXONOMY_VALIDATE",
+        "durationMs": 1,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:14:05.920000Z",
+        "phase": "NEED_COMPLETE",
+        "durationMs": 218,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:15:54.878000Z",
+        "phase": "NEED_FULL_CATALOG",
+        "durationMs": 158,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:16:00.458000Z",
+        "phase": "PROVIDER",
+        "durationMs": 5578,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:16:00.481000Z",
+        "phase": "NEED_TAXONOMY_VALIDATE",
+        "durationMs": 1,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:16:00.738000Z",
+        "phase": "NEED_COMPLETE",
+        "durationMs": 257,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:16:09.978000Z",
+        "phase": "NEED_FULL_CATALOG",
+        "durationMs": 147,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:16:14.325000Z",
+        "phase": "PROVIDER",
+        "durationMs": 4346,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:16:14.336000Z",
+        "phase": "NEED_TAXONOMY_VALIDATE",
+        "durationMs": 1,
+        "outcome": "SUCCEEDED"
+      },
+      {
+        "surface": "NEED",
+        "deploymentVersion": 199,
+        "observedAtUtc": "2026-11-09T15:16:14.534000Z",
+        "phase": "NEED_COMPLETE",
+        "durationMs": 198,
+        "outcome": "SUCCEEDED"
+      }
+    ],
+    "phaseAggregates": [
+      {
+        "surface": "WORKER",
+        "phase": "WORKER_FULL_CATALOG",
+        "count": 2,
+        "minMs": 0,
+        "meanMs": 82,
+        "medianMs": 82,
+        "maxMs": 164
+      },
+      {
+        "surface": "WORKER",
+        "phase": "PROVIDER",
+        "count": 2,
+        "minMs": 4665,
+        "meanMs": 5007.5,
+        "medianMs": 5007.5,
+        "maxMs": 5350
+      },
+      {
+        "surface": "WORKER",
+        "phase": "WORKER_TAXONOMY_VALIDATE",
+        "count": 2,
+        "minMs": 1,
+        "meanMs": 1,
+        "medianMs": 1,
+        "maxMs": 1
+      },
+      {
+        "surface": "WORKER",
+        "phase": "WORKER_COMPLETE",
+        "count": 2,
+        "minMs": 298,
+        "meanMs": 451.5,
+        "medianMs": 451.5,
+        "maxMs": 605
+      },
+      {
+        "surface": "NEED",
+        "phase": "NEED_FULL_CATALOG",
+        "count": 5,
+        "minMs": 118,
+        "meanMs": 143.8,
+        "medianMs": 147,
+        "maxMs": 158
+      },
+      {
+        "surface": "NEED",
+        "phase": "PROVIDER",
+        "count": 5,
+        "minMs": 2984,
+        "meanMs": 4556.2,
+        "medianMs": 4346,
+        "maxMs": 6747
+      },
+      {
+        "surface": "NEED",
+        "phase": "NEED_COMPLETE",
+        "count": 5,
+        "minMs": 164,
+        "meanMs": 205,
+        "medianMs": 198,
+        "maxMs": 257
+      },
+      {
+        "surface": "NEED",
+        "phase": "NEED_TAXONOMY_VALIDATE",
+        "count": 3,
+        "minMs": 1,
+        "meanMs": 1,
+        "medianMs": 1,
+        "maxMs": 1
+      }
+    ],
+    "usageBySurface": [
+      {
+        "surface": "NEED",
+        "model": "gemini-3.8-flash",
+        "requests": 5,
+        "first_recorded_at": "2026-11-09 15:10:29.018794+00",
+        "last_recorded_at": "2026-11-09 15:16:14.429052+00",
+        "prompt_tokens": 31144,
+        "mean_prompt_tokens": "6228.80",
+        "min_prompt_tokens": 4730,
+        "max_prompt_tokens": 8308,
+        "output_tokens": 1863,
+        "mean_output_tokens": "372.60",
+        "min_output_tokens": 146,
+        "max_output_tokens": 695,
+        "total_tokens": 33007
+      },
+      {
+        "surface": "WORKER",
+        "model": "gemini-3.8-flash",
+        "requests": 2,
+        "first_recorded_at": "2026-11-09 14:42:41.610916+00",
+        "last_recorded_at": "2026-11-09 14:43:25.913788+00",
+        "prompt_tokens": 18657,
+        "mean_prompt_tokens": "9328.50",
+        "min_prompt_tokens": 9264,
+        "max_prompt_tokens": 9393,
+        "output_tokens": 936,
+        "mean_output_tokens": "468.00",
+        "min_output_tokens": 426,
+        "max_output_tokens": 510,
+        "total_tokens": 19593
+      }
+    ],
+    "combinedUsage": {
+      "requests": 7,
+      "promptTokens": 49801,
+      "outputTokens": 2799,
+      "totalTokens": 52600,
+      "meanPromptTokens": 7114.428571428572,
+      "meanOutputTokens": 399.85714285714283
+    },
+    "functionEdgeTimingAggregates": [
+      {
+        "deployment_version": "199",
+        "max_execution_ms": 1489,
+        "mean_execution_ms": 915.6,
+        "min_execution_ms": 485,
+        "path": "/functions/v1/uskoci-ai-interview",
+        "requests": 5,
+        "status": "200"
+      },
+      {
+        "deployment_version": "152",
+        "max_execution_ms": 1681,
+        "mean_execution_ms": 1579,
+        "min_execution_ms": 1477,
+        "path": "/functions/v1/uskoci-worker-interview",
+        "requests": 2,
+        "status": "200"
+      }
+    ]
+  },
+  "limitations": [
+    "These are seven real historical inference calls from 2026-11-09 14:42–15:16 UTC inside the selected last-24-hour window. They are not timings for local commit334d0f9 or current Need201/Worker154.",
+    "PROVIDER measures the complete streamGeminiTask operation, including transport and stream/body validation; it is not time to first useful token.",
+    "No first-token, first-useful-text or device-display timestamp is available in the selected timing telemetry. SSE accepted is not useful AI output. No first-token latency is inferred.",
+    "NEED_COMPLETE and WORKER_COMPLETE time the authoritative completion RPC path including transport and receipt/readback, not isolated PostgreSQL execution.",
+    "FULL_CATALOG measures catalog loading, including a possible in-process hit (one observed Worker phase is0ms); it is not exclusively database execution.",
+    "TAXONOMY_VALIDATE is local shared-helper work, not a second model call.",
+    "function_edge_logs execution_time_ms is shorter than measured full provider duration for these streamed responses. It is retained as raw server telemetry but not interpreted as total response or user-visible latency.",
+    "An execution_id is reused across two Worker turns; phase rows are aggregated independently instead of incorrectly grouping an isolate as a single user request.",
+    "Only existing usage ledger aggregates and strictly formatted count-only phase events were read; no message bodies, prompts, access tokens, IPs, account IDs or operation IDs were exported.",
+    "No live write, model invocation, budget change, new paid request, Android observation or source edit was performed for this task.",
+    "No provider tail percentile is claimed from only seven calls; mean/min/max and counts are shown."
+  ]
+}

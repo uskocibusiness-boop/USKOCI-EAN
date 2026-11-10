@@ -96,6 +96,69 @@ test('missing/foreign envelopes and HTTP errors never become a new SEND', async 
  }
 });
 
+test('receipt read outages are degraded, stop new batches and keep the original tickets pending', async () => {
+ for (const scenario of ['401', '429', '500', 'timeout', 'network', 'body-network', 'body-timeout', 'invalid-utf8', 'invalid-json', 'foreign', 'malformed']) {
+  const h = edgeHarness({
+   setTimeout: (fn, ms, ...args) => setTimeout(fn, ms === 5000 ? 5 : ms, ...args),
+   provider: async (call, { isSend, json }) => {
+    assert.equal(isSend, false);
+    if (scenario === 'timeout') return new Promise(() => {});
+    if (scenario === 'network') throw new Error('private provider URL and credentials must stay private');
+    if (scenario === 'body-network') return new Response(new ReadableStream({ start(c) { c.error(new TypeError('private connection reset')); } }));
+    if (scenario === 'body-timeout') return new Response(new ReadableStream({ start() {} }));
+    if (scenario === 'invalid-utf8') return new Response(new Uint8Array([0xff]));
+    if (/^\d+$/.test(scenario)) return json({ privateProviderMessage: 'sensitive' }, Number(scenario));
+    if (scenario === 'invalid-json') return new Response('{private', { status: 200 });
+    if (scenario === 'foreign') return json({ data: { private_unknown_ticket: { status: 'ok' } } });
+    return json({ data: Object.fromEntries(call.args.ids.map(id => [id, { status: 'ok', unexpected: true }])) });
+   },
+  });
+  const attempts = Array.from({ length: 12 }, () => h.add('RECEIPT'));
+  const result = await (await h.invoke()).json();
+  assert.deepEqual(h.observations, ['TICK_DEGRADED'], scenario);
+  assert.equal(receiptCalls(h).length, 1, 'do not repeat a failed provider read across new batches: ' + scenario);
+  assert.equal(result.processed.receipt, 6, scenario);
+  assert.equal(h.queues.RECEIPT.length, 6, scenario);
+  assert.ok(h.completed.every(c => c.p_result === 'RECEIPT_PENDING'), scenario);
+  assert.deepEqual(h.completed.map(c => c.p_attempt_id), attempts.slice(0, 6).map(a => a.id));
+  assert.equal(h.calls.filter(c => c.url.endsWith('/send')).length, 0, scenario);
+  assert.deepEqual(result.failures, { send: 0, receipt: 0 }, 'successful SQL pending settlement is distinct from failed provider read');
+  const expected = { http: 0, transport: 0, invalid: 0 };
+  expected[/^\d+$/.test(scenario) ? 'http' : ['network', 'timeout', 'body-network', 'body-timeout'].includes(scenario) ? 'transport' : 'invalid'] = scenario === 'malformed' ? 6 : 1;
+  assert.deepEqual(result.receiptReadFailures, expected, scenario);
+  const output = JSON.stringify(result);
+  assert.equal(/private|sensitive|ExpoPushToken|ticket_/.test(output), false, scenario);
+  assert.deepEqual(h.logs, []);
+ }
+});
+
+test('a valid empty receipt map is normal pending work and does not stop subsequent batches', async () => {
+ const h = edgeHarness({ provider: async (_call, { isSend, json }) => {
+  assert.equal(isSend, false); return json({ data: {} });
+ } });
+ for (let i = 0; i < 12; i++) h.add('RECEIPT');
+ const result = await (await h.invoke()).json();
+ assert.equal(result.processed.receipt, 12);
+ assert.equal(receiptCalls(h).length, 2);
+ assert.ok(h.completed.every(c => c.p_result === 'RECEIPT_PENDING'));
+ assert.deepEqual(h.observations, ['TICK_OK']);
+ assert.deepEqual(result.receiptReadFailures, { http: 0, transport: 0, invalid: 0 });
+});
+
+test('single-target receipt reports only safe read-failure counts without changing global readiness or sending again', async () => {
+ const h = edgeHarness({ provider: async (_call, { isSend, json }) => {
+  assert.equal(isSend, false); return json({}, 401);
+ } });
+ h.add('RECEIPT'); h.add('RECEIPT');
+ const result = await (await h.invoke({ action: 'single_target_receipt', admissionId: randomUUID() })).json();
+ assert.equal(result.state, 'TICKET_PENDING');
+ assert.deepEqual(result.receiptReadFailures, { http: 1, transport: 0, invalid: 0 });
+ assert.deepEqual(h.observations, []);
+ assert.equal(h.completed.length, 1);
+ assert.equal(h.queues.RECEIPT.length, 1);
+ assert.equal(h.calls.some(c => c.url.endsWith('/send') || c.url.endsWith('/rpc_claim_push_transport')), false);
+});
+
 test('one failed settlement does not discard the other known outcomes in its batch', async () => {
  let failed = false;
  const h = edgeHarness({ rpc: async (name, args, fallback) => {

@@ -10,7 +10,8 @@ const CREATED = '2026-11-10T00:00:00Z';
 
 function harness(options = {}) {
   const session = { user: { id: ACCOUNT }, accountRevision: 1 };
-  const state = { agreementId: AGREEMENT, groupId: GROUP, sendWait: null, sendError: false, storageWait: null, removeError: false, messages: [], receipt: null };
+  const state = { agreementId: AGREEMENT, groupId: GROUP, sendWait: null, sendError: false, storageWait: null,
+    storageBeforeWait: null, removeBeforeWait: null, removeError: false, messages: [], receipt: null };
   const calls = [], stored = new Map(), listeners = new Set(), Focus = React.createContext(true);
   let requestNumber = 5;
   const app = { currentState: options.background ? 'background' : 'active', addEventListener: (_type, fn) => {
@@ -18,8 +19,15 @@ function harness(options = {}) {
   } };
   const storage = {
     getItem: async key => stored.get(key) ?? null,
-    setItem: async (key, value) => { stored.set(key, value); if (state.storageWait) await state.storageWait.promise; },
-    removeItem: async key => { if (state.removeError) throw Error('DISK_UNAVAILABLE'); stored.delete(key); },
+    setItem: async (key, value) => {
+      if (state.storageBeforeWait) await state.storageBeforeWait.promise;
+      stored.set(key, value); if (state.storageWait) await state.storageWait.promise;
+    },
+    removeItem: async key => {
+      const wait = state.removeBeforeWait; state.removeBeforeWait = null;
+      if (wait) await wait.promise;
+      if (state.removeError) throw Error('DISK_UNAVAILABLE'); stored.delete(key);
+    },
   };
   let service;
   const rpc = async (name, args) => {
@@ -104,6 +112,24 @@ test('group: repeated active event retains the current conversation and typed dr
     assert.equal(h.props().draft, 'Nacrt koji još nije poslat.');
     assert.equal(h.props().state.phase, 'READY');
     assert.equal(h.stored.size, 0, 'an unsent draft is not a command');
+  } finally { await h.close(); }
+});
+
+test('group: invalid text never captures a journal; the editable draft and valid Serbian/emoji text are preserved', async () => {
+  const h = harness();
+  try {
+    await h.mount();
+    for (const text of ['Pozdrav\u0000svima', 'Pozdrav\ud800svima', 'Pozdrav\udfffsvima']) {
+      await h.type(text); assert.equal(h.props().draftSendable, false);
+      await h.send();
+      assert.equal(h.props().state.phase, 'READY'); assert.equal(h.props().draft, text);
+      assert.equal(h.stored.size, 0); assert.equal(h.count('rpc_send_group_message_v5'), 0);
+    }
+    await h.type('  Ћао свима! C\u030cujemo se sutra. 👨‍👩‍👧‍👦  ');
+    assert.equal(h.props().draftSendable, true); await h.send();
+    const sends = h.calls.filter(call => call.name === 'rpc_send_group_message_v5');
+    assert.equal(sends.length, 1); assert.equal(sends[0].args.p_body, 'Ћао свима! Čujemo se sutra. 👨‍👩‍👧‍👦');
+    assert.equal(h.props().state.phase, 'READY'); assert.equal(h.props().draft, '');
   } finally { await h.close(); }
 });
 
@@ -246,15 +272,103 @@ test('group: leaving during journal persistence retains text and admits no delay
     h.state.storageWait = deferred(); await h.send();
     const journal = [...h.stored.values()][0];
     await h.activity('background'); await h.activity('active');
+    assert.equal(h.props().state.phase, 'LOADING', 'visibility alone is not a completed storage operation');
+    assert.equal([...h.stored.values()][0], journal);
+    await h.resolve(h.state.storageWait); h.state.storageWait = null;
     assert.equal(h.props().state.phase, 'UNKNOWN');
     assert.equal(h.props().draft, 'Početak je u dvanaest.');
     assert.equal([...h.stored.values()][0], journal);
-    await h.resolve(h.state.storageWait); h.state.storageWait = null;
     assert.equal(h.count('rpc_send_group_message_v5'), 0);
     await h.send();
     assert.equal(h.count('rpc_send_group_message_v5'), 1);
     assert.equal(h.props().state.phase, 'READY'); assert.equal(h.props().draft, '');
   } finally { h.state.storageWait?.resolve(); await h.close(); }
+});
+
+test('group: returning before a journal write becomes visible waits for its identity instead of admitting a fresh command', async () => {
+  const h = harness();
+  try {
+    await h.mount(); await h.type('Sačuvajte originalni zahtev.');
+    h.state.storageBeforeWait = deferred(); await h.send();
+    assert.equal(h.stored.size, 0, 'the delayed disk write is not yet visible');
+    assert.equal(h.props().state.phase, 'SENDING');
+    await h.activity('background'); await h.activity('active');
+    assert.equal(h.props().state.phase, 'LOADING', 'a replacement owner waits for the in-flight journal write');
+    await h.send(); assert.equal(h.count('rpc_send_group_message_v5'), 0);
+    await h.resolve(h.state.storageBeforeWait); h.state.storageBeforeWait = null;
+    assert.equal(h.props().state.phase, 'UNKNOWN');
+    assert.equal(h.props().draft, 'Sačuvajte originalni zahtev.');
+    assert.equal(h.count('rpc_send_group_message_v5'), 0, 'the retired owner never dispatches');
+    const journal = JSON.parse([...h.stored.values()][0]);
+    await h.send();
+    const sends = h.calls.filter(call => call.name === 'rpc_send_group_message_v5');
+    assert.equal(sends.length, 1); assert.equal(sends[0].args.p_client_request_id, journal.clientRequestId);
+    assert.equal(sends[0].args.p_body, 'Sačuvajte originalni zahtev.');
+    assert.equal(h.props().state.phase, 'READY'); assert.equal(h.stored.size, 0);
+  } finally { h.state.storageBeforeWait?.resolve(); await h.close(); }
+});
+
+test('group: delayed confirmed cleanup cannot erase a replacement owner\'s next command', async () => {
+  const h = harness(); let cleanup;
+  try {
+    await h.mount(); await h.type('Prvobitna poruka.'); h.state.sendError = true; await h.send(); await h.refresh();
+    await h.type('Druga, još neposlata poruka.');
+    const journal = JSON.parse([...h.stored.values()][0]);
+    h.state.receipt = { accountId: ACCOUNT, groupId: GROUP, clientRequestId: journal.clientRequestId,
+      messageId: id(8), sequence: '1', bodySha256: journal.bodySha256,
+      createdAt: CREATED, idempotentReplay: false, authoritative: true };
+    cleanup = deferred(); h.state.removeBeforeWait = cleanup; await h.refresh();
+    assert.equal(h.props().state.phase, 'CONFIRMED');
+    await h.activity('background'); await h.activity('active');
+    assert.equal(h.props().state.phase, 'LOADING', 'a new owner cannot overtake old confirmed cleanup');
+    assert.equal(h.count('rpc_send_group_message_v5'), 1);
+    await h.resolve(cleanup);
+    assert.equal(h.props().state.phase, 'READY');
+    assert.equal(h.props().draft, 'Druga, još neposlata poruka.');
+    assert.equal(h.stored.size, 0);
+    h.state.sendError = false; h.state.sendWait = deferred(); await h.send();
+    const nextJournal = JSON.parse([...h.stored.values()][0]);
+    assert.notEqual(nextJournal.clientRequestId, journal.clientRequestId);
+    assert.equal(h.props().state.phase, 'SENDING');
+    await h.activity('background'); await h.resolve(h.state.sendWait); await h.activity('active');
+    assert.equal(h.props().state.phase, 'READY');
+    assert.equal(h.props().draft, ''); assert.equal(h.stored.size, 0);
+    assert.equal(h.count('rpc_send_group_message_v5'), 2);
+  } finally { cleanup?.resolve(); h.state.sendWait?.resolve(); await h.close(); }
+});
+
+test('group: failed delayed storage releases recovery without a send or lost draft', async () => {
+  const h = harness();
+  try {
+    await h.mount(); await h.type('Nacrt ostaje kod Vas.');
+    h.state.storageBeforeWait = deferred(); await h.send();
+    await h.activity('background'); await h.activity('active');
+    assert.equal(h.props().state.phase, 'LOADING');
+    await RTR.act(async () => h.state.storageBeforeWait.reject(Error('DISK_UNAVAILABLE')));
+    h.state.storageBeforeWait = null;
+    assert.equal(h.props().state.phase, 'READY'); assert.equal(h.stored.size, 0);
+    assert.equal(h.props().draft, 'Nacrt ostaje kod Vas.');
+    assert.equal(h.count('rpc_send_group_message_v5'), 0);
+    await h.send(); assert.equal(h.count('rpc_send_group_message_v5'), 1);
+    assert.equal(h.props().draft, ''); assert.equal(h.props().state.phase, 'READY');
+  } finally { h.state.storageBeforeWait?.resolve(); await h.close(); }
+});
+
+test('group: a delayed journal of account A never blocks or supplies text to account B', async () => {
+  const h = harness();
+  try {
+    await h.mount(); await h.type('Privatni tekst prvog naloga.');
+    h.state.storageBeforeWait = deferred(); await h.send();
+    await h.activity('background'); h.session.user = { id: OTHER }; h.session.accountRevision++;
+    await h.render(); await h.activity('active');
+    assert.equal(h.props().state.phase, 'READY'); assert.equal(h.props().draft, '');
+    assert.equal(h.props().state.context.accountId, OTHER);
+    await h.resolve(h.state.storageBeforeWait); h.state.storageBeforeWait = null;
+    assert.equal(h.props().state.phase, 'READY'); assert.equal(h.props().draft, '');
+    assert.equal(h.count('rpc_send_group_message_v5'), 0);
+    assert.equal(h.count('rpc_read_group_command_v5'), 0);
+    assert.ok([...h.stored.keys()].every(key => key.includes(ACCOUNT)));
+  } finally { h.state.storageBeforeWait?.resolve(); await h.close(); }
 });
 
 test('group: edited retry text survives warm return but cannot change the original command payload', async () => {

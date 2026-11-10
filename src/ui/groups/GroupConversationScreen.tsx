@@ -103,7 +103,7 @@ export function GroupConversationScreen({agreementId,fromInbox=false,initialTarg
   onSend={()=>{if(current()){if(retry)void controller?.retry(input.current);else void controller?.send(input.current);}}}
   photo={(member,fallback)=><ProfilePhoto profileId={member.profileId} size={40} fallback={fallback}/>}
   support={group?item=><SupportContextEntry reference={{kind:'GROUP_MESSAGE',id:item.messageId,revision:null}} previewText={item.body}
-   label="Izaberi ovu poruku za podršku" disabled={!ready}
+   label="Izaberite ovu poruku za podršku" disabled={!ready}
    canAct={()=>current()&&ready&&state.messages.some(message=>message.messageId===item.messageId)}
    navigate={action=>{if(current()&&ready){owner.current=null;controller?.dispose();input.current='';setDraft('');setState(initialGroupState);action();}}}/>:undefined}/>;
 }

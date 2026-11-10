@@ -14,14 +14,14 @@ import { completeFirstPlan } from '../_shared/completeFirstPlan.ts';
 import { preparedAiInputEnabled, readPreparedInput, readPreparedInputByIdentity, preparedRecoveryStatus, prepareAiInput, dispatchPreparedInput } from '../_shared/preparedAiInput.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
-import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction } from '../_shared/workerServiceModeContext.mjs';
+import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, workerFinishModeChanges } from '../_shared/workerServiceModeContext.mjs';
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
 import { indexFullCatalog, loadFullCatalogTree, buildWorkerFullTreeTaxonomyProposals, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
 import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationIntentSchema, conversationIntentInstruction,
   takeConversationIntent, intentAllowsDomain, guardInterviewIntentOutput, conversationIntentHint,
-  workerServiceChangesSchema, workerServiceChangesInstruction, applyWorkerServiceChanges } from '../_shared/conversationIntent.mjs';
+  workerServiceChangesSchema, workerServiceChangesInstruction, applyWorkerServiceChanges, clarificationQuestion } from '../_shared/conversationIntent.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>Deno.env.get(key));
@@ -597,7 +597,9 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         if (intentAllowsChanges && finishOnly(input.text)) {
           // Finish adds no profile edits or consent. The model may still ask
           // for a missing business fact; signed readiness owns the final card.
-          output={...output,patch:{}};
+          output={...output,patch:{},assistantMessage:clarificationQuestion(output.assistantMessage)
+            ?? 'Pregledajte profil pre nego što potvrdite čuvanje ili aktivaciju.'};
+          serviceModeChangesJson=workerFinishModeChanges(serviceModeChangesJson,context,input.text);
         }
         return {output,serviceModeChangesJson,taxonomyDecisions,intentDecision,intentAllowsChanges,serviceChangesValid};
       };

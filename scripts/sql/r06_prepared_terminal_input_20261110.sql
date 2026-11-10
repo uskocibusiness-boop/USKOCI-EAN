@@ -2,7 +2,7 @@
 -- The earlier applied dormant package and lifecycle companion stay unchanged.
 -- No new user-text deletion deadline, readiness pin, runtime flag or provider call.
 DO $source_only$ BEGIN RAISE EXCEPTION 'R06_TERMINAL_INPUT_SOURCE_ONLY'; END $source_only$;
--- R06_TERMINAL_POSTIMAGE private.ai_turn_sweep_v5(timestamp with time zone) be7c4ecea535aa986b88b08310b8cacc
+-- R06_TERMINAL_POSTIMAGE private.ai_turn_sweep_v5(timestamp with time zone) 3eb933c2c2cc076cbc7528a7817ed45b
 -- R06_TERMINAL_INPUT_ISOLATED_START
 BEGIN;
 SET LOCAL lock_timeout='5s';
@@ -27,7 +27,9 @@ CREATE OR REPLACE FUNCTION private.ai_turn_sweep_v5(p_at timestamp with time zon
  SET search_path TO 'pg_catalog'
 AS $function$
 declare
-  v_cutoff timestamptz := coalesce(p_at, statement_timestamp()) - interval '10 minutes';
+  -- Maintenance callers can supply an earlier observation time, never a future
+  -- authority to fail a live Need, Worker or preselection request.
+  v_cutoff timestamptz := least(coalesce(p_at, statement_timestamp()), clock_timestamp()) - interval '10 minutes';
   v_need integer := 0; v_worker integer := 0; v_qa integer := 0; v_review integer := 0; v_errors jsonb := '[]'::jsonb;
 begin
   -- A future caller-supplied p_at cannot expire recoverable input. A terminal
@@ -106,25 +108,44 @@ begin
   -- Expiry is still not proof that the provider did not run, so the request itself is never retried:
   -- it stays failed, and only a NEW request from the person can continue the conversation. What changes
   -- is that it stops blocking that conversation and the account's closure forever.
+  -- Bound each existing expiry phase and skip busy command rows. A late worker
+  -- holding one expired row must not hold the maintenance transaction behind it.
   begin
-    update private.ai_need_turn_commands set state = 'FAILED', updated_at = clock_timestamp()
-     where state = 'PROCESSING' and lease_expires_at < v_cutoff;
+    with expired as (
+      select c.account_id,c.client_request_id from private.ai_need_turn_commands c
+       where c.state='PROCESSING' and c.lease_expires_at<v_cutoff
+       order by c.lease_expires_at,c.turn_id limit 100 for update skip locked
+    )
+    update private.ai_need_turn_commands c set state='FAILED',updated_at=clock_timestamp()
+     from expired e where c.account_id=e.account_id and c.client_request_id=e.client_request_id
+       and c.state='PROCESSING' and c.lease_expires_at<v_cutoff;
     get diagnostics v_need = row_count;
   exception when others then
     v_errors := v_errors || jsonb_build_array(jsonb_build_object('turns', 'NEED_INTAKE', 'sqlstate', sqlstate));
   end;
   begin
-    update private.worker_ai_turns set state = 'FAILED'
-     where state = 'PROCESSING' and lease_expires_at < v_cutoff;
+    with expired as (
+      select c.turn_id from private.worker_ai_turns c
+       where c.state='PROCESSING' and c.lease_expires_at<v_cutoff
+       order by c.lease_expires_at,c.turn_id limit 100 for update skip locked
+    )
+    update private.worker_ai_turns c set state='FAILED'
+     from expired e where c.turn_id=e.turn_id and c.state='PROCESSING' and c.lease_expires_at<v_cutoff;
     get diagnostics v_worker = row_count;
   exception when others then
     v_errors := v_errors || jsonb_build_array(jsonb_build_object('turns', 'WORKER_PROFILE', 'sqlstate', sqlstate));
   end;
   begin
     -- CANCELLED is the existing "this send will never publish anything" state the app already explains.
-    update private.qa_ai_commands set state = 'CANCELLED', updated_at = clock_timestamp()
-     where state = 'PROCESSING' and lease_expires_at < v_cutoff
-       and not private.closure_account_restricted(account_id);
+    with expired as (
+      select c.id from private.qa_ai_commands c
+       where c.state='PROCESSING' and c.lease_expires_at<v_cutoff
+         and not private.closure_account_restricted(c.account_id)
+       order by c.lease_expires_at,c.id limit 100 for update skip locked
+    )
+    update private.qa_ai_commands c set state='CANCELLED',updated_at=clock_timestamp()
+     from expired e where c.id=e.id and c.state='PROCESSING' and c.lease_expires_at<v_cutoff
+       and not private.closure_account_restricted(c.account_id);
     get diagnostics v_qa = row_count;
   exception when others then
     v_errors := v_errors || jsonb_build_array(jsonb_build_object('turns', 'PRESELECTION_QA', 'sqlstate', sqlstate));
@@ -159,7 +180,7 @@ DO $postflight$
 DECLARE p pg_proc%rowtype;
 BEGIN
  SELECT * INTO p FROM pg_proc WHERE oid=to_regprocedure('private.ai_turn_sweep_v5(timestamp with time zone)');
- IF NOT FOUND OR md5(p.prosrc) IS DISTINCT FROM 'be7c4ecea535aa986b88b08310b8cacc'
+ IF NOT FOUND OR md5(p.prosrc) IS DISTINCT FROM '3eb933c2c2cc076cbc7528a7817ed45b'
   OR (to_jsonb(p)-'prosrc') IS DISTINCT FROM (SELECT metadata FROM pg_temp.r06_terminal_owner_guard)
  THEN RAISE EXCEPTION 'R06_TERMINAL_OWNER_CHANGED';END IF;
 END $postflight$;

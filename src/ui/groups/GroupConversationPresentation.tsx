@@ -94,15 +94,16 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
   const toggle = (id: string) => setChosen(current => current === id ? null : id);
   appear.settle(state.messages.map(message => message.messageId));
   const length = p.draftLength;
+  const invalidText = length > 0 && length <= LIMIT && !p.draftSendable;
   const composer = (ready && group?.canSend) || retry;
-  const name = (message: GroupMessage) => message.mine ? 'Ti' : group?.members.find(member => member.accountId === message.senderAccountId)?.displayName ?? 'Učesnik';
+  const name = (message: GroupMessage) => message.mine ? 'Vi' : group?.members.find(member => member.accountId === message.senderAccountId)?.displayName ?? 'Učesnik';
   // The same runs, Serbian day lines and tails as the Dogovor's conversation (proposal R): the group only adds the sender's
   // name at the start of another person's run. The thread is text only (decision A07).
   const today = serbianToday();
   const thread = useMemo(() => buildThread(state.messages.map((message): ThreadMessage => ({ id: message.messageId, moja: message.mine,
     posiljalacAccountId: message.senderAccountId, posiljalacIme: name(message), telo: message.body, vremeTekst: '', procitano: null,
     createdAt: message.createdAt }))), [state.messages, group, today]); // eslint-disable-line react-hooks/exhaustive-deps
-  const peopleSheet = p.showPeople && group ? <ProductSheet title="Učesnici razgovora" closeLabel="Zatvori učesnike" onClose={p.onTogglePeople}>
+  const peopleSheet = p.showPeople && group ? <ProductSheet title="Učesnici razgovora" closeLabel="Zatvorite učesnike" onClose={p.onTogglePeople}>
     {() => <View style={s.people}>
         {group.members.map(member => {
           const fallback = <Avatar initials={inicijali(member.displayName)} size={40} />;
@@ -110,16 +111,16 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
           const role = member.role === 'REQUESTER' ? 'Traži pomoć' : 'Učesnik';
           return <View key={member.accountId} style={s.member}>
             {p.photo ? p.photo(member, fallback) : fallback}
-            <View style={s.flex}><T variant="bodyStrong">{member.displayName}</T><T variant="meta" tone="muted">{member.accountId === me ? `Ti · ${role}` : role}</T></View>
+            <View style={s.flex}><T variant="bodyStrong">{member.displayName}</T><T variant="meta" tone="muted">{member.accountId === me ? `Vi · ${role}` : role}</T></View>
           </View>;
         })}
         {group.members.length === 0 ? <T variant="meta" tone="muted">Prikazana je ranije dostupna istorija.</T> : null}
         {group.role === 'REQUESTER' ? <View style={[s.stack, s.parted]}>
-          <T variant="heading" accessibilityRole="header">Tvoji pojedinačni Dogovori</T><T variant="meta" tone="muted">Ovo vidiš samo ti.</T>
+          <T variant="heading" accessibilityRole="header">Vaši pojedinačni Dogovori</T><T variant="meta" tone="muted">Ovo vidite samo Vi.</T>
           {(group.management ?? []).map(item => <View key={item.agreementId} style={s.managed}>
             <T variant="body">{group.members.find(member => member.accountId === item.accountId)?.displayName ?? 'Učesnik'} · {status(item.executionState ?? item.status)}</T>
             {item.problemOpened ? <T variant="meta" tone="muted">Privatan problem u Dogovoru</T> : null}
-            <V2Action label="Otvori pojedinačni Dogovor" compact onPress={() => p.onOpenAgreement(item.agreementId)} />
+            <V2Action label="Otvorite pojedinačni Dogovor" compact onPress={() => p.onOpenAgreement(item.agreementId)} />
           </View>)}
           {group.managementNextId ? <V2Action label="Još pojedinačnih Dogovora" kind="quiet" onPress={p.onManagementNext} /> : null}
         </View> : null}
@@ -128,10 +129,10 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
   const header =<View style={[s.stack, s.gutter]} onLayout={event=>reading.onHeaderLayout(event.nativeEvent.layout.height)}>
     {first ? <QuietReadState art="chat" title="Učitavamo razgovor…" body="Proveravamo učesnike i poruke za ovaj zadatak." /> : null}
     {state.phase === 'ERROR' && !olderUnavailable ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
-      primary={{ label: 'Pokušaj ponovo', onPress: refresh }} /> : null}
+      primary={{ label: 'Pokušajte ponovo', onPress: refresh }} /> : null}
     {group ? <>
       {ownAgreementId ? <Press testID="group-task-anchor" accessibilityRole="button"
-        accessibilityLabel={`Otvori svoj Dogovor: ${group.title}`}
+        accessibilityLabel={`Otvorite svoj Dogovor: ${group.title}`}
         accessibilityHint="Otvara Vaše pojedinačne uslove uz ovaj zadatak."
         accessibilityState={{ disabled: !ready }} disabled={!ready}
         haptic="select" scaleTo={sys.motion.scale.row} hitSlop={0} style={s.taskAnchor}
@@ -152,14 +153,14 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
       body="Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe. Vaš privatni Dogovor je i dalje dostupan." /> : null}
     {state.message && state.phase !== 'UNKNOWN' && state.phase !== 'CONFIRMED' && (state.phase !== 'ERROR' || olderUnavailable) ? <T variant="copy" accessibilityRole={state.phase === 'ERROR' ? 'alert' : undefined}
       accessibilityLiveRegion="polite">{state.message}</T> : null}
-    {state.before ? <V2Action label={olderUnavailable ? 'Ponovo učitaj starije poruke' : 'Starije poruke'} kind="quiet" disabled={!ready && !olderUnavailable} onPress={older} /> : null}
+    {state.before ? <V2Action label={olderUnavailable ? 'Ponovo učitajte starije poruke' : 'Starije poruke'} kind="quiet" disabled={!ready && !olderUnavailable} onPress={older} /> : null}
     {/* Visibility comes from immutable per-message server grants. */}
     {ready && group && state.messages.length === 0 ? <StateView kind="empty" art="chat" title="Još nema poruka"
       body={group.canSend ? 'Dogovorite zajedničke detalje ovde. Napišite prvu poruku.' : 'Ovde još nema poruka koje možete da pročitate.'} /> : null}
     {/* New messages also arrive through foreground incremental reads; a screen reader cannot easily pull: as in
         Poruke the refresh is also a quiet action at the head of the thread, centred, under the empty state's words when
         there is none, and never on a finished conversation, where nothing new can arrive. */}
-    {ready && group && !group.terminal ? <V2Action label="Osveži poruke" kind="quiet" tone="neutral" compact style={s.centred} onPress={refresh} /> : null}
+    {ready && group && !group.terminal ? <V2Action label="Osvežite poruke" kind="quiet" tone="neutral" compact style={s.centred} onPress={refresh} /> : null}
   </View>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ScreenChrome variant="detail" title="Grupni razgovor" subtitle={group
@@ -192,7 +193,7 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
             {entry.separator ? <T accessibilityRole="header" variant="label" tone="muted" style={s.day}>{entry.separator}</T> : null}
             {entry.first ? <View testID={`group-message-sender-${item.messageId}`} style={[s.member, item.mine && s.supportMine]}>
               {sender && p.photo ? p.photo(sender, senderFallback) : senderFallback}
-              <T variant="note" tone="muted">{item.mine ? 'Ti' : sender?.displayName ?? name(item)}{entry.moment.clock ? ` · ${entry.moment.clock}` : ''}</T>
+              <T variant="note" tone="muted">{item.mine ? 'Vi' : sender?.displayName ?? name(item)}{entry.moment.clock ? ` · ${entry.moment.clock}` : ''}</T>
             </View> : null}
             {/* A tap (or a long press, or the screen reader's action) offers the message to support: the entry that stood
                 under every message is one step away, never behind a gesture alone (review r6). Without support the
@@ -201,10 +202,10 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
               sender={null} mark={mark ? <MessageMark kind={mark} /> : null}
               summary={{ accessibilityRole: p.support ? 'button' : 'text',
                 accessibilityLabel: messageSpoken({ moja: item.mine, posiljalacIme: name(item), telo: item.body }, entry.moment, mark ? MARK_WORDS[mark].toLowerCase() : undefined),
-                accessibilityHint: p.support ? 'Dodirom prijavljuješ poruku podršci.' : undefined, haptic: p.support ? 'select' : 'none', scaleTo: 1,
+                accessibilityHint: p.support ? 'Dodirom birate poruku za prijavu podršci.' : undefined, haptic: p.support ? 'select' : 'none', scaleTo: 1,
                 disabled: !p.support, onPress: p.support ? () => toggle(item.messageId) : undefined,
                 onLongPress: p.support ? () => toggle(item.messageId) : undefined,
-                accessibilityActions: p.support ? [{ name: 'activate', label: 'Izaberi ovu poruku za podršku' }] : undefined,
+                accessibilityActions: p.support ? [{ name: 'activate', label: 'Izaberite ovu poruku za podršku' }] : undefined,
                 onAccessibilityAction: p.support ? () => toggle(item.messageId) : undefined }} />
             {p.support && chosen === item.messageId ? <View style={[s.support, item.mine ? s.supportMine : s.supportTheirs]}>{p.support(item)}</View> : null}
           </Appear>;
@@ -213,25 +214,26 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
       {/* Keep read and send recovery next to the composer even when the reader is scrolled into older history. */}
       {state.syncUnavailable ? <View testID="group-sync-unavailable" style={[s.stack,s.gutter]} accessibilityLiveRegion="polite">
         <T variant="note" tone="muted">Nove poruke trenutno ne stižu. Prikazane poruke i Vaš tekst su sačuvani na ovom ekranu. Pokušavamo ponovo.</T>
-        <V2Action label="Proveri nove poruke" kind="quiet" compact onPress={p.onRefresh} />
+        <V2Action label="Proverite nove poruke" kind="quiet" compact onPress={p.onRefresh} />
       </View> : null}
       {progress ? <View testID="group-conversation-progress" style={[s.stack, s.gutter]} accessibilityLiveRegion="polite">
           {state.phase === 'LOADING' ? <T variant="meta" tone="muted">Učitavamo poruke…</T> : null}
           {state.phase === 'SENDING' ? <T variant="meta" tone="muted">Čekamo potvrdu slanja…</T> : null}
           {(state.phase === 'UNKNOWN' || state.phase === 'CONFIRMED') && state.message ? <T variant="note" tone="muted">{state.message}</T> : null}
-          {state.phase === 'UNKNOWN' ? <V2Action label="Proveri da li je poruka stigla" style={brandAction} onPress={refresh} /> : null}
-          {state.phase === 'CONFIRMED' ? <V2Action label="Nastavi razgovor" style={brandAction} onPress={p.onAcknowledge} /> : null}
+          {state.phase === 'UNKNOWN' ? <V2Action label="Proverite da li je poruka stigla" style={brandAction} onPress={refresh} /> : null}
+          {state.phase === 'CONFIRMED' ? <V2Action label="Nastavite razgovor" style={brandAction} onPress={p.onAcknowledge} /> : null}
         </View> : null}
       {reading.showLatest ? <View style={[s.gutter, s.latest]}>
         {reading.readingLost ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Razgovor je osvežen. Prethodno mesto nije u prikazanom delu.</T> : null}
         <V2Action label="Najnovije poruke" kind="quiet" tone="neutral" compact onPress={reading.chooseLatest} />
       </View> : null}
-      {composer ? <PillComposer value={p.draft} onChange={p.onDraft} label={retry ? 'Upiši istu poruku' : 'Poruka grupi'}
-        placeholder={retry ? 'Prvobitna poruka…' : 'Napiši poruku grupi…'} sendLabel={retry ? 'Ponovi slanje iste poruke' : 'Pošalji poruku grupi'}
-        canSend={p.draftSendable && !state.syncUnavailable} reason={state.syncUnavailable ? 'Sačekaj da se veza obnovi.' : length === 0 ? 'Upiši poruku pre slanja.' : length > LIMIT ? 'Poruka je duža od 2.000 znakova.' : null}
+      {composer ? <PillComposer value={p.draft} onChange={p.onDraft} label={retry ? 'Upišite istu poruku' : 'Poruka grupi'}
+        placeholder={retry ? 'Prvobitna poruka…' : 'Napišite poruku grupi…'} sendLabel={retry ? 'Ponovite slanje iste poruke' : 'Pošaljite poruku grupi'}
+        canSend={p.draftSendable && !state.syncUnavailable} reason={state.syncUnavailable ? 'Sačekajte da se veza obnovi.' : length === 0 ? 'Upišite poruku pre slanja.' : length > LIMIT ? 'Poruka je duža od 2.000 znakova.' : invalidText ? 'Tekst sadrži nepodržan znak. Ispravite ga pre slanja.' : null}
         onSend={p.onSend} maxLength={4000}
         above={<>
           {retry ? <PillNote>Prvobitna poruka</PillNote> : null}
+          {invalidText ? <PillNote tone="danger" alert>Tekst sadrži nepodržan znak. Ispravite ga pre slanja.</PillNote> : null}
           {length > NEAR ? <PillNote tone={length > LIMIT ? 'danger' : 'muted'}>{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova</PillNote> : null}
         </>} />
         : group?.terminal ? <T variant="note" tone="muted" style={s.closed}>{GROUP_CLOSED_SENTENCE}</T> : null}

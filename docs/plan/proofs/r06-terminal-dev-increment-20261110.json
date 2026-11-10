@@ -1,0 +1,346 @@
+{
+  "schema": "USKOCI_R06_TERMINAL_INCREMENT_PROOF_V1",
+  "recordedAt": "2026-11-10T15:38:13.247714+00:00",
+  "sourceBaseline": "334d0f9dc3a896fe2e3f3718d5ed995d7e2d10c1",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "scope": "SOURCE_LOCAL_NATIVE_AND_READONLY_DEV_PREFLIGHT; no hosted mutation by Agent A",
+  "changes": [
+    "Clamp maintenance reference time to the server clock before the unchanged ten-minute expiry grace.",
+    "Bound existing Need, Worker and preselection expiry phases to 100 rows each with FOR UPDATE SKIP LOCKED; retain states, authorization/closure checks, provider markers and reservations.",
+    "Package the previously source-only sole-input minimization against the installed dormant R06 dependency contract, with exact preflight/postflight and code rollback.",
+    "Add exact live QA dependency guard (27 columns,12 constraints, FORCE RLS and closure trigger); the local fixture now exercises this actual contract."
+  ],
+  "reproduction": {
+    "futureTimestamp": {
+      "basis": "QA127 terminal candidate be7c4ecea535aa986b88b08310b8cacc and existing shared v_cutoff logic",
+      "observation": "An active Need was changed to FAILED by future p_at; assert expected needTurnsFailed=0, actual=1.",
+      "status": "REPRODUCED_BEFORE_FIX",
+      "boundary": "Private maintenance owner only; no evidence of an end-user-callable exploit or observed live incident."
+    },
+    "rowContention": {
+      "recordedAt": "2026-11-10T15:30:41.949Z",
+      "scope": "SOURCE_ONLY_TERMINAL_INPUT_MINIMIZATION",
+      "native": true,
+      "baseline": false,
+      "sourceSha256": "3334afecef287415be9a7392b91262ee55d54a8b391e1f9c9caf38e63cc099cf",
+      "rollbackSha256": "ab1eff119c4b89c40b23b30a0d30865da2c436cd11f9a54092bc48d42b27283d",
+      "cases": [
+        {
+          "name": "negative control: installed lifecycle keeps the unusable prompt after original lease expiry",
+          "status": "PASS"
+        },
+        {
+          "name": "whole source is blocked; incremental owner change preserves all metadata and rejects reapplication",
+          "status": "PASS"
+        },
+        {
+          "name": "NEED_SERVICE: failed, cancelled, unconfirmed-success and expired single inputs retain only exact user text",
+          "status": "PASS"
+        },
+        {
+          "name": "NEED_SERVICE: active prepared and active dispatched input are not prematurely minimized",
+          "status": "PASS"
+        },
+        {
+          "name": "NEED_SERVICE: minimized input cannot be redispatched, re-prepared or exposed to another account",
+          "status": "PASS"
+        },
+        {
+          "name": "NEED_SERVICE: account/conversation holds and closure restrictions retain the original snapshot",
+          "status": "PASS"
+        },
+        {
+          "name": "NEED_SERVICE: corrupt or unknown snapshot is retained instead of silently losing its context",
+          "status": "PASS"
+        },
+        {
+          "name": "NEED_SERVICE: real row or retention lock contention preserves input until the lock is released",
+          "status": "PASS"
+        },
+        {
+          "name": "WORKER_CAPABILITY: failed, cancelled, unconfirmed-success and expired single inputs retain only exact user text",
+          "status": "PASS"
+        },
+        {
+          "name": "WORKER_CAPABILITY: active prepared and active dispatched input are not prematurely minimized",
+          "status": "PASS"
+        },
+        {
+          "name": "WORKER_CAPABILITY: minimized input cannot be redispatched, re-prepared or exposed to another account",
+          "status": "PASS"
+        },
+        {
+          "name": "WORKER_CAPABILITY: account/conversation holds and closure restrictions retain the original snapshot",
+          "status": "PASS"
+        },
+        {
+          "name": "WORKER_CAPABILITY: corrupt or unknown snapshot is retained instead of silently losing its context",
+          "status": "PASS"
+        },
+        {
+          "name": "WORKER_CAPABILITY: real row or retention lock contention preserves input until the lock is released",
+          "status": "PASS"
+        },
+        {
+          "name": "the sweep shares one bounded 100-row budget and canonical copies have priority over old single inputs",
+          "status": "PASS"
+        },
+        {
+          "name": "a caller-supplied future time cannot fail or minimize an active prepared turn",
+          "status": "PASS"
+        },
+        {
+          "name": "expired leases keep the established ten-minute grace before terminal failure",
+          "status": "PASS"
+        },
+        {
+          "name": "future time preserves preselection and publication work; real expiry still closes it",
+          "status": "PASS"
+        },
+        {
+          "name": "guarded code rollback retains minimized data, original markers and refusal of another dispatch",
+          "status": "PASS"
+        }
+      ],
+      "failures": [
+        {
+          "name": "NEED_SERVICE: an old locked turn cannot block maintenance of the other turns",
+          "error": "canceling statement due to statement timeout"
+        },
+        {
+          "name": "WORKER_CAPABILITY: an old locked turn cannot block maintenance of the other turns",
+          "error": "canceling statement due to statement timeout"
+        },
+        {
+          "name": "terminal transition work is bounded to 100 expired Need or Worker turns per sweep",
+          "error": "Expected values to be strictly equal:\n\n102 !== 100\n"
+        }
+      ],
+      "limits": [
+        "Exact captured SQL owners with existing reduced context/closure fixture; not the complete hosted schema or policy execution.",
+        "No live provider, Android, final user-text retention period or public export/closure acceptance.",
+        "Native lock checks execute only when explicitly enabled with the isolated PostgreSQL runtime."
+      ],
+      "finishedAt": "2026-11-10T15:30:44.563Z",
+      "passed": false
+    }
+  },
+  "validation": {
+    "pglite": {
+      "command": "node --test scripts/r06-prepared-terminal-input.test.cjs scripts/r06-terminal-dev-package.test.cjs",
+      "tests": 28,
+      "pass": 28,
+      "fail": 0,
+      "skip": 0
+    },
+    "nativeTerminal": {
+      "tests": 24,
+      "pass": 24,
+      "fail": 0,
+      "report": {
+        "recordedAt": "2026-11-10T15:37:43.433Z",
+        "scope": "SOURCE_ONLY_TERMINAL_INPUT_MINIMIZATION",
+        "native": true,
+        "baseline": false,
+        "sourceSha256": "0498bbf23139c17f800bffc5ff43a98c2665bc58ccb48e7569cb93528ab6bf10",
+        "rollbackSha256": "234e90926046d058749fed23a15541ae9d25cf7efb347c2d82d1510e9c215792",
+        "cases": [
+          {
+            "name": "negative control: installed lifecycle keeps the unusable prompt after original lease expiry",
+            "status": "PASS"
+          },
+          {
+            "name": "whole source is blocked; incremental owner change preserves all metadata and rejects reapplication",
+            "status": "PASS"
+          },
+          {
+            "name": "NEED_SERVICE: failed, cancelled, unconfirmed-success and expired single inputs retain only exact user text",
+            "status": "PASS"
+          },
+          {
+            "name": "NEED_SERVICE: active prepared and active dispatched input are not prematurely minimized",
+            "status": "PASS"
+          },
+          {
+            "name": "NEED_SERVICE: minimized input cannot be redispatched, re-prepared or exposed to another account",
+            "status": "PASS"
+          },
+          {
+            "name": "NEED_SERVICE: account/conversation holds and closure restrictions retain the original snapshot",
+            "status": "PASS"
+          },
+          {
+            "name": "NEED_SERVICE: corrupt or unknown snapshot is retained instead of silently losing its context",
+            "status": "PASS"
+          },
+          {
+            "name": "NEED_SERVICE: real row or retention lock contention preserves input until the lock is released",
+            "status": "PASS"
+          },
+          {
+            "name": "NEED_SERVICE: an old locked turn cannot block maintenance of the other turns",
+            "status": "PASS"
+          },
+          {
+            "name": "WORKER_CAPABILITY: failed, cancelled, unconfirmed-success and expired single inputs retain only exact user text",
+            "status": "PASS"
+          },
+          {
+            "name": "WORKER_CAPABILITY: active prepared and active dispatched input are not prematurely minimized",
+            "status": "PASS"
+          },
+          {
+            "name": "WORKER_CAPABILITY: minimized input cannot be redispatched, re-prepared or exposed to another account",
+            "status": "PASS"
+          },
+          {
+            "name": "WORKER_CAPABILITY: account/conversation holds and closure restrictions retain the original snapshot",
+            "status": "PASS"
+          },
+          {
+            "name": "WORKER_CAPABILITY: corrupt or unknown snapshot is retained instead of silently losing its context",
+            "status": "PASS"
+          },
+          {
+            "name": "WORKER_CAPABILITY: real row or retention lock contention preserves input until the lock is released",
+            "status": "PASS"
+          },
+          {
+            "name": "WORKER_CAPABILITY: an old locked turn cannot block maintenance of the other turns",
+            "status": "PASS"
+          },
+          {
+            "name": "the sweep shares one bounded 100-row budget and canonical copies have priority over old single inputs",
+            "status": "PASS"
+          },
+          {
+            "name": "a caller-supplied future time cannot fail or minimize an active prepared turn",
+            "status": "PASS"
+          },
+          {
+            "name": "expired leases keep the established ten-minute grace before terminal failure",
+            "status": "PASS"
+          },
+          {
+            "name": "terminal transition work is bounded to 100 expired Need or Worker turns per sweep",
+            "status": "PASS"
+          },
+          {
+            "name": "future time preserves preselection and publication work; real expiry still closes it",
+            "status": "PASS"
+          },
+          {
+            "name": "preselection expiry is bounded and respects closure plus concurrent row ownership",
+            "status": "PASS"
+          },
+          {
+            "name": "guarded code rollback retains minimized data, original markers and refusal of another dispatch",
+            "status": "PASS"
+          }
+        ],
+        "failures": [],
+        "limits": [
+          "Exact captured SQL owners with existing reduced context/closure fixture; not the complete hosted schema or policy execution.",
+          "No live provider, Android, final user-text retention period or public export/closure acceptance.",
+          "Native lock checks execute only when explicitly enabled with the isolated PostgreSQL runtime."
+        ],
+        "finishedAt": "2026-11-10T15:37:45.605Z",
+        "passed": true
+      }
+    },
+    "nativePackage": {
+      "command": "USKOCI_R06_TERMINAL_PACKAGE_NATIVE=1 node --test scripts/r06-terminal-dev-package.test.cjs",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skip": 0
+    },
+    "diffCheck": "PASS"
+  },
+  "dev": {
+    "preflight": [
+      {
+        "status": "R06_TERMINAL_DEV_PREFLIGHT_PASS",
+        "includesCapturedQaRelation": true
+      }
+    ],
+    "preflightSha256": "f9306403bc00e33266da4888f23c8a0e6586d4c1f60365213fdb29f166eb52b1",
+    "readback": [
+      {
+        "checked_at": "2026-11-10 15:33:00.608512+00",
+        "sweep_body_md5": "8228461b045f87eebe7f00c646d99720",
+        "retention_ai_source_ready": false,
+        "export_policy_bound": false,
+        "erasure_bound": false,
+        "need_prepared_inputs": 0,
+        "worker_prepared_inputs": 0,
+        "migrations": 372
+      }
+    ],
+    "installExecuted": false,
+    "runtimeFlag": "UNKNOWN; unchanged",
+    "modelCalls": 0
+  },
+  "limitations": [
+    "Reduced existing SQL fixture, with actual relevant captured R06 owners and now exact QA schema constraints/FORCE RLS/closure trigger, plus native row/advisory locks; not full hosted Auth/PostgREST or R10 policy execution.",
+    "100 is a write/row-lock batch bound, not a claim that all input scanning is bounded or that every trigger/dependency can never block.",
+    "Code rollback restores the former sweep; retained text and original input hash remain and discarded provider context is not reconstructed.",
+    "R06 is not complete: retention/source/export/erasure bindings remain false, runtime flag is unverified, hosted recovery and Android acceptance are absent.",
+    "No provider invocation, reservation release, budget increase, Edge/secret/flag/Cron change or PROD action was performed."
+  ],
+  "packageManifest": {
+    "schema": "USKOCI_R06_TERMINAL_DEV_PACKAGE_V1",
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "systemIdentifier": "7676203829645141156",
+    "baselineCaptureCanonicalSha256": "65ccf5e048bb5e93ba455f34d8cc8e66acb88e2aaf5c953c079d3585717afc83",
+    "baselinePostflightSha256": "23c8ed191a025fd1b1a1d401f202cfd6ee4ea112e5bcb416c7e7b69cafcb8944",
+    "generatorSha256": "72a3a61c85c11b8b8a041681e3bc5f3abd5fc28269c3687933d1bada625a4e08",
+    "qaDependencyCanonicalSha256": "540ea082b62bcab24b846b0911ceebfc5440414343e51685579466f5895f76a0",
+    "sourceSha256": "0498bbf23139c17f800bffc5ff43a98c2665bc58ccb48e7569cb93528ab6bf10",
+    "rollbackSourceSha256": "234e90926046d058749fed23a15541ae9d25cf7efb347c2d82d1510e9c215792",
+    "signature": "private.ai_turn_sweep_v5(timestamp with time zone)",
+    "beforeHash": "8228461b045f87eebe7f00c646d99720",
+    "afterHash": "3eb933c2c2cc076cbc7528a7817ed45b",
+    "files": {
+      "preflight": {
+        "bytes": 32576,
+        "sha256": "f9306403bc00e33266da4888f23c8a0e6586d4c1f60365213fdb29f166eb52b1"
+      },
+      "install": {
+        "bytes": 77264,
+        "sha256": "c2ec39adc05aaf1f9f6e6887ac583673c5f9b9b56e330e5cbddc4ca5bd199d4b"
+      },
+      "postflight": {
+        "bytes": 32577,
+        "sha256": "9b9146fc2c88787be05828dfb5dda4a26141fc90103e56e7404b48ac41c4d36e"
+      },
+      "rollback": {
+        "bytes": 74253,
+        "sha256": "514321cf639025f12ceec975266a42d92725fe8bbada87003356e9c6d04366e9"
+      }
+    },
+    "activation": "UNCHANGED; runtime flag, hosted recovery, retention policy and Android acceptance are separate",
+    "rollback": "CODE_ONLY; preserves retained user text and original request/provider/reservation markers"
+  },
+  "intermediateFailures": [
+    {
+      "stage": "initial test startup",
+      "result": "MODULE_NOT_FOUND @electric-sql/pglite",
+      "resolution": "Root linked the already matching dependency runtime; subsequent tests executed."
+    },
+    {
+      "stage": "new QA fixture setup",
+      "result": "Two setup failures before behavioral cases: missing FORCE RLS and PG18 NOT NULL catalog representation differed from PG17 capture. Native processes were interrupted after setup failure.",
+      "resolution": "Installed captured FORCE RLS; checked equal column nullability and functional constraints, then used full local catalog metadata (including PG18 n constraints) in local operation guards. Hosted guard remains exact PG17 capture. Final suites passed."
+    }
+  ],
+  "testedFiles": {
+    "scripts/r06-prepared-terminal-input.test.cjs": "c6df1537a8816cedc0fc26a30df1c9e4aae5406890d066c1c1ac61daa491da68",
+    "scripts/r06-terminal-dev-package.test.cjs": "502082764f817ce08f674f7923bd8df8919aa1cd9573bf3f5f70a2d464c59109",
+    "scripts/r06-terminal-fixture.cjs": "c2a06eb87302baa7fd6d5527d4e50407c64b416256fb34be3aaca1b565dfb91e",
+    "scripts/r06-terminal-dev-package.cjs": "72a3a61c85c11b8b8a041681e3bc5f3abd5fc28269c3687933d1bada625a4e08",
+    "scripts/sql/r06_prepared_terminal_input_20261110.sql": "0498bbf23139c17f800bffc5ff43a98c2665bc58ccb48e7569cb93528ab6bf10",
+    "scripts/sql/r06_prepared_terminal_input_20261110.rollback.sql": "234e90926046d058749fed23a15541ae9d25cf7efb347c2d82d1510e9c215792",
+    "scripts/sql/r06_terminal_dev_20261110.dependencies.json": "1237a8c3f601cd8c0403f8d119170b53a0e91af9809da2ea10f37dc6f610656b"
+  }
+}

@@ -1,0 +1,258 @@
+{
+  "schema": "USKOCI_NEED_NATURAL_CORRECTIONS_DEV_20261110",
+  "sourceCommit": "334d0f9dc3a896fe2e3f3718d5ed995d7e2d10c1",
+  "projectId": "leqcwgzvjsxugfgzdmth",
+  "status": "DEPLOYED_READBACK_AND_NEGATIVE_AUTH_PASS",
+  "deployedAt": "2026-11-10T14:47:27.396Z",
+  "beforeVersion": 201,
+  "afterVersion": 202,
+  "statusAfter": "ACTIVE",
+  "verifyJwtBefore": false,
+  "verifyJwtAfter": false,
+  "importMap": false,
+  "entrypoint": "supabase/functions/uskoci-ai-interview/index.ts",
+  "readback": {
+    "files": 23,
+    "byteExactMatch": true,
+    "bundleSha256": "9e185d8c592444f96fbd4ded66d2ddeec478d0d16cbb1c1207b80c3bfb05822d"
+  },
+  "unchangedWorker": {
+    "version": 154,
+    "bundleSha256": "d2dc80c0ea38a90306b6c02994ace552166d8d77a0f09703d496f730cf160bc1",
+    "workerPurposeInstructionIdenticalInThreeCatalogCases": true
+  },
+  "invariantsBefore": {
+    "captured_at": "2026-11-10 14:46:12.712142+00",
+    "budget": {
+      "enabled": true,
+      "ceiling_microusd": 100000000,
+      "reserved_microusd": 65662284,
+      "reservation_cap_enforced": true
+    },
+    "cron": [
+      {
+        "active": true,
+        "jobname": "uskoci_edge_workers",
+        "schedule": "* * * * *"
+      },
+      {
+        "active": true,
+        "jobname": "uskoci_marketplace_tick",
+        "schedule": "* * * * *"
+      },
+      {
+        "active": true,
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "schedule": "* * * * *"
+      }
+    ],
+    "need_snapshots": 0,
+    "worker_snapshots": 0,
+    "migration_count": 372
+  },
+  "invariantsAfter": {
+    "captured_at": "2026-11-10 14:47:50.243997+00",
+    "budget": {
+      "enabled": true,
+      "ceiling_microusd": 100000000,
+      "reserved_microusd": 65662284,
+      "reservation_cap_enforced": true
+    },
+    "cron": [
+      {
+        "active": true,
+        "jobname": "uskoci_edge_workers",
+        "schedule": "* * * * *"
+      },
+      {
+        "active": true,
+        "jobname": "uskoci_marketplace_tick",
+        "schedule": "* * * * *"
+      },
+      {
+        "active": true,
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "schedule": "* * * * *"
+      }
+    ],
+    "need_snapshots": 0,
+    "worker_snapshots": 0,
+    "migration_count": 372
+  },
+  "independentReview": "Agent D: closed 23-file runtime dependency manifest; auth, budget, one-dispatch and immutable prepared parser verified; Worker-specific branch outputs identical.",
+  "rollback": {
+    "availableFromSourceCommit": "5a59021a15a95fc8b34507e01bf49e2a8b085619",
+    "files": 23,
+    "contentCapturedAndMatched": true,
+    "method": "Redeploy all original Need201 file contents with the same relative entrypoint and settings; verify contents, not historical version number.",
+    "executed": false
+  },
+  "operations": {
+    "edgeDeploys": 1,
+    "sqlWrites": 0,
+    "modelCalls": 0,
+    "secretChanges": 0,
+    "budgetChanges": 0,
+    "cronChanges": 0,
+    "prodWrites": 0
+  },
+  "limits": [
+    "AUTH_REQUIRED and byte readback do not prove authenticated model conversation or Android behavior.",
+    "R06 runtime flag was not read or changed; retained policy bindings and hosted recovery remain open.",
+    "Measured serialized request grew 20717 to29593 bytes; no latency or token reduction is claimed.",
+    "No migration or SOURCE_ONLY terminal-input SQL was applied."
+  ],
+  "fileManifest": [
+    {
+      "name": "supabase/functions/uskoci-ai-interview/index.ts",
+      "beforeSha256": "b21a35fbcb5bdcb20fe6109f8ba335ca6cda69769d8373d6aa9237223012e45c",
+      "sourceSha256": "09fe702209ba600fcb7ac8be92df08c860c1397f095c75dc82560b49e91baf67",
+      "changed": true
+    },
+    {
+      "name": "supabase/functions/_shared/aiPhaseTiming.mjs",
+      "beforeSha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2",
+      "sourceSha256": "4eba3bd3d1692a4094c2b84d75d3e678554859e64c96c9535567280213d088d2",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/supabaseKeys.mjs",
+      "beforeSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+      "sourceSha256": "d1f903f379d30f0c9c1da684b335013f37b1cd5b62eb6e2b61d4d3a27352ab61",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+      "beforeSha256": "5a41a1a179704b5878f44414923319b6b074449dbe30a6bd380f899656d8dfc5",
+      "sourceSha256": "5a41a1a179704b5878f44414923319b6b074449dbe30a6bd380f899656d8dfc5",
+      "changed": false
+    },
+    {
+      "name": "src/contracts/aiAvailability.ts",
+      "beforeSha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+      "sourceSha256": "e670bc2df4bdabe8df0285a80a6dcdaba348e4e9453ccfe787dbd1a2a2f1c9b8",
+      "changed": false
+    },
+    {
+      "name": "src/contracts/needFactsV2.ts",
+      "beforeSha256": "f5f9eed0f9ed17278d805982d036feae3b910a413e98d20f8e93e0e9fe1d5099",
+      "sourceSha256": "f5f9eed0f9ed17278d805982d036feae3b910a413e98d20f8e93e0e9fe1d5099",
+      "changed": false
+    },
+    {
+      "name": "src/contracts/taskApplicationDeadline.ts",
+      "beforeSha256": "6561ccfe5530ae34944d304abeb8400e8f3e5e8d29d16d5a5d517226b5e5ff5a",
+      "sourceSha256": "6561ccfe5530ae34944d304abeb8400e8f3e5e8d29d16d5a5d517226b5e5ff5a",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/locationReply.ts",
+      "beforeSha256": "e58382d12212257801fdbfdb5271ea5488891533e2208943cf18b81fe49770e3",
+      "sourceSha256": "e58382d12212257801fdbfdb5271ea5488891533e2208943cf18b81fe49770e3",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/interviewVoiceInstruction.mjs",
+      "beforeSha256": "e745c61fb3b7bd02c729d212d0faadd20a1a54f74716693f33500e96dbf30ea0",
+      "sourceSha256": "e745c61fb3b7bd02c729d212d0faadd20a1a54f74716693f33500e96dbf30ea0",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/aiTestBudget.ts",
+      "beforeSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+      "sourceSha256": "136ec66843e39f80505081d8d8f4caba6c09a5c625840e2d75c94716cb41aadf",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/geminiTaskStream.ts",
+      "beforeSha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+      "sourceSha256": "56e731f72c8fb094c133a79a63c97538d18ad6581f991a40ab0d6139324b9d69",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/singlePassTaxonomy.mjs",
+      "beforeSha256": "6009239c1871a1a4fcc579e8aa79b772895d102f04dee0539477ac985f01463c",
+      "sourceSha256": "e64fdeafc46580bb5bc100c79a643359fcc433a7558efc2410d877b84eaf0c9c",
+      "changed": true
+    },
+    {
+      "name": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+      "beforeSha256": "97df6ed6d5e1c4289a9ce4ee677599538cf29fa670da8ad30cc561300a8735ee",
+      "sourceSha256": "97df6ed6d5e1c4289a9ce4ee677599538cf29fa670da8ad30cc561300a8735ee",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/classificationEngine.mjs",
+      "beforeSha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+      "sourceSha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/serviceHandoff.mjs",
+      "beforeSha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e",
+      "sourceSha256": "784f55be68944570acac509444e19eaf51b27664f686ecd7e210c9ae9681df2e",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/workerServiceModeContext.mjs",
+      "beforeSha256": "8a2d6e1c488a69ba12091f1e905a164f64b17e941e344001c899a1f05eb17a55",
+      "sourceSha256": "8a2d6e1c488a69ba12091f1e905a164f64b17e941e344001c899a1f05eb17a55",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/completeFirstPlan.ts",
+      "beforeSha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de",
+      "sourceSha256": "09db698bf5b3a728d80daeffd14c3be3ba9a0e4b83c70f13f9ba6472f7ae48de",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/preparedAiInput.ts",
+      "beforeSha256": "7ee8653fc6ba0e6ab78aa31d857a49c906d46ed51caf78cc4da034c76295903b",
+      "sourceSha256": "7ee8653fc6ba0e6ab78aa31d857a49c906d46ed51caf78cc4da034c76295903b",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/serviceExecutionInstruction.mjs",
+      "beforeSha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314",
+      "sourceSha256": "1e6ec151b93d17fab1cc6b4fde44025c0f41350e569686aa8e2c2a6b02d05314",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/researchDeadline.ts",
+      "beforeSha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9",
+      "sourceSha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/geminiContextCache.mjs",
+      "beforeSha256": "94daaefe13749a01f5cfde4d933be07824b930f2e7a0517f3c96d73eb4d0c7cf",
+      "sourceSha256": "94daaefe13749a01f5cfde4d933be07824b930f2e7a0517f3c96d73eb4d0c7cf",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/craftQuestionMatrix.mjs",
+      "beforeSha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b",
+      "sourceSha256": "d1c81546eaa7282fa636bdda0e15723ff0c79a0a233fd35ee72b35d69235cc8b",
+      "changed": false
+    },
+    {
+      "name": "supabase/functions/_shared/conversationIntent.mjs",
+      "beforeSha256": "5c99f4a30ad7e3b30189dfeb143f45ab66f19060b5e58cbde5d6498f0badffc7",
+      "sourceSha256": "5c99f4a30ad7e3b30189dfeb143f45ab66f19060b5e58cbde5d6498f0badffc7",
+      "changed": false
+    }
+  ],
+  "authNegative": {
+    "checkedAt": "2026-11-10T14:47:41.136917+00:00",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "function": "uskoci-ai-interview",
+    "method": "POST",
+    "authorization": "ABSENT",
+    "requestBody": "{}",
+    "status": 401,
+    "response": {
+      "code": "AUTH_REQUIRED",
+      "message": "Prijavite se da biste nastavili."
+    }
+  }
+}

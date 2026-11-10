@@ -1,0 +1,143 @@
+{
+  "schema": "USKOCI_CONTINUATION_INTEGRATED_SOURCE_V1",
+  "recordedAt": "2026-11-10 15:46:40 UTC",
+  "baselineCommit": "334d0f9dc3a896fe2e3f3718d5ed995d7e2d10c1",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "status": {
+    "source": true,
+    "localTest": true,
+    "ci": "PENDING_NEW_COMMIT",
+    "dev": "READ_ONLY_PREFLIGHT_ONLY_AT_THIS_CHECKPOINT",
+    "android": false,
+    "prod": false
+  },
+  "checks": {
+    "npmTest": {
+      "tests": 1639,
+      "pass": 1639,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "duration_ms": 112741.821044
+    },
+    "typeScript": {
+      "exitCode": 0,
+      "diagnostics": 0
+    },
+    "migrationIntegrity": {
+      "exitCode": 0,
+      "sqlFiles": 235,
+      "tests": 90
+    },
+    "nativePatch": "PASS",
+    "uxVerifier": "HISTORICAL_CHECKPOINT_ALREADY_RECORDED",
+    "diffCheck": "PASS"
+  },
+  "changes": [
+    {
+      "area": "R06 SQL",
+      "result": "Server-clock expiry; bounded 100-row Need/Worker/QA phases with SKIP LOCKED; exact DEV dependency package for previously source-only terminal-input minimization.",
+      "proof": "r06-terminal-dev-increment-20261110.json",
+      "independentReview": "Agent C: no blocker; 28/28 rerun; all generated hashes match."
+    },
+    {
+      "area": "R06 Android source",
+      "result": "The ordinary Need send callback checks foreground generation, including the interval before the HTTP controller exists while the local journal is saved.",
+      "android": false
+    },
+    {
+      "area": "Group messages",
+      "result": "Per-account/agreement serialization of local journal operations prevents replacement-controller and late-cleanup races. Reject NUL/lone surrogate input before journal/RPC; preserve valid Serbian text/emoji. Formal Vi copy.",
+      "coldProcessText": "NOT_IMPLEMENTED_BY_THIS_CHANGE; journal remains IDs/hash only; heldDraft is memory only"
+    },
+    {
+      "area": "AI Need and Worker",
+      "result": "Amount-only correction retains price basis, people/time; finish-only Worker reply cannot overwrite owned mode/handoff or claim activation. One valid clarification remains possible.",
+      "proof": "ai-price-finish-20261110.json"
+    },
+    {
+      "area": "Push receipt health",
+      "result": "HTTP/transport/invalid receipt reads remain SQL pending, record sanitized counters, degrade tick health and stop claiming further receipt batches; no automatic SEND. Valid missing receipts stay normal pending.",
+      "negativeControl": "3 new tests fail on baseline; 80/80 neighboring tests pass; independent review found body-read misclassification, corrected and 5/5 final targeted tests pass; included in 1639/1639 integrated suite."
+    }
+  ],
+  "securityReadOnly": {
+    "anonymousDelete": "ANON_DELETE_AUTH_REQUIRED_PASS in READ ONLY/ROLLBACK transaction",
+    "legalBundle": {
+      "ready": false,
+      "reason": "LEGAL_DOCUMENTS_NOT_PUBLISHED"
+    },
+    "advisorReview": "Three anonymously executable definer RPCs inspected by purpose and body; no blanket grant revocation. Postgres-only non-definer diagnostic procedure is not an anonymous endpoint."
+  },
+  "failureDisclosure": [
+    "Initial TypeScript check found missing new .d.mts export; corrected before the integrated PASS.",
+    "Native R06/QA fixtures and exact dependency guard corrected after real failures; detailed evidence retained in agent proof.",
+    "SQL read-only aggregates initially used nonexistent public.messages and lease_until, then corrected from catalog evidence to agreement_messages and locked_until.",
+    "No actual Android, Gemini latency/token benchmark, provider push delivery or complete hosted R06 recovery was executed."
+  ],
+  "logs": {
+    "integrated-tests.tap": {
+      "bytes": 196529,
+      "sha256": "2590f317a2001f0f01b09409580c52d66a6dbc7e284a99226f3fda79781aec9b"
+    },
+    "integrated-typecheck.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "integrated-sql-integrity.log": {
+      "bytes": 692,
+      "sha256": "18ead114cc823c17239394f027646adcd10c7b3921536bb50e8e3cccb61b038a"
+    },
+    "push-before.tap": {
+      "bytes": 2868,
+      "sha256": "73140d0723834aae42b8a77eb8aa286e7055fd707db55b0ef49f422ddfd98cef"
+    },
+    "push-tests.tap": {
+      "bytes": 9330,
+      "sha256": "65b7c656e17f05d1d6b8a22f9a4349cb824f8cbfcb4aa7c6adb35df5d09af7b3"
+    },
+    "push-after-reviewed.tap": {
+      "bytes": 658,
+      "sha256": "6d45cb9acd45b13ea7f97f462ec2cd23d5dd89738ad8688b7924241409616805"
+    }
+  },
+  "sourceSha256": {
+    "package.json": "dff92d5b887eba153456d37e9c8a00fe59b71a4906e7cc6efd2c24743387d7ea",
+    "scripts/capacity2-push-receipt-batch.test.cjs": "93c468f3a401844c462dfc2af3644c66cc8681aca41bdd307703e5f673b9c0c5",
+    "scripts/conversation-intent-integration.test.cjs": "9d09ba35ed3fcb2a98a1e9e5bc1261871cb4554cc7f32ac7b815b4c58bb4058d",
+    "scripts/group-conversation-lifecycle.test.cjs": "dbf0b6f51d4678408cfef0307cf22c5ee425fef79857e9d2b3731bac696013eb",
+    "scripts/need-currency-guard.test.cjs": "809249dbb42fa9d5e7c3aa6cb5a995a4a0caa2543bb51d3e74488db329819c23",
+    "scripts/r06-prepared-client-recovery.test.cjs": "ed49a2e3a2eba880369d16291713e3be95fa00cf45890fc2ca6c4c55edd38321",
+    "scripts/r06-prepared-terminal-input.test.cjs": "c6df1537a8816cedc0fc26a30df1c9e4aae5406890d066c1c1ac61daa491da68",
+    "scripts/r06-terminal-dev-package.cjs": "72a3a61c85c11b8b8a041681e3bc5f3abd5fc28269c3687933d1bada625a4e08",
+    "scripts/r06-terminal-dev-package.test.cjs": "502082764f817ce08f674f7923bd8df8919aa1cd9573bf3f5f70a2d464c59109",
+    "scripts/r06-terminal-fixture.cjs": "c2a06eb87302baa7fd6d5527d4e50407c64b416256fb34be3aaca1b565dfb91e",
+    "scripts/sql/r06_prepared_terminal_input_20261110.rollback.sql": "234e90926046d058749fed23a15541ae9d25cf7efb347c2d82d1510e9c215792",
+    "scripts/sql/r06_prepared_terminal_input_20261110.sql": "0498bbf23139c17f800bffc5ff43a98c2665bc58ccb48e7569cb93528ab6bf10",
+    "scripts/sql/r06_terminal_dev_20261110.dependencies.json": "1237a8c3f601cd8c0403f8d119170b53a0e91af9809da2ea10f37dc6f610656b",
+    "scripts/sql/r06_terminal_dev_20261110.install.sql": "c2ec39adc05aaf1f9f6e6887ac583673c5f9b9b56e330e5cbddc4ca5bd199d4b",
+    "scripts/sql/r06_terminal_dev_20261110.manifest.json": "aa46ea5b8b05d8d7460ecef9b32e8b992f72d4602abbddae59f6c4d088867a77",
+    "scripts/sql/r06_terminal_dev_20261110.postflight.sql": "9b9146fc2c88787be05828dfb5dda4a26141fc90103e56e7404b48ac41c4d36e",
+    "scripts/sql/r06_terminal_dev_20261110.preflight.sql": "f9306403bc00e33266da4888f23c8a0e6586d4c1f60365213fdb29f166eb52b1",
+    "scripts/sql/r06_terminal_dev_20261110.rollback.sql": "514321cf639025f12ceec975266a42d92725fe8bbada87003356e9c6d04366e9",
+    "src/app/(app)/nova.tsx": "f1f4b757b037140f6044ab2c7ffb945baade6849f7d248c736aebc6857ad4a7e",
+    "src/data/groupConversationService.ts": "e8525e158622f3bdc013f8845940884fa95b0919debd716730f807b3b6f701ed",
+    "src/ui/groups/GroupConversationController.ts": "930b57933d2296856d58a18fa132128dba0bb4e4b7e8f1c0503ee67b298d478a",
+    "src/ui/groups/GroupConversationPresentation.tsx": "778616915720b44ebf8f9723e5bc27391bc04570c36450de5bdff0edf9749706",
+    "src/ui/groups/GroupConversationScreen.tsx": "b18b6833a63b4d77b232b3bc8800de07459fcd071285f6e35d7104c7a1aeda0a",
+    "supabase/functions/_shared/conversationIntent.mjs": "7e10183a86e5f92c9c9949cf6eb0d7650f51178a04f64d835c13621a7076920d",
+    "supabase/functions/_shared/workerServiceModeContext.d.mts": "6048713d57c8d2694d75d69dafe1fc3db444e04efecee07dd309f86e9a54dea2",
+    "supabase/functions/_shared/workerServiceModeContext.mjs": "78552bf6e33f173f596cbfd8df7c6eef0508f51d226b05c275a61ec007af48f3",
+    "supabase/functions/uskoci-ai-interview/index.ts": "4b7af6fe1184179f47376580b75027795b1b8eafc27813d85dc529fb0e442e3b",
+    "supabase/functions/uskoci-push-transport/index.ts": "a0030dc16695f3a669621e8c2316c420ed7251b70a5098063e887f050fa67c6b",
+    "supabase/functions/uskoci-worker-interview/index.ts": "fd42830e971cdba3120e613b247a9a80af6248b2633205bcac9349524ca22355"
+  },
+  "boundaries": {
+    "realModelCalls": 0,
+    "budgetChanged": false,
+    "productionChanged": false,
+    "preparedRuntimeFlag": "UNKNOWN",
+    "release": "NO_GO"
+  }
+}

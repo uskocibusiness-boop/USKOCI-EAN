@@ -12,7 +12,16 @@ export type GroupReceipt={accountId:string;groupId:string;clientRequestId:string
 const keys=(r:Record<string,unknown>,names:string[])=>Object.keys(r).length===names.length&&names.every(k=>Object.hasOwn(r,k));
 const integer=(n:unknown)=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
 const groupSequence=(s:unknown,zero=false):s is string=>typeof s==='string'&&(zero?/^(0|[1-9][0-9]{0,15})$/:/^[1-9][0-9]{0,15}$/).test(s)&&Number(s)<=9007199254740990;
-export const groupBody=(s:unknown):s is string=>typeof s==='string'&&s===s.trim()&&Array.from(s).length>=1&&Array.from(s).length<=2000;
+export const groupBody=(s:unknown):s is string=>{
+ if(typeof s!=='string'||s!==s.trim()||s.includes('\0'))return false;
+ const points=Array.from(s);
+ // Match the text/JSON transport boundary before persisting a retry identity.
+ // Lone UTF-16 surrogates and NUL cannot become PostgreSQL message text; valid
+ // emoji pairs, combining marks and Serbian scripts remain unchanged.
+ return points.length>=1&&points.length<=2000&&!points.some(point=>{
+  const code=point.codePointAt(0)!;return code>=0xd800&&code<=0xdfff;
+ });
+};
 export const normalizeGroupBody=(s:string)=>s.trim().normalize('NFC');
 export const groupBodyHash=(s:string)=>agreementPayloadHash(normalizeGroupBody(s));
 export function parseGroupJournal(raw:string):GroupJournal{
@@ -21,8 +30,8 @@ export function parseGroupJournal(raw:string):GroupJournal{
  ||typeof j.bodySha256!=='string'||!/^[a-f0-9]{64}$/.test(j.bodySha256))throw new Error('GROUP_JOURNAL_INVALID');return j as GroupJournal;
 }
 const options={errors:{AUTH_CONTEXT_CHANGED:'Nalog je promenjen.',GROUP_NOT_AVAILABLE:'Grupni razgovor nije dostupan.',
- GROUP_READ_ONLY:'Nove poruke trenutno nisu dostupne. Ranije dostupne poruke možeš pročitati.',GROUP_MESSAGE_INVALID:'Poruka može imati do 2.000 znakova.',
- GROUP_MESSAGE_KEY_REUSED:'Tekst se razlikuje od poslate poruke. Upiši istu poruku, bez izmena.',GROUP_CURSOR_INVALID:'Ponovo osveži razgovor.',ACCOUNT_CLOSING:'Nalog je u postupku zatvaranja.'},
+ GROUP_READ_ONLY:'Nove poruke trenutno nisu dostupne. Ranije dostupne poruke možete pročitati.',GROUP_MESSAGE_INVALID:'Poruka može imati do 2.000 znakova.',
+ GROUP_MESSAGE_KEY_REUSED:'Tekst se razlikuje od poslate poruke. Upišite istu poruku, bez izmena.',GROUP_CURSOR_INVALID:'Ponovo osvežite razgovor.',ACCOUNT_CLOSING:'Nalog je u postupku zatvaranja.'},
  fallback:'GROUP_UNCONFIRMED',invalid:'GROUP_RECEIPT_INVALID'};
 function envelope(r:Record<string,unknown>|null,account:ReceiptAccount,groupId?:string){return !!r&&sameId(r.accountId,account.accountId)&&r.authoritative===true&&(!groupId||sameId(r.groupId,groupId));}
 function decodeReceipt(raw:unknown,j:GroupJournal,account:ReceiptAccount):GroupReceipt|null{
@@ -54,7 +63,7 @@ export const groupConversationService={
  messages(groupId:string,account:ReceiptAccount,cursor:{after?:string;before?:string}={}){
   account={...account};
   if(!uuid(groupId)||(cursor.after!==undefined&&(!groupSequence(cursor.after,true)||cursor.before!==undefined))||(cursor.before!==undefined&&!groupSequence(cursor.before)))
-   return Promise.resolve(failure('GROUP_CURSOR_INVALID','Osveži razgovor.'));
+   return Promise.resolve(failure('GROUP_CURSOR_INVALID','Osvežite razgovor.'));
   const after=cursor.after??null,before=cursor.before??null;
   return readReceipt<GroupPage>({...options,readTransportUnavailable:'GROUP_PAGE_TRANSPORT_UNAVAILABLE',account,rpc:'rpc_read_group_messages_v5',args:{p_expected_user_id:account.accountId,p_group_id:groupId,p_after_sequence:after,p_before_sequence:before},decode:raw=>{
    const r=record(raw);if(!envelope(r,account,groupId)||!r||!keys(r,['accountId','groupId','messages','nextBeforeSequence','nextAfterSequence','authoritative'])||!Array.isArray(r.messages)||r.messages.length>50)return null;
@@ -75,7 +84,7 @@ export const groupConversationService={
   }});},
  send(j:GroupJournal,body:string,account:ReceiptAccount){
   j={...j};account={...account};
-  if(!groupBody(body)||groupBodyHash(body)!==j.bodySha256)return Promise.resolve(failure('GROUP_MESSAGE_KEY_REUSED','Tekst se razlikuje od poslate poruke. Upiši istu poruku, bez izmena.'));
+  if(!groupBody(body)||groupBodyHash(body)!==j.bodySha256)return Promise.resolve(failure('GROUP_MESSAGE_KEY_REUSED','Tekst se razlikuje od poslate poruke. Upišite istu poruku, bez izmena.'));
   return readReceipt<GroupReceipt>({...options,account,write:true,rpc:'rpc_send_group_message_v5',args:{p_expected_user_id:account.accountId,p_group_id:j.groupId,p_client_request_id:j.clientRequestId,p_body:body},decode:raw=>decodeReceipt(raw,j,account)});
  },
  markRead(groupId:string,ids:string[],account:ReceiptAccount){

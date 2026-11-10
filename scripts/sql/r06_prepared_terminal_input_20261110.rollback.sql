@@ -12,7 +12,7 @@ DO $guard$
 DECLARE p pg_proc%rowtype;
 BEGIN
  SELECT * INTO p FROM pg_proc WHERE oid=to_regprocedure('private.ai_turn_sweep_v5(timestamp with time zone)');
- IF NOT FOUND OR md5(p.prosrc) IS DISTINCT FROM 'be7c4ecea535aa986b88b08310b8cacc'
+ IF NOT FOUND OR md5(p.prosrc) IS DISTINCT FROM '3eb933c2c2cc076cbc7528a7817ed45b'
   OR pg_get_userbyid(p.proowner)<>'postgres' OR NOT p.prosecdef
   OR p.proacl::text IS DISTINCT FROM '{postgres=X/postgres}'
   OR p.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog']::text[]

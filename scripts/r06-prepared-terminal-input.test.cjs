@@ -4,7 +4,7 @@
 // write, policy change, provider call, or deletion of the only user text.
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const {fixture,candidate,A,C,R,T,TEXT}=require('./r06-pre-provider-input-fixture.cjs');
+const {fixture,candidate,A,C,R,T,TEXT}=require('./r06-terminal-fixture.cjs');
 const privacySource=fs.readFileSync(path.join(__dirname,'sql/r06_prepared_input_lifecycle_20261110.sql'),'utf8');
 const privacyCandidate=privacySource.slice(privacySource.indexOf('-- R06_PREPARED_PRIVACY_ISOLATED_START'));
 const source=fs.readFileSync(path.join(__dirname,'sql/r06_prepared_terminal_input_20261110.sql'),'utf8');
@@ -141,6 +141,22 @@ test('R06 terminal input retains the original user text without an unusable prov
      }finally{await locker.query('rollback');await locker.end();await f.db.exec('reset statement_timeout');}
     }
    });
+   if(native)await run(`${p}: an old locked turn cannot block maintenance of the other turns`,async()=>{
+    await seed(p);await f.db.exec(`update ${relation(p)} set lease_expires_at=clock_timestamp()-interval '11 minutes'`);
+    const before=await row(p),locker=await runtime.connectFixtureClient();
+    try{
+     await locker.query('begin');
+     await locker.query(`select turn_id from ${relation(p)} where account_id=$1 and client_request_id=$2 for update`,[A,R]);
+     await f.db.exec("set statement_timeout='350ms'");
+     const skipped=await sweep();
+     assert.equal(skipped[p==='NEED_SERVICE'?'needTurnsFailed':'workerTurnsFailed'],0);
+     assert.deepEqual(await row(p),before);
+     await locker.query('commit');
+     const resumed=await sweep();assert.equal(resumed[p==='NEED_SERVICE'?'needTurnsFailed':'workerTurnsFailed'],1);
+     const after=await row(p);assert.equal(after.state,'FAILED');assert.equal(after.prepared_input.input.userText,TEXT);
+     assert.equal(after.provider_dispatched,before.provider_dispatched);assert.equal(after.prepared_reservation_id,before.prepared_reservation_id);
+    }finally{await locker.query('rollback');await locker.end();await f.db.exec('reset statement_timeout');}
+   });
   }
   await run('the sweep shares one bounded 100-row budget and canonical copies have priority over old single inputs',async()=>{
    await seed('NEED_SERVICE');await terminate('NEED_SERVICE','EXPIRED');const current=await row('NEED_SERVICE');
@@ -156,10 +172,91 @@ test('R06 terminal input retains the original user text without an unusable prov
    const counts=()=>f.value("select jsonb_build_object('original',count(*) filter(where prepared_input->>'schemaVersion'='R06_PREPARED_TEXT_V1'),'retained',count(*) filter(where prepared_input->>'schemaVersion'='R06_RETAINED_TEXT_V1')) as value from private.ai_need_turn_commands");
    assert.deepEqual(await counts(),{original:2,retained:99});await sweep();assert.deepEqual(await counts(),{original:0,retained:101});
   });
-  await run('a caller-supplied future time cannot minimize an active prepared input',async()=>{
-   await seed('NEED_SERVICE');const before=await row('NEED_SERVICE');
-   await sweep(new Date(Date.now()+86400000).toISOString());
-   assert.deepEqual((await row('NEED_SERVICE')).prepared_input,before.prepared_input);
+  await run('a caller-supplied future time cannot fail or minimize an active prepared turn',async()=>{
+   for(const p of purposes){
+    await seed(p);const before=await row(p);
+    const result=await sweep(new Date(Date.now()+86400000).toISOString());
+    assert.equal(result.needTurnsFailed,0);assert.equal(result.workerTurnsFailed,0);
+    assert.deepEqual(await row(p),before);
+    assert.equal((await f.read(p)).state,'PREPARED');
+   }
+  });
+  await run('expired leases keep the established ten-minute grace before terminal failure',async()=>{
+   for(const p of purposes){
+    for(const age of [1,11]){
+     await seed(p);
+     await f.db.query(`update ${relation(p)} set lease_expires_at=clock_timestamp()-($1*interval '1 minute')`,[age]);
+     const before=await row(p),money=await f.value('select to_jsonb(b) as value from private.ai_test_budget_v5 b');
+     await sweep();const after=await row(p);
+     assert.equal(after.state,age===1?'PROCESSING':'FAILED');
+     assert.equal(after.prepared_input.input.userText,TEXT);
+     assert.equal(after.provider_dispatched,before.provider_dispatched);
+     assert.equal(after.attempt_id,before.attempt_id);
+     assert.equal(after.prepared_reservation_id,before.prepared_reservation_id);
+     assert.deepEqual(await f.value('select to_jsonb(b) as value from private.ai_test_budget_v5 b'),money);
+     assert.deepEqual(await f.dispatchPrepared(p,before.prepared_input_sha256),{state:'EXPIRED',dispatched:false});
+    }
+   }
+  });
+  await run('terminal transition work is bounded to 100 expired Need or Worker turns per sweep',async()=>{
+   for(const p of purposes){
+    await f.seed(p);
+    await f.db.exec(`update ${relation(p)} set lease_expires_at=clock_timestamp()-interval '11 minutes'`);
+    const current=await row(p),columns=Object.keys(current),quote=s=>'"'+s.replaceAll('"','""')+'"';
+    await f.db.query(`insert into ${relation(p)}(${columns.map(quote).join(',')})
+     select ${columns.map(n=>'v.'+quote(n)).join(',')} from generate_series(1,101) g(i)
+     cross join lateral jsonb_populate_record(null::${relation(p)},$1::jsonb||jsonb_build_object(
+      'client_request_id',md5('expired-request-'||g.i)::uuid,'turn_id',md5('expired-turn-'||g.i)::uuid)) v`,[current]);
+    const first=await sweep();assert.equal(first[p==='NEED_SERVICE'?'needTurnsFailed':'workerTurnsFailed'],100);
+    assert.equal(await f.value(`select count(*)::int as value from ${relation(p)} where state='PROCESSING'`),2);
+    const second=await sweep();assert.equal(second[p==='NEED_SERVICE'?'needTurnsFailed':'workerTurnsFailed'],2);
+    assert.equal(await f.value(`select count(*)::int as value from ${relation(p)} where state='PROCESSING'`),0);
+    assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),0);
+   }
+  });
+  await run('future time preserves preselection and publication work; real expiry still closes it',async()=>{
+   await seed('NEED_SERVICE');
+   try{
+    await f.db.query("insert into private.qa_ai_commands(id,account_id,client_request_id,command_type,need_id,need_revision,text_sha256,request_hash,state,attempt_id,lease_expires_at,provider_dispatched) values($1,$2,$3,'ASK',$3,1,repeat('a',64),repeat('a',64),'PROCESSING',$1,clock_timestamp()+interval '1 minute',true)",[T,A,R]);
+    await f.db.query("insert into private.ai_task_review_commands(review_id,account_id,client_request_id,need_id,need_revision,state,attempt_id,lease_expires_at,evaluation_binding) values($1,$2,$3,$3,1,'EVALUATING',$1,clock_timestamp()+interval '1 minute','{}')",[T,A,R]);
+    const beforeQa=await f.value('select to_jsonb(t) as value from private.qa_ai_commands t');
+    const beforeReview=await f.value('select to_jsonb(t) as value from private.ai_task_review_commands t');
+    const future=await sweep(new Date(Date.now()+86400000).toISOString());
+    assert.equal(future.qaCommandsCancelled,0);assert.equal(future.reviewEvaluationsStopped,0);
+    assert.deepEqual(await f.value('select to_jsonb(t) as value from private.qa_ai_commands t'),beforeQa);
+    assert.deepEqual(await f.value('select to_jsonb(t) as value from private.ai_task_review_commands t'),beforeReview);
+    await f.db.exec("update private.qa_ai_commands set lease_expires_at=clock_timestamp()-interval '11 minutes'; update private.ai_task_review_commands set lease_expires_at=clock_timestamp()-interval '1 minute'");
+    const expired=await sweep();assert.equal(expired.qaCommandsCancelled,1);assert.equal(expired.reviewEvaluationsStopped,1);
+    assert.equal(await f.value('select state as value from private.qa_ai_commands'),'CANCELLED');
+    const review=await f.value('select to_jsonb(t) as value from private.ai_task_review_commands t');
+    assert.equal(review.state,'EVALUATED');assert.equal(review.evaluation.authoritativeDecision,false);
+   }finally{await f.db.exec('truncate private.qa_ai_commands,private.ai_task_review_commands');}
+  });
+  await run('preselection expiry is bounded and respects closure plus concurrent row ownership',async()=>{
+   await f.seed('NEED_SERVICE');let locker;
+   try{
+    await f.db.query("insert into private.qa_ai_commands(id,account_id,client_request_id,command_type,need_id,need_revision,text_sha256,request_hash,state,attempt_id,lease_expires_at,provider_dispatched) select md5('qa-expired-'||g)::uuid,$1,md5('qa-request-'||g)::uuid,'ASK',$2,1,repeat('a',64),repeat('a',64),'PROCESSING',md5('qa-attempt-'||g)::uuid,clock_timestamp()-interval '11 minutes',true from generate_series(1,102) g",[A,R]);
+    await f.db.query("insert into private.account_closure_requests(account_id,state) values($1,'READY')",[A]);
+    assert.equal((await sweep()).qaCommandsCancelled,0);
+    await f.db.exec('truncate private.account_closure_requests');
+    if(native){
+     locker=await runtime.connectFixtureClient();await locker.query('begin');
+     await locker.query("select id from private.qa_ai_commands where id=md5('qa-expired-1')::uuid for update");
+     await f.db.exec("set statement_timeout='350ms'");
+    }
+    assert.equal((await sweep()).qaCommandsCancelled,100);
+    assert.equal(await f.value("select count(*)::int as value from private.qa_ai_commands where state='PROCESSING'"),2);
+    if(locker){
+     assert.equal(await f.value("select state as value from private.qa_ai_commands where id=md5('qa-expired-1')::uuid"),'PROCESSING');
+     await locker.query('commit');
+    }
+    assert.equal((await sweep()).qaCommandsCancelled,2);
+    assert.equal(await f.value("select count(*)::int as value from private.qa_ai_commands where not provider_dispatched"),0);
+    assert.equal(await f.value('select count(*)::int as value from private.ai_test_reservations_v5'),0);
+   }finally{
+    if(locker){await locker.query('rollback');await locker.end();}
+    await f.db.exec('reset statement_timeout;truncate private.qa_ai_commands,private.account_closure_requests');
+   }
   });
   await run('guarded code rollback retains minimized data, original markers and refusal of another dispatch',async()=>{
    await assert.rejects(f.db.exec(rollbackSource),/R06_TERMINAL_ROLLBACK_SOURCE_ONLY/);

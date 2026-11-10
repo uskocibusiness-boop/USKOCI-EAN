@@ -549,7 +549,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'dialogue.next: ASK=one missing fact with questionKey; CLARIFY=ambiguity, including known description; ACK=correction without question; ANSWER=explanation; REVIEW=business essentials clear, an internal intent only. Non-ASK questionKey=NONE.',
     'Finish-only adds no conditions or changed values. Only missing title/category may derive from clear saved description, with its literal excerpt as evidence. taskRelation CONTINUE=initial/same task; DIFFERENT_TASK=explicit separate task, keep this draft and direct to Novi zadatak; UNCLEAR=ask intent. Replacing the work in this draft requires deciding which old price/time/place remain; until clear use CONTINUE/CLARIFY, facts [], one question. Never silently transfer/erase terms.',
     'Price: MY_PRICE needs a positive integer amount in need.price_rsd; OFFERS requests offers. If user specifies EUR/evri/€ (e.g. 50 evra or 50€), NEVER put its numeral in need.price_rsd: only whole RSD is supported. Do not convert it or claim EUR was saved. Ask for a user-confirmed amount in RSD while preserving independent scope/place/time/people details. If user says dinari, RSD, or enters a bare positive integer without currency (e.g. 3000), default to RSD. need.price_basis (MY_PRICE): TOTAL=whole job, PER_PERSON=each person, HOURLY=each person/hour. Store the unit amount, not people×hours. Honor explicit units; clarify ambiguous multi-person/team-hour amounts, never divide them. Day rates unsupported. TOTAL partial-team price=round(total × offered people / requested people), explain only on request.',
-    'dialogue.priceUnit reports stated unit: WHOLE_JOB / PER_HOUR / PER_TEAM_HOUR / PER_DAY, otherwise UNSPECIFIED; do not substitute a calculated total.',
+    'dialogue.priceUnit reports stated unit: WHOLE_JOB / PER_HOUR / PER_TEAM_HOUR / PER_DAY, otherwise UNSPECIFIED; do not substitute a calculated total. An amount-only correction ("Promeni na 1.500", "Промени на 1.500") keeps the known currency, price basis, people and times. Propose only the new amount; if the current question makes its target unclear, ask one short clarification.',
     'need.schedule_kind: FIXED_WINDOW=known start date/time, ends_at only if stated and later; TODAY_FLEXIBLE/TOMORROW_FLEXIBLE=no fixed hour; WEEK_FLEXIBLE=this calendar week; REMOTE_ANYTIME=truly unrestricted remote time; FLEXIBLE=explicit bounded choice. A choice within dates is neither unrestricted nor booking every day. Store starts_at/ends_at; whole dates use first local midnight to exclusive midnight after last date, with each bound’s DST offset. Next week uses server nextCalendarWeek. Preserve pending bounds; ask missing boundary, never invent one from an earliest start/latest deadline.',
     'dialogue.schedulePattern: FLEXIBLE_RANGE=bounded choice, even while clarifying; SINGLE=one continuous time or today/tomorrow/this week; REPEATED=separate days/shifts; otherwise UNSPECIFIED. Do not claim unsupported repeated schedules saved.',
     'need.task_geography: only mode/start/end/waypoints/serviceArea; points only label/city/area. Modes STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED (needs start/serviceArea), REMOTE (no work points). Each physical point needs city + street/neighborhood/landmark, not a house number. CRITICAL GEOCODING RULE: Always write city, area, and label in clean NOMINATIVE Serbian suitable for map search (e.g. if user says "na Limanu kod pošte, dostava do Promenade", write start: {"city":"Novi Sad","area":"Liman","label":"Pošta, Liman"} and end: {"city":"Novi Sad","area":"Liman","label":"Promenada"}—never conversational locative/genitive phrases like "na Limanu kod pošte" or "do Promenade"). Never infer origin/country from destination, profile, language, phone or ambiguous "centar". Preserve known stops/terms through corrections.',
@@ -1059,7 +1059,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const currentBareAmount = /^\s*\d[\d\s.,]*[.!?\s]*$/u.test(input);
   const lastQuestion = typeof previousAssistant?.body === 'string'
     ? previousAssistant.body.match(/[^.!?]*\?/gu)?.at(-1) ?? '' : '';
-  const previousAskedPrice = /bud(?:ž|z)et|cen(?:a|u|e)|iznos|буџет|цен[ауе]|износ/iu.test(lastQuestion)
+  const previousAskedPrice = /bud(?:ž|z)et|cen(?:a|u|e)|iznos|satnic|буџет|цен[ауе]|износ|сатниц/iu.test(lastQuestion)
     && !/koliko\s+(?:ljudi|osoba)|колико\s+(?:људи|особа)|kog datuma|ког датума/iu.test(lastQuestion);
   const activeRsdPrice = activeFacts.some(fact => fact.fact_key === 'need.price_rsd' && fact.status !== 'UNKNOWN');
   const euroOnlyReply = new RegExp(
@@ -1072,6 +1072,36 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const proposedAmount = Number(priceProposal?.value);
   const proposedAmountToken = Number.isSafeInteger(proposedAmount) && proposedAmount > 0
     ? String(proposedAmount).split('').join('[\\s.,]*') : null;
+  // A short answer changes the amount only when its price target is known.
+  // Never let a model's redundant full snapshot turn "1500" into a new unit,
+  // headcount or schedule. Whole-message matching excludes negations, quotes,
+  // additional commands, explicit unit changes and unsupported currencies.
+  const amountOnlyInput = input.normalize('NFKC').trim().match(/^(?:(?:(?:promeni(?:te)?|pove[ćc]aj(?:te)?|smanji(?:te)?|stavi(?:te)?|промени(?:те)?|повећај(?:те)?|смањи(?:те)?|стави(?:те)?)\s+(?:(?:cenu|iznos|bud[žz]et|satnicu|цену|износ|буџет|сатницу)\s+)?(?:na|на)\s+)|(?:(?:cena|iznos|bud[žz]et|satnica|цена|износ|буџет|сатница)\s+(?:(?:je|је)\s+)?))?([1-9]\d{0,2}(?:[.,\s]\d{3})+|[1-9]\d*)(?:\s*(?:RSD|рсд|din(?:ara)?|дин(?:ара)?))?[.!\s]*$/iu);
+  const amountOnlyValue = amountOnlyInput ? Number(amountOnlyInput[1].replace(/[.,\s]/gu, '')) : null;
+  const knownPrice = (key: string) => activeFacts.find(fact => fact.fact_key === key && fact.status !== 'UNKNOWN')?.fact_value;
+  const knownBasis = knownPrice('need.price_basis');
+  const amountOnlyPriceContext = amountOnlyInput !== null && turn.dialogue?.taskRelation === 'CONTINUE'
+    && (priceWords.test(input) || /satnic|сатниц|rsd|рсд|din|дин/iu.test(input) || previousAskedPrice
+      || activeRsdPrice && !lastQuestion && !currentBareAmount);
+  const amountOnlyMismatch = amountOnlyPriceContext && !!priceProposal && proposedAmount !== amountOnlyValue;
+  const amountOnlyCorrection = amountOnlyPriceContext && !!priceProposal && !amountOnlyMismatch
+    && knownPrice('need.price_mode') === 'MY_PRICE' && activeRsdPrice
+    && ['TOTAL', 'PER_PERSON', 'HOURLY'].includes(String(knownBasis));
+  if (amountOnlyCorrection) {
+    const unit = knownBasis === 'HOURLY' ? ' po osobi po satu' : knownBasis === 'PER_PERSON' ? ' po osobi' : ' ukupno';
+    turn = { ...turn,
+      proposals: [{ ...priceProposal, evidence: input, displayValue: `${proposedAmount} RSD${unit}` }],
+      dialogue: { ...turn.dialogue!, next: 'ACK', questionKey: '',
+        priceUnit: knownBasis === 'HOURLY' ? 'PER_HOUR' : knownBasis === 'TOTAL' ? 'WHOLE_JOB' : 'UNSPECIFIED',
+        schedulePattern: 'UNSPECIFIED' },
+      assistantMessage: turn.safety === 'REVIEW' ? 'Ovaj predlog cene treba dodatno proveriti.'
+        : `Iznos u nacrtu je ${proposedAmount} RSD${unit}. Ostali uslovi ostaju isti.` };
+  } else if (amountOnlyMismatch) {
+    // The literal amount also bounds the provider. A mismatched value cannot
+    // carry a new price or unrelated fields out of this amount-only request.
+    turn = { ...turn, proposals: turn.proposals.filter(proposal => proposal.key === 'need.price_rsd'),
+      dialogue: turn.dialogue ? { ...turn.dialogue, priceUnit: 'UNSPECIFIED', schedulePattern: 'UNSPECIFIED' } : undefined };
+  }
   // The latest task-price clause wins. A later EUR correction must invalidate
   // an earlier RSD amount even when the same numeral appears in both clauses.
   const priceClause = priceClauses.at(-1) ?? '';
@@ -1085,8 +1115,8 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     && /(?:^|[^\p{L}\p{N}])\d[\d\s.,]*(?=$|[^\p{L}])/u.test(input);
   const explicitPriceWords = priceWords.test(priceClause);
   const barePriceProposed = numericPriceProposalWithoutCurrency
-    && (explicitPriceWords || currentBareAmount && previousAskedPrice);
-  const spuriousNumericPriceProposal = numericPriceProposalWithoutCurrency && !barePriceProposed;
+    && (explicitPriceWords || currentBareAmount && previousAskedPrice || amountOnlyCorrection);
+  const spuriousNumericPriceProposal = amountOnlyMismatch || numericPriceProposalWithoutCurrency && !barePriceProposed;
   // A bad amount proposal must not erase a separate, explicit choice to
   // collect offers. Require the user's words and the mode fact's evidence.
   const offersSaid = (value: string) => /ponud|понуд/iu.test(value);

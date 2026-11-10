@@ -6,6 +6,17 @@ import { noviUuidZahtevId } from '../../lib/idempotencija';
 export type GroupState={phase:'LOADING'|'READY'|'SENDING'|'UNKNOWN'|'CONFIRMED'|'ERROR';context:GroupContext|null;messages:GroupMessage[];
  before:string|null;olderPageUnavailable:boolean;journal:GroupJournal|null;receipt:GroupReceipt|null;canRetry:boolean;message:string|null;syncUnavailable?:boolean;targetMessageId?:string};
 export const initialGroupState:GroupState={phase:'LOADING',context:null,messages:[],before:null,olderPageUnavailable:false,journal:null,receipt:null,canRetry:false,message:null};
+// Native storage can settle after its screen has left. A replacement controller
+// must read after that write/cleanup, never observe an empty key and start a new
+// command which an old operation can overwrite or erase. Only disk operations
+// enter this per-account/conversation queue; network reads/sends stay outside.
+const journalQueues=new Map<string,Promise<void>>();
+function journalOperation<T>(key:string,work:()=>Promise<T>):Promise<T>{
+ const next=(journalQueues.get(key)??Promise.resolve()).then(work);
+ const tail=next.then(()=>undefined,()=>undefined);journalQueues.set(key,tail);
+ void tail.then(()=>{if(journalQueues.get(key)===tail)journalQueues.delete(key);});
+ return next;
+}
 export class GroupConversationController{
  private state:GroupState={...initialGroupState};private busy=false;private disposed=false;private journalLoaded=false;private inMemoryBody:string|null=null;private listeners=new Set<()=>void>();
  private operationRevision=0;private marking=false;private visible:{groupId:string;ids:string[]}|null=null;
@@ -19,9 +30,10 @@ export class GroupConversationController{
  dispose=()=>{this.disposed=true;this.inMemoryBody=null;this.visible=null;this.state={...initialGroupState};this.listeners.clear();};
  private update(patch:Partial<GroupState>){if(!this.current())return;this.state={...this.state,...patch};this.listeners.forEach(fn=>fn());}
  private async run(fn:()=>Promise<void>){if(this.busy||!this.current())return;this.busy=true;this.operationRevision++;try{await fn();}
- catch{this.update({phase:this.state.journal?'UNKNOWN':'ERROR',canRetry:false,message:'Provera još nije završena. Osveži razgovor.'});}finally{this.busy=false;void this.flushVisible();}}
+ catch{this.update({phase:this.state.journal?'UNKNOWN':'ERROR',canRetry:false,message:'Provera još nije završena. Osvežite razgovor.'});}finally{this.busy=false;void this.flushVisible();}}
  load=()=>this.run(async()=>{
-  this.journalLoaded=false;this.update({...initialGroupState});const raw=await this.deps.storage.getItem(this.key);if(!this.current())return;
+  this.journalLoaded=false;this.update({...initialGroupState});
+  const raw=await journalOperation(this.key,()=>this.deps.storage.getItem(this.key));if(!this.current())return;
   const journal=raw===null?null:parseGroupJournal(raw);this.journalLoaded=true;this.update({journal});
   if(!await this.context())return;
   if(journal){if(journal.groupId!==this.state.context?.group?.groupId){this.update({phase:'ERROR',message:'Sačuvani zahtev ne pripada ovom razgovoru.'});return;}await this.recover();}
@@ -53,10 +65,10 @@ export class GroupConversationController{
   const target=!before&&this.targetPending?this.deps.initialTarget:undefined;
   if(target&&(!uuid(target.messageId)||!uuid(target.groupId)||target.groupId!==group.groupId
     ||!/^[1-9][0-9]{0,15}$/.test(target.sequence)||Number(target.sequence)>9007199254740990)){
-    this.update({phase:'ERROR',messages:[],message:'Izabrana poruka nije dostupna. Osveži razgovor.'});return;
+    this.update({phase:'ERROR',messages:[],message:'Izabrana poruka nije dostupna. Osvežite razgovor.'});return;
   }
   try{result=await this.service.messages(group.groupId,this.deps.account,before?{before}:target?{after:String(Number(target.sequence)-1)}:{});}
-  catch{this.visible=null;this.update({phase:'ERROR',context:null,messages:[],before:null,olderPageUnavailable:false,message:'Razgovor nije učitan. Pokušaj ponovo.'});return;}
+  catch{this.visible=null;this.update({phase:'ERROR',context:null,messages:[],before:null,olderPageUnavailable:false,message:'Razgovor nije učitan. Pokušajte ponovo.'});return;}
   if(!this.current())return;
   if(!result.ok){
    this.visible=null;
@@ -66,7 +78,7 @@ export class GroupConversationController{
     message:retain?'Starije poruke nisu učitane. Prikazane poruke ostaju dostupne.':result.poruka});return;
   }
   if(target&&(result.podatak.messages[0]?.messageId!==target.messageId||result.podatak.messages[0]?.sequence!==target.sequence)){
-   this.update({phase:'ERROR',messages:[],message:'Izabrana poruka nije dostupna. Osveži razgovor.'});return;
+   this.update({phase:'ERROR',messages:[],message:'Izabrana poruka nije dostupna. Osvežite razgovor.'});return;
   }
   this.targetPending=false;
   const merged=before?[...result.podatak.messages,...this.state.messages]:result.podatak.messages;
@@ -96,7 +108,7 @@ export class GroupConversationController{
    }
    const fresh=context.podatak.group;
    if(!fresh||fresh.groupId!==g.groupId){
-    this.update({phase:'ERROR',context:null,messages:[],before:null,message:'Razgovor više nije dostupan. Ponovo otvori Dogovor.',syncUnavailable:false});return;
+    this.update({phase:'ERROR',context:null,messages:[],before:null,message:'Razgovor više nije dostupan. Ponovo otvorite Dogovor.',syncUnavailable:false});return;
    }
    const after=start.messages.at(-1)?.sequence??'0';
    const result=await this.service.messages(g.groupId,this.deps.account,{after});
@@ -116,7 +128,7 @@ export class GroupConversationController{
    const added=result.podatak.messages.filter(row=>!seen.has(row.messageId)&&Number(row.sequence)>Number(after));
    this.syncHasMore=added.length===50;
    this.update({context:context.podatak,messages:added.length?[...start.messages,...added]:start.messages,syncUnavailable:false});
-  }catch{if(unchanged())this.update({phase:'ERROR',context:null,messages:[],before:null,message:'Razgovor nije učitan. Pokušaj ponovo.',syncUnavailable:false});}
+  }catch{if(unchanged())this.update({phase:'ERROR',context:null,messages:[],before:null,message:'Razgovor nije učitan. Pokušajte ponovo.',syncUnavailable:false});}
   finally{this.syncing=false;}
  };
  older=()=>this.run(async()=>{if((this.state.phase==='READY'||(this.state.phase==='ERROR'&&this.state.olderPageUnavailable))&&this.state.before){
@@ -131,7 +143,7 @@ export class GroupConversationController{
   const result=await this.service.recover(j,this.deps.account);if(!this.current())return;
   if(!result.ok){this.update({phase:'UNKNOWN',canRetry:false,message:result.poruka});return;}
   if(result.podatak.found){await this.confirm(result.podatak.receipt!);return;}
-  this.update({phase:'UNKNOWN',canRetry:!!this.state.context?.group?.canSend,message:'Ne znamo da li je poruka stigla. Za novi pokušaj upiši istu poruku.'});
+  this.update({phase:'UNKNOWN',canRetry:!!this.state.context?.group?.canSend,message:'Ne znamo da li je poruka stigla. Za novi pokušaj upišite istu poruku.'});
  }
  private async confirm(receipt:GroupReceipt){
   this.inMemoryBody=null;this.update({phase:'CONFIRMED',receipt,canRetry:false,message:'Poruka je sačuvana u ovom grupnom razgovoru.'});
@@ -143,7 +155,7 @@ export class GroupConversationController{
   this.update({phase:'SENDING',message:null,canRetry:false});
   // Persist four opaque identity/hash fields before dispatch. No group text is
   // written locally. A restart may recover a receipt or require exact re-entry.
-  await this.deps.storage.setItem(this.key,JSON.stringify(journal));if(!this.current())return;
+  await journalOperation(this.key,async()=>{if(this.current())await this.deps.storage.setItem(this.key,JSON.stringify(journal));});if(!this.current())return;
   this.inMemoryBody=body;this.update({journal});await this.write(body);
  });
  private async write(body:string){const j=this.state.journal;if(!j)return;
@@ -153,14 +165,14 @@ export class GroupConversationController{
  retry=(reentry?:string)=>this.run(async()=>{
   const j=this.state.journal,body=reentry===undefined?this.inMemoryBody:normalizeGroupBody(reentry);
   if(this.state.phase!=='UNKNOWN'||!this.state.canRetry||!j||!this.state.context?.group?.canSend)return;
-  if(!groupBody(body)||groupBodyHash(body)!==j.bodySha256){this.update({message:'Tekst se razlikuje od poslate poruke. Upiši istu poruku, bez izmena.'});return;}
+  if(!groupBody(body)||groupBodyHash(body)!==j.bodySha256){this.update({message:'Tekst se razlikuje od poslate poruke. Upišite istu poruku, bez izmena.'});return;}
   await this.write(body);
  });
  // The receipt is final: continue reading without another tap, never dispatch again.
  // If local cleanup fails, keep that confirmed receipt and its explicit recovery action.
  private async resumeConfirmed(){if(!this.current()||this.state.phase!=='CONFIRMED')return;
-  try{await this.deps.storage.removeItem(this.key);}catch{
-   this.update({phase:'CONFIRMED',canRetry:false,message:'Poruka je poslata. Nastavi razgovor kada bude moguće.'});return;
+  try{await journalOperation(this.key,async()=>{if(this.current())await this.deps.storage.removeItem(this.key);});}catch{
+   this.update({phase:'CONFIRMED',canRetry:false,message:'Poruka je poslata. Nastavite razgovor kada bude moguće.'});return;
   }
   if(!this.current())return;
   this.update({journal:null,receipt:null,phase:'LOADING',message:null});if(await this.context())await this.page();

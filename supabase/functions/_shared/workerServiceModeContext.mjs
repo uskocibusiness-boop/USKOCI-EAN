@@ -151,6 +151,32 @@ export function workerModeRequests(serviceModeChangesJson, context, offered) {
   return inspectWorkerModeRequests(serviceModeChangesJson, context, offered).requests;
 }
 
+/** Finishing adds no execution choice. Keep owned modes; only an unresolved
+ * service may recover a quote from earlier USER history, with normal admission
+ * still applied by the builder. The current finish phrase is never evidence.
+ */
+export function workerFinishModeChanges(serviceModeChangesJson, context, currentText) {
+  const modes = context.serviceModeContext;
+  const owned = new Set([...(modes?.savedServices ?? []), ...(modes?.draftServices ?? [])]
+    .map(entry => normalizedClassificationIdentity(entry?.service)));
+  const messages = Array.isArray(context.messages) ? context.messages : [];
+  const current = messages.at(-1);
+  if (current?.role !== 'USER' || current.body !== currentText
+      || typeof serviceModeChangesJson !== 'string'
+      || new TextEncoder().encode(serviceModeChangesJson).byteLength > 12288) return '[]';
+  let changes;
+  try { changes = JSON.parse(serviceModeChangesJson); } catch { return '[]'; }
+  if (!Array.isArray(changes) || changes.length > 12) return '[]';
+  const priorTexts = messages.slice(0, -1).filter(row => row?.role === 'USER' && typeof row.body === 'string').map(row => row.body);
+  const blocked = new Set();
+  for (const change of changes) {
+    const key = normalizedClassificationIdentity(change?.service);
+    if (!key || owned.has(key) || typeof change?.evidence !== 'string' || !change.evidence.trim()
+        || currentText.includes(change.evidence) || !priorTexts.some(body => body.includes(change.evidence))) blocked.add(key);
+  }
+  return JSON.stringify(changes.filter(change => !blocked.has(normalizedClassificationIdentity(change?.service))));
+}
+
 /** Recover only a wrong CREATE action for an already-existing exact identity.
  * This changes neither offered work nor execution intent and cannot invent an
  * alias, ID or mode. A fresh global EXACT proof and the normal engine gate are

@@ -1,0 +1,136 @@
+{
+  "schema": "USKOCI_AI_PRICE_FINISH_PROOF_20261110",
+  "recordedAt": "2026-11-10T15:36:15.288857+00:00",
+  "baseCommit": "334d0f9dc3a896fe2e3f3718d5ed995d7e2d10c1",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "scope": "SOURCE + controlled LOCAL TEST of actual Edge/guard/client modules, mocked Auth/RPC/provider transport. No hosted write, real model, budget change or Android proof.",
+  "changes": [
+    {
+      "owner": "Need guardConversationTurn",
+      "problem": "An amount-only Serbian correction was discarded as an unrelated number, while redundant provider fields could silently change headcount/unit/schedule.",
+      "result": "Uses the literal whole-message amount only in a known price context; preserves existing supported price basis, people and times; rejects mismatched provider amounts. Explicit new units, EUR protection, ambiguous non-price answers, UNKNOWN basis and REVIEW remain separate."
+    },
+    {
+      "owner": "Worker analyzeOutput + workerServiceModeContext",
+      "problem": "Finish-only cleared patch but left provider mode metadata live; a controlled To je to reply changed owned REMOTE to ON_SITE and lost its handoff.",
+      "result": "Finish-only keeps owned mode/identity/handoff, can reconstruct unresolved metadata only from earlier USER history, and retains one valid clarification via the existing clarificationQuestion owner. It cannot claim Save/activation or bypass REVIEW. An explicit correction after To je to remains actionable."
+    }
+  ],
+  "negativeControl": {
+    "beforeFix": {
+      "newNeedFailures": 4,
+      "newWorkerEdgeFailures": 1
+    },
+    "note": "Executed against unchanged owners before source edits. The later same-input actual handler measurement also records baseline changing people to 1 while losing the requested price correction."
+  },
+  "tests": [
+    {
+      "command": "node --test --test-concurrency=4 scripts/need-currency-guard.test.cjs scripts/ai-natural-dialogue.test.cjs scripts/conversation-intent-integration.test.cjs scripts/conversation-intent-server.test.cjs scripts/r07-pricing-semantics.test.cjs scripts/r06-prepared-runtime.test.cjs scripts/r06-worker-prepared-handler.test.cjs",
+      "tests": 220,
+      "pass": 220,
+      "fail": 0,
+      "skipped": 0,
+      "duration_ms": 7897.745731,
+      "log_sha256": "07ab47c3d584b1fc884f6ed6fdc57ee1558f6378a17e2579c7189707aedd836c"
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0,
+      "log_sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f"
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "failedImplementationChecks": [
+    {
+      "command": "npx tsc --noEmit",
+      "result": "TS2305: added workerFinishModeChanges export was missing from the existing .d.mts. Added its declaration; rerun exit 0."
+    },
+    {
+      "command": "new actual Need Edge fixture",
+      "result": "Initial fixture lacked required history sequence_no; real claim decoder rejected it before provider. Corrected fixture to the unchanged contract; both Latin/Cyrillic scenarios pass."
+    }
+  ],
+  "newTestCount": 16,
+  "requestMeasurement": {
+    "fixture": "Synthetic same current price correction and owned context, one-row catalog; actual Edge serialization, intercepted provider and RPC transports",
+    "before": {
+      "totalRequestBytes": 23479,
+      "systemInstructionBytes": 18917,
+      "responseSchemaBytes": 2743,
+      "providerCalls": 1,
+      "dispatchCalls": 1,
+      "final": "final",
+      "proposals": [
+        {
+          "key": "need.people_needed",
+          "value": 1
+        }
+      ],
+      "realTokens": null,
+      "realLatencyMs": null
+    },
+    "after": {
+      "totalRequestBytes": 23724,
+      "systemInstructionBytes": 19162,
+      "responseSchemaBytes": 2743,
+      "providerCalls": 1,
+      "dispatchCalls": 1,
+      "final": "final",
+      "proposals": [
+        {
+          "key": "need.price_rsd",
+          "value": 1500
+        }
+      ],
+      "realTokens": null,
+      "realLatencyMs": null
+    },
+    "deltaBytes": 245,
+    "note": "Local request bytes are not provider token counts or latency; no speed claim."
+  },
+  "sourceFiles": [
+    {
+      "path": "supabase/functions/uskoci-ai-interview/index.ts",
+      "sha256": "4b7af6fe1184179f47376580b75027795b1b8eafc27813d85dc529fb0e442e3b"
+    },
+    {
+      "path": "supabase/functions/uskoci-worker-interview/index.ts",
+      "sha256": "fd42830e971cdba3120e613b247a9a80af6248b2633205bcac9349524ca22355"
+    },
+    {
+      "path": "supabase/functions/_shared/workerServiceModeContext.mjs",
+      "sha256": "78552bf6e33f173f596cbfd8df7c6eef0508f51d226b05c275a61ec007af48f3"
+    },
+    {
+      "path": "supabase/functions/_shared/workerServiceModeContext.d.mts",
+      "sha256": "6048713d57c8d2694d75d69dafe1fc3db444e04efecee07dd309f86e9a54dea2"
+    },
+    {
+      "path": "supabase/functions/_shared/conversationIntent.mjs",
+      "sha256": "7e10183a86e5f92c9c9949cf6eb0d7650f51178a04f64d835c13621a7076920d"
+    },
+    {
+      "path": "scripts/need-currency-guard.test.cjs",
+      "sha256": "809249dbb42fa9d5e7c3aa6cb5a995a4a0caa2543bb51d3e74488db329819c23"
+    },
+    {
+      "path": "scripts/conversation-intent-integration.test.cjs",
+      "sha256": "9d09ba35ed3fcb2a98a1e9e5bc1261871cb4554cc7f32ac7b815b4c58bb4058d"
+    }
+  ],
+  "realModelCalls": 0,
+  "realTokens": null,
+  "realLatencyMs": null,
+  "ci": "NOT_RUN_BY_THIS_PROOF",
+  "dev": "NOT_DEPLOYED_BY_THIS_PROOF",
+  "android": "NOT_TESTED",
+  "limits": [
+    "Synthetic controlled provider output proves response admission and completion arguments, not Gemini comprehension.",
+    "Unknown natural-language phrasing remains model-resolved; deterministic amount guard is deliberately bounded and does not infer a number after an unrelated question.",
+    "Request grows 245 bytes in the one-row fixture; no speed or token reduction claim.",
+    "No actual Auth/SQL completion, user-account edits, Save/Publish/activation, push delivery or Android acceptance in these tests."
+  ]
+}

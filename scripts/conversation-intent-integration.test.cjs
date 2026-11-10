@@ -918,3 +918,108 @@ test('production intake uses its own exact-project admission before one paid pro
     }
   }
 });
+
+test('Worker actual Edge: finish-only keeps the exact owned mode and cannot invent a new mode', async () => {
+  const text='To je to.',service='Lektura',retained=binding(service,'REMOTE',id(21),{required:false});
+  const output=providerWorker('CONTINUE',text,{
+    assistantMessage:'U redu, sada radite samo na lokaciji.',
+    serviceModeChangesJson:JSON.stringify([{service,modes:['ON_SITE'],evidence:text}]),
+    taxonomyDecisions:[reuseDecision(service,'ON_SITE',id(21))],
+  });
+  const result=await handlerHarness('WORKER',text,output,{singlePass:true,skills:[service],
+    serviceModeContext:modeContext([retained]),catalog:mutationCatalog}).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.deepEqual(result.writes[0].args.p_output.patch,{});
+  assert.deepEqual(planBindings(result),[retained]);
+  assert.doesNotMatch(result.writes[0].args.p_output.assistantMessage,/samo na lokaciji/);
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: finish-only can recover an earlier explicit unresolved mode without inventing one', async () => {
+  const text='Хвала, то је то.',service='Lektura',prior='Nudim lekturu tekstova isključivo preko interneta, bez lične predaje.';
+  const output=providerWorker('CONTINUE',text,{
+    serviceModeChangesJson:JSON.stringify([{service,modes:['REMOTE'],evidence:prior,handoff:{required:false}}]),
+    taxonomyDecisions:[reuseDecision(service,'REMOTE',id(21))],
+  });
+  const result=await handlerHarness('WORKER',text,output,{singlePass:true,skills:[service],
+    serviceModeContext:modeContext([],[],[service]),catalog:mutationCatalog,
+    history:[{role:'USER',body:prior},{role:'ASSISTANT',body:'Da li želite još nešto da dodate?'},{role:'USER',body:text}],
+  }).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.deepEqual(result.writes[0].args.p_output.patch,{});
+  assert.deepEqual(planBindings(result),[binding(service,'REMOTE',id(21),{required:false})]);
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: an explicit mode correction after a finish phrase still reaches the owned plan', async () => {
+  const text='To je to, ali lekturu ipak radim samo na lokaciji.',service='Lektura';
+  const output=providerWorker('CORRECTION',text,{
+    serviceModeChangesJson:JSON.stringify([{service,modes:['ON_SITE'],evidence:text}]),
+    taxonomyDecisions:[reuseDecision(service,'ON_SITE',id(21))],
+  });
+  const result=await handlerHarness('WORKER',text,output,{singlePass:true,skills:[service],
+    serviceModeContext:modeContext([binding(service,'REMOTE',id(21),{required:false})]),catalog:mutationCatalog}).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.deepEqual(planBindings(result),[binding(service,'ON_SITE',id(21))]);
+  assertOnePaidAttempt(result);
+});
+
+for(const text of ['Promeni na 1.500.','Промени на 1.500.']) test('NEED actual Edge: amount-only correction preserves hourly price terms: '+text,async()=>{
+  const definitions=sourceLoader({})('src/contracts/needFactsV2.ts').NEED_FACT_V2_DEFINITIONS;
+  const activeFacts=[
+    ['need.title','Lektura teksta'],['need.category','Lektura'],['need.description','Potrebna je lektura teksta'],
+    ['need.people_needed',2],['need.price_mode','MY_PRICE'],['need.price_rsd',1200],['need.price_basis','HOURLY'],
+    ['need.schedule_kind','REMOTE_ANYTIME'],['need.task_country_code','RS'],
+    ['need.task_geography',{mode:'REMOTE'}],['need.handoff',{required:false}],
+  ].map(([fact_key,fact_value])=>({fact_key,fact_value,value_type:definitions[fact_key].valueType,
+    display_value:typeof fact_value==='object'?JSON.stringify(fact_value):String(fact_value),
+    fact_schema_version:'NEED_FACT_V2',status:'CONFIRMED',source:'USER',created_at:'2026-11-10T10:00:00Z'}));
+  const before=JSON.stringify(activeFacts);
+  const output=providerNeed('NEED_EDIT',text,{
+    assistantMessage:'Cena je sada ukupno 1500 RSD za jednu osobu.',
+    dialogue:{next:'ACK',questionKey:'NONE',taskRelation:'CONTINUE',priceUnit:'WHOLE_JOB',schedulePattern:'UNSPECIFIED'},
+    facts:[['need.price_rsd',1500],['need.price_basis','TOTAL'],['need.people_needed',1]]
+      .map(([key,value])=>({key,valueJson:JSON.stringify(value),displayValue:String(value),confidence:1,evidence:text})),
+    taxonomyDecisions:[],
+  });
+  const result=await handlerHarness('NEED',text,output,{singlePass:true,activeFacts,
+    history:[{role:'ASSISTANT',body:'Koju cenu u dinarima po osobi po satu želite da postavite?',sequence_no:1}],
+    catalog:[{categoryId:id(21),label:'Lektura',parentId:null,isLeaf:true,aliases:[],modes:['REMOTE']}],
+  }).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.equal(result.writes.length,1);
+  assert.deepEqual(result.writes[0].args.p_proposals.map(p=>[p.key,p.value]),[['need.price_rsd',1500]]);
+  assert.doesNotMatch(result.writes[0].args.p_assistant_message,/ukupno|za jednu osobu/);
+  assert.equal(JSON.stringify(activeFacts),before);
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: finish-only preserves one genuine missing work-area question', async () => {
+  const text='To je to.',service='Košenje trave',question='U kom gradu i području želite da radite?';
+  const output=providerWorker('CONTINUE',text,{safety:'CLARIFY',assistantMessage:question,
+    serviceModeChangesJson:'[]',taxonomyDecisions:[],
+  });
+  const result=await handlerHarness('WORKER',text,output,{singlePass:true,skills:[service],
+    serviceModeContext:modeContext([binding(service,'ON_SITE',id(22))]),catalog:mutationCatalog}).run();
+  assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+  assert.deepEqual(result.writes[0].args.p_output.patch,{});
+  assert.equal(result.writes[0].args.p_output.assistantMessage,question);
+  assert.equal(result.writes[0].args.p_output.safety,'CLARIFY');
+  assertOnePaidAttempt(result);
+});
+
+test('Worker actual Edge: finishing never confirms Save or bypasses REVIEW', async () => {
+  for(const safety of ['ALLOW','REVIEW']) {
+    const text='Сачувај профил.',service='Lektura';
+    const output=providerWorker('CONTINUE',text,{safety,assistantMessage:'Profil je sačuvan i aktiviran.',
+      serviceModeChangesJson:'[]',taxonomyDecisions:[],
+    });
+    const result=await handlerHarness('WORKER',text,output,{singlePass:true,skills:[service],
+      serviceModeContext:modeContext([binding(service,'REMOTE',id(21),{required:false})]),catalog:mutationCatalog}).run();
+    assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
+    assert.deepEqual(result.writes[0].args.p_output.patch,{});
+    assert.equal(result.writes[0].args.p_output.safety,safety);
+    assert.doesNotMatch(result.writes[0].args.p_output.assistantMessage,/Profil je sačuvan|aktiviran/);
+    assertOnePaidAttempt(result);
+  }
+});
