@@ -2,7 +2,7 @@
   "schema": "USKOCI_R06_COLD_RECOVERY_SOURCE_20261110",
   "recordedAt": "2026-11-10T01:42:21.262Z",
   "baseCommit": "f0b05523c55a02447d353f8f8d860214d36504bd",
-  "status": "SOURCE_LOCAL_VERIFIED_CI_PENDING",
+  "status": "SOURCE_LOCAL_CI_APK_VERIFIED_DEV_NOT_PROMOTED",
   "sourceFiles": {
     "package.json": "5dbcfae3d689961b9fe8c914023b110d430ab695710832758934e37ee9ccd86d",
     "scripts/r06-pre-provider-input-fixture.cjs": "2846c59bdc6a4ff33211a921bb31117bcb6a114d805e4c607a1af7f22d6a1055",
@@ -95,5 +95,115 @@
     "Bounded text cold-journal recovery only; photos/location-reply and expired leases are not resumed.",
     "Lost dispatch acknowledgement remains read-only; business idempotency is not proof of exactly-once provider billing.",
     "QA APK uses DEV and has no Firebase transport; it is not a store AAB."
-  ]
+  ],
+  "updatedAt": "2026-11-10T02:13:18.308067+00:00",
+  "publication": {
+    "branch": "work/uskoci-cist-proizvod-20261104",
+    "sourceCommit": "6ae082879ef6089bfe55ea09b7b97e366847ce8b",
+    "sourceTree": "4315b983265f6be2f39f93f1714e6d51413a82fd",
+    "parentCommit": "f0b05523c55a02447d353f8f8d860214d36504bd",
+    "scope": "Source commit; a subsequent documentation-only checkpoint does not change the APK source."
+  },
+  "ci": {
+    "runNumber": 125,
+    "runId": 42738540550,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/42738540550",
+    "sourceCommit": "6ae082879ef6089bfe55ea09b7b97e366847ce8b",
+    "status": "completed",
+    "conclusion": "success",
+    "runAndRequiredStepsSuccessful": true,
+    "checksArchive": {
+      "bytes": 54545,
+      "sha256": "5f0e3b7ae650f1fe5bf5dc83d0bf906c6d45df32649648fdd58c5a1edd365400",
+      "artifactId": 13727749016,
+      "artifactName": "uskoci-checks-6ae082879ef6089bfe55ea09b7b97e366847ce8b",
+      "matchesGithubDigestAndSize": true
+    },
+    "node": {
+      "tests": 1519,
+      "pass": 1519,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "typescript": {
+      "status": "PASS_FROM_SUCCESSFUL_CI_STEP_AND_EMPTY_OUTPUT",
+      "outputBytes": 0
+    },
+    "migrationIntegrity": {
+      "status": "PASS",
+      "physicalFiles": 235,
+      "pythonTests": {
+        "tests": 90,
+        "status": "OK"
+      }
+    },
+    "bootstrap": {
+      "status": "PASS",
+      "generator": {
+        "tests": 11,
+        "status": "OK"
+      },
+      "seed": {
+        "stats": {
+          "tests": 1,
+          "pass": 1,
+          "fail": 0,
+          "cancelled": 0,
+          "skipped": 0,
+          "todo": 0
+        },
+        "testReportFormat": "NODE_SPEC",
+        "status": "PASS"
+      }
+    },
+    "proof": "qa125-local-verification-20261110.json"
+  },
+  "apkVerification": {
+    "status": "LOCAL_ARTIFACT_AND_NATIVE_AUDIO_BYTES_CONFIRMED_NOT_NATIVE_E2E",
+    "proof": "qa125-local-verification-20261110.json",
+    "proofSha256": "05008594322874ec1ecd725fb876e3d8d0fd9a71cd70ab499990e75f5dd8986a",
+    "artifact": {
+      "bytes": 87577092,
+      "sha256": "40644592dfe99a8d2da0ea55be9448c685c73576a9aedf91a7203cc8a792d12b",
+      "artifactId": 13728882230,
+      "artifactName": "uskoci-isolated-qa-apk-125",
+      "matchesGithubDigestAndSize": true
+    },
+    "originalFilename": "USKOCI-QA-6ae082879.apk",
+    "deliveryFilename": "USKOCI-QA125-6ae08287.apk",
+    "bytes": 122317277,
+    "sha256": "af876d87c6c86a4f92d43b7e8e5a96f4d142528fd466d1390db590b9209e9601",
+    "rootIndependentlyComparedExtractedFile": true,
+    "apkBytesModified": false,
+    "package": "rs.uskoci.preview.qa",
+    "backend": "DEV",
+    "backendProject": "leqcwgzvjsxugfgzdmth",
+    "runtimeVersion": "uskoci-v1-preview-r2",
+    "abis": [
+      "arm64-v8a"
+    ],
+    "otaEnabled": false,
+    "googleServicesFilePresent": false,
+    "deviceInstalled": false,
+    "nativeE2E": false,
+    "localApksignerRun": false,
+    "reproducibleRebuildPerformed": false,
+    "sourceDirtyFlagExplanation": {
+      "observed": true,
+      "expectedReason": "CI intentionally modifies tracked app.json after the source gate, changing the display name and package from rs.uskoci.preview to rs.uskoci.preview.qa before app.config.js invokes buildIdentity.",
+      "configOverrides": {
+        "name": "USKOČI • QA",
+        "androidPackage": "rs.uskoci.preview.qa"
+      },
+      "sourceFiles": [
+        ".github/workflows/uskoci-qa-apk.yml",
+        "scripts/build-identity.cjs",
+        "app.config.js"
+      ],
+      "completePostPrebuildDiffCaptured": false,
+      "boundary": "The boolean alone is not evidence of the complete generated native diff or a reproducible rebuild."
+    }
+  }
 }
