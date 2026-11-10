@@ -1,0 +1,102 @@
+{
+  "schema": "USKOCI_R06_DORMANT_DEV_READONLY_20261110",
+  "recordedAt": "2026-11-10T03:03:06.022602+00:00",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "baseCommit": "4b6f5fb9adc95d0915b3c3eea74cb6dfc7e31bcc",
+  "projectId": "leqcwgzvjsxugfgzdmth",
+  "scope": "READ_ONLY_PREFLIGHT_AND_LIFECYCLE_METADATA_NOT_DEPLOYMENT",
+  "initialMetadata": {
+    "capturedAt": "2026-11-10T02:43:42.576431+00:00",
+    "serverVersion": "17.6",
+    "systemIdentifier": "7676203829645141156",
+    "migrationCount": 372,
+    "latestMigration": "20261109173026",
+    "processingCounts": {
+      "need": 0,
+      "worker": 0
+    },
+    "preparedRpcPresent": false
+  },
+  "preflight": {
+    "path": "scripts/sql/r06_prepared_dev_20261110.preflight.sql",
+    "bytes": 22620,
+    "sha256": "d645078fed0a24b236aeaeebef5e3be4216409fbc4160010daf27b6be32bbd27",
+    "result": "R06_DEV_PREFLIGHT_PASS_DORMANT_ONLY",
+    "mode": "BEGIN READ ONLY",
+    "functionsVerified": 13,
+    "tableMetadataVerified": 4,
+    "capturePath": "scripts/sql/r06_prepared_dev_20261110.preimage.json",
+    "lastRepeatedAt": "2026-11-10T03:08:45.991510+00:00",
+    "rawResponseSha256": "7b87628ea1c2af9f69eabccc73efe1843314820393999512e22465bdc8cd84ea"
+  },
+  "lifecycleReadback": {
+    "captured_at": "2026-11-10 03:03:05.43493+00",
+    "retention_source_ready": false,
+    "retention_policy_ready": false,
+    "export_policy_ready": false,
+    "closure_policy_ready": false,
+    "erasure_binding_ready": false,
+    "actual_closure_source_sha256": "acf469c343e33c4126ca96853b4461c8dcdf7271cc22fb36464cc506006dd6ab",
+    "pinned_closure_source_sha256": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "pinned_erasure_source_sha256": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "export_projection_sha256": "d9cf862ba967b8a3411bfcee9f57718e4c780896302525c4849bf2891d6f12ee",
+    "active_policy_sets": 0,
+    "migrations": 372,
+    "prepared_rpc_present": false
+  },
+  "edgeReadback": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 199,
+      "verifyJwt": false,
+      "unchangedDependencyFiles": 20,
+      "sourceDifferences": [
+        {
+          "path": "supabase/functions/uskoci-ai-interview/index.ts",
+          "deployedSha256": "377c8eb2c518466ed74b034aaca166bf7e58de0741e8a6c69c44a1d1dbfac3ba",
+          "sourceSha256": "b21a35fbcb5bdcb20fe6109f8ba335ca6cda69769d8373d6aa9237223012e45c"
+        },
+        {
+          "path": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+          "deployedSha256": "3b6678e26cf6e72daf42e5345e736d6de8899416a83a0dc96f97db891304e398",
+          "sourceSha256": "5a41a1a179704b5878f44414923319b6b074449dbe30a6bd380f899656d8dfc5"
+        }
+      ],
+      "preparedModuleDeployed": false
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 152,
+      "verifyJwt": false,
+      "unchangedDependencyFiles": 21,
+      "sourceDifferences": [
+        {
+          "path": "supabase/functions/uskoci-worker-interview/index.ts",
+          "deployedSha256": "2b2778876a48dcd78cbd13ca3c76373068f4907b50be42b162a506a52c9ac4e1",
+          "sourceSha256": "93f43493258b5cad0fc60fe2d02f9dadf739d70e7349c793a8eb430114b3d617"
+        },
+        {
+          "path": "supabase/functions/_shared/taxonomyRuntimeConfig.mjs",
+          "deployedSha256": "3b6678e26cf6e72daf42e5345e736d6de8899416a83a0dc96f97db891304e398",
+          "sourceSha256": "5a41a1a179704b5878f44414923319b6b074449dbe30a6bd380f899656d8dfc5"
+        }
+      ],
+      "preparedModuleDeployed": false
+    }
+  ],
+  "operations": {
+    "migrationsApplied": 0,
+    "edgeDeployments": 0,
+    "paidProviderCalls": 0,
+    "secretsChanged": 0,
+    "budgetChanged": 0,
+    "cronChanged": 0,
+    "prodWrites": 0
+  },
+  "limits": [
+    "A read-only preflight establishes compatibility with the current schema and pinned owners; it is not a hosted installation, rollback or runtime proof.",
+    "No existing readiness, policy or erasure digest was changed to produce a pass.",
+    "New Need/Worker prepared SQL and Edge modules remain uninstalled; activation remains blocked.",
+    "No personal messages, prompts, addresses, account data or secret values were read by these metadata captures."
+  ]
+}

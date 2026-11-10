@@ -34,7 +34,16 @@ export function GroupConversationScreen({agreementId,fromInbox=false,initialTarg
   }});void controller.load();
   // Focus-scoped reads: no background traffic and no automatic write retries.
   const syncTimer=setInterval(()=>{if(current())void controller.syncLatest();},8000);
-  const listener=AppState.addEventListener('change',next=>{if(next!=='active'){controller.dispose();owner.current=null;input.current='';setDraft('');setState(initialGroupState);}else setEpoch(x=>x+1);});
+  let foreground=!AppState.currentState||AppState.currentState==='active';
+  const listener=AppState.addEventListener('change',next=>{
+   const nextForeground=next==='active';
+   // Repeated native activity notifications are not a return from background.
+   // Replacing this owner mid-send would strand its journal and lose the text.
+   if(nextForeground===foreground)return;
+   foreground=nextForeground;
+   if(!foreground){controller.dispose();owner.current=null;input.current='';setDraft('');setState(initialGroupState);}
+   else setEpoch(x=>x+1);
+  });
   return()=>{clearInterval(syncTimer);listener.remove();controller.dispose();if(owner.current===scope)owner.current=null;if(engine.current===controller)engine.current=null;input.current='';setDraft('');setShowPeople(false);setState(initialGroupState);};
  },[agreementId,accountId,accountRevision,epoch,initialTarget?.groupId,initialTarget?.messageId,initialTarget?.sequence]));
  const renderedOwner=owner.current,controller=engine.current;

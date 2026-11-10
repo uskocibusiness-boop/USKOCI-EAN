@@ -1,0 +1,203 @@
+{
+  "recordedAt": "2026-11-10T03:07:21.841421+00:00",
+  "scope": "SOURCE_LOCAL_AND_READONLY_DEV; NOT_HOSTED_INSTALL_OR_ANDROID_RUNTIME",
+  "branch": "work/uskoci-cist-proizvod-20261104",
+  "baselineCommit": "4b6f5fb9adc95d0915b3c3eea74cb6dfc7e31bcc",
+  "sourceCommit": null,
+  "ci": {
+    "status": "NOT_YET_RUN_FOR_THIS_PATCH"
+  },
+  "changedSource": {
+    "package.json": {
+      "sha256": "ae81bee3e8d5bf555c339ef203bd415db4854bbe6ed950b58368cab4db7d4a48",
+      "bytes": 6084
+    },
+    "scripts/group-conversation-lifecycle.test.cjs": {
+      "sha256": "680d662beffbeb20c581ff9feba8084a2debc9a059560656155fc5e3abee4a05",
+      "bytes": 11559
+    },
+    "scripts/r06-prepared-dev-package.cjs": {
+      "sha256": "4d439865cf27eef34fc831a613074f093ae7f3a51db46bfb40a81aa1b3db573e",
+      "bytes": 19339
+    },
+    "scripts/r06-prepared-dev-package.test.cjs": {
+      "sha256": "f6a51a4d29c0ff15b703a779ed8cb030e517bd0ce5a1da250a48e65a785330ec",
+      "bytes": 11571
+    },
+    "scripts/r06-prepared-privacy.test.cjs": {
+      "sha256": "2229841e7c4577c3cc17b70a48e0d2a38c042a00f3d6743e3e11744c1e0cfcd9",
+      "bytes": 24174
+    },
+    "scripts/sql/r06_prepared_dev_20261110.install.sql": {
+      "sha256": "b9112e432e9638129ee831ed204b0f4ae98a605f3a99e6673ef2493cc90763b5",
+      "bytes": 83401
+    },
+    "scripts/sql/r06_prepared_dev_20261110.manifest.json": {
+      "sha256": "23700005257dde844960ec6e1414c019399a65601302d8e8f880b9747fb25df9",
+      "bytes": 4955
+    },
+    "scripts/sql/r06_prepared_dev_20261110.postflight.sql": {
+      "sha256": "23c8ed191a025fd1b1a1d401f202cfd6ee4ea112e5bcb416c7e7b69cafcb8944",
+      "bytes": 25286
+    },
+    "scripts/sql/r06_prepared_dev_20261110.preflight.sql": {
+      "sha256": "d645078fed0a24b236aeaeebef5e3be4216409fbc4160010daf27b6be32bbd27",
+      "bytes": 22620
+    },
+    "scripts/sql/r06_prepared_dev_20261110.preimage.json": {
+      "sha256": "1bd4e4af9b1fb4eb17fcebf981345f82fd6b9d37dac945f08d5660250ebabec1",
+      "bytes": 95723
+    },
+    "scripts/sql/r06_prepared_dev_20261110.rollback.sql": {
+      "sha256": "dbc1c5e19be75e41c0edd90ea3a923b8e7cdbe4f561963f74a90b17a26c95856",
+      "bytes": 99830
+    },
+    "scripts/sql/r06_prepared_input_lifecycle_20261110.sql": {
+      "sha256": "c1a34b4788591119bd2132d7b0f6a6e053a5e5da9a40a886a4326dcf8436cb7d",
+      "bytes": 9848
+    },
+    "src/ui/groups/GroupConversationScreen.tsx": {
+      "sha256": "4447b6d6b573be0d125ccb9d259dd747e7dd589de557581a1fc63f75fb206fb1",
+      "bytes": 7383
+    }
+  },
+  "verification": {
+    "fullLocal": {
+      "command": "npm test",
+      "result": "PASS",
+      "tests": 1569,
+      "pass": 1569,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "logSha256": "491764db915c10a96a419a9a9fdbc550ae7db87f587a7c320f3babf3fbc564a1"
+    },
+    "typescript": {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0,
+      "diagnostics": 0,
+      "logSha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f"
+    },
+    "migrationIntegrity": {
+      "command": "sh supabase/migrations/check_md5.sh",
+      "exitCode": 0,
+      "sqlFiles": 235,
+      "pythonTests": 90,
+      "logSha256": "035f8c86ea7743c7fc8e4f46c435d73c384e9718c2e3ba0c7866b16584eb4887"
+    },
+    "groupLifecycle": {
+      "newTests": 7,
+      "baselineNegativeControl": {
+        "pass": 2,
+        "fail": 5,
+        "commit": "4b6f5fb9adc95d0915b3c3eea74cb6dfc7e31bcc",
+        "logSha256": "24760a909f9073caf09801c3b3ca7fa550ddde1ffae9d1e85691239af3ad31a4"
+      },
+      "combinedCommand": "node --test scripts/group-conversation-lifecycle.test.cjs scripts/r06-prepared-client-recovery.test.cjs scripts/agreement-incoming-lifecycle.test.cjs",
+      "combinedResult": {
+        "tests": 40,
+        "pass": 40,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "logSha256": "7c430b4839adef15777bec7d239f47dea155249f98dc9fea050235293ce3e53b"
+    },
+    "privacyPglite": {
+      "command": "node --test scripts/r06-prepared-privacy.test.cjs",
+      "tests": 28,
+      "pass": 28,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "scenarioCount": 27,
+      "proofSha256": "441522db08f68103cefc32b90a674e3369f308b2e8ef775886f159ca58b7f04e"
+    },
+    "privacyNative": {
+      "command": "USKOCI_R06_NATIVE=1 node --test scripts/r06-prepared-privacy.test.cjs",
+      "tests": 32,
+      "pass": 32,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "scenarioCount": 31,
+      "proof": "r06-prepared-privacy-native-20261110.json",
+      "runtime": "PostgreSQL 17.11 (Debian 17.11-0+deb13u1)",
+      "environment": {
+        "USKOCI_POSTGRES_ROOT": "/workspace/scratch/792f3e12eb9e/pg-runtime/root",
+        "USKOCI_PG_MODULE": "/workspace/scratch/792f3e12eb9e/pg-runtime/node/node_modules/pg",
+        "USKOCI_R06_NATIVE": "1",
+        "USKOCI_PG_FIXTURE_PORT": "55439",
+        "USKOCI_R06_PRIVACY_PROOF": "/workspace/scratch/1876218cd0a5/r06-privacy-native.json"
+      }
+    },
+    "packagePglite": {
+      "command": "node --test scripts/r06-prepared-dev-package.test.cjs",
+      "tests": 15,
+      "pass": 15,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "logSha256": "ba1f1fcc008fa28d11737f164047e9dc9f53a4cfa584842a40479d27965a6c6d"
+    },
+    "packageNative": {
+      "command": "USKOCI_R06_PACKAGE_NATIVE=1 node --test scripts/r06-prepared-dev-package.test.cjs",
+      "tests": 15,
+      "pass": 15,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "logSha256": "91bb62639913cd8f0acedb876c47e653f79ee6d953a0847ec500ce4e31c428fd",
+      "runtime": "PostgreSQL 17.11 (Debian 17.11-0+deb13u1)",
+      "environment": {
+        "USKOCI_POSTGRES_ROOT": "/workspace/scratch/792f3e12eb9e/pg-runtime/root",
+        "USKOCI_PG_MODULE": "/workspace/scratch/792f3e12eb9e/pg-runtime/node/node_modules/pg",
+        "USKOCI_R06_PACKAGE_NATIVE": "1",
+        "USKOCI_PG_FIXTURE_PORT": "55446"
+      }
+    },
+    "uxSource": {
+      "command": "node scripts/record-ux-checkpoint.cjs --verify-source",
+      "result": "HISTORICAL_CHECKPOINT_ALREADY_RECORDED",
+      "newVisualProof": false
+    },
+    "release": {
+      "command": "node scripts/check-android-release-readiness.cjs",
+      "result": "BLOCKED",
+      "exitCode": 1
+    },
+    "diffWhitespace": {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  },
+  "devReadOnlyProof": "r06-dormant-dev-readonly-20261110.json",
+  "operations": {
+    "hostedDatabaseWrites": 0,
+    "edgeDeployments": 0,
+    "paidProviderCalls": 0,
+    "secretChanges": 0,
+    "budgetChanges": 0,
+    "cronChanges": 0,
+    "productionChanges": 0,
+    "androidInstalls": 0
+  },
+  "limitations": [
+    "Prepared recovery is not installed or enabled on DEV. Live preflight proves only current metadata compatibility.",
+    "Native SQL uses a reduced local fixture and proves SQL/concurrency behavior, not complete hosted completion/export/account-closure E2E.",
+    "Only duplicate prepared inputs with an exact canonical owned USER message can be minimized. Failed/expired Need inputs with no canonical copy remain retained; their lifecycle remains open.",
+    "Live retention/export/closure policy readiness and erasure binding are false. No policy digest was advanced to bypass this condition.",
+    "Group screen tests mount real screen/controller behavior with simulated native boundaries. No emulator, phone, font, keyboard, FCM or real two-account E2E was executed.",
+    "Structural rollback refuses used preparation snapshots or tombstones; it is not destructive rollback after activation.",
+    "R06, R01, R10, production E2E and store release remain open. R13 active Cron and production discovery flags were not changed."
+  ],
+  "formattingFollowup": {
+    "scope": "Remove three whitespace-only generated SQL lines; no function body or SQL logic change.",
+    "source": "scripts/r06-prepared-dev-package.cjs",
+    "fullSuite": "1569 passed before this formatting-only followup; package-specific checks repeated afterward; full CI required on commit."
+  }
+}

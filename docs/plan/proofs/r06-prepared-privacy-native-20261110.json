@@ -1,0 +1,146 @@
+{
+  "recordedAt": "2026-11-10T02:58:31.962Z",
+  "scope": "SOURCE_ONLY_PREPARED_INPUT_MINIMIZATION",
+  "native": true,
+  "sourceSha256": "c1a34b4788591119bd2132d7b0f6a6e053a5e5da9a40a886a4326dcf8436cb7d",
+  "cases": [
+    {
+      "name": "negative control: base dispatch retains raw prompt and export exposes it",
+      "status": "PASS"
+    },
+    {
+      "name": "whole companion is blocked; guarded slice installs with unchanged metadata",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: one dispatch preserves the only user copy and returns the exact input",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: original active lease keeps input available and exported as owned user text",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: expired input with no other user copy is retained; canonical duplicates can be erased",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: future sweep time cannot erase a still-valid prepared input",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: terminal or cancelled state alone cannot erase the only user copy",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: conversation and whole-account holds preserve copies until released",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: unrelated account or conversation hold cannot retain this input",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: closure restriction keeps erasure under the certified owner",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: legacy dispatch residual is collected only with its exact canonical user copy",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: same-text foreign, unlinked, non-user or wrong-text messages are not canonical proof",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: contended retention lock never blocks dispatch and its active hold survives sweep",
+      "status": "PASS"
+    },
+    {
+      "name": "NEED_SERVICE: contended closure and row locks skip cleanup until released",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: one dispatch preserves the only user copy and returns the exact input",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: original active lease keeps input available and exported as owned user text",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: expired input with no other user copy is retained; canonical duplicates can be erased",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: future sweep time cannot erase a still-valid prepared input",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: terminal or cancelled state alone cannot erase the only user copy",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: conversation and whole-account holds preserve copies until released",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: unrelated account or conversation hold cannot retain this input",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: closure restriction keeps erasure under the certified owner",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: legacy dispatch residual is collected only with its exact canonical user copy",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: same-text foreign, unlinked, non-user or wrong-text messages are not canonical proof",
+      "status": "PASS"
+    },
+    {
+      "name": "Worker dispatch with a missing canonical linkage retains the only proven input",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: contended retention lock never blocks dispatch and its active hold survives sweep",
+      "status": "PASS"
+    },
+    {
+      "name": "WORKER_CAPABILITY: contended closure and row locks skip cleanup until released",
+      "status": "PASS"
+    },
+    {
+      "name": "bounded sweep prefilters held accounts so later unheld input is not starved",
+      "status": "PASS"
+    },
+    {
+      "name": "new cleanup handles at most 100 candidates per owner per invocation",
+      "status": "PASS"
+    },
+    {
+      "name": "more than 100 old Need inputs with no canonical copy cannot starve a later successful copy",
+      "status": "PASS"
+    },
+    {
+      "name": "real certificate predicate admits exact erasure patch and rejects identity or provider-marker changes",
+      "status": "PASS"
+    }
+  ],
+  "failures": [],
+  "limitations": [
+    "Synthetic local data and exact captured SQL owners; no hosted mutation, provider call, Android or full account-erasure execution.",
+    "The full public export policy and closure binding stay closed. This proves changed projection and local certificate checks, not R10 acceptance.",
+    "Cleanup requires an exact canonical user-message copy plus original lease/terminal state, at most 100 candidates per table. Missing copies, active holds and restricted accounts retain raw input.",
+    "Fixture omits unrelated lifecycle triggers and keeps the existing Worker source-context seams. Need closure guard and certificate predicate execute real bodies."
+  ],
+  "finishedAt": "2026-11-10T02:58:33.810Z",
+  "passed": true,
+  "runtime": {
+    "postgresVersion": "17.11 (Debian 17.11-0+deb13u1)",
+    "versionVerification": "The root agent separately executed the exact runtime postgres --version after these tests.",
+    "fixturePort": 55439
+  }
+}
