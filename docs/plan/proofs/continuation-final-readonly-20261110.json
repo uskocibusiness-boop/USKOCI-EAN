@@ -1,0 +1,311 @@
+{
+  "schema": "USKOCI_CONTINUATION_FINAL_READONLY_V1",
+  "sourceCommit": "6a866ee9bed0172c150b8bff27d956c7dacd0045",
+  "devProject": "leqcwgzvjsxugfgzdmth",
+  "dev": {
+    "cron": [
+      {
+        "name": "uskoci_marketplace_tick",
+        "active": true,
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "uskoci_edge_workers",
+        "active": true,
+        "schedule": "* * * * *"
+      },
+      {
+        "name": "uskoci_taxonomy_postsave_tick_dev",
+        "active": true,
+        "schedule": "* * * * *"
+      }
+    ],
+    "gates": {
+      "erasureBound": false,
+      "exportPolicyBound": false,
+      "retentionAiSourceReady": false
+    },
+    "sweep": {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "3eb933c2c2cc076cbc7528a7817ed45b"
+    },
+    "usage": {
+      "count": 1252,
+      "latest": "2026-11-09T15:16:14.429052+00:00",
+      "outputTokens": 442144,
+      "promptTokens": 10043994
+    },
+    "budget": {
+      "enabled": true,
+      "ceilingMicrousd": 100000000,
+      "priceValidUntil": "2027-01-01T00:00:00+00:00",
+      "reservedMicrousd": 65662284,
+      "reservationCapEnforced": true
+    },
+    "business": {
+      "needs": 19,
+      "users": 18,
+      "profiles": 24,
+      "agreements": 8,
+      "groupMessages": 0,
+      "agreementMessages": 13
+    },
+    "checkedAt": "2026-11-10T16:44:05.292401+00:00",
+    "needTurns": {
+      "active": 0,
+      "preparedInputs": 0,
+      "preparedMarkers": 0,
+      "expiredProcessing": 0
+    },
+    "migrations": {
+      "count": 373,
+      "latest": "20261110155755"
+    },
+    "workerTurns": {
+      "active": 0,
+      "preparedInputs": 0,
+      "preparedMarkers": 0,
+      "expiredProcessing": 0
+    },
+    "reservations": {
+      "count": 2349,
+      "unsettled": 221,
+      "settledMicrousd": 10562284,
+      "unsettledHoldMicrousd": 55100000
+    }
+  },
+  "devEdgeFunctions": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 203,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 155,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "slug": "uskoci-push-transport",
+      "version": 49,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    }
+  ],
+  "preparedRuntimeFlag": {
+    "name": "USKOCI_AI_PREPARED_INPUT_ENABLED",
+    "value": "UNKNOWN",
+    "changed": false,
+    "reason": "No authorized runtime-value readback was available; the retired diagnostic was not reactivated or bypassed."
+  },
+  "prodProject": "fvyqqudqvizjrxaflhex",
+  "prod": {
+    "cron": [
+      {
+        "name": "uskoci_marketplace_tick",
+        "active": false
+      },
+      {
+        "name": "uskoci_edge_workers",
+        "active": false
+      },
+      {
+        "name": "uskoci_taxonomy_postsave_tick_prod",
+        "active": false
+      }
+    ],
+    "needs": 0,
+    "users": 0,
+    "budget": {
+      "enabled": false,
+      "ceilingMicrousd": 5000000,
+      "reservedMicrousd": 0
+    },
+    "checkedAt": "2026-11-10T16:47:41.922244+00:00",
+    "agreements": 0,
+    "preparedRoutines": 0,
+    "systemIdentifier": "7703760980994770283"
+  },
+  "prodPublicAuthSettings": {
+    "checkedAt": "2026-11-10T16:46:40.431818+00:00",
+    "project": "fvyqqudqvizjrxaflhex",
+    "method": "GET",
+    "path": "/auth/v1/settings",
+    "status": 200,
+    "settings": {
+      "disable_signup": false,
+      "mailer_autoconfirm": false,
+      "phone_autoconfirm": false,
+      "sms_provider": "twilio",
+      "external": {
+        "anonymous_users": false,
+        "apple": false,
+        "azure": false,
+        "bitbucket": false,
+        "discord": false,
+        "facebook": false,
+        "snapchat": false,
+        "figma": false,
+        "fly": false,
+        "github": false,
+        "gitlab": false,
+        "google": false,
+        "keycloak": false,
+        "kakao": false,
+        "linkedin": false,
+        "linkedin_oidc": false,
+        "notion": false,
+        "spotify": false,
+        "slack": false,
+        "slack_oidc": false,
+        "workos": false,
+        "twitch": false,
+        "twitter": false,
+        "email": true,
+        "phone": false,
+        "zoom": false
+      }
+    },
+    "responseFieldNames": [
+      "disable_signup",
+      "external",
+      "mailer_autoconfirm",
+      "passkeys_enabled",
+      "phone_autoconfirm",
+      "saml_enabled",
+      "saml_private_key_next_configured",
+      "sms_provider"
+    ],
+    "mutation": false
+  },
+  "productionSignupFinding": {
+    "status": "EXISTING_CONFIGURATION_RELEASE_BLOCKER",
+    "observed": "Auth disable_signup=false with email enabled and email auto-confirm disabled.",
+    "meaning": "The current Auth settings do not disable self-signup. This read-only GET is not a successful registration or delivery test.",
+    "changed": false,
+    "accountCreated": false,
+    "emailSent": false,
+    "approvalBoundary": "The user restricted this continuation to read-only PROD preflight. A production Auth configuration change requires separate authorization."
+  },
+  "operationLimits": {
+    "devMutationsInColdDraftCycle": 0,
+    "prodMutationsThroughoutContinuation": 0,
+    "realModelCallsThroughoutContinuation": 0,
+    "pushSendsInitiatedByAgent": 0,
+    "androidExecutions": 0
+  },
+  "groupTestPrecondition": {
+    "checkedAt": "2026-11-10 16:51:46.649795+00",
+    "definitionMd5": "7baf710f06301f8808006bea46f98e6e",
+    "bodyMd5": "ca84184529c3d660314881cde479d7b3",
+    "bodySha256": "a687c259aae3b9b129441508c3aa71bc762a0030cb9253aa7a1a51f9b491b78f",
+    "source": "supabase/migrations/20261021104256_group_first_admission_history.sql",
+    "matchesSource": true,
+    "minimumSelectedDistinctWorkerAccounts": 2,
+    "requesterIsAdditionalAccount": true,
+    "minimumTestAccounts": 3,
+    "readOnly": true,
+    "executed": false
+  },
+  "cronAfterSqlIncrement": {
+    "checked_at": "2026-11-10 16:53:09.483517+00",
+    "window_start": "2026-11-10T15:58:00Z",
+    "window_end": "2026-11-10 16:53:00+00",
+    "cron": [
+      {
+        "runs": 55,
+        "jobid": 1,
+        "active": true,
+        "failed": 0,
+        "max_ms": 578.806,
+        "p95_ms": 401.824,
+        "jobname": "uskoci_marketplace_tick",
+        "mean_ms": 130.277,
+        "succeeded": 55,
+        "last_start": "2026-11-10T16:52:00.123806+00:00",
+        "unfinished": 0,
+        "first_start": "2026-11-10T15:58:00.081193+00:00"
+      },
+      {
+        "runs": 55,
+        "jobid": 2,
+        "active": true,
+        "failed": 0,
+        "max_ms": 1246.854,
+        "p95_ms": 940.081,
+        "jobname": "uskoci_edge_workers",
+        "mean_ms": 464.236,
+        "succeeded": 55,
+        "last_start": "2026-11-10T16:52:00.125187+00:00",
+        "unfinished": 0,
+        "first_start": "2026-11-10T15:58:00.078019+00:00"
+      },
+      {
+        "runs": 55,
+        "jobid": 3,
+        "active": true,
+        "failed": 0,
+        "max_ms": 135.692,
+        "p95_ms": 90.057,
+        "jobname": "uskoci_taxonomy_postsave_tick_dev",
+        "mean_ms": 37.147,
+        "succeeded": 55,
+        "last_start": "2026-11-10T16:52:00.125806+00:00",
+        "unfinished": 0,
+        "first_start": "2026-11-10T15:58:00.076817+00:00"
+      }
+    ]
+  },
+  "cronEvidenceBoundary": "All three existing Cron jobs completed 55/55 runs after the 15:57:55 R06 SQL increment. This small DEV workload is operational continuity, not capacity or push delivery proof; Edge rollouts occurred during the early part of this observation window.",
+  "anonymousGroupReadHttp": {
+    "checkedAt": "2026-11-10T17:00:23.533595+00:00",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "results": [
+      {
+        "rpc": "rpc_read_group_context_v5",
+        "httpStatus": 401,
+        "code": "42501",
+        "permissionDenied": true,
+        "resultRowsNotExposed": true,
+        "authRole": "public anon key; no user session",
+        "businessAction": "read only RPC",
+        "syntheticIdentifiersOnly": true
+      },
+      {
+        "rpc": "rpc_read_group_command_v5",
+        "httpStatus": 401,
+        "code": "42501",
+        "permissionDenied": true,
+        "resultRowsNotExposed": true,
+        "authRole": "public anon key; no user session",
+        "businessAction": "read only RPC",
+        "syntheticIdentifiersOnly": true
+      }
+    ],
+    "allDenied": true,
+    "sendRpcInvocations": 0,
+    "models": 0,
+    "authenticatedUserImpersonation": false
+  },
+  "comparisons": {
+    "budgetCeilingUnchanged": true,
+    "reservationsUnchanged": true,
+    "usageUnchanged": true,
+    "devMigrationsReflectReviewedIncrement": true,
+    "prodAiDisabled": true,
+    "prodCronAllDisabled": true
+  },
+  "readOnlyCorrection": "Initial read-only routine-count filter used incorrect inferred names. Replaced with the three exact CREATE FUNCTION names observed in scripts/sql/r06_prepared_dev_20261110.install.sql and repeated the read-only state query. Only this corrected result is used as R06 evidence.",
+  "limitations": [
+    "The 221 unsettled reservations still lack evidence for safe bulk release; no cost was assigned or released here.",
+    "No authenticated prepared recovery, final retention/export/erasure lifecycle or actual Gemini speed is established.",
+    "No real group send, device delivery, media or two-user acceptance is established.",
+    "Public Auth settings were read using a project publishable application key; no secret/key value is saved in this proof."
+  ]
+}
