@@ -2,15 +2,24 @@
 
 > **AKTUELNA VLASNIČKA ODLUKA — 10.11.2026:** Jedini zvanični slogan je **„USKOČI — Vaš partner za svaki zadatak.“**, a glavne akcije su tačno **„Objavi zadatak“** i **„Uskoči i zaradi“**. Stari Product/UX master ostaje povučen: ne čitati, rekonstruisati ili vraćati ni iz Git istorije; istorijske reference na njega nisu autoritet. Prethodni rasporedi, karuseli i tekstovi nisu zamrznuti: manje jasne UX kvarove i zastarele tekstove popravljati samostalno u odobrenom obimu, uz očuvanje potvrđenih funkcija. Veću promenu navigacije ili identiteta pripremiti kao pregledan pre/posle predlog. Važe poslednje izričite odluke vlasnika i AGENTS.md; ovaj dokument ostaje jedini izvršni plan.
 
-## Završni presek 12.11.2026 — AI inteligencija razgovora, glasovna stabilnost i poređenje Supabase DEV vs PROD
+## Završni presek 12.11.2026 — AI inteligencija razgovora, više gradova i regije, glasovna stabilnost i poređenje Supabase DEV vs PROD
 
 **REŠENO U KODU / PROŠLO TESTOVE / TYPESCRIPT 0 GREŠAKA / NOVI BUNDLE I APK SPREMNI / SUPABASE DEV vs PROD REVIZIJA ZAVRŠENA (PROD READ-ONLY).**
 
-**Git i izvorni kod:** HEAD `73c64344`, roditelj `a861f1aa` (prethodno `864aa50f`), grana `work/uskoci-cist-proizvod-20261104`, sinhronizovano sa origin-om.
-- `src/ui/aiFirst/VoiceComposer.tsx`: prag otkazivanja pokreta mikrofona povećan na >140px uz uslov dominacije vertikalnog povlačenja nad horizontalnim (`deltaY > 140 && deltaY > deltaX * 1.5`), čime je sprečeno slučajno prekidanje snimanja pri prirodnom pomeranju ili podrhtavanju palca na ekranu.
-- `supabase/functions/_shared/interviewVoiceInstruction.mjs` i `supabase/functions/uskoci-ai-interview/index.ts`: poboljšana prirodnost i inteligencija AI razgovora. AI više ne postavlja višestruka kruta pitanja niti ponavlja ono što je korisnik već rekao u jednoj poruci; kada korisnik spomene evre (npr. 50 evra), AI pametno izračunava približan dinarski iznos (npr. ~6.000 RSD) i ljubazno pita za potvrdu tog iznosa u RSD ili prikupljanje ponuda majstora (umesto krutog odbijanja „Iznos u evrima ne mogu da sačuvam“). Za standardne poslove broj izvršilaca se podrazumeva na 1 bez dosadnog zapitkivanja.
+**Git i izvorni kod:** grana `work/uskoci-cist-proizvod-20261104`, sinhronizovano sa origin-om.
+- `supabase/functions/_shared/workerAreaAdmission.mjs`:
+  - Otklonjene krute kočnice za radnička područja: inteligentno prepoznavanje više gradova (do 5 gradova) umesto ograničenja na samo 2 grada.
+  - Implementirana nominativna normalizacija (`toNominative` za padežne oblike gradova: -ici -> -ica, -inu -> -in, -evcu -> -evac, -ovcu -> -ovac, npr. Subotici -> Subotica, Zrenjaninu -> Zrenjanin, Somboru -> Sombor).
+  - Stop-reči ("radim", "dolazim", "pokrivam", "teren", "gradovi") se filtriraju i ne pretvaraju u izmišljene gradove.
+  - Podrška za čitave regije (Vojvodina, Šumadija) i celu Srbiju: dodeljuje se `COUNTRY/RS` u `patch.areaRequests` bez raspravljanja i bez zahteva da korisnik bira samo jedan grad.
+- `supabase/functions/uskoci-ai-interview/index.ts`:
+  - Uklonjena veštačka blokada `hint !== city` koja je držala AI u beskonačnoj petlji zapitkivanja („U kom delu grada je zadatak?“) kada korisnik navede grad bez ulice. Kada je grad poznat, postavlja se `hasPlaceHint = true`, geokodiranje postavlja početni pin i razgovor prelazi na pregled na mapi.
+  - Za prevoz i selidbe A→B oba grada (polazište i odredište) se prihvataju odmah, bez blokiranja korisnika predugim ispitivanjem o ulicama.
+  - Kada korisnik spomene evre (npr. 50 evra), AI pametno izračunava približan dinarski iznos (~6.000 RSD) i ljubazno pita za potvrdu u dinarima ili prikupljanje ponuda.
+  - Za standardne pojedinačne zanate broj izvršilaca se podrazumeva na 1 (`people_needed = 1`).
+- `src/ui/aiFirst/VoiceComposer.tsx`: prag otkazivanja pokreta mikrofona povećan na >140px uz vertikalnu dominaciju (`deltaY > 140 && deltaY > deltaX * 1.5`), sprečeno slučajno prekidanje snimanja pri podrhtavanju prsta.
 - `src/ui/agreements/AgreementListCard.tsx` & `src/ui/v2/TaskFace.tsx`: ispravljeno mapiranje `FactArt` simbola na `'remote'` i proširen `TaskValue` tip za `/ sat`.
-- **Provere:** `npx tsc --noEmit` prolazi sa **0 grešaka**. Puni test suite `npm test` prolazi **1.714/1.714 PASS** (0 fail, 0 cancel, 0 skip).
+- **Provere:** `npx tsc --noEmit` prolazi sa **0 grešaka**. Testovi `scripts/ai-natural-dialogue.test.cjs` (45/45), `scripts/worker-candidate-areas.test.cjs` (17/17), `scripts/worker-application-areas.test.cjs`, `scripts/worker-output-diagnostic.test.cjs` (11/11), `scripts/conversation-intent-*` i `scripts/need-currency-guard` prolaze 100% bez greške.
 - **Bundle & APK:** `npx expo export:embed` generisao čist Hermes bytecode sa 260 resursa; `fast_reload.py` prepakovao `updated_qa.apk` sa ugrađenim 3D natural resursima (zlatno zvonce, globus, glineni korisnici, font), 4-byte zipalign poravnanjem i debug potpisom.
 
 ### Supabase DEV vs PROD revizija (PROD striktno read-only)

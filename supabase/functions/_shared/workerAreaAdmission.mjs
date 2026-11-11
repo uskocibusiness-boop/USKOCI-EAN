@@ -190,6 +190,58 @@ export function guardWorkerAreaOutput(output, userText, context) {
   if (scope === 'MULTI_LOCALITY' && !Object.hasOwn(patch, 'areaRequests')) {
     delete patch.location;
     const text = onSiteText(normalize(userText));
+    const CANONICAL_CITIES = { NOVI_SAD: 'Novi Sad', BEOGRAD: 'Beograd', NIS: 'Niš', KRAGUJEVAC: 'Kragujevac' };
+    const STOP_WORDS = new Set([
+      'radim', 'radimo', 'dolazim', 'dolazimo', 'idem', 'idemo', 'pokrivam', 'pokrivamo',
+      'prihvatam', 'prihvatamo', 'nudim', 'nudimo', 'mogu', 'mozemo', 'možemo',
+      'takodje', 'takođe', 'grad', 'gradovi', 'gradove', 'gradovima', 'podrucje', 'područje',
+      'teren', 'lokacija', 'lokacije', 'sve', 'svi', 'ja', 'mi', 'samo', 'vise', 'više'
+    ]);
+    const toNominative = name => {
+      const cid = knownCityId(name);
+      if (cid && CANONICAL_CITIES[cid]) return CANONICAL_CITIES[cid];
+      if (/ici$/iu.test(name)) return name.replace(/ici$/iu, 'ica');
+      if (/di$/iu.test(name)) return name.replace(/di$/iu, 'da');
+      if (/inu$/iu.test(name)) return name.replace(/u$/iu, '');
+      if (/evcu$/iu.test(name)) return name.replace(/evcu$/iu, 'evac');
+      if (/ovcu$/iu.test(name)) return name.replace(/ovcu$/iu, 'ovac');
+      if (/(?:evu|ovu)$/iu.test(name)) return name.replace(/u$/iu, 'o');
+      if (/u$/iu.test(name) && !/(?:valjev|pancev|kraljev|vranj)/iu.test(name)) return name.replace(/u$/iu, '');
+      return name;
+    };
+    const cityList = [];
+    const seen = new Set();
+    const addCity = (name) => {
+      const clean = String(name || '').trim();
+      const lower = clean.toLocaleLowerCase('sr');
+      if (!clean || clean.length < 2 || STOP_WORDS.has(lower) || country.test(clean) || namedRegion.test(clean)) return;
+      const canonical = toNominative(clean);
+      const cid = knownCityId(canonical) || knownCityId(clean);
+      const key = cid || canonical.toLocaleLowerCase('sr');
+      if (!seen.has(key)) {
+        seen.add(key);
+        cityList.push(canonical);
+      }
+    };
+    const knownMatches = [...text.matchAll(new RegExp(knownCity, 'giu'))];
+    for (const km of knownMatches) {
+      addCity(km[0]);
+    }
+    const placeMatches = [...text.matchAll(new RegExp(`(?:^|[\\s,;])(?:u\\s+)?(${namedPlace})`, 'gu'))];
+    for (const pm of placeMatches) {
+      if (pm[1]) addCity(pm[1]);
+    }
+    if (cityList.length >= 2) {
+      const selected = cityList.slice(0, 5);
+      patch.areaRequests = selected.map(city => ({ kind: 'CITY', countryCode: 'RS', query: city, radiusKm: null }));
+      const citiesStr = selected.length === 2 
+        ? `${selected[0]} i ${selected[1]}`
+        : `${selected.slice(0, -1).join(', ')} i ${selected.at(-1)}`;
+      const message = output.assistantMessage && !output.assistantMessage.includes('jedan grad')
+        ? output.assistantMessage
+        : `Zabeležio sam gradove ${citiesStr} kao Vaša područja rada.`;
+      return { ...output, safety: 'ALLOW', patch, assistantMessage: message };
+    }
     const m = knownCityPair.exec(text) || pair.exec(text) || commaPair.exec(text);
     if (m && m[1] && m[2]) {
       patch.areaRequests = [
