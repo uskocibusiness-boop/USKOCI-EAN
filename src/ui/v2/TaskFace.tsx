@@ -21,7 +21,7 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 /** What stands in the value slot. A retained map card can temporarily await a fresh exact price. */
 export type TaskValue =
-  | { kind: 'amount'; amount: string; basis: 'ukupno' | 'po osobi' | 'po osobi po satu' | null }
+  | { kind: 'amount'; amount: string; basis: 'ukupno' | 'po osobi' | 'po osobi po satu' | '/ sat' | null }
   | { kind: 'offers' }
   | { kind: 'unpriced' }
   | { kind: 'unverified' };

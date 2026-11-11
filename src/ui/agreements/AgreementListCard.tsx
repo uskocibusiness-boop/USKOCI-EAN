@@ -132,7 +132,7 @@ function AgreementCard({ item, now, stale = false, cancellation, capacity, onOpe
           {/* Accepted facts keep the full row width: the time is the adapter's or the accepted instant's, never shortened or parsed from text. */}
           <View style={s.factsBlock}>
             <View style={s.factLine}>
-              <FactArt kind={remote ? 'globe' : 'pin'} size={18} />
+              <FactArt kind={remote ? 'remote' : 'pin'} size={18} />
               <T variant="note" tone="muted" style={s.factLineText}>{place}</T>
             </View>
             <View style={s.factLine}>

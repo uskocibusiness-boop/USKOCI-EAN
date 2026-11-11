@@ -130,7 +130,14 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
     onResponderTerminate={explicit ? undefined : cancel}
     onResponderTerminationRequest={explicit ? undefined : () => true}
     onPress={explicit ? () => gesture.current ? release() : begin() : undefined}
-    onResponderMove={explicit ? undefined : event => { if (gesture.current && (startY.current - event.nativeEvent.pageY > 70 || Math.abs(startX.current - (event.nativeEvent.pageX ?? startX.current)) > 70)) cancel(); }}
+    onResponderMove={explicit ? undefined : event => {
+      if (gesture.current) {
+        const deltaY = startY.current - event.nativeEvent.pageY;
+        const deltaX = Math.abs(startX.current - (event.nativeEvent.pageX ?? startX.current));
+        // Upward swipe cancellation: must drag upwards (>140px) with intentional vertical motion
+        if (deltaY > 140 && deltaY > deltaX * 1.5) cancel();
+      }
+    }}
     style={[s.target, { width: targetSize, height: targetSize }]}>
     <View style={[s.micCircle, { width: targetSize - 4, height: targetSize - 4 }, targetSize === 60 && s.micPrimary, targetSize === 64 && s.mic64, listening && s.micListening, waiting && s.micWaiting]}>
       {listening && !reduced && targetSize === 64 ? (
