@@ -61,9 +61,17 @@ sign_cmd = [
 ]
 subprocess.check_call(sign_cmd, shell=True)
 
-print("4. Installing to connected device...")
-subprocess.check_call(["adb", "install", "-r", final_apk])
-
-print("5. Launching app...")
-subprocess.check_call(["adb", "shell", "monkey", "-p", "rs.uskoci.preview", "-c", "android.intent.category.LAUNCHER", "1"])
-print("ALL DONE SUCCESSFULLY!")
+print("4. Checking connected ADB devices...")
+try:
+    dev_out = subprocess.check_output(["adb", "devices"]).decode()
+    devices = [line.split()[0] for line in dev_out.strip().splitlines()[1:] if "\tdevice" in line]
+    if devices:
+        print(f"  Found device(s): {devices}. Installing to {devices[0]}...")
+        subprocess.check_call(["adb", "-s", devices[0], "install", "-r", final_apk])
+        print("5. Launching app...")
+        subprocess.check_call(["adb", "-s", devices[0], "shell", "monkey", "-p", "rs.uskoci.preview", "-c", "android.intent.category.LAUNCHER", "1"])
+        print("ALL DONE SUCCESSFULLY AND LAUNCHED ON DEVICE!")
+    else:
+        print("  No ADB devices currently attached. APK built, aligned, and signed at: " + final_apk)
+except Exception as e:
+    print("  ADB install skipped or failed: " + str(e))
