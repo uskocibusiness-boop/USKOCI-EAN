@@ -2,6 +2,22 @@
 
 > **AKTUELNA VLASNIČKA ODLUKA — 10.11.2026:** Jedini zvanični slogan je **„USKOČI — Vaš partner za svaki zadatak.“**, a glavne akcije su tačno **„Objavi zadatak“** i **„Uskoči i zaradi“**. Stari Product/UX master ostaje povučen: ne čitati, rekonstruisati ili vraćati ni iz Git istorije; istorijske reference na njega nisu autoritet. Prethodni rasporedi, karuseli i tekstovi nisu zamrznuti: manje jasne UX kvarove i zastarele tekstove popravljati samostalno u odobrenom obimu, uz očuvanje potvrđenih funkcija. Veću promenu navigacije ili identiteta pripremiti kao pregledan pre/posle predlog. Važe poslednje izričite odluke vlasnika i AGENTS.md; ovaj dokument ostaje jedini izvršni plan.
 
+## Završni presek 12.11.2026 — AI inteligencija razgovora, glasovna stabilnost i poređenje Supabase DEV vs PROD
+
+**REŠENO U KODU / PROŠLO TESTOVE / TYPESCRIPT 0 GREŠAKA / NOVI BUNDLE I APK SPREMNI / SUPABASE DEV vs PROD REVIZIJA ZAVRŠENA (PROD READ-ONLY).**
+
+**Git i izvorni kod:** HEAD `73c64344`, roditelj `a861f1aa` (prethodno `864aa50f`), grana `work/uskoci-cist-proizvod-20261104`, sinhronizovano sa origin-om.
+- `src/ui/aiFirst/VoiceComposer.tsx`: prag otkazivanja pokreta mikrofona povećan na >140px uz uslov dominacije vertikalnog povlačenja nad horizontalnim (`deltaY > 140 && deltaY > deltaX * 1.5`), čime je sprečeno slučajno prekidanje snimanja pri prirodnom pomeranju ili podrhtavanju palca na ekranu.
+- `supabase/functions/_shared/interviewVoiceInstruction.mjs` i `supabase/functions/uskoci-ai-interview/index.ts`: poboljšana prirodnost i inteligencija AI razgovora. AI više ne postavlja višestruka kruta pitanja niti ponavlja ono što je korisnik već rekao u jednoj poruci; kada korisnik spomene evre (npr. 50 evra), AI pametno izračunava približan dinarski iznos (npr. ~6.000 RSD) i ljubazno pita za potvrdu tog iznosa u RSD ili prikupljanje ponuda majstora (umesto krutog odbijanja „Iznos u evrima ne mogu da sačuvam“). Za standardne poslove broj izvršilaca se podrazumeva na 1 bez dosadnog zapitkivanja.
+- `src/ui/agreements/AgreementListCard.tsx` & `src/ui/v2/TaskFace.tsx`: ispravljeno mapiranje `FactArt` simbola na `'remote'` i proširen `TaskValue` tip za `/ sat`.
+- **Provere:** `npx tsc --noEmit` prolazi sa **0 grešaka**. Puni test suite `npm test` prolazi **1.714/1.714 PASS** (0 fail, 0 cancel, 0 skip).
+- **Bundle & APK:** `npx expo export:embed` generisao čist Hermes bytecode sa 260 resursa; `fast_reload.py` prepakovao `updated_qa.apk` sa ugrađenim 3D natural resursima (zlatno zvonce, globus, glineni korisnici, font), 4-byte zipalign poravnanjem i debug potpisom.
+
+### Supabase DEV vs PROD revizija (PROD striktno read-only)
+- **DEV (`leqcwgzvjsxugfgzdmth`):** Postgres 17.6.1, 375 primenjenih migracija. Aktivne Edge funkcije: `uskoci-ai-interview` (v203), `uskoci-worker-interview` (v156), `uskoci-push-transport` (v49), `uskoci-location-search` (v33), `uskoci-publication-evaluate` (v33), `uskoci-media` (v32), `uskoci-speech-session` (v34).
+- **PROD (`fvyqqudqvizjrxaflhex`):** Postgres 17.11.0, 6 migracija (inicijalni preduslovi i dormant cron-ovi). Sve Edge funkcije su na inicijalnoj verziji v9 (`uskoci-ai-interview` v9, `uskoci-worker-interview` v9, `uskoci-push-transport` v9...). Nema aktivnih korisnika, zadataka ni dogovora (0/0/0).
+- **Status PROD-a:** PROD je u statusu mirovanja. Saglasno AGENTS.md, nikakve izmene nisu vršene na PROD-u; prelazak koda na PROD zahtevaće posebnu plansku migraciju nakon kompletne verifikacije na DEV-u.
+
 ## Završni presek 10.11.2026 — QA131 SUCCESS, oporavak i native audio
 
 **REŠENO U KODU / PROŠLO TESTOVE / QA131 SUCCESS / APK ARTIFACT PROVEREN / SERVERSKI PRENOS POTVRĐEN NA DEV-U / ANDROID BLOKIRANO / JAVNO IZDANJE NIJE SPREMNO.** Nastavljeno je iz `e1034ff3c4d1d621e7e00ae6d9e9a6bdb066969c`, na istoj grani `work/uskoci-cist-proizvod-20261104`. Tri specijalizovana agenta radila su odvojeno, uz ukrštene preglede. Stare radne kopije i tuđi rad nisu prepisani.
