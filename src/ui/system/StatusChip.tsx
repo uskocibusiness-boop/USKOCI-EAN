@@ -59,12 +59,11 @@ export const STATUS_KEYS = Object.keys(STATUS_CHIPS) as StatusKey[];
 
 /** What each tone is drawn in: the chip's ground, its mark and its word. Tokens only; the contrast of each pair is measured by the test. */
 export const STATUS_TONES: Readonly<Record<StatusTone, { ground: string; mark: string; word: string }>> = {
-  neutral: { ground: sys.color.wash, mark: sys.color.muted, word: sys.color.ink },
-  green: { ground: sys.color.greenSoft, mark: sys.color.green, word: sys.color.ink },
-  // The orange of the action fails as a word and as a thin mark on its own soft ground, so the chip uses the two inks that
-  // were made for it: `orangeInk` for the mark, `waitingInk` for the words on `orangeSoft`.
-  attention: { ground: sys.color.orangeSoft, mark: sys.color.orangeInk, word: sys.color.waitingInk },
-  grey: { ground: sys.color.wash, mark: sys.color.muted, word: sys.color.muted },
+  neutral: { ground: '#F3F4F6', mark: '#6B7280', word: '#374151' },
+  green: { ground: '#DCFCE7', mark: '#16A34A', word: '#15803D' },
+  // Orange attention tone with clean contrast
+  attention: { ground: '#FFEDD5', mark: '#EA580C', word: '#C2410C' },
+  grey: { ground: '#F3F4F6', mark: '#9CA3AF', word: '#6B7280' },
 };
 
 /** The side of the square the mark is drawn in, in dp. */
@@ -99,9 +98,16 @@ export function StatusChip({ status, detail, style, testID = 'status-chip' }: {
 }
 
 const s = StyleSheet.create({
-  // Wide enough to be a chip, no taller than its 16 px line plus a hair: it sits in a row of facts and never a tap target.
-  chip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingVertical: sys.space.xs,
-    paddingLeft: sys.space.sm, paddingRight: sys.space.md, borderRadius: sys.radius.pill },
+  // Modern subtle chip with hairline border and soft background
+  chip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
   // `label` tracks wide for capitals; these words are not capitals, so the chip takes the tracking back to none.
-  word: { letterSpacing: 0 },
+  word: { letterSpacing: 0, fontSize: 12, fontWeight: '600' },
 });

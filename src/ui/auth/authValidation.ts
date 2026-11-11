@@ -9,7 +9,7 @@ export type AuthFieldName = 'ime' | 'prezime' | 'email' | 'lozinka';
 export type AuthFieldErrors = Partial<Record<AuthFieldName, string>>;
 
 /** The top-to-bottom order of the fields on the screen. */
-export const AUTH_FIELD_ORDER: readonly AuthFieldName[] = ['ime', 'prezime', 'email', 'lozinka'];
+export const AUTH_FIELD_ORDER: readonly AuthFieldName[] = ['email', 'lozinka'];
 
 export const MIN_PASSWORD_LENGTH = 6;
 const EMAIL_ADDRESS = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -35,10 +35,6 @@ export type AuthFormValues = { ime: string; prezime: string; email: string; lozi
  */
 export function validateAuthForm(way: 'LOGIN' | 'SIGNUP', values: AuthFormValues): AuthFieldErrors {
   const errors: AuthFieldErrors = {};
-  if (way === 'SIGNUP') {
-    if (!values.ime.trim()) errors.ime = authFieldMessages.ime;
-    if (!values.prezime.trim()) errors.prezime = authFieldMessages.prezime;
-  }
   if (!values.email.trim()) errors.email = authFieldMessages.emailMissing;
   else if (!isEmailAddress(values.email)) errors.email = authFieldMessages.emailInvalid;
   if (!values.lozinka) errors.lozinka = authFieldMessages.lozinkaMissing;

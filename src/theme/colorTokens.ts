@@ -20,7 +20,7 @@ export const colorTokens = {
     surface: '#FFFFFF',
     /** Screens and reading groups are white; `wash` is a neutral control/recessed-state surface. */
     ground: '#FFFFFF',
-    wash: '#F5F7F4',
+    wash: '#F8F9FA',
     /** Segmented track and icon wells. */
     control: '#E5EBE6',
     iconWell: '#F5F5F5',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, AppState, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
+import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEntrySplashReady } from '../../hooks/useEntrySplashReady';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
@@ -27,6 +28,9 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   busy?: boolean;
   error?: string | null;
 }) {
+  const [fontsLoaded] = useFonts({
+    'UskociRounded': require('../../../assets/generated/uskoci-rounded.ttf'),
+  });
   const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const safeTop = Math.max(0, insets.top ?? 0);
@@ -146,14 +150,12 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
       accessibilityElementsHidden={!!selected} importantForAccessibility={selected ? 'no-hide-descendants' : 'auto'}
       contentContainerStyle={[styles.content, { paddingHorizontal: gutter,
         paddingTop: Math.max(24, safeTop + (height < 700 ? 12 : 36)) - safeTop, paddingBottom: 24 }]}>
-      <Animated.View testID="entry-card" style={[styles.card, { padding: cardPadding, opacity: enterAnim, transform: [{ translateY: enterAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
-        <View testID="entry-logo" style={{ alignSelf: 'center', alignItems: 'center', marginBottom: 12 }}>
+      <Animated.View testID="entry-card" style={[styles.card, { paddingHorizontal: cardPadding, paddingVertical: 32, opacity: enterAnim, transform: [{ translateY: enterAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
+        <View testID="entry-logo" style={{ alignSelf: 'center', alignItems: 'center', marginBottom: 8 }}>
           <BrandLockup width={Math.min(220, logoWidth)} />
-          <T style={styles.slogan}>USKOČI — Vaš partner za svaki zadatak.</T>
         </View>
-        <T testID="entry-title" style={[styles.title, width < 350 && styles.narrowTitle]}>Kako želite da počnete?</T>
-        <T style={styles.description}>Objavite šta Vam treba ili uskočite svojim vremenom i znanjem.</T>
-        <View style={[styles.choices, { gap: artGap }]}>
+        <T testID="entry-title" style={[styles.title, fontsLoaded && { fontFamily: 'UskociRounded' }, width < 350 && styles.narrowTitle]}>Vaš partner za{`\n`}svaki zadatak</T>
+        <View style={[styles.choices, { gap: artGap, marginTop: 24 }]}>
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
             <Press testID="entry-requester" accessibilityRole="button" accessibilityLabel="Objavi zadatak"
               accessibilityHint="Pripremite objavljivanje zadatka. Isti nalog može i da se prijavljuje na zadatke."
@@ -214,15 +216,15 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: sys.color.wash },
   viewport: { flex: 1, overflow: 'hidden' },
   content: { flexGrow: 1, alignItems: 'stretch', gap: 20 },
-  card: { ...profileLift, backgroundColor: sys.color.surface, borderRadius: 24, gap: 16 },
+  card: { ...profileLift, backgroundColor: sys.color.surface, borderRadius: 24, gap: 16, alignItems: 'center' },
   slogan: { fontStyle: 'italic', fontSize: 13, color: sys.color.muted, marginTop: 4, textAlign: 'center' },
-  title: { fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -0.9,
-    color: sys.color.ink, includeFontPadding: false },
+  title: { fontSize: 28.5, lineHeight: 36, fontWeight: '600', letterSpacing: -0.3,
+    color: sys.color.ink, textAlign: 'center', includeFontPadding: false },
   narrowTitle: { fontSize: 28, lineHeight: 34 },
-  description: { fontSize: 15, lineHeight: 22, color: sys.color.muted, includeFontPadding: false },
+  description: { fontSize: 15, lineHeight: 22, color: sys.color.muted, includeFontPadding: false, textAlign: 'center' },
   choices: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' },
-  choice: { alignItems: 'center', justifyContent: 'flex-start', minHeight: 48, gap: 4 },
-  choiceLabel: { fontSize: 14, lineHeight: 20, fontWeight: '600', textAlign: 'center',
+  choice: { alignItems: 'center', justifyContent: 'flex-start', minHeight: 48, gap: 6 },
+  choiceLabel: { fontSize: 15, lineHeight: 22, fontWeight: '700', textAlign: 'center',
     color: sys.color.ink, includeFontPadding: false },
   authFooter: { gap: 12 },
   signIn: { minHeight: 54, borderRadius: 16, backgroundColor: sys.color.green,

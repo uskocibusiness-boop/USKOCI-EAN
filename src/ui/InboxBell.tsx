@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Glyph } from './system/Glyph';
 import { useInbox } from '../hooks/useInbox';
 import { useReducedMotion } from './system/motion';
 import { Press } from './Press';
@@ -10,10 +10,11 @@ import { T } from './Text';
 import { neprocitanih } from './system/plural';
 
 const s = StyleSheet.create({
-  control: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill, backgroundColor: sys.color.iconWell },
+  control: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  bellIcon: { width: 34, height: 34 },
   // The existing badge stays over the upper right edge of the same 48 px touch area.
-  badge: { position: 'absolute', top: -1, right: -1, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: sys.radius.pill,
-    backgroundColor: sys.color.orange, borderWidth: 2, borderColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', top: -2, right: -2, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: sys.radius.pill,
+    backgroundColor: sys.color.orange, borderWidth: 2, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   // The spoken label carries the number, so the digits keep their size inside the 20 px capsule at any text setting.
   badgeText: { color: sys.color.onOrange, lineHeight: 14, letterSpacing: 0, fontVariant: ['tabular-nums'] },
 });
@@ -55,7 +56,7 @@ export function InboxBell() {
     onPress={() => router.push('/obavestenja')} haptic="select" hitSlop={0} style={s.control}>
     <Animated.View testID="inbox-bell-drawing" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
       style={{ transform: [{ rotate }] }}>
-      <Glyph name="notifications" size={sys.icon.size.navigation} />
+      <Image source={require('../../assets/illustrations/natural-v1/bell.webp')} style={s.bellIcon} contentFit="contain" />
     </Animated.View>
     {count != null && count > 0 && <View style={s.badge}>
       <T variant="label" maxFontSizeMultiplier={1} style={s.badgeText}>{count > 99 ? '99+' : count}</T>

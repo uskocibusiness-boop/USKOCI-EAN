@@ -7,6 +7,7 @@ import { layout } from '../system/layout';
 import { Segmented, type SegmentedOption } from '../system/Segmented';
 import { sys } from '../system/tokens';
 import { AuthField, AuthNote, LinkAction, PrimaryButton, RevealWhenShown } from './AuthControls';
+import { SocialAuthButtons } from './SocialAuthButtons';
 import { AuthIntentLine, type AuthIntentName } from './AuthIntentLine';
 import { AuthIntro } from './AuthPresentation';
 import { authCopy } from './authCopy';
@@ -73,11 +74,9 @@ export function AuthFormStep(p: AuthFormStepProps) {
     value: p.values[name], onChangeText: (value: string) => p.onValue(name, value), editable, error: p.errors[name] ?? null, inputRef: ref(name),
   });
   return <>
-    <AuthIntro title={signingUp ? authCopy.signUp : authCopy.signIn}
-      copy={signingUp ? authCopy.oneAccount : authCopy.resume} />
-    {p.signUpOpen || p.intent ? <View style={s.group}>
-      {p.signUpOpen ? <Segmented options={WAYS} value={p.way} onChange={p.onWay} /> : null}
-      {p.intent ? <AuthIntentLine intent={p.intent} disabled={p.busy} onChange={p.onIntentChange} /> : null}
+    <AuthIntro title={signingUp ? authCopy.signUp : authCopy.signIn} />
+    {p.intent ? <View style={s.group}>
+      <AuthIntentLine intent={p.intent} disabled={p.busy} onChange={p.onIntentChange} />
     </View> : null}
     {p.notice ? <RevealWhenShown key={p.notice} testID="auth-notice"><AuthNote tone="ok">{p.notice}</AuthNote></RevealWhenShown> : null}
     {p.signupReturn ? <View style={s.group} accessibilityLiveRegion="polite" testID="signup-return">
@@ -89,11 +88,7 @@ export function AuthFormStep(p: AuthFormStepProps) {
     </View> : null}
 
     {p.emailOpen ? <View style={s.fields}>
-      {signingUp ? <>
-        <AuthField label="Ime" autoCapitalize="words" autoComplete="name-given" returnKeyType="next" onSubmitEditing={next('prezime')} {...text('ime')} />
-        <AuthField label="Prezime" autoCapitalize="words" autoComplete="name-family" returnKeyType="next" onSubmitEditing={next('email')} {...text('prezime')} />
-      </> : null}
-      <AuthField label="Email" keyboardType="email-address" placeholder="ime@primer.rs" returnKeyType="next" onSubmitEditing={next('lozinka')} {...text('email')} />
+      <AuthField label="Email" keyboardType="email-address" returnKeyType="next" onSubmitEditing={next('lozinka')} {...text('email')} />
       {/* A new password field per way: what was shown with the eye is hidden again when the way changes. */}
       <AuthField key={`password:${p.way}`} label="Lozinka" secure newPassword={signingUp} returnKeyType="go" onSubmitEditing={p.onSubmit}
         hint={signingUp ? authFieldMessages.lozinkaHint : undefined} {...text('lozinka')} />
@@ -105,6 +100,7 @@ export function AuthFormStep(p: AuthFormStepProps) {
         </View> : null}
       </View></RevealWhenShown> : null}
       {p.way === 'LOGIN' ? <LinkAction title={authCopy.forgot} align="end" disabled={p.busy} onPress={p.onForgot} /> : null}
+      <SocialAuthButtons disabled={p.busy} />
     </View> : null}
 
     {p.emailOpen && !p.signUpOpen ? <T variant="note" tone="muted">Otvaranje novih naloga trenutno nije dostupno.</T> : null}
@@ -137,17 +133,41 @@ const s = StyleSheet.create({
   methodsTitle: { fontWeight: '600' },
   method: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: layout.rowMinPlain, paddingHorizontal: sys.space.base,
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.cardLine, backgroundColor: sys.color.surface },
+  switchWay: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  switchWayAction: { fontWeight: '700' },
 });
 
 /**
  * The foot of the first step: the ONE green command, named for the way the person is on, and under it, while an account is being
- * made, the one honest sentence about the legal documents (deep read 8.2, owner decision 2026-09-21, PKG-031: the tick asked to
- * accept two documents that are not published yet and recorded nothing; the screen says so instead, once, under the command that
- * creates the account; the recorded acceptance (profil/pravna) takes over once they are published).
+ * made, the one honest sentence about the legal documents. Underneath, a clean way to switch between sign-in and sign-up.
  */
-export function AuthFormFooter({ way, busy, onSubmit }: { way: AuthWay; busy: boolean; onSubmit: () => void }) {
+export function AuthFormFooter({
+  way,
+  busy,
+  onSubmit,
+  onSwitchWay,
+  signUpOpen = true,
+}: {
+  way: AuthWay;
+  busy: boolean;
+  onSubmit: () => void;
+  onSwitchWay?: (way: AuthWay) => void;
+  signUpOpen?: boolean;
+}) {
   return <>
     <PrimaryButton title={way === 'SIGNUP' ? authCopy.signUp : authCopy.signIn} onPress={onSubmit} busy={busy} />
     {way === 'SIGNUP' ? <T variant="note" tone="muted" style={s.centred}>{authCopy.legal}</T> : null}
+    {onSwitchWay && (way === 'SIGNUP' || signUpOpen) ? (
+      <View style={s.switchWay}>
+        <T variant="note" tone="muted">
+          {way === 'SIGNUP' ? 'Već imate nalog? ' : 'Nemate nalog? '}
+        </T>
+        <Press accessibilityRole="button" disabled={busy} onPress={() => onSwitchWay(way === 'SIGNUP' ? 'LOGIN' : 'SIGNUP')}>
+          <T variant="note" tone="green" style={s.switchWayAction}>
+            {way === 'SIGNUP' ? 'Prijavite se' : 'Napravite nalog'}
+          </T>
+        </Press>
+      </View>
+    ) : null}
   </>;
 }

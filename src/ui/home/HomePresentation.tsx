@@ -44,6 +44,7 @@ export type HomePresentationProps = {
    * screen says so in one line and keeps the content (R31). `error` is the other case, where there is nothing to show.
    */
   stale?: boolean;
+  hideWaiting?: boolean;
   /** Internal galleries supply the same chrome with an inert bell; the live header remains the default. */
   header?: ReactNode;
   /** Account-owned AI conversations, read separately from tasks and decisions. */
@@ -94,24 +95,18 @@ export const WAITING_LIMIT = 3;
 function StartActions({ onPublish, onEarn }: { onPublish: () => void; onEarn: () => void }) {
   const { stacked } = useLayoutClass();
   return <View testID="home-intentions" style={[s.actions, stacked && s.actionsStacked]}>
-    <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" accessibilityHint="Opišite šta Vam treba."
-      haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.door, s.publishDoor, stacked && s.doorStacked]}>
+    <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak"
+      haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.door, stacked && s.doorStacked]}>
       <View style={[s.doorMain, stacked && s.doorMainStacked]}>
         <HomeLaunchArt kind="publish" size={DOOR_ART} />
-        <View style={[s.doorCopy, stacked && { alignItems: 'flex-start' }]}>
-          <T variant="heading" style={s.doorTitle}>Objavi zadatak</T>
-          <T variant="note" tone="muted" style={!stacked ? { textAlign: 'center' } : undefined}>Opišite šta Vam treba.</T>
-        </View>
+        <T variant="heading" style={s.doorTitle}>Objavi zadatak</T>
       </View>
     </Press>
-    <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Pronađite zadatak."
-      haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.door, s.earnDoor, stacked && s.doorStacked]}>
+    <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi"
+      haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.door, stacked && s.doorStacked]}>
       <View style={[s.doorMain, stacked && s.doorMainStacked]}>
         <HomeLaunchArt kind="discover" size={DOOR_ART} />
-        <View style={[s.doorCopy, stacked && { alignItems: 'flex-start' }]}>
-          <T variant="heading" style={s.doorTitle}>Uskoči i zaradi</T>
-          <T variant="note" tone="muted" style={!stacked ? { textAlign: 'center' } : undefined}>Pronađite zadatak.</T>
-        </View>
+        <T variant="heading" style={s.doorTitle}>Uskoči i zaradi</T>
       </View>
     </Press>
   </View>;
@@ -335,12 +330,14 @@ export function HomePresentation(p: HomePresentationProps) {
         : recovery === 'partial' ? 'Deo pregleda trenutno nije učitan.' : 'Pregled nije učitan. Proverite vezu i pokušajte ponovo.'}</T>
       <V2Action label="Osvežite pregled" kind="secondary" compact loading={p.refreshing} disabled={p.loading || p.refreshing} onPress={p.onRefresh} />
     </Surface> : null}
-    {/* Accepted appointments and pending decisions lead. No inferred urgency or invented schedule. */}
+    <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
+
+    {/* Accepted appointments lead only when explicit raspored exists */}
     {next && raspored ? <Section title="Sledeće">
       <Appear index={0} animate={agreements.isNew(next.id)}><RasporedCard row={next} raspored={raspored} photo={p.photo} onOpen={p.onOpen} /></Appear>
     </Section> : null}
 
-    {home && waitingShown ? <Section title="Čeka Vas">
+    {home && waitingShown && !p.hideWaiting ? <Section title="Čeka Vas">
       {attentionUnavailable ? <Unavailable text="Ne možemo da učitamo ono što Vas čeka." /> : null}
       {lead ? <View style={underLead ? s.lead : undefined}>
         <Appear index={0} animate={waiting.isNew(lead.id)}><FirstWaiting row={lead} onOpen={p.onOpen} /></Appear>
@@ -348,8 +345,6 @@ export function HomePresentation(p: HomePresentationProps) {
       {rows.map((item, index) => <Appear key={item.id} index={index + (lead ? 1 : 0)} animate={waiting.isNew(item.id)}>
         <WaitingRow row={item} onOpen={p.onOpen} last={index === rowCount - 1} />
       </Appear>)}
-      {/* Dogovori/Aktivni lists a completed Dogovor until it is rated; Home names the same thing, verb first, and
-          with exactly one it opens that rating in one tap instead of four (critique A1, 2026-09-24). */}
       {ratingsShown && ratings === 'unknown' ? <ListRow leading={<FactArt kind="star" size={32} />} title="Proverite ocene" subtitle="Nisu svi podaci o ocenama učitani."
         onPress={() => p.onRatings(null)} last accessibilityLabel="Proverite ocene u Dogovorima"
         accessibilityHint="Broj Dogovora za ocenjivanje trenutno nije potvrđen." />
@@ -362,12 +357,10 @@ export function HomePresentation(p: HomePresentationProps) {
     {/* A Dogovori read that failed says so here, never as an empty schedule; with no appointment ahead there is no block and no placeholder. */}
     {home?.agreements.kind === 'unavailable' ? <Section title="Sledeće"><Unavailable text="Ne možemo da učitamo Dogovore." /></Section> : null}
 
-    <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
-    {p.intakeResume}
-
-    {home?.opportunityItems && home.opportunityItems.length > 0 ? <Section title="Prilike za Vas"
+    {home?.opportunityItems && home.opportunityItems.length > 0 ? <Section title="Prilike za tebe"
       action={{ label: 'Mapa zadataka', onPress: p.onEarn }}>
-      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
+      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.carousel} style={s.carouselScroll}>
         {home.opportunityItems.map(item => <View key={item.id} style={s.carouselCard}>
           <TaskCard item={item} portrait={<TaskPublisherPortrait item={item} size={40} />}
             onOpen={() => p.onOpen({ kind: 'OPPORTUNITY', needId: item.id })} />
@@ -377,7 +370,8 @@ export function HomePresentation(p: HomePresentationProps) {
 
     {home?.agreementItems && home.agreementItems.length > 0 ? <Section title="Aktuelni dogovori"
       action={{ label: 'Svi dogovori', onPress: p.onAgreements ?? (() => p.onRatings(null)) }}>
-      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
+      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.carousel} style={s.carouselScroll}>
         {home.agreementItems.map((item, index) => <View key={item.id} style={s.carouselCard}>
           <AgreementRow item={item} index={index} now={Date.now()} animate={false} stale={!!p.stale}
             onOpen={row => p.onOpen({ kind: 'AGREEMENT', agreementId: row.id })}
@@ -388,7 +382,8 @@ export function HomePresentation(p: HomePresentationProps) {
 
     {home?.ownTaskItems && home.ownTaskItems.length > 0 ? <Section title="Vaši objavljeni zadaci"
       action={{ label: 'Svi zadaci', onPress: p.onMyTasks }}>
-      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
+      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.carousel} style={s.carouselScroll}>
         {home.ownTaskItems.map(item => <View key={item.id} style={s.carouselCard}>
           <OwnTaskCard item={item}
             onOpen={() => p.onOpen({ kind: 'NEED', needId: item.id })}
@@ -399,7 +394,8 @@ export function HomePresentation(p: HomePresentationProps) {
 
     {home?.applicationItems && home.applicationItems.length > 0 ? <Section title="Vaše prijave"
       action={{ label: 'Sve prijave', onPress: p.onMyApplications }}>
-      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} contentContainerStyle={s.carousel}>
+      <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.carousel} style={s.carouselScroll}>
         {home.applicationItems.map(row => <View key={row.prijavaId} style={s.carouselCard}>
           <ApplicationCard row={row}
             onTask={() => p.onOpen({ kind: 'APPLICATION', applicationId: row.prijavaId })}
@@ -440,14 +436,29 @@ function oceniDogovore(count: number): string {
 const s = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'stretch', gap: layout.group },
   actionsStacked: { flexDirection: 'column' },
-  door: { flex: 1, minWidth: 0, minHeight: sys.touch.min, padding: sys.space.base, borderRadius: sys.radius.card },
+  door: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 110,
+    paddingVertical: sys.space.base,
+    paddingHorizontal: sys.space.md,
+    borderRadius: sys.radius.card,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
   doorStacked: { flex: 0 },
-  publishDoor: { backgroundColor: sys.color.orangeSoft },
-  earnDoor: { backgroundColor: sys.color.greenSoft },
-  doorMain: { alignItems: 'center', justifyContent: 'center', gap: sys.space.md },
+  publishDoor: { backgroundColor: '#FFFFFF' },
+  earnDoor: { backgroundColor: '#FFFFFF' },
+  doorMain: { alignItems: 'center', justifyContent: 'center', gap: sys.space.sm },
   doorMainStacked: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' },
   doorCopy: { flexShrink: 1, minWidth: 0, gap: sys.space.xs, alignItems: 'center' },
-  doorTitle: { color: sys.color.ink, textAlign: 'center' },
+  doorTitle: { color: sys.color.ink, textAlign: 'center', fontWeight: '700', fontSize: 16 },
   // Something waits here: the orange dot on the corner of its picture. The white ring keeps it apart from the drawing.
   attentionDot: { position: 'absolute', top: 0, right: 0, width: sys.space.sm, height: sys.space.sm, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.orange, borderWidth: 1, borderColor: sys.color.surface },
@@ -467,7 +478,8 @@ const s = StyleSheet.create({
   recovery: { gap: sys.space.sm, alignItems: 'flex-start' },
   initialLoading: { minHeight: INITIAL_READ_HEIGHT, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center', gap: sys.space.base },
   initialLoadingText: { textAlign: 'center' },
-  carousel: { gap: layout.group, paddingVertical: sys.space.xs, paddingRight: layout.gutter, alignItems: 'stretch' },
-  carouselCard: { width: 304, minHeight: 256, flexShrink: 0 },
+  carouselScroll: { marginHorizontal: -layout.gutter },
+  carousel: { gap: layout.group, paddingVertical: sys.space.xs, paddingHorizontal: layout.gutter, alignItems: 'stretch' },
+  carouselCard: { width: 321, minHeight: 256, flexShrink: 0 },
   mineGroup: { gap: sys.space.sm },
 });

@@ -1,6 +1,7 @@
 import { prioritizeAgreementSearch } from './agreementSearch';
 import { memo, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 import Animated from 'react-native-reanimated';
 import { readableTitle } from '../../data/needDetailPresentation';
 import type { DogovorProjekcija } from '../../contracts/projections';
@@ -120,22 +121,37 @@ function AgreementCard({ item, now, stale = false, cancellation, capacity, onOpe
         accessibilityHint={footInside ? `${footInside.title}. ${footInside.line}` : undefined} onPress={onOpen}
         onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1} style={s.body}>
         <View style={s.main}>
-          {roleLabel ? <T variant="meta" style={s.roleLabel}>{roleLabel}</T> : null}
           <View style={s.head}>
-            {other?.profilId ? <ProfilePhoto profileId={other.profilId} size={AVATAR} fallback={initials} /> : initials}
             <View style={s.headCopy}>
-              <T variant="heading" numberOfLines={2}>{title}</T>
-              <T variant="note" tone="muted">{[role ? `${name} · ${role}` : name, people].filter(Boolean).join(' · ')}</T>
+              <View style={s.titleRow}>
+                <T variant="heading" numberOfLines={2} style={s.titleText}>{title}</T>
+                {amount ? <T variant="priceRow" style={s.amount}>{amount}</T> : null}
+              </View>
             </View>
           </View>
-          {capacity?.count ? <T testID="owner-task-capacity" variant="note" style={s.capacity}>{capacity.count}</T> : null}
-          {capacity?.next ? <T variant="note" tone="muted">{capacity.next}</T> : null}
           {/* Accepted facts keep the full row width: the time is the adapter's or the accepted instant's, never shortened or parsed from text. */}
-          <AcceptedTime when={when} place={place} zone={term.zone} />
-          <View style={s.stateRow}>
-            <AgreementStatusChip chip={chip} detail={changed} />
-            {/* A missing amount is said in words, quiet and never a figure. */}
-            <AcceptedAmount item={item} />
+          <View style={s.factsBlock}>
+            <View style={s.factLine}>
+              <FactArt kind={remote ? 'globe' : 'pin'} size={18} />
+              <T variant="note" tone="muted" style={s.factLineText}>{place}</T>
+            </View>
+            <View style={s.factLine}>
+              <FactArt kind="calendar" size={18} />
+              <T variant="note" tone="muted" style={s.factLineText}>{when}</T>
+            </View>
+          </View>
+          <View style={s.bottomRow}>
+            <View style={s.partnerBlock}>
+              {other?.profilId ? <ProfilePhoto profileId={other.profilId} size={32} fallback={initials} /> : <Avatar initials={other?.inicijali} size={32} />}
+              <View style={s.partnerText}>
+                <T variant="bodyStrong" numberOfLines={1}>{name}</T>
+                <T variant="meta" tone="muted" numberOfLines={1}>{role || 'Saradnik'}</T>
+              </View>
+            </View>
+            {capacity?.count ? <View style={s.capacityBadge}>
+              <Image source={require('../../../assets/illustrations/natural-v1/users.webp')} style={s.capacityIcon} contentFit="contain" />
+              <T variant="note" style={s.capacityFraction}>{capacity.count}</T>
+            </View> : null}
           </View>
           {cancelledLine ? <T variant="note" tone="muted">{cancelledLine}</T> : null}
           {/* My own proposal waits for the other side: a quiet line, not a task of mine. */}
@@ -283,6 +299,19 @@ const s = StyleSheet.create({
   more: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
   body: { borderRadius: 0 },
   main: { gap: sys.space.sm },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: sys.space.sm },
+  titleText: { flex: 1, minWidth: 0, fontSize: 17, lineHeight: 22 },
+  factsBlock: { gap: 6, marginVertical: 2 },
+  factLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  factLineText: { flex: 1, minWidth: 0, fontSize: 14, color: sys.color.muted },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, marginTop: 4, borderTopWidth: 1, borderTopColor: '#F0F0F0' },
+  partnerBlock: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 },
+  partnerText: { flex: 1, minWidth: 0, gap: 1 },
+  capacityBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F0FDF4', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#DCFCE7' },
+  capacityIcon: { width: 18, height: 18 },
+  capacityFraction: { color: '#16A34A', fontWeight: '700', fontSize: 13 },
+  roleBadge: { backgroundColor: '#F0FDF4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: '#DCFCE7' },
+  roleBadgeText: { color: '#16A34A', fontSize: 11, fontWeight: '700' },
   roleLabel: { color: sys.color.green, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   headCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },

@@ -275,7 +275,7 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
         </View>
         {mark || message ? <View style={s.words}>
           {mark ? <CandidateMark text={mark.text} tone={mark.tone} /> : null}
-          {message ? <T variant="note" tone="muted" numberOfLines={2}>{`„${message}“`}</T> : null}
+          {message ? <T variant="note" tone="muted" numberOfLines={2}>{message}</T> : null}
         </View> : null}
       </Press>
       {choosable ? <RecordFoot disabled={disabled} label="Izaberi" tone="green" accessibilityLabel={`Izaberi: ${k.ime}`} accessibilityHint="Otvara prijavu, gde izbor potvrđujete."

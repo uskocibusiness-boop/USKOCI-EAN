@@ -35,16 +35,33 @@ export function ActualUserAvatar({ onPress }: { onPress: () => void }) {
   return <Press accessibilityRole="button" accessibilityLabel="Moj profil"
     accessibilityValue={identity?.ime ? { text: identity.ime } : undefined} onPress={onPress}
     haptic="select" hitSlop={0} style={s.target}>
-    <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.portrait}>
-      {/* The person's own photograph: remembered in memory while the app stays in front (ownPhotoCache), so coming back to a tab
-          draws it at once instead of the letter that stands in for it while it is read. */}
-      {identity?.profileId ? <ProfilePhoto key={`${accountId}:${accountRevision}:${identity.profileId}`}
-        profileId={identity.profileId} size={ROOT_AVATAR_SIZE} fallback={fallback} own /> : fallback}
+    <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.portraitWrapper}>
+      <View style={s.portrait}>
+        {/* The person's own photograph: remembered in memory while the app stays in front (ownPhotoCache), so coming back to a tab
+            draws it at once instead of the letter that stands in for it while it is read. */}
+        {identity?.profileId ? <ProfilePhoto key={`${accountId}:${accountRevision}:${identity.profileId}`}
+          profileId={identity.profileId} size={ROOT_AVATAR_SIZE} fallback={fallback} own /> : fallback}
+      </View>
     </View>
   </Press>;
 }
 
 const s = StyleSheet.create({
   target: { width: TARGET, height: TARGET, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
+  portraitWrapper: {
+    width: ROOT_AVATAR_SIZE + 4,
+    height: ROOT_AVATAR_SIZE + 4,
+    borderRadius: sys.radius.pill,
+    borderWidth: 2,
+    borderColor: '#006B4F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#006B4F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
   portrait: { width: ROOT_AVATAR_SIZE, height: ROOT_AVATAR_SIZE, borderRadius: sys.radius.pill, overflow: 'hidden' },
 });

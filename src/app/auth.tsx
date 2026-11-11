@@ -367,7 +367,7 @@ export default function AuthScreen() {
         onSubmit={() => void emailAkcija()} inputRefs={inputRefs} />;
       // Each mode follows its own availability flag: sign-up stays usable even if password sign-in is closed.
       // An unavailable sign-in command remains visible with a reason above it.
-      footer = emailAvailable ? <AuthFormFooter way={rezim} busy={radi} onSubmit={() => void emailAkcija()} />
+      footer = emailAvailable ? <AuthFormFooter way={rezim} busy={radi} onSubmit={() => void emailAkcija()} onSwitchWay={switchWay} signUpOpen={methods.emailSignup} />
         : <PrimaryButton title={authCopy.signIn} onPress={() => undefined} disabled />;
       footerReason = emailAvailable ? undefined : EMAIL_OFF;
     }

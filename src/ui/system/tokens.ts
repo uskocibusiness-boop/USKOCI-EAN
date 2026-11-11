@@ -116,9 +116,15 @@ export const cardCompact: ViewStyle = { ...card, borderRadius: sys.radius.cardCo
 const NO_BOX_SHADOW = Platform?.OS === 'android' && typeof Platform?.Version === 'number' && Platform.Version < 28;
 /** Targeted lift for navigable marketplace items (owner material direction). No geometry or animation is imposed. */
 export const raisedItem: ViewStyle = {
-  backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line,
-  ...(NO_BOX_SHADOW ? { elevation: 3 }
-    : { boxShadow: '0px 2px 4px rgba(18, 38, 28, 0.04), 0px 8px 24px rgba(18, 38, 28, 0.07)' }),
+  backgroundColor: '#FFFFFF',
+  borderWidth: 1,
+  borderColor: '#EDEDED',
+  borderRadius: sys.radius.card,
+  shadowColor: '#000000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.05,
+  shadowRadius: 10,
+  elevation: 2,
 };
 /** Soft white cards on the recessed profile canvas, Figma 2:126. */
 export const profileLift: ViewStyle = NO_BOX_SHADOW ? { elevation: 2 }

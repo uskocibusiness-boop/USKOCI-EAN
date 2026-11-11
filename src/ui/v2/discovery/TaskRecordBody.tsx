@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 import type { NeedUrgencyProjection, Pokrivenost, StanjePotrebe } from '../../../contracts/projections';
 import { isOwnedNeed, type MarketplaceItem } from '../../../data/marketplaceView';
@@ -153,6 +154,7 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false, mapPrevi
   const stackedValue = stacked || (!!model.mark && model.audience === 'worker');
   const head = !!model.head || model.urgent;
   const first = clearOfClose ? s.clearOfClose : undefined;
+  const placesFraction = model.places && model.places.ukupno > 1 ? `${model.places.popunjeno}/${model.places.ukupno}` : null;
   return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[s.body, mapPreview && s.mapBody]}>
     {head ? <View style={first}><CardStatus status={model.head} urgency={model.urgency} now={model.urgencyNow} /></View> : null}
     <View style={head ? undefined : first}><T variant="cardTitle" style={s.title}>{model.title}</T></View>
@@ -166,12 +168,16 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false, mapPrevi
       </View>
       <FactRow art={model.place.remote ? 'remote' : 'pin'} value={model.distance ? `${model.place.text} · ${model.distance}` : model.place.text} />
       <FactRow art="calendar" value={model.schedule} />
-      {model.requirement ? <FactRow art={model.requirement.kind === 'condition' ? 'info' : model.requirement.kind} value={model.requirement.text} /> : null}
-      {model.capacity ? <FactRow testID="task-face-capacity" art="users" value={model.capacity.text} /> : null}
     </View>
-    {/* Capacity is a fact; the publisher always stands at the bottom with the full width, photo, name and rating. */}
+    {/* Publisher at bottom with optional capacity fraction on the right */}
     {model.person ? <View testID="task-face-foot" style={[s.foot, mapPreview && s.mapFoot]}>
-      <Person model={model} portrait={portrait} mapPreview={mapPreview} />
+      <View style={s.personArea}>
+        <Person model={model} portrait={portrait} mapPreview={mapPreview} />
+      </View>
+      {placesFraction ? <View style={s.capacityBadge}>
+        <Image source={require('../../../../assets/illustrations/natural-v1/users.webp')} style={s.capacityIcon} contentFit="contain" />
+        <T variant="note" style={s.capacityFraction}>{placesFraction}</T>
+      </View> : null}
     </View> : null}
   </View>;
 }
@@ -187,7 +193,7 @@ const s = StyleSheet.create({
   valueMain: { flex: 1, minWidth: 0 },
   mark: { flexShrink: 1, maxWidth: '46%', minHeight: FACT_ROW_ART, justifyContent: 'center' },
   markStacked: { maxWidth: '100%', minHeight: 0, alignSelf: 'flex-start' },
-  title: { color: sys.color.ink },
+  title: { color: sys.color.ink, fontSize: 17, lineHeight: 22 },
   // The first row keeps one chrome control (the pin card's close) clear on the right, and is as high as it.
   // The close is 48 tall and stands 8 in from the card's edge, the face 16: so the first row is as high as what is left of it, 40.
   clearOfClose: { marginRight: layout.touch, minHeight: layout.touch - sys.space.sm },
@@ -196,8 +202,16 @@ const s = StyleSheet.create({
   offerRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: FACT_ROW_ART },
   valueCopy: { flex: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm },
   amount: { color: sys.color.money, flexShrink: 1 },
-  foot: { alignSelf: 'stretch', paddingTop: sys.space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center' },
-  mapFoot: { paddingTop: sys.space.sm, justifyContent: 'flex-start' },
+  foot: { alignSelf: 'stretch', paddingTop: sys.space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  mapFoot: { paddingTop: sys.space.sm, justifyContent: 'space-between' },
+  personArea: { flex: 1, minWidth: 0 },
+  capacityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  capacityIcon: { width: 24, height: 24 },
+  capacityFraction: { fontWeight: '800', color: sys.color.ink, fontSize: 16 },
   person: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   face: { width: 40, height: 40, borderRadius: sys.radius.pill, overflow: 'hidden', flexShrink: 0 },
   personText: { flex: 1, minWidth: 0 },

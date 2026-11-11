@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import type { PotrebaProjekcija } from '../../contracts/projections';
@@ -94,10 +95,13 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
             <TaskDecisionValue need={item} size="card" />
             <FactRow art={place.remote ? 'remote' : 'pin'} value={place.text} />
             <FactRow art="calendar" value={schedule} />
-            {people ? <FactRow art="users" value={people} /> : null}
           </View>
           {sentence ? <T variant="note" tone="muted">{sentence}</T> : null}
         </View>
+        {people ? <View style={s.bottomCapacity}>
+          <Image source={require('../../../assets/illustrations/natural-v1/users_clay_3d.png')} style={s.capacityIcon} contentFit="contain" />
+          <T variant="note" style={s.capacityFraction}>{people}</T>
+        </View> : null}
       </Press>
       {foot ? <RecordFoot label={foot} tone="muted" accessibilityLabel={`Pogledajte prijave, ${foot}. Zadatak: ${title}`} accessibilityHint="Otvara prijave za izbor."
         disabled={disabled} onPress={onApplications!} onPressIn={lift.give} onPressOut={lift.settle} /> : null}
@@ -111,4 +115,7 @@ const s = StyleSheet.create({
   grow: { flex: 1 },
   // The facts stand 4 apart, as in the card of the Zadaci family: the rows are one group.
   facts: { gap: sys.space.xs },
+  bottomCapacity: { position: 'absolute', bottom: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  capacityIcon: { width: 22, height: 22 },
+  capacityFraction: { fontWeight: '700', color: sys.color.ink, fontSize: 13 },
 });

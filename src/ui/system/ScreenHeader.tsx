@@ -43,7 +43,7 @@ export function ScreenHeader({ title, onProfile, right, profileEntry, showTitle 
  * The profile and bell retain the same host positions when the layout class changes; the bell never remounts for layout. */
 function TitledRootHeader({ title, onProfile, right, profileEntry }: ScreenHeaderProps) {
   const { stacked } = useLayoutClass();
-  const heading = <T variant="title" accessibilityRole="header" style={s.title}>{title}</T>;
+  const heading = <T variant="title" accessibilityRole="header" numberOfLines={1} style={s.title}>{title}</T>;
   return <View style={s.header}>
     <View style={s.row}>
       {!stacked ? <View style={s.copy}>{heading}</View> : null}
@@ -55,9 +55,9 @@ function TitledRootHeader({ title, onProfile, right, profileEntry }: ScreenHeade
 
 const s = StyleSheet.create({
   header: { paddingHorizontal: chrome.paddingHorizontal, paddingVertical: chrome.paddingVertical },
-  row: { minHeight: chrome.control, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: chrome.gap },
-  copy: { flexGrow: 1, flexShrink: 1, flexBasis: 120, minWidth: 0 },
-  title: { color: sys.color.ink },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: sys.space.sm, flexShrink: 0, maxWidth: '100%' },
+  row: { minHeight: chrome.control, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.xs },
+  copy: { flexShrink: 0 },
+  title: { color: sys.color.ink, fontSize: 24, lineHeight: 28 },
+  actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, flexShrink: 0 },
   stackedTitle: { paddingTop: sys.space.sm },
 });

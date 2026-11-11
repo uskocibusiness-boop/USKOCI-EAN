@@ -81,7 +81,7 @@ export function workerPrijava(row: MojaPrijavaProjekcija, fresh = false): Prijav
   const priceReason: PrijavaModel['reason'] = row.osnovicaZaProveru
     ? { text: 'Proverite cenu i način obračuna prijave.', tone: 'warn' } : null;
   return { status: STATUS[row.stanje], reason: calendarReason ?? priceReason ?? REASON[row.stanje] ?? null, who: { kind: 'task', title: readableTitle(row.naslov) },
-    term: row.vremeTekst, price: applicationValue(row), people: osoba(row.pokrivaMesta), message: note ? `„${note}“` : null,
+    term: row.vremeTekst, price: applicationValue(row), people: osoba(row.pokrivaMesta), message: note || null,
     quiet: row.stanje === 'WITHDRAWN' || row.stanje === 'CLOSED', ...(fresh ? { detail: 'upravo' } : {}) };
 }
 

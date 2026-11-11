@@ -30,8 +30,8 @@ export function taskValue(item: Pick<MarketplaceItem, 'rezimCene' | 'ponudjenaCe
   if (item.rezimCene === 'OFFERS') return { kind: 'offers' };
   const amount = item.ponudjenaCena?.prikaz;
   if (!amount) return { kind: 'unpriced' };
-  // The card says what the number buys in one or two words (A10, B14); the full sentence stays on the detail.
-  return { kind: 'amount', amount, basis: item.osnovaCene === 'HOURLY' ? 'po osobi po satu' : item.osnovaCene === 'TOTAL' ? 'ukupno' : item.osnovaCene === 'PER_PERSON' ? 'po osobi' : null };
+  // Clean, natural price display: "/ sat" instead of "po osobi po satu"
+  return { kind: 'amount', amount, basis: item.osnovaCene === 'HOURLY' ? '/ sat' : item.osnovaCene === 'TOTAL' ? 'ukupno' : item.osnovaCene === 'PER_PERSON' ? 'po osobi' : null };
 }
 
 /** The words of a value slot without an amount. They are labels, never drawn as money. */
