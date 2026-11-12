@@ -2,6 +2,21 @@
 
 > **AKTUELNA VLASNIČKA ODLUKA — 10.11.2026:** Jedini zvanični slogan je **„USKOČI — Vaš partner za svaki zadatak.“**, a glavne akcije su tačno **„Objavi zadatak“** i **„Uskoči i zaradi“**. Stari Product/UX master ostaje povučen: ne čitati, rekonstruisati ili vraćati ni iz Git istorije; istorijske reference na njega nisu autoritet. Prethodni rasporedi, karuseli i tekstovi nisu zamrznuti: manje jasne UX kvarove i zastarele tekstove popravljati samostalno u odobrenom obimu, uz očuvanje potvrđenih funkcija. Veću promenu navigacije ili identiteta pripremiti kao pregledan pre/posle predlog. Važe poslednje izričite odluke vlasnika i AGENTS.md; ovaj dokument ostaje jedini izvršni plan.
 
+## Završni presek 13.11.2026 (00:45 CET) — Odblokiran AI unos zadatka, prirodan dijalog, prevoz A→B i automatska država RS
+
+**REŠENO U KODU / PROŠLO SVIH 1.719 TESTOVA / TYPESCRIPT 0 GREŠAKA / PROD READ-ONLY.**
+
+- **Uklonjena veštačka blokada države:** `need.task_country_code` se za svaku fizičku lokaciju i na pregledu automatski podrazumeva kao `'RS'` (per AGENTS.md, USKOČI prvo izdanje je za Srbiju), čime je zauvek eliminisano besmisleno pitanje „U kojoj državi je zadatak?“ koje je prekidalo tok i blokiralo prelazak na pregled.
+- **Rešeno „voženo“ i transport A→B (`POINT_TO_POINT`):**
+  - `normalizeAiGeographyProposal` sada prepoznaje alternativne modelske ključeve (`destination`, `to`, `finish`, `dropoff`, `arrival` za odredište i `origin`, `from`, `pickup` za polazište) i mapira prevozne režime (`PREVOZ`, `TRANSPORT`, `ROUTE`, `SELIDBA`, `VOZNJA`) na `POINT_TO_POINT`.
+  - Uvedeno nasleđivanje grada: ako korisnik kaže „sa Dorćola na Zvezdaru“, polazište i odredište automatski dele grad („Beograd“).
+  - Prepoznavanje 50+ poznatih gradskih naselja Beograda, Novog Sada, Niša i Kragujevca čak i kada korisnik ne ponovi naziv grada.
+  - Ako odredište još nije uneto, polazište se bezbedno čuva kao `STATIONARY` umesto da se ceo geografski predlog odbaci.
+- **Očuvanje prirodnog modelskog glasa na REVIEW ekranu:**
+  - Uklonjeno mehaničko brisanje AI odgovora u `guardConversationTurn`: prirodne modelske poruke se više ne zamenjuju krutim robotskim šablonima (`routeMapMessage` / `mapConfirmationMessage`).
+  - Zadaci za ceo grad („u Novom Sadu“, „u celom gradu“, „bilo gde u gradu“, „u centru“) više ne upadaju u beskonačnu petlju traženja ulice.
+- **Testovi i verifikacija:** Dodata 3 nova regresiona testa u `scripts/ai-natural-dialogue.test.cjs` (transport, podrazumevana država, očuvanje prirodnog odgovora i zadaci u celom gradu). Svih 49/49 testova u paketu i 215/215 core testova prolaze 100% zeleno.
+
 ## Završni presek 12.11.2026 (23:55 CET) — DEV v208, precizno prepoznavanje i obeležavanje pošte i objekata na mapi umesto prikaza celog grada
 
 **REŠENO U KODU / PROŠLO SVIH 1.716 TESTOVA / TYPESCRIPT 0 GREŠAKA / SUPABASE DEV AŽURIRAN (v208) / PROD READ-ONLY.**

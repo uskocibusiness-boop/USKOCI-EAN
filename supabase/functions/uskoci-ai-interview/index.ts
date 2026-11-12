@@ -552,7 +552,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'dialogue.priceUnit reports stated unit: WHOLE_JOB / PER_HOUR / PER_TEAM_HOUR / PER_DAY, otherwise UNSPECIFIED; do not substitute a calculated total. An amount-only correction ("Promeni na 1.500", "Промени на 1.500") keeps the known currency, price basis, people and times. Propose only the new amount; if the current question makes its target unclear, ask one short clarification.',
     'need.schedule_kind: FIXED_WINDOW=known start date/time, ends_at only if stated and later; TODAY_FLEXIBLE/TOMORROW_FLEXIBLE=no fixed hour; WEEK_FLEXIBLE=this calendar week; REMOTE_ANYTIME=truly unrestricted remote time; FLEXIBLE=explicit bounded choice. A choice within dates is neither unrestricted nor booking every day. Store starts_at/ends_at; whole dates use first local midnight to exclusive midnight after last date, with each bound’s DST offset. Next week uses server nextCalendarWeek. Preserve pending bounds; ask missing boundary, never invent one from an earliest start/latest deadline.',
     'dialogue.schedulePattern: FLEXIBLE_RANGE=bounded choice, even while clarifying; SINGLE=one continuous time or today/tomorrow/this week; REPEATED=separate days/shifts; otherwise UNSPECIFIED. Do not claim unsupported repeated schedules saved.',
-    'need.task_geography: only mode/start/end/waypoints/serviceArea; points only label/city/area. Modes STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED (needs start/serviceArea), REMOTE (no work points). Each physical point needs city + street/neighborhood/landmark, not a house number. CRITICAL GEOCODING RULE: Always write city, area, and label in clean NOMINATIVE Serbian suitable for map search (e.g. if user says "na Limanu kod pošte, dostava do Promenade", write start: {"city":"Novi Sad","area":"Liman","label":"Pošta, Liman"} and end: {"city":"Novi Sad","area":"Liman","label":"Promenada"}—never conversational locative/genitive phrases like "na Limanu kod pošte" or "do Promenade"). LANDMARK & POI RETENTION: Whenever user mentions any facility, institution, building, landmark or POI (e.g. pošta, dom zdravlja, MUP, stanica, apoteka, škola, bolnica, tržni centar, banka, opština, sud, market, park, crkva, stadion, aerodrom, salaš) or a street name, NEVER drop it or collapse label to just the city! ALWAYS preserve the landmark or street in label (e.g. "Pošta", "Glavna pošta", "Pošta, Dorćol", "Pošta, Savska", "Pošta, Takovska") and propose need.exact_address with the landmark and city (e.g. "Pošta, Beograd" or "Glavna pošta, Takovska, Beograd"). ONLY when user mentions strictly NOTHING more specific than a bare city name (e.g. "u Beogradu", "u Novom Sadu") should label and city be the city name. For transport/moving A->B, capture both start city and destination city immediately. Preserve known stops/terms through corrections.',
+    'need.task_geography: only mode/start/end/waypoints/serviceArea; points only label/city/area. Modes STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED (needs start/serviceArea), REMOTE (no work points). Each physical point needs city + street/neighborhood/landmark, not a house number. CRITICAL GEOCODING RULE: Always write city, area, and label in clean NOMINATIVE Serbian suitable for map search (e.g. if user says "na Limanu kod pošte, dostava do Promenade", write start: {"city":"Novi Sad","area":"Liman","label":"Pošta, Liman"} and end: {"city":"Novi Sad","area":"Liman","label":"Promenada"}—never conversational locative/genitive phrases like "na Limanu kod pošte" or "do Promenade"). LANDMARK & POI RETENTION: Whenever user mentions any facility, institution, building, landmark or POI (e.g. pošta, dom zdravlja, MUP, stanica, apoteka, škola, bolnica, tržni centar, banka, opština, sud, market, park, crkva, stadion, aerodrom, salaš) or a street name, NEVER drop it or collapse label to just the city! ALWAYS preserve the landmark or street in label (e.g. "Pošta", "Glavna pošta", "Pošta, Dorćol", "Pošta, Savska", "Pošta, Takovska") and propose need.exact_address with the landmark and city (e.g. "Pošta, Beograd" or "Glavna pošta, Takovska, Beograd"). ONLY when user mentions strictly NOTHING more specific than a bare city name (e.g. "u Beogradu", "u Novom Sadu") should label and city be the city name. TRANSPORT / MOVING / DRIVING (voženo, prevoz, selidba, prevoz stvari/nameštaja, vožnja A->B): Always set mode="POINT_TO_POINT". Capture BOTH start (polazište/odakle) and end (odredište/dokle) immediately. If both are in the same city (e.g. "sa Dorćola na Zvezdaru"), set start.city and end.city to that city ("Beograd"), start.area/label to the origin, and end.area/label to the destination. Always propose need.task_country_code="RS" for Serbian tasks. If user provides the job, route, time and budget/offers in one message, capture ALL facts and transition to dialogue.next=REVIEW immediately without unnecessary friction. CITYWIDE TASKS: If user specifies only a city ("u Novom Sadu", "u Kragujevcu") or says "bilo gde u gradu", "u celom gradu", or "u centru", set label to the city name or "Centar" and do not loop asking for streets.',
     'Public points use privacy-safe street/POI; exact address/access notes use private facts, never copied between stops. Stationary need.exact_address may be the stated street/landmark without number for lookup. Known city+landmark lets the app geocode and user check the map: no invented coordinates, prose geocoding or repeated interview. Provider pickup/shipping belongs to need.handoff, not a work pin.',
     `Fact types; required = complete-draft requirement, not a repeated question: ${registry}`,
     ...(includeRuntime ? [needRuntimeContext(activeFacts, timeContext), needFinishContext(activeFacts, finishPresentation)] : []),
@@ -651,28 +651,81 @@ function geographyValid(value: unknown): boolean {
   return false;
 }
 
+function normalizeLocationPoint(p: unknown, fallbackCity = ''): { city: string; area: string; label: string } | null {
+  if (!p) return null;
+  let city = '';
+  let area = '';
+  let label = '';
+  if (typeof p === 'string') {
+    const trimmed = p.trim();
+    if (!trimmed) return null;
+    if (trimmed.includes(',')) {
+      const parts = trimmed.split(',').map(s => s.trim()).filter(Boolean);
+      label = parts[0] || '';
+      city = parts[1] || '';
+      area = parts.length > 2 ? parts[2] : label;
+    } else {
+      label = trimmed;
+    }
+  } else if (typeof p === 'object' && !Array.isArray(p)) {
+    const rec = p as Record<string, unknown>;
+    city = typeof rec.city === 'string' ? rec.city.trim() : '';
+    area = typeof rec.area === 'string' ? rec.area.trim() : '';
+    label = typeof rec.label === 'string' ? rec.label.trim() : '';
+  } else {
+    return null;
+  }
+
+  // Detect city from well-known Serbian neighborhoods if city is not explicitly stated
+  const lowerArea = (area || label).toLowerCase();
+  if (!city) {
+    if (/(?:dorćol|dorcol|vracar|vračar|zvezdara|novi beograd|zemun|palilula|voždovac|vozdovac|čukarica|cukarica|rakovica|senjak|dedinje|karaburma|mirijevo|banovo brdo|vidikovac|borča|borca|bežanijska kosa|bezanijska kosa|konjarnik|dušanovac|dusanovac|autokomanda|slavija|zeleni venac|terazije|kumodraž|žarkovo|zarkovo|cerak)/iu.test(lowerArea)) {
+      city = 'Beograd';
+    } else if (/(?:liman|detelinara|grbavica|petrovaradin|novo naselje|telep|podbara|sremska kamenica|veternik|rotkvarija|salajka)/iu.test(lowerArea)) {
+      city = 'Novi Sad';
+    } else if (/(?:medijana|pantelej|crveni krst|durlan|trošarina|trosarina)/iu.test(lowerArea)) {
+      city = 'Niš';
+    } else if (/(?:aerodrom|pivara|bubanj|stanovovo|sušica|susica|bresnica|erdoglija)/iu.test(lowerArea)) {
+      city = 'Kragujevac';
+    } else if (fallbackCity) {
+      city = fallbackCity;
+    }
+  }
+
+  if (!label && area) label = area;
+  if (!label && city) label = city;
+  if (!area && label && label.toLowerCase() !== city.toLowerCase()) area = label;
+
+  if (!city && !area && !label) return null;
+  return { city, area, label };
+}
+
 function normalizeAiGeographyProposal(val: unknown): unknown {
   if (!val || typeof val !== 'object' || Array.isArray(val)) return val;
   const raw = val as Record<string, any>;
-  const mode = (typeof raw.mode === 'string' && GEOGRAPHY_MODES.has(raw.mode.toUpperCase()))
-    ? raw.mode.toUpperCase()
-    : 'STATIONARY';
+  let mode = typeof raw.mode === 'string' ? raw.mode.toUpperCase() : '';
+  if (['ROUTE', 'TRANSPORT', 'PREVOZ', 'VOZNJA', 'VOZENO', 'SELIDBA', 'MOVE'].includes(mode)) {
+    mode = 'POINT_TO_POINT';
+  }
 
   if (mode === 'REMOTE') return { mode: 'REMOTE' };
 
-  let start = raw.start;
-  if (!start && (raw.city || raw.area || raw.label)) {
-    start = {
-      city: typeof raw.city === 'string' ? raw.city.trim() : '',
-      area: typeof raw.area === 'string' ? raw.area.trim() : '',
-      label: typeof raw.label === 'string' ? raw.label.trim() : '',
-    };
-  } else if (start && typeof start === 'object' && !Array.isArray(start)) {
-    start = {
-      city: typeof start.city === 'string' ? start.city.trim() : '',
-      area: typeof start.area === 'string' ? start.area.trim() : '',
-      label: typeof start.label === 'string' ? start.label.trim() : '',
-    };
+  const rawStartInput = raw.start ?? raw.origin ?? raw.from ?? raw.pickup ?? (raw.city || raw.area || raw.label ? { city: raw.city, area: raw.area, label: raw.label } : null);
+  const rawEndInput = raw.end ?? raw.destination ?? raw.to ?? raw.finish ?? raw.dropoff ?? raw.arrival;
+
+  if (!mode) {
+    mode = rawEndInput ? 'POINT_TO_POINT' : 'STATIONARY';
+  } else if (!GEOGRAPHY_MODES.has(mode)) {
+    mode = rawEndInput ? 'POINT_TO_POINT' : 'STATIONARY';
+  }
+
+  let start = normalizeLocationPoint(rawStartInput);
+  let end = normalizeLocationPoint(rawEndInput, start?.city);
+  if (start && !start.city && end?.city) {
+    start.city = end.city;
+  }
+  if (end && !end.city && start?.city) {
+    end.city = start.city;
   }
 
   if (mode === 'STATIONARY') {
@@ -682,17 +735,24 @@ function normalizeAiGeographyProposal(val: unknown): unknown {
   }
 
   if (mode === 'POINT_TO_POINT') {
-    let end = raw.end;
-    if (end && typeof end === 'object' && !Array.isArray(end)) {
-      end = {
-        city: typeof end.city === 'string' ? end.city.trim() : '',
-        area: typeof end.area === 'string' ? end.area.trim() : '',
-        label: typeof end.label === 'string' ? end.label.trim() : '',
-      };
-    }
     if (start && end) {
       return { mode: 'POINT_TO_POINT', start, end };
     }
+    if (start && !end) {
+      return { mode: 'STATIONARY', start };
+    }
+  }
+
+  if (mode === 'MULTI_STOP') {
+    const rawWaypoints = Array.isArray(raw.waypoints) ? raw.waypoints : [];
+    const waypoints = rawWaypoints.map((w: unknown) => normalizeLocationPoint(w, start?.city)).filter(Boolean);
+    if (start) {
+      return { mode: 'MULTI_STOP', start, ...(end ? { end } : {}), waypoints };
+    }
+  }
+
+  if (mode === 'AREA_BASED') {
+    if (start) return { mode: 'AREA_BASED', start };
   }
 
   return val;
@@ -1396,6 +1456,12 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     facts.set('need.people_needed', 1);
     proposals.push({ key: 'need.people_needed', value: 1, evidence: 'Podrazumevano za pojedinačni zadatak' });
   }
+  if (!facts.has('need.task_country_code')) {
+    facts.set('need.task_country_code', 'RS');
+    if (dialogue?.next === 'REVIEW') {
+      proposals.push({ key: 'need.task_country_code', value: 'RS', evidence: 'Podrazumevano za izdanje za Srbiju' });
+    }
+  }
   const missing = [...new Set(['need.description', 'need.people_needed', 'need.price_mode',
     ...(facts.get('need.price_mode') === 'MY_PRICE' ? ['need.price_rsd', ...(Number(facts.get('need.people_needed')) > 1 ? ['need.price_basis'] : [])] : []),
     'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at'] : []),
@@ -1429,9 +1495,10 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const city = tidyPlace(geography?.start?.city);
   const nearHint = [geography?.start?.area, geography?.start?.label].some(part => {
     const hint = tidyPlace(part);
-    return !!hint && hint !== city && !['ovde', 'moja lokacija', 'trenutna lokacija', 'gde se nalazim'].includes(hint);
+    return !!hint && (hint !== city || /(?:centar|trg|korzo|bilo gde|ceo grad)/iu.test(hint)) && !['ovde', 'moja lokacija', 'trenutna lokacija', 'gde se nalazim'].includes(hint);
   });
-  const hasPlaceHint = (typeof streetOrLandmark === 'string' && !!streetOrLandmark.trim()) || nearHint;
+  const inputMentionsWideArea = /(?:ceo grad|celom gradu|bilo gde|svejedno|centar|nebitno|svugde)/iu.test(input);
+  const hasPlaceHint = (typeof streetOrLandmark === 'string' && !!streetOrLandmark.trim()) || nearHint || inputMentionsWideArea;
   const cityOnlyStationary = geography?.mode === 'STATIONARY' && !hasPlaceHint;
   const routePoints: Array<{name: string; target: string; point: any}> = geography?.mode === 'POINT_TO_POINT' || geography?.mode === 'MULTI_STOP'
     ? [{name:'polazište',target:'polazište',point:geography.start},
@@ -1495,15 +1562,12 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
       dialogue = { ...dialogue, next: key ? 'ASK' : 'ACK', questionKey: key ?? '' };
     }
   } else if (dialogue?.next === 'REVIEW' && missing.length) {
-    assistantMessage = incompleteMessage();
+    assistantMessage = turn.assistantMessage.includes('?') ? turn.assistantMessage : incompleteMessage();
   } else if (!missing.length && dialogue?.next === 'REVIEW' && routePoints.length) {
-    assistantMessage = routeQuestion || routeMapMessage;
+    assistantMessage = routeQuestion || (turn.assistantMessage.trim() || routeMapMessage);
   } else if (!missing.length && dialogue?.next === 'REVIEW' && geography?.mode === 'STATIONARY'
     && !(typeof streetOrLandmark === 'string' && streetOrLandmark.trim())) {
-    // Only an attempted REVIEW needs retargeting. A normal ACK or explanation
-    // must keep its own words, even while an unconfirmed pin exists on screen.
-    // An existing exact-address fact is also not proof of confirmed coordinates.
-    assistantMessage = cityOnlyStationary ? nearestPlaceQuestion : mapConfirmationMessage;
+    assistantMessage = cityOnlyStationary ? (turn.assistantMessage.includes('?') ? turn.assistantMessage : nearestPlaceQuestion) : (turn.assistantMessage.trim() || mapConfirmationMessage);
   }
   // ACK is not permission to replace the answer with another robotic template.
   // The validated assistantMessage is already bounded and is not publication authority.

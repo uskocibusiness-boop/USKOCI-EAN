@@ -10,7 +10,7 @@ const ts = require('typescript');
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8');
 const parsed = ts.createSourceFile('index.ts', source, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TS);
-const names = ['serbiaTimeParts', 'serbiaMidnight', 'serverTimeContext', 'validTimestamp', 'nextMonthDateEvidence', 'guardTimestampProposals', 'guardConversationTurn'];
+const names = ['serbiaTimeParts', 'serbiaMidnight', 'serverTimeContext', 'validTimestamp', 'nextMonthDateEvidence', 'guardTimestampProposals', 'normalizeLocationPoint', 'normalizeAiGeographyProposal', 'guardConversationTurn'];
 const code = names.map(name => {
   const node = parsed.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === name);
   assert.ok(node, `Actual Edge guard ${name} exists`);
@@ -24,12 +24,13 @@ function contract(relative) {
 }
 const sandbox = {
   Date, Intl, taskFinishOnly: () => false, applicationDeadlineEnabled: () => true,
+  GEOGRAPHY_MODES: new Set(['STATIONARY', 'POINT_TO_POINT', 'MULTI_STOP', 'AREA_BASED', 'REMOTE']),
   sameFactValue: (a, b) => JSON.stringify(a) === JSON.stringify(b),
   decodeServiceHandoff: require('../supabase/functions/_shared/serviceHandoff.mjs').decodeServiceHandoff,
   decodeTaskApplicationDeadlineFact: contract('src/contracts/taskApplicationDeadline.ts').decodeTaskApplicationDeadlineFact,
   NEED_FACT_V2_DEFINITIONS: contract('src/contracts/needFactsV2.ts').NEED_FACT_V2_DEFINITIONS,
 };
-vm.runInNewContext(js + '\nthis.run = guardConversationTurn; this.time = serverTimeContext; this.month = nextMonthDateEvidence;', sandbox);
+vm.runInNewContext(js + '\nthis.run = guardConversationTurn; this.time = serverTimeContext; this.month = nextMonthDateEvidence; this.normalizeGeo = normalizeAiGeographyProposal;', sandbox);
 const time = sandbox.time(new Date('2026-11-09T11:00:00Z'));
 const fact = (key, value, evidence = '') => ({ key, value, evidence, confidence: 1, displayValue: String(value) });
 const active = entries => entries.map(([key, value]) => ({fact_key: key, fact_value: value, status: 'CONFIRMED'}));
@@ -453,3 +454,80 @@ test('a complete remote task still stops optional description questions without 
   const out=run(turn('Želite li da dodate još detalja?',[],'need.description'),'Ostalo zadržite.',remotePhotoFacts());
   assert.equal(out.dialogue.next,'REVIEW'); assert.doesNotMatch(out.assistantMessage,/\?/u);
 });
+
+test('transport/moving geography normalizes alternative keys, routes and inherits city for both points',()=>{
+  // 1. Destination key fallback and city inheritance
+  const rawTransport = {
+    mode: 'POINT_TO_POINT',
+    start: { city: 'Beograd', area: 'Dorćol', label: 'Dorćol' },
+    destination: { area: 'Zvezdara', label: 'Zvezdara' }
+  };
+  const normalized = sandbox.normalizeGeo(rawTransport);
+  assert.equal(normalized.mode, 'POINT_TO_POINT');
+  assert.equal(normalized.start.city, 'Beograd');
+  assert.equal(normalized.end.city, 'Beograd');
+  assert.equal(normalized.end.area, 'Zvezdara');
+
+  // 2. Serbian neighborhood recognition without explicit city
+  const rawNeighborhoods = {
+    mode: 'PREVOZ',
+    start: 'Dorćol',
+    end: 'Zvezdara'
+  };
+  const norm2 = sandbox.normalizeGeo(rawNeighborhoods);
+  assert.equal(norm2.mode, 'POINT_TO_POINT');
+  assert.equal(norm2.start.city, 'Beograd');
+  assert.equal(norm2.end.city, 'Beograd');
+
+  // 3. Novi Sad neighborhoods
+  const rawNS = {
+    mode: 'TRANSPORT',
+    start: { area: 'Liman' },
+    to: { area: 'Grbavica' }
+  };
+  const norm3 = sandbox.normalizeGeo(rawNS);
+  assert.equal(norm3.mode, 'POINT_TO_POINT');
+  assert.equal(norm3.start.city, 'Novi Sad');
+  assert.equal(norm3.end.city, 'Novi Sad');
+});
+
+test('draft ready for REVIEW defaults need.task_country_code to RS and preserves natural assistant message',()=>{
+  const readyFacts = active([
+    ['need.title', 'Prevoz troseda sa Dorćola na Zvezdaru'],
+    ['need.category', 'Kombi prevoz'],
+    ['need.description', 'Kombi prevoz troseda sa Dorćola na Zvezdaru sutra u 10h'],
+    ['need.people_needed', 1],
+    ['need.price_mode', 'MY_PRICE'],
+    ['need.price_rsd', 4000],
+    ['need.price_basis', 'TOTAL'],
+    ['need.schedule_kind', 'FIXED_WINDOW'],
+    ['need.starts_at', '2026-11-10T10:00:00+01:00'],
+    ['need.task_geography', {
+      mode: 'POINT_TO_POINT',
+      start: { city: 'Beograd', area: 'Dorćol', label: 'Dorćol' },
+      end: { city: 'Beograd', area: 'Zvezdara', label: 'Zvezdara' }
+    }],
+  ]);
+  const naturalReply = 'Odlično, zabeležio sam kombi prevoz sa Dorćola na Zvezdaru za 4.000 RSD. Pred vama je pregled zadatka.';
+  const out = run(turn(naturalReply, [], '', 'REVIEW'), 'Potvrđujem unos.', readyFacts);
+  assert.equal(out.dialogue.next, 'REVIEW');
+  // Ensures country code was defaulted
+  const countryProposal = out.proposals.find(p => p.key === 'need.task_country_code');
+  assert.ok(countryProposal, 'Must propose task_country_code RS for review');
+  assert.equal(countryProposal.value, 'RS');
+  // Ensures natural AI reply was preserved instead of replaced with robotic canned message
+  assert.equal(out.assistantMessage, naturalReply);
+});
+
+test('city-wide task with user indicating anywhere in city does not loop asking for street',()=>{
+  const cityOnlyFacts = active([
+    ['need.description', 'Čišćenje stana u Novom Sadu'],
+    ['need.people_needed', 1],
+    ['need.price_mode', 'OFFERS'],
+    ['need.schedule_kind', 'WEEK_FLEXIBLE'],
+    ['need.task_geography', { mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Centar', label: 'Centar' } }],
+  ]);
+  const out = run(turn('Zabeležio sam, pregledajte detalje.', [], '', 'REVIEW'), 'U celom gradu, gde god odgovara.', cityOnlyFacts);
+  assert.equal(out.dialogue.next, 'REVIEW');
+});
+
