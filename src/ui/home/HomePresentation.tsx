@@ -357,7 +357,7 @@ export function HomePresentation(p: HomePresentationProps) {
     {/* A Dogovori read that failed says so here, never as an empty schedule; with no appointment ahead there is no block and no placeholder. */}
     {home?.agreements.kind === 'unavailable' ? <Section title="Sledeće"><Unavailable text="Ne možemo da učitamo Dogovore." /></Section> : null}
 
-    {home?.opportunityItems && home.opportunityItems.length > 0 ? <Section title="Prilike za tebe"
+    {home?.opportunityItems && home.opportunityItems.length > 0 ? <Section title="Prilike za Vas"
       action={{ label: 'Mapa zadataka', onPress: p.onEarn }}>
       <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.carousel} style={s.carouselScroll}>

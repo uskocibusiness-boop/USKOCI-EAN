@@ -20,7 +20,7 @@ export function resolveWorkerAreaRows(request,raw){
  // A malformed provider reply is an unavailable lookup, not evidence that the
  // worker gave an unclear city. Only a valid result set may ask for clarification.
  if(!Array.isArray(raw)||raw.length>5)throw Error('WORKER_AREA_UNAVAILABLE');
- const cities=new Map();
+ const candidates=[];
  for(const row of raw){
   if(!row||typeof row!=='object'||!row.address||row.address.country_code?.toLowerCase()!=='rs')continue;
   // Only a locality object qualifies; a street address carrying a city does not.
@@ -30,16 +30,23 @@ export function resolveWorkerAreaRows(request,raw){
   if(!['node','way','relation'].includes(row.osm_type)||!String(row.osm_id??'').match(/^[1-9][0-9]{0,19}$/))continue;
   const lat=Number(row.lat),lng=Number(row.lon);
   if(typeof row.lat!=='string'||typeof row.lon!=='string'||!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)continue;
-  // Equal names can describe different towns. Only an identical OSM identity
-  // collapses; otherwise ask for clarification rather than choose a first row.
+  // Equal names can describe different towns. Only an identical OSM identity or same city cluster collapses.
   if(cityKey(city)!==cityKey(request.query))continue;
-  const key=`osm:${row.osm_type}:${row.osm_id}`;
-  if(!cities.has(key))cities.set(key,{kind:request.kind,countryCode:'RS',city,
-   label:request.kind==='CITY'?city:`${city} · do ${request.radiusKm} km`,
-   sourceRef:`osm:${row.osm_type}:${row.osm_id}`,latitude:Math.round(lat*100)/100,longitude:Math.round(lng*100)/100,radiusKm:request.radiusKm});
+  const cleanCity=city.replace(/^Grad\s+/iu,'').trim();
+  const finalCity=cleanCity.length>=2?cleanCity:city;
+  candidates.push({kind:request.kind,countryCode:'RS',city:finalCity,
+   label:request.kind==='CITY'?finalCity:`${finalCity} · do ${request.radiusKm} km`,
+   sourceRef:`osm:${row.osm_type}:${row.osm_id}`,latitude:Math.round(lat*100)/100,longitude:Math.round(lng*100)/100,radiusKm:request.radiusKm,
+   isPlace:row.class==='place',isRelation:row.osm_type==='relation'});
  }
- if(cities.size!==1)throw Error('WORKER_AREA_UNRESOLVED');
- return [...cities.values()][0];
+ if(candidates.length===0)throw Error('WORKER_AREA_UNRESOLVED');
+ if(candidates.length===1){const {isPlace,isRelation,...res}=candidates[0];return res;}
+ const first=candidates[0];
+ const areClose=candidates.every(c=>Math.abs(c.latitude-first.latitude)<0.6&&Math.abs(c.longitude-first.longitude)<0.8);
+ if(!areClose)throw Error('WORKER_AREA_UNRESOLVED');
+ const preferred=candidates.find(c=>c.isPlace)||candidates.find(c=>c.isRelation)||candidates[0];
+ const {isPlace,isRelation,...res}=preferred;
+ return res;
 }
 // A free LocationIQ key allows two lookups/second. A single worker turn can
 // contain up to five CITY/RADIUS areas: never burst them with Promise.all.
