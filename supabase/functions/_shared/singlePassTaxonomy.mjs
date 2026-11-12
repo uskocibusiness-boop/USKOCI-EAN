@@ -93,6 +93,8 @@ export function singlePassCapturePlan(built, catalog) {
   return new TextEncoder().encode(JSON.stringify(plan)).length <= 18000 ? plan : null;
 }
 
+const PREMATURE_READINESS_OR_SAVE_RE = /sve je spremno|spremno za|vaš profil je sačuvan|profil je sačuvan|profil je aktiviran|zadatak je objavljen|želite li da objavite|odgovarajuću kategoriju|opis ostaje u nacrtu|^proverite sledeći korak\.$/iu;
+
 // Missing classification cannot turn a model's acknowledgement into a ready
 // card invitation. Keep real questions and every guarded business fact. This
 // message grants no authority: signed server review still owns actual readiness.
@@ -122,6 +124,11 @@ export function withUnresolvedSinglePassReply(turn, built, plan) {
     && Array.isArray(built?.unresolvedServices) && built.unresolvedServices.length > 0
     && built.unresolvedServices.every(service => plan.proposals.some(proposal => proposal.service === service
       && ['REUSE_EXISTING', 'EXTEND_MODE'].includes(proposal.action)));
+  const cleanMessage = typeof turn.assistantMessage === 'string' ? turn.assistantMessage.trim() : '';
+  if (!question && pendingSemanticOnly && turn.dialogue?.next !== 'REVIEW'
+      && cleanMessage.length > 0 && !PREMATURE_READINESS_OR_SAVE_RE.test(cleanMessage)) {
+    return turn.dialogue ? { ...turn, dialogue: { ...turn.dialogue, next: 'ACK', questionKey: 'NONE' } } : turn;
+  }
   return { ...turn, assistantMessage: question || (pendingSemanticOnly ? 'Podaci iz razgovora su sačuvani.'
     : 'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.'),
     ...(turn.dialogue ? { dialogue: { ...turn.dialogue, next: question ? 'CLARIFY' : 'ACK', questionKey: 'NONE' } } : {}) };

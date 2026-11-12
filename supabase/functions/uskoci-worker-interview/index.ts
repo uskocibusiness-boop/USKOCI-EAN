@@ -137,8 +137,12 @@ function guardAvailabilityChange(output: Record<string,any>, intent: unknown, co
   // Bind the intent to THIS request. An old valid USER quote cannot authorize
   // an availability edit after the person changes the subject or their mind.
   const normalizeQuote=(value:string)=>value.normalize('NFKC').replace(/\s+/gu,' ').trim();
-  const evidence=normalizeQuote(plan.evidence);
-  const supportedEvidence=evidence.length>0 && normalizeQuote(currentText).includes(evidence);
+  const foldQuote=(value:string)=>value.normalize('NFKC').toLowerCase()
+    .replace(/[čć]/gu,'c').replace(/š/gu,'s').replace(/ž/gu,'z').replace(/đ/gu,'dj')
+    .replace(/[.,!?;:"„”«»()]/gu,' ').replace(/\s+/gu,' ').trim();
+  const evidence=normalizeQuote(plan.evidence),foldedEvidence=foldQuote(plan.evidence);
+  const supportedEvidence=evidence.length>0 && (normalizeQuote(currentText).includes(evidence)
+    || (foldedEvidence.length>0 && foldQuote(currentText).includes(foldedEvidence)));
   const scopeMatches=scope==='WEEKLY' ? (weekly||timezone)&&!dated&&!now
     : scope==='DATED' ? dated&&!weekly&&!now&&!timezone
     : scope==='NOW' ? now&&!weekly&&!dated&&!timezone

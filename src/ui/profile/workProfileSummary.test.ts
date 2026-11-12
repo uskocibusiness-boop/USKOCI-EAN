@@ -16,7 +16,7 @@ describe('Celina 1: Radni profil — više gradova (workAreas) i očuvanje opisa
         { kind: 'RADIUS', countryCode: 'RS', city: 'Novi Sad', radiusKm: 20, label: 'Novi Sad · do 20 km', sourceRef: 'osm:relation:1', latitude: 45.25, longitude: 19.84 },
         { kind: 'RADIUS', countryCode: 'RS', city: 'Beograd', radiusKm: 30, label: 'Beograd · do 30 km', sourceRef: 'osm:relation:2', latitude: 44.81, longitude: 20.46 },
       ],
-    });
+    }, { kind: 'confirmed', modes: ['ON_SITE'] });
     assert.ok(typeof summary === 'string');
     assert.ok(summary.includes('Aktivan'), `Očekivano da sadrži 'Aktivan', dobijeno: ${summary}`);
     assert.ok(summary.includes('Novi Sad · do 20 km · Beograd · do 30 km'), `Očekivano da sadrži oba grada, dobijeno: ${summary}`);
@@ -108,4 +108,17 @@ describe('Celina 2 & 3: Spremnost pregleda i single-pass potvrda', () => {
     };
     assert.equal(workerReviewPresentable(baseSnapshot), true);
   });
+
+  it('withUnresolvedSinglePassReply čuva prirodan odgovor AI asistenta kada nema lažnih tvrdnji o objavi', () => {
+    const naturalMessage = 'Odlično! Zabeležio sam da radite krečenje i gletovanje u Novom Sadu i Beogradu.';
+    const turn = {
+      safety: 'ALLOW',
+      assistantMessage: naturalMessage,
+    };
+    const built = { clarifications: [], failures: [], unconfirmedModeServices: [], unresolvedServices: ['Krečenje'] };
+    const plan = { proposals: [{ service: 'Krečenje', action: 'REUSE_EXISTING' }] };
+    const result = withUnresolvedSinglePassReply(turn, built, plan);
+    assert.equal(result.assistantMessage, naturalMessage);
+  });
 });
+

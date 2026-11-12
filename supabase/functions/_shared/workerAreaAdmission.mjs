@@ -335,19 +335,12 @@ export function guardWorkerAreaOutput(output, userText, context) {
       return { ...output, safety: 'CLARIFY', patch,
         assistantMessage: distanceQuestion };
     }
-    const cityChanged = proposed?.city !== undefined && !samePlace(proposed.city, current?.city);
-    // V1 stores the wish as city/radius, but the matcher reaches surrounding
-    // towns only with a confirmed coarse centre. Do not promise that reach.
-    if (!proposed || distanceFromUser === null || (!cityChanged && current?.approximatePosition)) {
-      return removedUnsupportedBio ? { ...output, safety: 'CLARIFY', patch,
+    if (removedUnsupportedBio) {
+      return { ...output, safety: 'CLARIFY', patch,
         assistantMessage: ['Širi opis područja nisam dodao u nacrt. Ostale jasne izmene ostaju u nacrtu.',
-          ...independentQuestions(output.assistantMessage)].join(' ') } : output;
+          ...independentQuestions(output.assistantMessage)].join(' ') };
     }
-    const caveat = 'Za okolna mesta još ne mogu da obećam automatske predloge; za to treba potvrditi približan centar grada.';
-    return { ...output, ...(removedUnsupportedBio ? { safety: 'CLARIFY', patch } : {}),
-      assistantMessage: output.assistantMessage.length + caveat.length + 1 <= 1200 && !removedUnsupportedBio
-        ? `${output.assistantMessage} ${caveat}`
-        : [caveat, ...independentQuestions(output.assistantMessage)].join(' ') };
+    return output;
   }
   if (scope === 'LOCALITY_NEEDS_DISTANCE') {
     const current = context?.candidate?.location;

@@ -39,7 +39,7 @@ export function workerServiceModeSchema(schema) {
 
 export function workerServiceModeInstruction(context, includeContext = true, includeClassification = true) {
   return 'Per-service modes/handoff: draftServices replace savedServices for that service; otherwise preserve saved choices. Catalog modes and unrelated bio/area/calendar edits do not authorize changes or activation. '
-    + 'serviceModeChangesJson is a STRING array of {service,modes,evidence,handoff?}, or "[]" for no change. service exactly matches an offered skill; modes is its COMPLETE intended REMOTE/ON_SITE set. evidence: verbatim USER quote (6–1000 characters) stating initial scope or a mode/handoff change. A standalone choice such as "Uživo", "Lično", "Onlajn" or "Oba" is valid evidence only for the immediately previous question that uniquely names this service and offers online/on-site alternatives at the same server revision. Return exactly the selected mode set and the actual USER quote, including its original script; never pad or invent a quote. A mode-only reply does not authorize a new handoff, so omit handoff and preserve any saved one. An ambiguous "Da", "Ne" or "Može" is not a mode choice. Obvious initial work can establish mode; a multi-service statement gives each service the same quote. '
+    + 'serviceModeChangesJson is a STRING array of {service,modes,evidence,handoff?}, or "[]" for no change. service exactly matches an offered skill; modes is its COMPLETE intended REMOTE/ON_SITE set. evidence: verbatim USER quote (3–1000 characters) stating initial scope or a mode/handoff change. A standalone choice such as "Uživo", "Lično", "Onlajn" or "Oba" is valid evidence only for the immediately previous question that uniquely names this service and offers online/on-site alternatives at the same server revision. Return exactly the selected mode set and the actual USER quote, including its original script; never pad or invent a quote. A mode-only reply does not authorize a new handoff, so omit handoff and preserve any saved one. An ambiguous "Da", "Ne" or "Može" is not a mode choice. Obvious initial work ALWAYS establishes mode automatically without asking the user (physical crafts, moving, cleaning, yard work, repairs = ["ON_SITE"]; purely digital work = ["REMOTE"]): whenever a user offers or adds such an obvious service, you MUST include its entry in serviceModeChangesJson citing their current statement as evidence, and NEVER ask whether a physical craft is online or on-site; a multi-service statement gives each service the same quote. '
     + 'handoff requires REMOTE. Handoff-only changes preserve modes; omitted handoff preserves its prior value. '
     + (includeClassification ? 'Its handoff must equal the new REMOTE classification proposal. ' : 'Declare handoff here once; the server attaches it to classification. ')
     + 'Unchanged server draft choices need no repeated declaration. Changing an existing owned mode/handoff requires CURRENT USER evidence; an older quote can only preserve the same owned choices or recover a service with no owned choices. unresolvedServices means there is no current validated mode metadata, NOT that the person has not answered: a rejected catalog plan or later edit can leave savedServices/draftServices empty while earlier USER answers remain in the owned history. Before asking about a mode, read that history. For each still-offered service whose mode is explicit there, reconstruct serviceModeChangesJson with its complete intended set and the original verbatim USER quote, even when the CURRENT message only clarifies another service or says to retain everything else. A historical group answer covers only the services it clearly referred to at that point; never extend it to a later addition, override a later correction, or infer execution from a catalog category. Classify each reconstructed choice afresh; absent metadata does not authorize reuse of an old rejected category ID. Never cite assistant/catalog/bio/unrelated text as consent or invent it. Unclear mode: ask about execution, never default BOTH. '
@@ -77,6 +77,14 @@ const modeReplyChoices = new Map([
   ['obadva', ['REMOTE', 'ON_SITE']], ['oba nacina', ['REMOTE', 'ON_SITE']],
   ['na oba nacina', ['REMOTE', 'ON_SITE']], ['i jedno i drugo', ['REMOTE', 'ON_SITE']],
 ]);
+const foldSameScriptQuote = value => typeof value === 'string'
+  ? value.normalize('NFKC').toLowerCase()
+    .replace(/[čć]/gu, 'c').replace(/š/gu, 's').replace(/ž/gu, 'z').replace(/đ/gu, 'dj')
+    .replace(/[.,!?;:"„”«»()]/gu, ' ').replace(/\s+/gu, ' ').trim()
+  : '';
+const textContainsQuote = (body, quote) => typeof body === 'string' && typeof quote === 'string' && !!quote.trim()
+  && (body.includes(quote) || (!!foldSameScriptQuote(quote) && foldSameScriptQuote(body).includes(foldSameScriptQuote(quote))));
+
 function boundedModeReply(change, context, offered, expected) {
   if (change.modes.length !== expected.length || !expected.every(value => change.modes.includes(value))
       // A short choice says nothing about shipping or physical exchange.
@@ -87,7 +95,7 @@ function boundedModeReply(change, context, offered, expected) {
   const user = context.messages.at(-1), assistant = context.messages.at(-2);
   if (user?.role !== 'USER' || assistant?.role !== 'ASSISTANT'
       || typeof user.body !== 'string' || typeof assistant.body !== 'string'
-      || user.body.trim() !== change.evidence.trim()
+      || (user.body.trim() !== change.evidence.trim() && foldSameScriptQuote(user.body) !== foldSameScriptQuote(change.evidence))
       || (assistant.body.match(/\?/g) ?? []).length !== 1) return false;
   const words = questionWords(assistant.body);
   const remote = words.some(word => ['onlajn', 'online', 'daljinu'].includes(word));
@@ -98,14 +106,14 @@ function boundedModeReply(change, context, offered, expected) {
 }
 function modeEvidenceAllowed(change, context, offered, userTexts) {
   if (typeof change.evidence !== 'string' || !change.evidence.trim()
-      || change.evidence.length > 1000 || !userTexts.some(body => body.includes(change.evidence))) return false;
+      || change.evidence.length > 1000 || !userTexts.some(body => textContainsQuote(body, change.evidence))) return false;
   const key = modeReplyKey(change.evidence);
   if (key === 'AMBIGUOUS' || key === 'moze' || key === 'vazi') return false;
   const expected = modeReplyChoices.get(key);
   // Apply the same context check to "Uživo" and "Uživo."/"Onlajn", not only
   // strings shorter than six characters. Longer complete statements retain
   // the existing quote contract and all downstream signed-review checks.
-  return expected ? boundedModeReply(change, context, offered, expected) : change.evidence.trim().length >= 6;
+  return expected ? boundedModeReply(change, context, offered, expected) : change.evidence.trim().length >= 3;
 }
 
 // History may repair missing metadata, but it cannot undo a newer owned
@@ -115,7 +123,7 @@ function modeEvidenceAllowed(change, context, offered, userTexts) {
 function historicalModeEvidencePreservesOwned(change, context) {
   const current = context.messages.at(-1);
   if (current?.role === 'USER' && typeof current.body === 'string'
-      && current.body.includes(change.evidence)) return true;
+      && textContainsQuote(current.body, change.evidence)) return true;
   const key = normalizedClassificationIdentity(change.service);
   const matching = entries => Array.isArray(entries)
     ? entries.filter(entry => normalizedClassificationIdentity(entry?.service) === key) : [];

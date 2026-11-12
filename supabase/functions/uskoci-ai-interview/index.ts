@@ -1480,10 +1480,13 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
       assistantMessage = 'Osnovni podaci su zabeleženi. Možete da ih pregledate čim server potvrdi da je nacrt spreman; ništa još nije objavljeno.';
       dialogue = { ...dialogue, next: 'REVIEW', questionKey: '' };
     } else if (missing.length && !questions[dialogue.questionKey] && !needsPlaceDetail && !clarifyingApplicationDeadline && !personAsks) {
-      // Required information takes priority over unrelated optional details.
+      // Required information takes priority over unrelated optional details,
+      // while preserving natural AI phrasing when it already asks a genuine question.
       const key = missing.find(key => questions[key]);
       if (key) {
-        assistantMessage = incompleteMessage();
+        if (!turn.assistantMessage.includes('?') || dialogue.questionKey === 'need.exact_address') {
+          assistantMessage = incompleteMessage();
+        }
         dialogue = { ...dialogue, next: 'ASK', questionKey: key };
       }
     } else if (askingAlreadyKnown && !needsPlaceDetail && !clarifyingApplicationDeadline && !personAsks) {

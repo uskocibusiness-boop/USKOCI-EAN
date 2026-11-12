@@ -13,8 +13,13 @@ const exact = (value, keys) => record(value) && Object.keys(value).length === ke
 const safeText = (value, max) => typeof value === 'string' && value.length <= max
   && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value);
 const quoteText = value => value.normalize('NFKC').replace(/\s+/gu, ' ').trim();
+const foldSameScript = value => value.normalize('NFKC').toLowerCase()
+  .replace(/[čć]/gu, 'c').replace(/š/gu, 's').replace(/ž/gu, 'z').replace(/đ/gu, 'dj')
+  .replace(/[.,!?;:"„”«»()]/gu, ' ').replace(/\s+/gu, ' ').trim();
 const currentQuote = (evidence, currentText) => safeText(evidence, 500) && !!evidence.trim()
-  && typeof currentText === 'string' && quoteText(currentText).includes(quoteText(evidence));
+  && typeof currentText === 'string'
+  && (quoteText(currentText).includes(quoteText(evidence))
+    || (!!foldSameScript(evidence) && foldSameScript(currentText).includes(foldSameScript(evidence))));
 const skillLabel = value => safeText(value, 120) && value.trim().length >= 3 && !/[<>\u0000-\u001f]/u.test(value);
 // Preserve a useful local clarification, without retaining a prefixed claim
 // of Save/publication/navigation. This is formatting admission, not an intent
@@ -131,6 +136,12 @@ export function applyWorkerServiceChanges(output, changes, candidate, currentTex
   const kind = decision.intent.kind;
   if (['WORKER_AVAILABILITY', 'WORKER_AREA'].includes(kind)) return rejected();
   const next = [...base], touched = new Set();
+  const findSkillIndex = (list, target) => {
+    const exactIdx = list.indexOf(target);
+    if (exactIdx >= 0) return exactIdx;
+    const foldedTarget = foldSameScript(target);
+    return foldedTarget ? list.findIndex(item => foldSameScript(item) === foldedTarget) : -1;
+  };
   for (const change of changes) {
     if (!exact(change, ['action', 'service', 'replacement', 'evidence'])
         || !['ADD', 'REMOVE', 'REPLACE'].includes(change.action) || !skillLabel(change.service)
@@ -139,16 +150,16 @@ export function applyWorkerServiceChanges(output, changes, candidate, currentTex
         || kind === 'WORKER_REMOVE_SERVICE' && change.action !== 'REMOVE') return rejected();
     touched.add(change.service);
     if (change.action === 'ADD') {
-      if (change.replacement !== '' || next.includes(change.service)) return rejected();
-      next.push(change.service);
+      if (change.replacement !== '') return rejected();
+      if (findSkillIndex(next, change.service) < 0) next.push(change.service);
     } else {
-      const index = base.indexOf(change.service), current = next.indexOf(change.service);
+      const index = findSkillIndex(base, change.service), current = findSkillIndex(next, change.service);
       if (index < 0 || current < 0) return rejected();
       if (change.action === 'REMOVE') {
         if (change.replacement !== '') return rejected();
         next.splice(current, 1);
       } else {
-        if (!skillLabel(change.replacement) || next.includes(change.replacement) || touched.has(change.replacement)) return rejected();
+        if (!skillLabel(change.replacement) || findSkillIndex(next, change.replacement) >= 0 || touched.has(change.replacement)) return rejected();
         next[current] = change.replacement;
         touched.add(change.replacement);
       }

@@ -700,6 +700,11 @@ export async function buildWorkerFullTreeTaxonomyProposals({
   const seenKeys = new Set();
   const unresolvedServices = [];
   const unconfirmedModeServices = [];
+  const legacyUnresolved = new Set(
+    (Array.isArray(serviceModeContext?.unresolvedServices) ? serviceModeContext.unresolvedServices : [])
+      .map(item => normalizedClassificationIdentity(item))
+      .filter(Boolean),
+  );
 
   for (const service of cleanSkills) {
     const norm = normalizedClassificationIdentity(service);
@@ -710,7 +715,14 @@ export async function buildWorkerFullTreeTaxonomyProposals({
       : aiItems.filter((item) => normalizedClassificationIdentity(item?.service) === norm);
     const matchingPrior = priorModes.filter((item) => normalizedClassificationIdentity(item?.service) === norm);
 
-    const requested = requests.get(norm);
+    const inferredNewOnSite = !requests.has(norm) && !invalidChanges.has(norm)
+      && matchingPrior.length === 0 && !legacyUnresolved.has(norm)
+      && matchingAi.length === 1 && matchingAi[0].mode === 'ON_SITE'
+      && ['REUSE_EXISTING', 'EXTEND_MODE', 'CREATE_CHILD', 'CREATE_NEW_BRANCH'].includes(matchingAi[0].action)
+      && typeof matchingAi[0].reason === 'string' && matchingAi[0].reason.trim().length >= 10
+      ? { service, modes: ['ON_SITE'] }
+      : null;
+    const requested = requests.get(norm) ?? inferredNewOnSite;
     if (invalidChanges.has(norm)) {
       // A rejected/duplicated fresh declaration is not an unrelated edit. Do
       // not silently resurrect the old mode while that change is unresolved.
