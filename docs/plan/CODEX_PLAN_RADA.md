@@ -2,6 +2,18 @@
 
 > **AKTUELNA VLASNIČKA ODLUKA — 10.11.2026:** Jedini zvanični slogan je **„USKOČI — Vaš partner za svaki zadatak.“**, a glavne akcije su tačno **„Objavi zadatak“** i **„Uskoči i zaradi“**. Stari Product/UX master ostaje povučen: ne čitati, rekonstruisati ili vraćati ni iz Git istorije; istorijske reference na njega nisu autoritet. Prethodni rasporedi, karuseli i tekstovi nisu zamrznuti: manje jasne UX kvarove i zastarele tekstove popravljati samostalno u odobrenom obimu, uz očuvanje potvrđenih funkcija. Veću promenu navigacije ili identiteta pripremiti kao pregledan pre/posle predlog. Važe poslednje izričite odluke vlasnika i AGENTS.md; ovaj dokument ostaje jedini izvršni plan.
 
+## Završni presek 12.11.2026 (23:00 CET) — QA139 SUCCESS, DEV v205/v159, aditivni gradovi, matrica zanata i UI poliranje
+
+**REŠENO U KODU / PROŠLO TESTOVE / CI QA139 USPEŠAN (1.714/1.714) / SUPABASE DEV AŽURIRAN (v205 i v159) / NOVI APK PREUZET / PROD READ-ONLY.**
+
+- **Git i CI:** lokalni kod sinhronizovan sa `origin/work/uskoci-cist-proizvod-20261104` na commit **`031e11c2`**. GitHub Actions run [43310127012](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/43310127012) je **SUCCESS**: 1.714/1.714 testova prošlo, TypeScript bez grešaka, 235 SQL / 90 integrity testova.
+- **Novi APK artifact:** `uskoci-isolated-qa-apk-139` (ID `13988055013`, fajl `USKOCI-QA-031e11c23.apk`, 122.717.969 B) preuzet u `temp_qa139/`, spreman za instalaciju na telefon čim se poveže.
+- **DEV prenos (`leqcwgzvjsxugfgzdmth`):**
+  - `uskoci-ai-interview`: uspešno podignut na verziju **v205** (očuvanje prirodnih pitanja asistenta bez prepisivanja generičkim porukama, vraćena zanatska matrica), status ACTIVE.
+  - `uskoci-worker-interview`: uspešno podignut na verziju **v159** (aditivno spajanje novih gradova do 5, automatsko dopisivanje u bio, tolerancija unosa bez kvačica, automatski ON_SITE režim za zanate bez nepotrebnog zapitkivanja), status ACTIVE.
+- **UI i klijent:** mirni skeleton pri učitavanju (QuietReadState i ProfileHub), uklonjen naslov i natpisi tokom kucanja AI-ja, „Čeka Vas / Ništa Vas ne čeka“ usklađeno sa Vi/Vam/Vas pravilom, cene istaknute u karticama, uklonjen višak podtekstova u radnom profilu.
+- **PROD status:** ostaje striktno read-only do izričitog naloga za prenos.
+
 ## Završni presek 12.11.2026 — AI inteligencija razgovora, više gradova i regije, glasovna stabilnost i poređenje Supabase DEV vs PROD
 
 **REŠENO U KODU / PROŠLO TESTOVE / TYPESCRIPT 0 GREŠAKA / NOVI BUNDLE I APK SPREMNI / SUPABASE DEV vs PROD REVIZIJA ZAVRŠENA (PROD READ-ONLY).**
