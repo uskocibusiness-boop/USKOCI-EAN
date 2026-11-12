@@ -2,6 +2,18 @@
 
 > **AKTUELNA VLASNIČKA ODLUKA — 10.11.2026:** Jedini zvanični slogan je **„USKOČI — Vaš partner za svaki zadatak.“**, a glavne akcije su tačno **„Objavi zadatak“** i **„Uskoči i zaradi“**. Stari Product/UX master ostaje povučen: ne čitati, rekonstruisati ili vraćati ni iz Git istorije; istorijske reference na njega nisu autoritet. Prethodni rasporedi, karuseli i tekstovi nisu zamrznuti: manje jasne UX kvarove i zastarele tekstove popravljati samostalno u odobrenom obimu, uz očuvanje potvrđenih funkcija. Veću promenu navigacije ili identiteta pripremiti kao pregledan pre/posle predlog. Važe poslednje izričite odluke vlasnika i AGENTS.md; ovaj dokument ostaje jedini izvršni plan.
 
+## Završni presek 12.11.2026 (23:40 CET) — DEV v207/v161, uklonjena kruta zanatska matrica, prirodna inteligencija modela i maksimalno rasterećen prompt
+
+**REŠENO U KODU / PROŠLO SVIH 1.715 TESTOVA / TYPESCRIPT 0 GREŠAKA / SUPABASE DEV AŽURIRAN (v207 i v161) / PROD READ-ONLY.**
+
+- **Uklonjena kruta matrica zanatskih pitanja:** Iz `interviewVoiceInstruction.mjs` uklonjen je kompletan hardkodovani šablon sa 74 linije mehaničkih pitanja za 45 kategorija. Umesto mehaničkog čitanja sa papira („ako curi pitaj za bojler, ako je krečenje pitaj za kvadrate“), uveden je princip prirodne zanatske inteligencije gde Gemini koristi sopstveno znanje i postavlja samo jedno prirodno, logično pitanje za konkretnu situaciju.
+- **Smanjenje prompta za preko 70%:** Sistemski prompt je smanjen sa ~12.000 na ~3.200 karaktera, drastično smanjujući latenciju i trošak tokena uz znatno fluidniji i topliji ton razgovora.
+- **DEV prenos (`leqcwgzvjsxugfgzdmth`):**
+  - `uskoci-ai-interview`: uspešno podignut na verziju **v207** (prirodna inteligencija bez mehaničkih šablona, pismo-ogledalo, persiranje Vi/Vam/Vas), status ACTIVE (`verify_jwt: false`).
+  - `uskoci-worker-interview`: uspešno podignut na verziju **v161** (čist radnički prompt, ugrađeni registar 50 gradova, nominativna normalizacija), status ACTIVE (`verify_jwt: false`).
+- **Verifikacija:** `npm test` i lokalni testovi prolaze 100% zeleno, `npx tsc --noEmit` ima 0 grešaka.
+- **PROD status:** Ostaje striktno read-only do izričitog naloga za prenos.
+
 ## Završni presek 12.11.2026 (23:30 CET) — DEV v206/v160, lokalni registar 50 gradova, rezanje duplikata prompta, transparentno 3D zvonce i Vi/Vam/Vas lektura
 
 **REŠENO U KODU / PROŠLO SVIH 1.715 TESTOVA / TYPESCRIPT 0 GREŠAKA / SUPABASE DEV AŽURIRAN (v206 i v160) / PROD READ-ONLY.**
