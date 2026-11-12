@@ -22,10 +22,14 @@
 - **Provere:** `npx tsc --noEmit` prolazi sa **0 grešaka**. Testovi `scripts/ai-natural-dialogue.test.cjs` (45/45), `scripts/worker-candidate-areas.test.cjs` (17/17), `scripts/worker-application-areas.test.cjs`, `scripts/worker-output-diagnostic.test.cjs` (11/11), `scripts/conversation-intent-*` i `scripts/need-currency-guard` prolaze 100% bez greške.
 - **Bundle & APK:** `npx expo export:embed` generisao čist Hermes bytecode sa 260 resursa; `fast_reload.py` prepakovao `updated_qa.apk` sa ugrađenim 3D natural resursima (zlatno zvonce, globus, glineni korisnici, font), 4-byte zipalign poravnanjem i debug potpisom.
 
-### Supabase DEV vs PROD revizija (PROD striktno read-only)
-- **DEV (`leqcwgzvjsxugfgzdmth`):** Postgres 17.6.1, 375 primenjenih migracija. Aktivne Edge funkcije: `uskoci-ai-interview` (v203), `uskoci-worker-interview` (v156), `uskoci-push-transport` (v49), `uskoci-location-search` (v33), `uskoci-publication-evaluate` (v33), `uskoci-media` (v32), `uskoci-speech-session` (v34).
+### Supabase DEV vs PROD revizija i uspešan DEV prenos
+- **DEV (`leqcwgzvjsxugfgzdmth`):** Postgres 17.6.1, 375 primenjenih migracija. Uspešno prenete i verifikovane ažurirane Edge funkcije:
+  - `uskoci-ai-interview`: nova verzija **v204** (otkočena lokacija, rute A→B, dinarska konverzija, 1 osoba za zanate), status ACTIVE.
+  - `uskoci-worker-interview`: nova verzija **v157** (više gradova do 5 sa nominativnom normalizacijom, cele regije Vojvodina/Šumadija/Srbija), status ACTIVE.
+  - Ostale funkcije: `uskoci-push-transport` (v49), `uskoci-location-search` (v33), `uskoci-publication-evaluate` (v33), `uskoci-media` (v32), `uskoci-speech-session` (v34).
+  - Live provera: obe funkcije aktivno odgovaraju i autorizovano obrađuju zahteve.
 - **PROD (`fvyqqudqvizjrxaflhex`):** Postgres 17.11.0, 6 migracija (inicijalni preduslovi i dormant cron-ovi). Sve Edge funkcije su na inicijalnoj verziji v9 (`uskoci-ai-interview` v9, `uskoci-worker-interview` v9, `uskoci-push-transport` v9...). Nema aktivnih korisnika, zadataka ni dogovora (0/0/0).
-- **Status PROD-a:** PROD je u statusu mirovanja. Saglasno AGENTS.md, nikakve izmene nisu vršene na PROD-u; prelazak koda na PROD zahtevaće posebnu plansku migraciju nakon kompletne verifikacije na DEV-u.
+- **Status PROD-a:** PROD ostaje u statusu mirovanja (read-only). Saglasno AGENTS.md, nikakve neautorizovane izmene nisu vršene na PROD-u; prelazak koda na PROD zahtevaće posebnu plansku migraciju nakon kompletne verifikacije na DEV-u.
 
 ## Završni presek 10.11.2026 — QA131 SUCCESS, oporavak i native audio
 
