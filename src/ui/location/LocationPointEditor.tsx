@@ -53,7 +53,7 @@ const candidateFitsSeed = (query: string, label: string): boolean => {
   // survive in the provider label. That may propose the street position for human adjustment,
   // but it still never confirms or saves anything automatically.
   if (!numbers.length && words.length <= 2) {
-    const explicitStreetAndLocality = query.includes(',') && words.length === 2 && matched === 2;
+    const explicitStreetAndLocality = (query.includes(',') || words.length === 2) && matched === words.length;
     return explicitStreetAndLocality;
   }
   const required = words.length <= 2 ? words.length : Math.ceil(words.length * 0.75);
@@ -92,7 +92,14 @@ const SERBIAN_LOCATIVE_MAP: Record<string, string> = {
   banovom: 'Banovo', brdu: 'brdo', novom: 'Novi', sadu: 'Sad', beogradu: 'Beograd',
   nisu: 'Niš', kragujevcu: 'Kragujevac', subotici: 'Subotica', pancevu: 'Pančevo',
   zrenjaninu: 'Zrenjanin', cacku: 'Čačak', kraljevu: 'Kraljevo', sapcu: 'Šabac',
-  poste: 'Pošta', posti: 'Pošta', pijace: 'Pijaca', pijaci: 'Pijaca',
+  poste: 'Pošta', posti: 'Pošta', postu: 'Pošta', postom: 'Pošta',
+  pijace: 'Pijaca', pijaci: 'Pijaca', pijacu: 'Pijaca',
+  stanici: 'Stanica', stanicu: 'Stanica', stanice: 'Stanica',
+  skoli: 'Škola', skolu: 'Škola', skole: 'Škola',
+  bolnici: 'Bolnica', bolnicu: 'Bolnica', bolnice: 'Bolnica',
+  domu: 'Dom', apoteci: 'Apoteka', apoteku: 'Apoteka',
+  takovske: 'Takovska', takovskoj: 'Takovska', takovsku: 'Takovska',
+  savske: 'Savska', savskoj: 'Savska', savsku: 'Savska',
 };
 
 const normalizeConversationalPlaceQuery = (rawQuery: string): string => {
@@ -127,6 +134,20 @@ const fallbackSearchQueries = (query: string): string[] => {
 };
 
 const LOCAL_PLACE_FALLBACKS: readonly { match: RegExp; position: ResolvedPinPosition }[] = [
+  { match: /\b(glavn[aeiou]|takovska)\s+po[šs]t[aeiou]?\b|\bpo[šs]t[aeiou]?\s+(u\s+)?takovs?k/i, position: { latitude: 44.8115, longitude: 20.4682 } },
+  { match: /\bpo[šs]t[aeiou]?\s+(u\s+)?savsk/i, position: { latitude: 44.8086, longitude: 20.4547 } },
+  { match: /\bpo[šs]t[aeiou]?\b.*\b(beograd|bg)\b|\b(beograd|bg)\b.*\bpo[šs]t[aeiou]?\b/i, position: { latitude: 44.8115, longitude: 20.4682 } },
+  { match: /\bpo[šs]t[aeiou]?\b.*\bnov(i|om)\s+sad\b|\bnov(i|om)\s+sad\b.*\bpo[šs]t[aeiou]?\b/i, position: { latitude: 45.2536, longitude: 19.8436 } },
+  { match: /\b(prokop|centar\s+beograd|glavna\s+[žz]elezni[čc]ka)\b/i, position: { latitude: 44.7937, longitude: 20.4539 } },
+  { match: /\bvukov\s+spomenik\b/i, position: { latitude: 44.8050, longitude: 20.4789 } },
+  { match: /\bhram(\s+svetog\s+save)?\b/i, position: { latitude: 44.7984, longitude: 20.4691 } },
+  { match: /\btrg\s+republik[aeiou]?\b/i, position: { latitude: 44.8162, longitude: 20.4607 } },
+  { match: /\bzelen(i|om)\s+ven(ac|cu)\b/i, position: { latitude: 44.8139, longitude: 20.4578 } },
+  { match: /\bslavij[aeiou]?\b/i, position: { latitude: 44.8024, longitude: 20.4664 } },
+  { match: /\bkalemegdan[u]?\b/i, position: { latitude: 44.8233, longitude: 20.4503 } },
+  { match: /\busce|u[šs][ćc]e\b/i, position: { latitude: 44.8153, longitude: 20.4371 } },
+  { match: /\bdelta\s+city\b/i, position: { latitude: 44.8054, longitude: 20.4034 } },
+  { match: /\bada\s+ciganlij[aeiou]?\b/i, position: { latitude: 44.7865, longitude: 20.4147 } },
   { match: /\bpromenad[aei]?\b/i, position: { latitude: 45.2454, longitude: 19.8424 } },
   { match: /\bliman[u]?\b/i, position: { latitude: 45.2415, longitude: 19.8428 } },
   { match: /\bdetelinar[ai]?\b/i, position: { latitude: 45.2635, longitude: 19.8168 } },
@@ -334,17 +355,18 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       const matchQuery = usedFallbackQuery ?? normalizedSeed;
       const result = raw.status === 'PROPOSALS' ? { ...raw, candidates: samePlaceCandidates(matchQuery, raw.candidates) } : raw;
       setLookup(result.status === 'CANCELLED' ? { status: 'IDLE' } : result);
-      if (conversation && result.status === 'PROPOSALS' && result.candidates.length === 1) {
-        const candidate = result.candidates[0];
-        if (!cityContextOnly && (candidateFitsSeed(matchQuery, candidate.label) || candidateFitsSeed(normalizedSeed, candidate.label))) {
-          const shown = toSerbianLatin(candidate.label);
-          setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(shown);
+      if (conversation && result.status === 'PROPOSALS' && result.candidates.length > 0) {
+        const matchingCandidate = !cityContextOnly
+          ? result.candidates.find(candidate => candidateFitsSeed(matchQuery, candidate.label) || candidateFitsSeed(normalizedSeed, candidate.label))
+            ?? (result.candidates.length === 1 ? result.candidates[0] : null)
+          : null;
+        if (matchingCandidate) {
+          const shown = toSerbianLatin(matchingCandidate.label);
+          setPosition(matchingCandidate.position); setOrigin(matchingCandidate.origin); setSelectedLabel(shown);
           setAddress(shown);
           setCorrectionOpen(false);
           return;
         }
-        setCameraHint([candidate.position]);
-      } else if (conversation && result.status === 'PROPOSALS' && result.candidates.length > 1) {
         setCameraHint(result.candidates.map(candidate => candidate.position));
       } else if (conversation) {
         const localHint = resolveLocalPlaceFallback(searchText);

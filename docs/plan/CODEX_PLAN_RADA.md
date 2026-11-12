@@ -2,6 +2,22 @@
 
 > **AKTUELNA VLASNIČKA ODLUKA — 10.11.2026:** Jedini zvanični slogan je **„USKOČI — Vaš partner za svaki zadatak.“**, a glavne akcije su tačno **„Objavi zadatak“** i **„Uskoči i zaradi“**. Stari Product/UX master ostaje povučen: ne čitati, rekonstruisati ili vraćati ni iz Git istorije; istorijske reference na njega nisu autoritet. Prethodni rasporedi, karuseli i tekstovi nisu zamrznuti: manje jasne UX kvarove i zastarele tekstove popravljati samostalno u odobrenom obimu, uz očuvanje potvrđenih funkcija. Veću promenu navigacije ili identiteta pripremiti kao pregledan pre/posle predlog. Važe poslednje izričite odluke vlasnika i AGENTS.md; ovaj dokument ostaje jedini izvršni plan.
 
+## Završni presek 12.11.2026 (23:55 CET) — DEV v208, precizno prepoznavanje i obeležavanje pošte i objekata na mapi umesto prikaza celog grada
+
+**REŠENO U KODU / PROŠLO SVIH 1.716 TESTOVA / TYPESCRIPT 0 GREŠAKA / SUPABASE DEV AŽURIRAN (v208) / PROD READ-ONLY.**
+
+- **Očuvanje objekata i znamenitosti u AI promptu (`uskoci-ai-interview` v208):** Uklonjeno je pravilo koje je brisalo naziv objekta (pošta, dom zdravlja, stanica, MUP, škola itd.) i svodilo `label` samo na ime grada („Beograd“) kada nije navedeno konkretno naselje. Uvedeno je striktno pravilo očuvanja POI-ja (`LANDMARK & POI RETENTION`), tako da se naziv objekta uvek čuva u `start.label` (npr. „Pošta“, „Pošta, Dorćol“, „Pošta, Savska“) i predlaže u `need.exact_address` (npr. „Pošta, Beograd“ ili „Glavna pošta, Takovska, Beograd“).
+- **Automatsko obeležavanje pina umesto prazne mape („ceo Beograd“):** U `src/ui/location/LocationPointEditor.tsx`:
+  - Ispravljeno ponašanje kada geokoder vrati više predloga (npr. više pošta u Beogradu). Ranije je kod sa `candidates.length > 1` samo postavljao `cameraHint` bez postavljanja pina (`position = null`), zbog čega je mapa zumirala unazad i prikazivala ceo Beograd bez ikakvog markera. Sada se najbolji odgovarajući kandidat (`matchingCandidate`) odmah predlaže i obeležava na mapi uz karticu za potvrdu ili pomeranje.
+  - Proširen `candidateFitsSeed` tako da prihvata i upite bez zareza (npr. „pošta beograd“) kada se oba tokena poklapaju sa predlogom, dok goli grad („beograd“) ostaje kontekst bez lažnog auto-pina.
+  - U `SERBIAN_LOCATIVE_MAP` dodati akuzativi i lokativi za objekte i ulice (`postu`, `postom`, `stanici`, `stanicu`, `skoli`, `bolnici`, `takovske`, `takovskoj`, `savske`, `savskoj`).
+  - U `LOCAL_PLACE_FALLBACKS` dodate tačne koordinate poznatih objekata (Glavna pošta Takovska 2, Pošta Savska 2, Pošta Novi Sad, Prokop, Vukov spomenik, Hram Svetog Save, Zeleni venac, Slavija, Kalemegdan, Ušće, Ada Ciganlija) pre opštih gradskih centara.
+- **Novi regresioni test:** Dodat `scripts/location-poi-precision.test.cjs` u `package.json` test paket. Testira precizno geokodiranje pošta, poklapanje kandidata i normalizaciju padeža.
+- **DEV prenos (`leqcwgzvjsxugfgzdmth`):**
+  - `uskoci-ai-interview`: uspešno podignut na verziju **v208**, status ACTIVE (`verify_jwt: false`).
+- **Verifikacija:** `npx tsc --noEmit` ima **0 grešaka**, novi testovi prolaze 100% zeleno.
+- **PROD status:** Ostaje striktno read-only do izričitog naloga za prenos.
+
 ## Završni presek 12.11.2026 (23:40 CET) — DEV v207/v161, uklonjena kruta zanatska matrica, prirodna inteligencija modela i maksimalno rasterećen prompt
 
 **REŠENO U KODU / PROŠLO SVIH 1.715 TESTOVA / TYPESCRIPT 0 GREŠAKA / SUPABASE DEV AŽURIRAN (v207 i v161) / PROD READ-ONLY.**
