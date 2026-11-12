@@ -255,11 +255,9 @@ export function AgreementCollectionPresentation(props: Props) {
       </View> : null}
       {query && props.refreshing && !loading && !error ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Osvežavamo rezultate. Pretraga trenutno obuhvata poslednje učitane podatke.</T> : null}
       {settledRead && (hasBothRoles || roleFilter !== 'all') ? <View style={s.filterRow}>
-        <View style={s.filterNameSlot}><T variant="meta" tone="muted" style={s.filterName}>Uloga</T></View>
         <AgreementRoleRail value={roleFilter} onChange={value => { setRoleFilter(value); props.onConfirmationOnly(false); }} />
       </View> : null}
       {chips ? <View style={s.filterRow}>
-        {section === 'history' ? <View style={s.filterNameSlot}><T variant="meta" tone="muted" style={s.filterName}>Ishod</T></View> : null}
         {chips}
       </View> : null}
       {section === 'history' && freshRead && attention > 0 ? <Press accessibilityRole="button"

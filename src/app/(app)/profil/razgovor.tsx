@@ -150,7 +150,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
           setCorrection(null);
           if(submittedDraft)setInput(value=>draftRevision.current===submittedDraft.revision&&value===submittedDraft.value?'':value);
         }
-        pending.current=null;intentChanged(n=>n+1);setStream('');
+        pending.current=null;intentChanged(n=>n+1);
       }
       else if(pending.current?.text===null&&outcome?.conversationStatus==='OPEN'
         &&!outcome.providerDispatched&&!outcome.cancelled&&outcome.turn?.state==='PROCESSING'){

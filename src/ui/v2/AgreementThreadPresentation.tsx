@@ -11,7 +11,7 @@ import { chrome, ChromeIconButton } from '../system/ScreenChrome';
 import { useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
-import { AgreementHero, agreementRole } from './AgreementPresentation';
+import { AgreementHero, AgreementTabs, agreementRole } from './AgreementPresentation';
 
 type Props = {
   agreement: DogovorProjekcija;
@@ -96,7 +96,9 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
       </View>
       {waiting ? <View style={s.waitingRow}><T variant="note" style={s.waiting}>{waiting}</T></View> : null}
     </>}
-    {channels ? <View style={s.tabs}>{channels}</View> : null}
+    {!compact ? <View testID="agreement-thread-tabs" style={s.tabs}>
+      {channels ?? <AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} />}
+    </View> : channels ? <View style={s.tabs}>{channels}</View> : null}
     <AgreementChat {...chat} compact={compact} context={context} sender={message => {
       const member = agreement.ucesnici.find(item => message.posiljalacAccountId ? item.id === message.posiljalacAccountId : item.viSte === message.moja);
       const fallback = <Avatar initials={member?.inicijali ?? null} size={40} />;

@@ -30,4 +30,4 @@ export function decodeWorkerAreas(raw:unknown):WorkerArea[]|null {
   }
   return result;
 }
-export const workerAreasLabel=(areas:readonly WorkerArea[])=>areas.map(area=>area.label).join(' · ');
+export const workerAreasLabel=(areas:readonly WorkerArea[])=>areas.map(area=>area.label||area.city||'').filter(Boolean).join(' · ');

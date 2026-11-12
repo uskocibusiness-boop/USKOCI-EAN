@@ -36,9 +36,10 @@ export function workProfileSummary(profile: WorkProfileFacts | null, executionMo
   const area = profile.workAreas?.length ? workerAreasLabel(profile.workAreas) : city ? `${city}${radius ? `, do ${radius}` : ''}` : '';
   const modes = executionModes?.kind === 'confirmed' ? executionModes.modes : [];
   const onSite = modes.includes('ON_SITE'), remote = modes.includes('REMOTE');
+  const showArea = onSite || (!remote && !!area);
   const parts = [STATE_WORD[profile.stanje],
     skills.length ? `${clip(skills[0])}${skills.length > 1 ? ` +${skills.length - 1}` : ''}` : '',
     remote ? 'Na daljinu' : '',
-    onSite && area ? `Dolazak: ${area}` : ''];
+    showArea && area ? `Dolazak: ${area}` : ''];
   return parts.filter(Boolean).join(' · ');
 }

@@ -57,7 +57,7 @@ type Props = {
 };
 // The existing server sets stay separate: ACTIVE is a sent application waiting for a decision;
 // ATTENTION includes a changed application or a selected one leading to its Dogovor.
-const TABS: readonly { key: ApplicationsTab; label: string }[] = [{ key: 'active', label: 'Čekaju odgovor' }, { key: 'attention', label: 'Čeka te' },
+const TABS: readonly { key: ApplicationsTab; label: string }[] = [{ key: 'active', label: 'Čekaju odgovor' }, { key: 'attention', label: 'Čeka Vas' },
   { key: 'finished', label: 'Istorija' }, { key: 'all', label: 'Sve' }];
 /**
  * The three groups of the list (the approved draft U8): what waits for the other side, what was chosen, what is over. An application whose task
@@ -72,7 +72,7 @@ export function applicationGroup(p: Pick<MojaPrijavaProjekcija, 'stanje'>): Appl
 type Entry = { kind: 'head'; group: ApplicationGroup; title: string; count: number; first: boolean } | { kind: 'row'; p: MojaPrijavaProjekcija };
 const entryKey = (entry: Entry) => entry.kind === 'head' ? `head:${entry.group}` : entry.p.prijavaId;
 /** What an empty set says. "Čeka te" keeps its meaning: what waits for my decision (a changed task, a Dogovor to open). */
-const TAB_EMPTY: Record<ApplicationSection, string> = { attention: 'Ništa te ne čeka', active: 'Nema prijava koje čekaju odgovor', finished: 'Istorija prijava je prazna' };
+const TAB_EMPTY: Record<ApplicationSection, string> = { attention: 'Ništa Vas ne čeka', active: 'Nema prijava koje čekaju odgovor', finished: 'Istorija prijava je prazna' };
 const Separator = () => <View style={s.separator} />;
 /** A sentence that has to stand out above the list: a flat tint, never a card among the cards. */
 function Note({ children, tone = 'wash' }: { children: ReactNode; tone?: 'wash' | 'warn' }) {

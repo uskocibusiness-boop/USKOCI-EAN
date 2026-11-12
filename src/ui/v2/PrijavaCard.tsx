@@ -91,8 +91,8 @@ export const PrijavaCard = memo(function PrijavaCard({ model, large, noteLines =
   return <>
     <PrijavaState status={model.status} reason={model.reason} detail={model.detail} silent />
     <View style={s.head}><T variant="heading" style={[s.title, s.task]}>{who.title}</T></View>
-    <FactRow art="calendar" value={model.term} />
     {money}
+    <FactRow art="calendar" value={model.term} />
     {model.message ? <T variant="note" tone="muted" numberOfLines={noteLines || undefined}>{model.message}</T> : null}
   </>;
 });

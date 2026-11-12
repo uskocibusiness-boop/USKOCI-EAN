@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { FactArt } from '../system/FactArt';
+import { FactArt, type FactArtKind } from '../system/FactArt';
 import { SettingsAction } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -64,10 +64,10 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
     header={<AccountHeader title="Moj profil" onBack={onBack} disabled={busy} />}>
     {/* Separate hosts keep loading semantics out of the ready/error identity after a native transition. */}
     {identity.state === 'loading' ? <View key="loading" testID="profile-identity"
-      accessibilityLiveRegion="polite" accessibilityState={{ busy: true }} style={[s.identity, s.reading]}>
-      <FactArt kind="person" size={64} />
-      <T variant="heading" style={s.center}>Učitavamo profil…</T>
-      <T variant="note" tone="muted" style={s.center}>Proveravamo Vaše podatke pre prikaza profila.</T>
+      accessibilityLabel="Učitavamo profil…" accessibilityLiveRegion="polite" accessibilityState={{ busy: true }} style={[s.identity, s.reading]}>
+      <View style={s.skeletonAvatar} />
+      <View style={s.skeletonTitle} />
+      <View style={s.skeletonSubtitle} />
     </View> : identity.state === 'error' ? <View key="error" testID="profile-identity" accessible={false}
       accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={s.identity}>
       <Avatar initials={null} size={PROFILE_AVATAR} />
@@ -86,11 +86,10 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
       {identity.name ? <T variant="pageTitle" accessibilityRole="header" style={[s.center, s.name]}>{identity.name}</T>
         // A name that is not there is a plain line, not a second 28 px title: it must not read as the thing the screen is about.
         : <T variant="title" tone="muted" accessibilityRole="header" style={s.center}>Ime još nije uneto</T>}
-      <View style={s.identityDetails}>
-        <T tone="muted" style={[s.center, s.detail]}>Jedan nalog · obe mogućnosti</T>
-        {identity.place ? <View style={s.city}><FactArt kind="pin" size={16} />
-          <T tone="muted" style={[s.shrink, s.detail]}>{identity.place}</T></View> : null}
-      </View>
+      {identity.place ? <View style={s.identityDetails}>
+        <View style={s.city}><FactArt kind="pin" size={16} />
+          <T tone="muted" style={[s.shrink, s.detail]}>{identity.place}</T></View>
+      </View> : null}
       {/* These are live, independently read figures; no Figma demonstration ratings enter the app. */}
       {identity.reputation || workSummary || stats ? <View style={s.figures}>
         <FigureRow testID="profile-figures">{identity.reputation}{workSummary}{stats}</FigureRow>
@@ -99,18 +98,18 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
         style={s.publicButton} labelStyle={s.linkTitle} /> : null}
     </View>}
 
-    <ProfileLink label="Radni profil" subtitle="Usluge, područje i dostupnost" detail={capabilityDetail}
+    <ProfileLink icon="tool" label="Radni profil" subtitle="Usluge, područje i dostupnost" detail={capabilityDetail}
       attention={capabilityNeedsAttention} disabled={busy} onPress={go('/profil/radnik')}
       onRetry={capabilityError ? onRetryCapability : undefined} />
     <Section title="Moje aktivnosti">
       <View style={s.activityLinks}>
-        <ProfileLink label="Moji zadaci" subtitle="Vaše objave i izbor ko uskače" disabled={busy} onPress={go('/potrebe')} />
-        <ProfileLink label="Moje prijave" subtitle="Pogledajte status i odgovore" disabled={busy} onPress={go('/moje-prijave')} />
-        <ProfileLink label="Moj raspored" subtitle="Dogovori i dostupnost" disabled={busy} onPress={go('/raspored')} />
+        <ProfileLink icon="tasks" label="Moji zadaci" subtitle="Vaše objave i izbor ko uskače" disabled={busy} onPress={go('/potrebe')} />
+        <ProfileLink icon="applications" label="Moje prijave" subtitle="Pogledajte status i odgovore" disabled={busy} onPress={go('/moje-prijave')} />
+        <ProfileLink icon="calendar" label="Moj raspored" subtitle="Dogovori i dostupnost" disabled={busy} onPress={go('/raspored')} />
       </View>
     </Section>
     <Section title="Nalog">
-      <ProfileLink label="Podešavanja" subtitle="Nalog, privatnost, obaveštenja i podrška" settings disabled={busy} onPress={go('/profil/podesavanja')} />
+      <ProfileLink icon="info" label="Podešavanja" subtitle="Nalog, privatnost, obaveštenja i podrška" settings disabled={busy} onPress={go('/profil/podesavanja')} />
     </Section>
     <View style={s.exit}>
       {logoutError ? <T tone="danger" accessibilityRole="alert" style={s.detail}>Odjava nije uspela. Pokušajte ponovo.</T> : null}
@@ -126,11 +125,14 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
 }
 
 /** Figma profile destination cards, with the route retaining navigation admission. */
-function ProfileLink({ label, subtitle, detail, attention, settings, disabled, onPress, onRetry }: {
-  label: string; subtitle: string; detail?: string; attention?: boolean; settings?: boolean; disabled: boolean; onPress: () => void;
+function ProfileLink({ icon, label, subtitle, detail, attention, settings, disabled, onPress, onRetry }: {
+  icon: FactArtKind; label: string; subtitle: string; detail?: string; attention?: boolean; settings?: boolean; disabled: boolean; onPress: () => void;
   onRetry?: () => void;
 }) {
   const content = <>
+    <View style={s.linkIconWell}>
+      <FactArt kind={icon} size={26} cut="art" />
+    </View>
     <View style={s.linkCopy}>
       <T tone={disabled ? 'muted' : 'ink'} style={s.linkTitle}>{label}</T>
       <T tone="muted" style={s.detail}>{detail || subtitle}</T>
@@ -167,6 +169,7 @@ const s = StyleSheet.create({
   figures: { alignSelf: 'stretch' },
   publicButton: { ...profileLift, alignSelf: 'stretch', minHeight: 54, borderWidth: 0, borderRadius: 16, padding: 16 },
   link: { ...profileLift, borderWidth: 0, borderRadius: 20, padding: 16, minHeight: 74, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  linkIconWell: { width: 44, height: 44, borderRadius: 14, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   linkCopy: { flex: 1, gap: 4 },
   linkPrimary: { flex: 1, minWidth: 0, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
   retryWork: { width: 48, height: 48, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',
@@ -182,5 +185,8 @@ const s = StyleSheet.create({
   city: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.xs, maxWidth: '100%' },
   shrink: { flexShrink: 1 },
   retry: { alignSelf: 'center', marginTop: sys.space.xs },
-  reading: { minHeight: 284, justifyContent: 'center', paddingHorizontal: sys.space.xl },
+  reading: { minHeight: 240, justifyContent: 'center', paddingHorizontal: sys.space.xl },
+  skeletonAvatar: { width: PROFILE_AVATAR, height: PROFILE_AVATAR, borderRadius: PROFILE_AVATAR / 2, backgroundColor: sys.color.wash },
+  skeletonTitle: { width: 168, height: 24, borderRadius: 8, backgroundColor: sys.color.wash },
+  skeletonSubtitle: { width: 120, height: 16, borderRadius: 6, backgroundColor: sys.color.wash },
 });

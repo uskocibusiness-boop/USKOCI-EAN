@@ -22,7 +22,7 @@ import { displayedPinPosition } from '../location/ResolvedPinMap.types';
 import { civilClock, civilDay, scheduleZone, weekdays } from '../calendar/calendarPresentation';
 import { raspon } from '../../lib/vreme';
 import { plural } from '../system/plural';
-import { WORKER_PART_TITLE, toolsAndVehiclesNote, type WorkerAiPart } from './workerProfileFacts';
+import { WORKER_PART_TITLE, type WorkerAiPart } from './workerProfileFacts';
 
 /** One word for nothing given (2026-09-24): three different empty words read as three different states. */
 const EMPTY='Nije navedeno';
@@ -191,20 +191,15 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       {/* Legacy area facts cannot authorize an on-site visit without signed ON_SITE modes. */}
       {onSite && !!p.workAreas?.length?<>
         <Fact art="pin">{workerAreasLabel(p.workAreas)}</Fact>
-        <T testID="worker-area-scope-note" variant="note" tone="muted">{p.workAreas.some(a=>a.kind==='RADIUS')
-          ?'Domet se računa od centra navedenog mesta. Kućna adresa nije potrebna.'
-          :'Područje dolaska za zadatke na lokaciji. Zadaci na daljinu se proveravaju zasebno.'}</T>
       </>:<>{place||onSite?<Fact art="pin" quiet={!place}>{place
         ?onSite
-          ?`${place} · do ${p.location.radiusKm} km${point?'':' (za okolna mesta potvrdite centar)'}`
+          ?`${place} · do ${p.location.radiusKm} km`
           :`${place} · grad profila`
         :EMPTY}</Fact>:null}
-      {remote?<T variant="note" tone="muted">Zadatak radite bez dolaska kod domaćina: onlajn ili kod sebe.</T>:null}
+      {remote?<Fact art="remote">Na daljinu</Fact>:null}
       {onSite&&point?<ResolvedPinMap coarse disabled height={220} position={point}
         scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}
-      {onSite
-        ?<T variant="note" tone="muted">{point?'Približan centar za terenske zadatke.':'Terenski zadaci van istog grada traže potvrđen približan centar; sada nije podešen.'}</T>:null}
       </>}
     </ReviewGroup>
     <ReviewGroup part="time">
@@ -220,19 +215,18 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         {p.availability.windows.map(w=><Row key={w.id} label={w.state==='AVAILABLE'?'Slobodno za rad':'Zauzeto'}
           value={`${raspon(w.startsAt,w.endsAt,{zona:p.availability.timezone})}${w.label?' · '+w.label:''}`} />)}
       </View>:null}
-      {hasSchedule?<T variant="note" tone="muted">{scheduleZone(p.availability.timezone)}. Dogovori ostaju obaveze.</T>:null}
+      {hasSchedule?<T variant="note" tone="muted">{scheduleZone(p.availability.timezone)}</T>:null}
     </ReviewGroup>
     {review.equipmentPolicy!=='PRESERVE_LEGACY_NO_WRITE_V1'&&(p.tools.length||p.vehicles.length)?<ReviewGroup part="tools">
       {p.tools.length?<Fact art="tool">{list(p.tools)}</Fact>:null}
       {p.vehicles.length?<Fact art="vehicle">{list(p.vehicles)}</Fact>:null}
-      <T testID="worker-tools-note" variant="note" tone="muted">{toolsAndVehiclesNote()}</T>
     </ReviewGroup>:null}
     <ReviewGroup part="identity">
       <T selectable variant="body" style={p.bio?s.ink:s.muted}>{p.bio||EMPTY}</T>
-      {p.bio?<T testID="worker-matching-explanation" variant="note" tone="muted">Vidljivo na Vašem profilu.</T>:null}
     </ReviewGroup>
     {onEdit?<Press accessibilityRole="button" accessibilityLabel="Izmenite kroz razgovor" accessibilityState={{disabled:editDisabled}}
       disabled={editDisabled} haptic={editDisabled?'none':'select'} onPress={()=>{if(!editDisabled)onEdit();}} style={s.edit}>
+      <FactArt kind="chat" size={20} cut="art" />
       <T variant="tab" style={editDisabled?s.muted:s.editText}>Izmenite kroz razgovor</T>
     </Press>:null}
   </View>;
@@ -270,8 +264,8 @@ const s=StyleSheet.create({
   group:{gap:sys.space.xs},
   groupHead:{flexDirection:'row',alignItems:'center',gap:sys.space.sm,minHeight:44},
   groupBody:{gap:sys.space.md},
-  edit:{minWidth:44,minHeight:44,justifyContent:'center',alignItems:'center',paddingHorizontal:sys.space.md},
-  editText:{color:sys.color.green},
+  edit:{minWidth:44,minHeight:48,flexDirection:'row',justifyContent:'center',alignItems:'center',gap:sys.space.sm,paddingHorizontal:sys.space.base,borderRadius:14,backgroundColor:sys.color.surface,borderWidth:1,borderColor:sys.color.cardLine},
+  editText:{color:sys.color.green,fontWeight:'600'},
   fact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.md},
   services:{gap:sys.space.base},
   service:{gap:sys.space.xs,minWidth:0},

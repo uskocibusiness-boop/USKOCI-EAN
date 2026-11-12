@@ -1,24 +1,30 @@
 import { StyleSheet, View } from 'react-native';
-import { FactArt, type FactArtKind } from '../system/FactArt';
-import { Surface } from '../system/Surface';
+import type { FactArtKind } from '../system/FactArt';
 import { sys } from '../system/tokens';
-import { T } from '../Text';
 
-/** A read has no result yet. Keep its place calm and useful without drawing fake rows or progress. */
-export function QuietReadState({ title, body, art }: { title: string; body: string; art: FactArtKind }) {
-  return <View testID="quiet-read-state" accessibilityLiveRegion="polite" style={s.frame}>
-    <Surface kind="panel" variant="outlined" style={s.panel}>
-      <FactArt kind={art} size={64} />
-      <T variant="heading" style={s.title}>{title}</T>
-      <T variant="note" tone="muted" style={s.body}>{body}</T>
-    </Surface>
+/** A read has no result yet. Render calm skeleton placeholders while preserving accessibility and testID. */
+export function QuietReadState({ title }: { title: string; body: string; art: FactArtKind }) {
+  return <View testID="quiet-read-state" accessibilityLabel={title} accessibilityLiveRegion="polite" style={s.frame}>
+    {[0, 1, 2].map(i => (
+      <View key={i} style={s.card}>
+        <View style={s.row}>
+          <View style={s.titleBar} />
+          <View style={s.badgeBar} />
+        </View>
+        <View style={s.metaBar} />
+        <View style={s.subBar} />
+      </View>
+    ))}
   </View>;
 }
 
 const s = StyleSheet.create({
-  frame: { flexGrow: 1, width: '100%' },
-  panel: { minHeight: 216, alignItems: 'center', justifyContent: 'center', gap: sys.space.sm,
-    paddingHorizontal: sys.space.xl, paddingVertical: sys.space.xl },
-  title: { textAlign: 'center' },
-  body: { textAlign: 'center', maxWidth: 280 },
+  frame: { flexGrow: 1, width: '100%', paddingVertical: sys.space.xs, gap: sys.space.sm },
+  card: { backgroundColor: sys.color.surface, borderRadius: sys.radius.card, borderWidth: 1, borderColor: sys.color.cardLine, padding: sys.space.base, gap: sys.space.xs },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: sys.space.sm },
+  titleBar: { width: '58%', height: 18, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
+  badgeBar: { width: 72, height: 22, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
+  metaBar: { width: '42%', height: 14, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
+  subBar: { width: '74%', height: 14, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
 });
+

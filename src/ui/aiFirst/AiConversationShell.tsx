@@ -371,7 +371,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         Padding uses the measured overlap; a genuinely resized window contributes
         zero overlap, so it does not subtract the keyboard height a second time. */}
     <KeyboardAvoidingView style={s.flex} behavior="padding">
-      <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title} right={headerRight} />
+      <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} right={headerRight} />
       {/* Before the first word there is no draft to pin, and an empty card pushed the one invitation on the screen
           below the fold. The caller returns null until it has something. */}
       {pinned && !inlineSummary && !cardAtEnd ? <ScrollView testID="ai-pinned-card" style={[s.cardArea,
@@ -476,9 +476,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {shownSentMessage ? <View accessibilityLabel={`Vi, šalje se: ${shownSentMessage}`} style={[s.person, s.sending]}>
           <T selectable style={s.personText}>{shownSentMessage}</T>
         </View> : null}
-        {displayedStream ? <View testID="ai-stream-preview" accessibilityLabel={`USKOČI, Odgovor u pripremi · podaci još nisu potvrđeni: ${displayedStream}`} accessibilityLiveRegion="none" style={s.assistant}>
+        {displayedStream ? <View testID="ai-stream-preview" accessibilityLabel={`USKOČI: ${displayedStream}`} accessibilityLiveRegion="none" style={s.assistant}>
           {shownSentMessage || !last?.fromAi ? <Mark /> : null}
-          <T variant="note" tone="muted">Odgovor u pripremi</T>
           <T testID="ai-stream-preview-text" selectable style={p.questionFocus ? s.question : s.answer}>{displayedStream}</T>
         </View> : null}
         {/* Three dots are what a person waiting for an answer already understands; they stop under reduced motion. */}

@@ -103,7 +103,7 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
           <T variant="note" style={s.capacityFraction}>{people}</T>
         </View> : null}
       </Press>
-      {foot ? <RecordFoot label={foot} tone="muted" accessibilityLabel={`Pogledajte prijave, ${foot}. Zadatak: ${title}`} accessibilityHint="Otvara prijave za izbor."
+      {foot ? <RecordFoot label={foot} tone="green" accessibilityLabel={`Pogledajte prijave, ${foot}. Zadatak: ${title}`} accessibilityHint="Otvara prijave za izbor."
         disabled={disabled} onPress={onApplications!} onPressIn={lift.give} onPressOut={lift.settle} /> : null}
     </Surface>
   </Animated.View>;

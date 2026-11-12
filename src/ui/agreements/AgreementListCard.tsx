@@ -49,9 +49,10 @@ function AttentionFoot({ attention }: { attention: AgreementAttention }) {
 function AcceptedAmount({ item }: { item: DogovorProjekcija }) {
   const amount = item.cena.prikaz;
   if (!amount) return <T variant="note" tone="muted">{BEZ_IZNOSA}</T>;
+  const basis = item.osnovaCene === 'HOURLY' ? 'po satu' : item.izmenaCeka ? 'važeći iznos' : item.osnovaCene === 'TOTAL' ? 'ukupno' : null;
   return <View style={s.amountBlock}>
-    <T variant="meta" tone="muted">{item.osnovaCene === 'HOURLY' ? 'Satnica' : item.osnovaCene === 'TOTAL' ? item.izmenaCeka ? 'Važeći iznos' : 'Cena saradnje' : 'Iznos'}</T>
     <T variant="priceRow" style={s.amount}>{amount}</T>
+    {basis ? <T variant="meta" tone="muted">{basis}</T> : null}
   </View>;
 }
 

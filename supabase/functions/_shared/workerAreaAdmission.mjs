@@ -100,7 +100,7 @@ const statedCityByRadius = text => new RegExp(`(?:^|[^\\p{L}])(${namedPlace})\\s
   .exec(normalize(text))?.[1];
 const statedCityByWork = text => {
   const value = normalize(text);
-  const prepositional = new RegExp(`(?:^|[^\\p{L}])u\\s+(${namedPlace})(?=$|[\\s,.;!?])`, 'u').exec(value)?.[1];
+  const prepositional = new RegExp(`(?:^|[^\\p{L}])(?:u|za|i\\s+u|takođe\\s+(?:u\\s+)?|dodaj(?:te)?\\s+(?:i\\s+)?(?:u\\s+)?|ubaci(?:te)?\\s+(?:i\\s+)?(?:u\\s+)?|proširi(?:te)?\\s+(?:i\\s+)?na\\s+)(${namedPlace})(?=$|[\\s,.;!?])`, 'iu').exec(value)?.[1];
   if (prepositional) return prepositional;
   return new RegExp(`^(${namedPlace})$`, 'u').exec(value)?.[1];
 };
@@ -296,6 +296,31 @@ export function guardWorkerAreaOutput(output, userText, context) {
     const userOnSiteText = onSiteText(normalize(userText));
     const statedCity = statedSurroundingCity(userOnSiteText) ||
       statedCityByRadius(userOnSiteText) || statedCityByWork(userOnSiteText);
+    const isAdditiveCity = /(?:^|[^\p{L}])(?:dodaj|dodajte|ubaci|ubacite|proširi|proširite|takođe|i\s+u|i\s+za)(?=$|[^\p{L}])/iu.test(userOnSiteText);
+    if (isAdditiveCity && statedCity && !Object.hasOwn(patch, 'areaRequests') && Array.isArray(context?.candidate?.workAreas) && context.candidate.workAreas.length > 0) {
+      const existingRequests = context.candidate.workAreas
+        .filter(area => area && (area.kind === 'CITY' || area.kind === 'RADIUS') && typeof area.city === 'string' && area.city.trim())
+        .map(area => ({
+          kind: area.kind,
+          countryCode: area.countryCode || 'RS',
+          query: area.city.trim(),
+          radiusKm: area.kind === 'RADIUS' ? area.radiusKm : null,
+        }));
+      const targetCity = (proposed?.city && samePlace(proposed.city, statedCity) ? proposed.city : statedCity).trim();
+      if (existingRequests.length > 0 && !existingRequests.some(req => samePlace(req.query, targetCity))) {
+        delete patch.location;
+        patch.areaRequests = [
+          ...existingRequests,
+          {
+            kind: typeof distanceFromUser === 'number' && distanceFromUser > 0 ? 'RADIUS' : 'CITY',
+            countryCode: 'RS',
+            query: targetCity,
+            radiusKm: typeof distanceFromUser === 'number' && distanceFromUser > 0 ? distanceFromUser : null,
+          },
+        ].slice(0, 5);
+        return { ...output, safety: 'ALLOW', patch };
+      }
+    }
     if (proposed && statedCity && !samePlace(proposed.city ?? current?.city, statedCity)) {
       delete patch.location;
       return { ...output, safety: 'CLARIFY', patch,

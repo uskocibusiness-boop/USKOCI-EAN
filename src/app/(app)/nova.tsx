@@ -207,7 +207,6 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
             setCorrection(null);
             if (submittedDraft) setUnos(value => draftRevision.current === submittedDraft.revision && value === submittedDraft.value ? '' : value);
           }
-          setStreamingText('');
         }
       }
       // A cold journal owns IDs, never the original text. A capability read may

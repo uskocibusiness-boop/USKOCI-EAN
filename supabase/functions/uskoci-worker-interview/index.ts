@@ -625,7 +625,21 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             try{
               const workAreas=await resolveWorkerAreas(areaRequests,{token:Deno.env.get('LOCATIONIQ_ACCESS_TOKEN'),requestJson:boundedJson,signal:completionSignal,
                 ownedAreas:ownedAreas??[]});
-              output={...output,patch:{...independent,workAreas}};
+              const nextPatch: Record<string, any> = {...independent,workAreas};
+              const resolvedCities = workAreas.map((a: any) => a?.city).filter((c: any): c is string => typeof c === 'string' && c.trim().length > 0);
+              const baseBio = typeof nextPatch.bio === 'string' ? nextPatch.bio : (typeof context.candidate?.bio === 'string' ? context.candidate.bio : '');
+              if (resolvedCities.length >= 2 && baseBio.trim().length > 0) {
+                const missingCities = resolvedCities.filter(c => !baseBio.toLocaleLowerCase('sr').includes(c.toLocaleLowerCase('sr').slice(0, Math.max(3, c.length - 2))));
+                if (missingCities.length > 0) {
+                  const citiesLabel = resolvedCities.length === 2
+                    ? `${resolvedCities[0]} i ${resolvedCities[1]}`
+                    : `${resolvedCities.slice(0, -1).join(', ')} i ${resolvedCities.at(-1)}`;
+                  const trimmedBio = baseBio.trim().replace(/[.!?]+$/u, '');
+                  const syncedBio = `${trimmedBio}. Područje rada: ${citiesLabel}.`;
+                  if (syncedBio.length <= 500) nextPatch.bio = syncedBio;
+                }
+              }
+              output={...output,patch:nextPatch};
             }catch(error){
               // A proposed biography can already claim the new territory. Keep
               // the previous bio together with the previous areas until both

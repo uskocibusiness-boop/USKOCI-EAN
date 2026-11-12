@@ -173,5 +173,6 @@ test('Worker Gemini text streaming is opt-in and never bypasses signed persisten
     'only opted-in clients receive advisory metadata beside the unchanged turn');
   assert.ok(workerRoute.includes('setStream(value=>value+delta)'));
   assert.ok(needRoute.includes('setStreamingText((prev) => prev + delta)'));
-  assert.ok(shell.includes('Odgovor u pripremi · podaci još nisu potvrđeni'));
+  assert.ok(shell.includes('testID="ai-stream-preview"'));
+  assert.ok(!shell.includes('Odgovor u pripremi'));
 });

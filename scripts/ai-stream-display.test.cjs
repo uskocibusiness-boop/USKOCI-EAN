@@ -85,7 +85,7 @@ function harness({ withoutSegmenter = false, reduced = false, strict = false } =
     async motion(value) { reduced = value; await this.update({}); },
     async frame() { const batch = [...frames.values()]; frames.clear(); await act(async () => batch.forEach(fn => fn(16))); },
     preview() {
-      const node = tree.root.findAll(node => node.type === 'View' && String(node.props.accessibilityLabel ?? '').startsWith('USKOČI, Odgovor u pripremi'))[0];
+      const node = tree.root.findAll(node => node.type === 'View' && node.props.testID === 'ai-stream-preview')[0];
       return node ? node.findAll(node => node.type === 'T' && node.props.selectable)[0].props.children : '';
     },
     async close() { if (tree) await act(async () => tree.unmount()); assert.equal(frames.size, 0, 'no retained animation frame');
@@ -160,8 +160,8 @@ test('canonical readback replaces even a longer contradictory preview and announ
   assert.ok(h.preview());
   const previewNode = h.tree.root.findByProps({ testID: 'ai-stream-preview' });
   assert.equal(previewNode.props.accessibilityLiveRegion, 'none');
-  assert.match(previewNode.props.accessibilityLabel, /podaci još nisu potvrđeni/);
-  assert.equal(previewNode.findAll(node => node.type === 'T' && node.props.children === 'Odgovor u pripremi').length, 1);
+  assert.match(previewNode.props.accessibilityLabel, /^USKOČI:/);
+  assert.equal(previewNode.findAll(node => node.type === 'T' && node.props.children === 'Odgovor u pripremi').length, 0);
   const final = 'Pregled još nije spreman.';
   const messages = [...initial, { id: 'u1', fromAi: false, body: 'To je to' }, { id: 'a1', fromAi: true, body: final }];
   // The read can land before the route has cleared its stream; canonical rows win immediately.
