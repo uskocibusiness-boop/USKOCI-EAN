@@ -31,7 +31,7 @@ const ERROR_TITLE: Partial<Record<RecoveryErrorCode, string>> = {
   INVALID_LINK: 'Link ne važi',
   VERIFY_UNAVAILABLE: 'Link nije proveren',
   UPDATE_UNKNOWN: 'Lozinka nije potvrđena',
-  SIGNED_IN: 'Prvo se odjavi',
+  SIGNED_IN: 'Prvo se odjavite',
 };
 
 type ContentProps = {
@@ -42,30 +42,30 @@ type ContentProps = {
 };
 
 export function RecoveryLinkContent({ phase, signedIn, busy, password, confirmation, validation, onPassword, onConfirmation, onSave, onNewLink }: ContentProps) {
-  if (phase.kind === 'verifying') return <AuthIntro title="Postavi novu lozinku." art="lock" copy="Proveravamo link za oporavak…" />;
+  if (phase.kind === 'verifying') return <AuthIntro title="Postavite novu lozinku." art="lock" copy="Proveravamo link za oporavak…" />;
   if (phase.kind === 'success') {
-    return <AuthIntro title="Lozinka je promenjena." art="check" copy="Tvoji zadaci i Dogovori ostaju na istom nalogu. Prijavi se novom lozinkom." />;
+    return <AuthIntro title="Lozinka je promenjena." art="check" copy="Vaši zadaci i Dogovori ostaju na istom nalogu. Prijavite se novom lozinkom." />;
   }
   if (phase.kind === 'error') {
     // A link that could not be checked, or a write that may or may not have happened, leaves a second way: a new link.
     const alsoNewLink = !signedIn && (phase.code === 'VERIFY_UNAVAILABLE' || phase.code === 'UPDATE_UNKNOWN');
     return <>
       <AuthIntro title={ERROR_TITLE[phase.code] ?? 'Oporavak nije uspeo'} art="info" muted alert copy={phase.message} />
-      {alsoNewLink ? <View><LinkAction title="Zatraži novi link" onPress={onNewLink} /></View> : null}
+      {alsoNewLink ? <View><LinkAction title="Zatražite novi link" onPress={onNewLink} /></View> : null}
     </>;
   }
   return <>
-    <AuthIntro title="Postavi novu lozinku." />
+    <AuthIntro title="Postavite novu lozinku." />
     <View style={s.fields}>
       <View accessibilityLiveRegion="polite">
-        <T variant="copy" tone="muted">Postavi novu lozinku za nalog:</T>
+        <T variant="copy" tone="muted">Postavite novu lozinku za nalog:</T>
         <T selectable variant="bodyStrong">{phase.email}</T>
       </View>
       <AuthField label="Nova lozinka" value={password} secure newPassword editable={!busy} hint={authFieldMessages.lozinkaHint}
         error={validation?.field === 'password' ? validation.message : null} onChangeText={onPassword} />
-      <AuthField label="Potvrdi novu lozinku" value={confirmation} secure newPassword editable={!busy} returnKeyType="go" onSubmitEditing={onSave}
+      <AuthField label="Potvrdite novu lozinku" value={confirmation} secure newPassword editable={!busy} returnKeyType="go" onSubmitEditing={onSave}
         error={validation?.field === 'confirmation' ? validation.message : null} onChangeText={onConfirmation} />
-      <T variant="note" tone="muted">Tvoji zadaci, prijave i Dogovori ostaju na istom nalogu. Posle promene prijavi se novom lozinkom.</T>
+      <T variant="note" tone="muted">Vaši zadaci, prijave i Dogovori ostaju na istom nalogu. Posle promene prijavite se novom lozinkom.</T>
       {phase.serverError ? <T accessibilityRole="alert" variant="note" tone="danger">{phase.serverError}</T> : null}
     </View>
   </>;
@@ -77,12 +77,12 @@ export function RecoveryLinkFooter({ phase, signedIn, busy, onSave, onBack, onNe
   onSave: () => void; onBack: () => void; onNewLink: () => void; onRetry: () => void;
 }) {
   if (phase.kind === 'verifying') return null;
-  if (phase.kind === 'form') return <PrimaryButton title="Sačuvaj novu lozinku" onPress={onSave} busy={busy} />;
+  if (phase.kind === 'form') return <PrimaryButton title="Sačuvajte novu lozinku" onPress={onSave} busy={busy} />;
   if (phase.kind === 'success') return <PrimaryButton title={authCopy.signIn} onPress={onBack} />;
   if (signedIn) return <PrimaryButton title="Nazad u aplikaciju" onPress={onBack} />;
   if (phase.code === 'VERIFY_UNAVAILABLE') return <PrimaryButton title={authCopy.retry} onPress={onRetry} />;
   if (phase.code === 'UPDATE_UNKNOWN') return <PrimaryButton title={authCopy.signIn} onPress={onBack} />;
-  return <PrimaryButton title="Zatraži novi link" onPress={onNewLink} />;
+  return <PrimaryButton title="Zatražite novi link" onPress={onNewLink} />;
 }
 
 const s = StyleSheet.create({

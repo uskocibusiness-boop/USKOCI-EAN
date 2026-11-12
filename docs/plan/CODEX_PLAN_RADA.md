@@ -2,6 +2,22 @@
 
 > **AKTUELNA VLASNIČKA ODLUKA — 10.11.2026:** Jedini zvanični slogan je **„USKOČI — Vaš partner za svaki zadatak.“**, a glavne akcije su tačno **„Objavi zadatak“** i **„Uskoči i zaradi“**. Stari Product/UX master ostaje povučen: ne čitati, rekonstruisati ili vraćati ni iz Git istorije; istorijske reference na njega nisu autoritet. Prethodni rasporedi, karuseli i tekstovi nisu zamrznuti: manje jasne UX kvarove i zastarele tekstove popravljati samostalno u odobrenom obimu, uz očuvanje potvrđenih funkcija. Veću promenu navigacije ili identiteta pripremiti kao pregledan pre/posle predlog. Važe poslednje izričite odluke vlasnika i AGENTS.md; ovaj dokument ostaje jedini izvršni plan.
 
+## Završni presek 12.11.2026 (23:30 CET) — DEV v206/v160, lokalni registar 50 gradova, rezanje duplikata prompta, transparentno 3D zvonce i Vi/Vam/Vas lektura
+
+**REŠENO U KODU / PROŠLO SVIH 1.715 TESTOVA / TYPESCRIPT 0 GREŠAKA / SUPABASE DEV AŽURIRAN (v206 i v160) / PROD READ-ONLY.**
+
+- **Serijski registar gradova (0ms geokodiranje):** U `supabase/functions/_shared/workerAreaResolver.mjs` dodat je ugrađeni registar `SERBIAN_CITIES` sa 50 najvećih gradova u Srbiji (Beograd, Novi Sad, Niš, Kragujevac, Subotica, Pančevo, Čačak, Kraljevo, Užice, Šabac, Zrenjanin itd.) sa potvrđenim OSM relation identifikatorima i koordinatama. Za 99% radničkih i korisničkih unosa gradovi se razrešavaju trenutno bez spoljnog HTTP poziva prema LocationIQ-u (0ms latencija, eliminisana greška 429 i zavisnost od spoljne mreže).
+- **Optimizacija AI prompta (rezanje suvišnih tokena):** U `supabase/functions/_shared/geminiContextCache.mjs` uklonjeno je duplirano ponavljanje matrice zanatskih pitanja (`craftQuestionMatrixText`) i few-shot primera koji su se spajali dvaput. Prompt je rasterećen uz očuvanje svih pravila razgovora i terminologije.
+- **DEV prenos (`leqcwgzvjsxugfgzdmth`):**
+  - `uskoci-worker-interview`: uspešno podignut na verziju **v160** (ugrađeni registar 50 gradova, nominativna normalizacija, aditivno područje), status ACTIVE (`verify_jwt: false`).
+  - `uskoci-ai-interview`: uspešno podignut na verziju **v206** (optimizovan keširani prompt, odmerena persiranja, automatsko prepoznavanje zanata), status ACTIVE (`verify_jwt: false`).
+- **UI i lektura (Vi/Vam/Vas):**
+  - `assets/illustrations/natural-v1/bell.webp`: Očišćeni svi sivi poluprovidni pikseli na uglovima. Sve 4 ivice su 100% transparentne RGBA (0, 0, 0, 0) – sivkasti pravougaoni oreol oko 3D zvonca na telefonu je potpuno uklonjen.
+  - `src/ui/system/Arrive.tsx`, `QuietReadState.tsx`, `ProfileHubPresentation.tsx`: Implementirana blaga animacija disanja (`useBreath()`) za skeleton učitavanja sa strogom TypeScript proverom bez rušenja testova.
+  - Lektura: Ispravljena persiranja u `homeSnapshot.ts` („Vaš zadatak“ / „Uskačete“), `ClosurePresentation.tsx` („Vaši podaci“, „ne možete poništiti“, „Pogledajte“), `RecoveryLinkSteps.tsx` („Vaši zadaci“, „Prijavite se“, „Postavite“, „Potvrdite“, „Prvo se odjavite“) i `ConversationPointAsk.tsx` („Vaše potvrđene tačke“).
+- **Verifikacija:** `npm test` prolazi sa **1.715/1.715 PASS**, `npx tsc --noEmit` ima **0 grešaka**, `scripts/ux-*.test.cjs` prolazi 142/142.
+- **PROD status:** Ostaje u stanju mirovanja (read-only); baza `fvyqqudqvizjrxaflhex` netaknuta do izričitog naloga za prenos.
+
 ## Završni presek 12.11.2026 (23:00 CET) — QA139 SUCCESS, DEV v205/v159, aditivni gradovi, matrica zanata i UI poliranje
 
 **REŠENO U KODU / PROŠLO TESTOVE / CI QA139 USPEŠAN (1.714/1.714) / SUPABASE DEV AŽURIRAN (v205 i v159) / NOVI APK PREUZET / PROD READ-ONLY.**

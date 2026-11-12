@@ -190,7 +190,7 @@ const counterpart = (row: DogovorProjekcija) => row.ucesnici.find(person => !per
 
 function agreementRow(row: DogovorProjekcija): HomeRow {
   const side = mySide(row);
-  const roleLabel = side === 'narucilac' ? 'Tvoj zadatak' : side === 'uskocer' ? 'Uskačeš' : null;
+  const roleLabel = side === 'narucilac' ? 'Vaš zadatak' : side === 'uskocer' ? 'Uskačete' : null;
   const counterpartName = counterpart(row);
   const other = row.ucesnici.find(person => !person.viSte);
   return { id: `agreement:${row.id}`, title: row.naslov, target: { kind: 'AGREEMENT', agreementId: row.id },

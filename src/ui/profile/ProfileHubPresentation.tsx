@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
+import { useBreath } from '../system/Arrive';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { SettingsAction } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
@@ -60,15 +61,17 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
   /** What stands over the screen once it is open (the public profile sheet). */ sheet?: ReactNode;
 }) {
   const go = (path: ProfileHubPath) => () => open(path);
+  const breath = useBreath();
+  const Host = Animated?.View ?? View;
   return <Screen kind="detail" background="wash" contentStyle={s.content}
     header={<AccountHeader title="Moj profil" onBack={onBack} disabled={busy} />}>
     {/* Separate hosts keep loading semantics out of the ready/error identity after a native transition. */}
-    {identity.state === 'loading' ? <View key="loading" testID="profile-identity"
-      accessibilityLabel="Učitavamo profil…" accessibilityLiveRegion="polite" accessibilityState={{ busy: true }} style={[s.identity, s.reading]}>
+    {identity.state === 'loading' ? <Host key="loading" testID="profile-identity"
+      accessibilityLabel="Učitavamo profil…" accessibilityLiveRegion="polite" accessibilityState={{ busy: true }} style={[s.identity, s.reading, { opacity: breath }]}>
       <View style={s.skeletonAvatar} />
       <View style={s.skeletonTitle} />
       <View style={s.skeletonSubtitle} />
-    </View> : identity.state === 'error' ? <View key="error" testID="profile-identity" accessible={false}
+    </Host> : identity.state === 'error' ? <View key="error" testID="profile-identity" accessible={false}
       accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={s.identity}>
       <Avatar initials={null} size={PROFILE_AVATAR} />
       <T variant="bodyStrong" style={s.center}>Profil trenutno nije dostupan.</T>

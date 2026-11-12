@@ -1,19 +1,22 @@
-import { StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
+import { useBreath } from '../system/Arrive';
 import type { FactArtKind } from '../system/FactArt';
 import { sys } from '../system/tokens';
 
-/** A read has no result yet. Render calm skeleton placeholders while preserving accessibility and testID. */
-export function QuietReadState({ title }: { title: string; body: string; art: FactArtKind }) {
+/** A read has no result yet. Render calm breathing skeleton placeholders while preserving accessibility and testID. */
+export function QuietReadState({ title }: { title: string; body?: string; art?: FactArtKind }) {
+  const breath = useBreath();
+  const Card = Animated?.View ?? View;
   return <View testID="quiet-read-state" accessibilityLabel={title} accessibilityLiveRegion="polite" style={s.frame}>
     {[0, 1, 2].map(i => (
-      <View key={i} style={s.card}>
+      <Card key={i} style={[s.card, { opacity: breath }]}>
         <View style={s.row}>
           <View style={s.titleBar} />
           <View style={s.badgeBar} />
         </View>
         <View style={s.metaBar} />
         <View style={s.subBar} />
-      </View>
+      </Card>
     ))}
   </View>;
 }

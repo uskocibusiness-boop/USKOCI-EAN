@@ -325,7 +325,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   // stay in state, and the retry sends the same ones again.
   if (state.kind === 'FAILED') return <View style={{ gap: 12 }}>
     <T accessibilityRole="alert" tone="danger">{state.message}</T>
-    {points.length ? <T variant="meta" tone="muted">Tvoje potvrđene tačke nisu izgubljene.</T> : null}
+    {points.length ? <T variant="meta" tone="muted">Vaše potvrđene tačke nisu izgubljene.</T> : null}
     {points.length && review ? <Button label="Sačuvaj ponovo" disabled={inactive} onPress={() => { if (canAct()) void commit(points, review); }} /> : null}
     {points.length
       // `load()` puts the saved place back over the points on screen, so the saved place is what replaces.

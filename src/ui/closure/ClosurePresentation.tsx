@@ -202,12 +202,12 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
     {header}{note}
     {/* The consequence comes first, in the owner's words; everything that can be done instead (keep a copy) and the command itself follow it. */}
     <SettingsGroup title="Posle pokretanja"><View style={s.block}>
-      <T variant="copy">{erasure ? 'Pristup običnim funkcijama se ograničava. Uklanjaju se nezaštićene datoteke, obični lični i privatni podaci, pa podaci za prijavu i sesije. Minimalni pseudonimni zapisi potvrda ostaju. Izdvojeni dokazi se zasebno rešavaju; ako postoje, konačno zatvaranje čeka njihovu proveru. Pokrenuto uklanjanje ne možeš poništiti iz aplikacije.'
-        : 'Pristup nalogu se gasi. Podaci za prijavu, aktivne sesije i datoteke naloga biće uklonjeni. Identifikator i evidencije iz pregleda ostaju u skladu sa pravilima čuvanja. Pokrenuto zatvaranje ne možeš otkazati iz aplikacije.'}</T>
+      <T variant="copy">{erasure ? 'Pristup običnim funkcijama se ograničava. Uklanjaju se nezaštićene datoteke, obični lični i privatni podaci, pa podaci za prijavu i sesije. Minimalni pseudonimni zapisi potvrda ostaju. Izdvojeni dokazi se zasebno rešavaju; ako postoje, konačno zatvaranje čeka njihovu proveru. Pokrenuto uklanjanje ne možete poništiti iz aplikacije.'
+        : 'Pristup nalogu se gasi. Podaci za prijavu, aktivne sesije i datoteke naloga biće uklonjeni. Identifikator i evidencije iz pregleda ostaju u skladu sa pravilima čuvanja. Pokrenuto zatvaranje ne možete otkazati iz aplikacije.'}</T>
     </View></SettingsGroup>
     {exceptions}{retention}
-    <SettingsGroup title="Tvoji podaci">
-      <SettingsRow compact last label="Izvoz podataka" detail="Pogledaj zahtev, pripremu i dostupnost svoje kopije." disabled={busy}
+    <SettingsGroup title="Vaši podaci">
+      <SettingsRow compact last label="Izvoz podataka" detail="Pogledajte zahtev, pripremu i dostupnost Vaše kopije." disabled={busy}
         onPress={commands.onExport} />
     </SettingsGroup>
     {/* At the end of the scroll, not pinned: the consequences above are passed on the way to it. The command is the very last

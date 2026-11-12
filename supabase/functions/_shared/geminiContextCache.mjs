@@ -22,10 +22,6 @@ export function buildUskociCachedKnowledge(catalog, purpose = 'NEED_SERVICE') {
     '',
     '=== SMERNICE IZVRŠENJA USLUGA (ON_SITE / REMOTE) ===',
     serviceExecutionInstruction(purpose),
-    '',
-    craftQuestionMatrixText(),
-    '',
-    craftFewShotExamplesText(),
   ];
 
   if (catalog?.verifiedComplete && Array.isArray(catalog.categories)) {

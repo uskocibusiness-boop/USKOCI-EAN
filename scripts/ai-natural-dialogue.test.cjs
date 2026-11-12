@@ -173,6 +173,36 @@ test('known two-city work coverage is preserved without another lookup or home a
   assert.deepEqual(result,ownedAreas); assert.equal(JSON.stringify(ownedAreas),before);
 });
 
+test('Serbian local city registry resolves major cities instantly without network or external tokens',async()=>{
+  const {resolveWorkerAreas,SERBIAN_CITIES}=await import('../supabase/functions/_shared/workerAreaResolver.mjs');
+  const {decodeWorkerAreas}=await import('../src/contracts/workerAreas.ts');
+  assert.ok(Object.keys(SERBIAN_CITIES).length>=50);
+  const input=[
+    {kind:'CITY',countryCode:'RS',query:'Beograd',radiusKm:null},
+    {kind:'RADIUS',countryCode:'RS',query:'Novi Sad',radiusKm:25},
+    {kind:'CITY',countryCode:'RS',query:'Ниш',radiusKm:null},
+    {kind:'CITY',countryCode:'RS',query:'kragujevac',radiusKm:null},
+    {kind:'CITY',countryCode:'RS',query:'Subotica',radiusKm:null},
+  ];
+  const resolved=await resolveWorkerAreas(input,{
+    token:null,
+    requestJson:()=>{throw Error('Must not call external geocoding for known registry cities');},
+    signal:new AbortController().signal,
+  });
+  assert.equal(resolved.length,5);
+  assert.equal(resolved[0].city,'Beograd');
+  assert.equal(resolved[0].sourceRef,'osm:relation:10002');
+  assert.equal(resolved[1].city,'Novi Sad');
+  assert.equal(resolved[1].radiusKm,25);
+  assert.equal(resolved[1].label,'Novi Sad · do 25 km');
+  assert.equal(resolved[2].city,'Niš');
+  assert.equal(resolved[3].city,'Kragujevac');
+  assert.equal(resolved[4].city,'Subotica');
+  const decoded=decodeWorkerAreas(resolved);
+  assert.ok(decoded);
+  assert.equal(decoded.length,5);
+});
+
 test('month deadline without a stated hour asks only the missing hour',()=>{
   const input='Prijave do desetog sledeceg meseca.';
   const out=run(turn('U redu.',[fact('need.response_deadline',{kind:'AT',at:'2026-12-10T17:00:00+01:00'},'do desetog sledeceg meseca')],'','ACK'),input);

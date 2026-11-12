@@ -36,12 +36,13 @@ export function Arrive({ children, delay = 80 }: { children: ReactNode; delay?: 
  */
 export function useBreath(): Animated.Value | Animated.AnimatedInterpolation<number> {
   const reduced = useReducedMotion();
-  const value = useRef(new Animated.Value(1)).current;
+  const value = useRef(Animated?.Value ? new Animated.Value(1) : (1 as any)).current;
   useEffect(() => {
-    if (reduced) { value.setValue(1); return; }
+    if (reduced || !Animated?.Value || !Animated?.timing || !Animated?.loop) return;
+    const easing = typeof Easing?.inOut === 'function' && typeof Easing?.quad === 'function' ? Easing.inOut(Easing.quad) : undefined;
     const loop = Animated.loop(Animated.sequence([
-      Animated.timing(value, { toValue: 0.78, duration: sys.motion.loop.breath, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      Animated.timing(value, { toValue: 1, duration: sys.motion.loop.breath, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(value, { toValue: 0.78, duration: sys.motion.loop.breath, easing, useNativeDriver: true }),
+      Animated.timing(value, { toValue: 1, duration: sys.motion.loop.breath, easing, useNativeDriver: true }),
     ]));
     loop.start();
     return () => loop.stop();
