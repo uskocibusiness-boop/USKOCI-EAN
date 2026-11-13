@@ -226,6 +226,18 @@ test('Serbian local city registry resolves major cities instantly without networ
   assert.equal(decoded.length,5);
 });
 
+test('worker area resolver rejects a sixth city before geocoding or saving a partial list',async()=>{
+  const {resolveWorkerAreas}=await import('../supabase/functions/_shared/workerAreaResolver.mjs');
+  const input=['Beograd','Novi Sad','Niš','Kragujevac','Subotica','Pančevo']
+    .map(query=>({kind:'CITY',countryCode:'RS',query,radiusKm:null}));
+  let lookups=0;
+  await assert.rejects(resolveWorkerAreas(input,{
+    requestJson:()=>{lookups++;throw Error('A list over the limit must fail before geocoding');},
+    signal:new AbortController().signal,
+  }),/WORKER_AREA_INVALID/);
+  assert.equal(lookups,0);
+});
+
 test('month deadline without a stated hour asks only the missing hour',()=>{
   const input='Prijave do desetog sledeceg meseca.';
   const out=run(turn('U redu.',[fact('need.response_deadline',{kind:'AT',at:'2026-12-10T17:00:00+01:00'},'do desetog sledeceg meseca')],'','ACK'),input);
@@ -552,4 +564,3 @@ test('city-wide task with user indicating anywhere in city does not loop asking 
   const out = run(turn('Zabeležio sam, pregledajte detalje.', [], '', 'REVIEW'), 'U celom gradu, gde god odgovara.', cityOnlyFacts);
   assert.equal(out.dialogue.next, 'REVIEW');
 });
-
