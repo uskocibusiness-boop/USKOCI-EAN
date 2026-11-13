@@ -41,6 +41,25 @@ const turn = (assistantMessage, proposals = [], questionKey = '', next = 'ASK') 
 const run = (value, input, facts = [], history = [], currentTime = time, pendingDeadline = false) =>
   sandbox.run(value, input, history, facts, currentTime, undefined, pendingDeadline);
 
+test('task intake prompt rewrites the whole task only for an explicit scope replacement', () => {
+  const node = parsed.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'v2Instruction');
+  assert.ok(node, 'actual Need v2Instruction exists');
+  const factContract = contract('src/contracts/needFactsV2.ts');
+  const scope = {
+    INTERVIEW_NEED_FACT_V2_KEYS: factContract.AI_PROPOSABLE_NEED_FACT_V2_KEYS,
+    NEED_FACT_V2_DEFINITIONS: factContract.NEED_FACT_V2_DEFINITIONS,
+    commonInstruction: () => [], conversationIntentInstruction: () => '',
+    needRuntimeContext: () => '', needFinishContext: () => '',
+  };
+  const compiled = ts.transpileModule(node.getText(parsed), {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+  }).outputText;
+  vm.runInNewContext(compiled + '\nthis.prompt = v2Instruction([], {}, false, false);', scope);
+  assert.match(scope.prompt, /rewrite the complete title and description from the correction/);
+  assert.match(scope.prompt, /A date, price or location correction alone does not replace the task/);
+  assert.match(scope.prompt, /Do not ask trade-specific size, material or tool questions for errands/);
+});
+
 test('B: facts from the current message prevent a repeated people question', () => {
   const input = 'Treba mi pomoć za prenošenje ormara sutra u Novom Sadu, jedan čovek, nudim 2.000 dinara.';
   const proposals = [fact('need.title','Prenošenje ormara',input),fact('need.category','Nošenje nameštaja',input),
@@ -85,6 +104,7 @@ test('shared Worker guidance does not reintroduce equipment/home-city or unrelat
   const {interviewVoiceInstruction} = await import('../supabase/functions/_shared/interviewVoiceInstruction.mjs');
   const prompt = interviewVoiceInstruction();
   assert.doesNotMatch(prompt,/Pitajte ima li sopstveni alat i prevoz|ko je, čime se bavi.*odakle je|ako je student, ponudite mu/i);
+  assert.match(prompt,/šetanje psa, kupovina namirnica, selidba, prevoz, čišćenje, časovi, dizajn ili popravka/u);
 });
 
 for (const [label,input,at,date] of [
@@ -162,6 +182,8 @@ test('G: active Worker prompt requires ON_SITE/BOTH work coverage and keeps REMO
   assert.match(scope.prompt,/REMOTE-only digital work does not require a city or physical address/);
   assert.match(scope.prompt,/Keep known areas and ask only the missing extent/);
   assert.match(scope.prompt,/preserve unmentioned services and keep distinct services separate/);
+  assert.match(scope.prompt,/explicitly replaces or narrows the overall profile focus, rewrite the complete bio/);
+  assert.match(scope.prompt,/service additions\/removals still go only through serviceChanges/);
 });
 
 test('known two-city work coverage is preserved without another lookup or home address',async()=>{

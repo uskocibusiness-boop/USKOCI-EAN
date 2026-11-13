@@ -12,6 +12,7 @@
 const letters = '[\\p{L}]';
 const capitals = '[\\p{Lu}]';
 const namedPlace = `${capitals}${letters}+(?:\\s+${capitals}${letters}+){0,2}`;
+const areaCommandWords = new Set(['dodaj', 'dodajte', 'dodam', 'ubaci', 'ubacite', 'ubacim', 'proširi', 'proširite', 'zameni', 'zamenite', 'promeni', 'promenite']);
 const pair = new RegExp(`(?:^|[\\s,;])(?:u\\s+)?(${namedPlace})\\s+(?:i|ili|a)\\s+(?:u\\s+)?(${namedPlace})(?=$|[\\s,.;!?])`, 'u');
 const commaPair = new RegExp(`(?:^|[\\s,;])(${namedPlace})\\s*,\\s*(${namedPlace})(?=$|[\\s,.;!?])`, 'u');
 const broadScope = /(?:^|[^\p{L}])(?:(?:širom\s+)?(?:cela|cele|celoj|celu|ceo|celom|čitava|čitave|čitavoj|čitavu|čitav)|širom|svuda(?:\s+po)?|po\s+(?:celoj|celom)|u\s+(?:celoj|celom)|na\s+(?:području|teritoriji)\s+(?:cele|čitave))?\s*(?:republike?\s+)?(srbija|srbije|srbiji|srbiju|vojvodina|vojvodine|vojvodini|vojvodinu|šumadija|šumadije|šumadiji|balkan|balkana|balkanu|svet|svetu|sveta|država|države|državi|zemlja|zemlje|zemlji|region|regiona|regija|regije|regiji|pokrajina|pokrajine|pokrajini|svuda|bilo gde|gde god)(?=$|[^\p{L}])/iu;
@@ -158,13 +159,58 @@ export function classifyWorkerAreaRequest(input) {
   const lowerPair = knownCityPair.exec(text);
   if (lowerPair && knownCityId(lowerPair[1]) !== knownCityId(lowerPair[2])) return 'MULTI_LOCALITY';
   const joined = pair.exec(text), listed = commaPair.exec(text);
-  if (joined && !/^(?:Bosna|Bosni)$/iu.test(joined[1]) && !/^(?:Hercegovina|Hercegovini)$/iu.test(joined[2])
+  if (joined && !areaCommandWords.has(joined[1].trim().toLocaleLowerCase('sr'))
+    && !/^(?:Bosna|Bosni)$/iu.test(joined[1]) && !/^(?:Hercegovina|Hercegovini)$/iu.test(joined[2])
     && !country.test(joined[1]) && !country.test(joined[2])
     && !namedRegion.test(joined[1]) && !namedRegion.test(joined[2])) return 'MULTI_LOCALITY';
-  if (listed && !country.test(listed[1]) && !country.test(listed[2])
+  if (listed && !areaCommandWords.has(listed[1].trim().toLocaleLowerCase('sr'))
+    && !country.test(listed[1]) && !country.test(listed[2])
     && !namedRegion.test(listed[1]) && !namedRegion.test(listed[2])) return 'MULTI_LOCALITY';
   if (surroundings.test(text) && !distance.test(text)) return 'LOCALITY_NEEDS_DISTANCE';
   return 'NONE';
+}
+
+function statedWorkerCities(input) {
+  const text = onSiteText(normalize(input));
+  const CANONICAL_CITIES = { NOVI_SAD: 'Novi Sad', BEOGRAD: 'Beograd', NIS: 'Niš', KRAGUJEVAC: 'Kragujevac' };
+  const STOP_WORDS = new Set([
+    'radim', 'radimo', 'dolazim', 'dolazimo', 'idem', 'idemo', 'pokrivam', 'pokrivamo',
+    'prihvatam', 'prihvatamo', 'nudim', 'nudimo', 'mogu', 'mozemo', 'možemo',
+    ...areaCommandWords,
+    'takodje', 'takođe', 'grad', 'gradovi', 'gradove', 'gradovima', 'podrucje', 'područje',
+    'teren', 'lokacija', 'lokacije', 'sve', 'svi', 'ja', 'mi', 'samo', 'vise', 'više'
+  ]);
+  const toNominative = name => {
+    const cid = knownCityId(name);
+    if (cid && CANONICAL_CITIES[cid]) return CANONICAL_CITIES[cid];
+    if (/ici$/iu.test(name)) return name.replace(/ici$/iu, 'ica');
+    if (/di$/iu.test(name)) return name.replace(/di$/iu, 'da');
+    if (/inu$/iu.test(name)) return name.replace(/u$/iu, '');
+    if (/evcu$/iu.test(name)) return name.replace(/evcu$/iu, 'evac');
+    if (/ovcu$/iu.test(name)) return name.replace(/ovcu$/iu, 'ovac');
+    if (/(?:evu|ovu)$/iu.test(name)) return name.replace(/u$/iu, 'o');
+    if (/u$/iu.test(name) && !/(?:valjev|pancev|kraljev|vranj)/iu.test(name)) return name.replace(/u$/iu, '');
+    return name;
+  };
+  const cities = [];
+  const seen = new Set();
+  const addCity = name => {
+    const clean = String(name || '').trim();
+    const lower = clean.toLocaleLowerCase('sr');
+    if (!clean || clean.length < 2 || STOP_WORDS.has(lower) || country.test(clean) || namedRegion.test(clean)) return;
+    const canonical = toNominative(clean);
+    const cid = knownCityId(canonical) || knownCityId(clean);
+    const key = cid || canonical.toLocaleLowerCase('sr');
+    if (!seen.has(key)) {
+      seen.add(key);
+      cities.push(canonical);
+    }
+  };
+  for (const match of text.matchAll(new RegExp(knownCity, 'giu'))) addCity(match[0]);
+  for (const match of text.matchAll(new RegExp(`(?:^|[\\s,;])(?:u\\s+)?(${namedPlace})`, 'gu'))) {
+    if (match[1]) addCity(match[1]);
+  }
+  return { text, cities };
 }
 
 /** Pure, post-provider guard. All returned patches still pass the DB validator. */
@@ -175,6 +221,21 @@ export function guardWorkerAreaOutput(output, userText, context) {
   const scope = classifyWorkerAreaRequest(userText);
   const hasWorkAreas = true;
   const patch = { ...output.patch };
+
+  // Explicit areaRequests still pass the normal schema and geocoder, but the
+  // provider cannot quietly narrow a user-stated list beyond the five-area
+  // contract. Ask the user to choose instead of saving a partial list.
+  if (Object.hasOwn(patch, 'areaRequests')) {
+    const { cities } = statedWorkerCities(userText);
+    if (scope === 'MULTI_LOCALITY' && cities.length > 5) {
+      delete patch.areaRequests;
+      delete patch.location;
+      if (typeof patch.bio === 'string' && bioAreaClaim(patch.bio)) delete patch.bio;
+      return { ...output, safety: 'CLARIFY', patch,
+        assistantMessage: 'Profil može da sadrži najviše pet gradova. Koje gradove želite da zadržite?' };
+    }
+    return output;
+  }
 
   if (scope === 'COUNTRY' || scope === 'REGION') {
     delete patch.location;
@@ -189,50 +250,14 @@ export function guardWorkerAreaOutput(output, userText, context) {
 
   if (scope === 'MULTI_LOCALITY' && !Object.hasOwn(patch, 'areaRequests')) {
     delete patch.location;
-    const text = onSiteText(normalize(userText));
-    const CANONICAL_CITIES = { NOVI_SAD: 'Novi Sad', BEOGRAD: 'Beograd', NIS: 'Niš', KRAGUJEVAC: 'Kragujevac' };
-    const STOP_WORDS = new Set([
-      'radim', 'radimo', 'dolazim', 'dolazimo', 'idem', 'idemo', 'pokrivam', 'pokrivamo',
-      'prihvatam', 'prihvatamo', 'nudim', 'nudimo', 'mogu', 'mozemo', 'možemo',
-      'takodje', 'takođe', 'grad', 'gradovi', 'gradove', 'gradovima', 'podrucje', 'područje',
-      'teren', 'lokacija', 'lokacije', 'sve', 'svi', 'ja', 'mi', 'samo', 'vise', 'više'
-    ]);
-    const toNominative = name => {
-      const cid = knownCityId(name);
-      if (cid && CANONICAL_CITIES[cid]) return CANONICAL_CITIES[cid];
-      if (/ici$/iu.test(name)) return name.replace(/ici$/iu, 'ica');
-      if (/di$/iu.test(name)) return name.replace(/di$/iu, 'da');
-      if (/inu$/iu.test(name)) return name.replace(/u$/iu, '');
-      if (/evcu$/iu.test(name)) return name.replace(/evcu$/iu, 'evac');
-      if (/ovcu$/iu.test(name)) return name.replace(/ovcu$/iu, 'ovac');
-      if (/(?:evu|ovu)$/iu.test(name)) return name.replace(/u$/iu, 'o');
-      if (/u$/iu.test(name) && !/(?:valjev|pancev|kraljev|vranj)/iu.test(name)) return name.replace(/u$/iu, '');
-      return name;
-    };
-    const cityList = [];
-    const seen = new Set();
-    const addCity = (name) => {
-      const clean = String(name || '').trim();
-      const lower = clean.toLocaleLowerCase('sr');
-      if (!clean || clean.length < 2 || STOP_WORDS.has(lower) || country.test(clean) || namedRegion.test(clean)) return;
-      const canonical = toNominative(clean);
-      const cid = knownCityId(canonical) || knownCityId(clean);
-      const key = cid || canonical.toLocaleLowerCase('sr');
-      if (!seen.has(key)) {
-        seen.add(key);
-        cityList.push(canonical);
-      }
-    };
-    const knownMatches = [...text.matchAll(new RegExp(knownCity, 'giu'))];
-    for (const km of knownMatches) {
-      addCity(km[0]);
-    }
-    const placeMatches = [...text.matchAll(new RegExp(`(?:^|[\\s,;])(?:u\\s+)?(${namedPlace})`, 'gu'))];
-    for (const pm of placeMatches) {
-      if (pm[1]) addCity(pm[1]);
-    }
+    const { text, cities: cityList } = statedWorkerCities(userText);
     if (cityList.length >= 2) {
-      const selected = cityList.slice(0, 5);
+      if (cityList.length > 5) {
+        if (typeof patch.bio === 'string' && bioAreaClaim(patch.bio)) delete patch.bio;
+        return { ...output, safety: 'CLARIFY', patch,
+          assistantMessage: 'Profil može da sadrži najviše pet gradova. Koje gradove želite da zadržite?' };
+      }
+      const selected = cityList;
       patch.areaRequests = selected.map(city => ({ kind: 'CITY', countryCode: 'RS', query: city, radiusKm: null }));
       const citiesStr = selected.length === 2 
         ? `${selected[0]} i ${selected[1]}`
@@ -309,6 +334,11 @@ export function guardWorkerAreaOutput(output, userText, context) {
       const targetCity = (proposed?.city && samePlace(proposed.city, statedCity) ? proposed.city : statedCity).trim();
       if (existingRequests.length > 0 && !existingRequests.some(req => samePlace(req.query, targetCity))) {
         delete patch.location;
+        if (existingRequests.length >= 5) {
+          if (typeof patch.bio === 'string' && bioAreaClaim(patch.bio)) delete patch.bio;
+          return { ...output, safety: 'CLARIFY', patch,
+            assistantMessage: `Profil već sadrži pet gradova. Koji grad želite da zamenite gradom ${targetCity}?` };
+        }
         patch.areaRequests = [
           ...existingRequests,
           {
@@ -317,7 +347,7 @@ export function guardWorkerAreaOutput(output, userText, context) {
             query: targetCity,
             radiusKm: typeof distanceFromUser === 'number' && distanceFromUser > 0 ? distanceFromUser : null,
           },
-        ].slice(0, 5);
+        ];
         return { ...output, safety: 'ALLOW', patch };
       }
     }

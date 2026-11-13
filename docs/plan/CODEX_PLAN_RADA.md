@@ -17,6 +17,17 @@
   - Zadaci za ceo grad („u Novom Sadu“, „u celom gradu“, „bilo gde u gradu“, „u centru“) više ne upadaju u beskonačnu petlju traženja ulice.
 - **Testovi i verifikacija:** Dodata 3 nova regresiona testa u `scripts/ai-natural-dialogue.test.cjs` (transport, podrazumevana država, očuvanje prirodnog odgovora i zadaci u celom gradu). Svih 49/49 testova u paketu i 215/215 core testova prolaze 100% zeleno.
 
+## Lokalni nastavak 13.11.2026 — jasna granica od pet područja i prirodnije korekcije AI-ja
+
+**Source/test potvrđeno na osnovi `0ac4f902`; nije CI, DEV, Android ni release dokaz.**
+
+- `workerAreaAdmission.mjs` više ne odseca tiho šesti grad; traži od korisnika da izabere najviše pet, a dodavanje šestog uz već popunjen profil pita koji postojeći grad treba zameniti. Ispravljena je i greška gde „Dodaj i Novi Pazar“ može biti protumačeno kao grad „Dodaj“. Sačuvani gradovi i nepovezana polja ostaju netaknuti.
+- `ConversationPointAsk.tsx` u srpskom izdanju može da veže već prikazanu tačku za `RS` kada je AI propustio kod države. Korisnik i dalje ručno potvrđuje mapu; koordinata se ne nagađa.
+- Need/Worker prompti razlikuju svakodnevne zadatke od zanatskih pitanja i traže potpunu novu formulaciju opisa samo kada korisnik izričito promeni glavni zadatak ili fokus profila. Uslužne izmene i dalje prolaze kroz postojeći `serviceChanges` ugovor; Save, vlasništvo, mode, raspored, budget i citatni guardovi nisu oslabljeni.
+- `npm test`: **1726/1726 PASS**; `npx tsc --noEmit`: **PASS**; `git diff --check`: **PASS**. Poslednji GitHub CI `43331078214` je zelen samo za osnovni SHA `0ac4f902`; CI za ovu novu celinu tek treba da se pokrene.
+- ZIP nije prepisan preko repozitorijuma. `LocationPointEditor.tsx` nije preuzet jer ZIP uklanja `resolveLocalPlaceFallback`, a ostavlja poziv ka njemu. Kandidatsko uklanjanje stroge potvrde za izmene usluga nije primenjeno.
+- **Stanje ove celine:** SOURCE_DONE + lokalno testirano; Supabase DEV/PROD nije menjan, Android uređaj nije testiran i store izdanje nije napravljeno.
+
 ## Završni presek 12.11.2026 (23:55 CET) — DEV v208, precizno prepoznavanje i obeležavanje pošte i objekata na mapi umesto prikaza celog grada
 
 **REŠENO U KODU / PROŠLO SVIH 1.716 TESTOVA / TYPESCRIPT 0 GREŠAKA / SUPABASE DEV AŽURIRAN (v208) / PROD READ-ONLY.**

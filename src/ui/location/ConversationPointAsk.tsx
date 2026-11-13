@@ -147,7 +147,9 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
 
   const review = state.kind === 'READY' || state.kind === 'SAVING' || state.kind === 'SAVED'
     ? state.review : state.kind === 'FAILED' ? state.review ?? null : null;
-  const country = review?.value.taskCountryCode ?? null;
+  // USKOČI currently publishes tasks only in Serbia. An omitted country code
+  // must not block manual confirmation of an otherwise clear Serbian map point.
+  const country = review?.value.taskCountryCode ?? 'RS';
   const geography = review?.value.geography ?? null;
   const slots = geography ? locationSlots(geography) : [];
   const placed = new Set(points.map(point => point.slot));
@@ -165,7 +167,8 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   const commit = useCallback(async (all: readonly ConfirmedLocationPoint[], current: NeedLocationReview) => {
     if (!ownsAccount() || !focus.current || saving.current || disabled.current || !current.editable
       || current.accountId !== props.accountId || current.conversationId !== props.conversationId) return false;
-    if (!current.value.taskCountryCode || !current.value.geography) {
+    const taskCountryCode = current.value.taskCountryCode || 'RS';
+    if (!current.value.geography) {
       setState({ kind: 'FAILED', message: 'Zadatku još fali država ili mesto. Dopuni ih u razgovoru pa se vrati.' });
       return false;
     }
@@ -183,12 +186,12 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     const result = await needLocationClientService.save({
       conversationId: props.conversationId, expectedRevision: current.revision, confirmed: true,
       value: {
-        taskCountryCode: current.value.taskCountryCode,
+        taskCountryCode,
         geography: current.value.geography,
         exactAddress,
         accessNotes: current.value.accessNotes,
         resolvedLocation: { version: 1, points: all,
-          binding: { taskCountryCode: current.value.taskCountryCode, geography: current.value.geography,
+          binding: { taskCountryCode, geography: current.value.geography,
             exactAddress } },
       },
     }).catch(() => ({ ok: false as const, kod: 'NEED_LOCATION_SAVE_UNCONFIRMED',
