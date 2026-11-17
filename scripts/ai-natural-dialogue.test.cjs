@@ -41,7 +41,7 @@ const turn = (assistantMessage, proposals = [], questionKey = '', next = 'ASK') 
 const run = (value, input, facts = [], history = [], currentTime = time, pendingDeadline = false) =>
   sandbox.run(value, input, history, facts, currentTime, undefined, pendingDeadline);
 
-test('task intake prompt rewrites the whole task only for an explicit scope replacement', () => {
+test('task intake prompt rewrites the whole task only for an explicit scope replacement', async () => {
   const node = parsed.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'v2Instruction');
   assert.ok(node, 'actual Need v2Instruction exists');
   const factContract = contract('src/contracts/needFactsV2.ts');
