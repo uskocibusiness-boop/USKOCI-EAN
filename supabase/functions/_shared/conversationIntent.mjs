@@ -20,6 +20,44 @@ const currentQuote = (evidence, currentText) => safeText(evidence, 500) && !!evi
   && typeof currentText === 'string'
   && (quoteText(currentText).includes(quoteText(evidence))
     || (!!foldSameScript(evidence) && foldSameScript(currentText).includes(foldSameScript(evidence))));
+const ROLE_CYRILLIC = {
+  а:'a', б:'b', в:'v', г:'g', д:'d', ђ:'dj', е:'e', ж:'z', з:'z', и:'i', ј:'j',
+  к:'k', л:'l', љ:'lj', м:'m', н:'n', њ:'nj', о:'o', п:'p', р:'r', с:'s', т:'t',
+  ћ:'c', у:'u', ф:'f', х:'h', ц:'c', ч:'c', џ:'dz', ш:'s',
+};
+const normalizeRoleText = value => Array.from(value.toLocaleLowerCase('sr'), char => ROLE_CYRILLIC[char] ?? char).join('')
+  .replace(/đ/g, 'dj').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')
+  .replace(/[^a-z0-9]+/g, ' ').trim();
+const withoutQuotedRoleText = value => value.replace(/„[^“]*“|“[^”]*”|«[^»]*»|"[^"]*"/gu, ' ');
+const ROLE_QUESTION = /(?:^| )(?:da li|je li|jel|kako|gde|sta|zasto|mogu li|smem li|treba li|trebaju li)(?: |$)/;
+const ROLE_OFFER_PREDICATE = 'nudim|pruzam|pozelim da ponudim|zelim da (?:nudim|ponudim|pruzam|radim|se bavim)|hocu da (?:nudim|ponudim|pruzam|radim|se bavim)|(?:hteo|htela|zeleo|zelela|voleo|volela) bih da (?:nudim|ponudim|radim)|ja mogu da (?:radim|pruzam|pomognem)|radim kao|bavim se|drzim (?:privatne |online |onlajn )?casove|dajem (?:privatne )?casove';
+const ROLE_POSITIVE_OFFER = new RegExp('(?:^| )(?:' + ROLE_OFFER_PREDICATE + ')(?: |$)');
+const ROLE_NEGATED_OFFER = new RegExp('(?:^| )(?:ne|nisam|necu(?: da)?) (?:' + ROLE_OFFER_PREDICATE + ')(?: |$)');
+const ROLE_NEED_REQUEST_PREDICATE = 'treba mi (?:neko|nekoga|nekome|covek|coveka|osoba|osobu|ekipa|ljudi|pomoc|majstor|majstora|radnik|radnika|prevoz|kombi|selidba|utovar)|meni treba (?:neko|nekoga|covek|coveka|majstor|majstora|radnik|radnika|pomoc|prevoz)|potreban mi je (?:neko|majstor|radnik|pomocnik)|potrebna mi je (?:pomoc|osoba|majstor|usluga)|potrebno mi je (?:neko|pomoc|vozilo|prevoz)|potrebni su mi (?:ljudi|radnici|majstori|pomocnici)|trazim (?:nekog|nekoga|majstora|radnika|pomoc|prevoz)|neko da mi|da mi neko|zelim da mi neko|hocu da mi neko|potrebno (?:je )?\\d+ (?:ljudi|osoba|radnika|majstora|pomocnika)|trebaju mi (?:dva|tri|cetiri|pet|sest|sedam|osam|devet|deset|nekoliko|par) (?:coveka|ljudi|osoba|radnika|majstora|pomocnika)';
+const ROLE_NEED_REQUEST = new RegExp('(?:^| )(?:' + ROLE_NEED_REQUEST_PREDICATE + ')(?: |$)');
+const ROLE_NEGATED_NEED = /(?:^| )(?:ne|nikako) (?:treba mi|meni treba|potreban mi je|potrebna mi je|potrebno mi je|potrebni su mi|trazim|trebaju mi)(?: |$)/;
+function explicitWorkerOffer(text) {
+  if (!safeText(text, 4000) || !text.trim()) return false;
+  const unquoted = withoutQuotedRoleText(text);
+  const normalized = normalizeRoleText(unquoted);
+  if (!normalized || /[?？]/u.test(unquoted) || ROLE_QUESTION.test(normalized) || ROLE_NEGATED_OFFER.test(normalized)) return false;
+  return ROLE_POSITIVE_OFFER.test(normalized);
+}
+function explicitNeedRequest(text) {
+  if (!safeText(text, 4000) || !text.trim()) return false;
+  const unquoted = withoutQuotedRoleText(text);
+  const normalized = normalizeRoleText(unquoted);
+  if (!normalized || /[?？]/u.test(unquoted) || ROLE_QUESTION.test(normalized) || ROLE_NEGATED_NEED.test(normalized)) return false;
+  return ROLE_NEED_REQUEST.test(normalized);
+}
+function explicitRoleSignal(text) {
+  if (typeof text !== 'string') return null;
+  const worker = explicitWorkerOffer(text), need = explicitNeedRequest(text);
+  if (worker && need) return 'MIXED';
+  if (worker) return 'WORKER';
+  if (need) return 'NEED';
+  return null;
+}
 const skillLabel = value => safeText(value, 120) && value.trim().length >= 3 && !/[<>\u0000-\u001f]/u.test(value);
 // Preserve a useful local clarification, without retaining a prefixed claim
 // of Save/publication/navigation. This is formatting admission, not an intent
@@ -53,8 +91,10 @@ export function takeConversationIntent(value, currentText) {
   return { output, intent: valid ? { ...conversationIntent } : { kind: 'UNCLEAR', evidence: '' }, valid };
 }
 
-export function intentAllowsDomain(decision, domain) {
+export function intentAllowsDomain(decision, domain, currentText) {
   if (!decision?.valid) return false;
+  const roleSignal = explicitRoleSignal(currentText);
+  if (roleSignal === 'MIXED' || roleSignal && roleSignal !== domain) return false;
   const kind = decision.intent.kind;
   return ['CONTINUE', 'CORRECTION'].includes(kind)
     || domain === 'NEED' && kind.startsWith('NEED_')
@@ -62,20 +102,27 @@ export function intentAllowsDomain(decision, domain) {
 }
 
 /** Remove proposed writes before the ordinary strict field parsers/writers. */
-export function guardInterviewIntentOutput(value, decision, domain) {
+export function guardInterviewIntentOutput(value, decision, domain, currentText) {
   if (!record(value) || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(value.safety)) return value;
   const safetyHold = ['REVIEW', 'BLOCK'].includes(value.safety);
-  if (!safetyHold && intentAllowsDomain(decision, domain)) return value;
+  if (!safetyHold && intentAllowsDomain(decision, domain, currentText)) return value;
   const kind = decision.intent.kind;
+  const roleSignal = explicitRoleSignal(currentText);
   let assistantMessage = value.assistantMessage;
   if (!safetyHold && kind !== 'QUESTION') {
-    assistantMessage = kind.startsWith('WORKER_') && domain === 'NEED'
-      ? 'Razumem. Želite da ponudite svoje usluge. Za to je namenjen AI asistent za radni profil. Možete nastaviti sa njim.'
-      : kind.startsWith('NEED_') && domain === 'WORKER'
-        ? 'Razumem. Želite da pronađete nekoga za zadatak. Za to je namenjen AI asistent za novi zadatak. Možete nastaviti sa njim.'
-        : kind === 'UNCLEAR' && decision.valid
-          ? clarificationQuestion(value.assistantMessage) || 'Šta biste želeli da promenite ili razjasnite?'
-          : 'Želite li sada da pronađete pomoć za zadatak ili da uredite usluge koje nudite?';
+    assistantMessage = roleSignal === 'MIXED'
+      ? 'Da li sada želite da objavite zadatak ili da uredite ponudu svojih usluga?'
+      : roleSignal === 'WORKER' && domain === 'NEED'
+        ? 'Za ponudu svojih usluga otvorite „Uskoči i zaradi“. Otvoriće se nov, prazan razgovor; ova poruka se neće preneti niti poslati.'
+        : roleSignal === 'NEED' && domain === 'WORKER'
+          ? 'Za objavu zadatka otvorite „Objavi zadatak“. Otvoriće se nov, prazan razgovor; ova poruka se neće preneti niti poslati.'
+          : kind.startsWith('WORKER_') && domain === 'NEED'
+            ? 'Razumem. Želite da ponudite svoje usluge. Otvorite „Uskoči i zaradi“; ova poruka se neće preneti u novi razgovor.'
+            : kind.startsWith('NEED_') && domain === 'WORKER'
+              ? 'Razumem. Želite da pronađete nekoga za zadatak. Otvorite „Objavi zadatak“; ova poruka se neće preneti u novi razgovor.'
+              : kind === 'UNCLEAR' && decision.valid
+                ? clarificationQuestion(value.assistantMessage) || 'Šta biste želeli da promenite ili razjasnite?'
+                : 'Želite li sada da objavite zadatak ili da uredite ponudu svojih usluga?';
   }
   const safety = safetyHold ? value.safety : kind === 'QUESTION' || kind.startsWith('NEED_') || kind.startsWith('WORKER_') ? value.safety : 'CLARIFY';
   if (domain === 'WORKER') return { ...value, safety, assistantMessage, patch: { availability: null },
@@ -112,22 +159,26 @@ export function workerServiceChangesInstruction() {
 
 /** Translate a quoted mutation plan into the existing writer's complete list. */
 export function applyWorkerServiceChanges(output, changes, candidate, currentText, decision) {
-  if (!intentAllowsDomain(decision, 'WORKER') || !['ALLOW', 'CLARIFY'].includes(output.safety)) return { output, valid: true };
+  if (!intentAllowsDomain(decision, 'WORKER', currentText) || !['ALLOW', 'CLARIFY'].includes(output.safety)) return { output, valid: true };
   const base = candidate?.skills;
   const { skills: providerSkills, ...independent } = output.patch;
+  const kind = decision.intent.kind;
+  const serviceMutation = ['WORKER_OFFER', 'WORKER_ADD_SERVICE', 'WORKER_REMOVE_SERVICE', 'WORKER_EDIT_SERVICE'].includes(kind);
   const rejected = () => {
     // A biography may already claim the rejected service edit. Keep its prior
     // version together with the prior services; unrelated valid fields survive.
     const { bio: _unconfirmedBio, ...patch } = independent;
-    return { valid: false, output: { ...output, safety: 'CLARIFY', patch,
-      assistantMessage: 'Koju uslugu želite da dodate, promenite ili uklonite? Ostale usluge ostaju u nacrtu.' } };
+    const assistantMessage = ['WORKER_OFFER', 'WORKER_ADD_SERVICE'].includes(kind)
+      ? 'Koju konkretnu uslugu želite da ponudite?'
+      : 'Koju uslugu želite da promenite ili uklonite?';
+    return { valid: false, output: { ...output, safety: 'CLARIFY', patch, assistantMessage } };
   };
   if (!Array.isArray(base) || base.length > 50 || base.some(service => typeof service !== 'string')
       || !Array.isArray(changes) || changes.length > 24) return rejected();
   // Old or malformed provider output must not bypass the explicit change plan.
   if (providerSkills !== undefined) return rejected();
-  if (!changes.length) return { output, valid: true };
-  const kind = decision.intent.kind;
+  if (!changes.length) return serviceMutation ? rejected() : { output, valid: true };
+
   if (['WORKER_AVAILABILITY', 'WORKER_AREA'].includes(kind)) return rejected();
   const next = [...base], touched = new Set();
   const findSkillIndex = (list, target) => {
