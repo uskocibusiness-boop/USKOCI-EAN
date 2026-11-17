@@ -460,7 +460,7 @@ for (const domain of ['NEED', 'WORKER']) {
     const result = await handlerHarness(domain, text, provider, { completionFailure: true }).run();
     assert.equal(result.events.at(-1)?.kind, 'safe_error');
     assert.equal(result.events.some(event => event.conversationIntent || event.kind === 'final'), false);
-    assert.equal(result.calls.filter(call => /streamGenerateContent/.test(call.name)).length, 1);
+    assert.equal(providerCalls(result,domain).length,1);
     assert.equal(result.calls.filter(call => /dispatch.*turn/.test(call.name)).length, 1);
     assert.equal(result.calls.filter(call => /fail.*turn/.test(call.name)).length, 1);
     assert.equal(result.calls.some(call => /release_unused/.test(call.name)), false);
