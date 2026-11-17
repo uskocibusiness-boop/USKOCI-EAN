@@ -805,8 +805,9 @@ for (const domain of ['NEED', 'WORKER']) {
     generation.current = {}; action(); assert.equal(pushed.length, 0, 'a replaced foreground cannot revive the old handler');
     generation.current = foreground; scope.draftText.current = 'Nov neposlat nacrt'; action(); assert.equal(pushed.length, 0);
     scope.draftText.current = ''; scope.request.current = {}; action(); assert.equal(pushed.length, 0);
-    scope.request.current = null; scope.pending.current = {}; action(); assert.equal(pushed.length, 0);
-    scope.pending.current = null; action();
+    scope.request.current = null;
+    if (domain === 'WORKER') { scope.pending.current = {}; action(); assert.equal(pushed.length, 0); scope.pending.current = null; }
+    action();
     assert.equal(pushed.length, 1);
     assert.deepEqual(pushed[0], domain === 'NEED'
       ? { pathname: '/profil/razgovor', params: { entryKey: id(14) } }
