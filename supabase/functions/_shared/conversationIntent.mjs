@@ -181,6 +181,10 @@ export function applyWorkerServiceChanges(output, changes, candidate, currentTex
   // Old or malformed provider output must not bypass the explicit change plan.
   if (providerSkills !== undefined) return rejected();
   if (!changes.length) return serviceMutation ? rejected() : { output, valid: true };
+  // Generic CONTINUE/CORRECTION may preserve the current conversation domain,
+  // but they are not authorization to mutate the provider's service list.
+  // Only an explicit service-intent kind may carry ADD/REMOVE/REPLACE writes.
+  if (!serviceMutation) return rejected();
 
   if (['WORKER_AVAILABILITY', 'WORKER_AREA'].includes(kind)) return rejected();
   const next = [...base], touched = new Set();
