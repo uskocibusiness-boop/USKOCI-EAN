@@ -7,18 +7,20 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 
 test('Need and Worker use separate role instructions, not a mixed shared business prompt', async () => {
-  const [{ interviewVoiceInstruction }, { needConversationInstruction }, { workerConversationInstruction }, { needConversationIntentInstruction }, { workerConversationIntentInstruction }] = await Promise.all([
+  const [{ interviewVoiceInstruction }, { needConversationInstruction }, { workerConversationInstruction }, { needConversationIntentInstruction }, { workerConversationIntentInstruction }, { workerServiceChangesInstruction }] = await Promise.all([
     import('../supabase/functions/_shared/interviewVoiceInstruction.mjs'),
     import('../supabase/functions/_shared/needConversationInstruction.mjs'),
     import('../supabase/functions/_shared/workerConversationInstruction.mjs'),
     import('../supabase/functions/_shared/needConversationIntentInstruction.mjs'),
     import('../supabase/functions/_shared/workerConversationIntentInstruction.mjs'),
+    import('../supabase/functions/_shared/conversationIntent.mjs'),
   ]);
   const voice = interviewVoiceInstruction();
   const need = needConversationInstruction();
   const worker = workerConversationInstruction();
   const needIntent = needConversationIntentInstruction();
   const workerIntent = workerConversationIntentInstruction();
+  const serviceChanges = workerServiceChangesInstruction();
   assert.match(voice, /prirodnim, tečnim srpskim jezikom/u);
   assert.doesNotMatch(voice, /DOMAĆIN|MAJSTOR|POMAGAČ|radni profil|zadatak koji korisnik želi/u);
   assert.match(need, /ULOGA NEED/u);
@@ -34,12 +36,16 @@ test('Need and Worker use separate role instructions, not a mixed shared busines
   assert.match(workerIntent, /CURRENT INTERVIEW DOMAIN=WORKER/u);
   assert.match(workerIntent, /„Meni treba“ assistant/u);
   assert.doesNotMatch(workerIntent, /CURRENT INTERVIEW DOMAIN=NEED/u);
+  assert.match(serviceChanges, /idempotent REUSE/u);
+  assert.match(serviceChanges, /EXACT existing label/u);
+  assert.match(serviceChanges, /Do NOT return \[\] for an explicit re-offer/u);
   const needEdge = fs.readFileSync(path.join(root, 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8');
   const workerEdge = fs.readFileSync(path.join(root, 'supabase/functions/uskoci-worker-interview/index.ts'), 'utf8');
   assert.match(needEdge, /needConversationInstruction\(\)/u);
   assert.match(needEdge, /needConversationIntentInstruction\(\)/u);
   assert.match(workerEdge, /workerConversationInstruction\(\)/u);
   assert.match(workerEdge, /workerConversationIntentInstruction\(\)/u);
+  assert.match(workerEdge, /workerServiceChangesInstruction\(\)/u);
   assert.doesNotMatch(needEdge, /workerConversationInstruction|workerConversationIntentInstruction/u);
   assert.doesNotMatch(workerEdge, /needConversationInstruction|needConversationIntentInstruction/u);
 });

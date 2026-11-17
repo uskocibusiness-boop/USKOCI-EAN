@@ -4,8 +4,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
+const root = path.resolve(__dirname, '..');
 const ts = require('typescript');
-const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'data', 'aiRoleHandoff.ts'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'data', 'aiRoleOfferConfirmation.ts'), 'utf8');
 const { outputText, diagnostics } = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }, reportDiagnostics: true,
 });
@@ -52,12 +53,19 @@ for (const [input, expected] of [
 ]) test('role intent: '+input, () => assert.equal(isExplicitWorkerOffer(input), expected));
 const needScreen = fs.readFileSync(path.join(__dirname, '..', 'src/app/(app)/nova.tsx'), 'utf8');
 const workerScreen = fs.readFileSync(path.join(__dirname, '..', 'src/app/(app)/profil/razgovor.tsx'), 'utf8');
+const intakePresentation = fs.readFileSync(path.join(__dirname, '..', 'src/ui/v2/IntakePresentation.tsx'), 'utf8');
 
-test('cross-role navigation opens a blank conversation and never transfers the message', () => {
-  assert.doesNotMatch(needScreen, /stageWorkerText|stageAiRoleText/u);
-  assert.doesNotMatch(workerScreen, /stageAiRoleText/u);
+test('both role switches open a clean conversation and never transfer text, context or drafts', () => {
+  const offerModule = fs.readFileSync(path.join(__dirname, '..', 'src', 'data', 'aiRoleOfferConfirmation.ts'), 'utf8');
   assert.match(needScreen, /params: \{ entryKey: noviUuidZahtevId\(\) \} \}\)\);/u);
   assert.match(workerScreen, /params:\{entryKey:noviUuidZahtevId\(\)\}\}\)\);/u);
   assert.match(needScreen, /ova poruka se neće preneti niti poslati/u);
   assert.match(workerScreen, /prethodna poruka se ne prenosi/u);
+  assert.match(needScreen, /roleSwitchPrompt=/u);
+  assert.match(intakePresentation, /Vaša prethodna poruka se ne prenosi niti šalje/u);
+  assert.doesNotMatch(intakePresentation, /neposlat nacrt|roleHandoff/u);
+  assert.doesNotMatch(needScreen, /roleHandoff|takeNeedText|stageAiRoleText|stageWorkerText/u);
+  assert.doesNotMatch(workerScreen, /roleHandoff|takeWorkerText|stageAiRoleText|stageWorkerText/u);
+  assert.doesNotMatch(offerModule, /stageWorkerText|stageAiRoleText|takeWorkerText|takeNeedText|pendingRoleText/u);
+  assert.equal(fs.existsSync(path.join(root, 'src', 'data', 'aiRoleHandoff.ts')), false);
 });

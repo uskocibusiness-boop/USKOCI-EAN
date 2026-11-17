@@ -4,7 +4,6 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { workerAiClientService as api, WORKER_AI_READ_TRANSPORT_UNAVAILABLE, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurn, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
 import type { AiPreparedRecovery } from '../../../data/aiPreparedRecovery';
-import { takeWorkerText } from '../../../data/aiRoleHandoff';
 import { oppositeInterviewDomain, type AiConversationIntent, type AiRoleSuggestion } from '../../../contracts/aiConversationIntent';
 import type { Ishod } from '../../../data/ports';
 import { uuid } from '../../../data/serverReceipt';
@@ -35,11 +34,10 @@ type SubmittedDraft={value:string;revision:number};
 type Attempt={id:string;text:string|null;submittedDraft:SubmittedDraft|null};
 const unavailable=():Ishod<never>=>({ok:false,kod:'WORKER_AI_UNAVAILABLE',poruka:'Ponovo učitajte svoj radni profil.'});
 export default function WorkerConversationRoute(){
-  const session=useSesija(),params=useLocalSearchParams<{conversationId?:string|string[];aiCorrection?:string|string[];entryKey?:string|string[];activationRequest?:string|string[];roleHandoff?:string|string[]}>();
+  const session=useSesija(),params=useLocalSearchParams<{conversationId?:string|string[];aiCorrection?:string|string[];entryKey?:string|string[];activationRequest?:string|string[]}>();
   const cid=typeof params.conversationId==='string'?params.conversationId:undefined;
   const entryKey=typeof params.entryKey==='string'&&uuid(params.entryKey)?params.entryKey:undefined;
   const activationRequest=typeof params.activationRequest==='string'&&uuid(params.activationRequest)?params.activationRequest:undefined;
-  const roleHandoff=typeof params.roleHandoff==='string'&&uuid(params.roleHandoff)?params.roleHandoff:undefined;
   const owner=`${session.user?.id}:${session.accountRevision}`;
   // A topic-only navigation can replace search params on a retained route. Keep
   // its owned conversation, including an unsent draft; an explicit new ID or
@@ -53,12 +51,11 @@ export default function WorkerConversationRoute(){
   const invalid=(params.conversationId!==undefined&&cid===undefined)
     ||(params.entryKey!==undefined&&entryKey===undefined)
     ||(params.activationRequest!==undefined&&activationRequest===undefined)
-    ||(params.roleHandoff!==undefined&&roleHandoff===undefined)
     ||(conversationId!==undefined&&!uuid(conversationId));
   return <OwnedWorkerConversation key={`${owner}:${retained.current.entryKey??''}:${conversationId??''}`}
-    initialId={conversationId} invalid={invalid} correctionToken={params.aiCorrection} activationRequest={activationRequest} roleHandoff={roleHandoff}/>;
+    initialId={conversationId} invalid={invalid} correctionToken={params.aiCorrection} activationRequest={activationRequest}/>;
 }
-function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRequest,roleHandoff}:{initialId?:string;invalid:boolean;correctionToken?:unknown;activationRequest?:string;roleHandoff?:string}){
+function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRequest}:{initialId?:string;invalid:boolean;correctionToken?:unknown;activationRequest?:string}){
   const {user,accountRevision}=useSesija(),accountId=user?.id;
   // ONE NAME (owner, 8 Oct 2026): the profile is saved under the name of the ACCOUNT, whatever the assistant proposed or the profile carried.
   const account=useAccountName(),accountName=account.state==='ready'?account.name:null;
@@ -244,20 +241,6 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   };
   const turn=data?.turn,awaiting=turn?.state==='PROCESSING'||turn?.state==='UNKNOWN_OUTCOME';
   const writable=data?.status==='OPEN'&&!data.stale&&data.safety!=='BLOCK'&&data.safety!=='REVIEW';
-  // An explicit NEED -> WORKER choice carries only a token in navigation.
-  // The original words arrive as an editable, UNSENT draft: no AI turn, Save or activation.
-  useEffect(() => {
-    if (!roleHandoff || !data || !writable || !accountId || !owns() || !active.current
-      || !focus.current || pending.current) return;
-    const prefix = draftText.current.trimEnd();
-    const transferred = takeWorkerText({ token: roleHandoff, accountId, accountRevision,
-      capacity: 4000 - prefix.length - (prefix ? 1 : 0) });
-    if (!transferred) return;
-    const next = [prefix, transferred].filter(Boolean).join('\n');
-    draftRevision.current += 1; draftText.current = next; setInput(next);
-    showPanel('chat');
-  }, [roleHandoff, accountId, accountRevision, data?.conversationId, data?.revision, writable, owns, input]);
-
   const rename=(snapshot:WorkerAiSnapshot):WorkerAiPatch|null=>accountName&&snapshot.candidate.displayName.trim()!==accountName?{displayName:accountName}:null;
   const send=async(body:string,submittedDraft:SubmittedDraft|null=null)=>{
     if(!canAct()||!writable||awaiting||!data||!body.trim()||(pending.current&&!recovery?.retryAllowed))return;

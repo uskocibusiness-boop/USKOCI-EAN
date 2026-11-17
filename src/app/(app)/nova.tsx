@@ -7,7 +7,7 @@ import { aiNeedV2Izvor } from '../../data';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope } from '../../data/aiTaskReviewClientService';
 import { aiTurnIntentJournal } from '../../data/aiTurnIntentJournal';
 import type { AiPreparedRecovery } from '../../data/aiPreparedRecovery';
-import { isExplicitWorkerOffer, takeNeedText } from '../../data/aiRoleHandoff';
+import { isExplicitWorkerOffer } from '../../data/aiRoleOfferConfirmation';
 import { oppositeInterviewDomain, type AiConversationIntent, type AiRoleSuggestion } from '../../contracts/aiConversationIntent';
 import { locationDialogueEnabled, resolveLocationDialogue } from '../../data/locationDialogueClientService';
 import type { LocationDialogueRequest } from '../../contracts/locationDialogue';
@@ -39,16 +39,15 @@ type SubmittedDraft = { value: string; revision: number };
 type PendingTurn = { id: string; body: string | null; submittedDraft: SubmittedDraft | null; locationContext?: LocationDialogueRequest['locationContext']; image?: { base64: string; mimeType: string } };
 
 export default function NovaPotrebaV2() {
-  const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[]; aiCorrection?: string | string[]; roleHandoff?: string | string[] }>();
+  const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[]; aiCorrection?: string | string[] }>();
   const { user, accountRevision } = useSesija();
   const resumeId = typeof params.conversationId === 'string' ? params.conversationId : undefined;
   const entryKey = typeof params.entryKey === 'string' ? params.entryKey : undefined;
-  const roleHandoff = typeof params.roleHandoff === 'string' && uuid(params.roleHandoff) ? params.roleHandoff : undefined;
   const invalidRoute = (params.conversationId !== undefined && (!resumeId || !uuid(resumeId)))
     || (params.entryKey !== undefined && (!entryKey || !uuid(entryKey)))
-    || (params.roleHandoff !== undefined && !roleHandoff);
+;
   return <OwnedIntake key={`${user?.id ?? ''}:${accountRevision}:${resumeId ?? ''}:${entryKey ?? ''}:${invalidRoute}`}
-    resumeId={resumeId} entryKey={entryKey} invalidRoute={invalidRoute} correctionToken={params.aiCorrection} roleHandoff={roleHandoff} />;
+    resumeId={resumeId} entryKey={entryKey} invalidRoute={invalidRoute} correctionToken={params.aiCorrection} />;
 }
 
 /** A conversation that has not been started. It is never sent anywhere and never read back. */
@@ -56,7 +55,7 @@ const BLANK: AiNeedV2Conversation = { conversationId: '', schemaVersion: 'NEED_F
   messages: [], facts: [], safety: 'ALLOW',
   review: { conversationId: '', schemaVersion: 'NEED_FACT_V2', boundNeedId: null, canSaveDraft: false, missingRequired: [], facts: [] } };
 
-function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHandoff }: { resumeId?: string; entryKey?: string; invalidRoute: boolean; correctionToken?: unknown; roleHandoff?: string }) {
+function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { resumeId?: string; entryKey?: string; invalidRoute: boolean; correctionToken?: unknown }) {
   const { user, accountRevision } = useSesija(), accountId = user?.id;
   const [openRequestId] = useState(noviUuidZahtevId);
   const conversation = useRef<string | null>(resumeId ?? null);
@@ -322,18 +321,6 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
   const preparedAvailable = !!pending && pending.body === null && prepared?.canResume === true && prepared.state === 'PREPARED'
     && prepared.conversationId === razgovorId && prepared.clientRequestId === pending.id
     && editor.data?.recovery?.providerDispatched === false && turn?.state === 'PROCESSING';
-
-  // Worker -> Need arrives only after a human choice, as an editable unsent draft.
-  useEffect(() => {
-    if (!roleHandoff || !accountId || !canSubmit || !focus.current || !restartOwner.current || request.current
-      || sesijaSada().user?.id !== accountId || sesijaSada().accountRevision !== accountRevision) return;
-    const prefix = draftText.current.trimEnd();
-    const transferred = takeNeedText({ token: roleHandoff, accountId, accountRevision,
-      capacity: 4000 - prefix.length - (prefix ? 1 : 0) });
-    if (!transferred) return;
-    const next = [prefix, transferred].filter(Boolean).join('\n');
-    draftRevision.current += 1; draftText.current = next; setUnos(next);
-  }, [roleHandoff, accountId, accountRevision, canSubmit, razgovorId, unos]);
 
   const currentRoleSuggestion = roleSuggestion && stanje?.status === 'OPEN' && stanje.safety !== 'BLOCK' && stanje.safety !== 'REVIEW'
     && roleSuggestion.conversationId === razgovorId && stanje.messages.at(-1)?.id === roleSuggestion.assistantMessageId
@@ -763,7 +750,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
     // back through `onTranscript` above, so each guard on sending stays here.
     voice={stanje.status === 'OPEN' ? { controller: voice.controller, state: voice.state, disabled: !canSubmit || !!request.current,
       onKeepText: keepTranscript } : undefined}
-    roleHandoff={currentRoleSuggestion ? { onPress: openSuggestedWorker,
+    roleSwitchPrompt={currentRoleSuggestion ? { onPress: openSuggestedWorker,
       disabled: !canAct() || !!request.current || voiceBusy || !!unos.trim() } : undefined}
     canReview={!currentRoleSuggestion && !!razgovorId && (readyToReview || canOpenOutcome) && editor.loaded && !radi && !editor.loading && !editor.uncertain && !request.current}
     reviewReady={!currentRoleSuggestion && readyToReview}

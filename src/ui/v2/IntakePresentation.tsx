@@ -117,7 +117,7 @@ type Props = {
   reviewReady?: boolean;
   reviewDisabledReason?: string | null;
   correction?: AiConversationShellProps['correction'];
-  roleHandoff?: { onPress: () => void; disabled: boolean };
+  roleSwitchPrompt?: { onPress: () => void; disabled: boolean };
   /** Separate route authority from the temporary speech/semantic interaction lock. */
   locationDisabled?: boolean;
   locationDialogueEnabled?: boolean;
@@ -373,7 +373,7 @@ export function IntakePresentation(props: Props) {
   const proposedKeys = new Set(conversation.facts.filter(fact => fact.status !== 'UNKNOWN').map(fact => fact.key));
   const coreFactsReady = (['need.description', 'need.schedule_kind', 'need.price_mode'] as const).every(key => proposedKeys.has(key));
   const mapExplicitlyRequested = mapReveal?.placeKey === placeKey;
-  const askOpen = !props.roleHandoff && showPlace && (placeComplete ? editingSavedPlace : addressReady && (coreFactsReady || mapExplicitlyRequested) && !pointAskHidden);
+  const askOpen = !props.roleSwitchPrompt && showPlace && (placeComplete ? editingSavedPlace : addressReady && (coreFactsReady || mapExplicitlyRequested) && !pointAskHidden);
   if (askOpen) askSeen.current = true;
   // Arrival animation keeps the route's stable key; retained history uses the durable ID after the first send.
   const orderScope = conversation.conversationId || props.conversationKey || '';
@@ -525,11 +525,11 @@ export function IntakePresentation(props: Props) {
       onReview={outsidePlace(props.onReview)} note={note} reviewDisabledReason={props.reviewDisabledReason} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
       hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} ended={ended}
       hasUnsentText={open && !!value.trim() && !busy && !pending} appear={landed} />}
-    actions={props.roleHandoff || (!attach && photoAssets.length) || (safetyCopy && (!showSummary || conversation.safety === 'BLOCK')) ? <>
-      {props.roleHandoff ? <>
-        <T variant="note" tone="muted">Vaša poruka može da Vas sačeka kod asistenta za usluge kao neposlat nacrt.</T>
+    actions={props.roleSwitchPrompt || (!attach && photoAssets.length) || (safetyCopy && (!showSummary || conversation.safety === 'BLOCK')) ? <>
+      {props.roleSwitchPrompt ? <>
+        <T variant="note" tone="muted">Otvoriće se nov, prazan razgovor za ponudu usluga. Vaša prethodna poruka se ne prenosi niti šalje.</T>
         <V2Action label="Otvorite radni profil" kind="primary" style={brandAction}
-          disabled={props.roleHandoff.disabled || editingPlace} onPress={outsidePlace(props.roleHandoff.onPress)} />
+          disabled={props.roleSwitchPrompt.disabled || editingPlace} onPress={outsidePlace(props.roleSwitchPrompt.onPress)} />
       </> : null}
       {!attach && photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledajte fotografije zadatka"

@@ -172,7 +172,7 @@ function workerHarness(outcome = 'FAILED') {
     'src/data/workerAiTurnIntentJournal.ts': { workerAiTurnIntentJournal: {
       load: async () => journalValue, save: async value => { journalValue = value; }, clear: async () => { calls.push('journalClear'); journalValue = null; },
     } },
-    'src/data/aiRoleHandoff.ts': { takeWorkerText: () => null, stageAiRoleText: () => { throw Error('NO_HANDOFF_ALLOWED'); } },
+    'src/data/aiRoleOfferConfirmation.ts': { isExplicitWorkerOffer: () => false },
     'src/data/aiCorrectionIntent.ts': { takeAiCorrection: () => null },
     'src/data/workerExecutionModeClientService.ts': { inferWorkerExecutionModes: () => [], workerExecutionModeClientService: {} },
     'src/lib/idempotencija.ts': { noviUuidZahtevId: () => REQUEST },
