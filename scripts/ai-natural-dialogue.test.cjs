@@ -100,11 +100,15 @@ test('relative month deadline: wrong month is rejected without losing other fact
   assert.equal(out.proposals.find(p=>p.key==='need.people_needed').value,2);
 });
 
-test('shared Worker guidance does not reintroduce equipment/home-city or unrelated-service interviews', async () => {
-  const {interviewVoiceInstruction} = await import('../supabase/functions/_shared/interviewVoiceInstruction.mjs');
-  const prompt = interviewVoiceInstruction();
-  assert.doesNotMatch(prompt,/Pitajte ima li sopstveni alat i prevoz|ko je, čime se bavi.*odakle je|ako je student, ponudite mu/i);
-  assert.match(prompt,/šetanje psa, kupovina namirnica, selidba, prevoz, čišćenje, časovi, dizajn ili popravka/u);
+test('Worker-specific guidance lives in the Worker prompt, not shared voice', async () => {
+  const { interviewVoiceInstruction } = await import('../supabase/functions/_shared/interviewVoiceInstruction.mjs');
+  const { workerConversationInstruction } = await import('../supabase/functions/_shared/workerConversationInstruction.mjs');
+  const voice = interviewVoiceInstruction();
+  const worker = workerConversationInstruction();
+  assert.doesNotMatch(voice,/DOMAĆIN|MAJSTOR|POMAGAČ|radni profil|zadatak koji korisnik želi/u);
+  assert.match(worker,/ne tražite kućnu adresu, kućni grad ili GPS/u);
+  assert.match(worker,/ne nudite nepovezane usluge/u);
+  assert.match(worker,/šta ume/u);
 });
 
 for (const [label,input,at,date] of [
