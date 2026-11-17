@@ -59,6 +59,15 @@ function explicitRoleSignal(text) {
   if (need) return 'NEED';
   return null;
 }
+
+// Generic dialogue intent must not smuggle a service-list edit through bio.
+// Keep this narrow: ordinary vehicle/equipment and availability facts are not service mutations.
+function explicitWorkerServiceMutationSignal(text) {
+  if (!safeText(text, 4000) || !text.trim()) return false;
+  const normalized = normalizeRoleText(withoutQuotedRoleText(text));
+  return explicitWorkerOffer(text)
+    || /(?:^| )(?:dodaj|dodati|dodajem|ukloni|ukloniti|izbaci|izbaciti|zameni|zameniti|vise ne radim|vise ne nudim|necu vise da radim)(?: |$)/u.test(normalized);
+}
 const skillLabel = value => safeText(value, 120) && value.trim().length >= 3 && !/[<>\u0000-\u001f]/u.test(value);
 // Preserve a useful local clarification, without retaining a prefixed claim
 // of Save/publication/navigation. This is formatting admission, not an intent
@@ -180,7 +189,14 @@ export function applyWorkerServiceChanges(output, changes, candidate, currentTex
       || !Array.isArray(changes) || changes.length > 24) return rejected();
   // Old or malformed provider output must not bypass the explicit change plan.
   if (providerSkills !== undefined) return rejected();
-  if (!changes.length) return serviceMutation ? rejected() : { output, valid: true };
+  if (!changes.length) {
+    // A generic CONTINUE/CORRECTION can update ordinary profile facts, but a
+    // service-offer/edit statement cannot be copied into bio without its
+    // matching explicit service operation. Preserve unrelated fields only.
+    if (serviceMutation || Object.hasOwn(independent, 'bio')
+        && explicitWorkerServiceMutationSignal(currentText)) return rejected();
+    return { output, valid: true };
+  }
   // Generic CONTINUE/CORRECTION may preserve the current conversation domain,
   // but they are not authorization to mutate the provider's service list.
   // Only an explicit service-intent kind may carry ADD/REMOVE/REPLACE writes.
