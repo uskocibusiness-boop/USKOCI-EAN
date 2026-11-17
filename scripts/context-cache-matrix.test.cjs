@@ -43,9 +43,10 @@ test('Gemini context cache builder and craft question matrix', async () => {
 
   // 4. Verify voice instruction terminology rules
   const voice = interviewVoiceInstruction();
+  assert.ok(voice.includes('USKOČI GLAS I TON'));
   assert.ok(voice.includes('PISMO-OGLEDALO'));
-  assert.ok(voice.includes('PRAVNI ŠTIT I TERMINOLOGIJA'));
-  assert.ok(voice.includes('ZANATSKO GRUPISANJE PITANJA'));
+  assert.ok(voice.includes('RAZGOVORNI STIL'));
+  assert.doesNotMatch(voice, /ULOGA NEED|ULOGA WORKER|DOMAĆIN|MAJSTOR|POMOĆNIK/u);
   assert.ok(!voice.includes('naručilac'));
   assert.ok(!voice.includes('uskočer'));
 

@@ -23,7 +23,7 @@ test('Need and Worker use separate role instructions, not a mixed shared busines
   assert.doesNotMatch(voice, /DOMAĆIN|MAJSTOR|POMAGAČ|radni profil|zadatak koji korisnik želi/u);
   assert.match(need, /ULOGA NEED/u);
   assert.match(need, /JEDAN konkretan zadatak/u);
-  assert.match(need, /ne sastavljate spisak usluga koje korisnik nudi/u);
+  assert.match(need, /ne sastavljate spisak usluga koje korisnik nudi/iu);
   assert.match(worker, /ULOGA WORKER/u);
   assert.match(worker, /šta ume/u);
   assert.match(worker, /nijedan primer.*ne postaje usluga/u);

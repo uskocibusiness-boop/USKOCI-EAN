@@ -45,10 +45,11 @@ test('task intake prompt rewrites the whole task only for an explicit scope repl
   const node = parsed.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'v2Instruction');
   assert.ok(node, 'actual Need v2Instruction exists');
   const factContract = contract('src/contracts/needFactsV2.ts');
+  const { needConversationIntentInstruction } = await import('../supabase/functions/_shared/needConversationIntentInstruction.mjs');
   const scope = {
     INTERVIEW_NEED_FACT_V2_KEYS: factContract.AI_PROPOSABLE_NEED_FACT_V2_KEYS,
     NEED_FACT_V2_DEFINITIONS: factContract.NEED_FACT_V2_DEFINITIONS,
-    commonInstruction: () => [], conversationIntentInstruction: () => '',
+    commonInstruction: () => [], needConversationIntentInstruction,
     needRuntimeContext: () => '', needFinishContext: () => '',
   };
   const compiled = ts.transpileModule(node.getText(parsed), {
@@ -106,8 +107,8 @@ test('Worker-specific guidance lives in the Worker prompt, not shared voice', as
   const voice = interviewVoiceInstruction();
   const worker = workerConversationInstruction();
   assert.doesNotMatch(voice,/DOMAĆIN|MAJSTOR|POMAGAČ|radni profil|zadatak koji korisnik želi/u);
-  assert.match(worker,/ne tražite kućnu adresu, kućni grad ili GPS/u);
-  assert.match(worker,/ne nudite nepovezane usluge/u);
+  assert.match(worker,/ne tražite kućnu adresu, kućni grad ili GPS/iu);
+  assert.match(worker,/ne nudite nepovezane usluge/iu);
   assert.match(worker,/šta ume/u);
 });
 
@@ -178,8 +179,10 @@ test('G: active Worker prompt requires ON_SITE/BOTH work coverage and keeps REMO
   const node=workerAst.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='instruction');
   assert.ok(node);
   const voice=await import('../supabase/functions/_shared/interviewVoiceInstruction.mjs');
+  const worker=await import('../supabase/functions/_shared/workerConversationInstruction.mjs');
+  const workerIntent=await import('../supabase/functions/_shared/workerConversationIntentInstruction.mjs');
   const intent=await import('../supabase/functions/_shared/conversationIntent.mjs');
-  const scope={...voice,...intent,WORKER_AVAILABLE_NOW_ENABLED:false};
+  const scope={...voice,...worker,...workerIntent,...intent,WORKER_AVAILABLE_NOW_ENABLED:false};
   vm.runInNewContext(ts.transpileModule(node.getText(workerAst),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText+'\nthis.prompt=instruction();',scope);
   assert.match(scope.prompt,/For ON_SITE, ask for the city and area where the person WANTS TO WORK when that work territory is missing/);
   assert.match(scope.prompt,/BOTH service or a mixed REMOTE\/ON_SITE profile still needs territory for its ON_SITE work/);
