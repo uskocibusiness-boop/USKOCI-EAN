@@ -152,23 +152,23 @@ test('signed task readiness follows the server handoff projection',async t=>{
 });
 
 
-test('Worker Gemini text streaming is opt-in and never bypasses signed persistence',()=>{
+test('Worker Gemini text is withheld until the server confirms the completed turn',()=>{
   const edge=fs.readFileSync(path.join(root,'supabase/functions/uskoci-worker-interview/index.ts'),'utf8');
   const transport=fs.readFileSync(path.join(root,'src/data/aiNeedTurnStream.ts'),'utf8');
   const shell=fs.readFileSync(path.join(root,'src/ui/aiFirst/AiConversationShell.tsx'),'utf8');
   const workerRoute=fs.readFileSync(path.join(root,'src/app/(app)/profil/razgovor.tsx'),'utf8');
   const needRoute=fs.readFileSync(path.join(root,'src/app/(app)/nova.tsx'),'utf8');
-  assert.ok(transport.includes("'x-uskoci-worker-preview-stream': 'v1'"));
-  assert.ok(edge.includes("req.headers.get('x-uskoci-worker-preview-stream')==='v1'"));
-  assert.ok(edge.includes('x-client-info,x-uskoci-worker-preview-stream'));
+  assert.doesNotMatch(transport,/x-uskoci-worker-preview-stream/,'the client no longer requests provisional Worker text');
+  assert.ok(edge.includes('x-client-info,x-uskoci-worker-preview-stream'),'legacy preflight remains compatible');
+  assert.doesNotMatch(edge,/previewStream/,'the server has no pre-confirmation preview branch');
+  assert.ok(edge.includes('onText:()=>{},'),'provider chunks are not rendered as provisional text');
   const provider=edge.indexOf("const raw=await measureAiPhase('PROVIDER'");
-  const preview=edge.indexOf("send('text_delta',{text:delta})",provider);
-  const signed=edge.indexOf("const completionRpc=",provider);
-  assert.ok(provider>=0 && preview>provider && signed>preview,'preview precedes authoritative SQL completion');
-  assert.ok(edge.includes("if(previewStream&&!abort.signal.aborted)"));
-  assert.ok(edge.includes("if(!previewStream)send('text_delta',{text:output.assistantMessage});"));
-  const final=edge.indexOf("send('final',{turn,",signed);
-  assert.ok(final>signed,'the final still follows authoritative completion');
+  const completion=edge.indexOf("const completionRpc=",provider);
+  const confirmedText=edge.indexOf("send('text_delta',{text:output.assistantMessage})",completion);
+  assert.ok(provider>=0 && completion>provider && confirmedText>completion,
+    'the complete assistant message is emitted only after the authoritative completion path');
+  const final=edge.indexOf("send('final',{turn,",completion);
+  assert.ok(final>completion,'the final event follows authoritative completion');
   assert.ok(edge.includes("...(wantsIntent && intentHint ? {conversationIntent:intentHint} : {})"),
     'only opted-in clients receive advisory metadata beside the unchanged turn');
   assert.ok(workerRoute.includes('setStream(value=>value+delta)'));

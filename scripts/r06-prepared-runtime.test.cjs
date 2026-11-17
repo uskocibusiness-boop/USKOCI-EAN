@@ -193,12 +193,14 @@ async function handlerHarness(f, purpose, options = {}) {
     const args = typeof init.body === 'string' ? JSON.parse(init.body) : null;
     calls.push({ name, args, origin: url.origin });
     if (url.origin === 'https://generativelanguage.googleapis.com') {
-      assert.match(name, /:streamGenerateContent$/);
+      assert.match(name, /:(?:stream)?generateContent$/);
       if (options.loseProviderResponse) throw new Error('SYNTHETIC_PROVIDER_RESPONSE_LOST');
       const output = providerOutput(purpose);
       const data = { candidates: [{ content: { parts: [{ text: JSON.stringify(output) }] }, finishReason: 'STOP' }],
         usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 30, totalTokenCount: 130 } };
-      return new Response('data: ' + JSON.stringify(data) + '\n\n', { headers: { 'content-type': 'text/event-stream' } });
+      return name.endsWith(':streamGenerateContent')
+        ? new Response('data: ' + JSON.stringify(data) + '\n\n', { headers: { 'content-type': 'text/event-stream' } })
+        : json(data);
     }
     assert.equal(url.origin, ORIGIN, 'No external network request escapes this fixture');
     if (url.pathname === '/auth/v1/user') return json({ id: options.account ?? A });
@@ -266,7 +268,7 @@ async function handlerHarness(f, purpose, options = {}) {
   } };
 }
 
-const providers = result => result.calls.filter(c => /:streamGenerateContent$/.test(c.name));
+const providers = result => result.calls.filter(c => /:(?:stream)?generateContent$/.test(c.name));
 const assertFinal = result => assert.equal(result.events.at(-1)?.kind, 'final', JSON.stringify({ status: result.status,
   events: result.events, json: result.json, calls: result.calls.map(c => c.name), logs: result.logs }));
 

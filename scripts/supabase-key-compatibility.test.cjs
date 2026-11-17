@@ -15,7 +15,7 @@ function fixtures(file, names, classes = false) {
     || (classes && ts.isClassDeclaration(node))).map(node => node.getText(ast)).join('\n');
   return new Function('require', '__dirname', declarations + '\nreturn {' + names.join(',') + '};')(require, __dirname);
 }
-const interview = fixtures('conversation-intent-integration.test.cjs', ['sourceLoader', 'handlerHarness', 'providerNeed', 'providerWorker']);
+const interview = fixtures('conversation-intent-integration.test.cjs', ['sourceLoader', 'handlerHarness', 'providerNeed', 'providerWorker', 'providerEndpoint']);
 const speech = fixtures('speech-provider-accounting.test.cjs', ['harness'], true);
 const media = fixtures('media-handler-admission.test.cjs', ['harness', 'request']);
 const keys = interview.sourceLoader({})('supabase/functions/_shared/supabaseKeys.mjs');
@@ -362,7 +362,7 @@ for (const domain of ['NEED', 'WORKER']) {
         if (call.name === 'user' || call.name === 'ai_conversations') userHeaders(call.headers, modern, 'Bearer fixture-account-token');
         else serviceHeaders(call.headers, modern);
       }
-      assert.equal(result.calls.filter(c => c.name.endsWith(':streamGenerateContent')).length, 1);
+      assert.equal(result.calls.filter(c => c.name.endsWith(interview.providerEndpoint(domain))).length, 1);
       assert.equal(result.calls.filter(c => c.name === 'rpc_ai_test_budget_reserve_service').length, 1);
     }
   });
