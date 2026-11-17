@@ -265,3 +265,81 @@ test('actual Need invalid-fact diagnostic never logs private provider values',()
   assert.deepEqual(logged,[['NEED_AI_OUTPUT_GATE_FACT_SKIPPED','need.exact_address']]);
   assert.equal(JSON.stringify(logged).includes(secret),false);
 });
+
+
+test('generic CONTINUE and CORRECTION cannot bypass the opposite-domain write guard',async()=>{
+  const h=await helper;
+  const cases=[
+    {domain:'NEED',current:'Nudim prevoz, ne radim utovar.',other:/radni profil/},
+    {domain:'WORKER',current:'Treba mi neko da popravi slavinu.',other:/Objavi zadatak|novi zadatak/i},
+  ];
+  for(const item of cases) for(const kind of ['CONTINUE','CORRECTION']) {
+    const evidence=kind==='CONTINUE'?'':item.current;
+    const d=await decision(kind,evidence,item.current);
+    assert.equal(d.valid,true,kind+' remains a structurally valid generic intent');
+    assert.equal(h.intentAllowsDomain(d,item.domain,item.current),false,
+      kind+' cannot authorize writes when current text explicitly belongs to the other role');
+    const guarded=h.guardInterviewIntentOutput(item.domain==='NEED'?need():worker(),d,item.domain,item.current);
+    assert.equal(guarded.safety,'CLARIFY');
+    if(item.domain==='NEED') {
+      assert.deepEqual(guarded.facts,[]);
+      assert.deepEqual(guarded.taxonomyDecisions,[]);
+      assert.match(guarded.assistantMessage,item.other);
+    } else {
+      assert.deepEqual(guarded.patch,{availability:null});
+      assert.deepEqual(guarded.serviceChanges,[]);
+      assert.match(guarded.assistantMessage,item.other);
+    }
+  }
+});
+
+test('mixed explicit task and service-offer intent cannot authorize either domain',async()=>{
+  const h=await helper,current='Nudim prevoz, ali treba mi neko da utovari nameštaj.';
+  const d=await decision('CONTINUE','',current);
+  assert.equal(d.valid,true);
+  assert.equal(h.intentAllowsDomain(d,'NEED',current),false);
+  assert.equal(h.intentAllowsDomain(d,'WORKER',current),false);
+});
+
+test('ordinary continuation, same-domain correction, negation, questions and quoted third-party offers stay precise',async()=>{
+  const h=await helper;
+  for(const [domain,current] of [
+    ['NEED','Sutra.'],
+    ['NEED','Termin pomerite na petak.'],
+    ['WORKER','Bez vozila.'],
+    ['WORKER','Ne nudim prevoz, samo imam kombi.'],
+    ['NEED','Ne treba mi odvoz, samo utovar.'],
+    ['WORKER','Da li mogu da nudim prevoz?'],
+    ['NEED','Komšija kaže „nudim prevoz“, a meni treba majstor za slavinu.'],
+    ['WORKER','Imam kombi, ali ne radim utovar.'],
+  ]) {
+    const d=await decision('CONTINUE','',current);
+    assert.equal(d.valid,true);
+    assert.equal(h.intentAllowsDomain(d,domain,current),true,domain+': '+current);
+  }
+});
+
+for(const [kind,current] of [
+  ['WORKER_ADD_SERVICE','Dodaj i košenje trave.'],
+  ['WORKER_REMOVE_SERVICE','Više ne radim selidbe.'],
+  ['WORKER_EDIT_SERVICE','Zameni selidbe fizičkom pomoći.'],
+  ['WORKER_OFFER','Nudim prevoz.'],
+]) test('explicit '+kind+' with an empty service plan cannot pass a new bio claim',async()=>{
+  const out=await mutation({kind,current,changes:[],patch:{bio:'Nudim prevoz i selidbe.',displayName:'Ana'}});
+  assert.equal(out.valid,false);
+  assert.equal(out.output.safety,'CLARIFY');
+  assert.deepEqual(out.output.patch,{displayName:'Ana'});
+  assert.match(out.output.assistantMessage,/Koju uslugu/);
+});
+
+test('empty service plan remains valid for non-service Worker changes',async()=>{
+  for(const [kind,current] of [
+    ['WORKER_AVAILABILITY','Dostupan sam vikendom.'],
+    ['WORKER_AREA','Radim u Novom Sadu.'],
+    ['CONTINUE','Imam kombi, ali ne radim utovar.'],
+  ]) {
+    const out=await mutation({kind,current,changes:[],patch:{displayName:'Ana'}});
+    assert.equal(out.valid,true,kind);
+    assert.deepEqual(out.output.patch,{displayName:'Ana'});
+  }
+});
