@@ -7,6 +7,7 @@ import { decodeWorkerAreas } from '../../../src/contracts/workerAreas.ts';
 import { WORKER_AVAILABLE_NOW_ENABLED } from '../../../src/contracts/workerNowFeature.ts';
 // Distinct owned WORKER_PROFILE_V1 proposals. No task facts or canonical writes.
 import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.mjs';
+import { workerConversationInstruction } from '../_shared/workerConversationInstruction.mjs';
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, geminiRequestBody, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion, withUnresolvedSinglePassReply } from '../_shared/singlePassTaxonomy.mjs';
@@ -247,6 +248,7 @@ function workerRuntimeContext(context: Record<string, any>, now: string) {
 
 function instruction() {
   return `${interviewVoiceInstruction()}
+${workerConversationInstruction()}
 ${conversationIntentInstruction('WORKER')}
 ${workerServiceChangesInstruction()}
 WORKER INTAKE (WORKER_PROFILE_V1): understand what ONE person actually offers, how, where and when. The phone already introduced the flow. Do not interview them about an imaginary customer task’s size/price/materials/deadline. If the person asks for help from another worker rather than describing their own work, explain politely that the separate Novi zadatak AI assistant handles that request; do not invent worker skills, availability or a profile patch. Never claim a route changed or a task was published. If mixed or unclear, ask one short intention question. Address people with Vi/Vam/Vas.
