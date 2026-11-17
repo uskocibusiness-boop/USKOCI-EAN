@@ -4,16 +4,13 @@
 
 import { interviewVoiceInstruction } from './interviewVoiceInstruction.mjs';
 import { serviceExecutionInstruction } from './serviceExecutionInstruction.mjs';
-import { craftQuestionMatrixText, craftFewShotExamplesText } from './craftQuestionMatrix.mjs';
 import { formatFullCatalogHierarchy } from './backgroundTaxonomyArchitect.mjs';
 
 /**
  * Builds the comprehensive cached knowledge document combining:
  * 1. Dispatch doctrine & communication rules (script mirroring, task/help terminology)
  * 2. Service execution scope (ON_SITE vs REMOTE)
- * 3. Craft question matrix (grouped inquiries for transport, painting, plumbing, etc.)
- * 4. Few-shot craft synthesis examples
- * 5. Complete compact taxonomy hierarchy with clean nodes, modes, and aliases
+ * 3. Complete compact taxonomy hierarchy with clean nodes, modes, and aliases
  */
 export function buildUskociCachedKnowledge(catalog, purpose = 'NEED_SERVICE') {
   const parts = [
