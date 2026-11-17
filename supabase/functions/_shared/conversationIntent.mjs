@@ -26,7 +26,7 @@ const ROLE_CYRILLIC = {
   ћ:'c', у:'u', ф:'f', х:'h', ц:'c', ч:'c', џ:'dz', ш:'s',
 };
 const normalizeRoleText = value => Array.from(value.toLocaleLowerCase('sr'), char => ROLE_CYRILLIC[char] ?? char).join('')
-  .replace(/đ/g, 'dj').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')
+  .replace(/đ/g, 'dj').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .replace(/[^a-z0-9]+/g, ' ').trim();
 const withoutQuotedRoleText = value => value.replace(/„[^“]*“|“[^”]*”|«[^»]*»|"[^"]*"/gu, ' ');
 const ROLE_QUESTION = /(?:^| )(?:da li|je li|jel|kako|gde|sta|zasto|mogu li|smem li|treba li|trebaju li)(?: |$)/;
@@ -109,7 +109,8 @@ export function guardInterviewIntentOutput(value, decision, domain, currentText)
   const kind = decision.intent.kind;
   const roleSignal = explicitRoleSignal(currentText);
   let assistantMessage = value.assistantMessage;
-  if (!safetyHold && kind !== 'QUESTION') {
+  const crossRoleSignal = roleSignal === 'MIXED' || roleSignal && roleSignal !== domain;
+  if (!safetyHold && (kind !== 'QUESTION' || crossRoleSignal)) {
     assistantMessage = roleSignal === 'MIXED'
       ? 'Da li sada želite da objavite zadatak ili da uredite ponudu svojih usluga?'
       : roleSignal === 'WORKER' && domain === 'NEED'
@@ -124,7 +125,8 @@ export function guardInterviewIntentOutput(value, decision, domain, currentText)
                 ? clarificationQuestion(value.assistantMessage) || 'Šta biste želeli da promenite ili razjasnite?'
                 : 'Želite li sada da objavite zadatak ili da uredite ponudu svojih usluga?';
   }
-  const safety = safetyHold ? value.safety : kind === 'QUESTION' || kind.startsWith('NEED_') || kind.startsWith('WORKER_') ? value.safety : 'CLARIFY';
+  const safety = safetyHold ? value.safety : crossRoleSignal ? 'CLARIFY'
+    : kind === 'QUESTION' || kind.startsWith('NEED_') || kind.startsWith('WORKER_') ? value.safety : 'CLARIFY';
   if (domain === 'WORKER') return { ...value, safety, assistantMessage, patch: { availability: null },
     availabilityChange: { kind: 'NONE', evidence: '' }, serviceChanges: [],
     ...(Object.hasOwn(value, 'serviceModeChangesJson') ? { serviceModeChangesJson: '[]' } : {}),
