@@ -779,7 +779,7 @@ function routeFragment(relative, choose, scope, expression = true) {
   const raw = expression ? 'module.exports = (' + matches[0] + ');' : 'module.exports = () => {' + matches[0] + '};';
   const output = ts.transpileModule(raw, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const module = { exports: {} };
-  new Function('scope', 'module', 'with (scope) {' + output + '}')(scope, module);
+  new Function('scope', 'module', 'with (scope) { const pending = scope.pending; ' + output + '}')(scope, module);
   return module.exports;
 }
 const routePath = domain => domain === 'NEED' ? 'src/app/(app)/nova.tsx' : 'src/app/(app)/profil/razgovor.tsx';
