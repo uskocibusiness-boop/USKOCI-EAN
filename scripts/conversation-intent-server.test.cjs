@@ -67,7 +67,7 @@ for(const phrase of ['Ja nudim onlajn časove francuskog.','Predajem francuski p
     const out=h.guardInterviewIntentOutput(need(),d,'NEED');
     assert.deepEqual(out.facts,[]); assert.deepEqual(out.taxonomyDecisions,[]);
     assert.equal(out.locationDecision.action,'CONTINUE'); assert.equal(out.locationDecision.explicitConfirmation,false);
-    assert.equal(out.dialogue.next,'ANSWER'); assert.match(out.assistantMessage,/radni profil/);
+    assert.equal(out.dialogue.next,'ANSWER'); assert.match(out.assistantMessage,/Uskoči i zaradi/);
     assert.doesNotMatch(out.assistantMessage,/sačuva|objavlj|prebacio/);
     assert.equal(h.intentAllowsDomain(d,'NEED'),false);
   });
@@ -78,7 +78,7 @@ test('Worker help request cannot become a skill, area, availability or mode',asy
   const out=h.guardInterviewIntentOutput(worker(),d,'WORKER');
   assert.deepEqual(out.patch,{availability:null}); assert.deepEqual(out.serviceChanges,[]);
   assert.deepEqual(out.availabilityChange,{kind:'NONE',evidence:''}); assert.deepEqual(out.taxonomyDecisions,[]);
-  assert.equal(out.serviceModeChangesJson,'[]'); assert.match(out.assistantMessage,/novi zadatak/);
+  assert.equal(out.serviceModeChangesJson,'[]'); assert.match(out.assistantMessage,/Objavi zadatak/);
 });
 
 test('mixed domains ask one intent question and never retain tentative changes',async()=>{
@@ -270,8 +270,9 @@ test('actual Need invalid-fact diagnostic never logs private provider values',()
 test('generic CONTINUE and CORRECTION cannot bypass the opposite-domain write guard',async()=>{
   const h=await helper;
   const cases=[
-    {domain:'NEED',current:'Nudim prevoz, ne radim utovar.',other:/radni profil/},
-    {domain:'WORKER',current:'Treba mi neko da popravi slavinu.',other:/Objavi zadatak|novi zadatak/i},
+    {domain:'NEED',current:'Nudim prevoz, ne radim utovar.',other:/Uskoči i zaradi/},
+    {domain:'WORKER',current:'Treba mi neko da popravi slavinu.',other:/Objavi zadatak/i},
+    {domain:'WORKER',current:'Treba mi pomoć oko selidbe.',other:/Objavi zadatak/i},
     {domain:'NEED',current:'Нудим превоз, не радим утовар.',other:/radni profil/},
     {domain:'WORKER',current:'Треба ми неко да поправи славину.',other:/Objavi zadatak|novi zadatak/i},
   ];
@@ -313,6 +314,8 @@ test('ordinary continuation, same-domain correction, negation, questions and quo
     ['NEED','Ne treba mi odvoz, samo utovar.'],
     ['WORKER','Da li mogu da nudim prevoz?'],
     ['NEED','Komšija kaže „nudim prevoz“, a meni treba majstor za slavinu.'],
+    ['NEED','Treba mi neko da prenese ormar, nudim 2.000 dinara.'],
+    ['WORKER','Treba mi pomoć.'],
     ['WORKER','Imam kombi, ali ne radim utovar.'],
   ]) {
     const d=await decision('CONTINUE','',current);
