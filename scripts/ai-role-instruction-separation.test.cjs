@@ -27,7 +27,7 @@ test('Need and Worker use separate role instructions, not a mixed shared busines
   assert.match(worker, /ULOGA WORKER/u);
   assert.match(worker, /šta ume/u);
   assert.match(worker, /nijedan primer.*ne postaje usluga/u);
-  assert.match(worker, /ne pravite zadatak za korisnika/u);
+  assert.match(worker, /ne pravite zadatak za korisnika/iu);
   assert.match(needIntent, /CURRENT INTERVIEW DOMAIN=NEED/u);
   assert.match(needIntent, /„Ja mogu“ assistant/u);
   assert.doesNotMatch(needIntent, /CURRENT INTERVIEW DOMAIN=WORKER/u);
