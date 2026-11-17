@@ -7,7 +7,7 @@ import { aiNeedV2Izvor } from '../../data';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope } from '../../data/aiTaskReviewClientService';
 import { aiTurnIntentJournal } from '../../data/aiTurnIntentJournal';
 import type { AiPreparedRecovery } from '../../data/aiPreparedRecovery';
-import { isExplicitWorkerOffer, stageWorkerText, stageAiRoleText, takeNeedText } from '../../data/aiRoleHandoff';
+import { isExplicitWorkerOffer, takeNeedText } from '../../data/aiRoleHandoff';
 import { oppositeInterviewDomain, type AiConversationIntent, type AiRoleSuggestion } from '../../contracts/aiConversationIntent';
 import { locationDialogueEnabled, resolveLocationDialogue } from '../../data/locationDialogueClientService';
 import type { LocationDialogueRequest } from '../../contracts/locationDialogue';
@@ -342,31 +342,28 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, roleHa
     if (!canAct() || !writable || !currentRoleSuggestion || !accountId || request.current || draftText.current.trim()
       || !renderedForeground || restartOwner.current !== renderedForeground
       || voice.controller.getSnapshot().phase !== 'IDLE') return;
-    const token = noviUuidZahtevId();
-    if (!stageAiRoleText({ token, text: currentRoleSuggestion.text, target: 'WORKER', accountId, accountRevision })) return;
-    navigate(() => router.push({ pathname: '/profil/razgovor', params: { entryKey: noviUuidZahtevId(), roleHandoff: token } }));
+    // Cross-role navigation always opens a clean conversation. No text or context is transferred.
+    navigate(() => router.push({ pathname: '/profil/razgovor', params: { entryKey: noviUuidZahtevId() } }));
   };
 
   const submitTurn = async (body: string, submittedDraft: SubmittedDraft | null = null, pointLease: LocationReplyLease | null = null, image?: { base64: string; mimeType: string }) => {
     if (!canAct() || !canSubmit || (!body && !image) || (pointLease && !pointLease.isCurrent())) { pointLease?.cancel(); return; }
     setRoleSuggestion(null);
-    // A worker OFFER is not a Need. Do not create a task AI turn for an explicit offer:
-    // ask the user first, preserve the unsent text by account/token, and never auto-Save.
+    // A clear worker offer does not belong in task intake. Ask before opening a new,
+    // empty Worker conversation; never transfer or send the original text.
     // An ambiguous mixed need/offer is left to the AI; the user can cancel and send as a task.
     if (!pointLease && !image && !request.current && roleOfferPrompted.current !== body && isExplicitWorkerOffer(body)) {
       roleOfferPrompted.current = body;
       confirmation.ask({
         title: 'Želite da ponudite svoje usluge?',
-        message: 'Za poslove koje Vi nudite postoji AI asistent za radni profil. Vaš tekst će Vas tamo sačekati za proveru; ništa se neće automatski poslati ni objaviti.',
+        message: 'Za ponudu svojih usluga koristite razgovor za radni profil. Otvoriće se nov, prazan razgovor; ova poruka se neće preneti niti poslati.',
         cancelLabel: 'Ipak napravite zadatak',
         confirmLabel: 'Otvorite radni profil',
         onConfirm: () => {
           if (!canAct() || request.current || !accountId || !renderedForeground || restartOwner.current !== renderedForeground
             || voice.controller.getSnapshot().phase !== 'IDLE') return;
-          const token = noviUuidZahtevId();
-          if (!stageWorkerText({ token, text: body, accountId, accountRevision })) return;
           navigate(() => router.push({ pathname: '/profil/razgovor',
-            params: { entryKey: noviUuidZahtevId(), roleHandoff: token } }));
+            params: { entryKey: noviUuidZahtevId() } }));
         },
       });
       return;

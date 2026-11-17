@@ -77,3 +77,15 @@ test('a service limit is preserved in the one-use unsent draft', () => {
   assert.equal(takeWorkerText({ ...owner, token }, 1001), text);
   assert.equal(takeWorkerText({ ...owner, token }, 1002), null);
 });
+
+const needScreen = fs.readFileSync(path.join(__dirname, '..', 'src/app/(app)/nova.tsx'), 'utf8');
+const workerScreen = fs.readFileSync(path.join(__dirname, '..', 'src/app/(app)/profil/razgovor.tsx'), 'utf8');
+
+test('cross-role navigation opens a blank conversation and never transfers the message', () => {
+  assert.doesNotMatch(needScreen, /stageWorkerText|stageAiRoleText/u);
+  assert.doesNotMatch(workerScreen, /stageAiRoleText/u);
+  assert.match(needScreen, /params: \{ entryKey: noviUuidZahtevId\(\) \} \}\)\);/u);
+  assert.match(workerScreen, /params:\{entryKey:noviUuidZahtevId\(\)\}\}\)\);/u);
+  assert.match(needScreen, /ova poruka se neće preneti niti poslati/u);
+  assert.match(workerScreen, /prethodna poruka se ne prenosi/u);
+});

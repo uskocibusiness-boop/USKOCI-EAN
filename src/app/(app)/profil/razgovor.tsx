@@ -4,7 +4,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { workerAiClientService as api, WORKER_AI_READ_TRANSPORT_UNAVAILABLE, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurn, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
 import type { AiPreparedRecovery } from '../../../data/aiPreparedRecovery';
-import { takeWorkerText, stageAiRoleText } from '../../../data/aiRoleHandoff';
+import { takeWorkerText } from '../../../data/aiRoleHandoff';
 import { oppositeInterviewDomain, type AiConversationIntent, type AiRoleSuggestion } from '../../../contracts/aiConversationIntent';
 import type { Ishod } from '../../../data/ports';
 import { uuid } from '../../../data/serverReceipt';
@@ -391,9 +391,8 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     if(!canAct()||!enabled||!writable||!currentRoleSuggestion||!accountId||pending.current||draftText.current.trim()
       ||!renderedForeground||foregroundGeneration.current!==renderedForeground
       ||voice.controller.getSnapshot().phase!=='IDLE')return;
-    const token=noviUuidZahtevId();
-    if(!stageAiRoleText({token,text:currentRoleSuggestion.text,target:'NEED',accountId,accountRevision}))return;
-    leave(()=>router.push({pathname:'/nova',params:{entryKey:noviUuidZahtevId(),roleHandoff:token}}));
+    // Cross-role navigation always opens a clean conversation. No text or context is transferred.
+    leave(()=>router.push({pathname:'/nova',params:{entryKey:noviUuidZahtevId()}}));
   };
   const refresh=()=>{if(current()&&!editor.busy&&!editor.loading&&!voiceBusy)void editor.refresh();};
   const recoverCorruptLocal=()=>{
@@ -645,7 +644,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     voice={writable?{controller:voice.controller,state:voice.state,disabled:!enabled||!!pending.current,onKeepText:keepTranscript}:undefined}
     actions={<>
       {currentRoleSuggestion?<>
-        <T variant="note" tone="muted">Vaša poruka može da Vas sačeka kod asistenta za zadatke kao neposlat nacrt.</T>
+        <T variant="note" tone="muted">Otvoriće se nov, prazan razgovor o zadatku. Vaša prethodna poruka se ne prenosi.</T>
         <V2Action label="Otvorite razgovor o zadatku" kind="primary" style={brandAction}
           disabled={!enabled||!!input.trim()} onPress={openSuggestedNeed}/>
       </>:null}
