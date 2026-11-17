@@ -53,6 +53,8 @@ function workerTurn(patch = {}) {
     state: 'SUCCEEDED', retryAllowed: false, authoritative: true, ...patch };
 }
 const hint = (kind, evidence) => ({ schemaVersion: SCHEMA, kind, evidence });
+function providerEndpoint(domain) { return domain === 'NEED' ? ':generateContent' : ':streamGenerateContent'; }
+const providerCalls = (result, domain) => result.calls.filter(call => call.name.endsWith(providerEndpoint(domain)));
 const event = (sequence, kind, extra = {}) => ({ conversationId: CONVERSATION, clientRequestId: REQUEST,
   turnId: TURN, attemptId: ATTEMPT, sequence, kind, ...extra });
 function responseEvents(events, change = {}) {
@@ -255,7 +257,9 @@ function handlerHarness(domain, text, providerOutput, options = {}) {
       const output = typeof providerOutput === 'function' ? providerOutput(args) : providerOutput;
       const value = { candidates: [{ content: { parts: [{ text: JSON.stringify(output) }] }, finishReason: 'STOP' }],
         usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 30, totalTokenCount: 130 } };
-      return new Response('data: ' + JSON.stringify(value) + '\n\n', { headers: { 'content-type': 'text/event-stream' } });
+      return parsed.pathname.endsWith(':streamGenerateContent')
+        ? new Response('data: ' + JSON.stringify(value) + '\n\n', { headers: { 'content-type': 'text/event-stream' } })
+        : json(value);
     }
     if (name === 'rpc_ai_claim_need_turn_v2_service') return json(options.replay ? { turn: needTurn(), claim: null } : {
       turn: processing, claim: { attemptId: ATTEMPT, leaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
@@ -348,7 +352,7 @@ test('NEED actual Edge: complete REMOTE draft keeps a genuine scope question thr
   assert.equal(result.writes[0].args.p_assistant_message,reply);
   assert.equal(result.writes[0].args.p_safety,'CLARIFY'); assert.deepEqual(result.writes[0].args.p_proposals,[]);
   assert.equal(JSON.stringify(activeFacts),before);
-  assert.equal(result.calls.filter(call=>call.name.endsWith(':streamGenerateContent')).length,1);
+  assert.equal(providerCalls(result,'NEED').length,1);
   assert.equal(result.calls.filter(call=>call.name==='rpc_ai_dispatch_need_turn_v2_service').length,1);
   assert.equal(result.calls.filter(call=>call.name==='rpc_ai_test_record_usage_service').length,1);
   assert.equal(result.calls.some(call=>call.name==='rpc_ai_fail_need_turn_v2_service'),false);
@@ -382,7 +386,7 @@ for(const text of [
     {categoryId:id(20),label:'Lektura',parentId:null,isLeaf:true,aliases:[],modes:['REMOTE']},
     {categoryId:id(21),label:'Prevođenje',parentId:null,isLeaf:true,aliases:[],modes:['REMOTE']},
   ]}).run();
-  const requests=result.calls.filter(call=>call.name.endsWith(':streamGenerateContent'));
+  const requests=providerCalls(result,'NEED');
   assert.equal(requests.length,1,'classification stays in the original model request');
   assert.ok(requests[0].args.generationConfig.responseSchema.properties.taxonomyDecisions,
     'the existing category must not hide classification from a natural or Cyrillic correction');
@@ -417,7 +421,7 @@ for (const domain of ['NEED', 'WORKER']) {
       const args = result.writes[0].args;
       assert.deepEqual(domain === 'NEED' ? args.p_proposals : args.p_output.patch, domain === 'NEED' ? [] : {});
       assert.equal(Object.hasOwn(args, 'p_taxonomy_plan'), false);
-      assert.equal(result.calls.filter(call => /streamGenerateContent/.test(call.name)).length, 1);
+      assert.equal(providerCalls(result,domain).length,1);
       assert.equal(result.calls.filter(call => /dispatch.*turn/.test(call.name)).length, 1);
       assert.equal(result.calls.some(call => /locationiq|geocod|resolve.*area|apply_legacy/.test(call.url)), false);
       assert.deepEqual(result.events.at(-1).conversationIntent, hint(kind, text));
@@ -433,7 +437,7 @@ for (const domain of ['NEED', 'WORKER']) {
     assert.equal(Object.hasOwn(old.events.at(-1), 'conversationIntent'), false);
     const replay = await handlerHarness(domain, text, provider, { replay: true }).run();
     assert.equal(replay.status, 200); assert.deepEqual(replay.json, domain === 'NEED' ? needTurn() : workerTurn());
-    assert.equal(replay.calls.some(call => /streamGenerateContent|dispatch|complete|budget/.test(call.name)), false);
+    assert.equal(replay.calls.some(call => /:(?:stream)?generateContent|dispatch|complete|budget/.test(call.name)), false);
   });
 
   test(`${domain} actual Edge: missing intent and safety holds cannot create facts or handoff authority`, async () => {
@@ -734,7 +738,7 @@ test('Worker actual Edge: a recurring statement cannot become today-only availab
       assert.equal(result.events.at(-1)?.kind, 'final', JSON.stringify({ events: result.events, logs: result.logs }));
       assert.deepEqual(result.writes[0].args.p_output.patch, {}, 'No dated window may reach the canonical writer');
       assert.equal(result.writes[0].args.p_output.safety, 'CLARIFY');
-      assert.equal(result.calls.filter(call => /streamGenerateContent/.test(call.name)).length, 1);
+      assert.equal(providerCalls(result,domain).length,1);
     }
   }
 });
