@@ -612,8 +612,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
 
       try {
         send('accepted');
-        // Preview deltas are not saved facts. The signed SQL completion and owned readback
-        // still establish the final message; this never starts a second provider call.
+        // Provider deltas are suppressed; only the server-approved final message is sent
+        // after output guards and the exact SQL completion receipt.
         const raw=await measureAiPhase('PROVIDER', () => streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
           key,body,signal:research!.signal,onText:()=>{},
           onUsage:value=>{usage.value=value;},timeoutMs:30000}));
