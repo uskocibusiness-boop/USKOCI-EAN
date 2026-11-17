@@ -2,6 +2,43 @@
 
 > **AKTUELNA VLASNIČKA ODLUKA — 10.11.2026:** Jedini zvanični slogan je **„USKOČI — Vaš partner za svaki zadatak.“**, a glavne akcije su tačno **„Objavi zadatak“** i **„Uskoči i zaradi“**. Stari Product/UX master ostaje povučen: ne čitati, rekonstruisati ili vraćati ni iz Git istorije; istorijske reference na njega nisu autoritet. Prethodni rasporedi, karuseli i tekstovi nisu zamrznuti: manje jasne UX kvarove i zastarele tekstove popravljati samostalno u odobrenom obimu, uz očuvanje potvrđenih funkcija. Veću promenu navigacije ili identiteta pripremiti kao pregledan pre/posle predlog. Važe poslednje izričite odluke vlasnika i AGENTS.md; ovaj dokument ostaje jedini izvršni plan.
 
+## Nastavak tehničkog rada — 17.11.2026. (QA188, AI fixture-i i lifecycle testovi)
+
+**Osnovni source:** `work/uskoci-cist-proizvod-20261104`  
+**Novi source checkpoint posle test-only korekcija:** `a34c6e2cf5147c29f9e496ec26fc8b0ccc815a91`
+
+### QA188 — uzrok i popravka
+- QA188 run `44136306335` na source `f7616ddf611fd5081283948fb823fb2d2258278b` pao je na `Verify the active clean source`; Android build je preskočen.
+- Logovi identifikuju 21 padanje: 9 NEED actual-handler, 9 R06 prepared-runtime, 2 Supabase key compatibility i 1 Worker product-smoke.
+- Uzrok: NEED non-progressive put koristi `:generateContent` JSON, a Worker streaming `:streamGenerateContent` SSE; deo fixture-a i assertion-a pretpostavljao je samo SSE.
+- PR #50 je spojio prvu verziju fixture korekcija. Lokalni testovi otkrili su tri preostale greške: case-sensitive regex, Worker-only assertion sa nepostojećim `domain` i shared helper koji je očekivao streaming i za NEED.
+- PR #54 je spojio ispravke и позитиван WORKER REUSE/bio regression тест. Merge SHA: `a34c6e2cf5147c29f9e496ec26fc8b0ccc815a91`.
+- QA188 pogođeni testovi: **153/153 PASS**; `conversation-intent-server.test.cjs`: **42/42 PASS**.
+- Dodatno završene suite provere: `worker-shared-reuse` 7/7; `r09-push-capacity` 20/20; `r09-worker-activation` 29/29; `r09-agreement-groups-sql` 25/25; `r09-agreement-groups-client` 35/35; `r08-blind-reviews-sql` 16/16; `r08-cancellation-reason-readback` 14/14; `r13-short-publication` 3/3; `ai-role-handoff` 45/45; `ai-stream-display` 13/13; `ai-role-instruction-separation` 1/1.
+- `agreement-incoming-lifecycle`, `agreement-outbox-lifecycle`, `r07-application-recovery`, `r07-price-snapshot-sql`, `r07-pricing-semantics`, `r07-selection-recovery`, `r07-selection-recovery-sql` и `r08-agreement-cancellation-sql` појединачно су завршени са exit code 0.
+- Full `npm test` није завршен: offline QA runtime artifact не садржи `tslib` и TypeScript loader за све тестове; процес је достигао 187 тестова и истекао. Ово није full-suite PASS.
+- QA workflow `uskoci-qa-apk.yml` ради на push радне гране или ручни dispatch, не на PR гранама. Тренутни GitHub конектор не излаже push-triggered run листу; званични QA статус на merge SHA остаје **UNVERIFIED** док се не прочита конкретан run.
+
+### WORKER REUSE / bio
+- Постојећи празан serviceChanges guard за нову понуду/ADD/REMOVE/REPLACE остаје.
+- Додат је позитиван тест: постојећи `Prevoz` + idempotent ADD + независна допуна bio „имам комби“ чува bio и не дуплира услугу.
+- Ово је server-side idempotent ADD доказ, не live Gemini E2E доказ.
+
+### AI prompt / cleanup — исправљен историјски статус
+- Велико скраћивање voice/system prompt сегмента већ је урађено 12.11: из активног prompt-а уклоњен је 74-line craft question matrix и few-shot пакет; документовано је смањење тог сегмента са око 12.000 на 3.200 карактера.
+- То није доказ укупне величине данашњег NEED/WORKER provider захтева. После каснијих intent, service-mode и taxonomy блокова треба поново измерити assembled request по улози, укључујући dynamic catalog/history.
+- У `geminiContextCache.mjs` су остали неискоришћени import-и `craftQuestionMatrixText` и `craftFewShotExamplesText` и застарели коментар. PR #52 уклања само мртве import-е/коментар; није merge-ован и не мења prompt output.
+- Не скраћивати intent/service-mode правила пре мерења и регресионог corpus-а. Не слабити role boundary, price/unit, privacy, confirmation или server-authority guard.
+
+### Git / безбедност
+- PR #50 и PR #54 су спојени у радну грану; обе промене су тестне, без продукционог Edge кода.
+- PR #52 је draft за мали cache import cleanup; није спојен.
+- PR #53 је затворен као superseded; његов тест је у PR #54.
+- PR #51 је затворен без merge-а јер би скраћени документ обрисао 6.521 линију canonical плана. Основна грана није измењена тим PR-ом.
+- Нема DEV/PROD deploy-а, SQL write-а, миграција или APK публикације.
+
+**Следеће:** прочитати званични QA run на SHA `a34c6e2cf5147c29f9e496ec26fc8b0ccc815a91`; наставити R06 prepared lifecycle/retention, мерење prompt-а по улози и E2E матрицу Need → Application → Agreement → cancellation/completion → readback/push. Не проглашавати QA188 resolved пре CI доказа.
+
 ## Završni presek 13.11.2026 (00:45 CET) — Odblokiran AI unos zadatka, prirodan dijalog, prevoz A→B i automatska država RS
 
 **REŠENO U KODU / PROŠLO SVIH 1.719 TESTOVA / TYPESCRIPT 0 GREŠAKA / PROD READ-ONLY.**
