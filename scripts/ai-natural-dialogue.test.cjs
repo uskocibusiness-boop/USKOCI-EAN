@@ -424,7 +424,7 @@ test('O: opposite-domain handoff clears all proposed writes, with no automatic s
   const decision=h.takeConversationIntent({conversationIntent:{kind:'WORKER_OFFER',evidence:input}},input);
   const out=h.guardInterviewIntentOutput({safety:'ALLOW',assistantMessage:'Objavljeno.',facts:[fact('need.category','Krečenje')],
     dialogue:turn('').dialogue},decision,'NEED');
-  assert.equal(out.facts.length,0); assert.match(out.assistantMessage,/radni profil/);
+  assert.equal(out.facts.length,0); assert.match(out.assistantMessage,/Uskoči i zaradi/);
   assert.doesNotMatch(out.assistantMessage,/objavljeno|prebačen|sačuvano/i);
 });
 
