@@ -562,7 +562,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           const providerOutput = JSON.parse(raw);
           outputStage='INTENT';
           intentDecision=takeConversationIntent(providerOutput,input.text);
-          const guarded=guardInterviewIntentOutput(intentDecision.output,intentDecision,'WORKER');
+          const guarded=guardInterviewIntentOutput(intentDecision.output,intentDecision,'WORKER',input.text);
           const extracted = needsWorkerTree ? takeSinglePassTaxonomy(guarded) : {output:guarded,decisions:[]};
           taxonomyDecisions = extracted.decisions;
           const {availabilityChange,serviceChanges,...parsed} = extracted.output;
@@ -579,7 +579,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           }
           outputStage='OUTPUT';
           output=parseWorkerOutput(classified);
-          intentAllowsChanges=intentAllowsDomain(intentDecision,'WORKER') && ['ALLOW','CLARIFY'].includes(output.safety);
+          intentAllowsChanges=intentAllowsDomain(intentDecision,'WORKER',input.text) && ['ALLOW','CLARIFY'].includes(output.safety);
           if(intentAllowsChanges) {
             outputStage='SERVICES';
             const services=applyWorkerServiceChanges(output,serviceChanges,context.candidate,input.text,intentDecision);
