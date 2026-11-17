@@ -348,3 +348,21 @@ test('empty service plan remains valid for non-service Worker changes',async()=>
     assert.deepEqual(out.output.patch,{displayName:'Ana'});
   }
 });
+
+
+test('generic CONTINUE and CORRECTION cannot authorize worker service ADD/REMOVE/REPLACE',async()=>{
+  const cases=[
+    {action:'ADD',service:'Košenje trave',current:'Dodaj košenje trave.',base:['Prevoz']},
+    {action:'REMOVE',service:'Selidbe',current:'Više ne radim selidbe.',base:['Prevoz','Selidbe']},
+    {action:'REPLACE',service:'Selidbe sa prevozom',replacement:'Fizička pomoć pri selidbi',
+      current:'Selidbe sada radim samo kao fizičku pomoć.',base:['Selidbe sa prevozom','Prevoz']},
+  ];
+  for(const kind of ['CONTINUE','CORRECTION']) for(const item of cases) {
+    const out=await mutation({kind,current:item.current,base:item.base,
+      changes:[change(item.action,item.service,item.current,item.replacement??'')]});
+    assert.equal(out.valid,false,kind+' cannot authorize '+item.action);
+    assert.equal(out.output.safety,'CLARIFY');
+    assert.equal(Object.hasOwn(out.output.patch,'skills'),false);
+    assert.equal(Object.hasOwn(out.output.patch,'bio'),false);
+  }
+});
