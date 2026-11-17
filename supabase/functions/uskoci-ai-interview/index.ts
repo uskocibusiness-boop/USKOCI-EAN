@@ -24,6 +24,7 @@ import { decodeTaskApplicationDeadlineFact } from '../../../src/contracts/taskAp
 import { validLocationContext, locationProviderSchema, locationInstruction, parseLocationOutput, validLocationEnvelope, type LocationContext, type LocationAction } from '../_shared/locationReply.ts';
 
 import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.mjs';
+import { needConversationInstruction } from '../_shared/needConversationInstruction.mjs';
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion, withUnresolvedSinglePassReply } from '../_shared/singlePassTaxonomy.mjs';
@@ -511,6 +512,7 @@ function needRuntimeContext(activeFacts: any[], timeContext: ServerTimeContext) 
 function commonInstruction() {
   return [
     interviewVoiceInstruction(),
+    needConversationInstruction(),
     'Činjenice izvodite iz razgovora: bez izmišljene cene, termina, adrese, opreme ili uslova. Ispravka menja isti ključ; izostavljeno ostaje. UNKNOWN nije potvrđeno.',
     'Broj predmeta nije broj ljudi. Običan kućni/zanatski zadatak: jedan izvršilac osim izričitog drugog broja. Nejasnu ekipu/težak teret razjasnite.',
     'Identitet je samostalno naveden; provera dokumenta, selfija ili KYC nije dostupna. Licence/KYC nisu podržani: bez need.required_licenses, need.verified_identity_required, tvrdnje o ovlašćenju/proveri ili prebacivanja tih zahteva u opis/filtere. Na zahtev objasnite ograničenje; običan zadatak može da se nastavi bez tih zahteva. Stare uslove ne brišite prećutno.',
