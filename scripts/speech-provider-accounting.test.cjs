@@ -314,6 +314,22 @@ test('wrong accounting operation identity cannot confirm release or settlement',
   }
 });
 
+test('speech paid provider admission is fail-closed to the exact DEV project and rollout scope', async () => {
+  const denied = [
+    { USKOCI_TAXONOMY_ALLOWED_PROJECT_REF: 'fvyqqudqvizjrxaflhex' },
+    { USKOCI_TAXONOMY_ROLLOUT_SCOPE: 'PROD' },
+    { USKOCI_GEMINI_PAID_TEST_ENABLED: 'false' },
+  ];
+  for (const env of denied) {
+    const h = await harness({ env });
+    try {
+      assert.equal(h.response.status, 503);
+      assert.equal(h.upgrades, 0);
+      assert.equal(h.requests.length, 0);
+    } finally { await h.finish(); }
+  }
+});
+
 // Exercise the shared budget reader itself: a custom body may synchronously
 // throw, return no promise, or never finish cleanup after the RPC has answered.
 // Cleanup is not an accounting operation and cannot replace the RPC outcome.
