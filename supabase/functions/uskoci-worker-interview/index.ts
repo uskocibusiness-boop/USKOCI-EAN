@@ -28,7 +28,7 @@ declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:
 
 const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>Deno.env.get(key));
 
-const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info,x-uskoci-interview-intent',
+const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info,x-uskoci-worker-preview-stream,x-uskoci-interview-intent',
   'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status,
   headers: { ...cors, 'Content-Type': 'application/json' } });

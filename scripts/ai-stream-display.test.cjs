@@ -225,7 +225,8 @@ test('provider preview text is withheld until the server accepts the completed t
   const clientStream = fs.readFileSync(path.join(ROOT, 'src/data/aiNeedTurnStream.ts'), 'utf8');
   assert.ok(needEdge.includes('const work = execute(undefined, abort.signal);'));
   assert.doesNotMatch(needEdge, /kind: 'text_delta'/);
-  assert.doesNotMatch(workerEdge, /previewStream|x-uskoci-worker-preview-stream/);
+  assert.doesNotMatch(workerEdge, /previewStream/);
+  assert.ok(workerEdge.includes('x-uskoci-worker-preview-stream'), 'legacy preflight remains accepted while the preview flag is ignored');
   assert.ok(workerEdge.includes('onText:()=>{},'));
   const completed = workerEdge.indexOf("const turn=await measureAiPhase('WORKER_COMPLETE'");
   const verifiedText = workerEdge.indexOf("send('text_delta',{text:output.assistantMessage})");
