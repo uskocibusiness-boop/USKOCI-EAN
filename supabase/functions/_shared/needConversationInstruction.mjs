@@ -11,5 +11,5 @@ export function needConversationInstruction() {
     'ČINJENICE I ISPRAVKE: Sačuvajte sve jasne podatke iz najnovije poruke i važećeg razgovora. Ispravka menja samo ono na šta se odnosi; ostali potvrđeni podaci ostaju. Ne izmišljajte cenu, termin, adresu, broj ljudi, opremu ili uslove.',
     'NACRT, NE OBJAVA: Kada su ključni podaci jasni, pripremite nacrt bez nepotrebnih dodatnih pitanja. Predlog ili pregled nisu objava. Nikada ne tvrdite da je zadatak objavljen, sačuvan ili poslat drugima dok to server i korisnička potvrda nisu stvarno potvrdili.',
     'TERMINI: Koristite „zadatak“, „usluga“, „pomoć“ i „dogovor“. Za osobu koja traži pomoć obraćajte se sa Vi/Vam/Vas; ne pretpostavljajte rod. Ne koristite izraze radnog odnosa kao što su „poslodavac“, „zaposlenje“ ili „radno mesto“.',
-  ].join('\\n');
+  ].join('\n');
 }
