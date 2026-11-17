@@ -508,7 +508,7 @@ const reuseDecision = (service, mode, categoryId) => ({ service, mode, categoryI
 const planBindings = result => result.writes[0].args.p_taxonomy_plan?.proposals.map(proposal =>
   binding(proposal.service, proposal.mode, proposal.categoryId, proposal.handoff));
 const assertOnePaidAttempt = result => {
-  assert.equal(result.calls.filter(call => /streamGenerateContent/.test(call.name)).length, 1);
+  assert.equal(result.calls.filter(call => /:(?:generateContent|streamGenerateContent)$/.test(call.name)).length, 1);
   assert.equal(result.calls.filter(call => /dispatch.*turn/.test(call.name)).length, 1);
   assert.equal(result.calls.filter(call => call.name === 'rpc_ai_test_budget_reserve_service').length, 1);
   assert.equal(result.calls.filter(call => call.name === 'rpc_ai_test_record_usage_service').length, 1);
@@ -738,7 +738,7 @@ test('Worker actual Edge: a recurring statement cannot become today-only availab
       assert.equal(result.events.at(-1)?.kind, 'final', JSON.stringify({ events: result.events, logs: result.logs }));
       assert.deepEqual(result.writes[0].args.p_output.patch, {}, 'No dated window may reach the canonical writer');
       assert.equal(result.writes[0].args.p_output.safety, 'CLARIFY');
-      assert.equal(providerCalls(result,domain).length,1);
+      assert.equal(result.calls.filter(call => /:streamGenerateContent$/.test(call.name)).length,1);
     }
   }
 });

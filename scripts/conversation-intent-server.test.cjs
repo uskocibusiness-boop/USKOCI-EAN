@@ -367,6 +367,16 @@ test('generic intent cannot smuggle service claims into bio without a service pl
   }
 });
 
+test('an idempotent ADD reuses an already-owned service while preserving independent bio details',async()=>{
+  const current='Nudim prevoz, imam kombi.';
+  const out=await mutation({kind:'WORKER_OFFER',current,base:['Prevoz'],
+    changes:[change('ADD','Prevoz',current)],
+    patch:{bio:'Nudim prevoz i posedujem kombi.'}});
+  assert.equal(out.valid,true);
+  assert.deepEqual(out.output.patch.skills,['Prevoz']);
+  assert.equal(out.output.patch.bio,'Nudim prevoz i posedujem kombi.');
+});
+
 test('generic bio edits retain ordinary vehicle facts without classifying them as service edits',async()=>{
   for(const current of ['Imam kombi.','Imam kombi, ali ne radim utovar.','Posedujem alat za montažu.']) {
     const out=await mutation({kind:'CONTINUE',current,changes:[],patch:{bio:'Imam kombi i sopstveni alat.',displayName:'Ana'}});

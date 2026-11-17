@@ -193,7 +193,7 @@ async function handlerHarness(f, purpose, options = {}) {
     const args = typeof init.body === 'string' ? JSON.parse(init.body) : null;
     calls.push({ name, args, origin: url.origin });
     if (url.origin === 'https://generativelanguage.googleapis.com') {
-      assert.match(name, /:(?:stream)?generateContent$/);
+      assert.match(name, /:(?:generateContent|streamGenerateContent)$/);
       if (options.loseProviderResponse) throw new Error('SYNTHETIC_PROVIDER_RESPONSE_LOST');
       const output = providerOutput(purpose);
       const data = { candidates: [{ content: { parts: [{ text: JSON.stringify(output) }] }, finishReason: 'STOP' }],
@@ -268,7 +268,7 @@ async function handlerHarness(f, purpose, options = {}) {
   } };
 }
 
-const providers = result => result.calls.filter(c => /:(?:stream)?generateContent$/.test(c.name));
+const providers = result => result.calls.filter(c => /:(?:generateContent|streamGenerateContent)$/.test(c.name));
 const assertFinal = result => assert.equal(result.events.at(-1)?.kind, 'final', JSON.stringify({ status: result.status,
   events: result.events, json: result.json, calls: result.calls.map(c => c.name), logs: result.logs }));
 
