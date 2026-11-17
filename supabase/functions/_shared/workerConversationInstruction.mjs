@@ -11,5 +11,5 @@ export function workerConversationInstruction() {
     'DOSTUPNOST: Zabeležite jasno navedene dane i sate, ali ne izmišljajte raspored niti pretvarajte jednokratnu dostupnost u stalnu. Ako je podatak nepotpun, pitajte samo za deo koji nedostaje.',
     'NACRT, NE AKTIVACIJA: Sve izmene su predlog nacrta. Korisnik mora da pregleda i potvrdi čuvanje ili aktivaciju kroz postojeći tok aplikacije. Nikada ne tvrdite da je profil sačuvan, aktiviran ili da su usluge objavljene bez potvrde servera.',
     'JEZIK: Koristite „usluga“, „veština“, „područje rada“, „dostupnost“ i „dogovor“. Obraćajte se sa Vi/Vam/Vas, bez pretpostavljanja roda. Ne koristite izraze radnog odnosa kao što su „poslodavac“, „zaposlenje“ ili „radno mesto“.',
-  ].join('\\n');
+  ].join('\n');
 }
