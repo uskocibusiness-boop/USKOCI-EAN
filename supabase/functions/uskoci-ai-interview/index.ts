@@ -1987,8 +1987,8 @@ Deno.serve(async (req: Request) => {
               if (!stored) { try { console.warn('NEED_TAXONOMY_HINT_STORE', 'UNAVAILABLE'); } catch { /* Nonfatal diagnostics. */ } }
             }))));
       }
-      // No raw provider prose escapes before the semantic check and the exact
-      // owned completion receipt. Deltas were already progressively streamed by streamGeminiTask.
+      // No provisional provider prose is emitted. The client receives only the
+      // authoritative turn receipt after semantic checks and exact SQL completion.
       return locationContext ? response(completed.state === 'SUCCEEDED' ? 200 : completed.state === 'PROCESSING' ? 202 : 409, completion) : turnResponse(completed);
     }
     // Existing LEGACY_TEXT_V1 path remains isolated. V2 never calls this writer.
@@ -2018,7 +2018,7 @@ Deno.serve(async (req: Request) => {
         };
         emit({ kind: 'accepted' });
         try {
-          const work = execute(text => emit({ kind: 'text_delta', text }), abort.signal);
+          const work = execute(undefined, abort.signal);
           void runInBackground(work);
           const result = await work;
           const data = await result.json();

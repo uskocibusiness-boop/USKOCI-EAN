@@ -28,7 +28,7 @@ declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:
 
 const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>Deno.env.get(key));
 
-const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info,x-uskoci-worker-preview-stream,x-uskoci-interview-intent',
+const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info,x-uskoci-interview-intent',
   'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status,
   headers: { ...cors, 'Content-Type': 'application/json' } });
@@ -538,7 +538,6 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   } catch { await fail(); return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
   }
   // Versioned opt-in: older APKs retain completed-only text instead of an unverified preview.
-  const previewStream=req.headers.get('x-uskoci-worker-preview-stream')==='v1';
   const wantsIntent=!recoveryMode&&req.headers.get(INTERVIEW_INTENT_HEADER)===INTERVIEW_INTENT_CAPABILITY;
   const abort=new AbortController(),stop=()=>{abort.abort();research?.dispose();}; req.signal.addEventListener('abort',stop,{once:true}); if(req.signal.aborted)stop();
   const encoder=new TextEncoder(); let sequence=0;
@@ -616,7 +615,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         // Preview deltas are not saved facts. The signed SQL completion and owned readback
         // still establish the final message; this never starts a second provider call.
         const raw=await measureAiPhase('PROVIDER', () => streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-          key,body,signal:research!.signal,onText:delta=>{if(previewStream&&!abort.signal.aborted)send('text_delta',{text:delta});},
+          key,body,signal:research!.signal,onText:()=>{},
           onUsage:value=>{usage.value=value;},timeoutMs:30000}));
         const {output: preparedOutput,serviceModeChangesJson,taxonomyDecisions,intentDecision,intentAllowsChanges,serviceChangesValid} = analyzeOutput(raw);
         let output = preparedOutput;
@@ -739,9 +738,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
               }))));
         }
         if(!abort.signal.aborted){
-          // Legacy clients keep their completed-only text; opt-in clients already
-          // received provisional deltas and replace them with the owned readback.
-          if(!previewStream)send('text_delta',{text:output.assistantMessage});
+          // The only text event is emitted after output guards and the exact SQL completion receipt.
+          send('text_delta',{text:output.assistantMessage});
           const intentHint=conversationIntentHint(intentDecision,output.safety);
           send('final',{turn,...(wantsIntent && intentHint ? {conversationIntent:intentHint} : {})});
         }
