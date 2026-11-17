@@ -804,9 +804,14 @@ for (const domain of ['NEED', 'WORKER']) {
     current = true; generation.current = null; action(); assert.equal(pushed.length, 0, 'background cannot navigate before rerender');
     generation.current = {}; action(); assert.equal(pushed.length, 0, 'a replaced foreground cannot revive the old handler');
     generation.current = foreground; scope.draftText.current = 'Nov neposlat nacrt'; action(); assert.equal(pushed.length, 0);
-    scope.draftText.current = ''; scope.request.current = {}; action(); assert.equal(pushed.length, 0);
-    scope.request.current = null;
-    if (domain === 'WORKER') { scope.pending.current = {}; action(); assert.equal(pushed.length, 0); scope.pending.current = null; }
+    scope.draftText.current = '';
+    if (domain === 'NEED') {
+      scope.request.current = {}; action(); assert.equal(pushed.length, 0, 'an active NEED request blocks cross-role navigation');
+      scope.request.current = null;
+    } else {
+      scope.pending.current = {}; action(); assert.equal(pushed.length, 0, 'an active WORKER turn blocks cross-role navigation');
+      scope.pending.current = null;
+    }
     action();
     assert.equal(pushed.length, 1);
     assert.deepEqual(pushed[0], domain === 'NEED'
