@@ -350,6 +350,31 @@ test('empty service plan remains valid for non-service Worker changes',async()=>
 });
 
 
+
+test('generic intent cannot smuggle service claims into bio without a service plan',async()=>{
+  const cases=[
+    {kind:'CONTINUE',current:'Nudim košenje trave.'},
+    {kind:'CONTINUE',current:'Dodaj i košenje trave.'},
+    {kind:'CORRECTION',current:'Više ne radim selidbe.'},
+    {kind:'CORRECTION',current:'Ukloni uslugu selidbe.'},
+  ];
+  for(const item of cases) {
+    const out=await mutation({...item,changes:[],patch:{bio:'Nudim košenje trave.',displayName:'Ana'}});
+    assert.equal(out.valid,false,item.current);
+    assert.equal(out.output.safety,'CLARIFY',item.current);
+    assert.deepEqual(out.output.patch,{displayName:'Ana'},item.current);
+    assert.match(out.output.assistantMessage,/Koju uslugu/);
+  }
+});
+
+test('generic bio edits retain ordinary vehicle facts without classifying them as service edits',async()=>{
+  for(const current of ['Imam kombi.','Imam kombi, ali ne radim utovar.','Posedujem alat za montažu.']) {
+    const out=await mutation({kind:'CONTINUE',current,changes:[],patch:{bio:'Imam kombi i sopstveni alat.',displayName:'Ana'}});
+    assert.equal(out.valid,true,current);
+    assert.deepEqual(out.output.patch,{bio:'Imam kombi i sopstveni alat.',displayName:'Ana'});
+  }
+});
+
 test('generic CONTINUE and CORRECTION cannot authorize worker service ADD/REMOVE/REPLACE',async()=>{
   const cases=[
     {action:'ADD',service:'Košenje trave',current:'Dodaj košenje trave.',base:['Prevoz']},
