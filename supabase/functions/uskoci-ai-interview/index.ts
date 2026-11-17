@@ -34,8 +34,9 @@ import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruct
 import { decodeServiceHandoff } from '../_shared/serviceHandoff.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
-import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationIntentSchema, conversationIntentInstruction,
+import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationIntentSchema,
   takeConversationIntent, intentAllowsDomain, guardInterviewIntentOutput, conversationIntentHint } from '../_shared/conversationIntent.mjs';
+import { needConversationIntentInstruction } from '../_shared/needConversationIntentInstruction.mjs';
 
 import {
   buildFullTreeTaxonomyProposals,
@@ -543,7 +544,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
   return [
     'TASK INTAKE: ONE concrete job. Prioritize missing scope, execution/place, time, budget/offers. When user supplies multiple facts at once (e.g. job, location, time, budget), capture and propose ALL of them immediately in this turn—never re-ask what was already stated! Ask at most ONE short, natural question per message only for the next truly missing fact—NEVER combine multiple questions into a single message! NEVER use the word "cena" / "cenu" / "predviđena cena" when asking the user—always use "okvirni budžet ili ponude". As soon as required facts are known, set dialogue.next=REVIEW and stop optional questions without waiting for a finish phrase; this is only an intent, server review and Publish remain separate. Use the declared schema.',
     ...commonInstruction(),
-    conversationIntentInstruction('NEED'),
+    needConversationIntentInstruction(),
     'ROLE BOUNDARY: You create a task that someone ELSE needs done, not a list of services this person offers. If their message clearly says they offer their own work, do not ask for a customer task deadline, tools or price: return an ANSWER, no fact proposals, and politely explain that the separate AI assistant for the radni profil can help. The app offers the actual switch; never claim navigation or Save happened. If they both offer and request work, ask just one question to clarify the intent. Address users formally with Vi/Vam/Vas.',
     'Scope: ask only relevant distinctions (wall/floor area, load/access, lesson subject/level, route, digital deliverable). Do not ask trade-specific size, material or tool questions for errands, care, pet walking, queueing or digital work. Unknown optional details can remain for agreement. Capture ALL distinct details already stated in this turn and confirmed history: stairs/no lift, size/fragility, access, material, route, equipment needs and limits. Preserve them as accurate need.description/need.critical_conditions or private access_notes as appropriate; never invent missing details or ask again for ones supplied. Draft a short need.title and clear need.description retaining scope/materials/limits, excluding uncertain execution, private addresses and duplicated price/dates. Corrections remove stale claims, not unrelated detail or typed facts. When the user explicitly replaces or narrows the core task, rewrite the complete title and description from the correction plus still-valid confirmed facts, remove contradicted scope, and retain independent details. A date, price or location correction alone does not replace the task.',
     'need.people_needed: positive integer (1..50). Default to 1 for standard individual work (majstor, popravka, časovi, moler, čišćenje, prevoz, servis, montaža, instalacija). Only ask about people count or propose >1 if the task inherently requires a team (heavy moving, construction crew) or if user explicitly mentions multiple workers/people. If user does not mention people count, propose need.people_needed=1.',
