@@ -55,6 +55,76 @@ function serviceHarness(reply, v2 = false) {
   return { api, session, calls, load };
 }
 
+
+function taskReviewHarness(reply) {
+  const session = { user: { id: ACCOUNT }, accountRevision: 1 }, calls = [];
+  const load = loader({
+    'src/store/sesija.ts': { sesijaSada: () => session },
+    'src/data/supabaseClient.ts': { supabaseKlijent: () => ({ rpc: async (name, args) => {
+      calls.push({ name, args }); return reply(name, args);
+    } }) },
+  });
+  return { api: load('src/data/aiTaskReviewClientService.ts').aiTaskReviewClientService,
+    decode: load('src/data/aiTaskReviewClientService.ts').decodeAiTaskReview, session, calls };
+}
+const taskReplacementReview = extra => {
+  const sourceNeedId = id(31), targetNeedId = id(32);
+  return { reviewId: id(33), accountId: ACCOUNT, conversationId: id(34), schemaVersion: 'NEED_FACT_V2',
+    draftId: sourceNeedId, draftRevision: 5, displayedContentDigest: 'a'.repeat(64), factsRevision: 'b'.repeat(64),
+    sourceTurnRevision: 8, geographyRevision: 'c'.repeat(64), expiresAt: '2026-11-20T12:00:00Z',
+    responseDeadline: null, publicProjection: [], ownerPrivateProjection: [],
+    location: { taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null },
+    missingRequired: [], canAccept: true, safety: 'ALLOW', replacement: { version: 'TASK_REPLACEMENT_V1', sourceNeedId,
+      sourceRevision: 5, sourceFingerprint: 'd'.repeat(64), targetNeedId, targetBaseRevision: 0 }, ...extra };
+};
+
+test('task replacement review binds the new target task id and first revision, never the source task', async () => {
+  const review = taskReplacementReview();
+  const targetNeedId = review.replacement.targetNeedId;
+  const command = { reviewId: review.reviewId, clientRequestId: id(35), needId: targetNeedId,
+    needRevision: 1, state: 'ACCEPTED', evaluation: null, published: null, authoritative: true };
+  const h = taskReviewHarness(async () => ({ data: { review, command }, error: null }));
+  const result = await h.api.read(review.reviewId);
+  assert.equal(result.ok, true, result.kod);
+  assert.equal(result.podatak.review.replacement.sourceNeedId, review.replacement.sourceNeedId);
+  assert.equal(result.podatak.command.needId, targetNeedId);
+  assert.equal(result.podatak.command.needRevision, 1);
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.calls[0].name, 'rpc_read_ai_task_review');
+});
+
+test('an existing replacement target advances from its own base revision, not the source revision', async () => {
+  const base = taskReplacementReview();
+  const review = taskReplacementReview({ draftId: base.replacement.targetNeedId, draftRevision: 2,
+    replacement: { ...base.replacement, targetBaseRevision: 2 } });
+  const command = { reviewId: review.reviewId, clientRequestId: id(37), needId: review.replacement.targetNeedId,
+    needRevision: 3, state: 'ACCEPTED', evaluation: null, published: null, authoritative: true };
+  const h = taskReviewHarness(async () => ({ data: { review, command }, error: null }));
+  const result = await h.api.read(review.reviewId);
+  assert.equal(result.ok, true, result.kod);
+  assert.equal(result.podatak.command.needId, review.replacement.targetNeedId);
+  assert.equal(result.podatak.command.needRevision, 3);
+});
+
+test('replacement review rejects a target base revision paired with the source draft identity', () => {
+  const review = taskReplacementReview();
+  const invalid = { ...review, replacement: { ...review.replacement, targetBaseRevision: 2 } };
+  const h = taskReviewHarness(async () => { throw new Error('NO_RPC_EXPECTED'); });
+  assert.equal(h.decode(invalid, ACCOUNT), null);
+  assert.equal(h.calls.length, 0);
+});
+
+test('task replacement rejects a command that points back to the old source task', async () => {
+  const review = taskReplacementReview();
+  const command = { reviewId: review.reviewId, clientRequestId: id(36), needId: review.replacement.sourceNeedId,
+    needRevision: review.replacement.sourceRevision + 1, state: 'ACCEPTED', evaluation: null, published: null, authoritative: true };
+  const h = taskReviewHarness(async () => ({ data: { review, command }, error: null }));
+  const result = await h.api.read(review.reviewId);
+  assert.equal(result.ok, false);
+  assert.equal(result.kod, 'TASK_REVIEW_INVALID_RESPONSE');
+  assert.equal(h.calls.length, 1);
+});
+
 test('14-day refusal maps to the same known explanation in legacy and comment-enabled review writers', async () => {
   for (const v2 of [false, true]) {
     const h = serviceHarness(async () => ({ data: null, error: { code: 'P0001', message: 'REVIEW_WINDOW_CLOSED' } }), v2);
