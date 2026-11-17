@@ -273,7 +273,7 @@ test('generic CONTINUE and CORRECTION cannot bypass the opposite-domain write gu
     {domain:'NEED',current:'Nudim prevoz, ne radim utovar.',other:/Uskoči i zaradi/},
     {domain:'WORKER',current:'Treba mi neko da popravi slavinu.',other:/Objavi zadatak/i},
     {domain:'WORKER',current:'Treba mi pomoć oko selidbe.',other:/Objavi zadatak/i},
-    {domain:'NEED',current:'Нудим превоз, не радим утовар.',other:/radni profil/},
+    {domain:'NEED',current:'Нудим превоз, не радим утовар.',other:/Uskoči i zaradi/},
     {domain:'WORKER',current:'Треба ми неко да поправи славину.',other:/Objavi zadatak|novi zadatak/i},
   ];
   for(const item of cases) for(const kind of ['CONTINUE','CORRECTION']) {
