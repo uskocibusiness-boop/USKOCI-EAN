@@ -20,9 +20,10 @@ import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
 import { indexFullCatalog, loadFullCatalogTree, buildWorkerFullTreeTaxonomyProposals, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
-import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationIntentSchema, conversationIntentInstruction,
+import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationIntentSchema,
   takeConversationIntent, intentAllowsDomain, guardInterviewIntentOutput, conversationIntentHint,
   workerServiceChangesSchema, workerServiceChangesInstruction, applyWorkerServiceChanges, clarificationQuestion } from '../_shared/conversationIntent.mjs';
+import { workerConversationIntentInstruction } from '../_shared/workerConversationIntentInstruction.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>Deno.env.get(key));
@@ -249,7 +250,7 @@ function workerRuntimeContext(context: Record<string, any>, now: string) {
 function instruction() {
   return `${interviewVoiceInstruction()}
 ${workerConversationInstruction()}
-${conversationIntentInstruction('WORKER')}
+${workerConversationIntentInstruction()}
 ${workerServiceChangesInstruction()}
 WORKER INTAKE (WORKER_PROFILE_V1): understand what ONE person actually offers, how, where and when. The phone already introduced the flow. Do not interview them about an imaginary customer task’s size/price/materials/deadline. If the person asks for help from another worker rather than describing their own work, explain politely that the separate Novi zadatak AI assistant handles that request; do not invent worker skills, availability or a profile patch. Never claim a route changed or a task was published. If mixed or unclear, ask one short intention question. Address people with Vi/Vam/Vas.
 patch contains only declared changes; omission preserves data. Required patch.availability=null when unchanged (server removes it); REVIEW/BLOCK or finish-only: patch {availability:null}.
