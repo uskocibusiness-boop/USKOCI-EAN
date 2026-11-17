@@ -33,7 +33,8 @@ const ROLE_QUESTION = /(?:^| )(?:da li|je li|jel|kako|gde|sta|zasto|mogu li|smem
 const ROLE_OFFER_PREDICATE = 'nudim|pruzam|pozelim da ponudim|zelim da (?:nudim|ponudim|pruzam|radim|se bavim)|hocu da (?:nudim|ponudim|pruzam|radim|se bavim)|(?:hteo|htela|zeleo|zelela|voleo|volela) bih da (?:nudim|ponudim|radim)|ja mogu da (?:radim|pruzam|pomognem)|radim kao|bavim se|drzim (?:privatne |online |onlajn )?casove|dajem (?:privatne )?casove';
 const ROLE_POSITIVE_OFFER = new RegExp('(?:^| )(?:' + ROLE_OFFER_PREDICATE + ')(?: |$)');
 const ROLE_NEGATED_OFFER = new RegExp('(?:^| )(?:ne|nisam|necu(?: da)?) (?:' + ROLE_OFFER_PREDICATE + ')(?: |$)');
-const ROLE_NEED_REQUEST_PREDICATE = 'treba mi (?:neko|nekoga|nekome|covek|coveka|osoba|osobu|ekipa|ljudi|pomoc|majstor|majstora|radnik|radnika|prevoz|kombi|selidba|utovar)|meni treba (?:neko|nekoga|covek|coveka|majstor|majstora|radnik|radnika|pomoc|prevoz)|potreban mi je (?:neko|majstor|radnik|pomocnik)|potrebna mi je (?:pomoc|osoba|majstor|usluga)|potrebno mi je (?:neko|pomoc|vozilo|prevoz)|potrebni su mi (?:ljudi|radnici|majstori|pomocnici)|trazim (?:nekog|nekoga|majstora|radnika|pomoc|prevoz)|neko da mi|da mi neko|zelim da mi neko|hocu da mi neko|potrebno (?:je )?\\d+ (?:ljudi|osoba|radnika|majstora|pomocnika)|trebaju mi (?:dva|tri|cetiri|pet|sest|sedam|osam|devet|deset|nekoliko|par) (?:coveka|ljudi|osoba|radnika|majstora|pomocnika)';
+const ROLE_PRICE_OFFER = /(?:^| )nudim (?:\d[\d ]*|cenu(?: od)? \d[\d ]*|iznos od \d[\d ]*) (?:rsd|din(?:ar|ara|arima)?|eur|evro|evra|evrima)(?: |$)/gu;
+const ROLE_NEED_REQUEST_PREDICATE = 'treba mi (?:neko|nekoga|nekome|covek|coveka|osoba|osobu|ekipa|ljudi|pomoc (?:oko|za)|majstor|majstora|radnik|radnika|prevoz|kombi|selidba|utovar)|meni treba (?:neko|nekoga|covek|coveka|majstor|majstora|radnik|radnika|pomoc (?:oko|za)|prevoz)|potreban mi je (?:neko|majstor|radnik|pomocnik)|potrebna mi je (?:pomoc (?:oko|za)|osoba|majstor|usluga)|potrebno mi je (?:neko|pomoc (?:oko|za)|vozilo|prevoz)|potrebni su mi (?:ljudi|radnici|majstori|pomocnici)|trazim (?:nekog|nekoga|majstora|radnika|pomoc (?:oko|za)|prevoz)|neko da mi|da mi neko|zelim da mi neko|hocu da mi neko|potrebno (?:je )?\\d+ (?:ljudi|osoba|radnika|majstora|pomocnika)|trebaju mi (?:dva|tri|cetiri|pet|sest|sedam|osam|devet|deset|nekoliko|par) (?:coveka|ljudi|osoba|radnika|majstora|pomocnika)';
 const ROLE_NEED_REQUEST = new RegExp('(?:^| )(?:' + ROLE_NEED_REQUEST_PREDICATE + ')(?: |$)');
 const ROLE_NEGATED_NEED = /(?:^| )(?:ne|nikako) (?:treba mi|meni treba|potreban mi je|potrebna mi je|potrebno mi je|potrebni su mi|trazim|trebaju mi)(?: |$)/;
 function explicitWorkerOffer(text) {
@@ -41,7 +42,7 @@ function explicitWorkerOffer(text) {
   const unquoted = withoutQuotedRoleText(text);
   const normalized = normalizeRoleText(unquoted);
   if (!normalized || /[?？]/u.test(unquoted) || ROLE_QUESTION.test(normalized) || ROLE_NEGATED_OFFER.test(normalized)) return false;
-  return ROLE_POSITIVE_OFFER.test(normalized);
+  return ROLE_POSITIVE_OFFER.test(normalized.replace(ROLE_PRICE_OFFER, ' '));
 }
 function explicitNeedRequest(text) {
   if (!safeText(text, 4000) || !text.trim()) return false;
@@ -171,7 +172,7 @@ export function applyWorkerServiceChanges(output, changes, candidate, currentTex
     // version together with the prior services; unrelated valid fields survive.
     const { bio: _unconfirmedBio, ...patch } = independent;
     const assistantMessage = ['WORKER_OFFER', 'WORKER_ADD_SERVICE'].includes(kind)
-      ? 'Koju konkretnu uslugu želite da ponudite?'
+      ? 'Koju uslugu konkretno želite da ponudite?'
       : 'Koju uslugu želite da promenite ili uklonite?';
     return { valid: false, output: { ...output, safety: 'CLARIFY', patch, assistantMessage } };
   };
