@@ -880,7 +880,7 @@ async function callGemini(
 ) {
   const parseOutput = async (value: any) => {
     const intentDecision = takeConversationIntent(value, text);
-    value = guardInterviewIntentOutput(intentDecision.output, intentDecision, 'NEED');
+    value = guardInterviewIntentOutput(intentDecision.output, intentDecision, 'NEED', text);
     if (singlePass) {
       const extracted = takeSinglePassTaxonomy(value);
       value = extracted.output;
@@ -888,7 +888,7 @@ async function callGemini(
     }
     const parseFacts=(output:any)=>parseV2Output(output,maxProposals);
     const parsedTurn=locationContext ? parseLocationOutput(value,locationContext,parseFacts) : parseFacts(value);
-    const intentAllowsChanges = intentAllowsDomain(intentDecision, 'NEED') && ['ALLOW', 'CLARIFY'].includes(parsedTurn.safety);
+    const intentAllowsChanges = intentAllowsDomain(intentDecision, 'NEED', text) && ['ALLOW', 'CLARIFY'].includes(parsedTurn.safety);
     // An opposite/ambiguous intention cannot become a price retraction, map
     // confirmation, category proposal or task fact through a downstream guard.
     if (!intentAllowsChanges) return { ...parsedTurn, intentDecision, intentAllowsChanges };
