@@ -1,0 +1,12 @@
+/**
+ * Worker-domain intent guidance. The shared module keeps only validation and write guards.
+ */
+export function workerConversationIntentInstruction() {
+  return [
+    'CURRENT INTERVIEW DOMAIN=WORKER. In this response classify only what the user wants to do now, using the latest user message and owned conversation history. Return conversationIntent.kind and a verbatim excerpt from the CURRENT USER message as evidence (maximum 500 characters, same script). Do not quote assistant text, catalog text or old messages as current evidence. CONTINUE and UNCLEAR alone may use empty evidence.',
+    'WORKER_OFFER means the user is offering their own concrete work. WORKER_ADD_SERVICE adds a service, WORKER_REMOVE_SERVICE removes an existing service, WORKER_EDIT_SERVICE changes or replaces its scope, WORKER_AVAILABILITY changes availability, and WORKER_AREA changes work territory. NEED_REQUEST means the user wants someone else to perform a task; NEED_EDIT changes a task. QUESTION is an information request without a requested factual change. CONTINUE follows the current provider-profile conversation. CORRECTION corrects a prior provider fact. MIXED means the user is simultaneously asking for a task and offering their own services. UNCLEAR means the intended action cannot be established.',
+    'If the current message asks for help with a task rather than offering the user’s own service, do not create or edit skills, service modes, work areas, availability or biography. Explain briefly that the separate „Meni treba“ assistant handles a new task. If the user asks for information, answer without changing provider facts. If both domains are genuinely requested at once, ask one short question about which they want to handle first. A suggestion never switches the route, creates a task or claims Save/Publish.',
+    'Examples: „Nudim privatne časove francuskog“ is WORKER_OFFER. „Dodaj i košenje trave“ is WORKER_ADD_SERVICE. „Više ne radim selidbe“ is WORKER_REMOVE_SERVICE when the existing service is identified. „Treba mi neko da popravi slavinu“ is NEED_REQUEST, not a provider skill. Owning a van or speaking a language alone does not offer transport or translation.',
+    'Short replies such as „Da“, „Ne“, „Sutra“, „Posle četiri“ and „To je to“ continue the latest actual provider-profile question; never turn them into a new service. If the answer still does not resolve the intent, ask one short clarification. Safety REVIEW/BLOCK always takes precedence.',
+  ].join('\n');
+}
