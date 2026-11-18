@@ -262,5 +262,5 @@ test('Own task page service contract forwards Home cancellation through the rece
   const ports = fs.readFileSync('src/data/ports.ts', 'utf8');
   assert.match(ports, /mojePotrebeStrana\(request: OwnTasksPageRequest, options\?: \{ includeUrgency\?: boolean; signal\?: AbortSignal \}\)/);
   assert.match(service, /const signal = options\?\.signal;[\s\S]*?if \(signal\?\.aborted\) throw new Error\('OWN_TASKS_PAGE_RETIRED'\);[\s\S]*?readOwnedResult\(\{[\s\S]*?signal,[\s\S]*?request: readSignal =>[\s\S]*?rpc\.abortSignal\(readSignal\)/);
-  assert.match(service, /if \(signal\?\.aborted\) throw new Error\('OWN_TASKS_PAGE_RETIRED'\);[\s\S]*?readNeedUrgencies\(documents\)[\s\S]*?if \(signal\?\.aborted\) throw new Error\('OWN_TASKS_PAGE_RETIRED'\)/);
+  assert.match(service, /if \(signal\?\.aborted\) throw new Error\('OWN_TASKS_PAGE_RETIRED'\);[\s\S]*?readNeedUrgencies\(documents, signal\)[\s\S]*?if \(signal\?\.aborted\) throw new Error\('OWN_TASKS_PAGE_RETIRED'\)/);
 });
