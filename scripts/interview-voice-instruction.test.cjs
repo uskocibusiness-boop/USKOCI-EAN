@@ -1,9 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { interviewVoiceInstruction } = await import('../supabase/functions/_shared/interviewVoiceInstruction.mjs');
+const voiceModule = import('../supabase/functions/_shared/interviewVoiceInstruction.mjs');
 
-test('shared interview voice keeps tone and script rules separate from business roles', () => {
+test('shared interview voice keeps tone and script rules separate from business roles', async () => {
+  const { interviewVoiceInstruction } = await voiceModule;
   const voice = interviewVoiceInstruction();
   assert.ok(voice.includes('USKOČI GLAS I TON'));
   assert.ok(voice.includes('PISMO-OGLEDALO'));
@@ -12,7 +13,8 @@ test('shared interview voice keeps tone and script rules separate from business 
   assert.doesNotMatch(voice, /naručilac|uskočer/u);
 });
 
-test('shared voice requires respectful Serbian and follows the latest message script', () => {
+test('shared voice requires respectful Serbian and follows the latest message script', async () => {
+  const { interviewVoiceInstruction } = await voiceModule;
   const voice = interviewVoiceInstruction();
   assert.match(voice, /Vi\/Vam\/Vas/u);
   assert.match(voice, /ćirilicom/u);
