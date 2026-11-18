@@ -209,8 +209,9 @@ export const needClientService: NeedReadService = {
       decode: raw => decodeOwnTasksPage(raw, request, mapNeed),
       errors: {}, fallback: 'OWN_TASKS_PAGE_UNAVAILABLE', invalid: 'OWN_TASKS_PAGE_INVALID',
     });
-    if (!result.ok) throw new Error(result.kod);
+    // Cancellation is not an unavailable read: classify retirement before the receipt fallback.
     if (signal?.aborted) throw new Error('OWN_TASKS_PAGE_RETIRED');
+    if (!result.ok) throw new Error(result.kod);
     const { documents, ...page } = result.podatak;
     const urgency = options?.includeUrgency === false ? null : await readNeedUrgencies(documents, signal);
     if (signal?.aborted) throw new Error('OWN_TASKS_PAGE_RETIRED');
