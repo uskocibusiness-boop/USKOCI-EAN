@@ -1,6 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { webcrypto } = require('node:crypto');
+const { TextEncoder } = require('node:util');
 const loadCache = () => import('../supabase/functions/_shared/geminiContextCache.mjs');
 
 const response = (value, status = 200) => new Response(JSON.stringify(value), {
@@ -108,7 +110,7 @@ test('prepared-input validation accepts a cachedContent reference without accept
   }).outputText;
   const vm = require('node:vm');
   const exports = {};
-  vm.runInNewContext(js, { exports, require, crypto: globalThis.crypto });
+  vm.runInNewContext(js, { exports, require, crypto: webcrypto, TextEncoder });
   const identity = {
     p_account_id: '11111111-1111-4111-8111-111111111111',
     p_conversation_id: '22222222-2222-4222-8222-222222222222',
@@ -126,7 +128,7 @@ test('prepared-input validation accepts a cachedContent reference without accept
         responseSchema: { type: 'OBJECT' }, thinkingConfig: { thinkingBudget: 0 },
       },
     },
-    catalog: null,
+    catalog: { catalogVersion: 17, catalogFingerprint: 'a'.repeat(32), categories: [] },
     runtime: {
       schemaVersion: 'R06_NEED_RUNTIME_V1', sourceContext: {}, singlePassActive: true,
       pendingClarificationHint: null, timeContext: {}, needsTree: true, maxProposals: 12,
@@ -157,4 +159,13 @@ test('prepared-input validation accepts a cachedContent reference without accept
     rpc, identity, purpose: 'NEED_SERVICE', userText: input.userText,
     attemptId: snapshot.attemptId, input: mixedInput,
   }), /R06_INPUT_INVALID/);
+});
+
+test('NEED and WORKER shared caches remain opt-in until the R06 SQL contract is applied', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const need = fs.readFileSync(path.join(__dirname, '../supabase/functions/uskoci-ai-interview/index.ts'), 'utf8');
+  const worker = fs.readFileSync(path.join(__dirname, '../supabase/functions/uskoci-worker-interview/index.ts'), 'utf8');
+  assert.match(need, /USKOCI_GEMINI_CONTEXT_CACHE_ENABLED/);
+  assert.match(worker, /USKOCI_GEMINI_CONTEXT_CACHE_ENABLED/);
 });

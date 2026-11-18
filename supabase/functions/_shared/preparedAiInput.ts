@@ -35,7 +35,7 @@ function validInput(input: any, options: PreparedReadOptions): boolean {
     && exact(request.systemInstruction,['parts']) && Array.isArray(request.systemInstruction.parts);
   const hasCachedInstruction = exact(request,['cachedContent','contents','generationConfig'])
     && typeof request.cachedContent === 'string'
-    && /^cachedContents\/[A-Za-z0-9_-]+$/.test(request.cachedContent);
+    && /^cachedContents\/[A-Za-z0-9_-]{1,200}$/.test(request.cachedContent) && input.catalog !== null;
   if ((!hasInlineInstruction && !hasCachedInstruction)
     || !Array.isArray(request.contents) || !request.contents.length || request.contents.length > 102) return false;
   const textParts = (parts: any) => Array.isArray(parts) && parts.every(p => exact(p,['text']) && typeof p.text === 'string');

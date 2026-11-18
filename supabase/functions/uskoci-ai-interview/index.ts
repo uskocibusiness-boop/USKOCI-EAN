@@ -939,7 +939,9 @@ async function callGemini(
   const responseSchema = singlePass ? withSinglePassTaxonomySchema(factSchema) : factSchema;
   // Cache only role-wide instructions and the versioned catalog. User history,
   // facts, location and time remain request-local and are never stored in cache.
-  const cachedContent = singlePass?.catalog ? await getOrCreateGeminiContextCache({
+  // Keep disabled until the matching R06 cache-reference migration is applied.
+  const geminiContextCacheEnabled = Deno.env.get('USKOCI_GEMINI_CONTEXT_CACHE_ENABLED') === 'true';
+  const cachedContent = geminiContextCacheEnabled && singlePass?.catalog ? await getOrCreateGeminiContextCache({
     geminiApiKey: key, model, purpose: 'NEED_SERVICE',
     catalogVersion: singlePass.catalog.catalogVersion,
     catalogFingerprint: singlePass.catalog.catalogFingerprint,

@@ -10,7 +10,7 @@ const CACHE_BOOTSTRAP_CONTENTS = [
 ];
 
 const validPurpose = value => value === 'NEED_SERVICE' || value === 'WORKER_CAPABILITY';
-const validCacheName = value => typeof value === 'string' && /^cachedContents\/[A-Za-z0-9_-]+$/.test(value);
+const validCacheName = value => typeof value === 'string' && /^cachedContents\/[A-Za-z0-9_-]{1,200}$/.test(value);
 const safeModel = value => typeof value === 'string' && /^[A-Za-z0-9._-]{1,100}$/.test(value);
 const abortIfNeeded = signal => { if (signal?.aborted) throw new Error('GEMINI_CONTEXT_CACHE_ABORTED'); };
 

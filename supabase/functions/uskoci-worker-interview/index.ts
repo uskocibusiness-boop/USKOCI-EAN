@@ -424,7 +424,9 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     responseSchema.required=[...(responseSchema.required ?? []),'serviceModeChangesJson'];
   // Share the stable WORKER instruction/catalog prefix across sessions. Keep
   // profile, history, clarification and runtime context outside the cache.
-  const cachedContent = needsWorkerTree && fullCatalog ? await getOrCreateGeminiContextCache({
+  // Keep disabled until the matching R06 cache-reference migration is applied.
+  const geminiContextCacheEnabled = Deno.env.get('USKOCI_GEMINI_CONTEXT_CACHE_ENABLED') === 'true';
+  const cachedContent = geminiContextCacheEnabled && needsWorkerTree && fullCatalog ? await getOrCreateGeminiContextCache({
     geminiApiKey: key, model, purpose: 'WORKER_CAPABILITY',
     catalogVersion: fullCatalog.catalogVersion,
     catalogFingerprint: fullCatalog.catalogFingerprint,
