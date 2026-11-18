@@ -68,8 +68,8 @@ export function decodeHomeAttention(raw: unknown): HomeAttentionPreview | null {
 }
 
 export const homeAttentionClientService: Pick<Izvor, 'paznjaZaPocetnu'> = {
-  async paznjaZaPocetnu() {
-    const result = await readReceipt({ rpc: 'rpc_home_attention', args: {}, decode: decodeHomeAttention,
+  async paznjaZaPocetnu(options) {
+    const result = await readReceipt({ rpc: 'rpc_home_attention', args: {}, signal: options?.signal, decode: decodeHomeAttention,
       errors: {}, fallback: 'HOME_ATTENTION_UNAVAILABLE', invalid: 'HOME_ATTENTION_INVALID' });
     if (!result.ok) throw new Error(result.kod);
     return result.podatak;
