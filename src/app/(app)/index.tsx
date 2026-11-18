@@ -64,12 +64,12 @@ function Home() {
       const [needs, applications, agreements, attention, opportunities, agreementCarousel] = await Promise.all([
         readHomeSection(readSignal => source.mojePotrebe({ includeUrgency: false, signal: readSignal }), signal),
         readHomeSection(async () => {
-          const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 6, cursor: null });
+          const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 6, cursor: null }, { signal: readSignal });
           if (!page.counts) throw new Error('HOME_APPLICATION_COUNTS_UNAVAILABLE');
           return { counts: page.counts, items: page.items ?? [] };
         }, signal),
         readHomeSection(readSignal => source.dogovoriZaPocetnu({ signal: readSignal }), signal),
-        readHomeSection(() => source.paznjaZaPocetnu(), signal),
+        readHomeSection(readSignal => source.paznjaZaPocetnu({ signal: readSignal }), signal),
         readHomeSection(readSignal => source.prilikeZaPocetnu({ signal: readSignal }), signal),
         readHomeSection(async readSignal => {
           if (typeof source.mojiDogovoriStrana !== 'function') throw new Error('HOME_AGREEMENT_CAROUSEL_UNAVAILABLE');
