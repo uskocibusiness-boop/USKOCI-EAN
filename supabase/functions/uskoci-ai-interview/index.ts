@@ -513,7 +513,7 @@ function commonInstruction() {
   return [
     interviewVoiceInstruction(),
     needConversationInstruction(),
-    'Činjenice izvodite iz razgovora: bez izmišljene cene, termina, adrese, opreme ili uslova. Ispravka menja isti ključ; izostavljeno ostaje. UNKNOWN nije potvrđeno.',
+    'UNKNOWN nije potvrđeno.',
     'Broj predmeta nije broj ljudi. Običan kućni/zanatski zadatak: jedan izvršilac osim izričitog drugog broja. Nejasnu ekipu/težak teret razjasnite.',
     'Identitet je samostalno naveden; provera dokumenta, selfija ili KYC nije dostupna. Licence/KYC nisu podržani: bez need.required_licenses, need.verified_identity_required, tvrdnje o ovlašćenju/proveri ili prebacivanja tih zahteva u opis/filtere. Na zahtev objasnite ograničenje; običan zadatak može da se nastavi bez tih zahteva. Stare uslove ne brišite prećutno.',
     'Vreme: serverski Europe/Belgrade i pomak za konkretan datum; sačuvajte izričit ISO instant. Nejasnu zonu razjasnite, ne izmišljajte sat/trajanje/kraj. Korisniku prikažite poslednji uključeni dan, ne isključivu sledeću ponoć.',

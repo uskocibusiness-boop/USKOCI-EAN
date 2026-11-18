@@ -26,6 +26,9 @@ test('Need and Worker use separate role instructions, not a mixed shared busines
   assert.match(need, /ULOGA NEED/u);
   assert.match(need, /JEDAN konkretan zadatak/u);
   assert.match(need, /ne sastavljate spisak usluga koje korisnik nudi/iu);
+  assert.match(need, /Ne izmišljajte cenu, termin, adresu, broj ljudi, opremu ili uslove/u);
+  assert.match(needEdge, /'UNKNOWN nije potvrđeno\.'/u);
+  assert.doesNotMatch(needEdge, /Činjenice izvodite iz razgovora/u);
   assert.match(worker, /ULOGA WORKER/u);
   assert.match(worker, /šta ume/u);
   assert.match(worker, /nijedan primer.*ne postaje usluga/u);
@@ -35,6 +38,8 @@ test('Need and Worker use separate role instructions, not a mixed shared busines
   assert.doesNotMatch(needIntent, /CURRENT INTERVIEW DOMAIN=WORKER/u);
   assert.match(workerIntent, /CURRENT INTERVIEW DOMAIN=WORKER/u);
   assert.match(workerIntent, /„Meni treba“ assistant/u);
+  assert.match(workerIntent, /If the current message asks for help with a task rather than offering the user’s own service/u);
+  assert.doesNotMatch(workerEdge, /If the person asks for help from another worker rather than describing their own work/u);
   assert.doesNotMatch(workerIntent, /CURRENT INTERVIEW DOMAIN=NEED/u);
   assert.match(serviceChanges, /idempotent REUSE/u);
   assert.match(serviceChanges, /EXACT existing label/u);
