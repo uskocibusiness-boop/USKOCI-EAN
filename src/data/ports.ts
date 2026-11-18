@@ -52,7 +52,7 @@ export type ExactPublicOpportunityRead = {
 
 export interface PotrebeCitanje {
   /** Account-owned server attention; failure is unavailable, never an empty list. */
-  paznjaZaPocetnu(): Promise<HomeAttentionPreview>;
+  paznjaZaPocetnu(options?: { signal?: AbortSignal }): Promise<HomeAttentionPreview>;
   /** R03 — moje Potrebe. Defaults to urgency enrichment; count-only surfaces may leave it unobserved. */
   mojePotrebe(options?: { includeUrgency?: boolean; signal?: AbortSignal }): Promise<PotrebaProjekcija[]>;
   /** EX-04 S1 (A09) — one keyset page of my own tasks in one of the server's sets. Needs the ex04a server contract: a build flag keeps the screen on `mojePotrebe` until DEV has it. */
@@ -83,7 +83,7 @@ export interface PrijaveCitanje {
   /** W06 / P0C-03 — kanonska projekcija sopstvenih Prijava. */
   mojePrijave(): Promise<MojaPrijavaProjekcija[]>;
   /** EX-04 S2 (B10) — one keyset page of my own applications in one of the screen's sets, in the whole-list order. Needs the ex04b server contract: a build flag keeps the screen on `mojePrijave` until DEV has it. */
-  mojePrijaveStrana(request: OwnApplicationsPageRequest): Promise<OwnApplicationsPage>;
+  mojePrijaveStrana(request: OwnApplicationsPageRequest, options?: { signal?: AbortSignal }): Promise<OwnApplicationsPage>;
 }
 
 export interface DogovoriCitanje {
