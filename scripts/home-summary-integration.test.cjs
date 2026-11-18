@@ -197,13 +197,13 @@ async function routeHarness({ initialFailure = false } = {}) {
   const calls = [], states = new Set(), navigation = [], session = { user: { id: A }, accountRevision: 1 };
   let failSummary = initialFailure;
   const source = {
-    mojePotrebe: async () => [], mojePrijaveStrana: async request => { calls.push(['applications', request]);
+    mojePotrebe: async () => [], mojePrijaveStrana: async (request, options) => { calls.push(['applications', request, options]);
       return { counts: { total: 0, active: 0, attention: 0, finished: 0 }, items: [] }; },
     dogovoriZaPocetnu: async options => { calls.push(['summary', options]); if (failSummary) throw Error('MISSING_RPC'); return summary({ accountId: session.user.id }); },
     podsetniciDogovoraZaPocetnu: async request => { calls.push(['prompts', request]); return page(0, 45, session.user.id); },
     mojiDogovori: async () => assert.fail('Home must not read ALL Agreement history'),
     prilikeZaPocetnu: async () => [],
-    paznjaZaPocetnu: async () => ({ rows: [], more: 0, asOf: AT, ratings: { due: 0, agreementId: null } }),
+    paznjaZaPocetnu: async options => { calls.push(['attention', options]); return { rows: [], more: 0, asOf: AT, ratings: { due: 0, agreementId: null } }; },
     mojRadnikProfil: async () => null,
   };
   const h = createHarness({
@@ -221,18 +221,25 @@ async function routeHarness({ initialFailure = false } = {}) {
   return { r, C, h, calls, props, states, source, session, navigation, fail: () => { failSummary = true; }, stop: () => unmount(r) };
 }
 test('Mounted Home retains its verified summary on partial refresh failure without ALL fallback', async () => {
-  const h = await routeHarness(); assert.deepEqual(h.calls.map(c => c[0]), ['applications', 'summary']);
+  const h = await routeHarness();
+  assert.deepEqual(h.calls.map(c => c[0]).filter(name => name === 'applications' || name === 'summary'), ['applications', 'summary']);
+  const applicationRead = h.calls.find(c => c[0] === 'applications');
+  const attentionRead = h.calls.find(c => c[0] === 'attention');
+  assert.ok(applicationRead[2]?.signal instanceof AbortSignal, 'application page must receive its section cancellation signal');
+  assert.ok(attentionRead[1]?.signal instanceof AbortSignal, 'attention aggregate must receive its section cancellation signal');
+  assert.equal(applicationRead[2].signal.aborted, true, 'completed application read retires its transport signal');
+  assert.equal(attentionRead[1].signal.aborted, true, 'completed attention read retires its transport signal');
   assert.equal(h.calls[0][1].limit, 6); assert.equal(h.props().home.agreements.value.rows.length, 1);
   assert.equal(h.props().home.ratingsDue, 1); assert.equal(h.props().home.agreementPrompts.total, 45);
   h.fail(); await RTR.act(async () => h.props().onRefresh());
   assert.equal(h.props().home.agreements.kind, 'known'); assert.equal(h.props().stale, true);
   assert.equal(h.props().home.agreements.value.rows[0].target.agreementId, ID(500));
-  assert.deepEqual(h.calls.map(c => c[0]), ['applications', 'summary', 'applications', 'summary']); await h.stop();
+  assert.deepEqual(h.calls.map(c => c[0]).filter(name => name === 'applications' || name === 'summary'), ['applications', 'summary', 'applications', 'summary']); await h.stop();
 });
 test('Mounted Home initial missing summary stays unavailable, never an empty account or an ALL fallback', async () => {
   const h = await routeHarness({ initialFailure: true });
   assert.equal(h.props().home.agreements.kind, 'unavailable'); assert.equal(h.props().home.partial, true);
-  assert.equal(h.props().home.firstRun, false); assert.deepEqual(h.calls.map(c => c[0]), ['applications', 'summary']); await h.stop();
+  assert.equal(h.props().home.firstRun, false); assert.deepEqual(h.calls.map(c => c[0]).filter(name => name === 'applications' || name === 'summary'), ['applications', 'summary']); await h.stop();
 });
 test('Mounted Home focus, account revision and source ownership retire stale panel/navigation callbacks', async () => {
   const h = await routeHarness(), old = h.props(), oldSource = old.agreementPromptSource;
