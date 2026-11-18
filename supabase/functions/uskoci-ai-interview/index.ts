@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
+import { measureAiPhase, recordGeminiUsage } from '../_shared/aiPhaseTiming.mjs';
 import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 import { aiProviderRuntimeEnabled, taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
@@ -26,7 +26,7 @@ import { validLocationContext, locationProviderSchema, locationInstruction, pars
 import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.mjs';
 import { needConversationInstruction } from '../_shared/needConversationInstruction.mjs';
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
-import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
+import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, decodeGeminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion, withUnresolvedSinglePassReply } from '../_shared/singlePassTaxonomy.mjs';
 import { completeFirstPlan } from '../_shared/completeFirstPlan.ts';
 import { preparedAiInputEnabled, readPreparedInput, readPreparedInputByIdentity, preparedRecoveryStatus, prepareAiInput, dispatchPreparedInput, type PreparedInput } from '../_shared/preparedAiInput.ts';
@@ -972,7 +972,8 @@ payloadBody = JSON.stringify({
   if (onText) {
     const raw = await measureAiPhase('PROVIDER', () => streamGeminiTask({
       url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-      key, body: payloadBody, signal, onText: onText ?? (() => {}), onUsage, timeoutMs: 30000,
+      key, body: payloadBody, signal, onText: onText ?? (() => {}), onUsage,
+      onUsageDetails: details => recordGeminiUsage('NEED', model, 'SSE', details), timeoutMs: 30000,
     }));
     return parseOutput(JSON.parse(raw));
   }
@@ -988,7 +989,9 @@ payloadBody = JSON.stringify({
   }
   const payload = providerResponse.data;
   // The non-streaming path reports the same counts on the single response body.
-  if (onUsage) { const usage = geminiUsage(payload?.usageMetadata); if (usage) { try { onUsage(usage); } catch { /* accounting never breaks delivery */ } } }
+  const usageDetails = decodeGeminiUsage(payload?.usageMetadata);
+  recordGeminiUsage('NEED', model, 'GENERATE', usageDetails);
+  if (onUsage && usageDetails.usage) { try { onUsage(usageDetails.usage); } catch { /* accounting never breaks delivery */ } }
   if (payload?.promptFeedback?.blockReason) throw new GeminiSafetyBlockedError(payload.promptFeedback.blockReason);
   for (const candidate of payload?.candidates ?? []) {
     if (['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII', 'RECITATION'].includes(candidate?.finishReason))

@@ -22,3 +22,34 @@ export async function measureAiPhase(phase, operation) {
     catch { /* Logging never changes delivery or accounting. */ }
   }
 }
+
+
+const usagePurposes = new Set(['NEED', 'WORKER']);
+const usageSources = new Set(['SSE', 'GENERATE']);
+const usageCount = value => Number.isSafeInteger(value) && value >= 0 && value <= 10_000_000 ? value : null;
+
+/**
+ * Count-only provider usage evidence. Cached tokens are a subset of provider
+ * prompt tokens; null means the provider did not report a trustworthy count.
+ * Never attach request IDs, user text, prompts, coordinates or provider bodies.
+ */
+export function recordGeminiUsage(purpose, model, source, details) {
+  const value = details && typeof details === 'object' ? details : {};
+  const usage = value.usage && typeof value.usage === 'object' ? value.usage : {};
+  const event = {
+    version: 1,
+    purpose: usagePurposes.has(purpose) ? purpose : 'UNKNOWN',
+    model: typeof model === 'string' && /^[a-z0-9._-]{1,80}$/i.test(model) ? model : 'UNKNOWN',
+    source: usageSources.has(source) ? source : 'UNKNOWN',
+    promptTokens: usageCount(usage.promptTokens),
+    outputTokens: usageCount(usage.outputTokens),
+    totalTokens: usageCount(value.totalTokens ?? usage.totalTokens),
+    providerPromptTokens: usageCount(value.promptTokens),
+    candidateTokens: usageCount(value.candidateTokens),
+    thoughtTokens: usageCount(value.thoughtTokens),
+    toolUsePromptTokens: usageCount(value.toolUsePromptTokens),
+    cachedPromptTokens: usageCount(value.cachedPromptTokens),
+  };
+  try { console.info('AI_USAGE_TOKENS', JSON.stringify(event)); }
+  catch { /* Count-only telemetry must never affect delivery or accounting. */ }
+}

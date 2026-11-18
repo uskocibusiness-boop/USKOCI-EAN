@@ -1,4 +1,4 @@
-import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
+import { measureAiPhase, recordGeminiUsage } from '../_shared/aiPhaseTiming.mjs';
 import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 import { aiProviderRuntimeEnabled, taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
@@ -557,7 +557,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         // after output guards and the exact SQL completion receipt.
         const raw=await measureAiPhase('PROVIDER', () => streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
           key,body,signal:research!.signal,onText:()=>{},
-          onUsage:value=>{usage.value=value;},timeoutMs:30000}));
+          onUsage:value=>{usage.value=value;},
+          onUsageDetails:details=>recordGeminiUsage('WORKER',model,'SSE',details),timeoutMs:30000}));
         const {output: preparedOutput,serviceModeChangesJson,taxonomyDecisions,intentDecision,intentAllowsChanges,serviceChangesValid} = analyzeOutput(raw);
         let output = preparedOutput;
         research!.dispose();
