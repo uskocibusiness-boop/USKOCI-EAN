@@ -255,3 +255,12 @@ test('Mounted Home focus, account revision and source ownership retire stale pan
   await RTR.act(async () => { h.session.user = { id: A }; h.session.accountRevision++; h.r.update(React.createElement(h.C)); });
   assert.equal(a.current(), false); assert.equal(h.props().home.agreementPrompts.accountId, A); await h.stop();
 });
+
+test('Own task page service contract forwards Home cancellation through the receipt and RPC transport', () => {
+  const fs = require('node:fs');
+  const service = fs.readFileSync('src/data/needClientService.ts', 'utf8');
+  const ports = fs.readFileSync('src/data/ports.ts', 'utf8');
+  assert.match(ports, /mojePotrebeStrana\(request: OwnTasksPageRequest, options\?: \{ includeUrgency\?: boolean; signal\?: AbortSignal \}\)/);
+  assert.match(service, /const signal = options\?\.signal;[\s\S]*?if \(signal\?\.aborted\) throw new Error\('OWN_TASKS_PAGE_RETIRED'\);[\s\S]*?readOwnedResult\(\{[\s\S]*?signal,[\s\S]*?request: readSignal =>[\s\S]*?rpc\.abortSignal\(readSignal\)/);
+  assert.match(service, /if \(signal\?\.aborted\) throw new Error\('OWN_TASKS_PAGE_RETIRED'\);[\s\S]*?readNeedUrgencies\(documents\)[\s\S]*?if \(signal\?\.aborted\) throw new Error\('OWN_TASKS_PAGE_RETIRED'\)/);
+});

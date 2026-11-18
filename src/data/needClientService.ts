@@ -198,14 +198,22 @@ export const needClientService: NeedReadService = {
     if (!isOwnTasksPageRequest(request)) throw new Error('OWN_TASKS_PAGE_INVALID');
     const args: Record<string, unknown> = { p_scope: request.scope, p_limit: request.limit };
     if (request.cursor) { args.p_before_at = request.cursor.at; args.p_before_id = request.cursor.id; }
+    const signal = options?.signal;
+    if (signal?.aborted) throw new Error('OWN_TASKS_PAGE_RETIRED');
     const result = await readOwnedResult({
-      request: () => supabase.rpc('rpc_list_my_needs_page', args),
+      signal,
+      request: readSignal => {
+        const rpc = supabase.rpc('rpc_list_my_needs_page', args);
+        return typeof rpc.abortSignal === 'function' ? rpc.abortSignal(readSignal) : rpc;
+      },
       decode: raw => decodeOwnTasksPage(raw, request, mapNeed),
       errors: {}, fallback: 'OWN_TASKS_PAGE_UNAVAILABLE', invalid: 'OWN_TASKS_PAGE_INVALID',
     });
     if (!result.ok) throw new Error(result.kod);
+    if (signal?.aborted) throw new Error('OWN_TASKS_PAGE_RETIRED');
     const { documents, ...page } = result.podatak;
     const urgency = options?.includeUrgency === false ? null : await readNeedUrgencies(documents);
+    if (signal?.aborted) throw new Error('OWN_TASKS_PAGE_RETIRED');
     return { ...page, items: page.items.map(item => ({ ...item, urgency: urgency?.get(item.id) })) };
   },
 
