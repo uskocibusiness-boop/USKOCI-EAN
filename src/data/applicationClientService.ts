@@ -133,12 +133,16 @@ export const applicationClientService: ApplicationLifecycleService = {
    * on the first page, the four counts of the tabs. A page that does not add up is an invalid read, never a short one. Needs the ex04b server contract: a build
    * flag keeps the screen on `mojePrijave` until DEV has it.
    */
-  async mojePrijaveStrana(request) {
+  async mojePrijaveStrana(request, options) {
     if (!isOwnApplicationsPageRequest(request)) throw new Error('OWN_APPLICATIONS_PAGE_INVALID');
     const args: Record<string, unknown> = { p_scope: request.scope, p_limit: request.limit };
     if (request.cursor) { args.p_before_at = request.cursor.at; args.p_before_id = request.cursor.id; args.p_before_rank = request.cursor.rank; }
     const result = await readOwnedResult({
-      request: () => supabase.rpc('rpc_list_my_applications_page', args),
+      request: signal => {
+        const query = supabase.rpc('rpc_list_my_applications_page', args);
+        return typeof query.abortSignal === 'function' ? query.abortSignal(signal) : query;
+      },
+      signal: options?.signal,
       decode: raw => decodeOwnApplicationsPage(raw, request, document => mapApplication(document, { facts: 'required' })),
       errors: {}, fallback: 'OWN_APPLICATIONS_PAGE_UNAVAILABLE', invalid: 'OWN_APPLICATIONS_PAGE_INVALID',
     });
