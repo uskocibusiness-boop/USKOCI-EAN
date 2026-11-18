@@ -19,7 +19,6 @@ import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceMod
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
 import { indexFullCatalog, loadFullCatalogTree, buildWorkerFullTreeTaxonomyProposals, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
-import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
 import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationIntentSchema,
   takeConversationIntent, intentAllowsDomain, guardInterviewIntentOutput, conversationIntentHint,
   workerServiceChangesSchema, workerServiceChangesInstruction, applyWorkerServiceChanges, clarificationQuestion } from '../_shared/conversationIntent.mjs';
@@ -422,33 +421,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   const responseSchema=serviceModeContext ? workerServiceModeSchema(interviewSchema) : interviewSchema;
   if (singlePassActive && serviceModeContext)
     responseSchema.required=[...(responseSchema.required ?? []),'serviceModeChangesJson'];
-  let cachedContentResource: string | null = null;
-  if (!durableInput && needsWorkerTree && fullCatalog?.catalogVersion) {
-    cachedContentResource = await getOrCreateGeminiContextCache({
-      geminiApiKey: key,
-      catalogVersion: fullCatalog.catalogVersion,
-      catalog: fullCatalog,
-      model,
-      signal: research?.signal,
-      purpose: 'WORKER_CAPABILITY',
-    });
-  }
-
-  body = cachedContentResource
-    ? JSON.stringify({
-        cachedContent: cachedContentResource,
-        contents: augmentedHistory,
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
-          responseMimeType: 'application/json',
-          responseSchema,
-          thinkingConfig: {
-            thinkingBudget: 0,
-          },
-        },
-      })
-    : JSON.stringify({
+  body = JSON.stringify({
         systemInstruction: { parts: stableSystemParts },
         contents: augmentedHistory,
         generationConfig: {
