@@ -44,7 +44,7 @@ test('Need and Worker use separate role instructions, not a mixed shared busines
   const needEdge = fs.readFileSync(path.join(root, 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8');
   const workerEdge = fs.readFileSync(path.join(root, 'supabase/functions/uskoci-worker-interview/index.ts'), 'utf8');
   assert.match(needEdge, /'UNKNOWN nije potvrđeno\.'/u);
-  assert.doesNotMatch(needEdge, /Činjenice izvodите iz razgovora/u);
+  assert.doesNotMatch(needEdge, /Činjenice izvodite iz razgovora/u);
   assert.doesNotMatch(workerEdge, /If the person asks for help from another worker rather than describing their own work/u);
   assert.match(needEdge, /needConversationInstruction\(\)/u);
   assert.match(needEdge, /needConversationIntentInstruction\(\)/u);
