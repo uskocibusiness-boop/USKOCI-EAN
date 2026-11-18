@@ -63,7 +63,7 @@ function Home() {
       // aggregates; bounded preview carousels load alongside them. Agreement prompt pages are read only by the open panel.
       const [needs, applications, agreements, attention, opportunities, agreementCarousel] = await Promise.all([
         readHomeSection(readSignal => source.mojePotrebe({ includeUrgency: false, signal: readSignal }), signal),
-        readHomeSection(async () => {
+        readHomeSection(async readSignal => {
           const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 6, cursor: null }, { signal: readSignal });
           if (!page.counts) throw new Error('HOME_APPLICATION_COUNTS_UNAVAILABLE');
           return { counts: page.counts, items: page.items ?? [] };
