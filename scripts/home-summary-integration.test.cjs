@@ -264,3 +264,39 @@ test('Own task page service contract forwards Home cancellation through the rece
   assert.match(service, /const signal = options\?\.signal;[\s\S]*?if \(signal\?\.aborted\) throw new Error\('OWN_TASKS_PAGE_RETIRED'\);[\s\S]*?readOwnedResult\(\{[\s\S]*?signal,[\s\S]*?request: readSignal =>[\s\S]*?rpc\.abortSignal\(readSignal\)/);
   assert.match(service, /if \(signal\?\.aborted\) throw new Error\('OWN_TASKS_PAGE_RETIRED'\);[\s\S]*?readNeedUrgencies\(documents, signal\)[\s\S]*?if \(signal\?\.aborted\) throw new Error\('OWN_TASKS_PAGE_RETIRED'\)/);
 });
+
+
+test('Own task page cancellation settles an abort-ignoring receipt and is classified as retirement', async () => {
+  const fs = require('node:fs');
+  const h = createHarness({
+    'src/store/sesija.ts': { sesijaSada: () => ({ user: { id: A }, accountRevision: 1 }) },
+    'src/data/supabaseClient.ts': { supabaseKlijent: () => ({}) },
+  });
+  const { readOwnedResult } = h.load('src/data/serverReceipt.ts');
+  const controller = new AbortController();
+  let transportSignal, resolveTransport;
+  const receiptPromise = readOwnedResult({
+    signal: controller.signal,
+    request: signal => {
+      transportSignal = signal;
+      return new Promise(resolve => { resolveTransport = resolve; });
+    },
+    decode: value => value === 'valid' ? value : null,
+    errors: {}, fallback: 'OWN_TASKS_PAGE_UNAVAILABLE', invalid: 'OWN_TASKS_PAGE_INVALID',
+  });
+  controller.abort();
+  const receipt = await receiptPromise;
+  assert.equal(transportSignal.aborted, true, 'the owned RPC transport must receive cancellation');
+  assert.equal(receipt.ok, false);
+  assert.equal(receipt.kod, 'OWN_TASKS_PAGE_UNAVAILABLE', 'the receipt helper fails closed when transport ignores abort');
+  resolveTransport({ data: 'valid', error: null });
+  await Promise.resolve();
+  assert.equal(receipt.ok, false, 'a late successful response cannot replace the cancelled receipt');
+
+  const service = fs.readFileSync('src/data/needClientService.ts', 'utf8');
+  const start = service.indexOf('const result = await readOwnedResult({', service.indexOf('async mojePotrebeStrana'));
+  const retired = service.indexOf("if (signal?.aborted) throw new Error('OWN_TASKS_PAGE_RETIRED');", start);
+  const unavailable = service.indexOf('if (!result.ok) throw new Error(result.kod);', start);
+  assert.ok(start >= 0 && retired > start && unavailable > retired,
+    'service must classify an aborted page as retired before exposing the receipt fallback');
+});
