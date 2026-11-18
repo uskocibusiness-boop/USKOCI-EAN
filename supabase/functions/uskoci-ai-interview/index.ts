@@ -1794,14 +1794,16 @@ Deno.serve(async (req: Request) => {
         const catalog = preparedRecovery.snapshot.input.catalog;
         fullCatalog = catalog ? indexFullCatalog(catalog.catalogVersion,catalog.catalogFingerprint,catalog.categories,true) : null;
       } else if (singlePassActive) {
-        fullCatalog = await measureAiPhase('NEED_FULL_CATALOG', () => loadFullCatalogTree(
-          (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? research!.signal, t ?? 2500),
-          research.signal)).catch(() => null);
-        pendingClarificationHint = await fetchUnconsumedClarificationHint(
-          null,
-          conversationId,
-          taskDraftRevision
-        ).catch(() => null);
+        // These reads are independent: start both before awaiting either so
+        // catalog latency does not serially delay the clarification hint (or vice versa).
+        const [catalog, clarificationHint] = await Promise.all([
+          measureAiPhase('NEED_FULL_CATALOG', () => loadFullCatalogTree(
+            (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? research!.signal, t ?? 2500),
+            research.signal)).catch(() => null),
+          fetchUnconsumedClarificationHint(null, conversationId, taskDraftRevision).catch(() => null),
+        ]);
+        fullCatalog = catalog;
+        pendingClarificationHint = clarificationHint;
       }
       // An existing category cannot predict whether this message changes work,
       // scope or execution. Keep the already loaded compact catalog and its
