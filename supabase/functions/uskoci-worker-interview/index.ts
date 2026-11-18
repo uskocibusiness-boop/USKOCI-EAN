@@ -1,4 +1,5 @@
 import { measureAiPhase, recordGeminiUsage } from '../_shared/aiPhaseTiming.mjs';
+import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
 import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 import { aiProviderRuntimeEnabled, taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
@@ -219,9 +220,9 @@ function instruction() {
 ${workerConversationInstruction()}
 ${workerConversationIntentInstruction()}
 ${workerServiceChangesInstruction()}
-WORKER INTAKE (WORKER_PROFILE_V1): understand what ONE person actually offers, how, where and when. The phone already introduced the flow. Do not interview them about an imaginary customer task’s size/price/materials/deadline. Never claim a route changed or a task was published. If mixed or unclear, ask one short intention question. Address people with Vi/Vam/Vas.
+WORKER INTAKE (WORKER_PROFILE_V1): understand what ONE person genuinely knows how to do, what they want to offer, how they prefer to work and what their real limits are. The phone already introduced the flow. Make this feel like a friendly, capable business conversation—not onboarding paperwork. There is NO fixed order for services, execution mode, territory, availability or bio. Follow the person's story and ask the next question that naturally helps define the services they actually want to provide. Briefly acknowledge meaningful context without mechanically repeating every field. If the person is unsure what to offer, explore real skills and experience with examples as conversation starters; examples never become confirmed services. Do not interview them about an imaginary customer's task size, price, materials or deadline. Ask one concise question only when it genuinely moves the profile forward. Never claim a route changed or a task was published. If mixed or unclear, ask one short intention question. Address people with Vi/Vam/Vas.
 patch contains only declared changes; omission preserves data. Required patch.availability=null when unchanged (server removes it); REVIEW/BLOCK or finish-only: patch {availability:null}.
-Priorities: offered services, genuinely unclear execution, ON_SITE territory, relevant availability. Calendar detail/bio are optional to ask for, never optional to record when the current user clearly provides them. Apply all complete current corrections before offering review; do not drop supplied hours because the profile is already ready. Once specific services, their supported modes and required ON_SITE territory are clear, stop optional questions proactively, without waiting for any finish phrase. The app independently verifies signed review readiness; no automatic Save/activation. Record independent clear corrections while clarifying another. Change services only through serviceChanges, preserve unmentioned services and keep distinct services separate. English knowledge/van ownership do not imply translation/transport. Related-service suggestions require explicit agreement; never add examples as offers or market unrelated errands to a professional.
+Use the current conversation to decide what matters next; offered services, supported execution modes and required ON_SITE territory must be clear before review. Calendar detail and bio are optional to ask for, but never optional to record when the current user clearly provides them. Apply all complete current corrections before offering review; do not drop supplied hours because the profile is already ready. Once specific services, their supported modes and required ON_SITE territory are clear, stop optional questions proactively, without waiting for any finish phrase. The app independently verifies signed review readiness; no automatic Save/activation. Record independent clear corrections while clarifying another. Change services only through serviceChanges, preserve unmentioned services and keep distinct services separate. English knowledge/van ownership do not imply translation/transport. Related-service suggestions require explicit agreement; never add examples as offers or market unrelated errands to a professional.
 Modes/handoff use per-service metadata, not extra patch fields/skills. No home city/address/GPS interview; REMOTE-only needs no city. Country is not inferred from language. Do not ask for equipment inventory, licenses, certificates or permanent team capacity. The legacy tools/vehicles arrays remain read-only and private: never output them or present old equipment as review/matching evidence. Only explicitly user-stated vehicle, capacity and tool facts relevant to their work belong in bio as descriptive claims; retain exact numbers and units, including stated limits or absence. Ownership never adds a service or mode and these details never delay readiness. Do not invent experience, verification, ratings, priority or legal eligibility.
 For ON_SITE, ask for the city and area where the person WANTS TO WORK when that work territory is missing; this is required work coverage, not their home address. A BOTH service or a mixed REMOTE/ON_SITE profile still needs territory for its ON_SITE work. Keep known areas and ask only the missing extent; never ask the same city again. REMOTE-only digital work does not require a city or physical address.
 ON_SITE patch.areaRequests is a COMPLETE list (max 5), preserving untouched areas. COUNTRY/RS: query="", radiusKm=null. CITY: nominative locality, radiusKm=null. RADIUS: locality + explicit 1–200 km. Novi Sad i Beograd = two CITY areas; i okolina needs km. Server resolves places: no coordinates/sourceRef/workAreas or simultaneous legacy patch.location. Unsupported region/cross-border scope: explain and ask Serbian cities/all Serbia; never silently narrow or substitute a giant radius. Search radius changes do not remove service areas.
@@ -421,8 +422,16 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   const responseSchema=serviceModeContext ? workerServiceModeSchema(interviewSchema) : interviewSchema;
   if (singlePassActive && serviceModeContext)
     responseSchema.required=[...(responseSchema.required ?? []),'serviceModeChangesJson'];
+  // Share the stable WORKER instruction/catalog prefix across sessions. Keep
+  // profile, history, clarification and runtime context outside the cache.
+  const cachedContent = needsWorkerTree && fullCatalog ? await getOrCreateGeminiContextCache({
+    geminiApiKey: key, model, purpose: 'WORKER_CAPABILITY',
+    catalogVersion: fullCatalog.catalogVersion,
+    catalogFingerprint: fullCatalog.catalogFingerprint,
+    systemInstructionParts: stableSystemParts, signal: research.signal,
+  }) : null;
   body = JSON.stringify({
-        systemInstruction: { parts: stableSystemParts },
+        ...(cachedContent ? { cachedContent } : { systemInstruction: { parts: stableSystemParts } }),
         contents: augmentedHistory,
         generationConfig: {
           temperature: 0.2,

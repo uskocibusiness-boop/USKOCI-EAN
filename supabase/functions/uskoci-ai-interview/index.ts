@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { measureAiPhase, recordGeminiUsage } from '../_shared/aiPhaseTiming.mjs';
+import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
 import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 import { aiProviderRuntimeEnabled, taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
@@ -541,7 +542,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     return `${key}:${definition.valueType}${definition.requiredForDraft ? ' required' : ''}${definition.privacyClass === 'PRIVATE' ? ' private' : ''}`;
   }).join(', ');
   return [
-    'TASK INTAKE: ONE concrete job. Prioritize missing scope, execution/place, time, budget/offers. When user supplies multiple facts at once (e.g. job, location, time, budget), capture and propose ALL of them immediately in this turn—never re-ask what was already stated! Ask at most ONE short, natural question per message only for the next truly missing fact—NEVER combine multiple questions into a single message! NEVER use the word "cena" / "cenu" / "predviđena cena" when asking the user—always use "okvirni budžet ili ponude". As soon as required facts are known, set dialogue.next=REVIEW and stop optional questions without waiting for a finish phrase; this is only an intent, server review and Publish remain separate. Use the declared schema.',
+    'CONVERSATIONAL TASK INTAKE: ONE concrete job. First understand what the person is trying to accomplish and the situation behind the request. Respond to that context naturally, like a capable person helping in a real conversation—not like a form, checklist, survey or fixed script. There is NO fixed order for scope, place, time, people or budget: choose the single most useful next question from the user’s story, the task type, confirmed facts and what materially affects execution. If the person explains why they need the task (for example, spremanje stana za rođendan), use that context to clarify the real need before moving to logistics. Capture every fact volunteered in the current message and never ask again for facts already present in history or server facts. Ask at most ONE concise, contextual follow-up. Leave optional details for later agreement; do not ask merely because a schema field is empty. NEVER use the word "cena" / "cenu" / "predviđena cena" when asking the user—always use "okvirni budžet ili ponude". As soon as business essentials are clear, set dialogue.next=REVIEW and stop optional questions; this is only an intent, server review and Publish remain separate. Use the declared schema.',
     ...commonInstruction(),
     needConversationIntentInstruction(),
     'ROLE BOUNDARY: You create a task that someone ELSE needs done, not a list of services this person offers. If their message clearly says they offer their own work, do not ask for a customer task deadline, tools or price: return an ANSWER, no fact proposals, and politely explain that the separate AI assistant for the radni profil can help. The app offers the actual switch; never claim navigation or Save happened. If they both offer and request work, ask just one question to clarify the intent. Address users formally with Vi/Vam/Vas.',
@@ -936,6 +937,14 @@ async function callGemini(
     ? (locationContext ? locationProviderSchema(v2ProviderSchema(maxProposals)) : v2ProviderSchema(maxProposals))
     : legacyProviderSchema();
   const responseSchema = singlePass ? withSinglePassTaxonomySchema(factSchema) : factSchema;
+  // Cache only role-wide instructions and the versioned catalog. User history,
+  // facts, location and time remain request-local and are never stored in cache.
+  const cachedContent = singlePass?.catalog ? await getOrCreateGeminiContextCache({
+    geminiApiKey: key, model, purpose: 'NEED_SERVICE',
+    catalogVersion: singlePass.catalog.catalogVersion,
+    catalogFingerprint: singlePass.catalog.catalogFingerprint,
+    systemInstructionParts: stableSystemParts, signal,
+  }) : null;
 
   const augmentedContents = [
     ...(runtimeParts.length ? [{
@@ -949,7 +958,7 @@ async function callGemini(
   ];
 
 payloadBody = JSON.stringify({
-      systemInstruction: { parts: stableSystemParts },
+      ...(cachedContent ? { cachedContent } : { systemInstruction: { parts: stableSystemParts } }),
       contents: augmentedContents,
       generationConfig: {
         temperature: 0.7,

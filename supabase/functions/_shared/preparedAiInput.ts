@@ -31,11 +31,16 @@ function validInput(input: any, options: PreparedReadOptions): boolean {
     || !input.userText.trim() || input.userText.length > 4000
     || new TextEncoder().encode(JSON.stringify(input)).byteLength > 262144) return false;
   const request = input.providerRequest;
-  if (!exact(request,['systemInstruction','contents','generationConfig'])
-    || !exact(request.systemInstruction,['parts']) || !Array.isArray(request.systemInstruction.parts)
+  const hasInlineInstruction = exact(request,['systemInstruction','contents','generationConfig'])
+    && exact(request.systemInstruction,['parts']) && Array.isArray(request.systemInstruction.parts);
+  const hasCachedInstruction = exact(request,['cachedContent','contents','generationConfig'])
+    && typeof request.cachedContent === 'string'
+    && /^cachedContents\/[A-Za-z0-9_-]+$/.test(request.cachedContent);
+  if ((!hasInlineInstruction && !hasCachedInstruction)
     || !Array.isArray(request.contents) || !request.contents.length || request.contents.length > 102) return false;
   const textParts = (parts: any) => Array.isArray(parts) && parts.every(p => exact(p,['text']) && typeof p.text === 'string');
-  if (!textParts(request.systemInstruction.parts) || !request.contents.every((item: any) =>
+  if (hasInlineInstruction && !textParts(request.systemInstruction.parts)) return false;
+  if (!request.contents.every((item: any) =>
     exact(item,['role','parts']) && ['user','model'].includes(item.role) && textParts(item.parts))) return false;
   const config = request.generationConfig;
   if (!exact(config,['temperature','maxOutputTokens','responseMimeType','responseSchema','thinkingConfig'])

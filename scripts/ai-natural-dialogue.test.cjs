@@ -59,6 +59,10 @@ test('task intake prompt rewrites the whole task only for an explicit scope repl
   assert.match(scope.prompt, /rewrite the complete title and description from the correction/);
   assert.match(scope.prompt, /A date, price or location correction alone does not replace the task/);
   assert.match(scope.prompt, /Do not ask trade-specific size, material or tool questions for errands/);
+  assert.match(scope.prompt, /NO fixed order for scope, place, time, people or budget/);
+  assert.match(scope.prompt, /situation behind the request/);
+  assert.match(scope.prompt, /spremanje stana za rođendan/);
+  assert.doesNotMatch(scope.prompt, /Prioritize missing scope, execution\/place, time, budget\/offers/);
 });
 
 test('B: facts from the current message prevent a repeated people question', () => {
@@ -191,6 +195,9 @@ test('G: active Worker prompt requires ON_SITE/BOTH work coverage and keeps REMO
   assert.match(scope.prompt,/preserve unmentioned services and keep distinct services separate/);
   assert.match(scope.prompt,/explicitly replaces or narrows the overall profile focus, rewrite the complete bio/);
   assert.match(scope.prompt,/service additions\/removals still go only through serviceChanges/);
+  assert.match(scope.prompt,/NO fixed order for services, execution mode, territory, availability or bio/);
+  assert.match(scope.prompt,/friendly, capable business conversation—not onboarding paperwork/);
+  assert.doesNotMatch(scope.prompt,/Priorities: offered services, genuinely unclear execution/);
 });
 
 test('known two-city work coverage is preserved without another lookup or home address',async()=>{
