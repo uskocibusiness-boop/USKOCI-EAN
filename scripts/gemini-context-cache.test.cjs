@@ -27,15 +27,17 @@ test('creates one immutable cache and reuses it inside the Edge isolate', async 
     createBody = JSON.parse(init.body);
     return response({ name: 'cachedContents/need-v17', expireTime: new Date(Date.now() + 3600000).toISOString() });
   };
-  const first = await getOrCreateGeminiContextCache(options(fetcher));
-  const second = await getOrCreateGeminiContextCache(options(fetcher));
+  const [first, second] = await Promise.all([
+    getOrCreateGeminiContextCache(options(fetcher)),
+    getOrCreateGeminiContextCache(options(fetcher)),
+  ]);
   assert.equal(first, 'cachedContents/need-v17');
   assert.equal(second, first);
   assert.equal(listCalls, 1);
   assert.equal(createCalls, 1);
   assert.equal(createBody.model, 'models/gemini-3.8-flash');
   assert.equal(createBody.ttl, '3600s');
-  assert.equal(createBody.systemInstruction.role, 'system');
+  assert.equal(createBody.systemInstruction.role, undefined);
   assert.match(createBody.displayName, /^uskoci-need_service-17-/);
   assert.equal(createBody.systemInstruction.parts[0].text, 'NEED role instructions and the complete taxonomy tree.');
   assert.equal(createBody.contents.length, 2);
@@ -80,9 +82,11 @@ test('NEED and WORKER or changed catalog/prompt fingerprints never share the sam
   const need = await getOrCreateGeminiContextCache(options(fetcher));
   const worker = await getOrCreateGeminiContextCache(options(fetcher, { purpose: 'WORKER_CAPABILITY' }));
   const newer = await getOrCreateGeminiContextCache(options(fetcher, { catalogVersion: 18 }));
+  const changedPrompt = await getOrCreateGeminiContextCache(options(fetcher, { systemInstructionParts: [{ text: 'Updated NEED instructions and tree.' }] }));
   assert.equal(need, 'cachedContents/cache-1');
   assert.equal(worker, 'cachedContents/cache-2');
   assert.equal(newer, 'cachedContents/cache-3');
+  assert.equal(changedPrompt, 'cachedContents/cache-4');
 });
 
 test('provider cache failure safely falls back to the inline instruction path', async () => {
@@ -102,8 +106,9 @@ test('prepared-input validation accepts a cachedContent reference without accept
   const js = ts.transpileModule(source, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText;
+  const vm = require('node:vm');
   const exports = {};
-  new Function('exports', js)(exports);
+  vm.runInNewContext(js, { exports, require, crypto: globalThis.crypto });
   const identity = {
     p_account_id: '11111111-1111-4111-8111-111111111111',
     p_conversation_id: '22222222-2222-4222-8222-222222222222',
@@ -146,4 +151,10 @@ test('prepared-input validation accepts a cachedContent reference without accept
     attemptId: snapshot.attemptId, input,
   });
   assert.equal(prepared.snapshot.input.providerRequest.cachedContent, 'cachedContents/test-cache');
+  const mixedInput = JSON.parse(JSON.stringify(input));
+  mixedInput.providerRequest.systemInstruction = { parts: [{ text: 'must not coexist with cachedContent' }] };
+  await assert.rejects(exports.prepareAiInput({
+    rpc, identity, purpose: 'NEED_SERVICE', userText: input.userText,
+    attemptId: snapshot.attemptId, input: mixedInput,
+  }), /R06_INPUT_INVALID/);
 });

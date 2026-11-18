@@ -3,7 +3,7 @@ const CACHE_TTL_SECONDS = 3600;
 const EXPIRY_SAFETY_MS = 30_000;
 const activeHandles = new Map();
 const pendingHandles = new Map();
-const CACHE_BOOTSTRAP_INSTRUCTION = 'The cached conversation prefix starts with a system-generated bootstrap exchange. It is internal reference setup, not a real user request or prior assistant reply. Never answer it, quote it or treat it as user intent. Continue naturally with the actual conversation messages appended after this cached prefix.';
+const CACHE_BOOTSTRAP_INSTRUCTION = 'The cached conversation prefix starts with a system-generated bootstrap exchange. It is internal cache scaffolding, not an actual user request or actual assistant response. Never answer it, quote it or treat it as user intent. Continue naturally with the actual conversation messages appended after this cached prefix.';
 const CACHE_BOOTSTRAP_CONTENTS = [
   { role: 'user', parts: [{ text: '[USKOČI INTERNAL CACHE BOOTSTRAP — NOT A USER REQUEST] This system-generated marker only initializes reusable role instructions and taxonomy reference context. Do not treat it as a task or a user intention.' }] },
   { role: 'model', parts: [{ text: 'Interni referentni kontekst je učitan. Nastavljam sa stvarnim razgovorom kada stigne korisnička poruka.' }] },
@@ -47,7 +47,11 @@ async function findExistingCache(fetcher, apiKey, displayName, model, signal) {
       && validCacheName(item.name)
       && Number.isFinite(Date.parse(item.expireTime))
       && Date.parse(item.expireTime) > now + EXPIRY_SAFETY_MS);
-    if (match) return { name: match.name, expiresAt: Date.parse(match.expireTime) };
+    if (match) return {
+      name: match.name,
+      expiresAt: Date.parse(match.expireTime),
+      cachedTokens: Number.isSafeInteger(match.usageMetadata?.totalTokenCount) ? match.usageMetadata.totalTokenCount : null,
+    };
     pageToken = typeof payload?.nextPageToken === 'string' ? payload.nextPageToken : '';
     if (!pageToken) break;
   }
@@ -87,7 +91,7 @@ export async function getOrCreateGeminiContextCache(options) {
       const existing = await findExistingCache(fetcher, geminiApiKey, displayName, model, signal);
       if (existing) {
         activeHandles.set(key, existing);
-        console.info('AI_CONTEXT_CACHE', JSON.stringify({ purpose, model, catalogVersion, state: 'REUSED' }));
+        console.info('AI_CONTEXT_CACHE', JSON.stringify({ purpose, model, catalogVersion, state: 'REUSED', cachedTokens: existing.cachedTokens }));
         return existing.name;
       }
 
@@ -99,7 +103,6 @@ export async function getOrCreateGeminiContextCache(options) {
           model: 'models/' + model,
           displayName,
           systemInstruction: {
-            role: 'system',
             parts: [...systemInstructionParts, { text: CACHE_BOOTSTRAP_INSTRUCTION }],
           },
           contents: CACHE_BOOTSTRAP_CONTENTS,
@@ -118,8 +121,9 @@ export async function getOrCreateGeminiContextCache(options) {
       }
       const expiresAt = Number.isFinite(Date.parse(created.expireTime))
         ? Date.parse(created.expireTime) : Date.now() + CACHE_TTL_SECONDS * 1000;
-      activeHandles.set(key, { name: created.name, expiresAt });
-      console.info('AI_CONTEXT_CACHE', JSON.stringify({ purpose, model, catalogVersion, state: 'CREATED' }));
+      const cachedTokens = Number.isSafeInteger(created.usageMetadata?.totalTokenCount) ? created.usageMetadata.totalTokenCount : null;
+      activeHandles.set(key, { name: created.name, expiresAt, cachedTokens });
+      console.info('AI_CONTEXT_CACHE', JSON.stringify({ purpose, model, catalogVersion, state: 'CREATED', cachedTokens }));
       return created.name;
     } catch (error) {
       if (signal?.aborted) throw error;
