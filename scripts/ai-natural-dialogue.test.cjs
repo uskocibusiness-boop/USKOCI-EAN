@@ -62,6 +62,11 @@ test('task intake prompt rewrites the whole task only for an explicit scope repl
   assert.match(scope.prompt, /NO fixed order for scope, place, time, people or budget/);
   assert.match(scope.prompt, /situation behind the request/);
   assert.match(scope.prompt, /spremanje stana za rođendan/);
+  assert.match(scope.prompt, /Korisnikovo vremensko određenje tumačite prirodno i semantički/);
+  assert.match(scope.prompt, /REMOTE je isključivo način rada na daljinu u geografiji/);
+  assert.match(scope.prompt, /samo kada korisnik izričito naglasi da nema nikakvog termina ili roka/);
+  assert.match(scope.prompt, /online sastanak ili čas u zakazano vreme je FIXED_WINDOW/);
+  assert.match(scope.prompt, /remote posao sa rokom je FLEXIBLE/);
   assert.doesNotMatch(scope.prompt, /Prioritize missing scope, execution\/place, time, budget\/offers/);
 });
 
