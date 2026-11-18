@@ -33,7 +33,6 @@ import { preparedAiInputEnabled, readPreparedInput, readPreparedInputByIdentity,
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { decodeServiceHandoff } from '../_shared/serviceHandoff.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
-import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
 import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationIntentSchema,
   takeConversationIntent, intentAllowsDomain, guardInterviewIntentOutput, conversationIntentHint } from '../_shared/conversationIntent.mjs';
 import { needConversationIntentInstruction } from '../_shared/needConversationIntentInstruction.mjs';
@@ -949,34 +948,7 @@ async function callGemini(
     ...contents,
   ];
 
-  let cachedContentResource: string | null = null;
-  if (!prepared && singlePass?.catalog?.catalogVersion) {
-    cachedContentResource = await getOrCreateGeminiContextCache({
-      geminiApiKey: key,
-      catalogVersion: singlePass.catalog.catalogVersion,
-      catalog: singlePass.catalog,
-      model,
-      signal,
-      purpose: 'NEED_SERVICE',
-    });
-  }
-
-  if (cachedContentResource) {
-    payloadBody = JSON.stringify({
-      cachedContent: cachedContentResource,
-      contents: augmentedContents,
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
-        responseMimeType: 'application/json',
-        responseSchema,
-        thinkingConfig: {
-          thinkingBudget: 0,
-        },
-      },
-    });
-  } else {
-    payloadBody = JSON.stringify({
+payloadBody = JSON.stringify({
       systemInstruction: { parts: stableSystemParts },
       contents: augmentedContents,
       generationConfig: {
@@ -989,7 +961,6 @@ async function callGemini(
         },
       },
     });
-  }
   if (prepared) {
     // The first invocation persists this exact body before dispatch. A new
     // process uses its saved body, not a newly assembled prompt or cache handle.
