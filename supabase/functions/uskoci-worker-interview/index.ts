@@ -24,6 +24,7 @@ import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationI
   takeConversationIntent, intentAllowsDomain, guardInterviewIntentOutput, conversationIntentHint,
   workerServiceChangesSchema, workerServiceChangesInstruction, applyWorkerServiceChanges, clarificationQuestion } from '../_shared/conversationIntent.mjs';
 import { workerConversationIntentInstruction } from '../_shared/workerConversationIntentInstruction.mjs';
+import { guardWorkerEquipmentOutput } from '../_shared/workerEquipmentGuard.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>Deno.env.get(key));
@@ -192,39 +193,6 @@ export function parseWorkerOutput(raw: unknown) {
   return value;
 }
 
-// Reuse the bounded legacy vocabulary only to reject a concrete false draft
-// acknowledgement when no biography exists and none was proposed. This does
-// not classify the user's intent, infer work, or prohibit descriptive facts.
-const equipmentNoun = '(?:kombi(?:ja|jem|ju)?|vozil(?:o|a|u|om|ima)|auto(?:mobil(?:a|u|om)?|m|u|a)?|kamion(?:a|u|om)?|prikolic(?:a|u|e|om)|alat(?:a|e|i|om)?|busilic(?:a|u|e|om)|kolic(?:a|ima)|merdevin(?:e|a|ama)|tester(?:a|u|e|om)|masin(?:a|u|e|om)|bicikl(?:a|u|om)?|skuter(?:a|u|om)?)';
-const equipmentDraftAcknowledgement = new RegExp(`(?:^|[.!]\\s+)(?:(?:novi|nova|novo|moj|moja|moje)\\s+)?${equipmentNoun}\\s+(?:je\\s+)?(?:dodat|dodata|dodato|zabelezen|zabelezena|zabelezeno|upisan|upisana|upisano|unet|uneta|uneto|uklonjen|uklonjena|uklonjeno|obrisan|obrisana|obrisano)\\s+(?:u|iz)\\s+(?:nacrt(?:a)?|opis(?:a)?|profil(?:a)?)(?=[.!]|$|\\s)`, 'u');
-const cyrillicEquipmentLetters = Object.fromEntries([
-  ['а','a'],['б','b'],['в','v'],['г','g'],['д','d'],['ђ','dj'],['е','e'],['ж','z'],['з','z'],['и','i'],['ј','j'],
-  ['к','k'],['л','l'],['љ','lj'],['м','m'],['н','n'],['њ','nj'],['о','o'],['п','p'],['р','r'],['с','s'],['т','t'],
-  ['ћ','c'],['у','u'],['ф','f'],['х','h'],['ц','c'],['ч','c'],['џ','dz'],['ш','s'],
-]);
-function equipmentReplyText(value: string) {
-  return value.toLocaleLowerCase('sr').replace(/[\u0400-\u04ff]/gu, letter => cyrillicEquipmentLetters[letter] ?? letter)
-    .normalize('NFKD').replace(/\p{M}/gu,'').replace(/\s+/gu,' ').trim();
-}
-
-// Legacy inventory fields remain unwritable. Explicit user facts belong in
-// the existing signed biography; merely mentioning equipment must not erase
-// it or replace the model's next question. SQL validates the admitted patch.
-function guardWorkerEquipmentOutput(output: Record<string,any>, candidate: Record<string,any>) {
-  const legacy=Object.hasOwn(output.patch,'tools') || Object.hasOwn(output.patch,'vehicles');
-  const unrecorded=!Object.hasOwn(output.patch,'bio') && !(typeof candidate.bio==='string' && candidate.bio.trim())
-    && equipmentDraftAcknowledgement.test(equipmentReplyText(output.assistantMessage));
-  if (!legacy && !unrecorded) return output;
-  const {tools: _tools,vehicles: _vehicles,...patch}=output.patch;
-  if (output.safety==='REVIEW' || output.safety==='BLOCK') return {...output,patch};
-  // Invalid legacy keys may also be acknowledged in the provider's prose.
-  // Report only the retained draft, never the discarded inventory operation.
-  return {...output,patch,assistantMessage:
-    typeof patch.bio==='string' && patch.bio.trim()
-      ? 'Opis profila i ostale jasne izmene su u nacrtu.'
-      : 'Izmena alata ili vozila nije zabeležena u opisu profila. '+
-        (Object.keys(patch).length ? 'Ostale jasne izmene su u nacrtu.' : 'Možete da dopunite opis kroz razgovor.')};
-}
 
 function workerRuntimeContext(context: Record<string, any>, now: string) {
   // WORKER_PROFILE_V1 keeps its legacy wire fields for installed clients. They
