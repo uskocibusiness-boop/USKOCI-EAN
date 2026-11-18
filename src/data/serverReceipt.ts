@@ -38,8 +38,12 @@ export function readReceipt<T>(options: ReceiptOptions<T> & {
   account?: ReceiptAccount;
   rpc: string;
   args: Record<string, unknown>;
+  signal?: AbortSignal;
 }): Promise<Ishod<T>> {
-  return readOwnedResult({ ...options, request: () => supabaseKlijent().rpc(options.rpc, options.args) });
+  return readOwnedResult({ ...options, request: signal => {
+    const request = supabaseKlijent().rpc(options.rpc, options.args);
+    return typeof request.abortSignal === 'function' ? request.abortSignal(signal) : request;
+  } });
 }
 
 /** Shared Auth/REST/RPC result fence; not a second business writer. An explicit
