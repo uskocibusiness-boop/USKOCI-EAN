@@ -201,3 +201,27 @@ test('Worker diagnostic: local JSON catch is closed even when diagnostics themse
     privateLogsAbsent({ logs });
   }
 });
+
+test('Worker equipment acknowledgement must match the effective biography, not merely a non-empty old bio', async () => {
+  const { guardWorkerEquipmentOutput } = await import('../supabase/functions/_shared/workerEquipmentGuard.mjs');
+  const output = (assistantMessage, patch = {}) => ({ safety: 'ALLOW', assistantMessage, patch });
+  const unrelatedBio = 'Radim keramiku i završne radove.';
+  const falseAdd = guardWorkerEquipmentOutput(output('Kombi je dodat u opis profila.', { displayName: 'Miloš' }), { bio: unrelatedBio });
+  assert.match(falseAdd.assistantMessage, /nije zabeležena/u);
+  assert.equal(falseAdd.patch.displayName, 'Miloš', 'unrelated profile edits remain intact');
+
+  const existingFact = guardWorkerEquipmentOutput(output('Kombi je dodat u opis profila.'), { bio: 'Za posao koristim kombi.' });
+  assert.equal(existingFact.assistantMessage, 'Kombi je dodat u opis profila.');
+
+  const newlyRecordedFact = guardWorkerEquipmentOutput(output('Kombi je dodat u opis profila.', { bio: 'Radim keramiku i koristim kombi za prevoz materijala.' }), { bio: unrelatedBio });
+  assert.equal(newlyRecordedFact.assistantMessage, 'Kombi je dodat u opis profila.');
+
+  const falseRemoval = guardWorkerEquipmentOutput(output('Kombi je uklonjen iz opisa profila.'), { bio: 'Za posao koristim kombi.' });
+  assert.match(falseRemoval.assistantMessage, /nije zabeležena/u);
+  const realRemoval = guardWorkerEquipmentOutput(output('Kombi je uklonjen iz opisa profila.', { bio: 'Radim keramiku.' }), { bio: 'Za posao koristim kombi.' });
+  assert.equal(realRemoval.assistantMessage, 'Kombi je uklonjen iz opisa profila.');
+
+  const legacy = guardWorkerEquipmentOutput(output('Nastavljamo.', { tools: ['alat'], vehicles: ['kombi'], bio: unrelatedBio }), { bio: unrelatedBio });
+  assert.equal(Object.hasOwn(legacy.patch, 'tools'), false);
+  assert.equal(Object.hasOwn(legacy.patch, 'vehicles'), false);
+});
