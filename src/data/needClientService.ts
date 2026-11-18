@@ -212,7 +212,7 @@ export const needClientService: NeedReadService = {
     if (!result.ok) throw new Error(result.kod);
     if (signal?.aborted) throw new Error('OWN_TASKS_PAGE_RETIRED');
     const { documents, ...page } = result.podatak;
-    const urgency = options?.includeUrgency === false ? null : await readNeedUrgencies(documents);
+    const urgency = options?.includeUrgency === false ? null : await readNeedUrgencies(documents, signal);
     if (signal?.aborted) throw new Error('OWN_TASKS_PAGE_RETIRED');
     return { ...page, items: page.items.map(item => ({ ...item, urgency: urgency?.get(item.id) })) };
   },
