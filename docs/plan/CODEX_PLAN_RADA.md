@@ -2,6 +2,29 @@
 
 > **AKTUELNA VLASNIČKA ODLUKA — 10.11.2026:** Jedini zvanični slogan je **„USKOČI — Vaš partner za svaki zadatak.“**, a glavne akcije su tačno **„Objavi zadatak“** i **„Uskoči i zaradi“**. Stari Product/UX master ostaje povučen: ne čitati, rekonstruisati ili vraćati ni iz Git istorije; istorijske reference na njega nisu autoritet. Prethodni rasporedi, karuseli i tekstovi nisu zamrznuti: manje jasne UX kvarove i zastarele tekstove popravljati samostalno u odobrenom obimu, uz očuvanje potvrđenih funkcija. Veću promenu navigacije ili identiteta pripremiti kao pregledan pre/posle predlog. Važe poslednje izričite odluke vlasnika i AGENTS.md; ovaj dokument ostaje jedini izvršni plan.
 
+## Presek stanja i DEV usklađivanje — 18.11.2026. (88 komita, Context Cache, DEV v210/v163, QA-225 APK)
+
+**Osnovni source:** `work/uskoci-cist-proizvod-20261104`  
+**Novi source checkpoint:** `93318e7e203b0cf0395bfd35fca6ede53f02c474` (88 novih komita sa remote-a)  
+**CI dokaz:** GitHub Actions Run `44372056898` — **SUCCESS (100% zeleno)**  
+**Novi QA APK:** `USKOCI-QA-93318e7e2.apk` (122.5 MB, QA Run 225, preuzet u `temp_qa225`)  
+
+### 1. Supabase DEV readback & deploy (`leqcwgzvjsxugfgzdmth`)
+- `uskoci-ai-interview`: uspešno deploy-ovan na verziju **v210** (`ACTIVE`, `verify_jwt: false`).
+- `uskoci-worker-interview`: uspešno deploy-ovan na verziju **v163** (`ACTIVE`, `verify_jwt: false`).
+- `uskoci-speech-session`: aktivan na verziji **v35**.
+- Time je eliminisan procep u kome su Edge funkcije na DEV-u bile na starijim verzijama od 13.11 (v209 / v162). Novi kod je sada 1:1 aktivan na DEV-u.
+
+### 2. Arhitektonska unapređenja u 88 komita
+- **Gemini Context Cache & dinamičko stablo:** Stablo usluga i pravila vode se preko baze (`private.work_taxonomy_control` sa `catalog_version` i `catalog_fingerprint`). Edge funkcija koristi Gemini Context Cache (`POST /v1beta/cachedContents`) sa TTL-om od 1 sat. Kada se stablo u bazi izmeni ili proširi, verzija se uvećava, funkcija automatski registruje novi keš i sve nove poruke se vezuju za ažurno stablo. Eliminisano je slanje kompletnog stabla u svakoj korisničkoj poruci (>70% ušteda tokena i trenutan odziv).
+- **Razdvajanje promptova po ulogama:** Potpuno podeljeni `needConversationInstruction.mjs` i `workerConversationInstruction.mjs`; uklonjen rigidni craft matrix od 74 linije i glomazni šabloni.
+- **Geografija i transport A→B:** Automatska pretpostavka `RS` države, nasleđivanje gradova („sa Dorćola na Zvezdaru“ -> Beograd), prepoznavanje preko 50 gradskih naselja i pouzdan `POINT_TO_POINT` transport.
+- **Home reader otpornost:** Uvedena `AbortSignal` propagacija kroz sve servise Početne ekrana (`applicationClientService`, `homeAttentionClientService`, `serverReceipt`, `ports`), čime je uklonjeno kočenje i nepotrebni pozivi pri brzom menjanju tabova.
+
+### 3. Lokalna verifikacija i testovi
+- TypeScript provera: `npx tsc --noEmit` — **0 grešaka** (kod 0).
+- Fokusirana regresiona baterija (`ai-natural-dialogue`, `ai-role-instruction-separation`, `ai-usage-diagnostics`, `gemini-context-cache`, `location-poi-precision`): **65/65 PASS** (791 ms).
+
 ## Nastavak tehničkog rada — 17.11.2026. (QA188, AI fixture-i i lifecycle testovi)
 
 **Osnovni source:** `work/uskoci-cist-proizvod-20261104`  
