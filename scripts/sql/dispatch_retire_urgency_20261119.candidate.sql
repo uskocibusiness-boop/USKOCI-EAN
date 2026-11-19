@@ -69,7 +69,7 @@ BEGIN
   SELECT md5(prosrc) body_md5, pg_get_userbyid(proowner) owner, proacl::text acl,
          prosecdef, proconfig, prokind, to_jsonb(p)-'prosrc' metadata
     INTO actual FROM pg_proc p WHERE p.oid=target;
-  IF NOT FOUND OR actual.body_md5 IS DISTINCT FROM 'bd1d2fd351d8273ddc0ce9e29514ca7'
+  IF NOT FOUND OR actual.body_md5 IS DISTINCT FROM 'bd1d2fd351d8273ddc0cce9e29514ca7'
      OR actual.owner IS DISTINCT FROM 'postgres'
      OR actual.acl IS DISTINCT FROM '{postgres=X/postgres}'
      OR actual.prosecdef IS DISTINCT FROM true
