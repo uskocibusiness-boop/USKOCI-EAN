@@ -1,4 +1,4 @@
-import { measureAiPhase, recordGeminiUsage } from '../_shared/aiPhaseTiming.mjs';
+import { createAiFirstTextRecorder, measureAiPhase, recordGeminiUsage } from '../_shared/aiPhaseTiming.mjs';
 import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
 import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 import { aiProviderRuntimeEnabled, taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
@@ -565,10 +565,10 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
 
       try {
         send('accepted');
-        // Provider deltas are suppressed; only the server-approved final message is sent
+        // First-text latency is measured internally; provider deltas are never sent to the client
         // after output guards and the exact SQL completion receipt.
         const raw=await measureAiPhase('PROVIDER', () => streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-          key,body,signal:research!.signal,onText:()=>{},
+          key,body,signal:research!.signal,onText:createAiFirstTextRecorder('WORKER',startedAt),
           onUsage:value=>{usage.value=value;},
           onUsageDetails:details=>recordGeminiUsage('WORKER',model,'SSE',details),timeoutMs:30000}));
         const {output: preparedOutput,serviceModeChangesJson,taxonomyDecisions,intentDecision,intentAllowsChanges,serviceChangesValid} = analyzeOutput(raw);

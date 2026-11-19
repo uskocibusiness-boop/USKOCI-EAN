@@ -223,11 +223,13 @@ test('provider preview text is withheld until the server accepts the completed t
   const needEdge = fs.readFileSync(path.join(ROOT, 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8');
   const workerEdge = fs.readFileSync(path.join(ROOT, 'supabase/functions/uskoci-worker-interview/index.ts'), 'utf8');
   const clientStream = fs.readFileSync(path.join(ROOT, 'src/data/aiNeedTurnStream.ts'), 'utf8');
-  assert.ok(needEdge.includes('const work = execute(undefined, abort.signal);'));
+  assert.ok(needEdge.includes("const work = execute(createAiFirstTextRecorder('NEED'), abort.signal);"));
+  assert.ok(needEdge.includes("import { createAiFirstTextRecorder, measureAiPhase, recordGeminiUsage }"));
   assert.doesNotMatch(needEdge, /kind: 'text_delta'/);
   assert.doesNotMatch(workerEdge, /previewStream/);
   assert.ok(workerEdge.includes('x-uskoci-worker-preview-stream'), 'legacy preflight remains accepted while the preview flag is ignored');
-  assert.ok(workerEdge.includes('onText:()=>{},'));
+  assert.ok(workerEdge.includes("onText:createAiFirstTextRecorder('WORKER',startedAt),"));
+  assert.ok(workerEdge.includes('First-text latency is measured internally'));
   const completed = workerEdge.indexOf("const turn=await measureAiPhase('WORKER_COMPLETE'");
   const verifiedText = workerEdge.indexOf("send('text_delta',{text:output.assistantMessage})");
   assert.ok(completed >= 0 && verifiedText > completed, 'Worker text must follow the successful completion receipt');

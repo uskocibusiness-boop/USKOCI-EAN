@@ -53,3 +53,15 @@ export function recordGeminiUsage(purpose, model, source, details) {
   try { console.info('AI_USAGE_TOKENS', JSON.stringify(event)); }
   catch { /* Count-only telemetry must never affect delivery or accounting. */ }
 }
+
+/** Records time to the first non-empty assistant text without logging or forwarding the text itself. */
+export function createAiFirstTextRecorder(purpose, startedAtMs = Date.now()) {
+  const start = Number.isFinite(startedAtMs) ? startedAtMs : Date.now();
+  let recorded = false;
+  return (delta) => {
+    if (recorded || typeof delta !== 'string' || !delta.trim()) return;
+    recorded = true;
+    try { console.info('AI_FIRST_TEXT_MS', purpose, Math.max(0, Math.round(Date.now() - start))); }
+    catch { /* Telemetry must never affect the AI turn. */ }
+  };
+}

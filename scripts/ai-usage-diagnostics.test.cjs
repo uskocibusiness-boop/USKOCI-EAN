@@ -83,3 +83,27 @@ test('telemetry logger failures never escape into the AI operation', async () =>
     console.info = original;
   }
 });
+
+
+test('first useful text telemetry records one duration and never logs provider text', async () => {
+  const { createAiFirstTextRecorder } = await import('../supabase/functions/_shared/aiPhaseTiming.mjs');
+  const originalNow = Date.now;
+  const originalInfo = console.info;
+  let now = 1000;
+  const calls = [];
+  try {
+    Date.now = () => now;
+    console.info = (...args) => calls.push(args);
+    const record = createAiFirstTextRecorder('NEED', 900);
+    record('');
+    now = 1250;
+    record('Prva korisna rečenica');
+    now = 1600;
+    record('Drugi fragment');
+  } finally {
+    Date.now = originalNow;
+    console.info = originalInfo;
+  }
+  assert.deepEqual(calls, [['AI_FIRST_TEXT_MS', 'NEED', 350]]);
+  assert.equal(JSON.stringify(calls).includes('Prva korisna rečenica'), false);
+});

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { measureAiPhase, recordGeminiUsage } from '../_shared/aiPhaseTiming.mjs';
+import { createAiFirstTextRecorder, measureAiPhase, recordGeminiUsage } from '../_shared/aiPhaseTiming.mjs';
 import { getOrCreateGeminiContextCache } from '../_shared/geminiContextCache.mjs';
 import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supabaseKeys.mjs';
 import { aiProviderRuntimeEnabled, taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
@@ -2005,7 +2005,7 @@ Deno.serve(async (req: Request) => {
         };
         emit({ kind: 'accepted' });
         try {
-          const work = execute(undefined, abort.signal);
+          const work = execute(createAiFirstTextRecorder('NEED'), abort.signal);
           void runInBackground(work);
           const result = await work;
           const data = await result.json();
