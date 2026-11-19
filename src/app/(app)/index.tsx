@@ -10,7 +10,6 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { HomePresentation } from '../../ui/home/HomePresentation';
 import { IntakeResume } from '../../ui/home/IntakeResume';
-import { rememberAiCorrection } from '../../data/aiCorrectionIntent';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 import type { HomeAgreementPromptPageRequest } from '../../data/homeAgreementsContract';
 import { homeOwnedTasksSummaryBuilt } from '../../data/homeOwnedTasksSummaryGate';
@@ -133,22 +132,15 @@ function Home() {
     else if (target.kind === 'WORKER_PROFILE') router.navigate('/profil/razgovor');
     else router.navigate({ pathname: '/moje-prijave', params: { prijavaId: target.applicationId } });
   });
-  const editAvailability = () => navigate(() => {
-    if (!user?.id) return;
-    const correction = rememberAiCorrection({ accountId: user.id, accountRevision }, 'worker.time');
-    if (correction) router.navigate({ pathname: '/profil/razgovor', params: { aiCorrection: correction.token } });
-  });
   // My own tasks and my applications are reached from here, as two front doors; "Moje aktivnosti" is no longer a
   // destination (2026-09-23). Every press keeps the focus, account and foreground guards above.
   const onProfile = () => navigate(() => router.navigate('/profil'));
-  const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
   return <HomePresentation hideWaiting={true} active={focused} header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     agreementPromptSource={agreementPromptSource}
     workProfileRead={{ loading: workerResource.loading, refreshing: workerResource.refreshing, error: workerResource.error,
       stale: !!workerResource.refreshError, onRetry: refreshWorker }}
     stale={!!resource.refreshError && !!home}
     intakeResume={<IntakeResume onOpen={conversationId => navigate(() => router.navigate({ pathname: '/nova', params: { conversationId } }))} />}
-    availableNow={profile?.state === 'ACTIVE' ? { value: profile.availableNow, onEdit: editAvailability } : undefined}
     onPublish={() => navigate(() => router.push({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }))} onEarn={() => navigate(() => router.navigate('/zadaci'))}
     onProfile={onProfile} onOpen={open}
     // One completed Dogovor waiting for my rating, named by the Dogovori read: its rating opens in one tap (critique A1,
