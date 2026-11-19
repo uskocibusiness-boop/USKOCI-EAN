@@ -58,8 +58,6 @@ export type HomePresentationProps = {
   onAgreements?: () => void;
   /** Supplied by the focused route; no prompt read until the panel is opened. */
   agreementPromptSource?: HomeAgreementPromptSource;
-  /** Saved availability is a fact; its action continues the AI conversation. */
-  availableNow?: { value: boolean; onEdit: () => void };
   /**
    * The face of the other person in the card of the next Dogovor. The route hands over the element that reads their photo (a data
    * client), exactly as it hands over the header's avatar; the presentation passes the stand-in it would draw itself
