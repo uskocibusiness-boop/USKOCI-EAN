@@ -137,7 +137,7 @@ test('selectable count fast path preserves auth, ownership and the exact SELECTA
   await local.db.exec(selectableCountCandidate);
   assert.deepEqual(await metadata(),before,'CREATE OR REPLACE must preserve function identity and security metadata');
   const helperDefinition=await local.value("select pg_get_functiondef('private.need_candidate_states_v5(uuid)'::regprocedure) as value");
-  const spy=helperDefinition.replace(/\\nbegin\\n/, "\\nbegin\\n  raise exception 'COUNT_HELPER_SHOULD_NOT_RUN';\\n");
+  const spy=helperDefinition.replace(/\nbegin\n/, "\nbegin\n  raise exception 'COUNT_HELPER_SHOULD_NOT_RUN';\n");
   assert.notEqual(spy,helperDefinition,'the helper spy must be installed');
   await local.db.exec(spy);
   for(const state of ['DRAFT','ACTIVE','COMPLETED','CANCELLED','EXPIRED','ARCHIVED']){
