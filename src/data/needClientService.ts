@@ -11,13 +11,14 @@ import { novac } from '../lib/novac';
 import { decodeOwnTasksPage, isOwnTasksPageRequest } from './ownTasksPage';
 import { endingOfStatus, type WithEnding } from './needEnding';
 import { readOwnedResult, record, timestamp } from './serverReceipt';
+import { decodeHomeOwnedTasksSummary } from './homeOwnedTasksContract';
 import { sesijaSada } from '../store/sesija';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
 });
 
-type NeedReadService = Pick<Izvor, 'mojePotrebe' | 'potreba' | 'mojePotrebeStrana'>;
+type NeedReadService = Pick<Izvor, 'mojePotrebe' | 'mojePotrebeStrana' | 'mojePotrebeZaPocetnu' | 'potreba'>;
 
 
 function stanje(
@@ -187,6 +188,22 @@ export const needClientService: NeedReadService = {
     // Home counts do not consume urgency badges. A skipped read stays unobserved, never inferred NORMAL.
     const urgency = options?.includeUrgency === false ? null : await readNeedUrgencies(data);
     return data.map(row => ({ ...mapNeed(row), urgency: urgency?.get(row.id) }));
+  },
+
+  /** Home-only bounded summary; its RPC is called only after the matching DEV build gate is enabled. */
+  async mojePotrebeZaPocetnu(options) {
+    const session = sesijaSada(), account = { accountId: session.user?.id ?? '', accountRevision: session.accountRevision };
+    const result = await readOwnedResult({ account, signal: options?.signal,
+      errors: { AUTH_REQUIRED: 'Prijavite se da otvorite Početnu.', ACCOUNT_NOT_OPEN: 'Pregled naloga trenutno nije dostupan.',
+        ACCOUNT_CLOSING: 'Nalog je u postupku zatvaranja.' },
+      fallback: 'HOME_OWN_TASKS_UNAVAILABLE', invalid: 'HOME_OWN_TASKS_INVALID',
+      decode: raw => decodeHomeOwnedTasksSummary(raw, account.accountId, mapNeed),
+      request: signal => {
+        const rpc = supabase.rpc('rpc_home_owned_tasks_summary_v1', {});
+        return typeof rpc.abortSignal === 'function' ? rpc.abortSignal(signal) : rpc;
+      } });
+    if (!result.ok) throw new Error(result.kod);
+    return result.podatak;
   },
 
   /**

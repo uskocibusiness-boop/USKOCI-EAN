@@ -27,6 +27,7 @@ import type { OwnApplicationsPage, OwnApplicationsPageRequest } from './ownAppli
 import type { OwnAgreementPage, OwnAgreementPageRequest } from './ownAgreementGroupsPage';
 import type { OwnTasksPage, OwnTasksPageRequest } from './ownTasksPage';
 import type { HomeAgreementsSummary, HomeAgreementPromptPage, HomeAgreementPromptPageRequest } from './homeAgreementsContract';
+import type { HomeOwnedTasksSummary } from './homeOwnedTasksContract';
 
 /** Svaka komanda vraća ovo. Nikad goli rezultat. */
 export type Ishod<T> =
@@ -55,6 +56,8 @@ export interface PotrebeCitanje {
   paznjaZaPocetnu(options?: { signal?: AbortSignal }): Promise<HomeAttentionPreview>;
   /** R03 — moje Potrebe. Defaults to urgency enrichment; count-only surfaces may leave it unobserved. */
   mojePotrebe(options?: { includeUrgency?: boolean; signal?: AbortSignal }): Promise<PotrebaProjekcija[]>;
+  /** Home-only bounded summary; enabled only after its exact DEV RPC is installed. */
+  mojePotrebeZaPocetnu(options?: { signal?: AbortSignal }): Promise<HomeOwnedTasksSummary>;
   /** EX-04 S1 (A09) — one keyset page of my own tasks in one of the server's sets. Needs the ex04a server contract: a build flag keeps the screen on `mojePotrebe` until DEV has it. */
   mojePotrebeStrana(request: OwnTasksPageRequest, options?: { includeUrgency?: boolean; signal?: AbortSignal }): Promise<OwnTasksPage>;
   /** R04 — radni prostor jedne Potrebe. */

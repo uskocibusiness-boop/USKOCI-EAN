@@ -26,6 +26,7 @@ import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, PovuciP
 import { osoba } from '../ui/system/plural';
 import { novac } from '../lib/novac';
 import { composeHome } from './homeSnapshot';
+import type { HomeOwnedTasksSummary } from './homeOwnedTasksContract';
 import { hasNeedAttention, initialMarketplaceView, isOwnedNeed, marketplaceItems, ownedTaskCounts } from './marketplaceView';
 import { applicationCounts } from './myApplicationsView';
 import { applicationRank, ownApplicationsScopeRank } from './ownApplicationsPage';
@@ -380,6 +381,20 @@ export const lazniIzvor: Izvor = {
   async mojePotrebe() {
     await kasnjenje();
     return [await potrebaProjekcija()];
+  },
+
+  async mojePotrebeZaPocetnu(): Promise<HomeOwnedTasksSummary> {
+    await kasnjenje();
+    const accountId = sesijaSada().user?.id;
+    if (!accountId) throw new Error('AUTH_REQUIRED');
+    const all = await lazniIzvor.mojePotrebe({ includeUrgency: false });
+    const asOf = new Date().toISOString();
+    const home = composeHome({ needs: { kind: 'known', value: all }, applications: { kind: 'known', value: [] },
+      agreements: { kind: 'known', value: [] } }, undefined, Date.parse(asOf));
+    const draftTarget = home.prompts?.find(row => row.target.kind === 'NEED')?.target;
+    const freshDraft = draftTarget?.kind === 'NEED' ? all.find(row => row.id === draftTarget.needId) ?? null : null;
+    const counts = home.mine.tasks.kind === 'known' ? home.mine.tasks.value : ownedTaskCounts(all);
+    return { schemaVersion: 1, accountId, asOf, counts, items: home.ownTaskItems ?? [], freshDraft };
   },
 
   // EX-04 S1: the same sets, counted and paged by the client's own rules over the local list (the cursor is a position here, never a timestamp).

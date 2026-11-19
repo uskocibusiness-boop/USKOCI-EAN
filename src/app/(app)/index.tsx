@@ -13,6 +13,7 @@ import { IntakeResume } from '../../ui/home/IntakeResume';
 import { rememberAiCorrection } from '../../data/aiCorrectionIntent';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 import type { HomeAgreementPromptPageRequest } from '../../data/homeAgreementsContract';
+import { homeOwnedTasksSummaryBuilt } from '../../data/homeOwnedTasksSummaryGate';
 
 /**
  * Početna: the root of the one shell (owner decision 1, 2026-09-19). This route used to be a
@@ -62,7 +63,9 @@ function Home() {
       // Exact totals and the next accepted Agreement come from bounded server
       // aggregates; bounded preview carousels load alongside them. Agreement prompt pages are read only by the open panel.
       const [needs, applications, agreements, attention, opportunities, agreementCarousel] = await Promise.all([
-        readHomeSection(readSignal => source.mojePotrebe({ includeUrgency: false, signal: readSignal }), signal),
+        readHomeSection(readSignal => homeOwnedTasksSummaryBuilt()
+          ? source.mojePotrebeZaPocetnu({ signal: readSignal })
+          : source.mojePotrebe({ includeUrgency: false, signal: readSignal }), signal),
         readHomeSection(async readSignal => {
           const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 6, cursor: null }, { signal: readSignal });
           if (!page.counts) throw new Error('HOME_APPLICATION_COUNTS_UNAVAILABLE');

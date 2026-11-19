@@ -7,6 +7,7 @@ import { acceptedTerm, awaitingFinishCount, looseLine, notOver, rasporedOf, rasp
 import { zonaTelefona } from '../lib/vreme';
 import { inicijali } from '../lib/inicijali';
 import type { HomeAgreementsSummary, HomeAgreementPrompt } from './homeAgreementsContract';
+import type { HomeOwnedTasksSummary } from './homeOwnedTasksContract';
 
 /**
  * Početna (owner decision 1, 2026-09-19; the overview of the owner's information architecture, 2026-09-23): what
@@ -20,7 +21,7 @@ import type { HomeAgreementsSummary, HomeAgreementPrompt } from './homeAgreement
  * historical SQL proof oracle and test-source adapter, never a production fallback after an RPC failure.
  * Production application totals use the first-page aggregate. Agreement facts use their
  * dedicated bounded summary; full Agreement arrays are the explicit fake/proof adapter only.
- * Task draft/total still need the existing complete read until their own summary is available.
+ * The bounded task summary is staged behind its own build gate; until its exact DEV RPC is installed, the complete owner read remains authoritative.
  *
  * Raspored (owner, 2026-10-07): the next accepted appointment is told day first in Serbian time, from its accepted
  * instants and from nothing else (`ui/home/raspored.ts`); no new read is made for it. With no appointment ahead, active
@@ -33,7 +34,7 @@ export type HomeSection<T> = { kind: 'known'; value: T } | { kind: 'unavailable'
  * it leaves `workerProfile` out of the reads, and the profile is then unknown: no row is drawn and nothing is said about it.
  */
 export type HomeWorkProfileRead = Pick<RadnikProfilProjekcija, 'stanje' | 'dostupanOdmah'>;
-export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>;
+export type HomeReads = { needs: HomeSection<PotrebaProjekcija[] | HomeOwnedTasksSummary>;
   /** Production reads exact aggregate counts (and optional first-page items); full arrays remain the legacy proof/gallery adapter. */
   applications: HomeSection<MojaPrijavaProjekcija[] | ApplicationCounts | { counts: ApplicationCounts; items: MojaPrijavaProjekcija[] }>;
   agreements: HomeSection<HomeAgreementsSummary | DogovorProjekcija[]>; workerProfile?: HomeSection<HomeWorkProfileRead | null>;
@@ -231,7 +232,10 @@ function summaryAgreementRow(summary: HomeAgreementsSummary, now: number, phoneZ
 export function composeHome(reads: HomeReads, serverAttention?: HomeSection<HomeAttentionPreview>, now = Date.now(),
   /** The phone's own zone: it never changes a time (agreed times read in Serbian time), only whether Raspored says so in words. */
   phoneZone: string | undefined = zonaTelefona()): HomeSnapshot {
-  const needs = reads.needs.kind === 'known' ? reads.needs.value : null;
+  const needsRead = reads.needs.kind === 'known' ? reads.needs.value : null;
+  const ownedSummary = needsRead && !Array.isArray(needsRead) ? needsRead : null;
+  const needs = Array.isArray(needsRead) ? needsRead : ownedSummary?.items ?? null;
+  const taskCounts = ownedSummary?.counts ?? (Array.isArray(needsRead) ? ownedTaskCounts(needsRead) : null);
   const applicationRead = reads.applications.kind === 'known' ? reads.applications.value : null;
   const applications = Array.isArray(applicationRead)
     ? applicationRead
@@ -263,7 +267,7 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       title: staleApplication(row) ? 'Zadatak je izmenjen' : 'Prijava traži Vašu pažnju',
       detail: staleApplication(row) ? `${row.naslov} · pregledajte izmene pre nego što odlučite o prijavi` : `${row.naslov} · otvorite svoju prijavu`,
       target: { kind: 'APPLICATION' as const, applicationId: row.prijavaId } })),
-    ...(needs ?? []).filter(hasNeedAttention).map(row => ({
+    ...(Array.isArray(needsRead) ? needsRead.filter(hasNeedAttention) : []).map(row => ({
       id: `need:${row.id}:applications`, title: prijava(row.brojPrijavaZaIzbor!), detail: `${row.naslov} · čeka Vaš izbor`,
       target: { kind: 'CANDIDATES' as const, needId: row.id } })),
   ];
@@ -304,10 +308,10 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
   // What waits for me that the phone knows from the reads it already makes (R02, R18). They follow the server's own rows and
   // never replace them: the server's aggregate stays the answer about applications, completions and problems.
   const subject = (title: string) => { const text = readableTitle(title); return text ? { taskTitle: text } : {}; };
-  const draftPrompts: HomeAttention[] = (needs ?? []).filter(row => row.stanje === 'NACRT' && readableTitle(row.naslov)
-    && draftIsFresh(row.azurirano, now)).slice(0, 1).map(row => ({
-    id: `need:${row.id}:draft`, title: 'Nastavite nacrt', ...subject(row.naslov), detail: 'Nacrt još nije objavljen.',
-    target: { kind: 'NEED' as const, needId: row.id } }));
+  const freshDraft = ownedSummary ? ownedSummary.freshDraft : (needs ?? []).find(row => row.stanje === 'NACRT'
+    && readableTitle(row.naslov) && draftIsFresh(row.azurirano, now)) ?? null;
+  const draftPrompts: HomeAttention[] = freshDraft ? [{ id: `need:${freshDraft.id}:draft`, title: 'Nastavite nacrt',
+    ...subject(freshDraft.naslov), detail: 'Nacrt još nije objavljen.', target: { kind: 'NEED', needId: freshDraft.id } }] : [];
   const agreementPrompts: HomeAttention[] = summary ? summary.prompts.items.map(homeAgreementPromptRow) : [
     ...(agreements ?? []).filter(row => activeAgreement(row) && row.izmenaCeka && !row.izmenaCeka.mojPredlog).map(row => ({
       id: `agreement:${row.id}:change`, title: 'Odgovorite na predlog izmene', ...subject(row.naslov), detail: 'Druga strana predlaže izmenu uslova.',
@@ -334,7 +338,7 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
     || [reads.needs, reads.applications, reads.agreements].some(section => section.kind === 'unavailable');
 
   const opportunityItems = opportunities ? opportunities.slice(0, 6) : undefined;
-  const ownTaskItems = needs
+  const ownTaskItems = ownedSummary ? ownedSummary.items : needs
     ? needs.filter(row => ['OBJAVLJENA', 'U_IZBORU', 'DOGOVORENA', 'U_TOKU'].includes(row.stanje)
       || (row.stanje === 'NACRT' && readableTitle(row.naslov) && draftIsFresh(row.azurirano, now))).slice(0, 6)
     : undefined;
@@ -361,14 +365,14 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       more: Math.max(0, summary.counts.active - (nextFromSummary ? 1 : 0)), ...(summaryQuietLine ? { quietLine: summaryQuietLine } : {}) } }
       : agreements ? { kind: 'known', value: { rows: activeAgreements.slice(0, HOME_AGREEMENT_LIMIT),
       more: Math.max(0, activeAgreements.length - HOME_AGREEMENT_LIMIT), ...(quietLine ? { quietLine } : {}) } } : { kind: 'unavailable' },
-    mine: { tasks: needs ? { kind: 'known', value: ownedTaskCounts(needs) } : { kind: 'unavailable' },
+    mine: { tasks: taskCounts ? { kind: 'known', value: taskCounts } : { kind: 'unavailable' },
       applications: applicationTotals ? { kind: 'known', value: applicationTotals } : { kind: 'unavailable' } },
     ...(opportunityItems ? { opportunityItems } : {}),
     ...(ownTaskItems ? { ownTaskItems } : {}),
     ...(applicationItems ? { applicationItems } : {}),
     ...(agreementItems ? { agreementItems } : {}),
     partial,
-    firstRun: !partial && !attention.length && !needs?.length && !applicationTotals?.total
+    firstRun: !partial && !attention.length && !taskCounts?.total && !applicationTotals?.total
       && !(summary ? summary.counts.hasAny : agreements?.length),
     ratingsDue: serverRatings ? serverRatings.due : ratingsKnown ? due.length : null,
     ratingDueAgreementId: serverRatings ? serverRatings.agreementId : ratingsKnown && due.length === 1 ? due[0].id : null,

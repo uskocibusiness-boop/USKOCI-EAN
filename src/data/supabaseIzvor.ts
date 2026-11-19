@@ -185,6 +185,7 @@ type SupabaseIzvor = Omit<
   | 'posaljiPoruku'
   | 'mojePotrebe'
   | 'mojePotrebeStrana'
+  | 'mojePotrebeZaPocetnu'
   | 'potreba'
   | 'prijaveZaPotrebu'
   | 'prijaveZaPotrebuStrana'
