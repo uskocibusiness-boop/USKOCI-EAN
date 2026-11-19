@@ -28,7 +28,6 @@ export type SavedProfilePart = 'skills' | 'tools' | 'vehicles';
 export const SKILL_CHIPS_MAX = 8;
 
 /** Legacy availability datum retained for caller/older-client compatibility, not an ordinary profile UI control. */
-export type AvailableNowControl = { value: boolean; onEdit: () => void };
 
 /**
  * The saved card reads the MVP facts. Optional legacy equipment remains in data,
@@ -47,7 +46,6 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   /** That write is in flight. */ nameWorking?: boolean;
   /** The face in the card: the photo, or what stands in for it. */ face?: ReactNode;
   /** The rating in the card (a line, or nothing). */ rating?: ReactNode;
-  /** Legacy caller input, retained for older route contracts; the saved profile no longer displays this control. */ availableNow?: AvailableNowControl;
   executionModes?: WorkerExecutionModeView; refreshModes?: () => void;
   availability?: WorkerAvailabilityView; refreshAvailability?: () => void;
   /** A separate, explicit confirmation of the saved area's approximate point. */ confirmMap?: () => void;
@@ -98,7 +96,6 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
       onPress={() => { if (!disabled) confirmMap(); }} /> : null}
     <View testID="worker-profile-time-card" style={s.sectionCard}><SettingsGroup title="Kada">
         <SavedAvailability view={availability} retry={refreshAvailability} disabled={disabled} />
-        {/* Owner decision: "Mogu odmah" remains in legacy data, not on the ordinary saved profile. */}
         {readOnly ? null : <SettingsRow label="Izmenite raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}
             onPress={() => openConversation ? openConversation('time') : navigate('/profil/dostupnost')} last />}
       </SettingsGroup></View>
