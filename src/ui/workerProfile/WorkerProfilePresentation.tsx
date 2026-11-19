@@ -15,7 +15,7 @@ import { V2Action } from '../v2/V2Action';
 import { QuietReadState } from '../v2/QuietReadState';
 import { ROBOT_ASSETS } from '../v3/UskociVisuals';
 import type { WorkerDraft } from './workerProfileDraft';
-import { WorkerProfileSaved, type AvailableNowControl, type SavedProfilePart } from './WorkerProfileSaved';
+import { WorkerProfileSaved, type SavedProfilePart } from './WorkerProfileSaved';
 import type { WorkerAvailabilityView } from '../../hooks/useWorkerAvailability';
 import type { WorkerExecutionModeView } from '../../hooks/useWorkerExecutionModes';
 import { type WorkerAiPart } from './workerProfileFacts';
@@ -170,7 +170,7 @@ export type WorkerProfileFocusRequest = { target: 'skill' | 'tool' | 'vehicle'; 
 /** Saved profile or first AI entry. Legacy draft command recovery stays in the route.
  * Compatibility props do not re-enable the retired manual editor. */
 export function WorkerProfileForm({ draft, disabled, status, navigate, openConversation, showConversationAction = true, profileExists = true, introOnly = false,
-  accountName = null, onUseAccountName, nameWorking = false, face, rating, availableNow, executionModes, refreshModes, confirmMap, checks, readyToActivate, availability, refreshAvailability }: {
+  accountName = null, onUseAccountName, nameWorking = false, face, rating, executionModes, refreshModes, confirmMap, checks, readyToActivate, availability, refreshAvailability }: {
   draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null;
   navigate: (path: WorkerNavigation) => void; focusRequest?: WorkerProfileFocusRequest | null;
   checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: (part?: WorkerAiPart) => void; profileExists?: boolean;
@@ -184,7 +184,6 @@ export function WorkerProfileForm({ draft, disabled, status, navigate, openConve
   /** Opens the AI topic for a profile section. */ onEditPart?: (part: SavedProfilePart) => void;
   /** The face in the card of the read profile. */ face?: ReactNode;
   /** The rating line in that card. */ rating?: ReactNode;
-  /** Saved availability with an AI edit entry. */ availableNow?: AvailableNowControl;
   /** Retained caller compatibility only; cannot reopen the removed manual editor. */
   openSection?: { section: 'identity' | 'skills' | 'tools' | 'vehicles'; token: number } | null;
   /** The name of the account, when it could be read. */ accountName?: string | null;
@@ -203,7 +202,7 @@ export function WorkerProfileForm({ draft, disabled, status, navigate, openConve
     showConversationAction={showConversationAction}
     executionModes={executionModes} refreshModes={refreshModes} confirmMap={confirmMap}
     availability={availability} refreshAvailability={refreshAvailability}
-    readOnly={status === 'SUSPENDED'} face={face} rating={rating} availableNow={availableNow}
+    readOnly={status === 'SUSPENDED'} face={face} rating={rating}
     accountName={accountName} onUseAccountName={onUseAccountName} nameWorking={nameWorking}
     status={<ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate ?? false} disabled={disabled} navigate={navigate} />} />
   </>;
