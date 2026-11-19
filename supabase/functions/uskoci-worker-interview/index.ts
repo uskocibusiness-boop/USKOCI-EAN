@@ -5,7 +5,8 @@ import { aiProviderRuntimeEnabled, taxonomyIntakeEnabled } from '../_shared/taxo
 // New taxonomy operations have a single explicit server-side rollout owner.
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION } from '../../../src/contracts/aiAvailability.ts';
 import { decodeWorkerAreas } from '../../../src/contracts/workerAreas.ts';
-import { WORKER_AVAILABLE_NOW_ENABLED } from '../../../src/contracts/workerNowFeature.ts';
+// Retired product capability: the immediate-availability toggle is permanently disabled.
+const WORKER_AVAILABLE_NOW_ENABLED = false as const;
 // Distinct owned WORKER_PROFILE_V1 proposals. No task facts or canonical writes.
 import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.mjs';
 import { workerConversationInstruction } from '../_shared/workerConversationInstruction.mjs';
