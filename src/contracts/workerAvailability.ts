@@ -7,7 +7,9 @@ export type AvailabilityWindow = Readonly<{
   id: string; startsAt: string; endsAt: string; state: 'AVAILABLE' | 'UNAVAILABLE'; label: string;
 }>;
 export type WorkerAvailabilityInput = Readonly<{
-  timezone: string; availableNow: boolean;
+  timezone: string;
+  /** Legacy persisted value only; never editable, displayed, matched or used to rank dispatch. */
+  availableNow: boolean;
   rules: readonly AvailabilityRule[]; windows: readonly AvailabilityWindow[];
 }>;
 export type WorkerAvailability = WorkerAvailabilityInput & Readonly<{
