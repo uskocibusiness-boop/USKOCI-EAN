@@ -72,6 +72,8 @@ test('urgency dispatch retirement candidate is source-only, guarded and preserve
  assert.ok(candidate.indexOf("RAISE EXCEPTION 'DISPATCH_URGENCY_RETIREMENT_SOURCE_ONLY'")<candidate.indexOf('BEGIN;\nSET LOCAL lock_timeout'));
  assert.match(candidate,/bd1d2fd351d8273ddc0cce9e29514ca7/);
  assert.match(candidate,/2ba676d2f0fbd1456b48eb1ef36b468e/);
+ assert.match(candidate,/693aef615d4184abe4cb4809a2783c93/);
+ assert.match(candidate,/8227474bb353238ee09816ea5085666e/);
  assert.match(candidate,/private\.candidate_budget\(false,/);
  assert.match(candidate,/p_urgency => 'NORMAL'/);
  assert.match(candidate,/pace_minutes := wave_minutes/);
