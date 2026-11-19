@@ -24,7 +24,7 @@ import { workerCommand, workerDraft, workerReadbackMatches, type WorkerDraft } f
 import { workerProfileInfoLines } from '../../../ui/workerProfile/workerProfileFacts';
 import { rememberAiCorrection } from '../../../data/aiCorrectionIntent';
 import type { WorkerAiPart } from '../../../ui/workerProfile/workerProfileFacts';
-import type { AvailableNowControl, SavedProfilePart } from '../../../ui/workerProfile/WorkerProfileSaved';
+import type { SavedProfilePart } from '../../../ui/workerProfile/WorkerProfileSaved';
 
 type Snapshot = { profile: RadnikProfilProjekcija | null; read: number };
 type Draft = { value: WorkerDraft; initial: WorkerDraft; profileId: string | null };
@@ -310,8 +310,6 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const accountProfileId = account.state === 'ready' ? account.profileId ?? null : null;
   const stand = <Avatar initials={inicijali(accountName ?? value?.ime ?? null)} size={56} />;
   const face = accountProfileId ? <ProfilePhoto profileId={accountProfileId} size={56} fallback={stand} own /> : stand;
-  const availableNowControl: AvailableNowControl | undefined = status === 'ACTIVE' && value
-    ? { value: value.dostupanOdmah, onEdit: () => openConversation('time') } : undefined;
   return <WorkerProfileFrame back={back} scrollRef={scroll} onScroll={rememberReading} onScrollBeginDrag={beginReading}
     right={visible ? <HeaderInfo title="Na šta utiče radni profil" testID="worker-profile-info" info={workerProfileInfoLines(false)} /> : undefined}
     footer={visible && showFooter ? <WorkerProfileFooter message={message ?? (status === 'SUSPENDED' && localDirty ? 'Nesačuvani unos je zadržan. Izmene nisu dostupne dok traje suspenzija.' : null)} error={validation ?? editor.error}
@@ -329,7 +327,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
         checks={{ basics: basicsReady, area: locationReady }} readyToActivate={!!primary.activates && !pending}
         openConversation={openConversation} showConversationAction={!(reading && status === 'DRAFT')} profileExists={profile !== null} introOnly={introOnly}
         reading={reading} aiOnly onEditPart={editPart} face={face} rating={accountId ? <RatingLine accountId={accountId} /> : undefined}
-        availableNow={availableNowControl} availability={availability.view} refreshAvailability={availability.refresh}
+        availability={availability.view} refreshAvailability={availability.refresh}
         executionModes={executionModes.view} refreshModes={executionModes.refresh} confirmMap={() => navigate('/profil/lokacija', true)}
         accountName={accountName} onUseAccountName={() => { void adoptAccountName(); }} nameWorking={nameWorking} /></View>}
     {leave.sheet}
