@@ -129,6 +129,8 @@ test('selectable count fast path preserves auth, ownership and the exact SELECTA
  try{
   await local.install();await local.areas([CITY]);
   const n=await local.need(),r=await local.submit(n);
+  // The count RPC is requester-scoped; submit() leaves the fixture actor as the worker.
+  await local.actor(local.REQUESTER);
   const count=()=>local.value('select public.selectable_application_count(n) as value from public.needs n where id=$1',[n]);
   const metadata=()=>local.value(`select jsonb_build_object('oid',p.oid::bigint,'owner',p.proowner::bigint,'acl',p.proacl::text,
    'definer',p.prosecdef,'config',p.proconfig,'volatility',p.provolatile) as value
