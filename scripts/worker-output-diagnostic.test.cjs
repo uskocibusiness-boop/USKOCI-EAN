@@ -116,6 +116,8 @@ test('Worker provider request requires all operation lists and records supplied 
   const availability=request.generationConfig.responseSchema.properties.patch.properties.availability;
   assert.deepEqual(availability.required,['ruleChanges','windowsUpsert','windowIdsRemove']);
   assert.equal(availability.nullable,true);
+  assert.equal(Object.hasOwn(availability.properties,'availableNow'),false,
+    'retired immediate-availability capability must not enter the provider schema');
   const instruction=request.systemInstruction.parts.map(part=>part.text).join('\n');
   assert.match(instruction,/optional to ask for, never optional to record/);
   assert.match(instruction,/removing the old window alone does not implement the weekly request/);
