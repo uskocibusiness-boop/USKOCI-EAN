@@ -239,7 +239,8 @@ Deno.serve(async req => {
      || typeof begin.expoPushToken !== 'string' || begin.expoPushToken.length > 256 || !/^(ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]+\]$/.test(begin.expoPushToken)
      || !['NORMAL', 'HIGH'].includes(String(begin.priority))
      || typeof begin.eventType !== 'string' || !/^[A-Z][A-Z0-9_]{2,63}$/.test(begin.eventType)) throw new Invalid();
-    const copy = notificationPushCopy(begin.eventType, begin.priority === 'HIGH' ? 'HITNO' : 'NORMAL');
+    // Legacy HIGH metadata is accepted for queue compatibility but never reaches user-visible copy or provider priority.
+    const copy = notificationPushCopy(begin.eventType);
     // Older installed clients admit only {kind:'INBOX'}. Keep that default until
     // the owned exact-target client has shipped and its cold/live tap is proven.
     const exactMessage = Deno.env.get('EXPO_PUSH_MESSAGE_TARGET_ENABLED') === 'true'
@@ -259,7 +260,7 @@ Deno.serve(async req => {
     const ttl = targeted || deliveryExpiresAt === null ? 0
       : Math.max(0, Math.min(MAX_OFFLINE_TTL_SECONDS, Math.floor((deliveryExpiresAt - Date.now()) / 1000)));
     body = [{ to: begin.expoPushToken, title: copy.title, body: copy.body,
-     data, channelId: 'default', sound: 'default', priority: begin.priority === 'HIGH' ? 'high' : 'normal', ttl }];
+     data, channelId: 'default', sound: 'default', priority: 'normal', ttl }];
    } else body = { ids: [claim.ticketId] };
    let parsed: ProviderResult = { result: kind === 'SEND' ? 'UNKNOWN' : 'RECEIPT_PENDING', ticketId: null };
    try {

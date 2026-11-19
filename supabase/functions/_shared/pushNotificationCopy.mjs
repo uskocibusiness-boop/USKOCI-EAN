@@ -30,9 +30,8 @@ const COPY = Object.freeze({
 
 export const PUSH_EVENT_TYPES = Object.freeze(Object.keys(COPY));
 
-export function notificationPushCopy(eventType, urgency = 'NORMAL') {
+export function notificationPushCopy(eventType) {
   if (typeof eventType !== 'string' || !Object.hasOwn(COPY, eventType)) return GENERIC;
-  const [baseTitle, body] = COPY[eventType];
-  const urgentOpportunity = urgency === 'HITNO' && eventType === 'OPPORTUNITY_AVAILABLE';
-  return Object.freeze({ title: urgentOpportunity ? 'HITNO — nova prilika' : baseTitle, body });
+  const [title, body] = COPY[eventType];
+  return Object.freeze({ title, body });
 }

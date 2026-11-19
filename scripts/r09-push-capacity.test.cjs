@@ -160,7 +160,7 @@ test('guarded real PostgreSQL queue changes preserve authorization, lifecycle an
    await assert.rejects(f.value('select public.rpc_get_push_transport_metrics() as value'),/FORBIDDEN/);
    await f.db.exec("select set_config('request.jwt.claim.role','service_role',false)");
   });
-  await t.test('priority advantage cannot starve older NORMAL and lease expiry bounds are unchanged',async()=>{
+  await t.test('historical R09 fixture: pre-retirement HIGH ordering is preserved only as migration evidence',async()=>{
    await clear();const a=await f.recipient(),b=await f.recipient();const old=await f.delivery(a,{age:180});await f.delivery(b,{priority:'HIGH',age:10});
    const c=await f.claim('SEND');assert.equal(await f.value('select delivery_id as value from notification_push_attempts where id=$1',[c.attemptId]),old.id);
    const started=await f.begin(c);assert.equal(started.eventId,old.event);assert.ok(Date.parse(started.deliveryExpiresAt)>Date.now());
@@ -237,4 +237,14 @@ test('guarded real PostgreSQL queue changes preserve authorization, lifecycle an
    assert.equal(JSON.stringify(metrics).includes(actor.user),false);assert.equal(JSON.stringify(metrics).includes(d.event),false);
   });
  }finally{await f.db.close();}
+});
+
+test('legacy HIGH metadata is downgraded before push copy and Expo delivery',()=>{
+ const transport=readFileSync(path.join(__dirname,'../supabase/functions/uskoci-push-transport/index.ts'),'utf8');
+ const copy=readFileSync(path.join(__dirname,'../supabase/functions/_shared/pushNotificationCopy.mjs'),'utf8');
+ assert.match(transport,/notificationPushCopy\(begin\.eventType\)/);
+ assert.match(transport,/priority: 'normal'/);
+ assert.match(transport,/\['NORMAL',\s*'HIGH'\]\.includes\(String\(begin\.priority\)\)/);
+ assert.doesNotMatch(transport,/begin\.priority\s*===\s*'HIGH'/);
+ assert.doesNotMatch(copy,/HITNO|urgentOpportunity|urgency\s*=/i);
 });

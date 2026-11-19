@@ -155,4 +155,244 @@ BEGIN
 END
 $remote$;
 
+-- Full active urgency retirement; historical rows and columns remain untouched.
+
+
+DO $retire_worker_notify_cap$ DECLARE target regprocedure := 'private.worker_notify_room_v1b(uuid,integer)'::regprocedure; actual record; d text; original_metadata jsonb; patch text[]; patches text[][] := ARRAY[
+ ARRAY[$old$  -- It counts the worker's own OPPORTUNITY_AVAILABLE events of normal urgency created in the last 24 hours: the event the
+  -- dispatch wave emits for every notified worker (private.dispatch_next_wave -> private.emit_event). Urgent (HITNO) events and
+  -- every other event type (responses, agreements, messages, reviews ...) are NOT counted. A null cap means "no cap".$old$,$new$  -- It counts every OPPORTUNITY_AVAILABLE event created in the last 24 hours,
+  -- regardless of legacy urgency metadata. A null cap means "no cap".$new$],
+ ARRAY[$old$         and e.urgency = 'NORMAL'
+$old$,$new$new$]
+]; BEGIN
+ SELECT md5(p.prosrc) body_md5,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '9aac9da0479327fdf82b2f9298e47719' OR actual.owner IS DISTINCT FROM 'postgres' OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM true OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, private, public, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f' THEN RAISE EXCEPTION 'RETIRE_WORKER_NOTIFY_CAP_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; d:=pg_get_functiondef(target);
+ FOREACH patch SLICE 1 IN ARRAY patches LOOP IF array_length(string_to_array(d,patch[1]),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_WORKER_NOTIFY_CAP_PATCH_ANCHOR_DRIFT'; END IF; d:=replace(d,patch[1],patch[2]); END LOOP;
+ EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM 'e3e40bcc507bb0a99817d8cdd555dbcc' OR actual.metadata IS DISTINCT FROM original_metadata 
+ OR position('e.urgency' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 THEN RAISE EXCEPTION 'RETIRE_WORKER_NOTIFY_CAP_POSTIMAGE_MISMATCH'; END IF;
+ END $retire_worker_notify_cap$;
+
+
+DO $retire_push_quiet_bypass$ DECLARE target regprocedure := 'private.push_suppression(public.notification_deliveries)'::regprocedure; actual record; d text; original_metadata jsonb; patch text[]; patches text[][] := ARRAY[
+ ARRAY[$old$     and not(e.urgency='HITNO' and coalesce(p.urgent_overrides_quiet_hours, true))$old$,$new$new$]
+]; BEGIN
+ SELECT md5(p.prosrc) body_md5,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM 'ebd9c03035630bde62bf9fd8a27378c2' OR actual.owner IS DISTINCT FROM 'postgres' OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM true OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, private, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f' THEN RAISE EXCEPTION 'RETIRE_PUSH_QUIET_BYPASS_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; d:=pg_get_functiondef(target);
+ FOREACH patch SLICE 1 IN ARRAY patches LOOP IF array_length(string_to_array(d,patch[1]),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_PUSH_QUIET_BYPASS_PATCH_ANCHOR_DRIFT'; END IF; d:=replace(d,patch[1],patch[2]); END LOOP;
+ EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM 'e9f104bc1a62aefd73d52fee8294c52d' OR actual.metadata IS DISTINCT FROM original_metadata 
+ OR position('hitno' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 THEN RAISE EXCEPTION 'RETIRE_PUSH_QUIET_BYPASS_POSTIMAGE_MISMATCH'; END IF;
+ END $retire_push_quiet_bypass$;
+
+
+DO $retire_same_day_urgent_match_gate$ DECLARE target regprocedure := 'private.match_detail_without_calendar(uuid,uuid)'::regprocedure; actual record; d text; original_metadata jsonb; patch text[]; patches text[][] := ARRAY[
+ ARRAY[$old$  if n.urgent
+     and (n.schedule_kind = 'TODAY_FLEXIBLE'
+          or (n.starts_at is not null and (n.starts_at at time zone tz)::date = (statement_timestamp() at time zone tz)::date))
+     and not coalesce(pref.same_day_urgent_notifications,true)
+    then disp := array_append(disp,'SAME_DAY_URGENT_NOTIFICATIONS_PAUSED'); end if;
+$old$,$new$new$]
+]; BEGIN
+ SELECT md5(p.prosrc) body_md5,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '41b54908d3f461420c3826ad8b723880' OR actual.owner IS DISTINCT FROM 'postgres' OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM true OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, private, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f' THEN RAISE EXCEPTION 'RETIRE_SAME_DAY_URGENT_MATCH_GATE_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; d:=pg_get_functiondef(target);
+ FOREACH patch SLICE 1 IN ARRAY patches LOOP IF array_length(string_to_array(d,patch[1]),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_SAME_DAY_URGENT_MATCH_GATE_PATCH_ANCHOR_DRIFT'; END IF; d:=replace(d,patch[1],patch[2]); END LOOP;
+ EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '2f9e140d4e938f6c7dda8829d41dd04a' OR actual.metadata IS DISTINCT FROM original_metadata 
+ OR position('same_day_urgent' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 THEN RAISE EXCEPTION 'RETIRE_SAME_DAY_URGENT_MATCH_GATE_POSTIMAGE_MISMATCH'; END IF;
+ END $retire_same_day_urgent_match_gate$;
+
+
+DO $retire_event_priority$ DECLARE target regprocedure := 'private.emit_event(uuid,text,text,text,uuid,integer,text,text,text,text,jsonb,timestamptz)'::regprocedure; actual record; d text; original_metadata jsonb; patch text[]; patches text[][] := ARRAY[
+ ARRAY[$old$v_prio text := case when p_urgency = 'HITNO' then 'HIGH' else 'NORMAL' end;$old$,$new$v_prio text := 'NORMAL';$new$],
+ ARRAY[$old$  p_title := private.notification_copy_v5(p_title);$old$,$new$  p_urgency := 'NORMAL';
+  p_title := private.notification_copy_v5(p_title);$new$],
+ ARRAY[$old$  -- 4) PUSH — tihi sati se postuju osim uz izricit opt-in za HITNO$old$,$new$  -- 4) PUSH — tihi sati se postuju za sve dogadjaje$new$],
+ ARRAY[$old$    when v_quiet and not (p_urgency = 'HITNO' and v_prefs.urgent_overrides_quiet_hours)$old$,$new$    when v_quiet$new$],
+ ARRAY[$old$  v_prefs.urgent_overrides_quiet_hours := false;
+$old$,$new$new$]
+]; BEGIN
+ SELECT md5(p.prosrc) body_md5,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '586c40786332a9863922585503f083f6' OR actual.owner IS DISTINCT FROM 'postgres' OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM true OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, private, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f' THEN RAISE EXCEPTION 'RETIRE_EVENT_PRIORITY_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; d:=pg_get_functiondef(target);
+ FOREACH patch SLICE 1 IN ARRAY patches LOOP IF array_length(string_to_array(d,patch[1]),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_EVENT_PRIORITY_PATCH_ANCHOR_DRIFT'; END IF; d:=replace(d,patch[1],patch[2]); END LOOP;
+ EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '60ae03c2d6acf0f01b86a8470881f6e4' OR actual.metadata IS DISTINCT FROM original_metadata 
+ OR position('hitno' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 OR position('high' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 THEN RAISE EXCEPTION 'RETIRE_EVENT_PRIORITY_POSTIMAGE_MISMATCH'; END IF;
+ END $retire_event_priority$;
+
+
+DO $retire_push_priority_order$ DECLARE target regprocedure := 'public.rpc_claim_push_transport(text)'::regprocedure; actual record; d text; original_metadata jsonb; patch text[]; patches text[][] := ARRAY[
+ ARRAY[$old$  -- HIGH receives a one-minute ordering advantage. Older normal work then
+  -- overtakes newer HIGH arrivals, so a sustained burst cannot starve it.
+  order by x.created_at-case when x.priority='HIGH' then interval '1 minute' else interval '0 seconds' end,x.created_at,x.id limit 64 for update skip locked loop$old$,$new$  -- FIFO ordering: historical priority metadata never changes delivery order.
+  order by x.created_at,x.id limit 64 for update skip locked loop$new$]
+]; BEGIN
+ SELECT md5(p.prosrc) body_md5,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '7c9145f1b9696f9ed6e4a29949228b58' OR actual.owner IS DISTINCT FROM 'postgres' OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM true OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, private, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f' THEN RAISE EXCEPTION 'RETIRE_PUSH_PRIORITY_ORDER_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; d:=pg_get_functiondef(target);
+ FOREACH patch SLICE 1 IN ARRAY patches LOOP IF array_length(string_to_array(d,patch[1]),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_PUSH_PRIORITY_ORDER_PATCH_ANCHOR_DRIFT'; END IF; d:=replace(d,patch[1],patch[2]); END LOOP;
+ EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '60d39927470ef866f7757212ea1ddfe1' OR actual.metadata IS DISTINCT FROM original_metadata 
+ OR position('high' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 THEN RAISE EXCEPTION 'RETIRE_PUSH_PRIORITY_ORDER_POSTIMAGE_MISMATCH'; END IF;
+ END $retire_push_priority_order$;
+
+
+DO $retire_push_priority_projection$ DECLARE target regprocedure := 'public.rpc_begin_push_send(uuid,uuid)'::regprocedure; actual record; d text; original_metadata jsonb; patch text[]; patches text[][] := ARRAY[
+ ARRAY[$old
+priority',d.priority,$old$,$new
+priority','NORMAL',$new$]
+]; BEGIN
+ SELECT md5(p.prosrc) body_md5,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM 'e693b140450a9bb1cf6d3178b0ad80c1' OR actual.owner IS DISTINCT FROM 'postgres' OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM true OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, private, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f' THEN RAISE EXCEPTION 'RETIRE_PUSH_PRIORITY_PROJECTION_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; d:=pg_get_functiondef(target);
+ FOREACH patch SLICE 1 IN ARRAY patches LOOP IF array_length(string_to_array(d,patch[1]),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_PUSH_PRIORITY_PROJECTION_PATCH_ANCHOR_DRIFT'; END IF; d:=replace(d,patch[1],patch[2]); END LOOP;
+ EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM 'c6b35e8fa0069acdc96a7be851a5ef5f' OR actual.metadata IS DISTINCT FROM original_metadata 
+ OR position('d.priority' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 THEN RAISE EXCEPTION 'RETIRE_PUSH_PRIORITY_PROJECTION_POSTIMAGE_MISMATCH'; END IF;
+ END $retire_push_priority_projection$;
+
+
+DO $retire_open_task_urgency_filter$ DECLARE target regprocedure := 'public.rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamptz,uuid)'::regprocedure; actual record; d text; original_metadata jsonb; patch text[];
+patches text[][] := ARRAY[
+ ARRAY[$old$v_category text; v_price_mode text; v_urgent_only boolean := false; v_remote text := 'INCLUDE';$old$,$new$v_category text; v_price_mode text; v_remote text := 'INCLUDE';$new$],
+ ARRAY[$old$or v_filters - array['category','priceMode','urgentOnly','remote','startsFrom','startsTo','needId','homePreview'] <> '{}'::jsonb then$old$,$new$or v_filters - array['category','priceMode','remote','startsFrom','startsTo','needId','homePreview'] <> '{}'::jsonb then$new$],
+ ARRAY[$old$  if v_filters ? 'urgentOnly' then
+    if jsonb_typeof(v_filters->'urgentOnly') <> 'boolean' then raise exception 'INVALID_FILTER' using errcode = '22023'; end if;
+    v_urgent_only := (v_filters->>'urgentOnly')::boolean;
+  end if;
+$old$,$new$new$],
+ ARRAY[$old$      'title', n.title, 'category', n.category, 'status', n.status, 'urgent', n.urgent,$old$,$new$      'title', n.title, 'category', n.category, 'status', n.status,$new$]
+];
+BEGIN
+ SELECT md5(p.prosrc) body_md5,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '7c1d9a979585deae6c2bc2c1b9d597b1' OR actual.owner IS DISTINCT FROM 'postgres'
+ OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM false
+ OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, private, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f'
+ THEN RAISE EXCEPTION 'RETIRE_OPEN_TASK_URGENCY_FILTER_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; d:=pg_get_functiondef(target);
+ FOREACH patch SLICE 1 IN ARRAY patches LOOP IF array_length(string_to_array(d,patch[1]),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_OPEN_TASK_URGENCY_FILTER_PATCH_ANCHOR_DRIFT'; END IF; d:=replace(d,patch[1],patch[2]); END LOOP;
+ IF array_length(string_to_array(d,$old$m.verified_identity_required, m.urgent, m.public_photo_paths$old$),1) IS DISTINCT FROM 4 THEN RAISE EXCEPTION 'RETIRE_OPEN_TASK_URGENCY_SELECT_ANCHOR_DRIFT'; END IF;
+ d:=replace(d,$old$m.verified_identity_required, m.urgent, m.public_photo_paths$old$,$new$m.verified_identity_required, m.public_photo_paths$new$);
+ IF array_length(string_to_array(d,$old$m.response_deadline, m.urgent_activated_at, m.urgent_expires_at, m.urgent_policy_version, m.minimum_experience_years$old$),1) IS DISTINCT FROM 4 THEN RAISE EXCEPTION 'RETIRE_OPEN_TASK_URGENCY_META_ANCHOR_DRIFT'; END IF;
+ d:=replace(d,$old$m.response_deadline, m.urgent_activated_at, m.urgent_expires_at, m.urgent_policy_version, m.minimum_experience_years$old$,$new$m.response_deadline, m.minimum_experience_years$new$);
+ IF array_length(string_to_array(d,$old$        and (not v_urgent_only or m.urgent)
+$old$),1) IS DISTINCT FROM 3 THEN RAISE EXCEPTION 'RETIRE_OPEN_TASK_URGENCY_FILTER_PREDICATE_DRIFT'; END IF;
+ d:=replace(d,$old$        and (not v_urgent_only or m.urgent)
+$old$,$new$new$);
+ EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '8e8ee643e72c9efab746b6a9e7f6ec08' OR actual.metadata IS DISTINCT FROM original_metadata
+ OR position('urgent' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 THEN RAISE EXCEPTION 'RETIRE_OPEN_TASK_URGENCY_FILTER_POSTIMAGE_MISMATCH'; END IF;
+END $retire_open_task_urgency_filter$;
+
+
+DO $retire_discovery_urgency_projection$ DECLARE target regprocedure := 'public.rpc_discovery_v1(jsonb)'::regprocedure; actual record; d text; original_metadata jsonb; patch text[]; patches text[][] := ARRAY[
+ ARRAY[$old$  select n.id,n.revision,n.published_at,n.title,n.category,n.status,n.urgent,n.schedule_kind,n.starts_at,n.ends_at,n.execution_location_mode,$old$,$new$  select n.id,n.revision,n.published_at,n.title,n.category,n.status,n.schedule_kind,n.starts_at,n.ends_at,n.execution_location_mode,$new$],
+ ARRAY[$old$   'publishedAt',s.published_at,'title',s.title,'category',s.category,'status',s.status,'urgent',s.urgent,$old$,$new$   'publishedAt',s.published_at,'title',s.title,'category',s.category,'status',s.status,$new$]
+]; BEGIN
+ SELECT md5(p.prosrc) body_md5,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM 'c75535d3f77b2216ed424843ef57ef04' OR actual.owner IS DISTINCT FROM 'postgres' OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM false OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, private, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f' THEN RAISE EXCEPTION 'RETIRE_DISCOVERY_URGENCY_PROJECTION_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; d:=pg_get_functiondef(target);
+ FOREACH patch SLICE 1 IN ARRAY patches LOOP IF array_length(string_to_array(d,patch[1]),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_DISCOVERY_URGENCY_PROJECTION_PATCH_ANCHOR_DRIFT'; END IF; d:=replace(d,patch[1],patch[2]); END LOOP;
+ EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM 'dc53bf4f14b1e35fdb1e12ff883d1edb' OR actual.metadata IS DISTINCT FROM original_metadata 
+ OR position('urgent' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 THEN RAISE EXCEPTION 'RETIRE_DISCOVERY_URGENCY_PROJECTION_POSTIMAGE_MISMATCH'; END IF;
+ END $retire_discovery_urgency_projection$;
+
+
+DO $retire_task_urgency_projection$ DECLARE target regprocedure := 'public.rpc_read_task(uuid)'::regprocedure; actual record; d text; original_metadata jsonb; patch text[]; patches text[][] := ARRAY[
+ ARRAY[$old$    'urgent', n.urgent,$old$,$new$new$],
+ ARRAY[$old$    'urgent_activated_at', n.urgent_activated_at,$old$,$new$new$],
+ ARRAY[$old$    'urgent_expires_at', n.urgent_expires_at,$old$,$new$new$],
+ ARRAY[$old$    'urgent_policy_version', n.urgent_policy_version,$old$,$new$new$]
+]; BEGIN
+ SELECT md5(p.prosrc) body_md5,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '1e01db5140248f27ab374187f01fded3' OR actual.owner IS DISTINCT FROM 'postgres' OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM false OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, private, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f' THEN RAISE EXCEPTION 'RETIRE_TASK_URGENCY_PROJECTION_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; d:=pg_get_functiondef(target);
+ FOREACH patch SLICE 1 IN ARRAY patches LOOP IF array_length(string_to_array(d,patch[1]),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_TASK_URGENCY_PROJECTION_PATCH_ANCHOR_DRIFT'; END IF; d:=replace(d,patch[1],patch[2]); END LOOP;
+ EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '6989659ffc9d6445333ab06e6df9c597' OR actual.metadata IS DISTINCT FROM original_metadata 
+ OR position('urgent' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 THEN RAISE EXCEPTION 'RETIRE_TASK_URGENCY_PROJECTION_POSTIMAGE_MISMATCH'; END IF;
+ END $retire_task_urgency_projection$;
+
+
+DO $retire_profile_available_now_projection$ DECLARE target regprocedure := 'public.rpc_get_worker_profile_for_edit()'::regprocedure; actual record; d text; original_metadata jsonb; patch text[]; patches text[][] := ARRAY[
+ ARRAY[$old
+profile_status',p.profile_status,'available_now',p.available_now,$old$,$new
+profile_status',p.profile_status,$new$]
+]; BEGIN
+ SELECT md5(p.prosrc) body_md5,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '0b081654ef574b197d978d31db362d68' OR actual.owner IS DISTINCT FROM 'postgres' OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM true OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, private, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f' THEN RAISE EXCEPTION 'RETIRE_PROFILE_AVAILABLE_NOW_PROJECTION_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; d:=pg_get_functiondef(target);
+ FOREACH patch SLICE 1 IN ARRAY patches LOOP IF array_length(string_to_array(d,patch[1]),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_PROFILE_AVAILABLE_NOW_PROJECTION_PATCH_ANCHOR_DRIFT'; END IF; d:=replace(d,patch[1],patch[2]); END LOOP;
+ EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM 'fbb1c121f266200dc2d456e17ceac35f' OR actual.metadata IS DISTINCT FROM original_metadata 
+ OR position('available_now' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 THEN RAISE EXCEPTION 'RETIRE_PROFILE_AVAILABLE_NOW_PROJECTION_POSTIMAGE_MISMATCH'; END IF;
+ END $retire_profile_available_now_projection$;
+
+
+DO $retire_need_urgency_read$ DECLARE target regprocedure := 'public.fn_need_urgency(uuid)'::regprocedure; actual record; d text; original_metadata jsonb; patch text[]; patches text[][] := ARRAY[
+ ARRAY[$old
+level', case when n.urgent and n.urgent_expires_at > statement_timestamp()
+                  then 'HITNO' else 'NORMAL' end,$old$,$new
+level', 'NORMAL',$new$],
+ ARRAY[$old
+activatedAt', case when n.urgent and n.urgent_expires_at > statement_timestamp()
+                        then n.urgent_activated_at end,$old$,$new
+activatedAt', null,$new$],
+ ARRAY[$old
+expiresAt', case when n.urgent and n.urgent_expires_at > statement_timestamp()
+                      then n.urgent_expires_at end,$old$,$new
+expiresAt', null,$new$],
+ ARRAY[$old
+policyVersion', n.urgent_policy_version,$old$,$new
+policyVersion', null,$new$],
+ ARRAY[$old
+reasonCodes', case
+      when n.urgent and n.urgent_expires_at > statement_timestamp()
+        then jsonb_build_array('URGENT_ACTIVE')
+      when n.urgent then jsonb_build_array('URGENT_WINDOW_EXPIRED')
+      else jsonb_build_array('NOT_URGENT') end,$old$,$new
+reasonCodes', jsonb_build_array('URGENCY_RETIRED'),$new$]
+]; BEGIN
+ SELECT md5(p.prosrc) body_md5,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '8845c7ad50ab5e64aa853043c113a15a' OR actual.owner IS DISTINCT FROM 'postgres' OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM true OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, private, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f' THEN RAISE EXCEPTION 'RETIRE_NEED_URGENCY_READ_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; d:=pg_get_functiondef(target);
+ FOREACH patch SLICE 1 IN ARRAY patches LOOP IF array_length(string_to_array(d,patch[1]),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_NEED_URGENCY_READ_PATCH_ANCHOR_DRIFT'; END IF; d:=replace(d,patch[1],patch[2]); END LOOP;
+ EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM '1b59a466661a3c7400fcced26ad17f7d' OR actual.metadata IS DISTINCT FROM original_metadata 
+ OR position('hitno' in lower((SELECT p.prosrc FROM pg_proc p WHERE p.oid=target)))>0 THEN RAISE EXCEPTION 'RETIRE_NEED_URGENCY_READ_POSTIMAGE_MISMATCH'; END IF;
+ END $retire_need_urgency_read$;
+
+
+DO $retire_urgent_activation_rpc$ DECLARE target regprocedure := 'public.rpc_activate_urgent(uuid,integer)'::regprocedure; actual record; d text; old_body text; original_metadata jsonb;
+new_body text := E'\nbegin\n  raise exception ''URGENT_FEATURE_RETIRED'' using errcode = ''55000'';\nend;\n';
+BEGIN
+ SELECT md5(p.prosrc) body_md5,p.prosrc,pg_get_userbyid(p.proowner) owner,p.proacl::text acl,p.prosecdef,p.proconfig,p.prokind,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM 'e3d13df0b0cf181334a30efa7576a312' OR actual.owner IS DISTINCT FROM 'postgres'
+ OR actual.acl IS DISTINCT FROM '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}' OR actual.prosecdef IS DISTINCT FROM true
+ OR actual.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog, public, private, extensions']::text[] OR actual.prokind IS DISTINCT FROM 'f'
+ THEN RAISE EXCEPTION 'RETIRE_URGENT_ACTIVATION_PREIMAGE_DRIFT'; END IF;
+ original_metadata:=actual.metadata; old_body:=actual.prosrc; d:=pg_get_functiondef(target);
+ IF array_length(string_to_array(d,old_body),1) IS DISTINCT FROM 2 THEN RAISE EXCEPTION 'RETIRE_URGENT_ACTIVATION_BODY_ANCHOR_DRIFT'; END IF;
+ d:=replace(d,old_body,new_body); EXECUTE d;
+ SELECT md5(p.prosrc) body_md5,to_jsonb(p)-'prosrc' metadata INTO actual FROM pg_proc p WHERE p.oid=target;
+ IF actual.body_md5 IS DISTINCT FROM 'fd0cfe668f4ee12451ab316ac46a6215' OR actual.metadata IS DISTINCT FROM original_metadata THEN RAISE EXCEPTION 'RETIRE_URGENT_ACTIVATION_POSTIMAGE_MISMATCH'; END IF;
+END $retire_urgent_activation_rpc$;
+
 COMMIT;
