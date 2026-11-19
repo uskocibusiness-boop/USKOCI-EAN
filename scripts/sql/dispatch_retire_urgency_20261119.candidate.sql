@@ -85,7 +85,7 @@ BEGIN
     d := replace(d,patch[1],patch[2]);
   END LOOP;
   EXECUTE d;
-  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid=target) IS NOT DISTINCT FROM actual.body_md5
+  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid=target) IS DISTINCT FROM '693aef615d4184abe4cb4809a2783c93'
      OR (SELECT to_jsonb(p)-'prosrc' FROM pg_proc p WHERE p.oid=target) IS DISTINCT FROM original_metadata
      OR EXISTS (SELECT 1 FROM pg_proc WHERE oid=target AND
        (position('urgent' in lower(prosrc))>0 OR position('hitno' in lower(prosrc))>0
@@ -141,7 +141,7 @@ BEGIN
     d := replace(d,patch[1],patch[2]);
   END LOOP;
   EXECUTE d;
-  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid=target) IS NOT DISTINCT FROM actual.body_md5
+  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid=target) IS DISTINCT FROM '8227474bb353238ee09816ea5085666e'
      OR (SELECT to_jsonb(p)-'prosrc' FROM pg_proc p WHERE p.oid=target) IS DISTINCT FROM original_metadata
      OR EXISTS (SELECT 1 FROM pg_proc WHERE oid=target AND
        (position('urgent' in lower(prosrc))>0 OR position('hitno' in lower(prosrc))>0
