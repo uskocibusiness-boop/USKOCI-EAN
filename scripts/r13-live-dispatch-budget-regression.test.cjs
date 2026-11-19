@@ -46,3 +46,35 @@ test('unsafe one-Need-per-transaction split demonstrably violates original cycle
   assert.equal(await f.sweep(),3,'without separation, profile sweep repeats 3 times');
  }finally{await f.db.close();}
 });
+
+
+test('retired urgency UI has no activation, badges, timers or quiet-hours bypass',()=>{
+ const urgency=fs.readFileSync(path.join(__dirname,'..','src/lib/needUrgency.ts'),'utf8');
+ const activation=fs.readFileSync(path.join(__dirname,'..','src/ui/v2/UrgentActivationActions.tsx'),'utf8');
+ const badge=fs.readFileSync(path.join(__dirname,'..','src/ui/v2/NeedUrgencyBadge.tsx'),'utf8');
+ const push=fs.readFileSync(path.join(__dirname,'..','src/ui/notifications/PushPreferences.tsx'),'utf8');
+ const profile=fs.readFileSync(path.join(__dirname,'..','src/ui/workerProfile/WorkerProfileSaved.tsx'),'utf8');
+ assert.match(urgency,/urgentBuilt[\s\S]*return false/);
+ assert.match(urgency,/displaysUrgent[\s\S]*return false/);
+ assert.doesNotMatch(activation,/urgentActivationClientService|urgentActivationPreviewClientService|useConfirmSheet/);
+ assert.match(activation,/export function UrgentActivationActions[\s\S]*return null/);
+ assert.doesNotMatch(badge,/Lightning|setTimeout|accessibilityLabel="HITNO"/);
+ assert.match(badge,/export function NeedUrgencyBadge[\s\S]*return null/);
+ assert.doesNotMatch(push,/urgentBuilt|Hitno može i tokom tihih sati|Hitni događaji mogu da prođu/);
+ assert.doesNotMatch(profile,/<SwitchRow[^>]*label="Mogu odmah"/);
+});
+
+test('urgency dispatch retirement candidate is source-only, guarded and preserves normal calendar matching',()=>{
+ const candidate=fs.readFileSync(path.join(__dirname,'sql/dispatch_retire_urgency_20261119.candidate.sql'),'utf8');
+ assert.ok(candidate.startsWith('-- USKOCI 2026-11-19: retire task urgency branches'));
+ assert.ok(candidate.indexOf("RAISE EXCEPTION 'DISPATCH_URGENCY_RETIREMENT_SOURCE_ONLY'")<candidate.indexOf('BEGIN;'));
+ assert.match(candidate,/bd1d2fd351d8273ddc0cce9e29514ca7/);
+ assert.match(candidate,/2ba676d2f0fbd1456b48eb1ef36b468e/);
+ assert.match(candidate,/private\.candidate_budget\(false,/);
+ assert.match(candidate,/p_urgency => 'NORMAL'/);
+ assert.match(candidate,/pace_minutes := wave_minutes/);
+ assert.match(candidate,/order by \(s\.detail->>'score'\)::numeric desc, s\.pid/);
+ assert.match(candidate,/DISPATCH_URGENCY_MAIN_PREIMAGE_DRIFT/);
+ assert.match(candidate,/DISPATCH_URGENCY_REMOTE_PREIMAGE_DRIFT/);
+ assert.doesNotMatch(candidate,/DROP\s+(TABLE|COLUMN)|TRUNCATE|DELETE\s+FROM/i);
+});
