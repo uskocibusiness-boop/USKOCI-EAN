@@ -25,7 +25,6 @@ import { layout, ruleWidth } from '../system/layout';
 import { useLayoutClass } from '../system/textScale';
 import { brandAction, sys } from '../system/tokens';
 import { vreme } from '../../lib/vreme';
-import { urgentBuilt } from '../../lib/needUrgency';
 
 /**
  * The notification settings, ONE screen (the owner's phone of 8 Oct 2026: two tabs, "Moji zadaci" and "Moje prijave", repeated the same
@@ -47,7 +46,7 @@ const SETTING_KEYS: (keyof NotificationSettings)[] = [
  'in_app_enabled', 'push_enabled', 'opportunities_enabled', 'responses_enabled', 'dogovor_enabled', 'execution_enabled',
  'recovery_enabled', 'account_enabled', 'quiet_hours_enabled', 'quiet_start', 'quiet_end', 'quiet_timezone', 'urgent_overrides_quiet_hours',
 ];
-const QUIET_KEYS = ['quiet_hours_enabled', 'quiet_start', 'quiet_end', 'quiet_timezone', 'urgent_overrides_quiet_hours'] as const;
+const QUIET_KEYS = ['quiet_hours_enabled', 'quiet_start', 'quiet_end', 'quiet_timezone'] as const;
 type QuietKey = typeof QUIET_KEYS[number];
 const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,6})?)?$/;
 function sameSettings(a: NotificationSettings, b: NotificationSettings) { return SETTING_KEYS.every(key => a[key] === b[key]); }
@@ -77,7 +76,7 @@ function validateDraft(value: NotificationSettings): string | null {
 export function sharedQuiet(sets: Roles<NotificationSettings>): Pick<NotificationSettings, QuietKey> {
  const source = !sets.REQUESTER.quiet_hours_enabled && sets.WORKER.quiet_hours_enabled ? sets.WORKER : sets.REQUESTER;
  return { quiet_hours_enabled: source.quiet_hours_enabled, quiet_start: source.quiet_start, quiet_end: source.quiet_end,
-  quiet_timezone: source.quiet_timezone, urgent_overrides_quiet_hours: source.urgent_overrides_quiet_hours };
+  quiet_timezone: source.quiet_timezone };
 }
 /** `on` when both sets have the flag on, `off` when neither has, `mixed` when they differ (it reads as off and says so). */
 export function sharedFlag(sets: Roles<NotificationSettings>, key: 'in_app_enabled' | 'push_enabled'): 'on' | 'off' | 'mixed' {
@@ -438,9 +437,7 @@ export function PushPreferencesView({ signedIn, data, busy, error, locked, dirty
  // uncertain readback and validation; a phone-only refresh never announces an irrelevant Save state.
  const showSave = dirty || working === 'save' || !!validation || error || justSaved;
  const saveReason = error ? CHECK_FIRST : null;
- const urgent = urgentBuilt();
- const quietLines = ['Bez obaveštenja na telefon u ovom periodu. Period može da prelazi preko ponoći.',
-  ...(urgent ? ['Hitni događaji mogu da prođu i tada, ali samo kada je to posebno uključeno.'] : [])];
+ const quietLines = ['Bez obaveštenja na telefon u ovom periodu. Period može da prelazi preko ponoći.'];
  return <View style={styles.fill}>
   <SavedAnnouncement justSaved={justSaved} />
   <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, showSave && styles.contentAboveFoot]}>
@@ -516,8 +513,6 @@ export function PushPreferencesView({ signedIn, data, busy, error, locked, dirty
      {zone ? <V2Action label={`Koristi zonu telefona (${zoneLabel(zone)})`} kind="quiet" compact disabled={locked}
       onPress={() => onEdit('ALL', 'quiet_timezone', zone)} style={styles.inline} /> : null}
     </View> : null}
-    {quiet.quiet_hours_enabled && urgent ? <NoticeSwitchRow label="Hitno može i tokom tihih sati" value={quiet.urgent_overrides_quiet_hours} disabled={locked}
-     onChange={value => onEdit('ALL', 'urgent_overrides_quiet_hours', value)} last /> : null}
    </View>
 
    {/* "Napredno" holds what a person who wants every detail reaches for: the app's own list, each category of each set one by one (a
