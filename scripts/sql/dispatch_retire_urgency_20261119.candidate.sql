@@ -92,6 +92,8 @@ BEGIN
         OR position('timetier' in lower(prosrc))>0 OR position('available_now' in lower(prosrc))>0))
      OR position('private.candidate_budget(false' in (SELECT prosrc FROM pg_proc WHERE oid=target))=0
      OR position('p_urgency => ''NORMAL''' in (SELECT prosrc FROM pg_proc WHERE oid=target))=0
+     OR position('where key = ''dispatch_normal''' in (SELECT prosrc FROM pg_proc WHERE oid=target))=0
+     OR position('daily_cap := (cfgb->>''workerDailyCap'')::integer' in (SELECT prosrc FROM pg_proc WHERE oid=target))=0
   THEN RAISE EXCEPTION 'DISPATCH_URGENCY_MAIN_POSTIMAGE_DRIFT'; END IF;
 END
 $main$;
@@ -147,6 +149,8 @@ BEGIN
        (position('urgent' in lower(prosrc))>0 OR position('hitno' in lower(prosrc))>0
         OR position('timetier' in lower(prosrc))>0 OR position('available_now' in lower(prosrc))>0))
      OR position('pace_minutes := wave_minutes' in (SELECT prosrc FROM pg_proc WHERE oid=target))=0
+     OR position('daily_cap integer := (cfgb->>''workerDailyCap'')::integer' in (SELECT prosrc FROM pg_proc WHERE oid=target))=0
+     OR position('p_urgency => ''NORMAL''' in (SELECT prosrc FROM pg_proc WHERE oid=target))=0
   THEN RAISE EXCEPTION 'DISPATCH_URGENCY_REMOTE_POSTIMAGE_DRIFT'; END IF;
 END
 $remote$;
