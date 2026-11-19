@@ -121,3 +121,52 @@ test('the packaged operation preserves function identity and rolls back all DDL 
   await local.expectState(n,r,'SELECTABLE');
  }finally{await local.db.close()}
 });
+
+const selectableCountCandidate=fs.readFileSync(path.join(__dirname,'sql/selectable_application_count_fast_path_20261119.candidate.sql'),'utf8');
+
+test('selectable count fast path preserves auth, ownership and the exact SELECTABLE classifier',async()=>{
+ const local=await fixture();
+ try{
+  await local.install();await local.areas([CITY]);
+  const n=await local.need(),r=await local.submit(n);
+  const count=()=>local.value('select public.selectable_application_count(n) as value from public.needs n where id=$1',[n]);
+  const metadata=()=>local.value(`select jsonb_build_object('oid',p.oid::bigint,'owner',p.proowner::bigint,'acl',p.proacl::text,
+   'definer',p.prosecdef,'config',p.proconfig,'volatility',p.provolatile) as value
+   from pg_proc p where p.oid='public.selectable_application_count(public.needs)'::regprocedure`);
+  const before=await metadata();
+  await local.db.exec(selectableCountCandidate);
+  assert.deepEqual(await metadata(),before,'CREATE OR REPLACE must preserve function identity and security metadata');
+  const helperDefinition=await local.value("select pg_get_functiondef('private.need_candidate_states_v5(uuid)'::regprocedure) as value");
+  const spy=helperDefinition.replace(/\\nbegin\\n/, "\\nbegin\\n  raise exception 'COUNT_HELPER_SHOULD_NOT_RUN';\\n");
+  assert.notEqual(spy,helperDefinition,'the helper spy must be installed');
+  await local.db.exec(spy);
+  for(const state of ['DRAFT','ACTIVE','COMPLETED','CANCELLED','EXPIRED','ARCHIVED']){
+   await local.db.query('update public.needs set status=$2 where id=$1',[n,state]);
+   assert.equal(await count(),0,`owned ${state} task must return zero without invoking candidate classification`);
+  }
+  await local.db.exec(helperDefinition);
+  await local.db.query("update public.needs set status='PUBLISHED' where id=$1",[n]);
+  for(const state of ['SUBMITTED','DELIVERED','VIEWED','SHORTLISTED']){
+   await local.db.query('update public.marketplace_responses set status=$2 where need_id=$1',[n,state]);
+   assert.equal(await count(),1,`${state} remains selectable on a current eligible task`);
+  }
+  for(const state of ['WITHDRAWN','NOT_SELECTED','EXPIRED','STALE','STALE_REVIEW_REQUIRED','SELECTED']){
+   await local.db.query('update public.marketplace_responses set status=$2 where need_id=$1',[n,state]);
+   assert.equal(await count(),0,`${state} must never be counted as selectable`);
+  }
+  await local.actor(null);
+  await assert.rejects(count(),/AUTH_REQUIRED/,'authentication must be checked before the fast path');
+  await local.actor(local.FOREIGN);
+  assert.equal(await count(),null,'a foreign owner must not learn the task count, even for a closed task');
+  await local.actor(local.REQUESTER);
+  await local.db.exec("create or replace function public.rpc_storage_account_open() returns boolean language sql stable as $$select false$$");
+  await assert.rejects(count(),/ACCOUNT_NOT_OPEN/,'closed-account guard must remain ahead of the fast path');
+  await local.db.exec("create or replace function public.rpc_storage_account_open() returns boolean language sql stable as $$select true$$");
+  await local.actor(local.REQUESTER);
+  await local.db.query("update public.needs set status='PUBLISHED' where id=$1",[n]);
+  await local.db.query("update public.marketplace_responses set status='SUBMITTED' where need_id=$1",[n]);
+  assert.equal(await count(),1,'the positive selection path remains unchanged');
+  assert.deepEqual(await metadata(),before);
+  assert.equal(r.authoritative,true);
+ }finally{await local.db.close()}
+});
