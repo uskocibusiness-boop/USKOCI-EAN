@@ -55,6 +55,8 @@ test('retired urgency UI has no activation, badges, timers or quiet-hours bypass
  const push=fs.readFileSync(path.join(__dirname,'..','src/ui/notifications/PushPreferences.tsx'),'utf8');
  const profile=fs.readFileSync(path.join(__dirname,'..','src/ui/workerProfile/WorkerProfileSaved.tsx'),'utf8');
  const workerAi=fs.readFileSync(path.join(__dirname,'..','src/ui/workerProfile/WorkerAiPresentation.tsx'),'utf8');
+ const home=fs.readFileSync(path.join(__dirname,'..','src/ui/home/HomePresentation.tsx'),'utf8');
+ const facts=fs.readFileSync(path.join(__dirname,'..','src/ui/workerProfile/workerProfileFacts.ts'),'utf8');
  assert.match(urgency,/urgentBuilt[\s\S]*return false/);
  assert.match(urgency,/displaysUrgent[\s\S]*return false/);
  assert.doesNotMatch(activation,/urgentActivationClientService|urgentActivationPreviewClientService|useConfirmSheet/);
@@ -64,6 +66,10 @@ test('retired urgency UI has no activation, badges, timers or quiet-hours bypass
  assert.doesNotMatch(push,/urgentBuilt|Hitno može i tokom tihih sati|Hitni događaji mogu da prođu/);
  assert.doesNotMatch(profile,/<SwitchRow[^>]*label="Mogu odmah"/);
  assert.doesNotMatch(workerAi,/Mogu odmah|WORKER_AVAILABLE_NOW_ENABLED/);
+ assert.doesNotMatch(home,/Mogu odmah|availableNow|WORKER_AVAILABLE_NOW_ENABLED/);
+ assert.doesNotMatch(facts,/Mogu odmah|availableNow|WORKER_AVAILABLE_NOW_ENABLED/);
+ assert.equal(fs.existsSync(path.join(__dirname,'..','src/data/urgentActivationClientService.ts')),false);
+ assert.equal(fs.existsSync(path.join(__dirname,'..','src/data/urgentActivationPreviewClientService.ts')),false);
 });
 
 test('urgency dispatch retirement candidate is source-only, guarded and preserves normal calendar matching',()=>{
