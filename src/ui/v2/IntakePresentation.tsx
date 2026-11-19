@@ -527,7 +527,7 @@ export function IntakePresentation(props: Props) {
       hasUnsentText={open && !!value.trim() && !busy && !pending} appear={landed} />}
     actions={props.roleSwitchPrompt || (!attach && photoAssets.length) || (safetyCopy && (!showSummary || conversation.safety === 'BLOCK')) ? <>
       {props.roleSwitchPrompt ? <>
-        <T variant="note" tone="muted">Otvoriće se nov, prazan razgovor za ponudu usluga. Vaša prethodna poruka se ne prenosi niti šalje.</T>
+        <T variant="note" tone="muted">Prenosi se samo Vaš tekst kao nacrt, bez istorije razgovora i podataka profila. Ništa se ne šalje dok Vi ne pritisnete Pošalji.</T>
         <V2Action label="Otvorite radni profil" kind="primary" style={brandAction}
           disabled={props.roleSwitchPrompt.disabled || editingPlace} onPress={outsidePlace(props.roleSwitchPrompt.onPress)} />
       </> : null}

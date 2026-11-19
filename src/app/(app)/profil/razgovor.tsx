@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { workerAiClientService as api, WORKER_AI_READ_TRANSPORT_UNAVAILABLE, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurn, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
+import { stageRoleHandoffText, takeRoleHandoffText } from '../../../data/aiRoleHandoff.mjs';
 import type { AiPreparedRecovery } from '../../../data/aiPreparedRecovery';
 import { oppositeInterviewDomain, type AiConversationIntent, type AiRoleSuggestion } from '../../../contracts/aiConversationIntent';
 import type { Ishod } from '../../../data/ports';
@@ -34,10 +35,11 @@ type SubmittedDraft={value:string;revision:number};
 type Attempt={id:string;text:string|null;submittedDraft:SubmittedDraft|null};
 const unavailable=():Ishod<never>=>({ok:false,kod:'WORKER_AI_UNAVAILABLE',poruka:'Ponovo učitajte svoj radni profil.'});
 export default function WorkerConversationRoute(){
-  const session=useSesija(),params=useLocalSearchParams<{conversationId?:string|string[];aiCorrection?:string|string[];entryKey?:string|string[];activationRequest?:string|string[]}>();
+  const session=useSesija(),params=useLocalSearchParams<{conversationId?:string|string[];aiCorrection?:string|string[];entryKey?:string|string[];activationRequest?:string|string[];handoffToken?:string|string[]}>();
   const cid=typeof params.conversationId==='string'?params.conversationId:undefined;
   const entryKey=typeof params.entryKey==='string'&&uuid(params.entryKey)?params.entryKey:undefined;
   const activationRequest=typeof params.activationRequest==='string'&&uuid(params.activationRequest)?params.activationRequest:undefined;
+  const handoffToken=typeof params.handoffToken==='string'?params.handoffToken:undefined;
   const owner=`${session.user?.id}:${session.accountRevision}`;
   // A topic-only navigation can replace search params on a retained route. Keep
   // its owned conversation, including an unsent draft; an explicit new ID or
@@ -51,11 +53,12 @@ export default function WorkerConversationRoute(){
   const invalid=(params.conversationId!==undefined&&cid===undefined)
     ||(params.entryKey!==undefined&&entryKey===undefined)
     ||(params.activationRequest!==undefined&&activationRequest===undefined)
+    ||(params.handoffToken!==undefined&&handoffToken===undefined)
     ||(conversationId!==undefined&&!uuid(conversationId));
-  return <OwnedWorkerConversation key={`${owner}:${retained.current.entryKey??''}:${conversationId??''}`}
-    initialId={conversationId} invalid={invalid} correctionToken={params.aiCorrection} activationRequest={activationRequest}/>;
+  return <OwnedWorkerConversation key={`${owner}:${retained.current.entryKey??''}:${conversationId??''}:${handoffToken??''}`}
+    initialId={conversationId} invalid={invalid} correctionToken={params.aiCorrection} activationRequest={activationRequest} handoffToken={handoffToken}/>;
 }
-function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRequest}:{initialId?:string;invalid:boolean;correctionToken?:unknown;activationRequest?:string}){
+function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRequest,handoffToken}:{initialId?:string;invalid:boolean;correctionToken?:unknown;activationRequest?:string;handoffToken?:string}){
   const {user,accountRevision}=useSesija(),accountId=user?.id;
   // ONE NAME (owner, 8 Oct 2026): the profile is saved under the name of the ACCOUNT, whatever the assistant proposed or the profile carried.
   const account=useAccountName(),accountName=account.state==='ready'?account.name:null;
@@ -77,6 +80,12 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const [menu,setMenu]=useState(false),[adding,setAdding]=useState(false);
   const draftText=useRef(input);draftText.current=input;
   const draftRevision=useRef(0);
+  useEffect(()=>{
+    if(!handoffToken||initialId)return;
+    const transferred=takeRoleHandoffText('WORKER',handoffToken);
+    if(transferred===null)return;
+    draftRevision.current+=1;draftText.current=transferred;setInput(transferred);
+  },[handoffToken,initialId]);
   const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[corruptLocalIntent,setCorruptLocalIntent]=useState(false),[,intentChanged]=useState(0);
   const [preparedRecovery,setPreparedRecovery]=useState<AiPreparedRecovery|null>(null);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
@@ -371,11 +380,14 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     &&roleSuggestion.conversationId===data.conversationId&&data.messages.at(-1)?.id===roleSuggestion.assistantMessageId
     ?roleSuggestion:null;
   const openSuggestedNeed=()=>{
-    if(!canAct()||!enabled||!writable||!currentRoleSuggestion||!accountId||pending.current||draftText.current.trim()
+    if(!canAct()||!enabled||!writable||!currentRoleSuggestion||!accountId||pending.current
       ||!renderedForeground||foregroundGeneration.current!==renderedForeground
       ||voice.controller.getSnapshot().phase!=='IDLE')return;
-    // Cross-role navigation always opens a clean conversation. No text or context is transferred.
-    leave(()=>router.push({pathname:'/nova',params:{entryKey:noviUuidZahtevId()}}));
+    const lastUserText=[...(data?.messages??[])].reverse().find(message=>message.role==='USER')?.body??'';
+    const transferText=draftText.current.trim()?draftText.current:lastUserText;
+    const handoffToken=transferText.trim()?stageRoleHandoffText('NEED',transferText):null;
+    if(transferText.trim()&&!handoffToken)return;
+    leave(()=>router.push({pathname:'/nova',params:{entryKey:noviUuidZahtevId(),...(handoffToken?{handoffToken}:{})}}));
   };
   const refresh=()=>{if(current()&&!editor.busy&&!editor.loading&&!voiceBusy)void editor.refresh();};
   const recoverCorruptLocal=()=>{
@@ -627,9 +639,9 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     voice={writable?{controller:voice.controller,state:voice.state,disabled:!enabled||!!pending.current,onKeepText:keepTranscript}:undefined}
     actions={<>
       {currentRoleSuggestion?<>
-        <T variant="note" tone="muted">Otvoriće se nov, prazan razgovor o zadatku. Vaša prethodna poruka se ne prenosi.</T>
+        <T variant="note" tone="muted">Prenosi se samo Vaš tekst kao nacrt, bez istorije razgovora i podataka profila. Ništa se ne šalje dok Vi ne pritisnete Pošalji.</T>
         <V2Action label="Otvorite razgovor o zadatku" kind="primary" style={brandAction}
-          disabled={!enabled||!!input.trim()} onPress={openSuggestedNeed}/>
+          disabled={!enabled} onPress={openSuggestedNeed}/>
       </>:null}
       {/* After a save the only next step is the saved profile; a second "check" button beside it read as unfinished. */}
       {(pending.current||awaiting||editor.uncertain||conversationError||preparationProblem)&&!data.saved?<V2Action tone="neutral" label="Proverite razgovor" disabled={editor.busy||editor.loading||voiceBusy}

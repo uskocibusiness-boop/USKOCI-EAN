@@ -8,6 +8,7 @@ import { aiTaskReviewClientService, type AiTaskReviewEnvelope } from '../../data
 import { aiTurnIntentJournal } from '../../data/aiTurnIntentJournal';
 import type { AiPreparedRecovery } from '../../data/aiPreparedRecovery';
 import { isExplicitWorkerOffer } from '../../data/aiRoleOfferConfirmation';
+import { stageRoleHandoffText, takeRoleHandoffText } from '../../data/aiRoleHandoff.mjs';
 import { oppositeInterviewDomain, type AiConversationIntent, type AiRoleSuggestion } from '../../contracts/aiConversationIntent';
 import { locationDialogueEnabled, resolveLocationDialogue } from '../../data/locationDialogueClientService';
 import type { LocationDialogueRequest } from '../../contracts/locationDialogue';
@@ -39,15 +40,17 @@ type SubmittedDraft = { value: string; revision: number };
 type PendingTurn = { id: string; body: string | null; submittedDraft: SubmittedDraft | null; locationContext?: LocationDialogueRequest['locationContext']; image?: { base64: string; mimeType: string } };
 
 export default function NovaPotrebaV2() {
-  const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[]; aiCorrection?: string | string[] }>();
+  const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[]; aiCorrection?: string | string[]; handoffToken?: string | string[] }>();
   const { user, accountRevision } = useSesija();
   const resumeId = typeof params.conversationId === 'string' ? params.conversationId : undefined;
   const entryKey = typeof params.entryKey === 'string' ? params.entryKey : undefined;
+  const handoffToken = typeof params.handoffToken === 'string' ? params.handoffToken : undefined;
   const invalidRoute = (params.conversationId !== undefined && (!resumeId || !uuid(resumeId)))
     || (params.entryKey !== undefined && (!entryKey || !uuid(entryKey)))
+    || (params.handoffToken !== undefined && !handoffToken)
 ;
-  return <OwnedIntake key={`${user?.id ?? ''}:${accountRevision}:${resumeId ?? ''}:${entryKey ?? ''}:${invalidRoute}`}
-    resumeId={resumeId} entryKey={entryKey} invalidRoute={invalidRoute} correctionToken={params.aiCorrection} />;
+  return <OwnedIntake key={`${user?.id ?? ''}:${accountRevision}:${resumeId ?? ''}:${entryKey ?? ''}:${handoffToken ?? ''}:${invalidRoute}`}
+    resumeId={resumeId} entryKey={entryKey} invalidRoute={invalidRoute} correctionToken={params.aiCorrection} handoffToken={handoffToken} />;
 }
 
 /** A conversation that has not been started. It is never sent anywhere and never read back. */
@@ -55,7 +58,7 @@ const BLANK: AiNeedV2Conversation = { conversationId: '', schemaVersion: 'NEED_F
   messages: [], facts: [], safety: 'ALLOW',
   review: { conversationId: '', schemaVersion: 'NEED_FACT_V2', boundNeedId: null, canSaveDraft: false, missingRequired: [], facts: [] } };
 
-function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { resumeId?: string; entryKey?: string; invalidRoute: boolean; correctionToken?: unknown }) {
+function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, handoffToken }: { resumeId?: string; entryKey?: string; invalidRoute: boolean; correctionToken?: unknown; handoffToken?: string }) {
   const { user, accountRevision } = useSesija(), accountId = user?.id;
   const [openRequestId] = useState(noviUuidZahtevId);
   const conversation = useRef<string | null>(resumeId ?? null);
@@ -81,6 +84,14 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
   const [retainedLocationSpeech, setRetainedLocationSpeech] = useState<string | null>(null);
   const draftText = useRef(unos); draftText.current = unos;
   const draftRevision = useRef(0);
+  useEffect(() => {
+    if (!handoffToken || resumeId) return;
+    const transferred = takeRoleHandoffText('NEED', handoffToken);
+    if (transferred === null) return;
+    draftRevision.current += 1;
+    draftText.current = transferred;
+    setUnos(transferred);
+  }, [handoffToken, resumeId]);
   const [recoveryConversation, setRecoveryConversation] = useState<string | null>(null);
   const [corruptLocalIntent, setCorruptLocalIntent] = useState(false);
   const [streamingText, setStreamingText] = useState('');
@@ -326,31 +337,37 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
     && roleSuggestion.conversationId === razgovorId && stanje.messages.at(-1)?.id === roleSuggestion.assistantMessageId
     ? roleSuggestion : null;
   const openSuggestedWorker = () => {
-    if (!canAct() || !writable || !currentRoleSuggestion || !accountId || request.current || draftText.current.trim()
+    if (!canAct() || !writable || !currentRoleSuggestion || !accountId || request.current
       || !renderedForeground || restartOwner.current !== renderedForeground
       || voice.controller.getSnapshot().phase !== 'IDLE') return;
-    // Cross-role navigation always opens a clean conversation. No text or context is transferred.
-    navigate(() => router.push({ pathname: '/profil/razgovor', params: { entryKey: noviUuidZahtevId() } }));
+    const lastUserText = [...(stanje?.messages ?? [])].reverse().find(message => !message.fromAi)?.body ?? '';
+    const transferText = draftText.current.trim() ? draftText.current : lastUserText;
+    const handoffToken = transferText.trim() ? stageRoleHandoffText('WORKER', transferText) : null;
+    if (transferText.trim() && !handoffToken) return;
+    navigate(() => router.push({ pathname: '/profil/razgovor',
+      params: { entryKey: noviUuidZahtevId(), ...(handoffToken ? { handoffToken } : {}) } }));
   };
 
   const submitTurn = async (body: string, submittedDraft: SubmittedDraft | null = null, pointLease: LocationReplyLease | null = null, image?: { base64: string; mimeType: string }) => {
     if (!canAct() || !canSubmit || (!body && !image) || (pointLease && !pointLease.isCurrent())) { pointLease?.cancel(); return; }
     setRoleSuggestion(null);
-    // A clear worker offer does not belong in task intake. Ask before opening a new,
-    // empty Worker conversation; never transfer or send the original text.
+    // A clear worker offer does not belong in task intake. Ask before opening Worker;
+    // only the user's exact text is staged as a one-use draft, never sent automatically.
     // An ambiguous mixed need/offer is left to the AI; the user can cancel and send as a task.
     if (!pointLease && !image && !request.current && roleOfferPrompted.current !== body && isExplicitWorkerOffer(body)) {
       roleOfferPrompted.current = body;
       confirmation.ask({
         title: 'Želite da ponudite svoje usluge?',
-        message: 'Za ponudu svojih usluga koristite razgovor za radni profil. Otvoriće se nov, prazan razgovor; ova poruka se neće preneti niti poslati.',
+        message: 'Za ponudu svojih usluga koristite razgovor za radni profil. Prenosi se samo Vaša poruka kao nacrt; istorija razgovora i podaci profila se ne prenose. Ništa se ne šalje dok Vi ne pritisnete Pošalji.',
         cancelLabel: 'Ipak napravite zadatak',
         confirmLabel: 'Otvorite radni profil',
         onConfirm: () => {
           if (!canAct() || request.current || !accountId || !renderedForeground || restartOwner.current !== renderedForeground
             || voice.controller.getSnapshot().phase !== 'IDLE') return;
+          const handoffToken = stageRoleHandoffText('WORKER', body);
+          if (!handoffToken) return;
           navigate(() => router.push({ pathname: '/profil/razgovor',
-            params: { entryKey: noviUuidZahtevId() } }));
+            params: { entryKey: noviUuidZahtevId(), handoffToken } }));
         },
       });
       return;
@@ -751,7 +768,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
     voice={stanje.status === 'OPEN' ? { controller: voice.controller, state: voice.state, disabled: !canSubmit || !!request.current,
       onKeepText: keepTranscript } : undefined}
     roleSwitchPrompt={currentRoleSuggestion ? { onPress: openSuggestedWorker,
-      disabled: !canAct() || !!request.current || voiceBusy || !!unos.trim() } : undefined}
+      disabled: !canAct() || !!request.current || voiceBusy } : undefined}
     canReview={!currentRoleSuggestion && !!razgovorId && (readyToReview || canOpenOutcome) && editor.loaded && !radi && !editor.loading && !editor.uncertain && !request.current}
     reviewReady={!currentRoleSuggestion && readyToReview}
     reviewDisabledReason={voiceBusy ? 'Završite govor pre otvaranja pregleda.' : writable ? photos.continueReason : null}
