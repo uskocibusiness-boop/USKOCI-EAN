@@ -6,7 +6,7 @@ import { instantMs, serbianClock, serbianDayRange } from './serbianDays';
  * The soft shade behind a day of the month, and the band beside the hours of a day (owner, 2026-10-07 and 8 Oct 2026, "Raspored kao
  * kalendar"): "on this day I have said I can work". It is read from the availability the worker already keeps
  * (`workerAvailabilityClientService.read`): the weekly rules and the dated exceptions of Dostupnost. It says nothing about being booked
- * (a Dogovor on the day is a Dogovor, drawn as one) and nothing about "Mogu odmah" (that switch is about now, not about a day).
+ * (a Dogovor on the day is a Dogovor, drawn as one) and does not promise availability outside the saved intervals.
  *
  * The availability is kept in its own named zone and the planner's days are Serbian days, so every rule is turned into exact
  * instants first and only then cut by the Serbian day. A person who keeps Dostupnost in another zone sees the shade where the
