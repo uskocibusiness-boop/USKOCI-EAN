@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { workerAreasLabel } from '../../contracts/workerAreas';
-import { WORKER_AVAILABLE_NOW_ENABLED } from '../../contracts/workerNowFeature';
 import { serviceHandoffText } from '../../contracts/serviceHandoff';
 import { StyleSheet, View } from 'react-native';
 import type { WorkerAiProfile, WorkerAiReview } from '../../data/workerAiClientService';
@@ -42,7 +41,6 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
   const skills = profile.skills.length ? profile.skills.join(' · ') : 'Koje zadatke možete da preuzmete?';
   const place = profile.location.city.trim()
     ?`${cityLabel(profile.location.city)}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`:null;
-  const availability = profile.availability.availableNow ? 'Mogu odmah' : 'Mogu odmah: isključeno';
   const schedule = `${plural(profile.availability.rules.length, 'redovan termin', 'redovna termina', 'redovnih termina')} · ${plural(profile.availability.windows.length, 'poseban termin', 'posebna termina', 'posebnih termina')}`;
   const modes=verifiedReview?.classificationState==='READY'?verifiedReview.reviewedServiceModes??[]:[];
   const shownSkills=expanded?profile.skills:profile.skills.slice(0,2);
@@ -78,14 +76,12 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
         :place?<PreviewFact art="pin">{onSite
         ?`${place} · do ${profile.location.radiusKm} km${displayedPinPosition(profile.location.approximatePosition,true)?'':' (za okolna mesta potvrdite centar)'}`
         :`Grad profila: ${place}`}</PreviewFact>:null}
-      {WORKER_AVAILABLE_NOW_ENABLED && profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
       {!modes.length&&profile.skills.length?<T testID="worker-understood-pending" variant="note" tone="muted">Način rada i predaju proveravamo u pregledu.</T>:null}
     </View>
     {pending||resumed?<T testID="worker-draft-review-note" variant="note" tone="muted">{pending
       ?'Prethodno zabeleženo. Čekamo odgovor na poslednju poruku.'
       :'Nastavljen nacrt. Sačuvani profil ostaje isti do pregleda i čuvanja.'}</T>:null}
     {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
-        {WORKER_AVAILABLE_NOW_ENABLED && !profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
         {profile.availability.rules.length||profile.availability.windows.length?<PreviewFact art="calendar">{schedule}</PreviewFact>:null}
       </View>:null}
     {showReview&&!reviewInFooter?<View style={s.reviewAction}>
@@ -203,7 +199,6 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       </>}
     </ReviewGroup>
     <ReviewGroup part="time">
-      {WORKER_AVAILABLE_NOW_ENABLED ? <Fact art="clock">{p.availability.availableNow?'Mogu odmah':'Mogu odmah: isključeno'}</Fact> : null}
       {p.availability.rules.length?<View style={s.scheduleGroup}>
         <T variant="bodyStrong">Redovna nedelja</T>
         {p.availability.rules.map(rule=><Row key={rule.id} quiet={!rule.active}
