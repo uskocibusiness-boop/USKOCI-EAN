@@ -17,7 +17,7 @@ const REACH = (layout.touch - 20) / 2;
  * few short lines, nothing to decide. A sheet that asks for a choice is a `ConfirmSheet`, a list of commands an `ActionSheet`.
  */
 export function InfoButton({ title, lines, label, testID }: {
-  /** The question the sheet answers, as its heading: "Ko vidi adresu", "Šta znači „Mogu odmah“". */
+  /** The question the sheet answers, as its heading: "Ko vidi adresu", "Kako radi raspored". */
   title: string;
   /** The answer, one short sentence per line; three or four at most. */
   lines: readonly string[];
