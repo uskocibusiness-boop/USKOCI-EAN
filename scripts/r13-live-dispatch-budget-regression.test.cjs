@@ -67,7 +67,7 @@ test('retired urgency UI has no activation, badges, timers or quiet-hours bypass
 test('urgency dispatch retirement candidate is source-only, guarded and preserves normal calendar matching',()=>{
  const candidate=fs.readFileSync(path.join(__dirname,'sql/dispatch_retire_urgency_20261119.candidate.sql'),'utf8');
  assert.ok(candidate.startsWith('-- USKOCI 2026-11-19: retire task urgency branches'));
- assert.ok(candidate.indexOf("RAISE EXCEPTION 'DISPATCH_URGENCY_RETIREMENT_SOURCE_ONLY'")<candidate.indexOf('BEGIN;'));
+ assert.ok(candidate.indexOf("RAISE EXCEPTION 'DISPATCH_URGENCY_RETIREMENT_SOURCE_ONLY'")<candidate.indexOf('BEGIN;\\nSET LOCAL lock_timeout'));
  assert.match(candidate,/bd1d2fd351d8273ddc0cce9e29514ca7/);
  assert.match(candidate,/2ba676d2f0fbd1456b48eb1ef36b468e/);
  assert.match(candidate,/private\.candidate_budget\(false,/);
