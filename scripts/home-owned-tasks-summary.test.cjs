@@ -31,10 +31,13 @@ async function fixture({apply=true}={}){
 test('SQL summary preserves exact counts, six-row global order, fresh draft, auth and non-overwrite guards',async()=>{
  const f=await fixture();try{
   await f.actor(A);const r=await f.summary();
-  const ownedCte=sql.match(/with owned as materialized \\(([\\s\\S]*?)\\), classified as materialized/);
-  assert.ok(ownedCte);assert.doesNotMatch(ownedCte[1],/public\\.(?:covered_slots|selectable_application_count)\\(/);
-  assert.match(sql,/case when d\\.id is not null then coalesce\\(\\(d\\.document->>'covered_slots'\\)::int,0\\) else public\\.covered_slots\\(c\\.need_row\\) end/);
-  assert.match(sql,/case when d\\.id is not null then coalesce\\(\\(d\\.document->>'selectable_application_count'\\)::int,0\\) else coalesce\\(public\\.selectable_application_count\\(c\\.need_row\\),0\\) end/);
+  const ownedStart=sql.indexOf('  with owned as materialized ('),ownedEnd=sql.indexOf('  ), classified as materialized',ownedStart);
+  assert.ok(ownedStart>=0&&ownedEnd>ownedStart);
+  const ownedCte=sql.slice(ownedStart,ownedEnd);
+  assert.equal(ownedCte.includes('public.covered_slots('),false);
+  assert.equal(ownedCte.includes('public.selectable_application_count('),false);
+  assert.ok(sql.includes("case when d.id is not null then coalesce((d.document->>'covered_slots')::int,0) else public.covered_slots(c.need_row) end"));
+  assert.ok(sql.includes("case when d.id is not null then coalesce((d.document->>'selectable_application_count')::int,0) else coalesce(public.selectable_application_count(c.need_row),0) end"));
   assert.deepEqual(r.counts,{total:19,active:12,drafts:6,history:1,waiting:1});assert.equal(r.items.length,6);
   assert.deepEqual(r.items.map(x=>x.id),[id(10),id(11),id(12),id(2),id(1),id(3)]);assert.equal(r.freshDraft.id,id(20));
   assert.equal(r.items.some(x=>[13,14,15,16,17,18,19,20].some(n=>x.id===id(n))),false);
