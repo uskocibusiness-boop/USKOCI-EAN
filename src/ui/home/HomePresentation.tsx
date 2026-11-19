@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
-import { WORKER_AVAILABLE_NOW_ENABLED } from '../../contracts/workerNowFeature';
 import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeAttention, HomeRaspored, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
@@ -222,11 +221,6 @@ function MineRow({ art, title, detail, onPress, last = false }: {
 }
 
 /** No optimistic availability toggle: the status changes after AI review and Save. */
-function AvailableNowRow({ control, last }: { control: NonNullable<HomePresentationProps['availableNow']>; last: boolean }) {
-  return <ListRow leading={<FactArt kind="clock" size={32} />} title="Dostupnost" subtitle={control.value ? 'Mogu odmah' : 'Mogu odmah: isključeno'} last={last}
-    accessibilityLabel="Izmenite dostupnost kroz razgovor" onPress={control.onEdit} />;
-}
-
 /** Said once and quietly: a part of the overview that could not be read names itself, and the shared recovery above retries it. */
 function Unavailable({ text }: { text: string }) {
   return <T accessibilityLiveRegion="polite" variant="note" tone="muted">{text}</T>;
@@ -304,7 +298,6 @@ export function HomePresentation(p: HomePresentationProps) {
   const applicationsDetail = home ? applicationsLine(home.mine.applications) : p.error ? 'Trenutno nedostupno' : null;
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
   const setupProfile = !!profile && (profile.state === 'NONE' || profile.state === 'DRAFT');
-  const availabilityShown = WORKER_AVAILABLE_NOW_ENABLED && !!profile && profile.state === 'ACTIVE' && !!p.availableNow;
   // The rows of "Čeka Vas", in the order they are drawn, so only the last one has no divider. At most WAITING_LIMIT of them (the server's
   // things first, then what the phone itself found, then the ratings); what does not fit is counted in the line under them, together with
   // what the server and the phone already said they left out. With no appointment ahead the first of them is the one record of the screen
@@ -411,7 +404,6 @@ export function HomePresentation(p: HomePresentationProps) {
       <MineRow art="tasks" title="Moji zadaci" detail={tasksDetail} onPress={p.onMyTasks} />
       <MineRow art="applications" title="Moje prijave" detail={applicationsDetail} onPress={p.onMyApplications} last={!setupProfile && !availabilityShown} />
       <WorkProfileReadState state={p.workProfileRead} />
-      {availabilityShown ? <AvailableNowRow control={p.availableNow!} last={!setupProfile} /> : null}
       {/* R20: until the work profile exists, one row says what it is for and opens its conversation. */}
       {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesite radni profil" subtitle="Dobijate zadatke koji Vam odgovaraju."
         onPress={() => p.onOpen({ kind: 'WORKER_PROFILE' })} last accessibilityLabel="Podesite radni profil. Dobijate zadatke koji Vam odgovaraju." /> : null}
