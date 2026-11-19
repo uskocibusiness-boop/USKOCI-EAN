@@ -54,6 +54,7 @@ test('retired urgency UI has no activation, badges, timers or quiet-hours bypass
  const badge=fs.readFileSync(path.join(__dirname,'..','src/ui/v2/NeedUrgencyBadge.tsx'),'utf8');
  const push=fs.readFileSync(path.join(__dirname,'..','src/ui/notifications/PushPreferences.tsx'),'utf8');
  const profile=fs.readFileSync(path.join(__dirname,'..','src/ui/workerProfile/WorkerProfileSaved.tsx'),'utf8');
+ const workerAi=fs.readFileSync(path.join(__dirname,'..','src/ui/workerProfile/WorkerAiPresentation.tsx'),'utf8');
  assert.match(urgency,/urgentBuilt[\s\S]*return false/);
  assert.match(urgency,/displaysUrgent[\s\S]*return false/);
  assert.doesNotMatch(activation,/urgentActivationClientService|urgentActivationPreviewClientService|useConfirmSheet/);
@@ -62,6 +63,7 @@ test('retired urgency UI has no activation, badges, timers or quiet-hours bypass
  assert.match(badge,/export function NeedUrgencyBadge[\s\S]*return null/);
  assert.doesNotMatch(push,/urgentBuilt|Hitno može i tokom tihih sati|Hitni događaji mogu da prođu/);
  assert.doesNotMatch(profile,/<SwitchRow[^>]*label="Mogu odmah"/);
+ assert.doesNotMatch(workerAi,/Mogu odmah|WORKER_AVAILABLE_NOW_ENABLED/);
 });
 
 test('urgency dispatch retirement candidate is source-only, guarded and preserves normal calendar matching',()=>{
