@@ -28,11 +28,24 @@
               'assets/brand/reference-entry/provenance.json','vendor/decode-uri-component-compat/package.json'])
               assert.ok(exists(p),p);
           });
-          test('production tree has no historical QA corpora or extra masters',()=>{
-            for(const p of ['supabase/proofs','supabase/candidates','supabase/operations',
+          test('production tree excludes QA corpora and allows only the two recovered DEV ledger packages',()=>{
+            for(const p of ['supabase/proofs','supabase/candidates',
               'src/data/__tests__','src/designLab','docs/continuation','jest.config.cjs',
               'docs/product/USKOCI_PRODUCT_UX_MASTER.md'])
               assert.equal(exists(p),false,p);
+            const operations=path.join(root,'supabase/operations');
+            if(fs.existsSync(operations)){
+              const files=[];
+              const walk=dir=>{for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
+                const full=path.join(dir,entry.name);
+                if(entry.isDirectory())walk(full);else files.push(path.relative(root,full).split(path.sep).join('/'));
+              }};
+              walk(operations);
+              assert.deepEqual(files.sort(),[
+                'supabase/operations/dev-alpha/ledger/20261101172612_owner_task_page_contract_v1.sql',
+                'supabase/operations/dev-alpha/ledger/20261101174446_application_attention_agreement_lifecycle_v1.sql'
+              ].sort(),'only the two provenance-recovered DEV ledger packages may remain');
+            }
             for(const p of ['docs/plan/CODEX_PLAN_RADA.md','AGENTS.md'])
               assert.ok(exists(p),p);
           });
