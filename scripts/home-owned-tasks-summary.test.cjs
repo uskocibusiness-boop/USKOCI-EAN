@@ -36,8 +36,9 @@ test('SQL summary preserves exact counts, six-row global order, fresh draft, aut
   const ownedCte=sql.slice(ownedStart,ownedEnd);
   assert.equal(ownedCte.includes('public.covered_slots('),false);
   assert.equal(ownedCte.includes('public.selectable_application_count('),false);
-  assert.ok(sql.includes("case when d.id is not null then coalesce((d.document->>'covered_slots')::int,0) else public.covered_slots(c.need_row) end"));
-  assert.ok(sql.includes("case when d.id is not null then coalesce((d.document->>'selectable_application_count')::int,0) else coalesce(public.selectable_application_count(c.need_row),0) end"));
+  const compactSql=sql.replace(/\s+/g,' ').trim();
+  assert.ok(compactSql.includes("case when d.id is not null then coalesce((d.document->>'covered_slots')::int,0) else public.covered_slots(c.need_row) end"));
+  assert.ok(compactSql.includes("case when d.id is not null then coalesce((d.document->>'selectable_application_count')::int,0) else coalesce(public.selectable_application_count(c.need_row),0) end"));
   assert.deepEqual(r.counts,{total:19,active:12,drafts:6,history:1,waiting:1});assert.equal(r.items.length,6);
   assert.deepEqual(r.items.map(x=>x.id),[id(10),id(11),id(12),id(2),id(1),id(3)]);assert.equal(r.freshDraft.id,id(20));
   assert.equal(r.items.some(x=>[13,14,15,16,17,18,19,20].some(n=>x.id===id(n))),false);
