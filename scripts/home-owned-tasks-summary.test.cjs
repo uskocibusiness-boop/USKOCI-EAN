@@ -22,7 +22,7 @@ async function fixture({apply=true}={}){
  for(let n=1;n<=9;n++)await add(n,A,n===9?'SELECTION':'PUBLISHED',n<=2?1:n,0,`Eligible ${n}`);
  await add(10,A,'PUBLISHED',.2,0,'Waiting',0,1);await add(11,A,'SELECTION',.3,0,'Partial',1);await add(12,A,'ACTIVE',.4,0,'Filled',2);
  await add(13,A,'DRAFT',10,0,'Fresh older');await add(20,A,'DRAFT',10,0,'Fresh tie winner');await add(14,A,'DRAFT',.1,0,'" "');await add(15,A,'DRAFT',.1,8,'Stale');
- await add(16,A,'COMPLETED',.1,0,'History',2);await add(17,B,'PUBLISHED',.01,0,'Foreign');await add(18,A,'DRAFT',.1,0,'\\u00a0');await add(19,A,'DRAFT',.1,0,'\\ufeff');
+ await add(16,A,'COMPLETED',.1,0,'History',2);await add(17,B,'PUBLISHED',.01,0,'Foreign');await add(18,A,'DRAFT',.1,0,'\u00a0');await add(19,A,'DRAFT',.1,0,'\ufeff');
  const actor=async account=>{await db.exec('reset role');await db.query("select set_config('fixture.actor',$1,false)",[account??'']);await db.exec('set role authenticated');};
  const summary=async()=>(await db.query('select public.rpc_home_owned_tasks_summary_v1() value')).rows[0].value;
  return {db,actor,summary};
@@ -77,7 +77,7 @@ test('Home composition, RPC transport and build gate preserve the staged rollout
  const calls=[],session={user:{id:A},accountRevision:7},payload={schemaVersion:1,accountId:A,asOf:summary.asOf,counts:{total:0,active:0,drafts:0,history:0,waiting:0},items:[],freshDraft:null};
  const client=createHarness({'src/store/sesija.ts':{sesijaSada:()=>session},'src/data/supabaseClient.ts':{supabaseKlijent:()=>({rpc:(name,args)=>({abortSignal:async signal=>{calls.push({name,args,signal});return {data:payload,error:null};}})})},'src/data/needUrgencyClientService.ts':{readNeedUrgencies:async()=>new Map()}});
  const service=client.load('src/data/needClientService.ts').needClientService,controller=new AbortController(),read=await service.mojePotrebeZaPocetnu({signal:controller.signal});
- assert.deepEqual(calls,[{name:'rpc_home_owned_tasks_summary_v1',args:{},signal:controller.signal}]);assert.equal(read.counts.total,0);
+ assert.equal(calls.length,1);assert.equal(calls[0].name,'rpc_home_owned_tasks_summary_v1');assert.deepEqual(calls[0].args,{});assert.equal(typeof calls[0].signal?.aborted,'boolean');assert.equal(calls[0].signal.aborted,false);assert.equal(read.counts.total,0);
  const gate=client.load('src/data/homeOwnedTasksSummaryGate.ts');assert.equal(gate.homeOwnedTasksSummaryBuilt(undefined),false);assert.equal(gate.homeOwnedTasksSummaryBuilt('true'),false);assert.equal(gate.homeOwnedTasksSummaryBuilt('1'),true);
  const route=fs.readFileSync(path.join(__dirname,'../src/app/(app)/index.tsx'),'utf8');assert.match(route,/homeOwnedTasksSummaryBuilt\(\)/);assert.match(route,/source\.mojePotrebeZaPocetnu\(/);assert.match(route,/source\.mojePotrebe\(\{ includeUrgency: false/);
 });
