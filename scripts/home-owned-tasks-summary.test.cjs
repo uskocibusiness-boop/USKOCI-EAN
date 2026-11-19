@@ -19,8 +19,8 @@ async function fixture({apply=true}={}){
  alter table public.needs enable row level security;`);
  await db.exec(fast);await db.exec('grant execute on function public.selectable_application_count(public.needs) to authenticated');if(apply)await db.exec(sql);
  const add=async(n,owner,status,age,updated,title,covered=0,selectable=0)=>db.query(`insert into public.needs values($1,$2,$3,statement_timestamp()-($4||' days')::interval,case when $5::text is null then null else statement_timestamp()-($5::text||' days')::interval end,$6,2,$7,$8)`,[id(n),owner,status,age,updated,title,covered,selectable]);
- for(let n=1;n<=9;n++)await add(n,A,n===9?'SELECTION':'PUBLISHED',n<=2?1:n,0,`Eligible ${n}`);
- await add(10,A,'PUBLISHED',.2,0,'Waiting',0,1);await add(11,A,'SELECTION',.3,0,'Partial',1);await add(12,A,'ACTIVE',.4,0,'Filled',2);
+ for(let n=1;n<=9;n++)await add(n,A,n===9?'SELECTION':'PUBLISHED',n<=2?1:n,0,`Eligible ${n}`,0,n===4?1:0);
+ await add(10,A,'PUBLISHED',.2,0,'Preview without waiting',0,0);await add(11,A,'SELECTION',.3,0,'Partial',1);await add(12,A,'ACTIVE',.4,0,'Filled',2);
  await add(13,A,'DRAFT',10,0,'Fresh older');await add(20,A,'DRAFT',10,0,'Fresh tie winner');await add(14,A,'DRAFT',.1,0,'" "');await add(15,A,'DRAFT',.1,8,'Stale');
  await add(16,A,'COMPLETED',.1,0,'History',2);await add(17,B,'PUBLISHED',.01,0,'Foreign');await add(18,A,'DRAFT',.1,0,'\u00a0');await add(19,A,'DRAFT',.1,0,'\ufeff');
  const actor=async account=>{await db.exec('reset role');await db.query("select set_config('fixture.actor',$1,false)",[account??'']);await db.exec('set role authenticated');};
@@ -31,6 +31,10 @@ async function fixture({apply=true}={}){
 test('SQL summary preserves exact counts, six-row global order, fresh draft, auth and non-overwrite guards',async()=>{
  const f=await fixture();try{
   await f.actor(A);const r=await f.summary();
+  const ownedCte=sql.match(/with owned as materialized \\(([\\s\\S]*?)\\), classified as materialized/);
+  assert.ok(ownedCte);assert.doesNotMatch(ownedCte[1],/public\\.(?:covered_slots|selectable_application_count)\\(/);
+  assert.match(sql,/case when d\\.id is not null then coalesce\\(\\(d\\.document->>'covered_slots'\\)::int,0\\) else public\\.covered_slots\\(c\\.need_row\\) end/);
+  assert.match(sql,/case when d\\.id is not null then coalesce\\(\\(d\\.document->>'selectable_application_count'\\)::int,0\\) else coalesce\\(public\\.selectable_application_count\\(c\\.need_row\\),0\\) end/);
   assert.deepEqual(r.counts,{total:19,active:12,drafts:6,history:1,waiting:1});assert.equal(r.items.length,6);
   assert.deepEqual(r.items.map(x=>x.id),[id(10),id(11),id(12),id(2),id(1),id(3)]);assert.equal(r.freshDraft.id,id(20));
   assert.equal(r.items.some(x=>[13,14,15,16,17,18,19,20].some(n=>x.id===id(n))),false);
