@@ -98,8 +98,7 @@ begin
   ), preview_ids as (
     select id, created_at
     from classified
-    where (status = 'PUBLISHED' and selectable_count = 0)
-       or (status = 'SELECTION' and covered_slots = 0 and selectable_count = 0)
+    where status in ('PUBLISHED','SELECTION','ACTIVE')
        or (status = 'DRAFT' and fresh_draft and readable_title)
     order by created_at desc, id desc
     limit 6

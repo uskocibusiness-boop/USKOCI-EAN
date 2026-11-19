@@ -32,8 +32,8 @@ test('SQL summary preserves exact counts, six-row global order, fresh draft, aut
  const f=await fixture();try{
   await f.actor(A);const r=await f.summary();
   assert.deepEqual(r.counts,{total:19,active:12,drafts:6,history:1,waiting:1});assert.equal(r.items.length,6);
-  assert.deepEqual(r.items.map(x=>x.id),[id(2),id(1),id(3),id(4),id(5),id(6)]);assert.equal(r.freshDraft.id,id(20));
-  assert.equal(r.items.some(x=>[10,11,12,13,14,15,16,17,18,19,20].some(n=>x.id===id(n))),false);
+  assert.deepEqual(r.items.map(x=>x.id),[id(10),id(11),id(12),id(2),id(1),id(3)]);assert.equal(r.freshDraft.id,id(20));
+  assert.equal(r.items.some(x=>[13,14,15,16,17,18,19,20].some(n=>x.id===id(n))),false);
   assert.equal(r.accountId,A);assert.equal(r.schemaVersion,1);
   await assert.rejects(f.db.exec(sql),/HOME_TASK_SUMMARY_ALREADY_EXISTS/);
   const grants=(await f.db.query(`select has_function_privilege('anon','public.rpc_home_owned_tasks_summary_v1()','execute') anon,has_function_privilege('authenticated','public.rpc_home_owned_tasks_summary_v1()','execute') auth`)).rows[0];
