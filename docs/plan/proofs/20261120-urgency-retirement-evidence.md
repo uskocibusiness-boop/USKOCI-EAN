@@ -52,7 +52,7 @@
 - Needs: 26 total; 0 urgent flags; 0 active urgent tasks.
 - Dispatch rounds: 430, all `NORMAL`.
 - Activity events: 56, all `NORMAL`.
-- Notification deliveries: 56 `NORMAL` priority; no `HITNO` deliveries.
+- Notification deliveries: 112 total; all 112 have `NORMAL` priority; no `HITNO` deliveries.
 - Two profiles still retain historical `available_now=true`; three worker preferences retain the old same-day-urgent flag. These legacy values were intentionally preserved, but the updated matching/dispatch code no longer uses them as gates or ranking inputs.
 
 ## Tests
@@ -61,6 +61,19 @@
 - PostgreSQL 17 PL/pgSQL candidate parse test passed.
 - Existing full QA workflow on base commit `062b2b69282f1f59c48065baef82d0ed36643e98` was successful (run [44771906694](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/44771906694)). The modified branch's targeted tests were run locally using the same archived QA runtime.
 - Edge function package readback was exact. No synthetic user-facing Edge invocations were made in this pass, so end-to-end live delivery on a physical device remains a separate QA item.
+
+## Preserved legacy compatibility (not active product behavior)
+
+- `private.urgent_activation_decision` and `private.expire_urgent` remain as dormant private helpers. No current function or Cron job calls them; their EXECUTE ACL is limited to `postgres`, not `anon`, `authenticated`, or `service_role`.
+- The `needs_guard_urgent` trigger remains fail-closed: it rejects new urgent flags unless the retired activation token is supplied. The public activation RPCs now raise `URGENT_FEATURE_RETIRED`, so the normal application path cannot obtain that token.
+- The old `dispatch_urgent` configuration row remains as dormant historical configuration. No current database function reads it; the active dispatch path reads the normal MATCH-V1 configuration and writes only `NORMAL`.
+- `URGENT_BOOST` remains in the private historical price ledger at 0 RSD. Platform payments are disabled, and the price writer/list functions are executable only by `postgres`.
+- The old quiet-hours override column remains in the settings contract for compatibility, but all 4 stored preferences have it false and the new push suppression function no longer reads it.
+- Three worker-match preference rows still carry the old same-day-urgent flag; the active matching functions do not read it.
+- `available_now` remains a legacy persistence field. Two of six worker profiles retain it as true; no active matching/dispatch function reads it, the Worker AI rejects NOW proposals, and the mobile UI does not expose a current-status toggle. Values were deliberately not reset.
+- Remaining references in cancellation/edit snapshots and account-closure inventories preserve historical/audit data; they do not rank, match, or notify on urgency.
+
+These values and dormant helpers are intentionally retained rather than destructively deleting history. A separate compatibility-contract cleanup can remove the dead fields after the next mobile-client compatibility window.
 
 ## Rollback
 
