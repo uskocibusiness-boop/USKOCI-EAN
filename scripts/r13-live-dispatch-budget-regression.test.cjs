@@ -141,3 +141,10 @@ test('retired urgency client adapters and badges cannot issue urgency reads or d
  assert.match(client,/return new Map\(\)/);assert.doesNotMatch(client,/supabaseKlijent|fn_need_urgency|readOwnedResult/);
  assert.match(badge,/return null/);assert.match(activation,/return null/);
 });
+
+ 
+test('retired worker profile projection can omit available_now without breaking the profile reader',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../src/data/supabaseIzvor.ts'),'utf8');
+ assert.doesNotMatch(source,/typeof data\\.available_now !== 'boolean'/);
+ assert.match(source,/dostupanOdmah: false/);
+});

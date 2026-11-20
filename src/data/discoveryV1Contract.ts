@@ -105,11 +105,14 @@ function decodePin(value: unknown): DiscoveryV1Pin | null {
 
 function decodeItem(value: unknown, asOf: string): DiscoveryV1Item {
   const row = object(value);
-  exact(row, ['id','revision','sortAt','publishedAt','title','category','status','urgent','scheduleKind','startsAt','endsAt',
+  const fields = ['id','revision','sortAt','publishedAt','title','category','status','scheduleKind','startsAt','endsAt',
     'executionLocationMode','taskCountryCode','taskTimezone','verifiedIdentityRequired','approximateCity','approximateArea','pin',
     'requiredSlots','coveredSlots','requiredSkills','requiredTools','requiredVehicles','requiredLicenses','minimumExperienceYears',
-    'priceMode','requesterPriceRsd','priceBasis','requesterProfileId','responseDeadline','acceptsApplications','publicTopology','criticalConditions'],
-    'DISCOVERY_V1_ITEM_SHAPE');
+    'priceMode','requesterPriceRsd','priceBasis','requesterProfileId','responseDeadline','acceptsApplications','publicTopology','criticalConditions'];
+  // The retired DB projection omits urgency. Accept the old boolean during the
+  // staged rollout, but never allow historical data to affect the new client.
+  exact(row, Object.hasOwn(row, 'urgent') ? [...fields, 'urgent'] : fields, 'DISCOVERY_V1_ITEM_SHAPE');
+  if (Object.hasOwn(row, 'urgent') && typeof row.urgent !== 'boolean') invalid('DISCOVERY_V1_ITEM_SHAPE');
 
   const id = uuid(row.id, 'DISCOVERY_V1_ITEM_ID');
   const revision = integer(row.revision, 'DISCOVERY_V1_ITEM_REVISION');
@@ -120,7 +123,7 @@ function decodeItem(value: unknown, asOf: string): DiscoveryV1Item {
   const category = text(row.category, 'DISCOVERY_V1_ITEM_CATEGORY', 120);
   if (!title.trim() || !category.trim()) invalid('DISCOVERY_V1_ITEM_TEXT_EMPTY');
   if (row.status !== 'PUBLISHED' && row.status !== 'SELECTION') invalid('DISCOVERY_V1_ITEM_STATUS');
-  const urgent = bool(row.urgent, 'DISCOVERY_V1_ITEM_URGENT');
+  const urgent = false;
   const scheduleKind = text(row.scheduleKind, 'DISCOVERY_V1_ITEM_SCHEDULE', 32);
   if (!scheduleKinds.has(scheduleKind)) invalid('DISCOVERY_V1_ITEM_SCHEDULE');
   const startsAt = nullableInstant(row.startsAt, 'DISCOVERY_V1_ITEM_START');

@@ -238,3 +238,20 @@ test('R05 discovery restores active wire modes and filters without changing auth
   });
  }finally{await db.close();}
 });
+
+ 
+test('urgency-free discovery projection is accepted and historical urgency is ignored',()=>{
+ const {decodeDiscoveryV1Page}=load('src/data/discoveryV1Contract');
+ const asOf='2026-11-20T14:00:00Z',filterKey='0123456789abcdef0123456789abcdef';
+ const item={id:'60000000-0000-4000-8000-000000000001',revision:1,sortAt:asOf,publishedAt:asOf,title:'Lektura',category:'Lektura',
+  status:'PUBLISHED',scheduleKind:'FLEXIBLE',startsAt:null,endsAt:null,executionLocationMode:'REMOTE',taskCountryCode:'RS',taskTimezone:'Europe/Belgrade',
+  verifiedIdentityRequired:false,approximateCity:null,approximateArea:null,pin:null,requiredSlots:1,coveredSlots:0,requiredSkills:[],requiredTools:[],
+  requiredVehicles:[],requiredLicenses:[],minimumExperienceYears:null,priceMode:'MY_PRICE',requesterPriceRsd:1200,priceBasis:'TOTAL',
+  requesterProfileId:'60000000-0000-4000-8000-000000000002',responseDeadline:null,acceptsApplications:true,publicTopology:null,criticalConditions:null};
+ const wire={version:'DISCOVERY_V1',mode:'PAGE',asOf,filterKey,anchor:{version:'DISCOVERY_V1',filterKey,timeAt:asOf,publishedThrough:asOf,
+  expiresAt:'2026-11-20T14:30:00Z'},items:[item],hasMore:false,nextCursor:null,
+  counts:{kind:'exact_live',observedAt:asOf,mapped:1,listed:1,inArea:1,withoutPoint:0,undated:1},
+  availability:{hasKnownWorkMode:true,hasKnownSchedule:true,priceModes:['MY_PRICE']}};
+ assert.equal(decodeDiscoveryV1Page(wire).items[0].urgent,false);
+ assert.equal(decodeDiscoveryV1Page({...wire,items:[{...item,urgent:true}]}).items[0].urgent,false);
+});

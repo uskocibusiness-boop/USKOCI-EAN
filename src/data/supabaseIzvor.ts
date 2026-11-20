@@ -526,13 +526,13 @@ export const supabaseIzvor: SupabaseIzvor = {
         const workAreas=data&&Object.hasOwn(data,'work_areas')?decodeWorkerAreas(data.work_areas):undefined;
         if(workAreas===null)return null;
         if (!data || !uuid(data.id) || !workerCapacityValue(data.team_capacity) || !workerCapacityRevision(data.capacity_revision) || !sameId(data.account_id, account.accountId) || data.kind !== 'WORKER' ||
-          !['DRAFT', 'ACTIVE', 'SUSPENDED'].includes(String(data.profile_status)) || typeof data.available_now !== 'boolean' ||
+          !['DRAFT', 'ACTIVE', 'SUSPENDED'].includes(String(data.profile_status)) ||
           typeof data.radius_km !== 'number' || !Number.isInteger(data.radius_km) || data.radius_km < 1 || data.radius_km > 200 ||
           !['display_name', 'city', 'bio'].every(key => data[key] === null || typeof data[key] === 'string') ||
           !['skills', 'tools', 'vehicles', 'licenses'].every(key => Array.isArray(data[key]) && data[key].every((item: unknown) => typeof item === 'string'))) return null;
         return { profile: { ...(workAreas?{workAreas}:{}),id: data.id, ime: data.display_name as string ?? '', grad: data.city as string ?? '',
           biografija: data.bio as string ?? '', vestine: data.skills as string[], alati: data.tools as string[], vozila: data.vehicles as string[], licence: data.licenses as string[],
-          stanje: data.profile_status as 'DRAFT' | 'ACTIVE' | 'SUSPENDED', dostupanOdmah: data.available_now, radijusKm: data.radius_km,
+          stanje: data.profile_status as 'DRAFT' | 'ACTIVE' | 'SUSPENDED', dostupanOdmah: false, radijusKm: data.radius_km,
           kapacitetTima: data.team_capacity as number, capacityRevision: data.capacity_revision as string } };
       },
     });
