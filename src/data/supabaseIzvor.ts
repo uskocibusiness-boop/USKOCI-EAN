@@ -63,7 +63,7 @@ function vremePoruke(iso: string): string {
  */
 function openTaskRow(item: Record<string, any>) {
   return {
-    id: item.id, title: item.title, status: item.status, urgent: item.urgent,
+    id: item.id, title: item.title, status: item.status,
     category: item.category, schedule_kind: item.scheduleKind, starts_at: item.startsAt, ends_at: item.endsAt,
     execution_location_mode: item.executionLocationMode,
     approximate_area: item.approximateArea ?? '', approximate_city: item.approximateCity ?? '',
@@ -308,7 +308,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       const row = record(raw), instant = calendarInstant(row?.sortAt);
       if (!row || !uuid(row.id) || instant === null || calendarInstant(row.publishedAt) !== instant
         || !positiveInteger(row.revision) || (row.status !== 'PUBLISHED' && row.status !== 'SELECTION')
-        || typeof row.title !== 'string' || !row.title.trim() || typeof row.urgent !== 'boolean'
+        || typeof row.title !== 'string' || !row.title.trim()
         || !positiveInteger(row.requiredSlots) || !Number.isSafeInteger(row.coveredSlots)
         || typeof row.coveredSlots !== 'number' || row.coveredSlots < 0 || row.coveredSlots >= row.requiredSlots
         || row.acceptsApplications !== true || !uuid(row.requesterProfileId)
@@ -360,7 +360,7 @@ export const supabaseIzvor: SupabaseIzvor = {
     if (!row || !sameId(row.id, id) || !positiveInteger(row.revision)
       || calendarInstant(row.sortAt) === null || calendarInstant(row.publishedAt) === null
       || (row.status !== 'PUBLISHED' && row.status !== 'SELECTION') || typeof row.title !== 'string' || !row.title.trim()
-      || typeof row.urgent !== 'boolean' || !positiveInteger(row.requiredSlots)
+      || !positiveInteger(row.requiredSlots)
       || typeof row.coveredSlots !== 'number' || !Number.isSafeInteger(row.coveredSlots) || row.coveredSlots < 0
       || (row.priceMode !== 'MY_PRICE' && row.priceMode !== 'OFFERS') || !uuid(row.requesterProfileId)) {
       throw new Error('EXACT_OPPORTUNITY_RESPONSE_INVALID');

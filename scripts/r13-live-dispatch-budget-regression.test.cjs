@@ -72,6 +72,13 @@ test('retired urgency UI has no activation, badges, timers or quiet-hours bypass
  assert.equal(fs.existsSync(path.join(__dirname,'..','src/data/urgentActivationPreviewClientService.ts')),false);
 });
 
+test('public Home preview and exact-opportunity readers accept the retired projection without urgent',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'..','src/data/supabaseIzvor.ts'),'utf8');
+ const openTaskRow=source.slice(source.indexOf('function openTaskRow'),source.indexOf('function publicTaskContext'));
+ assert.doesNotMatch(openTaskRow,/\\burgent\\b/,'legacy urgency must not be forwarded into the public task reader');
+ assert.doesNotMatch(source,/typeof row\\.urgent !== 'boolean'/,'Home preview and exact-opportunity validation must not require the retired field');
+});
+
 test('urgency dispatch retirement candidate is source-only, guarded and preserves normal calendar matching',()=>{
  const candidate=fs.readFileSync(path.join(__dirname,'sql/dispatch_retire_urgency_20261119.candidate.sql'),'utf8');
  assert.ok(candidate.startsWith('-- USKOCI 2026-11-19: retire task urgency branches'));
