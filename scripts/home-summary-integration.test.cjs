@@ -1,5 +1,5 @@
 'use strict';
-// Actual production route, composer, page owner and React panel. Native hosts
+// Actual production route, composer and page owner. Native hosts
 // and RPC transport are substitutes: this is not Android or hosted Auth proof.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -117,26 +117,6 @@ test('Home rejects foreign, repeated and retired page responses', async () => {
   await retired.owner.refresh(); assert.equal(retired.calls.length, 1); retired.owner.dispose();
 });
 
-async function panelHarness(extra = {}) {
-  const calls = [], h = createHarness(dataSeams);
-  h.stubs['src/ui/product/ProductSheet.tsx'] = { ProductSheet: p => React.createElement('ProductSheet', p, p.children(p.onClose)) };
-  const C = h.load('src/ui/home/HomeWaitingPanel.tsx').HomeWaitingPanel;
-  const source = { current: () => true, read: async request => { calls.push(request); return page(request.cursor ? 20 : 0, 25); } };
-  const props = { home: compose(summary({ prompts: { total: 25, changes: 0, terms: 25, items: page().items.slice(0, 4) } })),
-    stale: false, refreshing: false, onClose: () => {}, onOpen: () => {}, onRatings: () => {}, onMyTasks: () => {},
-    onMyApplications: () => {}, onAgreements: () => {}, onRefresh: () => {}, agreementPromptSource: source, ...extra };
-  const r = await mount(C, props);
-  return { r, props, calls, C, stop: () => unmount(r) };
-}
-test('Home panel mounts one page, replaces it on Next and resets the content viewport key', async () => {
-  const h = await panelHarness(); assert.equal(h.calls.length, 1);
-  const prompts = () => nodes(h.r, n => n.type === 'ListRow' && n.props.title === 'Predložite termin');
-  assert.equal(prompts().length, 20); const key = nodes(h.r, n => n.type === 'ProductSheet')[0].props.contentKey;
-  await press(target(h.r, 'Sledeće obaveze')); assert.equal(h.calls.length, 2); assert.equal(prompts().length, 5);
-  assert.notEqual(nodes(h.r, n => n.type === 'ProductSheet')[0].props.contentKey, key);
-  assert.ok(target(h.r, 'Prikažite od početka')); await press(target(h.r, 'Prikažite od početka'));
-  assert.equal(h.calls.length, 3); assert.equal(h.calls[2].cursor, null); assert.equal(prompts().length, 20); await h.stop();
-});
 test('ProductSheet resets only a changed bounded page viewport and keeps the dialog mounted', async () => {
   const h = createHarness(), scrolls = []; let mounts = 0;
   h.native.Modal = p => { React.useEffect(() => { mounts++; }, []); return React.createElement('Modal', p, p.children); };
@@ -160,37 +140,18 @@ test('ProductSheet resets only a changed bounded page viewport and keeps the dia
   await RTR.act(async () => r.update(React.createElement(C, { ...props, contentKey: 'second' })));
   assert.equal(scrolls.length, 2); assert.equal(mounts, 1); await unmount(r);
 });
-test('Home panel exposes unavailable/expired paging without pretending the queue is empty', async () => {
-  for (const message of ['NETWORK_ERROR', 'HOME_PROMPTS_EXPIRED']) {
-    const h = await panelHarness({ agreementPromptSource: { current: () => true, read: async () => { throw Error(message); } } });
-    const text = JSON.stringify(h.r.toJSON()); assert.doesNotMatch(text, /Trenutno nema učitanih/);
-    assert.match(text, message === 'HOME_PROMPTS_EXPIRED' ? /Pregled je istekao/ : /trenutno nisu učitane/);
-    assert.equal(nodes(h.r, n => n.type === 'ListRow' && n.props.title === 'Predložite termin').length, 4); await h.stop();
-  }
-});
-test('Home panel retirement aborts its pending page; a new overview starts from a fresh anchor', async () => {
-  const pending = deferred(), calls = [];
-  const source = { current: () => true, read: request => { calls.push(request); return pending.promise; } };
-  const h = await panelHarness({ agreementPromptSource: source }); assert.equal(calls.length, 1);
-  await h.stop(); assert.equal(calls[0].signal.aborted, true);
-  pending.resolve(page()); await RTR.act(async () => {});
-  const fresh = await panelHarness(); await RTR.act(async () => fresh.r.update(React.createElement(fresh.C,
-    { ...fresh.props, home: { ...fresh.props.home, agreementPrompts: { ...fresh.props.home.agreementPrompts, asOf: '2026-11-08T10:01:00Z' } } })));
-  assert.equal(fresh.calls.length, 2); assert.equal(fresh.calls[1].cursor, null); await fresh.stop();
-});
-test('Home S01 shows one next appointment and at most three waits; pages are read only after opening overflow', async () => {
-  const h = createHarness(dataSeams), calls = [];
-  h.stubs['src/ui/product/ProductSheet.tsx'] = { ProductSheet: p => React.createElement('ProductSheet', p, p.children(p.onClose)) };
+test('Home S01 shows one next appointment and no "Čeka Vas" section (owner decision 2026-11-20)', async () => {
+  const h = createHarness(dataSeams);
   const C = h.load('src/ui/home/HomePresentation.tsx').HomePresentation, noop = () => {};
   const r = await mount(C, { home: compose(), active: true, loading: false, refreshing: false, error: false,
-    onPublish: noop, onEarn: noop, onProfile: noop, onOpen: noop, onRatings: noop, onMyTasks: noop, onMyApplications: noop, onRefresh: noop,
-    agreementPromptSource: { current: () => true, read: async request => { calls.push(request); return page(); } } });
-  assert.equal(calls.length, 0); assert.equal(nodes(r, n => n.type === 'Section' && n.props.title === 'Sledeće').length, 1);
-  assert.equal(nodes(r, n => n.type === 'ListRow' && n.props.title === 'Saradnja 9000').length, 1);
-  const waiting = nodes(r, n => n.type === 'Section' && n.props.title === 'Čeka Vas')[0];
-  assert.equal(waiting.findAll(n => n.type === 'ListRow').length, 3);
+    onPublish: noop, onEarn: noop, onProfile: noop, onOpen: noop, onRatings: noop, onMyTasks: noop, onMyApplications: noop, onRefresh: noop });
+  assert.equal(nodes(r, n => n.type === 'Section' && n.props.title === 'Sledeće').length, 1);
+  assert.equal(nodes(r, n => n.type === 'Section' && n.props.title === 'Čeka Vas').length, 0);
+  const labels = nodes(r, n => typeof n.props?.title === 'string' || typeof n.props?.label === 'string' || typeof n.props?.accessibilityLabel === 'string')
+    .map(n => [n.props.title, n.props.label, n.props.accessibilityLabel].filter(v => typeof v === 'string').join(' ')).join(' | ');
+  assert.doesNotMatch(labels, /Čeka Vas|Prikažite pregled obaveza|Saradnja 9000|Ocenite/);
   for (const name of ['TaskCard', 'OwnTaskCard', 'ApplicationCard', 'AgreementRow']) assert.equal(nodes(r, n => n.type === name).length, 0);
-  await press(target(r, 'Prikažite pregled obaveza')); assert.equal(calls.length, 1); await unmount(r);
+  await unmount(r);
 });
 
 async function routeHarness({ initialFailure = false } = {}) {
@@ -200,10 +161,10 @@ async function routeHarness({ initialFailure = false } = {}) {
     mojePotrebe: async () => [], mojePrijaveStrana: async (request, options) => { calls.push(['applications', request, options]);
       return { counts: { total: 0, active: 0, attention: 0, finished: 0 }, items: [] }; },
     dogovoriZaPocetnu: async options => { calls.push(['summary', options]); if (failSummary) throw Error('MISSING_RPC'); return summary({ accountId: session.user.id }); },
-    podsetniciDogovoraZaPocetnu: async request => { calls.push(['prompts', request]); return page(0, 45, session.user.id); },
+    podsetniciDogovoraZaPocetnu: async () => assert.fail('Home must not page "Čeka Vas" prompts'),
     mojiDogovori: async () => assert.fail('Home must not read ALL Agreement history'),
     prilikeZaPocetnu: async () => [],
-    paznjaZaPocetnu: async options => { calls.push(['attention', options]); return { rows: [], more: 0, asOf: AT, ratings: { due: 0, agreementId: null } }; },
+    paznjaZaPocetnu: async () => assert.fail('Home must not read the "Čeka Vas" attention list'),
     mojRadnikProfil: async () => null,
   };
   const h = createHarness({
@@ -224,11 +185,9 @@ test('Mounted Home retains its verified summary on partial refresh failure witho
   const h = await routeHarness();
   assert.deepEqual(h.calls.map(c => c[0]).filter(name => name === 'applications' || name === 'summary'), ['applications', 'summary']);
   const applicationRead = h.calls.find(c => c[0] === 'applications');
-  const attentionRead = h.calls.find(c => c[0] === 'attention');
   assert.ok(applicationRead[2]?.signal instanceof AbortSignal, 'application page must receive its section cancellation signal');
-  assert.ok(attentionRead[1]?.signal instanceof AbortSignal, 'attention aggregate must receive its section cancellation signal');
   assert.equal(applicationRead[2].signal.aborted, true, 'completed application read retires its transport signal');
-  assert.equal(attentionRead[1].signal.aborted, true, 'completed attention read retires its transport signal');
+  assert.equal(h.calls.some(c => c[0] === 'attention' || c[0] === 'prompts'), false, 'Home no longer reads "Čeka Vas"');
   assert.equal(h.calls[0][1].limit, 6); assert.equal(h.props().home.agreements.value.rows.length, 1);
   assert.equal(h.props().home.ratingsDue, 1); assert.equal(h.props().home.agreementPrompts.total, 45);
   h.fail(); await RTR.act(async () => h.props().onRefresh());
@@ -241,19 +200,18 @@ test('Mounted Home initial missing summary stays unavailable, never an empty acc
   assert.equal(h.props().home.agreements.kind, 'unavailable'); assert.equal(h.props().home.partial, true);
   assert.equal(h.props().home.firstRun, false); assert.deepEqual(h.calls.map(c => c[0]).filter(name => name === 'applications' || name === 'summary'), ['applications', 'summary']); await h.stop();
 });
-test('Mounted Home focus, account revision and source ownership retire stale panel/navigation callbacks', async () => {
-  const h = await routeHarness(), old = h.props(), oldSource = old.agreementPromptSource;
-  assert.equal(oldSource.current(), true);
+test('Mounted Home focus, account revision and source ownership retire stale navigation callbacks', async () => {
+  const h = await routeHarness(), old = h.props();
   await RTR.act(async () => { h.h.native.AppState.currentState = 'background'; for (const fn of [...h.states]) fn('background'); });
-  assert.equal(oldSource.current(), false); assert.equal(h.props().home, null);
-  await assert.rejects(oldSource.read({ limit: 20, cursor: null }), /HOME_PROMPTS_RETIRED/);
+  assert.equal(h.props().home, null);
   await RTR.act(async () => old.onOpen({ kind: 'AGREEMENT', agreementId: ID(500) })); assert.equal(h.navigation.length, 0);
   await RTR.act(async () => { h.h.native.AppState.currentState = 'active'; for (const fn of [...h.states]) fn('active'); });
-  const a = h.props().agreementPromptSource; assert.equal(a.current(), true);
+  const active = h.props();
   await RTR.act(async () => { h.session.user = { id: B }; h.session.accountRevision++; h.r.update(React.createElement(h.C)); });
-  assert.equal(a.current(), false); assert.equal(h.props().home.agreementPrompts.accountId, B);
+  await RTR.act(async () => active.onOpen({ kind: 'AGREEMENT', agreementId: ID(500) })); assert.equal(h.navigation.length, 0);
+  assert.equal(h.props().home.agreementPrompts.accountId, B);
   await RTR.act(async () => { h.session.user = { id: A }; h.session.accountRevision++; h.r.update(React.createElement(h.C)); });
-  assert.equal(a.current(), false); assert.equal(h.props().home.agreementPrompts.accountId, A); await h.stop();
+  assert.equal(h.props().home.agreementPrompts.accountId, A); await h.stop();
 });
 
 test('Own task page service contract forwards Home cancellation through the receipt and RPC transport', () => {

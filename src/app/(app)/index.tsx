@@ -4,14 +4,13 @@ import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { router, useFocusEffect } from 'expo-router';
-import { composeHome, readHomeOptional, readHomeSection, type HomeAttentionPreview, type HomeReads, type HomeSection, type HomeTarget } from '../../data/homeSnapshot';
+import { composeHome, readHomeOptional, readHomeSection, type HomeReads, type HomeTarget } from '../../data/homeSnapshot';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { HomePresentation } from '../../ui/home/HomePresentation';
 import { IntakeResume } from '../../ui/home/IntakeResume';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
-import type { HomeAgreementPromptPageRequest } from '../../data/homeAgreementsContract';
 import { homeOwnedTasksSummaryBuilt } from '../../data/homeOwnedTasksSummaryGate';
 
 /**
@@ -52,7 +51,7 @@ function Home() {
     });
     return () => { subscription.remove(); if (focus.current === owner) { focus.current = null; setFocused(false); } };
   }, []));
-  const load = useCallback(async (signal: AbortSignal): Promise<HomeReads & { attention: HomeSection<HomeAttentionPreview> }> => {
+  const load = useCallback(async (signal: AbortSignal): Promise<HomeReads> => {
     const retry = retrying.current;
     // Background/blur retires the resource read before these section promises may
     // settle. Its retry must retire too, without unlocking a newer retry.
@@ -61,7 +60,7 @@ function Home() {
     try {
       // Exact totals and the next accepted Agreement come from bounded server
       // aggregates; bounded preview carousels load alongside them. Agreement prompt pages are read only by the open panel.
-      const [needs, applications, agreements, attention, opportunities, agreementCarousel] = await Promise.all([
+      const [needs, applications, agreements, opportunities, agreementCarousel] = await Promise.all([
         readHomeSection(async readSignal => {
           if (homeOwnedTasksSummaryBuilt()) return source.mojePotrebeZaPocetnu({ signal: readSignal });
           return source.mojePotrebe({ includeUrgency: false, signal: readSignal });
@@ -72,7 +71,6 @@ function Home() {
           return { counts: page.counts, items: page.items ?? [] };
         }, signal),
         readHomeSection(readSignal => source.dogovoriZaPocetnu({ signal: readSignal }), signal),
-        readHomeSection(readSignal => source.paznjaZaPocetnu({ signal: readSignal }), signal),
         readHomeSection(readSignal => source.prilikeZaPocetnu({ signal: readSignal }), signal),
         readHomeSection(async readSignal => {
           if (typeof source.mojiDogovoriStrana !== 'function') throw new Error('HOME_AGREEMENT_CAROUSEL_UNAVAILABLE');
@@ -85,34 +83,28 @@ function Home() {
           return page.items.flatMap(g => g.items).slice(0, 6);
         }, signal)]);
       // Every failed read is unavailable, never an account with nothing in it.
-      if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
+      if ([needs, applications, agreements].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
       // A partial refresh cannot erase a previously verified next appointment or
       // turn its exact counts into an unknown empty set. Retain that complete
       // snapshot with the resource's visible stale/retry state. An initial partial
       // read still exposes its known sections, and account/source changes start over.
-      if (retainedCompleteOverview.current && [needs, applications, agreements, attention].some(part => part.kind === 'unavailable'))
+      if (retainedCompleteOverview.current && [needs, applications, agreements].some(part => part.kind === 'unavailable'))
         throw new Error('HOME_PARTIAL_REFRESH_FAILED');
-      return { needs, applications, agreements, attention, opportunities, agreementCarousel };
+      return { needs, applications, agreements, opportunities, agreementCarousel };
     } finally { signal.removeEventListener('abort', retireRetry); }
   }, [source]);
   const resource = useFocusedResource(load, KEEP_LAST_READ);
   retainedCompleteOverview.current = !!resource.data && [resource.data.needs, resource.data.applications,
-    resource.data.agreements, resource.data.attention].every(part => part.kind === 'known');
+    resource.data.agreements].every(part => part.kind === 'known');
   const loadWorker = useCallback((signal: AbortSignal) => readHomeOptional(() => source.mojRadnikProfil(), signal), [source]);
   const workerResource = useFocusedResource(loadWorker, KEEP_LAST_READ);
   const home = useMemo(() => resource.data ? composeHome({ ...resource.data,
     workerProfile: workerResource.data ? { kind: 'known', value: workerResource.data.value }
       : workerResource.error ? { kind: 'unavailable' } : undefined,
-  }, resource.data.attention) : null, [resource.data, workerResource.data, workerResource.error]);
+  }) : null, [resource.data, workerResource.data, workerResource.error]);
   const current = useCallback(() => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive', [scope, user?.id, accountRevision, source]);
-  const agreementPromptSource = useMemo(() => ({ current,
-    read: (request: HomeAgreementPromptPageRequest) => {
-      if (!current() || request.signal?.aborted) return Promise.reject(new Error('HOME_PROMPTS_RETIRED'));
-      return source.podsetniciDogovoraZaPocetnu(request);
-    },
-  }), [current, source]);
   const navigate = (action: () => void) => { if (current() && !navigating.current) { navigating.current = true; action(); } };
   const refreshWorker = () => {
     if (!current() || workerResource.loading || workerResource.refreshing || workerRetrying.current) return;
@@ -135,8 +127,7 @@ function Home() {
   // My own tasks and my applications are reached from here, as two front doors; "Moje aktivnosti" is no longer a
   // destination (2026-09-23). Every press keeps the focus, account and foreground guards above.
   const onProfile = () => navigate(() => router.navigate('/profil'));
-  return <HomePresentation hideWaiting={true} active={focused} header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-    agreementPromptSource={agreementPromptSource}
+  return <HomePresentation active={focused} header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     workProfileRead={{ loading: workerResource.loading, refreshing: workerResource.refreshing, error: workerResource.error,
       stale: !!workerResource.refreshError, onRetry: refreshWorker }}
     stale={!!resource.refreshError && !!home}
