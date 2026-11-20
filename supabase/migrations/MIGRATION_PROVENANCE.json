@@ -5051,5 +5051,69 @@
     "ci_conclusion": "SUCCESS",
     "verified_auth_selection": false,
     "verified_candidate_readback": true
+  },
+  "forward_execution_20261120_urgency_retirement": {
+    "classification": "APPLIED_EXACT_LEDGER_BYTES",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "file": "20261120194323_retire_legacy_urgency_and_available_now_dispatch.sql",
+    "version": "20261120194323",
+    "name": "retire_legacy_urgency_and_available_now_dispatch",
+    "source_md5": "89927c82907b1756ab03cc6a50d2736d",
+    "source_sha256": "4dc28788295c92776e042cab65c77ac92f222f5deb4de30055880f979bb3b4de",
+    "source_bytes": 39861,
+    "recorded_statement_md5": "89927c82907b1756ab03cc6a50d2736d",
+    "recorded_statement_sha256": "4dc28788295c92776e042cab65c77ac92f222f5deb4de30055880f979bb3b4de",
+    "recorded_statement_count": 1,
+    "evidence": "docs/plan/proofs/20261120-urgency-retirement-evidence.md",
+    "evidence_sha256": "d7c0b22cdcc90030715e6d93fa496b0042ce18473cb57b02b4a9b2c27f14f16c",
+    "dev_applied": true,
+    "dev_migration_count_before": 375,
+    "dev_migration_count_after": 376,
+    "changed_functions": 16,
+    "preimage_guards_passed": 16,
+    "postimage_guards_passed": 16,
+    "targeted_tests_passed": 45,
+    "unit_tests_passed": 1737,
+    "unit_tests_failed": 0,
+    "initial_qa_run": 44804984614,
+    "initial_qa_conclusion": "FAILURE_MIGRATION_MANIFEST",
+    "rollback_preimages": [
+      "scripts/sql/rollback_urgency_preimage_activation_20261120.sql",
+      "scripts/sql/rollback_urgency_preimage_dispatch_20261120.sql",
+      "scripts/sql/rollback_urgency_preimage_projections_20261120.sql",
+      "scripts/sql/rollback_urgency_preimage_push_20261120.sql"
+    ],
+    "edge_function_deployments": [
+      {
+        "slug": "uskoci-worker-interview",
+        "before_version": 163,
+        "after_version": 164,
+        "files_exact": 25,
+        "verify_jwt": false
+      },
+      {
+        "slug": "uskoci-ai-interview",
+        "before_version": 212,
+        "after_version": 213,
+        "files_exact": 24,
+        "verify_jwt": false
+      },
+      {
+        "slug": "uskoci-push-transport",
+        "before_version": 49,
+        "after_version": 50,
+        "files_exact": 3,
+        "verify_jwt": false
+      },
+      {
+        "slug": "uskoci-taxonomy-postsave-worker",
+        "before_version": 15,
+        "after_version": 16,
+        "files_exact": 3,
+        "verify_jwt": false
+      }
+    ],
+    "release": "NO-GO",
+    "scope": "DEV only. Retired urgent dispatch/matching/push priority and projections across 16 guarded functions. No production changes, no historical data deletion, and no claim of physical-device push delivery or 300k capacity."
   }
 }

@@ -9,7 +9,7 @@ from unittest import mock
 from pathlib import Path
 
 from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence, check_r13_push_wake_provenance, check_r09_activation_provenance, check_r09_applicant_provenance, check_post_qa92_readmission, check_worker_shared_reuse_provenance
-from check_migration_integrity import check_worker_draft_activation_provenance, check_worker_application_areas_provenance, check_worker_candidate_areas_provenance
+from check_migration_integrity import check_worker_draft_activation_provenance, check_worker_application_areas_provenance, check_worker_candidate_areas_provenance, check_urgency_retirement_provenance
 
 
 class ParticipantContractTests(unittest.TestCase):
@@ -996,6 +996,43 @@ class PostQA92ReadmissionTests(unittest.TestCase):
             section = copy.deepcopy(self.section)
             section["entries"][index]["live_recorded_md5"] = "0" * 32
             self.rejects(section)
+
+
+
+class UrgencyRetirementProvenanceTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(__file__).parent
+        metadata = json.loads((self.root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
+        self.section = metadata["forward_execution_20261120_urgency_retirement"]
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (self.root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+
+    def rejects(self, section, manifest=None):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_urgency_retirement_provenance(section, self.manifest if manifest is None else manifest)
+
+    def test_applied_migration_and_rollback_preimages_are_exactly_admitted(self):
+        filename = check_urgency_retirement_provenance(self.section, self.manifest)
+        self.assertEqual(filename, "20261120194323_retire_legacy_urgency_and_available_now_dispatch.sql")
+        self.assertEqual(self.section["changed_functions"], 16)
+        self.assertEqual(self.section["dev_migration_count_after"], 376)
+
+    def test_wrong_version_hash_or_ledger_count_fails_closed(self):
+        for key, value in (("version", "20261120194324"), ("source_sha256", "0" * 64),
+                           ("recorded_statement_md5", "0" * 32), ("dev_migration_count_after", 375)):
+            with self.subTest(key=key):
+                self.rejects({**self.section, key: value})
+
+    def test_manifest_and_proof_witness_cannot_drift(self):
+        self.rejects(self.section, {**self.manifest, self.section["file"]: "0" * 32})
+        original = Path.read_bytes
+        proof_path = self.root.parent.parent / self.section["evidence"]
+        altered = original(proof_path) + b"\\n"
+        def tampered(path, chosen=proof_path, data=altered):
+            return data if path == chosen else original(path)
+        with mock.patch.object(Path, "read_bytes", tampered):
+            self.rejects(self.section)
+
 
 
 if __name__ == "__main__":

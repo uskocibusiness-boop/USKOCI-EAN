@@ -111,6 +111,19 @@ WORKER_CANDIDATE_AREAS_BYTES = 63939
 WORKER_CANDIDATE_AREAS_PROOF = 'docs/plan/proofs/worker-candidate-areas-dev-20261109.json'
 WORKER_CANDIDATE_AREAS_PROOF_SHA256 = '109b07bdf783f7b5f286961edc25d74aa564d7b8c2946edc7a40a126b15b024c'
 
+URGENCY_RETIREMENT_FILE = '20261120194323_retire_legacy_urgency_and_available_now_dispatch.sql'
+URGENCY_RETIREMENT_MD5 = '89927c82907b1756ab03cc6a50d2736d'
+URGENCY_RETIREMENT_SHA256 = '4dc28788295c92776e042cab65c77ac92f222f5deb4de30055880f979bb3b4de'
+URGENCY_RETIREMENT_BYTES = 39861
+URGENCY_RETIREMENT_PROOF = 'docs/plan/proofs/20261120-urgency-retirement-evidence.md'
+URGENCY_RETIREMENT_PROOF_SHA256 = 'd7c0b22cdcc90030715e6d93fa496b0042ce18473cb57b02b4a9b2c27f14f16c'
+URGENCY_RETIREMENT_ROLLBACKS = [
+    'scripts/sql/rollback_urgency_preimage_activation_20261120.sql',
+    'scripts/sql/rollback_urgency_preimage_dispatch_20261120.sql',
+    'scripts/sql/rollback_urgency_preimage_projections_20261120.sql',
+    'scripts/sql/rollback_urgency_preimage_push_20261120.sql',
+]
+
 def fail(message: str) -> None:
     print(f"FAIL migration_integrity: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -533,6 +546,56 @@ def check_worker_candidate_areas_provenance(section: dict, manifest_map: dict) -
     return WORKER_CANDIDATE_AREAS_FILE
 
 
+
+def check_urgency_retirement_provenance(section: dict, manifest_map: dict) -> str:
+    """Pin the exact DEV urgency-retirement migration and its rollback artifacts."""
+    expected = {
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "project": "leqcwgzvjsxugfgzdmth",
+        "file": URGENCY_RETIREMENT_FILE,
+        "version": "20261120194323",
+        "name": "retire_legacy_urgency_and_available_now_dispatch",
+        "source_md5": URGENCY_RETIREMENT_MD5,
+        "source_sha256": URGENCY_RETIREMENT_SHA256,
+        "source_bytes": URGENCY_RETIREMENT_BYTES,
+        "recorded_statement_md5": URGENCY_RETIREMENT_MD5,
+        "recorded_statement_sha256": URGENCY_RETIREMENT_SHA256,
+        "recorded_statement_count": 1,
+        "evidence": URGENCY_RETIREMENT_PROOF,
+        "evidence_sha256": URGENCY_RETIREMENT_PROOF_SHA256,
+        "dev_applied": True,
+        "dev_migration_count_before": 375,
+        "dev_migration_count_after": 376,
+        "changed_functions": 16,
+        "preimage_guards_passed": 16,
+        "postimage_guards_passed": 16,
+        "targeted_tests_passed": 45,
+        "unit_tests_passed": 1737,
+        "unit_tests_failed": 0,
+        "initial_qa_run": 44804984614,
+        "initial_qa_conclusion": "FAILURE_MIGRATION_MANIFEST",
+        "rollback_preimages": URGENCY_RETIREMENT_ROLLBACKS,
+        "release": "NO-GO",
+    }
+    if not isinstance(section, dict) or any(section.get(k) != v for k, v in expected.items()):
+        fail("urgency-retirement provenance differs from verified DEV migration")
+    raw = (ROOT / URGENCY_RETIREMENT_FILE).read_bytes()
+    if (len(raw) != URGENCY_RETIREMENT_BYTES
+            or hashlib.md5(raw).hexdigest() != URGENCY_RETIREMENT_MD5
+            or hashlib.sha256(raw).hexdigest() != URGENCY_RETIREMENT_SHA256):
+        fail("urgency-retirement canonical bytes differ from actual DEV ledger")
+    if manifest_map.get(URGENCY_RETIREMENT_FILE) != URGENCY_RETIREMENT_MD5:
+        fail("urgency-retirement manifest differs from actual DEV ledger")
+    witness = ROOT.parent.parent / URGENCY_RETIREMENT_PROOF
+    if (not witness.is_file()
+            or hashlib.sha256(witness.read_bytes()).hexdigest() != URGENCY_RETIREMENT_PROOF_SHA256):
+        fail("urgency-retirement DEV readback differs from pinned witness")
+    for rollback in URGENCY_RETIREMENT_ROLLBACKS:
+        if not (ROOT.parent.parent / rollback).is_file():
+            fail(f"urgency-retirement rollback preimage is missing: {rollback}")
+    return URGENCY_RETIREMENT_FILE
+
+
 def check_post_qa92_readmission(section: dict, manifest_map: dict) -> list[str]:
     """Readmit three recorded DEV statements without replaying or reclassifying history."""
     expected_files = [
@@ -948,7 +1011,14 @@ def main() -> None:
     if candidate_areas_file <= application_areas_file:
         fail("Worker candidate areas must follow the application areas ledger version")
 
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names + applicant_names + post_qa92_names + shared_reuse_names + draft_activation_names + application_areas_names + candidate_areas_names != disk_names:
+    urgency_retirement_file = check_urgency_retirement_provenance(
+        metadata.get("forward_execution_20261120_urgency_retirement"), manifest_map
+    )
+    urgency_retirement_names = [urgency_retirement_file]
+    if urgency_retirement_file <= candidate_areas_file:
+        fail("urgency retirement must follow the Worker candidate areas ledger version")
+
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names + applicant_names + post_qa92_names + shared_reuse_names + draft_activation_names + application_areas_names + candidate_areas_names + urgency_retirement_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -1053,6 +1123,7 @@ def main() -> None:
         f"worker_draft_activation={len(draft_activation_names)} "
         f"worker_application_areas={len(application_areas_names)} "
         f"worker_candidate_areas={len(candidate_areas_names)} "
+        f"urgency_retirement={len(urgency_retirement_names)} "
         f"nov7_forward={len(forward7_names)} "
         f"r08_forward={len(r08_names)} "
         f"r01_forward={len(r01_names)} "
