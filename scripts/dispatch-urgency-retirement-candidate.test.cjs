@@ -6,7 +6,7 @@ const path = require('node:path');
 const { PGlite } = require('@electric-sql/pglite');
 
 const candidate = fs.readFileSync(path.join(__dirname, 'sql', 'dispatch_retire_urgency_20261119.candidate.sql'), 'utf8');
-const blocks = [...candidate.matchAll(/DO \\$([A-Za-z0-9_]+)\\$[\\s\\S]*?END\\s*\\$\\1\\$;/g)];
+const blocks = [...candidate.matchAll(/DO \$([A-Za-z0-9_]+)\$[\s\S]*?END\s*\$\1\$;/g)];
 const tags = blocks.map(match => match[1]);
 
 test('urgency retirement SQL remains explicitly source-only and fail-closed', () => {
