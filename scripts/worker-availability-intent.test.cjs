@@ -62,7 +62,7 @@ test('legacy current-status data is not included in the Worker AI context',()=>{
   const value={candidate:{displayName:'Milan',bio:'',skills:['Lektura'],location:null,
     availability:{timezone:'Europe/Belgrade',availableNow:true,rules:[],windows:[]}},profileStatus:'ACTIVE'};
   const result=sandbox.runRuntime(value,'2026-11-20T06:00:00Z');
-  assert.match(result,/Europe\\/Belgrade/);
+  assert.ok(result.includes('Europe/Belgrade'));
   assert.doesNotMatch(result,/availableNow|available_now/);
 });
 

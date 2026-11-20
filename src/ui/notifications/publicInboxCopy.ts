@@ -1,12 +1,11 @@
 import type { Notification } from 'expo-notifications';
 import { publicPushTarget } from './pushTarget';
 
-// Exact A1 transport title/body pairs, including its urgent opportunity variant
-// and both previously shipped generic copies for queued pushes. The runtime
+// Exact A1 transport title/body pairs, including both previously shipped
+// generic copies for queued pushes. The runtime
 // tests execute the shared Edge formatter to detect any contract drift.
 const publicInboxCopies = Object.freeze([
  ['Novi zadatak za tebe', 'Pojavila se nova prilika koja može da ti odgovara.'],
- ['HITNO — nova prilika', 'Pojavila se nova prilika koja može da ti odgovara.'],
  ['Nova prijava', 'Stigla je nova prijava na tvoj zadatak.'],
  ['Prijava je izmenjena', 'Jedna prijava na tvoj zadatak je ažurirana.'],
  ['Prijava je pregledana', 'Tvoja prijava je pregledana.'],
@@ -56,8 +55,6 @@ export const PLANNED_PUBLIC_INBOX_COPIES = Object.freeze([
  ['Novi zadatak za tebe', 'Pojavio se novi zadatak koji može da ti odgovara.'],
  ['Novi zadatak za Vas', 'Pojavila se nova prilika koja može da Vam odgovara.'],
  ['Novi zadatak za Vas', 'Pojavio se novi zadatak koji može da Vam odgovara.'],
- ['HITNO — nova prilika', 'Pojavila se nova prilika koja može da Vam odgovara.'],
- ['HITNO — nova prilika', 'Pojavio se novi zadatak koji može da Vam odgovara.'],
  ['Nova prijava', 'Stigla je nova prijava na Vaš zadatak.'],
  ['Prijava je izmenjena', 'Jedna prijava na Vaš zadatak je ažurirana.'],
  ['Prijava je pregledana', 'Vaša prijava je pregledana.'],
@@ -96,10 +93,8 @@ export function isPublicInboxNotification(notification: Notification): boolean {
  if (target?.kind === 'OPPORTUNITY_EVENT'
   && !([
    ['Novi zadatak za tebe','Pojavila se nova prilika koja može da ti odgovara.'],
-   ['HITNO — nova prilika','Pojavila se nova prilika koja može da ti odgovara.'],
    ['Novi zadatak za tebe','Pojavio se novi zadatak koji može da ti odgovara.'],
    ['Novi zadatak za Vas','Pojavila se nova prilika koja može da Vam odgovara.'],
-   ['HITNO — nova prilika','Pojavila se nova prilika koja može da Vam odgovara.'],
    ['Novi zadatak za Vas','Pojavio se novi zadatak koji može da Vam odgovara.'],
   ] as const).some(([title,body]) => content.title === title && content.body === body)) return false;
  if (target?.kind === 'APPLICATION_EVENT'
