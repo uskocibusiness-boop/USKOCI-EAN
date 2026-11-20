@@ -85,7 +85,7 @@ test('urgency dispatch retirement candidate is source-only, guarded and preserve
  assert.ok(candidate.indexOf("RAISE EXCEPTION 'DISPATCH_URGENCY_RETIREMENT_SOURCE_ONLY'")<candidate.indexOf('BEGIN;\nSET LOCAL lock_timeout'));
  assert.match(candidate,/bd1d2fd351d8273ddc0cce9e29514ca7/);
  assert.match(candidate,/2ba676d2f0fbd1456b48eb1ef36b468e/);
- assert.match(candidate,/24cbc58163068b84d17e4823e5566305/);
+ assert.match(candidate,/e6ef0105afda31ce120a0cde6626b0d6/);
  assert.match(candidate,/8227474bb353238ee09816ea5085666e/);
  assert.match(candidate,/private\.candidate_budget\(false,/);
  assert.match(candidate,/p_urgency => 'NORMAL'/);
@@ -100,7 +100,7 @@ test('urgency retirement candidate covers dispatch, matching gates, push and rea
  const read=require('node:fs').readFileSync,join=require('node:path').join;
  const sql=read(join(__dirname,'sql/dispatch_retire_urgency_20261119.candidate.sql'),'utf8');
  const expected=[
- ['private.dispatch_next_wave','bd1d2fd351d8273ddc0cce9e29514ca7','24cbc58163068b84d17e4823e5566305'],
+ ['private.dispatch_next_wave','bd1d2fd351d8273ddc0cce9e29514ca7','e6ef0105afda31ce120a0cde6626b0d6'],
  ['private.dispatch_remote_wave_v1b','2ba676d2f0fbd1456b48eb1ef36b468e','8227474bb353238ee09816ea5085666e'],
  ['private.worker_notify_room_v1b','9aac9da0479327fdf82b2f9298e47719','e3e40bcc507bb0a99817d8cdd555dbcc'],
  ['private.push_suppression','ebd9c03035630bde62bf9fd8a27378c2','e9f104bc1a62aefd73d52fee8294c52d'],
