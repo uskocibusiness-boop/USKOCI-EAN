@@ -26,7 +26,8 @@ DECLARE
     ARRAY[$old$windowm integer; min_choice integer;$old$, $new$windowm integer;$new$],
     ARRAY[$old$c record; d jsonb; deadline timestamptz; urg text;$old$, $new$c record; d jsonb; deadline timestamptz;$new$],
     ARRAY[$old$urg := case when coalesce(n.urgent,false) and n.urgent_expires_at > statement_timestamp()
-              then 'URGENT' else 'NORMAL' end;$old$, $new$urg := 'NORMAL';$new$],
+              then 'URGENT' else 'NORMAL' end;$old$, $new$  -- retired branch removed
+  $new$],
     ARRAY[$old$where key = case when urg = 'URGENT' then 'dispatch_urgent' else 'dispatch_normal' end;$old$, $new$where key = 'dispatch_normal';$new$],
     ARRAY[$old$daily_cap := case when urg = 'URGENT' then null else (cfgb->>'workerDailyCap')::integer end;$old$, $new$daily_cap := (cfgb->>'workerDailyCap')::integer;$new$],
     ARRAY[$old$private.dispatch_remote_wave_v1b(nid, sw, cfgb, urg, windowm,$old$, $new$private.dispatch_remote_wave_v1b(nid, sw, cfgb, 'NORMAL', windowm,$new$],
@@ -84,7 +85,7 @@ BEGIN
     d := replace(d,patch[1],patch[2]);
   END LOOP;
   EXECUTE d;
-  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid=target) IS DISTINCT FROM '24cbc58163068b84d17e4823e5566305'
+  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid=target) IS DISTINCT FROM 'e6ef0105afda31ce120a0cde6626b0d6'
      OR (SELECT to_jsonb(p)-'prosrc' FROM pg_proc p WHERE p.oid=target) IS DISTINCT FROM original_metadata
      OR EXISTS (SELECT 1 FROM pg_proc WHERE oid=target AND
        (position('urgent' in lower(prosrc))>0 OR position('hitno' in lower(prosrc))>0
