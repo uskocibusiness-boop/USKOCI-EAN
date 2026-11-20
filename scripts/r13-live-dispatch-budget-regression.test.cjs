@@ -145,6 +145,6 @@ test('retired urgency client adapters and badges cannot issue urgency reads or d
  
 test('retired worker profile projection can omit available_now without breaking the profile reader',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../src/data/supabaseIzvor.ts'),'utf8');
- assert.doesNotMatch(source,/typeof data\\.available_now !== 'boolean'/);
+ assert.equal(source.includes("typeof data.available_now !== 'boolean'"),false);
  assert.match(source,/dostupanOdmah: false/);
 });
