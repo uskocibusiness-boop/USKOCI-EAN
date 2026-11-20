@@ -6,7 +6,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),ts=require('typescript');
 const source=fs.readFileSync(path.join(__dirname,'..','supabase/functions/uskoci-worker-interview/index.ts'),'utf8');
 const parsed=ts.createSourceFile('index.ts',source,ts.ScriptTarget.ES2022,true,ts.ScriptKind.TS);
-const declarations=['object','keys','workerProviderSchema','guardAvailabilityChange'];
+const declarations=['object','keys','workerProviderSchema','guardAvailabilityChange','workerRuntimeContext'];
 const picked=parsed.statements.filter(node=>ts.isFunctionDeclaration(node)
   ?declarations.includes(node.name?.text)
   :ts.isVariableStatement(node)&&node.declarationList.declarations.some(d=>declarations.includes(d.name.getText(parsed))));
@@ -16,8 +16,8 @@ const compiled=ts.transpileModule(picked.map(node=>node.getText(parsed)).join('\
 assert.deepEqual(compiled.diagnostics,[]);
 const diagnostics=[];
 const sandbox={exports:{},console:{info:(...args)=>diagnostics.push(args)},
-  withConversationIntentSchema:schema=>schema,workerAreaRequestSchema:{},workerServiceChangesSchema:{},WORKER_AVAILABLE_NOW_ENABLED:false};
-vm.runInNewContext(compiled.outputText+'\nthis.runGuard=guardAvailabilityChange;',sandbox,{timeout:1000});
+  withConversationIntentSchema:schema=>schema,workerAreaRequestSchema:{},workerServiceChangesSchema:{}};
+vm.runInNewContext(compiled.outputText+'\nthis.runGuard=guardAvailabilityChange; this.runRuntime=workerRuntimeContext;',sandbox,{timeout:1000});
 const run=sandbox.runGuard,plain=value=>JSON.parse(JSON.stringify(value));
 const existingRule={id:'00000000-0000-4000-8000-000000000011',weekdays:[1,3],startTime:'10:00',endTime:'12:00',
   startsOn:'2026-11-01',endsOn:null,label:'Postojeći raspored',active:true};
@@ -56,6 +56,23 @@ test('provider must decide all calendar operation lists, without inventing scala
   const deletionOnly={windowsUpsert:[],windowIdsRemove:[existingWindow.id]};
   assert.deepEqual(availability.required.filter(key=>!Object.hasOwn(deletionOnly,key)),['ruleChanges'],
     'the recorded hosted missing-weekly-list output is no longer schema-compliant');
+});
+
+test('legacy current-status data is not included in the Worker AI context',()=>{
+  const value={candidate:{displayName:'Milan',bio:'',skills:['Lektura'],location:null,
+    availability:{timezone:'Europe/Belgrade',availableNow:true,rules:[],windows:[]}},profileStatus:'ACTIVE'};
+  const result=sandbox.runRuntime(value,'2026-11-20T06:00:00Z');
+  assert.match(result,/Europe\\/Belgrade/);
+  assert.doesNotMatch(result,/availableNow|available_now/);
+});
+
+test('Worker AI instructions contain no retired urgency or immediate-status concept',()=>{
+  const start=source.indexOf('Required availabilityChange');
+  const end=source.indexOf('\\nCalendar:',start);
+  assert.ok(start>=0&&end>start,'availability instruction must remain explicit');
+  const prompt=source.slice(start,end);
+  assert.doesNotMatch(prompt,/HITNO|NEHITNO|urgent|Mogu odmah|Dostupan sada|availableNow|available_now/i);
+  assert.match(prompt,/recurring days and hours/);
 });
 
 test('paused now toggle is refused even when the user also stated a valid weekly schedule',()=>{
