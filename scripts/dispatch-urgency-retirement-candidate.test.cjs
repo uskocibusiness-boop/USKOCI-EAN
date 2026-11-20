@@ -21,6 +21,40 @@ test('urgency retirement SQL remains explicitly source-only and fail-closed', ()
   assert.equal(new Set(tags).size, tags.length, 'each guarded patch must have a unique block name');
 });
 
+test('retirement preimage metadata guards match the read-only DEV snapshot', () => {
+  const expected = {
+    retire_worker_notify_cap: { acl: '{postgres=X/postgres}', secdef: 'true', config: 'search_path=pg_catalog' },
+    retire_push_quiet_bypass: { acl: '{postgres=X/postgres}', secdef: 'true', config: 'search_path=pg_catalog' },
+    retire_same_day_urgent_match_gate: { acl: '{postgres=X/postgres}', secdef: 'true', config: 'search_path=pg_catalog' },
+    retire_event_priority: { acl: '{postgres=X/postgres}', secdef: 'true', config: 'search_path=public, pg_temp' },
+    retire_push_priority_order: { acl: '{postgres=X/postgres,service_role=X/postgres}', secdef: 'true', config: 'search_path=pg_catalog' },
+    retire_push_priority_projection: { acl: '{postgres=X/postgres,service_role=X/postgres}', secdef: 'true', config: 'search_path=pg_catalog' },
+    retire_open_task_urgency_filter: { acl: '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}', secdef: 'false', config: 'search_path=pg_catalog' },
+    retire_discovery_urgency_projection: { acl: '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}', secdef: 'false', config: 'search_path=pg_catalog' },
+    retire_task_urgency_projection: { acl: '{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}', secdef: 'false', config: 'search_path=pg_catalog' },
+    retire_profile_available_now_projection: { acl: '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}', secdef: 'true', config: 'search_path=pg_catalog' },
+    retire_need_urgency_read: { acl: '{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}', secdef: 'false', config: 'search_path=pg_catalog' },
+    retire_urgent_activation_rpc: { acl: '{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}', secdef: 'true', config: 'search_path=pg_catalog' },
+  };
+  for (const [tag, guard] of Object.entries(expected)) {
+    const block = blocks.find(match => match[1] === tag)?.[0];
+    assert.ok(block, `missing guarded block ${tag}`);
+    assert.ok(block.includes(`actual.acl IS DISTINCT FROM '${guard.acl}'`), `${tag} ACL must match the current DEV preimage`);
+    assert.ok(block.includes(`actual.prosecdef IS DISTINCT FROM ${guard.secdef}`), `${tag} SECURITY DEFINER state must match DEV`);
+    assert.ok(block.includes(`actual.proconfig IS DISTINCT FROM ARRAY['${guard.config}']::text[]`), `${tag} search_path must match DEV`);
+  }
+  const main = blocks.find(match => match[1] === 'main')?.[0] ?? '';
+  assert.doesNotMatch(main, /\\$old\\$\\s*urg := 'NORMAL';\\$old\\$/, 'do not retain a patch anchor absent from the live function');
+  assert.match(main, /IS DISTINCT FROM '24cbc58163068b84d17e4823e5566305'/, 'main postimage hash must reflect the exact live DEV preimage');
+  const openTasks = blocks.find(match => match[1] === 'retire_open_task_urgency_filter')?.[0] ?? '';
+  assert.match(openTasks, /RETIRE_OPEN_TASK_URGENCY_SELECT_ANCHOR_DRIFT/);
+  assert.match(openTasks, /RETIRE_OPEN_TASK_URGENCY_META_ANCHOR_DRIFT/);
+  assert.match(openTasks, /RETIRE_OPEN_TASK_URGENCY_FILTER_PREDICATE_DRIFT/);
+  assert.match(openTasks, /IS DISTINCT FROM 4/, 'the two urgency projection anchors must cover all three SELECT projections');
+  assert.match(openTasks, /IS DISTINCT FROM 3/, 'the urgent-only filter anchor must cover both query branches');
+  assert.match(openTasks, /IS DISTINCT FROM '8e8ee643e72c9efab746b6a9e7f6ec08'/, 'open-task postimage must match the full projection cleanup');
+});
+
 test('all guarded retirement blocks parse as PostgreSQL 17 PL/pgSQL', async () => {
   const db = new PGlite();
   const syntaxError = /syntax error|unterminated dollar-quoted|invalid dollar-quoted|mismatched parentheses/i;
