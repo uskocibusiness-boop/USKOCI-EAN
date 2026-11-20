@@ -20,7 +20,7 @@ test('handoff expires, rejects blank or oversized drafts, and newer handoff repl
 test('handoff can be cleared and stores only a short-lived in-memory text envelope',async()=>{
  const {stageRoleHandoffText,takeRoleHandoffText,clearRoleHandoffText}=await load(),token=stageRoleHandoffText('NEED','samo tekst');
  clearRoleHandoffText(token);assert.equal(takeRoleHandoffText('NEED',token),null);
- const s=source('src/data/aiRoleHandoff.mjs');assert.match(s,/pending=\{targetRole,text,token,expiresAt\}/);assert.doesNotMatch(s,/supabase|fetch\(|AsyncStorage|SecureStore|localStorage/i);
+ const s=source('src/data/aiRoleHandoff.mjs');assert.match(s,/pending=\{targetRole,text,token,expiresAt:Date\.now\(\)\+TTL_MS\}/);assert.doesNotMatch(s,/supabase|fetch\(|AsyncStorage|SecureStore|localStorage/i);
 });
 test('both role switches stage only user text into an editable draft; neither sends or activates anything',()=>{
  const need=source('src/app/(app)/nova.tsx'),worker=source('src/app/(app)/profil/razgovor.tsx'),intake=source('src/ui/v2/IntakePresentation.tsx');

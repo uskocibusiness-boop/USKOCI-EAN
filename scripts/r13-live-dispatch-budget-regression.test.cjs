@@ -110,7 +110,7 @@ test('urgency retirement candidate covers dispatch, matching gates, push and rea
  ];
  for(const [name,pre,post] of expected){assert.ok(sql.includes(name),'missing '+name);assert.ok(sql.includes(pre),'missing preimage '+name);assert.ok(sql.includes(post),'missing postimage '+name);}
  assert.match(sql,/DISPATCH_URGENCY_RETIREMENT_SOURCE_ONLY/);assert.match(sql,/order by x\.created_at,x\.id/);
- assert.match(sql,/'priority','NORMAL'/);assert.match(sql,/p_urgency := 'NORMAL'/);assert.match(sql,/URGENCY_RETIRED/);assert.match(sql,/URGENT_FEATURE_RETIRED/);
+ assert.match(sql,/priority','NORMAL'/);assert.match(sql,/p_urgency := 'NORMAL'/);assert.match(sql,/URGENCY_RETIRED/);assert.match(sql,/URGENT_FEATURE_RETIRED/);
  assert.doesNotMatch(sql,/\bDROP\s+(?:TABLE|COLUMN)\b|\bTRUNCATE\b/i);
  assert.doesNotMatch(sql,/DELETE\s+FROM\s+(?:public\.)?(?:needs|agreements|worker_profiles|worker_availability)/i);
 });

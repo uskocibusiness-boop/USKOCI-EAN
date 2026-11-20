@@ -53,7 +53,7 @@ function workerTurn(patch = {}) {
     state: 'SUCCEEDED', retryAllowed: false, authoritative: true, ...patch };
 }
 const hint = (kind, evidence) => ({ schemaVersion: SCHEMA, kind, evidence });
-function providerEndpoint(domain) { return domain === 'NEED' ? ':generateContent' : ':streamGenerateContent'; }
+function providerEndpoint(_domain) { return ':streamGenerateContent'; }
 const providerCalls = (result, domain) => result.calls.filter(call => call.name.endsWith(providerEndpoint(domain)));
 const event = (sequence, kind, extra = {}) => ({ conversationId: CONVERSATION, clientRequestId: REQUEST,
   turnId: TURN, attemptId: ATTEMPT, sequence, kind, ...extra });
@@ -790,13 +790,17 @@ const routePath = domain => domain === 'NEED' ? 'src/app/(app)/nova.tsx' : 'src/
 
 for (const domain of ['NEED', 'WORKER']) {
   test(`${domain} role suggestion opens a fresh conversation without transferring text`, () => {
-    const pushed = [], foreground = {}, generation = { current: foreground };
+    const pushed = [], staged = [], foreground = {}, generation = { current: foreground };
     let current = true;
     const scope = {
       canAct: () => current, enabled: true, writable: true,
       currentRoleSuggestion: { text: 'Potpuna korisnička poruka.' },
       accountId: ACCOUNT, request: { current: null }, pending: { current: null },
-      draftText: { current: '' }, voice: { controller: { getSnapshot: () => ({ phase: 'IDLE' }) } },
+      draftText: { current: '' },
+      stanje: { messages: [{ fromAi: false, body: 'Poslednja korisnička poruka.' }] },
+      data: { messages: [{ role: 'USER', body: 'Poslednja korisnička poruka.' }] },
+      stageRoleHandoffText: (role, text) => { staged.push({ role, text }); return 'handoff-token'; },
+      voice: { controller: { getSnapshot: () => ({ phase: 'IDLE' }) } },
       noviUuidZahtevId: () => id(14), navigate: go => go(), leave: go => go(),
       router: { push: value => pushed.push(value) },
       restartOwner: generation, foregroundGeneration: generation, renderedForeground: foreground,
@@ -807,8 +811,11 @@ for (const domain of ['NEED', 'WORKER']) {
     current = false; action(); assert.equal(pushed.length, 0, 'stale account/focus cannot navigate');
     current = true; generation.current = null; action(); assert.equal(pushed.length, 0, 'background cannot navigate before rerender');
     generation.current = {}; action(); assert.equal(pushed.length, 0, 'a replaced foreground cannot revive the old handler');
-    generation.current = foreground; scope.draftText.current = 'Nov neposlat nacrt'; action(); assert.equal(pushed.length, 0);
-    scope.draftText.current = '';
+    generation.current = foreground; scope.draftText.current = 'Nov neposlat nacrt'; action();
+    assert.equal(pushed.length, 1, 'an unsent user draft is transferred as a draft');
+    assert.deepEqual(staged, [{ role: domain === 'NEED' ? 'WORKER' : 'NEED', text: 'Nov neposlat nacrt' }]);
+    assert.equal(pushed[0].params.handoffToken, 'handoff-token');
+    pushed.length = 0; staged.length = 0; scope.draftText.current = '';
     if (domain === 'NEED') {
       scope.request.current = {}; action(); assert.equal(pushed.length, 0, 'an active NEED request blocks cross-role navigation');
       scope.request.current = null;
@@ -819,10 +826,11 @@ for (const domain of ['NEED', 'WORKER']) {
     action();
     assert.equal(pushed.length, 1);
     assert.deepEqual(pushed[0], domain === 'NEED'
-      ? { pathname: '/profil/razgovor', params: { entryKey: id(14) } }
-      : { pathname: '/nova', params: { entryKey: id(14) } });
+      ? { pathname: '/profil/razgovor', params: { entryKey: id(14), handoffToken: 'handoff-token' } }
+      : { pathname: '/nova', params: { entryKey: id(14), handoffToken: 'handoff-token' } });
+    assert.deepEqual(staged, [{ role: domain === 'NEED' ? 'WORKER' : 'NEED', text: 'Poslednja korisnička poruka.' }]);
     assert.equal(JSON.stringify(pushed).includes('Potpuna korisnička poruka.'), false,
-      'the new route receives only a fresh entry key, never the previous message');
+      'the assistant suggestion is never transferred');
   });
 
   test(`${domain} real route canonical gate refuses stale, blocked, image and unrelated receipt content`, () => {
@@ -867,7 +875,7 @@ test('Need explicit Worker-offer confirmation opens a clean Worker conversation 
   const scope = { canAct: () => true, request: { current: null }, accountId: ACCOUNT,
     renderedForeground: foreground, restartOwner: { current: null }, body: 'Nudim časove.',
     voice: { controller: { getSnapshot: () => ({ phase: 'IDLE' }) } }, noviUuidZahtevId: () => id(19),
-    stageWorkerText: value => { staged.push(value); return true; },
+    stageRoleHandoffText: (role, text) => { staged.push({ role, text }); return 'handoff-token'; },
     navigate: go => go(), router: { push: value => pushed.push(value) } };
   const confirm = routeFragment(routePath('NEED'), (node, ast) => ts.isPropertyAssignment(node)
     && node.name.getText(ast) === 'onConfirm'
@@ -875,8 +883,8 @@ test('Need explicit Worker-offer confirmation opens a clean Worker conversation 
   confirm(); assert.equal(pushed.length, 0, 'a stale confirmation cannot navigate');
   scope.restartOwner.current = {}; confirm(); assert.equal(pushed.length, 0, 'foreground replacement invalidates the old confirmation');
   scope.restartOwner.current = foreground; confirm();
-  assert.equal(staged.length, 0, 'the original message is never staged for the other role');
-  assert.deepEqual(pushed, [{ pathname: '/profil/razgovor', params: { entryKey: id(19) } }]);
+  assert.deepEqual(staged, [{ role: 'WORKER', text: 'Nudim časove.' }]);
+  assert.deepEqual(pushed, [{ pathname: '/profil/razgovor', params: { entryKey: id(19), handoffToken: 'handoff-token' } }]);
 });
 
 test('production intake uses its own exact-project admission before one paid provider dispatch', async () => {

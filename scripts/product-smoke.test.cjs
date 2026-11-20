@@ -174,7 +174,7 @@ test('Worker Gemini text is withheld until the server confirms the completed tur
   assert.doesNotMatch(transport,/x-uskoci-worker-preview-stream/,'the client no longer requests provisional Worker text');
   assert.ok(edge.includes('x-client-info,x-uskoci-worker-preview-stream'),'legacy preflight remains compatible');
   assert.doesNotMatch(edge,/previewStream/,'the server has no pre-confirmation preview branch');
-  assert.ok(edge.includes('onText:()=>{},'),'provider chunks are not rendered as provisional text');
+  assert.ok(edge.includes("onText:createAiFirstTextRecorder('WORKER',startedAt),"),'provider chunks are measured internally but never rendered as provisional text');
   const provider=edge.indexOf("const raw=await measureAiPhase('PROVIDER'");
   const completion=edge.indexOf("const completionRpc=",provider);
   const confirmedText=edge.indexOf("send('text_delta',{text:output.assistantMessage})",completion);
