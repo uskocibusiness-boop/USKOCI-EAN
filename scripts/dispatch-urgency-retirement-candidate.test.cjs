@@ -11,6 +11,8 @@ const tags = blocks.map(match => match[1]);
 
 test('urgency retirement SQL remains explicitly source-only and fail-closed', () => {
   assert.match(candidate, /SOURCE-ONLY CANDIDATE/);
+  assert.doesNotMatch(candidate, /\$new\$new\$/);
+  assert.equal(tags.length, 17);
   assert.equal(tags[0], 'source_only');
   assert.match(blocks[0][0], /DISPATCH_URGENCY_RETIREMENT_SOURCE_ONLY/);
   assert.ok(candidate.indexOf('DO $source_only$') < candidate.indexOf('BEGIN;'));
