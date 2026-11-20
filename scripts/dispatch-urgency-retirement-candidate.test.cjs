@@ -45,7 +45,9 @@ test('retirement preimage metadata guards match the read-only DEV snapshot', () 
   }
   const main = blocks.find(match => match[1] === 'main')?.[0] ?? '';
   assert.doesNotMatch(main, /\\$old\\$\\s*urg := 'NORMAL';\\$old\\$/, 'do not retain a patch anchor absent from the live function');
-  assert.match(main, /IS DISTINCT FROM '24cbc58163068b84d17e4823e5566305'/, 'main postimage hash must reflect the exact live DEV preimage');
+  assert.match(main, /IS DISTINCT FROM '57e936b4032e6c17dea8752c249f1bde'/, 'main postimage hash must reflect the corrected removal of the urgency assignment');
+  assert.doesNotMatch(main, /urg\\s*:=\\s*'NORMAL'/, 'retired urgency local must not be assigned after its declaration is removed');
+  assert.doesNotMatch(main, /urg\\s+text/, 'retired urgency local must not be reintroduced');
   const openTasks = blocks.find(match => match[1] === 'retire_open_task_urgency_filter')?.[0] ?? '';
   assert.match(openTasks, /RETIRE_OPEN_TASK_URGENCY_SELECT_ANCHOR_DRIFT/);
   assert.match(openTasks, /RETIRE_OPEN_TASK_URGENCY_META_ANCHOR_DRIFT/);
