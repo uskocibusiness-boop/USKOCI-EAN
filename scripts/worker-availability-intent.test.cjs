@@ -68,7 +68,7 @@ test('legacy current-status data is not included in the Worker AI context',()=>{
 
 test('Worker AI instructions contain no retired urgency or immediate-status concept',()=>{
   const start=source.indexOf('Required availabilityChange');
-  const end=source.indexOf('\\nCalendar:',start);
+  const end=source.indexOf('\nCalendar:',start);
   assert.ok(start>=0&&end>start,'availability instruction must remain explicit');
   const prompt=source.slice(start,end);
   assert.doesNotMatch(prompt,/HITNO|NEHITNO|urgent|Mogu odmah|Dostupan sada|availableNow|available_now/i);
