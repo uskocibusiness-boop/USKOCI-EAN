@@ -1,3 +1,4 @@
+import { isPublicGrid } from '../lib/publicGrid';
 import { decodeDiscoveryV1Exact, decodeDiscoveryV1Page, type DiscoveryV1Anchor, type DiscoveryV1Cursor,
   type DiscoveryV1ExactResponse, type DiscoveryV1Filter, type DiscoveryV1PageResponse } from './discoveryV1Contract';
 import { decodeDiscoveryV1Map, decodeDiscoveryV1Places, type DiscoveryV1MapResponse,
@@ -72,7 +73,7 @@ const cloneScope = (scope: DiscoveryV1Scope): DiscoveryV1Scope => scope.kind ===
   : { kind: scope.kind, point: { ...scope.point } };
 const validPoint = (point: DiscoveryV1Point): DiscoveryV1Point => {
   if (!Number.isFinite(point.lat) || !Number.isFinite(point.lng) || Math.abs(point.lat) > 90 || Math.abs(point.lng) > 180
-    || Math.round(point.lat * 100) / 100 !== point.lat || Math.round(point.lng * 100) / 100 !== point.lng)
+    || !isPublicGrid(point.lat) || !isPublicGrid(point.lng))
     throw new Error('DISCOVERY_V1_OWNER_POINT');
   return { ...point };
 };

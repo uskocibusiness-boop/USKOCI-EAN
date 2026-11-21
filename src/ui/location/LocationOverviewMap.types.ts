@@ -1,3 +1,4 @@
+import { toPublicGrid } from '../../lib/publicGrid';
 /** Confirmed presentation points only; this canvas cannot choose or save geography. */
 export type LocationOverviewPoint = Readonly<{ id: string; label: string; latitude: number; longitude: number }>;
 export type LocationOverviewMapProps = Readonly<{
@@ -26,8 +27,8 @@ export function overviewDisplayPoints(points: readonly LocationOverviewPoint[], 
       || Math.abs(point.latitude) > 90 || Math.abs(point.longitude) > 180) return [];
     seen.add(point.id);
     return [{ id: point.id, label: point.label.trim() || `Mesto ${index + 1}`, number: index + 1,
-      latitude: coarse ? Number(point.latitude.toFixed(2)) : point.latitude,
-      longitude: coarse ? Number(point.longitude.toFixed(2)) : point.longitude }];
+      latitude: coarse ? toPublicGrid(point.latitude) : point.latitude,
+      longitude: coarse ? toPublicGrid(point.longitude) : point.longitude }];
   });
 }
 

@@ -1,3 +1,4 @@
+import { toPublicGrid } from '../../lib/publicGrid';
 /** Presentation only: this pair is a candidate until the containing form confirms it. */
 export type ResolvedPinPosition = Readonly<{ latitude: number; longitude: number }>;
 export type ResolvedPinMapProps = Readonly<{
@@ -34,7 +35,7 @@ export function displayedPinPosition(value: ResolvedPinPosition | null, coarse =
   if (!value || typeof value.latitude !== 'number' || typeof value.longitude !== 'number'
     || !Number.isFinite(value.latitude) || !Number.isFinite(value.longitude)
     || Math.abs(value.latitude) > 90 || Math.abs(value.longitude) > 180) return null;
-  return coarse ? { latitude: Number(value.latitude.toFixed(2)), longitude: Number(value.longitude.toFixed(2)) }
+  return coarse ? { latitude: toPublicGrid(value.latitude), longitude: toPublicGrid(value.longitude) }
     : { latitude: value.latitude, longitude: value.longitude };
 }
 

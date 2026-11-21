@@ -1,4 +1,5 @@
 import { placeKey, publicBounds, type PublicBounds } from './marketplaceView';
+import { isPublicGrid } from '../lib/publicGrid';
 import { DISCOVERY_V1, type DiscoveryV1Anchor } from './discoveryV1Contract';
 
 export type DiscoveryV1MapPoint = { lat: number; lng: number };
@@ -48,7 +49,7 @@ const uuid = (value: unknown, code: string) => {
 const filterKey = (value: unknown) => {
   const v=text(value,'DISCOVERY_V1_SPATIAL_FILTER',32); return md5Re.test(v) ? v : invalid('DISCOVERY_V1_SPATIAL_FILTER');
 };
-const coarse = (value:number) => Math.round(value*100)/100===value;
+const coarse = isPublicGrid;
 function point(value: unknown): DiscoveryV1MapPoint {
   const row=object(value); exact(row,['lat','lng'],'DISCOVERY_V1_MAP_POINT_SHAPE');
   const lat=number(row.lat,'DISCOVERY_V1_MAP_POINT'), lng=number(row.lng,'DISCOVERY_V1_MAP_POINT');

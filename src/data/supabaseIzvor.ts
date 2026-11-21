@@ -1,3 +1,4 @@
+import { toPublicGrid } from '../lib/publicGrid';
 import { workerCapacityRevision, workerCapacityValue } from '../contracts/workerCapacity';
 import { decodeWorkerAreas } from '../contracts/workerAreas';
 import { noTaskRelations, taskRelationIndex } from './taskRelation';
@@ -91,7 +92,7 @@ function publicTaskContext(raw: Record<string, any>) {
   const lat = raw.approximate_lat, lng = raw.approximate_lng;
   const priblizno = !remote && typeof lat === 'number' && Number.isFinite(lat) && Math.abs(lat) <= 90
     && typeof lng === 'number' && Number.isFinite(lng) && Math.abs(lng) <= 180
-    ? { lat: Number(lat.toFixed(2)), lng: Number(lng.toFixed(2)) } : null;
+    ? { lat: toPublicGrid(lat), lng: toPublicGrid(lng) } : null;
   return { opis, detalji, schedule, taskCountryCode: raw.task_country_code ?? undefined,
     taskTimezone: raw.task_timezone ?? undefined, vremeTekst: needScheduleText(schedule, raw.task_timezone ?? undefined),
     podrucjeTekst: remote ? 'Na daljinu' : podrucjeTekst(raw.approximate_area, raw.approximate_city), priblizno };

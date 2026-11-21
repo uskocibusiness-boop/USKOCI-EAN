@@ -1,9 +1,10 @@
 import type { LocationOverviewPoint } from './LocationOverviewMap.types';
+import { toPublicGrid } from '../../lib/publicGrid';
 
 const valid = (point: LocationOverviewPoint) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
   && Math.abs(point.latitude) <= 90 && Math.abs(point.longitude) <= 180;
 const coordinate = (point: LocationOverviewPoint, coarse = false) => encodeURIComponent(
-  `${coarse ? Number(point.latitude.toFixed(2)) : point.latitude},${coarse ? Number(point.longitude.toFixed(2)) : point.longitude}`);
+  `${coarse ? toPublicGrid(point.latitude) : point.latitude},${coarse ? toPublicGrid(point.longitude) : point.longitude}`);
 
 /** Only coordinates leave the app, after an explicit tap. Never append a task,
  * account, grant, private address or access note to an external map URL. */

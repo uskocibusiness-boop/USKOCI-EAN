@@ -1,3 +1,4 @@
+import { toPublicGrid } from '../lib/publicGrid';
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../contracts/projections';
 import { calendarInstant } from '../lib/calendarTime';
 import { podrucjeTekst } from '../lib/location';
@@ -103,7 +104,7 @@ export function publicPoint(item: MarketplaceItem): { lat: number; lng: number }
   const point = item.priblizno;
   return point && typeof point.lat === 'number' && Number.isFinite(point.lat) && Math.abs(point.lat) <= 90
     && typeof point.lng === 'number' && Number.isFinite(point.lng) && Math.abs(point.lng) <= 180
-    ? { lat: Number(point.lat.toFixed(2)), lng: Number(point.lng.toFixed(2)) } : null;
+    ? { lat: toPublicGrid(point.lat), lng: toPublicGrid(point.lng) } : null;
 }
 export function publicBounds(raw: unknown): PublicBounds | null {
   if (!Array.isArray(raw) || raw.length !== 4 || !raw.every(value => typeof value === 'number' && Number.isFinite(value))) return null;
@@ -386,8 +387,8 @@ export function discoveryStartSnap(shown: number, withoutPin: number): Discovery
   return shown <= 3 || withoutPin * 2 >= shown ? 'half' : 'peek';
 }
 
-/** One public point, as the map draws it: the rounded coarse point (~1 km) is the key. */
-export const pointKey = (point: { lat: number; lng: number }) => `${point.lat.toFixed(2)},${point.lng.toFixed(2)}`;
+/** One public point, as the map draws it: the public grid point (~200 m) is the key. */
+export const pointKey = (point: { lat: number; lng: number }) => `${toPublicGrid(point.lat)},${toPublicGrid(point.lng)}`;
 export type PinPlace = { key: string; point: { lat: number; lng: number }; ids: string[] };
 /**
  * Tasks grouped by their public point. Several tasks rounded to one point sit exactly on top of each other on the map,

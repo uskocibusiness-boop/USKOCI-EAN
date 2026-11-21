@@ -1,6 +1,7 @@
 import type { NeedTaskGeography, NeedTaskGeographyPoint } from '../contracts/needFactsV2';
 import type { CoarsePosition, ConfirmedLocationPoint, LocationPinOrigin, LocationSlot, NeedLocationInput, ResolvedLocationValue, WorkerLocationInput } from '../contracts/location';
 import { countryCode } from './market';
+import { isPublicGrid } from './publicGrid';
 
 function object(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -152,7 +153,7 @@ export function coarsePosition(value: unknown): CoarsePosition | null {
   if (!input || !only(input, ['latitude', 'longitude'])) return null;
   const { latitude, longitude } = input;
   const bounded = (x: unknown, bound: number): x is number => typeof x === 'number' && Number.isFinite(x)
-    && Math.abs(x) <= bound && x === Number(x.toFixed(2));
+    && Math.abs(x) <= bound && isPublicGrid(x);
   return bounded(latitude, 90) && bounded(longitude, 180) ? { latitude, longitude } : null;
 }
 export function normalizeWorkerLocation(value: unknown, allowIncomplete = false): WorkerLocationInput | null {

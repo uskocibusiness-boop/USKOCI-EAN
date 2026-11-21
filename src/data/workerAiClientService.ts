@@ -1,3 +1,4 @@
+import { isPublicGrid } from '../lib/publicGrid';
 import { AI_CREDITS_UNAVAILABLE, AI_CREDITS_UNAVAILABLE_COPY } from '../contracts/aiAvailability';
 import { decodeWorkerAreas, type WorkerArea } from '../contracts/workerAreas';
 import { decodeServiceHandoff } from '../contracts/serviceHandoff';
@@ -97,7 +98,7 @@ export function decodeWorkerAiProfile(raw:unknown):WorkerAiProfile|null {
     const point=record(loc.approximatePosition);
     if(!point||!exact(point,['latitude','longitude'])||typeof point.latitude!=='number'||!Number.isFinite(point.latitude)
       ||typeof point.longitude!=='number'||!Number.isFinite(point.longitude)||Math.abs(point.latitude)>90||Math.abs(point.longitude)>180
-      ||Math.abs(Math.round(point.latitude*100)/100-point.latitude)>1e-10||Math.abs(Math.round(point.longitude*100)/100-point.longitude)>1e-10)return null;
+      ||!isPublicGrid(point.latitude)||!isPublicGrid(point.longitude))return null;
     approximatePosition={latitude:point.latitude,longitude:point.longitude};
   }
   const skills=capabilityTerms(v.skills),tools=capabilityTerms(v.tools),vehicles=capabilityTerms(v.vehicles),licenses=capabilityTerms(v.licenses);

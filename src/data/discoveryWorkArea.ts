@@ -1,3 +1,4 @@
+import { toPublicGrid } from '../lib/publicGrid';
 import type { WorkerLocation } from '../contracts/location';
 import type { MarketplaceView, PublicBounds } from './marketplaceView';
 
@@ -12,7 +13,7 @@ export function workAreaBounds(location: Pick<WorkerLocation, 'city' | 'operatin
   if (!location.city?.trim() || !location.operatingCountryCode || !point || !Number.isInteger(radius) || radius < 1 || radius > 200
     || !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)
     || Math.abs(point.latitude) > 85 || Math.abs(point.longitude) > 180) return null;
-  const lat = Number(point.latitude.toFixed(2)), lng = Number(point.longitude.toFixed(2));
+  const lat = toPublicGrid(point.latitude), lng = toPublicGrid(point.longitude);
   const angular = radius / EARTH_KM, latitudeDelta = angular * DEG;
   const ratio = Math.sin(angular) / Math.cos(lat / DEG);
   if (Math.abs(ratio) >= 1) return null;

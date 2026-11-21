@@ -1,4 +1,5 @@
 import { normalizeTaskGeography } from '../lib/location';
+import { isPublicGrid } from '../lib/publicGrid';
 import { countryCode, timeZone } from '../lib/market';
 
 export const DISCOVERY_V1 = 'DISCOVERY_V1' as const;
@@ -91,7 +92,7 @@ const strings = (value: unknown, code: string): string[] => {
   return array.map((item: unknown) => typeof item === 'string' && item.length > 0 && item.length <= 160 ? item : invalid(code));
 };
 const nullableStrings = (value: unknown, code: string) => value === null ? null : strings(value, code);
-const coarse = (value: number) => Math.round(value * 100) / 100 === value;
+const coarse = isPublicGrid;
 
 function decodePin(value: unknown): DiscoveryV1Pin | null {
   if (value === null) return null;
