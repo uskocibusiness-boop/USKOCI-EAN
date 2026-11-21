@@ -571,6 +571,8 @@ BEGIN
     END IF;
   END LOOP;
 
+  -- Run the deferred LOCATION_BINDING checks for the rewritten rows now, so the guard can be re-enabled in this transaction.
+  SET CONSTRAINTS ALL IMMEDIATE;
   ALTER TABLE public.need_sensitive ENABLE TRIGGER guard_need_resolved_location_write_trg;
   RAISE NOTICE 'GEO_PRIVACY_BACKFILL geography=% binding=% skipped_closed=%', fixed_geography, fixed_binding, skipped_closed;
 END

@@ -132,7 +132,7 @@ FORWARD_20261121_BASE_COUNT = 376  # DEV ledger count after urgency retirement
 FORWARD_20261121_PROOF = 'docs/plan/proofs/20261121-dev-forward-migrations-evidence.md'
 FORWARD_20261121_PROOF_SHA256 = '0d4a48dbe293317bd97174ad6190ed0dbed6448b2fbdbe5dda97edf584b6e0e5'
 FORWARD_20261121_PROOF_2 = 'docs/plan/proofs/20261121-dev-forward-migrations-evidence-2.md'
-FORWARD_20261121_PROOF_2_SHA256 = '7a6b8987ef3d654e706ab48a99b8280f57607cc9e2f4cd06522a90428fb1f04a'
+FORWARD_20261121_PROOF_2_SHA256 = '7c2feb4496f634aa4513e2890f0aac41c19f15e9319b56c29b234aeadb8145fb'
 FORWARD_20261121 = [
     {
         "version": "20261121102509",
@@ -191,6 +191,16 @@ FORWARD_20261121 = [
         "sha256": "0f8d271a3d4df442e80cf36c3af6e162c24b0e0d9babf0505c29363bb94396d2",
         "bytes": 12479,
         "rollback": "scripts/sql/rollback_publication_pre_evaluation_20261121.sql",
+        "evidence": FORWARD_20261121_PROOF_2,
+        "evidence_sha256": FORWARD_20261121_PROOF_2_SHA256,
+    },
+    {
+        "version": "20261121212026",
+        "name": "geo_privacy_public_labels_200m_grid",
+        "md5": "b2c49d0391e19203d7b3cf4399fabcab",
+        "sha256": "93d6cfab5d687c2570214ea3b48f3633931f064f080b778a80457929acb3a673",
+        "bytes": 31299,
+        "rollback": "scripts/sql/rollback_geo_privacy_preimage_20261121.sql",
         "evidence": FORWARD_20261121_PROOF_2,
         "evidence_sha256": FORWARD_20261121_PROOF_2_SHA256,
     },
