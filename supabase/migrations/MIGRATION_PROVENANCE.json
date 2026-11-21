@@ -5196,6 +5196,26 @@
       "dev_migration_count_before": 379,
       "dev_migration_count_after": 380,
       "release": "NO-GO"
+    },
+    {
+      "classification": "APPLIED_EXACT_LEDGER_BYTES",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "version": "20261121105238",
+      "name": "taxonomy_resolve_on_clarify",
+      "file": "20261121105238_taxonomy_resolve_on_clarify.sql",
+      "source_md5": "3eb2f9ebe5c4e6559c84077bb985346c",
+      "source_sha256": "9955ff966d52714a89a3c82966d765401c35531612d7dec3eb85dfccdbe5467f",
+      "source_bytes": 2473,
+      "recorded_statement_md5": "3eb2f9ebe5c4e6559c84077bb985346c",
+      "recorded_statement_sha256": "9955ff966d52714a89a3c82966d765401c35531612d7dec3eb85dfccdbe5467f",
+      "recorded_statement_count": 1,
+      "rollback_preimage": "scripts/sql/rollback_taxonomy_clarify_resolve_preimage_20261121.sql",
+      "evidence": "docs/plan/proofs/20261121-dev-forward-migrations-evidence-2.md",
+      "evidence_sha256": "92f66d6ddc34a7a015a36e5ae5cab42afcca50ad14dd2d56cfa22e9bac51b5ca",
+      "dev_applied": true,
+      "dev_migration_count_before": 380,
+      "dev_migration_count_after": 381,
+      "release": "NO-GO"
     }
   ]
 }

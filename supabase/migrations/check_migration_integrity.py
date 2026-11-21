@@ -131,6 +131,8 @@ FORWARD_20261121_PROJECT = 'leqcwgzvjsxugfgzdmth'
 FORWARD_20261121_BASE_COUNT = 376  # DEV ledger count after urgency retirement
 FORWARD_20261121_PROOF = 'docs/plan/proofs/20261121-dev-forward-migrations-evidence.md'
 FORWARD_20261121_PROOF_SHA256 = '0d4a48dbe293317bd97174ad6190ed0dbed6448b2fbdbe5dda97edf584b6e0e5'
+FORWARD_20261121_PROOF_2 = 'docs/plan/proofs/20261121-dev-forward-migrations-evidence-2.md'
+FORWARD_20261121_PROOF_2_SHA256 = '92f66d6ddc34a7a015a36e5ae5cab42afcca50ad14dd2d56cfa22e9bac51b5ca'
 FORWARD_20261121 = [
     {
         "version": "20261121102509",
@@ -171,6 +173,16 @@ FORWARD_20261121 = [
         "rollback": "scripts/sql/r06_gemini_cache_input_20261118.rollback.sql",
         "evidence": FORWARD_20261121_PROOF,
         "evidence_sha256": FORWARD_20261121_PROOF_SHA256,
+    },
+    {
+        "version": "20261121105238",
+        "name": "taxonomy_resolve_on_clarify",
+        "md5": "3eb2f9ebe5c4e6559c84077bb985346c",
+        "sha256": "9955ff966d52714a89a3c82966d765401c35531612d7dec3eb85dfccdbe5467f",
+        "bytes": 2473,
+        "rollback": "scripts/sql/rollback_taxonomy_clarify_resolve_preimage_20261121.sql",
+        "evidence": FORWARD_20261121_PROOF_2,
+        "evidence_sha256": FORWARD_20261121_PROOF_2_SHA256,
     },
 ]
 

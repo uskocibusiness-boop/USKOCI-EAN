@@ -1058,8 +1058,9 @@ class Forward20261121ProvenanceTests(unittest.TestCase):
             "20261121102704_marketplace_safety_blocks_withdrawn_phone.sql",
             "20261121102809_review_projection_reuse_resolved_decision.sql",
             "20261121102921_r06_gemini_cache_input.sql",
+            "20261121105238_taxonomy_resolve_on_clarify.sql",
         ])
-        self.assertEqual([e["dev_migration_count_after"] for e in self.section], [377, 378, 379, 380])
+        self.assertEqual([e["dev_migration_count_after"] for e in self.section], [377, 378, 379, 380, 381])
 
     def test_wrong_field_in_any_entry_fails_closed(self):
         for index in range(len(self.section)):
