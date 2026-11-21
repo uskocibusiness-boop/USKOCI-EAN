@@ -86,7 +86,7 @@ export const type = {
   /** The name of what a screen is about: a person, an agreement, a profile. */
   pageTitle: { fontSize: 28, lineHeight: 33, fontWeight: '600' as const, letterSpacing: -0.8 },
   /** A sentence said in the conversation. Same size as body, looser leading, because it is read as speech. */
-  speech: { fontSize: 16, lineHeight: 26, fontWeight: '400' as const },
+  speech: { fontSize: 15, lineHeight: 23, fontWeight: '400' as const },
   /** A tab or segment label. */
   tab: { fontSize: 14, lineHeight: 20, fontWeight: '600' as const },
   /** Persistent navigation labels stay quieter than the content and still follow the system text size. */

@@ -75,7 +75,7 @@ export const sys = {
      * The answer in voice mode, read at a glance from arm's length while the thread's own `speech` (16/26) is read up
      * close: the same voice, a step larger.
      */
-    speechLarge: { fontSize: 20, lineHeight: 30, fontWeight: '500' } as TextStyle,
+    speechLarge: { fontSize: 17, lineHeight: 25, fontWeight: '500' } as TextStyle,
   },
   /**
    * Shared motion defaults, in milliseconds. The current design direction allows
