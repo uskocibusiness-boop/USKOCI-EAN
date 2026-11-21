@@ -5211,10 +5211,30 @@
       "recorded_statement_count": 1,
       "rollback_preimage": "scripts/sql/rollback_taxonomy_clarify_resolve_preimage_20261121.sql",
       "evidence": "docs/plan/proofs/20261121-dev-forward-migrations-evidence-2.md",
-      "evidence_sha256": "92f66d6ddc34a7a015a36e5ae5cab42afcca50ad14dd2d56cfa22e9bac51b5ca",
+      "evidence_sha256": "7a6b8987ef3d654e706ab48a99b8280f57607cc9e2f4cd06522a90428fb1f04a",
       "dev_applied": true,
       "dev_migration_count_before": 380,
       "dev_migration_count_after": 381,
+      "release": "NO-GO"
+    },
+    {
+      "classification": "APPLIED_EXACT_LEDGER_BYTES",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "version": "20261121152127",
+      "name": "publication_pre_evaluation",
+      "file": "20261121152127_publication_pre_evaluation.sql",
+      "source_md5": "1c56cfc8ca93390193b30e9d7bbcf532",
+      "source_sha256": "0f8d271a3d4df442e80cf36c3af6e162c24b0e0d9babf0505c29363bb94396d2",
+      "source_bytes": 12479,
+      "recorded_statement_md5": "1c56cfc8ca93390193b30e9d7bbcf532",
+      "recorded_statement_sha256": "0f8d271a3d4df442e80cf36c3af6e162c24b0e0d9babf0505c29363bb94396d2",
+      "recorded_statement_count": 1,
+      "rollback_preimage": "scripts/sql/rollback_publication_pre_evaluation_20261121.sql",
+      "evidence": "docs/plan/proofs/20261121-dev-forward-migrations-evidence-2.md",
+      "evidence_sha256": "7a6b8987ef3d654e706ab48a99b8280f57607cc9e2f4cd06522a90428fb1f04a",
+      "dev_applied": true,
+      "dev_migration_count_before": 381,
+      "dev_migration_count_after": 382,
       "release": "NO-GO"
     }
   ]

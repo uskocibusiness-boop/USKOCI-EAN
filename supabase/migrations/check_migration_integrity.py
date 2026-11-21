@@ -132,7 +132,7 @@ FORWARD_20261121_BASE_COUNT = 376  # DEV ledger count after urgency retirement
 FORWARD_20261121_PROOF = 'docs/plan/proofs/20261121-dev-forward-migrations-evidence.md'
 FORWARD_20261121_PROOF_SHA256 = '0d4a48dbe293317bd97174ad6190ed0dbed6448b2fbdbe5dda97edf584b6e0e5'
 FORWARD_20261121_PROOF_2 = 'docs/plan/proofs/20261121-dev-forward-migrations-evidence-2.md'
-FORWARD_20261121_PROOF_2_SHA256 = '92f66d6ddc34a7a015a36e5ae5cab42afcca50ad14dd2d56cfa22e9bac51b5ca'
+FORWARD_20261121_PROOF_2_SHA256 = '7a6b8987ef3d654e706ab48a99b8280f57607cc9e2f4cd06522a90428fb1f04a'
 FORWARD_20261121 = [
     {
         "version": "20261121102509",
@@ -181,6 +181,16 @@ FORWARD_20261121 = [
         "sha256": "9955ff966d52714a89a3c82966d765401c35531612d7dec3eb85dfccdbe5467f",
         "bytes": 2473,
         "rollback": "scripts/sql/rollback_taxonomy_clarify_resolve_preimage_20261121.sql",
+        "evidence": FORWARD_20261121_PROOF_2,
+        "evidence_sha256": FORWARD_20261121_PROOF_2_SHA256,
+    },
+    {
+        "version": "20261121152127",
+        "name": "publication_pre_evaluation",
+        "md5": "1c56cfc8ca93390193b30e9d7bbcf532",
+        "sha256": "0f8d271a3d4df442e80cf36c3af6e162c24b0e0d9babf0505c29363bb94396d2",
+        "bytes": 12479,
+        "rollback": "scripts/sql/rollback_publication_pre_evaluation_20261121.sql",
         "evidence": FORWARD_20261121_PROOF_2,
         "evidence_sha256": FORWARD_20261121_PROOF_2_SHA256,
     },
