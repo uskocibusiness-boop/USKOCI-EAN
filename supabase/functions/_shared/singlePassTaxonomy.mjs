@@ -93,6 +93,43 @@ export function singlePassCapturePlan(built, catalog) {
   return new TextEncoder().encode(JSON.stringify(plan)).length <= 18000 ? plan : null;
 }
 
+// need.category is the owner's human service label. A catalog UUID, a dotted /
+// snake_case key or a code is a technical identifier and never a service name
+// (DEV 05.11.2026: need.category held a category UUID, so the review fell back to
+// an exact-label lookup of that ID and stayed PENDING_CLASSIFICATION).
+// Keep in sync with src/features/ai/intake/intakeReviewReadiness.ts.
+const TECHNICAL_ID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/iu;
+export function humanServiceLabel(value) {
+  if (typeof value !== 'string') return null;
+  const label = value.trim();
+  if (label.length < 3 || label.length > 120 || /[<>{}[\]\\\u0000-\u001f]/u.test(label)) return null;
+  if (TECHNICAL_ID_RE.test(label) || !/\p{L}{2}/u.test(label)) return null;
+  if (/^[\p{L}\d]+(?:[_.:/#][\p{L}\d]+)+$/u.test(label)) return null;
+  if (/^[A-Z\d_-]+$/u.test(label) && /[\d_]/u.test(label)) return null;
+  return label;
+}
+
+// The one concrete question when a ready NEED interview still has no resolved
+// service decision. Never a dead end and never a request to repeat known facts.
+export function serviceConfirmationQuestion(service) {
+  const label = humanServiceLabel(service);
+  return label
+    ? `Da li je „${label}“ tačan opis posla koji Vam treba? Ako nije, opišite posao svojim rečima.`
+    : 'Kako biste jednom rečenicom opisali posao koji Vam treba?';
+}
+
+// Per-turn runtime reminder (request-local, never cached). When the effective
+// service and mode are known, every model turn must carry its decision so the
+// server can bind classification to the completed turn, including CLARIFY and
+// map/location turns. A technical stored category must be replaced by a label.
+export function needClassificationReminder(category, mode) {
+  if (typeof category !== 'string' || category.trim().length < 3) return '';
+  const label = humanServiceLabel(category);
+  if (!label) return 'Sačuvana need.category je tehnički identifikator, ne naziv usluge. U ovom odgovoru predložite need.category kao prirodan naziv posla iz opisa (nikada ID ili šifru) i za nju vratite taxonomyDecisions.';
+  if (mode !== 'ON_SITE' && mode !== 'REMOTE') return '';
+  return `Usluga ovog zadatka je „${label}“ (${mode}). taxonomyDecisions u ovom odgovoru mora da sadrži tačno jednu odluku za nju; ako se ništa nije promenilo, ponovite istu odluku.`;
+}
+
 const PREMATURE_READINESS_OR_SAVE_RE = /sve je spremno|spremno za|vaš profil je sačuvan|profil je sačuvan|profil je aktiviran|zadatak je objavljen|želite li da objavite|odgovarajuću kategoriju|opis ostaje u nacrtu|^proverite sledeći korak\.$/iu;
 
 // Missing classification cannot turn a model's acknowledgement into a ready
@@ -109,8 +146,9 @@ export function withUnresolvedSinglePassReply(turn, built, plan, serviceHint) {
   // service so its next short answer can bind to that service alone.
   const unconfirmedService = Array.isArray(built?.unconfirmedModeServices)
     ? built.unconfirmedModeServices.find(service => boundedText(service, 120) && service.trim().length >= 3) : null;
-  const serviceQuestion = boundedText(serviceHint, 120) && serviceHint.trim().length >= 3
-    ? `Da li je „${serviceHint.trim()}“ tačan opis posla koji Vam treba? Ako nije, opišite posao svojim rečima.` : null;
+  // Need passes a string (possibly empty when its stored category was a
+  // technical ID); Worker passes nothing and keeps its own fallback.
+  const serviceQuestion = typeof serviceHint === 'string' ? serviceConfirmationQuestion(serviceHint) : null;
   const question = built?.clarifications?.[0]?.ambiguityPrompt
     || (unconfirmedService ? `Da li uslugu „${unconfirmedService}“ pružate na lokaciji, onlajn ili na oba načina?` : null);
   // An ordinary question can still collect a missing business fact. An internal

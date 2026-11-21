@@ -67,6 +67,45 @@ export function workerReviewReady(snapshot: WorkerAiSnapshot, now = Date.now()):
   return workerReviewPresentable(snapshot) && Date.parse(snapshot.review!.expiresAt) > now;
 }
 
+// Same rule as supabase/functions/_shared/singlePassTaxonomy.mjs humanServiceLabel:
+// a catalog UUID, dotted/snake_case key or code is never the owner's service name.
+const TECHNICAL_ID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/iu;
+export function humanServiceLabel(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const label = value.trim();
+  if (label.length < 3 || label.length > 120 || /[<>{}[\]\\\u0000-\u001f]/u.test(label)) return null;
+  if (TECHNICAL_ID.test(label) || !/\p{L}{2}/u.test(label)) return null;
+  if (/^[\p{L}\d]+(?:[_.:/#][\p{L}\d]+)+$/u.test(label)) return null;
+  if (/^[A-Z\d_-]+$/u.test(label) && /[\d_]/u.test(label)) return null;
+  return label;
+}
+
+// The one concrete chat question for a ready NEED interview whose service is not
+// yet bound by the server. Identical wording to the interview's own question.
+export function serviceConfirmationQuestion(service: unknown): string {
+  const label = humanServiceLabel(service);
+  return label
+    ? `Da li je „${label}“ tačan opis posla koji Vam treba? Ako nije, opišite posao svojim rečima.`
+    : 'Kako biste jednom rečenicom opisali posao koji Vam treba?';
+}
+
+// NEED only: why a prepared review could not open as the review card. A ready
+// interview never ends in a silent "not ready" state; a pending classification
+// becomes one concrete question in the chat.
+export function taskReviewPreparationMessage(review: Pick<AiTaskReviewEnvelope, 'classificationState' | 'missingRequired'>,
+  conversation: AiNeedV2Conversation): string {
+  const state = review.classificationState;
+  if (state === undefined || state === 'PENDING_CLASSIFICATION') {
+    const category = conversation.facts.find(fact => fact.key === 'need.category' && fact.status !== 'UNKNOWN')?.value;
+    return serviceConfirmationQuestion(category);
+  }
+  if (state === 'READY') return review.missingRequired.length
+    ? 'Dopunite podatke koji nedostaju u razgovoru, pa će se pregled otvoriti.'
+    : 'Podaci u razgovoru su se promenili posle pripreme pregleda. Proverite stanje da biste otvorili novi pregled.';
+  return classificationPreparationMessage(state)
+    ?? 'Potvrda pregleda trenutno nije dostupna. Podaci iz razgovora ostaju sačuvani; proverite stanje.';
+}
+
 // A technical failure never asks the person to restate an already understood job.
 export function classificationPreparationMessage(state: string | undefined): string | null {
   if (state === 'READY') return null;

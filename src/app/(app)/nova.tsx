@@ -25,7 +25,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { IntakePresentation, IntakeUnavailable } from '../../ui/v2/IntakePresentation';
 import type { IntakeTurnRole } from '../../ui/v2/intakeLocationOrder';
 import { SEND_UNCONFIRMED_CODE, conversationErrorLine } from '../../features/ai/intake/aiDownLine';
-import { classificationPreparationMessage, taskReadinessKey, taskReadyToPrepare, taskReviewReady } from '../../features/ai/intake/intakeReviewReadiness';
+import { taskReadinessKey, taskReadyToPrepare, taskReviewPreparationMessage, taskReviewReady } from '../../features/ai/intake/intakeReviewReadiness';
 import { useHoldToTalk } from '../../features/voice/useHoldToTalk';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { tick } from '../../ui/system/haptics';
@@ -257,8 +257,9 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, handof
                 readyReview = prepared.podatak;
                 preparedReview.current = { key, review: readyReview };
               } else reviewPreparationProblem = prepared.ok
-                ? classificationPreparationMessage(prepared.podatak.classificationState)
-                  ?? 'Pregled još nije spreman. Proverite podatke i termin u razgovoru, pa ponovo proverite stanje.'
+                // A ready interview never ends silently: a pending service shows
+                // the one concrete question in the chat.
+                ? taskReviewPreparationMessage(prepared.podatak, next)
                 : 'Priprema pregleda nije potvrđena. Proverite stanje; nije potrebno da ponavljate opis zadatka.';
             }
           } catch {

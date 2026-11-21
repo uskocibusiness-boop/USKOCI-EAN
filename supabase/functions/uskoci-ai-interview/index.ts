@@ -30,7 +30,7 @@ import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.
 import { needConversationInstruction } from '../_shared/needConversationInstruction.mjs';
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, decodeGeminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
-import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion, withUnresolvedSinglePassReply } from '../_shared/singlePassTaxonomy.mjs';
+import { singlePassTaxonomyInstruction, withSinglePassTaxonomySchema, takeSinglePassTaxonomy, singlePassCapturePlan, singlePassCompletion, withUnresolvedSinglePassReply, humanServiceLabel, needClassificationReminder } from '../_shared/singlePassTaxonomy.mjs';
 import { completeFirstPlan } from '../_shared/completeFirstPlan.ts';
 import { preparedAiInputEnabled, readPreparedInput, readPreparedInputByIdentity, preparedRecoveryStatus, prepareAiInput, dispatchPreparedInput, type PreparedInput } from '../_shared/preparedAiInput.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
@@ -838,6 +838,15 @@ function parseV2Output(parsed: any, maxProposals = 12): ParsedTurn {
         continue;
       }
       const displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim() : '';
+      if (key === 'need.category' && !humanServiceLabel(value)) {
+        // A catalog UUID or technical key is never the owner's service label.
+        // Keep the model's human display label when it has one; otherwise drop
+        // only this fact so the interview asks for the work in plain words.
+        const label = humanServiceLabel(displayValue);
+        if (!label) { console.warn('NEED_AI_OUTPUT_GATE_FACT_SKIPPED', key); continue; }
+        console.info('NEED_AI_OUTPUT_GATE', 'CATEGORY_TECHNICAL_ID_REPAIRED');
+        value = label;
+      }
       const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim() : '';
       const confidence = fact?.confidence;
       if (!displayValue || displayValue.length > 1000 || !evidence || evidence.length > 500 ||
@@ -929,6 +938,12 @@ async function callGemini(
       text: `Ranije je nedostajalo razjašnjenje: „${clarificationHint.ambiguityPrompt}“. Najpre proveri da li ga je korisnik već dao u ovoj poruci. Pitaj samo ako ta poslovna činjenica još nedostaje.`,
     }] : []),
     ...(locationContext ? [{ text: locationInstruction(locationContext) }] : []),
+    // Request-local: every turn with a known service+mode (CLARIFY and map
+    // turns included) must carry its decision so the server can resolve it.
+    ...(singlePass && schemaVersion === NEED_FACT_SCHEMA_V2 ? [{ text: needClassificationReminder(
+      activeFacts.find((f: any) => f.fact_key === 'need.category' && f.status !== 'UNKNOWN')?.fact_value,
+      taskTaxonomyMode(activeFacts.find((f: any) => f.fact_key === 'need.task_geography' && f.status !== 'UNKNOWN')?.fact_value)) }]
+      .filter(part => part.text) : []),
   ];
   // Stable system instruction is 100% invariant across turns to maximize Google TPU prefix caching.
   const stableSystemParts = [
@@ -1891,13 +1906,17 @@ Deno.serve(async (req: Request) => {
       let builtTaxonomy: any = null;
       let hasClassificationInput = false;
       let classificationService: string | null = null;
+      let categoryPresent = false;
       if (singlePassActive && aiTurn.intentAllowsChanges && ['ALLOW','CLARIFY'].includes(aiTurn.safety)) {
         const turnProposals = aiTurn.proposals ?? [];
         const fact = (key: string) => activeFacts.find((f: any) => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
         const effectiveFact = (key: string) => turnProposals.find((p: any) => p.key === key)?.value ?? fact(key);
         const effCategory = effectiveFact('need.category');
-        hasClassificationInput = typeof effCategory === 'string' && effCategory.trim().length >= 3;
-        if (hasClassificationInput) classificationService = (effCategory as string).trim();
+        categoryPresent = typeof effCategory === 'string' && effCategory.trim().length >= 3;
+        // A stored technical ID (older turns) is not classification input; the
+        // reply asks for the work in plain words and the reminder asks the model.
+        classificationService = humanServiceLabel(effCategory);
+        hasClassificationInput = classificationService !== null;
         const priorCategory = fact('need.category');
         const priorDescription = fact('need.description');
         const proposedDescription = turnProposals.find((p: any) => p.key === 'need.description')?.value;
@@ -1912,11 +1931,11 @@ Deno.serve(async (req: Request) => {
 
         const effMode = taskTaxonomyMode(effGeo);
         let effectiveDecisions = taxonomyDecisions;
-        if (effectiveDecisions.length === 0 && typeof effCategory === 'string' && effCategory.trim().length >= 3 && effMode && fullCatalog) {
-          const normCat = normalizedClassificationIdentity(effCategory.trim());
+        if (effectiveDecisions.length === 0 && classificationService && effMode && fullCatalog) {
+          const normCat = normalizedClassificationIdentity(classificationService);
           const catCandidates = (fullCatalog.byNormalizedKey?.get(normCat) ?? []) as any[];
           const stripDiacritics = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-          const effStripped = stripDiacritics(effCategory);
+          const effStripped = stripDiacritics(classificationService);
           const matchingLeaf = catCandidates.find((c: any) => c.isLeaf && c.modes?.includes(effMode))
             ?? catCandidates.find((c: any) => c.isLeaf)
             ?? fullCatalog.categories?.find((c: any) => c.isLeaf && normalizedClassificationIdentity(c.label) === normCat)
@@ -1924,14 +1943,14 @@ Deno.serve(async (req: Request) => {
           if (matchingLeaf) {
             const catAction = matchingLeaf.modes?.includes(effMode) ? 'REUSE_EXISTING' : 'EXTEND_MODE';
             effectiveDecisions = [{
-              service: effCategory.trim(),
+              service: classificationService,
               mode: effMode,
               action: catAction,
               categoryId: matchingLeaf.categoryId,
               parentId: '',
               proposedPath: [],
               ambiguityPrompt: '',
-              reason: `Zadržana potvrđena kategorija „${effCategory.trim()}“ iz prethodnog koraka razgovora.`,
+              reason: `Zadržana potvrđena kategorija „${classificationService}“ iz prethodnog koraka razgovora.`,
             }];
           }
         }
@@ -1939,12 +1958,12 @@ Deno.serve(async (req: Request) => {
         if (classificationInputChanged || Boolean(pendingClarificationHint) || effectiveDecisions.length > 0) {
           // A missing geography is not evidence of on-site execution. The
           // classifier runs when the conversation has a typed execution mode.
-          if (typeof effCategory === 'string' && effCategory.trim().length >= 3 && effMode) {
+          if (classificationService && effMode) {
             // Local validation of the already paid response; no background provider.
             builtTaxonomy = await measureAiPhase('NEED_TAXONOMY_VALIDATE', () => buildFullTreeTaxonomyProposals({
               suppliedCatalog: fullCatalog,
               suppliedDecisions: effectiveDecisions,
-              items: [{ service: effCategory.trim(), mode: effMode, handoff: effHandoff }],
+              items: [{ service: classificationService, mode: effMode, handoff: effHandoff }],
               conversationId,
               // Completion persists one USER and one ASSISTANT message.
               draftRevision: taskDraftRevision + 2,
@@ -1953,8 +1972,8 @@ Deno.serve(async (req: Request) => {
         }
       }
       const taxonomyPlan = singlePassCapturePlan(builtTaxonomy, fullCatalog);
-      if (hasClassificationInput && !locationContext)
-        aiTurn = withUnresolvedSinglePassReply(aiTurn, builtTaxonomy, taxonomyPlan, classificationService);
+      if (categoryPresent && !locationContext)
+        aiTurn = withUnresolvedSinglePassReply(aiTurn, builtTaxonomy, taxonomyPlan, classificationService ?? '');
       if (builtTaxonomy?.proposals?.length && !taxonomyPlan) console.info('NEED_TAXONOMY_HINT_CAPTURE', 'PAYLOAD_UNAVAILABLE');
       // Paired SQL/Edge promotion is required. Never fall back to a split write
       // or run Gemini again when the atomic RPC is absent or its ACK is lost.
