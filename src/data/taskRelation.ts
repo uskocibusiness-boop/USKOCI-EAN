@@ -18,6 +18,8 @@
  * server still refuses an application to my own task and a duplicate, whatever this says.
  */
 export type TaskRelation = { kind: 'OWNER' } | { kind: 'APPLIED'; applicationId: string; agreementId: string | null }
+  /** Owner decision 2026-11-20: my newest sent application was withdrawn, which is final for this task. Never NONE. */
+  | { kind: 'WITHDRAWN'; applicationId: string }
   | { kind: 'NONE' } | { kind: 'UNKNOWN' };
 
 /** What one task's answer looks like for a whole page of them. */
@@ -33,7 +35,8 @@ export type TaskRelationIndex = {
  * projection this client does not understand, and an unreadable answer is never a label.
  */
 const STATES = new Set(['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'STALE_REVIEW_REQUIRED', 'SELECTED', 'WITHDRAWN', 'CLOSED']);
-/** A withdrawn or closed application is not a standing one: that task is open to apply to again. */
+/** A closed application is not a standing one: that task is open to apply to again. A withdrawn one is not
+ * standing either, but it is final (owner decision 2026-11-20): the task cannot be applied to again. */
 const STANDING = new Set(['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'STALE_REVIEW_REQUIRED', 'SELECTED']);
 
 const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
@@ -64,6 +67,10 @@ export function taskRelationIndex(items: readonly unknown[], asked: readonly str
     const applicationId = row?.applicationId, state = row?.applicationState, agreementId = row?.agreementId ?? null;
     if (!text(applicationId) || !text(state) || !STATES.has(state)
       || (agreementId !== null && !text(agreementId))) throw new Error('TASK_RELATIONS_INVALID_PROJECTION');
+    if (state === 'WITHDRAWN') {
+      answers.set(needId, { kind: 'WITHDRAWN', applicationId });
+      continue;
+    }
     if (!STANDING.has(state)) {
       answers.set(needId, { kind: 'NONE' });
       continue;

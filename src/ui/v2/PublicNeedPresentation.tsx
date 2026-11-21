@@ -39,9 +39,12 @@ export function applyClosedReason(need: Pick<PrilikaProjekcija, 'pokrivenost' | 
   return 'Nove prijave trenutno nisu dostupne';
 }
 
+export const WITHDRAWN_FINAL_TEXT = 'Povukli ste prijavu za ovaj zadatak. Ponovna prijava nije moguća.';
+
 /** What the page says about this account's own part in the task, as the state at its head. Not known (a failed read) says nothing here: the foot says it. */
 const relationStatus = (relation: TaskRelation): { text: string; quiet: boolean } | null => relation.kind === 'OWNER' ? { text: 'Vaš zadatak', quiet: false }
-  : relation.kind === 'APPLIED' ? { text: relation.agreementId ? 'Prijava je izabrana' : 'Prijava poslata', quiet: false } : null;
+  : relation.kind === 'APPLIED' ? { text: relation.agreementId ? 'Prijava je izabrana' : 'Prijava poslata', quiet: false }
+  : relation.kind === 'WITHDRAWN' ? { text: 'Prijava povučena', quiet: true } : null;
 
 /** What the worker's own plans and work area say about this task (UX plan R25), drawn as two quiet rows under the facts; see `detail/taskFit`. A row without its fact is not drawn. */
 export type { TaskFitContext };
@@ -114,6 +117,11 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
     : relation.kind === 'APPLIED'
       ? <FlowFooter>
         <ProductFooterAction label={relation.agreementId ? 'Otvorite Dogovor' : 'Pogledajte Vašu prijavu'} onPress={onOwnApplication} disabled={busy} /></FlowFooter>
+      // Owner decision 2026-11-20: a withdrawn application is final; the foot says so and leads on, never back to applying.
+      : relation.kind === 'WITHDRAWN'
+        ? <FlowFooter reason={WITHDRAWN_FINAL_TEXT}>
+          {onOtherTasks ? <V2Action label="Drugi zadaci" kind="quiet" disabled={busy} onPress={onOtherTasks} /> : null}
+        </FlowFooter>
       : relation.kind === 'UNKNOWN'
         ? <FlowFooter reason="Ne možemo da proverimo da li je ovo Vaš zadatak ili je prijava već poslata.">
           <V2Action label="Proverite ponovo" onPress={retry} disabled={busy || !canRetry} /></FlowFooter>

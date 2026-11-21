@@ -553,7 +553,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const relation = useCallback((item: MarketplaceItem): TaskCardRelation | undefined => {
     const answer = relations?.relation(item.id);
     return answer?.kind === 'OWNER' ? 'OWNED' : answer?.kind === 'APPLIED' ? 'APPLIED'
-      : answer?.kind === 'NONE' ? undefined : pending ? 'PENDING' : 'UNKNOWN';
+      : answer?.kind === 'NONE' || answer?.kind === 'WITHDRAWN' ? undefined : pending ? 'PENDING' : 'UNKNOWN';
   }, [relations, pending]);
   const undated = useMemo(() => loading || error ? 0 : props.p6Seam?.counts?.undated
     ?? undatedCount(items, filters, undefined, now), [loading, error, items, filters, now, props.p6Seam?.counts?.undated]);

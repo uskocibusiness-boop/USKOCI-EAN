@@ -19,6 +19,11 @@ export const applicationSelectionErrors: Readonly<Record<string, string>> = {
   RESPONSE_NOT_SELECTABLE: 'Ova prijava više nije dostupna za izbor.',
   RESPONSE_NOT_FOUND: 'Prijava više nije dostupna.',
   RESPONSE_ALREADY_SELECTED: 'Ova prijava je već izabrana. Otvorite svoje Dogovore.',
+  // Owner decision 2026-11-20: a withdrawn application is final for that task.
+  APPLICATION_WITHDRAWN_FINAL: 'Povukli ste prijavu za ovaj zadatak. Ponovna prijava nije moguća.',
+  RESPONSE_VERSION_NOT_FOUND: 'Ova verzija prijave više nije dostupna. Osvežite prijave i pokušajte ponovo.',
+  RESPONSE_NEED_MISMATCH: 'Ova prijava ne pripada ovom zadatku. Osvežite prijave i pokušajte ponovo.',
+  FIXED_WINDOW_START_PASSED: 'Termin ovog zadatka je već počeo. Nove prijave više nisu moguće.',
   PROFILE_NOT_OWNED_BY_ACCOUNT: 'Ponovo otvorite svoj radni profil pre prijave.',
   NEED_FULL: 'Sva mesta na ovom zadatku su popunjena.',
   NEED_REMAINING_CAPACITY_EXCEEDED: 'Broj ljudi premašuje preostala mesta na zadatku.',
@@ -90,6 +95,14 @@ const conclusiveSubmitSqlstate: Readonly<Record<string, string>> = {
   NEED_FIXED_INTERVAL_INVALID: '22023',
   AGREEMENT_CALENDAR_INTERVAL_INVALID: '22023',
   WORKER_NOT_ELIGIBLE: 'P0001',
+  // Verified read-only on DEV 2026-11-21 (private.assert_application_price_v5 and the submit body); all raise before any write.
+  INVALID_PRICE: '22023',
+  FIXED_PRICE_NOT_READY: 'P0001',
+  FIXED_PRICE_MISMATCH: '22023',
+  UNKNOWN_PRICE_BASIS: '22023',
+  FIXED_WINDOW_START_PASSED: '22023',
+  // marketplace_safety_20261121 candidate: refused before any write; an idempotent replay returns earlier.
+  APPLICATION_WITHDRAWN_FINAL: 'P0001',
 };
 export type ApplicationSubmitRefusal = {
   ok: false; kod: string; poruka: string; applicationRefusal: true;
@@ -140,6 +153,8 @@ const conclusiveSelectionSqlstate: Readonly<Record<string, string>> = {
   AGREEMENT_CALENDAR_INTERVAL_INVALID: '22023', OVERFILL: 'P0001',
   APPLICATION_PRICE_BASIS_REVIEW_REQUIRED: 'PT409', APPLICATION_PRICE_BASIS_CHANGED: 'PT409',
   CONNECTION_POLICY_NOT_READY: '55000',
+  // Verified read-only on DEV 2026-11-21 in rpc_select_response, raised before any write.
+  RESPONSE_VERSION_NOT_FOUND: 'P0002', RESPONSE_NEED_MISMATCH: 'P0001',
 };
 export type SelectionRefusal = { ok: false; kod: string; poruka: string; selectionRefusal: true };
 function decodeSelectionRefusal(raw: unknown): SelectionRefusal | null {
