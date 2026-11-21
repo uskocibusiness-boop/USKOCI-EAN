@@ -34,7 +34,7 @@ function harness({ withoutSegmenter = false, reduced = false, strict = false } =
         Value: class { setValue() {} stopAnimation() {} interpolate() { return 0; } } },
     },
     'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
-    'react-native-reanimated': { __esModule: true, default: { View: 'AnimatedView' }, FadeInDown: enter, Easing: { bezier: () => ({}) } },
+    'react-native-reanimated': { __esModule: true, default: { View: 'AnimatedView' }, FadeIn: enter, FadeInDown: enter, Easing: { bezier: () => ({}) } },
     'src/ui/interFont.ts': { withInter: value => value },
     'src/ui/system/ConfirmSheet.tsx': { useConfirmSheet: () => ({ ask() {}, sheet: null }) },
     'src/ui/system/motion.ts': { useReducedMotion: () => reduced },
@@ -84,6 +84,8 @@ function harness({ withoutSegmenter = false, reduced = false, strict = false } =
     async update(change) { props = { ...props, ...change }; await act(async () => tree.update(element())); },
     async motion(value) { reduced = value; await this.update({}); },
     async frame() { const batch = [...frames.values()]; frames.clear(); await act(async () => batch.forEach(fn => fn(16))); },
+    /** Runs paced-reveal frames until the reveal has caught up and stopped asking for frames. */
+    async settle() { for (let i = 0; i < 400 && frames.size; i++) await this.frame(); assert.equal(frames.size, 0, 'the reveal loop stops once caught up'); },
     preview() {
       const node = tree.root.findAll(node => node.type === 'View' && node.props.testID === 'ai-stream-preview')[0];
       return node ? node.findAll(node => node.type === 'T' && node.props.selectable)[0].props.children : '';
@@ -95,15 +97,23 @@ function harness({ withoutSegmenter = false, reduced = false, strict = false } =
 
 async function scenario(options, run) { const h = harness(options); try { await h.mount(); await run(h); } finally { await h.close(); } }
 
-test('first live chunk stays monotone through frames and snapshots, without synthetic typing', () => scenario({}, async h => {
+test('first live chunk stays monotone through frames and snapshots; the paced reveal stops when caught up', () => scenario({}, async h => {
   await h.update({ pending: true, busy: true, sentMessage: 'Treba mi pomoć', streamingText: 'Važi' });
-  const first = h.preview(); assert.ok(first.length >= 2);
+  const first = h.preview(); assert.ok(first.length >= 2, 'the first word replaces the dots at once');
   await h.frame(); assert.ok(h.preview().startsWith(first), 'a later frame cannot retract visible text');
-  assert.equal(h.frames.size, 0, 'no per-character RAF loop');
-  await h.update({ streamingText: 'Važi, pitam samo neophodno. Gde je zadatak?' });
-  const extended = h.preview(); assert.ok(extended.startsWith(first));
+  assert.equal(h.frames.size, 0, 'no animation frame is requested once everything received is shown');
+  const long = 'Važi, pitam samo neophodno. Gde je zadatak?';
+  await h.update({ streamingText: long });
+  assert.ok(h.preview().startsWith(first));
+  let previous = h.preview();
+  while (h.frames.size) {
+    await h.frame(); const shown = h.preview();
+    assert.ok(shown.startsWith(previous) && long.startsWith(shown), 'append only, never beyond what was received');
+    previous = shown;
+  }
+  const extended = h.preview(); assert.equal(extended, 'Važi, pitam samo neophodno. Gde je zadatak');
   for (const streamingText of ['Va', 'Drugi odgovor koji zamenjuje prethodni.']) {
-    await h.update({ streamingText }); await h.frame(); assert.equal(h.preview(), extended, 'same attempt cannot overwrite its preview');
+    await h.update({ streamingText }); await h.settle(); assert.equal(h.preview(), extended, 'same attempt cannot overwrite its preview');
   }
   assert.deepEqual(h.announcements, [], 'provider fragments are never final accessibility announcements');
 }));
@@ -136,21 +146,25 @@ test('conversation replacement clears preview ownership in its first committed r
   await h.update({ pending: true, sentMessage: 'Ista poruka', streamingText: 'Stari odgovor korisniku.' });
   const old = h.preview(); assert.ok(old);
   await h.update({ conversationKey: 'account:b:conversation:2', streamingText: 'Novi odgovor.' });
-  assert.equal(h.preview(), 'Novi odgovor'); assert.ok(!h.preview().includes(old));
+  assert.ok('Novi odgovor'.startsWith(h.preview()) && h.preview(), 'the new reveal starts in the first render');
+  assert.ok(!h.preview().includes(old)); await h.settle(); assert.equal(h.preview(), 'Novi odgovor');
 }));
 
 test('explicit clear and back-to-back new drafts each reset a stream without remounting', () => scenario({}, async h => {
   await h.update({ pending: true, sentMessage: 'Prva poruka', streamingText: 'Prvi odgovor.' });
   await h.update({ streamingText: '' }); assert.equal(h.preview(), '');
-  await h.update({ streamingText: 'Ponovo isti zahtev.' }); assert.equal(h.preview(), 'Ponovo isti zahtev');
-  await h.update({ sentMessage: 'Druga poruka', streamingText: 'Drugi odgovor.' }); assert.equal(h.preview(), 'Drugi odgovor');
+  await h.update({ streamingText: 'Ponovo isti zahtev.' }); assert.equal(h.preview(), 'Ponovo ', 'a cleared stream starts a fresh reveal');
+  await h.settle(); assert.equal(h.preview(), 'Ponovo isti zahtev');
+  await h.update({ sentMessage: 'Druga poruka', streamingText: 'Drugi odgovor.' }); assert.equal(h.preview(), 'Drugi ');
+  await h.settle(); assert.equal(h.preview(), 'Drugi odgovor');
 }));
 
 test('a new pending turn with the same user text is distinct from its completed predecessor', () => scenario({}, async h => {
   await h.update({ pending: true, sentMessage: 'Da', streamingText: 'Prvi odgovor.' });
   const messages = [{ id: 'u1', fromAi: false, body: 'Da' }, { id: 'a1', fromAi: true, body: 'Potvrđen prvi odgovor.' }];
   await h.update({ messages, pending: false, sentMessage: null }); assert.equal(h.preview(), '');
-  await h.update({ pending: true, sentMessage: 'Da', streamingText: 'Drugi odgovor.' }); assert.equal(h.preview(), 'Drugi odgovor');
+  await h.update({ pending: true, sentMessage: 'Da', streamingText: 'Drugi odgovor.' }); assert.equal(h.preview(), 'Drugi ');
+  await h.settle(); assert.equal(h.preview(), 'Drugi odgovor');
 }));
 
 test('canonical readback replaces even a longer contradictory preview and announces exactly once', () => scenario({ strict: true }, async h => {
@@ -158,7 +172,7 @@ test('canonical readback replaces even a longer contradictory preview and announ
   await h.update({ messages: initial }); assert.deepEqual(h.announcements, [], 'loaded history is silent');
   await h.update({ pending: true, busy: true, sentMessage: 'To je to', streamingText: 'Sačuvano je sve i zadatak je objavljen.' });
   assert.ok(h.preview());
-  const previewNode = h.tree.root.findByProps({ testID: 'ai-stream-preview' });
+  const [previewNode] = h.tree.root.findAll(node => node.type === 'View' && node.props.testID === 'ai-stream-preview');
   assert.equal(previewNode.props.accessibilityLiveRegion, 'none');
   assert.match(previewNode.props.accessibilityLabel, /^USKOČI:/);
   assert.equal(previewNode.findAll(node => node.type === 'T' && node.props.children === 'Odgovor u pripremi').length, 0);
@@ -183,10 +197,44 @@ test('loss/abort clears preview without inventing a completed message or announc
 
 test('live reduced-motion changes keep Unicode-safe text immediate without replay or truncation', () => scenario({}, async h => {
   await h.update({ pending: true, sentMessage: 'Sutra', streamingText: 'Važi 🧑🏽‍🚀, sutra.' });
-  const first = h.preview(); await h.frame(); assert.equal(h.preview(), first);
+  await h.settle(); const first = h.preview(); assert.equal(first, 'Važi 🧑🏽‍🚀, sutra'); await h.frame(); assert.equal(h.preview(), first);
   await h.motion(true); assert.equal(h.preview(), first); assert.equal(h.frames.size, 0);
   await h.update({ streamingText: 'Važi 🧑🏽‍🚀, sutra. Posle četiri?' }); const next = h.preview(); assert.ok(next.startsWith(first));
   await h.motion(false); assert.equal(h.preview(), next); assert.equal(h.frames.size, 0);
+}));
+
+test('send shows the dots at once; the same row reveals words and continues into the completed reply', () => scenario({}, async h => {
+  const prior = [{ id: 'a0', fromAi: true, body: 'Šta Vam treba?' }];
+  await h.update({ messages: prior });
+  await h.update({ pending: true, busy: true, sentMessage: 'Selidba' });
+  const typing = h.tree.root.findAll(node => node.type === 'View' && node.props.testID === 'ai-typing');
+  assert.equal(typing.length, 1, 'the typing row appears in the same render as the sent message');
+  assert.equal(typing[0].props.accessibilityLabel, 'USKOČI piše odgovor');
+  const final = 'Razumem, selidba sutra ujutru. Koliko ima stvari i da li zgrada ima lift?';
+  await h.update({ streamingText: 'Razumem, selidba sutra ' });
+  assert.equal(h.preview(), 'Razumem, ', 'the first word replaces the dots without waiting');
+  assert.equal(h.tree.root.findAll(node => node.type === 'View' && node.props.testID === 'ai-typing').length, 0);
+  await h.frame(); await h.frame();
+  const before = h.preview(); assert.ok(before.length > 'Razumem, '.length && final.startsWith(before));
+  const messages = [...prior, { id: 'u1', fromAi: false, body: 'Selidba' }, { id: 'a1', fromAi: true, body: final }];
+  await h.update({ messages, pending: false, busy: false, sentMessage: null, streamingText: '' });
+  assert.equal(h.preview(), '', 'the preview row became the completed row');
+  const row = () => h.tree.root.findAll(node => node.type === 'View' && node.props.accessibilityLabel === `USKOČI: ${final}`)[0];
+  const text = () => row().findAll(node => node.type === 'T' && node.props.selectable)[0].props.children;
+  assert.equal(text(), before, 'no remount and no snap: the completed reply continues from the words already shown');
+  let previous = text();
+  while (h.frames.size) { await h.frame(); assert.ok(text().startsWith(previous) && final.startsWith(text())); previous = text(); }
+  assert.equal(text(), final, 'the reveal finishes on the completed reply');
+  assert.deepEqual(h.announcements, [`USKOČI: ${final}`]);
+}));
+
+test('reduced motion shows the completed reply whole in the same row', () => scenario({ reduced: true }, async h => {
+  await h.update({ pending: true, busy: true, sentMessage: 'Sutra', streamingText: 'Važi, sutra u deset ' });
+  assert.equal(h.preview(), 'Važi, sutra u deset', 'everything received (stable) at once');
+  const final = 'Važi, sutra u deset sati. Gde je zadatak?';
+  await h.update({ messages: [{ id: 'u1', fromAi: false, body: 'Sutra' }, { id: 'a1', fromAi: true, body: final }], pending: false, busy: false, sentMessage: null });
+  assert.equal(h.tree.root.findAll(node => node.type === 'T' && node.props.selectable && node.props.children === final).length, 1);
+  assert.equal(h.frames.size, 0);
 }));
 
 if (!PREIMAGE) {

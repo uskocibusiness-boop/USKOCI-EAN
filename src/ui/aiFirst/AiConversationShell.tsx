@@ -1,7 +1,7 @@
 import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated as NativeAnimated, AppState, Easing, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated as NativeAnimated, AppState, Easing, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type TextStyle, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { Easing as ReanimatedEasing, FadeInDown } from 'react-native-reanimated';
+import Animated, { Easing as ReanimatedEasing, FadeIn, FadeInDown } from 'react-native-reanimated';
 import { T } from '../Text';
 import { withInter } from '../interFont';
 import { Press } from '../Press';
@@ -20,7 +20,7 @@ import { sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { HOLD_HINT, VoiceComposer, VoiceNotice, useVoiceScreenReader, type VoiceInput } from './VoiceComposer';
 import { useConversationArrival } from './useConversationArrival';
-import { useStreamDisplay } from './useStreamDisplay';
+import { usePacedReveal, useStreamDisplay } from './useStreamDisplay';
 import type { AiCorrectionIntent } from '../../data/aiCorrectionIntent';
 
 export type ConversationMessage = { id: string; fromAi: boolean; body: string };
@@ -95,7 +95,7 @@ export type AiConversationShellProps = {
   openingArts?: readonly FactArtKind[];
   /** A sentence already sent and not yet read back from the server. It belongs on screen. */
   sentMessage?: string | null;
-  /** Only real server text deltas belong here. No typewriter animation. */
+  /** Only real server text deltas belong here. They are revealed word by word, never beyond what arrived. */
   streamingText?: string;
   /**
    * One question at a time (the worker-profile conversation, M1): the assistant's latest message is THE question and is
@@ -229,20 +229,24 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const scrollLatest = useCallback((animated = false) => {
     thread.current?.scrollToEnd({ animated });
   }, []);
-  const followAfterLayout = useCallback(() => {
+  const followAfterLayout = useCallback((animated = false) => {
     if (contextActive.current || !followLatest.current || userScrolling.current || !activity.current) return;
     cancelFollow();
     followFrame.current = requestAnimationFrame(() => {
       followFrame.current = null;
       if (!contextActive.current && followLatest.current && !userScrolling.current && activity.current) {
-        thread.current?.scrollToEnd({ animated: false });
+        thread.current?.scrollToEnd({ animated });
       }
     });
   }, [cancelFollow]);
   const reduced = useReducedMotion();
-  // Show received, complete Unicode boundaries without a synthetic typewriter.
-  // Reduced motion uses this same immediate, monotone preview.
-  const displayedStream = useStreamDisplay(p);
+  // One live assistant row per turn: the dots, then received text revealed word by word (never beyond what arrived),
+  // then the completed reply in that same row. Reduced motion shows received text at once.
+  const typingShown = !!p.busy && !p.busyLabel;
+  const live = useStreamDisplay({ ...p, typing: typingShown });
+  const streamText = live.committedId ? '' : live.text;
+  // The live row is still adding words: its growth may glide the thread instead of stepping it.
+  const revealing = useRef(false);
   const notice = useConfirmSheet({ reduced });
   const arrival = useConversationArrival(p);
   const compact = keyboard || height < 760 || textScale >= 1.3 || p.pending;
@@ -413,7 +417,10 @@ export function AiConversationShell(p: AiConversationShellProps) {
         // The first pending turn already belongs at the bottom, even before the server returns a message ID.
         onContentSizeChange={(_width, content) => {
           if (!Number.isFinite(content) || content < 0 || geometry.current.content === content) return;
-          geometry.current.content = content; revealContext(); followAfterLayout();
+          const grew = content - geometry.current.content;
+          geometry.current.content = content; revealContext();
+          // A reply growing by a line glides the end into view; any other change (or reduced motion) stays an instant jump.
+          followAfterLayout(revealing.current && !reduced && grew > 0 && grew <= 96 * textScale);
         }}>
         {/* Always mounted: inserting/removing inline context preserves the sentence being read below it. */}
         <View testID="ai-inline-context" style={pinned && inlineSummary && !cardAtEnd ? s.inlineContext : undefined} onLayout={event => {
@@ -455,41 +462,47 @@ export function AiConversationShell(p: AiConversationShellProps) {
             <Glyph name="info" size={16} tone="muted" /><T variant="meta" tone="muted">O govornom unosu i privatnosti</T>
           </Press> : null}
         </View> : null}
-        {/* One keyed list: a note keeps its identity when its anchor or the welcome changes, so it moves instead of remounting. */}
+        {/* One keyed list: a note keeps its identity when its anchor or the welcome changes, so it moves instead of remounting.
+            The live assistant row is the same keyed element from the dots, through the streamed words, to the completed reply. */}
         {[...(welcomeShown ? [] : p.messages.flatMap((message, index) => [
           ...(pinned && cardBeforeReply && replyKey.current === message.id
             ? [<View key="understood-before-question" testID="ai-end-card">{pinned}</View>] : []),
           ...(inlineContext && message.id === p.contextBeforeMessageId
             ? [<View key="interactive-context" ref={interactiveContext} collapsable={false} testID="ai-task-context" onLayout={revealContext}>{p.context}</View>] : []),
-          <View key={message.id} ref={replyKey.current === message.id ? latestReply : undefined}
-            collapsable={false} testID={replyKey.current === message.id ? 'ai-latest-reply' : undefined} onLayout={replyKey.current === message.id ? followAfterLayout : undefined}>
-          <Turn {...message}
+          <View key={message.id === live.committedId ? LIVE_ROW : message.id} ref={replyKey.current === message.id ? latestReply : undefined}
+            collapsable={false} testID={replyKey.current === message.id ? 'ai-latest-reply' : undefined} onLayout={replyKey.current === message.id ? () => followAfterLayout() : undefined}>
+          {message.id === live.committedId
+            // The reply that was being written keeps its row and continues to its end; it gets no second entrance.
+            ? <LiveReply owner={live.owner} text={message.body} committed reduced={reduced} typing={false} onRevealing={revealing}
+                showSpeaker={index === 0 || !p.messages[index - 1].fromAi} accessibilityLabel={`USKOČI: ${message.body}`}
+                textStyle={!p.questionFocus || p.closed ? s.answer : index === p.messages.length - 1 && !p.sentMessage ? s.question : s.earlier} />
+            : <Turn {...message}
           showSpeaker={message.fromAi && (index === 0 || !p.messages[index - 1].fromAi)}
           emphasis={!p.questionFocus || p.closed || !message.fromAi ? 'plain' : index === p.messages.length - 1 && !p.sentMessage && !p.streamingText ? 'question' : 'earlier'}
           // Frequent updates and streamed text get no decorative entrance. A turn that arrives while you are watching is
           // feedback; the thread you already had when the screen opened is not, and must not replay.
-          reduced={reduced || !arrival.shouldEnter(message.id)} /></View>,
+          reduced={reduced || !arrival.shouldEnter(message.id)} />}</View>,
           ...notes.filter(note => note.afterMessageId === message.id).map(drawNote)])),
-          ...notes.filter(note => note.afterMessageId === null || !anchored.has(note.afterMessageId)).map(drawNote)]}
-        {/* Until the server read brings it back, what was said is still what was said: present, readable, and visibly
-            not yet part of the record. */}
-        {shownSentMessage ? <View accessibilityLabel={`Vi, šalje se: ${shownSentMessage}`} style={[s.person, s.sending]}>
-          <T selectable style={s.personText}>{shownSentMessage}</T>
-        </View> : null}
-        {displayedStream ? <View testID="ai-stream-preview" accessibilityLabel={`USKOČI: ${displayedStream}`} accessibilityLiveRegion="none" style={s.assistant}>
-          {shownSentMessage || !last?.fromAi ? <Mark /> : null}
-          <T testID="ai-stream-preview-text" selectable style={p.questionFocus ? s.question : s.answer}>{displayedStream}</T>
-        </View> : null}
-        {/* Three dots are what a person waiting for an answer already understands; they stop under reduced motion. */}
-        {p.busy && !displayedStream && p.busyLabel ? <View testID="ai-command-progress"
+          ...notes.filter(note => note.afterMessageId === null || !anchored.has(note.afterMessageId)).map(drawNote),
+          // Until the server read brings it back, what was said is still what was said: present, readable, and visibly
+          // not yet part of the record.
+          ...(shownSentMessage ? [<View key="sending" accessibilityLabel={`Vi, šalje se: ${shownSentMessage}`} style={[s.person, s.sending]}>
+            <T selectable style={s.personText}>{shownSentMessage}</T>
+          </View>] : []),
+          // Three dots are what a person waiting for an answer already understands (at once, from the send); the first
+          // words fade in where they stood. Under reduced motion the dots stand still and text is shown whole.
+          ...(!live.committedId && (streamText || typingShown) ? [<View key={LIVE_ROW} collapsable={false}>
+            {streamText
+              ? <LiveReply testID="ai-stream-preview" owner={live.owner} text={streamText} committed={false} reduced={reduced} typing={false}
+                  onRevealing={revealing} showSpeaker={!!shownSentMessage || !last?.fromAi} accessibilityLabel={`USKOČI: ${streamText}`}
+                  textStyle={p.questionFocus ? s.question : s.answer} />
+              : <LiveReply testID="ai-typing" owner={live.owner} text="" committed={false} reduced={reduced} typing
+                  onRevealing={revealing} showSpeaker={!!shownSentMessage || !last?.fromAi} accessibilityLabel="USKOČI piše odgovor"
+                  textStyle={p.questionFocus ? s.question : s.answer} />}
+          </View>] : [])]}
+        {p.busy && !streamText && p.busyLabel ? <View testID="ai-command-progress"
           accessibilityLiveRegion="polite" accessibilityLabel={p.busyLabel} style={s.commandProgress}>
           <T variant="note" tone="muted">{p.busyLabel}</T>
-        </View> : null}
-        {p.busy && !displayedStream && !p.busyLabel ? <View accessibilityLiveRegion="polite" accessibilityLabel="USKOČI piše odgovor" style={s.assistant}>
-          {shownSentMessage || !last?.fromAi ? <Mark /> : null}
-          <View style={s.typing}>
-            <View style={s.dots}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View>
-          </View>
         </View> : null}
         {p.context && !inlineContext ? <View ref={interactiveContext} collapsable={false} testID="ai-task-context" onLayout={revealContext}>{p.context}</View> : null}
         {/* Recovery belongs to scrollable content, not a second fixed footer. */}
@@ -636,6 +649,33 @@ function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
     transform: [{ translateY: life.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }] };
   return reduced || !foreground ? <View style={[s.dot, s.dotStill]} /> : <NativeAnimated.View style={[s.dot, style]} />;
 }
+
+const LIVE_ROW = 'ai-live-reply';
+const TEXT_FADE = FadeIn.duration(sys.motion.enter).easing(ReanimatedEasing.bezier(...sys.motion.easeOut));
+
+/**
+ * The assistant row of the current turn. One instance draws the dots, then the received words at a steady pace
+ * (`usePacedReveal`: never beyond what arrived, faster when far behind), then the completed reply, which continues
+ * from the words already shown. A completed reply that differs from the preview is swapped in once, whole: a crossfade
+ * would stack two texts of different heights and move the thread. Only this row re-renders per added word.
+ */
+const LiveReply = memo(function LiveReply({ owner, text, committed, reduced, typing, showSpeaker, textStyle, testID, accessibilityLabel, onRevealing }: {
+  owner: object; text: string; committed: boolean; reduced: boolean; typing: boolean; showSpeaker: boolean;
+  textStyle: TextStyle; testID?: string; accessibilityLabel: string; onRevealing: { current: boolean };
+}) {
+  const shown = usePacedReveal(owner, text, { reduced, committed });
+  useLayoutEffect(() => { onRevealing.current = !!text && shown !== text; });
+  useEffect(() => () => { onRevealing.current = false; }, [onRevealing]);
+  return <View testID={testID} accessibilityLabel={accessibilityLabel}
+    accessibilityLiveRegion={typing && !shown ? 'polite' : 'none'} style={s.assistant}>
+    {showSpeaker ? <Mark /> : null}
+    {shown
+      ? <Animated.View entering={reduced ? undefined : TEXT_FADE}><T selectable style={textStyle}>{shown}</T></Animated.View>
+      : <View style={s.typing}>
+          <View style={s.dots}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View>
+        </View>}
+  </View>;
+});
 
 /**
  * One turn. The assistant has a reading surface under its speaker label; the person's bubble is aligned right.
