@@ -70,7 +70,7 @@ function harness(kind = 'task', options = {}) {
     authoritative: true, state: options.command, evaluation: null } : null;
   let worker = { accountId: ID(1), conversationId: ID(2), profileId: ID(4), revision: 1, status: 'OPEN',
     stale: false, safety: 'ALLOW', candidate: profile, review, profileStatus: 'DRAFT', saved: null, messages: [], turn: null };
-  let write;
+  let write, preResolve;
   const record = (name, value) => { calls.push([name, value]); };
   const taskApi = {
     readLatest: async () => { record('readLatest'); return ok({ review, command }); },
@@ -79,6 +79,9 @@ function harness(kind = 'task', options = {}) {
     acceptAndPublish: async value => { record('acceptAndPublish', value); return options.pending ? new Promise(resolve => { write = resolve; }) : ok(command); },
     acceptAsDraft: async value => { record('acceptAsDraft', value); return ok(command); },
     resume: async value => { record('resume', value); return ok(command); },
+    // Background publication check of the shown review (owner 21.11.2026); never a publish.
+    preEvaluate: async value => { record('preEvaluate', value?.reviewId);
+      return options.prePending ? new Promise(resolve => { preResolve = () => resolve(ok({ state: 'READY' })); }) : ok({ state: 'SKIPPED' }); },
   };
   const workerApi = {
     read: async () => { record('workerRead'); return ok(worker); }, open: async () => ok(worker),
@@ -216,6 +219,7 @@ function harness(kind = 'task', options = {}) {
     button(label) { const found = this.buttons(label); assert.equal(found.length, 1, `one action: ${label}`); return found[0]; },
     publish() { return tree.root.findByType('PublishButton'); },
     count(name) { return calls.filter(call => call[0] === name).length; },
+    async finishPreEvaluation() { await act(async () => preResolve()); },
     async lostTaskWrite() { command = { reviewId: ID(3), clientRequestId: ID(8), needId: ID(6), needRevision: 1, authoritative: true, state: 'ACCEPTED', evaluation: null };
       await act(async () => write({ ok: false, kod: 'UNKNOWN', poruka: 'Proverite stanje' })); },
     async savedWorker() { worker = { ...worker, status: 'COMPLETED', saved: { reviewId: review.reviewId, profileStatus: 'DRAFT' } };
@@ -243,6 +247,23 @@ test('task queued publish and draft taps recheck the deadline before dispatch', 
 test('explicit task refresh restores readiness but never auto-publishes', () => scenario('task', { expired: true }, async h => {
   await h.press(h.button('Osvežite pregled')); assert.equal(h.publish().props.blocked, false);
   assert.equal(h.count('prepare'), 2); assert.equal(h.count('acceptAndPublish'), 0);
+}));
+test('shown task review starts one background publication check and never publishes by itself', () => scenario('task', {}, async h => {
+  assert.equal(h.count('preEvaluate'), 1); assert.equal(h.count('acceptAndPublish'), 0); assert.equal(h.count('acceptAsDraft'), 0);
+  assert.equal(h.publish().props.label, 'Objavi zadatak'); assert.equal(h.publish().props.blocked, false);
+  // A finished check never delays the tap.
+  await h.press(h.publish()); assert.equal(h.count('acceptAndPublish'), 1);
+}));
+test('Objavi waits ("Proveravamo…") only while the background check of the same review runs, then publishes once', () => scenario('task', { prePending: true }, async h => {
+  assert.equal(h.count('preEvaluate'), 1); assert.equal(h.publish().props.blocked, false, 'the card and button are shown at once');
+  let pressed; await act(async () => { pressed = h.publish().props.onPress(); });
+  assert.equal(h.publish().props.label, 'Proveravamo…'); assert.equal(h.publish().props.working, true);
+  assert.equal(h.count('acceptAndPublish'), 0, 'no accept while the same check is still running');
+  await h.finishPreEvaluation(); await act(async () => { await pressed; });
+  assert.equal(h.count('acceptAndPublish'), 1);
+}));
+test('an expired review starts no background publication check', () => scenario('task', { expired: true }, async h => {
+  assert.equal(h.count('preEvaluate'), 0);
 }));
 test('task background return updates expiry without timer delivery or fresh network read', () => scenario('task', {}, async h => {
   const count = h.calls.length; await h.state('background'); await h.advance(12_000, false); await h.state('active');

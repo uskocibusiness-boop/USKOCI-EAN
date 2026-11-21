@@ -58,6 +58,8 @@ export type AiTaskPublicationCommand = Readonly<{
   evaluation: PublicationEvaluation | null; published: PublishNeedReceipt | null; authoritative: true;
 }>;
 export type AiTaskReviewRead = Readonly<{ review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null }>;
+/** Background moderation state of a shown review. Never a decision and never a reason to publish. */
+export type AiTaskPreEvaluation = Readonly<{ state: 'READY' | 'PENDING' | 'ACCEPTED' | 'SKIPPED' }>;
 export type AiTaskReviewPrepare = Readonly<{
   conversationId: string; responseDeadline: string | null;
   location?: Readonly<{ expectedRevision: string; value: NeedLocationInput }>;
@@ -291,6 +293,11 @@ function decodeCommandForReview(raw: unknown, review: AiTaskReviewEnvelope): AiT
     : calendarInstant(command.published.responseDeadline) !== calendarInstant(review.responseDeadline))) return null;
   return command;
 }
+function decodePreEvaluation(raw: unknown): AiTaskPreEvaluation | null {
+  const v = record(raw);
+  return v && only(v, ['kind', 'state', 'authoritativeDecision']) && v.kind === 'PRE_EVALUATION' && v.authoritativeDecision === false
+    && ['READY', 'PENDING', 'ACCEPTED', 'SKIPPED'].includes(String(v.state)) ? { state: v.state as AiTaskPreEvaluation['state'] } : null;
+}
 function rpc<T>(s: ReceiptAccount, name: string, args: Record<string, unknown>, decode: (raw: unknown) => T | null, write = false): Promise<Ishod<T>> {
   return readOwnedResult({ account: s, request: () => supabaseKlijent().rpc(name, args), decode, errors: COPY, write,
     fallback: write ? 'TASK_REVIEW_OUTCOME_UNCONFIRMED' : 'TASK_REVIEW_READ_FAILED', invalid: 'TASK_REVIEW_INVALID_RESPONSE' });
@@ -426,6 +433,24 @@ export const aiTaskReviewClientService = {
   async acceptAsDraft(command: Readonly<{ review: AiTaskReviewEnvelope; clientRequestId: string }>): Promise<Ishod<AiTaskPublicationCommand>> {
     const s = scope(); if (!s) return failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED);
     return acceptFor(s, command);
+  },
+  /**
+   * Started when the review card is shown: the server classifies exactly this displayed content in
+   * the background, so the later "Objavi zadatak" only accepts, settles the stored decision and
+   * publishes. It accepts, saves and publishes nothing; any failure only means the tap evaluates
+   * as before. One evaluation per displayed content (deterministic server budget operation).
+   */
+  preEvaluate(review: AiTaskReviewEnvelope): Promise<Ishod<AiTaskPreEvaluation>> {
+    const s = scope(); if (!s) return Promise.resolve(failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED));
+    if (!decodeAiTaskReview(review, s.accountId) || !review.canAccept) return invalid();
+    const request = { preEvaluateReviewId: review.reviewId, displayedContentDigest: review.displayedContentDigest };
+    return readOwnedResult({ account: s, errors: COPY, timeoutMs: 55_000,
+      fallback: 'TASK_REVIEW_PRE_EVALUATION_UNCONFIRMED', invalid: 'TASK_REVIEW_INVALID_RESPONSE',
+      decode: decodePreEvaluation, request: async () => {
+        const client = supabaseKlijent(), session = await client.auth.getSession();
+        if (!current(s) || session.error || session.data.session?.user.id !== s.accountId) return { data: null, error: { message: 'AUTH_ACCOUNT_CHANGED' } };
+        return client.functions.invoke('uskoci-publication-evaluate', { body: request, headers: { Authorization: `Bearer ${session.data.session.access_token}` } });
+      } });
   },
   resume(command: AiTaskPublicationCommand): Promise<Ishod<AiTaskPublicationCommand>> {
     const s = scope(); return !s ? Promise.resolve(failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED)) : !decodeAiTaskPublicationCommand(command) ? invalid() : resumeFor(s, command);

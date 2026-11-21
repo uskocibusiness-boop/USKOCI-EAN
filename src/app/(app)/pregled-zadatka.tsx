@@ -89,6 +89,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const [showMore, setShowMore] = useState(false);
   // Only publication spins its button; draft save and place confirmation share the busy guard.
   const [publishing, setPublishing] = useState(false);
+  // The background publication check of the shown review (see `preEligible`), and whether a tap is waiting for it.
+  const preCheck = useRef<{ key: string; done: Promise<void>; running: boolean } | null>(null);
+  const [checkingBeforePublish, setCheckingBeforePublish] = useState(false);
   // The place is being read before its editor opens: the "Uredi mesto" action says so.
   const [opening, setOpening] = useState(false);
   const locationOpening = useRef<{ active: boolean } | null>(null);
@@ -277,6 +280,14 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     try {
       await editor.save(async () => {
         started = true; if (andPublish) setPublishing(true);
+        // A tap while the background check of this same review still runs waits for it ("Proveravamo…"), so the
+        // tap settles that one check instead of starting a second one. Any outcome of it is fine: the tap goes on.
+        const check = preCheck.current;
+        if (andPublish && check?.running && check.key === `${accepted.review.reviewId}:${accepted.review.displayedContentDigest}`) {
+          setCheckingBeforePublish(true);
+          try { await check.done; } finally { setCheckingBeforePublish(false); }
+          if (!current()) return changed();
+        }
         const request = { review: accepted.review, clientRequestId: accepted.id };
         const result = await (andPublish ? aiTaskReviewClientService.acceptAndPublish(request) : aiTaskReviewClientService.acceptAsDraft(request));
         if (!current()) return changed();
@@ -499,6 +510,19 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     ? 'U razgovoru razjasnite da li se zadatak obavlja na lokaciji ili bez dolaska izvršioca.'
     : classificationPreparationMessage(review?.classificationState);
   const publishBlocked = !review || disabled || expired || publishedEditUnavailable || !review.canAccept || classificationPending || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
+  // Owner 21.11.2026: the publication check of exactly this displayed review starts in the background as soon as
+  // the card can be published, so "Objavi zadatak" only publishes. It accepts, saves and publishes nothing by itself;
+  // the server keeps one check per displayed content. The card and its button never wait for it.
+  const preEligible = !!review && !command && review.accountId === accountId && review.canAccept && !expired && !publishedEditUnavailable
+    && !classificationPending && locationReadiness.ready && !factProblem && !unavailableIdentityFact && !draftWriteProblem && !locationEditor;
+  const preKey = review ? `${review.reviewId}:${review.displayedContentDigest}` : null;
+  useEffect(() => {
+    if (!preEligible || !review || !preKey || preCheck.current?.key === preKey) return;
+    let finish: () => void = () => {};
+    const entry = { key: preKey, done: new Promise<void>(resolve => { finish = resolve; }), running: true };
+    preCheck.current = entry;
+    void aiTaskReviewClientService.preEvaluate(review).catch(() => undefined).finally(() => { entry.running = false; finish(); });
+  }, [preEligible, preKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.
   const publishWorking = editor.busy && publishing;
@@ -647,7 +671,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
         </T> : null}
         {expired && !editor.busy && !editor.uncertain
           ? check('Osvežite pregled', true, 'Osvežite pregled pre potvrde zadatka')
-          : <PublishButton label={acceptLabel} blocked={publishBlocked} working={publishWorking} reason={caption} onPress={publish} />}
+          : <PublishButton label={checkingBeforePublish ? 'Proveravamo…' : acceptLabel} blocked={publishBlocked} working={publishWorking} reason={caption} onPress={publish} />}
         {/* While a write has no outcome yet, or has been refused, the one thing to do is to read what is true now. */}
         {editor.uncertain ? check(OUTCOME_ACTION.check, false, CHECK_SPOKEN) : editor.error && !expired ? check(OUTCOME_ACTION.refresh, false, 'Osvežite pregled')
           : !expired && !bound && review.canAccept && !draftWriteProblem && !unavailableIdentityFact
