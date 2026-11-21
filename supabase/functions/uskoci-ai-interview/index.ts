@@ -5,6 +5,8 @@ import { readSupabasePublishableKey, readSupabaseServiceKey, supabaseServiceHead
 import { aiProviderRuntimeEnabled, taxonomyIntakeEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 // New taxonomy operations have a single explicit server-side rollout owner.
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../../../src/contracts/aiAvailability.ts';
+import { AI_PROVISIONAL_STREAM_HEADER, AI_PROVISIONAL_STREAM_VERSION } from '../../../src/contracts/aiProvisionalStream.ts';
+import { createProvisionalTextGate } from '../_shared/assistantMessageStream.ts';
 // USKOCI server-side AI intake boundary.
 // Provider secrets live only in Supabase Edge Function environment. Never expose
 // GEMINI_API_KEY / SUPABASE_SERVICE_ROLE_KEY to Expo, source or logs.
@@ -56,7 +58,7 @@ const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': `authorization, apikey, content-type, x-client-info, ${NEED_FACT_TURN_CAPABILITY_HEADER}, ${INTERVIEW_INTENT_HEADER}`,
+  'Access-Control-Allow-Headers': `authorization, apikey, content-type, x-client-info, ${NEED_FACT_TURN_CAPABILITY_HEADER}, ${INTERVIEW_INTENT_HEADER}, ${AI_PROVISIONAL_STREAM_HEADER}`,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -1162,8 +1164,13 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const numericPriceProposalWithoutCurrency = !!priceProposal && !proposedEuroExplicit && !proposedRsdExplicit
     && /(?:^|[^\p{L}\p{N}])\d[\d\s.,]*(?=$|[^\p{L}])/u.test(input);
   const explicitPriceWords = priceWords.test(priceClause);
+  // "Plaćam svakom po 5000" states a payment amount as clearly as "cena 5000".
+  // The proposed numeral must literally appear in the user's own payment clause.
+  const paymentClaim = !!proposedAmountToken && input.split(/[;!?\n]|\.(?!\d)/u).some(clause =>
+    /(?:^|[^\p{L}])(?:pla(?:ć|c|t)\p{L}*|плаћ\p{L}*|плат\p{L}*|dajem|дајем|isplać\p{L}*|isplac\p{L}*|исплаћ\p{L}*)/iu.test(clause)
+    && new RegExp(`(?:^|[^\\p{L}\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(clause));
   const barePriceProposed = numericPriceProposalWithoutCurrency
-    && (explicitPriceWords || currentBareAmount && previousAskedPrice || amountOnlyCorrection);
+    && (explicitPriceWords || currentBareAmount && previousAskedPrice || amountOnlyCorrection || paymentClaim);
   const spuriousNumericPriceProposal = amountOnlyMismatch || numericPriceProposalWithoutCurrency && !barePriceProposed;
   // A bad amount proposal must not erase a separate, explicit choice to
   // collect offers. Require the user's words and the mode fact's evidence.
@@ -1624,6 +1631,8 @@ Deno.serve(async (req: Request) => {
   // ID-only recovery has no caller-owned text against which a client could
   // validate a role handoff. The canonical conversation remains authoritative.
   const wantsIntent = !recoveryMode && req.headers.get(INTERVIEW_INTENT_HEADER) === INTERVIEW_INTENT_CAPABILITY;
+  // Versioned opt-in. Older clients keep the exact accepted→final event shape.
+  const wantsProvisional = wantsStream && req.headers.get(AI_PROVISIONAL_STREAM_HEADER) === AI_PROVISIONAL_STREAM_VERSION;
   let completedIntentHint: ReturnType<typeof conversationIntentHint> = null;
   let detachedRelease = false;
   let requestId = '', attemptId: string | null = null, claimedTurnId: string | null = null;
@@ -1745,7 +1754,22 @@ Deno.serve(async (req: Request) => {
     const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? '', geminiModel = Deno.env.get('GEMINI_MODEL') ?? '';
     const provider = Deno.env.get('AI_PROVIDER') ?? '';
     const timeContext = preparedRecovery?.snapshot.input.runtime.timeContext ?? serverTimeContext(new Date());
-    const execute = async (onText?: (delta: string) => void, signal: AbortSignal = req.signal) => {
+    const execute = async (onText?: (delta: string) => void, clientSignal: AbortSignal = req.signal) => {
+    // Before dispatch, a disconnected phone cancels the turn. Once dispatch is
+    // durably persisted, the paid provider answer, guards and exact SQL
+    // completion finish in the background (bounded by the research deadline,
+    // provider timeout and SQL lease/cancellation checks); the client reconciles
+    // through the existing readback/recovery path instead of a second call.
+    const providerAbort = new AbortController();
+    let dispatchCommitted = false;
+    const forwardClientAbort = () => { if (!dispatchCommitted) providerAbort.abort(); };
+    clientSignal.addEventListener('abort', forwardClientAbort, { once: true });
+    if (clientSignal.aborted) providerAbort.abort();
+    const commitDispatch = () => {
+      if (providerAbort.signal.aborted) return;
+      dispatchCommitted = true; clientSignal.removeEventListener('abort', forwardClientAbort);
+    };
+    const signal = providerAbort.signal;
     let aiTurn: ParsedTurn;
     // One paid response; usage is accounted even if its semantic output is refused.
     let reportedUsage: GeminiUsage | null = null;
@@ -1784,6 +1808,7 @@ Deno.serve(async (req: Request) => {
           await retireAttempt();
           return response(409, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Proverite ishod poruke pre nastavka.' });
         }
+        commitDispatch();
       }
       }
       // The same deadline covers catalog loading and the foreground model.
@@ -1825,6 +1850,7 @@ Deno.serve(async (req: Request) => {
         const dispatched = await dispatchPreparedInput({...options,prepared});
         if (!dispatched.dispatched) throw new Error('R06_INPUT_NOT_DISPATCHED');
         preparedPermissionGranted = true;
+        commitDispatch();
         return prepared;
       };
 
@@ -1846,6 +1872,7 @@ Deno.serve(async (req: Request) => {
       return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela. Proverite ishod pre nastavka.' });
     } finally {
       research?.dispose();
+      clientSignal.removeEventListener('abort', forwardClientAbort);
       if (reportedUsage) {
         const usageSnapshot = reportedUsage;
         const recordUsage = async () => {
@@ -1863,12 +1890,14 @@ Deno.serve(async (req: Request) => {
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
       let builtTaxonomy: any = null;
       let hasClassificationInput = false;
+      let classificationService: string | null = null;
       if (singlePassActive && aiTurn.intentAllowsChanges && ['ALLOW','CLARIFY'].includes(aiTurn.safety)) {
         const turnProposals = aiTurn.proposals ?? [];
         const fact = (key: string) => activeFacts.find((f: any) => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
         const effectiveFact = (key: string) => turnProposals.find((p: any) => p.key === key)?.value ?? fact(key);
         const effCategory = effectiveFact('need.category');
         hasClassificationInput = typeof effCategory === 'string' && effCategory.trim().length >= 3;
+        if (hasClassificationInput) classificationService = (effCategory as string).trim();
         const priorCategory = fact('need.category');
         const priorDescription = fact('need.description');
         const proposedDescription = turnProposals.find((p: any) => p.key === 'need.description')?.value;
@@ -1925,7 +1954,7 @@ Deno.serve(async (req: Request) => {
       }
       const taxonomyPlan = singlePassCapturePlan(builtTaxonomy, fullCatalog);
       if (hasClassificationInput && !locationContext)
-        aiTurn = withUnresolvedSinglePassReply(aiTurn, builtTaxonomy, taxonomyPlan);
+        aiTurn = withUnresolvedSinglePassReply(aiTurn, builtTaxonomy, taxonomyPlan, classificationService);
       if (builtTaxonomy?.proposals?.length && !taxonomyPlan) console.info('NEED_TAXONOMY_HINT_CAPTURE', 'PAYLOAD_UNAVAILABLE');
       // Paired SQL/Edge promotion is required. Never fall back to a split write
       // or run Gemini again when the atomic RPC is absent or its ACK is lost.
@@ -1974,8 +2003,8 @@ Deno.serve(async (req: Request) => {
               if (!stored) { try { console.warn('NEED_TAXONOMY_HINT_STORE', 'UNAVAILABLE'); } catch { /* Nonfatal diagnostics. */ } }
             }))));
       }
-      // No provisional provider prose is emitted. The client receives only the
-      // authoritative turn receipt after semantic checks and exact SQL completion.
+      // Only opted-in clients saw provisional prose; the authoritative turn receipt
+      // follows semantic checks and exact SQL completion and replaces it.
       return locationContext ? response(completed.state === 'SUCCEEDED' ? 200 : completed.state === 'PROCESSING' ? 202 : 409, completion) : turnResponse(completed);
     }
     // Existing LEGACY_TEXT_V1 path remains isolated. V2 never calls this writer.
@@ -2004,8 +2033,18 @@ Deno.serve(async (req: Request) => {
           }) + '\n\n'));
         };
         emit({ kind: 'accepted' });
+        // Provisional text is display-only: never persisted, suppressed for
+        // money/address/completion claims, and always replaced by `final`.
+        const recordFirstText = createAiFirstTextRecorder('NEED');
+        const provisional = wantsProvisional ? createProvisionalTextGate() : null;
+        const onProviderText = (delta: string) => {
+          recordFirstText(delta);
+          if (!provisional || closed || abort.signal.aborted) return;
+          const text = provisional.push(delta);
+          if (text) emit({ kind: 'text_delta', text, provisional: true });
+        };
         try {
-          const work = execute(createAiFirstTextRecorder('NEED'), abort.signal);
+          const work = execute(onProviderText, abort.signal);
           void runInBackground(work);
           const result = await work;
           const data = await result.json();

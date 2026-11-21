@@ -89,6 +89,72 @@ function semanticReuseHint(decision, service, mode, catalog) {
 }
 
 
+/**
+ * Deterministic repair of one model taxonomy decision against the verified catalog
+ * snapshot, before it becomes a turn hint. The SQL turn resolver defers (and never
+ * retries) a hint whose path collides with the catalog, which left reviews in
+ * PENDING_CLASSIFICATION forever (DEV 20.11.2026: CREATE_CHILD repeated its parent
+ * label as proposedPath[0] → CATALOG_CONFLICT). Repairs, in order:
+ *  1. CREATE_*: a service that already exists as exactly one leaf (label/alias,
+ *     anywhere) is REUSE_EXISTING, or EXTEND_MODE when only the mode is missing.
+ *  2. CREATE_CHILD: drop a leading run of labels naming parentId or its ancestors.
+ *  3. CREATE_*: when an intermediate label is an existing node, re-anchor below the
+ *     deepest such node (CREATE_CHILD) so no existing label is walked twice.
+ *  4. REUSE_EXISTING/EXTEND_MODE: align the action with the leaf's actual modes.
+ * Pure and local: no model call, catalog write or new authority. SQL still validates
+ * IDs, modes, risk triage and the catalog version; owner review still owns publish.
+ */
+export function normalizeTaxonomyDecision(decision, catalog) {
+  if (!decision || typeof decision !== 'object' || !Array.isArray(catalog?.categories)) return decision;
+  const byId = new Map(catalog.categories.map(node => [node.categoryId, node]));
+  const keyed = identity => (catalog.byNormalizedKey?.get(identity)
+    ?? catalog.categories.filter(node => normalizedClassificationIdentity(node.label) === identity
+      || (node.aliases ?? []).some(alias => normalizedClassificationIdentity(alias) === identity)));
+  const modeAction = (node, mode) => node.modes.includes(mode) ? 'REUSE_EXISTING' : 'EXTEND_MODE';
+  const asReuse = node => ({ ...decision, action: modeAction(node, decision.mode), categoryId: node.categoryId,
+    parentId: '', proposedPath: [] });
+  const executable = decision.mode === 'ON_SITE' || decision.mode === 'REMOTE';
+  if (['REUSE_EXISTING', 'EXTEND_MODE'].includes(decision.action)) {
+    const node = byId.get(decision.categoryId);
+    return executable && node?.isLeaf === true && Array.isArray(node.modes) && decision.action !== modeAction(node, decision.mode)
+      ? { ...decision, action: modeAction(node, decision.mode) } : decision;
+  }
+  if (!['CREATE_CHILD', 'CREATE_NEW_BRANCH'].includes(decision.action) || !Array.isArray(decision.proposedPath)) return decision;
+  const serviceKey = normalizedClassificationIdentity(decision.service);
+  if (!serviceKey) return decision;
+  const existing = keyed(serviceKey);
+  if (existing.length === 1 && existing[0].isLeaf === true && Array.isArray(existing[0].modes) && executable) return asReuse(existing[0]);
+  if (existing.length) return decision; // An ambiguous or grouping identity stays for SQL to refuse.
+  let parentId = decision.action === 'CREATE_CHILD' ? decision.parentId : '';
+  let path = decision.proposedPath.filter(label => typeof label === 'string');
+  if (path.length !== decision.proposedPath.length) return decision;
+  if (parentId) {
+    const chain = new Set();
+    for (let id = parentId, depth = 0; id && byId.has(id) && depth < 32; depth++) {
+      const identity = normalizedClassificationIdentity(byId.get(id).label);
+      if (identity) chain.add(identity);
+      id = byId.get(id).parentId ?? null;
+    }
+    let start = 0;
+    while (start < path.length - 1 && chain.has(normalizedClassificationIdentity(path[start]))) start++;
+    path = path.slice(start);
+  }
+  // Deepest existing intermediate node becomes the parent; its descendants in the
+  // path must also be new. A label naming several nodes is ambiguous: leave it.
+  for (let i = path.length - 2; i >= 0; i--) {
+    const nodes = keyed(normalizedClassificationIdentity(path[i]));
+    if (!nodes.length) continue;
+    if (nodes.length !== 1) return decision;
+    parentId = nodes[0].categoryId; path = path.slice(i + 1);
+    break;
+  }
+  if (path.length === decision.proposedPath.length && parentId === (decision.action === 'CREATE_CHILD' ? decision.parentId : '')) return decision;
+  return { ...decision, action: parentId ? 'CREATE_CHILD' : 'CREATE_NEW_BRANCH', categoryId: '', parentId, proposedPath: path };
+}
+
+/** Compatibility name used by the first CREATE_CHILD repair. */
+export const normalizeCreateChildDecision = normalizeTaxonomyDecision;
+
 // Model-generated structural paths are proposals; SQL validates every node.
 // Reject malformed paths instead of silently shortening them.
 function checkedNewPath(decision, service) {
@@ -570,7 +636,7 @@ export async function buildFullTreeTaxonomyProposals({
       const decisions = aiDecisions.filter(
         (d) => normalizedClassificationIdentity(d?.service) === norm && d?.mode === item.mode
       );
-      const decision = decisions.length === 1 ? decisions[0] : null;
+      const decision = decisions.length === 1 ? normalizeTaxonomyDecision(decisions[0], catalog) : null;
       const newPath = checkedNewPath(decision, item.service);
       if (validClarification(decision)) {
         const clarification = {
@@ -774,7 +840,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
       seenKeys.add(dedupeKey);
 
       const decisions = matchingAi.filter(entry => entry.mode === chosen.mode);
-      const decision = decisions.length === 1 ? decisions[0] : null;
+      const decision = decisions.length === 1 ? normalizeTaxonomyDecision(decisions[0], catalog) : null;
       if (validClarification(decision)) {
         addClarification(decision, chosen.mode);
         continue;

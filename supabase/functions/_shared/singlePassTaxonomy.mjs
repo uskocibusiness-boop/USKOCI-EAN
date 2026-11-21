@@ -24,13 +24,13 @@ export function withSinglePassTaxonomySchema(schema) {
 export function singlePassTaxonomyInstruction(catalog, purpose) {
   const rules = 'CLASSIFICATION in this response: private taxonomyDecisions only, never assistantMessage/title/description/bio. Server resolves catalog IDs at turn completion; that is not Publish/Save or proof of either write. '
     + 'Compare meanings across the WHOLE catalog: reuse equivalent work; create only when none fits. Similar names/parent alone do not prove equivalence (installation is not cleaning). Avoid duplicate branches and unnecessary levels. decision.service exactly matches effective need.category/offered skill after this reply’s corrections. Branch labels describe reusable services, without personal/contact/address/price/date data. '
-    + 'REUSE_EXISTING: real leaf categoryId with requested mode. EXTEND_MODE: same leaf ID, missing requested mode. Both: parentId="", proposedPath=[]. CREATE_CHILD: deepest suitable real parentId, categoryId="", only missing labels ending in service (3–120 characters each). CREATE_NEW_BRANCH: empty IDs, complete new path ending in service. Never invent UUIDs. '
-    + 'NEEDS_CLARIFICATION/AMBIGUOUS: only a real work distinction; ambiguityPrompt is the ONE plain-language question also asked in assistantMessage. Otherwise ambiguityPrompt="". Never turn a technical failure into a request to repeat known facts. reason is internal, 10–1000 characters. ';
+    + 'REUSE_EXISTING: real leaf categoryId with requested mode. EXTEND_MODE: same leaf ID, missing requested mode. Both: parentId="", proposedPath=[]. CREATE_CHILD: deepest suitable real parentId, categoryId="", proposedPath = only the NEW labels below that parent, ending in service, never the parent or its ancestors (parent „Potrčko“ → ["Statiranje"], not ["Potrčko","Statiranje"]; 3–120 characters each). CREATE_NEW_BRANCH: empty IDs, complete new path ending in service. Never invent UUIDs. '
+    + 'NEEDS_CLARIFICATION/AMBIGUOUS: only a real work distinction; ambiguityPrompt is the ONE plain-language question also asked in assistantMessage. Otherwise ambiguityPrompt="". Never turn a technical failure into a request to repeat known facts. reason is internal: one short clause, 10–140 characters (longer text is discarded). ';
   const scope = purpose === 'WORKER_CAPABILITY'
     ? 'One decision per offered service/mode; BOTH = ON_SITE + REMOTE with one ID/path. serviceModeChangesJson follows intended modes; preserve unchanged saved/draft IDs, including mode/handoff edits. Never restore removed services. UNKNOWN only for clarification. '
       + 'A broad umbrella such as general physical work is not a concrete offer merely because a broad catalog leaf exists. While its meaning is unclear, keep the owned service and return NEEDS_CLARIFICATION with one question about the actual work it includes; never substitute a guessed narrower service or silently remove it. When the CURRENT USER concretely explains the work meant by an existing broad label, use serviceChanges REPLACE for that exact old label, cite the current explanation verbatim, and use the specific replacement label in both taxonomyDecisions and serviceModeChangesJson. This is a user-supplied scope clarification, not stylistic renaming. Preserve all other services and explicit exclusions; do not leave the old broad label in place after applying its explanation or ask for the same explanation again. Equivalent NEW offers in the current message may be one specific natural ADD label preserving every stated activity, with one matching mode request and decision; never consolidate existing saved/draft labels behind the owner\'s back. '
     : 'Classify one effective service using typed task_geography, not city alone. Handoff/location/time/price stay in facts, not taxonomy metadata. Unknown mode: ask about execution and return no decision. '
-      + 'An existing category is context, not a ban on a user correction. Understand the latest message and owned history in either Serbian script. Return a decision for changed work/scope/execution/handoff in this same response, without asking the person for a catalog name. If all of those inputs are unchanged, taxonomyDecisions=[]; never create a new branch or repeat a classification explanation merely to fill this array. ';
+      + 'An existing category is context, not a ban on a user correction. Understand the latest message and owned history in either Serbian script. Return a decision for changed work/scope/execution/handoff in this same response, without asking the person for a catalog name. Whenever the effective service and its execution mode are known, return its ONE decision in EVERY response, even when unchanged: repeat the same choice (same categoryId, or the same parentId and path) because the server binds classification to each completed turn. Never switch to a different branch merely to fill this array. ';
   if (!catalog?.verifiedComplete) return rules + scope
     + 'Catalog unavailable: taxonomyDecisions=[]; keep useful facts, do not assume missing categories or promise classification readiness.';
   return rules + scope + `Complete server catalog, version ${catalog.catalogVersion}. Indented tree nodes: [categoryId LEAF MODES] label ~ aliases. Indentation defines the hierarchy. Use only these existing IDs:\n`
@@ -98,7 +98,9 @@ const PREMATURE_READINESS_OR_SAVE_RE = /sve je spremno|spremno za|vaš profil je
 // Missing classification cannot turn a model's acknowledgement into a ready
 // card invitation. Keep real questions and every guarded business fact. This
 // message grants no authority: signed server review still owns actual readiness.
-export function withUnresolvedSinglePassReply(turn, built, plan) {
+// `serviceHint` (Need only): the effective service. Without a concrete question the
+// owner-facing fallback asks to confirm that service instead of a dead-end state.
+export function withUnresolvedSinglePassReply(turn, built, plan, serviceHint) {
   if (!['ALLOW', 'CLARIFY'].includes(turn?.safety) || plan &&
       !built?.clarifications?.length && !built?.failures?.length && !built?.unresolvedServices?.length) return turn;
   // Only the Worker builder emits this list, after validating current quoted
@@ -107,6 +109,8 @@ export function withUnresolvedSinglePassReply(turn, built, plan) {
   // service so its next short answer can bind to that service alone.
   const unconfirmedService = Array.isArray(built?.unconfirmedModeServices)
     ? built.unconfirmedModeServices.find(service => boundedText(service, 120) && service.trim().length >= 3) : null;
+  const serviceQuestion = boundedText(serviceHint, 120) && serviceHint.trim().length >= 3
+    ? `Da li je „${serviceHint.trim()}“ tačan opis posla koji Vam treba? Ako nije, opišite posao svojim rečima.` : null;
   const question = built?.clarifications?.[0]?.ambiguityPrompt
     || (unconfirmedService ? `Da li uslugu „${unconfirmedService}“ pružate na lokaciji, onlajn ili na oba načina?` : null);
   // An ordinary question can still collect a missing business fact. An internal
@@ -129,9 +133,10 @@ export function withUnresolvedSinglePassReply(turn, built, plan) {
       && cleanMessage.length > 0 && !PREMATURE_READINESS_OR_SAVE_RE.test(cleanMessage)) {
     return turn.dialogue ? { ...turn, dialogue: { ...turn.dialogue, next: 'ACK', questionKey: 'NONE' } } : turn;
   }
+  const fallbackQuestion = !question && !pendingSemanticOnly ? serviceQuestion : null;
   return { ...turn, assistantMessage: question || (pendingSemanticOnly ? 'Podaci iz razgovora su sačuvani.'
-    : 'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.'),
-    ...(turn.dialogue ? { dialogue: { ...turn.dialogue, next: question ? 'CLARIFY' : 'ACK', questionKey: 'NONE' } } : {}) };
+    : fallbackQuestion ?? 'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.'),
+    ...(turn.dialogue ? { dialogue: { ...turn.dialogue, next: question || fallbackQuestion ? 'CLARIFY' : 'ACK', questionKey: 'NONE' } } : {}) };
 }
 
 // The public/mobile completion envelope stays unchanged. A resolved catalog ID

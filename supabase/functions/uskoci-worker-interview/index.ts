@@ -5,6 +5,8 @@ import { aiProviderRuntimeEnabled, taxonomyIntakeEnabled } from '../_shared/taxo
 // New taxonomy operations have a single explicit server-side rollout owner.
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION } from '../../../src/contracts/aiAvailability.ts';
 import { decodeWorkerAreas } from '../../../src/contracts/workerAreas.ts';
+import { AI_PROVISIONAL_STREAM_HEADER, AI_PROVISIONAL_STREAM_VERSION } from '../../../src/contracts/aiProvisionalStream.ts';
+import { createProvisionalTextGate } from '../_shared/assistantMessageStream.ts';
 // Immediate/current availability is not a Worker profile field. Legacy storage is read-only.
 // Distinct owned WORKER_PROFILE_V1 proposals. No task facts or canonical writes.
 import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.mjs';
@@ -29,7 +31,7 @@ declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:
 
 const isLiveTaxonomyIntake = (): boolean => taxonomyIntakeEnabled((key:string)=>Deno.env.get(key));
 
-const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info,x-uskoci-worker-preview-stream,x-uskoci-interview-intent',
+const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info,x-uskoci-worker-preview-stream,x-uskoci-interview-intent,x-uskoci-ai-provisional-stream',
   'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status,
   headers: { ...cors, 'Content-Type': 'application/json' } });
@@ -341,7 +343,16 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   if (Deno.env.get('AI_PROVIDER')!=='gemini' || model!=='gemini-3.8-flash' || !key || !aiProviderRuntimeEnabled((name:string)=>Deno.env.get(name))) {
     try { await fail(); } catch {} return json(503,{code:'WORKER_AI_NOT_CONFIGURED'});
   }
-  research = createResearchDeadline(req.signal, startedAt);
+  // Before dispatch a disconnected phone cancels the turn. After the database
+  // confirms dispatch, the paid provider answer, guards and exact SQL completion
+  // finish in the background (deadline, provider timeout, SQL lease/cancellation
+  // still apply); the client reconciles through the existing readback.
+  const providerAbort=new AbortController();
+  let dispatchCommitted=false;
+  const forwardClientAbort=()=>{if(!dispatchCommitted)providerAbort.abort();};
+  req.signal.addEventListener('abort',forwardClientAbort,{once:true}); if(req.signal.aborted)providerAbort.abort();
+  const commitDispatch=()=>{if(providerAbort.signal.aborted)return;dispatchCommitted=true;req.signal.removeEventListener('abort',forwardClientAbort);};
+  research = createResearchDeadline(providerAbort.signal, startedAt);
   let singlePassActive = isLiveTaxonomyIntake();
   // Historical flag, same scoped rollout. The selected implementation now uses
   // one foreground call and reuses its catalog/decisions for local validation.
@@ -462,6 +473,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       // The permission and payload were read under the same SQL command locks.
       // A lost dispatch response never reaches provider I/O on this invocation.
       providerDispatchConfirmed=true;
+      commitDispatch();
       body=JSON.stringify(dispatched.snapshot!.input.providerRequest);
     } catch {research.dispose();return json(409,{code:'WORKER_AI_NOT_CONFIRMED'});}
   } else {
@@ -482,17 +494,23 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       ||t.clientRequestId!==input.clientRequestId||!['PROCESSING','UNKNOWN_OUTCOME','FAILED','SUCCEEDED'].includes(t.state)
       ||t.retryAllowed!==false||t.authoritative!==true||(dispatched.dispatched&&t.state!=='PROCESSING')) throw new Error('WORKER_AI_INVALID');
     if (!dispatched.dispatched) { research.dispose(); return json(200,t); }
+    commitDispatch();
   } catch { await fail(); return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
   }
+  if(!dispatchCommitted){research.dispose();req.signal.removeEventListener('abort',forwardClientAbort);return json(409,{code:'WORKER_AI_NOT_CONFIRMED'});}
   // Versioned opt-in: older APKs retain completed-only text instead of an unverified preview.
   const wantsIntent=!recoveryMode&&req.headers.get(INTERVIEW_INTENT_HEADER)===INTERVIEW_INTENT_CAPABILITY;
-  const abort=new AbortController(),stop=()=>{abort.abort();research?.dispose();}; req.signal.addEventListener('abort',stop,{once:true}); if(req.signal.aborted)stop();
+  const wantsProvisional=req.headers.get(AI_PROVISIONAL_STREAM_HEADER)===AI_PROVISIONAL_STREAM_VERSION;
+  // Client disconnect only stops event delivery. The dispatched provider call
+  // keeps its own deadline so its paid answer can still be completed in SQL.
+  const abort=new AbortController(),stop=()=>{abort.abort();}; req.signal.addEventListener('abort',stop,{once:true}); if(req.signal.aborted)stop();
   const encoder=new TextEncoder(); let sequence=0;
   const stream=new ReadableStream<Uint8Array>({
     start(controller) {
       const work=(async()=>{
       const send=(kind:string,extra:Record<string,unknown>={})=> {
-        if (abort.signal.aborted) throw new Error('WORKER_AI_CANCELLED');
+        // A gone client is not a failed turn: delivery stops, completion continues.
+        if (abort.signal.aborted) return;
         controller.enqueue(encoder.encode('data: '+JSON.stringify({conversationId:input.conversationId,clientRequestId:input.clientRequestId,
           turnId:claim.turn.turnId,attemptId:claim.turn.attemptId,sequence:++sequence,kind,...extra})+'\n\n'));
       };
@@ -559,10 +577,18 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
 
       try {
         send('accepted');
-        // First-text latency is measured internally; provider deltas are never sent to the client
-        // after output guards and the exact SQL completion receipt.
+        // First-text latency is measured internally. Only opted-in clients receive
+        // provisional deltas; they are never persisted and the final replaces them.
+        const recordFirstText=createAiFirstTextRecorder('WORKER',startedAt);
+        const provisional=wantsProvisional ? createProvisionalTextGate() : null;
+        const onProviderText=(delta:string)=>{
+          recordFirstText(delta);
+          if(!provisional||abort.signal.aborted)return;
+          const text=provisional.push(delta);
+          if(text)send('text_delta',{text,provisional:true});
+        };
         const raw=await measureAiPhase('PROVIDER', () => streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-          key,body,signal:research!.signal,onText:createAiFirstTextRecorder('WORKER',startedAt),
+          key,body,signal:research!.signal,onText:onProviderText,
           onUsage:value=>{usage.value=value;},
           onUsageDetails:details=>recordGeminiUsage('WORKER',model,'SSE',details),timeoutMs:30000}));
         const {output: preparedOutput,serviceModeChangesJson,taxonomyDecisions,intentDecision,intentAllowsChanges,serviceChangesValid} = analyzeOutput(raw);
@@ -686,8 +712,9 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
               }))));
         }
         if(!abort.signal.aborted){
-          // The only text event is emitted after output guards and the exact SQL completion receipt.
-          send('text_delta',{text:output.assistantMessage});
+          // Legacy clients get the verified text after output guards and the exact SQL
+          // completion receipt. Opted-in clients replace their preview from the final readback.
+          if(!wantsProvisional)send('text_delta',{text:output.assistantMessage});
           const intentHint=conversationIntentHint(intentDecision,output.safety);
           send('final',{turn,...(wantsIntent && intentHint ? {conversationIntent:intentHint} : {})});
         }
@@ -706,7 +733,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           };
           void runInBackground(recordUsage());
         }
-        req.signal.removeEventListener('abort',stop); if(!abort.signal.aborted) { try {controller.close();}catch{} } abort.abort();
+        req.signal.removeEventListener('abort',stop); req.signal.removeEventListener('abort',forwardClientAbort);
+        if(!abort.signal.aborted) { try {controller.close();}catch{} } abort.abort();
       }
       })();
       void runInBackground(work);

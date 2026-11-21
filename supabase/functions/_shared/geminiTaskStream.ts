@@ -1,4 +1,5 @@
 import { AI_CREDITS_UNAVAILABLE } from '../../../src/contracts/aiAvailability.ts';
+import { createAssistantMessageExtractor } from './assistantMessageStream.ts';
 
 /** Constructed only from the actual provider HTTP status, never provider text. */
 export class GeminiCreditsUnavailableError extends Error {
@@ -304,6 +305,7 @@ export async function streamGeminiTask(input: {
     reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8', { fatal: true });
     let buffer = '', raw = '', emitted = '', total = 0, stopped = false;
+    const assistantMessage = createAssistantMessageExtractor();
     const event = (value: string) => {
       const lines = value.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trim());
       if (!lines.length) return;
@@ -328,10 +330,11 @@ export async function streamGeminiTask(input: {
         if (typeof part.text !== 'string') throw new Error('AI_STREAM_INVALID');
         raw += part.text;
         if (raw.length > 131072) throw new Error('AI_STREAM_TOO_LARGE');
-        const safe = assistantPrefix(raw);
-        if (!safe.startsWith(emitted)) throw new Error('AI_STREAM_INVALID');
-        if (safe.length > emitted.length) {
-          const delta = safe.slice(emitted.length); emitted = safe;
+        // Incremental: each provider byte is scanned once; deltas never split a
+        // surrogate pair and stop at the closing quote of assistantMessage.
+        const delta = assistantMessage.push(part.text);
+        if (delta) {
+          emitted += delta;
           if (controller.signal.aborted) throw new Error('AI_STREAM_STOPPED');
           input.onText(delta);
         }

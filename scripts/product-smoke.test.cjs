@@ -165,7 +165,7 @@ test('signed task readiness follows the server handoff projection',async t=>{
 });
 
 
-test('Worker Gemini text is withheld until the server confirms the completed turn',()=>{
+test('Worker Gemini text reaches legacy clients only after completion; opted-in clients get a gated preview',()=>{
   const edge=fs.readFileSync(path.join(root,'supabase/functions/uskoci-worker-interview/index.ts'),'utf8');
   const transport=fs.readFileSync(path.join(root,'src/data/aiNeedTurnStream.ts'),'utf8');
   const shell=fs.readFileSync(path.join(root,'src/ui/aiFirst/AiConversationShell.tsx'),'utf8');
@@ -174,10 +174,11 @@ test('Worker Gemini text is withheld until the server confirms the completed tur
   assert.doesNotMatch(transport,/x-uskoci-worker-preview-stream/,'the client no longer requests provisional Worker text');
   assert.ok(edge.includes('x-client-info,x-uskoci-worker-preview-stream'),'legacy preflight remains compatible');
   assert.doesNotMatch(edge,/previewStream/,'the server has no pre-confirmation preview branch');
-  assert.ok(edge.includes("onText:createAiFirstTextRecorder('WORKER',startedAt),"),'provider chunks are measured internally but never rendered as provisional text');
+  assert.ok(edge.includes("const recordFirstText=createAiFirstTextRecorder('WORKER',startedAt);"),'provider chunks are measured internally');
+  assert.ok(edge.includes("const provisional=wantsProvisional ? createProvisionalTextGate() : null;"),'provisional text exists only behind the versioned opt-in and its gate');
   const provider=edge.indexOf("const raw=await measureAiPhase('PROVIDER'");
   const completion=edge.indexOf("const completionRpc=",provider);
-  const confirmedText=edge.indexOf("send('text_delta',{text:output.assistantMessage})",completion);
+  const confirmedText=edge.indexOf("if(!wantsProvisional)send('text_delta',{text:output.assistantMessage})",completion);
   assert.ok(provider>=0 && completion>provider && confirmedText>completion,
     'the complete assistant message is emitted only after the authoritative completion path');
   const final=edge.indexOf("send('final',{turn,",completion);

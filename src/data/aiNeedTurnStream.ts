@@ -2,6 +2,7 @@ import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, 
 import { uuid, record, sameId } from './serverReceipt';
 import { fetch as expoFetch } from 'expo/fetch';
 import { NEED_FACT_TURN_CAPABILITY_HEADER, NEED_FACT_TURN_CAPABILITY_VERSION } from '../contracts/needFactsV2';
+import { AI_PROVISIONAL_STREAM_HEADER, AI_PROVISIONAL_STREAM_VERSION } from '../contracts/aiProvisionalStream';
 import { AI_CONVERSATION_INTENT_HEADER, AI_CONVERSATION_INTENT_CAPABILITY, decodeAiConversationIntent, type AiConversationIntent } from '../contracts/aiConversationIntent';
 
 export type AiTurnStreamOptions = { onText: (delta: string) => void; signal?: AbortSignal;
@@ -16,6 +17,8 @@ export function createAiTurnStreamDecoder(input: {
 }) {
   let sequence = 0, attempt: string | null = null, turn: string | null = null;
   let text = '', terminal = false, safeError = false, receipt: unknown = undefined;
+  // Provisional (pre-guard) and verified text never mix within one attempt.
+  let textKind: 'provisional' | 'verified' | null = null;
   let failureCode: typeof AI_CREDITS_UNAVAILABLE | null = null;
   let intent: AiConversationIntent | null = null;
   const accept = (raw: unknown) => {
@@ -24,7 +27,9 @@ export function createAiTurnStreamDecoder(input: {
       || !sameId(e.clientRequestId, input.clientRequestId) || !uuid(e.turnId) || !uuid(e.attemptId)
       || e.sequence !== sequence + 1) throw new Error('AI_STREAM_INVALID');
     const fields = ['conversationId', 'clientRequestId', 'turnId', 'attemptId', 'sequence', 'kind'];
-    const extras = e.kind === 'accepted' ? [] : e.kind === 'text_delta' ? ['text'] : e.kind === 'final'
+    // `provisional: true` is the only optional text field; older servers omit it.
+    const extras = e.kind === 'accepted' ? [] : e.kind === 'text_delta'
+      ? Object.hasOwn(e, 'provisional') ? ['text', 'provisional'] : ['text'] : e.kind === 'final'
       ? input.allowConversationIntent && Object.hasOwn(e, 'conversationIntent') ? ['turn', 'conversationIntent'] : ['turn']
       : e.kind === 'safe_error' ? ['code'] : null;
     if (!extras || Object.keys(e).length !== fields.length + extras.length
@@ -37,6 +42,10 @@ export function createAiTurnStreamDecoder(input: {
     if (e.kind === 'text_delta') {
       if (typeof e.text !== 'string' || !e.text || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(e.text)
         || text.length + e.text.length > 1500) throw new Error('AI_STREAM_INVALID');
+      if (Object.hasOwn(e, 'provisional') && e.provisional !== true) throw new Error('AI_STREAM_INVALID');
+      const kind = e.provisional === true ? 'provisional' : 'verified';
+      if (textKind && textKind !== kind) throw new Error('AI_STREAM_INVALID');
+      textKind = kind;
       text += e.text; input.onText(e.text);
     } else if (e.kind === 'final') {
       const result = record(e.turn);
@@ -80,6 +89,8 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
       method: 'POST', signal: abort.signal, redirect: 'error',
       headers: { Authorization: 'Bearer ' + input.accessToken, apikey: input.anonKey, 'Content-Type': 'application/json', Accept: input.preparedMode === 'CHECK_PREPARED' ? 'application/json' : 'text/event-stream', [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION,
         ...(input.onConversationIntent && !input.preparedMode ? { [AI_CONVERSATION_INTENT_HEADER]: AI_CONVERSATION_INTENT_CAPABILITY } : {}),
+        // Display-only preview; final receipt/readback replaces it, safe_error drops it.
+        ...(input.preparedMode !== 'CHECK_PREPARED' ? { [AI_PROVISIONAL_STREAM_HEADER]: AI_PROVISIONAL_STREAM_VERSION } : {}),
         ...(input.endpoint === 'uskoci-worker-interview' ? {} : { [NEED_FACT_TURN_CAPABILITY_HEADER]: NEED_FACT_TURN_CAPABILITY_VERSION }) },
       body: JSON.stringify({
         conversationId: input.conversationId,

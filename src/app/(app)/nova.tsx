@@ -453,6 +453,9 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, handof
       if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
       unconfirmedSend.current = !result.ok && result.kod === SEND_UNCONFIRMED_CODE ? result.poruka : null;
       if (!result.ok) {
+        // A refused/lost turn drops its provisional preview immediately; the
+        // command and the user's text stay for the existing recovery path.
+        setStreamingText('');
         // Android SSE can lose its terminal event even after the provider has committed
         // the exact turn. Reconcile ONLY that signed, account-owned request ID via the
         // existing read-only recovery path. Never resend or synthesize an AI answer.
@@ -504,6 +507,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, handof
         const sent = await aiNeedV2Izvor.resumePrepared(id, command.id, { signal: abort.signal,
           onText: delta => { if (currentResume() && request.current === command) setStreamingText(value => value + delta); } });
         if (!currentResume()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvorite razgovor.' };
+        if (!sent.ok) setStreamingText('');
         // Even a lost/declined resume is reconciled by the same journal IDs.
         // No new key, text reconstruction, confirmation or automatic retry.
         const checked = await read(sent.ok ? sent.podatak : undefined);

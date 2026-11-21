@@ -276,6 +276,9 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
           onConversationIntent:intent=>{semanticHint.value=intent;},
           onText:delta=>{if(current()&&!controller.signal.aborted&&pending.current===command)setStream(value=>value+delta);}});
         if(!current())return unavailable();
+        // A refused/lost turn drops its provisional preview at once; the typed
+        // command stays pending for the existing recovery path.
+        if(!sent.ok)setStream('');
         // Always read the canonical candidate. An exact success skips only
         // duplicate status recovery; lost responses never resend the model call.
         const result=await read(sent.ok?sent.podatak:undefined);
@@ -355,6 +358,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
         const sent=await api.resumePrepared(data.conversationId,command.id,{signal:controller.signal,
           onText:delta=>{if(currentResume()&&pending.current===command)setStream(value=>value+delta);}});
         if(!currentResume())return unavailable();
+        if(!sent.ok)setStream('');
         const checked=await read(sent.ok?sent.podatak:undefined);
         if(!currentResume())return unavailable();
         setStream('');
