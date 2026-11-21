@@ -10,6 +10,7 @@ from pathlib import Path
 
 from check_migration_integrity import check_later_participant_contract, check_physical_suffix, load_catalog_evidence, check_r13_push_wake_provenance, check_r09_activation_provenance, check_r09_applicant_provenance, check_post_qa92_readmission, check_worker_shared_reuse_provenance
 from check_migration_integrity import check_worker_draft_activation_provenance, check_worker_application_areas_provenance, check_worker_candidate_areas_provenance, check_urgency_retirement_provenance
+from check_migration_integrity import check_forward_20261121_provenance, FORWARD_20261121
 
 
 class ParticipantContractTests(unittest.TestCase):
@@ -1032,6 +1033,84 @@ class UrgencyRetirementProvenanceTests(unittest.TestCase):
             return data if path == chosen else original(path)
         with mock.patch.object(Path, "read_bytes", tampered):
             self.rejects(self.section)
+
+
+
+class Forward20261121ProvenanceTests(unittest.TestCase):
+    PREDECESSOR = "20261120194323_retire_legacy_urgency_and_available_now_dispatch.sql"
+
+    def setUp(self):
+        self.root = Path(__file__).parent
+        metadata = json.loads((self.root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
+        self.section = metadata["forward_execution_20261121"]
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (self.root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+
+    def rejects(self, section, manifest=None, predecessor=None, pinned=None):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_forward_20261121_provenance(section, self.manifest if manifest is None else manifest,
+                                              predecessor or self.PREDECESSOR, pinned)
+
+    def test_all_applied_migrations_are_admitted_in_ledger_order(self):
+        names = check_forward_20261121_provenance(self.section, self.manifest, self.PREDECESSOR)
+        self.assertEqual(names, [
+            "20261121102509_publication_decision_final_per_revision.sql",
+            "20261121102704_marketplace_safety_blocks_withdrawn_phone.sql",
+            "20261121102809_review_projection_reuse_resolved_decision.sql",
+            "20261121102921_r06_gemini_cache_input.sql",
+        ])
+        self.assertEqual([e["dev_migration_count_after"] for e in self.section], [377, 378, 379, 380])
+
+    def test_wrong_field_in_any_entry_fails_closed(self):
+        for index in range(len(self.section)):
+            for key, value in (("version", "20261121000000"), ("source_sha256", "0" * 64),
+                               ("recorded_statement_md5", "0" * 32), ("recorded_statement_count", 2),
+                               ("classification", "PENDING_FORWARD_MIGRATION"), ("project", "fvyqqudqvizjrxaflhex"),
+                               ("dev_migration_count_before", 375), ("rollback_preimage", "scripts/sql/x.sql"),
+                               ("release", "GO")):
+                with self.subTest(index=index, key=key):
+                    section = [dict(e) for e in self.section]
+                    section[index][key] = value
+                    self.rejects(section)
+
+    def test_missing_reordered_or_extra_entries_fail_closed(self):
+        self.rejects(self.section[:-1])
+        self.rejects([self.section[1], self.section[0]] + self.section[2:])
+        self.rejects(self.section + [dict(self.section[-1])])
+        self.rejects({"entries": self.section})
+        self.rejects(None)
+
+    def test_must_follow_predecessor_ledger_version(self):
+        self.rejects(self.section, predecessor="20261121102509_publication_decision_final_per_revision.sql")
+
+    def test_manifest_bytes_witness_and_rollback_cannot_drift(self):
+        for entry in self.section:
+            with self.subTest(file=entry["file"]):
+                self.rejects(self.section, {**self.manifest, entry["file"]: "0" * 32})
+        original = Path.read_bytes
+        targets = {self.root / self.section[2]["file"],
+                   self.root.parent.parent / self.section[0]["evidence"]}
+        for chosen in targets:
+            with self.subTest(tampered=chosen.name):
+                altered = original(chosen) + b"\n"
+                def tampered(path, chosen=chosen, data=altered):
+                    return data if path == chosen else original(path)
+                with mock.patch.object(Path, "read_bytes", tampered):
+                    self.rejects(self.section)
+        missing = self.root.parent.parent / self.section[3]["rollback_preimage"]
+        original_is_file = Path.is_file
+        with mock.patch.object(Path, "is_file", lambda path: False if path == missing else original_is_file(path)):
+            self.rejects(self.section)
+
+    def test_next_migration_is_admitted_by_appending_one_entry(self):
+        last = FORWARD_20261121[-1]
+        pinned = FORWARD_20261121 + [dict(last, version="20261121999999")]
+        # A pinned entry whose file and section entry are absent must fail closed.
+        self.rejects(self.section, pinned=pinned)
+        extra = dict(self.section[-1], version="20261121999999",
+                     file="20261121999999_r06_gemini_cache_input.sql",
+                     dev_migration_count_before=380, dev_migration_count_after=381)
+        self.rejects(self.section + [extra], pinned=pinned)
 
 
 

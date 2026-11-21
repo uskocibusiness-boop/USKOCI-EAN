@@ -124,6 +124,56 @@ URGENCY_RETIREMENT_ROLLBACKS = [
     'scripts/sql/rollback_urgency_preimage_push_20261120.sql',
 ]
 
+# Ordered DEV forward migrations of 21 Nov 2026. Admitting the next migration of
+# the day is appending one pinned entry here and the same entry to the
+# "forward_execution_20261121" list in MIGRATION_PROVENANCE.json.
+FORWARD_20261121_PROJECT = 'leqcwgzvjsxugfgzdmth'
+FORWARD_20261121_BASE_COUNT = 376  # DEV ledger count after urgency retirement
+FORWARD_20261121_PROOF = 'docs/plan/proofs/20261121-dev-forward-migrations-evidence.md'
+FORWARD_20261121_PROOF_SHA256 = '0d4a48dbe293317bd97174ad6190ed0dbed6448b2fbdbe5dda97edf584b6e0e5'
+FORWARD_20261121 = [
+    {
+        "version": "20261121102509",
+        "name": "publication_decision_final_per_revision",
+        "md5": "7d6151d8a2b29b265550cfe6c033f001",
+        "sha256": "6a5bf37b81f74352478ddcdd8d148f838352a7d4097e867d7741ed69b887f4ba",
+        "bytes": 5371,
+        "rollback": "scripts/sql/rollback_publication_decision_preimage_20261121.sql",
+        "evidence": FORWARD_20261121_PROOF,
+        "evidence_sha256": FORWARD_20261121_PROOF_SHA256,
+    },
+    {
+        "version": "20261121102704",
+        "name": "marketplace_safety_blocks_withdrawn_phone",
+        "md5": "1815df13cd3f5c9447020cb54bc7c342",
+        "sha256": "bc6be8dd25533930c1c6b238d29d7f60d4132b01142b61378d5763cac2574cd6",
+        "bytes": 20703,
+        "rollback": "scripts/sql/rollback_marketplace_safety_preimage_20261121.sql",
+        "evidence": FORWARD_20261121_PROOF,
+        "evidence_sha256": FORWARD_20261121_PROOF_SHA256,
+    },
+    {
+        "version": "20261121102809",
+        "name": "review_projection_reuse_resolved_decision",
+        "md5": "1d0e83a80f45312b310f3a54c4e951c8",
+        "sha256": "a462f2ad2d98107d27d3f995916fb9f79c2e404e53aebd537040cc3da9e034b4",
+        "bytes": 5539,
+        "rollback": "scripts/sql/rollback_review_resolved_reuse_preimage_20261121.sql",
+        "evidence": FORWARD_20261121_PROOF,
+        "evidence_sha256": FORWARD_20261121_PROOF_SHA256,
+    },
+    {
+        "version": "20261121102921",
+        "name": "r06_gemini_cache_input",
+        "md5": "6659c94ea65088c3618293d629e8d20a",
+        "sha256": "4a97dacf8ae1b79a333f734ae531bcb63866a33916cb47be346238ac5a8d0c29",
+        "bytes": 12439,
+        "rollback": "scripts/sql/r06_gemini_cache_input_20261118.rollback.sql",
+        "evidence": FORWARD_20261121_PROOF,
+        "evidence_sha256": FORWARD_20261121_PROOF_SHA256,
+    },
+]
+
 def fail(message: str) -> None:
     print(f"FAIL migration_integrity: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -596,6 +646,60 @@ def check_urgency_retirement_provenance(section: dict, manifest_map: dict) -> st
     return URGENCY_RETIREMENT_FILE
 
 
+def check_forward_20261121_provenance(section: list, manifest_map: dict, predecessor_file: str,
+                                      pinned: list | None = None) -> list[str]:
+    """Pin every exact DEV forward migration of 21 Nov 2026, in ledger order, the same way."""
+    pinned = FORWARD_20261121 if pinned is None else pinned
+    if not isinstance(section, list) or len(section) != len(pinned):
+        fail("forward_execution_20261121 entries differ from the pinned DEV ledger sequence")
+    names: list[str] = []
+    previous = predecessor_file
+    for index, (entry, pin) in enumerate(zip(section, pinned)):
+        filename = f"{pin['version']}_{pin['name']}.sql"
+        label = f"forward_execution_20261121[{index}] {filename}"
+        expected = {
+            "classification": "APPLIED_EXACT_LEDGER_BYTES",
+            "project": FORWARD_20261121_PROJECT,
+            "version": pin["version"],
+            "name": pin["name"],
+            "file": filename,
+            "source_md5": pin["md5"],
+            "source_sha256": pin["sha256"],
+            "source_bytes": pin["bytes"],
+            "recorded_statement_md5": pin["md5"],
+            "recorded_statement_sha256": pin["sha256"],
+            "recorded_statement_count": 1,
+            "rollback_preimage": pin["rollback"],
+            "evidence": pin["evidence"],
+            "evidence_sha256": pin["evidence_sha256"],
+            "dev_applied": True,
+            "dev_migration_count_before": FORWARD_20261121_BASE_COUNT + index,
+            "dev_migration_count_after": FORWARD_20261121_BASE_COUNT + index + 1,
+            "release": "NO-GO",
+        }
+        if not isinstance(entry, dict) or any(entry.get(k) != v for k, v in expected.items()):
+            fail(f"{label}: provenance differs from verified DEV migration")
+        if filename <= previous:
+            fail(f"{label}: must follow {previous} in ledger order")
+        path = ROOT / filename
+        raw = path.read_bytes() if path.is_file() else b""
+        if (len(raw) != pin["bytes"]
+                or hashlib.md5(raw).hexdigest() != pin["md5"]
+                or hashlib.sha256(raw).hexdigest() != pin["sha256"]):
+            fail(f"{label}: canonical bytes differ from actual DEV ledger")
+        if manifest_map.get(filename) != pin["md5"]:
+            fail(f"{label}: manifest differs from actual DEV ledger")
+        witness = ROOT.parent.parent / pin["evidence"]
+        if (not witness.is_file()
+                or hashlib.sha256(witness.read_bytes()).hexdigest() != pin["evidence_sha256"]):
+            fail(f"{label}: DEV readback differs from pinned witness")
+        if not (ROOT.parent.parent / pin["rollback"]).is_file():
+            fail(f"{label}: rollback preimage is missing: {pin['rollback']}")
+        names.append(filename)
+        previous = filename
+    return names
+
+
 def check_post_qa92_readmission(section: dict, manifest_map: dict) -> list[str]:
     """Readmit three recorded DEV statements without replaying or reclassifying history."""
     expected_files = [
@@ -1018,7 +1122,11 @@ def main() -> None:
     if urgency_retirement_file <= candidate_areas_file:
         fail("urgency retirement must follow the Worker candidate areas ledger version")
 
-    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names + applicant_names + post_qa92_names + shared_reuse_names + draft_activation_names + application_areas_names + candidate_areas_names + urgency_retirement_names != disk_names:
+    forward_20261121_names = check_forward_20261121_provenance(
+        metadata.get("forward_execution_20261121"), manifest_map, urgency_retirement_file
+    )
+
+    if history_names + pending_names + suffix_names + oct26_suffix_names + nov7_suffix_names + forward7_names + r08_names + r01_names + r08_reviews_names + r05_names + continuation_names + recovery_export_names + now_pause_names + schedule_pause_names + late_names + push_names + capacity_names + capacity2_names + v11_names + r13_names + push_wake_names + activation_names + applicant_names + post_qa92_names + shared_reuse_names + draft_activation_names + application_areas_names + candidate_areas_names + urgency_retirement_names + forward_20261121_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -1124,6 +1232,7 @@ def main() -> None:
         f"worker_application_areas={len(application_areas_names)} "
         f"worker_candidate_areas={len(candidate_areas_names)} "
         f"urgency_retirement={len(urgency_retirement_names)} "
+        f"forward_20261121={len(forward_20261121_names)} "
         f"nov7_forward={len(forward7_names)} "
         f"r08_forward={len(r08_names)} "
         f"r01_forward={len(r01_names)} "
