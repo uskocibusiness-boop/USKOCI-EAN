@@ -123,6 +123,13 @@ async function boundedImage(message:Response,limit:number,signal:AbortSignal):Pr
   }finally{signal.removeEventListener('abort',stop);void reader.cancel().catch(()=>undefined);}
 }
 async function imageHash(bytes:Uint8Array):Promise<string>{return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new Uint8Array(bytes).buffer)),v=>v.toString(16).padStart(2,'0')).join('');}
+/** Deterministic UUID (version 8 layout) for one owner, Need and revision. */
+async function revisionOperationId(accountId:string,needId:string,revision:number):Promise<string>{
+  const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`USKOCI_PUBLICATION_REVISION_EVALUATION_V1\n${accountId}\n${needId}\n${revision}`)));
+  digest[6]=(digest[6]&0x0f)|0x80;digest[8]=(digest[8]&0x3f)|0x80;
+  const hex=Array.from(digest.subarray(0,16),v=>v.toString(16).padStart(2,'0')).join('');
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`;
+}
 function base64(bytes:Uint8Array):string{let binary='';for(let offset=0;offset<bytes.length;offset+=32768)binary+=String.fromCharCode(...bytes.subarray(offset,offset+32768));return btoa(binary);}
 function policy(raw: unknown): Policy | null {
   const value = row(raw);
@@ -402,7 +409,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
             properties:{outcome:{type:'string',enum:outcomes},ruleIds:{type:'array',items:{type:'string',enum:ctx.policy.rules.map(r=>r.ruleId)}},
               safeReasonCodes:{type:'array',items:{type:'string'}}},required:['outcome','ruleIds','safeReasonCodes']}}});
       if(new TextEncoder().encode(providerBody).length>20*1024*1024)throw new Error('PROVIDER_INPUT_TOO_LARGE');
-      const providerOperationId=reviewAttemptId??crypto.randomUUID();
+      // Without an accepted review the budget operation is bound to the owner,
+      // Need and revision, so a repeat is a budget replay and never a new
+      // provider request. The decision writer also keeps REVIEW/BLOCK final.
+      const providerOperationId=reviewAttemptId??await revisionOperationId(user.id,needId,revision);
       const budget=await reserveAiTestBudget({supabaseUrl:base.origin,serviceRoleKey:serviceKey,accountId:user.id,
         operationId:providerOperationId,kind:'LLM',signal:controller.signal});
       if(!budget.admitted)return reviewAttemptId?reviewComplete(null,'EVALUATOR_UNAVAILABLE'):notReady(needId,revision,'EVALUATOR_UNAVAILABLE');
