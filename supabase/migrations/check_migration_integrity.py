@@ -137,6 +137,8 @@ FORWARD_20261122_PROOF = 'docs/plan/proofs/20261122-dev-forward-migrations-evide
 FORWARD_20261122_PROOF_SHA256 = '9821cf273c64acaf501f3ec61bbed7a9768f81d67ac941d373aa495f1080d203'
 FORWARD_20261122_PROOF_2 = 'docs/plan/proofs/20261122-dev-forward-migrations-evidence-2.md'
 FORWARD_20261122_PROOF_2_SHA256 = '72215b4078ebed8373ec65f104c6d3f3c67190a206afb523bd95bbc18f7773c4'
+FORWARD_20261122_PROOF_3 = 'docs/plan/proofs/20261122-dev-forward-migrations-evidence-3.md'
+FORWARD_20261122_PROOF_3_SHA256 = '1bedeb7bc61b0bb0d4942b7d0aeb2a7ba1b112f8fc75dbe79f29d6f8024f5aae'
 FORWARD_20261121 = [
     {
         "version": "20261121102509",
@@ -227,6 +229,16 @@ FORWARD_20261121 = [
         "rollback": "scripts/sql/rollback_application_note_contact_preimage_20261122.sql",
         "evidence": FORWARD_20261122_PROOF_2,
         "evidence_sha256": FORWARD_20261122_PROOF_2_SHA256,
+    },
+    {
+        "version": "20261122113923",
+        "name": "agreement_cancel_closes_pending_proposal",
+        "md5": "08c8bb6782a06c7f3433506536eaa573",
+        "sha256": "fabef3b7bd2d3f04c45afb7a78785305c9cf9ac264115dd03b917d2df5526ef6",
+        "bytes": 7632,
+        "rollback": "scripts/sql/rollback_agreement_cancel_pending_preimage_20261121.sql",
+        "evidence": FORWARD_20261122_PROOF_3,
+        "evidence_sha256": FORWARD_20261122_PROOF_3_SHA256,
     },
 ]
 

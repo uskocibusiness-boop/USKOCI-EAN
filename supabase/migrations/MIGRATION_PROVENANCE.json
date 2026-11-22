@@ -5296,6 +5296,26 @@
       "dev_migration_count_before": 384,
       "dev_migration_count_after": 385,
       "release": "NO-GO"
+    },
+    {
+      "classification": "APPLIED_EXACT_LEDGER_BYTES",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "version": "20261122113923",
+      "name": "agreement_cancel_closes_pending_proposal",
+      "file": "20261122113923_agreement_cancel_closes_pending_proposal.sql",
+      "source_md5": "08c8bb6782a06c7f3433506536eaa573",
+      "source_sha256": "fabef3b7bd2d3f04c45afb7a78785305c9cf9ac264115dd03b917d2df5526ef6",
+      "source_bytes": 7632,
+      "recorded_statement_md5": "08c8bb6782a06c7f3433506536eaa573",
+      "recorded_statement_sha256": "fabef3b7bd2d3f04c45afb7a78785305c9cf9ac264115dd03b917d2df5526ef6",
+      "recorded_statement_count": 1,
+      "rollback_preimage": "scripts/sql/rollback_agreement_cancel_pending_preimage_20261121.sql",
+      "evidence": "docs/plan/proofs/20261122-dev-forward-migrations-evidence-3.md",
+      "evidence_sha256": "1bedeb7bc61b0bb0d4942b7d0aeb2a7ba1b112f8fc75dbe79f29d6f8024f5aae",
+      "dev_applied": true,
+      "dev_migration_count_before": 385,
+      "dev_migration_count_after": 386,
+      "release": "NO-GO"
     }
   ]
 }
