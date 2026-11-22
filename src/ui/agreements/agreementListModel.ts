@@ -31,8 +31,8 @@ export const awaitsMyConfirmation = (item: DogovorProjekcija) => item.stanje ===
 
 export type AgreementRoleFilter = 'all' | 'narucilac' | 'uskocer';
 export const AGREEMENT_ROLE_FILTERS = [
-  { key: 'all', label: 'Sve uloge', spoken: 'Sve uloge' },
-  { key: 'narucilac', label: 'Tražim pomoć', spoken: 'Tražim pomoć' },
+  { key: 'all', label: 'Svi', spoken: 'Svi Dogovori' },
+  { key: 'narucilac', label: 'Moji zadaci', spoken: 'Moji zadaci' },
   { key: 'uskocer', label: 'Uskačem', spoken: 'Uskačem' },
 ] as const;
 /** A person's role belongs to this Agreement, never to a global account mode. */

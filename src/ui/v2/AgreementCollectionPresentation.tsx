@@ -248,7 +248,7 @@ export function AgreementCollectionPresentation(props: Props) {
         <Segmented
           options={[
             { key: 'active', label: 'Aktivni' },
-            { key: 'history', label: 'Prethodne saradnje' },
+            { key: 'history', label: 'Završeni' },
           ]}
           value={section}
           onChange={next => { props.onSection(next); props.onConfirmationOnly(false); }}

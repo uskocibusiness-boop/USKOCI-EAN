@@ -7,6 +7,7 @@ const path=require('node:path');
 const {createHarness}=require('./ux-component-harness.cjs');
 const model=createHarness().load('src/ui/agreements/agreementTaskModel.ts');
 const read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
+const has=(text,snippet,message)=>assert.ok(text.includes(snippet),message??snippet);
 const party=(id,uloga,viSte,ime)=>({id,profilId:null,ime,inicijali:ime.slice(0,2).toUpperCase(),uloga,mesta:1,viSte,telefon:null});
 const row=(id,patch={})=>({id,naslov:'Selidba stana',stanje:'CONFIRMED',rezim:'FIZICKI',izvor:{zadatakId:'task-1',prijavaId:null},verzija:1,
  ucesnici:[party('me','narucilac',true,'Vlasnik'),party('w-'+id,'uskocer',false,'Radnik '+id)],putanjaTekst:'Liman · Novi Sad',vremeTekst:'28. novembar u 10:00',
@@ -35,16 +36,30 @@ test('remote task and different prices are said plainly', () => {
 
 test('the task screen: four icons with the blue paper plane for Prijave, owner-only Prijave and editing', () => {
   const hub=read('src/ui/agreements/AgreementTaskHub.tsx');
-  assert.match(hub,/key: 'applications' as const, label: 'Prijave', art: 'applications' as const/);
-  assert.match(hub,/\.\.\.\(owner \? \[\{ key: 'applications'/); assert.match(hub,/\.\.\.\(owner \? \[\{ key: 'edit'/);
-  assert.match(hub,/key: 'group' as const, label: 'Grupa', glyph: 'messages'/);
-  assert.match(hub,/Pošaljite privatnu poruku/); assert.match(hub,/onRemove=\{owner \?/);
-  assert.match(hub,/people = summary \? \(owner \? summary\.people : summary\.owner \? \[summary\.owner\] : \[\]\)/,'a worker sees only the task owner');
+  has(hub,"art: 'applications' as const, onPress: () => setTab('applications')");
+  has(hub,"...(owner ? [{ key: 'applications'"); has(hub,"...(owner ? [{ key: 'edit'");
+  has(hub,"key: 'group' as const, label: 'Grupa', glyph: 'messages'");
+  has(hub,'Pošaljite privatnu poruku'); has(hub,'onRemove={owner ?');
+  has(hub,'people = summary ? (owner ? summary.people : summary.owner ? [summary.owner] : [])','a worker sees only the task owner');
 });
 
 test('the Dogovori list opens the task screen for a task with a known source', () => {
   const route=read('src/app/(app)/dogovori.tsx');
-  assert.match(route,/pathname: '\/dogovor\/zadatak', params: \{ needId, role, title: first\.naslov, id: first\.id \}/);
-  assert.match(route,/if \(!needId \|\| \(role !== 'narucilac' && role !== 'uskocer'\)\) \{ open\(first\); return; \}/);
+  has(route,"pathname: '/dogovor/zadatak', params: { needId, role, title: first.naslov, id: first.id }");
+  has(route,"if (!needId || (role !== 'narucilac' && role !== 'uskocer')) { open(first); return; }");
   assert.ok(fs.existsSync(path.join(__dirname,'..','src/app/dogovor/zadatak.tsx')));
+});
+
+test('Prijave: swipe right opens the existing selection review, swipe left declines after a confirmation', () => {
+  const card=read('src/ui/agreements/ApplicationSwipeCard.tsx'), hub=read('src/ui/agreements/AgreementTaskHub.tsx');
+  has(card,"if (direction === 'left') onAccept(); else setConfirming(true);");
+  has(card,'Odbijte prijavu osobe'); has(card,"accessibilityActions={[{ name: 'accept'",'swiping is never the only way');
+  has(hub,"pathname: '/potrebe/[id]/kandidati', params: { id: needId, prijavaId: c.prijavaId }");
+  has(hub,"const OPEN_APPLICATION = new Set(['SELECTABLE', 'STALE', 'OVERFILL'])");
+  has(hub,"declineIds.current.get(c.prijavaId) ?? noviZahtevId('odbijanje')",'a retry reuses the same request id');
+  const svc=read('src/data/applicationDeclineClientService.ts');
+  has(svc,"rpc('rpc_decline_response'"); has(svc,"receipt.status !== 'NOT_SELECTED'");
+  const sql=read('supabase/migrations/20261122162908_decline_response_for_task_owner.sql');
+  has(sql,"if n.requester_account_id <> u then raise exception using errcode='42501', message='NOT_REQUESTER'");
+  has(sql,"'RESPONSE_NOT_SELECTED'");
 });

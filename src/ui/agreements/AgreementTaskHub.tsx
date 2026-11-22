@@ -14,7 +14,10 @@ import { sys } from '../system/tokens';
 import { layout, ruleWidth } from '../system/layout';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { cenaSaOsnovom } from '../../lib/novac';
-import type { DogovorProjekcija } from '../../contracts/projections';
+import type { DogovorProjekcija, KandidatProjekcija } from '../../contracts/projections';
+import { declineApplication } from '../../data/applicationDeclineClientService';
+import { noviZahtevId } from '../../lib/idempotencija';
+import { ApplicationSwipeCard } from './ApplicationSwipeCard';
 import { ownAgreementView, type OwnAgreementGroup } from '../../data/ownAgreementGroupsPage';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
@@ -24,6 +27,9 @@ import { agreementTaskSummary, fillText, isOpenAgreement, type AgreementTaskPers
 
 type Role = 'narucilac' | 'uskocer';
 type Loaded = { items: DogovorProjekcija[] } | { error: true } | null;
+type Apps = { items: KandidatProjekcija[] } | { error: true } | null;
+/** Applications the owner can still decide on; declined, withdrawn, closed and selected ones are not drawn. */
+const OPEN_APPLICATION = new Set(['SELECTABLE', 'STALE', 'OVERFILL']);
 
 /** All my Dogovori of one task, in both sections. The list searches by title; only this exact task and role is kept. */
 async function readTaskAgreements(source: ReturnType<typeof useIzvor>, needId: string, role: Role, title: string): Promise<DogovorProjekcija[] | null> {
@@ -91,6 +97,16 @@ type Tab = { key: 'agreed' | 'applications' | 'group' | 'edit'; label: string; a
 export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: { needId: string; role: Role; title: string; fallbackAgreementId?: string }) {
   const router = useRouter(), source = useIzvor(), { user, accountRevision } = useSesija();
   const [loaded, setLoaded] = useState<Loaded>(null);
+  const [tab, setTab] = useState<'agreed' | 'applications'>('agreed');
+  const [apps, setApps] = useState<Apps>(null);
+  const [deciding, setDeciding] = useState<{ id: string; error: string | null } | null>(null);
+  const declineIds = useRef(new Map<string, string>());
+  const loadApps = useCallback(async () => {
+    const run = generation.current, owner = user?.id;
+    const items = await source.prijaveZaPotrebu(needId).catch(() => null);
+    if (run !== generation.current || sesijaSada().user?.id !== owner || izvorSada() !== source) return;
+    setApps(items ? { items: items.filter(c => OPEN_APPLICATION.has(c.stanje)) } : { error: true });
+  }, [source, needId, user?.id]);
   const generation = useRef(0), focused = useRef(false), navigating = useRef(false);
   const load = useCallback(async () => {
     const run = ++generation.current, owner = user?.id;
@@ -99,9 +115,9 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
     setLoaded(items ? { items } : { error: true });
   }, [source, needId, role, title, user?.id, accountRevision]);
   useFocusEffect(useCallback(() => {
-    focused.current = true; navigating.current = false; void load();
+    focused.current = true; navigating.current = false; void load(); if (role === 'narucilac') void loadApps();
     return () => { focused.current = false; generation.current++; };
-  }, [load]));
+  }, [load, loadApps, role]));
   const go = (action: () => void) => {
     if (!focused.current || navigating.current || AppState.currentState !== 'active') return;
     navigating.current = true; action();
@@ -113,14 +129,29 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
   const anchor = items?.find(isOpenAgreement) ?? items?.[0] ?? null;
   const openAgreement = (id: string, tab?: 'poruke') => go(() => router.navigate({ pathname: '/dogovor/[id]', params: tab ? { id, tab } : { id } }));
   const tabs: Tab[] = [
-    { key: 'agreed', label: owner ? 'Dogovoreni' : 'Dogovor', art: 'agreements' },
-    ...(owner ? [{ key: 'applications' as const, label: 'Prijave', art: 'applications' as const,
-      onPress: () => go(() => router.navigate({ pathname: '/potrebe/[id]/kandidati', params: { id: needId } })) }] : []),
+    { key: 'agreed', label: owner ? 'Dogovoreni' : 'Dogovor', art: 'agreements', onPress: () => setTab('agreed') },
+    ...(owner ? [{ key: 'applications' as const, label: apps && 'items' in apps && apps.items.length ? `Prijave (${apps.items.length})` : 'Prijave',
+      art: 'applications' as const, onPress: () => setTab('applications') }] : []),
     ...(anchor ? [{ key: 'group' as const, label: 'Grupa', glyph: 'messages' as const,
       onPress: () => go(() => router.navigate({ pathname: '/dogovor/[id]/grupa', params: { id: anchor.id } })) }] : []),
     ...(owner ? [{ key: 'edit' as const, label: 'Zadatak', glyph: 'edit' as const,
       onPress: () => go(() => router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id: needId } })) }] : []),
   ];
+  const tabSelected = tab;
+  const accept = (c: KandidatProjekcija) => go(() => router.navigate({ pathname: '/potrebe/[id]/kandidati', params: { id: needId, prijavaId: c.prijavaId } }));
+  const decline = async (c: KandidatProjekcija) => {
+    if (deciding?.id === c.prijavaId && !deciding.error) return;
+    if (!c.potrebaRevizija) { setDeciding({ id: c.prijavaId, error: 'Osvežite prijave pa pokušajte ponovo.' }); return; }
+    const requestId = declineIds.current.get(c.prijavaId) ?? noviZahtevId('odbijanje');
+    declineIds.current.set(c.prijavaId, requestId);
+    setDeciding({ id: c.prijavaId, error: null });
+    const result = await declineApplication({ prijavaId: c.prijavaId, potrebaRevizija: c.potrebaRevizija, verzija: c.verzija, clientRequestId: requestId });
+    if (!focused.current) return;
+    if (result.ok) {
+      declineIds.current.delete(c.prijavaId); setDeciding(null);
+      setApps(current => current && 'items' in current ? { items: current.items.filter(x => x.prijavaId !== c.prijavaId) } : current);
+    } else setDeciding({ id: c.prijavaId, error: result.poruka });
+  };
   const back = () => go(() => (router.canGoBack() ? router.back() : router.navigate('/dogovori')));
   const people = summary ? (owner ? summary.people : summary.owner ? [summary.owner] : []) : [];
   const open = people.filter(p => isOpenAgreement(p.agreement)), earlier = people.filter(p => !isOpenAgreement(p.agreement));
@@ -145,7 +176,8 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
             </Surface>
             <View style={s.tabs} accessibilityRole="tablist">
               {tabs.map(tab => {
-                const selected = tab.key === 'agreed';
+                const current = tabSelected;
+                const selected = tab.key === current;
                 return <Press key={tab.key} accessibilityRole={selected ? 'tab' : 'button'} accessibilityState={{ selected }}
                   accessibilityLabel={tab.label} onPress={tab.onPress} disabled={!tab.onPress && !selected} haptic="select"
                   style={[s.tab, selected && s.tabOn]}>
@@ -154,12 +186,24 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
                 </Press>;
               })}
             </View>
-            {open.length ? open.map(person => <PersonCard key={person.agreementId} person={person} owner={owner} now={now}
+            {tab === 'applications' ? <View style={s.apps}>
+              {!apps ? <StateView skeleton={{ rows: 2, face: true }} title="Učitavamo prijave…" body="Proveravamo ko se prijavio." />
+                : 'error' in apps ? <StateView kind="error" art="applications" title="Prijave nisu učitane" body="Proverite vezu i pokušajte ponovo."
+                  primary={{ label: 'Pokušajte ponovo', onPress: () => { setApps(null); void loadApps(); } }} />
+                  : !apps.items.length ? <StateView compact art="applications" title="Nema novih prijava" body="Kada se neko prijavi, videćete ga ovde." />
+                    : <>
+                      <T variant="note" tone="muted">Prevucite udesno da prihvatite, ulevo da odbijete.</T>
+                      {apps.items.map(c => <ApplicationSwipeCard key={c.prijavaId} candidate={c}
+                        busy={deciding?.id === c.prijavaId && !deciding.error} error={deciding?.id === c.prijavaId ? deciding.error : null}
+                        onAccept={() => accept(c)} onDecline={() => { void decline(c); }} />)}
+                    </>}
+            </View> : null}
+            {tab !== 'agreed' ? null : open.length ? open.map(person => <PersonCard key={person.agreementId} person={person} owner={owner} now={now}
               onOpen={() => openAgreement(person.agreementId)} onMessage={() => openAgreement(person.agreementId, 'poruke')}
               onRemove={owner ? () => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId, start: 'cancel' } })) : undefined} />)
               : <StateView compact art="agreements" title={owner ? 'Trenutno nema aktivnih Dogovora' : 'Dogovor nije aktivan'}
                 body={owner ? 'Pogledajte prijave i izaberite ljude za ovaj zadatak.' : 'Ranije saradnje su ispod.'} />}
-            {earlier.length ? <View style={s.earlier}>
+            {tab === 'agreed' && earlier.length ? <View style={s.earlier}>
               <T variant="label" tone="muted">Ranije</T>
               {earlier.map(person => <PersonCard key={person.agreementId} person={person} owner={owner} now={now}
                 onOpen={() => openAgreement(person.agreementId)} onMessage={() => openAgreement(person.agreementId, 'poruke')} />)}
@@ -192,4 +236,5 @@ const s = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: sys.color.warn },
   warn: { color: sys.color.warn, flexShrink: 1 },
   earlier: { gap: sys.space.sm, marginTop: sys.space.sm },
+  apps: { gap: sys.space.md },
 });

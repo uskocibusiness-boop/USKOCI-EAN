@@ -139,6 +139,8 @@ FORWARD_20261122_PROOF_2 = 'docs/plan/proofs/20261122-dev-forward-migrations-evi
 FORWARD_20261122_PROOF_2_SHA256 = '72215b4078ebed8373ec65f104c6d3f3c67190a206afb523bd95bbc18f7773c4'
 FORWARD_20261122_PROOF_3 = 'docs/plan/proofs/20261122-dev-forward-migrations-evidence-3.md'
 FORWARD_20261122_PROOF_3_SHA256 = '1bedeb7bc61b0bb0d4942b7d0aeb2a7ba1b112f8fc75dbe79f29d6f8024f5aae'
+FORWARD_20261122_PROOF_4 = 'docs/plan/proofs/20261122-dev-forward-migrations-evidence-4.md'
+FORWARD_20261122_PROOF_4_SHA256 = 'ba45552c8827f62f9183966b2501002f9e0573485c2b497e114349e1a738d38a'
 FORWARD_20261121 = [
     {
         "version": "20261121102509",
@@ -239,6 +241,16 @@ FORWARD_20261121 = [
         "rollback": "scripts/sql/rollback_agreement_cancel_pending_preimage_20261121.sql",
         "evidence": FORWARD_20261122_PROOF_3,
         "evidence_sha256": FORWARD_20261122_PROOF_3_SHA256,
+    },
+    {
+        "version": "20261122162908",
+        "name": "decline_response_for_task_owner",
+        "md5": "e26678bbe72e42fb0f237e763dd99fe0",
+        "sha256": "6c47c99c9e4e7372023a5378b7686fe69f23779aac66ec8ce067f6dfcf6d8c1b",
+        "bytes": 7003,
+        "rollback": "scripts/sql/rollback_decline_response_20261122.sql",
+        "evidence": FORWARD_20261122_PROOF_4,
+        "evidence_sha256": FORWARD_20261122_PROOF_4_SHA256,
     },
 ]
 
