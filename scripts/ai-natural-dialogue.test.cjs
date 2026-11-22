@@ -463,7 +463,7 @@ test('N: per-person hourly amount remains a unit amount for two people',()=>{
 test('C/S: complete remote draft stops optional questions and retains cityless geography',()=>{
   const facts=active([['need.title','Prevod teksta'],['need.category','Prevođenje'],['need.description','Prevod teksta na engleski'],['need.people_needed',1],['need.price_mode','OFFERS'],
     ['need.schedule_kind','REMOTE_ANYTIME'],['need.task_country_code','RS'],['need.task_geography',{mode:'REMOTE'}],
-    ['need.handoff',{required:false}]]);
+    ['need.handoff',{required:false}],['need.response_deadline',{kind:'NONE'}]]);
   const out=run(turn('Koja je Vaša kućna adresa?',[],'need.exact_address'),'Sve je onlajn.',facts);
   assert.equal(out.dialogue.next,'REVIEW'); assert.doesNotMatch(out.assistantMessage,/adresa|grad|\?/i);
   assert.equal(out.proposals.length,0);
@@ -474,6 +474,7 @@ const remotePhotoFacts = () => active([
   ['need.description','Potrebna je obrada jedne fotografije'],['need.people_needed',1],
   ['need.price_mode','OFFERS'],['need.schedule_kind','REMOTE_ANYTIME'],
   ['need.task_country_code','RS'],['need.task_geography',{mode:'REMOTE'}],['need.handoff',{required:false}],
+  ['need.response_deadline',{kind:'NONE'}],
 ]);
 
 test('complete REMOTE fields do not erase one still-needed scope clarification',()=>{
@@ -560,6 +561,7 @@ test('draft ready for REVIEW defaults need.task_country_code to RS and preserves
       start: { city: 'Beograd', area: 'Dorćol', label: 'Dorćol' },
       end: { city: 'Beograd', area: 'Zvezdara', label: 'Zvezdara' }
     }],
+    ['need.response_deadline', { kind: 'NONE' }],
   ]);
   const naturalReply = 'Odlično, zabeležio sam kombi prevoz sa Dorćola na Zvezdaru za 4.000 RSD. Pred vama je pregled zadatka.';
   const out = run(turn(naturalReply, [], '', 'REVIEW'), 'Potvrđujem unos.', readyFacts);
@@ -582,4 +584,16 @@ test('city-wide task with user indicating anywhere in city does not loop asking 
   ]);
   const out = run(turn('Zabeležio sam, pregledajte detalje.', [], '', 'REVIEW'), 'U celom gradu, gde god odgovara.', cityOnlyFacts);
   assert.equal(out.dialogue.next, 'REVIEW');
+});
+
+test('a complete draft without an application deadline asks for it once, last, then goes to review',()=>{
+  const base=remotePhotoFacts().filter(row=>row.fact_key!=='need.response_deadline');
+  const out=run(turn('Sve je zabeleženo.',[],'','REVIEW'),'To je sve.',base);
+  assert.equal(out.dialogue.next,'ASK'); assert.equal(out.dialogue.questionKey,'need.response_deadline');
+  assert.match(out.assistantMessage,/^Sve je zabeleženo\. .*do kada primate prijave\?/u);
+  const asked=[{role:'USER',body:'To je sve.'},{role:'ASSISTANT',body:out.assistantMessage}];
+  const again=run(turn('U redu.',[],'','REVIEW'),'Ne znam još.',base,asked);
+  assert.notEqual(again.dialogue.questionKey,'need.response_deadline','the deadline question is never repeated');
+  const ownQuestion=run(turn('Važi. Da li je fotografija u boji?',[],'','ACK'),'Jedna fotografija.',base);
+  assert.equal(ownQuestion.assistantMessage,'Važi. Da li je fotografija u boji?','a reply that already asks keeps its own question');
 });

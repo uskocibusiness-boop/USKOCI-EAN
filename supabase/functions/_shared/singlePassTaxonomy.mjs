@@ -173,7 +173,7 @@ export function withUnresolvedSinglePassReply(turn, built, plan, serviceHint) {
   }
   const fallbackQuestion = !question && !pendingSemanticOnly ? serviceQuestion : null;
   return { ...turn, assistantMessage: question || (pendingSemanticOnly ? 'Podaci iz razgovora su sačuvani.'
-    : fallbackQuestion ?? 'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.'),
+    : fallbackQuestion ?? 'Hvala, sve sam zapisao 🙂 Pregled još nije spreman, ali ne morate ništa da ponavljate.'),
     ...(turn.dialogue ? { dialogue: { ...turn.dialogue, next: question || fallbackQuestion ? 'CLARIFY' : 'ACK', questionKey: 'NONE' } } : {}) };
 }
 

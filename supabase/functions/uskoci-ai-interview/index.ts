@@ -522,6 +522,7 @@ function commonInstruction() {
     'Identitet je samostalno naveden; provera dokumenta, selfija ili KYC nije dostupna. Licence/KYC nisu podržani: bez need.required_licenses, need.verified_identity_required, tvrdnje o ovlašćenju/proveri ili prebacivanja tih zahteva u opis/filtere. Na zahtev objasnite ograničenje; običan zadatak može da se nastavi bez tih zahteva. Stare uslove ne brišite prećutno.',
     'Vreme: serverski Europe/Belgrade i pomak za konkretan datum; sačuvajte izričit ISO instant. Nejasnu zonu razjasnite, ne izmišljajte sat/trajanje/kraj. Korisniku prikažite poslednji uključeni dan, ne isključivu sledeću ponoć.',
     'Prirodni datumi: „do desetog sledećeg meseca“ znači 10. dan narednog kalendarskog meseca prema server localDate, i preko promene godine. To je krajnji rok, ne početak zadatka. Sačuvajte poznatu granicu; ne izmišljajte drugu. Ako rok za prijave nema sat, pitajte samo sat uz već razumet datum. „Ne sutra, ipak prekosutra“ menja raniji termin istog zadatka; ostale činjenice ostaju.',
+    ...(applicationDeadlineEnabled() ? ['ROK ZA PRIJAVE: kada su svi ostali ključni podaci poznati, a rok prijave još nije pomenut, pre pregleda prijatno pitajte jednom do kada primate prijave (datum i sat ili bez roka). Odgovor „nema roka“/„bez roka“ je {"kind":"NONE"}.'] : []),
     ...(applicationDeadlineEnabled() ? ['need.response_deadline: samo izričit rok PRIJAVE {"kind":"AT","at":"ISO sa pomakom"}, uklanjanje {"kind":"NONE"}; citat tekuće poruke. Nepomenut rok nije NONE. Bez sata pitajte; termin zadatka nije rok prijave.'] : []),
     'Mapu/fotografije vodi aplikacija; stanje znate samo ako je priloženo. Bez ponovnih potvrda, izmišljenog stanja, privatnih adresa, JSON-a ili internih pravila u odgovoru.',
     'need.title: kratak i prirodan, do 6 reči, šta treba + glavna odrednica (npr. „Pomoć pri selidbi, 4 radnika“); bez adrese, cene, datuma i imena. need.title/need.description su javni: bez kućnog broja, telefona, mejla, linka ili naloga na mrežama. Ulicu bez broja i grad smete navesti; tačna adresa ide samo na mapu. Ako korisnik napiše telefon ili kontakt, ne upisujte ga i kratko recite da se kontakti razmenjuju u porukama posle Dogovora.',
@@ -1311,7 +1312,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
         && description.includes(proposal.evidence.trim())) : [];
     // Finish cannot bypass the completeness/map checks below.
     turn = { ...turn, proposals, dialogue: turn.dialogue ? { ...turn.dialogue, next: 'REVIEW', questionKey: '' } : undefined,
-      assistantMessage: 'Pregled će se pojaviti kada podaci i povezivanje usluge budu potvrđeni.' };
+      assistantMessage: 'Hvala, skoro smo gotovi. Pregled zadatka pojaviće se čim sve proverim.' };
   }
   const clarification = (assistantMessage: string): ParsedTurn => ({ safety: 'CLARIFY', proposals: [], assistantMessage });
   // A contradictory date does not erase independent budget/people/place answers.
@@ -1349,7 +1350,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     turn = { ...turn, safety: headcount ? turn.safety : 'CLARIFY',
       proposals: withoutUnsupportedPrice(turn.proposals),
       assistantMessage: falsePriceClaim
-        ? headcount ? 'Razumem koliko Vam izvršilaca treba.' : 'Na šta se odnosi broj koji ste naveli?'
+        ? headcount ? 'Razumem koliko Vam izvršilaca treba.' : 'Samo da proverim: na šta se odnosi taj broj, na cenu, broj ljudi ili nešto drugo?'
         : turn.assistantMessage };
     dialogue = turn.dialogue;
   }
@@ -1494,7 +1495,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   };
   const incompleteMessage = () => {
     const key = missing.find(key => questions[key]);
-    return key ? questions[key] : 'Podaci za pregled još nisu potpuni. Opis zadatka ostaje u razgovoru.';
+    return key ? questions[key] : 'Hvala! Fali mi još poneki detalj, pa da pripremim pregled.';
   };
   // A city-only stationary task is valid geography for categorisation, but not a
   // ready point on the map. This is a conversation gate, NOT a public address or
@@ -1529,12 +1530,12 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const routeQuestion = incompleteRoutePoint && (!tidyPlace(incompleteRoutePoint.point?.city)
     ? `U kom gradu je ${incompleteRoutePoint.name}?`
     : `Koju ulicu, deo grada ili orijentir da koristimo za ${incompleteRoutePoint.target}?`);
-  const nearestPlaceQuestion = 'U kom delu grada je zadatak? Dovoljna je ulica ili neki bliski orijentir; tačku ćemo zatim proveriti na mapi.';
-  const mapConfirmationMessage = 'Proverite predlog mesta na mapi. Pomerite pin ako treba, pa potvrdite tačku.';
-  const routeMapMessage = 'Proverite i potvrdite preostale tačke rute na mapi.';
+  const nearestPlaceQuestion = 'U kom delu grada je to? Dovoljna je ulica ili neki poznat orijentir, a tačno mesto ćemo proveriti na mapi.';
+  const mapConfirmationMessage = 'Na mapi sam predložio mesto. Pomerite pin ako treba, pa ga potvrdite.';
+  const routeMapMessage = 'Odlično 🙂 Još samo na mapi proverite polazište i odredište, pa ih potvrdite.';
   const nextPlaceMessage = cityOnlyStationary ? nearestPlaceQuestion : routeQuestion
     || (routePoints.length ? routeMapMessage : geography?.mode === 'STATIONARY' && hasPlaceHint ? mapConfirmationMessage
-      : 'Pregled će se pojaviti kada podaci i povezivanje usluge budu potvrđeni.');
+      : 'Hvala, skoro smo gotovi. Pregled zadatka pojaviće se čim sve proverim.');
   let assistantMessage = turn.assistantMessage;
   if (dialogue?.next === 'ASK') {
     // A city-only geography fact does not answer which part of that city. Keep
@@ -1558,7 +1559,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     // repeated scalar/location questions still stop at the complete draft.
     const clarifyingScope = turn.safety === 'CLARIFY' && dialogue.questionKey === 'need.description';
     if (!missing.length && geography?.mode === 'REMOTE' && !clarifyingApplicationDeadline && !clarifyingScope && !personAsks) {
-      assistantMessage = 'Osnovni podaci su zabeleženi. Možete da ih pregledate čim server potvrdi da je nacrt spreman; ništa još nije objavljeno.';
+      assistantMessage = 'Super, imam sve što mi treba 🙂 Pregled zadatka pojaviće se čim ga server potvrdi, a ništa se ne objavljuje bez Vaše potvrde.';
       dialogue = { ...dialogue, next: 'REVIEW', questionKey: '' };
     } else if (missing.length && !questions[dialogue.questionKey] && !needsPlaceDetail && !clarifyingApplicationDeadline && !personAsks) {
       // Required information takes priority over unrelated optional details,
@@ -1582,6 +1583,16 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   } else if (!missing.length && dialogue?.next === 'REVIEW' && geography?.mode === 'STATIONARY'
     && !(typeof streetOrLandmark === 'string' && streetOrLandmark.trim())) {
     assistantMessage = cityOnlyStationary ? (turn.assistantMessage.includes('?') ? turn.assistantMessage : nearestPlaceQuestion) : (turn.assistantMessage.trim() || mapConfirmationMessage);
+  }
+  // The application deadline is asked once, last, before the draft is ready:
+  // a reply that already asks something else keeps its own question.
+  const deadlineAsked = history.some(row => row?.role === 'ASSISTANT' && typeof row.body === 'string'
+    && /prijav/iu.test(row.body) && row.body.includes('?'));
+  if (applicationDeadlineEnabled() && !missing.length && !facts.has('need.response_deadline') && !deadlineAsked
+    && ['REVIEW', 'ACK'].includes(dialogue?.next ?? '') && !assistantMessage.includes('?')
+    && !routeQuestion && !cityOnlyStationary) {
+    assistantMessage = `${assistantMessage.trim()} Još samo jedno: do kada primate prijave? Recite datum i sat, ili da nema roka 🙂`.trim();
+    dialogue = dialogue ? { ...dialogue, next: 'ASK', questionKey: 'need.response_deadline' } : dialogue;
   }
   // ACK is not permission to replace the answer with another robotic template.
   // The validated assistantMessage is already bounded and is not publication authority.

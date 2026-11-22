@@ -582,7 +582,7 @@ test('Worker actual Edge: empty mode metadata recovers quoted historical choices
     return output;
   },{singlePass:true,skills:old,revision:3,catalog,
     serviceModeContext:{...modeContext([],[],old),revision:3},
-    history:[{role:'USER',body:earlier},{role:'ASSISTANT',body:'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.'},
+    history:[{role:'USER',body:earlier},{role:'ASSISTANT',body:'Hvala, sve sam zapisao 🙂 Pregled još nije spreman, ali ne morate ništa da ponavljate.'},
       {role:'USER',body:text}]}).run();
   assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
   assert.deepEqual(result.writes[0].args.p_output.patch,{skills});
@@ -1138,7 +1138,7 @@ test('Worker actual Edge: an obsolete historical change cannot conceal a duplica
     assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
     assert.deepEqual(planBindings(result),[independent],'A genuinely ambiguous current change remains unresolved');
     assert.deepEqual(result.writes[0].args.p_output.patch,{});
-    assert.equal(result.writes[0].args.p_output.assistantMessage,'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.');
+    assert.equal(result.writes[0].args.p_output.assistantMessage,'Hvala, sve sam zapisao 🙂 Pregled još nije spreman, ali ne morate ništa da ponavljate.');
     assertOnePaidAttempt(result);
   }
 });
@@ -1157,6 +1157,6 @@ test('Worker actual Edge: ignoring a historical change never preserves an archiv
   assert.equal(result.events.at(-1)?.kind,'final',JSON.stringify({events:result.events,logs:result.logs}));
   assert.deepEqual(result.writes[0].args.p_output.patch,{displayName:'Ana'});
   assert.deepEqual(planBindings(result),[independent]);
-  assert.equal(result.writes[0].args.p_output.assistantMessage,'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.');
+  assert.equal(result.writes[0].args.p_output.assistantMessage,'Hvala, sve sam zapisao 🙂 Pregled još nije spreman, ali ne morate ništa da ponavljate.');
   assertOnePaidAttempt(result);
 });

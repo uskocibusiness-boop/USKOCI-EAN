@@ -407,7 +407,7 @@ test('NEED actual Edge: the observed conversation persists a resolvable CREATE_C
     assert.equal(plan.proposals[0].action, 'CREATE_CHILD');
     assert.equal(plan.proposals[0].parentId, PARENT_ID);
     assert.deepEqual(plan.proposals[0].proposedPath, [SERVICE]);
-    assert.notEqual(writes[0].args.p_assistant_message, 'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.');
+    assert.notEqual(writes[0].args.p_assistant_message, 'Hvala, sve sam zapisao 🙂 Pregled još nije spreman, ali ne morate ništa da ponavljate.');
   } finally { h.restore(); }
 });
 
@@ -426,7 +426,7 @@ test('NEED actual Edge: a per-person payment after a budget question is a price,
       const events = parseEvents(await (await h.start({ provisional: false })).text()); await h.settle();
       assert.equal(events.at(-1).kind, 'final');
       const write = persisted(h.calls)[0].args;
-      assert.notEqual(write.p_assistant_message, 'Na šta se odnosi broj koji ste naveli?');
+      assert.notEqual(write.p_assistant_message, 'Samo da proverim: na šta se odnosi taj broj, na cenu, broj ljudi ili nešto drugo?');
       assert.ok(write.p_proposals.some(p => p.key === 'need.price_rsd' && p.value === 5000), JSON.stringify(write.p_proposals));
     } finally { h.restore(); }
   }
@@ -448,7 +448,7 @@ test('NEED actual Edge: an unclassified but clear service gets one concrete ques
     const events = parseEvents(await (await h.start({ provisional: false })).text()); await h.settle();
     assert.equal(events.at(-1).kind, 'final');
     const message = persisted(h.calls)[0].args.p_assistant_message;
-    assert.notEqual(message, 'Pregled još nije spreman. Ne morate ponavljati već navedene podatke.');
+    assert.notEqual(message, 'Hvala, sve sam zapisao 🙂 Pregled još nije spreman, ali ne morate ništa da ponavljate.');
     assert.ok(message.includes(SERVICE) && message.includes('?'), message);
   } finally { h.restore(); }
 });
