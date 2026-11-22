@@ -41,7 +41,7 @@ test('UX06 matched collaborator is first without mutation, duplication or loss o
 async function setup(patch={}){
  const mocks=createHarness();mocks.native.Keyboard={dismiss:()=>{}};
  mocks.native.FlatList=p=>React.createElement('FlatList',p,p.data.length?p.data.map((item,index)=>React.createElement(React.Fragment,{key:item.id},p.renderItem({item,index}))):p.ListEmptyComponent,p.ListFooterComponent);
- for(const [file,exportName]of [['src/ui/system/ScreenChrome.tsx','ChromeIconButton'],['src/ui/system/StateView.tsx','StateView'],['src/ui/agreements/AgreementRoleRail.tsx','AgreementRoleRail'],['src/ui/agreements/AgreementListCard.tsx','AgreementTaskRow'],['src/ui/agreements/GroupHeader.tsx','GroupHeader'],['src/ui/v2/QuietReadState.tsx','QuietReadState'],['src/ui/v2/discovery/SearchParts.tsx','SearchField']])mocks.stubs[file]={[exportName]:mocks.host(exportName)};
+ for(const [file,exportName]of [['src/ui/system/ScreenChrome.tsx','ChromeIconButton'],['src/ui/system/StateView.tsx','StateView'],['src/ui/agreements/AgreementRoleRail.tsx','AgreementRoleRail'],['src/ui/agreements/AgreementListCard.tsx','AgreementTaskRow'],['src/ui/agreements/AgreementTaskCard.tsx','AgreementTaskCard'],['src/ui/agreements/GroupHeader.tsx','GroupHeader'],['src/ui/v2/QuietReadState.tsx','QuietReadState'],['src/ui/v2/discovery/SearchParts.tsx','SearchField']])mocks.stubs[file]={[exportName]:mocks.host(exportName)};
  mocks.stubs['src/ui/system/ScreenChrome.tsx'].ScreenChrome=mocks.host('ScreenChrome');
  mocks.stubs['react-native-safe-area-context']={SafeAreaView:mocks.host('SafeAreaView')};
  const C=mocks.load('src/ui/v2/AgreementCollectionPresentation.tsx').AgreementCollectionPresentation;

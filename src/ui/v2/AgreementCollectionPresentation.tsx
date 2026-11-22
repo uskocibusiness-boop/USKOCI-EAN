@@ -23,6 +23,7 @@ import { SearchField } from './discovery/SearchParts';
 import { agreementGroupMatchesSearch, agreementSearchQuery, AGREEMENT_SEARCH_MAX_LENGTH } from '../agreements/agreementSearch';
 import { AgreementRoleRail } from '../agreements/AgreementRoleRail';
 import { AgreementTaskRow } from '../agreements/AgreementListCard';
+import { AgreementTaskCard } from '../agreements/AgreementTaskCard';
 import { QuietReadState } from './QuietReadState';
 import { GroupHeader } from '../agreements/GroupHeader';
 import {
@@ -43,6 +44,8 @@ type Props = {
   /** Optional owner-only task-wide read; missing values make no coverage claim. */
   ownerCapacities?: ReadonlyMap<string, NeedSearchState> | null;
   onOpenOwnerTask?: (taskId: string, witness: DogovorProjekcija) => void;
+  /** The task card (owner's design 22.11.2026) opens one Dogovor screen per task. */
+  onOpenTask?: (group: AgreementTaskGroup) => void;
   /**
    * Opens the rating of a finished Dogovor straight from its card (round-1 critique A2). The route owns the guard and
    * the navigation. Without it the card still says the rating waits, as words inside the card's own press.
@@ -167,13 +170,17 @@ export function AgreementCollectionPresentation(props: Props) {
   const ownerCapacities = props.ownerCapacities;
   const ownerTaskRef = useRef(props.onOpenOwnerTask); ownerTaskRef.current = props.onOpenOwnerTask;
   const openOwnerTask = useCallback((taskId: string, witness: DogovorProjekcija) => ownerTaskRef.current?.(taskId, witness), []);
+  const taskRef = useRef(props.onOpenTask); taskRef.current = props.onOpenTask;
+  const openTask = useCallback((group: AgreementTaskGroup) => taskRef.current?.(group), []);
   const renderItem = useCallback(({ item: row, index }: ListRenderItemInfo<ListRow>) => row.kind === 'group'
     ? <GroupHeader title={row.title} first={index === 0} />
+    : taskRef.current ? <AgreementTaskCard group={row.task} index={index} animate={appearRef.current.isNew(row.id)} stale={stale}
+      onOpen={openTask} onRate={rates ? rateItem : undefined} />
     : <AgreementTaskRow group={row.task} index={index} now={now} animate={appearRef.current.isNew(row.id)} stale={stale} onOpen={openItem}
       searchQuery={query} expanded={expandedKey === row.task.key} onExpand={expand} cancellations={cancellations}
       ownerCapacities={ownerCapacities} onOpenOwnerTask={props.onOpenOwnerTask ? openOwnerTask : undefined}
       prioritize={section === 'history' ? historyFilter : filtering ? 'confirmation' : 'all'}
-      onRate={rates ? rateItem : undefined} />, [openItem, rateItem, rates, now, cancellations, ownerCapacities, props.onOpenOwnerTask, openOwnerTask, expandedKey, expand, section, historyFilter, filtering, stale, query]);
+      onRate={rates ? rateItem : undefined} />, [openItem, openTask, rateItem, rates, now, cancellations, ownerCapacities, props.onOpenOwnerTask, openOwnerTask, expandedKey, expand, section, historyFilter, filtering, stale, query]);
   // A set that is empty while the other one is not leads to the one that has Dogovori, with the filter off, so the
   // way forward never lands on another empty view (review r3 item 7).
   const target: AgreementCollectionSection = (section === 'active' && !filtering) || !activeCount ? 'history' : 'active';

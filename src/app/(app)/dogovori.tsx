@@ -12,7 +12,7 @@ import { useOwnAgreementGroupsPager } from '../../hooks/useOwnAgreementGroupsPag
 import { ownAgreementView, ownAgreementScope, type OwnAgreementPageRequest } from '../../data/ownAgreementGroupsPage';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
-import type { HistoryFilter, AgreementRoleFilter } from '../../ui/agreements/agreementListModel';
+import type { AgreementTaskGroup, HistoryFilter, AgreementRoleFilter } from '../../ui/agreements/agreementListModel';
 import { visibleAgreementTaskGroups, cancelledIdsForVisibleAgreementGroups } from '../../ui/agreements/optionalReadScope';
 import { ownerCapacityNeedIds, sameOwnerTaskId } from '../../ui/agreements/ownerTaskCapacity';
 import { AGREEMENT_SEARCH_MAX_LENGTH } from '../../ui/agreements/agreementSearch';
@@ -130,6 +130,14 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     if (!shown(agreement) || agreement.stanje !== 'COMPLETED' || !agreement.ocenaMoguca) return;
     navigate(() => router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: agreement.id, from: 'dogovori' } }));
   };
+  // One Dogovor screen per task (owner's design 22.11.2026). A Dogovor without a known task keeps its own screen.
+  const openTask = (group: AgreementTaskGroup) => {
+    const first = group.items[0];
+    if (!first || !shown(first)) return;
+    const needId = first.izvor?.zadatakId, role = first.ucesnici.find(person => person.viSte)?.uloga;
+    if (!needId || (role !== 'narucilac' && role !== 'uskocer')) { open(first); return; }
+    navigate(() => router.navigate({ pathname: '/dogovor/zadatak', params: { needId, role, title: first.naslov, id: first.id } }));
+  };
   const onProfile = () => navigate(() => router.navigate('/profil'));
   // Optional task-wide read. Each result is owner-only and belongs to this exact
   // settled Agreement list, account incarnation, focus and foreground visit.
@@ -201,7 +209,7 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     onConfirmationOnly={value => { if (current()) onConfirmationOnly(value); }}
     onHistoryFilter={value => { if (current()) onHistoryFilter(value); }}
     onRoleFilter={value => { if (current()) { onRoleFilter(value); onConfirmationOnly(false); } }}
-    onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open} onRate={rate} onOpenOwnerTask={openOwnerTask}
+    onRefresh={() => { if (current()) void resource.refresh(); }} onOpen={open} onOpenTask={openTask} onRate={rate} onOpenOwnerTask={openOwnerTask}
     onCalendar={() => navigate(() => router.navigate('/raspored'))}
     onProfile={onProfile}
     onHome={() => navigate(() => router.navigate('/'))}
