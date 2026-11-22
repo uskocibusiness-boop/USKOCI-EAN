@@ -43,6 +43,8 @@ export type GroupConversationPresentationProps = {
   onVisible: (info: { viewableItems: ViewToken<GroupMessage>[] }) => void;
   onBack: () => void; onTogglePeople: () => void; onRefresh: () => void; onOlder: () => void; onManagementNext: () => void;
   backLabel?: string;
+  /** Drawn inside the task's Dogovor screen, under its own icon bar: no second top bar. */
+  embedded?: boolean;
   onPrivate?: (id: string) => void;
   onOpenAgreement: (id: string) => void; onDraft: (value: string) => void; onSend: () => void; onAcknowledge: () => void;
   onSaveDraft?: () => void;
@@ -166,12 +168,12 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
         there is none, and never on a finished conversation, where nothing new can arrive. */}
     {ready && group && !group.terminal ? <V2Action label="Osvežite poruke" kind="quiet" tone="neutral" compact style={s.centred} onPress={refresh} /> : null}
   </View>;
-  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ScreenChrome variant="detail" title="Grupni razgovor" subtitle={group
+  return <SafeAreaView edges={p.embedded ? ['bottom'] : ['top', 'bottom']} style={s.screen}>
+    {p.embedded ? null : <ScreenChrome variant="detail" title="Grupni razgovor" subtitle={group
       ? group.members.length > 0 ? `Grupa · ${plural(group.members.length, 'učesnik', 'učesnika', 'učesnika')}` : 'Grupni razgovor'
       : undefined}
       backLabel={p.backLabel ?? 'Nazad na Dogovor'} onBack={p.onBack}
-      right={group ? <ChromeIconButton label="Učesnici razgovora" icon={Users} active={p.showPeople} onPress={people} /> : undefined} />
+      right={group ? <ChromeIconButton label="Učesnici razgovora" icon={Users} active={p.showPeople} onPress={people} /> : undefined} />}
     <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {state.context?.group && p.onPrivate ? <View style={s.gutter}><ConversationChannels context={state.context} selected="group" disabled={!ready}
         onGroup={() => undefined} onPrivate={p.onPrivate} onMore={p.onManagementNext} onPickerVisibilityChange={picker} /></View> : null}

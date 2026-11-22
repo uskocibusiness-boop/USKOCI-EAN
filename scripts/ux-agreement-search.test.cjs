@@ -41,7 +41,7 @@ test('UX06 matched collaborator is first without mutation, duplication or loss o
 async function setup(patch={}){
  const mocks=createHarness();mocks.native.Keyboard={dismiss:()=>{}};
  mocks.native.FlatList=p=>React.createElement('FlatList',p,p.data.length?p.data.map((item,index)=>React.createElement(React.Fragment,{key:item.id},p.renderItem({item,index}))):p.ListEmptyComponent,p.ListFooterComponent);
- for(const [file,exportName]of [['src/ui/system/ScreenChrome.tsx','ChromeIconButton'],['src/ui/system/StateView.tsx','StateView'],['src/ui/agreements/AgreementRoleRail.tsx','AgreementRoleRail'],['src/ui/agreements/AgreementListCard.tsx','AgreementTaskRow'],['src/ui/agreements/AgreementTaskCard.tsx','AgreementTaskCard'],['src/ui/agreements/GroupHeader.tsx','GroupHeader'],['src/ui/v2/QuietReadState.tsx','QuietReadState'],['src/ui/v2/discovery/SearchParts.tsx','SearchField']])mocks.stubs[file]={[exportName]:mocks.host(exportName)};
+ for(const [file,exportName]of [['src/ui/system/ScreenChrome.tsx','ChromeIconButton'],['src/ui/system/StateView.tsx','StateView'],['src/ui/agreements/AgreementRoleRail.tsx','AgreementRoleRail'],['src/ui/agreements/AgreementListCard.tsx','AgreementTaskRow'],['src/ui/agreements/AgreementTaskCard.tsx','AgreementTaskCard'],['src/ui/v2/discovery/DiscoveryChipRow.tsx','DiscoveryChipRow'],['src/ui/v2/discovery/DateRangeGrid.tsx','DateRangeGrid'],['src/ui/agreements/GroupHeader.tsx','GroupHeader'],['src/ui/v2/QuietReadState.tsx','QuietReadState'],['src/ui/v2/discovery/SearchParts.tsx','SearchField']])mocks.stubs[file]={[exportName]:mocks.host(exportName)};
  mocks.stubs['src/ui/system/ScreenChrome.tsx'].ScreenChrome=mocks.host('ScreenChrome');
  mocks.stubs['react-native-safe-area-context']={SafeAreaView:mocks.host('SafeAreaView')};
  const C=mocks.load('src/ui/v2/AgreementCollectionPresentation.tsx').AgreementCollectionPresentation;
@@ -52,60 +52,48 @@ async function setup(patch={}){
 const data=r=>nodes(r,n=>n.type==='FlatList')[0].props.data.filter(x=>x.kind==='item');
 const input=r=>nodes(r,n=>n.type==='SearchField')[0];
 const enter=async(r,q)=>RTR.act(async()=>input(r).props.onChangeText(q));
-test('UX06 magnifier opens one field, narrows groups and exact original record opens',async()=>{
- const h=await setup();assert.equal(input(h.r),undefined);await press(target(h.r,'Pretražite Dogovore'));assert.ok(input(h.r));await enter(h.r,'Ana');assert.equal(data(h.r).length,1);assert.equal(data(h.r)[0].task.items[0].id,'b');
+// Owner's Dogovori screen (22.11.2026): the search field is always there (search by task name), and Završeni is a capsule.
+const capsule=(r,key)=>nodes(r,n=>n.type==='DiscoveryChipRow')[0].props.chips.find(c=>c.key===key);
+test('UX06 the always-visible search narrows groups and the exact original record opens',async()=>{
+ const h=await setup();assert.ok(input(h.r));await enter(h.r,'Ana');assert.equal(data(h.r).length,1);assert.equal(data(h.r)[0].task.items[0].id,'b');
  const card=nodes(h.r,n=>n.type==='AgreementTaskRow')[0];await RTR.act(async()=>card.props.onOpen(card.props.group.items[0]));assert.deepEqual(h.calls,[['open','b']]);await h.stop();
 });
 test('UX06 clear preserves role and outcome choices while restoring groups',async()=>{
- const h=await setup({roleFilter:'narucilac',historyFilter:'completed'});await press(target(h.r,'Pretražite Dogovore'));await enter(h.r,'Ana');await enter(h.r,'');assert.equal(data(h.r).length,2);assert.deepEqual(h.calls,[]);await h.stop();
+ const h=await setup({roleFilter:'narucilac',historyFilter:'completed'});await enter(h.r,'Ana');await enter(h.r,'');assert.equal(data(h.r).length,2);assert.deepEqual(h.calls,[]);await h.stop();
 });
 test('UX06 no match offers clear, not a claim of no collaborations',async()=>{
- const h=await setup();await press(target(h.r,'Pretražite Dogovore'));await enter(h.r,'nepostojeci');
+ const h=await setup();await enter(h.r,'nepostojeci');
  const empty=target(h.r,'Nema rezultata u ovom pregledu');await RTR.act(async()=>empty.props.primary.onPress());assert.equal(data(h.r).length,2);await h.stop();
 });
 for(const flag of ['refreshError','refreshing'])test('UX06 '+flag+' does not declare complete no-results',async()=>{
- const h=await setup({[flag]:true});await press(target(h.r,'Pretražite Dogovore'));await enter(h.r,'nepostojeci');assert.ok(target(h.r,'Rezultati pretrage nisu potvrđeni'));assert.equal(nodes(h.r,n=>n.props.title==='Nema rezultata u ovom pregledu').length,0);await h.stop();
+ const h=await setup({[flag]:true});await enter(h.r,'nepostojeci');assert.ok(target(h.r,'Rezultati pretrage nisu potvrđeni'));assert.equal(nodes(h.r,n=>n.props.title==='Nema rezultata u ovom pregledu').length,0);await h.stop();
 });
 test('UX06 error/loading hide search results and preserve recovery',async()=>{
- const h=await setup();await press(target(h.r,'Pretražite Dogovore'));await enter(h.r,'Ana');await h.update({error:true});assert.equal(data(h.r).length,0);assert.ok(target(h.r,'Ne možemo da učitamo Dogovore'));
+ const h=await setup();await enter(h.r,'Ana');await h.update({error:true});assert.equal(data(h.r).length,0);assert.ok(target(h.r,'Ne možemo da učitamo Dogovore'));
  await h.update({error:false,loading:true});assert.equal(data(h.r).length,0);assert.ok(target(h.r,'Učitavamo Dogovore…'));await h.stop();
 });
 test('UX06 history uses separate query and does not leak active results',async()=>{
- const h=await setup({items:[row('a'),row('b',{stanje:'COMPLETED',naslov:'Montaža'})]});await press(target(h.r,'Pretražite Dogovore'));await enter(h.r,'Selidba');
- await h.update({section:'history'});assert.equal(input(h.r),undefined);await press(target(h.r,'Pretražite Dogovore'));await enter(h.r,'Montaža');assert.equal(data(h.r)[0].task.items[0].id,'b');
+ const h=await setup({items:[row('a'),row('b',{stanje:'COMPLETED',naslov:'Montaža'})]});await enter(h.r,'Selidba');
+ await h.update({section:'history'});assert.equal(input(h.r).props.value,'');await enter(h.r,'Montaža');assert.equal(data(h.r)[0].task.items[0].id,'b');
  await h.update({section:'active'});assert.equal(input(h.r).props.value,'Selidba');assert.equal(data(h.r)[0].task.items[0].id,'a');await h.stop();
 });
-test('UX06 closing search clears its filter, and normal scroll survives search',async()=>{
+test('UX06 clearing the search restores the list and normal scroll survives search',async()=>{
  const h=await setup();await RTR.act(async()=>nodes(h.r,n=>n.type==='FlatList')[0].props.onScroll({nativeEvent:{contentOffset:{y:420}}}));
- await press(target(h.r,'Pretražite Dogovore'));await enter(h.r,'Ana');assert.equal(nodes(h.r,n=>n.type==='FlatList')[0].props.contentOffset.y,0);
- await press(target(h.r,'Zatvorite pretragu Dogovora'));assert.equal(input(h.r),undefined);assert.equal(data(h.r).length,2);assert.equal(nodes(h.r,n=>n.type==='FlatList')[0].props.contentOffset.y,420);await h.stop();
+ await enter(h.r,'Ana');assert.equal(nodes(h.r,n=>n.type==='FlatList')[0].props.contentOffset.y,0);
+ await enter(h.r,'');assert.equal(data(h.r).length,2);assert.equal(nodes(h.r,n=>n.type==='FlatList')[0].props.contentOffset.y,420);await h.stop();
 });
-test('UX06 empty initial list has no useless search control',async()=>{const h=await setup({items:[]});assert.equal(nodes(h.r,n=>n.props.label==='Pretražite Dogovore').length,0);await h.stop();});
-
-const sectionTabs=r=>nodes(r,n=>n.type==='Segmented'&&n.props.options?.some(option=>option.key==='history'));
-const historyLinks=r=>nodes(r,n=>n.type==='Press'&&n.props.accessibilityLabel==='Prethodne saradnje');
-test('Agreement history has one entry when the upper section selector is available, including filtered-empty results',async()=>{
+test('Dogovori capsules: Aktivni, Moji zadaci, Uskačem, Čeka Vas and Završeni; Završeni opens the finished section',async()=>{
  const h=await setup({confirmationOnly:true});
- assert.equal(sectionTabs(h.r).length,1);assert.equal(historyLinks(h.r).length,0);
- await press(target(h.r,'Pretražite Dogovore'));await enter(h.r,'nepostojeci');assert.equal(data(h.r).length,0);
- assert.equal(sectionTabs(h.r).length,1);assert.equal(historyLinks(h.r).length,0);
- await RTR.act(async()=>sectionTabs(h.r)[0].props.onChange('history'));
- assert.deepEqual(h.calls,[['section','history'],['confirmation',false]]);await h.stop();
+ assert.deepEqual(nodes(h.r,n=>n.type==='DiscoveryChipRow')[0].props.chips.map(c=>c.label),['Aktivni','Moji zadaci','Uskačem','Čeka Vas','Završeni']);
+ assert.equal(capsule(h.r,'waiting').selected,true);
+ await RTR.act(async()=>capsule(h.r,'history').onPress());assert.deepEqual(h.calls,[['section','history'],['confirmation',false]]);await h.stop();
 });
-test('Agreement empty source keeps history access when the upper selector is absent',async()=>{
- const h=await setup({items:[]});assert.equal(sectionTabs(h.r).length,0);assert.equal(historyLinks(h.r).length,1);
- await press(target(h.r,'Prethodne saradnje'));assert.deepEqual(h.calls,[['section','history'],['confirmation',false]]);
- await h.update({section:'history'});assert.equal(historyLinks(h.r).length,0);
- const chrome=nodes(h.r,n=>n.type==='ScreenChrome')[0];await RTR.act(async()=>chrome.props.onBack());
- assert.deepEqual(h.calls.at(-1),['section','active']);await h.stop();
-});
-test('Agreement history access survives stale reads and recovers after loading or failure',async()=>{
- const h=await setup({refreshError:true});assert.equal(sectionTabs(h.r).length,1);assert.equal(historyLinks(h.r).length,0);
- await h.update({items:[]});assert.equal(historyLinks(h.r).length,1);
- for(const state of [{loading:true,error:false},{loading:false,error:true}]){
-  await h.update(state);assert.equal(sectionTabs(h.r).length,0);assert.equal(historyLinks(h.r).length,0);
- }
- await h.update({loading:false,error:false,refreshError:false});assert.equal(historyLinks(h.r).length,1);await h.stop();
+test('Dogovori history: back returns to the active list; the capsule is there in every read state',async()=>{
+ const h=await setup({items:[],section:'history'});assert.equal(capsule(h.r,'history').selected,true);
+ const back=nodes(h.r,n=>n.type==='ChromeIconButton'&&n.props.label==='Nazad na aktivne Dogovore')[0];await RTR.act(async()=>back.props.onPress());
+ assert.deepEqual(h.calls.at(-1),['section','active']);
+ for(const state of [{loading:true,error:false},{loading:false,error:true},{refreshError:true}]){await h.update(state);assert.ok(capsule(h.r,'history'));}
+ await h.stop();
 });
 
 const {agreementMenuActions, MENU_WAIT_REASON}=h.load('src/ui/agreements/agreementMenu.ts');

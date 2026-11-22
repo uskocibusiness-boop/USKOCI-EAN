@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
-import { FlatList, Keyboard, Platform, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { FlatList, Keyboard, Modal, Platform, Pressable, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { V2Action } from './V2Action';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { NeedSearchState } from '../../contracts/needSearchRecovery';
@@ -24,6 +25,8 @@ import { agreementGroupMatchesSearch, agreementSearchQuery, AGREEMENT_SEARCH_MAX
 import { AgreementRoleRail } from '../agreements/AgreementRoleRail';
 import { AgreementTaskRow } from '../agreements/AgreementListCard';
 import { AgreementTaskCard } from '../agreements/AgreementTaskCard';
+import { DiscoveryChipRow, type QuickChip } from './discovery/DiscoveryChipRow';
+import { DateRangeGrid } from './discovery/DateRangeGrid';
 import { QuietReadState } from './QuietReadState';
 import { GroupHeader } from '../agreements/GroupHeader';
 import {
@@ -82,6 +85,22 @@ const CLIP_OFFSCREEN = Platform.OS === 'android';
 /** The minute the day groups are taken at: a number that changes once a minute, so rows memoised on it are not drawn again inside one. */
 const minuteOf = (now?: Date) => Math.floor((now ?? new Date()).getTime() / 60_000) * 60_000;
 /** Count the tasks shown in this group, not the separate people collaborating on each task. */
+/** A civil day in Serbian time, YYYY-MM-DD. */
+const serbianDayOf = (date: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Belgrade', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+const dayLabel = (day: string) => { const [y, m, d] = day.split('-'); return `${Number(d)}. ${Number(m)}. ${y}.`; };
+/** A task is in the date range when one of its Dogovori starts on a day inside it; no range keeps everything. */
+function inRange(task: AgreementTaskGroup, range: { from: string; to: string | null } | null): boolean {
+  if (!range) return true;
+  const to = range.to ?? range.from;
+  return task.items.some(item => {
+    const at = item.prihvacenPocetak ?? item.tacanTermin?.pocetak ?? null;
+    if (!at) return false;
+    const time = Date.parse(at);
+    if (!Number.isFinite(time)) return false;
+    const day = serbianDayOf(new Date(time));
+    return day >= range.from && day <= to;
+  });
+}
 const waitingTitle = (count: number) => `Čeka Vas · ${zadataka(count)}`;
 /** D01 shares the accepted Agreement projection in both account roles. Presentation only. */
 export function AgreementCollectionPresentation(props: Props) {
@@ -104,6 +123,10 @@ export function AgreementCollectionPresentation(props: Props) {
   const historyFilter = props.historyFilter ?? ownHistoryFilter;
   const setHistoryFilter = props.onHistoryFilter ?? setOwnHistoryFilter;
   const [ownRoleFilter, setOwnRoleFilter] = useState<AgreementRoleFilter>('all');
+  // Date filter (from - to): the accepted start of a Dogovor, in Serbian time.
+  const [dateRange, setDateRange] = useState<{ from: string; to: string | null } | null>(null);
+  const [pendingRange, setPendingRange] = useState<{ from: string; to: string | null } | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const roleFilter = props.roleFilter ?? ownRoleFilter;
   const setRoleFilter = props.onRoleFilter ?? setOwnRoleFilter;
   const roleItems = useMemo(() => filterAgreementRole(items, roleFilter), [items, roleFilter]);
@@ -116,6 +139,7 @@ export function AgreementCollectionPresentation(props: Props) {
   const counts = props.pagination?.counts;
   const hasBothRoles = counts?.hasBothRoles ?? loadedBothRoles;
   const now = minuteOf(props.now);
+  const todayDay = serbianDayOf(new Date(now));
   const tasks = useMemo(() => groupAgreementTasks(roleItems), [roleItems]);
   const activeItems = useMemo(() => tasks.filter(isActiveAgreementTask), [tasks]);
   const historyItems = useMemo(() => tasks.filter(task => !isActiveAgreementTask(task)), [tasks]);
@@ -128,9 +152,9 @@ export function AgreementCollectionPresentation(props: Props) {
   // Aktivni is groups ("Čeka tebe" first, then the days), each a heading and its cards; Istorija keeps the newest-first order
   // the server gave, narrowed by its chips. One flat list, so the window and the row memo stay as they were.
   const rows = useMemo<ListRow[]>(() => {
-    if (section === 'history') return historyItems.filter(task => filterHistory(task.items, historyFilter).length > 0 && agreementGroupMatchesSearch(task, query, historyFilter))
+    if (section === 'history') return historyItems.filter(task => filterHistory(task.items, historyFilter).length > 0 && agreementGroupMatchesSearch(task, query, historyFilter) && inRange(task, dateRange))
       .map(task => ({ id: task.key, kind: 'item' as const, task }));
-    const pool = activeItems.filter(task => (!filtering || task.items.some(item => agreementAttention(item) !== null)) && agreementGroupMatchesSearch(task, query));
+    const pool = activeItems.filter(task => (!filtering || task.items.some(item => agreementAttention(item) !== null)) && agreementGroupMatchesSearch(task, query) && inRange(task, dateRange));
     const groups = groupActiveAgreementTasks(pool, new Date(now));
     let upcomingStarted = false;
     return groups.flatMap(group => {
@@ -143,7 +167,7 @@ export function AgreementCollectionPresentation(props: Props) {
       // unfinished work. The cards themselves carry the exact day and time.
       return [...heading, ...group.items.map(task => ({ id: task.key, kind: 'item' as const, task }))];
     });
-  }, [section, filtering, activeItems, historyItems, historyFilter, now, query]);
+  }, [section, filtering, activeItems, historyItems, historyFilter, now, query, dateRange]);
   const loadedWaiting = useMemo(() => roleItems.filter(item => agreementAttention(item) !== null).length, [roleItems]);
   const waiting = counts?.activeAttention ?? counts?.attention ?? loadedWaiting;
   const settledRead = !loading && !error;
@@ -238,40 +262,54 @@ export function AgreementCollectionPresentation(props: Props) {
   const searchControl = search.open || search.query || settledRead && items.length > 0
     ? <ChromeIconButton glyph="search" label={search.open ? 'Zatvorite pretragu Dogovora' : 'Pretražite Dogovore'} active={search.open}
       onPress={() => { if (search.open) Keyboard.dismiss(); search.onToggle(); }} /> : null;
+  // Owner's Dogovori screen (22.11.2026): back, a search by task name, a filter button; below, quick capsules as on the map.
+  const capsules: QuickChip[] = [
+    { key: 'active', label: 'Aktivni', selected: section === 'active' && roleFilter === 'all' && !filtering,
+      onPress: () => { props.onSection('active'); setRoleFilter('all'); props.onConfirmationOnly(false); } },
+    { key: 'mine', label: 'Moji zadaci', selected: section === 'active' && roleFilter === 'narucilac',
+      onPress: () => { props.onSection('active'); setRoleFilter(roleFilter === 'narucilac' ? 'all' : 'narucilac'); props.onConfirmationOnly(false); } },
+    { key: 'worker', label: 'Uskačem', selected: section === 'active' && roleFilter === 'uskocer',
+      onPress: () => { props.onSection('active'); setRoleFilter(roleFilter === 'uskocer' ? 'all' : 'uskocer'); props.onConfirmationOnly(false); } },
+    { key: 'waiting', label: 'Čeka Vas', selected: section === 'active' && confirmationOnly,
+      onPress: () => { props.onSection('active'); props.onConfirmationOnly(!(section === 'active' && confirmationOnly)); } },
+    { key: 'history', label: 'Završeni', selected: section === 'history',
+      onPress: () => { props.onSection(section === 'history' ? 'active' : 'history'); props.onConfirmationOnly(false); } },
+  ];
+  const dateLabel = dateRange ? `${dayLabel(dateRange.from)} – ${dayLabel(dateRange.to ?? dateRange.from)}` : null;
   return <SafeAreaView edges={['top']} style={s.screen}>
-    {section === 'history' ? <ScreenChrome variant="detail" title="Prethodne saradnje" backLabel="Nazad na Dogovore"
-      onBack={() => props.onSection('active')} right={searchControl} />
-      : props.header ?? <ScreenHeader title="Dogovori" showTitle onProfile={props.onProfile}
-        right={<>{searchControl}<ChromeIconButton glyph="calendar" label="Raspored" onPress={props.onCalendar} /></>} />}
-    <View style={s.controls}>
-      {settledRead && items.length > 0 ? <View style={s.sectionTabs}>
-        <Segmented
-          options={[
-            { key: 'active', label: 'Aktivni' },
-            { key: 'history', label: 'Završeni' },
-          ]}
-          value={section}
-          onChange={next => { props.onSection(next); props.onConfirmationOnly(false); }}
-        />
-      </View> : null}
-      {search.open ? <View style={s.search}>
-        <SearchField testID="agreement-search-input" label="Pretraga Dogovora" placeholder="Zadatak, osoba ili mesto" clearLabel="Obrišite pretragu"
-          value={search.query} onChangeText={search.onChange} autoFocus maxLength={AGREEMENT_SEARCH_MAX_LENGTH} returnKeyType="search" onSubmit={() => Keyboard.dismiss()} />
-        <T variant="meta" tone="muted">{section === 'history' ? 'Pretražujete prethodne saradnje.' : 'Pretražujete trenutne Dogovore.'}</T>
-      </View> : null}
-      {query && props.refreshing && !loading && !error ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Osvežavamo rezultate. Pretraga trenutno obuhvata poslednje učitane podatke.</T> : null}
-      {settledRead && (hasBothRoles || roleFilter !== 'all') ? <View style={s.filterRow}>
-        <AgreementRoleRail value={roleFilter} onChange={value => { setRoleFilter(value); props.onConfirmationOnly(false); }} />
-      </View> : null}
-      {chips ? <View style={s.filterRow}>
-        {chips}
-      </View> : null}
-      {section === 'history' && freshRead && attention > 0 ? <Press accessibilityRole="button"
-        accessibilityLabel={waitingTitle(attention)} accessibilityHint="Otvara Dogovore, prvo one koji čekaju Vašu radnju."
-        onPress={() => { props.onSection('active'); props.onConfirmationOnly(false); }} style={s.attentionLink}>
-        <T variant="meta" style={s.attentionText}>{waitingTitle(attention)}</T><Glyph name="caret-right" size={20} />
-      </Press> : null}
+    <View style={s.topBar}>
+      <ChromeIconButton glyph="back" label={section === 'history' ? 'Nazad na aktivne Dogovore' : 'Nazad na Početnu'}
+        onPress={() => { if (section === 'history') { props.onSection('active'); return; } props.onHome?.(); }} />
+      <View style={s.searchGrow}>
+        <SearchField testID="agreement-search-input" label="Pretraga Dogovora po nazivu zadatka" placeholder="Pretražite po nazivu zadatka" clearLabel="Obrišite pretragu"
+          value={search.query} onChangeText={value => { if (!search.open) search.onToggle(); search.onChange(value); }}
+          maxLength={AGREEMENT_SEARCH_MAX_LENGTH} returnKeyType="search" onSubmit={() => Keyboard.dismiss()} />
+      </View>
+      <ChromeIconButton glyph="filters" label={dateLabel ? `Filteri, datum ${dateLabel}` : 'Filteri'} active={!!dateRange} onPress={() => setFiltersOpen(true)} />
     </View>
+    <DiscoveryChipRow chips={capsules} testID="agreement-capsules" />
+    {dateLabel ? <View style={s.activeFilter}>
+      <T variant="meta" tone="muted">Datum: {dateLabel}</T>
+      <Press accessibilityRole="button" accessibilityLabel="Uklonite filter datuma" onPress={() => setDateRange(null)} haptic="select" style={s.clearFilter}>
+        <Glyph name="close" size={16} tone="muted" />
+      </Press>
+    </View> : null}
+    {query && props.refreshing && !loading && !error ? <T variant="note" tone="muted" style={s.searchNote} accessibilityLiveRegion="polite">Osvežavamo rezultate. Pretraga trenutno obuhvata poslednje učitane podatke.</T> : null}
+    {filtersOpen ? <Modal visible transparent animationType="slide" onRequestClose={() => setFiltersOpen(false)}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Zatvorite filtere" style={s.scrim} onPress={() => setFiltersOpen(false)} />
+      <View style={s.sheet}>
+        <T variant="title" accessibilityRole="header">Filteri</T>
+        <T variant="note" tone="muted">Izaberite datum od – do. Prikazuju se Dogovori sa terminom u tom periodu.</T>
+        <DateRangeGrid today={todayDay} now={new Date(now)} from={pendingRange?.from ?? null} to={pendingRange?.to ?? null}
+          onDay={day => setPendingRange(current => !current || current.to || day < current.from ? { from: day, to: null } : { from: current.from, to: day })} />
+        <View style={s.sheetActions}>
+          <V2Action tone="neutral" kind="quiet" label="Poništite" onPress={() => { setPendingRange(null); setDateRange(null); setFiltersOpen(false); }} />
+          <V2Action tone="neutral" label="Primenite" disabled={!pendingRange} onPress={() => { setDateRange(pendingRange); setFiltersOpen(false); }} />
+        </View>
+        {props.onCalendar ? <Press accessibilityRole="button" accessibilityLabel="Otvorite Raspored" onPress={() => { setFiltersOpen(false); props.onCalendar?.(); }}
+          haptic="select" style={s.calendarLink}><Glyph name="calendar" size={20} tone="green" /><T variant="note" tone="green">Otvorite Raspored</T></Press> : null}
+      </View>
+    </Modal> : null}
     {props.refreshError && !loading && !error ? <View style={s.refreshNotice} accessibilityLiveRegion="polite">
       <Surface kind="note" tone="warn">
         <T variant="note">Nismo uspeli da osvežimo Dogovore. Prikazano je poslednje učitano stanje.</T>
@@ -339,4 +377,14 @@ const s = StyleSheet.create({
   empty: { flex: 1 },
   separator: { height: layout.group },
   headingSeparator: { height: sys.space.sm },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingHorizontal: sys.space.sm, paddingTop: sys.space.xs },
+  searchGrow: { flex: 1, minWidth: 0 },
+  activeFilter: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingHorizontal: layout.gutter },
+  clearFilter: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  searchNote: { paddingHorizontal: layout.gutter },
+  scrim: { flex: 1, backgroundColor: 'rgba(10, 31, 20, 0.32)' },
+  sheet: { backgroundColor: sys.color.surface, borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet,
+    padding: layout.gutter, gap: sys.space.md, paddingBottom: sys.space.xl * 2 },
+  sheetActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: sys.space.sm },
+  calendarLink: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 44 },
 });

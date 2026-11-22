@@ -195,7 +195,7 @@ test('R09 mounted background gate retires private rows and stale load-more callb
 async function presentationHarness(patch={}){
  const h=createHarness(),calls=[];h.native.Keyboard={dismiss:()=>{}};
  h.native.FlatList=p=>React.createElement('FlatList',p,p.data.length?p.data.map((item,index)=>React.createElement(React.Fragment,{key:item.id},p.renderItem({item,index}))):p.ListEmptyComponent,p.ListFooterComponent);
- for(const [file,name] of [['src/ui/system/ScreenChrome.tsx','ChromeIconButton'],['src/ui/system/StateView.tsx','StateView'],['src/ui/agreements/AgreementRoleRail.tsx','AgreementRoleRail'],['src/ui/agreements/AgreementListCard.tsx','AgreementTaskRow'],['src/ui/agreements/AgreementTaskCard.tsx','AgreementTaskCard'],['src/ui/agreements/GroupHeader.tsx','GroupHeader'],['src/ui/v2/QuietReadState.tsx','QuietReadState'],['src/ui/v2/discovery/SearchParts.tsx','SearchField']])h.stubs[file]={[name]:h.host(name)};
+ for(const [file,name] of [['src/ui/system/ScreenChrome.tsx','ChromeIconButton'],['src/ui/system/StateView.tsx','StateView'],['src/ui/agreements/AgreementRoleRail.tsx','AgreementRoleRail'],['src/ui/agreements/AgreementListCard.tsx','AgreementTaskRow'],['src/ui/agreements/AgreementTaskCard.tsx','AgreementTaskCard'],['src/ui/v2/discovery/DiscoveryChipRow.tsx','DiscoveryChipRow'],['src/ui/v2/discovery/DateRangeGrid.tsx','DateRangeGrid'],['src/ui/agreements/GroupHeader.tsx','GroupHeader'],['src/ui/v2/QuietReadState.tsx','QuietReadState'],['src/ui/v2/discovery/SearchParts.tsx','SearchField']])h.stubs[file]={[name]:h.host(name)};
  h.stubs['src/ui/system/ScreenChrome.tsx'].ScreenChrome=h.host('ScreenChrome');h.stubs['react-native-safe-area-context']={SafeAreaView:h.host('SafeAreaView')};
  const C=h.load('src/ui/v2/AgreementCollectionPresentation.tsx').AgreementCollectionPresentation;
  const row={id:ID(10),izvor:{zadatakId:ID(110),prijavaId:ID(210)},naslov:'Selidba',stanje:'CONFIRMED',ocenaMoguca:false,stanjeProvereOcene:'NOT_DUE',
@@ -219,8 +219,10 @@ test('R09 stale refresh disables later pages but preserves the last cards and re
  await press(target(h.r,'Ponovo osvežite Dogovore'));assert.deepEqual(h.calls,[['refresh']]);await h.stop();
 });
 test('R09 server counts preserve role filters and distinguish no active work from no agreements',async()=>{
- const h=await presentationHarness();assert.equal(nodes(h.r,n=>n.type==='AgreementRoleRail').length,1);
+ // Owner's Dogovori screen (22.11.2026): roles are the capsules Moji zadaci / Uskačem; Završeni is a capsule too.
+ const h=await presentationHarness();const chips=()=>nodes(h.r,n=>n.type==='DiscoveryChipRow')[0].props.chips;
+ assert.ok(chips().some(c=>c.key==='mine'&&c.label==='Moji zadaci'));assert.ok(chips().some(c=>c.key==='worker'&&c.label==='Uskačem'));
  await h.update({items:[],pagination:{...h.props.pagination,hasMore:false,loadedGroups:0,counts:{...h.counts,matching:0,active:0}}});
  assert.ok(target(h.r,'Nema aktivnih Dogovora'));assert.equal(nodes(h.r,n=>n.props.title==='Još nemate Dogovora').length,0);
- await press(target(h.r,'Prethodne saradnje'));assert.deepEqual(h.calls,[['section','history']]);await h.stop();
+ await RTR.act(async()=>chips().find(c=>c.key==='history').onPress());assert.deepEqual(h.calls[0],['section','history']);await h.stop();
 });

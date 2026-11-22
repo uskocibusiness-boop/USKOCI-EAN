@@ -23,9 +23,9 @@ const SCROLL_FIRST: [number, number] = [-16, 16];
  * with its own journal and confirmation), swipe left declines after one short confirmation and the application disappears.
  * Swiping is never the only way: the same two commands are buttons for a screen reader and under a long text setting.
  */
-export function ApplicationSwipeCard({ candidate, busy, error, onAccept, onDecline }: {
+export function ApplicationSwipeCard({ candidate, busy, error, onAccept, onDecline, onAvatar }: {
   candidate: KandidatProjekcija; busy: boolean; error: string | null;
-  onAccept: () => void; onDecline: () => void;
+  onAccept: () => void; onDecline: () => void; onAvatar?: () => void;
 }) {
   const swipeable = useRef<Swipeable>(null);
   const reduced = useReducedMotion();
@@ -50,7 +50,10 @@ export function ApplicationSwipeCard({ candidate, busy, error, onAccept, onDecli
         accessibilityActions={[{ name: 'accept', label: 'Prihvatite prijavu' }, { name: 'decline', label: 'Odbijte prijavu' }]}
         onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'accept') onAccept(); else setConfirming(true); }}
         style={s.row}>
-        {candidate.radnikProfilId ? <ProfilePhoto profileId={candidate.radnikProfilId} size={48} fallback={letters} /> : letters}
+        <Press accessibilityRole="button" accessibilityLabel={`Profil: ${candidate.ime}`} accessibilityHint="Otvara profil, ocene i recenzije."
+          onPress={onAvatar} disabled={!onAvatar} haptic="select">
+          {candidate.radnikProfilId ? <ProfilePhoto profileId={candidate.radnikProfilId} size={48} fallback={letters} /> : letters}
+        </Press>
         <View style={s.copy}>
           <T variant="bodyStrong" numberOfLines={1}>{candidate.ime}</T>
           {candidate.ocenaTekst ? <View style={s.fact}><FactArt kind="star" size={16} /><T variant="meta" tone="muted" numberOfLines={1}>{candidate.ocenaTekst}</T></View> : null}

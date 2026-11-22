@@ -527,7 +527,7 @@ test('R11 Agreement guidance stays inside the scroll list and does not compete w
  h.stubs['react-native-safe-area-context']={SafeAreaView:h.host('SafeAreaView')};
  h.stubs['src/ui/system/ScreenChrome.tsx']={ChromeIconButton:h.host('ChromeIconButton'),ScreenChrome:h.host('ScreenChrome')};
  for(const [file,name]of [['src/ui/system/StateView.tsx','StateView'],['src/ui/agreements/AgreementRoleRail.tsx','AgreementRoleRail'],
-  ['src/ui/v2/QuietReadState.tsx','QuietReadState'],['src/ui/agreements/GroupHeader.tsx','GroupHeader'],['src/ui/v2/discovery/SearchParts.tsx','SearchField'],['src/ui/agreements/AgreementTaskCard.tsx','AgreementTaskCard']])h.stubs[file]={[name]:h.host(name)};
+  ['src/ui/v2/QuietReadState.tsx','QuietReadState'],['src/ui/agreements/GroupHeader.tsx','GroupHeader'],['src/ui/v2/discovery/SearchParts.tsx','SearchField'],['src/ui/agreements/AgreementTaskCard.tsx','AgreementTaskCard'],['src/ui/v2/discovery/DiscoveryChipRow.tsx','DiscoveryChipRow'],['src/ui/v2/discovery/DateRangeGrid.tsx','DateRangeGrid']])h.stubs[file]={[name]:h.host(name)};
  const C=h.load('src/ui/v2/AgreementCollectionPresentation.tsx').AgreementCollectionPresentation;
  const props={items:[],section:'active',confirmationOnly:false,loading:false,error:false,
   onSection:()=>{},onConfirmationOnly:()=>{},onRefresh:()=>{},onOpen:()=>{},onCalendar:()=>{},onProfile:()=>{},onHome:()=>{}};

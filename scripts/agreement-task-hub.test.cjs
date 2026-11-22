@@ -34,12 +34,17 @@ test('remote task and different prices are said plainly', () => {
   assert.equal(s.placeText,'Na daljinu'); assert.equal(s.remote,true); assert.equal(s.priceText,'Različite cene po osobi');
 });
 
-test('the task screen: four icons with the blue paper plane for Prijave, owner-only Prijave and editing', () => {
+test('the task screen: back and four premium icons on top (handshake, blue paper plane, chat, edit); overview below', () => {
   const hub=read('src/ui/agreements/AgreementTaskHub.tsx');
-  has(hub,"art: 'applications' as const, onPress: () => setTab('applications')");
-  has(hub,"...(owner ? [{ key: 'applications'"); has(hub,"...(owner ? [{ key: 'edit'");
-  has(hub,"key: 'group' as const, label: 'Grupa', glyph: 'messages'");
-  has(hub,'Pošaljite privatnu poruku'); has(hub,'onRemove={owner ?');
+  has(hub,"<BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} art=\"agreements\"");
+  has(hub,"{owner ? <BarIcon label=\"Prijave\" art=\"applications\"",'Prijave only for the task owner, with the blue paper plane');
+  has(hub,"<BarIcon label=\"Grupni razgovor\" art=\"chat\"");
+  has(hub,"{owner ? <BarIcon label=\"Uređivanje zadatka\" glyph=\"edit\"");
+  has(hub,"<GroupConversationScreen agreementId={anchor.id} embedded />",'the group conversation is on the same screen');
+  has(hub,"<T variant=\"label\" tone=\"muted\">Opis</T>"); has(hub,"Približno mesto, oko 200 m.");
+  has(hub,"{owner ? 'Dogovoreno sa' : 'Objavio zadatak'}");
+  has(hub,"Privatna poruka: "); has(hub,"Uklonite iz Dogovora: ");
+  has(hub,"<PublicProfileSheet state={profile}",'avatar opens profile and reviews in a sheet');
   has(hub,'people = summary ? (owner ? summary.people : summary.owner ? [summary.owner] : [])','a worker sees only the task owner');
 });
 
@@ -55,6 +60,7 @@ test('Prijave: swipe right opens the existing selection review, swipe left decli
   has(card,"if (direction === 'left') onAccept(); else setConfirming(true);");
   has(card,'Odbijte prijavu osobe'); has(card,"accessibilityActions={[{ name: 'accept'",'swiping is never the only way');
   has(hub,"pathname: '/potrebe/[id]/kandidati', params: { id: needId, prijavaId: c.prijavaId }");
+  has(card,'onPress={onAvatar}','the applicant avatar opens the profile');
   has(hub,"const OPEN_APPLICATION = new Set(['SELECTABLE', 'STALE', 'OVERFILL'])");
   has(hub,"declineIds.current.get(c.prijavaId) ?? noviZahtevId('odbijanje')",'a retry reuses the same request id');
   const svc=read('src/data/applicationDeclineClientService.ts');

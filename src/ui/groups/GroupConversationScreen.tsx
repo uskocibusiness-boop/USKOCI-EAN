@@ -11,7 +11,7 @@ import { GroupConversationPresentation } from './GroupConversationPresentation';
 import { privateConversationChoices } from './ConversationChannels';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { SupportContextEntry } from '../support/SupportContextEntry';
-export function GroupConversationScreen({agreementId,fromInbox=false,initialTarget}:{agreementId:string;fromInbox?:boolean;initialTarget?:{groupId:string;messageId:string;sequence:string}}){
+export function GroupConversationScreen({agreementId,fromInbox=false,initialTarget,embedded=false}:{agreementId:string;fromInbox?:boolean;initialTarget?:{groupId:string;messageId:string;sequence:string};embedded?:boolean}){
  const {user,accountRevision}=useSesija(),accountId=user?.id??'';
  const [state,setState]=useState(initialGroupState),[epoch,setEpoch]=useState(0),[generation,setGeneration]=useState(0),[showPeople,setShowPeople]=useState(false);
  const owner=useRef<object|null>(null),engine=useRef<GroupConversationController|null>(null);
@@ -68,7 +68,7 @@ export function GroupConversationScreen({agreementId,fromInbox=false,initialTarg
  const body=normalizeGroupBody(draft),capture=draftState.capture;
  const retryBody=retry&&capture&&!capture.confirmed&&capture.clientRequestId===state.journal?.clientRequestId
   &&capture.bodySha256===state.journal?.bodySha256?capture.body??undefined:undefined;
- return <GroupConversationPresentation state={state} draft={draft} draftLength={Array.from(body).length} draftSendable={!!groupBody(body)} draftEditable={draftEditable} draftError={draftState.error} draftSaving={draftState.saving} retryBody={retryBody} newerDraft={draftState.newerThanCapture} showPeople={showPeople} listKey={generation} viewability={viewability} onVisible={onVisible}
+ return <GroupConversationPresentation embedded={embedded} state={state} draft={draft} draftLength={Array.from(body).length} draftSendable={!!groupBody(body)} draftEditable={draftEditable} draftError={draftState.error} draftSaving={draftState.saving} retryBody={retryBody} newerDraft={draftState.newerThanCapture} showPeople={showPeople} listKey={generation} viewability={viewability} onVisible={onVisible}
   onBack={back} backLabel={fromInbox?'Nazad na Poruke':'Nazad na Dogovor'} onTogglePeople={()=>{if(current())setShowPeople(x=>!x);}} onRefresh={()=>invoke('refresh')} onOlder={()=>invoke('older')}
   onManagementNext={()=>invoke('managementNext')} onOpenAgreement={openAgreement} onPrivate={openPrivate} onDraft={change} onAcknowledge={()=>invoke('acknowledge')}
   onSaveDraft={()=>{if(current()&&draftEditable)void draftModel.flush().catch(()=>undefined);}}
