@@ -628,3 +628,19 @@ test('a refused daily rate keeps the clean job description',()=>{
   assert.equal(out.proposals.find(p=>p.key==='need.description')?.value,'Berba malina, potrebno 5 radnika');
   assert.equal(out.proposals.some(p=>p.key==='need.price_rsd'),false);
 });
+
+test('natural "no deadline" answers are accepted as an open application window',()=>{
+  const asked=[{role:'ASSISTANT',body:'Do kada želite da primate prijave zainteresovanih ekipa (datum i vreme ili bez strogog roka)?'}];
+  for (const answer of ['Ovaj, ma nema strogog rok. Mogu da primam prijave sve vreme.','Nemam rok za prijavu.','Primam prijave sve vreme','Bez ikakvog roka','Нема рока']) {
+    const evidence=answer.replace(/[.]$/u,'');
+    const out=run(turn('U redu, prijave ostaju otvorene.',[fact('need.response_deadline',{kind:'NONE'},evidence)],'','ACK'),answer,[],asked,time,true);
+    assert.equal(out.proposals.find(p=>p.key==='need.response_deadline')?.value?.kind,'NONE',answer);
+    assert.doesNotMatch(out.assistantMessage,/Samo da proverim rok/u,answer);
+  }
+  const understood=run(turn('U redu.',[fact('need.response_deadline',{kind:'NONE'},'ne treba mi to')],'','ACK'),'ne treba mi to',[],asked,time,true);
+  assert.equal(understood.proposals.find(p=>p.key==='need.response_deadline')?.value?.kind,'NONE','Gemini understands the answer; no word list');
+  const unasked=run(turn('U redu.',[fact('need.response_deadline',{kind:'NONE'},'Popravka slavine')],'','ACK'),'Popravka slavine u kupatilu');
+  assert.equal(unasked.proposals.some(p=>p.key==='need.response_deadline'),false,'never cleared when nobody asked about it');
+  const unquoted=run(turn('U redu.',[fact('need.response_deadline',{kind:'NONE'},'nema roka')],'','ACK'),'Subota u 10h',[],asked,time,true);
+  assert.equal(unquoted.proposals.some(p=>p.key==='need.response_deadline'),false,'the quote must come from this message');
+});

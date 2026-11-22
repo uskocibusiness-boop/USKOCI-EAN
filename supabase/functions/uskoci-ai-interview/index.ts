@@ -211,7 +211,10 @@ function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: a
     const decision = decodeTaskApplicationDeadlineFact(deadlineProposal.value);
     const evidence = typeof deadlineProposal.evidence === 'string' ? deadlineProposal.evidence.trim() : '';
     const anchored = evidence.length >= 3 && input.toLocaleLowerCase('sr').includes(evidence.toLocaleLowerCase('sr'));
-    const explicitClear = /(?:bez\s+(?:posebnog\s+)?roka|nema\s+roka|(?:ukloni|obriši|obrisi|poništi|ponisti)\s+(?:taj\s+)?rok|prijave\s+(?:ostaju|neka\s+ostanu)\s+otvorene)/iu.test(evidence);
+    // Gemini decides what the person meant and returns {"kind":"NONE"}; the server
+    // only checks provenance: a quote from this message, given in answer to the
+    // deadline question or about applications. Wording is never a word list.
+    const explicitClear = /(?:bez\s+(?:posebnog\s+|strogog\s+|ikakvog\s+|određenog\s+|odredjenog\s+)?roka|nema(?:m)?\s+(?:posebnog\s+|strogog\s+|ikakvog\s+|određenog\s+|odredjenog\s+)?rok(?:a|ova)?(?!\p{L})|(?:ukloni|obriši|obrisi|poništi|ponisti)\s+(?:taj\s+)?rok|prijave\s+(?:ostaju|neka\s+ostanu|su)\s+otvorene|(?:primam|primaću|primacu|mogu\s+da\s+primam)\s+prijave\s+(?:sve\s+vreme|stalno|uvek|bez\s+ograničenja|bez\s+ogranicenja)|rok\s+(?:nije\s+bitan|mi\s+ne\s+treba)|без\s+(?:посебног\s+|строгог\s+)?рока|нема(?:м)?\s+(?:посебног\s+|строгог\s+)?рок(?:а)?(?!\p{L}))/iu.test(evidence);
     const applicationIntent = /prijav|ponud|javlj|jave|odgovor|konkuri|пријав|понуд|јављ|јаве|одговор|конкури/iu.test(input);
     const hold = /(?:ne\s+menjaj|ne\s+diraj|ostavi\s+(?:isti|stari)|nemoj\s+da\s+menjaš)[^.!?]{0,32}rok/iu.test(input);
     const instant = decision?.kind === 'AT' ? Date.parse(decision.at) : NaN;
@@ -241,13 +244,13 @@ function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: a
     const knownDeadlineHour = decodeTaskApplicationDeadlineFact(known.get('need.response_deadline'))?.kind === 'AT';
     const missingMonthDeadlineHour = decision?.kind === 'AT' && nextMonth?.date && !unchanged && !literal
       && currentDateOnly && !knownDeadlineHour;
-    if (!decision || !anchored || hold || decision.kind === 'NONE' && !explicitClear || decision.kind === 'AT' && !applicationIntent && !pendingDeadlineQuestion || expired || localMismatch || relativeMismatch || missingMonthDeadlineHour) {
+    if (!decision || !anchored || hold || decision.kind === 'NONE' && !explicitClear && !pendingDeadlineQuestion && !applicationIntent || decision.kind === 'AT' && !applicationIntent && !pendingDeadlineQuestion || expired || localMismatch || relativeMismatch || missingMonthDeadlineHour) {
       return { ...turn, safety: turn.safety === 'REVIEW' ? 'REVIEW' : 'CLARIFY',
         proposals: turn.proposals.filter(p => p.key !== 'need.response_deadline'),
         dialogue: turn.safety === 'REVIEW' ? turn.dialogue : turn.dialogue ? { ...turn.dialogue, next: 'CLARIFY', questionKey: '' } : undefined,
         assistantMessage: missingMonthDeadlineHour
           ? `Do koliko sati ${nextMonth!.date!.split('-').reverse().join('.')} treba da budu otvorene prijave?`
-          : 'Rok za prijave nisam promenio. Da proverim: do kog datuma i sata po vremenu u Srbiji, ili želite izričito bez posebnog roka?' };
+          : 'Samo da proverim rok za prijave: da li ih primate do određenog datuma i sata, ili prijave ostaju otvorene bez roka? 🙂' };
     }
   }
   const country = turn.proposals.find(p => p.key === 'need.task_country_code')?.value ?? known.get('need.task_country_code');
