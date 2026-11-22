@@ -611,7 +611,7 @@ test('a repeated schedule or daily rate is answered only when this message says 
   const day=turn('Zabeležio sam okupljanje kod Sajma.',[],'','ACK'); day.dialogue.priceUnit='PER_DAY';
   assert.doesNotMatch(run(day,'Okupljamo se kod Sajma').assistantMessage,/Dnevnic/u);
   const daySaid=turn('U redu.',[],'','ACK'); daySaid.dialogue.priceUnit='PER_DAY';
-  assert.match(run(daySaid,'Dnevnica je 5000').assistantMessage,/Dnevnicu za sada ne možemo/u);
+  assert.match(run(daySaid,'Dnevnica je 5000').assistantMessage,/Cenu po danu ne upisujemo posebno/u);
 });
 
 test('"po 4000 svakom" and "2000 po času" are a stated price, not an unexplained number',()=>{
@@ -627,7 +627,7 @@ test('a refused daily rate keeps the clean job description',()=>{
   const value=turn('Dnevnica.',[fact('need.description','Berba malina, potrebno 5 radnika','berba malina'),fact('need.price_rsd',4000,'4000 dnevnica')],'','ACK');
   value.dialogue.priceUnit='PER_DAY';
   const out=run(value,'Trebaju mi radnici za berbu malina, 5 ljudi, plaćam 4000 dnevnica');
-  assert.match(out.assistantMessage,/Dnevnicu za sada ne možemo/u);
+  assert.match(out.assistantMessage,/Cenu po danu ne upisujemo posebno/u);
   assert.equal(out.proposals.find(p=>p.key==='need.description')?.value,'Berba malina, potrebno 5 radnika');
   assert.equal(out.proposals.some(p=>p.key==='need.price_rsd'),false);
 });
@@ -646,4 +646,17 @@ test('natural "no deadline" answers are accepted as an open application window',
   assert.equal(unasked.proposals.some(p=>p.key==='need.response_deadline'),false,'never cleared when nobody asked about it');
   const unquoted=run(turn('U redu.',[fact('need.response_deadline',{kind:'NONE'},'nema roka')],'','ACK'),'Subota u 10h',[],asked,time,true);
   assert.equal(unquoted.proposals.some(p=>p.key==='need.response_deadline'),false,'the quote must come from this message');
+});
+
+test('a daily rate becomes a confirmed total for the whole period; an amount from nowhere is never written',()=>{
+  const ask=turn('To je 5 dana po 1.000 dinara, ukupno 5.000 dinara. Važi li tako?',[fact('need.price_rsd',1000,'1000 dinara dnevno')],'','ASK');
+  ask.dialogue.priceUnit='PER_DAY';
+  const first=run(ask,'1000 dinara dnevno');
+  assert.match(first.assistantMessage,/ukupno 5\.000 dinara/u,'Gemini asks to confirm its computed total');
+  assert.equal(first.proposals.some(p=>p.key==='need.price_rsd'),false,'nothing is written before the confirmation');
+  const history=[{role:'USER',body:'1000 dinara dnevno'},{role:'ASSISTANT',body:first.assistantMessage}];
+  const confirmed=run(turn('Upisao sam 5.000 dinara ukupno.',[fact('need.price_mode','MY_PRICE','važi'),fact('need.price_rsd',5000,'važi'),fact('need.price_basis','TOTAL','važi')],'','ACK'),'Važi',[],history);
+  assert.equal(confirmed.proposals.find(p=>p.key==='need.price_rsd')?.value,5000);
+  const invented=run(turn('Upisao sam 7.000 dinara.',[fact('need.price_mode','MY_PRICE','važi'),fact('need.price_rsd',7000,'važi'),fact('need.price_basis','TOTAL','važi')],'','ACK'),'Važi',[],history);
+  assert.equal(invented.proposals.some(p=>p.key==='need.price_rsd'),false,'an amount nobody said or asked about is dropped');
 });

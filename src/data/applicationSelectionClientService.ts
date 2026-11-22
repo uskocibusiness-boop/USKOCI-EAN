@@ -1,3 +1,4 @@
+import { APPLICATION_NOTE_CONTACT_MESSAGE, textHasContact } from '../contracts/contactDetails';
 import type { Ishod, IzborKomanda, Izvor, PodnesiPrijavuKomanda } from './ports';
 import { calendarFailure } from './calendarErrors';
 import { calendarInstant } from '../lib/calendarTime';
@@ -21,6 +22,7 @@ export const applicationSelectionErrors: Readonly<Record<string, string>> = {
   RESPONSE_ALREADY_SELECTED: 'Ova prijava je već izabrana. Otvorite svoje Dogovore.',
   // Owner decision 2026-11-20: a withdrawn application is final for that task.
   APPLICATION_WITHDRAWN_FINAL: 'Povukli ste prijavu za ovaj zadatak. Ponovna prijava nije moguća.',
+  APPLICATION_NOTE_CONTACT: APPLICATION_NOTE_CONTACT_MESSAGE,
   RESPONSE_VERSION_NOT_FOUND: 'Ova verzija prijave više nije dostupna. Osvežite prijave i pokušajte ponovo.',
   RESPONSE_NEED_MISMATCH: 'Ova prijava ne pripada ovom zadatku. Osvežite prijave i pokušajte ponovo.',
   FIXED_WINDOW_START_PASSED: 'Termin ovog zadatka je već počeo. Nove prijave više nisu moguće.',
@@ -78,6 +80,7 @@ const profileBlockers = new Set<ApplicationEligibilityBlocker>([
 /** Exact no-write refusals observed in the deployed rpc_submit_response body.
  * Message text alone is not evidence; ID reuse and concurrency/transport errors are deliberately absent. */
 const conclusiveSubmitSqlstate: Readonly<Record<string, string>> = {
+  APPLICATION_NOTE_CONTACT: '22023',
   NEED_NOT_FOUND: 'P0002',
   NEED_NOT_OPEN: '22023',
   OWN_NEED: '42501',
@@ -321,6 +324,9 @@ async function command<T>(rpc: string, args: Record<string, unknown>, decode: (r
  * immutable request. Server still owns eligibility, calendar and atomic Agreement. */
 export const applicationSelectionClientService: Pick<Izvor, 'podnesiPrijavu' | 'izaberiPrijavu'> = {
   async podnesiPrijavu(k: PodnesiPrijavuKomanda) {
+    // The note stays with the person; nothing is sent while it carries a contact.
+    if (textHasContact(k.napomena)) return { ok: false, kod: 'APPLICATION_NOTE_CONTACT', poruka: APPLICATION_NOTE_CONTACT_MESSAGE,
+      applicationRefusal: true, hardBlockers: [] } as ApplicationSubmitRefusal;
     const args = submitArguments(k);
     if (!args) return invalid();
     type Envelope =

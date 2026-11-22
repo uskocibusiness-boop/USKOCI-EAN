@@ -135,6 +135,8 @@ FORWARD_20261121_PROOF_2 = 'docs/plan/proofs/20261121-dev-forward-migrations-evi
 FORWARD_20261121_PROOF_2_SHA256 = '7c2feb4496f634aa4513e2890f0aac41c19f15e9319b56c29b234aeadb8145fb'
 FORWARD_20261122_PROOF = 'docs/plan/proofs/20261122-dev-forward-migrations-evidence.md'
 FORWARD_20261122_PROOF_SHA256 = '9821cf273c64acaf501f3ec61bbed7a9768f81d67ac941d373aa495f1080d203'
+FORWARD_20261122_PROOF_2 = 'docs/plan/proofs/20261122-dev-forward-migrations-evidence-2.md'
+FORWARD_20261122_PROOF_2_SHA256 = '72215b4078ebed8373ec65f104c6d3f3c67190a206afb523bd95bbc18f7773c4'
 FORWARD_20261121 = [
     {
         "version": "20261121102509",
@@ -215,6 +217,16 @@ FORWARD_20261121 = [
         "rollback": "scripts/sql/rollback_worker_regions_preimage_20261122.sql",
         "evidence": FORWARD_20261122_PROOF,
         "evidence_sha256": FORWARD_20261122_PROOF_SHA256,
+    },
+    {
+        "version": "20261122105256",
+        "name": "application_note_without_contacts",
+        "md5": "c10dc54542c12a8a7bc1127ed3cf6284",
+        "sha256": "1f75fbb270c6a98162713313e6c2acd2da7349b225d72ec4f4e82a06f479244b",
+        "bytes": 2990,
+        "rollback": "scripts/sql/rollback_application_note_contact_preimage_20261122.sql",
+        "evidence": FORWARD_20261122_PROOF_2,
+        "evidence_sha256": FORWARD_20261122_PROOF_2_SHA256,
     },
 ]
 

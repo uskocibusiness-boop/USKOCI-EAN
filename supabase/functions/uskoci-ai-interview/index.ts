@@ -1194,7 +1194,14 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     && new RegExp(`(?:^|[^\\p{L}\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(clause));
   const barePriceProposed = numericPriceProposalWithoutCurrency
     && (explicitPriceWords || currentBareAmount && previousAskedPrice || amountOnlyCorrection || paymentClaim);
-  const spuriousNumericPriceProposal = amountOnlyMismatch || numericPriceProposalWithoutCurrency && !barePriceProposed;
+  // "Važi" / "može" confirms an amount only when our previous question stated it
+  // (e.g. the computed total for several days). An amount from nowhere is not
+  // the person's price, whatever the model proposed.
+  const knownRsdAmount = Number(activeFacts.find(fact => fact.fact_key === 'need.price_rsd' && fact.status !== 'UNKNOWN')?.fact_value);
+  const amountInPreviousQuestion = !!proposedAmountToken && typeof previousAssistant?.body === 'string'
+    && new RegExp(`(?:^|[^\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(previousAssistant.body);
+  const unsourcedAmount = !!priceProposal && !/\d/u.test(input) && proposedAmount !== knownRsdAmount && !amountInPreviousQuestion;
+  const spuriousNumericPriceProposal = amountOnlyMismatch || numericPriceProposalWithoutCurrency && !barePriceProposed || unsourcedAmount;
   // A bad amount proposal must not erase a separate, explicit choice to
   // collect offers. Require the user's words and the mode fact's evidence.
   const offersSaid = (value: string) => /ponud|понуд/iu.test(value);
@@ -1293,11 +1300,15 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
       || hasAmountIn(p.value, dinarUnit) || hasAmountIn(p.value, euroUnit) || /\d/u.test(p.value) && (unitPriceAmountIn(p.value) || repeated)))
       .map(p => p.key),
     ...(repeated ? ['need.schedule_kind', 'need.starts_at', 'need.ends_at'] : [])]);
+  // For a daily rate Gemini computes the total for the whole period and asks the
+  // person to confirm it; the price is written only after that confirmation.
+  const dailyRateQuestion = !repeated && !hourlyMismatch && turn.dialogue?.priceUnit === 'PER_DAY' && perDaySaid
+    && typeof turn.assistantMessage === 'string' && turn.assistantMessage.includes('?') && /\d/u.test(turn.assistantMessage);
   const unitMessage = repeated
     ? 'USKOČI pravi jedan konkretan zadatak, pa upisujemo prvi termin, a dalje se možete dogovoriti direktno sa izvršiocem 🙂 Kada bi bio taj prvi termin?'
     : hourlyMismatch
       ? `${hourlyRetraction ? 'Prethodna cena više nije potvrđena. ' : ''}Satnica se čuva po osobi po satu. Koji iznos u RSD po osobi po satu želite da postavite?`
-      : 'Dnevnicu za sada ne možemo da upišemo kao cenu. Koliko dinara nudite za ceo zadatak, ukupno ili po osobi?';
+      : 'Cenu po danu ne upisujemo posebno, nego ukupno za ceo zadatak. Koliko dana traje posao, ili koliko dinara nudite ukupno?';
   if (turn.safety === 'REVIEW') {
     // Keep a policy-review decision intact while preventing a mismatched price
     // from reaching its writer. This branch intentionally does not downgrade it.
@@ -1379,7 +1390,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
       priceRetraction: turn.priceRetraction ?? hourlyRetraction,
       proposals: turn.proposals.filter(p => !withheldUnitFacts.has(p.key)),
       dialogue: { ...dialogue!, next: 'CLARIFY', questionKey: '' },
-      assistantMessage: unsupportedPrice && !repeated ? turn.assistantMessage : unitMessage };
+      assistantMessage: unsupportedPrice && !repeated || dailyRateQuestion ? turn.assistantMessage : unitMessage };
     // Continue all existing validation, including relative dates and bounded
     // flexible ranges. A pricing clarification must never bypass time guards.
     turn = partial;

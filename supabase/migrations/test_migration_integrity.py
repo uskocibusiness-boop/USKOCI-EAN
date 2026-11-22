@@ -1062,8 +1062,9 @@ class Forward20261121ProvenanceTests(unittest.TestCase):
             "20261121152127_publication_pre_evaluation.sql",
             "20261121212026_geo_privacy_public_labels_200m_grid.sql",
             "20261122084958_worker_regions_districts_unlimited_areas.sql",
+            "20261122105256_application_note_without_contacts.sql",
         ])
-        self.assertEqual([e["dev_migration_count_after"] for e in self.section], [377, 378, 379, 380, 381, 382, 383, 384])
+        self.assertEqual([e["dev_migration_count_after"] for e in self.section], [377, 378, 379, 380, 381, 382, 383, 384, 385])
 
     def test_wrong_field_in_any_entry_fails_closed(self):
         for index in range(len(self.section)):

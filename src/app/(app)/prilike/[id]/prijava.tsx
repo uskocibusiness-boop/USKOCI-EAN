@@ -1,3 +1,4 @@
+import { APPLICATION_NOTE_CONTACT_MESSAGE, textHasContact } from '../../../../contracts/contactDetails';
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { MojaPrijavaProjekcija, PotrebaProjekcija, PrilikaProjekcija, RadnikProfilProjekcija } from '../../../../contracts/projections';
@@ -170,6 +171,8 @@ export default function Prijava() {
       if (data.profile.stanje !== 'ACTIVE' || data.opportunity.primaNovePrijave !== true) { setValidation('Proverite trenutni zadatak i aktivan radni profil.'); return; }
       const deadline = data.opportunity.rokZaPrijaveIso;
       if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osvežite zadatak.'); return; }
+      // Contacts are exchanged after the Agreement; the note stays here to be edited.
+      if (textHasContact(draft.note)) { setValidation(APPLICATION_NOTE_CONTACT_MESSAGE); return; }
       const command: PodnesiPrijavuKomanda = Object.freeze({ clientRequestId: noviZahtevId('prijava'), potrebaId: data.need.id, potrebaRevizija: data.need.revizija,
         radnikProfilId: data.profile.id, pokrivenaMesta: Number(draft.people), cenaRsd: Number(draft.price),
         // New applications never invent a second term; old saved commands keep their exact original fields.
