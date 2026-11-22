@@ -601,12 +601,30 @@ test('a complete draft without an application deadline asks for it once, last, t
 test('a repeated schedule or daily rate is answered only when this message says it, never in a loop',()=>{
   const said=turn('U redu.',[],'','ACK'); said.dialogue.schedulePattern='REPEATED';
   const first=run(said,'Svaki dan ujutru po pola sata, Novi Sad, Liman');
-  assert.match(first.assistantMessage,/jedan termin ili jedan period/u);
+  assert.match(first.assistantMessage,/upisujemo prvi termin/u);
   const carried=turn('Razumem, mirna je. Koji budžet nudite?',[],'need.price_mode','ASK'); carried.dialogue.schedulePattern='REPEATED';
   const later=run(carried,'Mali pas, mirna je');
-  assert.doesNotMatch(later.assistantMessage,/jedan termin ili jedan period/u);
+  assert.doesNotMatch(later.assistantMessage,/upisujemo prvi termin/u);
   const day=turn('Zabeležio sam okupljanje kod Sajma.',[],'','ACK'); day.dialogue.priceUnit='PER_DAY';
   assert.doesNotMatch(run(day,'Okupljamo se kod Sajma').assistantMessage,/Dnevnic/u);
   const daySaid=turn('U redu.',[],'','ACK'); daySaid.dialogue.priceUnit='PER_DAY';
   assert.match(run(daySaid,'Dnevnica je 5000').assistantMessage,/Dnevnicu za sada ne možemo/u);
+});
+
+test('"po 4000 svakom" and "2000 po času" are a stated price, not an unexplained number',()=>{
+  const asked=[{role:'USER',body:'Trebaju mi 2 konobara'},{role:'ASSISTANT',body:'Imate li okvirni budžet ili želite ponude?'}];
+  const each=turn('Zabeležio sam 4.000 RSD po osobi.',[fact('need.price_mode','MY_PRICE','Po 4000 svakom'),fact('need.price_rsd',4000,'4000'),
+    fact('need.price_basis','PER_PERSON','svakom')],'','ACK');
+  const out=run(each,'Po 4000 svakom',active([['need.people_needed',2]]),asked);
+  assert.doesNotMatch(out.assistantMessage,/na šta se odnosi/u);
+  assert.equal(out.proposals.find(p=>p.key==='need.price_rsd')?.value,4000);
+});
+
+test('a refused daily rate keeps the clean job description',()=>{
+  const value=turn('Dnevnica.',[fact('need.description','Berba malina, potrebno 5 radnika','berba malina'),fact('need.price_rsd',4000,'4000 dnevnica')],'','ACK');
+  value.dialogue.priceUnit='PER_DAY';
+  const out=run(value,'Trebaju mi radnici za berbu malina, 5 ljudi, plaćam 4000 dnevnica');
+  assert.match(out.assistantMessage,/Dnevnicu za sada ne možemo/u);
+  assert.equal(out.proposals.find(p=>p.key==='need.description')?.value,'Berba malina, potrebno 5 radnika');
+  assert.equal(out.proposals.some(p=>p.key==='need.price_rsd'),false);
 });

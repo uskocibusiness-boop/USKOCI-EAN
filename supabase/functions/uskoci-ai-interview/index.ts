@@ -1104,7 +1104,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     `(?:^|[^\\p{L}\\p{N}])(?:\\d[\\d\\s.,]*\\s*(?:(?:u|na|у|на)\\s+)?${unit}|${unit}\\s*\\d[\\d\\s.,]*)(?=$|[^\\p{L}])`, 'iu').test(text);
   const euroUnit = '(?:€|eur|evr(?:o|a|i|ima)?|euro|eura|евр(?:о|а|и|има)?|еур(?:о|а)?)';
   const dinarUnit = '(?:rsd|рсд|din(?:ar(?:a|i|e|ima)?)?|дин(?:ар(?:а|и|е|има)?)?)';
-  const priceWords = /bud(?:ž|z)et|cen(?:a|u|e|om)|iznos|naknad|naplat|za ceo posao|po osobi|буџет|цен[ауеом]|износ|накнад|наплат/iu;
+  const priceWords = /bud(?:ž|z)et|cen(?:a|u|e|om)|iznos|naknad|naplat|za ceo posao|po osobi|svak(?:om|og|i|oj|u)(?!\p{L})|po (?:času|casu|satu|čoveku|coveku)|буџет|цен[ауеом]|износ|накнад|наплат/iu;
   const expenseWords = /materijal|материјал|prevoz|превоз|goriv\p{L}*|горив\p{L}*|oprem\p{L}*|опрем\p{L}*/iu;
   // Work with the clause about the task price. A currency next to material
   // costs cannot authorize the same numeral in a later labor-price clause.
@@ -1280,10 +1280,18 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const unitPrice = !explicitOffers && (turn.dialogue?.priceUnit === 'PER_DAY' && perDaySaid
     || hourlyMismatch && !spuriousNumericPriceProposal);
   const repeated = turn.dialogue?.schedulePattern === 'REPEATED' && repetitionSaid;
-  const withheldUnitFacts = new Set(['need.price_mode', 'need.price_rsd', 'need.price_basis', 'need.title', 'need.description',
+  const unitAmount = Number(turn.proposals.find(p => p.key === 'need.price_rsd')?.value);
+  const unitPriceAmountIn = (text: string) => Number.isSafeInteger(unitAmount) && unitAmount > 0
+    && new RegExp(`(?:^|[^\\p{N}])${String(unitAmount).split('').join('[\\s.,]*')}(?=$|[^\\p{N}])`, 'u').test(text);
+  const withheldUnitFacts = new Set(['need.price_mode', 'need.price_rsd', 'need.price_basis',
+    // A clean title/description is an independent answer; only copy that
+    // carries the unsupported amount or schedule stays out of the draft.
+    ...turn.proposals.filter(p => ['need.title', 'need.description'].includes(p.key) && (typeof p.value !== 'string'
+      || hasAmountIn(p.value, dinarUnit) || hasAmountIn(p.value, euroUnit) || /\d/u.test(p.value) && (unitPriceAmountIn(p.value) || repeated)))
+      .map(p => p.key),
     ...(repeated ? ['need.schedule_kind', 'need.starts_at', 'need.ends_at'] : [])]);
   const unitMessage = repeated
-    ? 'Za sada jedan zadatak čuva jedan termin ili jedan period, ne ponavljanje svakog dana. Koji prvi termin ili period da upišemo? Dalji dogovor možete napraviti direktno sa izvršiocem 🙂'
+    ? 'USKOČI pravi jedan konkretan zadatak, pa upisujemo prvi termin, a dalje se možete dogovoriti direktno sa izvršiocem 🙂 Kada bi bio taj prvi termin?'
     : hourlyMismatch
       ? `${hourlyRetraction ? 'Prethodna cena više nije potvrđena. ' : ''}Satnica se čuva po osobi po satu. Koji iznos u RSD po osobi po satu želite da postavite?`
       : 'Dnevnicu za sada ne možemo da upišemo kao cenu. Koliko dinara nudite za ceo zadatak, ukupno ili po osobi?';
@@ -1444,7 +1452,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
         assistantMessage: missingBoundary === 'need.starts_at'
           ? 'Od kog datuma Vam odgovara da se zadatak uradi?'
           : missingBoundary === 'need.ends_at' ? 'Do kog datuma zadatak treba da bude završen?'
-            : 'Dan može da bude fleksibilan unutar perioda. Od kog do kog datuma Vam odgovara da se zadatak uradi?' };
+            : 'Do kada Vam je ovo potrebno? Možete reći jedan datum ili period, od kog do kog dana 🙂' };
     }
   }
   const timeChecked = guardTimestampProposals(turn, input, activeFacts, time, pendingDeadlineQuestion);
