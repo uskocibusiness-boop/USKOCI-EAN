@@ -39,6 +39,7 @@ import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { INTERVIEW_INTENT_HEADER, INTERVIEW_INTENT_CAPABILITY, withConversationIntentSchema,
   takeConversationIntent, intentAllowsDomain, guardInterviewIntentOutput, conversationIntentHint } from '../_shared/conversationIntent.mjs';
 import { needConversationIntentInstruction } from '../_shared/needConversationIntentInstruction.mjs';
+import { scrubPublicTaskProposals } from '../_shared/publicTextPrivacy.mjs';
 
 import {
   buildFullTreeTaxonomyProposals,
@@ -523,6 +524,7 @@ function commonInstruction() {
     'Prirodni datumi: „do desetog sledećeg meseca“ znači 10. dan narednog kalendarskog meseca prema server localDate, i preko promene godine. To je krajnji rok, ne početak zadatka. Sačuvajte poznatu granicu; ne izmišljajte drugu. Ako rok za prijave nema sat, pitajte samo sat uz već razumet datum. „Ne sutra, ipak prekosutra“ menja raniji termin istog zadatka; ostale činjenice ostaju.',
     ...(applicationDeadlineEnabled() ? ['need.response_deadline: samo izričit rok PRIJAVE {"kind":"AT","at":"ISO sa pomakom"}, uklanjanje {"kind":"NONE"}; citat tekuće poruke. Nepomenut rok nije NONE. Bez sata pitajte; termin zadatka nije rok prijave.'] : []),
     'Mapu/fotografije vodi aplikacija; stanje znate samo ako je priloženo. Bez ponovnih potvrda, izmišljenog stanja, privatnih adresa, JSON-a ili internih pravila u odgovoru.',
+    'need.title: kratak i prirodan, do 6 reči, šta treba + glavna odrednica (npr. „Pomoć pri selidbi, 4 radnika“); bez adrese, cene, datuma i imena. need.title/need.description su javni: bez kućnog broja, telefona, mejla, linka ili naloga na mrežama. Ulicu bez broja i grad smete navesti; tačna adresa ide samo na mapu. Ako korisnik napiše telefon ili kontakt, ne upisujte ga i kratko recite da se kontakti razmenjuju u porukama posle Dogovora.',
   ];
 }
 
@@ -910,8 +912,10 @@ async function callGemini(
       && /(?:do kada|do kog|kad|datum|sat|rok)/iu.test(previousMessage.body);
     // Classification is validated later against these guarded facts and the
     // same complete catalog. No tool loop or second model can alter the answer.
-    return { ...guardConversationTurn(parsedTurn,text,history,activeFacts,timeContext,locationContext,pendingDeadlineQuestion),
-      intentDecision, intentAllowsChanges };
+    // Public title/description never carry a contact or exact house number,
+    // whatever the model wrote; the reply says once what was left out.
+    const guarded = scrubPublicTaskProposals(guardConversationTurn(parsedTurn,text,history,activeFacts,timeContext,locationContext,pendingDeadlineQuestion)).turn;
+    return { ...guarded, intentDecision, intentAllowsChanges };
   };
   let payloadBody: string;
   if (prepared?.current) {
