@@ -4,7 +4,7 @@ import { readableTitle } from '../../data/needDetailPresentation';
 import { ProductFact, ProductFacts } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { osoba } from '../system/plural';
-import { applicationPriceBasisText, BEZ_IZNOSA } from '../../lib/novac';
+import { BEZ_IZNOSA, cenaSaOsnovom } from '../../lib/novac';
 import { brandAction, sys, inset } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
@@ -32,7 +32,7 @@ export function AgreementCompletionReview({ agreement, worker, confirm, back }: 
             <ProductFact art="calendar" label="Dogovoreni termin" value={agreement.vremeTekst} />
             <ProductFact art="users" label="Dogovoreni broj ljudi" value={osoba(agreement.pokrivenost.popunjeno)} />
             {/* A missing amount is a word and never wears the amount's style. */}
-            <ProductFact art="money" label={`Sačuvani iznos · ${applicationPriceBasisText(agreement.osnovaCene)}`} value={agreement.cena.prikaz || BEZ_IZNOSA} prominent
+            <ProductFact art="money" label="Dogovorena cena" value={agreement.cena.prikaz ? cenaSaOsnovom(agreement.cena.prikaz, agreement.osnovaCene) : BEZ_IZNOSA} prominent
               prominentAs={agreement.cena.prikaz ? 'amount' : 'label'} />
           </ProductFacts>
         </View>
@@ -40,7 +40,7 @@ export function AgreementCompletionReview({ agreement, worker, confirm, back }: 
           <T variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
           <T variant="body" tone="muted">{worker
             ? 'Prijavljeni problem ostaje sačuvan. Automatski završetak je zaustavljen.'
-            : 'Prijavljeni problem ostaje sačuvan. Ovom potvrdom ipak završavate Dogovor; problem sam po sebi ne određuje krivicu ili dug.'}</T>
+            : 'Prijavljeni problem ostaje sačuvan. Ovom potvrdom ipak završavate Dogovor. Prijava problema ne znači da je neko kriv.'}</T>
         </View> : null}
     </>}
   </ProductSheet>;

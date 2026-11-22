@@ -14,12 +14,12 @@ export type AgreementPhotoMessage = Readonly<{ messageId: string; agreementVersi
 const exact = (v: Record<string, unknown>, keys: readonly string[]) => Object.keys(v).length === keys.length && keys.every(k => Object.hasOwn(v, k));
 const boundedInt = (v: unknown, max: number): v is number => positiveInteger(v) && v <= max;
 const agreementPhotoErrors = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.', MEDIA_NOT_FOUND: 'Fotografija nije dostupna.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.', MEDIA_NOT_FOUND: 'Fotografija nije dostupna.',
   MEDIA_INPUT_INVALID: 'Izaberi fotografiju do 10 MB.', MEDIA_SANITIZATION_FAILED: 'Fotografija nije mogla da se pripremi.',
-  MEDIA_VERSION_CONFLICT: 'Uslovi Dogovora su promenjeni. Osveži Dogovor i ukloni stare pripremljene fotografije.',
-  MEDIA_COMMAND_CONFLICT: 'Ovaj pokušaj pripada drugoj fotografiji. Proveri sačuvani ishod.',
-  MEDIA_RATE_LIMITED: 'Trenutno je dostignuta zaštitna granica slanja. Pokušaj kasnije.',
-  MEDIA_BUSY: 'Slanje fotografije je trenutno zauzeto. Sačekaj nekoliko sekundi pa pokušaj ponovo.', MEDIA_UPLOAD_PENDING: 'Slanje fotografije je trenutno zauzeto. Sačekaj nekoliko sekundi pa pokušaj ponovo.',
+  MEDIA_VERSION_CONFLICT: 'Uslovi Dogovora su promenjeni. Osvežite Dogovor i uklonite stare pripremljene fotografije.',
+  MEDIA_COMMAND_CONFLICT: 'Ova fotografija je već u slanju. Sačekajte da se završi.',
+  MEDIA_RATE_LIMITED: 'Poslali ste mnogo fotografija zaredom. Pokušajte malo kasnije.',
+  MEDIA_BUSY: 'Slanje fotografije je trenutno zauzeto. Sačekajte nekoliko sekundi pa pokušajte ponovo.', MEDIA_UPLOAD_PENDING: 'Slanje fotografije je trenutno zauzeto. Sačekajte nekoliko sekundi pa pokušajte ponovo.',
   INTERACTION_BLOCKED: 'U ovom Dogovoru nije dozvoljeno novo slanje.', ACCOUNT_CLOSING: 'Zatvaranje naloga ne dopušta novo slanje.',
 };
 function decodeAgreementPhoto(raw: unknown): AgreementPhoto | null {

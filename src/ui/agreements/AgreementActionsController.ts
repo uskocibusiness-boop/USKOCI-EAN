@@ -56,7 +56,7 @@ export class AgreementActionsController {
         const receipt = found.podatak;
         if (receipt.baseVersion !== journal.agreementVersion || receipt.agreementId !== journal.agreementId
           || (journal.kind === 'PROPOSE' && receipt.proposedBy !== this.deps.account.accountId)) {
-          this.update({ phase: 'UNKNOWN', error: 'Potvrda ne odgovara prvobitnoj radnji.' }); return;
+          this.update({ phase: 'UNKNOWN', error: 'Sačuvano stanje se razlikuje od Vaše radnje. Pogledajte trenutni Dogovor.' }); return;
         }
         if (journal.kind === 'PROPOSE') resolved = 'CONFIRMED';
         else if (receipt.status === (journal.kind === 'WITHDRAW' ? 'WITHDRAWN' : journal.accept ? 'ACCEPTED' : 'REJECTED')) resolved = 'CONFIRMED';
@@ -72,7 +72,7 @@ export class AgreementActionsController {
       }
     }
     if (resolved) this.update({ phase: resolved, error: null, canRetry: false, needsReentry: false,
-      message: resolved === 'REJECTED' ? 'Dogovor ili predlog je u međuvremenu drugačije završen. Pregledaj sačuvano stanje.'
+      message: resolved === 'REJECTED' ? 'Dogovor ili predlog je u međuvremenu drugačije završen. Pogledajte sačuvano stanje.'
         : journal.kind === 'CANCEL' ? 'Dogovor je otkazan.' : journal.kind === 'PROPOSE' ? 'Predlog izmene je sačuvan.'
           : journal.kind === 'WITHDRAW' ? 'Predlog izmene je povučen.' : journal.accept ? 'Izmena je prihvaćena. Prikazani su važeći uslovi.' : 'Predlog izmene je odbijen.' });
     else this.update({ phase: 'UNKNOWN', error: unknown, canRetry: true, needsReentry: this.command === null });
@@ -86,7 +86,7 @@ export class AgreementActionsController {
     if (previous) {
       if (this.state.phase !== 'UNKNOWN' || !this.state.canRetry) return;
       if (JSON.stringify(previous) !== JSON.stringify(journal)) {
-        this.update({ error: 'Ovo se razlikuje od onoga što je ranije poslato. Unesite iste uslove i isti razlog.' }); return;
+        this.update({ error: 'Ranije ste poslali drugačije podatke. Proverite da li je to stiglo pre novog slanja.' }); return;
       }
     } else if (this.state.phase !== 'READY' || !permits(this.state.snapshot, command, this.deps.account.accountId)) return;
     this.command = command;

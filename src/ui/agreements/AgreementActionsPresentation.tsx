@@ -5,7 +5,7 @@ import { ArrowClockwise } from 'phosphor-react-native';
 import type { AgreementChangeSnapshot, AgreementChangeTerms } from '../../data/agreementClientService';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
-import { applicationPriceBasisText, BEZ_IZNOSA, novac } from '../../lib/novac';
+import { BEZ_IZNOSA, cenaSaOsnovom, novac } from '../../lib/novac';
 import { CivilField } from '../calendar/CalendarControls';
 import { civilClock, civilDay, zonedParts } from '../calendar/calendarPresentation';
 import { Press } from '../Press';
@@ -37,7 +37,7 @@ const scopeText = (terms: AgreementChangeTerms) => terms.scopeNote || 'Nije doda
  * "Iznos nije sačuvan", in words. A missing price never looks like an amount, and never reads "0 RSD".
  */
 const priceText = (rsd: number, basis?: 'TOTAL' | 'HOURLY') => Number.isFinite(rsd) && rsd > 0
-  ? `${novac(rsd)} ${applicationPriceBasisText(basis)}` : BEZ_IZNOSA;
+  ? cenaSaOsnovom(novac(rsd), basis) : BEZ_IZNOSA;
 
 /**
  * One fact of the terms. With `before`, the line under the value is the one mark of a change ("umesto 3.500 RSD") or
@@ -65,7 +65,7 @@ function Terms({ terms, base }: { terms: AgreementChangeTerms | null; base?: Agr
   return <View style={s.facts}>
     <Fact art="money" label="Cena" value={priceText(terms.priceRsd, terms.priceBasis)} before={base ? priceText(base.priceRsd, base.priceBasis) : undefined} />
     <Fact art="calendar" label="Termin" value={schedule(terms)} before={base ? schedule(base) : undefined} />
-    <Fact art="document" label="Obim" value={scopeText(terms)} before={base ? scopeText(base) : undefined} />
+    <Fact art="document" label="Posao" value={scopeText(terms)} before={base ? scopeText(base) : undefined} />
   </View>;
 }
 
@@ -74,8 +74,8 @@ const Reason = ({ text }: { text: string }) => <View style={s.quote}><T variant=
 
 const reviewTitle = (command: AgreementActionCommand) => command.kind === 'PROPOSE' ? 'Pregled predloga' : command.kind === 'CANCEL' ? 'Otkazivanje Dogovora'
   : command.kind === 'WITHDRAW' ? 'Povlačenje predloga' : command.accept ? 'Prihvatanje izmene' : 'Odbijanje predloga';
-const actionLabel = (command: AgreementActionCommand) => command.kind === 'PROPOSE' ? 'Pošalji predlog izmene'
-  : command.kind === 'CANCEL' ? 'Otkaži Dogovor' : command.kind === 'WITHDRAW' ? 'Povuci predlog' : command.accept ? 'Prihvati izmenu' : 'Odbij predlog';
+const actionLabel = (command: AgreementActionCommand) => command.kind === 'PROPOSE' ? 'Pošaljite predlog izmene'
+  : command.kind === 'CANCEL' ? 'Otkažite Dogovor' : command.kind === 'WITHDRAW' ? 'Povucite predlog' : command.accept ? 'Prihvatite izmenu' : 'Odbijte predlog';
 /** Ending, withdrawing or refusing is drawn in the danger colour; proposing and accepting use the ink primary. */
 const ending = (command: AgreementActionCommand) => command.kind === 'CANCEL' || command.kind === 'WITHDRAW' || (command.kind === 'RESPOND' && !command.accept);
 
@@ -120,7 +120,7 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
     // The step's one decision, pinned under the scroll; what stopped it is said right under the button it stopped. A cancellation
     // needs its reason: until one is chosen the decision is grey, with the reason why (plan 2.3), not a press that answers with an error.
     const reasonMissing = form.kind === 'CANCEL' && !form.reason.trim();
-    footer = <V2Action tone="neutral" label={form.kind === 'CANCEL' ? 'Pregledaj otkazivanje' : 'Pregledaj predlog'} style={brandAction}
+    footer = <V2Action tone="neutral" label={form.kind === 'CANCEL' ? 'Pogledajte otkazivanje' : 'Pogledajte predlog'} style={brandAction}
       disabled={busy || reasonMissing} reason={reasonMissing && !busy ? (form.reentry ? 'Unesite razlog.' : 'Izaberite razlog.') : null}
       error={p.error} onPress={p.onPrepareForm} />;
   } else if (review) {
@@ -165,7 +165,7 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
           {record ? <T variant="copy">{record}</T> : null}
           {confirmed && p.journalKind === 'PROPOSE' ? <T variant="copy" tone="muted">Uslovi se menjaju tek kada druga strana prihvati predlog.</T> : null}
         </View>
-        <V2Action tone="neutral" label="Prikaži aktuelni Dogovor" style={brandAction} onPress={p.onAcknowledge} />
+        <V2Action tone="neutral" label="Prikažite aktuelni Dogovor" style={brandAction} onPress={p.onAcknowledge} />
       </View>;
     } else if (snapshot) {
       body = <Hub snapshot={snapshot} accountId={p.accountId} error={p.error} busy={busy} onOpenForm={p.onOpenForm} onPrepare={p.onPrepare} />;
@@ -191,24 +191,24 @@ function Hub({ snapshot, accountId, error, busy, onOpenForm, onPrepare }: { snap
         record stays open below, so moving it does not hide terms or suggest the proposal is already accepted. */}
     {snapshot.proposals.map(proposal => {
       const mine = proposal.proposedBy === accountId;
-      // Every command here opens its review step, so it says the deed ("Prihvati izmenu"), not "look at accepting".
+      // Every command here opens its review step, so it says the deed ("Prihvatite izmenu"), not "look at accepting".
       return <View key={proposal.proposalId} style={s.proposal}>
         <T variant="heading" accessibilityRole="header">{mine ? 'Vaš predlog čeka odgovor' : snapshot.counterpartName ? `${snapshot.counterpartName} predlaže` : 'Predlog druge strane'}</T>
         <Terms terms={proposal.terms} base={snapshot.terms} />
         {proposal.reason ? <Reason text={proposal.reason} /> : null}
         {actions.canRespondChange && !mine ? <>
-          <V2Action tone="neutral" label="Prihvati izmenu" style={brandAction} disabled={busy || !proposal.termsAvailable}
+          <V2Action tone="neutral" label="Prihvatite izmenu" style={brandAction} disabled={busy || !proposal.termsAvailable}
             reason={proposal.termsAvailable ? null : 'Uslovi predloga nisu dostupni za pregled.'} onPress={() => onPrepare({ kind: 'RESPOND', proposal, accept: true })} />
-          <V2Action tone="neutral" label="Odbij predlog" kind="quiet" disabled={busy} onPress={() => onPrepare({ kind: 'RESPOND', proposal, accept: false })} />
+          <V2Action tone="neutral" label="Odbijte predlog" kind="quiet" disabled={busy} onPress={() => onPrepare({ kind: 'RESPOND', proposal, accept: false })} />
         </> : null}
-        {actions.canWithdrawChange && mine ? <V2Action tone="neutral" label="Povuci predlog" kind="quiet" disabled={busy} onPress={() => onPrepare({ kind: 'WITHDRAW', proposal })} /> : null}
+        {actions.canWithdrawChange && mine ? <V2Action tone="neutral" label="Povucite predlog" kind="quiet" disabled={busy} onPress={() => onPrepare({ kind: 'WITHDRAW', proposal })} /> : null}
       </View>;
     })}
     <View style={s.section}><T variant="heading" accessibilityRole="header">Važeći uslovi</T><Terms terms={snapshot.terms} /></View>
     {actions.canProposeChange && snapshot.terms || actions.canCancel ? <View style={[s.section, s.parted]}>
-      {actions.canProposeChange && snapshot.terms ? <V2Action tone="neutral" label="Predloži izmenu" style={answerWaits ? undefined : brandAction}
+      {actions.canProposeChange && snapshot.terms ? <V2Action tone="neutral" label="Predložite izmenu" style={answerWaits ? undefined : brandAction}
         disabled={busy} onPress={() => onOpenForm('PROPOSE')} /> : null}
-      {actions.canCancel ? <V2Action tone="neutral" label="Otkaži Dogovor" kind="destructive" disabled={busy} onPress={() => onOpenForm('CANCEL')} /> : null}
+      {actions.canCancel ? <V2Action tone="neutral" label="Otkažite Dogovor" kind="destructive" disabled={busy} onPress={() => onOpenForm('CANCEL')} /> : null}
     </View> : null}
   </View>;
 }
@@ -266,24 +266,24 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
     {instead(before !== null && (mode === 'date' ? value !== before : civilClock(value) !== before), mode === 'date' ? civilDay(before ?? '') : before ?? '')}
   </View>;
   return <View style={s.stack}>
-    {form.reentry ? <T variant="copy" tone="muted">Prethodni unos nije sačuvan na telefonu. Unesite iste podatke i isti razlog kao prvi put da bismo proverili da li je već stiglo.</T> : null}
+    {form.reentry ? <T variant="copy" tone="muted">Prethodni unos nije sačuvan na telefonu. Unesite iste podatke kao prvi put, da proverimo da li je već stiglo.</T> : null}
     {form.kind === 'PROPOSE' ? <>
       <View style={s.field}>
-        <T variant="meta">{base?.priceBasis === 'HOURLY' ? 'Satnica po osobi' : 'Cena'}</T>
+        <T variant="meta">{base?.priceBasis === 'HOURLY' ? 'Cena po satu, po osobi' : 'Cena'}</T>
         {/* The amount never stands without its currency: the row is the one field box, RSD inside it beside the number. */}
         <View style={s.amount}>
-          <TextInput accessibilityLabel={base?.priceBasis === 'HOURLY' ? 'Predložena satnica po osobi u RSD po satu' : 'Predložena cena u RSD'} value={form.price} onChangeText={price => onEdit({ price, priceChanged: true })}
+          <TextInput accessibilityLabel={base?.priceBasis === 'HOURLY' ? 'Nova cena po satu, po osobi (RSD)' : 'Predložena cena u RSD'} value={form.price} onChangeText={price => onEdit({ price, priceChanged: true })}
             editable={!busy} keyboardType="number-pad" maxLength={100} style={s.amountInput} />
           <T variant="bodyStrong" style={s.unit} importantForAccessibility="no" accessibilityElementsHidden>RSD</T>
         </View>
-        {base?.priceBasis === 'HOURLY' ? <T variant="note" tone="muted">RSD po osobi po satu. Promena iznosa ne menja ovu osnovicu.</T> : null}
+        {base?.priceBasis === 'HOURLY' ? <T variant="note" tone="muted">Cena ostaje po satu, po osobi; menja se samo iznos.</T> : null}
         {instead(was.price !== null && form.price.trim() !== was.price, base ? priceText(base.priceRsd, base.priceBasis) : '')}
       </View>
-      {showScope ? input('Predloženi obim zadatka', form.scope, scope => onEdit({ scope, scopeChanged: true }), true,
+      {showScope ? input('Šta tačno treba uraditi', form.scope, scope => onEdit({ scope, scopeChanged: true }), true,
         instead(was.scope !== null && form.scope.trim() !== was.scope, was.scope ?? ''))
-        : <V2Action label="Dodaj opis obima zadatka" kind="quiet" tone="neutral" disabled={busy}
+        : <V2Action label="Dodajte opis posla" kind="quiet" tone="neutral" disabled={busy}
           onPress={() => { if (currentScope.current.token === form.token && !currentScope.current.busy) setScopeEditor({ token: form.token, open: true }); }} style={s.scopeEntry} />}
-      <T variant="meta" tone="muted">Vreme unosiš po vremenu u Srbiji.</T>
+      <T variant="meta" tone="muted">Vreme unosite po vremenu u Srbiji.</T>
       {civil('Datum početka', 'date', form.startDate, startDate => onEdit({ startDate, startChanged: true }), was.startDate)}
       {civil('Vreme početka', 'time', form.startTime, startTime => onEdit({ startTime, startChanged: true }), was.startTime)}
       {civil('Datum kraja', 'date', form.endDate, endDate => onEdit({ endDate, endChanged: true }), was.endDate)}
@@ -313,17 +313,17 @@ function Review({ review, proposed, base, snapshot }: { review: AgreementActionC
       // The three sentences are the cancellation's binding words; they stay exactly as written.
       ? <>
         <View style={s.section}>
-          {/* No eyebrow over the title ("Dogovor koji otkazuješ"): the bar already says "Otkazivanje Dogovora". */}
+          {/* No eyebrow over the title ("Dogovor koji otkazujete"): the bar already says "Otkazivanje Dogovora". */}
           <T variant="heading" accessibilityRole="header">{cancelContext?.title || 'Naziv Dogovora nije dostupan'}</T>
           <Fact art="person" label="Sa kim" value={cancelContext?.counterpartName || 'Ime druge strane nije dostupno'} />
           <Fact art="calendar" label="Važeći termin" value={cancelContext?.terms ? schedule(cancelContext.terms) : 'Termin nije dostupan'} />
         </View>
-        <T variant="copy">Dogovor se završava otkazivanjem. Deljeni kontakt i precizna lokacija se opozivaju. Radnja sama ne određuje krivicu ili dug.</T>
-        <T variant="meta" tone="muted">Razlog koji navedeš druga strana dobija kao poruku o otkazivanju.</T>
+        <T variant="copy">Dogovor se završava otkazivanjem. Podeljeni kontakt i tačna lokacija više nisu vidljivi.</T>
+        <T variant="meta" tone="muted">Razlog koji navedete druga strana dobija kao poruku o otkazivanju.</T>
       </>
       : <>
         <Terms terms={proposed} base={base} />
-        <T variant="copy">{review.kind === 'PROPOSE' ? 'Uslovi se menjaju tek kada druga strana prihvati predlog.' : review.kind === 'WITHDRAW' ? 'Povlačiš svoj predlog. Važeći uslovi ostaju.' : review.accept ? 'Prihvatanjem odmah počinju da važe prikazani novi uslovi. Raspored se ponovo proverava.' : 'Odbijaš ovaj predlog. Važeći uslovi ostaju.'}</T>
+        <T variant="copy">{review.kind === 'PROPOSE' ? 'Uslovi se menjaju tek kada druga strana prihvati predlog.' : review.kind === 'WITHDRAW' ? 'Povlačite svoj predlog. Važeći uslovi ostaju.' : review.accept ? 'Prihvatanjem odmah počinju da važe prikazani novi uslovi. Raspored se ponovo proverava.' : 'Odbijate ovaj predlog. Važeći uslovi ostaju.'}</T>
       </>}
     {reason ? <Reason text={reason} /> : null}
   </View>;

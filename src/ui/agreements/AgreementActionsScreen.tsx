@@ -19,7 +19,7 @@ const initial: AgreementActionsState = { phase: 'LOADING', snapshot: null, journ
 const CHANGED_TERMS_NOTICE = 'Uslovi Dogovora su se promenili. Proverite uneti predlog u odnosu na nove uslove pre potvrde.';
 export function AgreementActionsScreen({ agreementId, start }: {
   agreementId: string;
-  /** The form to open as soon as the terms in force have been read (the rows "Izmeni uslove" and "Otkaži Dogovor" of the Dogovor, and the conversation's "···", name one); without it the hub opens. */
+  /** The form to open as soon as the terms in force have been read (the rows "Izmenite uslove" and "Otkažite Dogovor" of the Dogovor, and the conversation's "···", name one); without it the hub opens. */
   start?: Form['kind'];
 }) {
   const { user, accountRevision } = useSesija(), accountId = user?.id ?? '';
@@ -84,7 +84,7 @@ export function AgreementActionsScreen({ agreementId, start }: {
     setError(versionChanged
       ? CHANGED_TERMS_NOTICE : null);
   };
-  // Arriving from the row (or the conversation's menu entry) "Izmeni uslove" or "Otkaži Dogovor": the form it names opens once, when the terms have been read and
+  // Arriving from the row (or the conversation's menu entry) "Izmenite uslove" or "Otkažite Dogovor": the form it names opens once, when the terms have been read and
   // the command is permitted. `openForm` keeps every one of its own guards, so a command that is not allowed leaves the hub.
   useEffect(() => {
     if (arrived.current || state.phase !== 'READY' || !snapshot || form || review || !actionCurrent()) return;
@@ -111,7 +111,7 @@ export function AgreementActionsScreen({ agreementId, start }: {
     if (!actionCurrent() || busy || submitting.current || !snapshot || reviewRef.current || (!fromForm && formRef.current)) return;
     const normalized = normalizeAgreementCommand(command);
     if (state.journal && journalFor(normalized).payloadHash !== state.journal.payloadHash) {
-      setError('Ovo se razlikuje od onoga što je ranije poslato. Unesite iste podatke i isti razlog.'); return;
+      setError('Ranije ste poslali drugačije podatke. Proverite da li je to stiglo pre novog slanja.'); return;
     }
     reviewBase.current = snapshot; reviewDraft.current = fromForm ? formRef.current : null;
     reviewRef.current = normalized; setReview(normalized); formRef.current = null; setForm(null); setError(null);
@@ -140,7 +140,7 @@ export function AgreementActionsScreen({ agreementId, start }: {
       patch.pocetakIso = start.value; patch.krajIso = end.value;
     }
     const value = { dogovorId: agreementId, ocekivanaVerzija: version, clientRequestId: form.key, izmena: patch, razlog: form.reason };
-    if (!validProposal(value)) { setError('Izmeni bar jedan podatak. Oba kraja termina moraju biti određena.'); return; }
+    if (!validProposal(value)) { setError('Izmenite bar jedan podatak. Unesite i početak i kraj termina.'); return; }
     prepare({ kind: 'PROPOSE', value }, true);
   };
   const send = async () => {
@@ -151,7 +151,7 @@ export function AgreementActionsScreen({ agreementId, start }: {
     finally { if (current()) submitting.current = false; }
   };
   const run = (name: 'refresh' | 'retry') => { if (actionCurrent() && !busy && !submitting.current && !formRef.current && !reviewRef.current) void controller?.[name](); };
-  // "Prikaži aktuelni Dogovor" shows the Dogovor (plan 3.6; it used to show this hub again): the outcome is acknowledged - the journal
+  // "Prikažite aktuelni Dogovor" shows the Dogovor (plan 3.6; it used to show this hub again): the outcome is acknowledged - the journal
   // is retired and the terms are read once more - and the screen goes back to the Dogovor, which reads itself again on focus. If the
   // read after the acknowledgement does not answer, the screen stays and says so, as before.
   const showAgreement = async () => {

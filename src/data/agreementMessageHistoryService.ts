@@ -27,12 +27,12 @@ const uuid = (value: unknown): value is string => receiptUuid(value) && value.le
 const bounded = (value: unknown, min: number, max: number): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
 const errors = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.', AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvori Dogovor.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.', AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvorite Dogovor.',
   MEDIA_NOT_FOUND: 'Poruke nisu dostupne.', CHAT_MESSAGE_NOT_AVAILABLE: 'Poruka više nije dostupna.',
-  CHAT_CURSOR_INVALID: 'Istorija poruka je promenjena. Osveži razgovor.',
+  CHAT_CURSOR_INVALID: 'Istorija poruka je promenjena. Osvežite razgovor.',
   CHAT_WINDOW_INVALID: 'Izabrani deo razgovora nije dostupan.',
-  CHAT_DISPLAYED_IDS_INVALID: 'Prikazane poruke nisu potvrđene.',
-  CHAT_MESSAGE_PROJECTION_CHANGED: 'Poruke su promenjene. Osveži razgovor.',
+  CHAT_DISPLAYED_IDS_INVALID: 'Poruke nisu osvežene. Osvežite razgovor.',
+  CHAT_MESSAGE_PROJECTION_CHANGED: 'Poruke su promenjene. Osvežite razgovor.',
   ACCOUNT_CLOSING: 'Nalog se zatvara. Potvrda čitanja nije dostupna.',
 };
 const invalidInput = () => failure('CHAT_HISTORY_INPUT_INVALID', 'Izabrani deo razgovora nije dostupan.');

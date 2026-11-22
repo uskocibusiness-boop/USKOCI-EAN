@@ -21,7 +21,7 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 /** What stands in the value slot. A retained map card can temporarily await a fresh exact price. */
 export type TaskValue =
-  | { kind: 'amount'; amount: string; basis: 'ukupno' | 'po osobi' | 'po osobi po satu' | '/ sat' | null }
+  | { kind: 'amount'; amount: string; basis: 'ukupno' | 'po osobi' | '/sat po osobi' | null }
   | { kind: 'offers' }
   | { kind: 'unpriced' }
   | { kind: 'unverified' };
@@ -30,8 +30,8 @@ export function taskValue(item: Pick<MarketplaceItem, 'rezimCene' | 'ponudjenaCe
   if (item.rezimCene === 'OFFERS') return { kind: 'offers' };
   const amount = item.ponudjenaCena?.prikaz;
   if (!amount) return { kind: 'unpriced' };
-  // Clean, natural price display: "/ sat" instead of "po osobi po satu"
-  return { kind: 'amount', amount, basis: item.osnovaCene === 'HOURLY' ? '/ sat' : item.osnovaCene === 'TOTAL' ? 'ukupno' : item.osnovaCene === 'PER_PERSON' ? 'po osobi' : null };
+  // One price format everywhere (owner 22.11.2026): "1.200 RSD/sat po osobi".
+  return { kind: 'amount', amount, basis: item.osnovaCene === 'HOURLY' ? '/sat po osobi' : item.osnovaCene === 'TOTAL' ? 'ukupno' : item.osnovaCene === 'PER_PERSON' ? 'po osobi' : null };
 }
 
 /** The words of a value slot without an amount. They are labels, never drawn as money. */
@@ -39,7 +39,7 @@ export const VALUE_WORDS = { offers: 'Tražim ponude', unpriced: 'Cena nije nave
 
 /** The value slot as it is heard: the amount with what it buys, or the word. */
 export const valueSpoken = (value: TaskValue) => value.kind === 'amount'
-  ? value.basis ? `${value.amount} ${value.basis}` : value.amount : VALUE_WORDS[value.kind];
+  ? value.basis ? value.basis.startsWith('/') ? `${value.amount}${value.basis}` : `${value.amount} ${value.basis}` : value.amount : VALUE_WORDS[value.kind];
 
 /** Where the task starts, from public data only. Route cards show the pickup/start area only;
  * the full A→B route belongs on detail/map, not in a dense discovery card. */

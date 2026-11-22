@@ -205,7 +205,7 @@ export function WorkspaceFooter({ brand, quiet, loading = false, statusText, not
     <FlowFooter>
       {notice ? <Surface kind="note" tone="warn">
         <RecoveryMessage key={JSON.stringify([notice.message, width, textScale])} message={notice.message} limit={messageLimit} />
-        <V2Action label="Osveži status Dogovora" kind="quiet" loading={notice.refreshing}
+        <V2Action label="Osvežite status Dogovora" kind="quiet" loading={notice.refreshing}
           disabled={notice.refreshing} onPress={notice.refresh} />
       </Surface> : statusText ? <T variant="note" tone="muted" style={s.statusLine}>{statusText}</T> : null}
       {brand ? <V2Action label={brand.label} disabled={brand.disabled} loading={loading && !!brand.disabled}

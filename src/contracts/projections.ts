@@ -379,7 +379,7 @@ export type PredlogIzmeneSazetak = {
   mozePovuci: boolean;
   razlog: string | null;
   /** Samo ono što se razlikuje od prihvaćenih uslova, već formatirano za prikaz. */
-  izmene: { polje: 'Cena' | 'Termin' | 'Obim'; sada: string; predlog: string }[];
+  izmene: { polje: 'Cena' | 'Termin' | 'Posao'; sada: string; predlog: string }[];
 };
 
 export type DogovorProjekcija = {

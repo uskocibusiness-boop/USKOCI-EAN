@@ -344,7 +344,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
           {known && sort === 'PRICE' ? <T variant="note" tone="muted">
             {priceUnitUnknown ? 'Za neke prijave iznos ili osnovica cene nisu potvrđeni; prikazan je redosled prijava.'
               : priceUnitsMixed ? 'Cene sa različitim jedinicama nisu uporedive; prikazan je redosled prijava.'
-              : hourlyOnly ? 'Poređenje je po osobi po satu; iznos na kartici je satnica.'
+              : hourlyOnly ? 'Poređenje je po satu, po osobi; na kartici je cena po satu.'
               : 'Poređenje je po osobi; iznos na kartici ostaje ukupna ponuda.'}
           </T> : null}
           {incompleteFinal ? <Surface kind="note" tone="warn">

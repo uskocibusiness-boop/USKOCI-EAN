@@ -123,7 +123,7 @@ export function needPriceText(input: {
   if (input.rezimCene === 'OFFERS') return 'Tražim ponude';
   if (!input.ponudjenaCena) return 'Cena nije navedena';
   const amount = input.ponudjenaCena.prikaz;
-  if (input.osnovaCene === 'HOURLY') return `${amount} po osobi po satu`;
+  if (input.osnovaCene === 'HOURLY') return `${amount}/sat po osobi`;
   if (input.osnovaCene === 'PER_PERSON') {
     const people = input.pokrivenost?.ukupno ?? 0;
     if (!options?.withTotal || people < 2 || !Number.isFinite(input.ponudjenaCena.iznos)) return `${amount} po osobi`;
@@ -139,7 +139,7 @@ export function needPriceText(input: {
 export function needPriceBasisNote(input: {
   osnovaCene?: PriceBasis; ponudjenaCena?: { iznos: number }; pokrivenost?: { ukupno: number };
 }): string | null {
-  if (input.osnovaCene === 'HOURLY') return 'po osobi po satu';
+  if (input.osnovaCene === 'HOURLY') return '/sat po osobi';
   if (input.osnovaCene === 'TOTAL') return 'ukupno za ceo zadatak';
   if (input.osnovaCene !== 'PER_PERSON') return null;
   const people = input.pokrivenost?.ukupno ?? 0;

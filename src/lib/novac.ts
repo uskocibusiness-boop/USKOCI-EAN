@@ -37,6 +37,12 @@ export const BEZ_IZNOSA = 'Iznos nije sačuvan';
 /** An application or accepted agreement keeps its own unit. Missing legacy
  * metadata cannot be reconstructed from today's task or silently mean TOTAL. */
 export function applicationPriceBasisText(basis: 'TOTAL' | 'HOURLY' | null | undefined): string {
-  return basis === 'HOURLY' ? 'po osobi po satu'
-    : basis === 'TOTAL' ? 'ukupno' : 'osnovica cene nije potvrđena';
+  return basis === 'HOURLY' ? '/sat po osobi'
+    : basis === 'TOTAL' ? 'ukupno' : 'način obračuna nije potvrđen';
+}
+
+/** One price format everywhere (owner 22.11.2026): "1.200 RSD/sat po osobi", "5.000 RSD ukupno". */
+export function cenaSaOsnovom(prikaz: string, basis: 'TOTAL' | 'HOURLY' | null | undefined): string {
+  const text = applicationPriceBasisText(basis);
+  return text.startsWith('/') ? `${prikaz}${text}` : basis === 'TOTAL' ? `${prikaz} ${text}` : `${prikaz} · ${text}`;
 }

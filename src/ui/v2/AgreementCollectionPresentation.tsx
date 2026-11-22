@@ -26,7 +26,7 @@ import { AgreementTaskRow } from '../agreements/AgreementListCard';
 import { QuietReadState } from './QuietReadState';
 import { GroupHeader } from '../agreements/GroupHeader';
 import {
-  agreementAttention, awaitsMyConfirmation, filterHistory, groupActiveAgreementTasks, HISTORY_FILTERS, type HistoryFilter,
+  agreementAttention, filterHistory, groupActiveAgreementTasks, HISTORY_FILTERS, type HistoryFilter,
   filterAgreementRole, groupAgreementTasks, isActiveAgreementTask, type AgreementTaskGroup, type AgreementRoleFilter,
 } from '../agreements/agreementListModel';
 
@@ -80,7 +80,6 @@ const CLIP_OFFSCREEN = Platform.OS === 'android';
 const minuteOf = (now?: Date) => Math.floor((now ?? new Date()).getTime() / 60_000) * 60_000;
 /** Count the tasks shown in this group, not the separate people collaborating on each task. */
 const waitingTitle = (count: number) => `Čeka Vas · ${zadataka(count)}`;
-const unverifiedTitle = (count: number) => `Za proveru · ${zadataka(count)}`;
 /** D01 shares the accepted Agreement projection in both account roles. Presentation only. */
 export function AgreementCollectionPresentation(props: Props) {
   const { items, section, confirmationOnly, loading, error, onOpen, onRate } = props;
@@ -95,7 +94,7 @@ export function AgreementCollectionPresentation(props: Props) {
   const stale = !!props.refreshError && !loading && !error;
   // The pull spinner answers a pull only; a read of its own (a focus, a tab) does not raise it (the owner's "dot", 8 Oct 2026).
   const pull = usePullRefresh(props.onRefresh, !!(props.refreshing ?? loading));
-  // "Čeka tvoju potvrdu" narrows the active Dogovori only: nothing in history waits for a confirmation.
+  // "Čeka Vas" (owner 22.11.2026) is a filter, not a section: it narrows the active Dogovori to those waiting for my action.
   const filtering = section === 'active' && confirmationOnly;
   // Istorija's chips: the route may keep the choice through the foreground gate; a list drawn without that keeps its own.
   const [ownHistoryFilter, setOwnHistoryFilter] = useState<HistoryFilter>('all');
@@ -128,22 +127,22 @@ export function AgreementCollectionPresentation(props: Props) {
   const rows = useMemo<ListRow[]>(() => {
     if (section === 'history') return historyItems.filter(task => filterHistory(task.items, historyFilter).length > 0 && agreementGroupMatchesSearch(task, query, historyFilter))
       .map(task => ({ id: task.key, kind: 'item' as const, task }));
-    const pool = activeItems.filter(task => (!filtering || task.items.some(awaitsMyConfirmation)) && agreementGroupMatchesSearch(task, query));
+    const pool = activeItems.filter(task => (!filtering || task.items.some(item => agreementAttention(item) !== null)) && agreementGroupMatchesSearch(task, query));
     const groups = groupActiveAgreementTasks(pool, new Date(now));
     let upcomingStarted = false;
     return groups.flatMap(group => {
       const upcoming = group.key === 'tomorrow' || group.key === 'week' || group.key === 'later';
-      const heading: ListRow[] = upcoming && upcomingStarted ? [] : [{ id: upcoming ? 'group:upcoming' : `group:${group.key}`, kind: 'group',
-        title: upcoming ? 'Sledeće' : group.key === 'waiting' ? stale ? unverifiedTitle(group.items.length) : waitingTitle(counts?.attention ?? group.items.length)
-          : group.key === 'undated' ? 'Bez tačnog termina' : group.key === 'past' ? 'Ranije, još otvoreno' : group.title }];
+      // A clean list: what waits for me stays on top (the server's order) without a "Čeka Vas" heading.
+      const heading: ListRow[] = upcoming && upcomingStarted || group.key === 'waiting' ? [] : [{ id: upcoming ? 'group:upcoming' : `group:${group.key}`, kind: 'group',
+        title: upcoming ? 'Sledeće' : group.key === 'undated' ? 'Bez tačnog termina' : group.key === 'past' ? 'Ranije, još otvoreno' : group.title }];
       if (upcoming) upcomingStarted = true;
       // Keep the accepted chronology and whole task groups, including overdue
       // unfinished work. The cards themselves carry the exact day and time.
       return [...heading, ...group.items.map(task => ({ id: task.key, kind: 'item' as const, task }))];
     });
-  }, [section, filtering, activeItems, historyItems, historyFilter, now, stale, query, counts?.attention]);
-  const loadedWaiting = useMemo(() => roleItems.filter(awaitsMyConfirmation).length, [roleItems]);
-  const waiting = counts?.confirmation ?? loadedWaiting;
+  }, [section, filtering, activeItems, historyItems, historyFilter, now, query]);
+  const loadedWaiting = useMemo(() => roleItems.filter(item => agreementAttention(item) !== null).length, [roleItems]);
+  const waiting = counts?.activeAttention ?? counts?.attention ?? loadedWaiting;
   const settledRead = !loading && !error;
   const freshRead = settledRead && !stale;
   // The count belongs to "Čeka tebe". In history a direct link keeps outstanding actions discoverable.
@@ -214,11 +213,11 @@ export function AgreementCollectionPresentation(props: Props) {
   const chips = section === 'active' ? stale && confirmationOnly ? <Press accessibilityRole="button" accessibilityLabel="Prikažite sve aktivne"
     onPress={() => props.onConfirmationOnly(false)} haptic="select" style={s.chip}>
     <T variant="meta" style={s.chipText}>Prikažite sve aktivne</T>
-  </Press> : (freshRead && (waiting || confirmationOnly) ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka Vašu potvrdu"
+  </Press> : (freshRead && (waiting || confirmationOnly) ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka Vas"
     accessibilityState={{ checked: confirmationOnly }} onPress={() => props.onConfirmationOnly(!confirmationOnly)} haptic="select"
     style={[s.chip, confirmationOnly && s.chipOn]}>
     {confirmationOnly ? <Glyph name="check" size={16} tone="green" /> : null}
-    <T variant="meta" style={[s.chipText, confirmationOnly && s.chipTextOn]}>Čeka Vašu potvrdu</T>
+    <T variant="meta" style={[s.chipText, confirmationOnly && s.chipTextOn]}>Čeka Vas</T>
   </Press> : null) : settledRead && historyCount ? <View accessibilityRole="radiogroup" accessibilityLabel="Ishod Dogovora" style={s.outcomeRow}>
     {HISTORY_FILTERS.map(option => {
       const on = historyFilter === option.key;

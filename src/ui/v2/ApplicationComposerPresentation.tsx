@@ -3,7 +3,7 @@ import { AccessibilityInfo, Animated, Keyboard, StyleSheet, TextInput, View } fr
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { fixedApplicationPrice, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { calendarInstant } from '../../lib/calendarTime';
-import { applicationPriceBasisText, novac } from '../../lib/novac';
+import { applicationPriceBasisText, cenaSaOsnovom, novac } from '../../lib/novac';
 import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { FactArt } from '../system/FactArt';
@@ -226,10 +226,10 @@ function SentReceipt({ fresh, price, hourly, title, people, time, timeNote, mess
     <View style={s.table}>
       <Animated.View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[s.tag, tag]}><FactArt kind="applications" size={96} /></Animated.View>
       <MomentRise still={still} delay={TAG_GONE - sys.motion.press} style={s.sentPlace}>
-        <View accessible accessibilityLabel={price ? `Poslata, ${price} ${hourly ? "po osobi po satu" : "ukupno"}` : 'Poslata'} style={s.sentRow}>
+        <View accessible accessibilityLabel={price ? `Poslata, ${price}${hourly ? "/sat po osobi" : " ukupno"}` : 'Poslata'} style={s.sentRow}>
           <FactArt kind="applications" size={28} />
           <StatusChip status="application.sent" />
-          {price ? <><T variant="priceRow" style={s.sentPrice}>{price}</T><T variant="note" tone="muted">{hourly ? "po osobi po satu" : "ukupno"}</T></> : null}
+          {price ? <><T variant="priceRow" style={s.sentPrice}>{price}</T><T variant="note" tone="muted">{hourly ? "/sat po osobi" : "ukupno"}</T></> : null}
         </View>
       </MomentRise>
     </View>
@@ -334,7 +334,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   // A reason that names a fresh read of the task has the read under it: the task without its price, or without the
   // places this application would take, including a proportional share of a TOTAL budget.
   const refreshFixes = issue.price === 'missing' || (issue.people === 'over' && left < 1);
-  const summary = shownPrice ? `${shownPrice} ${applicationPriceBasisText(priceBasis)}`
+  const summary = shownPrice ? cenaSaOsnovom(shownPrice, priceBasis)
     : offers ? draft.price === '' ? 'Cena još nije upisana' : 'Cena nije ispravna'
     : issue.price === 'missing' ? 'Cena nije navedena' : 'Cena zavisi od broja ljudi';
 
@@ -438,7 +438,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
 function FixedPrice({ need }: { need: PotrebaProjekcija }) {
   const amount = need.ponudjenaCena?.prikaz;
   // An absent legacy basis is an application total, never an inferred whole-task price.
-  const basis = need.osnovaCene === 'HOURLY' ? 'po osobi po satu'
+  const basis = need.osnovaCene === 'HOURLY' ? '/sat po osobi'
     : need.osnovaCene === 'PER_PERSON' ? 'po osobi'
     : need.osnovaCene === 'TOTAL' ? 'za ceo zadatak' : 'ukupno za Vašu prijavu';
   return <View style={s.group}>

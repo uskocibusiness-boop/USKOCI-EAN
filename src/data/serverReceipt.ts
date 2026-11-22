@@ -63,7 +63,7 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
   const current = () => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const changed = () => failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvorite prikaz.');
   const unconfirmed = () => failure(options.fallback, options.write
-    ? 'Ishod radnje nije potvrđen. Osvežite prikaz pre ponovnog pokušaja.'
+    ? 'Ne znamo da li je radnja uspela. Osvežite prikaz pre novog pokušaja.'
     : 'Podaci trenutno nisu dostupni. Pokušajte ponovo da ih učitate.');
   if (!current()) return changed();
   const localTimeout = new Error('RPC_RECEIPT_TIMEOUT');

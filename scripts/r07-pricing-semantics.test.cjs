@@ -59,7 +59,7 @@ test('both application cards retain 1200 RSD per person per hour for two people'
   const row = candidate('a', 1200, 'HOURLY', 2);
   for (const display of [candidateValue(row), applicationValue(row)]) {
     assert.equal(display.amount, '1.200 RSD');
-    assert.equal(display.basis, 'po osobi po satu');
+    assert.equal(display.basis, '/sat po osobi');
   }
 });
 test('hourly 1000 for one ranks below 1200 for two; no division by people', () => {
@@ -75,8 +75,8 @@ test('TOTAL comparison uses price for the people in the application', () => {
 for (const unknown of [null, undefined]) test(`missing basis ${unknown} is shown explicitly and cannot become a total`, () => {
   const row = candidate('old', 1200, unknown, 2);
   assert.equal(candidateValue(row).amount, '1.200 RSD');
-  assert.equal(candidateValue(row).basis, 'osnovica cene nije potvrđena');
-  assert.equal(applicationValue(row).basis, 'osnovica cene nije potvrđena');
+  assert.equal(candidateValue(row).basis, 'način obračuna nije potvrđen');
+  assert.equal(applicationValue(row).basis, 'način obračuna nije potvrđen');
   assert.match(candidateStatus(row).text, /Podnosilac treba/);
   assert.equal(selection.comparablePrice(row), null);
 });

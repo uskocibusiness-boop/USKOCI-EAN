@@ -19,7 +19,7 @@ import { LocationMapPreview } from './location/LocationMapPreview';
 import { locationSlots } from '../lib/location';
 
 type Props = { agreement: DogovorProjekcija; enabled: boolean;
-  /** "Zatraži adresu" for the side that does not own it: the route writes the question into the conversation and takes the person there. */
+  /** "Zatražite adresu" for the side that does not own it: the route writes the question into the conversation and takes the person there. */
   onRequestAddress?: () => void };
 type Snapshot = { state: LocationGrantState; revealed: ExactLocationReveal | null };
 const activeGrant = (grant: LocationGrant | undefined) => !!grant && grant.status === 'GRANTED'
@@ -220,9 +220,9 @@ function LocationSession({ agreementId, accountId, accountRevision, requesterId,
       </View>}
     {editor.loading ? <T variant="meta" tone="muted">Učitavamo tačnu lokaciju…</T> : null}
     {editor.error ? <T variant="meta" tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
-    {requester ? <V2Action label={granted ? 'Sakrij tačnu lokaciju' : 'Podeli tačnu lokaciju'}
+    {requester ? <V2Action label={granted ? 'Sakrijte tačnu lokaciju' : 'Podelite tačnu lokaciju'}
       kind={granted ? 'quiet' : 'secondary'} compact={granted} disabled={locked} loading={editor.busy} onPress={() => { void setGrant(!granted); }} />
-      : granted && !privateData && !editor.loading && !editor.busy ? <V2Action label="Prikaži tačnu lokaciju" kind="secondary" disabled={locked} loading={editor.busy} onPress={() => { void show(); }} />
+      : granted && !privateData && !editor.loading && !editor.busy ? <V2Action label="Prikažite tačnu lokaciju" kind="secondary" disabled={locked} loading={editor.busy} onPress={() => { void show(); }} />
         : !granted && words.ask && onRequestAddress ? <V2Action label="Zatražite adresu" kind="secondary" disabled={locked} onPress={onRequestAddress} /> : null}
     {editor.error ? <V2Action label="Osvežite lokaciju" kind="quiet" disabled={editor.busy} style={quietStart} onPress={() => { void editor.refresh(); }} /> : null}
   </View>;

@@ -16,12 +16,12 @@ export const VOICE_MIN_BYTES = 32;
 const exact = (v: Record<string, unknown>, keys: readonly string[]) => Object.keys(v).length === keys.length && keys.every(k => Object.hasOwn(v, k));
 const inRange = (v: unknown, min: number, max: number): v is number => typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max;
 const agreementVoiceErrors = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.', MEDIA_NOT_FOUND: 'Glasovna poruka nije dostupna.',
-  MEDIA_INPUT_INVALID: 'Snimak nije ispravan. Snimi ponovo.', MEDIA_FORMAT_UNSUPPORTED: 'Snimak nije u podržanom obliku. Snimi ponovo.',
-  MEDIA_VERSION_CONFLICT: 'Uslovi Dogovora su promenjeni. Osveži Dogovor pa snimi ponovo.',
-  MEDIA_COMMAND_CONFLICT: 'Ovaj pokušaj pripada drugom snimku. Proveri sačuvani ishod.',
-  MEDIA_RATE_LIMITED: 'Previše snimaka u kratkom roku. Pokušaj malo kasnije.',
-  MEDIA_BUSY: 'Slanje je trenutno zauzeto. Sačekaj nekoliko sekundi pa pokušaj ponovo.', MEDIA_UPLOAD_PENDING: 'Slanje je trenutno zauzeto. Sačekaj nekoliko sekundi pa pokušaj ponovo.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.', MEDIA_NOT_FOUND: 'Glasovna poruka nije dostupna.',
+  MEDIA_INPUT_INVALID: 'Snimak nije ispravan. Snimite ponovo.', MEDIA_FORMAT_UNSUPPORTED: 'Snimak nije u podržanom obliku. Snimite ponovo.',
+  MEDIA_VERSION_CONFLICT: 'Uslovi Dogovora su promenjeni. Osvežite Dogovor pa snimite ponovo.',
+  MEDIA_COMMAND_CONFLICT: 'Ovaj snimak je već u slanju. Sačekajte da se završi.',
+  MEDIA_RATE_LIMITED: 'Previše snimaka u kratkom roku. Pokušajte malo kasnije.',
+  MEDIA_BUSY: 'Slanje je trenutno zauzeto. Sačekajte nekoliko sekundi pa pokušajte ponovo.', MEDIA_UPLOAD_PENDING: 'Slanje je trenutno zauzeto. Sačekajte nekoliko sekundi pa pokušajte ponovo.',
   INTERACTION_BLOCKED: 'U ovom Dogovoru nije dozvoljeno novo slanje.', ACCOUNT_CLOSING: 'Zatvaranje naloga ne dopušta novo slanje.',
 };
 function decodeVoiceAsset(raw: unknown): AgreementVoiceAsset | null {

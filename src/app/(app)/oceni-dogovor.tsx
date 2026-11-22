@@ -34,7 +34,7 @@ export default function OceniDogovor() {
     {/* Without a session or a valid id there is no Dogovor to open: back through history, or to the list. */}
     <DetailTopBar title="Ocena saradnje" backLabel={backLabel} onBack={fallbackBack} />
     <View style={{ paddingHorizontal: sys.space.lg }}>
-      <StateView kind="error" art="star" title="Ocena nije dostupna" body="Otvori završeni Dogovor iz svog naloga."
+      <StateView kind="error" art="star" title="Ocena nije dostupna" body="Otvorite završeni Dogovor iz svog naloga."
         primary={{ label: backLabel, onPress: fallbackBack }} />
     </View>
   </SafeAreaView>;

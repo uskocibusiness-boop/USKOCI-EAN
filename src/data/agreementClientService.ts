@@ -200,9 +200,9 @@ function pendingChangeSummary(raw: Record<string, unknown>, actions: ServerActio
   const proposed = proposal.terms, mine = sameId(proposal.proposedBy, uid);
   const window = (terms: AgreementChangeTerms) => acceptedSchedule({ proposed_start_at: terms.startsAt, proposed_end_at: terms.endsAt });
   const izmene: PredlogIzmeneSazetak['izmene'] = [];
-  if (proposed.priceRsd !== accepted.priceRsd) izmene.push({ polje: 'Cena', sada: novac(accepted.priceRsd).prikaz + (accepted.priceBasis === 'HOURLY' ? ' po osobi po satu' : ''), predlog: novac(proposed.priceRsd).prikaz + (proposed.priceBasis === 'HOURLY' ? ' po osobi po satu' : '') });
+  if (proposed.priceRsd !== accepted.priceRsd) izmene.push({ polje: 'Cena', sada: novac(accepted.priceRsd).prikaz + (accepted.priceBasis === 'HOURLY' ? '/sat po osobi' : ''), predlog: novac(proposed.priceRsd).prikaz + (proposed.priceBasis === 'HOURLY' ? '/sat po osobi' : '') });
   if (proposed.startsAt !== accepted.startsAt || proposed.endsAt !== accepted.endsAt) izmene.push({ polje: 'Termin', sada: window(accepted), predlog: window(proposed) });
-  if ((proposed.scopeNote ?? '') !== (accepted.scopeNote ?? '')) izmene.push({ polje: 'Obim', sada: accepted.scopeNote || 'Nije naveden', predlog: proposed.scopeNote || 'Nije naveden' });
+  if ((proposed.scopeNote ?? '') !== (accepted.scopeNote ?? '')) izmene.push({ polje: 'Posao', sada: accepted.scopeNote || 'Nije naveden', predlog: proposed.scopeNote || 'Nije naveden' });
   return { id: proposal.proposalId, moj: mine, mozeOdgovoriti: !mine && actions.canRespondChange,
     mozePovuci: mine && actions.canWithdrawChange, razlog: proposal.reason, izmene };
 }
@@ -244,13 +244,13 @@ export type AgreementProblemSnapshot = {
 } & ({ state: 'AVAILABLE'; report: { openedAt: string; openedBy: string; narrative: string } }
   | { state: 'ABSENT' | 'LEGACY_UNAVAILABLE'; report: null });
 const problemErrors = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.', NOT_PARTY: 'Nemaš pristup ovom Dogovoru.',
-  ACCOUNT_CLOSING: 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.',
-  NEED_NOT_FOUND: 'Zadatak ovog Dogovora nije dostupan. Osveži prikaz.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.', NOT_PARTY: 'Nemate pristup ovom Dogovoru.',
+  ACCOUNT_CLOSING: 'Radnja je zaustavljena jer se nalog zatvara. Osvežite prikaz.',
+  NEED_NOT_FOUND: 'Zadatak ovog Dogovora nije dostupan. Osvežite prikaz.',
   AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.', EXECUTION_NOT_FOUND: 'Stanje Dogovora nije dostupno.',
   AGREEMENT_NOT_REPORTABLE: 'Problem se može prijaviti samo dok je Dogovor aktivan.',
-  EXECUTION_NOT_REPORTABLE: 'Dogovor je promenjen. Proveri njegovo stanje.',
-  NARRATIVE_REQUIRED: 'Opiši problem.', NARRATIVE_TOO_LONG: 'Opis može imati najviše 4.000 znakova.',
+  EXECUTION_NOT_REPORTABLE: 'Dogovor je promenjen. Proverite njegovo stanje.',
+  NARRATIVE_REQUIRED: 'Opišite problem.', NARRATIVE_TOO_LONG: 'Opis može imati najviše 4.000 znakova.',
 };
 const problemOptions = { errors: problemErrors, fallback: 'PROBLEM_REPORT_UNCONFIRMED', invalid: 'PROBLEM_REPORT_INVALID' };
 /** A problem report refused for a known reason (deep read 8.8): its own sentence, not "Prijava nije potvrđena". */
@@ -281,7 +281,7 @@ export const agreementProblemService = {
   read(agreementId: string, version: number, participantIds: readonly string[], account: ReceiptAccount): Promise<Ishod<AgreementProblemSnapshot>> {
     if (!uuid(agreementId) || !positiveInteger(version) || participantIds.length !== 2 ||
       !participantIds.every(uuid) || participantIds[0] === participantIds[1] || !participantIds.includes(account.accountId)) {
-      return Promise.resolve(failure('PROBLEM_REPORT_INVALID', 'Prijava problema nije dostupna. Ponovo otvori Dogovor.'));
+      return Promise.resolve(failure('PROBLEM_REPORT_INVALID', 'Prijava problema nije dostupna. Ponovo otvorite Dogovor.'));
     }
     return readOwnedResult({ ...problemOptions, account, fallback: 'PROBLEM_REPORT_READ_FAILED',
       // Existing participant RLS owns access; no raw account or private unrelated fields.
@@ -360,36 +360,36 @@ function decodeActionState(raw: unknown, agreementId: unknown, version: unknown,
     pendingChanges: actions.pendingChanges };
 }
 const changeErrors = {
-  ACCOUNT_CLOSING: 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.',
-  INTERACTION_BLOCKED: 'Ova radnja nije dostupna zbog blokiranja između učesnika. Za pomoć otvori podršku.',
-  ALREADY_COMPLETED: 'Dogovor je već završen i ne može da se otkaže. Osveži njegov status.',
-  NEED_NOT_FOUND: 'Zadatak ovog Dogovora nije dostupan. Osveži prikaz.',
-  AGREEMENT_NEED_MISMATCH: 'Podaci Dogovora nisu usklađeni. Osveži prikaz; ako problem ostane, otvori podršku.',
-  REASON_REQUIRED: 'Unesi razlog otkazivanja.',
-  AGREEMENT_CAPABILITIES_NOT_READY: 'Radnje Dogovora još nisu spremne. Osveži prikaz kasnije.',
+  ACCOUNT_CLOSING: 'Radnja je zaustavljena jer se nalog zatvara. Osvežite prikaz.',
+  INTERACTION_BLOCKED: 'Ova radnja nije dostupna zbog blokiranja između učesnika. Za pomoć otvorite podršku.',
+  ALREADY_COMPLETED: 'Dogovor je već završen i ne može da se otkaže. Osvežite njegov status.',
+  NEED_NOT_FOUND: 'Zadatak ovog Dogovora nije dostupan. Osvežite prikaz.',
+  AGREEMENT_NEED_MISMATCH: 'Dogovor se promenio. Osvežite ga i pokušajte ponovo; ako problem ostane, otvorite podršku.',
+  REASON_REQUIRED: 'Unesite razlog otkazivanja.',
+  AGREEMENT_CAPABILITIES_NOT_READY: 'Radnje Dogovora još nisu spremne. Osvežite prikaz malo kasnije.',
   AGREEMENT_CHANGE_AFTER_WORK_DONE: 'Rad je označen kao završen. Uslovi se više ne mogu menjati.',
-  AGREEMENT_CHANGE_PENDING: 'Najpre odgovori na postojeći predlog izmene.',
+  AGREEMENT_CHANGE_PENDING: 'Najpre odgovorite na postojeći predlog izmene.',
   AGREEMENT_NOT_FOUND_OR_FORBIDDEN: 'Dogovor nije dostupan.',
   NOT_PROPOSER: 'Samo autor može da povuče ovaj predlog.',
-  CHANGE_INPUT_TOO_LARGE: 'Predlog prelazi dozvoljenu dužinu.',
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.', NOT_PARTY: 'Nemaš pristup ovom Dogovoru.',
-  AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.', AGREEMENT_VERSION_NOT_FOUND: 'Verzija Dogovora nije dostupna.',
-  AGREEMENT_NOT_ACTIVE: 'Dogovor više nije aktivan. Osveži njegov status.',
-  VERSION_REQUIRED: 'Ponovo učitaj važeću verziju Dogovora.', VERSION_CONFLICT: 'Dogovor je promenjen. Osveži važeće uslove.',
+  CHANGE_INPUT_TOO_LARGE: 'Predlog je predugačak. Skratite ga.',
+  AUTH_REQUIRED: 'Prijavite se da nastavite.', NOT_PARTY: 'Nemate pristup ovom Dogovoru.',
+  AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.', AGREEMENT_VERSION_NOT_FOUND: 'Dogovor se promenio. Osvežite ga i pokušajte ponovo.',
+  AGREEMENT_NOT_ACTIVE: 'Dogovor više nije aktivan. Osvežite njegov status.',
+  VERSION_REQUIRED: 'Dogovor se promenio. Osvežite ga i pokušajte ponovo.', VERSION_CONFLICT: 'Dogovor je promenjen. Osvežite važeće uslove.',
   CHANGE_PATCH_REQUIRED: 'Izmeni bar jedno polje Dogovora.',
-  CLIENT_REQUEST_ID_REQUIRED: 'Zahtev nije spreman. Ponovo otvori izmenu.',
-  CHANGE_REQUEST_ID_REUSED: 'Ovaj zahtev već pripada drugoj izmeni. Osveži predloge.',
-  UNSUPPORTED_CHANGE_FIELD: 'Predlog sadrži nepodržanu izmenu.', INVALID_PRICE: 'Unesi pozitivan ceo iznos u RSD.',
+  CLIENT_REQUEST_ID_REQUIRED: 'Dogovor se promenio. Otvorite izmenu ponovo.',
+  CHANGE_REQUEST_ID_REUSED: 'Ova izmena je već poslata. Osvežite predloge.',
+  UNSUPPORTED_CHANGE_FIELD: 'Ova izmena nije moguća. Promenite cenu, posao ili termin.', INVALID_PRICE: 'Unesi pozitivan ceo iznos u RSD.',
   CHANGE_SCOPE_INVALID: 'Proveri opis obima zadatka.', CHANGE_CURRENCY_INVALID: 'Valuta Dogovora mora biti RSD.',
   CHANGE_TERMS_INVALID: 'Uslovi predloga nisu dostupni za prihvatanje.',
   CHANGE_PROPOSAL_NOT_FOUND: 'Predlog izmene nije dostupan.', PROPOSER_CANNOT_RESPOND: 'Na predlog odgovara druga strana.',
-  PROPOSAL_NOT_PENDING: 'Na ovaj predlog više nije moguće odgovoriti.', DECISION_REQUIRED: 'Izaberi odgovor na predlog.',
-  AGREEMENT_CALENDAR_INTERVAL_INVALID: 'Proveri tačan početak i kraj dogovorenog termina.',
-  WORKER_CALENDAR_CONFLICT: 'Termin se preklapa sa drugim Dogovorom. Proveri Raspored i izaberi drugi termin.',
-  CALENDAR_RECHECK_REQUIRED: 'Raspored se upravo promenio. Osveži podatke pre ponovnog pokušaja.',
+  PROPOSAL_NOT_PENDING: 'Na ovaj predlog više nije moguće odgovoriti.', DECISION_REQUIRED: 'Izaberite odgovor na predlog.',
+  AGREEMENT_CALENDAR_INTERVAL_INVALID: 'Proverite tačan početak i kraj dogovorenog termina.',
+  WORKER_CALENDAR_CONFLICT: 'Termin se preklapa sa drugim Dogovorom. Proverite Raspored i izaberite drugi termin.',
+  CALENDAR_RECHECK_REQUIRED: 'Raspored se upravo promenio. Osvežite podatke pre ponovnog pokušaja.',
   // PKG-031a (owner decision 2026-09-21, deep read 7.16): after the worker says done, the requester
   // confirms or reports a problem; the server refuses a cancel from a screen that did not know yet.
-  AGREEMENT_WORK_REPORTED_DONE: 'Druga strana je javila da je zadatak gotov. Potvrdi završetak ili prijavi problem.',
+  AGREEMENT_WORK_REPORTED_DONE: 'Druga strana je javila da je zadatak gotov. Potvrdite završetak ili prijavite problem.',
 };
 // Input refusal and malformed success receipt must never share a code: only the
 // former proves no command was accepted. The controller uses this same allowlist.
@@ -498,7 +498,7 @@ export const agreementChangeService = {
     const value = byId ? selector?.proposalId : selector?.clientRequestId;
     if (!owner || !selector || !exactKeys(selector, [byId ? 'proposalId' : 'clientRequestId']) || !uuid(agreementId) || typeof value !== 'string' || (byId ? !uuid(value)
       : !value.trim() || Array.from(value).length > 200))
-      return Promise.resolve(failure('AGREEMENT_CHANGE_INVALID', 'Potvrda radnje nije dostupna.'));
+      return Promise.resolve(failure('AGREEMENT_CHANGE_INVALID', 'Ne možemo da proverimo stanje. Osvežite Dogovor.'));
     return readOwnedResult({ ...changeOptions, account: owner, fallback: 'AGREEMENT_CHANGE_READ_FAILED',
       request: () => {
         const query = supabase.from('agreement_change_proposals').select('id,agreement_id,base_version,proposed_by_account_id,status').eq('agreement_id', agreementId);
@@ -529,7 +529,7 @@ export const agreementChangeService = {
   },
   async read(agreementId: string, account: ReceiptAccount): Promise<Ishod<AgreementChangeSnapshot>> {
     const owner = changeAccount(account);
-    if (!uuid(agreementId) || !owner) return failure('AGREEMENT_CHANGE_INVALID', 'Dogovor nije dostupan. Ponovo ga otvori.');
+    if (!uuid(agreementId) || !owner) return failure('AGREEMENT_CHANGE_INVALID', 'Dogovor nije dostupan. Ponovo ga otvorite.');
     return readOwnedResult({ ...changeOptions, account: owner, fallback: 'AGREEMENT_CHANGE_READ_FAILED',
       request: async () => {
         const result = await supabase.rpc('rpc_get_agreement_workspace', { p_agreement_id: agreementId });
@@ -566,7 +566,7 @@ export const agreementChangeService = {
     const owner = changeAccount(account);
     if (!owner || !proposal || !uuid(proposal.proposalId) || !uuid(proposal.agreementId) || !uuid(proposal.proposedBy) ||
       !positiveInteger(proposal.baseVersion) || typeof accept !== 'boolean' ||
-      !['PENDING', 'ACCEPTED', 'REJECTED', 'SUPERSEDED', 'WITHDRAWN'].includes(proposal.status)) return failure('AGREEMENT_CHANGE_INVALID', 'Predlog nije dostupan. Osveži Dogovor.');
+      !['PENDING', 'ACCEPTED', 'REJECTED', 'SUPERSEDED', 'WITHDRAWN'].includes(proposal.status)) return failure('AGREEMENT_CHANGE_INVALID', 'Predlog nije dostupan. Osvežite Dogovor.');
     if (sameId(proposal.proposedBy, owner.accountId)) return failure('PROPOSER_CANNOT_RESPOND', changeErrors.PROPOSER_CANNOT_RESPOND);
     if (proposal.status !== 'PENDING' && !(accept && proposal.status === 'ACCEPTED') && !(!accept && proposal.status === 'REJECTED'))
       return failure('PROPOSAL_NOT_PENDING', changeErrors.PROPOSAL_NOT_PENDING);
@@ -734,7 +734,7 @@ export const agreementClientService: AgreementService = {
   async posaljiPoruku(_dogovorId, telo) {
     if (!telo.trim()) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesi poruku.' };
     return { ok: false, kod: 'MESSAGE_RETRY_KEY_REQUIRED',
-      poruka: 'Otvori Poruke u Dogovoru i pošalji poruku iz tog prikaza.' };
+      poruka: 'Otvorite Poruke u Dogovoru i pošaljite poruku odatle.' };
   },
 
   async predloziIzmenu(k: IzmenaKomanda) {
@@ -773,7 +773,7 @@ export const agreementClientService: AgreementService = {
    * server's structured terminal receipt (original or already-completed replay) is
    * required; the screen still confirms only by reading COMPLETED back. */
   async potvrdiZavrsetak(dogovorId) {
-    if (!uuid(dogovorId)) return failure('COMPLETION_COMMAND_INVALID', 'Dogovor nije dostupan. Ponovo ga otvori.');
+    if (!uuid(dogovorId)) return failure('COMPLETION_COMMAND_INVALID', 'Dogovor nije dostupan. Ponovo ga otvorite.');
     return readOwnedResult({ write: true, errors: completionErrors, fallback: 'COMPLETION_UNCONFIRMED', invalid: 'COMPLETION_RECEIPT_INVALID',
       request: () => supabase.rpc('rpc_confirm_completion', { p_agreement_id: dogovorId }),
       decode: raw => decodeCompletionReceipt(raw, dogovorId) });

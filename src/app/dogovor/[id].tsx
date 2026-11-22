@@ -43,6 +43,7 @@ import { agreementCancellationService, cancellationOf, type AgreementCancellatio
 import { reviewsClientService } from '../../data/reviewsClientService';
 import { completionDenial } from '../../data/agreementCompletion';
 import { calendarInstant } from '../../lib/calendarTime';
+import { agreementProblemDraftScope, clearAgreementProblemDraft, readAgreementProblemDraft, rememberAgreementProblemDraft } from '../../ui/agreements/agreementProblemDraft';
 
 /**
  * My rating of a finished Dogovor, from the review read the rating screen itself uses. `DUE` and `UNKNOWN` both keep
@@ -98,7 +99,10 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   const chatReadingPosition = useMemo<{ current: AgreementReadingPosition }>(() => ({ current: requestedMessageId
     ? { following: false, offset: 0, anchor: { messageId: requestedMessageId, within: 0 } }
     : { following: true, offset: 0 } }), [requestedMessageId]);
-  const [problemOpen, setProblemOpen] = useState(false), [problemText, setProblemText] = useState('');
+  // The unsent problem description survives leaving and returning to this Dogovor (process RAM only).
+  const problemDraftScope = agreementProblemDraftScope(accountId, accountRevision, id);
+  const [problemOpen, setProblemOpen] = useState(() => readAgreementProblemDraft(problemDraftScope) !== ''),
+    [problemText, setProblemText] = useState(() => readAgreementProblemDraft(problemDraftScope));
   const [problemAttempt, setProblemAttempt] = useState<string | null>(null);
   const problemAttemptRef = useRef<string | null>(null);
   const [completionReview, setCompletionReview] = useState<CompletionReview | null>(null);
@@ -364,6 +368,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       if (!stored || stored.openedBy !== receipt.podatak.problemOpenedBy || calendarInstant(stored.openedAt) !== calendarInstant(receipt.podatak.problemOpenedAt)) {
         return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Ne znamo da li je problem prijavljen. Osvežite Dogovor.' };
       }
+      clearAgreementProblemDraft(problemDraftScope);
       return next;
     });
   };
@@ -449,7 +454,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   // The one place the state is said (round-1 critique A13); the words live beside the step card.
   const stepChange = { waits: !!changeWaits, mine: pendingChange ? pendingChange.moj : null };
   const quiet = brand ? null : agreementQuietLine({ state: dogovor.stanje, party: !!me, worker, otherName: other?.ime, change: stepChange, permissionsKnown: !!radnje });
-  // What can be changed or cancelled: the rows "Izmeni uslove" and "Otkaži Dogovor" of the overview, and the same entries of the conversation's menu.
+  // What can be changed or cancelled: the rows "Izmenite uslove" and "Otkažite Dogovor" of the overview, and the same entries of the conversation's menu.
   const canChange = active && !!me && !(requester && dogovor.stanje === 'AWAITING_REQUESTER');
   const toChanges = (start: 'propose' | 'cancel') => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id, start } }); };
   /** The form takes the place of the row that opens it, at the end of the page, and the page goes there once it has a place. */
@@ -460,14 +465,14 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   };
   /** "Dogovorite se u Porukama": the conversation of this same screen. */
   const openMessages = () => { if (formCurrent()) setTab('poruke'); };
-  /** "Zatraži adresu" (R03): the question is written into the conversation's draft - never sent for the person - and the conversation opens. */
+  /** "Zatražite adresu" (R03): the question is written into the conversation's draft - never sent for the person - and the conversation opens. */
   const requestAddress = () => {
     if (!formCurrent()) return;
     // Only into an empty draft that has been read: a draft the person already wrote is not touched.
     if (outboxState.phase === 'ready' && !outboxState.draft?.trim()) void outbox.setDraft(ADDRESS_REQUEST_TEXT);
     setTab('poruke');
   };
-  /** "Prijavi nedolazak" (R04): support opens with this Dogovor and the matching topic selected. */
+  /** "Prijavite nedolazak" (R04): support opens with this Dogovor and the matching topic selected. */
   const reportNoShow = () => {
     if (formCurrent()) router.push({ pathname: '/podrska/novi', params: { contextKind: 'AGREEMENT', contextId: id.toLowerCase(), contextRevision: String(dogovor.verzija), topic: 'NO_SHOW' } });
   };
@@ -515,7 +520,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     : null;
   const problemForm = !problemNote && active && me && problemOpen
     ? <AgreementProblemForm value={problemText} editable={enabled && !problemAttempt} kept={!!problemAttempt} busy={workspace.busy} disabled={!enabled}
-      onChange={value => { if (formCurrent() && !problemAttemptRef.current) setProblemText(value); }}
+      onChange={value => { if (formCurrent() && !problemAttemptRef.current) { setProblemText(value); rememberAgreementProblemDraft(problemDraftScope, value); } }}
       canSend={enabled && !!(problemAttempt ?? problemText.trim())} onSend={() => { void reportProblem(); }}
       onCancel={() => { if (formCurrent() && !problemAttemptRef.current) setProblemOpen(false); }} />
     : null;
@@ -541,7 +546,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       {tab === 'poruke' ? <AgreementThreadPresentation key={requestedMessageId ?? 'history'} agreement={dogovor} person={other}
         channels={channels}
         waiting={waitingForMe} onOverview={() => setTab('pregled')}
-        // The conversation's own "···" (the overview has none, J15), so "Prijavi ili blokiraj osobu" and the rest are reachable while Poruke is shown.
+        // The conversation's own "···" (the overview has none, J15), so "Prijavite ili blokirajte osobu" and the rest are reachable while Poruke is shown.
         onMore={menuActions.length ? () => { if (ownsAccount()) setMenuOpen(true); } : undefined}
         onBack={fromInbox ? () => {
           if (renderedFormFocus !== null && formFocus.current === renderedFormFocus && ownsAccount() && activeRef.current && freshRef.current) {

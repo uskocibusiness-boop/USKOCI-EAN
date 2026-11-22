@@ -162,8 +162,8 @@ export function AgreementTerms({ agreement: a, compact = false, onProposeTerm }:
   const ownRole = a.ucesnici.find(person => person.viSte)?.uloga;
   const hourly = a.osnovaCene === 'HOURLY';
   const priceLabel = ownRole === 'uskocer'
-    ? (hourly ? 'Vaša dogovorena satnica' : a.osnovaCene === 'TOTAL' ? 'Vaša dogovorena zarada' : 'Sačuvani iznos')
-    : (hourly ? 'Dogovorena satnica' : a.osnovaCene === 'TOTAL' ? 'Dogovoreni iznos ove saradnje' : 'Sačuvani iznos');
+    ? (hourly ? 'Vaša dogovorena satnica' : a.osnovaCene === 'TOTAL' ? 'Vaša dogovorena zarada' : 'Dogovorena cena')
+    : (hourly ? 'Dogovorena satnica' : a.osnovaCene === 'TOTAL' ? 'Dogovoreni iznos ove saradnje' : 'Dogovorena cena');
   const sectionTitle = ownRole === 'uskocer' ? 'Vaši dogovoreni uslovi' : 'Dogovoreni uslovi';
   const priceUnit = applicationPriceBasisText(a.osnovaCene);
   const scope = a.prihvacenObim;

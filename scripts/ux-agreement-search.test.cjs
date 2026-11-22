@@ -143,9 +143,9 @@ for(const worker of [true,false])test('Agreement completion '+(worker?'worker':'
  const h=await completionSetup(worker);
  const facts=nodes(h.r,n=>n.type==='ProductFact');
  assert.deepEqual(facts.map(n=>[n.props.label,n.props.value]),[
-  ['Dogovoreni termin','10. novembar u 14:00'],['Dogovoreni broj ljudi','2 osobe'],['Sačuvani iznos · po osobi po satu','1.200 RSD']]);
+  ['Dogovoreni termin','10. novembar u 14:00'],['Dogovoreni broj ljudi','2 osobe'],['Dogovorena cena','1.200 RSD/sat po osobi']]);
  const copy=nodes(h.r,n=>n.type==='T').flatMap(n=>n.children).filter(x=>typeof x==='string');
- assert.ok(copy.includes(worker?'Prijavljeni problem ostaje sačuvan. Automatski završetak je zaustavljen.':'Prijavljeni problem ostaje sačuvan. Ovom potvrdom ipak završavate Dogovor; problem sam po sebi ne određuje krivicu ili dug.'));
+ assert.ok(copy.includes(worker?'Prijavljeni problem ostaje sačuvan. Automatski završetak je zaustavljen.':'Prijavljeni problem ostaje sačuvan. Ovom potvrdom ipak završavate Dogovor. Prijava problema ne znači da je neko kriv.'));
  assert.deepEqual(h.calls,[]);
  await press(target(h.r,worker?'Da, zadatak je gotov':'Da, potvrdite završetak'));assert.deepEqual(h.calls,['confirm']);
  await RTR.act(async()=>nodes(h.r,n=>n.type==='ProductSheet')[0].props.onClose());assert.deepEqual(h.calls,['confirm','back']);await h.stop();
@@ -153,5 +153,5 @@ for(const worker of [true,false])test('Agreement completion '+(worker?'worker':'
 test('Agreement completion never invents a price or basis when accepted metadata is absent',async()=>{
  const h=await completionSetup(false,{cena:{prikaz:''},osnovaCene:null,problemOtvoren:false});
  const price=nodes(h.r,n=>n.type==='ProductFact'&&n.props.art==='money')[0];
- assert.equal(price.props.value,'Iznos nije sačuvan');assert.equal(price.props.label,'Sačuvani iznos · osnovica cene nije potvrđena');assert.equal(price.props.prominentAs,'label');assert.deepEqual(h.calls,[]);await h.stop();
+ assert.equal(price.props.value,'Iznos nije sačuvan');assert.equal(price.props.label,'Dogovorena cena');assert.equal(price.props.prominentAs,'label');assert.deepEqual(h.calls,[]);await h.stop();
 });

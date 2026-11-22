@@ -1,7 +1,7 @@
 /**
  * Address copy for a Dogovor. Communication itself stays in Poruke.
  * The address. The requester owns it and shares it when ready; the worker cannot ask for it anywhere but in the conversation, so
- * the section offers "Zatraži adresu", which takes them to Poruke with the question already written (never sent for them).
+ * the section offers "Zatražite adresu", which takes them to Poruke with the question already written (never sent for them).
  */
 
 /** The question "Zatražite adresu" writes into the conversation's draft; the person reads it and sends it. */

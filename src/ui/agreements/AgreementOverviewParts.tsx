@@ -69,7 +69,7 @@ export function AgreementHead({ title, roleLabel, coverageLine, step, steps, inf
   return <View style={s.head}>
     {taskCard ? (
       <Surface kind="record" onPress={taskCard.disabled ? undefined : taskCard.onPress}
-        accessibilityLabel={`Otvori originalni zadatak: ${title}`}
+        accessibilityLabel={`Otvorite originalni zadatak: ${title}`}
         accessibilityHint="Otvara detaljni prikaz originalnog zadatka.">
         <View style={s.taskCardRow}>
           <FactArt kind="tasks" size={32} />
@@ -116,16 +116,16 @@ export function AgreementHead({ title, roleLabel, coverageLine, step, steps, inf
 
 /**
  * A Dogovor with no term yet (idea R02): the one thing the two of them still have to do, said where the person reads what comes next.
- * One tinted note, never a card of its own: what is missing, and "Predloži termin" under it in the system's green words - the way to the
+ * One tinted note, never a card of its own: what is missing, and "Predložite termin" under it in the system's green words - the way to the
  * existing change of the terms, opened on the term. No sentence between the two (phone, 2026-10-08: the title and the button say it).
  * It stands until a proposal for the term is accepted.
  */
 export function AgreementTermNote({ onPropose, disabled = false }: { onPropose: () => void; disabled?: boolean }) {
   return <Surface kind="note" tone="warn" testID="agreement-term-note" style={s.termNote}>
     <T accessibilityRole="header" variant="bodyStrong" style={s.title}>Termin još nije dogovoren</T>
-    <Press accessibilityRole="button" accessibilityLabel="Predloži termin" accessibilityState={{ disabled }} disabled={disabled} haptic="select"
+    <Press accessibilityRole="button" accessibilityLabel="Predložite termin" accessibilityState={{ disabled }} disabled={disabled} haptic="select"
       onPress={onPropose} style={s.termAction}>
-      <T variant="copy" tone="green" style={s.actionWord}>Predloži termin</T>
+      <T variant="copy" tone="green" style={s.actionWord}>Predložite termin</T>
     </Press>
   </Surface>;
 }
@@ -139,7 +139,7 @@ type LinkRow = { onPress: () => void; disabled?: boolean };
  * is the one it always had.
  */
 export function AgreementLinks({ task, application, history }: {
-  /** "Otvori zadatak": only when the source task is known and the person may open it. The row says the title of the work and its coarse area (never the private address) to a screen reader only: the page already shows both. */
+  /** "Otvorite zadatak": only when the source task is known and the person may open it. The row says the title of the work and its coarse area (never the private address) to a screen reader only: the page already shows both. */
   task?: LinkRow & { title: string; place: string };
   /** "Tvoja prijava": the worker's own application. */
   application?: LinkRow;
@@ -148,8 +148,8 @@ export function AgreementLinks({ task, application, history }: {
 }) {
   const events = history?.length ? history : null;
   const rows: ((last: boolean) => ReactNode)[] = [];
-  if (task) rows.push(last => <ListRow key="task" leading={<FactArt kind="tasks" size={32} />} title="Otvori zadatak" last={last}
-    accessibilityLabel={`Otvori zadatak: ${task.title}. ${task.place}`} accessibilityHint="Otvara detalje zadatka iz kog je nastao ovaj Dogovor."
+  if (task) rows.push(last => <ListRow key="task" leading={<FactArt kind="tasks" size={32} />} title="Otvorite zadatak" last={last}
+    accessibilityLabel={`Otvorite zadatak: ${task.title}. ${task.place}`} accessibilityHint="Otvara detalje zadatka iz kog je nastao ovaj Dogovor."
     disabled={task.disabled} onPress={task.onPress} />);
   if (application) rows.push(last => <ListRow key="application" leading={<FactArt kind="applications" size={32} />} title="Vaša prijava" last={last}
     accessibilityLabel="Vaša prijava" disabled={application.disabled} onPress={application.onPress} />);
@@ -173,21 +173,21 @@ function AgreementHistory({ events }: { events: readonly { vremeTekst: string; t
 }
 
 /**
- * What can be DONE in a Dogovor, as rows of the page (J15, owner, 2026-10-08, "jedva se nađu"): "Izmeni uslove" and "Prijavi problem", each
+ * What can be DONE in a Dogovor, as rows of the page (J15, owner, 2026-10-08, "jedva se nađu"): "Izmenite uslove" and "Prijavite problem", each
  * with its picture, in ONE place and not again in a menu. A row is drawn only for a command the route gave, and every press is that command,
  * behind its own guards and confirmations. The ones that end something or report someone are `AgreementDangerActions`, apart and in red.
  */
 export function AgreementActions({ change, problem }: {
-  /** "Izmeni uslove": a proposal of a new price, scope or term. The other side has to accept it. */
+  /** "Izmenite uslove": a proposal of a new price, scope or term. The other side has to accept it. */
   change?: LinkRow;
-  /** "Prijavi problem": opens the form for it on the page. */
+  /** "Prijavite problem": opens the form for it on the page. */
   problem?: LinkRow;
 }) {
   if (!change && !problem) return null;
   return <View testID="agreement-actions">
-    {change ? <ListRow leading={<Glyph name="edit" size={24} />} title="Izmeni uslove" last={!problem} accessibilityLabel="Izmeni uslove"
-      accessibilityHint="Predlažeš novu cenu, obim ili termin. Druga strana mora da prihvati." disabled={change.disabled} onPress={change.onPress} /> : null}
-    {problem ? <ListRow leading={<FactArt kind="alert" size={32} />} title="Prijavi problem" last accessibilityLabel="Prijavi problem"
+    {change ? <ListRow leading={<Glyph name="edit" size={24} />} title="Izmenite uslove" last={!problem} accessibilityLabel="Izmenite uslove"
+      accessibilityHint="Predlažete novu cenu, posao ili termin. Druga strana treba da prihvati." disabled={change.disabled} onPress={change.onPress} /> : null}
+    {problem ? <ListRow leading={<FactArt kind="alert" size={32} />} title="Prijavite problem" last accessibilityLabel="Prijavite problem"
       accessibilityHint="Zaustavlja automatski završetak, a druga strana vidi prijavu." disabled={problem.disabled} onPress={problem.onPress} /> : null}
   </View>;
 }
@@ -198,17 +198,17 @@ export function AgreementActions({ change, problem }: {
  * cancellation, the safety screen - so each keeps its arrow.
  */
 export function AgreementDangerActions({ cancel, safety }: {
-  /** "Otkaži Dogovor": opens the cancelling with its reason. */
+  /** "Otkažite Dogovor": opens the cancelling with its reason. */
   cancel?: LinkRow;
-  /** "Prijavi ili blokiraj osobu": blocking and the private report to support. */
+  /** "Prijavite ili blokirajte osobu": blocking and the private report to support. */
   safety?: LinkRow;
 }) {
   if (!cancel && !safety) return null;
   return <View testID="agreement-danger-actions">
-    {cancel ? <ListRow leading={<Glyph name="cancel" size={24} tone="danger" />} tone="danger" arrow title="Otkaži Dogovor" last={!safety} accessibilityLabel="Otkaži Dogovor"
-      accessibilityHint="Otkazivanje uz razlog. Pre slanja vidiš pregled." disabled={cancel.disabled} onPress={cancel.onPress} /> : null}
-    {safety ? <ListRow leading={<FactArt kind="shield" size={32} muted />} tone="danger" arrow title="Prijavi ili blokiraj osobu" last
-      accessibilityLabel="Prijavi ili blokiraj osobu" accessibilityHint="Blokiranje i poverljiva prijava podršci." disabled={safety.disabled} onPress={safety.onPress} /> : null}
+    {cancel ? <ListRow leading={<Glyph name="cancel" size={24} tone="danger" />} tone="danger" arrow title="Otkažite Dogovor" last={!safety} accessibilityLabel="Otkažite Dogovor"
+      accessibilityHint="Otkazivanje uz razlog. Pre slanja vidite pregled." disabled={cancel.disabled} onPress={cancel.onPress} /> : null}
+    {safety ? <ListRow leading={<FactArt kind="shield" size={32} muted />} tone="danger" arrow title="Prijavite ili blokirajte osobu" last
+      accessibilityLabel="Prijavite ili blokirajte osobu" accessibilityHint="Blokiranje i poverljiva prijava podršci." disabled={safety.disabled} onPress={safety.onPress} /> : null}
   </View>;
 }
 
@@ -232,7 +232,7 @@ export function AgreementProblemNote({ mine, openedAt, narrative, active = false
     <T variant="note" tone="muted">{vreme(openedAt)}</T>
     <T variant="body" style={s.title}>{narrative}</T>
     <T variant="note" tone="muted">{keptFirst ? 'Sačuvan je prvi opis, a Vaš novi nije dodat. Za dopunu koristite Poruke.'
-      : 'Opis vide oba učesnika, a problem sam po sebi ne određuje krivicu ili dug.'}</T>
+      : 'Opis vide oba učesnika. Prijava problema ne znači da je neko kriv.'}</T>
   </Surface>;
 }
 
@@ -279,7 +279,7 @@ export function AgreementProblemForm({ value, onChange, editable, kept, busy, ca
  * The three ways on after a problem was reported (idea R04), so that a report is never a dead end: agree in Poruke; cancel the Dogovor
  * (with a reason and a review before sending); or report that the other side did not come, which opens support with this Dogovor
  * already chosen. Rows of the one list under their own title, each said by its title alone (what each does is spoken, J4); the cancelling is
- * the one that cannot be taken back, so its words are red. It is the ONLY place of "Otkaži Dogovor" while it stands (J1).
+ * the one that cannot be taken back, so its words are red. It is the ONLY place of "Otkažite Dogovor" while it stands (J1).
  */
 export function AgreementProblemExits({ onMessages, onCancel, onNoShow, disabled = false }: {
   onMessages: () => void; onCancel?: () => void; onNoShow: () => void; disabled?: boolean;
@@ -289,10 +289,10 @@ export function AgreementProblemExits({ onMessages, onCancel, onNoShow, disabled
       <ListRow leading={<FactArt kind="chat" size={32} />} title="Dogovorite se u Porukama" onPress={onMessages} disabled={disabled}
         accessibilityLabel="Dogovorite se u Porukama" accessibilityHint="Napišite šta je ostalo nerešeno." last={false} />
       {/* Red words are a command, but this one opens the cancelling with its reason, so it keeps the arrow of a way onward. */}
-      {onCancel ? <ListRow leading={<Glyph name="cancel" size={24} tone="danger" />} tone="danger" arrow title="Otkaži Dogovor" onPress={onCancel} disabled={disabled}
-        accessibilityLabel="Otkaži Dogovor" accessibilityHint="Otkazivanje uz razlog. Pre slanja vidite pregled." /> : null}
-      <ListRow leading={<FactArt kind="shield" size={32} />} title="Prijavi nedolazak" onPress={onNoShow} disabled={disabled}
-        accessibilityLabel="Prijavi nedolazak" accessibilityHint="Otvara podršku sa ovim Dogovorom." last />
+      {onCancel ? <ListRow leading={<Glyph name="cancel" size={24} tone="danger" />} tone="danger" arrow title="Otkažite Dogovor" onPress={onCancel} disabled={disabled}
+        accessibilityLabel="Otkažite Dogovor" accessibilityHint="Otkazivanje uz razlog. Pre slanja vidite pregled." /> : null}
+      <ListRow leading={<FactArt kind="shield" size={32} />} title="Prijavite nedolazak" onPress={onNoShow} disabled={disabled}
+        accessibilityLabel="Prijavite nedolazak" accessibilityHint="Otvara podršku sa ovim Dogovorom." last />
     </View>
   </Section>;
 }

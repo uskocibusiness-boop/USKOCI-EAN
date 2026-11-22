@@ -535,7 +535,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
         </View> : null}
         {/* Incoming push hints also refresh the visible conversation. Manual refresh remains available without push
             permission/delivery, including as a quiet action accessible without a pull gesture at the head of the
-            thread (review r4 rd item 4; "Povuci naniže za nove poruke." used to be the only hint). It is there in the
+            thread (review r4 rd item 4; "Povucite naniže za nove poruke." used to be the only hint). It is there in the
             empty thread too, where someone waits for the other side's first message, and not on a closed Dogovor, where
             nothing new can arrive (verify r4b rd item 4); the first read's spinner stands alone. In the empty thread it
             stands under the empty state's words, as the error state's action does, not above its drawing (verify r4c
@@ -545,7 +545,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           <T accessibilityRole="alert" variant="title" style={[s.ink, s.centerText]}>Poruke nisu učitane</T>
           <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>{state.draft.trim() || state.entries.length
             ? 'Proverite vezu. Vaš tekst ostaje sačuvan.' : 'Proverite vezu pa pokušajte ponovo.'}</T>
-          <ChatAction label="Ponovo učitaj poruke" text="Pokušajte ponovo" onPress={() => void refresh()} center />
+          <ChatAction label="Ponovo učitajte poruke" text="Pokušajte ponovo" onPress={() => void refresh()} center />
         </View> : null}
         {empty ? <View style={s.stateBlock}>
           <View style={s.stateArt}>
@@ -605,7 +605,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
               style={[s.supportEntry, message.moja ? s.supportMine : s.supportTheirs]}><SupportContextEntry
                 reference={{ kind: 'AGREEMENT_MESSAGE', id: message.id.toLowerCase(), revision: message.dogovorVerzija }}
                 label="Izaberite ovu poruku za podršku" previewText={[message.glas ? 'Glasovna poruka. Podrška ne može da presluša snimak.' : message.telo, message.fotografije?.length
-                  ? `Privatne fotografije uz ovu poruku: ${message.fotografije.length}. Uključene su u izabrani dokaz.` : ''].filter(Boolean).join('\n')} disabled={loading}
+                  ? `Uz poruku su fotografije (${message.fotografije.length}); i one idu podršci.` : ''].filter(Boolean).join('\n')} disabled={loading}
                 canAct={supportCurrent} navigate={support.navigate} /></View> : null}
           </View>;
         })}
@@ -631,8 +631,8 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             {first && sender ? sender({ moja: true, posiljalacAccountId: entry.command.accountId }) : null}
             {entry.command.photos ? <PhotoBubble {...common} caption={entry.command.body || null}
               photos={entry.command.photos.assetIds.map((assetId, photoIndex) => <AuthorizedPhoto key={assetId} assetId={assetId}
-                agreementId={entry.command.agreementId} messageId={entry.messageId} label={`Fotografija poruke na čekanju ${photoIndex + 1}`}
-                style={s.photo} open={{ label: `Otvorite fotografiju poruke na čekanju ${photoIndex + 1}`,
+                agreementId={entry.command.agreementId} messageId={entry.messageId} label={`Fotografija ${photoIndex + 1} se šalje`}
+                style={s.photo} open={{ label: `Otvorite fotografiju ${photoIndex + 1} koja se šalje`,
                   onPress: () => openGallery({ outbox, context: { agreementId: entry.command.agreementId, messageId: entry.messageId },
                     localId: entry.command.clientMessageId, photos: entry.command.photos!.assetIds.map(id => ({ assetId: id })), index: photoIndex }) }} />)} />
               : <TextBubble {...common} lines={[entry.command.body, entry.command.voice ? 'Glasovna poruka' : ''].filter(Boolean)} />}
@@ -653,7 +653,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
       {state.error || state.phase === 'error' || (terminal && !!photos) || (!terminal && !writable) || denied || length > 2000 || photoPanel ? <View testID="agreement-chat-details" style={s.details}>
         {state.error ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{errors[state.error]}</T> : null}
         {state.phase === 'error' || state.error === 'STORAGE_UNAVAILABLE' || state.error === 'STORAGE_INVALID'
-          ? <ChatAction label="Ponovo učitaj sačuvane poruke" text="Pokušajte ponovo" onPress={() => void outbox.start()} /> : null}
+          ? <ChatAction label="Ponovo učitajte sačuvane poruke" text="Pokušajte ponovo" onPress={() => void outbox.start()} /> : null}
         {/* A closed Dogovor keeps its history and existing-photo recovery, without a new-message/photo composer; the one
             sentence that says so stands under the thread, where the field would be. */}
         {!terminal && !writable ? <T variant="meta" tone="muted">Osvežite Dogovor pre nove poruke. Nacrt ostaje sačuvan.</T> : null}

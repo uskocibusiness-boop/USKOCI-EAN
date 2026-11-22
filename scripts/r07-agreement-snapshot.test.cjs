@@ -186,8 +186,8 @@ test('known hourly price change retains the same unit and accepted number of peo
   assert.equal(state.proposals[0].terms.priceBasis, 'HOURLY');
   assert.equal(state.proposals[0].terms.coveredSlots, 2);
   const detail = await h.agreementClientService.dogovor(agreementId);
-  assert.match(detail.radnje.predlogIzmene.izmene[0].sada, /po osobi po satu/);
-  assert.match(detail.radnje.predlogIzmene.izmene[0].predlog, /po osobi po satu/);
+  assert.match(detail.radnje.predlogIzmene.izmene[0].sada, /\/sat po osobi/);
+  assert.match(detail.radnje.predlogIzmene.izmene[0].predlog, /\/sat po osobi/);
   const response = await h.agreementChangeService.respond(state.proposals[0], true, h.account);
   assert.equal(response.ok, true);
   assert.equal(response.podatak.agreementVersion, 4);

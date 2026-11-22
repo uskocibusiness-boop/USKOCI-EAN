@@ -7,7 +7,7 @@ import { readableTitle } from '../../data/needDetailPresentation';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { NeedSearchState } from '../../contracts/needSearchRecovery';
 import { cancellationOf, type AgreementCancellation, type AgreementCancellations } from '../../data/agreementCancellationClientService';
-import { applicationPriceBasisText, BEZ_IZNOSA } from '../../lib/novac';
+import { BEZ_IZNOSA, cenaSaOsnovom } from '../../lib/novac';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { ProfilePhoto } from '../media/ContextPhotos';
@@ -49,7 +49,7 @@ function AttentionFoot({ attention }: { attention: AgreementAttention }) {
 function AcceptedAmount({ item }: { item: DogovorProjekcija }) {
   const amount = item.cena.prikaz;
   if (!amount) return <T variant="note" tone="muted">{BEZ_IZNOSA}</T>;
-  const basis = item.osnovaCene === 'HOURLY' ? 'po satu' : item.izmenaCeka ? 'važeći iznos' : item.osnovaCene === 'TOTAL' ? 'ukupno' : null;
+  const basis = item.osnovaCene === 'HOURLY' ? '/sat po osobi' : item.izmenaCeka ? 'dogovorena cena' : item.osnovaCene === 'TOTAL' ? 'ukupno' : null;
   return <View style={s.amountBlock}>
     <T variant="priceRow" style={s.amount}>{amount}</T>
     {basis ? <T variant="meta" tone="muted">{basis}</T> : null}
@@ -111,14 +111,14 @@ function AgreementCard({ item, now, stale = false, cancellation, capacity, onOpe
   // The rating foot is its own press only when the route hands over where it goes; otherwise it stays inside the body.
   const rateAside = attention?.kind === 'rate' && onRate ? attention : null;
   const footInside = attention && !rateAside ? attention : null;
-  const spoken = [name, role, `${agreementChipWord(chip)}${changed ? `, ${changed}` : ''}`, when, term.zone, amount ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ${applicationPriceBasisText(item.osnovaCene)}` : BEZ_IZNOSA, place, people,
+  const spoken = [name, role, `${agreementChipWord(chip)}${changed ? `, ${changed}` : ''}`, when, term.zone, amount ? `${item.izmenaCeka ? 'Dogovorena cena, ' : ''}${cenaSaOsnovom(amount, item.osnovaCene)}` : BEZ_IZNOSA, place, people,
     cancelledLine, ownProposal ? 'Vaša izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null]
     .filter((part): part is string => !!part).join(', ');
   // The one Avatar: a missing name (an empty string since 2026-09-24) draws the person, never an empty disc or a dash.
   const initials = <Avatar initials={other?.inicijali} size={AVATAR} />;
   return <Animated.View style={lift}>
     <Surface kind="record">
-      <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${title}`} accessibilityValue={{ text: spoken }}
+      <Press accessibilityRole="button" accessibilityLabel={`Otvorite Dogovor ${title}`} accessibilityValue={{ text: spoken }}
         accessibilityHint={footInside ? `${footInside.title}. ${footInside.line}` : undefined} onPress={onOpen}
         onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1} style={s.body}>
         <View style={s.main}>
@@ -163,10 +163,10 @@ function AgreementCard({ item, now, stale = false, cancellation, capacity, onOpe
         {footInside ? <View style={s.foot}><AttentionFoot attention={footInside} /></View> : null}
       </Press>
       {capacity && onOpenOwnerTask ? <Press accessibilityRole="button"
-        accessibilityLabel={capacity.count ? `Otvori zadatak: ${title}` : `Proveri popunjenost zadatka: ${title}`}
+        accessibilityLabel={capacity.count ? `Otvorite zadatak: ${title}` : `Proverite popunjenost zadatka: ${title}`}
         accessibilityHint="Otvara vlasnikov zadatak i proverava trenutno stanje i dozvoljene radnje."
         onPress={onOpenOwnerTask} haptic="select" style={s.taskFoot}>
-        <T variant="note" tone="green">{capacity.count ? 'Otvori zadatak' : 'Proveri popunjenost zadatka'}</T>
+        <T variant="note" tone="green">{capacity.count ? 'Otvorite zadatak' : 'Proverite popunjenost zadatka'}</T>
         <Glyph name="arrow-right" size={20} tone="green" />
       </Press> : null}
       {/* No hit slop: the rule is the border between the two targets, and a touch just above it opens the Dogovor. */}
@@ -231,18 +231,18 @@ export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, n
       {capacity?.next ? <T variant="note" tone="muted">{capacity.next}</T> : null}
       {waiting ? <T variant="note" style={s.footTitle}>{plural(waiting, 'obaveza čeka', 'obaveze čekaju', 'obaveza čeka')} Vas</T> : null}
       {capacity && onOpenOwnerTask ? <Press accessibilityRole="button"
-        accessibilityLabel={capacity.count ? `Otvori zadatak: ${title}` : `Proveri popunjenost zadatka: ${title}`}
+        accessibilityLabel={capacity.count ? `Otvorite zadatak: ${title}` : `Proverite popunjenost zadatka: ${title}`}
         accessibilityHint="Otvara vlasnikov zadatak i proverava trenutno stanje i dozvoljene radnje."
         onPress={() => onOpenOwnerTask(capacity.taskId, first)} haptic="select" style={s.taskLink}>
-        <T variant="note" tone="green">{capacity.count ? 'Otvori zadatak' : 'Proveri popunjenost zadatka'}</T>
+        <T variant="note" tone="green">{capacity.count ? 'Otvorite zadatak' : 'Proverite popunjenost zadatka'}</T>
         <Glyph name="arrow-right" size={20} tone="green" />
       </Press> : null}
     </View>
     {shown.map(item => <AgreementCollaborator key={item.id} item={item} taskTitle={title} now={at} stale={stale}
       cancellation={cancellationOf(cancellations, item.id)} onOpen={onOpen} onRate={onRate} />)}
-    {ordered.length > 3 ? <Press accessibilityRole="button" accessibilityLabel={`${expanded ? 'Sažmi' : 'Prikaži sve'} saradnje za ${title}`}
+    {ordered.length > 3 ? <Press accessibilityRole="button" accessibilityLabel={`${expanded ? 'Sažmite' : 'Prikažite sve'} saradnje za ${title}`}
       accessibilityState={{ expanded }} onPress={() => onExpand(expanded ? null : group.key, first)} haptic="select" style={s.more}>
-      <T variant="note">{expanded ? 'Prikaži manje' : `Sve saradnje (${ordered.length})`}</T>
+      <T variant="note">{expanded ? 'Prikažite manje' : `Sve saradnje (${ordered.length})`}</T>
       <Glyph name={expanded ? 'caret-up' : 'caret-down'} size={20} tone="muted" />
     </Press> : null}
   </Surface></Appear>;
@@ -260,12 +260,12 @@ function AgreementCollaborator({ item, taskTitle, now, stale = false, cancellati
   const place = item.rezim === 'DALJINSKI' ? 'Na daljinu' : item.putanjaTekst || 'Mesto nije navedeno';
   const cancelled = item.stanje === 'CANCELLED' ? cancellationDetailsOf(cancellation, other?.ime) : null;
   const spoken = [agreementChipWord(chip), item.verzija > 1 ? 'izmenjeni uslovi' : null, when, term.zone,
-    item.cena.prikaz ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ${applicationPriceBasisText(item.osnovaCene)}` : amount, place, people, attention?.title,
+    item.cena.prikaz ? `${item.izmenaCeka ? 'Dogovorena cena, ' : ''}${cenaSaOsnovom(amount, item.osnovaCene)}` : amount, place, people, attention?.title,
     cancelled ? cancellationLine(cancelled, now) : null,
     item.izmenaCeka?.mojPredlog ? 'Vaša izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null].filter(Boolean).join(', ');
   const initials = <Avatar initials={other?.inicijali} size={AVATAR} />;
   return <View style={s.collaborator}>
-    <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${taskTitle}, ${name}`}
+    <Press accessibilityRole="button" accessibilityLabel={`Otvorite Dogovor ${taskTitle}, ${name}`}
       accessibilityValue={{ text: spoken }}
       onPress={() => onOpen(item)} haptic="select" style={s.main}>
       <View style={s.head}>

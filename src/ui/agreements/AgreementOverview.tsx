@@ -15,8 +15,8 @@ import type { AgreementInfo, AgreementStep } from './AgreementWorkspace';
  * The overview of a Dogovor (Pregled), composed ONCE for the route and for its gallery (composition spec 4.9, template T3): the head
  * with the work's name and where the Dogovor stands; the note for a Dogovor with no term (R02); a reported problem and the three
  * ways on after it (R04); the terms; the people of a group; the number and the place; the rows that lead elsewhere; and, last, what can
- * be done - "Izmeni uslove" and "Prijavi problem" (the form that reports one takes the place of its row), then, apart and in red,
- * "Otkaži Dogovor" and "Prijavi ili blokiraj osobu" (J15: the actions are on the page and in no menu). Sections are parted by the space of the
+ * be done - "Izmenite uslove" and "Prijavite problem" (the form that reports one takes the place of its row), then, apart and in red,
+ * "Otkažite Dogovor" and "Prijavite ili blokirajte osobu" (J15: the actions are on the page and in no menu). Sections are parted by the space of the
  * scroll it stands in (24) and by nothing else - no line, no box.
  *
  * It decides nothing: whether a row is drawn is whether the route handed it a command (`on`), and what each command does, behind which
@@ -53,12 +53,12 @@ export type AgreementOverviewProps = {
    * that is given. The contact section and the layout callbacks are always the route's.
    */
   on: {
-    /** The note "Termin još nije dogovoren" and its "Predloži termin". Given only for an agreed Dogovor with no term and nothing else waiting. */
+    /** The note "Termin još nije dogovoren" and its "Predložite termin". Given only for an agreed Dogovor with no term and nothing else waiting. */
     proposeTerm?: () => void;
     openMessages: () => void; requestAddress?: () => void;
     /** Rows of the links. */
     openTask?: () => void; openApplication?: () => void;
-    /** Rows of the actions: "Izmeni uslove" (the form of a proposal), "Prijavi problem", "Otkaži Dogovor" (the form of the cancelling) and "Prijavi ili blokiraj osobu". */
+    /** Rows of the actions: "Izmenite uslove" (the form of a proposal), "Prijavite problem", "Otkažite Dogovor" (the form of the cancelling) and "Prijavite ili blokirajte osobu". */
     openChange?: () => void; openProblem?: () => void; openCancel?: () => void; openSafety?: () => void;
     /** Where the place section and the problem form stand, to take a person to them. */
     placeLayout?: (event: LayoutChangeEvent) => void; problemLayout?: (event: LayoutChangeEvent) => void;
@@ -73,11 +73,11 @@ export function AgreementOverview({ agreement, step, steps, info, headExtra, par
   // cannot be inferred from this projection, even when its source task needs more people.
   const coverage = agreement.pokrivenost;
   const coverageLine = coverage.ukupno > 1 && coverage.popunjeno > 0 && coverage.ukupno >= coverage.popunjeno
-    ? `Obuhvat ovog Dogovora: ${coverage.popunjeno} od ${coverage.ukupno} traženih mesta` : undefined;
+    ? `Dogovoreno: ${coverage.popunjeno} od ${coverage.ukupno} osoba` : undefined;
   const place = agreementTaskPlace(agreement);
   return <>
     {groupReady && !on.openTask ? <T variant="pageTitle" accessibilityRole="header">{title}</T> : null}
-    {groupReady ? <T variant="heading" accessibilityRole="header">{privatePartyName ? `Vaš Dogovor: ${privatePartyName}` : 'Vaš pojedinačni Dogovor'}</T> : null}
+    {groupReady ? <T variant="heading" accessibilityRole="header">{privatePartyName ? `Vaš Dogovor: ${privatePartyName}` : 'Vaš Dogovor'}</T> : null}
     <AgreementHead title={title} roleLabel={roleLabel} coverageLine={coverageLine} showTitle={!groupReady}
       taskCard={on.openTask ? { onPress: on.openTask, disabled: !enabled, place } : undefined}
       ownerCapacity={ownerCapacity}
