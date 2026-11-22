@@ -37,6 +37,11 @@ test('dates, times, counts, sizes and prices are never treated as contacts or ad
     'Ukupno 12000 dinara',
     'Renoviranje kupatila, 150000 RSD',
     'Subota 22.',
+    'Ajfon 16, neće da se upali',
+    'Popravka iPhone 16 telefona',
+    'Servis za Samsung S23, ekran',
+    'Golf 7, zamena ulja',
+    'Novi Beograd, blok 45',
   ]) {
     const out = scrubPublicText(keep);
     assert.equal(out.text, keep, keep);

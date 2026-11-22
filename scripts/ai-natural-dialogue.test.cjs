@@ -597,3 +597,16 @@ test('a complete draft without an application deadline asks for it once, last, t
   const ownQuestion=run(turn('Važi. Da li je fotografija u boji?',[],'','ACK'),'Jedna fotografija.',base);
   assert.equal(ownQuestion.assistantMessage,'Važi. Da li je fotografija u boji?','a reply that already asks keeps its own question');
 });
+
+test('a repeated schedule or daily rate is answered only when this message says it, never in a loop',()=>{
+  const said=turn('U redu.',[],'','ACK'); said.dialogue.schedulePattern='REPEATED';
+  const first=run(said,'Svaki dan ujutru po pola sata, Novi Sad, Liman');
+  assert.match(first.assistantMessage,/jedan termin ili jedan period/u);
+  const carried=turn('Razumem, mirna je. Koji budžet nudite?',[],'need.price_mode','ASK'); carried.dialogue.schedulePattern='REPEATED';
+  const later=run(carried,'Mali pas, mirna je');
+  assert.doesNotMatch(later.assistantMessage,/jedan termin ili jedan period/u);
+  const day=turn('Zabeležio sam okupljanje kod Sajma.',[],'','ACK'); day.dialogue.priceUnit='PER_DAY';
+  assert.doesNotMatch(run(day,'Okupljamo se kod Sajma').assistantMessage,/Dnevnic/u);
+  const daySaid=turn('U redu.',[],'','ACK'); daySaid.dialogue.priceUnit='PER_DAY';
+  assert.match(run(daySaid,'Dnevnica je 5000').assistantMessage,/Dnevnicu za sada ne možemo/u);
+});

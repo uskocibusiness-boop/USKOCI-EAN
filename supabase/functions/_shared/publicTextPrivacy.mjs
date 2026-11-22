@@ -22,6 +22,17 @@ const HOUSE = new RegExp(
   `((?:${STREET_WORD}\\s+)?${NAME}|${STREET_WORD}\\s+[\\p{L}.]+(?:\\s+[\\p{L}.]+){0,3})\\s+(?:br\\.?\\s*)?\\d{1,4}(?:\\s?[a-dA-D])?(?:\\/\\d{1,3})?(?=\\s*(?:$|[,;:!?)]|\\.(?!\\d)|\\s(?:u|na|do|iz|i|ka|kod|pa|a|ili)\\s))`,
   'gu');
 
+// A model or product number ("iPhone 16", "Golf 7", "PS 5") is not an address:
+// the number is dropped only after a street word or a typical street-name ending.
+const STREET_START = new RegExp(`^${STREET_WORD}(?!\\p{L})`, 'u');
+const STREET_ENDING = /(?:ov|ev|in|sk|ck|čk|ičk)(?:a|e|i|u|oj|om)$|(?:ski|ćeva|ića|ina)$/u;
+const NOT_A_STREET = /^(?:ajfon|iphone|ipad|samsung|galaxy|xiaomi|redmi|huawei|honor|nokia|pixel|golf|passat|audi|bmw|opel|fiat|škoda|skoda|playstation|ps|xbox|windows|android|ikea|tesla|yugo|zastava)$/iu;
+const looksLikeStreet = street => {
+  const words = street.replace(/\s+br\.?$/u, '').trim().split(/\s+/u);
+  if (words.some(word => NOT_A_STREET.test(word))) return false;
+  return STREET_START.test(street) || STREET_ENDING.test(words.at(-1).toLocaleLowerCase('sr-Latn-RS'));
+};
+
 const tidy = text => text.replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?])/g, '$1').replace(/([,;:])\1+/g, '$1').trim();
 
 export function scrubPublicText(value) {
@@ -39,7 +50,7 @@ export function scrubPublicText(value) {
     && !AMOUNT_AFTER.test(whole.slice(offset + match.length)) ? '' : match));
   if (text === value) removed.delete('CONTACT');
   const beforeHouse = text;
-  take(HOUSE, 'EXACT_ADDRESS', (_match, street) => street.replace(/\s+br\.?$/u, ''));
+  take(HOUSE, 'EXACT_ADDRESS', (match, street) => (looksLikeStreet(street) ? street.replace(/\s+br\.?$/u, '') : match));
   if (text === beforeHouse) removed.delete('EXACT_ADDRESS');
   return { text: removed.size ? tidy(text) : value, removed: [...removed] };
 }

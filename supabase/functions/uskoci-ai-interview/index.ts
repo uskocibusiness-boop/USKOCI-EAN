@@ -1272,16 +1272,21 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     || !Number.isSafeInteger(effectivePriceFact('need.price_rsd'))
     || Number(effectivePriceFact('need.price_rsd')) < 1
     || ['WHOLE_JOB', 'PER_DAY'].includes(turn.dialogue?.priceUnit ?? ''));
-  const unitPrice = !explicitOffers && (turn.dialogue?.priceUnit === 'PER_DAY'
+  // A model label carried over from earlier turns is not this message's claim:
+  // a daily rate or a repeated schedule counts only when this message says so,
+  // otherwise one unsupported word would repeat the same answer on every turn.
+  const perDaySaid = /dnevnic|po\s+danu|dnevno|na\s+dan(?!\p{L})|za\s+dan(?!\p{L})|дневниц|по\s+дану|дневно|на\s+дан(?!\p{L})/iu.test(input);
+  const repetitionSaid = /svak\p{L}*\s+(?:dan|jutr|več|vec|nedelj|ponedelj|utor|sred|četvrt|petak|petk|subot|mesec)|svakodnevn|dnevno|nedeljno|mesečno|redovno|više\s+puta|ponavlj|сваки?\p{L}*\s+(?:дан|јутр|веч|недељ)|свакодневн|дневно|недељно|редовно/iu.test(input);
+  const unitPrice = !explicitOffers && (turn.dialogue?.priceUnit === 'PER_DAY' && perDaySaid
     || hourlyMismatch && !spuriousNumericPriceProposal);
-  const repeated = turn.dialogue?.schedulePattern === 'REPEATED';
+  const repeated = turn.dialogue?.schedulePattern === 'REPEATED' && repetitionSaid;
   const withheldUnitFacts = new Set(['need.price_mode', 'need.price_rsd', 'need.price_basis', 'need.title', 'need.description',
     ...(repeated ? ['need.schedule_kind', 'need.starts_at', 'need.ends_at'] : [])]);
   const unitMessage = repeated
-    ? 'Odvojene termine još ne možemo da sačuvamo kao jedan zadatak. Koji pojedinačni termin želite da dogovorite?'
+    ? 'Za sada jedan zadatak čuva jedan termin ili jedan period, ne ponavljanje svakog dana. Koji prvi termin ili period da upišemo? Dalji dogovor možete napraviti direktno sa izvršiocem 🙂'
     : hourlyMismatch
       ? `${hourlyRetraction ? 'Prethodna cena više nije potvrđena. ' : ''}Satnica se čuva po osobi po satu. Koji iznos u RSD po osobi po satu želite da postavite?`
-      : 'Dnevnica još nije podržana. Koji iznos u RSD želite za ceo zadatak, ukupno ili po osobi?';
+      : 'Dnevnicu za sada ne možemo da upišemo kao cenu. Koliko dinara nudite za ceo zadatak, ukupno ili po osobi?';
   if (turn.safety === 'REVIEW') {
     // Keep a policy-review decision intact while preventing a mismatched price
     // from reaching its writer. This branch intentionally does not downgrade it.
@@ -1591,7 +1596,9 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   if (applicationDeadlineEnabled() && !missing.length && !facts.has('need.response_deadline') && !deadlineAsked
     && ['REVIEW', 'ACK'].includes(dialogue?.next ?? '') && !assistantMessage.includes('?')
     && !routeQuestion && !cityOnlyStationary) {
-    assistantMessage = `${assistantMessage.trim()} Još samo jedno: do kada primate prijave? Recite datum i sat, ili da nema roka 🙂`.trim();
+    const serverReady = assistantMessage.startsWith('Super, imam sve što mi treba');
+    assistantMessage = serverReady ? 'Super, imam skoro sve 🙂 Još samo jedno: do kada primate prijave? Recite datum i sat, ili da nema roka.'
+      : `${assistantMessage.trim()} Još samo jedno: do kada primate prijave? Recite datum i sat, ili da nema roka 🙂`.trim();
     dialogue = dialogue ? { ...dialogue, next: 'ASK', questionKey: 'need.response_deadline' } : dialogue;
   }
   // ACK is not permission to replace the answer with another robotic template.
