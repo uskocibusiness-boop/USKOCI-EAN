@@ -1,21 +1,26 @@
-/** Signed work territory. COUNTRY is country-wide stationary work; CITY uses
+import { WORKER_AREA_LIMIT, WORKER_REGIONS } from './workerRegions.ts';
+/** Signed work territory. COUNTRY is country-wide stationary work; REGION is a
+ * named region or district matched by the task point's district; CITY uses
  * the same canonical locality-name match as legacy discovery, never a polygon.
  * A RADIUS is measured from a resolved city centre, not a home address. */
 export type WorkerArea = Readonly<{
-  kind:'COUNTRY'|'CITY'|'RADIUS'; countryCode:'RS'; label:string;
+  kind:'COUNTRY'|'REGION'|'CITY'|'RADIUS'; countryCode:'RS'; label:string;
   city:string|null; sourceRef:string|null; latitude:number|null; longitude:number|null; radiusKm:number|null;
 }>;
 export function decodeWorkerAreas(raw:unknown):WorkerArea[]|null {
-  if(!Array.isArray(raw)||raw.length>5)return null;
+  if(!Array.isArray(raw)||raw.length>WORKER_AREA_LIMIT)return null;
   const result:WorkerArea[]=[],seen=new Set<string>();
   for(const item of raw){
     if(!item||typeof item!=='object'||Array.isArray(item))return null;
     const a=item as Record<string,unknown>;
     if(Object.keys(a).sort().join(',')!=='city,countryCode,kind,label,latitude,longitude,radiusKm,sourceRef'
-      ||a.countryCode!=='RS'||!['COUNTRY','CITY','RADIUS'].includes(String(a.kind))
+      ||a.countryCode!=='RS'||!['COUNTRY','REGION','CITY','RADIUS'].includes(String(a.kind))
       ||typeof a.label!=='string'||a.label.length<2||a.label.length>200||/[\u0000-\u001f\u007f]/.test(a.label))return null;
     if(a.kind==='COUNTRY'){
       if(a.label!=='Cela Srbija'||a.city!==null||a.sourceRef!==null||a.latitude!==null||a.longitude!==null||a.radiusKm!==null||raw.length!==1)return null;
+    }else if(a.kind==='REGION'){
+      const code=typeof a.sourceRef==='string'&&a.sourceRef.startsWith('region:')?a.sourceRef.slice(7):'';
+      if(!Object.hasOwn(WORKER_REGIONS,code)||a.label!==WORKER_REGIONS[code]||a.city!==null||a.latitude!==null||a.longitude!==null||a.radiusKm!==null)return null;
     }else{
       if(typeof a.city!=='string'||a.city.length<2||a.city.length>160||/[\u0000-\u001f\u007f]/.test(a.city)
         ||typeof a.sourceRef!=='string'||!/^osm:(node|way|relation):[1-9][0-9]{0,19}$/.test(a.sourceRef)

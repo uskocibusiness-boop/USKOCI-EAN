@@ -245,10 +245,10 @@ test('Serbian local city registry resolves major cities instantly without networ
   assert.equal(decoded.length,5);
 });
 
-test('worker area resolver rejects a sixth city before geocoding or saving a partial list',async()=>{
+test('worker area resolver rejects a list over the limit before geocoding or saving a partial list',async()=>{
   const {resolveWorkerAreas}=await import('../supabase/functions/_shared/workerAreaResolver.mjs');
-  const input=['Beograd','Novi Sad','Niš','Kragujevac','Subotica','Pančevo']
-    .map(query=>({kind:'CITY',countryCode:'RS',query,radiusKm:null}));
+  const {WORKER_AREA_LIMIT}=await import('../supabase/functions/_shared/workerRegions.mjs');
+  const input=Array.from({length:WORKER_AREA_LIMIT+1},(_,i)=>({kind:'CITY',countryCode:'RS',query:'Mesto '+'abcdefghij'[i%10]+'x'.repeat(i%7),radiusKm:null}));
   let lookups=0;
   await assert.rejects(resolveWorkerAreas(input,{
     requestJson:()=>{lookups++;throw Error('A list over the limit must fail before geocoding');},

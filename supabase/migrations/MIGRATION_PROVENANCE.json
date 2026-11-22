@@ -5256,6 +5256,26 @@
       "dev_migration_count_before": 382,
       "dev_migration_count_after": 383,
       "release": "NO-GO"
+    },
+    {
+      "classification": "APPLIED_EXACT_LEDGER_BYTES",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "version": "20261122084958",
+      "name": "worker_regions_districts_unlimited_areas",
+      "file": "20261122084958_worker_regions_districts_unlimited_areas.sql",
+      "source_md5": "d844ee2d91d06d1377726a0e02550cc5",
+      "source_sha256": "5360ae2709ae98dfcee442bef9050d11ea9990114b8533881d22094528e807bb",
+      "source_bytes": 270490,
+      "recorded_statement_md5": "d844ee2d91d06d1377726a0e02550cc5",
+      "recorded_statement_sha256": "5360ae2709ae98dfcee442bef9050d11ea9990114b8533881d22094528e807bb",
+      "recorded_statement_count": 1,
+      "rollback_preimage": "scripts/sql/rollback_worker_regions_preimage_20261122.sql",
+      "evidence": "docs/plan/proofs/20261122-dev-forward-migrations-evidence.md",
+      "evidence_sha256": "9821cf273c64acaf501f3ec61bbed7a9768f81d67ac941d373aa495f1080d203",
+      "dev_applied": true,
+      "dev_migration_count_before": 383,
+      "dev_migration_count_after": 384,
+      "release": "NO-GO"
     }
   ]
 }

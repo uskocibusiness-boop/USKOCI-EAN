@@ -1,3 +1,4 @@
+import { WORKER_AREA_LIMIT } from './workerRegions.mjs';
 /**
  * A conservative post-provider admission boundary for the V1 worker area wire format.
  * It cannot represent a region, country or a union of cities. The model may
@@ -227,17 +228,19 @@ export function guardWorkerAreaOutput(output, userText, context) {
   // contract. Ask the user to choose instead of saving a partial list.
   if (Object.hasOwn(patch, 'areaRequests')) {
     const { cities } = statedWorkerCities(userText);
-    if (scope === 'MULTI_LOCALITY' && cities.length > 5) {
+    if (scope === 'MULTI_LOCALITY' && cities.length > WORKER_AREA_LIMIT) {
       delete patch.areaRequests;
       delete patch.location;
       if (typeof patch.bio === 'string' && bioAreaClaim(patch.bio)) delete patch.bio;
       return { ...output, safety: 'CLARIFY', patch,
-        assistantMessage: 'Profil može da sadrži najviše pet gradova. Koje gradove želite da zadržite?' };
+        assistantMessage: `Profil može da sadrži najviše ${WORKER_AREA_LIMIT} mesta. Možete navesti i celu regiju, na primer celu Vojvodinu. Koja mesta želite da zadržite?` };
     }
     return output;
   }
 
-  if (scope === 'COUNTRY' || scope === 'REGION') {
+  // A region is a real work area (owner decision 22.11.2026): Gemini returns it
+  // as a REGION request, and it is never widened to all of Serbia here.
+  if (scope === 'COUNTRY') {
     delete patch.location;
     if (!Object.hasOwn(patch, 'areaRequests')) {
       patch.areaRequests = [{ kind: 'COUNTRY', countryCode: 'RS', query: '', radiusKm: null }];
@@ -252,10 +255,10 @@ export function guardWorkerAreaOutput(output, userText, context) {
     delete patch.location;
     const { text, cities: cityList } = statedWorkerCities(userText);
     if (cityList.length >= 2) {
-      if (cityList.length > 5) {
+      if (cityList.length > WORKER_AREA_LIMIT) {
         if (typeof patch.bio === 'string' && bioAreaClaim(patch.bio)) delete patch.bio;
         return { ...output, safety: 'CLARIFY', patch,
-          assistantMessage: 'Profil može da sadrži najviše pet gradova. Koje gradove želite da zadržite?' };
+          assistantMessage: `Profil može da sadrži najviše ${WORKER_AREA_LIMIT} mesta. Možete navesti i celu regiju, na primer celu Vojvodinu. Koja mesta želite da zadržite?` };
       }
       const selected = cityList;
       patch.areaRequests = selected.map(city => ({ kind: 'CITY', countryCode: 'RS', query: city, radiusKm: null }));
@@ -334,10 +337,10 @@ export function guardWorkerAreaOutput(output, userText, context) {
       const targetCity = (proposed?.city && samePlace(proposed.city, statedCity) ? proposed.city : statedCity).trim();
       if (existingRequests.length > 0 && !existingRequests.some(req => samePlace(req.query, targetCity))) {
         delete patch.location;
-        if (existingRequests.length >= 5) {
+        if (existingRequests.length >= WORKER_AREA_LIMIT) {
           if (typeof patch.bio === 'string' && bioAreaClaim(patch.bio)) delete patch.bio;
           return { ...output, safety: 'CLARIFY', patch,
-            assistantMessage: `Profil već sadrži pet gradova. Koji grad želite da zamenite gradom ${targetCity}?` };
+            assistantMessage: `Profil već sadrži ${WORKER_AREA_LIMIT} mesta. Koje želite da zamenite mestom ${targetCity}?` };
         }
         patch.areaRequests = [
           ...existingRequests,

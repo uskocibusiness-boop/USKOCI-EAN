@@ -133,6 +133,8 @@ FORWARD_20261121_PROOF = 'docs/plan/proofs/20261121-dev-forward-migrations-evide
 FORWARD_20261121_PROOF_SHA256 = '0d4a48dbe293317bd97174ad6190ed0dbed6448b2fbdbe5dda97edf584b6e0e5'
 FORWARD_20261121_PROOF_2 = 'docs/plan/proofs/20261121-dev-forward-migrations-evidence-2.md'
 FORWARD_20261121_PROOF_2_SHA256 = '7c2feb4496f634aa4513e2890f0aac41c19f15e9319b56c29b234aeadb8145fb'
+FORWARD_20261122_PROOF = 'docs/plan/proofs/20261122-dev-forward-migrations-evidence.md'
+FORWARD_20261122_PROOF_SHA256 = '9821cf273c64acaf501f3ec61bbed7a9768f81d67ac941d373aa495f1080d203'
 FORWARD_20261121 = [
     {
         "version": "20261121102509",
@@ -203,6 +205,16 @@ FORWARD_20261121 = [
         "rollback": "scripts/sql/rollback_geo_privacy_preimage_20261121.sql",
         "evidence": FORWARD_20261121_PROOF_2,
         "evidence_sha256": FORWARD_20261121_PROOF_2_SHA256,
+    },
+    {
+        "version": "20261122084958",
+        "name": "worker_regions_districts_unlimited_areas",
+        "md5": "d844ee2d91d06d1377726a0e02550cc5",
+        "sha256": "5360ae2709ae98dfcee442bef9050d11ea9990114b8533881d22094528e807bb",
+        "bytes": 270490,
+        "rollback": "scripts/sql/rollback_worker_regions_preimage_20261122.sql",
+        "evidence": FORWARD_20261122_PROOF,
+        "evidence_sha256": FORWARD_20261122_PROOF_SHA256,
     },
 ]
 

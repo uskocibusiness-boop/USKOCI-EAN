@@ -1,6 +1,7 @@
 /** Server-only area resolution. Provider IDs identify a frozen OSM snapshot;
  * no client coordinates or LLM coordinates become work territory. */
-export const workerAreaRequestSchema={type:'ARRAY',maxItems:5,description:'Complete desired ON_SITE area list, only when changed. COUNTRY RS, CITY, or RADIUS with explicit km. Never a home/GPS point. Omit for unchanged/online-only scope.',items:{type:'OBJECT',properties:{kind:{type:'STRING',enum:['COUNTRY','CITY','RADIUS']},countryCode:{type:'STRING',enum:['RS']},query:{type:'STRING',description:'Nominative locality name, no private address. Empty for COUNTRY.'},radiusKm:{type:'INTEGER',nullable:true}},required:['kind','countryCode','query','radiusKm']}};
+import { WORKER_AREA_LIMIT, WORKER_REGIONS } from './workerRegions.mjs';
+export const workerAreaRequestSchema={type:'ARRAY',maxItems:WORKER_AREA_LIMIT,description:'Complete desired ON_SITE area list, only when changed. COUNTRY RS, REGION code, CITY, or RADIUS with explicit km. Never a home/GPS point. Omit for unchanged/online-only scope.',items:{type:'OBJECT',properties:{kind:{type:'STRING',enum:['COUNTRY','REGION','CITY','RADIUS']},countryCode:{type:'STRING',enum:['RS']},query:{type:'STRING',description:'Nominative locality name, no private address. Region code for REGION. Empty for COUNTRY.'},radiusKm:{type:'INTEGER',nullable:true}},required:['kind','countryCode','query','radiusKm']}};
 const keys=(v,k)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===k.length&&k.every(x=>Object.hasOwn(v,x));
 const cyr='абвгдђежзијклмнопрстћуфхцчш',latin='abvgddezzijklmnoprstcufhccs';
 const cityKey=s=>String(s??'').normalize('NFKC').trim().toLocaleLowerCase('sr').replace(/љ/g,'lj').replace(/њ/g,'nj').replace(/џ/g,'dz')
@@ -59,10 +60,14 @@ export const SERBIAN_CITIES={
  'senta':{city:'Senta',osm_type:'relation',osm_id:'9274024',lat:45.93,lon:20.08}
 };
 export function parseWorkerAreaRequests(raw){
- if(!Array.isArray(raw)||raw.length<1||raw.length>5)throw Error('WORKER_AREA_INVALID');
+ if(!Array.isArray(raw)||raw.length<1||raw.length>WORKER_AREA_LIMIT)throw Error('WORKER_AREA_INVALID');
  return raw.map(a=>{
-  if(!keys(a,['kind','countryCode','query','radiusKm'])||a.countryCode!=='RS'||!['COUNTRY','CITY','RADIUS'].includes(a.kind)
+  if(!keys(a,['kind','countryCode','query','radiusKm'])||a.countryCode!=='RS'||!['COUNTRY','REGION','CITY','RADIUS'].includes(a.kind)
    ||typeof a.query!=='string'||a.query.length>160||/[\u0000-\u001f\u007f]/u.test(a.query))throw Error('WORKER_AREA_INVALID');
+  if(a.kind==='REGION'){
+   if(!Object.hasOwn(WORKER_REGIONS,a.query.trim())||a.radiusKm!==null)throw Error('WORKER_AREA_INVALID');
+   return {...a,query:a.query.trim()};
+  }
   if(a.kind==='COUNTRY'?(raw.length!==1||a.query!==''||a.radiusKm!==null)
     :(a.query.trim().length<2||/[0-9]/u.test(a.query)||(a.kind==='CITY'?a.radiusKm!==null:!Number.isInteger(a.radiusKm)||a.radiusKm<1||a.radiusKm>200)))throw Error('WORKER_AREA_INVALID');
   return {...a,query:a.query.trim()};
@@ -125,6 +130,11 @@ export async function resolveWorkerAreas(raw,{token,requestJson,signal,
   if(signal?.aborted)throw Error('WORKER_AI_CANCELLED');
   if(a.kind==='COUNTRY'){
    areas.push({kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,latitude:null,longitude:null,radiusKm:null});
+   continue;
+  }
+  // A region is matched by the database from district boundaries: no lookup.
+  if(a.kind==='REGION'){
+   areas.push({kind:'REGION',countryCode:'RS',label:WORKER_REGIONS[a.query],city:null,sourceRef:'region:'+a.query,latitude:null,longitude:null,radiusKm:null});
    continue;
   }
   // Reuse an already-owned signed OSM identity. No new provider query,
