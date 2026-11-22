@@ -1485,12 +1485,12 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   for (const proposal of proposals) facts.set(proposal.key, proposal.value);
   if (!facts.has('need.people_needed') && dialogue?.next === 'REVIEW') {
     facts.set('need.people_needed', 1);
-    proposals.push({ key: 'need.people_needed', value: 1, evidence: 'Podrazumevano za pojedinačni zadatak' });
+    proposals.push({ key: 'need.people_needed', value: 1, displayValue: '1 izvršilac', evidence: 'Podrazumevano za pojedinačni zadatak' });
   }
   if (!facts.has('need.task_country_code')) {
     facts.set('need.task_country_code', 'RS');
     if (dialogue?.next === 'REVIEW') {
-      proposals.push({ key: 'need.task_country_code', value: 'RS', evidence: 'Podrazumevano za izdanje za Srbiju' });
+      proposals.push({ key: 'need.task_country_code', value: 'RS', displayValue: 'Srbija', evidence: 'Podrazumevano za izdanje za Srbiju' });
     }
   }
   const missing = [...new Set(['need.description', 'need.people_needed', 'need.price_mode',

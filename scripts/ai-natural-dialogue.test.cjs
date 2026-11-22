@@ -570,6 +570,9 @@ test('draft ready for REVIEW defaults need.task_country_code to RS and preserves
   const countryProposal = out.proposals.find(p => p.key === 'need.task_country_code');
   assert.ok(countryProposal, 'Must propose task_country_code RS for review');
   assert.equal(countryProposal.value, 'RS');
+  // The database rejects any proposal without a display value (V2_FACT_DISPLAY_INVALID).
+  assert.equal(countryProposal.displayValue, 'Srbija');
+  for (const p of out.proposals) assert.ok(typeof p.displayValue === 'string' && p.displayValue.trim(), p.key);
   // Ensures natural AI reply was preserved instead of replaced with robotic canned message
   assert.equal(out.assistantMessage, naturalReply);
 });

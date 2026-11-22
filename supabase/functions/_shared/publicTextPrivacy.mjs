@@ -71,8 +71,10 @@ export function scrubPublicTaskProposals(turn) {
     const scrubbed = scrubPublicText(proposal.value);
     if (!scrubbed.removed.length) return proposal;
     scrubbed.removed.forEach(kind => removed.add(kind));
-    const display = typeof proposal.displayValue === 'string' ? scrubPublicText(proposal.displayValue).text : proposal.displayValue;
-    return { ...proposal, value: scrubbed.text, ...(proposal.displayValue !== undefined ? { displayValue: display } : {}) };
+    const scrubbedDisplay = typeof proposal.displayValue === 'string' ? scrubPublicText(proposal.displayValue).text.trim() : '';
+    // The database rejects an empty display value; fall back to the scrubbed value.
+    const display = scrubbedDisplay || scrubbed.text;
+    return { ...proposal, value: scrubbed.text, displayValue: display };
   }).filter(proposal => !(['need.title', 'need.description'].includes(proposal?.key) && typeof proposal.value === 'string' && !proposal.value.trim()));
   if (!removed.size) return { turn, removed: [] };
   const notice = publicTextPrivacyNotice([...removed]);
