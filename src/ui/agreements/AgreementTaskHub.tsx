@@ -67,6 +67,7 @@ function BarIcon({ label, art, glyph, selected, badge, onPress }: {
     <View style={[s.barDisc, selected && s.barDiscOn]}>
       {art ? <FactArt kind={art} size={30} /> : <Glyph name={glyph!} size={26} tone={selected ? 'green' : 'ink'} />}
     </View>
+    <View style={[s.barMark, selected && s.barMarkOn]} />
     {badge ? <View style={s.badge}><T variant="meta" maxFontSizeMultiplier={1.2} style={s.badgeText}>{badge > 99 ? '99+' : badge}</T></View> : null}
   </Press>;
 }
@@ -88,12 +89,12 @@ function PersonCard({ person, remote, place, now, rating, onProfile, onOpen, onM
       <Press accessibilityRole="button" accessibilityLabel={`Dogovor sa: ${person.name}`} accessibilityHint="Otvara uslove, poruke i završetak za ovu osobu."
         onPress={onOpen} haptic="select" style={s.personBody}>
         <View style={s.personTop}><AgreementStatusChip chip={agreementChip(item, now)} /></View>
-        {rating ? <View style={s.inline}><FactArt kind="star" size={16} /><T variant="note" tone="muted">{rating}</T></View> : null}
-        <View style={s.inline}><FactArt kind="money" size={18} />
+        {rating ? <View style={s.inline}><FactArt kind="star" size={26} /><T variant="note" tone="muted">{rating}</T></View> : null}
+        <View style={s.inline}><FactArt kind="money" size={26} />
           <T variant="bodyStrong" style={s.money}>{amount || 'Cena po dogovoru'}</T>
           {amount ? <T variant="note" tone="muted">{applicationPriceBasisText(item.osnovaCene)}</T> : null}</View>
-        <View style={s.inline}><FactArt kind={remote ? 'remote' : 'pin'} size={18} /><T variant="note" tone="muted" numberOfLines={1} style={s.flex}>{place}</T></View>
-        <View style={s.inline}><FactArt kind="calendar" size={18} /><T variant="note" tone="muted" numberOfLines={1} style={s.flex}>{item.vremeTekst || 'Termin po dogovoru'}</T></View>
+        <View style={s.inline}><FactArt kind={remote ? 'remote' : 'pin'} size={26} /><T variant="note" tone="muted" numberOfLines={2} style={s.flex}>{place}</T></View>
+        <View style={s.inline}><FactArt kind="calendar" size={26} /><T variant="note" tone="muted" numberOfLines={2} style={s.flex}>{item.vremeTekst || 'Termin po dogovoru'}</T></View>
         {attention ? <View style={s.inline}><View style={s.dot} /><T variant="note" style={s.warn} numberOfLines={2}>{attention.title}</T></View> : null}
         {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
       </Press>
@@ -240,7 +241,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
           <T variant="label" tone="muted">{owner ? 'Dogovoreno sa' : 'Objavio zadatak'}</T>
           {live.length ? <View style={s.faceGrid}>{live.map(person => <Press key={person.agreementId} accessibilityRole="button"
             accessibilityLabel={`Profil: ${person.name}`} onPress={() => openProfile(person.profileId)} haptic="select" style={s.gridFace}>
-            <Face person={person} size={48} /><T variant="meta" numberOfLines={1} style={s.gridName}>{person.name.split(' ')[0]}</T>
+            <Face person={person} size={56} /><T variant="meta" numberOfLines={2} style={s.gridName}>{person.name}</T>
           </Press>)}</View> : <T variant="note" tone="muted">{owner ? 'Još niko nije izabran. Pogledajte prijave.' : 'Podaci o naručiocu nisu dostupni.'}</T>}
         </View>
       </View> : null}
@@ -283,9 +284,11 @@ const s = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line, backgroundColor: sys.color.surface },
   barIcons: { flex: 1, flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' },
-  barIcon: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
-  barDisc: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  barDiscOn: { backgroundColor: sys.color.greenSoft, borderWidth: 2, borderColor: sys.color.green },
+  barIcon: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  barDisc: { width: 48, height: 48, borderRadius: sys.radius.pill, borderCurve: 'continuous', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  barDiscOn: { backgroundColor: sys.color.greenSoft },
+  barMark: { width: 18, height: 3, borderRadius: 2 },
+  barMarkOn: { backgroundColor: sys.color.green },
   badge: { position: 'absolute', top: 2, right: 2, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,
     backgroundColor: sys.color.warn, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: '#FFFFFF', fontWeight: '800' },
@@ -297,8 +300,8 @@ const s = StyleSheet.create({
   money: { color: sys.color.money },
   block: { gap: sys.space.sm },
   faceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.md },
-  gridFace: { width: 64, alignItems: 'center', gap: 4 },
-  gridName: { textAlign: 'center' },
+  gridFace: { width: 88, alignItems: 'center', gap: 6 },
+  gridName: { textAlign: 'center', fontWeight: '600', color: sys.color.ink },
   list: { gap: sys.space.md },
   earlierTitle: { marginTop: sys.space.sm },
   personCard: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
@@ -308,7 +311,7 @@ const s = StyleSheet.create({
   personTop: { flexDirection: 'row' },
   personActions: { alignItems: 'center', gap: 2 },
   iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
-  inline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  inline: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: sys.color.warn },
   warn: { color: sys.color.warn, flexShrink: 1 },
 });

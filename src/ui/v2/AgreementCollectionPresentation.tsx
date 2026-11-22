@@ -281,7 +281,7 @@ export function AgreementCollectionPresentation(props: Props) {
       <ChromeIconButton glyph="back" label={section === 'history' ? 'Nazad na aktivne Dogovore' : 'Nazad na Početnu'}
         onPress={() => { if (section === 'history') { props.onSection('active'); return; } props.onHome?.(); }} />
       <View style={s.searchGrow}>
-        <SearchField testID="agreement-search-input" label="Pretraga Dogovora po nazivu zadatka" placeholder="Pretražite po nazivu zadatka" clearLabel="Obrišite pretragu"
+        <SearchField testID="agreement-search-input" label="Pretraga Dogovora po nazivu zadatka" placeholder="Naziv zadatka" clearLabel="Obrišite pretragu"
           value={search.query} onChangeText={value => { if (!search.open) search.onToggle(); search.onChange(value); }}
           maxLength={AGREEMENT_SEARCH_MAX_LENGTH} returnKeyType="search" onSubmit={() => Keyboard.dismiss()} />
       </View>
