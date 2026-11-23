@@ -114,16 +114,49 @@ async function readOwnProfilePhoto(scope: OwnPhotoScope, profileId: string): Pro
  * every visit read it again and drew the letter meanwhile). Such a face is remembered in memory (`ownPhotoCache`): the description is not asked for again while
  * it is recent, and what is remembered is drawn at once, so there is no stand-in in between. Anyone else's face is read every time, as before.
  */
+// Someone else's photo description (which picture belongs to the profile) is asked once and shared for a few minutes:
+// a list that shows the same person five times sent five equal requests and drew initials, then the photo, on every
+// visit (owner, 23.11.2026). Kept only in memory, per account revision; the image bytes stay in AuthorizedPhoto.
+const OTHER_PHOTO_TTL_MS = 5 * 60_000;
+const otherPhotoKnown = new Map<string, { at: number; read: ProfilePhotoRead }>();
+const otherPhotoInFlight = new Map<string, Promise<Ishod<ProfilePhotoRead>>>();
+function otherPhotoKey(accountId: string | undefined, accountRevision: number, profileId: string) {
+  return `${accountId ?? ''}:${accountRevision}:${profileId}`;
+}
+function knownOtherPhoto(key: string): ProfilePhotoRead | undefined {
+  const known = otherPhotoKnown.get(key);
+  if (!known) return undefined;
+  if (Date.now() - known.at > OTHER_PHOTO_TTL_MS) { otherPhotoKnown.delete(key); return undefined; }
+  return known.read;
+}
+function readOtherPhoto(key: string, profileId: string): Promise<Ishod<ProfilePhotoRead>> {
+  const known = knownOtherPhoto(key);
+  if (known) return Promise.resolve({ ok: true, podatak: known });
+  const pending = otherPhotoInFlight.get(key);
+  if (pending) return pending;
+  const request = mediaClientService.readProfilePhoto(profileId).then(result => {
+    if (result.ok) {
+      otherPhotoKnown.set(key, { at: Date.now(), read: result.podatak });
+      if (otherPhotoKnown.size > 300) otherPhotoKnown.delete(otherPhotoKnown.keys().next().value!);
+    }
+    return result;
+  }).finally(() => { otherPhotoInFlight.delete(key); });
+  otherPhotoInFlight.set(key, request);
+  return request;
+}
+
 export function ProfilePhoto({ profileId, fallback, size, initial, own = false }: { profileId: string; fallback?: ReactNode; size?: number; initial?: string | null;
   own?: boolean }) {
   const { user, accountRevision } = useSesija();
   const scope = useMemo(() => own && user?.id ? { accountId: user.id, accountRevision } : null, [own, user?.id, accountRevision]);
-  const read = useCallback(() => scope ? readOwnProfilePhoto(scope, profileId) : mediaClientService.readProfilePhoto(profileId), [scope, profileId]);
+  const sharedKey = otherPhotoKey(user?.id, accountRevision, profileId);
+  const read = useCallback(() => scope ? readOwnProfilePhoto(scope, profileId) : readOtherPhoto(sharedKey, profileId), [scope, profileId, sharedKey]);
   const editor = useOwnedEditor(read);
+  const shared = scope ? undefined : knownOtherPhoto(sharedKey);
   // The remembered description is the one thing a screen may keep drawing while the profile is asked again. What an earlier read left in the editor is not
   // that: it may have been forgotten since (the photograph was changed or removed), so it counts only once the read that is under way has finished.
   const remembered = scope ? ownPhotoCache.description(scope, profileId) : undefined;
-  const photo = scope ? remembered?.photo ?? (editor.loading ? null : editor.data?.photo ?? null) : editor.data?.photo;
+  const photo = scope ? remembered?.photo ?? (editor.loading ? null : editor.data?.photo ?? null) : editor.data?.photo ?? shared?.photo;
   const box = size ? { width: size, height: size, borderRadius: size / 2, aspectRatio: 1 }
     : { width: 112, height: 132, borderRadius: sys.radius.card, aspectRatio: 112 / 132 };
   // The one way to take letters from a name (lib/inicijali, critique A4): no name, no letters, and the person is drawn.
@@ -136,7 +169,7 @@ export function ProfilePhoto({ profileId, fallback, size, initial, own = false }
   </View>;
   if (photo) return <AuthorizedPhoto assetId={photo.assetId} profileId={profileId} label="Profilna fotografija" own={own}
     contentFit={size ? 'cover' : 'contain'} style={box} pending={standIn} unavailable={size ? standIn : undefined} />;
-  if (editor.loading) return <View accessible accessibilityLabel="Učitavanje fotografije" accessibilityState={{ busy: true }}
+  if (editor.loading && !shared) return <View accessible accessibilityLabel="Učitavanje fotografije" accessibilityState={{ busy: true }}
     style={[box, { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }]}>
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{standIn}</View>
   </View>;

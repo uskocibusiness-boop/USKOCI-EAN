@@ -84,6 +84,21 @@ export function stableStreamPrefix(raw: string): string {
 }
 
 /**
+ * Owner, 23.11.2026: the sentence used to stop before its last word until the server had saved the whole turn (a second
+ * or two), because the last word waits for a following character. When the stream has been quiet for a moment and
+ * the last character is an ordinary letter, digit or punctuation mark (never an emoji, joiner or combining mark that
+ * could still grow), the whole received text is safe to show.
+ */
+export const STREAM_QUIET_MS = 300;
+const PLAIN_LAST = /[\p{Script=Latin}\p{Script=Cyrillic}\p{Nd}\p{P}\p{Zs}]$/u;
+export function quietStreamText(raw: string): string {
+  const stable = stableStreamPrefix(raw);
+  const last = raw.codePointAt(raw.length - 1);
+  if (last === undefined || (last >= 0xd800 && last <= 0xdfff)) return stable;
+  return PLAIN_LAST.test(raw) ? raw : stable;
+}
+
+/**
  * Positions where a paced reveal may stop: the start of each next word (after
  * whitespace) when that position is also a grapheme boundary, and the end.
  * `text` must already be safe to show whole (a stable prefix or a completed message).
@@ -194,6 +209,13 @@ export function usePacedReveal(owner: object, target: string, options: { reduced
 export function useStreamDisplay(input: Input): StreamDisplay {
   const memory = useRef<Memory | null>(null);
   const raw = input.streamingText ?? '';
+  // Which received text has been quiet long enough to show whole (see quietStreamText).
+  const [quiet, setQuiet] = useState<string | null>(null);
+  useEffect(() => {
+    if (!raw) return;
+    const timer = setTimeout(() => setQuiet(raw), STREAM_QUIET_MS);
+    return () => clearTimeout(timer);
+  }, [raw]);
   const sent = input.sentMessage?.trim() || null;
   const lastAi = input.messages.findLast(message => message.fromAi);
   const previous = memory.current;
@@ -221,6 +243,9 @@ export function useStreamDisplay(input: Input): StreamDisplay {
       // A truncated/replaced provider snapshot cannot erase already visible
       // words. It stays a preview until its canonical readback or explicit clear.
       if (target.startsWith(next.target)) next = { ...next, received: raw, target };
+    } else if (quiet === raw && raw === next.received) {
+      const whole = quietStreamText(raw);
+      if (whole !== next.target && whole.startsWith(next.target)) next = { ...next, target: whole };
     }
   }
   const text = next.committedId ? input.messages.find(message => message.id === next.committedId)?.body ?? '' : next.target;

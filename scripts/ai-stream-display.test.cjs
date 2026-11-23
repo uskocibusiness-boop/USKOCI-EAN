@@ -291,3 +291,13 @@ test('provider preview text is opt-in, gated, never persisted and replaced by th
   assert.doesNotMatch(clientStream, /x-uskoci-worker-preview-stream/);
   assert.ok(clientStream.includes('[AI_PROVISIONAL_STREAM_HEADER]: AI_PROVISIONAL_STREAM_VERSION'));
 });
+
+if (!PREIMAGE) test('a quiet stream shows its last plain word instead of waiting for the saved reply (owner, 23.11.2026)', () => {
+  for (const withoutSegmenter of [false, true]) {
+    const { quietStreamText, stableStreamPrefix } = harness({ withoutSegmenter }).load(HELPER);
+    assert.equal(quietStreamText('Imate li okvirni budžet?'), 'Imate li okvirni budžet?');
+    assert.equal(quietStreamText('Koliko kvadrata ima stan'), 'Koliko kvadrata ima stan');
+    assert.equal(quietStreamText('Може ли у суботу'), 'Може ли у суботу');
+    for (const growing of ['Hvala 👍', 'Super 👩\u200d', 'Pa \ud83d']) assert.equal(quietStreamText(growing), stableStreamPrefix(growing), growing);
+  }
+});
