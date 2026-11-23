@@ -64,7 +64,7 @@ test('unconfirmed taxonomy never announces review or a successful category write
     const built={clarifications:[],failures:[],unconfirmedModeServices:[],unresolvedServices:['Kurirske dostave','Lektura']};
     const plan={proposals:[{service:'Kurirske dostave',action:'REUSE_EXISTING'},{service:'Lektura',action:'EXTEND_MODE'}]};
     const result=guard(source,built,plan);
-    assert.equal(result.assistantMessage,'Podaci iz razgovora su sačuvani.');
+    assert.equal(result.assistantMessage,'U redu, zabeležio sam 🙂 Ako želite još nešto da dodate ili promenite, slobodno recite.');
     assert.equal(result.dialogue.next,'ACK');
     assert.equal(result.patch,source.patch);assert.equal(result.proposals,facts);assert.equal(result.safety,'ALLOW');
     assert.doesNotMatch(result.assistantMessage,/profil|sprem|objavljen|aktiviran/);
@@ -79,7 +79,7 @@ test('unconfirmed taxonomy never announces review or a successful category write
       [built,{proposals:plan.proposals.map(p=>({...p,action:'CREATE_CHILD'}))}]]){
       const result=guard(need(),b,p);
       assert.match(result.assistantMessage,/Pregled još nije spreman/);
-      assert.doesNotMatch(result.assistantMessage,/Podaci iz razgovora su sačuvani/);
+      assert.doesNotMatch(result.assistantMessage,/Ako želite još nešto da dodate ili promenite/);
     }
   });
   await t.test('a direct explanation is not replaced by classification status',()=>{

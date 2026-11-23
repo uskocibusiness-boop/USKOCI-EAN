@@ -660,3 +660,63 @@ test('a daily rate becomes a confirmed total for the whole period; an amount fro
   const invented=run(turn('Upisao sam 7.000 dinara.',[fact('need.price_mode','MY_PRICE','važi'),fact('need.price_rsd',7000,'važi'),fact('need.price_basis','TOTAL','važi')],'','ACK'),'Važi',[],history);
   assert.equal(invented.proposals.some(p=>p.key==='need.price_rsd'),false,'an amount nobody said or asked about is dropped');
 });
+
+// Live round of 50 conversations (owner-approved, 23.11.2026): replies that Gemini understood must not become canned questions.
+test('after our price question, "Subota, 5000" is the price; a date, time or headcount number never is',()=>{
+  const asked=[{role:'USER',body:'Pranje prozora, Šabac'},{role:'ASSISTANT',body:'Za kada planirate radove? Imate li okvirni budžet ili želite ponude?'}];
+  const price=()=>turn('Zabeležio sam subotu i 5.000 dinara.',[fact('need.price_mode','MY_PRICE','5000'),fact('need.price_rsd',5000,'5000'),fact('need.price_basis','TOTAL','5000')],'','ACK');
+  for (const answer of ['Subota, 5000','5000 za ceo period','Sutra, 5000. Šaljem sliku']) {
+    const out=run(price(),answer,[],asked);
+    assert.doesNotMatch(out.assistantMessage,/na šta se odnosi|Da li je taj iznos/u,answer);
+    assert.equal(out.proposals.find(p=>p.key==='need.price_rsd')?.value,5000,answer);
+  }
+  const unasked=run(price(),'Subota, 5000');
+  assert.equal(unasked.proposals.some(p=>p.key==='need.price_rsd'),false,'without our price question a bare number stays unconfirmed');
+  const people=run(turn('U redu.',[fact('need.price_rsd',5,'5')],'','ACK'),'Subota, 5 radnika',[],asked);
+  assert.equal(people.proposals.some(p=>p.key==='need.price_rsd'),false,'a headcount is not a price');
+});
+
+test('an amount Gemini computed is asked back for confirmation, not replaced by a canned question',()=>{
+  const asked=[{role:'ASSISTANT',body:'Imate li okvirni budžet?'}];
+  const out=run(turn('To je 30 m² po 600 dinara, ukupno 18.000 dinara. Da li je tako u redu?',[fact('need.price_rsd',18000,'600 dinara po kvadratu')],'','ASK'),'Za dve nedelje, 600 dinara po kvadratu',[],asked);
+  assert.match(out.assistantMessage,/ukupno 18\.000 dinara/u);
+  assert.equal(out.proposals.some(p=>p.key==='need.price_rsd'),false,'nothing is written before the yes');
+});
+
+test('several days in a row with a daily rate are one task, not a repeating one; a per-hour hint without an amount asks nothing',()=>{
+  const multi=turn('Ukupno 3 dana po 4.000 dinara, to je 12.000 dinara. Važi li?',[],'','ASK');
+  multi.dialogue.schedulePattern='REPEATED'; multi.dialogue.priceUnit='PER_DAY';
+  const out=run(multi,'Počinjemo 1. decembra, 3 dana po 8 sati, plaćam 4000 dnevno');
+  assert.doesNotMatch(out.assistantMessage,/upisujemo prvi termin/u);
+  const lesson=turn('Zabeležio sam prvi čas u utorak u 18h. Imate li okvirni budžet?',[],'','ASK'); lesson.dialogue.priceUnit='PER_HOUR';
+  const plain=run(lesson,'Utorkom i četvrtkom, prvi čas ovaj utorak');
+  assert.doesNotMatch(plain.assistantMessage,/po osobi po satu|Koliko plaćate po satu/u);
+});
+
+test('a deadline answer to our "ponude" question is accepted; an amount said a turn earlier can be confirmed; a false "saved" claim is not kept',()=>{
+  const asked=[{role:'ASSISTANT',body:'Do kada najkasnije želite da primate ponude majstora?'}];
+  const at='2026-11-26T20:00:00+01:00';
+  const source=fs.readFileSync(path.join(__dirname,'..','supabase/functions/uskoci-ai-interview/index.ts'),'utf8');
+  assert.ok(source.includes("&& /prijav|ponud|пријав|понуд/iu.test(previousMessage.body)"),'our question about offers is a deadline question too');
+  const dl=run(turn('U redu, do četvrtka u 20h.',[fact('need.response_deadline',{kind:'AT',at},'Do četvrtka u 20h')],'','ACK'),'Do četvrtka u 20h',[],asked,time,true);
+  assert.equal(dl.proposals.find(p=>p.key==='need.response_deadline')?.value?.at,at);
+  assert.doesNotMatch(dl.assistantMessage,/Samo da proverim rok/u);
+  const earlier=[{role:'USER',body:'Samo sam čin, sat vremena. 10000'},{role:'ASSISTANT',body:'Na šta se odnosi taj broj?'}];
+  const priced=()=>turn('Zabeležen je budžet od 10.000 dinara. Do kada primate prijave?',[fact('need.price_mode','MY_PRICE','cena'),fact('need.price_rsd',10000,'cena'),fact('need.price_basis','TOTAL','cena')],'','ASK');
+  assert.equal(run(priced(),'To je cena za fotografa',[],earlier).proposals.find(p=>p.key==='need.price_rsd')?.value,10000);
+  const nowhere=run(priced(),'To je cena za fotografa',[],[{role:'ASSISTANT',body:'Kada je krštenje?'}]);
+  assert.equal(nowhere.proposals.some(p=>p.key==='need.price_rsd'),false);
+  assert.doesNotMatch(nowhere.assistantMessage,/Zabeležen je budžet/u,'a claim that a dropped price was saved is replaced');
+});
+
+test('round 5: "Prijave do petka" keeps a complete schedule; a price said two turns ago can be confirmed; "u koje vreme" is our deadline question',()=>{
+  const week=active([['need.schedule_kind','WEEK_FLEXIBLE'],['need.starts_at','2026-11-09T00:00:00+01:00'],['need.ends_at','2026-11-16T00:00:00+01:00']]);
+  const label=turn('U redu, prijave do petka.',[fact('need.response_deadline',{kind:'AT',at:'2026-11-13T23:59:59+01:00'},'Prijave do petka')],'','ACK');
+  label.dialogue.schedulePattern='FLEXIBLE_RANGE';
+  const kept=run(label,'Prijave do petka',week,[{role:'ASSISTANT',body:'Do kada primate prijave?'}],time,true);
+  assert.doesNotMatch(kept.assistantMessage,/Do kada Vam je ovo potrebno/u);
+  const said=[{role:'USER',body:'Samo sam čin, sat vremena. 10000'},{role:'ASSISTANT',body:'Kada je krštenje?'},{role:'USER',body:'To je cena za fotografa'},{role:'ASSISTANT',body:'Do kada primate prijave?'}];
+  const again=run(turn('U redu.',[fact('need.price_mode','MY_PRICE','cena'),fact('need.price_rsd',10000,'cena'),fact('need.price_basis','TOTAL','cena')],'','ACK'),'Do 1. decembra',[],said);
+  assert.doesNotMatch(again.assistantMessage,/Da li je taj iznos/u);
+  assert.ok(source.includes('|vreme|до када|до ког|кад|датум|сат|рок|време)/iu.test(previousMessage.body)'));
+});

@@ -426,7 +426,7 @@ test('NEED actual Edge: a per-person payment after a budget question is a price,
       const events = parseEvents(await (await h.start({ provisional: false })).text()); await h.settle();
       assert.equal(events.at(-1).kind, 'final');
       const write = persisted(h.calls)[0].args;
-      assert.notEqual(write.p_assistant_message, 'Samo da proverim: na šta se odnosi taj broj, na cenu, broj ljudi ili nešto drugo?');
+      assert.notEqual(write.p_assistant_message, 'Da li je taj iznos cena koju nudite? Recite, molim Vas, i da li je ukupno ili po satu.');
       assert.ok(write.p_proposals.some(p => p.key === 'need.price_rsd' && p.value === 5000), JSON.stringify(write.p_proposals));
     } finally { h.restore(); }
   }

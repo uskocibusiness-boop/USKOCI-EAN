@@ -271,7 +271,11 @@ export function guardWorkerAreaOutput(output, userText, context) {
       return { ...output, safety: 'ALLOW', patch, assistantMessage: message };
     }
     const m = knownCityPair.exec(text) || pair.exec(text) || commaPair.exec(text);
-    if (m && m[1] && m[2]) {
+    // Live round, 23.11.2026: "Radim i SEO optimizaciju" became the cities "Radim" and "SEO". A verb or an
+    // acronym is never a place; such a pair is left to Gemini's own area list.
+    const notPlace = name => /^(?:radim|radimo|dolazim|idem|pokrivam|nudim|mogu|prihvatam|imam|pravim|bavim|znam|volim)$/iu.test(name.trim())
+      || /^[A-ZČĆŠŽĐ]{2,5}$/u.test(name.trim()) && !knownCityId(name);
+    if (m && m[1] && m[2] && !notPlace(m[1]) && !notPlace(m[2])) {
       patch.areaRequests = [
         { kind: 'CITY', countryCode: 'RS', query: m[1].trim(), radiusKm: null },
         { kind: 'CITY', countryCode: 'RS', query: m[2].trim(), radiusKm: null },
@@ -370,8 +374,8 @@ export function guardWorkerAreaOutput(output, userText, context) {
     }
     if (removedUnsupportedBio) {
       return { ...output, safety: 'CLARIFY', patch,
-        assistantMessage: ['Širi opis područja nisam dodao u nacrt. Ostale jasne izmene ostaju u nacrtu.',
-          ...independentQuestions(output.assistantMessage)].join(' ') };
+        // The unsupported area sentence is simply left out of the bio; the person's own change is still answered.
+        assistantMessage: output.assistantMessage };
     }
     return output;
   }

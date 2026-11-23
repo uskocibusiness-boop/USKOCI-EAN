@@ -591,7 +591,7 @@ test('Worker actual Edge: empty mode metadata recovers quoted historical choices
   assert.equal(result.writes[0].args.p_taxonomy_plan.anchors.some(a=>a.categoryId===capture.proposals[2].categoryId),false,
     'The old broad or rejected category is not inherited by the replacement');
   assert.doesNotMatch(result.writes[0].args.p_output.assistantMessage,/Da li uslugu|na lokaciji, onlajn ili na oba/);
-  assert.equal(result.writes[0].args.p_output.assistantMessage,'Podaci iz razgovora su sačuvani.');
+  assert.equal(result.writes[0].args.p_output.assistantMessage,'U redu, zabeležio sam 🙂 Ako želite još nešto da dodate ili promenite, slobodno recite.');
   assertOnePaidAttempt(result);
   // Controlled model output proves the Edge contract, not natural model accuracy
   // or SQL readiness; the neutral prose never claims that the profile was saved.

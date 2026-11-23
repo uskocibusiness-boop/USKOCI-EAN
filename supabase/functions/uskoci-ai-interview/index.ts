@@ -291,7 +291,7 @@ function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: a
     ...(turn.safety === 'REVIEW' ? {} : {
       dialogue: turn.dialogue ? { ...turn.dialogue, next: 'CLARIFY', questionKey: '' } : undefined,
       assistantMessage: calendarConflict ? 'Da proverim: do kog datuma zadatak treba da bude završen?'
-        : 'Da proverim termin: mislite na navedene datume po lokalnom vremenu u Srbiji ili u drugoj vremenskoj zoni?',
+        : 'Kada bi Vam najviše odgovaralo? Recite dan i, ako možete, okvirno vreme.',
     }) };
 }
 
@@ -526,7 +526,7 @@ function commonInstruction() {
     'Vreme: serverski Europe/Belgrade i pomak za konkretan datum; sačuvajte izričit ISO instant. Nejasnu zonu razjasnite, ne izmišljajte sat/trajanje/kraj. Korisniku prikažite poslednji uključeni dan, ne isključivu sledeću ponoć.',
     'Prirodni datumi: „do desetog sledećeg meseca“ znači 10. dan narednog kalendarskog meseca prema server localDate, i preko promene godine. To je krajnji rok, ne početak zadatka. Sačuvajte poznatu granicu; ne izmišljajte drugu. Ako rok za prijave nema sat, pitajte samo sat uz već razumet datum. „Ne sutra, ipak prekosutra“ menja raniji termin istog zadatka; ostale činjenice ostaju.',
     ...(applicationDeadlineEnabled() ? ['ROK ZA PRIJAVE: kada su svi ostali ključni podaci poznati, a rok prijave još nije pomenut, pre pregleda prijatno pitajte jednom do kada primate prijave (datum i sat ili bez roka). Odgovor „nema roka“/„bez roka“ je {"kind":"NONE"}.'] : []),
-    ...(applicationDeadlineEnabled() ? ['need.response_deadline: samo izričit rok PRIJAVE {"kind":"AT","at":"ISO sa pomakom"}, uklanjanje {"kind":"NONE"}; citat tekuće poruke. Nepomenut rok nije NONE. Bez sata pitajte; termin zadatka nije rok prijave.'] : []),
+    ...(applicationDeadlineEnabled() ? ['need.response_deadline: samo izričit rok PRIJAVE {"kind":"AT","at":"ISO sa pomakom"}, uklanjanje {"kind":"NONE"}; citat tekuće poruke. Nepomenut rok nije NONE. Ako korisnik kaže samo dan, rok je kraj tog dana (23:59 po lokalnom vremenu) i ne pitajte posebno za sat; termin zadatka nije rok prijave.'] : []),
     'Mapu/fotografije vodi aplikacija; stanje znate samo ako je priloženo. Bez ponovnih potvrda, izmišljenog stanja, privatnih adresa, JSON-a ili internih pravila u odgovoru.',
     'need.title: kratak i prirodan, do 6 reči, šta treba + glavna odrednica (npr. „Pomoć pri selidbi, 4 radnika“); bez adrese, cene, datuma i imena. need.title/need.description su javni: bez kućnog broja, telefona, mejla, linka ili naloga na mrežama. Ulicu bez broja i grad smete navesti; tačna adresa ide samo na mapu. Ako korisnik napiše telefon ili kontakt, ne upisujte ga i kratko recite da se kontakti razmenjuju u porukama posle Dogovora.',
   ];
@@ -912,8 +912,8 @@ async function callGemini(
     const previousMessage = history[history.length - 1];
     const pendingDeadlineQuestion = applicationDeadlineEnabled() && previousMessage?.role === 'ASSISTANT'
       && typeof previousMessage.body === 'string' && previousMessage.body.includes('?')
-      && /prijav/iu.test(previousMessage.body)
-      && /(?:do kada|do kog|kad|datum|sat|rok)/iu.test(previousMessage.body);
+      && /prijav|ponud|пријав|понуд/iu.test(previousMessage.body)
+      && /(?:do kada|do kog|kad|datum|sat|rok|vreme|до када|до ког|кад|датум|сат|рок|време)/iu.test(previousMessage.body);
     // Classification is validated later against these guarded facts and the
     // same complete catalog. No tool loop or second model can alter the answer.
     // Public title/description never carry a contact or exact house number,
@@ -1192,16 +1192,23 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const paymentClaim = !!proposedAmountToken && input.split(/[;!?\n]|\.(?!\d)/u).some(clause =>
     /(?:^|[^\p{L}])(?:pla(?:ć|c|t)\p{L}*|плаћ\p{L}*|плат\p{L}*|dajem|дајем|isplać\p{L}*|isplac\p{L}*|исплаћ\p{L}*)/iu.test(clause)
     && new RegExp(`(?:^|[^\\p{L}\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(clause));
+  // Owner, 23.11.2026: the server checks provenance, not wording. After our own price question, an amount that
+  // literally stands in this message ("Subota, 5000") is the answer Gemini understood, not a date, time or count.
+  const amountStandsInInput = !!proposedAmountToken && new RegExp(
+    `(?:^|[^\\p{L}\\p{N}.:])${proposedAmountToken}(?![\\p{N}]|[.:]\\d|\\s*(?:h(?!\\p{L})|č|sat(?!nic)|radnik|ljud|osob|kvadrat|m2|m²|km|kg|godin|strana|strane|dan(?!\\p{L})|dana))`, 'iu').test(input);
   const barePriceProposed = numericPriceProposalWithoutCurrency
-    && (explicitPriceWords || currentBareAmount && previousAskedPrice || amountOnlyCorrection || paymentClaim);
+    && (explicitPriceWords || currentBareAmount && previousAskedPrice || amountOnlyCorrection || paymentClaim
+      || amountStandsInInput && previousAskedPrice);
   // "Važi" / "može" confirms an amount only when our previous question stated it
   // (e.g. the computed total for several days). An amount from nowhere is not
   // the person's price, whatever the model proposed.
   const knownRsdAmount = Number(activeFacts.find(fact => fact.fact_key === 'need.price_rsd' && fact.status !== 'UNKNOWN')?.fact_value);
   const amountInPreviousQuestion = !!proposedAmountToken && typeof previousAssistant?.body === 'string'
     && new RegExp(`(?:^|[^\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(previousAssistant.body);
-  const unsourcedAmount = !!priceProposal && !/\d/u.test(input) && proposedAmount !== knownRsdAmount && !amountInPreviousQuestion;
-  const spuriousNumericPriceProposal = amountOnlyMismatch || numericPriceProposalWithoutCurrency && !barePriceProposed || unsourcedAmount;
+  const amountInPreviousAnswer = !!proposedAmountToken && history.filter(row => row?.role === 'USER').slice(-3)
+    .some(row => typeof row.body === 'string' && new RegExp(`(?:^|[^\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(row.body));
+  const unsourcedAmount = !!priceProposal && !/\d/u.test(input) && proposedAmount !== knownRsdAmount && !amountInPreviousQuestion && !amountInPreviousAnswer;
+  const spuriousNumericPriceProposal = amountOnlyMismatch || numericPriceProposalWithoutCurrency && !barePriceProposed && !amountInPreviousAnswer || unsourcedAmount;
   // A bad amount proposal must not erase a separate, explicit choice to
   // collect offers. Require the user's words and the mode fact's evidence.
   const offersSaid = (value: string) => /ponud|понуд/iu.test(value);
@@ -1277,7 +1284,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     && (hourlyWords.test(priceScope) || activeHourly && (priceWords.test(priceScope) || teamOnlyReply));
   const hourlyRetraction = teamHourly && statedHourlyCorrection && activeRsdPrice && !explicitOffers && !unsupportedPrice
     && turn.dialogue?.taskRelation === 'CONTINUE' ? 'UNSUPPORTED_PRICE_BASIS' as const : undefined;
-  const hourlyMismatch = hourly && (teamHourly || effectivePriceFact('need.price_mode') !== 'MY_PRICE'
+  const hourlyMismatch = hourly && (!!priceProposal || /\d/u.test(input)) && (teamHourly || effectivePriceFact('need.price_mode') !== 'MY_PRICE'
     || effectivePriceFact('need.price_basis') !== 'HOURLY'
     || !Number.isSafeInteger(effectivePriceFact('need.price_rsd'))
     || Number(effectivePriceFact('need.price_rsd')) < 1
@@ -1286,7 +1293,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   // a daily rate or a repeated schedule counts only when this message says so,
   // otherwise one unsupported word would repeat the same answer on every turn.
   const perDaySaid = /dnevnic|po\s+danu|dnevno|na\s+dan(?!\p{L})|za\s+dan(?!\p{L})|дневниц|по\s+дану|дневно|на\s+дан(?!\p{L})/iu.test(input);
-  const repetitionSaid = /svak\p{L}*\s+(?:dan|jutr|več|vec|nedelj|ponedelj|utor|sred|četvrt|petak|petk|subot|mesec)|svakodnevn|dnevno|nedeljno|mesečno|redovno|više\s+puta|ponavlj|сваки?\p{L}*\s+(?:дан|јутр|веч|недељ)|свакодневн|дневно|недељно|редовно/iu.test(input);
+  const repetitionSaid = /svak\p{L}*\s+(?:dan|jutr|več|vec|nedelj|ponedelj|utor|sred|četvrt|petak|petk|subot|mesec)|svakodnevn|nedeljno|mesečno|redovno|više\s+puta|ponavlj|сваки?\p{L}*\s+(?:дан|јутр|веч|недељ)|свакодневн|недељно|редовно/iu.test(input);
   const unitPrice = !explicitOffers && (turn.dialogue?.priceUnit === 'PER_DAY' && perDaySaid
     || hourlyMismatch && !spuriousNumericPriceProposal);
   const repeated = turn.dialogue?.schedulePattern === 'REPEATED' && repetitionSaid;
@@ -1307,7 +1314,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const unitMessage = repeated
     ? 'USKOČI pravi jedan konkretan zadatak, pa upisujemo prvi termin, a dalje se možete dogovoriti direktno sa izvršiocem 🙂 Kada bi bio taj prvi termin?'
     : hourlyMismatch
-      ? `${hourlyRetraction ? 'Prethodna cena više nije potvrđena. ' : ''}Satnica se čuva po osobi po satu. Koji iznos u RSD po osobi po satu želite da postavite?`
+      ? `${hourlyRetraction ? 'Prethodna cena više ne važi. ' : ''}Koliko plaćate po satu, za jednu osobu?`
       : 'Cenu po danu ne upisujemo posebno, nego ukupno za ceo zadatak. Koliko dana traje posao, ili koliko dinara nudite ukupno?';
   if (turn.safety === 'REVIEW') {
     // Keep a policy-review decision intact while preventing a mismatched price
@@ -1376,8 +1383,12 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
       || /cen(?:a|u|e)\s+(?:je\s+)?\d|цен[ауе]\s+(?:је\s+)?\d/iu.test(turn.assistantMessage);
     turn = { ...turn, safety: headcount ? turn.safety : 'CLARIFY',
       proposals: withoutUnsupportedPrice(turn.proposals),
-      assistantMessage: falsePriceClaim
-        ? headcount ? 'Razumem koliko Vam izvršilaca treba.' : 'Samo da proverim: na šta se odnosi taj broj, na cenu, broj ljudi ili nešto drugo?'
+      // A computed amount that Gemini asks the person to confirm stays its question (the price is written only after
+      // a yes, see amountInPreviousQuestion); only a claim that a price was saved is replaced.
+      assistantMessage: falsePriceClaim && !(turn.assistantMessage.trim().endsWith('?') && !!proposedAmountToken
+        && !/zabele|upisa|sačuva|sacuva|забележ|уписа|сачува/iu.test(turn.assistantMessage)
+        && new RegExp(`(?:^|[^\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(turn.assistantMessage))
+        ? headcount ? 'Razumem koliko Vam izvršilaca treba.' : 'Da li je taj iznos cena koju nudite? Recite, molim Vas, i da li je ukupno ili po satu.'
         : turn.assistantMessage };
     dialogue = turn.dialogue;
   }
@@ -1433,7 +1444,10 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
         && serbiaTimeParts(new Date(proposal.value)).localDate !== date;
     if (conflict) return clarifySchedule('Koji je tačan datum početka zadatka?');
   }
-  if (dialogue?.schedulePattern === 'FLEXIBLE_RANGE') {
+  // A model label alone does not reopen a schedule that is already complete: "Prijave do petka" answers the deadline.
+  if (dialogue?.schedulePattern === 'FLEXIBLE_RANGE'
+    && (turn.proposals.some(proposal => ['need.schedule_kind', 'need.starts_at', 'need.ends_at'].includes(proposal.key))
+      || !activeFacts.some(fact => fact.fact_key === 'need.schedule_kind' && fact.status !== 'UNKNOWN'))) {
     // Provider-owned interpretation of a bounded *choice* of dates must not
     // contradict its typed proposal by turning into unlimited availability.
     // This checks effective facts, so an answer about price/place can retain an
@@ -1619,8 +1633,8 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     && ['REVIEW', 'ACK'].includes(dialogue?.next ?? '') && !assistantMessage.includes('?')
     && !routeQuestion && !cityOnlyStationary) {
     const serverReady = assistantMessage.startsWith('Super, imam sve što mi treba');
-    assistantMessage = serverReady ? 'Super, imam skoro sve 🙂 Još samo jedno: do kada primate prijave? Recite datum i sat, ili da nema roka.'
-      : `${assistantMessage.trim()} Još samo jedno: do kada primate prijave? Recite datum i sat, ili da nema roka 🙂`.trim();
+    assistantMessage = serverReady ? 'Super, imam skoro sve 🙂 Još samo jedno: do kada primate prijave? Recite dan (i sat ako želite), ili da nema roka.'
+      : `${assistantMessage.trim()} Još samo jedno: do kada primate prijave? Recite dan (i sat ako želite), ili da nema roka 🙂`.trim();
     dialogue = dialogue ? { ...dialogue, next: 'ASK', questionKey: 'need.response_deadline' } : dialogue;
   }
   // ACK is not permission to replace the answer with another robotic template.

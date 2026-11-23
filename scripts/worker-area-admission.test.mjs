@@ -72,3 +72,16 @@ describe('Worker area admission respects the area limit without silent loss', ()
     assert.deepEqual(result, output);
   });
 });
+
+describe('Live round 23.11.2026: words that are not places never become cities', () => {
+  it('"Radim i SEO optimizaciju" adds no areas', () => {
+    const output = { safety: 'ALLOW', assistantMessage: 'Dodao sam SEO optimizaciju.', patch: { skills: ['Izrada sajtova', 'SEO optimizacija'] } };
+    const result = guardWorkerAreaOutput(output, 'Radim i SEO optimizaciju', { candidate: { skills: ['Izrada sajtova'], workAreas: [] } });
+    assert.equal(Object.hasOwn(result.patch, 'areaRequests'), false);
+  });
+  it('two real towns written the same way are still understood', () => {
+    const output = { safety: 'ALLOW', assistantMessage: 'Zabeležio sam.', patch: { skills: ['Krečenje'] } };
+    const result = guardWorkerAreaOutput(output, 'Sombor i Apatin', { candidate: { skills: ['Krečenje'], workAreas: [] } });
+    assert.deepEqual(result.patch.areaRequests?.map(a => a.query), ['Sombor', 'Apatin']);
+  });
+});
