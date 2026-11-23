@@ -32,10 +32,10 @@ export function ConfirmedPlaceLine({ entries, onEdit, announce = false, testID =
         {entry.locality ? `, ${entry.locality}` : ''}{entry.ack ? '.' : ''}
       </T>)}
     </View>
-    {onEdit ? <T variant="note" style={s.edit}>Izmeni</T> : null}
+    {onEdit ? <T variant="note" style={s.edit}>Izmenite</T> : null}
   </>;
   return onEdit
-    ? <Press testID={testID} accessibilityRole="button" accessibilityLabel={spoken} accessibilityHint="Otvara mapu da promeniš mesto."
+    ? <Press testID={testID} accessibilityRole="button" accessibilityLabel={spoken} accessibilityHint="Otvara mapu da promenite mesto."
       accessibilityLiveRegion={announce ? 'polite' : undefined} haptic="select" onPress={onEdit} style={s.line}>{body}</Press>
     : <View testID={testID} accessible accessibilityLabel={spoken} accessibilityLiveRegion={announce ? 'polite' : undefined}
       style={s.line}>{body}</View>;

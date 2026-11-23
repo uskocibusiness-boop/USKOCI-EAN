@@ -30,17 +30,17 @@ export function orderIntakeLocation(previous: IntakeLocationOrder | null, input:
   scope: string; messages: readonly AiNeedMessage[]; roles: Readonly<Record<string, IntakeTurnRole>>;
   causalMessageId?: string; pendingLocation: boolean; confirmedLocation: boolean; canRelease: boolean;
   preserveHistory: boolean; confirmationKey: string;
+  /** The person put the map away ("Kasnije"): what was held comes back without a confirmed point. */
+  dismissed?: boolean;
 }) {
   const base = previous?.scope === input.scope ? previous : { scope: input.scope, seen: new Set<string>(), active: null, released: [] };
   const { messages, roles } = input;
   let active = base.active, released = [...base.released];
-  // Ordinary turns can still ask for a material clarification. Keep that question visible
-  // before the map is confirmed, including a later authoritative readback of a held turn.
+  // Owner, 23.11.2026: while the place is being confirmed, the conversation is about the place only. Replies of the place
+  // conversation itself (and a safety clarification of an unclear message) stay visible; the AI's next question about
+  // something else (the budget, a date) waits under the map and appears once the point is confirmed or the map put away.
   const clarifications = new Set(messages.filter(message => message.fromAi && (message.safety === 'CLARIFY'
-    || roles[message.id] === 'CLARIFY' || roles[message.id] === 'CORRECT' || roles[message.id] === 'CONTINUE'
-    // Ordinary AI replies can end in a real question (e.g. a date clarification).
-    // It must be readable before a map takes focus, including after signed readback.
-    || /[?？]\s*$/.test(message.body))).map(message => message.id));
+    || roles[message.id] === 'CLARIFY' || roles[message.id] === 'CORRECT' || roles[message.id] === 'CONTINUE')).map(message => message.id));
   if (active !== null) active = active.filter(id => !clarifications.has(id));
   released = released.map(span => ({ ...span, ids: span.ids.filter(id => !clarifications.has(id)) })).filter(span => span.ids.length > 0);
   const alreadyReleased = new Set(released.flatMap(span => [...span.ids]));
@@ -58,7 +58,7 @@ export function orderIntakeLocation(previous: IntakeLocationOrder | null, input:
     }
     active = [...held];
   }
-  if (active !== null && input.confirmedLocation && input.canRelease && !input.preserveHistory) {
+  if (active !== null && (input.confirmedLocation || (input.dismissed && !input.pendingLocation)) && input.canRelease && !input.preserveHistory) {
     const ids = new Set(active), after = messages.filter(message => !ids.has(message.id)).at(-1)?.id ?? null;
     released.push({ ids: active, after, confirmationKey: input.confirmationKey }); active = null;
   }

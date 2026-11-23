@@ -389,6 +389,7 @@ export function IntakePresentation(props: Props) {
     confirmedLocation: !!place && gap.done === gap.total,
     canRelease: !busy && !pending && !props.error,
     preserveHistory: !open || conversation.safety === 'BLOCK', confirmationKey: fingerprint(placeKey),
+    dismissed: pointAskHidden,
   });
   orderMemory.write(orderScope, ordered.state);
   const anchor = placeComplete && ordered.state.active === null ? anchorPlace(conversation.conversationId, placeKey, confirmedPoints,
