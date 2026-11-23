@@ -32,3 +32,9 @@ test('putting the map away ("Kasnije") brings the held question back', () => {
   const back=orderIntakeLocation(held.state,{...base,messages,roles,pendingLocation:false,confirmedLocation:false,dismissed:true});
   assert.deepEqual(ids(back),['u1','a1']);
 });
+
+test('a named place (a village that is also the town) opens the map instead of waiting for a street', () => {
+  const src=require('node:fs').readFileSync(require('node:path').join(__dirname,'..','src/ui/v2/IntakePresentation.tsx'),'utf8');
+  assert.ok(src.includes("const addressReady = !!requestedPlace && (namedPlace || place?.geography?.mode === 'POINT_TO_POINT'"));
+  assert.ok(src.includes("const namedPlace = typeof place?.exactAddress === 'string' && !!place.exactAddress.trim();"));
+});

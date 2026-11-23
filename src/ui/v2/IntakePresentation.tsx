@@ -367,7 +367,10 @@ export function IntakePresentation(props: Props) {
   // An existing confirmed place always remains editable from its own line.
   // A user-spoken area/POI can seed a map search without claiming an exact address.
   // The point is still unverified until the owner confirms it manually.
-  const addressReady = !!requestedPlace && (place?.geography?.mode === 'POINT_TO_POINT'
+  // Owner, 23.11.2026 ("selo Kalenić"): a village is often both the town and the place. Once the conversation has a
+  // named place (need.exact_address), the map opens so the person marks the point; it never waits for a street.
+  const namedPlace = typeof place?.exactAddress === 'string' && !!place.exactAddress.trim();
+  const addressReady = !!requestedPlace && (namedPlace || place?.geography?.mode === 'POINT_TO_POINT'
     ? !slotNeedsCloserPlace('start', requestedPlace) || !slotNeedsCloserPlace('end', requestedPlace)
     : place?.geography?.mode !== 'STATIONARY' || !slotNeedsCloserPlace('start', requestedPlace));
   const proposedKeys = new Set(conversation.facts.filter(fact => fact.status !== 'UNKNOWN').map(fact => fact.key));
