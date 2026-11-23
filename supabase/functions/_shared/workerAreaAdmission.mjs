@@ -219,196 +219,40 @@ export function guardWorkerAreaOutput(output, userText, context) {
   // REVIEW/BLOCK intentionally freeze the DB candidate. Never downgrade them
   // to CLARIFY, which would make an otherwise ignored patch writable.
   if (!['ALLOW', 'CLARIFY'].includes(output.safety)) return output;
-  const scope = classifyWorkerAreaRequest(userText);
-  const hasWorkAreas = true;
+  // Owner, 23.11.2026: Gemini understands where the person works and sends the complete area list (areaRequests).
+  // The server never builds or corrects areas from the person's words; the resolver checks every entry (a known
+  // region code, a real place in Serbia, a distance of 1–200 km) and asks when a place cannot be found.
   const patch = { ...output.patch };
-
-  // Explicit areaRequests still pass the normal schema and geocoder, but the
-  // provider cannot quietly narrow a user-stated list beyond the five-area
-  // contract. Ask the user to choose instead of saving a partial list.
-  if (Object.hasOwn(patch, 'areaRequests')) {
-    const { cities } = statedWorkerCities(userText);
-    if (scope === 'MULTI_LOCALITY' && cities.length > WORKER_AREA_LIMIT) {
-      delete patch.areaRequests;
-      delete patch.location;
-      if (typeof patch.bio === 'string' && bioAreaClaim(patch.bio)) delete patch.bio;
-      return { ...output, safety: 'CLARIFY', patch,
-        assistantMessage: `Profil može da sadrži najviše ${WORKER_AREA_LIMIT} mesta. Možete navesti i celu regiju, na primer celu Vojvodinu. Koja mesta želite da zadržite?` };
-    }
-    return output;
-  }
-
-  // A region is a real work area (owner decision 22.11.2026): Gemini returns it
-  // as a REGION request, and it is never widened to all of Serbia here.
-  if (scope === 'COUNTRY') {
-    delete patch.location;
-    if (!Object.hasOwn(patch, 'areaRequests')) {
-      patch.areaRequests = [{ kind: 'COUNTRY', countryCode: 'RS', query: '', radiusKm: null }];
-    }
-    const message = output.assistantMessage && !output.assistantMessage.includes('jedan grad')
-      ? output.assistantMessage
-      : 'Zabeležio sam da pokrivate celo područje (i šire po dogovoru). Područje rada je ažurirano u Vašem nacrtu.';
-    return { ...output, safety: 'ALLOW', patch, assistantMessage: message };
-  }
-
-  if (scope === 'MULTI_LOCALITY' && !Object.hasOwn(patch, 'areaRequests')) {
-    delete patch.location;
-    const { text, cities: cityList } = statedWorkerCities(userText);
-    if (cityList.length >= 2) {
-      if (cityList.length > WORKER_AREA_LIMIT) {
-        if (typeof patch.bio === 'string' && bioAreaClaim(patch.bio)) delete patch.bio;
-        return { ...output, safety: 'CLARIFY', patch,
-          assistantMessage: `Profil može da sadrži najviše ${WORKER_AREA_LIMIT} mesta. Možete navesti i celu regiju, na primer celu Vojvodinu. Koja mesta želite da zadržite?` };
-      }
-      const selected = cityList;
-      patch.areaRequests = selected.map(city => ({ kind: 'CITY', countryCode: 'RS', query: city, radiusKm: null }));
-      const citiesStr = selected.length === 2 
-        ? `${selected[0]} i ${selected[1]}`
-        : `${selected.slice(0, -1).join(', ')} i ${selected.at(-1)}`;
-      const message = output.assistantMessage && !output.assistantMessage.includes('jedan grad')
-        ? output.assistantMessage
-        : `Zabeležio sam gradove ${citiesStr} kao Vaša područja rada.`;
-      return { ...output, safety: 'ALLOW', patch, assistantMessage: message };
-    }
-    const m = knownCityPair.exec(text) || pair.exec(text) || commaPair.exec(text);
-    // Live round, 23.11.2026: "Radim i SEO optimizaciju" became the cities "Radim" and "SEO". A verb or an
-    // acronym is never a place; such a pair is left to Gemini's own area list.
-    const notPlace = name => /^(?:radim|radimo|dolazim|idem|pokrivam|nudim|mogu|prihvatam|imam|pravim|bavim|znam|volim)$/iu.test(name.trim())
-      || /^[A-ZČĆŠŽĐ]{2,5}$/u.test(name.trim()) && !knownCityId(name);
-    if (m && m[1] && m[2] && !notPlace(m[1]) && !notPlace(m[2])) {
-      patch.areaRequests = [
-        { kind: 'CITY', countryCode: 'RS', query: m[1].trim(), radiusKm: null },
-        { kind: 'CITY', countryCode: 'RS', query: m[2].trim(), radiusKm: null },
-      ];
-      const message = output.assistantMessage && !output.assistantMessage.includes('jedan grad')
-        ? output.assistantMessage
-        : `Zabeležio sam gradove ${m[1].trim()} i ${m[2].trim()} kao Vaša područja rada.`;
-      return { ...output, safety: 'ALLOW', patch, assistantMessage: message };
-    }
-  }
-
-  // Restating the exact already-owned country is not a missing territory edit.
-  // Keep any actual location or biography change on the normal guarded path.
-  const countryRestatement = /^(?:(?:radim|dolazim)\s+(?:u|po)\s+)?(?:(?:cela|celoj|čitava|čitavoj)\s+)?(?:srbija|srbiji)[.!]*$/iu.test(normalize(userText));
-  if (hasWorkAreas && scope === 'COUNTRY' && countryRestatement && !Object.hasOwn(patch, 'location')
-      && !Object.hasOwn(patch, 'bio') && context.candidate.workAreas.length === 1
-      && context.candidate.workAreas[0]?.kind === 'COUNTRY'
-      && context.candidate.workAreas[0]?.countryCode === 'RS') return output;
-  // A separate, exact owned sentence is not a new territory claim. Mixed or
-  // edited sentences still pass the ordinary guard; never exempt substrings.
-  const ownedBioSentences = hasWorkAreas && context.candidate.workAreas.length > 0 && scope === 'NONE'
-    && !Object.hasOwn(patch, 'location') && !remoteWithoutOnSiteArea(normalize(userText))
-    && typeof context.candidate.bio === 'string'
-    ? new Set(context.candidate.bio.trim().split(/(?<=[.!?])\s+/u).filter(sentence => /[.!?]$/u.test(sentence)))
-    : new Set();
-  const proposedBioSentences = typeof patch.bio === 'string' ? patch.bio.trim().split(/(?<=[.!?])\s+/u) : [];
-  const newBio = proposedBioSentences.filter(sentence => !ownedBioSentences.has(sentence)).join(' ');
-  const removedUnsupportedBio = typeof patch.bio === 'string' && bioAreaClaim(newBio);
-  if (removedUnsupportedBio) {
-    const safeBio = proposedBioSentences.map(sentence => ownedBioSentences.has(sentence) ? sentence : scrubAreaBio(sentence))
-      .filter(Boolean).join(' ');
-    if (safeBio) patch.bio = safeBio;
-    else delete patch.bio;
-  }
-  if (scope === 'NONE') {
-    if (remoteWithoutOnSiteArea(normalize(userText))) {
-      const removedLocation = Object.hasOwn(patch, 'location');
-      delete patch.location;
-      const withoutTravelQuestion = String(output.assistantMessage).replace(travelQuestion, ' ').replace(/\s+/gu, ' ').trim();
-      if (removedLocation || withoutTravelQuestion !== output.assistantMessage || removedUnsupportedBio)
-        return { ...output, patch, ...((removedLocation || removedUnsupportedBio) ? { safety: 'CLARIFY' } : {}),
-          assistantMessage: withoutTravelQuestion && !removedLocation && !removedUnsupportedBio ? withoutTravelQuestion
-            : ['Za onlajn rad nisam menjao područje dolaska. Ostale jasne izmene su u nacrtu.',
-              ...independentQuestions(withoutTravelQuestion)].join(' ') };
-      return { ...output, patch };
-    }
-    const proposed = patch.location;
-    const current = context?.candidate?.location;
-    const distanceFromUser = statedRadius(userText);
-    const userOnSiteText = onSiteText(normalize(userText));
-    const statedCity = statedSurroundingCity(userOnSiteText) ||
-      statedCityByRadius(userOnSiteText) || statedCityByWork(userOnSiteText);
-    const isAdditiveCity = /(?:^|[^\p{L}])(?:dodaj|dodajte|ubaci|ubacite|proširi|proširite|takođe|i\s+u|i\s+za)(?=$|[^\p{L}])/iu.test(userOnSiteText);
-    if (isAdditiveCity && statedCity && !Object.hasOwn(patch, 'areaRequests') && Array.isArray(context?.candidate?.workAreas) && context.candidate.workAreas.length > 0) {
-      const existingRequests = context.candidate.workAreas
-        .filter(area => area && (area.kind === 'CITY' || area.kind === 'RADIUS') && typeof area.city === 'string' && area.city.trim())
-        .map(area => ({
-          kind: area.kind,
-          countryCode: area.countryCode || 'RS',
-          query: area.city.trim(),
-          radiusKm: area.kind === 'RADIUS' ? area.radiusKm : null,
-        }));
-      const targetCity = (proposed?.city && samePlace(proposed.city, statedCity) ? proposed.city : statedCity).trim();
-      if (existingRequests.length > 0 && !existingRequests.some(req => samePlace(req.query, targetCity))) {
-        delete patch.location;
-        if (existingRequests.length >= WORKER_AREA_LIMIT) {
-          if (typeof patch.bio === 'string' && bioAreaClaim(patch.bio)) delete patch.bio;
-          return { ...output, safety: 'CLARIFY', patch,
-            assistantMessage: `Profil već sadrži ${WORKER_AREA_LIMIT} mesta. Koje želite da zamenite mestom ${targetCity}?` };
-        }
-        patch.areaRequests = [
-          ...existingRequests,
-          {
-            kind: typeof distanceFromUser === 'number' && distanceFromUser > 0 ? 'RADIUS' : 'CITY',
-            countryCode: 'RS',
-            query: targetCity,
-            radiusKm: typeof distanceFromUser === 'number' && distanceFromUser > 0 ? distanceFromUser : null,
-          },
-        ];
-        return { ...output, safety: 'ALLOW', patch };
-      }
-    }
-    if (proposed && statedCity && !samePlace(proposed.city ?? current?.city, statedCity)) {
-      delete patch.location;
-      return { ...output, safety: 'CLARIFY', patch,
-        assistantMessage: 'Nisam promenio područje: predloženi grad nije isti kao navedeni grad. Koji grad želite da sačuvate?' };
-    }
-    if (proposed && distanceFromUser !== null &&
-      (distanceFromUser === 'AMBIGUOUS' || distanceFromUser !== (proposed.radiusKm ?? current?.radiusKm))) {
-      delete patch.location;
-      const distanceQuestion = distanceFromUser === 'AMBIGUOUS'
-        ? 'Nisam promenio područje: broj kilometara nije nedvosmislen. Koliko kilometara Vam odgovara?'
-        : 'Nisam promenio područje: predložena udaljenost nije ista kao navedena. Koliko kilometara Vam odgovara?';
-      return { ...output, safety: 'CLARIFY', patch,
-        assistantMessage: distanceQuestion };
-    }
-    if (removedUnsupportedBio) {
-      return { ...output, safety: 'CLARIFY', patch,
-        // The unsupported area sentence is simply left out of the bio; the person's own change is still answered.
-        assistantMessage: output.assistantMessage };
-    }
-    return output;
-  }
-  if (scope === 'LOCALITY_NEEDS_DISTANCE') {
-    const current = context?.candidate?.location;
-    const proposed = patch.location;
-    const statedCity = statedSurroundingCity(onSiteText(normalize(userText)));
-    // An unchanged, already owned city/radius remains a valid draft fact. A
-    // new locality cannot inherit a default or a different city's radius.
-    const existingAreaRestated = !proposed && current?.city && current?.radiusKm &&
-      (!statedCity || samePlace(current.city, statedCity));
-    if (existingAreaRestated || (current?.city && proposed && (!statedCity || samePlace(proposed.city ?? current.city, statedCity)) &&
-      samePlace(current.city, proposed.city ?? current.city) &&
-      (proposed.radiusKm === undefined || current?.radiusKm === proposed.radiusKm))) {
-      if (current.approximatePosition && !removedUnsupportedBio) return output;
-      const caveat = current.approximatePosition
-        ? 'Širi opis područja nisam dodao u nacrt.'
-        : 'Dosadašnji grad i radijus ostaju isti. Za okolna mesta još ne mogu da obećam automatske predloge; za to treba potvrditi približan centar grada.';
-      return { ...output, ...(removedUnsupportedBio ? { safety: 'CLARIFY', patch } : {}),
-        assistantMessage: [caveat, ...independentQuestions(output.assistantMessage)].join(' ') };
-    }
-    delete patch.location;
-    const message='Razumem grad i okolinu. Do koliko kilometara Vam odgovara da putujete? Dosadašnje područje ostaje isto dok to ne razjasnimo.';
-    return { ...output, safety: 'CLARIFY', patch,
-      assistantMessage: message };
-  }
+  // The legacy single location is never written next to the area list.
   delete patch.location;
-  // A broad area in a biography would become a second, unsourced public truth.
-  // Preserve unrelated identity/services/calendar changes from the same turn.
-  // The common scrub above also protects a locality-without-distance claim.
-  const message = 'Područje rada je zabeleženo u Vašem profilu.';
-  // Keep an independent, already targeted question (most often a missing
-  // calendar end time) without retaining any provider assertion about area.
-  const otherQuestions = message.includes('?') ? [] : independentQuestions(output.assistantMessage).slice(0,1);
-  return { ...output, safety: 'CLARIFY', patch, assistantMessage: [message, ...otherQuestions].join(' ') };
+  const requests = Array.isArray(patch.areaRequests) ? patch.areaRequests : null;
+  if (requests && requests.length > WORKER_AREA_LIMIT) {
+    delete patch.areaRequests;
+    if (typeof patch.bio === 'string' && bioAreaClaim(patch.bio)) delete patch.bio;
+    return { ...output, safety: 'CLARIFY', patch,
+      assistantMessage: `Profil može da sadrži najviše ${WORKER_AREA_LIMIT} mesta. Možete navesti i celu regiju, na primer celu Vojvodinu. Koja mesta želite da zadržite?` };
+  }
+  // Provenance of a distance: the kilometres were said in this message or are already in the owned area.
+  const owned = Array.isArray(context?.candidate?.workAreas) ? context.candidate.workAreas : [];
+  const saidNumber = value => new RegExp(`(?:^|[^\\p{N}])${value}(?=$|[^\\p{N}])`, 'u').test(String(userText ?? ''));
+  const unsourcedRadius = requests?.some(area => area?.kind === 'RADIUS' && Number.isInteger(area.radiusKm)
+    && !saidNumber(area.radiusKm)
+    && !owned.some(own => own?.kind === 'RADIUS' && own.radiusKm === area.radiusKm && samePlace(own.city, area.query)));
+  if (unsourcedRadius) {
+    delete patch.areaRequests;
+    return { ...output, safety: 'CLARIFY', patch,
+      assistantMessage: 'Do koliko kilometara Vam odgovara da putujete?' };
+  }
+  // Areas live only in the area list. A bio sentence of Gemini's that claims an area is left out of the bio;
+  // unchanged sentences the person already owns stay as they are.
+  if (typeof patch.bio === 'string') {
+    const ownedBio = typeof context?.candidate?.bio === 'string'
+      ? new Set(context.candidate.bio.trim().split(/(?<=[.!?])\s+/u)) : new Set();
+    const sentences = patch.bio.trim().split(/(?<=[.!?])\s+/u);
+    if (sentences.some(sentence => !ownedBio.has(sentence) && bioAreaClaim(sentence))) {
+      const safeBio = sentences.map(sentence => ownedBio.has(sentence) ? sentence : scrubAreaBio(sentence)).filter(Boolean).join(' ');
+      if (safeBio) patch.bio = safeBio; else delete patch.bio;
+    }
+  }
+  return { ...output, patch };
 }

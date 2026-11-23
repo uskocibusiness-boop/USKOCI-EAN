@@ -26,19 +26,14 @@ describe('Worker area admission respects the area limit without silent loss', ()
     assert.equal((silent.patch.areaRequests ?? []).some(a => a.kind === 'COUNTRY'), false);
   });
 
-  it('asks which places to keep when the user names more than the limit but the model proposes fewer', () => {
+  // Owner, 23.11.2026: the server no longer counts places in the person's words; Gemini sends the complete list.
+  it('asks which places to keep when the area list itself is over the limit', () => {
     const output = {
       safety: 'ALLOW',
       assistantMessage: 'Zabeležio sam gradove.',
-      patch: {
-        bio: 'Radim selidbe u Novom Sadu, Beogradu, Nišu, Kragujevcu, Subotici i Pančevu.',
-        skills: ['Selidbe'],
-        areaRequests: many.slice(0, WORKER_AREA_LIMIT).map(area),
-      },
+      patch: { bio: 'Radim selidbe u Novom Sadu i Beogradu.', skills: ['Selidbe'], areaRequests: many.map(area) },
     };
-    const context = { candidate: { skills: ['Selidbe'], workAreas: [] } };
-    const result = guardWorkerAreaOutput(output, 'Radim u ' + many.join(', ') + '.', context);
-
+    const result = guardWorkerAreaOutput(output, 'Radim u ' + many.join(', ') + '.', { candidate: { skills: ['Selidbe'], workAreas: [] } });
     assert.equal(result.safety, 'CLARIFY');
     assert.equal(Object.hasOwn(result.patch, 'areaRequests'), false);
     assert.equal(Object.hasOwn(result.patch, 'bio'), false);
@@ -46,21 +41,15 @@ describe('Worker area admission respects the area limit without silent loss', ()
     assert.match(result.assistantMessage, new RegExp(`najviše ${WORKER_AREA_LIMIT} mesta`, 'u'));
   });
 
-  it('asks which existing place to replace instead of silently dropping one over the limit', () => {
-    const existing = many.slice(0, WORKER_AREA_LIMIT).map(city => ({
-      kind: 'CITY', countryCode: 'RS', city, radiusKm: null,
-    }));
-    const output = {
-      safety: 'ALLOW', assistantMessage: 'Dodat je Novi Pazar.',
-      patch: { displayName: 'Milan', bio: 'Pouzdan sam.' },
-    };
-    const context = { candidate: { skills: ['Selidbe'], location: { city: 'Novi Sad' }, workAreas: existing } };
-    const result = guardWorkerAreaOutput(output, 'Dodaj i Novi Pazar', context);
-
-    assert.equal(result.safety, 'CLARIFY');
-    assert.equal(Object.hasOwn(result.patch, 'areaRequests'), false);
-    assert.deepEqual(result.patch, { displayName: 'Milan', bio: 'Pouzdan sam.' });
-    assert.match(result.assistantMessage, /Koje želite da zamenite/u);
+  it('a distance nobody said is not saved; a said distance is', () => {
+    const output = km => ({ safety: 'ALLOW', assistantMessage: 'Zabeležio sam.', patch: { skills: ['Selidbe'],
+      areaRequests: [{ kind: 'RADIUS', countryCode: 'RS', query: 'Novi Sad', radiusKm: km }] } });
+    const context = { candidate: { skills: ['Selidbe'], workAreas: [] } };
+    const invented = guardWorkerAreaOutput(output(50), 'Novi Sad i okolina', context);
+    assert.equal(invented.safety, 'CLARIFY');
+    assert.equal(Object.hasOwn(invented.patch, 'areaRequests'), false);
+    const said = guardWorkerAreaOutput(output(30), 'Novi Sad i 30 km oko njega', context);
+    assert.equal(said.patch.areaRequests[0].radiusKm, 30);
   });
 
   it('keeps an explicit valid multi-city proposal unchanged', () => {
@@ -79,9 +68,11 @@ describe('Live round 23.11.2026: words that are not places never become cities',
     const result = guardWorkerAreaOutput(output, 'Radim i SEO optimizaciju', { candidate: { skills: ['Izrada sajtova'], workAreas: [] } });
     assert.equal(Object.hasOwn(result.patch, 'areaRequests'), false);
   });
-  it('two real towns written the same way are still understood', () => {
-    const output = { safety: 'ALLOW', assistantMessage: 'Zabeležio sam.', patch: { skills: ['Krečenje'] } };
-    const result = guardWorkerAreaOutput(output, 'Sombor i Apatin', { candidate: { skills: ['Krečenje'], workAreas: [] } });
-    assert.deepEqual(result.patch.areaRequests?.map(a => a.query), ['Sombor', 'Apatin']);
+  it('places come from Gemini\'s list; the server does not build them from words', () => {
+    const fromText = guardWorkerAreaOutput({ safety: 'ALLOW', assistantMessage: 'Zabeležio sam.', patch: { skills: ['Krečenje'] } },
+      'Sombor i Apatin', { candidate: { skills: ['Krečenje'], workAreas: [] } });
+    assert.equal(Object.hasOwn(fromText.patch, 'areaRequests'), false);
+    const listed = { safety: 'ALLOW', assistantMessage: 'Zabeležio sam Sombor i Apatin.', patch: { skills: ['Krečenje'], areaRequests: [area('Sombor'), area('Apatin')] } };
+    assert.deepEqual(guardWorkerAreaOutput(listed, 'Sombor i Apatin', { candidate: { skills: ['Krečenje'], workAreas: [] } }), listed);
   });
 });

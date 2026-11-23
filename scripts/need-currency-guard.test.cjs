@@ -105,7 +105,7 @@ for(const [text,basis] of [['Promeni na 1.500.','HOURLY'],['Промени на 
     assert.equal(entries(out).some(p=>p.key!=='need.price_rsd'),false);
     assert.equal(JSON.stringify(facts),before);
     assert.doesNotMatch(out.assistantMessage,/za jednu osobu/);
-    if(basis==='HOURLY') assert.match(out.assistantMessage,/po osobi po satu/);
+    if(basis==='HOURLY') assert.match(out.assistantMessage,/RSD\/sat po osobi/);
     if(basis==='PER_PERSON') assert.match(out.assistantMessage,/po osobi/);
   });
 }
@@ -127,11 +127,12 @@ test('amount-only correction refuses an ungrounded model value including indepen
   assert.doesNotMatch(out.assistantMessage,/2500|za jednu osobu/);
 });
 
-test('ambiguous number or correction after a non-price question does not inherit price authority',()=>{
+// Owner, 23.11.2026: whether "1500" is a price is Gemini's decision; the server refuses only an amount without a source.
+test('an amount that nobody said never inherits price authority',()=>{
   for(const [text,history] of [
-    ['Promeni na 1500.',[{role:'ASSISTANT',body:'Kada treba da počne posao?'}]],
-    ['1500',[{role:'ASSISTANT',body:'Koliko ljudi Vam treba?'}]],
-    ['1500',[]],
+    ['Promeni na 1800.',[{role:'ASSISTANT',body:'Kada treba da počne posao?'}]],
+    ['Važi',[{role:'ASSISTANT',body:'Koliko ljudi Vam treba?'}]],
+    ['Može',[]],
   ]) {
     const out=run(turn('Cena je 1500 RSD.',[['need.price_rsd',1500]]),text,history,knownPrice('HOURLY'),time);
     assert.equal(entries(out).some(p=>p.key==='need.price_rsd'),false,text);

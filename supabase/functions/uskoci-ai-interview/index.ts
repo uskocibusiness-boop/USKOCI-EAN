@@ -211,12 +211,8 @@ function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: a
     const decision = decodeTaskApplicationDeadlineFact(deadlineProposal.value);
     const evidence = typeof deadlineProposal.evidence === 'string' ? deadlineProposal.evidence.trim() : '';
     const anchored = evidence.length >= 3 && input.toLocaleLowerCase('sr').includes(evidence.toLocaleLowerCase('sr'));
-    // Gemini decides what the person meant and returns {"kind":"NONE"}; the server
-    // only checks provenance: a quote from this message, given in answer to the
-    // deadline question or about applications. Wording is never a word list.
-    const explicitClear = /(?:bez\s+(?:posebnog\s+|strogog\s+|ikakvog\s+|određenog\s+|odredjenog\s+)?roka|nema(?:m)?\s+(?:posebnog\s+|strogog\s+|ikakvog\s+|određenog\s+|odredjenog\s+)?rok(?:a|ova)?(?!\p{L})|(?:ukloni|obriši|obrisi|poništi|ponisti)\s+(?:taj\s+)?rok|prijave\s+(?:ostaju|neka\s+ostanu|su)\s+otvorene|(?:primam|primaću|primacu|mogu\s+da\s+primam)\s+prijave\s+(?:sve\s+vreme|stalno|uvek|bez\s+ograničenja|bez\s+ogranicenja)|rok\s+(?:nije\s+bitan|mi\s+ne\s+treba)|без\s+(?:посебног\s+|строгог\s+)?рока|нема(?:м)?\s+(?:посебног\s+|строгог\s+)?рок(?:а)?(?!\p{L}))/iu.test(evidence);
-    const applicationIntent = /prijav|ponud|javlj|jave|odgovor|konkuri|пријав|понуд|јављ|јаве|одговор|конкури/iu.test(input);
-    const hold = /(?:ne\s+menjaj|ne\s+diraj|ostavi\s+(?:isti|stari)|nemoj\s+da\s+menjaš)[^.!?]{0,32}rok/iu.test(input);
+    // Gemini decides what the person meant; the server checks only provenance (a quote of this message) and the value.
+    // "No deadline" is accepted as an answer to our deadline question; a concrete date may be volunteered at any time.
     const instant = decision?.kind === 'AT' ? Date.parse(decision.at) : NaN;
     const unchanged = decision && JSON.stringify(known.get('need.response_deadline')) === JSON.stringify(decision);
     const literal = decision?.kind === 'AT' && input.includes(decision.at) && evidence.includes(decision.at);
@@ -244,7 +240,7 @@ function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: a
     const knownDeadlineHour = decodeTaskApplicationDeadlineFact(known.get('need.response_deadline'))?.kind === 'AT';
     const missingMonthDeadlineHour = decision?.kind === 'AT' && nextMonth?.date && !unchanged && !literal
       && currentDateOnly && !knownDeadlineHour;
-    if (!decision || !anchored || hold || decision.kind === 'NONE' && !explicitClear && !pendingDeadlineQuestion && !applicationIntent || decision.kind === 'AT' && !applicationIntent && !pendingDeadlineQuestion || expired || localMismatch || relativeMismatch || missingMonthDeadlineHour) {
+    if (!decision || !anchored || decision.kind === 'NONE' && !pendingDeadlineQuestion && !unchanged || expired || localMismatch || relativeMismatch || missingMonthDeadlineHour) {
       return { ...turn, safety: turn.safety === 'REVIEW' ? 'REVIEW' : 'CLARIFY',
         proposals: turn.proposals.filter(p => p.key !== 'need.response_deadline'),
         dialogue: turn.safety === 'REVIEW' ? turn.dialogue : turn.dialogue ? { ...turn.dialogue, next: 'CLARIFY', questionKey: '' } : undefined,
@@ -1107,33 +1103,13 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     `(?:^|[^\\p{L}\\p{N}])(?:\\d[\\d\\s.,]*\\s*(?:(?:u|na|у|на)\\s+)?${unit}|${unit}\\s*\\d[\\d\\s.,]*)(?=$|[^\\p{L}])`, 'iu').test(text);
   const euroUnit = '(?:€|eur|evr(?:o|a|i|ima)?|euro|eura|евр(?:о|а|и|има)?|еур(?:о|а)?)';
   const dinarUnit = '(?:rsd|рсд|din(?:ar(?:a|i|e|ima)?)?|дин(?:ар(?:а|и|е|има)?)?)';
-  const priceWords = /bud(?:ž|z)et|cen(?:a|u|e|om)|iznos|naknad|naplat|za ceo posao|po osobi|svak(?:om|og|i|oj|u)(?!\p{L})|po (?:času|casu|satu|čoveku|coveku)|буџет|цен[ауеом]|износ|накнад|наплат/iu;
-  const expenseWords = /materijal|материјал|prevoz|превоз|goriv\p{L}*|горив\p{L}*|oprem\p{L}*|опрем\p{L}*/iu;
-  // Work with the clause about the task price. A currency next to material
-  // costs cannot authorize the same numeral in a later labor-price clause.
-  const priceClauses = input.split(/[;,!?\n]|\.(?!\d)/u).map(clause => {
-    if (/^\s*\d+\s*(?:radnik\p{L}*|ljud\p{L}*|osob\p{L}*|радник\p{L}*|људ\p{L}*|особ\p{L}*)/iu.test(clause)) return '';
-    // "Prevoz za 500 RSD" is a task price; "prevoz me košta 500 RSD"
-    // describes an expense. Do not discard the former as incidental cost.
-    if (/(?:^|\s)(?:prevoz|превоз)\s+za\s+\d|(?:^|\s)(?:prevoz|превоз)\s+за\s+\d/iu.test(clause)
-      && !/košta|kosta|кошта|trošak|trosak|трошак/iu.test(clause)) return clause;
-    const expenseAt = clause.search(expenseWords);
-    if (expenseAt >= 0) {
-      const laterPrice = clause.slice(expenseAt + 1).search(priceWords);
-      return laterPrice >= 0 ? clause.slice(expenseAt + 1 + laterPrice) : '';
-    }
-    return priceWords.test(clause) || hasAmountIn(clause, euroUnit) || hasAmountIn(clause, dinarUnit)
-      || /^\s*\d/u.test(clause) ? clause : '';
-  }).filter(Boolean);
+  // Owner, 23.11.2026: Gemini understands the person and sends a packet (value + a quote of this message as evidence);
+  // the server checks the packet's structure and where each value came from, never which words the person used.
+  // Numeric clauses only: the currency attached to a number is structure, not wording.
+  const priceClauses = input.split(/[;,!?\n]|\.(?!\d)/u).filter(clause => /\d/u.test(clause));
   const previousUser = [...history].reverse().find(row => row?.role === 'USER');
   const previousAssistant = [...history].reverse().find(row => row?.role === 'ASSISTANT');
-  const previousBareAmount = typeof previousUser?.body === 'string'
-    && /^\s*(?:(?:budžet|budzet|cena|iznos|буџет|цена|износ)(?: je| је)?|ukupno|укупно)?\s*\d[\d\s.,]*(?:\s*(?:ukupno|za ceo posao|po osobi|укупно|за цео посао|по особи))?[.!?\s]*$/iu.test(previousUser.body);
-  const currentBareAmount = /^\s*\d[\d\s.,]*[.!?\s]*$/u.test(input);
-  const lastQuestion = typeof previousAssistant?.body === 'string'
-    ? previousAssistant.body.match(/[^.!?]*\?/gu)?.at(-1) ?? '' : '';
-  const previousAskedPrice = /bud(?:ž|z)et|cen(?:a|u|e)|iznos|satnic|буџет|цен[ауе]|износ|сатниц/iu.test(lastQuestion)
-    && !/koliko\s+(?:ljudi|osoba)|колико\s+(?:људи|особа)|kog datuma|ког датума/iu.test(lastQuestion);
+  const previousBareAmount = typeof previousUser?.body === 'string' && /\d/u.test(previousUser.body);
   const activeRsdPrice = activeFacts.some(fact => fact.fact_key === 'need.price_rsd' && fact.status !== 'UNKNOWN');
   const euroOnlyReply = new RegExp(
     `^\\s*(?:(?:ipak|zapravo|mislio sam|mislim|to je|iznos je|cena je|u|na|ипак|заправо|мислио сам|мислим|то је|износ је|цена је|у|на)\\s+)*(?:${euroUnit})[\\s.!?]*$`, 'iu').test(input);
@@ -1153,15 +1129,13 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const amountOnlyValue = amountOnlyInput ? Number(amountOnlyInput[1].replace(/[.,\s]/gu, '')) : null;
   const knownPrice = (key: string) => activeFacts.find(fact => fact.fact_key === key && fact.status !== 'UNKNOWN')?.fact_value;
   const knownBasis = knownPrice('need.price_basis');
-  const amountOnlyPriceContext = amountOnlyInput !== null && turn.dialogue?.taskRelation === 'CONTINUE'
-    && (priceWords.test(input) || /satnic|сатниц|rsd|рсд|din|дин/iu.test(input) || previousAskedPrice
-      || activeRsdPrice && !lastQuestion && !currentBareAmount);
+  const amountOnlyPriceContext = amountOnlyInput !== null && turn.dialogue?.taskRelation === 'CONTINUE' && !!priceProposal;
   const amountOnlyMismatch = amountOnlyPriceContext && !!priceProposal && proposedAmount !== amountOnlyValue;
   const amountOnlyCorrection = amountOnlyPriceContext && !!priceProposal && !amountOnlyMismatch
     && knownPrice('need.price_mode') === 'MY_PRICE' && activeRsdPrice
     && ['TOTAL', 'PER_PERSON', 'HOURLY'].includes(String(knownBasis));
   if (amountOnlyCorrection) {
-    const unit = knownBasis === 'HOURLY' ? ' po osobi po satu' : knownBasis === 'PER_PERSON' ? ' po osobi' : ' ukupno';
+    const unit = knownBasis === 'HOURLY' ? '/sat po osobi' : knownBasis === 'PER_PERSON' ? ' po osobi' : ' ukupno';
     turn = { ...turn,
       proposals: [{ ...priceProposal, evidence: input, displayValue: `${proposedAmount} RSD${unit}` }],
       dialogue: { ...turn.dialogue!, next: 'ACK', questionKey: '',
@@ -1177,7 +1151,9 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   }
   // The latest task-price clause wins. A later EUR correction must invalidate
   // an earlier RSD amount even when the same numeral appears in both clauses.
-  const priceClause = priceClauses.at(-1) ?? '';
+  const numberIn = (text: string) => !!proposedAmountToken
+    && new RegExp(`(?:^|[^\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(text);
+  const priceClause = priceClauses.find(clause => numberIn(clause)) ?? priceClauses.at(-1) ?? '';
   const amountHasUnit = (text: string, unit: string) => !!proposedAmountToken && new RegExp(
     `(?:^|[^\\p{L}\\p{N}])(?:${unit}\\s*${proposedAmountToken}|${proposedAmountToken}\\s*(?:(?:u|na|у|на)\\s+)?${unit})(?=$|[^\\p{L}\\p{N}])`, 'iu').test(text);
   const proposedRsdExplicit = !!priceProposal && amountHasUnit(priceClause, dinarUnit);
@@ -1186,46 +1162,33 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     || hasAmountIn(priceEvidence, euroUnit) && !proposedRsdExplicit || euroFollowup);
   const numericPriceProposalWithoutCurrency = !!priceProposal && !proposedEuroExplicit && !proposedRsdExplicit
     && /(?:^|[^\p{L}\p{N}])\d[\d\s.,]*(?=$|[^\p{L}])/u.test(input);
-  const explicitPriceWords = priceWords.test(priceClause);
-  // "Plaćam svakom po 5000" states a payment amount as clearly as "cena 5000".
-  // The proposed numeral must literally appear in the user's own payment clause.
-  const paymentClaim = !!proposedAmountToken && input.split(/[;!?\n]|\.(?!\d)/u).some(clause =>
-    /(?:^|[^\p{L}])(?:pla(?:ć|c|t)\p{L}*|плаћ\p{L}*|плат\p{L}*|dajem|дајем|isplać\p{L}*|isplac\p{L}*|исплаћ\p{L}*)/iu.test(clause)
-    && new RegExp(`(?:^|[^\\p{L}\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(clause));
-  // Owner, 23.11.2026: the server checks provenance, not wording. After our own price question, an amount that
-  // literally stands in this message ("Subota, 5000") is the answer Gemini understood, not a date, time or count.
+  // The amount stands in this message as a number of its own (not part of a date "7.12" or a time "18:00").
   const amountStandsInInput = !!proposedAmountToken && new RegExp(
-    `(?:^|[^\\p{L}\\p{N}.:])${proposedAmountToken}(?![\\p{N}]|[.:]\\d|\\s*(?:h(?!\\p{L})|č|sat(?!nic)|radnik|ljud|osob|kvadrat|m2|m²|km|kg|godin|strana|strane|dan(?!\\p{L})|dana))`, 'iu').test(input);
-  const barePriceProposed = numericPriceProposalWithoutCurrency
-    && (explicitPriceWords || currentBareAmount && previousAskedPrice || amountOnlyCorrection || paymentClaim
-      || amountStandsInInput && previousAskedPrice);
+    `(?:^|[^\\p{L}\\p{N}.:])${proposedAmountToken}(?![\\p{N}]|[.:]\\d)`, 'u').test(input);
   // "Važi" / "može" confirms an amount only when our previous question stated it
   // (e.g. the computed total for several days). An amount from nowhere is not
   // the person's price, whatever the model proposed.
   const knownRsdAmount = Number(activeFacts.find(fact => fact.fact_key === 'need.price_rsd' && fact.status !== 'UNKNOWN')?.fact_value);
-  const amountInPreviousQuestion = !!proposedAmountToken && typeof previousAssistant?.body === 'string'
-    && new RegExp(`(?:^|[^\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(previousAssistant.body);
+  const amountInPreviousQuestion = typeof previousAssistant?.body === 'string' && numberIn(previousAssistant.body);
   const amountInPreviousAnswer = !!proposedAmountToken && history.filter(row => row?.role === 'USER').slice(-3)
     .some(row => typeof row.body === 'string' && new RegExp(`(?:^|[^\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(row.body));
-  const unsourcedAmount = !!priceProposal && !/\d/u.test(input) && proposedAmount !== knownRsdAmount && !amountInPreviousQuestion && !amountInPreviousAnswer;
-  const spuriousNumericPriceProposal = amountOnlyMismatch || numericPriceProposalWithoutCurrency && !barePriceProposed && !amountInPreviousAnswer || unsourcedAmount;
+  // Provenance: the person said this amount now or a few turns ago, or confirms the amount our own question stated.
+  // A bare number below 100 without a currency is not a credible task price ("2 radnika"); that is a value check.
+  const amountSourced = amountStandsInInput && (proposedAmount >= 100 || proposedRsdExplicit) || proposedRsdExplicit || proposedEuroExplicit
+    || amountInPreviousQuestion || amountInPreviousAnswer || proposedAmount === knownRsdAmount;
+  const spuriousNumericPriceProposal = amountOnlyMismatch || !!priceProposal && !amountSourced;
   // A bad amount proposal must not erase a separate, explicit choice to
   // collect offers. Require the user's words and the mode fact's evidence.
-  const offersSaid = (value: string) => /ponud|понуд/iu.test(value);
-  const offerChoice = /(?:želim|zelim|hoću|hocu|tražim|trazim|izaberi|odaberi|prihvatam|желим|хоћу|тражим|изабери|одабери|прихватам)[^,.!?;]{0,24}(?:ponud|понуд)/giu;
-  const explicitOffers = (/^\s*(?:ponud[aeu]?|понуд[аеу]?)\s*(?=[,;.!?]|$)/iu.test(input)
-    || [...input.matchAll(offerChoice)].some(match =>
-    !/(?:^|[^\p{L}])(?:ne|не|ni|ни)\s*$/iu.test(input.slice(Math.max(0, (match.index ?? 0) - 12), match.index ?? 0)))
-    && turn.proposals.some(proposal => proposal.key === 'need.price_mode'
-    && proposal.value === 'OFFERS' && offersSaid(String(proposal.evidence ?? ''))));
-  const barePriceWithoutFact = !priceProposal
-    && (currentBareAmount && previousAskedPrice
-      || priceClauses.some(clause => priceWords.test(clause) && /\d/u.test(clause)
-        && !hasAmountIn(clause, dinarUnit) && !hasAmountIn(clause, euroUnit)));
+  const quoted = (proposal: { evidence?: unknown }) => typeof proposal.evidence === 'string' && proposal.evidence.trim().length >= 2
+    && input.toLocaleLowerCase('sr').includes(proposal.evidence.trim().toLocaleLowerCase('sr'));
+  const explicitOffers = turn.proposals.some(proposal => proposal.key === 'need.price_mode' && proposal.value === 'OFFERS' && quoted(proposal));
   // Only a user-stated, task-price EUR amount may invalidate earlier RSD
   // consent. Never let Gemini's display text or fabricated evidence invent
   // currency. Independent task details are retained.
-  const euroFromUser = euroFollowup || priceClauses.some(clause => hasAmountIn(clause, euroUnit));
+  // Euro counts when it is attached to the proposed amount (or, without a proposal, to a number in this message);
+  // "materijal 50 evra; rad 2.000 RSD" keeps the RSD task price.
+  const euroFromUser = euroFollowup || (priceProposal ? proposedEuroExplicit
+    : priceClauses.some(clause => hasAmountIn(clause, euroUnit)));
   const isEuroStated = euroFromUser || euroPriceProposed;
   if (priceProposal && !isEuroStated
     && (!priceProposal.displayValue || priceProposal.displayValue === `${proposedAmount}`))
@@ -1262,38 +1225,21 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   // basis. Keep the amount itself; headcount and time never multiply this fact.
   const effectivePriceFact = (key: string) => turn.proposals.find(p => p.key === key)?.value
     ?? activeFacts.find(f => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
-  const hourlyWords = /(?:na\s+sat|po\s+satu|satnic\p{L}*|на\s+сат|по\s+сату|сатниц\p{L}*)/iu;
   const hourly = ['PER_HOUR', 'PER_TEAM_HOUR'].includes(turn.dialogue?.priceUnit ?? '')
-    || turn.proposals.some(p => p.key === 'need.price_basis' && p.value === 'HOURLY')
-    || hourlyWords.test(priceClause);
-  // Include a trailing scope-only clause ("1200 RSD na sat; za celu ekipu"),
-  // but not an earlier price that the latest price clause explicitly replaces.
-  const priceScope = priceClause ? input.slice(input.lastIndexOf(priceClause)) : input;
-  const teamScope = /(?:za\s+(?:(?:celu|cijelu|celokupnu|svu)\s+)?ekipu|za\s+(?:sve|obe|obje|dve|dvije|tri|četiri|cetiri|\d+)\s+(?:osobe|radnik\p{L}*|ljudi)|sat\s+cele\s+ekipe|за\s+(?:(?:целу|цијелу|целокупну|сву)\s+)?екипу|за\s+(?:све|обе|две|двије|три|четири|\d+)\s+(?:особе|радник\p{L}*|људи)|сат\s+целе\s+екипе)/giu;
-  const statedTeamScope = [...priceScope.matchAll(teamScope)]
-    .some(match => !/(?:^|[^\p{L}])(?:ne|nije|не|није)\s*$/iu.test(priceScope.slice(0, match.index)));
-  const teamHourly = turn.dialogue?.priceUnit === 'PER_TEAM_HOUR' || hourly && statedTeamScope;
-  const activeHourly = activeFacts.some(f => f.fact_key === 'need.price_basis'
-    && f.status !== 'UNKNOWN' && f.fact_value === 'HOURLY');
-  const teamOnlyReply = new RegExp('^\\s*(?:(?:mislio sam|mislila sam|mislim|to je|cena je|ipak|zapravo|мислио сам|мислила сам|мислим|то је|цена је|ипак|заправо)\\s+)*(?:'
-    + teamScope.source + ')[.!\\s]*$', 'iu').test(input);
-  // A model hint can ask for clarification, never revoke existing consent by
-  // itself. Require an actual price correction, including a short team-scope
-  // reply to the already known hourly rate, not e.g. gloves for the whole team.
-  const statedHourlyCorrection = statedTeamScope && !priceScope.includes('?')
-    && (hourlyWords.test(priceScope) || activeHourly && (priceWords.test(priceScope) || teamOnlyReply));
-  const hourlyRetraction = teamHourly && statedHourlyCorrection && activeRsdPrice && !explicitOffers && !unsupportedPrice
+    || turn.proposals.some(p => p.key === 'need.price_basis' && p.value === 'HOURLY');
+  const teamHourly = turn.dialogue?.priceUnit === 'PER_TEAM_HOUR';
+  // A price for the whole team per hour is not stored (D06: one person, one hour); a new team price retracts the old one.
+  const hourlyRetraction = teamHourly && !!priceProposal && activeRsdPrice && !explicitOffers && !unsupportedPrice
     && turn.dialogue?.taskRelation === 'CONTINUE' ? 'UNSUPPORTED_PRICE_BASIS' as const : undefined;
-  const hourlyMismatch = hourly && (!!priceProposal || /\d/u.test(input)) && (teamHourly || effectivePriceFact('need.price_mode') !== 'MY_PRICE'
+  const hourlyMismatch = hourly && !!priceProposal && (teamHourly || effectivePriceFact('need.price_mode') !== 'MY_PRICE'
     || effectivePriceFact('need.price_basis') !== 'HOURLY'
     || !Number.isSafeInteger(effectivePriceFact('need.price_rsd'))
     || Number(effectivePriceFact('need.price_rsd')) < 1
     || ['WHOLE_JOB', 'PER_DAY'].includes(turn.dialogue?.priceUnit ?? ''));
-  // A model label carried over from earlier turns is not this message's claim:
-  // a daily rate or a repeated schedule counts only when this message says so,
-  // otherwise one unsupported word would repeat the same answer on every turn.
-  const perDaySaid = /dnevnic|po\s+danu|dnevno|na\s+dan(?!\p{L})|za\s+dan(?!\p{L})|дневниц|по\s+дану|дневно|на\s+дан(?!\p{L})/iu.test(input);
-  const repetitionSaid = /svak\p{L}*\s+(?:dan|jutr|več|vec|nedelj|ponedelj|utor|sred|četvrt|petak|petk|subot|mesec)|svakodnevn|nedeljno|mesečno|redovno|više\s+puta|ponavlj|сваки?\p{L}*\s+(?:дан|јутр|веч|недељ)|свакодневн|недељно|редовно/iu.test(input);
+  // A label carried over from earlier turns is not this message's claim: it counts only together with the facts
+  // Gemini proposes in this turn (a price for a daily rate, a time for a repeated schedule), so it never loops.
+  const perDaySaid = !!priceProposal;
+  const repetitionSaid = turn.proposals.some(p => ['need.schedule_kind', 'need.starts_at', 'need.ends_at'].includes(p.key));
   const unitPrice = !explicitOffers && (turn.dialogue?.priceUnit === 'PER_DAY' && perDaySaid
     || hourlyMismatch && !spuriousNumericPriceProposal);
   const repeated = turn.dialogue?.schedulePattern === 'REPEATED' && repetitionSaid;
@@ -1375,20 +1321,18 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
             : priceMessage };
     dialogue = turn.dialogue;
   } else if (spuriousNumericPriceProposal) {
-    // A headcount such as "2 radnika" must not become a price or trigger a
-    // currency question merely because the model proposed need.price_rsd.
-    const headcount = /(?:^|[^\p{L}\p{N}])\d+\s*(?:radnik\p{L}*|ljud\p{L}*|osob\p{L}*|радник\p{L}*|људ\p{L}*|особ\p{L}*)/iu.test(input);
+    // An amount with no source in the conversation is not written; a reply that claims it was saved is replaced.
     const falsePriceClaim = hasAmountIn(turn.assistantMessage, dinarUnit)
       || hasAmountIn(turn.assistantMessage, euroUnit)
       || /cen(?:a|u|e)\s+(?:je\s+)?\d|цен[ауе]\s+(?:је\s+)?\d/iu.test(turn.assistantMessage);
-    turn = { ...turn, safety: headcount ? turn.safety : 'CLARIFY',
+    turn = { ...turn, safety: 'CLARIFY',
       proposals: withoutUnsupportedPrice(turn.proposals),
       // A computed amount that Gemini asks the person to confirm stays its question (the price is written only after
       // a yes, see amountInPreviousQuestion); only a claim that a price was saved is replaced.
       assistantMessage: falsePriceClaim && !(turn.assistantMessage.trim().endsWith('?') && !!proposedAmountToken
         && !/zabele|upisa|sačuva|sacuva|забележ|уписа|сачува/iu.test(turn.assistantMessage)
         && new RegExp(`(?:^|[^\\p{N}])${proposedAmountToken}(?=$|[^\\p{N}])`, 'u').test(turn.assistantMessage))
-        ? headcount ? 'Razumem koliko Vam izvršilaca treba.' : 'Da li je taj iznos cena koju nudite? Recite, molim Vas, i da li je ukupno ili po satu.'
+        ? 'Da li je taj iznos cena koju nudite? Recite, molim Vas, i da li je ukupno ili po satu.'
         : turn.assistantMessage };
     dialogue = turn.dialogue;
   }
@@ -1459,7 +1403,8 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
       && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
       ? Date.parse(value) : NaN;
     const start = instant(effective.get('need.starts_at')), end = instant(effective.get('need.ends_at'));
-    if (!['FLEXIBLE', 'REMOTE_ANYTIME'].includes(String(effective.get('need.schedule_kind')))
+    // "Od danas do nedelje" is this week (WEEK_FLEXIBLE): a bounded range just like FLEXIBLE.
+    if (!['FLEXIBLE', 'REMOTE_ANYTIME', 'WEEK_FLEXIBLE', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE'].includes(String(effective.get('need.schedule_kind')))
       || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
       // Preserve a partial boundary only after every existing time guard has
       // accepted it. A deadline error may return before checking task bounds;
@@ -1553,8 +1498,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     const hint = tidyPlace(part);
     return !!hint && (hint !== city || /(?:centar|trg|korzo|bilo gde|ceo grad)/iu.test(hint)) && !['ovde', 'moja lokacija', 'trenutna lokacija', 'gde se nalazim'].includes(hint);
   });
-  const inputMentionsWideArea = /(?:ceo grad|celom gradu|bilo gde|svejedno|centar|nebitno|svugde)/iu.test(input);
-  const hasPlaceHint = (typeof streetOrLandmark === 'string' && !!streetOrLandmark.trim()) || nearHint || inputMentionsWideArea;
+  const hasPlaceHint = (typeof streetOrLandmark === 'string' && !!streetOrLandmark.trim()) || nearHint;
   const cityOnlyStationary = geography?.mode === 'STATIONARY' && !hasPlaceHint;
   const routePoints: Array<{name: string; target: string; point: any}> = geography?.mode === 'POINT_TO_POINT' || geography?.mode === 'MULTI_STOP'
     ? [{name:'polazište',target:'polazište',point:geography.start},
@@ -1585,7 +1529,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     // completeness, not keyword detection of the user's intent or map approval.
     const needsPlaceDetail = dialogue.questionKey === 'need.task_geography' && (cityOnlyStationary || !!incompleteRoutePoint);
     const clarifyingApplicationDeadline = applicationDeadlineEnabled() && dialogue.questionKey === 'need.response_deadline'
-      && !facts.has('need.response_deadline') && (pendingDeadlineQuestion || /prijav|konkuri|javlj/iu.test(input));
+      && !facts.has('need.response_deadline') && pendingDeadlineQuestion;
     // Use the effective facts, including this very reply. A general description
     // does not prove that its scope is clear; CLARIFY/description may still ask
     // a useful detail such as room area without restarting the whole interview.

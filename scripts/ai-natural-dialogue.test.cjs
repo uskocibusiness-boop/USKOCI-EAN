@@ -601,8 +601,8 @@ test('a complete draft without an application deadline asks for it once, last, t
   assert.equal(ownQuestion.assistantMessage,'Važi. Da li je fotografija u boji?','a reply that already asks keeps its own question');
 });
 
-test('a repeated schedule or daily rate is answered only when this message says it, never in a loop',()=>{
-  const said=turn('U redu.',[],'','ACK'); said.dialogue.schedulePattern='REPEATED';
+test('a repeated schedule or daily rate is answered only when this turn carries it, never in a loop',()=>{
+  const said=turn('U redu.',[fact('need.schedule_kind','FIXED_WINDOW','Svaki dan ujutru'),fact('need.starts_at','2026-11-10T08:00:00+01:00','Svaki dan ujutru')],'','ACK'); said.dialogue.schedulePattern='REPEATED';
   const first=run(said,'Svaki dan ujutru po pola sata, Novi Sad, Liman');
   assert.match(first.assistantMessage,/upisujemo prvi termin/u);
   const carried=turn('Razumem, mirna je. Koji budžet nudite?',[],'need.price_mode','ASK'); carried.dialogue.schedulePattern='REPEATED';
@@ -610,7 +610,7 @@ test('a repeated schedule or daily rate is answered only when this message says 
   assert.doesNotMatch(later.assistantMessage,/upisujemo prvi termin/u);
   const day=turn('Zabeležio sam okupljanje kod Sajma.',[],'','ACK'); day.dialogue.priceUnit='PER_DAY';
   assert.doesNotMatch(run(day,'Okupljamo se kod Sajma').assistantMessage,/Dnevnic/u);
-  const daySaid=turn('U redu.',[],'','ACK'); daySaid.dialogue.priceUnit='PER_DAY';
+  const daySaid=turn('U redu.',[fact('need.price_rsd',5000,'5000')],'','ACK'); daySaid.dialogue.priceUnit='PER_DAY';
   assert.match(run(daySaid,'Dnevnica je 5000').assistantMessage,/Cenu po danu ne upisujemo posebno/u);
 });
 
@@ -670,8 +670,10 @@ test('after our price question, "Subota, 5000" is the price; a date, time or hea
     assert.doesNotMatch(out.assistantMessage,/na šta se odnosi|Da li je taj iznos/u,answer);
     assert.equal(out.proposals.find(p=>p.key==='need.price_rsd')?.value,5000,answer);
   }
-  const unasked=run(price(),'Subota, 5000');
-  assert.equal(unasked.proposals.some(p=>p.key==='need.price_rsd'),false,'without our price question a bare number stays unconfirmed');
+  const volunteered=run(price(),'Subota, 5000');
+  assert.equal(volunteered.proposals.find(p=>p.key==='need.price_rsd')?.value,5000,'Gemini decides the meaning; the amount stands in the message');
+  const nowhere=run(price(),'Subota ujutru');
+  assert.equal(nowhere.proposals.some(p=>p.key==='need.price_rsd'),false,'an amount the person never said is not written');
   const people=run(turn('U redu.',[fact('need.price_rsd',5,'5')],'','ACK'),'Subota, 5 radnika',[],asked);
   assert.equal(people.proposals.some(p=>p.key==='need.price_rsd'),false,'a headcount is not a price');
 });
@@ -719,4 +721,13 @@ test('round 5: "Prijave do petka" keeps a complete schedule; a price said two tu
   const again=run(turn('U redu.',[fact('need.price_mode','MY_PRICE','cena'),fact('need.price_rsd',10000,'cena'),fact('need.price_basis','TOTAL','cena')],'','ACK'),'Do 1. decembra',[],said);
   assert.doesNotMatch(again.assistantMessage,/Da li je taj iznos/u);
   assert.ok(source.includes('|vreme|до када|до ког|кад|датум|сат|рок|време)/iu.test(previousMessage.body)'));
+});
+
+test('"Od danas do nedelje" as this week (WEEK_FLEXIBLE) is a bounded range, not a canned date question',()=>{
+  const week=flexibleTurn([fact('need.schedule_kind','WEEK_FLEXIBLE','od danas do nedelje'),
+    fact('need.starts_at','2026-11-09T00:00:00+01:00','od danas do nedelje'),fact('need.ends_at','2026-11-16T00:00:00+01:00','od danas do nedelje')]);
+  week.assistantMessage='U redu, bilo koji dan ove nedelje.';
+  const out=run(week,'Bilo koji dan od danas do nedelje');
+  assert.doesNotMatch(out.assistantMessage,/Do kada Vam je ovo potrebno/u);
+  assert.equal(out.proposals.find(p=>p.key==='need.schedule_kind')?.value,'WEEK_FLEXIBLE');
 });
