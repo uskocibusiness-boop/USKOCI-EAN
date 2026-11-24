@@ -7,7 +7,7 @@ const { React, RTR, createHarness, deferred, mount, nodes, target, press, unmoun
 const ID = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const A = ID(1), B = ID(2), AT = '2026-11-08T10:00:00.000001Z', CREATED = '2026-11-08T09:00:00.123456Z';
 const known = value => ({ kind: 'known', value });
-const dataSeams = { 'src/store/sesija.ts': { sesijaSada: () => ({}) },
+const dataSeams = { 'src/store/sesija.ts': { sesijaSada: () => ({}) }, 'src/ui/system/Skeleton.tsx': { SkeletonList: 'SkeletonList' },
   'src/data/supabaseClient.ts': { supabaseKlijent: () => { throw Error('Unexpected transport'); } } };
 const row = n => ({ id: ID(n), needId: ID(n + 10000), version: 2, title: `Saradnja ${n}`, reason: 'TERM', changeId: null, createdAt: CREATED });
 function page(offset = 0, total = 45, accountId = A, viewAt = AT) {

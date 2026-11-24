@@ -179,6 +179,10 @@ test('automatic APK builds keep the isolated package and strip all preview enrol
   assert.equal(candidate.environment.USKOCI_PHONE_PREVIEW_BUILD, '0');
   assert.equal(candidate.expectedCertificateSha256, DEBUG_CERTIFICATE_SHA256);
   assert.throws(() => selectTestCandidate({ target: 'phone-preview', eventName: 'push' }), /EXPLICIT_MANUAL_DISPATCH/);
+  assert.throws(() => selectTestCandidate({ target: 'emulator-qa', eventName: 'push' }), /EXPLICIT_MANUAL_DISPATCH/);
+  const emulator = selectTestCandidate({ target: 'emulator-qa', eventName: 'workflow_dispatch', previewEnvironment: {} });
+  assert.equal(emulator.package, 'rs.uskoci.preview.qa', 'the emulator gets the isolated QA app, never the phone preview');
+  assert.equal(emulator.firebaseConfigured, false);
   assert.throws(() => selectTestCandidate({ target: 'production', eventName: 'workflow_dispatch' }), /UNKNOWN_ANDROID_TEST_TARGET/);
 });
 

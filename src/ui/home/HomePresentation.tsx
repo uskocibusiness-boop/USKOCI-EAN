@@ -14,6 +14,7 @@ import { Screen } from '../system/Screen';
 import { Section } from '../system/Section';
 import { Surface } from '../system/Surface';
 import { layout } from '../system/layout';
+import { SkeletonList } from '../system/Skeleton';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { TaskCard } from '../v2/TaskCard';
@@ -170,9 +171,9 @@ function Unavailable({ text }: { text: string }) {
  */
 const INITIAL_READ_HEIGHT = sys.type.heading.lineHeight + layout.group + layout.rowMin * 2;
 function HomeInitialLoading() {
+  // Owner, 24.11.2026: the shape of what is coming (a heading and two cards), not a spinner on an empty area, so nothing jumps.
   return <View testID="home-initial-loading" accessibilityLiveRegion="polite" style={s.initialLoading}>
-    <ActivityIndicator size="small" color={sys.color.green} />
-    <T variant="note" tone="muted" style={s.initialLoadingText}>Učitavamo Vaš pregled…</T>
+    <SkeletonList variant="record" count={2} foot label="Učitavamo Vaš pregled" />
   </View>;
 }
 
@@ -343,7 +344,7 @@ const s = StyleSheet.create({
   copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   more: { paddingTop: sys.space.sm },
   recovery: { gap: sys.space.sm, alignItems: 'flex-start' },
-  initialLoading: { minHeight: INITIAL_READ_HEIGHT, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center', gap: sys.space.base },
+  initialLoading: { minHeight: INITIAL_READ_HEIGHT },
   initialLoadingText: { textAlign: 'center' },
   carouselScroll: { marginHorizontal: -layout.gutter },
   carousel: { gap: layout.group, paddingVertical: sys.space.xs, paddingHorizontal: layout.gutter, alignItems: 'stretch' },

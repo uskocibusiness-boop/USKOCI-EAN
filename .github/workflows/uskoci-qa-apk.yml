@@ -11,7 +11,7 @@ on:
         required: true
         default: isolated-qa
         type: choice
-        options: [isolated-qa, phone-preview]
+        options: [isolated-qa, phone-preview, emulator-qa]
   push:
     branches: [work/uskoci-cist-proizvod-20261104]
     paths-ignore: ['docs/**', '**/*.md']
@@ -243,6 +243,8 @@ jobs:
           # Keep automatic isolated QA ARM64-only; the explicit preview also includes the emulator ABI.
           build_abis=arm64-v8a
           if [ "$USKOCI_ANDROID_TEST_TARGET" = phone-preview ]; then build_abis=arm64-v8a,x86_64; fi
+          # The owner's x86_64 emulator: the isolated QA app for that ABI alone, within the APK size budget.
+          if [ "$USKOCI_ANDROID_TEST_TARGET" = emulator-qa ]; then build_abis=x86_64; fi
           printf '\nreactNativeArchitectures=%s\norg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8\n' "$build_abis" >> android/gradle.properties
           cd android
           chmod +x gradlew
@@ -283,7 +285,8 @@ jobs:
           with zipfile.ZipFile('android/app/build/outputs/apk/release/app-release.apk') as apk:
             names = apk.namelist()
             abis = sorted({name.split('/')[1] for name in names if name.startswith('lib/') and name.endswith('.so')})
-            assert abis == (['arm64-v8a', 'x86_64'] if phone else ['arm64-v8a']), 'APK_ABI_MISMATCH'
+            emulator = os.environ['USKOCI_ANDROID_TEST_TARGET'] == 'emulator-qa'
+            assert abis == (['arm64-v8a', 'x86_64'] if phone else ['x86_64'] if emulator else ['arm64-v8a']), 'APK_ABI_MISMATCH'
             for abi in abis:
               for library in ('libreactnative.so', 'libhermesvm.so'):
                 native_path = f'lib/{abi}/{library}'
@@ -309,6 +312,7 @@ jobs:
           PY
           filename_prefix=USKOCI-QA
           if [ "$USKOCI_ANDROID_TEST_TARGET" = phone-preview ]; then filename_prefix=USKOCI-PHONE-PREVIEW; fi
+          if [ "$USKOCI_ANDROID_TEST_TARGET" = emulator-qa ]; then filename_prefix=USKOCI-EMULATOR-QA; fi
           cp "$apk" "artifacts/qa-apk/$filename_prefix-$(git rev-parse --short=9 HEAD).apk"
           (cd artifacts/qa-apk && sha256sum *.apk > SHA256SUMS.txt)
           node - <<'NODE'
@@ -340,7 +344,7 @@ jobs:
   # The recorder pins the original master blob and refuses concurrent movement.
   record-ux-checkpoint:
     needs: qa-apk
-    if: needs.qa-apk.result == 'success' && github.ref == 'refs/heads/work/uskoci-cist-proizvod-20261104' && (github.event_name != 'workflow_dispatch' || inputs.target != 'phone-preview')
+    if: needs.qa-apk.result == 'success' && github.ref == 'refs/heads/work/uskoci-cist-proizvod-20261104' && (github.event_name != 'workflow_dispatch' || inputs.target == 'isolated-qa')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

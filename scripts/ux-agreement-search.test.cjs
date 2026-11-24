@@ -41,7 +41,7 @@ test('UX06 matched collaborator is first without mutation, duplication or loss o
 async function setup(patch={}){
  const mocks=createHarness();mocks.native.Keyboard={dismiss:()=>{}};
  mocks.native.FlatList=p=>React.createElement('FlatList',p,p.data.length?p.data.map((item,index)=>React.createElement(React.Fragment,{key:item.id},p.renderItem({item,index}))):p.ListEmptyComponent,p.ListFooterComponent);
- for(const [file,exportName]of [['src/ui/system/ScreenChrome.tsx','ChromeIconButton'],['src/ui/system/StateView.tsx','StateView'],['src/ui/agreements/AgreementRoleRail.tsx','AgreementRoleRail'],['src/ui/agreements/AgreementListCard.tsx','AgreementTaskRow'],['src/ui/agreements/AgreementTaskCard.tsx','AgreementTaskCard'],['src/ui/v2/discovery/DiscoveryChipRow.tsx','DiscoveryChipRow'],['src/ui/v2/discovery/DateRangeGrid.tsx','DateRangeGrid'],['src/ui/agreements/GroupHeader.tsx','GroupHeader'],['src/ui/v2/QuietReadState.tsx','QuietReadState'],['src/ui/v2/discovery/SearchParts.tsx','SearchField']])mocks.stubs[file]={[exportName]:mocks.host(exportName)};
+ for(const [file,exportName]of [['src/ui/system/ScreenChrome.tsx','ChromeIconButton'],['src/ui/system/StateView.tsx','StateView'],['src/ui/agreements/AgreementRoleRail.tsx','AgreementRoleRail'],['src/ui/agreements/AgreementListCard.tsx','AgreementTaskRow'],['src/ui/agreements/AgreementTaskCard.tsx','AgreementTaskCard'],['src/ui/v2/discovery/DiscoveryChipRow.tsx','DiscoveryChipRow'],['src/ui/v2/discovery/DateRangeGrid.tsx','DateRangeGrid'],['src/ui/agreements/GroupHeader.tsx','GroupHeader'],['src/ui/v2/QuietReadState.tsx','QuietReadState'],['src/ui/v2/discovery/SearchParts.tsx','SearchField'],['src/ui/system/Skeleton.tsx','SkeletonList']])mocks.stubs[file]={[exportName]:mocks.host(exportName)};
  mocks.stubs['src/ui/system/ScreenChrome.tsx'].ScreenChrome=mocks.host('ScreenChrome');
  mocks.stubs['react-native-safe-area-context']={SafeAreaView:mocks.host('SafeAreaView')};
  const C=mocks.load('src/ui/v2/AgreementCollectionPresentation.tsx').AgreementCollectionPresentation;
@@ -70,7 +70,7 @@ for(const flag of ['refreshError','refreshing'])test('UX06 '+flag+' does not dec
 });
 test('UX06 error/loading hide search results and preserve recovery',async()=>{
  const h=await setup();await enter(h.r,'Ana');await h.update({error:true});assert.equal(data(h.r).length,0);assert.ok(target(h.r,'Ne možemo da učitamo Dogovore'));
- await h.update({error:false,loading:true});assert.equal(data(h.r).length,0);assert.ok(target(h.r,'Učitavamo Dogovore…'));await h.stop();
+ await h.update({error:false,loading:true});assert.equal(data(h.r).length,0);assert.equal(nodes(h.r,n=>n.type==='SkeletonList'&&n.props.label==='Učitavamo Dogovore').length,1,'cards of the same shape stand in while loading');await h.stop();
 });
 test('UX06 history uses separate query and does not leak active results',async()=>{
  const h=await setup({items:[row('a'),row('b',{stanje:'COMPLETED',naslov:'Montaža'})]});await enter(h.r,'Selidba');

@@ -16,6 +16,7 @@ import { ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { zadataka } from '../system/plural';
 import { StateView } from '../system/StateView';
+import { SkeletonList } from '../system/Skeleton';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
@@ -223,7 +224,8 @@ export function AgreementCollectionPresentation(props: Props) {
   const first = props.onTasks ? { label: 'Pogledajte zadatke', onPress: props.onTasks } : { label: 'Idite na Početnu', onPress: props.onHome };
   const second = props.onTasks ? props.onPublish ? { label: 'Objavi zadatak', onPress: props.onPublish } : { label: 'Idite na Početnu', onPress: props.onHome } : undefined;
   const empty = <View style={s.empty}>
-    {loading ? <QuietReadState art="users" title="Učitavamo Dogovore…" body={section === 'history' ? 'Proveravamo prethodne saradnje.' : 'Proveravamo trenutne saradnje.'} />
+    {/* Owner, 24.11.2026: while the first read is on its way, cards of the same shape stand where the Dogovori will be, so nothing jumps. */}
+    {loading ? <SkeletonList variant="record" count={3} foot label={section === 'history' ? 'Učitavamo prethodne saradnje' : 'Učitavamo Dogovore'} />
       : error ? <StateView kind="error" art="agreements" title="Ne možemo da učitamo Dogovore" body="Pokušajte ponovo da proverite stanje."
         primary={{ label: 'Pokušajte ponovo', onPress: props.onRefresh }} />
         : query ? <StateView compact art="agreements" title={stale || props.refreshing ? 'Rezultati pretrage nisu potvrđeni' : 'Nema rezultata u ovom pregledu'}
