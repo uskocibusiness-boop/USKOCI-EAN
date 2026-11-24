@@ -69,15 +69,18 @@ function backToAgreements() { if (router.canGoBack()) router.back(); else router
 function AgreementStatus(props: { loading?: boolean; error?: boolean; retry?: () => void }) { return <AgreementStatusView {...props} back={backToAgreements} />; }
 export default function Dogovor() {
   // A notification about a message opens the conversation itself, not the overview it lives behind.
-  const { id, tab, messageId, from } = useLocalSearchParams<{ id: string | string[]; tab?: string | string[]; messageId?: string | string[]; from?: string | string[] }>();
+  const { id, tab, messageId, from, action } = useLocalSearchParams<{ id: string | string[]; tab?: string | string[]; messageId?: string | string[]; from?: string | string[]; action?: string | string[] }>();
   const session = useSesija(), accountId = session.user?.id;
   if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || !accountId) return <AgreementStatus />;
   if (messageId !== undefined && (typeof messageId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId))) return <AgreementStatus />;
   return <DogovorContent key={`${accountId}:${session.accountRevision}:${id}`} id={id} accountId={accountId} accountRevision={session.accountRevision}
-    fromInbox={from === 'poruke'} requestedTab={tab === 'poruke' ? 'poruke' : 'pregled'} requestedMessageId={tab === 'poruke' ? messageId?.toLowerCase() : undefined} />;
+    fromInbox={from === 'poruke'} requestedTab={tab === 'poruke' ? 'poruke' : 'pregled'} requestedMessageId={tab === 'poruke' ? messageId?.toLowerCase() : undefined}
+    requestedCompletion={action === 'complete' && tab !== 'poruke'} />;
 }
-function DogovorContent({ id, accountId, accountRevision, requestedTab, requestedMessageId, fromInbox }: {
+function DogovorContent({ id, accountId, accountRevision, requestedTab, requestedMessageId, fromInbox, requestedCompletion = false }: {
   id: string; accountId: string; accountRevision: number; requestedTab: AgreementTab; requestedMessageId?: string; fromInbox: boolean;
+  /** Opened from a person's card on the task screen: the completion review opens once the server allows it. */
+  requestedCompletion?: boolean;
 }) {
   const izvor = useIzvor();
   const [tab, updateTab] = useState<AgreementTab>(requestedTab);
@@ -335,6 +338,11 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   // every command is fenced as before, and in the background itself nothing is drawn. The conversation, with its composer and
   // its outbox, waits for the fresh read in a skeleton as it always did.
   const keepsContent = foreground && resumeRequired && !!dogovor && tab === 'pregled';
+  // Opened from the task screen's "Potvrdite završetak" / "Zadatak je gotov": the same review opens once, when the
+  // server's actions allow it; every permission and readback rule of this screen still applies.
+  const completionAsked = useRef(requestedCompletion);
+  const requestedCompletionStep = useRef<() => void>(() => {});
+  useEffect(() => { requestedCompletionStep.current(); });
   if (!foreground || (resumeRequired && !keepsContent)) return <AgreementStatus loading />;
   if (!dogovor) return <AgreementStatus loading={workspace.loading} error={!!workspace.error} retry={() => void osvezi()} />;
 
@@ -423,6 +431,11 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       completionReview!.readEpoch !== completionReadEpoch.current || completionReview!.focus !== formFocus.current) return;
     // Consume before the async command starts, so two taps cannot reuse this review.
     closeCompletionReview(); void complete();
+  };
+  requestedCompletionStep.current = () => {
+    if (!completionAsked.current || !canComplete || !formCurrent()) return;
+    completionAsked.current = false;
+    openCompletionReview();
   };
   const dismissCompletionReview = () => {
     if (completionReviewRef.current === completionReview) closeCompletionReview();

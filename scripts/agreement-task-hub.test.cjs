@@ -69,3 +69,16 @@ test('Prijave: swipe right opens the existing selection review, swipe left decli
   has(sql,"if n.requester_account_id <> u then raise exception using errcode='42501', message='NOT_REQUESTER'");
   has(sql,"'RESPONSE_NOT_SELECTED'");
 });
+
+test('completion per person: the card offers the next step and opens the existing review of that Dogovor', () => {
+  const hub=read('src/ui/agreements/AgreementTaskHub.tsx'), page=read('src/app/dogovor/[id].tsx');
+  has(hub,"canConfirm ? <V2Action tone=\"brand\" label=\"Potvrdite završetak\" onPress={onComplete} />");
+  has(hub,"canReport ? <V2Action tone=\"brand\" label=\"Zadatak je gotov\" onPress={onComplete} />");
+  has(hub,'label="Ocenite saradnju" onPress={onRate}');
+  has(hub,'Ako ne odgovorite, završetak se sam potvrđuje: {autoConfirm}.','the 48 h automatic confirmation is said where the decision is');
+  has(hub,"params: { id: person.agreementId, action: 'complete' }");
+  has(hub,"item.radnje ? item.radnje.mozePotvrditiZavrsetak && item.stanje === 'AWAITING_REQUESTER'",'the server\'s allowed actions decide');
+  has(page,"requestedCompletion={action === 'complete' && tab !== 'poruke'}");
+  has(page,"if (!completionAsked.current || !canComplete || !formCurrent()) return;",'the review opens only when this screen would allow it');
+  assert.ok(page.indexOf('useEffect(() => { requestedCompletionStep.current(); });') < page.indexOf("if (!foreground || (resumeRequired && !keepsContent)) return"),'the hook stays before the early returns');
+});

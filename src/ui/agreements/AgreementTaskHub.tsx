@@ -20,6 +20,8 @@ import { AgreementPrivateLocation } from '../AgreementPrivateLocation';
 import { GroupConversationScreen } from '../groups/GroupConversationScreen';
 import { ratingWords } from '../v2/TaskFace';
 import { applicationPriceBasisText } from '../../lib/novac';
+import { needScheduleText } from '../../data/needDetailPresentation';
+import { V2Action } from '../v2/V2Action';
 import type { DogovorProjekcija, JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija } from '../../contracts/projections';
 import { ownAgreementView, type OwnAgreementGroup } from '../../data/ownAgreementGroupsPage';
 import { declineApplication } from '../../data/applicationDeclineClientService';
@@ -27,7 +29,7 @@ import { publicProfileClientService } from '../../data/publicProfileClientServic
 import { noviZahtevId } from '../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
-import { agreementAttention, agreementChip } from './agreementListModel';
+import { agreementAttention, agreementChip, awaitsMyConfirmation, awaitsMyRating } from './agreementListModel';
 import { AgreementStatusChip } from './AgreementStatusChip';
 import { ApplicationSwipeCard } from './ApplicationSwipeCard';
 import { agreementTaskSummary, isLiveAgreement, isOpenAgreement, type AgreementTaskPerson } from './agreementTaskModel';
@@ -73,11 +75,17 @@ function BarIcon({ label, art, glyph, selected, badge, onPress }: {
 }
 
 /** An agreed person (🤝): avatar on the left with the name under it; rating, price, place and date; remove and a private message. */
-function PersonCard({ person, remote, place, now, rating, onProfile, onOpen, onMessage, onRemove }: {
-  person: AgreementTaskPerson; remote: boolean; place: string; now: Date; rating: string | null;
-  onProfile: () => void; onOpen: () => void; onMessage: () => void; onRemove?: () => void;
+function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOpen, onMessage, onRemove, onComplete, onRate }: {
+  person: AgreementTaskPerson; owner: boolean; remote: boolean; place: string; now: Date; rating: string | null;
+  onProfile: () => void; onOpen: () => void; onMessage: () => void; onRemove?: () => void; onComplete: () => void; onRate: () => void;
 }) {
   const item = person.agreement, attention = agreementAttention(item);
+  // Completion is per person (owner, 22.11.2026). The server's allowed actions decide when they are known; the state is
+  // only a fallback for a list row without them. The button opens the existing completion review of that Dogovor.
+  const canConfirm = owner && (item.radnje ? item.radnje.mozePotvrditiZavrsetak && item.stanje === 'AWAITING_REQUESTER' : awaitsMyConfirmation(item));
+  const canReport = !owner && (item.radnje ? item.radnje.mozeOznacitiZavrsetak : item.stanje === 'CONFIRMED' && !item.izmenaCeka);
+  const autoConfirm = canConfirm && item.rokPotvrdeIso
+    ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: item.rokPotvrdeIso }, 'Europe/Belgrade') : null;
   const amount = item.cena.prikaz;
   return <Surface kind="record">
     <View style={s.personCard}>
@@ -97,6 +105,12 @@ function PersonCard({ person, remote, place, now, rating, onProfile, onOpen, onM
         <View style={s.inline}><FactArt kind="calendar" size={26} /><T variant="note" tone="muted" numberOfLines={2} style={s.flex}>{item.vremeTekst || 'Termin po dogovoru'}</T></View>
         {attention ? <View style={s.inline}><View style={s.dot} /><T variant="note" style={s.warn} numberOfLines={2}>{attention.title}</T></View> : null}
         {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
+        {canConfirm || canReport || awaitsMyRating(item) ? <View style={s.personStep}>
+          {canConfirm ? <V2Action tone="brand" label="Potvrdite završetak" onPress={onComplete} />
+            : canReport ? <V2Action tone="brand" label="Zadatak je gotov" onPress={onComplete} />
+              : <V2Action tone="neutral" kind="secondary" label="Ocenite saradnju" onPress={onRate} />}
+          {autoConfirm ? <T variant="note" tone="muted">Ako ne odgovorite, završetak se sam potvrđuje: {autoConfirm}.</T> : null}
+        </View> : null}
       </Press>
       <View style={s.personActions}>
         {onRemove ? <Press accessibilityRole="button" accessibilityLabel={`Uklonite iz Dogovora: ${person.name}`}
@@ -213,7 +227,9 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
     const first = summary.people[0]?.agreement ?? items![0];
     const amount = first.cena.prikaz, mixed = summary.priceText === MIXED;
     const approx = need?.priblizno ?? null;
-    const card = (person: AgreementTaskPerson, removable: boolean) => <PersonCard key={person.agreementId} person={person}
+    const card = (person: AgreementTaskPerson, removable: boolean) => <PersonCard key={person.agreementId} person={person} owner={owner}
+      onComplete={() => go(() => router.navigate({ pathname: '/dogovor/[id]', params: { id: person.agreementId, action: 'complete' } }))}
+      onRate={() => go(() => router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: person.agreementId } }))}
       remote={summary.remote} place={summary.placeText} now={now} rating={ratingOf(person.profileId)} onProfile={() => openProfile(person.profileId)}
       onOpen={() => openAgreement(person.agreementId)} onMessage={() => openAgreement(person.agreementId, 'poruke')}
       onRemove={removable && owner && isOpenAgreement(person.agreement)
@@ -309,6 +325,7 @@ const s = StyleSheet.create({
   personName: { textAlign: 'center', fontWeight: '600' },
   personBody: { flex: 1, minWidth: 0, gap: 6 },
   personTop: { flexDirection: 'row' },
+  personStep: { marginTop: sys.space.sm, gap: sys.space.xs },
   personActions: { alignItems: 'center', gap: 2 },
   iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
