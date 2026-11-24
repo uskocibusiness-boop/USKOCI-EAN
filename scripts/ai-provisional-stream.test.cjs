@@ -452,3 +452,18 @@ test('NEED actual Edge: an unclassified but clear service gets one concrete ques
     assert.ok(message.includes(SERVICE) && message.includes('?'), message);
   } finally { h.restore(); }
 });
+
+test('a pause after the last word releases it (owner, 23.11.2026); a closed gate or a digit tail stays held', () => {
+  const plain = helper.createProvisionalTextGate();
+  assert.equal(plain.push('Da li to treba da donese majstor?'), 'Da li to treba da donese ');
+  assert.equal(plain.flush(), 'majstor?');
+  assert.equal(plain.flush(), '', 'released once');
+  const digit = helper.createProvisionalTextGate();
+  digit.push('Termin je u 15');
+  assert.equal(digit.flush(), '', 'a number waits for its context');
+  const price = helper.createProvisionalTextGate();
+  price.push('Budžet je 5000 dinara ukupno');
+  assert.equal(price.closed(), true); assert.equal(price.flush(), '', 'money never leaks through the pause');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8');
+  assert.ok(src.includes('const tail = provisional.flush();') && src.includes('if (tailTimer !== undefined) clearTimeout(tailTimer);'));
+});

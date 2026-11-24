@@ -2058,11 +2058,21 @@ Deno.serve(async (req: Request) => {
         // money/address/completion claims, and always replaced by `final`.
         const recordFirstText = createAiFirstTextRecorder('NEED');
         const provisional = wantsProvisional ? createProvisionalTextGate() : null;
+        // Owner, 23.11.2026: the last word of a reply waited for the whole save. When the provider pauses for a moment
+        // after it (it is then writing the facts), that word is released by the same gate rules.
+        let tailTimer: ReturnType<typeof setTimeout> | undefined;
+        // The one place provisional text leaves the server: only what the gate released.
+        const emitGated = (text: string) => { if (text) emit({ kind: 'text_delta', text, provisional: true }); };
         const onProviderText = (delta: string) => {
           recordFirstText(delta);
           if (!provisional || closed || abort.signal.aborted) return;
-          const text = provisional.push(delta);
-          if (text) emit({ kind: 'text_delta', text, provisional: true });
+          emitGated(provisional.push(delta));
+          if (tailTimer !== undefined) clearTimeout(tailTimer);
+          tailTimer = setTimeout(() => {
+            if (closed || abort.signal.aborted) return;
+            const tail = provisional.flush();
+            emitGated(tail);
+          }, 250);
         };
         try {
           const work = execute(onProviderText, abort.signal);
@@ -2076,6 +2086,7 @@ Deno.serve(async (req: Request) => {
           await retireAttempt();
           emit({ kind: 'safe_error', code: 'AI_TURN_NOT_CONFIRMED' });
         } finally {
+          if (tailTimer !== undefined) clearTimeout(tailTimer);
           if (!closed) { closed = true; controller.close(); }
           abort.abort(); req.signal.removeEventListener('abort', abortFromRequest); release();
         }

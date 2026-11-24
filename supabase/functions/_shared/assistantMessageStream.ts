@@ -138,6 +138,15 @@ export function createProvisionalTextGate(maxChars = ASSISTANT_MESSAGE_MAX_CHARS
       const out = all.slice(emitted, end); emitted = end;
       return out;
     },
+    /** The provider paused after the last word (usually the end of the message, while it writes the facts): release
+     * that last word too, unless the gate is closed or the tail holds a digit that still waits for its context. */
+    flush(): string {
+      if (closed || emitted >= all.length) return '';
+      const tail = all.slice(emitted);
+      if (DIGIT.test(tail)) return '';
+      emitted = all.length;
+      return tail;
+    },
     closed: () => closed,
   };
 }
