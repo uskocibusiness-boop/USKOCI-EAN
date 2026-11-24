@@ -512,7 +512,7 @@ export function IntakePresentation(props: Props) {
     welcome="Dobar dan! Opišite šta Vam je potrebno. 🧡"
     welcomeDetail=""
     openings={conversation.review.boundNeedId ? [] : TASK_OPENINGS}
-    placeholder="Opišite šta Vam je potrebno"
+    placeholder="Opišite zadatak"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
     onChange={props.onChange} onSend={send}
     onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={props.voice}
