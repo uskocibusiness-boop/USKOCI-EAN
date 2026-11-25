@@ -25,7 +25,7 @@ import { QuietReadState } from './QuietReadState';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 import { osoba, prijava as prijave } from '../system/plural';
 import { TaskDecisionRequirements, TaskDecisionTitle } from './detail/TaskDecision';
-import { TaskTabs, type TaskTab } from '../agreements/TaskTabs';
+import { TaskTopBar, type TaskTab } from '../agreements/TaskTabs';
 import { TaskDetailSummary } from './detail/TaskDetailSummary';
 import { TaskStateBlock, type StateAction } from './detail/TaskStateBlock';
 import { NO_APPLICATIONS_HELP_LABEL, ownTaskOverview, type NoApplicationsHelp, type NoApplicationsHelpAction, type OverviewSearch } from './ownTaskOverview';
@@ -194,12 +194,14 @@ export function NeedPresentation(props: NeedPresentationProps) {
 
   const scrollTitle = useDetailScrollTitle();
   const tabs = props.tabs && !draft ? props.tabs : null;
-  const header = <ProductHeader back={props.onBack} title={need ? readableTitle(need.naslov) : undefined}
-    titleVisible={tabs ? true : scrollTitle.titleVisible} right={editControl} />;
+  // Owner, 25.11.2026: a published task is not edited (no pencil); its navigation is a quiet back arrow, the parts of the task and
+  // "···" (removal lives there); the title is the page's own large heading under that bar, whole, never "…" in the bar.
+  const header = tabs
+    ? <TaskTopBar owner selected="overview" agreed={tabs.agreed} applications={tabs.applications} messages={tabs.messages} onSelect={tabs.onSelect}
+      onBack={props.onBack} right={menu.button} />
+    : <ProductHeader back={props.onBack} title={need ? readableTitle(need.naslov) : undefined} titleVisible={scrollTitle.titleVisible} right={editControl} />;
   return <>
-    <Screen kind="detail" header={tabs ? <View style={s.tabsHead}>{header}
-      <TaskTabs owner selected="overview" agreed={tabs.agreed} applications={tabs.applications} messages={tabs.messages} onSelect={tabs.onSelect} />
-    </View> : header} footer={foot} onScroll={tabs ? undefined : scrollTitle.onScroll}>
+    <Screen kind="detail" header={header} footer={foot} onScroll={tabs ? undefined : scrollTitle.onScroll}>
       {/* The lifecycle's recovery stays on the screen whatever the read is doing: a retained command is checked, and its
           outcome shown, even while the task loads or cannot be read. */}
       {loading && !need ? <View style={s.state}>
@@ -214,11 +216,11 @@ export function NeedPresentation(props: NeedPresentationProps) {
           <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
             {/* ONE state, in the owner's eight words (the chip every list of tasks wears); then the name. People never see a category
                 (owner decision 2026-09-21); the server reads kinds of work only to match. */}
-            {overview?.chip || need.urgency ? <View style={s.badgeRow}>
-              {overview?.chip ? <StatusChip status={overview.chip.status} detail={overview.chip.detail} /> : null}
+            {(overview?.chip && !tabs) || need.urgency ? <View style={s.badgeRow}>
+              {overview?.chip && !tabs ? <StatusChip status={overview.chip.status} detail={overview.chip.detail} /> : null}
               {need.urgency ? <NeedUrgencyBadge urgency={need.urgency} /> : null}
             </View> : null}
-            {tabs ? null : <TaskDecisionTitle prominent onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>}
+            <TaskDecisionTitle prominent onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
           </View>
           {loading || error ? <Surface kind="note"><View accessibilityLiveRegion="polite" style={s.notice}>
             <T variant="note" tone="muted">{loading ? 'Osvežavamo podatke…' : 'Vidiš starije podatke.'}</T>
@@ -256,7 +258,8 @@ export function NeedPresentation(props: NeedPresentationProps) {
           {need.opis ? <Section title="O zadatku"><DetailDescription text={need.opis} /></Section> : null}
           {props.photos}
           <TaskDecisionRequirements rows={requirements} />
-          {props.publisher}
+          {/* On the owner's own published task "Objavio: Milos (Vi)" says nothing new (owner, 25.11.2026). */}
+          {tabs ? null : props.publisher}
           {/* The questions people asked about this task and what the owner answered, where the work itself is read, in the
               same place a stranger finds them (owner, 2026-10-07). The route builds the section: it owns the reads. */}
           {props.qaAction}
@@ -278,7 +281,6 @@ export function NeedPresentation(props: NeedPresentationProps) {
 
 const s = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  tabsHead: { backgroundColor: sys.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
   ink: { color: sys.color.ink },
   state: { gap: sys.space.base },
   // The title remains a direct child of this measured block; multi-line and enlarged titles keep the correct chrome handoff.

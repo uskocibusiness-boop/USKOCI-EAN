@@ -42,11 +42,12 @@ test('the task screen: back and four premium 3D icons on top (handshake, blue pa
   has(tabs,"{owner ? <Tab label=\"Prijave\" short={`Prijave${applications ? ` ${applications}` : ''}`} art=\"applications\"",'Prijave only for the task owner, with the blue paper plane and the count');
   has(tabs,"<Tab label=\"Poruke\" short=\"Poruke\" art=\"chat\"",'one Poruke part');
   has(tabs,'{short}</T>','every icon says what it opens (owner-approved look, 25.11.2026)');
-  has(hub,"<TaskTabs owner={owner}",'the task screen of a Dogovor wears the shared row');
-  has(page,"<TaskTabs owner selected=\"overview\"",'the published task of the owner wears the same row (owner, 25.11.2026)');
+  has(hub,"const bar = <TaskTopBar owner={owner}",'the task screen of a Dogovor wears the shared navigation');
+  has(hub,"<TaskDecisionTitle prominent",'the title is the large heading under the bar, not in it (owner, 25.11.2026)');
+  has(page,"<TaskTopBar owner selected=\"overview\"",'the published task of the owner wears the same row (owner, 25.11.2026)');
   has(route,"params: { needId: id, role: 'narucilac', title: potreba.naslov, pane: tab }",'its parts open the task screen of the Dogovor');
   has(hub,"router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: needId } })",'Pregled of the owner is the task page');
-  has(hub,"<ChromeIconButton glyph=\"edit\" label=\"Uredite zadatak\"",'the pencil sits beside the task title');
+  has(page,"{overview?.chip && !tabs ? <StatusChip",'no "Objavljen" chip on the owner page (owner, 25.11.2026)');
   has(hub,"if (!hasGroup && live.length === 1) openAgreement(live[0].agreementId, 'poruke');",'one person: that conversation opens at once');
   has(hub,"Grupni razgovor</T>",'several people: the group on top of the list');
   has(hub,"<GroupConversationScreen agreementId={anchor.id} embedded />",'the group conversation is on the same screen');

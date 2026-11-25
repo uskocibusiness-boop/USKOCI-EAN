@@ -34,7 +34,8 @@ import { izvorSada, useIzvor } from '../../store/uloga';
 import { agreementAttention, agreementChip, awaitsMyConfirmation, awaitsMyRating } from './agreementListModel';
 import { AgreementStatusChip } from './AgreementStatusChip';
 import { ApplicationSwipeCard } from './ApplicationSwipeCard';
-import { TaskTabs, type TaskTab } from './TaskTabs';
+import { TaskTopBar, type TaskTab } from './TaskTabs';
+import { TaskDecisionTitle } from '../v2/detail/TaskDecision';
 import { agreementTaskSummary, isLiveAgreement, isOpenAgreement, type AgreementTaskPerson } from './agreementTaskModel';
 
 type Role = 'narucilac' | 'uskocer';
@@ -243,16 +244,12 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
 
   // Owner-approved look (canvas of 25.11.2026, with the app's 3D pictures): back, the task and its pencil on top; under them
   // the four parts of the task - Pregled, Dogovoreni, Prijave, Poruke - each saying how many, the open one underlined.
-  const bar = <View style={s.bar}>
-    <View style={s.head}>
-      <ChromeIconButton glyph="back" label="Nazad na Dogovore" onPress={back} />
-      <T variant="bodyStrong" accessibilityRole="header" numberOfLines={2} style={s.headTitle}>{summary?.title || title || 'Dogovor'}</T>
-      {owner ? <ChromeIconButton glyph="edit" label="Uredite zadatak" onPress={openOverview} /> : null}
-    </View>
-    <TaskTabs owner={owner} agreed={live.length} applications={appCount} messages={!!anchor && live.length > 0}
-      selected={pane === 'overview' || pane === 'edit' ? 'overview' : pane === 'group' ? 'messages' : pane}
-      onSelect={tab => tab === 'overview' ? openOverview() : tab === 'messages' ? openMessages() : setPane(tab)} />
-  </View>;
+  // Owner, 25.11.2026: the same quiet navigation as the task's own page - back, the parts, nothing more; the title is the large heading below.
+  const bar = <TaskTopBar owner={owner} agreed={live.length} applications={appCount} messages={!!anchor && live.length > 0}
+    selected={pane === 'overview' || pane === 'edit' ? 'overview' : pane === 'group' ? 'messages' : pane}
+    onSelect={tab => tab === 'overview' ? openOverview() : tab === 'messages' ? openMessages() : setPane(tab)}
+    onBack={back} backLabel="Nazad na Dogovore" />;
+  const heading = <TaskDecisionTitle prominent onLayout={() => undefined}>{summary?.title || title || 'Dogovor'}</TaskDecisionTitle>;
 
   let body: ReactNode;
   if (!loaded) body = <StateView skeleton={{ rows: 3, face: true }} title="Učitavamo Dogovor…" body="Proveravamo dogovorene osobe i uslove." />;
@@ -275,6 +272,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
       onMessage={() => openAgreement(person.agreementId, 'poruke')}
       onMore={removable && isLiveAgreement(person.agreement) ? () => setMenuFor(person) : undefined} />;
     body = <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+      {heading}
       {pane === 'overview' && summary ? <View style={s.overview}>
         <View style={s.valueWithArt}>
           <View style={s.valueArt}><FactArt kind="money" size={FACT_ROW_ART} /></View>
@@ -360,7 +358,7 @@ const s = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
   bar: { paddingHorizontal: sys.space.sm, paddingTop: sys.space.xs, gap: sys.space.xs,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line, backgroundColor: sys.color.surface },
-  head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  heading: { color: sys.color.ink },
   headTitle: { flex: 1, minWidth: 0 },
   content: { padding: layout.gutter, gap: sys.space.md, paddingBottom: sys.space.xl * 2 },
   overview: { gap: sys.space.md },

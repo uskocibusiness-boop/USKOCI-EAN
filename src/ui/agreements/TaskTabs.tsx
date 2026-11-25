@@ -2,6 +2,8 @@ import { StyleSheet, View } from 'react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
+import type { ReactNode } from 'react';
 import { sys } from '../system/tokens';
 
 export type TaskTab = 'overview' | 'agreed' | 'applications' | 'messages';
@@ -27,6 +29,22 @@ export function TaskTabs({ owner, selected, agreed, applications, messages, onSe
   </View>;
 }
 
+/**
+ * The task's navigation (owner, 25.11.2026): a quiet back arrow without a ring, the parts of the task, and "···" on the right. The task's
+ * title is not up here: it is the page's own heading, large and whole, under this bar.
+ */
+export function TaskTopBar({ onBack, backLabel = 'Nazad', right, ...tabs }: Parameters<typeof TaskTabs>[0] & {
+  onBack: () => void; backLabel?: string; right?: ReactNode;
+}) {
+  return <View style={s.bar}>
+    <Press accessibilityRole="button" accessibilityLabel={backLabel} onPress={onBack} haptic="select" style={s.back}>
+      <Glyph name="back" size={24} tone="ink" />
+    </Press>
+    <View style={s.tabs}><TaskTabs {...tabs} /></View>
+    <View style={s.right}>{right}</View>
+  </View>;
+}
+
 function Tab({ label, short, art, selected, dot, onPress }: {
   label: string; short: string; art: FactArtKind; selected: boolean; dot?: boolean; onPress: () => void;
 }) {
@@ -39,6 +57,11 @@ function Tab({ label, short, art, selected, dot, onPress }: {
 }
 
 const s = StyleSheet.create({
+  bar: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: sys.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
+  back: { width: 44, height: 64, alignItems: 'center', justifyContent: 'center' },
+  tabs: { flex: 1, minWidth: 0 },
+  right: { width: 44, minHeight: 64, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end' },
   tab: { flex: 1, minHeight: 64, alignItems: 'center', justifyContent: 'center', gap: 2, paddingBottom: sys.space.xs,
     borderBottomWidth: 2, borderBottomColor: 'transparent' },
