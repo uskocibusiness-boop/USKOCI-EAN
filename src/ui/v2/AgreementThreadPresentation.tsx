@@ -100,6 +100,9 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
       {channels ?? <AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} />}
     </View> : channels ? <View style={s.tabs}>{channels}</View> : null}
     <AgreementChat {...chat} compact={compact} context={context} sender={message => {
+      // A private conversation has two people and the header already names the other one (owner-approved look,
+      // 25.11.2026): own messages carry no face or name; the other person's face stays beside their run.
+      if (message.moja) return null;
       const member = agreement.ucesnici.find(item => message.posiljalacAccountId ? item.id === message.posiljalacAccountId : item.viSte === message.moja);
       const fallback = <Avatar initials={member?.inicijali ?? null} size={40} />;
       return <View style={[s.sender, message.moja && s.senderMine]}>
