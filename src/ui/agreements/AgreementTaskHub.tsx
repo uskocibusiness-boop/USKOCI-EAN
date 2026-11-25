@@ -11,6 +11,7 @@ import { Glyph } from '../system/Glyph';
 import { Avatar, type AvatarSize } from '../system/Avatar';
 import { StateView } from '../system/StateView';
 import { ChromeIconButton } from '../system/ScreenChrome';
+import { ActionSheet, type SheetAction } from '../system/ActionSheet';
 import { PublicProfileSheet, type PublicProfileState } from '../system/PublicProfileSheet';
 import { sys } from '../system/tokens';
 import { layout } from '../system/layout';
@@ -77,9 +78,9 @@ function BarIcon({ label, short, art, glyph, selected, badge, onPress }: {
 }
 
 /** An agreed person (🤝): avatar on the left with the name under it; rating, price, place and date; remove and a private message. */
-function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOpen, onMessage, onRemove, onComplete, onRate, onChanges, onProposeTerm }: {
+function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOpen, onMessage, onMore, onComplete, onRate, onChanges, onProposeTerm }: {
   person: AgreementTaskPerson; owner: boolean; remote: boolean; place: string; now: Date; rating: string | null;
-  onProfile: () => void; onOpen: () => void; onMessage: () => void; onRemove?: () => void; onComplete: () => void; onRate: () => void;
+  onProfile: () => void; onOpen: () => void; onMessage: () => void; onMore?: () => void; onComplete: () => void; onRate: () => void;
   onChanges: () => void; onProposeTerm: () => void;
 }) {
   const item = person.agreement, attention = agreementAttention(item);
@@ -127,13 +128,14 @@ function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOp
         </View> : null}
       </Press>
       <View style={s.personActions}>
-        {onRemove ? <Press accessibilityRole="button" accessibilityLabel={`Uklonite iz Dogovora: ${person.name}`}
-          accessibilityHint="Otvara otkazivanje uz razlog. Pre slanja vidite pregled." onPress={onRemove} haptic="select" style={s.iconButton}>
-          <Glyph name="close" size={22} tone="danger" />
-        </Press> : null}
         <Press accessibilityRole="button" accessibilityLabel={`Privatna poruka: ${person.name}`} onPress={onMessage} haptic="select" style={s.iconButton}>
           <FactArt kind="chat" size={26} />
         </Press>
+        {/* The rest of this Dogovor, one tap away (owner's choice, 25.11.2026): problem, report or block, cancel. */}
+        {onMore ? <Press accessibilityRole="button" accessibilityLabel={`Više radnji: ${person.name}`}
+          accessibilityHint="Prijava problema, prijava ili blokiranje osobe, otkazivanje." onPress={onMore} haptic="select" style={s.iconButton}>
+          <Glyph name="more" size={22} tone="ink" />
+        </Press> : null}
       </View>
     </View>
   </Surface>;
@@ -150,6 +152,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
   const owner = role === 'narucilac';
   const [loaded, setLoaded] = useState<Loaded>(null);
   const [pane, setPane] = useState<Pane>('overview');
+  const [menuFor, setMenuFor] = useState<AgreementTaskPerson | null>(null);
   const [apps, setApps] = useState<Apps>(null);
   const [need, setNeed] = useState<PotrebaProjekcija | null>(null);
   const [profiles, setProfiles] = useState<ReadonlyMap<string, JavniProfilProjekcija>>(new Map());
@@ -218,6 +221,20 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
     } else setDeciding({ id: c.prijavaId, error: result.poruka });
   };
   const appCount = apps && 'items' in apps ? apps.items.length : 0;
+  // A person's "···": the steps that used to need the old Dogovor page, each on its own clean screen.
+  const personActions = (person: AgreementTaskPerson): SheetAction[] => {
+    const id = person.agreementId, open = isOpenAgreement(person.agreement);
+    return [
+      ...(open ? [{ key: 'change', label: 'Promenite termin ili uslove', icon: 'calendar' as const,
+        onPress: () => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id, start: 'propose' } })) }] : []),
+      ...(open && !person.agreement.problemOtvoren ? [{ key: 'problem', label: 'Prijavite problem', icon: 'alert' as const,
+        onPress: () => go(() => router.navigate({ pathname: '/dogovor/[id]', params: { id, action: 'problem' } })) }] : []),
+      { key: 'safety', label: 'Prijavite ili blokirajte osobu', icon: 'shield' as const,
+        destructive: true, onPress: () => go(() => router.navigate({ pathname: '/bezbednost', params: { targetAccountId: person.accountId, agreementId: id } })) },
+      ...(open ? [{ key: 'cancel', label: owner ? 'Uklonite iz Dogovora' : 'Otkažite Dogovor', icon: 'tasks' as const, destructive: true,
+        onPress: () => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id, start: 'cancel' } })) }] : []),
+    ];
+  };
   const toggle = (next: Pane) => setPane(current => current === next ? 'overview' : next);
   // Poruke (owner's choice, 25.11.2026, after WhatsApp/Slack/Airbnb): one person on the task opens that conversation at once;
   // several open a short list - the group of everyone on top, then a private conversation with each person.
@@ -256,8 +273,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
       onChanges={() => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId } }))}
       onProposeTerm={() => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId, start: 'propose' } }))}
       onMessage={() => openAgreement(person.agreementId, 'poruke')}
-      onRemove={removable && owner && isOpenAgreement(person.agreement)
-        ? () => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId, start: 'cancel' } })) : undefined} />;
+      onMore={removable && isLiveAgreement(person.agreement) ? () => setMenuFor(person) : undefined} />;
     body = <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
       {pane === 'overview' ? <View style={s.overview}>
         <T variant="title" accessibilityRole="header">{summary.title}</T>
@@ -332,6 +348,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
   return <SafeAreaView edges={['top']} style={s.screen}>
     {bar}
     {body}
+    {menuFor ? <ActionSheet label={`Radnje: ${menuFor.name}`} onClose={() => setMenuFor(null)} actions={personActions(menuFor)} /> : null}
     <PublicProfileSheet state={profile} onClose={() => { profileRequest.current++; setProfile(null); }}
       onRetry={() => { const id = profile?.data?.profilId; if (id) openProfile(id); }}
       photo={(profileId, size) => <ProfilePhoto profileId={profileId} size={72} fallback={<Avatar initials={null} size={72} />} />} />

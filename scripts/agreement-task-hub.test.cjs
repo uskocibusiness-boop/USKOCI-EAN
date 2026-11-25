@@ -46,7 +46,7 @@ test('the task screen: back and four premium 3D icons on top (handshake, blue pa
   has(hub,"<GroupConversationScreen agreementId={anchor.id} embedded />",'the group conversation is on the same screen');
   has(hub,"<T variant=\"label\" tone=\"muted\">Opis</T>"); has(hub,"Približno mesto, oko 200 m.");
   has(hub,"<T variant=\"bodyStrong\">{owner ? 'Dogovoreno sa' : 'Objavio zadatak'}</T>");
-  has(hub,"Privatna poruka: "); has(hub,"Uklonite iz Dogovora: ");
+  has(hub,"Privatna poruka: "); has(hub,"label: owner ? 'Uklonite iz Dogovora' : 'Otkažite Dogovor'",'remove sits in the person menu (owner, 25.11.2026)'); has(hub,"action: 'problem'",'problem report opens its own clean page');
   has(hub,"<PublicProfileSheet state={profile}",'avatar opens profile and reviews in a sheet');
   has(hub,'people = summary ? (owner ? summary.people : summary.owner ? [summary.owner] : [])','a worker sees only the task owner');
 });

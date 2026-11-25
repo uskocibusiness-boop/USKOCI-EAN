@@ -75,12 +75,14 @@ export default function Dogovor() {
   if (messageId !== undefined && (typeof messageId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId))) return <AgreementStatus />;
   return <DogovorContent key={`${accountId}:${session.accountRevision}:${id}`} id={id} accountId={accountId} accountRevision={session.accountRevision}
     fromInbox={from === 'poruke'} requestedTab={tab === 'poruke' ? 'poruke' : 'pregled'} requestedMessageId={tab === 'poruke' ? messageId?.toLowerCase() : undefined}
-    requestedCompletion={action === 'complete' && tab !== 'poruke'} keepPage={pregled === '1'} />;
+    requestedCompletion={action === 'complete' && tab !== 'poruke'} requestedProblem={action === 'problem' && tab !== 'poruke'} keepPage={pregled === '1'} />;
 }
-function DogovorContent({ id, accountId, accountRevision, requestedTab, requestedMessageId, fromInbox, requestedCompletion = false, keepPage = false }: {
+function DogovorContent({ id, accountId, accountRevision, requestedTab, requestedMessageId, fromInbox, requestedCompletion = false, requestedProblem = false, keepPage = false }: {
   id: string; accountId: string; accountRevision: number; requestedTab: AgreementTab; requestedMessageId?: string; fromInbox: boolean;
   /** `pregled=1`: this page itself, not the task screen (the task screen's own fallback when it cannot find the Dogovor). */
   keepPage?: boolean;
+  /** Opened from a person's "···" on the task screen: only the problem form, on its own clean page. */
+  requestedProblem?: boolean;
   /** Opened from a person's card on the task screen: the completion review opens once the server allows it. */
   requestedCompletion?: boolean;
 }) {
@@ -110,7 +112,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     : { following: true, offset: 0 } }), [requestedMessageId]);
   // The unsent problem description survives leaving and returning to this Dogovor (process RAM only).
   const problemDraftScope = agreementProblemDraftScope(accountId, accountRevision, id);
-  const [problemOpen, setProblemOpen] = useState(() => readAgreementProblemDraft(problemDraftScope) !== ''),
+  const [problemOpen, setProblemOpen] = useState(() => requestedProblem || readAgreementProblemDraft(problemDraftScope) !== ''),
     [problemText, setProblemText] = useState(() => readAgreementProblemDraft(problemDraftScope));
   const [problemAttempt, setProblemAttempt] = useState<string | null>(null);
   const problemAttemptRef = useRef<string | null>(null);
@@ -359,12 +361,12 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   // anywhere else (a notification, Home, the schedule, ratings), the overview hands over to that screen once it knows the task.
   const handedOver = useRef(false);
   useEffect(() => {
-    if (handedOver.current || keepPage || requestedCompletion || requestedTab !== 'pregled' || !dogovor) return;
+    if (handedOver.current || keepPage || requestedCompletion || requestedProblem || requestedTab !== 'pregled' || !dogovor) return;
     const needId = dogovor.izvor?.zadatakId, me = dogovor.ucesnici.find(party => party.viSte && party.id === accountId);
     if (!needId || !me) return;
     handedOver.current = true;
     router.replace({ pathname: '/dogovor/zadatak', params: { needId, role: me.uloga === 'uskocer' ? 'uskocer' : 'narucilac', title: dogovor.naslov, id } });
-  }, [dogovor, keepPage, requestedCompletion, requestedTab, accountId, id]);
+  }, [dogovor, keepPage, requestedCompletion, requestedProblem, requestedTab, accountId, id]);
   // The server signals only new messages live, not the other side moving the Dogovor on (accepting a change, reporting or
   // confirming the end). While this screen is in front on a Dogovor that is still running, it reads again quietly every 20 s,
   // never while the completion review is open or a command is running (owner walk-through, 25.11.2026).
@@ -551,12 +553,13 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   } : null;
   // The Dogovor's "···" menu, reachable from both Pregled and Poruke.
   const menuActions = agreementMenuActions({ party: !!me, hasOther: !!other, active, requester, canChange,
-    hasLocation: dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji,
+    // A conversation on its own has no overview to scroll to: the place is on the task screen.
+    hasLocation: !standaloneChat && dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji,
     problemFree: !dogovor.problemOtvoren && !report, enabled }, {
     onOpenTask: openTask,
     onChange: () => toChanges('propose'), onCancel: () => toChanges('cancel'),
     onLocation: () => scrollToAnchor('place'),
-    onProblem: openProblemForm,
+    onProblem: standaloneChat ? () => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]', params: { id, action: 'problem' } }); } : openProblemForm,
     onSafety: () => { if (other && formCurrent()) router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); },
   });
   const nextStep = agreementNextStep({ state: dogovor.stanje, party: !!me, worker, change: stepChange,
@@ -596,6 +599,21 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     disabled={!enabled || groupModel.loadingMore} onPrivate={openPrivateConversation} onMore={() => void groupModel.more()}
     onGroup={() => { if (formCurrent() && groupModel.current()) router.push({ pathname: '/dogovor/[id]/grupa', params: { id } }); }} /> : null;
 
+  // The problem form on its own (owner's Dogovor concept): the same form, draft, command and readback, with the note and its
+  // three ways on once the problem is on record; back returns to the task screen.
+  if (requestedProblem && tab === 'pregled') return <SafeAreaView edges={['top', 'bottom']} style={[s.screen, s.flowPage]}>
+    <ProductHeader back={backToAgreements} title="Prijavite problem" />
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={overviewContent}>
+      <View style={s.stack}>
+        {problemNote ?? (active && me && problemOpen ? problemForm : active && me
+          ? <V2Action label="Nazad na zadatak" kind="secondary" tone="neutral" onPress={backToAgreements} />
+          : <T variant="copy" tone="muted">Za ovaj Dogovor problem više ne može da se prijavi.</T>)}
+        {problemExits}
+        {workspace.error ? <T variant="note" tone="danger" accessibilityRole="alert">{workspace.error}</T> : null}
+      </View>
+    </ScrollView>
+    <PorukaHost clearance={0} />
+  </SafeAreaView>;
   if (completionFlow) return <SafeAreaView edges={['top', 'bottom']} style={[s.screen, s.flowPage]}>
     {reviewingCompletion ? <AgreementCompletionReview agreement={completionReview!.agreement} worker={worker}
       confirm={confirmCompletionReview} back={dismissCompletionReview} /> : null}
