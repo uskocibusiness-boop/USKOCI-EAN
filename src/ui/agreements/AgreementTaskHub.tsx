@@ -61,15 +61,16 @@ function Face({ person, size }: { person: { profileId: string | null; initials: 
 }
 
 /** One premium icon of the top bar (owner's sketch): the picture alone, a soft ring when its pane is open. */
-function BarIcon({ label, art, glyph, selected, badge, onPress }: {
-  label: string; art?: FactArtKind; glyph?: 'edit'; selected: boolean; badge?: number; onPress: () => void;
+function BarIcon({ label, short, art, glyph, selected, badge, onPress }: {
+  label: string; short: string; art?: FactArtKind; glyph?: 'edit'; selected: boolean; badge?: number; onPress: () => void;
 }) {
   return <Press accessibilityRole="tab" accessibilityLabel={badge ? `${label}, ${badge}` : label} accessibilityState={{ selected }}
     onPress={onPress} haptic="select" style={s.barIcon}>
     <View style={[s.barDisc, selected && s.barDiscOn]}>
       {art ? <FactArt kind={art} size={30} /> : <Glyph name={glyph!} size={26} tone={selected ? 'green' : 'ink'} />}
     </View>
-    <View style={[s.barMark, selected && s.barMarkOn]} />
+    {/* Owner-approved look (25.11.2026): every icon says what it opens. */}
+    <T variant="meta" numberOfLines={1} maxFontSizeMultiplier={1.3} style={[s.barLabel, selected && s.barLabelOn]}>{short}</T>
     {badge ? <View style={s.badge}><T variant="meta" maxFontSizeMultiplier={1.2} style={s.badgeText}>{badge > 99 ? '99+' : badge}</T></View> : null}
   </Press>;
 }
@@ -209,10 +210,10 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
   const bar = <View style={s.bar} accessibilityRole="tablist">
     <ChromeIconButton glyph="back" label={pane === 'overview' ? 'Nazad na Dogovore' : 'Nazad na pregled'} onPress={pane === 'overview' ? back : () => setPane('overview')} />
     <View style={s.barIcons}>
-      <BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} art="agreements" selected={pane === 'agreed'} onPress={() => toggle('agreed')} />
-      {owner ? <BarIcon label="Prijave" art="applications" selected={pane === 'applications'} badge={appCount} onPress={() => toggle('applications')} /> : null}
-      {anchor ? <BarIcon label="Grupni razgovor" art="chat" selected={pane === 'group'} onPress={() => toggle('group')} /> : null}
-      {owner ? <BarIcon label="Uređivanje zadatka" glyph="edit" selected={pane === 'edit'} onPress={() => toggle('edit')} /> : null}
+      <BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} short={owner ? 'Dogovoreni' : 'Dogovor'} art="agreements" selected={pane === 'agreed'} onPress={() => toggle('agreed')} />
+      {owner ? <BarIcon label="Prijave" short="Prijave" art="applications" selected={pane === 'applications'} badge={appCount} onPress={() => toggle('applications')} /> : null}
+      {anchor ? <BarIcon label="Grupni razgovor" short="Grupa" art="chat" selected={pane === 'group'} onPress={() => toggle('group')} /> : null}
+      {owner ? <BarIcon label="Uređivanje zadatka" short="Izmene" glyph="edit" selected={pane === 'edit'} onPress={() => toggle('edit')} /> : null}
     </View>
   </View>;
 
@@ -253,13 +254,17 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
             <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: approx.lat, longitude: approx.lng }]} coarse height={184} scopeKey={`dogovor:${needId}`} />
             <T variant="meta" tone="muted">Približno mesto, oko 200 m. Tačna adresa se vidi posle Dogovora.</T>
           </View> : null}
-        <View style={s.block}>
-          <T variant="label" tone="muted">{owner ? 'Dogovoreno sa' : 'Objavio zadatak'}</T>
-          {live.length ? <View style={s.faceGrid}>{live.map(person => <Press key={person.agreementId} accessibilityRole="button"
-            accessibilityLabel={`Profil: ${person.name}`} onPress={() => openProfile(person.profileId)} haptic="select" style={s.gridFace}>
-            <Face person={person} size={56} /><T variant="meta" numberOfLines={2} style={s.gridName}>{person.name}</T>
-          </Press>)}</View> : <T variant="note" tone="muted">{owner ? 'Još niko nije izabran. Pogledajte prijave.' : 'Podaci o naručiocu nisu dostupni.'}</T>}
-        </View>
+        {live.length ? <Press accessibilityRole="button" accessibilityLabel={`${owner ? 'Dogovoreno sa' : 'Objavio zadatak'}: ${live.map(person => person.name).join(', ')}`}
+          accessibilityHint={owner ? 'Otvara dogovorene osobe.' : 'Otvara profil i ocene.'}
+          onPress={() => owner ? setPane('agreed') : openProfile(live[0].profileId)} haptic="select" style={s.peopleRow}>
+          <View style={s.peopleCopy}>
+            <T variant="bodyStrong">{owner ? 'Dogovoreno sa' : 'Objavio zadatak'}</T>
+            <T variant="note" tone="muted" numberOfLines={1}>{live.map(person => person.name.split(' ')[0]).join(', ')}</T>
+          </View>
+          <View style={s.peopleFaces}>{live.slice(0, 3).map((person, index) => <View key={person.agreementId} style={index ? s.peopleOverlap : undefined}>
+            <Face person={person} size={40} /></View>)}</View>
+          {owner && summary.total ? <T variant="bodyStrong">{summary.filled}/{summary.total}</T> : null}
+        </Press> : <T variant="note" tone="muted">{owner ? 'Još niko nije izabran. Pogledajte prijave.' : 'Podaci o naručiocu nisu dostupni.'}</T>}
       </View> : null}
       {pane === 'agreed' ? <View style={s.list}>
         {live.length ? live.map(person => card(person, true))
@@ -300,11 +305,11 @@ const s = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line, backgroundColor: sys.color.surface },
   barIcons: { flex: 1, flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' },
-  barIcon: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  barDisc: { width: 48, height: 48, borderRadius: sys.radius.pill, borderCurve: 'continuous', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  barIcon: { minWidth: 64, minHeight: 64, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  barDisc: { width: 44, height: 44, borderRadius: sys.radius.pill, borderCurve: 'continuous', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   barDiscOn: { backgroundColor: sys.color.greenSoft },
-  barMark: { width: 18, height: 3, borderRadius: 2 },
-  barMarkOn: { backgroundColor: sys.color.green },
+  barLabel: { color: sys.color.muted, fontSize: 12, lineHeight: 15 },
+  barLabelOn: { color: sys.color.ink, fontWeight: '700' },
   badge: { position: 'absolute', top: 2, right: 2, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,
     backgroundColor: sys.color.warn, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: '#FFFFFF', fontWeight: '800' },
@@ -316,6 +321,11 @@ const s = StyleSheet.create({
   money: { color: sys.color.money },
   block: { gap: sys.space.sm },
   faceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.md },
+  peopleRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, padding: sys.space.md, minHeight: 64,
+    borderRadius: sys.radius.card, backgroundColor: sys.color.wash },
+  peopleCopy: { flex: 1, minWidth: 0, gap: 2 },
+  peopleFaces: { flexDirection: 'row', alignItems: 'center' },
+  peopleOverlap: { marginLeft: -10 },
   gridFace: { width: 88, alignItems: 'center', gap: 6 },
   gridName: { textAlign: 'center', fontWeight: '600', color: sys.color.ink },
   list: { gap: sys.space.md },

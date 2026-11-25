@@ -36,13 +36,14 @@ test('remote task and different prices are said plainly', () => {
 
 test('the task screen: back and four premium icons on top (handshake, blue paper plane, chat, edit); overview below', () => {
   const hub=read('src/ui/agreements/AgreementTaskHub.tsx');
-  has(hub,"<BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} art=\"agreements\"");
-  has(hub,"{owner ? <BarIcon label=\"Prijave\" art=\"applications\"",'Prijave only for the task owner, with the blue paper plane');
-  has(hub,"<BarIcon label=\"Grupni razgovor\" art=\"chat\"");
-  has(hub,"{owner ? <BarIcon label=\"Uređivanje zadatka\" glyph=\"edit\"");
+  has(hub,"<BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} short={owner ? 'Dogovoreni' : 'Dogovor'} art=\"agreements\"");
+  has(hub,"{owner ? <BarIcon label=\"Prijave\" short=\"Prijave\" art=\"applications\"",'Prijave only for the task owner, with the blue paper plane');
+  has(hub,"<BarIcon label=\"Grupni razgovor\" short=\"Grupa\" art=\"chat\"");
+  has(hub,'{short}</T>','every icon says what it opens (owner-approved look, 25.11.2026)');
+  has(hub,"{owner ? <BarIcon label=\"Uređivanje zadatka\" short=\"Izmene\" glyph=\"edit\"");
   has(hub,"<GroupConversationScreen agreementId={anchor.id} embedded />",'the group conversation is on the same screen');
   has(hub,"<T variant=\"label\" tone=\"muted\">Opis</T>"); has(hub,"Približno mesto, oko 200 m.");
-  has(hub,"{owner ? 'Dogovoreno sa' : 'Objavio zadatak'}");
+  has(hub,"<T variant=\"bodyStrong\">{owner ? 'Dogovoreno sa' : 'Objavio zadatak'}</T>");
   has(hub,"Privatna poruka: "); has(hub,"Uklonite iz Dogovora: ");
   has(hub,"<PublicProfileSheet state={profile}",'avatar opens profile and reviews in a sheet');
   has(hub,'people = summary ? (owner ? summary.people : summary.owner ? [summary.owner] : [])','a worker sees only the task owner');
