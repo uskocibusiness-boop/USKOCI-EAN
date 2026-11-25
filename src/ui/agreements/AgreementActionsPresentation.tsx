@@ -137,7 +137,7 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
   } else {
     // The refresh stays in the bar while the terms are being read, muted, never gone (scene 15): the bar does not change
     // shape between reading and read.
-    chrome = <ScreenChrome variant="detail" onBack={p.onBack} title="Izmene i otkazivanje"
+    chrome = <ScreenChrome variant="detail" onBack={p.onBack} title="Izmene Dogovora"
       right={p.phase === 'READY' || p.phase === 'ERROR' || p.phase === 'LOADING'
         ? <ChromeIconButton label="Osvežite uslove Dogovora" icon={ArrowClockwise} disabled={busy} onPress={p.onRefresh} /> : undefined} />;
     if (p.phase === 'LOADING' && !snapshot) {
