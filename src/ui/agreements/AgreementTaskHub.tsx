@@ -36,7 +36,7 @@ import { ApplicationSwipeCard } from './ApplicationSwipeCard';
 import { agreementTaskSummary, isLiveAgreement, isOpenAgreement, type AgreementTaskPerson } from './agreementTaskModel';
 
 type Role = 'narucilac' | 'uskocer';
-type Pane = 'overview' | 'agreed' | 'applications' | 'group' | 'edit';
+type Pane = 'overview' | 'agreed' | 'applications' | 'messages' | 'group' | 'edit';
 type Loaded = { items: DogovorProjekcija[] } | { error: true } | null;
 type Apps = { items: KandidatProjekcija[] } | { error: true } | null;
 /** Applications the owner can still decide on; declined, withdrawn, closed and selected ones are not drawn. */
@@ -219,13 +219,20 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
   };
   const appCount = apps && 'items' in apps ? apps.items.length : 0;
   const toggle = (next: Pane) => setPane(current => current === next ? 'overview' : next);
+  // Poruke (owner's choice, 25.11.2026, after WhatsApp/Slack/Airbnb): one person on the task opens that conversation at once;
+  // several open a short list - the group of everyone on top, then a private conversation with each person.
+  const hasGroup = (anchor?.pokrivenost.ukupno ?? 1) > 1;
+  const openMessages = () => {
+    if (!hasGroup && live.length === 1) openAgreement(live[0].agreementId, 'poruke');
+    else setPane(current => current === 'messages' || current === 'group' ? 'overview' : 'messages');
+  };
 
   const bar = <View style={s.bar} accessibilityRole="tablist">
     <ChromeIconButton glyph="back" label={pane === 'overview' ? 'Nazad na Dogovore' : 'Nazad na pregled'} onPress={pane === 'overview' ? back : () => setPane('overview')} />
     <View style={s.barIcons}>
       <BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} short={owner ? 'Dogovoreni' : 'Dogovor'} art="agreements" selected={pane === 'agreed'} onPress={() => toggle('agreed')} />
       {owner ? <BarIcon label="Prijave" short="Prijave" art="applications" selected={pane === 'applications'} badge={appCount} onPress={() => toggle('applications')} /> : null}
-      {anchor ? <BarIcon label="Grupni razgovor" short="Grupa" art="chat" selected={pane === 'group'} onPress={() => toggle('group')} /> : null}
+      {anchor && live.length ? <BarIcon label="Poruke" short="Poruke" art="chat" selected={pane === 'messages' || pane === 'group'} onPress={openMessages} /> : null}
       {owner ? <BarIcon label="Uređivanje zadatka" short="Izmene" art="publish" selected={pane === 'edit'} onPress={() => toggle('edit')} /> : null}
     </View>
   </View>;
@@ -299,6 +306,22 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
                   busy={deciding?.id === c.prijavaId && !deciding.error} error={deciding?.id === c.prijavaId ? deciding.error : null}
                   onAccept={() => accept(c)} onDecline={() => { void decline(c); }} />)}
               </>}
+      </View> : null}
+      {pane === 'messages' ? <View style={s.list}>
+        {hasGroup ? <Press accessibilityRole="button" accessibilityLabel="Grupni razgovor, svi učesnici zadatka" onPress={() => setPane('group')}
+          haptic="select" style={s.peopleRow}>
+          <FactArt kind="chat" size={40} />
+          <View style={s.peopleCopy}><T variant="bodyStrong">Grupni razgovor</T>
+            <T variant="note" tone="muted" numberOfLines={1}>Svi učesnici zadatka</T></View>
+          <Glyph name="caret-right" size={20} tone="muted" />
+        </Press> : null}
+        {live.map(person => <Press key={person.agreementId} accessibilityRole="button" accessibilityLabel={`Privatna poruka: ${person.name}`}
+          onPress={() => openAgreement(person.agreementId, 'poruke')} haptic="select" style={s.peopleRow}>
+          <Face person={person} size={40} />
+          <View style={s.peopleCopy}><T variant="bodyStrong" numberOfLines={1}>{person.name}</T>
+            <T variant="note" tone="muted" numberOfLines={1}>Privatna poruka · vidite samo Vi i ova osoba</T></View>
+          <Glyph name="caret-right" size={20} tone="muted" />
+        </Press>)}
       </View> : null}
       {pane === 'edit' ? <StateView art="document" title="Uređivanje zadatka"
         body={appCount ? 'Zadatak već ima prijave. Izmene uslova idu kroz Dogovor sa svakom osobom.' : 'Dok nema prijava, zadatak možete urediti na njegovoj stranici.'}

@@ -38,7 +38,9 @@ test('the task screen: back and four premium 3D icons on top (handshake, blue pa
   const hub=read('src/ui/agreements/AgreementTaskHub.tsx');
   has(hub,"<BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} short={owner ? 'Dogovoreni' : 'Dogovor'} art=\"agreements\"");
   has(hub,"{owner ? <BarIcon label=\"Prijave\" short=\"Prijave\" art=\"applications\"",'Prijave only for the task owner, with the blue paper plane');
-  has(hub,"<BarIcon label=\"Grupni razgovor\" short=\"Grupa\" art=\"chat\"");
+  has(hub,"<BarIcon label=\"Poruke\" short=\"Poruke\" art=\"chat\"",'one Poruke icon: the group and each private conversation (owner, 25.11.2026)');
+  has(hub,"if (!hasGroup && live.length === 1) openAgreement(live[0].agreementId, 'poruke');",'one person: that conversation opens at once');
+  has(hub,"Grupni razgovor</T>",'several people: the group on top of the list');
   has(hub,'{short}</T>','every icon says what it opens (owner-approved look, 25.11.2026)');
   has(hub,"{owner ? <BarIcon label=\"Uređivanje zadatka\" short=\"Izmene\" art=\"publish\"");
   has(hub,"<GroupConversationScreen agreementId={anchor.id} embedded />",'the group conversation is on the same screen');

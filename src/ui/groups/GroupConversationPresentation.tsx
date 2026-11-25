@@ -115,9 +115,15 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
           const fallback = <Avatar initials={inicijali(member.displayName)} size={40} />;
           // The read lists the requester and every member, the reader included: their own row says so.
           const role = member.role === 'REQUESTER' ? 'Traži pomoć' : 'Učesnik';
+          // A private conversation with this person, where one exists (owner's choice, 25.11.2026: tap a person in the group, write privately).
+          const privateId = member.accountId === me || !p.onPrivate ? null : group.role === 'PARTICIPANT'
+            ? member.role === 'REQUESTER' ? state.context?.agreementId ?? null : null
+            : (group.management ?? []).find(item => item.accountId === member.accountId)?.agreementId ?? null;
           return <View key={member.accountId} style={s.member}>
             {p.photo ? p.photo(member, fallback) : fallback}
             <View style={s.flex}><T variant="bodyStrong">{member.displayName}</T><T variant="meta" tone="muted">{member.accountId === me ? `Vi · ${role}` : role}</T></View>
+            {privateId ? <V2Action label="Privatna poruka" kind="secondary" tone="neutral" compact
+              onPress={() => { p.onTogglePeople(); p.onPrivate?.(privateId); }} /> : null}
           </View>;
         })}
         {group.members.length === 0 ? <T variant="meta" tone="muted">Prikazana je ranije dostupna istorija.</T> : null}
@@ -126,7 +132,8 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
           {(group.management ?? []).map(item => <View key={item.agreementId} style={s.managed}>
             <T variant="body">{group.members.find(member => member.accountId === item.accountId)?.displayName ?? 'Učesnik'} · {status(item.executionState ?? item.status)}</T>
             {item.problemOpened ? <T variant="meta" tone="muted">Privatan problem u Dogovoru</T> : null}
-            <V2Action label="Otvorite pojedinačni Dogovor" compact onPress={() => p.onOpenAgreement(item.agreementId)} />
+            {p.onPrivate ? <V2Action label="Privatna poruka" compact kind="secondary" tone="neutral"
+              onPress={() => { p.onTogglePeople(); p.onPrivate?.(item.agreementId); }} /> : null}
           </View>)}
           {group.managementNextId ? <V2Action label="Još pojedinačnih Dogovora" kind="quiet" onPress={p.onManagementNext} /> : null}
         </View> : null}
@@ -137,7 +144,7 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
     {state.phase === 'ERROR' && !olderUnavailable ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
       primary={{ label: 'Pokušajte ponovo', onPress: refresh }} /> : null}
     {group ? <>
-      {ownAgreementId ? <Press testID="group-task-anchor" accessibilityRole="button"
+      {ownAgreementId && !p.embedded ? <Press testID="group-task-anchor" accessibilityRole="button"
         accessibilityLabel={`Otvorite svoj Dogovor: ${group.title}`}
         accessibilityHint="Otvara Vaše pojedinačne uslove uz ovaj zadatak."
         accessibilityState={{ disabled: !ready }} disabled={!ready}
@@ -175,7 +182,7 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
       backLabel={p.backLabel ?? 'Nazad na Dogovor'} onBack={p.onBack}
       right={group ? <ChromeIconButton label="Učesnici razgovora" icon={Users} active={p.showPeople} onPress={people} /> : undefined} />}
     <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      {state.context?.group && p.onPrivate ? <View style={s.gutter}><ConversationChannels context={state.context} selected="group" disabled={!ready}
+      {state.context?.group && p.onPrivate && !p.embedded ? <View style={s.gutter}><ConversationChannels context={state.context} selected="group" disabled={!ready}
         onGroup={() => undefined} onPrivate={p.onPrivate} onMore={p.onManagementNext} onPickerVisibilityChange={picker} /></View> : null}
       <FlatList ref={reading.list} key={p.listKey} data={state.messages} keyExtractor={item => item.messageId} contentContainerStyle={[s.content, centred ? s.listCentred : s.listBottom]} keyboardShouldPersistTaps="handled"
         onViewableItemsChanged={reading.onVisible} viewabilityConfig={nativeViewability}
@@ -197,10 +204,12 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
           const senderFallback = <Avatar initials={sender ? inicijali(sender.displayName) : null} size={40} />;
           return <Appear index={index} animate={appear.isNew(item.messageId)}>
             {entry.separator ? <T accessibilityRole="header" variant="label" tone="muted" style={s.day}>{entry.separator}</T> : null}
-            {entry.first ? <View testID={`group-message-sender-${item.messageId}`} style={[s.member, item.mine && s.supportMine]}>
+            {entry.first ? <Press testID={`group-message-sender-${item.messageId}`} accessibilityRole="button" disabled={item.mine}
+              accessibilityLabel={item.mine ? 'Vi' : `${sender?.displayName ?? name(item)}: učesnici i privatna poruka`}
+              onPress={item.mine ? undefined : p.onTogglePeople} haptic="select" hitSlop={0} style={[s.member, item.mine && s.supportMine]}>
               {sender && p.photo ? p.photo(sender, senderFallback) : senderFallback}
               <T variant="note" tone="muted">{item.mine ? 'Vi' : sender?.displayName ?? name(item)}{entry.moment.clock ? ` · ${entry.moment.clock}` : ''}</T>
-            </View> : null}
+            </Press> : null}
             {/* A tap (or a long press, or the screen reader's action) offers the message to support: the entry that stood
                 under every message is one step away, never behind a gesture alone (review r6). Without support the
                 bubble is text, not a button. */}
