@@ -104,7 +104,7 @@ test('Agreement menu uses professional actions for both roles and preserves each
  const calls=[];const commands=Object.fromEntries(Object.entries(menuCommandNames).map(([key,name])=>[name,()=>calls.push(key)]));
  for(const requester of [true,false]){
   const actions=agreementMenuActions({...menuInput,requester},commands);
-  const keys=requester?['task','change','location','problem','cancel','safety']:['task','change','problem','cancel','safety'];
+  const keys=requester?['task','location','problem','cancel','safety']:['task','problem','cancel','safety']; // no 'change' row: terms are not renegotiated (owner, 25.11.2026)
   assert.deepEqual(actions.map(x=>x.key),keys);assert.deepEqual(calls,[]);
   for(const action of actions){assert.equal(action.label,menuLabels[action.key]);assert.equal(action.disabled,false);assert.equal(action.onPress,commands[menuCommandNames[action.key]]);action.onPress();}
   assert.deepEqual(calls.splice(0),keys);assert.deepEqual(actions.filter(x=>x.destructive).map(x=>x.key),['cancel','safety']);

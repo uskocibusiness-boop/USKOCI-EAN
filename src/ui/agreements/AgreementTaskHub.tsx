@@ -83,7 +83,8 @@ function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOp
   // completion and the rating; one action at a time, and the words of a step that has its own button are not said twice.
   const answersChange = attention?.kind === 'change';
   const waitsOnOther = !!item.izmenaCeka?.mojPredlog;
-  const needsTerm = item.stanje === 'CONFIRMED' && !item.izmenaCeka && isNoTermText(item.vremeTekst) && !canConfirm;
+  // Owner, 25.11.2026: no term is proposed between the parties any more; the time is arranged in Poruke.
+  const needsTerm = false;
   const rates = !canConfirm && !canReport && !answersChange && awaitsMyRating(item);
   const sayAttention = attention && !answersChange && !(attention.kind === 'confirm' && canConfirm) && !(attention.kind === 'rate' && rates);
   // Owner, 25.11.2026: a person stands on the white page and breathes - no frame, the face and name on top, the facts across
@@ -217,8 +218,6 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
   const personActions = (person: AgreementTaskPerson): SheetAction[] => {
     const id = person.agreementId, open = isOpenAgreement(person.agreement);
     return [
-      ...(open ? [{ key: 'change', label: 'Promenite termin ili uslove', icon: 'calendar' as const,
-        onPress: () => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id, start: 'propose' } })) }] : []),
       ...(open && !person.agreement.problemOtvoren ? [{ key: 'problem', label: 'Prijavite problem', icon: 'alert' as const,
         onPress: () => go(() => router.navigate({ pathname: '/dogovor/[id]', params: { id, action: 'problem' } })) }] : []),
       { key: 'safety', label: 'Prijavite ili blokirajte osobu', icon: 'shield' as const,

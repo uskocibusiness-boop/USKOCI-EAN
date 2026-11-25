@@ -47,7 +47,7 @@ export function agreementMenuActions(input: AgreementMenuInput, commands: Agreem
   if (commands.onOpenTask) {
     rows.push({ key: 'task', label: 'Otvorite izvorni zadatak', icon: 'tasks', onPress: commands.onOpenTask, ...live });
   }
-  if (input.active && input.canChange) rows.push({ key: 'change', label: 'Promenite termin ili uslove', icon: 'calendar', onPress: commands.onChange, ...live });
+  // Owner, 25.11.2026: once agreed, the term and the price are not changed through the app; the time is arranged in Poruke.
   if (input.active && input.requester && input.hasLocation) {
     rows.push({ key: 'location', label: 'Tačna adresa i lokacija', icon: 'pin', onPress: commands.onLocation, hint: 'Otvara odeljak Tačna adresa i lokacija.', ...live });
   }

@@ -113,6 +113,9 @@ export type AgreementActionsPresentationProps = {
  * flow's foot and the X as the way out. Presentation only: the screen owns the controller, its journal, the review
  * fences and every guard.
  */
+/** New change proposals are closed (owner, 25.11.2026). */
+const PROPOSALS_OPEN = false;
+
 export function AgreementActionsPresentation(p: AgreementActionsPresentationProps) {
   const busy = p.phase === 'LOADING' || p.phase === 'SENDING', sending = p.phase === 'SENDING', snapshot = p.snapshot;
   const { form, review } = p;
@@ -210,7 +213,9 @@ function Hub({ snapshot, accountId, error, busy, onOpenForm, onPrepare }: { snap
     })}
     <View style={s.section}><T variant="heading" accessibilityRole="header">Važeći uslovi</T><Terms terms={snapshot.terms} /></View>
     {actions.canProposeChange && snapshot.terms || actions.canCancel ? <View style={[s.section, s.parted]}>
-      {actions.canProposeChange && snapshot.terms ? <V2Action tone="neutral" label="Predložite izmenu" style={answerWaits ? undefined : brandAction}
+      {/* Owner, 25.11.2026: once agreed, the price and the term are not renegotiated here (the time is arranged in Poruke and each
+          person marks their own period); a proposal already waiting can still be answered above. */}
+      {PROPOSALS_OPEN && actions.canProposeChange && snapshot.terms ? <V2Action tone="neutral" label="Predložite izmenu" style={answerWaits ? undefined : brandAction}
         disabled={busy} onPress={() => onOpenForm('PROPOSE')} /> : null}
       {actions.canCancel ? <V2Action tone="neutral" label="Otkažite Dogovor" kind="destructive" disabled={busy} onPress={() => onOpenForm('CANCEL')} /> : null}
     </View> : null}
