@@ -63,16 +63,17 @@ function Face({ person, size }: { person: { profileId: string | null; initials: 
 }
 
 /** One premium icon of the top bar (owner's sketch): the picture alone, a soft ring when its pane is open. */
-function BarIcon({ label, short, art, glyph, selected, badge, onPress }: {
-  label: string; short: string; art?: FactArtKind; glyph?: 'edit'; selected: boolean; badge?: number; onPress: () => void;
+function BarIcon({ label, short, art, glyph, selected, badge, dot, onPress }: {
+  label: string; short: string; art?: FactArtKind; glyph?: 'edit'; selected: boolean; badge?: number; dot?: boolean; onPress: () => void;
 }) {
-  return <Press accessibilityRole="tab" accessibilityLabel={badge ? `${label}, ${badge}` : label} accessibilityState={{ selected }}
-    onPress={onPress} haptic="select" style={s.barIcon}>
+  return <Press accessibilityRole="tab" accessibilityLabel={badge ? `${label}, ${badge}` : short !== label ? short : label} accessibilityState={{ selected }}
+    onPress={onPress} haptic="select" style={[s.barIcon, selected && s.barIconOn]}>
     <View style={[s.barDisc, selected && s.barDiscOn]}>
       {art ? <FactArt kind={art} size={30} /> : <Glyph name={glyph!} size={26} tone={selected ? 'green' : 'ink'} />}
     </View>
     {/* Owner-approved look (25.11.2026): every icon says what it opens. */}
     <T variant="meta" numberOfLines={1} maxFontSizeMultiplier={1.3} style={[s.barLabel, selected && s.barLabelOn]}>{short}</T>
+    {dot ? <View style={s.dotNew} /> : null}
     {badge ? <View style={s.badge}><T variant="meta" maxFontSizeMultiplier={1.2} style={s.badgeText}>{badge > 99 ? '99+' : badge}</T></View> : null}
   </Press>;
 }
@@ -98,47 +99,50 @@ function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOp
   const needsTerm = item.stanje === 'CONFIRMED' && !item.izmenaCeka && isNoTermText(item.vremeTekst) && !canConfirm;
   const rates = !canConfirm && !canReport && !answersChange && awaitsMyRating(item);
   const sayAttention = attention && !answersChange && !(attention.kind === 'confirm' && canConfirm) && !(attention.kind === 'rate' && rates);
-  return <Surface kind="record">
-    <View style={s.personCard}>
+  // Owner, 25.11.2026: a person stands on the white page and breathes - no frame, the face and name on top, the facts across
+  // the whole width, one wide step at the foot with the message and "···" beside it; a hairline parts one person from the next.
+  const step = answersChange ? <V2Action tone="brand" label="Odgovorite na predlog" onPress={onChanges} style={s.flex} />
+    : canConfirm ? <V2Action tone="brand" label="Potvrdite završetak" onPress={onComplete} style={s.flex} />
+      : needsTerm && !canReport ? <V2Action tone="neutral" kind="secondary" label="Predložite termin" onPress={onProposeTerm} style={s.flex} />
+        : canReport ? <V2Action tone="brand" label="Zadatak je gotov" onPress={onComplete} style={s.flex} />
+          : rates ? <V2Action tone="neutral" kind="secondary" label="Ocenite saradnju" onPress={onRate} style={s.flex} /> : <View style={s.flex} />;
+  return <View style={s.person}>
+    <View style={s.personHead}>
       <Press accessibilityRole="button" accessibilityLabel={`Profil: ${person.name}`} accessibilityHint="Otvara profil, ocene i recenzije."
-        onPress={onProfile} haptic="select" style={s.personFace}>
-        <Face person={person} size={56} />
-        <T variant="meta" numberOfLines={2} style={s.personName}>{person.name}</T>
+        onPress={onProfile} haptic="select" style={s.personWho}>
+        <Face person={person} size={48} />
+        <View style={s.flex}>
+          <T variant="bodyStrong" numberOfLines={1}>{person.name}</T>
+          <T variant="note" tone="muted" numberOfLines={1}>{rating ?? (owner ? 'Uskače' : 'Objavio zadatak')}</T>
+        </View>
       </Press>
-      <Press accessibilityRole="button" accessibilityLabel={`Dogovor sa: ${person.name}`} accessibilityHint="Otvara uslove i izmene ovog Dogovora."
-        onPress={onOpen} haptic="select" style={s.personBody}>
-        <View style={s.personTop}><AgreementStatusChip chip={agreementChip(item, now)} /></View>
-        {rating ? <View style={s.inline}><FactArt kind="star" size={26} /><T variant="note" tone="muted">{rating}</T></View> : null}
-        <View style={s.inline}><FactArt kind="money" size={26} />
-          <T variant="bodyStrong" style={s.money}>{amount || 'Cena po dogovoru'}</T>
-          {amount ? <T variant="note" tone="muted">{applicationPriceBasisText(item.osnovaCene)}</T> : null}</View>
-        <View style={s.inline}><FactArt kind={remote ? 'remote' : 'pin'} size={26} /><T variant="note" tone="muted" numberOfLines={2} style={s.flex}>{place}</T></View>
-        <View style={s.inline}><FactArt kind="calendar" size={26} /><T variant="note" tone="muted" numberOfLines={2} style={s.flex}>{item.vremeTekst || 'Termin po dogovoru'}</T></View>
-        {sayAttention ? <View style={s.inline}><View style={s.dot} /><T variant="note" style={s.warn} numberOfLines={2}>{attention!.title}</T></View> : null}
-        {waitsOnOther ? <T variant="note" tone="muted">Čeka se odgovor na Vaš predlog izmene.</T> : null}
-        {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
-        {answersChange || canConfirm || canReport || rates || needsTerm ? <View style={s.personStep}>
-          {answersChange ? <V2Action tone="brand" label="Odgovorite na predlog" onPress={onChanges} />
-            : canConfirm ? <V2Action tone="brand" label="Potvrdite završetak" onPress={onComplete} />
-              : needsTerm && !canReport ? <V2Action tone="neutral" kind="secondary" label="Predložite termin" onPress={onProposeTerm} />
-                : canReport ? <V2Action tone="brand" label="Zadatak je gotov" onPress={onComplete} />
-                  : <V2Action tone="neutral" kind="secondary" label="Ocenite saradnju" onPress={onRate} />}
-          {needsTerm && canReport ? <V2Action tone="neutral" kind="quiet" label="Predložite termin" onPress={onProposeTerm} /> : null}
-          {autoConfirm ? <T variant="note" tone="muted">Ako ne odgovorite, završetak se sam potvrđuje: {autoConfirm}.</T> : null}
-        </View> : null}
-      </Press>
-      <View style={s.personActions}>
-        <Press accessibilityRole="button" accessibilityLabel={`Privatna poruka: ${person.name}`} onPress={onMessage} haptic="select" style={s.iconButton}>
-          <FactArt kind="chat" size={26} />
-        </Press>
-        {/* The rest of this Dogovor, one tap away (owner's choice, 25.11.2026): problem, report or block, cancel. */}
-        {onMore ? <Press accessibilityRole="button" accessibilityLabel={`Više radnji: ${person.name}`}
-          accessibilityHint="Prijava problema, prijava ili blokiranje osobe, otkazivanje." onPress={onMore} haptic="select" style={s.iconButton}>
-          <Glyph name="more" size={22} tone="ink" />
-        </Press> : null}
-      </View>
+      <AgreementStatusChip chip={agreementChip(item, now)} />
     </View>
-  </Surface>;
+    <Press accessibilityRole="button" accessibilityLabel={`Uslovi Dogovora sa: ${person.name}`} accessibilityHint="Otvara uslove i izmene ovog Dogovora."
+      onPress={onOpen} haptic="select" style={s.personFacts}>
+      <View style={s.inline}><FactArt kind="money" size={26} />
+        <T variant="bodyStrong" style={s.money}>{amount || 'Cena po dogovoru'}</T>
+        {amount ? <T variant="note" tone="muted">{applicationPriceBasisText(item.osnovaCene)}</T> : null}</View>
+      <View style={s.inline}><FactArt kind={remote ? 'remote' : 'pin'} size={26} /><T variant="copy" numberOfLines={2} style={s.flex}>{place}</T></View>
+      <View style={s.inline}><FactArt kind="calendar" size={26} /><T variant="copy" numberOfLines={2} style={s.flex}>{item.vremeTekst || 'Termin po dogovoru'}</T></View>
+    </Press>
+    {sayAttention ? <View style={s.inline}><View style={s.dot} /><T variant="note" style={s.warn} numberOfLines={2}>{attention!.title}</T></View> : null}
+    {waitsOnOther ? <T variant="note" tone="muted">Čeka se odgovor na Vaš predlog izmene.</T> : null}
+    {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
+    {autoConfirm ? <T variant="note" tone="muted">Ako ne odgovorite, završetak se sam potvrđuje: {autoConfirm}.</T> : null}
+    <View style={s.personFoot}>
+      {step}
+      <Press accessibilityRole="button" accessibilityLabel={`Privatna poruka: ${person.name}`} onPress={onMessage} haptic="select" style={s.iconButton}>
+        <FactArt kind="chat" size={28} />
+      </Press>
+      {/* The rest of this Dogovor, one tap away (owner's choice, 25.11.2026): problem, report or block, cancel. */}
+      {onMore ? <Press accessibilityRole="button" accessibilityLabel={`Više radnji: ${person.name}`}
+        accessibilityHint="Prijava problema, prijava ili blokiranje osobe, otkazivanje." onPress={onMore} haptic="select" style={s.iconButton}>
+        <Glyph name="more" size={22} tone="ink" />
+      </Press> : null}
+    </View>
+    {needsTerm && canReport ? <V2Action tone="neutral" kind="quiet" label="Predložite termin" onPress={onProposeTerm} /> : null}
+  </View>;
 }
 
 /**
@@ -241,16 +245,24 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
   const hasGroup = (anchor?.pokrivenost.ukupno ?? 1) > 1;
   const openMessages = () => {
     if (!hasGroup && live.length === 1) openAgreement(live[0].agreementId, 'poruke');
-    else setPane(current => current === 'messages' || current === 'group' ? 'overview' : 'messages');
+    else setPane('messages');
   };
 
-  const bar = <View style={s.bar} accessibilityRole="tablist">
-    <ChromeIconButton glyph="back" label={pane === 'overview' ? 'Nazad na Dogovore' : 'Nazad na pregled'} onPress={pane === 'overview' ? back : () => setPane('overview')} />
-    <View style={s.barIcons}>
-      <BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} short={owner ? 'Dogovoreni' : 'Dogovor'} art="agreements" selected={pane === 'agreed'} onPress={() => toggle('agreed')} />
-      {owner ? <BarIcon label="Prijave" short="Prijave" art="applications" selected={pane === 'applications'} badge={appCount} onPress={() => toggle('applications')} /> : null}
+  // Owner-approved look (canvas of 25.11.2026, with the app's 3D pictures): back, the task and its pencil on top; under them
+  // the four parts of the task - Pregled, Dogovoreni, Prijave, Poruke - each saying how many, the open one underlined.
+  const bar = <View style={s.bar}>
+    <View style={s.head}>
+      <ChromeIconButton glyph="back" label="Nazad na Dogovore" onPress={back} />
+      <T variant="bodyStrong" accessibilityRole="header" numberOfLines={2} style={s.headTitle}>{summary?.title || title || 'Dogovor'}</T>
+      {owner ? <ChromeIconButton glyph="edit" label="Uredite zadatak" onPress={() => setPane('edit')} /> : null}
+    </View>
+    <View style={s.barIcons} accessibilityRole="tablist">
+      <BarIcon label="Pregled zadatka" short="Pregled" art="tasks" selected={pane === 'overview' || pane === 'edit'} onPress={() => setPane('overview')} />
+      <BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} short={owner ? `Dogovoreni${live.length ? ` ${live.length}` : ''}` : 'Dogovor'} art="agreements"
+        selected={pane === 'agreed'} onPress={() => setPane('agreed')} />
+      {owner ? <BarIcon label="Prijave" short={`Prijave${appCount ? ` ${appCount}` : ''}`} art="applications" selected={pane === 'applications'}
+        dot={appCount > 0} onPress={() => setPane('applications')} /> : null}
       {anchor && live.length ? <BarIcon label="Poruke" short="Poruke" art="chat" selected={pane === 'messages' || pane === 'group'} onPress={openMessages} /> : null}
-      {owner ? <BarIcon label="Uređivanje zadatka" short="Izmene" art="publish" selected={pane === 'edit'} onPress={() => toggle('edit')} /> : null}
     </View>
   </View>;
 
@@ -276,7 +288,6 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
       onMore={removable && isLiveAgreement(person.agreement) ? () => setMenuFor(person) : undefined} />;
     body = <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
       {pane === 'overview' ? <View style={s.overview}>
-        <T variant="title" accessibilityRole="header">{summary.title}</T>
         <View style={s.valueWithArt}>
           <View style={s.valueArt}><FactArt kind="money" size={FACT_ROW_ART} /></View>
           <View style={s.valueCopy}>
@@ -358,12 +369,17 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   flex: { flex: 1, minWidth: 0 },
-  bar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs,
+  bar: { paddingHorizontal: sys.space.sm, paddingTop: sys.space.xs, gap: sys.space.xs,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line, backgroundColor: sys.color.surface },
-  barIcons: { flex: 1, flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center' },
-  barIcon: { minWidth: 64, minHeight: 64, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  barIcons: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end' },
+  barIcon: { flex: 1, minHeight: 64, alignItems: 'center', justifyContent: 'center', gap: 2, paddingBottom: sys.space.xs,
+    borderBottomWidth: 2, borderBottomColor: 'transparent' },
   barDisc: { width: 44, height: 44, borderRadius: sys.radius.pill, borderCurve: 'continuous', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  barDiscOn: { backgroundColor: sys.color.greenSoft },
+  barDiscOn: {},
+  barIconOn: { borderBottomWidth: 2, borderBottomColor: sys.color.ink },
+  dotNew: { position: 'absolute', top: 6, right: 14, width: 9, height: 9, borderRadius: 5, backgroundColor: sys.color.warn },
+  head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  headTitle: { flex: 1, minWidth: 0 },
   barLabel: { color: sys.color.muted, fontSize: 12, lineHeight: 15 },
   barLabelOn: { color: sys.color.ink, fontWeight: '700' },
   badge: { position: 'absolute', top: 2, right: 2, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,
@@ -386,6 +402,11 @@ const s = StyleSheet.create({
   gridName: { textAlign: 'center', fontWeight: '600', color: sys.color.ink },
   list: { gap: sys.space.md },
   earlierTitle: { marginTop: sys.space.sm },
+  person: { gap: sys.space.md, paddingVertical: sys.space.lg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
+  personHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  personWho: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  personFacts: { gap: sys.space.sm },
+  personFoot: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   personCard: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   personFace: { width: 72, alignItems: 'center', gap: 4 },
   personName: { textAlign: 'center', fontWeight: '600' },

@@ -36,13 +36,14 @@ test('remote task and different prices are said plainly', () => {
 
 test('the task screen: back and four premium 3D icons on top (handshake, blue paper plane, chat, notepad for edits); overview below', () => {
   const hub=read('src/ui/agreements/AgreementTaskHub.tsx');
-  has(hub,"<BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} short={owner ? 'Dogovoreni' : 'Dogovor'} art=\"agreements\"");
-  has(hub,"{owner ? <BarIcon label=\"Prijave\" short=\"Prijave\" art=\"applications\"",'Prijave only for the task owner, with the blue paper plane');
+  has(hub,"<BarIcon label=\"Pregled zadatka\" short=\"Pregled\" art=\"tasks\"",'Pregled is the first part (approved canvas, 25.11.2026)');
+  has(hub,"short={owner ? `Dogovoreni${live.length ? ` ${live.length}` : ''}` : 'Dogovor'} art=\"agreements\"",'Dogovoreni says how many');
+  has(hub,"{owner ? <BarIcon label=\"Prijave\" short={`Prijave${appCount ? ` ${appCount}` : ''}`} art=\"applications\"",'Prijave only for the task owner, with the blue paper plane and the count');
+  has(hub,"<ChromeIconButton glyph=\"edit\" label=\"Uredite zadatak\"",'the pencil sits beside the task title');
   has(hub,"<BarIcon label=\"Poruke\" short=\"Poruke\" art=\"chat\"",'one Poruke icon: the group and each private conversation (owner, 25.11.2026)');
   has(hub,"if (!hasGroup && live.length === 1) openAgreement(live[0].agreementId, 'poruke');",'one person: that conversation opens at once');
   has(hub,"Grupni razgovor</T>",'several people: the group on top of the list');
   has(hub,'{short}</T>','every icon says what it opens (owner-approved look, 25.11.2026)');
-  has(hub,"{owner ? <BarIcon label=\"Uređivanje zadatka\" short=\"Izmene\" art=\"publish\"");
   has(hub,"<GroupConversationScreen agreementId={anchor.id} embedded />",'the group conversation is on the same screen');
   has(hub,"<T variant=\"label\" tone=\"muted\">Opis</T>"); has(hub,"Približno mesto, oko 200 m.");
   has(hub,"<T variant=\"bodyStrong\">{owner ? 'Dogovoreno sa' : 'Objavio zadatak'}</T>");
@@ -75,8 +76,8 @@ test('Prijave: swipe right opens the existing selection review, swipe left decli
 
 test('completion per person: the card offers the next step and opens the existing review of that Dogovor', () => {
   const hub=read('src/ui/agreements/AgreementTaskHub.tsx'), page=read('src/app/dogovor/[id].tsx');
-  has(hub,"canConfirm ? <V2Action tone=\"brand\" label=\"Potvrdite završetak\" onPress={onComplete} />");
-  has(hub,"canReport ? <V2Action tone=\"brand\" label=\"Zadatak je gotov\" onPress={onComplete} />");
+  has(hub,"canConfirm ? <V2Action tone=\"brand\" label=\"Potvrdite završetak\" onPress={onComplete} style={s.flex} />");
+  has(hub,"canReport ? <V2Action tone=\"brand\" label=\"Zadatak je gotov\" onPress={onComplete} style={s.flex} />");
   has(hub,'label="Ocenite saradnju" onPress={onRate}');
   has(hub,'Ako ne odgovorite, završetak se sam potvrđuje: {autoConfirm}.','the 48 h automatic confirmation is said where the decision is');
   has(hub,"params: { id: person.agreementId, action: 'complete' }");
