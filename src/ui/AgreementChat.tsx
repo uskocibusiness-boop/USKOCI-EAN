@@ -521,8 +521,8 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           </View> : null}
           {/* Measure the complete pre-message region: failure replaces this action with the notice,
               so compensating the notice alone would shift an older message by the removed button's height. */}
-          {!error && !refreshError && !terminal && (shown.length > 0 || local.length > 0) && !(loading && !shown.length)
-            ? <ChatAction label="Osvežite poruke" onPress={() => void refresh()} refresh quiet busy={refreshing} /> : null}
+          {/* New messages arrive on their own and a pull down refreshes the thread, so a running conversation carries no
+              standing refresh link above its messages (owner-approved tidy chat, 25.11.2026). */}
         </View>
         {!error && hasOlder && onLoadOlder ? <View>
           {historyError && historyErrorDirection === 'older' ? <T variant="note" tone="muted" style={s.centerText} accessibilityLiveRegion="polite">Starije poruke nisu učitane. Prepiska ostaje ovde.</T> : null}

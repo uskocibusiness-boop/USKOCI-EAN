@@ -831,7 +831,7 @@ export const lazniIzvor: Izvor = {
   async prijaviProblem(dogovorId, opis) {
     await kasnjenje();
     if (!opis.trim()) {
-      return { ok: false, kod: 'EMPTY', naslov: 'Opiši problem', poruka: 'Bez opisa ne možemo da pomognemo.' };
+      return { ok: false, kod: 'EMPTY', naslov: 'Opišite problem', poruka: 'Bez opisa ne možemo da pomognemo.' };
     }
     const z = zavrsetakZa(dogovorId);
     if (z.stanje === 'COMPLETED') {

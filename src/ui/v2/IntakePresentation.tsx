@@ -207,7 +207,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   summary: Summary; stillNeeded: string | null; open: boolean; busy: boolean; compact: boolean; canReview: boolean;
   onReview: () => void; note: string | null;
   reviewDisabledReason?: string | null;
-  /** The review's own name, also used by conversation tools ("Pregledaj izmene" for an existing task). */
+  /** The review's own name, also used by conversation tools ("Pregledajte izmene" for an existing task). */
   reviewLabel?: string;
   /** The conversation changes a task that already exists: the card says it to a screen reader, never over the name. */
   editing?: boolean;
@@ -331,7 +331,7 @@ export function IntakePresentation(props: Props) {
   const safetyCopy = unassessedEmpty ? null : safetyMessage(conversation.safety);
   const open = conversation.status === 'OPEN';
   // A conversation that is over takes no more words: the field and the microphone are gone (the owner's phone, 8 Oct 2026: "Razgovor je završen" over a field
-  // that still said "Opiši šta ti treba"), and where they stood is the one green action, the review, with its own name. It needs no sentence of its own.
+  // that still said "Opišite šta ti treba"), and where they stood is the one green action, the review, with its own name. It needs no sentence of its own.
   const ended = conversation.status === 'COMPLETED' || conversation.status === 'ABANDONED';
   const completed = conversation.status === 'COMPLETED';
   const hasConversation = !!conversation.conversationId;

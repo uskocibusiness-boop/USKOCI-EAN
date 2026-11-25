@@ -270,7 +270,7 @@ export function MyApplicationsPresentation(props: Props) {
                     : 'Proverite stanje prijave pre nastavka. Ponovni pokušaj koristi isti zahtev.'}</T>
               <V2Action label="Proverite stanje prijave" onPress={props.onRefresh} disabled={props.busy} />
               {props.canRetry ? <V2Action label="Ponovite istu radnju" onPress={props.onRetry} disabled={props.busy} /> : null}
-              {props.canReset ? <V2Action label="Pregledaj trenutnu prijavu" onPress={props.onReset} disabled={props.busy} /> : null}</Surface> : null}
+              {props.canReset ? <V2Action label="Pregledajte trenutnu prijavu" onPress={props.onReset} disabled={props.busy} /> : null}</Surface> : null}
           </View> : null}
           {/* How many applications the set shows: the list's first line, which scrolls away with it. */}
           {showsCount ? <T testID="applications-count" variant="note" tone="muted">{prijava(shown)}</T> : null}

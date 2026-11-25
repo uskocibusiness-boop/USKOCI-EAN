@@ -173,7 +173,7 @@ export function productPriceParts(input: Parameters<typeof needPriceText>[0] & P
 
 /**
  * The screen's one primary action at the foot of a detail: its words, a count when the words are about
- * something counted ("Pregledaj prijave · 3"), and an arrow when it leads somewhere. What the count
+ * something counted ("Pregledajte prijave · 3"), and an arrow when it leads somewhere. What the count
  * means is said to a screen reader through `accessibilityLabel`.
  */
 export function ProductFooterAction({ label, count, accessibilityLabel, onPress, disabled = false, arrow = true }: {

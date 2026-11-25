@@ -39,7 +39,7 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
   };
   if (view.phase === 'RESOLVED' && view.result === 'REFUSED') return {
     title: 'Potraga nije ponovo otvorena',
-    detail: view.error ?? 'Pregledaj trenutno stanje pre sledeće radnje.',
+    detail: view.error ?? 'Pregledajte trenutno stanje pre sledeće radnje.',
     art: 'info',
     quiet: true,
     primary: { label: 'Prikažite trenutno stanje', action: 'ACK' },
@@ -55,7 +55,7 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
       detail: currentlyOpen ? missingPeople(state.missingSlots)
         : state.searchAuthority === 'CLOSED'
           ? 'Potraga je sada zatvorena, iako je ranije bila ponovo otvorena.'
-          : 'Pregledaj trenutni zadatak i svoje Dogovore.',
+          : 'Pregledajte trenutni zadatak i svoje Dogovore.',
       art: currentlyOpen ? 'check' : 'users',
       quiet: !currentlyOpen,
       primary: { label: 'Prikažite trenutno stanje', action: 'ACK' },

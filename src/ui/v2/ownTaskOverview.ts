@@ -102,12 +102,12 @@ export function ownTaskOverview(input: {
     const held = readinessCopy(gate) !== null;
     const code = gate.kind === 'NOT_READY' ? gate.code : null;
     const waits = !!code && WAIT_CODES.has(code);
-    const primary: OverviewPrimary | null = !held ? { kind: 'REVIEW', label: 'Pregledaj za objavu' }
+    const primary: OverviewPrimary | null = !held ? { kind: 'REVIEW', label: 'Pregledajte za objavu' }
       : waits ? null
         // The place and the country are fixed where they are asked, in the conversation. The copy of every other answer sends the
         // owner to the review ("Otvorite pregled da vidiš šta nedostaje"), which lists what is missing.
         : code && FIX_CODES.has(code) ? { kind: 'EDIT', label: 'Otvorite razgovor i dopuni' }
-          : { kind: 'REVIEW', label: 'Pregledaj za objavu' };
+          : { kind: 'REVIEW', label: 'Pregledajte za objavu' };
     // The chip says "Nacrt" and the one action says what to do with it: a sentence about the draft would say the same a third time.
     return { chip: standing.chip, notice: null, line: null, applicants: 0, note: null, primary, waits,
       rows: { applications: false, agreements: false } };
@@ -204,7 +204,7 @@ export type NoApplicationsHelpAction = 'PHOTO' | 'WIDEN_TERM' | 'SHARE' | 'EDIT'
 export type NoApplicationsHelp = { sentence: string; actions: readonly NoApplicationsHelpAction[] };
 /** The words of each button. */
 export const NO_APPLICATIONS_HELP_LABEL: Readonly<Record<NoApplicationsHelpAction, string>> = {
-  PHOTO: 'Dodajte fotografiju', WIDEN_TERM: 'Proširi termin', SHARE: 'Podelite zadatak', EDIT: 'Izmenite zadatak',
+  PHOTO: 'Dodajte fotografiju', WIDEN_TERM: 'Proširite termin', SHARE: 'Podelite zadatak', EDIT: 'Izmenite zadatak',
 };
 const HOUR_MICROS = 3_600_000_000n;
 

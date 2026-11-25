@@ -313,7 +313,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   const hourly = priceBasis === 'HOURLY';
   const left = need.pokrivenost.preostalo;
   const shownBlock = !canSubmit && !confirmed && !pending && blocked ? blocked : null;
-  // The footer's last branch: nothing sent, nothing uncertain, nothing in flight, so "Pregledaj prijavu" is the action.
+  // The footer's last branch: nothing sent, nothing uncertain, nothing in flight, so "Pregledajte prijavu" is the action.
   const reviewAction = !confirmed && !uncertain && !pending && !busy;
   // What was sent, or saved to be checked, is shown as facts; a form is shown only while it can be edited.
   const locked = confirmed || pending || uncertain;
@@ -330,7 +330,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
     // A known refusal cannot be undone by repeating the same command: the one way on is a new application on fresh terms.
     : reset ? <V2Action label="Sastavi novu prijavu" onPress={reset} disabled={busy} style={brandAction} />
     : pending || busy ? <V2Action label={busy ? 'Slanje…' : 'Pošaljite ponovo'} onPress={submit} disabled={busy} loading={busy} style={brandAction} />
-    : <V2Action label="Pregledaj prijavu" onPress={openReview} disabled={!canSubmit || reviewing || !!issue.reason} style={brandAction} />;
+    : <V2Action label="Pregledajte prijavu" onPress={openReview} disabled={!canSubmit || reviewing || !!issue.reason} style={brandAction} />;
   // A reason that names a fresh read of the task has the read under it: the task without its price, or without the
   // places this application would take, including a proportional share of a TOTAL budget.
   const refreshFixes = issue.price === 'missing' || (issue.people === 'over' && left < 1);

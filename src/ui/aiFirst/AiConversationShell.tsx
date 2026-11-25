@@ -78,7 +78,7 @@ export type AiConversationShellProps = {
   footerAction?: ReactNode;
   /**
    * The conversation is over and takes no more words: the field, the microphone and the voice mode are not drawn (the owner's phone, 8 Oct 2026: a
-   * finished conversation still invited "Opiši šta ti treba"). Where they stood is `footerAction`, the one thing left to do, or nothing.
+   * finished conversation still invited "Opišite šta ti treba"). Where they stood is `footerAction`, the one thing left to do, or nothing.
    */
   closed?: boolean;
   /** One controller for held/tapped speech and optional transcript review. */

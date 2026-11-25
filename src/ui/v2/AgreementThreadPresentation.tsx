@@ -99,17 +99,9 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
     {!compact ? <View testID="agreement-thread-tabs" style={s.tabs}>
       {channels ?? <AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} />}
     </View> : channels ? <View style={s.tabs}>{channels}</View> : null}
-    <AgreementChat {...chat} compact={compact} context={context} sender={message => {
-      // A private conversation has two people and the header already names the other one (owner-approved look,
-      // 25.11.2026): own messages carry no face or name; the other person's face stays beside their run.
-      if (message.moja) return null;
-      const member = agreement.ucesnici.find(item => message.posiljalacAccountId ? item.id === message.posiljalacAccountId : item.viSte === message.moja);
-      const fallback = <Avatar initials={member?.inicijali ?? null} size={40} />;
-      return <View style={[s.sender, message.moja && s.senderMine]}>
-        {member?.profilId ? <ProfilePhoto profileId={member.profilId} size={40} fallback={fallback} /> : fallback}
-        <T variant="note" tone="muted">{member?.ime || (message.moja ? 'Vi' : message.posiljalacIme || 'Sagovornik')}</T>
-      </View>;
-    }} />
+    {/* A private conversation has two people and the header already names and shows the other one (owner-approved tidy chat,
+        25.11.2026): no message carries a face or a name; the bubble side says who wrote it. */}
+    <AgreementChat {...chat} compact={compact} context={context} sender={() => null} />
   </View>;
 }
 
@@ -132,8 +124,6 @@ const s = StyleSheet.create({
   // The context joins the history's scroll at a large text size; it is parted from the first message by space, not by a line.
   context: { gap: sys.space.base, paddingBottom: layout.section, marginBottom: sys.space.md },
   person: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
-  sender: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: sys.space.xs },
-  senderMine: { alignSelf: 'flex-end' },
   personCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   waiting: { color: sys.color.warn },
 });

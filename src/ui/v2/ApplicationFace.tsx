@@ -25,7 +25,7 @@ import { PrijavaCard, prijavaSpoken, type PrijavaModel, type PrijavaPrice, type 
  *   - the interactive shell: the body opens the task, a long note has a separate read-only control to open its complete text,
  *     and the foot holds at most ONE action, the one this state allows, as a quiet row link under a line (never a button inside the card,
  *     and never green for a withdrawal): Izabrana → "Otvorite Dogovor", an open one the server lets me withdraw → "Povucite prijavu" (a
- *     quiet ink link; the danger colour is kept for the question it opens), a changed task → "Pregledaj izmene zadatka" (the one
+ *     quiet ink link; the danger colour is kept for the question it opens), a changed task → "Pregledajte izmene zadatka" (the one
  *     orange dot of the card); nothing for a state that is over.
  *
  * The body opens the task the application belongs to, as it always did. The foot is its own press, a sibling of the body. The frame
