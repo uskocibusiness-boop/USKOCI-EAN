@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
-import { HowItWorks } from '../home/HowItWorks';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { FactArt } from '../system/FactArt';
 import { layout, ruleWidth } from '../system/layout';
@@ -197,7 +196,6 @@ export function WorkerProfileForm({ draft, disabled, status, navigate, openConve
     <T variant="note" tone="muted">Razgovor možete da nastavite kasnije. Profil aktivirate tek kada pregledate i potvrdite podatke.</T>
   </View>;
   return <>
-    {status !== 'SUSPENDED' ? <HowItWorks topic="workerProfile" /> : null}
     <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
     showConversationAction={showConversationAction}
     executionModes={executionModes} refreshModes={refreshModes} confirmMap={confirmMap}

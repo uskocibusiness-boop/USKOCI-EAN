@@ -190,9 +190,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
           <T style={styles.signUpText}>{authCopy.signUp}</T>
         </Press> : null}
         {(error || selectionError) ? <T accessibilityRole="alert" style={styles.error}>{error || selectionError}</T> : null}
-        <View style={styles.footnote}>
-          <T style={styles.footnoteText}>Jedan nalog za obe uloge</T>
-        </View>
+        {/* Owner, 25.11.2026: no technical footnote ("Jedan nalog za obe uloge"); the two pictures already say both roles. */}
       </Animated.View>
     </ScrollView>
     {selected ? <View testID="entry-preparing" style={styles.preparingCover}

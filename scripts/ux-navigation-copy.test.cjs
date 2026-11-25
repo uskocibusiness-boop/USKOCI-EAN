@@ -494,19 +494,20 @@ test('R11 manual help is a hidden detail destination and cannot become a fifth t
  assert.match(read('src/app/(app)/_layout.tsx'),/<Tabs\.Screen name="profil\/kako-radi" options=\{\{ href: null, \.\.\.FULL \}\} \/>/);
 });
 
-test('R11 contextual messages are in the scroll header and step aside for an unavailable inbox',async()=>{
+// Owner, 25.11.2026: no tip cards on screens ("Ukloni savete"); „Kako radi“ stays in Profil.
+test('R11 Poruke show no tip card in any state',async()=>{
  const h=createHarness();h.native.FlatList=p=>React.createElement('FlatList',p,p.ListHeaderComponent);
  h.stubs['src/ui/system/StateView.tsx']={StateView:h.host('StateView')};
  const C=h.load('src/ui/messages/ConversationInboxPresentation.tsx').ConversationInboxPresentation;
  const props={items:null,loading:true,refreshing:false,error:false,paging:false,pageError:false,hasMore:false,onOpen:()=>{},onRefresh:()=>{},onLoadMore:()=>{}};
  const r=await mount(C,props);assert.equal(nodes(r,n=>n.type==='HowItWorks').length,0);
  await RTR.act(async()=>r.update(React.createElement(C,{...props,items:[],loading:false})));
- assert.equal(nodes(r,n=>n.type==='HowItWorks')[0].props.topic,'messages');
+ assert.equal(nodes(r,n=>n.type==='HowItWorks').length,0);
  await RTR.act(async()=>r.update(React.createElement(C,{...props,items:[],loading:false,error:true})));
  assert.equal(nodes(r,n=>n.type==='HowItWorks').length,0);await unmount(r);
 });
 
-test('R11 saved profile guide does not duplicate the pristine setup introduction or dilute suspension',async()=>{
+test('R11 the work profile keeps its setup introduction and shows no tip card',async()=>{
  const h=createHarness();
  h.stubs['src/ui/system/tokens.ts'].sys.conversation={};
  for(const [file,name]of [['src/ui/system/DetailTopBar.tsx','DetailTopBar'],['src/ui/system/ConversationArt.tsx','ConversationArt'],
@@ -516,12 +517,12 @@ test('R11 saved profile guide does not duplicate the pristine setup introduction
  const props={draft:{},change:()=>{},navigate:()=>{},disabled:false,status:null,profileExists:false};
  const r=await mount(C,props);assert.equal(nodes(r,n=>n.type==='HowItWorks').length,0);assert.equal(nodes(r,n=>n.props.testID==='worker-profile-intro').length,1);
  await RTR.act(async()=>r.update(React.createElement(C,{...props,profileExists:true,status:'ACTIVE'})));
- assert.equal(nodes(r,n=>n.type==='HowItWorks')[0].props.topic,'workerProfile');assert.equal(nodes(r,n=>n.type==='WorkerProfileSaved').length,1);
+ assert.equal(nodes(r,n=>n.type==='HowItWorks').length,0);assert.equal(nodes(r,n=>n.type==='WorkerProfileSaved').length,1);
  await RTR.act(async()=>r.update(React.createElement(C,{...props,profileExists:true,status:'SUSPENDED'})));
  assert.equal(nodes(r,n=>n.type==='HowItWorks').length,0);assert.equal(nodes(r,n=>n.type==='WorkerProfileSaved').length,1);await unmount(r);
 });
 
-test('R11 Agreement guidance stays inside the scroll list and does not compete with search, history or read recovery',async()=>{
+test('R11 Dogovori show no tip card in any state',async()=>{
  const h=createHarness();h.native.Keyboard={dismiss:()=>{}};
  h.native.FlatList=p=>React.createElement('FlatList',p,p.ListHeaderComponent);
  h.stubs['react-native-safe-area-context']={SafeAreaView:h.host('SafeAreaView')};
@@ -531,7 +532,7 @@ test('R11 Agreement guidance stays inside the scroll list and does not compete w
  const C=h.load('src/ui/v2/AgreementCollectionPresentation.tsx').AgreementCollectionPresentation;
  const props={items:[],section:'active',confirmationOnly:false,loading:false,error:false,
   onSection:()=>{},onConfirmationOnly:()=>{},onRefresh:()=>{},onOpen:()=>{},onCalendar:()=>{},onProfile:()=>{},onHome:()=>{}};
- const r=await mount(C,props);assert.equal(nodes(r,n=>n.type==='HowItWorks')[0].props.topic,'agreements');
+ const r=await mount(C,props);assert.equal(nodes(r,n=>n.type==='HowItWorks').length,0);
  for(const patch of [{loading:true},{error:true},{section:'history'},{search:{open:true,query:'',onToggle:()=>{},onChange:()=>{}}}]){
   await RTR.act(async()=>r.update(React.createElement(C,{...props,...patch})));assert.equal(nodes(r,n=>n.type==='HowItWorks').length,0);
  }
