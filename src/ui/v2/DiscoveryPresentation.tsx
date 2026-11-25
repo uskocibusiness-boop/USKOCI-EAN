@@ -921,31 +921,14 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   useAnimatedReaction(() => {
     const visit = barVisit;
     if (!hasBar || !focused || cardShown) return { progress: 1, visit };
-    const animIdx = sheetAnimatedIndex.value;
-    const hasAnimIdx = typeof animIdx === 'number' && Number.isFinite(animIdx) && animIdx >= 0;
-    if (bodyHeight > 0 && typeof snapPoints[0] === 'number' && typeof snapPoints[1] === 'number') {
-      const current = position.value;
-      const halfTop = bodyHeight - snapPoints[1];
-      const peekTop = bodyHeight - snapPoints[0];
-      if (peekTop > halfTop) {
-        if (current <= halfTop + 4 || (hasAnimIdx && animIdx >= 0.95)) return { progress: 0, visit };
-        if (current >= peekTop - 4 || (hasAnimIdx && animIdx <= 0.05)) return { progress: 1, visit };
-        const raw = (current - halfTop) / (peekTop - halfTop);
-        return { progress: Math.max(0, Math.min(1, Math.round(raw * 50) / 50)), visit };
-      }
-    }
-    if (hasAnimIdx) {
-      if (animIdx <= 0.05) return { progress: 1, visit };
-      if (animIdx >= 0.95) return { progress: 0, visit };
-      const raw = 1 - Math.min(1, animIdx);
-      return { progress: Math.max(0, Math.min(1, Math.round(raw * 50) / 50)), visit };
-    }
-    return { progress: sheetIndex > SNAP.peek ? 0 : 1, visit };
+    // Owner-approved look (25.11.2026): the tab bar stays at every stop of the list, also when it is lowered onto the map; only the
+    // chosen-pin card (which sits where the bar is) puts it away.
+    return { progress: 0, visit };
   }, (next, previous) => {
     if (!previous || next.progress !== previous.progress || next.visit !== previous.visit) {
       runOnJS(receiveBarProgress)(next.progress);
     }
-  }, [hasBar, focused, cardShown, sheetIndex, windowHeight, bodyHeight, snapPoints, position, sheetAnimatedIndex, barVisit, coverageOwner, receiveBarProgress]);
+  }, [hasBar, focused, cardShown, barVisit, coverageOwner, receiveBarProgress]);
   const [coverage, setCoverage] = useState<{ owner: typeof coverageOwner; covered: boolean } | null>(null);
   const receiveCoverage = useCallback((covered: boolean) => {
     if (!focused || !coverageOwner.active || currentCoverageOwner.current !== coverageOwner) return;

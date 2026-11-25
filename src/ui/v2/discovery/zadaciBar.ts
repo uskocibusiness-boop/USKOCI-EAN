@@ -3,8 +3,8 @@ import { Animated, Easing, Platform, type ViewStyle } from 'react-native';
 import { sys } from '../../system/tokens';
 
 /**
- * The navigator owns one bar and its measured height. Discovery shows it at HALF/FULL,
- * hides it at the lowered map PEEK stop and during a selected-pin preview.
+ * The navigator owns one bar and its measured height. Discovery shows it at every list stop (owner, 25.11.2026)
+ * and hides it only during a selected-pin preview.
  *
  * The layout (`app/(app)/_layout`) owns the bar, so it owns the one value that moves it (`hidden`: 0 the bar is on show, 1 it is away) and
  * says how tall it is (`height`, its own height and the margin under it, which is the system inset or 12). It hands both to the screen
