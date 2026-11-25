@@ -19,6 +19,22 @@ export function discoveryV1SelectedTaskPrice(marker: DiscoveryV1MapMarker, selec
   return basis ? `${price.prikaz} ${basis}` : null;
 }
 
+/**
+ * The short price beside an unchosen task pin (owner, 25.11.2026: „Dozvoli cenu na pinu“). The MAP bucket carries no price, so it comes from
+ * the list item with the same task ID, and only when that item's public point is the pin's point. A price the person set says its amount
+ * („3.000 RSD“, „800 RSD/sat“); a task that waits for offers says „Ponude“. Anything else stays the plain mark.
+ */
+export function discoveryV1PinPrice(marker: DiscoveryV1MapMarker, item: MarketplaceItem | undefined): string | null {
+  if (marker.kind !== 'TASK' || !item || item.id !== marker.taskId) return null;
+  const point = publicPoint(item);
+  if (!point || pointKey(point) !== pointKey(marker.point)) return null;
+  if (item.rezimCene === 'OFFERS') return 'Ponude';
+  if (item.rezimCene !== 'MY_PRICE') return null;
+  const price = item.ponudjenaCena, amount = price?.iznos;
+  if (!price || price.valuta !== 'RSD' || typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 1 || amount > 2_147_483_647) return null;
+  return item.osnovaCene === 'HOURLY' ? `${novac(amount)}/sat` : novac(amount);
+}
+
 /** The sprite of a capsule: the mark alone for one task, the mark and room for 1 to 4 characters of count for several. */
 export type DiscoveryV1PinImage = 'p6-pin-task' | 'p6-pin-count-1' | 'p6-pin-count-2' | 'p6-pin-count-3' | 'p6-pin-count-4';
 

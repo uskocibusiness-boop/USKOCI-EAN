@@ -1,7 +1,8 @@
 import { memo, useEffect, useMemo } from 'react';
 import { GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import type { DiscoveryV1MapMarker } from '../../../data/discoveryV1MarketplaceAdapter';
-import { discoveryV1SelectedTaskPrice, discoveryV1ServerMarkerSpecs,
+import type { MarketplaceItem } from '../../../data/marketplaceView';
+import { discoveryV1PinPrice, discoveryV1SelectedTaskPrice, discoveryV1ServerMarkerSpecs,
   type DiscoveryV1ExactSelectedTask } from '../../../data/discoveryV1ServerMarkerPresentation';
 import { traceDiscoveryV1 } from '../../../data/discoveryV1Trace';
 import { sys } from '../../system/tokens';
@@ -10,6 +11,8 @@ export type DiscoveryV1ServerMarkerLayerProps = {
   markers: readonly DiscoveryV1MapMarker[];
   selectedKey: string | null;
   selectedTask?: DiscoveryV1ExactSelectedTask | null;
+  /** The tasks the list already holds; a task pin shows its price from here. */
+  items?: readonly MarketplaceItem[];
   onSelect: (marker: DiscoveryV1MapMarker) => void;
 };
 
@@ -57,6 +60,7 @@ export const DiscoveryV1ServerMarkerLayer = memo(function DiscoveryV1ServerMarke
   const specs = useMemo(() => discoveryV1ServerMarkerSpecs(props.markers, null), [props.markers]);
   const byKey = useMemo(() => new Map(props.markers.map(marker => [marker.key, marker] as const)), [props.markers]);
   const chosen = props.selectedKey ?? '';
+  const itemById = useMemo(() => new Map((props.items ?? []).map(item => [item.id, item] as const)), [props.items]);
   const selectedPrice = useMemo(() => {
     const marker = byKey.get(chosen);
     return marker ? discoveryV1SelectedTaskPrice(marker, props.selectedKey, props.selectedTask) : null;
@@ -65,8 +69,9 @@ export const DiscoveryV1ServerMarkerLayer = memo(function DiscoveryV1ServerMarke
     type: 'Feature', geometry: { type: 'Point', coordinates: [spec.point.lng, spec.point.lat] },
     properties: { key: spec.marker.key, kind: spec.marker.kind, count: spec.marker.taskCount, label: spec.pin.count,
       image: spec.pin.image, chosenImage: spec.pin.chosenImage, order: spec.order,
+      ...(spec.marker.kind === 'TASK' ? { price: discoveryV1PinPrice(spec.marker, itemById.get(spec.marker.taskId)) ?? '' } : {}),
       ...(selectedPrice && spec.marker.key === chosen ? { selectedPrice } : {}) },
-  })) }), [specs, chosen, selectedPrice]);
+  })) }), [specs, chosen, selectedPrice, itemById]);
   // DEV package only: how many buckets are on the native map.
   useEffect(() => { traceDiscoveryV1('markers', `${Math.min(specs.length, 9999)}/1`); }, [specs.length]);
   return <GeoJSONSource id={SERVER_MARKER_SOURCE_ID} data={data} hitbox={{ top: 24, right: 24, bottom: 24, left: 24 }}
@@ -82,6 +87,11 @@ export const DiscoveryV1ServerMarkerLayer = memo(function DiscoveryV1ServerMarke
         'text-field': ['get', 'label'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': COUNT_SIZE, 'text-offset': COUNT_OFFSET,
         'text-allow-overlap': true, 'text-ignore-placement': true }}
       paint={{ 'text-color': sys.color.onGreen, 'text-halo-color': sys.color.onGreen, 'text-halo-width': 0.4 }} />
+    {/* Owner, 25.11.2026: the price sits under an unchosen task pin; where prices would collide, the map shows the one it can place. */}
+    <Layer id="p6-pin-price" type="symbol" filter={['all', ['!=', ['get', 'key'], chosen], ['==', ['get', 'kind'], 'TASK'], ['!=', ['get', 'price'], '']]}
+      layout={{ 'symbol-sort-key': ['get', 'order'], 'text-field': ['get', 'price'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': 13,
+        'text-anchor': 'top', 'text-offset': [0, 0.25], 'text-max-width': 12, 'text-optional': true }}
+      paint={{ 'text-color': sys.color.ink, 'text-halo-color': sys.color.surface, 'text-halo-width': 2 }} />
     <Layer id="p6-chosen" type="symbol" filter={['==', ['get', 'key'], chosen]}
       layout={{ 'icon-image': ['get', 'chosenImage'], 'icon-size': PIN_ICON_SIZE * PIN_CHOSEN_SCALE, 'icon-anchor': ANCHOR,
         'icon-allow-overlap': true, 'icon-ignore-placement': true,
