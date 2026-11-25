@@ -158,7 +158,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
         outcome={decision.outcome} explanation={decision.explanation} time={supportTime(decision.createdAt)}>
         {detail.appeals.filter(appeal => appeal.decisionId === decision.id).map(appeal => <AppealLine key={appeal.id} appeal={appeal}
           detail={detail} model={model} disabled={actionsDisabled} onDecide={() => open('DECIDE_APPEAL', appeal.id)} />)}
-        {allowed('APPEAL') && !openAppeal ? <SettingsAction label="Zatraži ponovni pregled" kind="quiet" disabled={actionsDisabled}
+        {allowed('APPEAL') && !openAppeal ? <SettingsAction label="Zatražite ponovni pregled" kind="quiet" disabled={actionsDisabled}
           onPress={() => open('APPEAL', decision.id)} /> : null}
       </SupportDecisionBlock>;
     };
@@ -236,7 +236,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
           <View style={s.operatorActions}>
             {allowed('CLAIM') ? <SettingsAction label="Preuzmite predmet" kind="secondary" disabled={actionsDisabled}
               onPress={() => { if (current()) void controller?.submit('CLAIM', {}, state); }} /> : null}
-            {allowed('REQUEST_INFO') ? <SettingsAction label="Zatraži dopunu" kind="quiet" disabled={actionsDisabled} onPress={() => open('REQUEST_INFO')} /> : null}
+            {allowed('REQUEST_INFO') ? <SettingsAction label="Zatražite dopunu" kind="quiet" disabled={actionsDisabled} onPress={() => open('REQUEST_INFO')} /> : null}
             {allowed('DECIDE') ? <SettingsAction label="Donesi odluku" kind="quiet" disabled={actionsDisabled} onPress={() => open('DECIDE')} /> : null}
             {allowed('CLOSE') ? <SettingsAction label="Zatvorite obrađeni predmet" kind="quiet" disabled={actionsDisabled} onPress={askClose} /> : null}
           </View>

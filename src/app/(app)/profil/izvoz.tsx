@@ -155,7 +155,7 @@ function OwnedExport() {
         : saved.status === 'DOWNLOAD_STARTED' ? 'Preuzimanje je počelo u pregledaču. Fajl potraži u preuzetim datotekama.'
           : saved.status === 'CANCELLED' ? 'Čuvanje je otkazano. Kopija nije sačuvana.'
             : saved.status === 'UNSUPPORTED' ? 'Čuvanje fajla nije podržano na ovom uređaju.'
-              : saved.status === 'BUSY' ? 'Završi prethodni izbor fascikle pre novog pokušaja.'
+              : saved.status === 'BUSY' ? 'Završite prethodni izbor fascikle pre novog pokušaja.'
                 : saved.status === 'FAILED' && saved.code === 'EXISTS' ? 'Ova kopija već postoji u izabranoj fascikli. Izaberi drugu fasciklu.'
                   : saved.status === 'FAILED' && saved.code === 'CLEANUP_FAILED' ? 'Ne znamo da li je kopija sačuvana. U izabranoj fascikli može biti nepotpun fajl.'
                     : 'Čuvanje nije potvrđeno. Proveri stanje pa pokušaj ponovo.';
@@ -179,8 +179,8 @@ function OwnedExport() {
         onPress={() => { void prepare(); }} />
       // The retained key is set before the write, so while a first request runs its label is taken from `working`, not
       // from the key: the very first request never reads "Ponovite isti zahtev" beside its spinner.
-      : <Button label={editor.busy && working === 'request' ? request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'
-          : pendingKey.current ? 'Pošaljite ponovo' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy || editor.loading}
+      : <Button label={editor.busy && working === 'request' ? request ? 'Zatražite novu kopiju' : 'Zatražite izvoz'
+          : pendingKey.current ? 'Pošaljite ponovo' : request ? 'Zatražite novu kopiju' : 'Zatražite izvoz'} disabled={busy || editor.loading}
         loading={editor.busy && (working === 'request' || working === 'replay')} reason={rereading} onPress={() => { void requestExport(); }} />
     : null;
   const failed = editor.error || !status || fileReadbackRequired;

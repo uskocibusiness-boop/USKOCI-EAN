@@ -57,7 +57,7 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
         // The row whose answer is being written says so; its commands wait in the pill below, not beside it.
         ?<T variant="meta" tone="muted">Odgovaraš</T>
         :<View style={s.actions}>
-          {p.canAnswer?<V2Action label={q.status==='ANSWERED_PUBLIC'?'Izmenite odgovor':'Odgovori'} compact disabled={locked} onPress={()=>p.onChoose(q)}/>:null}
+          {p.canAnswer?<V2Action label={q.status==='ANSWERED_PUBLIC'?'Izmenite odgovor':'Odgovorite'} compact disabled={locked} onPress={()=>p.onChoose(q)}/>:null}
           {q.status==='PENDING_ANSWER'?<>
             <V2Action label="Preskoči pitanje" kind="quiet" compact disabled={locked} onPress={()=>ask('IGNORE',q)}/>
             <V2Action label="Prijavite pitanje" kind="destructive" compact disabled={locked} onPress={()=>ask('REPORT',q)}/></>:null}
@@ -93,7 +93,7 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
                 <TextInput accessibilityLabel="Isti tekst kao ranije" placeholder="Napišite isti tekst…" placeholderTextColor={sys.color.muted}
                   value={p.text} onChangeText={p.onText} editable={!p.busy} multiline style={s.field}/></View></>:null}
             {p.recovery.absent?<V2Action label="Pošaljite ponovo" style={brandAction} disabled={p.busy||sameTextMissing}
-              reason={sameTextMissing?'Upiši isti tekst pre ponavljanja.':null} onPress={p.onRetry}/>:null}
+              reason={sameTextMissing?'Upišite isti tekst pre ponavljanja.':null} onPress={p.onRetry}/>:null}
             {p.recovery.canCancel?<V2Action label="Odustanite od ovog slanja" kind="quiet" disabled={p.busy} onPress={p.onCancel}/>:null}
           </Surface>:null}
           {p.cannotAsk?<Surface kind="note" style={s.notice}><T>{p.cannotAsk.text}</T>
@@ -115,7 +115,7 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
       {c?<PillComposer value={p.text} onChange={p.onText} label={c.answering!==null?'Tekst odgovora':'Tekst pitanja'}
         placeholder={c.answering!==null?'Napišite odgovor…':'Napišite pitanje…'} sendLabel={c.answering!==null?'Objavi odgovor':'Pošaljite pitanje'}
         canSend={canSend} editable={!p.busy} onSend={p.onSend}
-        reason={length===0?(c.answering!==null?'Upiši odgovor pre objave.':'Upiši pitanje pre slanja.'):over?'Tekst je duži od dozvoljenog.':c.revisionChanged?'Zadatak je izmenjen.':null}
+        reason={length===0?(c.answering!==null?'Upišite odgovor pre objave.':'Upišite pitanje pre slanja.'):over?'Tekst je duži od dozvoljenog.':c.revisionChanged?'Zadatak je izmenjen.':null}
         above={<>
           {c.answering!==null?<View style={s.answering}>
             <View style={s.answeringText}><T variant="meta" tone="muted">Odgovor na</T><T variant="bodyStrong" numberOfLines={3}>{c.answering}</T></View>

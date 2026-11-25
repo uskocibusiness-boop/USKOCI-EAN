@@ -124,7 +124,7 @@ export function SupportRecovery({ busy, absent, working = null, onRead, onCancel
     </InlineNote>
     <View style={supportStyles.recoveryActions}>
       <SettingsAction kind="secondary" label="Proverite da li je uspelo" disabled={busy} loading={working === 'read'} onPress={onRead} />
-      <SettingsAction label="Zaustavi prethodno slanje" kind="quiet" disabled={busy} loading={working === 'cancel'} onPress={onCancel} />
+      <SettingsAction label="Zaustavite prethodno slanje" kind="quiet" disabled={busy} loading={working === 'cancel'} onPress={onCancel} />
       {onReplay || working === 'replay' ? <SettingsAction label="Pošaljite ponovo" kind="quiet" disabled={busy || !onReplay}
         loading={working === 'replay'} onPress={onReplay ?? (() => {})} /> : null}
     </View>

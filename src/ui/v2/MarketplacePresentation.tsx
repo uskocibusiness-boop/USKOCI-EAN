@@ -242,7 +242,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         : paging?.moreError ? <StateView kind="error" art="tasks" title="Nismo učitali sve rezultate" body="Preostali zadaci trenutno nisu dostupni."
           primary={{ label: 'Pokušajte ponovo', onPress: paging.onLoadMore }} />
         : filterActive ? <StateView art="map" illustration={ROBOT_ASSETS.needNoResults} title="Nema zadataka u ovom prikazu" body="Promenite pretragu ili filtere."
-          primary={{ label: 'Poništi filtere', onPress: () => change({ query: '', price: 'all', attention: false, selectedId: null }) }} />
+          primary={{ label: 'Poništite filtere', onPress: () => change({ query: '', price: 'all', attention: false, selectedId: null }) }} />
           : view.section === 'drafts' ? <StateView art="tasks" illustration={ROBOT_ASSETS.needWriting} title="Nemate nacrt" body="Nacrt pregledate pre objave." />
           : view.section === 'history' ? <StateView art="tasks" title="Istorija je prazna" body="Ovde su završeni, otkazani i istekli zadaci." />
           : items.length ? <StateView art="tasks" title="Nema aktivnih zadataka"
@@ -288,7 +288,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
       footer={dismiss => <>
         <V2Action label={draftCount === null || !exact ? 'Prikažite zadatke' : `Prikažite ${zadataka(draftCount)}`} disabled={draftCount === null}
           onPress={() => { change({ query: queryDraft, price: priceDraft, attention: attentionDraft, selectedId: null }); dismiss(); }} style={brandAction} />
-        <V2Action label="Poništi izbor" kind="quiet" onPress={() => { setQueryDraft(''); setPriceDraft('all'); setAttentionDraft(false); }} />
+        <V2Action label="Poništite izbor" kind="quiet" onPress={() => { setQueryDraft(''); setPriceDraft('all'); setAttentionDraft(false); }} />
       </>}>{() => <View style={s.sheetBody}>
         <Section title="Pretraga">
           <View style={s.search}>

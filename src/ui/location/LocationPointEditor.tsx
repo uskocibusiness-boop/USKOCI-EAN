@@ -664,7 +664,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.sm }}>
           <Button tone="neutral" label={`✓ Potvrdi ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdite tačku: ${title}`} kind="secondary"
             style={confirmAsPrimary ? { ...brandAction, flex: 1 } : { flex: 1 }} disabled={controlDisabled || !focused || loading} onPress={confirm} />
-          <Button tone="neutral" label={correctionOpen ? 'Završi izmenu' : 'Pomeri pin'} kind="quiet"
+          <Button tone="neutral" label={correctionOpen ? 'Završite izmenu' : 'Pomerite pin'} kind="quiet"
             disabled={controlDisabled || !focused} onPress={() => {
               if (correctionOpen) { if (owns()) { retireEditing(); setCorrectionOpen(false); } }
               else if (correct()) setExpandedMap(true);

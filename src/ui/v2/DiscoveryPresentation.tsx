@@ -1010,7 +1010,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     setAppliedMapPlace(place); pendingMapPlace.current = { scopeKey: props.scopeKey, place };
     setGeocodedTarget({ key: --geocodedKey.current, center: [position.longitude, position.latitude] });
   };
-  // "Poništi filtere" takes the conditions away, not the scope: "Za mene" is a choice of which tasks the list is about, so it stays.
+  // "Poništite filtere" takes the conditions away, not the scope: "Za mene" is a choice of which tasks the list is about, so it stays.
   const reset = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); setOffMap(false); setAppliedMapPlace(null); pendingMapPlace.current = null;
     props.onView({ ...initialMarketplaceView(), ...(props.p6Seam ? { where: 'onsite' as const } : {}), mode: view.mode, viewport: view.viewport, sheet: view.sheet, ...(view.forMe ? { forMe: true } : {}) }); };
 

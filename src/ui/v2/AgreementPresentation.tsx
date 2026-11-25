@@ -187,7 +187,7 @@ export function AgreementTerms({ agreement: a, compact = false, onProposeTerm }:
     </View>;
   }
   const price = /\d/.test(amount);
-  const termActionLabel = isNoTermText(a.vremeTekst) ? 'Postavi termin' : 'Promenite termin';
+  const termActionLabel = isNoTermText(a.vremeTekst) ? 'Postavite termin' : 'Promenite termin';
   return <Section title={sectionTitle} action={onProposeTerm ? { label: termActionLabel, onPress: onProposeTerm } : undefined}>
     {a.verzija > 1 ? <T variant="meta" tone="muted" style={s.changedNote}>Uslovi su izmenjeni.</T> : null}
     <View style={s.acceptedFacts}>

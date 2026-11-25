@@ -8,7 +8,7 @@ const EMPTY = { current: '', next: '', repeat: '' } as const;
 
 /** What the foot says while the green action cannot be pressed: the first thing that is missing, in the words of the sign-up. */
 export function passwordChangeReason(values: Readonly<Record<ChangePasswordField, string>>): string | null {
-  if (!values.current) return 'Upiši trenutnu lozinku.';
+  if (!values.current) return 'Upišite trenutnu lozinku.';
   if (values.next.length < NEW_PASSWORD_MIN) return `Nova lozinka mora imati najmanje ${NEW_PASSWORD_MIN} znakova.`;
   if (values.next === values.current) return 'Nova lozinka mora da bude drugačija od trenutne.';
   if (values.next !== values.repeat) return 'Nove lozinke se ne poklapaju.';

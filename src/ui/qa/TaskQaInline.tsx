@@ -85,7 +85,7 @@ function Thread({ ready, disabled, now, onAsk, onAnswer, onOpenAll }: Pick<TaskQ
       <T variant="bodyStrong" style={s.moreText}>{`Prikažite sva pitanja (${ready.all})`}</T>
       <Glyph name="caret-right" size={16} tone="green" />
     </Press> : null}
-    {ready.canAsk ? <V2Action label="Postavi pitanje" kind="secondary" tone="neutral" disabled={disabled} onPress={onAsk} style={s.link} /> : null}
+    {ready.canAsk ? <V2Action label="Postavite pitanje" kind="secondary" tone="neutral" disabled={disabled} onPress={onAsk} style={s.link} /> : null}
   </>;
 }
 
@@ -116,7 +116,7 @@ function Row({ item, viewer, canAnswer, disabled, now, onAnswer }: {
       <WaitingChip label="Čeka odgovor" />
       {asked ? <T variant="meta" tone="muted">{asked === 'Upravo' ? 'Upravo postavljeno' : `Postavljeno ${asked}`}</T> : null}
     </View>
-    {canAnswer ? <V2Action label="Odgovori" accessibilityLabel={`Odgovori na pitanje: ${shorten(item.question)}`} kind="secondary" tone="neutral" compact
+    {canAnswer ? <V2Action label="Odgovorite" accessibilityLabel={`Odgovorite na pitanje: ${shorten(item.question)}`} kind="secondary" tone="neutral" compact
       disabled={disabled} onPress={() => onAnswer(item.questionId)} style={s.link} /> : null}
   </View>;
 }

@@ -153,7 +153,7 @@ function PointConfirmation({ review, busy, uncertain, onSave, resolver, onEditIn
     {onEditInConversation ? <Button kind="quiet" label="Izmenite kroz razgovor" disabled={disabled} onPress={editInConversation} /> : null}
   </>;
   const actions = <>
-    {base && !remote ? <Button style={brandAction} label={reviewOnly ? 'Primeni potvrđene tačke' : 'Sačuvajte mesto'} loading={busy}
+    {base && !remote ? <Button style={brandAction} label={reviewOnly ? 'Primenite potvrđene tačke' : 'Sačuvajte mesto'} loading={busy}
       disabled={disabled || !countryAvailable || state.pendingPoint || !complete} onPress={submit} /> : null}
     {state.pendingPoint ? <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled}
       onPress={() => change({ ...live.current, pendingPoint: false, pinEpoch: live.current.pinEpoch + 1 })} /> : null}

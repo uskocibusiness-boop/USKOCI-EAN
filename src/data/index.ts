@@ -30,7 +30,7 @@ const koristiLazniIzvor = uTestu || izricitLazni;
 if (!koristiLazniIzvor && !supabaseKonfigurisan()) {
   throw new Error(
     'SUPABASE_NIJE_KONFIGURISAN: produkcijski put ne sme da padne na lazni izvor. ' +
-      'Postavi EXPO_PUBLIC_SUPABASE_URL i EXPO_PUBLIC_SUPABASE_ANON_KEY, ' +
+      'Postavite EXPO_PUBLIC_SUPABASE_URL i EXPO_PUBLIC_SUPABASE_ANON_KEY, ' +
       'ili za DEV eksplicitno EXPO_PUBLIC_USE_FAKE_SOURCE=1.',
   );
 }

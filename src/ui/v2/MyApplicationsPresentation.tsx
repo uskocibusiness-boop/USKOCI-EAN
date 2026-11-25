@@ -170,7 +170,7 @@ export function MyApplicationsPresentation(props: Props) {
           {/* The sentence above says what keeping keeps; each row says what it does by its name, and no row explains itself (J4). */}
           {p.osnovaCene === 'TOTAL' || p.osnovaCene === 'HOURLY' ? <ListRow title="Zadržite prijavu" accessibilityLabel="Zadržite prijavu" onPress={() => props.onKeep(p)} disabled={disabled} /> : null}
           <ListRow title="Pregledajte i izmenite prijavu" accessibilityLabel="Pregledajte i izmenite prijavu" onPress={() => props.onEdit(p)} disabled={disabled} />
-          <ListRow title="Povuci izmenjenu prijavu" tone="danger" accessibilityLabel="Povuci izmenjenu prijavu" onPress={() => props.onWithdraw(p)} disabled={disabled} />
+          <ListRow title="Povucite izmenjenu prijavu" tone="danger" accessibilityLabel="Povucite izmenjenu prijavu" onPress={() => props.onWithdraw(p)} disabled={disabled} />
         </View>}
         <V2Action label="Zatvorite pregled izmena" onPress={props.onClose} disabled={props.busy || props.pending} kind="quiet" style={s.quietLeft} />
       </View>

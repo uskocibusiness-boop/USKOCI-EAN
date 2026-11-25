@@ -193,7 +193,7 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
       })}</SettingsGroup> : null}
       {exceptions}{retention}
       {/* The irreversible command is always the last thing on the screen: when it cannot be used it stands here grey, with the reason beside it. */}
-      <DangerAction label="Pokreni zatvaranje naloga" busy={busy} onPress={commands.onAskStart}
+      <DangerAction label="Pokrenite zatvaranje naloga" busy={busy} onPress={commands.onAskStart}
         unavailable={policyMissing ? 'Zatvaranje trenutno nije dostupno.' : preparation ? 'Najpre pripremi pregled.' : 'Najpre reši obaveze navedene iznad.'} />
     </ClosureFrame>;
   }
@@ -214,7 +214,7 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
         thing; the quiet refresh stands above it, so nothing follows the irreversible step. */}
     <View style={s.end}>
       {check('quiet', 'Osvežite pregled')}
-      <DangerAction label="Pokreni zatvaranje naloga" busy={busy} loading={working === 'start'} onPress={commands.onAskStart} />
+      <DangerAction label="Pokrenite zatvaranje naloga" busy={busy} loading={working === 'start'} onPress={commands.onAskStart} />
     </View>
   </ClosureFrame>;
 }

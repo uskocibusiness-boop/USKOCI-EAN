@@ -24,7 +24,7 @@ import { PrijavaCard, prijavaSpoken, type PrijavaModel, type PrijavaPrice, type 
  *   - what each state of the read is called (the owner's five words: Poslata, Viđena, Izabrana, Nije izabrana, Povučena);
  *   - the interactive shell: the body opens the task, a long note has a separate read-only control to open its complete text,
  *     and the foot holds at most ONE action, the one this state allows, as a quiet row link under a line (never a button inside the card,
- *     and never green for a withdrawal): Izabrana → "Otvorite Dogovor", an open one the server lets me withdraw → "Povuci prijavu" (a
+ *     and never green for a withdrawal): Izabrana → "Otvorite Dogovor", an open one the server lets me withdraw → "Povucite prijavu" (a
  *     quiet ink link; the danger colour is kept for the question it opens), a changed task → "Pregledaj izmene zadatka" (the one
  *     orange dot of the card); nothing for a state that is over.
  *
@@ -99,11 +99,11 @@ const FOOT: Record<ApplicationFootAction, { label: string; spoken: string; tone:
   agreement: { label: 'Otvorite Dogovor', spoken: 'Otvorite Dogovor', tone: 'green', caret: 'right' },
   // Withdrawing is rare ("retko"): a quiet ink link on every open card, and the danger colour only in the question it
   // opens (review r4 item 7).
-  withdraw: { label: 'Povuci prijavu', spoken: 'Povuci prijavu', tone: 'ink', caret: 'none', hint: 'Pre povlačenja tražimo da potvrdite.' },
+  withdraw: { label: 'Povucite prijavu', spoken: 'Povucite prijavu', tone: 'ink', caret: 'none', hint: 'Pre povlačenja tražimo da potvrdite.' },
   // The spoken name starts with the visible words, so voice control and a screen reader name it the same (WCAG 2.5.3).
   review: { label: 'Pregledajte uslove prijave', spoken: 'Pregledajte uslove prijave', tone: 'waiting', caret: 'down', hint: 'Otvara trenutne uslove ispod kartice.' },
 };
-/** What the foot says, and what a screen reader hears ("Povuci prijavu: <naslov>"), per action. */
+/** What the foot says, and what a screen reader hears ("Povucite prijavu: <naslov>"), per action. */
 export const applicationFootWords = (action: ApplicationFootAction) => FOOT[action];
 
 /** Everything the body shows, as one sentence after its command name, in the order it is drawn. Empty parts are left out. */

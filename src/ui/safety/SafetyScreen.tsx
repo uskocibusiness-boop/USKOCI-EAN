@@ -231,7 +231,7 @@ function PrivateReport(context: Context) {
   const editable = loaded && !busy && !frozen.current && !receipt && !unknownWithoutDraft;
   // A grey send carries its reason beside it (owner's rule): what the form still lacks, or that the earlier report is being checked.
   const lacking = !category && !reason.trim() ? 'Izaberite vrstu prijave i upiši kratak razlog.'
-    : !category ? 'Izaberite vrstu prijave.' : !reason.trim() ? 'Upiši kratak razlog.' : null;
+    : !category ? 'Izaberite vrstu prijave.' : !reason.trim() ? 'Upišite kratak razlog.' : null;
   const sendWhy = !loaded ? busy ? 'Proveravamo prijavu…' : null : !busy && !frozen.current ? lacking : null;
   return <SettingsGroup title="Bezbednosna prijava podršci"><View style={s.section}>
     <T variant="note" tone="muted">Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru.</T>

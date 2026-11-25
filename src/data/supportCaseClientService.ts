@@ -29,7 +29,7 @@ const options = { fallback: 'SUPPORT_UNCONFIRMED', invalid: 'SUPPORT_RECEIPT_INV
   SUPPORT_REFERENCE_NOT_AVAILABLE: 'Odabrani kontekst više nije dostupan.', SUPPORT_REFERENCE_INVALID: 'Proverite odabrani kontekst.',
   SUPPORT_REFERENCE_STALE: 'Odabrani kontekst je promenjen. Učitaj njegovu trenutnu verziju.',
   SUPPORT_MEDIA_REFERENCE_NOT_AVAILABLE: 'Izabrane fotografije još nisu dostupne za ovaj zahtev.',
-  SUPPORT_CONTEXT_REQUIRED: 'Odaberi saradnju ili pregled na koji se zahtev odnosi.',
+  SUPPORT_CONTEXT_REQUIRED: 'Odaberite saradnju ili pregled na koji se zahtev odnosi.',
   SUPPORT_ACTION_NOT_AVAILABLE: 'Radnja trenutno nije dostupna.', SUPPORT_CURSOR_INVALID: 'Ponovo osveži prikaz podrške.',
   SUPPORT_APPEAL_ALREADY_OPEN: 'Za ovu odluku već postoji otvorena žalba.', SUPPORT_APPEAL_NOT_AVAILABLE: 'Žalba trenutno nije dostupna.',
   SUPPORT_DECISION_NOT_AVAILABLE: 'Odabrana odluka nije dostupna.', ACCOUNT_CLOSING: 'Nalog je u postupku zatvaranja.',

@@ -17,7 +17,7 @@ export const FILTER_WHEN: readonly (readonly [WhenFilter, string])[] = [['today'
 export const WHERE: readonly (readonly [WhereFilter, string])[] = [['any', 'Svejedno'], ['onsite', 'Na licu mesta'], ['remote', 'Na daljinu']];
 export const PRICE: readonly (readonly [MarketplaceView['price'], string])[] = [['all', 'Svejedno'], ['MY_PRICE', 'Sa iznosom'], ['OFFERS', 'Tražim ponude']];
 /** The one reset of the list when it is empty under its conditions: it takes the search and the filters away (the sheets' own is `CLEAR`). */
-export const CLEAR_ALL = 'Poništi filtere';
+export const CLEAR_ALL = 'Poništite filtere';
 /** The quiet action at the foot of the search and of the filters: each takes away only its own half and leaves the other as it was. */
 export const CLEAR = 'Obrišite';
 /** What the pill says while nothing is searched: the two things a search is, the one thing it opens (the owner-approved plan, U1). */

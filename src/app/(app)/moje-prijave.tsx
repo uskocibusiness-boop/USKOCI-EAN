@@ -311,7 +311,7 @@ export default function MojePrijave() {
       // The question names the task and says what follows for the other person and for the worker (plan 2.3): no reason is asked.
       confirmation.ask({ title: 'Povući prijavu?',
         message: `Osoba koja je objavila zadatak više ne vidi Vašu ponudu za „${readableTitle(p.naslov)}”. Ako zadatak i dalje prima prijave, možete da pošaljete novu.`,
-        cancelLabel: 'Odustanite', confirmLabel: 'Povuci prijavu', tone: 'danger', onConfirm: () => {
+        cancelLabel: 'Odustanite', confirmLabel: 'Povucite prijavu', tone: 'danger', onConfirm: () => {
           if (review === session.editRevision) makeIntent(p, 'WITHDRAW');
         } });
     });

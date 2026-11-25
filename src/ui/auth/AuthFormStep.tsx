@@ -59,7 +59,7 @@ export type AuthFormStepProps = {
 /**
  * The first step of the sign-in sheet: both ways in on one screen (N2). The selected way names the title, with one short
  * explanation below it; the switch, fields with labels and inline errors, and the available other ways follow. The one green
- * command ("Prijavite se" or "Napravi nalog") is NOT here: it stands in the foot of the sheet, which is where the keyboard
+ * command ("Prijavite se" or "Napravite nalog") is NOT here: it stands in the foot of the sheet, which is where the keyboard
  * leaves it in reach.
  *
  * The form works whatever the check of the available ways in has found: with `check === 'failed'` it only says so, quietly,
