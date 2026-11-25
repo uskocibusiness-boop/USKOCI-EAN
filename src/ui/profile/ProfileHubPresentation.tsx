@@ -8,7 +8,7 @@ import { T } from '../Text';
 import { ruleWidth } from '../system/layout';
 import { profileLift, sys } from '../system/tokens';
 import { Avatar, FaceEdge } from '../system/Avatar';
-import { Glyph, type GlyphName } from '../system/Glyph';
+import { Glyph } from '../system/Glyph';
 import { Screen } from '../system/Screen';
 import { Section } from '../system/Section';
 import { Surface } from '../system/Surface';
@@ -106,13 +106,13 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
       onRetry={capabilityError ? onRetryCapability : undefined} />
     <Section title="Moje aktivnosti">
       <View style={s.activityLinks}>
-        <ProfileLink icon="edit" label="Moji zadaci" subtitle="Vaše objave i izbor ko uskače" disabled={busy} onPress={go('/potrebe')} />
-        <ProfileLink icon="send" label="Moje prijave" subtitle="Pogledajte status i odgovore" disabled={busy} onPress={go('/moje-prijave')} />
+        <ProfileLink icon="tasks" label="Moji zadaci" subtitle="Vaše objave i izbor ko uskače" disabled={busy} onPress={go('/potrebe')} />
+        <ProfileLink icon="applications" label="Moje prijave" subtitle="Pogledajte status i odgovore" disabled={busy} onPress={go('/moje-prijave')} />
         <ProfileLink icon="calendar" label="Moj raspored" subtitle="Dogovori i dostupnost" disabled={busy} onPress={go('/raspored')} />
       </View>
     </Section>
     <Section title="Nalog">
-      <ProfileLink icon="settings" label="Podešavanja" subtitle="Nalog, privatnost, obaveštenja i podrška" disabled={busy} onPress={go('/profil/podesavanja')} />
+      <ProfileLink icon="info" label="Podešavanja" subtitle="Nalog, privatnost, obaveštenja i podrška" settings disabled={busy} onPress={go('/profil/podesavanja')} />
     </Section>
     <View style={s.exit}>
       {logoutError ? <T tone="danger" accessibilityRole="alert" style={s.detail}>Odjava nije uspela. Pokušajte ponovo.</T> : null}
@@ -129,13 +129,12 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
 
 /** Figma profile destination cards, with the route retaining navigation admission. */
 function ProfileLink({ icon, label, subtitle, detail, attention, settings, disabled, onPress, onRetry }: {
-  icon: GlyphName; label: string; subtitle: string; detail?: string; attention?: boolean; settings?: boolean; disabled: boolean; onPress: () => void;
+  icon: FactArtKind; label: string; subtitle: string; detail?: string; attention?: boolean; settings?: boolean; disabled: boolean; onPress: () => void;
   onRetry?: () => void;
 }) {
   const content = <>
-    {/* Owner, 25.11.2026 (approved look): menus use one line icon in a quiet well; 3D pictures belong to facts on cards. */}
     <View style={s.linkIconWell}>
-      <Glyph name={icon} size={22} tone={disabled ? 'muted' : 'ink'} />
+      <FactArt kind={icon} size={26} cut="art" />
     </View>
     <View style={s.linkCopy}>
       <T tone={disabled ? 'muted' : 'ink'} style={s.linkTitle}>{label}</T>

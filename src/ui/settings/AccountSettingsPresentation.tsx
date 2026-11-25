@@ -59,9 +59,8 @@ function AccountRow({ label, detail, glyph, tone, disabled, onPress }: {
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={detail}
     accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} haptic="select"
     scaleTo={sys.motion.scale.row} style={s.row}>
-    {/* One quiet well and one ink line icon for every menu row, as in Profil (owner, 25.11.2026); no rainbow tiles. */}
-    <View style={[s.iconWell, { backgroundColor: sys.color.wash }]}>
-      <Glyph name={glyph} size={20} tone={disabled ? 'muted' : 'ink'} />
+    <View style={[s.iconWell, { backgroundColor: disabled ? sys.color.wash : iconSurface[tone] }]}>
+      <Glyph name={glyph} size={20} tone={disabled ? 'muted' : tone} />
     </View>
     <View style={s.copy}>
       <T tone={disabled ? 'muted' : 'ink'} style={s.title}>{label}</T>
