@@ -24,7 +24,8 @@ import { V2Action } from './V2Action';
 import { QuietReadState } from './QuietReadState';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 import { osoba, prijava as prijave } from '../system/plural';
-import { TaskDecisionRequirements, TaskDecisionTitle, TaskPlacePrivacy } from './detail/TaskDecision';
+import { TaskDecisionRequirements, TaskDecisionTitle } from './detail/TaskDecision';
+import { TaskTabs, type TaskTab } from '../agreements/TaskTabs';
 import { TaskDetailSummary } from './detail/TaskDetailSummary';
 import { TaskStateBlock, type StateAction } from './detail/TaskStateBlock';
 import { NO_APPLICATIONS_HELP_LABEL, ownTaskOverview, type NoApplicationsHelp, type NoApplicationsHelpAction, type OverviewSearch } from './ownTaskOverview';
@@ -64,6 +65,11 @@ export type NeedPresentationProps = {
   publisher?: ReactNode;
   /** Hands the task to the system's share sheet from the "···" menu. */
   onShare?: () => void;
+  /**
+   * The four parts of the task on top (owner, 25.11.2026: the owner's task looks like its Dogovor from the moment it is published):
+   * Pregled is this page, the others open the task screen of the Dogovor. Not for a draft, which has no applications yet.
+   */
+  tabs?: { agreed: number; applications: number; messages: boolean; onSelect: (tab: TaskTab) => void };
   /**
    * What the screen read about the search for the missing places, and whether its own section about it is on the screen. The
    * page says "Dogovor je otkazan" only from this (see `ownTaskOverview`); without it the page says what the task itself shows.
@@ -187,9 +193,13 @@ export function NeedPresentation(props: NeedPresentationProps) {
   </FlowFooter> : null;
 
   const scrollTitle = useDetailScrollTitle();
+  const tabs = props.tabs && !draft ? props.tabs : null;
+  const header = <ProductHeader back={props.onBack} title={need ? readableTitle(need.naslov) : undefined}
+    titleVisible={tabs ? true : scrollTitle.titleVisible} right={editControl} />;
   return <>
-    <Screen kind="detail" header={<ProductHeader back={props.onBack} title={need ? readableTitle(need.naslov) : undefined}
-      titleVisible={scrollTitle.titleVisible} right={editControl} />} footer={foot} onScroll={scrollTitle.onScroll}>
+    <Screen kind="detail" header={tabs ? <View style={s.tabsHead}>{header}
+      <TaskTabs owner selected="overview" agreed={tabs.agreed} applications={tabs.applications} messages={tabs.messages} onSelect={tabs.onSelect} />
+    </View> : header} footer={foot} onScroll={tabs ? undefined : scrollTitle.onScroll}>
       {/* The lifecycle's recovery stays on the screen whatever the read is doing: a retained command is checked, and its
           outcome shown, even while the task loads or cannot be read. */}
       {loading && !need ? <View style={s.state}>
@@ -208,7 +218,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
               {overview?.chip ? <StatusChip status={overview.chip.status} detail={overview.chip.detail} /> : null}
               {need.urgency ? <NeedUrgencyBadge urgency={need.urgency} /> : null}
             </View> : null}
-            <TaskDecisionTitle prominent onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
+            {tabs ? null : <TaskDecisionTitle prominent onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>}
           </View>
           {loading || error ? <Surface kind="note"><View accessibilityLiveRegion="polite" style={s.notice}>
             <T variant="note" tone="muted">{loading ? 'Osvežavamo podatke…' : 'Vidiš starije podatke.'}</T>
@@ -236,7 +246,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
           </Section> : null}
           {/* Quiet ways in that the green action does not already offer. The applications row is not drawn for an empty list (it led
               nowhere), nor beside a green button that opens the same list. */}
-          {overview && (overview.rows.applications || overview.rows.agreements) ? <Section>
+          {!tabs && overview && (overview.rows.applications || overview.rows.agreements) ? <Section>
             {overview.rows.applications && counted ? <ListRow leading={<FactArt kind="applications" size={32} />} title="Prijave" subtitle={counted.text}
               accessibilityLabel={`Otvorite prijave. ${counted.text}`} disabled={busy || !usable} last={!overview.rows.agreements} onPress={props.onCandidates}
               trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : undefined} /> : null}
@@ -255,7 +265,6 @@ export function NeedPresentation(props: NeedPresentationProps) {
           {!remote && (props.map || route.length) ? <Section title="Mesto zadatka">
             <View style={s.place}>
               {props.map}
-              <TaskPlacePrivacy />
               {route.length ? <DetailRoute rows={route} /> : null}
             </View>
           </Section> : null}
@@ -269,6 +278,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
 
 const s = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  tabsHead: { backgroundColor: sys.color.surface, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
   ink: { color: sys.color.ink },
   state: { gap: sys.space.base },
   // The title remains a direct child of this measured block; multi-line and enlarged titles keep the correct chrome handoff.

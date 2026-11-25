@@ -36,14 +36,19 @@ test('remote task and different prices are said plainly', () => {
 
 test('the task screen: back and four premium 3D icons on top (handshake, blue paper plane, chat, notepad for edits); overview below', () => {
   const hub=read('src/ui/agreements/AgreementTaskHub.tsx');
-  has(hub,"<BarIcon label=\"Pregled zadatka\" short=\"Pregled\" art=\"tasks\"",'Pregled is the first part (approved canvas, 25.11.2026)');
-  has(hub,"short={owner ? `Dogovoreni${live.length ? ` ${live.length}` : ''}` : 'Dogovor'} art=\"agreements\"",'Dogovoreni says how many');
-  has(hub,"{owner ? <BarIcon label=\"Prijave\" short={`Prijave${appCount ? ` ${appCount}` : ''}`} art=\"applications\"",'Prijave only for the task owner, with the blue paper plane and the count');
+  const tabs=read('src/ui/agreements/TaskTabs.tsx'), page=read('src/ui/v2/NeedPresentation.tsx'), route=read('src/app/(app)/potrebe/[id]/pregled.tsx');
+  has(tabs,"<Tab label=\"Pregled zadatka\" short=\"Pregled\" art=\"tasks\"",'Pregled is the first part (approved canvas, 25.11.2026)');
+  has(tabs,"short={owner ? `Dogovoreni${agreed ? ` ${agreed}` : ''}` : 'Dogovor'} art=\"agreements\"",'Dogovoreni says how many');
+  has(tabs,"{owner ? <Tab label=\"Prijave\" short={`Prijave${applications ? ` ${applications}` : ''}`} art=\"applications\"",'Prijave only for the task owner, with the blue paper plane and the count');
+  has(tabs,"<Tab label=\"Poruke\" short=\"Poruke\" art=\"chat\"",'one Poruke part');
+  has(tabs,'{short}</T>','every icon says what it opens (owner-approved look, 25.11.2026)');
+  has(hub,"<TaskTabs owner={owner}",'the task screen of a Dogovor wears the shared row');
+  has(page,"<TaskTabs owner selected=\"overview\"",'the published task of the owner wears the same row (owner, 25.11.2026)');
+  has(route,"params: { needId: id, role: 'narucilac', title: potreba.naslov, pane: tab }",'its parts open the task screen of the Dogovor');
+  has(hub,"router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: needId } })",'Pregled of the owner is the task page');
   has(hub,"<ChromeIconButton glyph=\"edit\" label=\"Uredite zadatak\"",'the pencil sits beside the task title');
-  has(hub,"<BarIcon label=\"Poruke\" short=\"Poruke\" art=\"chat\"",'one Poruke icon: the group and each private conversation (owner, 25.11.2026)');
   has(hub,"if (!hasGroup && live.length === 1) openAgreement(live[0].agreementId, 'poruke');",'one person: that conversation opens at once');
   has(hub,"Grupni razgovor</T>",'several people: the group on top of the list');
-  has(hub,'{short}</T>','every icon says what it opens (owner-approved look, 25.11.2026)');
   has(hub,"<GroupConversationScreen agreementId={anchor.id} embedded />",'the group conversation is on the same screen');
   has(hub,"<T variant=\"label\" tone=\"muted\">Opis</T>"); has(hub,"Približno mesto, oko 200 m.");
   has(hub,"<T variant=\"bodyStrong\">{owner ? 'Dogovoreno sa' : 'Objavio zadatak'}</T>");

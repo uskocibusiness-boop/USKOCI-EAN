@@ -55,7 +55,8 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
   }, [points]);
   const bounds: LngLatBounds = [Math.min(...points.map(point => point.longitude)), Math.min(...points.map(point => point.latitude)),
     Math.max(...points.map(point => point.longitude)), Math.max(...points.map(point => point.latitude))];
-  const zoom = props.coarse ? 10 : 15;
+  // Owner, 25.11.2026: the task's place is shown at the level of its street or village, not of the whole region.
+  const zoom = props.coarse ? 14 : 15;
   const first = points[0];
   const selectedPoint = points.find(point => point.id === props.selectedId);
   useEffect(() => {
@@ -100,7 +101,7 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
         doubleTapZoom={props.interactive} doubleTapHoldZoom={props.interactive} touchPitch={false} touchRotate={false}
         accessibilityLabel={props.coarse ? 'Mapa približnih mesta' : 'Mapa potvrđenih mesta'}
         onDidFinishLoadingMap={loaded} onDidFailLoadingMap={fail}>
-        <Camera ref={camera} initialViewState={{ center: [first.longitude, first.latitude], zoom }} minZoom={0} maxZoom={props.coarse ? 13 : 18} />
+        <Camera ref={camera} initialViewState={{ center: [first.longitude, first.latitude], zoom }} minZoom={0} maxZoom={props.coarse ? 15 : 18} />
         {groups.map((group, index) => {
           const selected = group.some(point => point.id === props.selectedId);
           const spoken = group.map(point => `${point.number}. ${point.label}`).join('; ');

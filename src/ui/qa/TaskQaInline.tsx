@@ -75,8 +75,8 @@ function Thread({ ready, disabled, now, onAsk, onAnswer, onOpenAll }: Pick<TaskQ
           {ready.olderVersion
             ? 'Zadatak je izmenjen. Ranija pitanja pripadaju starijoj verziji.'
             : ready.viewer === 'PUBLIC'
-              ? 'Još nema javnih pitanja o zadatku. Ako Vam nešto nije jasno, postavite pitanje ispod.'
-              : 'Još nema javnih pitanja o zadatku. Kada neko postavi pitanje, ovde ćete moći da odgovorite.'}
+              ? 'Još nema pitanja.'
+              : 'Još nema pitanja.'}
         </T>
       </View>}
     {ready.shown.length && ready.olderVersion ? <T variant="note" tone="muted">Neka ranija pitanja pripadaju starijoj verziji zadatka.</T> : null}

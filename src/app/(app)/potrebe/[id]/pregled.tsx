@@ -377,6 +377,13 @@ function OwnedNeed({ id }: { id: string }) {
         disabled={akcijaUToku || terminalActive || urgentActive} onAction={handleRecoveryAction} /> : null}
     </> : undefined}
     lifecycleMenu={lifecycleMenuActions} onDeleteDraft={deleteDraft}
+    // Owner, 25.11.2026: the published task wears the four parts of its Dogovor on top; Dogovoreni, Prijave and Poruke open the
+    // task screen of the Dogovor in place of this page, whose own Pregled brings it back.
+    tabs={potreba && potreba.stanje !== 'NACRT' ? {
+      agreed: potreba.pokrivenost.popunjeno, applications: potreba.brojPrijavaZaIzbor ?? 0, messages: potreba.pokrivenost.popunjeno > 0,
+      onSelect: tab => { if (tab !== 'overview' && canAct()) navigate(() => router.replace({ pathname: '/dogovor/zadatak',
+        params: { needId: id, role: 'narucilac', title: potreba.naslov, pane: tab } })); },
+    } : undefined}
     primaryOverride={recoveryCopy?.primary ? {
       label: recoveryCopy.primary.label,
       disabled: !!recoveryCopy.primary.disabled || !recoveryPrimaryReady || recoveryBusy,

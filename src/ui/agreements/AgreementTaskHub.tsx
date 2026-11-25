@@ -34,6 +34,7 @@ import { izvorSada, useIzvor } from '../../store/uloga';
 import { agreementAttention, agreementChip, awaitsMyConfirmation, awaitsMyRating } from './agreementListModel';
 import { AgreementStatusChip } from './AgreementStatusChip';
 import { ApplicationSwipeCard } from './ApplicationSwipeCard';
+import { TaskTabs, type TaskTab } from './TaskTabs';
 import { agreementTaskSummary, isLiveAgreement, isOpenAgreement, type AgreementTaskPerson } from './agreementTaskModel';
 
 type Role = 'narucilac' | 'uskocer';
@@ -60,22 +61,6 @@ async function readTaskAgreements(source: ReturnType<typeof useIzvor>, needId: s
 function Face({ person, size }: { person: { profileId: string | null; initials: string }; size: AvatarSize }) {
   const letters = <Avatar initials={person.initials} size={size} edge />;
   return person.profileId ? <ProfilePhoto profileId={person.profileId} size={size} fallback={letters} /> : letters;
-}
-
-/** One premium icon of the top bar (owner's sketch): the picture alone, a soft ring when its pane is open. */
-function BarIcon({ label, short, art, glyph, selected, badge, dot, onPress }: {
-  label: string; short: string; art?: FactArtKind; glyph?: 'edit'; selected: boolean; badge?: number; dot?: boolean; onPress: () => void;
-}) {
-  return <Press accessibilityRole="tab" accessibilityLabel={badge ? `${label}, ${badge}` : short !== label ? short : label} accessibilityState={{ selected }}
-    onPress={onPress} haptic="select" style={[s.barIcon, selected && s.barIconOn]}>
-    <View style={[s.barDisc, selected && s.barDiscOn]}>
-      {art ? <FactArt kind={art} size={30} /> : <Glyph name={glyph!} size={26} tone={selected ? 'green' : 'ink'} />}
-    </View>
-    {/* Owner-approved look (25.11.2026): every icon says what it opens. */}
-    <T variant="meta" numberOfLines={1} maxFontSizeMultiplier={1.3} style={[s.barLabel, selected && s.barLabelOn]}>{short}</T>
-    {dot ? <View style={s.dotNew} /> : null}
-    {badge ? <View style={s.badge}><T variant="meta" maxFontSizeMultiplier={1.2} style={s.badgeText}>{badge > 99 ? '99+' : badge}</T></View> : null}
-  </Press>;
 }
 
 /** An agreed person (🤝): avatar on the left with the name under it; rating, price, place and date; remove and a private message. */
@@ -151,11 +136,12 @@ function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOp
  * globe or pin, calendar, the description (not on the card), the map and "Dogovoreno sa". A worker sees the task owner,
  * the description, the map and the group conversation, never other workers or their applications.
  */
-export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: { needId: string; role: Role; title: string; fallbackAgreementId?: string }) {
+export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, initialPane }: { needId: string; role: Role; title: string; fallbackAgreementId?: string;
+  /** The part opened from the owner's task page: Dogovoreni, Prijave or Poruke. */ initialPane?: TaskTab }) {
   const router = useRouter(), source = useIzvor(), { user, accountRevision } = useSesija();
   const owner = role === 'narucilac';
   const [loaded, setLoaded] = useState<Loaded>(null);
-  const [pane, setPane] = useState<Pane>('overview');
+  const [pane, setPane] = useState<Pane>(initialPane && initialPane !== 'overview' ? initialPane : role === 'narucilac' ? 'agreed' : 'overview');
   const [menuFor, setMenuFor] = useState<AgreementTaskPerson | null>(null);
   const [apps, setApps] = useState<Apps>(null);
   const [need, setNeed] = useState<PotrebaProjekcija | null>(null);
@@ -243,6 +229,12 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
   // Poruke (owner's choice, 25.11.2026, after WhatsApp/Slack/Airbnb): one person on the task opens that conversation at once;
   // several open a short list - the group of everyone on top, then a private conversation with each person.
   const hasGroup = (anchor?.pokrivenost.ukupno ?? 1) > 1;
+  // The owner's Pregled is the task's own page (owner, 25.11.2026: the task looks like its Dogovor from the moment it is
+  // published); the two pages carry the same top, so moving between them reads as one screen.
+  const openOverview = () => {
+    if (owner) go(() => router.replace({ pathname: '/potrebe/[id]/pregled', params: { id: needId } }));
+    else setPane('overview');
+  };
   const openMessages = () => {
     if (!hasGroup && live.length === 1) openAgreement(live[0].agreementId, 'poruke');
     else setPane('messages');
@@ -254,45 +246,40 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
     <View style={s.head}>
       <ChromeIconButton glyph="back" label="Nazad na Dogovore" onPress={back} />
       <T variant="bodyStrong" accessibilityRole="header" numberOfLines={2} style={s.headTitle}>{summary?.title || title || 'Dogovor'}</T>
-      {owner ? <ChromeIconButton glyph="edit" label="Uredite zadatak" onPress={() => setPane('edit')} /> : null}
+      {owner ? <ChromeIconButton glyph="edit" label="Uredite zadatak" onPress={openOverview} /> : null}
     </View>
-    <View style={s.barIcons} accessibilityRole="tablist">
-      <BarIcon label="Pregled zadatka" short="Pregled" art="tasks" selected={pane === 'overview' || pane === 'edit'} onPress={() => setPane('overview')} />
-      <BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} short={owner ? `Dogovoreni${live.length ? ` ${live.length}` : ''}` : 'Dogovor'} art="agreements"
-        selected={pane === 'agreed'} onPress={() => setPane('agreed')} />
-      {owner ? <BarIcon label="Prijave" short={`Prijave${appCount ? ` ${appCount}` : ''}`} art="applications" selected={pane === 'applications'}
-        dot={appCount > 0} onPress={() => setPane('applications')} /> : null}
-      {anchor && live.length ? <BarIcon label="Poruke" short="Poruke" art="chat" selected={pane === 'messages' || pane === 'group'} onPress={openMessages} /> : null}
-    </View>
+    <TaskTabs owner={owner} agreed={live.length} applications={appCount} messages={!!anchor && live.length > 0}
+      selected={pane === 'overview' || pane === 'edit' ? 'overview' : pane === 'group' ? 'messages' : pane}
+      onSelect={tab => tab === 'overview' ? openOverview() : tab === 'messages' ? openMessages() : setPane(tab)} />
   </View>;
 
   let body: ReactNode;
   if (!loaded) body = <StateView skeleton={{ rows: 3, face: true }} title="Učitavamo Dogovor…" body="Proveravamo dogovorene osobe i uslove." />;
   else if ('error' in loaded) body = <StateView kind="error" art="agreements" title="Dogovor nije učitan" body="Proverite vezu i pokušajte ponovo."
     primary={{ label: 'Pokušajte ponovo', onPress: () => { setLoaded(null); void load(); } }} />;
-  else if (!summary) body = <StateView art="agreements" title="Dogovor nije pronađen" body="Možda je zadatak promenjen ili je Dogovor otkazan."
+  else if (!summary && !owner) body = <StateView art="agreements" title="Dogovor nije pronađen" body="Možda je zadatak promenjen ili je Dogovor otkazan."
     primary={fallbackAgreementId ? { label: 'Otvorite Dogovor', onPress: () => openAgreement(fallbackAgreementId) } : { label: 'Nazad na Dogovore', onPress: back }} />;
   else if (pane === 'group' && anchor) body = <View style={s.flex}><GroupConversationScreen agreementId={anchor.id} embedded /></View>;
   else {
-    const first = summary.people[0]?.agreement ?? items![0];
-    const amount = first.cena.prikaz, mixed = summary.priceText === MIXED;
+    const first = summary?.people[0]?.agreement ?? items?.[0];
+    const amount = first?.cena.prikaz, mixed = summary?.priceText === MIXED;
     const approx = need?.priblizno ?? null;
     const card = (person: AgreementTaskPerson, removable: boolean) => <PersonCard key={person.agreementId} person={person} owner={owner}
       onComplete={() => go(() => router.navigate({ pathname: '/dogovor/[id]', params: { id: person.agreementId, action: 'complete' } }))}
       onRate={() => go(() => router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: person.agreementId } }))}
-      remote={summary.remote} place={summary.placeText} now={now} rating={ratingOf(person.profileId)} onProfile={() => openProfile(person.profileId)}
+      remote={summary?.remote ?? false} place={summary?.placeText ?? ''} now={now} rating={ratingOf(person.profileId)} onProfile={() => openProfile(person.profileId)}
       onOpen={() => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId } }))}
       onChanges={() => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId } }))}
       onProposeTerm={() => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId, start: 'propose' } }))}
       onMessage={() => openAgreement(person.agreementId, 'poruke')}
       onMore={removable && isLiveAgreement(person.agreement) ? () => setMenuFor(person) : undefined} />;
     body = <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-      {pane === 'overview' ? <View style={s.overview}>
+      {pane === 'overview' && summary ? <View style={s.overview}>
         <View style={s.valueWithArt}>
           <View style={s.valueArt}><FactArt kind="money" size={FACT_ROW_ART} /></View>
           <View style={s.valueCopy}>
             <T variant="priceRow" style={s.money}>{mixed || !amount ? summary.priceText ?? 'Cena po dogovoru' : amount}</T>
-            {amount && !mixed ? <T variant="note" tone="muted">{applicationPriceBasisText(first.osnovaCene)}</T> : null}
+            {amount && !mixed ? <T variant="note" tone="muted">{applicationPriceBasisText(first!.osnovaCene)}</T> : null}
           </View>
         </View>
         <FactRow art={summary.remote ? 'remote' : 'pin'} value={summary.placeText} size="detail" />
@@ -371,20 +358,8 @@ const s = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
   bar: { paddingHorizontal: sys.space.sm, paddingTop: sys.space.xs, gap: sys.space.xs,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line, backgroundColor: sys.color.surface },
-  barIcons: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end' },
-  barIcon: { flex: 1, minHeight: 64, alignItems: 'center', justifyContent: 'center', gap: 2, paddingBottom: sys.space.xs,
-    borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  barDisc: { width: 44, height: 44, borderRadius: sys.radius.pill, borderCurve: 'continuous', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  barDiscOn: {},
-  barIconOn: { borderBottomWidth: 2, borderBottomColor: sys.color.ink },
-  dotNew: { position: 'absolute', top: 6, right: 14, width: 9, height: 9, borderRadius: 5, backgroundColor: sys.color.warn },
   head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   headTitle: { flex: 1, minWidth: 0 },
-  barLabel: { color: sys.color.muted, fontSize: 12, lineHeight: 15 },
-  barLabelOn: { color: sys.color.ink, fontWeight: '700' },
-  badge: { position: 'absolute', top: 2, right: 2, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,
-    backgroundColor: sys.color.warn, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { color: '#FFFFFF', fontWeight: '800' },
   content: { padding: layout.gutter, gap: sys.space.md, paddingBottom: sys.space.xl * 2 },
   overview: { gap: sys.space.md },
   valueArt: { width: FACT_ROW_ART, height: FACT_ROW_ART },
