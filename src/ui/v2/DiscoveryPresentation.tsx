@@ -909,7 +909,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const onSheetAnimate = useCallback((_fromIndex: number, toIndex: number) => {
     if (!currentSheet()) return;
     nativeSpringMoving.current = true; // A same-index geometry spring can also be interrupted.
-    announceBar(!cardShown && toIndex > SNAP.peek);
+    announceBar(!cardShown);
   }, [currentSheet, announceBar, cardShown]);
   const hasBar = !!bar;
   const receiveBarProgress = useCallback((progress: number) => {
