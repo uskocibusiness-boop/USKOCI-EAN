@@ -34,13 +34,13 @@ test('remote task and different prices are said plainly', () => {
   assert.equal(s.placeText,'Na daljinu'); assert.equal(s.remote,true); assert.equal(s.priceText,'Različite cene po osobi');
 });
 
-test('the task screen: back and four premium icons on top (handshake, blue paper plane, chat, edit); overview below', () => {
+test('the task screen: back and four premium 3D icons on top (handshake, blue paper plane, chat, notepad for edits); overview below', () => {
   const hub=read('src/ui/agreements/AgreementTaskHub.tsx');
   has(hub,"<BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} short={owner ? 'Dogovoreni' : 'Dogovor'} art=\"agreements\"");
   has(hub,"{owner ? <BarIcon label=\"Prijave\" short=\"Prijave\" art=\"applications\"",'Prijave only for the task owner, with the blue paper plane');
   has(hub,"<BarIcon label=\"Grupni razgovor\" short=\"Grupa\" art=\"chat\"");
   has(hub,'{short}</T>','every icon says what it opens (owner-approved look, 25.11.2026)');
-  has(hub,"{owner ? <BarIcon label=\"Uređivanje zadatka\" short=\"Izmene\" glyph=\"edit\"");
+  has(hub,"{owner ? <BarIcon label=\"Uređivanje zadatka\" short=\"Izmene\" art=\"publish\"");
   has(hub,"<GroupConversationScreen agreementId={anchor.id} embedded />",'the group conversation is on the same screen');
   has(hub,"<T variant=\"label\" tone=\"muted\">Opis</T>"); has(hub,"Približno mesto, oko 200 m.");
   has(hub,"<T variant=\"bodyStrong\">{owner ? 'Dogovoreno sa' : 'Objavio zadatak'}</T>");

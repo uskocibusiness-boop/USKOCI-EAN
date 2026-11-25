@@ -24,7 +24,7 @@ import { ApplicationCard } from '../v2/ApplicationFace';
 import { AgreementTaskCard } from '../agreements/AgreementTaskCard';
 import { sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
-import { useLayoutClass } from '../system/textScale';
+import { useLayoutClass, useWindowRoom } from '../system/textScale';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { HomeLaunchArt } from './HomeLaunchArt';
 import { HowItWorks } from './HowItWorks';
@@ -201,9 +201,15 @@ function applicationsLine(section: HomeSection<ApplicationCounts>): string {
   return !c.total ? 'Još nemate prijavu' : c.finished === c.total ? 'Nijedna ne čeka odgovor' : prijava(c.total);
 }
 
+/** How much of the next carousel card shows at the edge, so it is clear the row scrolls. */
+const CAROUSEL_PEEK = 44;
+
 export function HomePresentation(p: HomePresentationProps) {
   const home = p.home;
   const { stacked } = useLayoutClass();
+  // A carousel card fills the screen less a glimpse of the next one, on every phone width (never wider than a comfortable reading card).
+  const { width: screenWidth } = useWindowRoom();
+  const cardWidth = { width: Math.round(Math.min(420, Math.max(260, screenWidth - 2 * layout.gutter - CAROUSEL_PEEK))) };
   // A row that was already here when the screen opened has nothing to tell you by sliding in; only a genuinely new one moves,
   // and each list remembers what it has already shown. The first rows after the initial read are news and arrive once (B1).
   const agreements = useAppear();
@@ -245,7 +251,7 @@ export function HomePresentation(p: HomePresentationProps) {
       action={{ label: 'Mapa zadataka', onPress: p.onEarn }}>
       <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.carousel} style={s.carouselScroll}>
-        {home.opportunityItems.map(item => <View key={item.id} style={s.carouselCard}>
+        {home.opportunityItems.map(item => <View key={item.id} style={[s.carouselCard, cardWidth]}>
           <TaskCard item={item} portrait={<TaskPublisherPortrait item={item} size={40} />}
             onOpen={() => p.onOpen({ kind: 'OPPORTUNITY', needId: item.id })} />
         </View>)}
@@ -256,7 +262,7 @@ export function HomePresentation(p: HomePresentationProps) {
       action={{ label: 'Svi dogovori', onPress: p.onAgreements ?? (() => p.onRatings(null)) }}>
       <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.carousel} style={s.carouselScroll}>
-        {home.agreementItems.map((item, index) => <View key={item.id} style={s.carouselCard}>
+        {home.agreementItems.map((item, index) => <View key={item.id} style={[s.carouselCard, cardWidth]}>
           {/* One card style everywhere (owner, 25.11.2026): the same Dogovor card as on the Dogovori screen. */}
           <AgreementTaskCard group={{ key: item.id, items: [item] }} index={index} animate={false} stale={!!p.stale}
             onOpen={group => p.onOpen({ kind: 'AGREEMENT', agreementId: group.items[0].id })}
@@ -269,7 +275,7 @@ export function HomePresentation(p: HomePresentationProps) {
       action={{ label: 'Svi zadaci', onPress: p.onMyTasks }}>
       <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.carousel} style={s.carouselScroll}>
-        {home.ownTaskItems.map(item => <View key={item.id} style={s.carouselCard}>
+        {home.ownTaskItems.map(item => <View key={item.id} style={[s.carouselCard, cardWidth]}>
           <OwnTaskCard item={item}
             onOpen={() => p.onOpen({ kind: 'NEED', needId: item.id })}
             onApplications={() => p.onOpen({ kind: 'CANDIDATES', needId: item.id })} />
@@ -281,7 +287,7 @@ export function HomePresentation(p: HomePresentationProps) {
       action={{ label: 'Sve prijave', onPress: p.onMyApplications }}>
       <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.carousel} style={s.carouselScroll}>
-        {home.applicationItems.map(row => <View key={row.prijavaId} style={s.carouselCard}>
+        {home.applicationItems.map(row => <View key={row.prijavaId} style={[s.carouselCard, cardWidth]}>
           <ApplicationCard row={row}
             onTask={() => p.onOpen({ kind: 'APPLICATION', applicationId: row.prijavaId })}
             onAgreement={() => row.dogovorId ? p.onOpen({ kind: 'AGREEMENT', agreementId: row.dogovorId }) : p.onOpen({ kind: 'APPLICATION', applicationId: row.prijavaId })}
@@ -349,6 +355,6 @@ const s = StyleSheet.create({
   initialLoadingText: { textAlign: 'center' },
   carouselScroll: { marginHorizontal: -layout.gutter },
   carousel: { gap: layout.group, paddingVertical: sys.space.xs, paddingHorizontal: layout.gutter, alignItems: 'stretch' },
-  carouselCard: { width: 321, minHeight: 256, flexShrink: 0 },
+  carouselCard: { minHeight: 256, flexShrink: 0 },
   mineGroup: { gap: sys.space.sm },
 });

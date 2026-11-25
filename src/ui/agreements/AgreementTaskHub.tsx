@@ -213,7 +213,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
       <BarIcon label={owner ? 'Dogovoreni' : 'Dogovor'} short={owner ? 'Dogovoreni' : 'Dogovor'} art="agreements" selected={pane === 'agreed'} onPress={() => toggle('agreed')} />
       {owner ? <BarIcon label="Prijave" short="Prijave" art="applications" selected={pane === 'applications'} badge={appCount} onPress={() => toggle('applications')} /> : null}
       {anchor ? <BarIcon label="Grupni razgovor" short="Grupa" art="chat" selected={pane === 'group'} onPress={() => toggle('group')} /> : null}
-      {owner ? <BarIcon label="Uređivanje zadatka" short="Izmene" glyph="edit" selected={pane === 'edit'} onPress={() => toggle('edit')} /> : null}
+      {owner ? <BarIcon label="Uređivanje zadatka" short="Izmene" art="publish" selected={pane === 'edit'} onPress={() => toggle('edit')} /> : null}
     </View>
   </View>;
 

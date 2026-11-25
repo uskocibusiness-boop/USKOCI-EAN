@@ -25,7 +25,7 @@ function createHarness(extra = {}, timerModules = {}) {
     'react-native': native,
     'expo-image': { Image:host('Image') },
     'src/ui/system/Appear.tsx': { Appear:host('Appear'), useAppear:()=>({settle:()=>{},isNew:()=>false}) },
-    'src/ui/system/textScale.ts': { useLayoutClass:()=>({stacked:false,wide:true}) },
+    'src/ui/system/textScale.ts': { useLayoutClass:()=>({stacked:false,wide:true}), useWindowRoom:()=>({width:390,scale:1}) },
     'src/ui/system/usePullRefresh.ts': { usePullRefresh:(fn,refreshing)=>({onRefresh:fn,refreshing}) },
     'src/ui/system/tokens.ts': { sys:{color:{},space:{},radius:{},motion:{scale:{row:1,button:1},easeOut:[0,0,1,1],press:100,spring:{}},type:{heading:{lineHeight:24}},touch:{min:48}},brandAction:{},profileLift:{} },
     'src/ui/system/layout.ts': { layout:{group:16,rowMin:48,gutter:20,touch:48},ruleWidth:1 },
