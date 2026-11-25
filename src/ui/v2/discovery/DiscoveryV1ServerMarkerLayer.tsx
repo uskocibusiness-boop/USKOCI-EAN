@@ -81,17 +81,18 @@ export const DiscoveryV1ServerMarkerLayer = memo(function DiscoveryV1ServerMarke
       const marker = typeof key === 'string' ? byKey.get(key) : undefined;
       if (marker) props.onSelect(marker);
     }}>
-    <Layer id="p6-pins" type="symbol" filter={['!=', ['get', 'key'], chosen]}
-      layout={{ 'symbol-sort-key': ['get', 'order'], 'icon-image': ['get', 'image'], 'icon-size': PIN_ICON_SIZE, 'icon-anchor': ANCHOR,
-        'icon-allow-overlap': true, 'icon-ignore-placement': true,
-        'text-field': ['get', 'label'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': COUNT_SIZE, 'text-offset': COUNT_OFFSET,
-        'text-allow-overlap': true, 'text-ignore-placement': true }}
-      paint={{ 'text-color': sys.color.onGreen, 'text-halo-color': sys.color.onGreen, 'text-halo-width': 0.4 }} />
-    {/* Owner, 25.11.2026: the price sits under an unchosen task pin; where prices would collide, the map shows the one it can place. */}
+    {/* Owner, 25.11.2026: the price sits under an unchosen task pin. It is drawn under the pins and placed after them, so a price that
+        would run into a pin or a count bubble is left out; the pins themselves always show (they allow overlap but claim their room). */}
     <Layer id="p6-pin-price" type="symbol" filter={['all', ['!=', ['get', 'key'], chosen], ['==', ['get', 'kind'], 'TASK'], ['!=', ['get', 'price'], '']]}
       layout={{ 'symbol-sort-key': ['get', 'order'], 'text-field': ['get', 'price'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': 13,
         'text-anchor': 'top', 'text-offset': [0, 0.25], 'text-max-width': 12, 'text-optional': true }}
       paint={{ 'text-color': sys.color.ink, 'text-halo-color': sys.color.surface, 'text-halo-width': 2 }} />
+    <Layer id="p6-pins" type="symbol" filter={['!=', ['get', 'key'], chosen]}
+      layout={{ 'symbol-sort-key': ['get', 'order'], 'icon-image': ['get', 'image'], 'icon-size': PIN_ICON_SIZE, 'icon-anchor': ANCHOR,
+        'icon-allow-overlap': true, 'icon-ignore-placement': false,
+        'text-field': ['get', 'label'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': COUNT_SIZE, 'text-offset': COUNT_OFFSET,
+        'text-allow-overlap': true, 'text-ignore-placement': true }}
+      paint={{ 'text-color': sys.color.onGreen, 'text-halo-color': sys.color.onGreen, 'text-halo-width': 0.4 }} />
     <Layer id="p6-chosen" type="symbol" filter={['==', ['get', 'key'], chosen]}
       layout={{ 'icon-image': ['get', 'chosenImage'], 'icon-size': PIN_ICON_SIZE * PIN_CHOSEN_SCALE, 'icon-anchor': ANCHOR,
         'icon-allow-overlap': true, 'icon-ignore-placement': true,
