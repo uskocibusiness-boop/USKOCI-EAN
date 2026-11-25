@@ -29,7 +29,8 @@ export type AgreementActionForm = { token: object; kind: 'PROPOSE' | 'CANCEL'; r
 
 /** The same zone the form types in, so the review and the fields cannot disagree: Serbian time for both parties
  * (owner decision 2026-09-21, deep read 8.27). */
-const schedule = (terms: AgreementChangeTerms) => terms.startsAt === null && terms.endsAt === null ? 'Termin nije dogovoren'
+const NO_TERM = 'Termin nije dogovoren';
+const schedule = (terms: AgreementChangeTerms) => terms.startsAt === null && terms.endsAt === null ? NO_TERM
   : needScheduleText({ kind: 'FIXED_WINDOW', startsAt: terms.startsAt, endsAt: terms.endsAt }, DOGOVORENA_ZONA);
 const scopeText = (terms: AgreementChangeTerms) => terms.scopeNote || 'Nije dodat opis';
 /**
@@ -47,14 +48,15 @@ const priceText = (rsd: number, basis?: 'TOTAL' | 'HOURLY') => Number.isFinite(r
  */
 function Fact({ art, label, value, before }: { art: FactArtKind; label: string; value: string; before?: string | null }) {
   const compared = before !== undefined && before !== null, changed = compared && before !== value;
-  const spoken = changed ? `${label}: ${value}, umesto ${before}` : compared ? `${label}: ${value}, bez promene` : `${label}: ${value}`;
+  const spoken = changed ? `${label}: ${value}, ${before === NO_TERM ? 'do sada bez termina' : `umesto ${before}`}` : compared ? `${label}: ${value}, bez promene` : `${label}: ${value}`;
   const amount = art === 'money' && value !== BEZ_IZNOSA;
   return <View style={s.fact} accessible accessibilityLabel={spoken}>
     <FactArt kind={art} size={24} cut="art" />
     <View style={s.factCopy}>
       <T variant="meta" tone="muted">{label}</T>
       <T variant={amount ? 'bodyStrong' : 'body'} style={amount ? s.money : undefined}>{value}</T>
-      {changed ? <T variant="meta" tone="muted">umesto {before}</T> : compared ? <T variant="meta" tone="muted">bez promene</T> : null}
+      {changed ? <T variant="meta" tone="muted">{before === NO_TERM ? 'do sada bez termina' : `umesto ${before}`}</T>
+        : compared ? <T variant="meta" tone="muted">bez promene</T> : null}
     </View>
   </View>;
 }
@@ -65,7 +67,9 @@ function Terms({ terms, base }: { terms: AgreementChangeTerms | null; base?: Agr
   return <View style={s.facts}>
     <Fact art="money" label="Cena" value={priceText(terms.priceRsd, terms.priceBasis)} before={base ? priceText(base.priceRsd, base.priceBasis) : undefined} />
     <Fact art="calendar" label="Termin" value={schedule(terms)} before={base ? schedule(base) : undefined} />
-    <Fact art="document" label="Posao" value={scopeText(terms)} before={base ? scopeText(base) : undefined} />
+    {/* A description that neither side ever wrote and that stays unwritten says nothing on a review (owner walk-through, 25.11.2026). */}
+    {terms.scopeNote || base?.scopeNote || !base
+      ? <Fact art="document" label="Posao" value={scopeText(terms)} before={base ? scopeText(base) : undefined} /> : null}
   </View>;
 }
 
@@ -268,6 +272,15 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
   return <View style={s.stack}>
     {form.reentry ? <T variant="copy" tone="muted">Prethodni unos nije sačuvan na telefonu. Unesite iste podatke kao prvi put, da proverimo da li je već stiglo.</T> : null}
     {form.kind === 'PROPOSE' ? <>
+      {/* The term is what a Dogovor most often changes ("Predložite termin" opens this form), so it comes first; price and the
+          description of the work follow (owner walk-through, 25.11.2026). */}
+      <T variant="meta" tone="muted">Vreme unosite po vremenu u Srbiji.</T>
+      {/* Most work ends the day it starts: an empty end date takes the start date, and stays the person's to change. */}
+      {civil('Datum početka', 'date', form.startDate, startDate => onEdit({ startDate, startChanged: true,
+        ...(form.endDate.trim() ? {} : { endDate: startDate, endChanged: true }) }), was.startDate)}
+      {civil('Vreme početka', 'time', form.startTime, startTime => onEdit({ startTime, startChanged: true }), was.startTime)}
+      {civil('Datum kraja', 'date', form.endDate, endDate => onEdit({ endDate, endChanged: true }), was.endDate)}
+      {civil('Vreme kraja', 'time', form.endTime, endTime => onEdit({ endTime, endChanged: true }), was.endTime)}
       <View style={s.field}>
         <T variant="meta">{base?.priceBasis === 'HOURLY' ? 'Cena po satu, po osobi' : 'Cena'}</T>
         {/* The amount never stands without its currency: the row is the one field box, RSD inside it beside the number. */}
@@ -283,11 +296,6 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
         instead(was.scope !== null && form.scope.trim() !== was.scope, was.scope ?? ''))
         : <V2Action label="Dodajte opis posla" kind="quiet" tone="neutral" disabled={busy}
           onPress={() => { if (currentScope.current.token === form.token && !currentScope.current.busy) setScopeEditor({ token: form.token, open: true }); }} style={s.scopeEntry} />}
-      <T variant="meta" tone="muted">Vreme unosite po vremenu u Srbiji.</T>
-      {civil('Datum početka', 'date', form.startDate, startDate => onEdit({ startDate, startChanged: true }), was.startDate)}
-      {civil('Vreme početka', 'time', form.startTime, startTime => onEdit({ startTime, startChanged: true }), was.startTime)}
-      {civil('Datum kraja', 'date', form.endDate, endDate => onEdit({ endDate, endChanged: true }), was.endDate)}
-      {civil('Vreme kraja', 'time', form.endTime, endTime => onEdit({ endTime, endChanged: true }), was.endTime)}
     </> : null}
     {choosing ? <View style={s.field}>
       <T variant="meta">Razlog otkazivanja Dogovora</T>

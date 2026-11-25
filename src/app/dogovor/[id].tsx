@@ -343,6 +343,16 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   const completionAsked = useRef(requestedCompletion);
   const requestedCompletionStep = useRef<() => void>(() => {});
   useEffect(() => { requestedCompletionStep.current(); });
+  // The server signals only new messages live, not the other side moving the Dogovor on (accepting a change, reporting or
+  // confirming the end). While this screen is in front on a Dogovor that is still running, it reads again quietly every 20 s,
+  // never while the completion review is open or a command is running (owner walk-through, 25.11.2026).
+  const runningDogovor = !!dogovor && (dogovor.stanje === 'CONFIRMED' || dogovor.stanje === 'AWAITING_REQUESTER');
+  const workspaceBusy = workspace.busy, refreshWorkspace = workspace.refresh;
+  useEffect(() => {
+    if (!runningDogovor || !foreground || resumeRequired || renderedFormFocus === null || completionReview !== null || completing) return;
+    const timer = setInterval(() => { if (!workspaceBusy) void refreshWorkspace(); }, 20_000);
+    return () => clearInterval(timer);
+  }, [runningDogovor, foreground, resumeRequired, renderedFormFocus, completionReview, completing, workspaceBusy, refreshWorkspace]);
   if (!foreground || (resumeRequired && !keepsContent)) return <AgreementStatus loading />;
   if (!dogovor) return <AgreementStatus loading={workspace.loading} error={!!workspace.error} retry={() => void osvezi()} />;
 
