@@ -21,7 +21,7 @@ import { TaskCard } from '../v2/TaskCard';
 import { TaskPublisherPortrait } from '../v2/TaskPublisherPortrait';
 import { OwnTaskCard } from '../v2/OwnTaskCard';
 import { ApplicationCard } from '../v2/ApplicationFace';
-import { AgreementRow } from '../agreements/AgreementListCard';
+import { AgreementTaskCard } from '../agreements/AgreementTaskCard';
 import { sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useLayoutClass } from '../system/textScale';
@@ -257,8 +257,9 @@ export function HomePresentation(p: HomePresentationProps) {
       <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.carousel} style={s.carouselScroll}>
         {home.agreementItems.map((item, index) => <View key={item.id} style={s.carouselCard}>
-          <AgreementRow item={item} index={index} now={Date.now()} animate={false} stale={!!p.stale}
-            onOpen={row => p.onOpen({ kind: 'AGREEMENT', agreementId: row.id })}
+          {/* One card style everywhere (owner, 25.11.2026): the same Dogovor card as on the Dogovori screen. */}
+          <AgreementTaskCard group={{ key: item.id, items: [item] }} index={index} animate={false} stale={!!p.stale}
+            onOpen={group => p.onOpen({ kind: 'AGREEMENT', agreementId: group.items[0].id })}
             onRate={row => p.onRatings(row.id)} />
         </View>)}
       </ScrollView>
