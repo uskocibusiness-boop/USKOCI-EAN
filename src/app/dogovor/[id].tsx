@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, ScrollView, Platform, KeyboardAvoidingView, Keyboard, BackHandler, AppState, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, ScrollView, Platform, KeyboardAvoidingView, Keyboard, BackHandler, AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
@@ -69,21 +69,27 @@ function backToAgreements() { if (router.canGoBack()) router.back(); else router
 function AgreementStatus(props: { loading?: boolean; error?: boolean; retry?: () => void }) { return <AgreementStatusView {...props} back={backToAgreements} />; }
 export default function Dogovor() {
   // A notification about a message opens the conversation itself, not the overview it lives behind.
-  const { id, tab, messageId, from, action } = useLocalSearchParams<{ id: string | string[]; tab?: string | string[]; messageId?: string | string[]; from?: string | string[]; action?: string | string[] }>();
+  const { id, tab, messageId, from, action, pregled } = useLocalSearchParams<{ id: string | string[]; tab?: string | string[]; messageId?: string | string[]; from?: string | string[]; action?: string | string[]; pregled?: string | string[] }>();
   const session = useSesija(), accountId = session.user?.id;
   if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || !accountId) return <AgreementStatus />;
   if (messageId !== undefined && (typeof messageId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId))) return <AgreementStatus />;
   return <DogovorContent key={`${accountId}:${session.accountRevision}:${id}`} id={id} accountId={accountId} accountRevision={session.accountRevision}
     fromInbox={from === 'poruke'} requestedTab={tab === 'poruke' ? 'poruke' : 'pregled'} requestedMessageId={tab === 'poruke' ? messageId?.toLowerCase() : undefined}
-    requestedCompletion={action === 'complete' && tab !== 'poruke'} />;
+    requestedCompletion={action === 'complete' && tab !== 'poruke'} keepPage={pregled === '1'} />;
 }
-function DogovorContent({ id, accountId, accountRevision, requestedTab, requestedMessageId, fromInbox, requestedCompletion = false }: {
+function DogovorContent({ id, accountId, accountRevision, requestedTab, requestedMessageId, fromInbox, requestedCompletion = false, keepPage = false }: {
   id: string; accountId: string; accountRevision: number; requestedTab: AgreementTab; requestedMessageId?: string; fromInbox: boolean;
+  /** `pregled=1`: this page itself, not the task screen (the task screen's own fallback when it cannot find the Dogovor). */
+  keepPage?: boolean;
   /** Opened from a person's card on the task screen: the completion review opens once the server allows it. */
   requestedCompletion?: boolean;
 }) {
   const izvor = useIzvor();
   const [tab, updateTab] = useState<AgreementTab>(requestedTab);
+  // Owner's Dogovor concept (21.11.2026): a conversation opened from a person on the task screen stands on its own, with no
+  // Pregled | Poruke switch; back returns to the task screen. The terms and every step live on the task screen.
+  const standaloneChat = requestedTab === 'poruke';
+  const leaveChat = useCallback(() => { if (router.canGoBack()) router.back(); else router.replace('/dogovori'); }, []);
   // A retained geometry callback from a prior Poruke visit cannot acknowledge a later visit.
   const chatVisit = useRef<object>({}), tabRef = useRef(tab);
   const setTab = useCallback((next: AgreementTab) => {
@@ -327,12 +333,12 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       if (Keyboard.isVisible()) { Keyboard.dismiss(); return true; }
       // Poruke is an inner view of this route, not another navigator entry.
       // Returning to its overview must retain pending/unknown command owners.
-      if (fromInbox) { if (router.canGoBack()) router.back(); else router.replace('/poruke'); }
+      if (fromInbox || standaloneChat) { if (router.canGoBack()) router.back(); else router.replace(fromInbox ? '/poruke' : '/dogovori'); }
       else setTab('pregled');
       return true;
     });
     return () => { current = false; subscription.remove(); };
-  }, [chatVisible, ownsAccount, fromInbox]));
+  }, [chatVisible, ownsAccount, fromInbox, standaloneChat]));
   // Back from the background the overview keeps its last content, read-only, with a quiet "Osvežavamo…" line, instead of a full
   // skeleton (plan 2.6). Nothing private stays on it until the fresh read lands (the contact section waits, the place is gone),
   // every command is fenced as before, and in the background itself nothing is drawn. The conversation, with its composer and
@@ -343,6 +349,22 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   const completionAsked = useRef(requestedCompletion);
   const requestedCompletionStep = useRef<() => void>(() => {});
   useEffect(() => { requestedCompletionStep.current(); });
+  // Opened from a person's card on the task screen (owner's Dogovor concept, 21.11.2026): only the completion review shows, over a
+  // plain page, and the person is back on the task screen once it is sent or closed. No permission or an error falls back to the page.
+  const [completionFlow, setCompletionFlow] = useState(requestedCompletion);
+  const completionFlowRef = useRef(requestedCompletion);
+  const completionFlowStep = useRef<() => void>(() => {});
+  useEffect(() => { completionFlowStep.current(); });
+  // Owner's Dogovor concept (21.11.2026): a Dogovor lives on the screen of its task (people, steps, group, changes). Opened from
+  // anywhere else (a notification, Home, the schedule, ratings), the overview hands over to that screen once it knows the task.
+  const handedOver = useRef(false);
+  useEffect(() => {
+    if (handedOver.current || keepPage || requestedCompletion || requestedTab !== 'pregled' || !dogovor) return;
+    const needId = dogovor.izvor?.zadatakId, me = dogovor.ucesnici.find(party => party.viSte && party.id === accountId);
+    if (!needId || !me) return;
+    handedOver.current = true;
+    router.replace({ pathname: '/dogovor/zadatak', params: { needId, role: me.uloga === 'uskocer' ? 'uskocer' : 'narucilac', title: dogovor.naslov, id } });
+  }, [dogovor, keepPage, requestedCompletion, requestedTab, accountId, id]);
   // The server signals only new messages live, not the other side moving the Dogovor on (accepting a change, reporting or
   // confirming the end). While this screen is in front on a Dogovor that is still running, it reads again quietly every 20 s,
   // never while the completion review is open or a command is running (owner walk-through, 25.11.2026).
@@ -403,9 +425,10 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     waitingAnchor.current = null;
     scrollToAnchor(name);
   };
-  const complete = async () => {
-    if (!canComplete || !enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return;
+  const complete = async (): Promise<boolean> => {
+    if (!canComplete || !enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return false;
     const display = {};
+    let succeeded = false;
     try { await workspace.save(async () => {
       // Display ownership only: the existing editor still decides whether this write can start.
       completionDisplay.current = display; setCompleting(true);
@@ -420,10 +443,12 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       // Said as what did not get written, never as the normal wait for the other side ("čeka potvrdu"; review r3b).
       if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: worker
         ? 'Nismo uspeli da zabeležimo da je zadatak gotov. Osvežite Dogovor pa pokušajte ponovo.' : 'Nismo uspeli da zabeležimo potvrdu završetka. Osvežite Dogovor pa pokušajte ponovo.' };
+      succeeded = true;
       return next;
     }); } finally {
       if (completionDisplay.current === display) { completionDisplay.current = null; setCompleting(false); }
     }
+    return succeeded;
   };
   // This is presentation staging only. The existing completion command still
   // owns every permission, serialization, timeout and readback rule.
@@ -440,7 +465,12 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     if (!reviewingCompletion || completionReviewRef.current !== completionReview || !formCurrent() ||
       completionReview!.readEpoch !== completionReadEpoch.current || completionReview!.focus !== formFocus.current) return;
     // Consume before the async command starts, so two taps cannot reuse this review.
-    closeCompletionReview(); void complete();
+    closeCompletionReview();
+    void complete().then(ok => {
+      if (!completionFlowRef.current) return;
+      // Sent and read back: back to the task screen, which reads every card again. Anything else stays here with its error.
+      if (ok) backToAgreements(); else { completionFlowRef.current = false; setCompletionFlow(false); }
+    });
   };
   requestedCompletionStep.current = () => {
     if (!completionAsked.current || !canComplete || !formCurrent()) return;
@@ -449,6 +479,11 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   };
   const dismissCompletionReview = () => {
     if (completionReviewRef.current === completionReview) closeCompletionReview();
+    if (completionFlowRef.current && !completing) backToAgreements();
+  };
+  completionFlowStep.current = () => {
+    // The server does not allow this step (any more): the page itself says why and what is left.
+    if (completionFlowRef.current && !workspace.loading && !completing && !canComplete) { completionFlowRef.current = false; setCompletionFlow(false); }
   };
   const deadline = dogovor.rokPotvrdeIso ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: dogovor.rokPotvrdeIso }, 'Europe/Belgrade') : 'Rok trenutno nije dostupan';
 
@@ -561,17 +596,23 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     disabled={!enabled || groupModel.loadingMore} onPrivate={openPrivateConversation} onMore={() => void groupModel.more()}
     onGroup={() => { if (formCurrent() && groupModel.current()) router.push({ pathname: '/dogovor/[id]/grupa', params: { id } }); }} /> : null;
 
+  if (completionFlow) return <SafeAreaView edges={['top', 'bottom']} style={[s.screen, s.flowPage]}>
+    {reviewingCompletion ? <AgreementCompletionReview agreement={completionReview!.agreement} worker={worker}
+      confirm={confirmCompletionReview} back={dismissCompletionReview} /> : null}
+    <View style={s.flowWait}><ActivityIndicator color={sys.color.green} />
+      <T variant="note" tone="muted">{completing ? 'Čuvamo završetak…' : 'Pripremamo pregled završetka…'}</T></View>
+  </SafeAreaView>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     {reviewingCompletion ? <AgreementCompletionReview agreement={completionReview!.agreement} worker={worker}
       confirm={confirmCompletionReview} back={dismissCompletionReview} /> : null}
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {tab === 'poruke' ? <AgreementThreadPresentation key={requestedMessageId ?? 'history'} agreement={dogovor} person={other}
-        channels={channels}
-        waiting={waitingForMe} onOverview={() => setTab('pregled')}
+        channels={channels} standalone={standaloneChat}
+        waiting={waitingForMe} onOverview={standaloneChat ? leaveChat : () => setTab('pregled')}
         // The conversation's own "···" (the overview has none, J15), so "Prijavite ili blokirajte osobu" and the rest are reachable while Poruke is shown.
         onMore={menuActions.length ? () => { if (ownsAccount()) setMenuOpen(true); } : undefined}
-        onBack={fromInbox ? () => {
+        onBack={standaloneChat && !fromInbox ? leaveChat : fromInbox ? () => {
           if (renderedFormFocus !== null && formFocus.current === renderedFormFocus && ownsAccount() && activeRef.current && freshRef.current) {
             if (router.canGoBack()) router.back(); else router.replace('/poruke');
           }
@@ -657,6 +698,8 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
+  flowPage: { backgroundColor: sys.color.surface },
+  flowWait: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: sys.space.sm },
   ink: { color: sys.color.ink },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   // The tab strip stands on the same edge as the bar above it and the page below it (`layout.gutter`), so the arrow does not move between Pregled and Poruke.

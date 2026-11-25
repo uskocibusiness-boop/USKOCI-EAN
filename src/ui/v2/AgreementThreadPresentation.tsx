@@ -20,6 +20,8 @@ type Props = {
   /** Inbox entry returns to the inbox; the task identity still opens accepted terms. */
   onBack?: () => void;
   channels?: ReactNode;
+  /** Opened on its own (from a person on the task screen or from Poruke): no Pregled | Poruke switch, back leaves the conversation. */
+  standalone?: boolean;
   /**
    * The Dogovor's "···" menu (change terms, share the number, report a problem, cancel, and "Prijavite ili blokiraj osobu"): the conversation's
    * own, since the overview has none - its actions are rows of the page (J15) and the person is one tap from them, on the Pregled tab. Absent
@@ -39,7 +41,7 @@ type Props = {
  * With room, the bar is the person, the task and "···", and the same Pregled | Poruke tabs as the overview stand under it
  * (proposal R1), so the two halves of a Dogovor are one tap apart from either side.
  */
-export function AgreementThreadPresentation({ agreement, person, onOverview, onBack = onOverview, onMore, channels, waiting = null, chat }: Props) {
+export function AgreementThreadPresentation({ agreement, person, onOverview, onBack = onOverview, onMore, channels, standalone = false, waiting = null, chat }: Props) {
   const { height } = useWindowDimensions();
   const scale = useTextScale();
   const [availableHeight, setAvailableHeight] = useState<number | null>(null);
@@ -96,7 +98,7 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
       </View>
       {waiting ? <View style={s.waitingRow}><T variant="note" style={s.waiting}>{waiting}</T></View> : null}
     </>}
-    {!compact ? <View testID="agreement-thread-tabs" style={s.tabs}>
+    {!compact && !(standalone && !channels) ? <View testID="agreement-thread-tabs" style={s.tabs}>
       {channels ?? <AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} />}
     </View> : channels ? <View style={s.tabs}>{channels}</View> : null}
     {/* A private conversation has two people and the header already names and shows the other one (owner-approved tidy chat,

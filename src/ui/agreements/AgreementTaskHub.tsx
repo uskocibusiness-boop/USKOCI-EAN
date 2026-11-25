@@ -22,6 +22,7 @@ import { ratingWords } from '../v2/TaskFace';
 import { applicationPriceBasisText } from '../../lib/novac';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { V2Action } from '../v2/V2Action';
+import { isNoTermText } from '../v2/AgreementPresentation';
 import type { DogovorProjekcija, JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija } from '../../contracts/projections';
 import { ownAgreementView, type OwnAgreementGroup } from '../../data/ownAgreementGroupsPage';
 import { declineApplication } from '../../data/applicationDeclineClientService';
@@ -76,9 +77,10 @@ function BarIcon({ label, short, art, glyph, selected, badge, onPress }: {
 }
 
 /** An agreed person (🤝): avatar on the left with the name under it; rating, price, place and date; remove and a private message. */
-function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOpen, onMessage, onRemove, onComplete, onRate }: {
+function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOpen, onMessage, onRemove, onComplete, onRate, onChanges, onProposeTerm }: {
   person: AgreementTaskPerson; owner: boolean; remote: boolean; place: string; now: Date; rating: string | null;
   onProfile: () => void; onOpen: () => void; onMessage: () => void; onRemove?: () => void; onComplete: () => void; onRate: () => void;
+  onChanges: () => void; onProposeTerm: () => void;
 }) {
   const item = person.agreement, attention = agreementAttention(item);
   // Completion is per person (owner, 22.11.2026). The server's allowed actions decide when they are known; the state is
@@ -88,6 +90,13 @@ function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOp
   const autoConfirm = canConfirm && item.rokPotvrdeIso
     ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: item.rokPotvrdeIso }, 'Europe/Belgrade') : null;
   const amount = item.cena.prikaz;
+  // Every step of this Dogovor is on its card (owner's concept, 21.11.2026): answering a change, proposing a missing term,
+  // completion and the rating; one action at a time, and the words of a step that has its own button are not said twice.
+  const answersChange = attention?.kind === 'change';
+  const waitsOnOther = !!item.izmenaCeka?.mojPredlog;
+  const needsTerm = item.stanje === 'CONFIRMED' && !item.izmenaCeka && isNoTermText(item.vremeTekst) && !canConfirm;
+  const rates = !canConfirm && !canReport && !answersChange && awaitsMyRating(item);
+  const sayAttention = attention && !answersChange && !(attention.kind === 'confirm' && canConfirm) && !(attention.kind === 'rate' && rates);
   return <Surface kind="record">
     <View style={s.personCard}>
       <Press accessibilityRole="button" accessibilityLabel={`Profil: ${person.name}`} accessibilityHint="Otvara profil, ocene i recenzije."
@@ -95,7 +104,7 @@ function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOp
         <Face person={person} size={56} />
         <T variant="meta" numberOfLines={2} style={s.personName}>{person.name}</T>
       </Press>
-      <Press accessibilityRole="button" accessibilityLabel={`Dogovor sa: ${person.name}`} accessibilityHint="Otvara uslove, poruke i završetak za ovu osobu."
+      <Press accessibilityRole="button" accessibilityLabel={`Dogovor sa: ${person.name}`} accessibilityHint="Otvara uslove i izmene ovog Dogovora."
         onPress={onOpen} haptic="select" style={s.personBody}>
         <View style={s.personTop}><AgreementStatusChip chip={agreementChip(item, now)} /></View>
         {rating ? <View style={s.inline}><FactArt kind="star" size={26} /><T variant="note" tone="muted">{rating}</T></View> : null}
@@ -104,12 +113,16 @@ function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOp
           {amount ? <T variant="note" tone="muted">{applicationPriceBasisText(item.osnovaCene)}</T> : null}</View>
         <View style={s.inline}><FactArt kind={remote ? 'remote' : 'pin'} size={26} /><T variant="note" tone="muted" numberOfLines={2} style={s.flex}>{place}</T></View>
         <View style={s.inline}><FactArt kind="calendar" size={26} /><T variant="note" tone="muted" numberOfLines={2} style={s.flex}>{item.vremeTekst || 'Termin po dogovoru'}</T></View>
-        {attention ? <View style={s.inline}><View style={s.dot} /><T variant="note" style={s.warn} numberOfLines={2}>{attention.title}</T></View> : null}
+        {sayAttention ? <View style={s.inline}><View style={s.dot} /><T variant="note" style={s.warn} numberOfLines={2}>{attention!.title}</T></View> : null}
+        {waitsOnOther ? <T variant="note" tone="muted">Čeka se odgovor na Vaš predlog izmene.</T> : null}
         {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
-        {canConfirm || canReport || awaitsMyRating(item) ? <View style={s.personStep}>
-          {canConfirm ? <V2Action tone="brand" label="Potvrdite završetak" onPress={onComplete} />
-            : canReport ? <V2Action tone="brand" label="Zadatak je gotov" onPress={onComplete} />
-              : <V2Action tone="neutral" kind="secondary" label="Ocenite saradnju" onPress={onRate} />}
+        {answersChange || canConfirm || canReport || rates || needsTerm ? <View style={s.personStep}>
+          {answersChange ? <V2Action tone="brand" label="Odgovorite na predlog" onPress={onChanges} />
+            : canConfirm ? <V2Action tone="brand" label="Potvrdite završetak" onPress={onComplete} />
+              : needsTerm && !canReport ? <V2Action tone="neutral" kind="secondary" label="Predložite termin" onPress={onProposeTerm} />
+                : canReport ? <V2Action tone="brand" label="Zadatak je gotov" onPress={onComplete} />
+                  : <V2Action tone="neutral" kind="secondary" label="Ocenite saradnju" onPress={onRate} />}
+          {needsTerm && canReport ? <V2Action tone="neutral" kind="quiet" label="Predložite termin" onPress={onProposeTerm} /> : null}
           {autoConfirm ? <T variant="note" tone="muted">Ako ne odgovorite, završetak se sam potvrđuje: {autoConfirm}.</T> : null}
         </View> : null}
       </Press>
@@ -174,7 +187,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
   const summary = useMemo(() => items?.length ? agreementTaskSummary({ key: needId, items }) : null, [items, needId]);
   const now = new Date();
   const anchor = items?.find(isOpenAgreement) ?? items?.find(isLiveAgreement) ?? items?.[0] ?? null;
-  const openAgreement = (id: string, tab?: 'poruke') => go(() => router.navigate({ pathname: '/dogovor/[id]', params: tab ? { id, tab } : { id } }));
+  const openAgreement = (id: string, tab?: 'poruke') => go(() => router.navigate({ pathname: '/dogovor/[id]', params: tab ? { id, tab } : { id, pregled: '1' } }));
   const back = () => go(() => (router.canGoBack() ? router.back() : router.navigate('/dogovori')));
   const people = summary ? (owner ? summary.people : summary.owner ? [summary.owner] : []) : [];
   const live = people.filter(p => isLiveAgreement(p.agreement)), earlier = people.filter(p => !isLiveAgreement(p.agreement));
@@ -232,7 +245,10 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId }: {
       onComplete={() => go(() => router.navigate({ pathname: '/dogovor/[id]', params: { id: person.agreementId, action: 'complete' } }))}
       onRate={() => go(() => router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: person.agreementId } }))}
       remote={summary.remote} place={summary.placeText} now={now} rating={ratingOf(person.profileId)} onProfile={() => openProfile(person.profileId)}
-      onOpen={() => openAgreement(person.agreementId)} onMessage={() => openAgreement(person.agreementId, 'poruke')}
+      onOpen={() => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId } }))}
+      onChanges={() => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId } }))}
+      onProposeTerm={() => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId, start: 'propose' } }))}
+      onMessage={() => openAgreement(person.agreementId, 'poruke')}
       onRemove={removable && owner && isOpenAgreement(person.agreement)
         ? () => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId, start: 'cancel' } })) : undefined} />;
     body = <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
