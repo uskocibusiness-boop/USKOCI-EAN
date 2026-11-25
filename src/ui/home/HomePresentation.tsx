@@ -319,7 +319,7 @@ const s = StyleSheet.create({
     borderRadius: sys.radius.card,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: sys.color.line,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,

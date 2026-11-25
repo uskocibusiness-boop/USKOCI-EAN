@@ -59,11 +59,11 @@ export const STATUS_KEYS = Object.keys(STATUS_CHIPS) as StatusKey[];
 
 /** What each tone is drawn in: the chip's ground, its mark and its word. Tokens only; the contrast of each pair is measured by the test. */
 export const STATUS_TONES: Readonly<Record<StatusTone, { ground: string; mark: string; word: string }>> = {
-  neutral: { ground: '#F3F4F6', mark: '#6B7280', word: '#374151' },
-  green: { ground: '#DCFCE7', mark: '#16A34A', word: '#15803D' },
-  // Orange attention tone with clean contrast
-  attention: { ground: '#FFEDD5', mark: '#EA580C', word: '#C2410C' },
-  grey: { ground: '#F3F4F6', mark: '#9CA3AF', word: '#6B7280' },
+  // The app's own palette (owner-approved look, 25.11.2026): one brand green, one orange, quiet greys.
+  neutral: { ground: '#F2F4F2', mark: '#52605A', word: '#17221D' },
+  green: { ground: '#E8F4ED', mark: '#006B4F', word: '#006B4F' },
+  attention: { ground: '#FFF5E9', mark: '#FF7A1A', word: '#A8430A' },
+  grey: { ground: '#F2F4F2', mark: '#849087', word: '#52605A' },
 };
 
 /** The side of the square the mark is drawn in, in dp. */
