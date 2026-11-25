@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { FactRow } from '../system/FactRow';
+import { FACT_ROW_ART, FactRow } from '../system/FactRow';
+import { FactArt } from '../system/FactArt';
 import { STATUS_CHIPS, StatusChip, type StatusKey } from '../system/StatusChip';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
@@ -91,7 +92,8 @@ export const PrijavaCard = memo(function PrijavaCard({ model, large, noteLines =
   return <>
     <PrijavaState status={model.status} reason={model.reason} detail={model.detail} silent />
     <View style={s.head}><T variant="heading" style={[s.title, s.task]}>{who.title}</T></View>
-    {money}
+    {/* The coins beside the price, as on every other card of the app (owner, 25.11.2026: one card style). */}
+    <View style={s.moneyRow}><FactArt kind="money" size={FACT_ROW_ART} /><View style={s.moneyText}>{money}</View></View>
     <FactRow art="calendar" value={model.term} />
     {model.message ? <T variant="note" tone="muted" numberOfLines={noteLines || undefined}>{model.message}</T> : null}
   </>;
@@ -103,6 +105,8 @@ const s = StyleSheet.create({
   reason: { color: sys.color.muted, flexShrink: 1 },
   reasonWarn: { color: sys.color.warn },
   head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  moneyRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  moneyText: { flex: 1, minWidth: 0 },
   task: { flex: 1, minWidth: 0 },
   title: { color: sys.color.ink },
 });
