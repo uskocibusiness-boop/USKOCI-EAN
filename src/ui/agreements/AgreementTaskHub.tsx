@@ -35,6 +35,8 @@ import { agreementAttention, agreementChip, awaitsMyConfirmation, awaitsMyRating
 import { AgreementStatusChip } from './AgreementStatusChip';
 import { ApplicationSwipeCard } from './ApplicationSwipeCard';
 import { TaskTopBar, type TaskTab } from './TaskTabs';
+import { MyPeriodSheet, periodLine } from './MyPeriodSheet';
+import { readMyAgreementPeriods, type AgreementPeriod } from '../../data/agreementPeriodClientService';
 import { TaskDecisionTitle } from '../v2/detail/TaskDecision';
 import { agreementTaskSummary, isLiveAgreement, isOpenAgreement, type AgreementTaskPerson } from './agreementTaskModel';
 
@@ -65,8 +67,9 @@ function Face({ person, size }: { person: { profileId: string | null; initials: 
 }
 
 /** An agreed person (🤝): avatar on the left with the name under it; rating, price, place and date; remove and a private message. */
-function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOpen, onMessage, onMore, onComplete, onRate, onChanges, onProposeTerm, facts = true }: {
+function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOpen, onMessage, onMore, onComplete, onRate, onChanges, onProposeTerm, facts = true, period, onPeriod }: {
   person: AgreementTaskPerson; owner: boolean; remote: boolean; place: string; now: Date; rating: string | null;
+  /** My own marked time for this Dogovor (owner, 25.11.2026): private, it fills my schedule. */ period?: AgreementPeriod | null; onPeriod?: () => void;
   /** The price, place and term; a worker's Pregled already says them above the task owner's row. */ facts?: boolean;
   onProfile: () => void; onOpen: () => void; onMessage: () => void; onMore?: () => void; onComplete: () => void; onRate: () => void;
   onChanges: () => void; onProposeTerm: () => void;
@@ -114,6 +117,12 @@ function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOp
       <View style={s.inline}><FactArt kind={remote ? 'remote' : 'pin'} size={26} /><T variant="copy" numberOfLines={2} style={s.flex}>{place}</T></View>
       <View style={s.inline}><FactArt kind="calendar" size={26} /><T variant="copy" numberOfLines={2} style={s.flex}>{item.vremeTekst || 'Termin po dogovoru'}</T></View>
     </Press> : null}
+    {onPeriod ? <Press accessibilityRole="button" accessibilityLabel={period ? `Vaše vreme: ${periodLine(period)}. Promenite.` : 'Označite svoje vreme za ovaj posao'}
+      onPress={onPeriod} haptic="select" style={s.inline}>
+      <FactArt kind="clock" size={26} />
+      {period ? <T variant="copy" style={s.flex}>Vaše vreme: {periodLine(period)}</T>
+        : <T variant="bodyStrong" style={[s.flex, s.periodAdd]}>Označite svoje vreme</T>}
+    </Press> : null}
     {sayAttention ? <View style={s.inline}><View style={s.dot} /><T variant="note" style={s.warn} numberOfLines={2}>{attention!.title}</T></View> : null}
     {waitsOnOther ? <T variant="note" tone="muted">Čeka se odgovor na Vaš predlog izmene.</T> : null}
     {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
@@ -146,6 +155,8 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
   const [loaded, setLoaded] = useState<Loaded>(null);
   const [pane, setPane] = useState<Pane>(initialPane && initialPane !== 'overview' ? initialPane : role === 'narucilac' ? 'agreed' : 'overview');
   const [menuFor, setMenuFor] = useState<AgreementTaskPerson | null>(null);
+  const [periods, setPeriods] = useState<ReadonlyMap<string, AgreementPeriod>>(new Map());
+  const [periodFor, setPeriodFor] = useState<string | null>(null);
   const [apps, setApps] = useState<Apps>(null);
   const [need, setNeed] = useState<PotrebaProjekcija | null>(null);
   const [profiles, setProfiles] = useState<ReadonlyMap<string, JavniProfilProjekcija>>(new Map());
@@ -161,6 +172,10 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
     const items = await readTaskAgreements(source, needId, role, title).catch(() => null);
     if (!owns(run, account)) return;
     setLoaded(items ? { items } : { error: true });
+    const day = 86_400_000, at = Date.now();
+    readMyAgreementPeriods(new Date(at - 60 * day), new Date(at + 400 * day)).then(result => {
+      if (owns(run, account) && result.ok) setPeriods(new Map(result.podatak.map(period => [period.agreementId, period])));
+    }, () => {});
     const ids = [...new Set((items ?? []).flatMap(item => item.ucesnici.filter(p => !p.viSte && p.profilId).map(p => p.profilId!)))];
     if (ids.length) publicProfileClientService.javniProfili(ids).then(list => {
       if (owns(run, account)) setProfiles(new Map((Array.isArray(list) ? list : []).map(p => [p.profilId, p])));
@@ -269,6 +284,8 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
       onChanges={() => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId } }))}
       onProposeTerm={() => go(() => router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: person.agreementId, start: 'propose' } }))}
       onMessage={() => openAgreement(person.agreementId, 'poruke')}
+      period={periods.get(person.agreementId) ?? null}
+      onPeriod={person.agreement.stanje === 'CONFIRMED' ? () => setPeriodFor(person.agreementId) : undefined}
       onMore={removable && isLiveAgreement(person.agreement) ? () => setMenuFor(person) : undefined} />;
     body = <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
       {heading}
@@ -345,6 +362,8 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
   return <SafeAreaView edges={['top']} style={s.screen}>
     {bar}
     {body}
+    {periodFor ? <MyPeriodSheet agreementId={periodFor} current={periods.get(periodFor) ?? null} onClose={() => setPeriodFor(null)}
+      onSaved={period => setPeriods(current => { const next = new Map(current); if (period) next.set(periodFor, period); else next.delete(periodFor); return next; })} /> : null}
     {menuFor ? <ActionSheet label={`Radnje: ${menuFor.name}`} onClose={() => setMenuFor(null)} actions={personActions(menuFor)} /> : null}
     <PublicProfileSheet state={profile} onClose={() => { profileRequest.current++; setProfile(null); }}
       onRetry={() => { const id = profile?.data?.profilId; if (id) openProfile(id); }}
@@ -381,6 +400,7 @@ const s = StyleSheet.create({
   personWho: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   personFacts: { gap: sys.space.sm },
   personFoot: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
+  periodAdd: { color: sys.color.green },
   personCard: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   personFace: { width: 72, alignItems: 'center', gap: 4 },
   personName: { textAlign: 'center', fontWeight: '600' },

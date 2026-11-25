@@ -3,6 +3,8 @@ import { router } from 'expo-router';
 import { agreementClientService } from '../../data/agreementClientService';
 import { workerAvailabilityClientService } from '../../data/workerAvailabilityClientService';
 import { workerCalendarClientService } from '../../data/workerCalendarClientService';
+import { readMyAgreementPeriods } from '../../data/agreementPeriodClientService';
+import type { WorkerCalendarEvent } from '../../contracts/workerCalendar';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { useIzvor } from '../../store/uloga';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
@@ -38,10 +40,21 @@ export default function Raspored() {
   const calendar = useFocusedResource(useCallback(() => workerCalendarClientService.readRange(from, to), [from, to]));
   const agreements = useFocusedResource(useCallback(() => agreementClientService.mojiDogovori({ includeRatings: false }), []));
   const kept = useFocusedResource(useCallback(() => workerAvailabilityClientService.read(), []));
+  // My own marked time per Dogovor (owner, 25.11.2026) fills the schedule: it stands in for the Dogovor's own term, and a Dogovor
+  // where I am the task owner appears through it too. A failed read leaves the schedule as the server's terms alone.
+  const periods = useFocusedResource(useCallback(() => readMyAgreementPeriods(new Date(from), new Date(to)), [from, to]));
   const izvor = useIzvor();
   const profile = useFocusedResource(useCallback(() => izvor.mojRadnikProfil(), [izvor]));
+  const mine = periods.data?.ok ? periods.data.podatak : [];
+  const withPeriods = (events: readonly WorkerCalendarEvent[]): WorkerCalendarEvent[] => {
+    const marked = new Map(mine.map(period => [period.agreementId.toLowerCase(), period]));
+    const others = events.filter(event => !marked.has(event.agreementId.toLowerCase()));
+    return [...others, ...mine.map(period => ({ eventId: `period:${period.agreementId}`, agreementId: period.agreementId, agreementVersion: 1,
+      startsAt: period.startsAt, endsAt: period.endsAt, agreementStatus: 'CONFIRMED' as const, source: 'AGREEMENT' as const }))]
+      .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
+  };
   const schedule: AgendaSchedule = calendar.error ? { state: 'error', message: null }
-    : calendar.data ? calendar.data.ok ? { state: 'ready', events: calendar.data.podatak.events } : { state: 'error', message: calendar.data.poruka }
+    : calendar.data ? calendar.data.ok ? { state: 'ready', events: withPeriods(calendar.data.podatak.events) } : { state: 'error', message: calendar.data.poruka }
       : { state: 'loading' };
   const list: AgendaList = agreements.error ? { state: 'error' } : agreements.data ? { state: 'ready', agreements: agreements.data }
     : { state: 'loading' };
@@ -49,7 +62,7 @@ export default function Raspored() {
   // A read that failed, or one that has not settled, says nothing: no shade and no row, never a guess.
   const availability: AgendaAvailability | null = kept.data?.ok ? { value: kept.data.podatak, active: profile.data?.stanje === 'ACTIVE' } : null;
   // The calendar's own reads are the page's; the hours and the profile are refreshed with them but never block the calendar.
-  const everything = [calendar, agreements, kept, profile];
+  const everything = [calendar, agreements, kept, profile, periods];
   // A pull keeps what is on screen under the spinner; a retry after an error reads the schedule from the start.
   const refresh = () => { for (const resource of everything) void resource.refresh('keep'); };
   const retry = () => { void calendar.refresh(); void agreements.refresh('keep'); };
