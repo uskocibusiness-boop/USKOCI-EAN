@@ -64,8 +64,9 @@ function Face({ person, size }: { person: { profileId: string | null; initials: 
 }
 
 /** An agreed person (🤝): avatar on the left with the name under it; rating, price, place and date; remove and a private message. */
-function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOpen, onMessage, onMore, onComplete, onRate, onChanges, onProposeTerm }: {
+function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOpen, onMessage, onMore, onComplete, onRate, onChanges, onProposeTerm, facts = true }: {
   person: AgreementTaskPerson; owner: boolean; remote: boolean; place: string; now: Date; rating: string | null;
+  /** The price, place and term; a worker's Pregled already says them above the task owner's row. */ facts?: boolean;
   onProfile: () => void; onOpen: () => void; onMessage: () => void; onMore?: () => void; onComplete: () => void; onRate: () => void;
   onChanges: () => void; onProposeTerm: () => void;
 }) {
@@ -103,14 +104,14 @@ function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOp
       </Press>
       <AgreementStatusChip chip={agreementChip(item, now)} />
     </View>
-    <Press accessibilityRole="button" accessibilityLabel={`Uslovi Dogovora sa: ${person.name}`} accessibilityHint="Otvara uslove i izmene ovog Dogovora."
+    {facts ? <Press accessibilityRole="button" accessibilityLabel={`Uslovi Dogovora sa: ${person.name}`} accessibilityHint="Otvara uslove i izmene ovog Dogovora."
       onPress={onOpen} haptic="select" style={s.personFacts}>
       <View style={s.inline}><FactArt kind="money" size={26} />
         <T variant="bodyStrong" style={s.money}>{amount || 'Cena po dogovoru'}</T>
         {amount ? <T variant="note" tone="muted">{applicationPriceBasisText(item.osnovaCene)}</T> : null}</View>
       <View style={s.inline}><FactArt kind={remote ? 'remote' : 'pin'} size={26} /><T variant="copy" numberOfLines={2} style={s.flex}>{place}</T></View>
       <View style={s.inline}><FactArt kind="calendar" size={26} /><T variant="copy" numberOfLines={2} style={s.flex}>{item.vremeTekst || 'Termin po dogovoru'}</T></View>
-    </Press>
+    </Press> : null}
     {sayAttention ? <View style={s.inline}><View style={s.dot} /><T variant="note" style={s.warn} numberOfLines={2}>{attention!.title}</T></View> : null}
     {waitsOnOther ? <T variant="note" tone="muted">Čeka se odgovor na Vaš predlog izmene.</T> : null}
     {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
@@ -264,7 +265,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
     const first = summary?.people[0]?.agreement ?? items?.[0];
     const amount = first?.cena.prikaz, mixed = summary?.priceText === MIXED;
     const approx = need?.priblizno ?? null;
-    const card = (person: AgreementTaskPerson, removable: boolean) => <PersonCard key={person.agreementId} person={person} owner={owner}
+    const card = (person: AgreementTaskPerson, removable: boolean, facts = true) => <PersonCard key={person.agreementId} person={person} owner={owner} facts={facts}
       onComplete={() => go(() => router.navigate({ pathname: '/dogovor/[id]', params: { id: person.agreementId, action: 'complete' } }))}
       onRate={() => go(() => router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: person.agreementId } }))}
       remote={summary?.remote ?? false} place={summary?.placeText ?? ''} now={now} rating={ratingOf(person.profileId)} onProfile={() => openProfile(person.profileId)}
@@ -291,7 +292,8 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
             <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: approx.lat, longitude: approx.lng }]} coarse height={184} scopeKey={`dogovor:${needId}`} />
             <T variant="meta" tone="muted">Približno mesto, oko 200 m. Tačna adresa se vidi posle Dogovora.</T>
           </View> : null}
-        {live.length ? <Press accessibilityRole="button" accessibilityLabel={`${owner ? 'Dogovoreno sa' : 'Objavio zadatak'}: ${live.map(person => person.name).join(', ')}`}
+        {/* A worker's Dogovor: the task owner, the message, "···" and the next step stand right here (owner, 25.11.2026). */}
+        {!owner && live[0] ? card(live[0], true, false) : live.length ? <Press accessibilityRole="button" accessibilityLabel={`${owner ? 'Dogovoreno sa' : 'Objavio zadatak'}: ${live.map(person => person.name).join(', ')}`}
           accessibilityHint={owner ? 'Otvara dogovorene osobe.' : 'Otvara profil i ocene.'}
           onPress={() => owner ? setPane('agreed') : openProfile(live[0].profileId)} haptic="select" style={s.peopleRow}>
           <View style={s.peopleCopy}>

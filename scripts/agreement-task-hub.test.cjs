@@ -38,7 +38,7 @@ test('the task screen: back and four premium 3D icons on top (handshake, blue pa
   const hub=read('src/ui/agreements/AgreementTaskHub.tsx');
   const tabs=read('src/ui/agreements/TaskTabs.tsx'), page=read('src/ui/v2/NeedPresentation.tsx'), route=read('src/app/(app)/potrebe/[id]/pregled.tsx');
   has(tabs,"<Tab label=\"Pregled zadatka\" short=\"Pregled\" art=\"tasks\"",'Pregled is the first part (approved canvas, 25.11.2026)');
-  has(tabs,"short={owner ? `Dogovoreni${agreed ? ` ${agreed}` : ''}` : 'Dogovor'} art=\"agreements\"",'Dogovoreni says how many');
+  has(tabs,"{owner ? <Tab label=\"Dogovoreni\" short={`Dogovoreni${agreed ? ` ${agreed}` : ''}`} art=\"agreements\"",'Dogovoreni says how many, owner only');
   has(tabs,"{owner ? <Tab label=\"Prijave\" short={`Prijave${applications ? ` ${applications}` : ''}`} art=\"applications\"",'Prijave only for the task owner, with the blue paper plane and the count');
   has(tabs,"<Tab label=\"Poruke\" short=\"Poruke\" art=\"chat\"",'one Poruke part');
   has(tabs,'{short}</T>','every icon says what it opens (owner-approved look, 25.11.2026)');

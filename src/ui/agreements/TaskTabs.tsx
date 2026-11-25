@@ -9,7 +9,7 @@ export type TaskTab = 'overview' | 'agreed' | 'applications' | 'messages';
 /**
  * The four parts of one task (owner's sketch, 21.11.2026; approved canvas, 25.11.2026), the same row on the owner's task page and on the
  * task screen of its Dogovor, so the two read as one screen: Pregled, Dogovoreni, Prijave and Poruke, each a 3D picture with its word and
- * how many, the open one underlined. A worker sees Pregled, Dogovor and Poruke; Prijave belong to the owner.
+ * how many, the open one underlined. A worker sees Pregled and Poruke; Dogovoreni and Prijave belong to the owner.
  */
 export function TaskTabs({ owner, selected, agreed, applications, messages, onSelect }: {
   owner: boolean; selected: TaskTab | null; agreed: number; applications: number;
@@ -18,8 +18,9 @@ export function TaskTabs({ owner, selected, agreed, applications, messages, onSe
 }) {
   return <View style={s.row} accessibilityRole="tablist">
     <Tab label="Pregled zadatka" short="Pregled" art="tasks" selected={selected === 'overview'} onPress={() => onSelect('overview')} />
-    <Tab label={owner ? 'Dogovoreni' : 'Dogovor'} short={owner ? `Dogovoreni${agreed ? ` ${agreed}` : ''}` : 'Dogovor'} art="agreements"
-      selected={selected === 'agreed'} onPress={() => onSelect('agreed')} />
+    {/* A worker's Dogovor has one other person, the task owner, who stands on Pregled (owner, 25.11.2026): no part of its own. */}
+    {owner ? <Tab label="Dogovoreni" short={`Dogovoreni${agreed ? ` ${agreed}` : ''}`} art="agreements"
+      selected={selected === 'agreed'} onPress={() => onSelect('agreed')} /> : null}
     {owner ? <Tab label="Prijave" short={`Prijave${applications ? ` ${applications}` : ''}`} art="applications" dot={applications > 0}
       selected={selected === 'applications'} onPress={() => onSelect('applications')} /> : null}
     {messages ? <Tab label="Poruke" short="Poruke" art="chat" selected={selected === 'messages'} onPress={() => onSelect('messages')} /> : null}
