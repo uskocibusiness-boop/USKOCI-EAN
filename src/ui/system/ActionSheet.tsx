@@ -8,7 +8,7 @@ import { pictureWell, sys } from './tokens';
 
 export type SheetAction = {
   key: string;
-  /** What the action does, as a command: "Prijavi ili blokiraj", "Otkaži Dogovor". */
+  /** What the action does, as a command: "Prijavite ili blokiraj", "Otkažite Dogovor". */
   label: string;
   icon: FactArtKind;
   onPress: () => void;

@@ -41,7 +41,7 @@ export function TaskPhotoRecovery({ photos, disabled = false, align = 'end' }: {
       loading={photos.working === 'RETRY'} disabled={off} onPress={() => { void photos.retry(); }} /> : null}
     {photos.unconfirmed ? <V2Action tone="neutral" kind="quiet" compact label={PHOTO_WORDS.cancel}
       loading={photos.working === 'CANCEL'} disabled={off} onPress={() => { void photos.cancel(); }} /> : null}
-    {/* The shared vocabulary (`system/outcomeCopy`): what is not known is looked at with ONE word, "Proveri"; a read that did not arrive is
+    {/* The shared vocabulary (`system/outcomeCopy`): what is not known is looked at with ONE word, "Proverite"; a read that did not arrive is
         tried again. The sentence above says what is not known and never the verb of this button; a screen reader still hears what is checked. */}
     <V2Action tone="neutral" kind="quiet" compact label={photos.readError && !photos.unconfirmed && !photos.checkByHand ? OUTCOME_ACTION.retry : OUTCOME_ACTION.check}
       accessibilityLabel={PHOTO_WORDS.check} loading={photos.working === 'REFRESH'} disabled={off} onPress={() => { void photos.refresh(); }} />

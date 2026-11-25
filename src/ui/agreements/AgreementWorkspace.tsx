@@ -174,7 +174,7 @@ export function agreementQuietLine({ state, party, worker, otherName, change, pe
 /**
  * The foot of the Dogovor: at most one brand action per state, and none when nothing waits for the person - then it is one grey sentence
  * of the state (`quiet`). It is the system's `FlowFooter` (the one foot of every screen: the gutter across, 12 over and under, a line
- * above), and the one green thing on the screen. The second button, "Otvori poruke", is gone: the Poruke tab stands at the top of the same
+ * above), and the one green thing on the screen. The second button, "Otvorite poruke", is gone: the Poruke tab stands at the top of the same
  * screen, so the foot said it twice and took a quarter of it. `statusText` is the quiet line above ("Osvežavamo…", "Čuvamo promenu…").
  */
 export function WorkspaceFooter({ brand, quiet, loading = false, statusText, notice, onLayout }: {

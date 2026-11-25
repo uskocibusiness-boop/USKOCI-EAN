@@ -35,7 +35,7 @@ export function zonedParts(value: Date, timezone: string) {
 export function civilInstant(date: string, time: string, timezone: string): { value: string | null; error: string | null } {
   const fullTime = /^\d{2}:\d{2}$/.test(time) ? `${time}:00` : time;
   const target = calendarInstant(`${date}T${fullTime}Z`);
-  if (target === null) return { value: null, error: 'Izaberi ispravan datum i vreme.' };
+  if (target === null) return { value: null, error: 'Izaberite ispravan datum i vreme.' };
   const milliseconds = Number(target / 1000n);
   try {
     // Sample both sides of every possible nearby transition, then round-trip candidates.
@@ -54,7 +54,7 @@ export function civilInstant(date: string, time: string, timezone: string): { va
       ? 'Ovo vreme ne postoji zbog pomeranja sata. Izaberi drugo vreme.'
       : 'Ovo vreme se ponavlja zbog pomeranja sata. Izaberi nedvosmisleno vreme.' };
     return { value: candidates[0].toISOString(), error: null };
-  } catch { return { value: null, error: 'Proveri vremensku zonu.' }; }
+  } catch { return { value: null, error: 'Proverite vremensku zonu.' }; }
 }
 export function weekDates(selected: string): string[] {
   const day = new Date(`${selected}T12:00:00Z`).getUTCDay();

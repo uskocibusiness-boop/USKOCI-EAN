@@ -7,7 +7,7 @@ export type PushPlatform = 'IOS' | 'ANDROID';
 export type PushSessionDevice = { kind: 'NONE' | 'AMBIGUOUS' } | { kind: 'DEVICE'; id: string; revision: number; token: string; platform: PushPlatform };
 const tokenValid = (x: string) => x.length <= 256 && /^(ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]+\]$/.test(x);
 const errors = { PUSH_REVISION_CONFLICT: 'Registracija je promenjena. Osveži stanje uređaja.', AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvori podešavanja.',
- AUTH_REQUIRED: 'Prijavi se ponovo da podesiš obaveštenja.', PUSH_DEVICE_LIMIT: 'Dostignut je broj povezanih uređaja.', INVALID_PUSH_REGISTRATION: 'Registracija uređaja nije ispravna.' };
+ AUTH_REQUIRED: 'Prijavite se ponovo da podesiš obaveštenja.', PUSH_DEVICE_LIMIT: 'Dostignut je broj povezanih uređaja.', INVALID_PUSH_REGISTRATION: 'Registracija uređaja nije ispravna.' };
 function decode(raw: unknown, read: boolean): PushDevice | null {
  const x = record(raw); if (!x || typeof x.active !== 'boolean' || typeof x.sessionBound !== 'boolean' || !Number.isSafeInteger(x.revision) || Number(x.revision) < 0) return null;
  if (read && x.exists === false) return Object.keys(x).length === 4 && x.revision === 0 && !x.active && !x.sessionBound

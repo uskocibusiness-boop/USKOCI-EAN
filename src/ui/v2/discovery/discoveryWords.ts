@@ -12,14 +12,14 @@ export const WHEN: readonly (readonly [WhenFilter, string])[] = [['any', 'Bilo k
   ['week', 'Ove nedelje'], ['weekend', 'Ovaj vikend'], ['next7', 'Narednih 7 dana']];
 /** The time choices a capsule over the map toggles; "Sutra" is the filters' (and, once chosen there, a capsule of its own that takes itself away). */
 export const QUICK_WHEN: readonly WhenFilter[] = ['today', 'weekend'];
-/** The days the filters offer: three choices, and "Izaberi datume" for the rest (a range of days). */
+/** The days the filters offer: three choices, and "Izaberite datume" for the rest (a range of days). */
 export const FILTER_WHEN: readonly (readonly [WhenFilter, string])[] = [['today', 'Danas'], ['tomorrow', 'Sutra'], ['weekend', 'Ovaj vikend']];
 export const WHERE: readonly (readonly [WhereFilter, string])[] = [['any', 'Svejedno'], ['onsite', 'Na licu mesta'], ['remote', 'Na daljinu']];
 export const PRICE: readonly (readonly [MarketplaceView['price'], string])[] = [['all', 'Svejedno'], ['MY_PRICE', 'Sa iznosom'], ['OFFERS', 'Tražim ponude']];
 /** The one reset of the list when it is empty under its conditions: it takes the search and the filters away (the sheets' own is `CLEAR`). */
 export const CLEAR_ALL = 'Poništi filtere';
 /** The quiet action at the foot of the search and of the filters: each takes away only its own half and leaves the other as it was. */
-export const CLEAR = 'Očisti';
+export const CLEAR = 'Obrišite';
 /** What the pill says while nothing is searched: the two things a search is, the one thing it opens (the owner-approved plan, U1). */
 export const SEARCH_PLACEHOLDER = 'Grad ili zadatak';
 /** What the pill does, for a screen reader: it opens the search (a word and a place) and nothing of the filters (they have their own button beside it). */
@@ -41,7 +41,7 @@ export const SEARCH_WORDS = { what: 'Grad ili zadatak', whatPlaceholder: 'Grad i
   /** City search locates the work itself; the separate handoff can still name a city. */
   remoteNote: 'Bez dolaska kod domaćina: onlajn ili rad kod pomagača. Uslove slanja ili preuzimanja pogledajte u zadatku.' } as const;
 export const FILTER_GROUP = { when: 'Kada', where: 'Gde', amount: 'Iznos' } as const;
-/** Where the list is narrowed to one public point (a place's "Prikaži sve u listi"). */
+/** Where the list is narrowed to one public point (a place's "Prikažite sve u listi"). */
 export const PIN_PLACE = 'Na ovom mestu';
 
 /** The words of one choice of a set, or '' for a value the set does not have. */

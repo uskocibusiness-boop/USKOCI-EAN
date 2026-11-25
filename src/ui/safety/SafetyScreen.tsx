@@ -100,8 +100,8 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
     if (retainedCommand()) { void changeBlock(); return; }
     // Both directions ask once, in the centred dialog, with what follows in one sentence and the person's name when it is known.
     if (editor.data!.blocked) confirmation.ask({ title: name ? `Odblokirati ${name}?` : 'Odblokirati osobu?', message: unblockConsequence,
-      confirmLabel: 'Odblokiraj', onConfirm: changeBlock });
-    else confirmation.ask({ title: name ? `Blokirati ${name}?` : 'Blokirati osobu?', message: blockConsequence, confirmLabel: 'Blokiraj osobu',
+      confirmLabel: 'Odblokirajte', onConfirm: changeBlock });
+    else confirmation.ask({ title: name ? `Blokirati ${name}?` : 'Blokirati osobu?', message: blockConsequence, confirmLabel: 'Blokirajte osobu',
       tone: 'danger', onConfirm: changeBlock });
   };
   // Match SupportFrame: resize the existing settings scroll surface above the keyboard without rebuilding the form.
@@ -117,11 +117,11 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
       {editor.data ? <>
         <T accessibilityLiveRegion="polite">{editor.data.blocked ? 'Osoba je blokirana.' : 'Osoba nije blokirana.'}</T>
         {/* Keeps its words while the choice is saved, with a spinner: the same button, never a different one. */}
-        <SettingsAction label={editor.data.blocked ? 'Odblokiraj osobu' : 'Blokiraj osobu'} loading={editor.busy}
+        <SettingsAction label={editor.data.blocked ? 'Odblokirajte osobu' : 'Blokirajte osobu'} loading={editor.busy}
           kind={editor.data.blocked ? 'secondary' : 'destructive'} disabled={editor.loading || editor.busy || editor.uncertain}
           reason={editor.loading ? 'Proveravamo blokiranje…' : editor.uncertain ? 'Najpre proveri blokiranje.' : null} onPress={askBlock} />
       </> : null}
-      {editor.error ? <SettingsAction label="Proveri blokiranje" kind="quiet" disabled={editor.busy || editor.loading} onPress={() => { void editor.refresh(); }} /> : null}
+      {editor.error ? <SettingsAction label="Proverite blokiranje" kind="quiet" disabled={editor.busy || editor.loading} onPress={() => { void editor.refresh(); }} /> : null}
     </View></SettingsGroup>
     <PrivateReport {...p} />
     {/* This screen is where a person arrives when something has gone wrong with another person, and
@@ -230,8 +230,8 @@ function PrivateReport(context: Context) {
   };
   const editable = loaded && !busy && !frozen.current && !receipt && !unknownWithoutDraft;
   // A grey send carries its reason beside it (owner's rule): what the form still lacks, or that the earlier report is being checked.
-  const lacking = !category && !reason.trim() ? 'Izaberi vrstu prijave i upiši kratak razlog.'
-    : !category ? 'Izaberi vrstu prijave.' : !reason.trim() ? 'Upiši kratak razlog.' : null;
+  const lacking = !category && !reason.trim() ? 'Izaberite vrstu prijave i upiši kratak razlog.'
+    : !category ? 'Izaberite vrstu prijave.' : !reason.trim() ? 'Upiši kratak razlog.' : null;
   const sendWhy = !loaded ? busy ? 'Proveravamo prijavu…' : null : !busy && !frozen.current ? lacking : null;
   return <SettingsGroup title="Bezbednosna prijava podršci"><View style={s.section}>
     <T variant="note" tone="muted">Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru.</T>
@@ -244,7 +244,7 @@ function PrivateReport(context: Context) {
       : unknownWithoutDraft ? <View style={s.done}>
         <T variant="heading" accessibilityRole="header">Prethodna prijava nije potvrđena</T>
         <T variant="note" tone="muted">Sačuvan je samo njen ID, ne i tekst. Možeš ponovo da proveriš potvrdu ili svesno započneš novu prijavu.</T>
-        <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} loading={working === 'check'} onPress={() => { void check(); }} />
+        <SettingsAction label="Proverite potvrdu prijave" kind="secondary" disabled={busy} loading={working === 'check'} onPress={() => { void check(); }} />
         <SettingsAction label="Započni novu prijavu" kind="quiet" disabled={busy} loading={working === 'new'} onPress={askFreshAfterUnknown} />
       </View> : <>
       <View accessibilityRole="radiogroup">{SAFETY_CATEGORIES.map((value, index) => <Press key={value} accessibilityRole="radio"
@@ -267,11 +267,11 @@ function PrivateReport(context: Context) {
           onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setNarrative(value); }} editable={editable} multiline textAlignVertical="top" style={[input, { minHeight: 120 }]} />
       </View>
       {/* The button keeps its words while it works, with a spinner; a failed restore speaks through `error` below. */}
-      <SettingsAction label={pending && working !== 'send' ? 'Pošalji ponovo' : 'Pošalji privatnu prijavu'} loading={working === 'send' || working === 'replay'} reason={sendWhy}
+      <SettingsAction label={pending && working !== 'send' ? 'Pošaljite ponovo' : 'Pošaljite privatnu prijavu'} loading={working === 'send' || working === 'replay'} reason={sendWhy}
         disabled={!loaded || busy || (!frozen.current && (!category || !reason.trim()))} onPress={() => { void send(); }} />
     </>}
     {error ? <T tone="danger" accessibilityRole="alert">{error}</T> : null}
-    {pending && !unknownWithoutDraft ? <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} loading={working === 'check'} onPress={() => { void check(); }} /> : null}
+    {pending && !unknownWithoutDraft ? <SettingsAction label="Proverite potvrdu prijave" kind="secondary" disabled={busy} loading={working === 'check'} onPress={() => { void check(); }} /> : null}
     {confirmation.sheet}
   </View></SettingsGroup>;
 }

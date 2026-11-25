@@ -99,6 +99,6 @@ function OwnedCollection() {
     onProfile={onProfile}
     onBack={() => navigate(() => { if (router.canGoBack()) router.back(); else router.replace('/'); })}
     onNew={() => navigate(() => router.push({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }))}
-    // The first encounter's quiet way ("Pogledaj zadatke", "Papir na stolu", 2026-10-08): other people's tasks, the Zadaci tab. Same guard as every press here.
+    // The first encounter's quiet way ("Pogledajte zadatke", "Papir na stolu", 2026-10-08): other people's tasks, the Zadaci tab. Same guard as every press here.
     onExplore={() => navigate(() => router.navigate('/zadaci'))} />;
 }

@@ -67,7 +67,7 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
     await agreementPhotoJournal.save(accountId, ref, valid);
     if (!valid()) return;
     if (!live.current.writable || live.current.agreementVersion !== ref.agreementVersion) {
-      apply({ message: 'Osveži uslove Dogovora pre slanja fotografije.' }); await read(valid); return;
+      apply({ message: 'Osvežite uslove Dogovora pre slanja fotografije.' }); await read(valid); return;
     }
     const controller = new AbortController(); abort.current = controller;
     // The journal owns the request before the first pixel is sent. The preview stays in this focused visit's memory.

@@ -116,10 +116,10 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
     </Section>
     <View style={s.exit}>
       {logoutError ? <T tone="danger" accessibilityRole="alert" style={s.detail}>Odjava nije uspela. Pokušajte ponovo.</T> : null}
-      <Press accessibilityRole="button" accessibilityLabel="Odjavi se" accessibilityHint="Otvara potvrdu odjave."
+      <Press accessibilityRole="button" accessibilityLabel="Odjavite se" accessibilityHint="Otvara potvrdu odjave."
         accessibilityState={{ disabled: busy, busy }} disabled={busy} onPress={onLogout} haptic="select" style={s.logout}>
         <Glyph name="logout" size={20} tone={busy ? 'muted' : 'ink'} />
-        <T style={s.linkTitle} tone={busy ? 'muted' : 'ink'}>{busy ? 'Sačekajte…' : 'Odjavi se'}</T>
+        <T style={s.linkTitle} tone={busy ? 'muted' : 'ink'}>{busy ? 'Sačekajte…' : 'Odjavite se'}</T>
       </Press>
       {email ? <T style={[s.detail, s.center]} tone="muted">{email}</T> : null}
     </View>

@@ -269,7 +269,7 @@ export function AgreementProblemForm({ value, onChange, editable, kept, busy, ca
       <TextInput accessibilityLabel="Opišite problem" value={value} onChangeText={onChange} multiline maxLength={4000} editable={editable}
         placeholder="Šta je ostalo nerešeno?" placeholderTextColor={sys.color.muted} style={s.input} />
       <V2Action label={busy ? 'Čuvamo prijavu…' : kept ? 'Pošaljite ponovo' : 'Pošaljite prijavu problema'} disabled={!canSend} onPress={onSend} />
-      {!kept ? <V2Action label="Odustani od prijave problema" kind="quiet" disabled={disabled} onPress={onCancel} />
+      {!kept ? <V2Action label="Odustanite od prijave problema" kind="quiet" disabled={disabled} onPress={onCancel} />
         : <T variant="note" tone="muted">Opis je sačuvan na ovom ekranu. Osvežite Dogovor pa ga pošaljite ponovo.</T>}
     </View>
   </Section>;

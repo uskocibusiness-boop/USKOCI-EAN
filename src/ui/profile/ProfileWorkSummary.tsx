@@ -13,9 +13,9 @@ export type FinishedView = { kind: 'loading' } | { kind: 'ready'; facts: readonl
 /**
  * "Završeno" as the profile draws it (8 Oct 2026, "Lice i tri broja"): the second of the three figures, the number of Dogovori the person
  * finished in every role they have, written under the face as "9 završenih". It replaces the section "Završeni Dogovori" with its two
- * rows and its word "Pogledaj": with `onOpen` the figure itself is the way to the Dogovori that were finished (the Dogovori screen takes
+ * rows and its word "Pogledajte": with `onOpen` the figure itself is the way to the Dogovori that were finished (the Dogovori screen takes
  * `odeljak: 'istorija'`). Presentation only: the container below reads the counts. A count that could not be read is never added up as
- * if it were zero: the cell says so and offers "Osveži" in the same place.
+ * if it were zero: the cell says so and offers "Osvežite" in the same place.
  */
 export function FinishedAgreements({ view, onOpen, onRefresh }: {
   view: FinishedView;
@@ -25,7 +25,7 @@ export function FinishedAgreements({ view, onOpen, onRefresh }: {
   if (view.kind === 'loading') return <FigureCellPlaceholder label="Proveravamo završene Dogovore…" />;
   if (view.facts.length === 0) return null;
   if (view.facts.some(fact => fact.count === null)) {
-    return <FigureCellError message="Broj završenih trenutno nije dostupan." retryLabel="Osveži pregled završenih Dogovora" onRetry={onRefresh} />;
+    return <FigureCellError message="Broj završenih trenutno nije dostupan." retryLabel="Osvežite pregled završenih Dogovora" onRetry={onRefresh} />;
   }
   const total = view.facts.reduce((sum, fact) => sum + (fact.count ?? 0), 0);
   const figure = finishedFigure(total);

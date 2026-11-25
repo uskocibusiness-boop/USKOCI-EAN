@@ -118,7 +118,7 @@ export default function Obavestenja() {
         <T variant="copy" accessibilityRole="alert">{ingress.phase === 'error' ? 'Nismo uspeli da otvorimo obaveštenje. Proverite vezu i pokušajte ponovo.' : 'Ovo obaveštenje više nije dostupno.'}</T>
         {ingress.phase === 'error' ? <V2Action label="Pokušajte ponovo" onPress={ingress.retry} compact /> : null}
       </>}
-      <V2Action label="Prikaži obaveštenja" kind="quiet" onPress={ingress.cancel} compact />
+      <V2Action label="Prikažite obaveštenja" kind="quiet" onPress={ingress.cancel} compact />
     </View> : null}
     {/* One list for every filter: it stays mounted, so the tab just pressed keeps a screen reader's focus; the list itself
         treats a filter's first page as what was there, not as arrivals. */}

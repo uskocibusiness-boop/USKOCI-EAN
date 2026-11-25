@@ -12,16 +12,16 @@ type WorkerProfileClientService = Pick<Izvor, 'azurirajRadnikProfil'> & {
 };
 const inFlight = new Set<string>();
 const COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da izmeniš profil.',
-  DISPLAY_NAME_REQUIRED: 'Unesi ime pre završetka profila.',
-  CITY_REQUIRED: 'Unesi mesto rada pre završetka profila.',
-  SKILL_REQUIRED: 'Unesi bar jednu veštinu pre završetka profila.',
+  AUTH_REQUIRED: 'Prijavite se da izmeniš profil.',
+  DISPLAY_NAME_REQUIRED: 'Unesite ime pre završetka profila.',
+  CITY_REQUIRED: 'Unesite mesto rada pre završetka profila.',
+  SKILL_REQUIRED: 'Unesite bar jednu veštinu pre završetka profila.',
   PROFILE_NOT_ACTIVATABLE: 'Profil trenutno ne može da se aktivira.',
   PROFILE_NOT_FOUND: 'Profil nije pronađen. Osveži prikaz.',
   NOT_WORKER_PROFILE_OWNER: 'Nalog je promenjen. Ponovo otvori profil.',
-  V2_FACT_TYPE_INVALID: 'Unesi najviše 50 stavki u svaku listu.',
+  V2_FACT_TYPE_INVALID: 'Unesite najviše 50 stavki u svaku listu.',
   V2_FACT_ARRAY_ITEM_INVALID: 'Svaka stavka mora imati tekst do 500 znakova.',
-  V2_FACT_VALUE_REQUIRED: 'Unesi ispravne podatke profila.',
+  V2_FACT_VALUE_REQUIRED: 'Unesite ispravne podatke profila.',
 };
 const RESOURCE_FIELDS = { vestine: 'skills', alati: 'tools', vozila: 'vehicles', licence: 'licenses' } as const;
 const TEXT_FIELDS = { ime: 'display_name', biografija: 'bio' } as const;
@@ -140,7 +140,7 @@ export const workerProfileClientService: WorkerProfileClientService = {
     }
     const capacityEdit = input.kapacitetTima !== undefined || input.capacityRevision !== undefined;
     if (capacityEdit && (!workerCapacityValue(input.kapacitetTima) || !workerCapacityRevision(input.capacityRevision))) {
-      return failure('WORKER_CAPACITY_INPUT_INVALID', 'Unesi ceo broj od 1 do 50 ljudi i učitaj aktuelni profil.');
+      return failure('WORKER_CAPACITY_INPUT_INVALID', 'Unesite ceo broj od 1 do 50 ljudi i učitaj aktuelni profil.');
     }
     const patch: Record<string, unknown> = {};
     for (const [field, column] of Object.entries(TEXT_FIELDS)) {
@@ -151,7 +151,7 @@ export const workerProfileClientService: WorkerProfileClientService = {
     for (const [field, column] of Object.entries(RESOURCE_FIELDS)) {
       if (input[field] === undefined) continue;
       const terms = capabilityTerms(input[field]);
-      if (!terms) return failure('PROFILE_CAPABILITY_INPUT_INVALID', 'Unesi do 50 nepraznih stavki, do 500 znakova po stavci.');
+      if (!terms) return failure('PROFILE_CAPABILITY_INPUT_INVALID', 'Unesite do 50 nepraznih stavki, do 500 znakova po stavci.');
       patch[column] = terms;
     }
     if (input.zavrsi !== undefined && typeof input.zavrsi !== 'boolean') return failure('PROFILE_INPUT_INVALID', 'Radnja profila nije ispravna.');

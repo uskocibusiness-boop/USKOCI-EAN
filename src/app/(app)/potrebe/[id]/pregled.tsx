@@ -146,7 +146,7 @@ function OwnedNeed({ id }: { id: string }) {
   // A draft is told why it cannot be published, by the gate that decides it rather than by a
   // guess. Read-only: it reports, and the server decides again when publishing is attempted.
   const [readiness, setReadiness] = useState<NeedPublicationReadiness | null>(null);
-  // "Osveži zadatak" asks the gate again: a draft held back for something that only waits (photos still being processed) is
+  // "Osvežite zadatak" asks the gate again: a draft held back for something that only waits (photos still being processed) is
   // told to read again, and the same revision of the same task would otherwise never ask a second time.
   const [readinessRun, setReadinessRun] = useState(0);
   const preostalaPotragaZatvorena = editor.data?.remainingClosed ?? false;
@@ -228,7 +228,7 @@ function OwnedNeed({ id }: { id: string }) {
     const cancel = () => { if (dialog.current === confirmation) dialog.current = null; onCancel?.(); };
     // The sheet waits on the command it started (a busy confirm; Back returns after a few seconds without cancelling it)
     // and shows no outcome of its own.
-    confirmSheet.ask({ title, message: description, cancelLabel: 'Odustani', onCancel: cancel, confirmLabel: label, tone,
+    confirmSheet.ask({ title, message: description, cancelLabel: 'Odustanite', onCancel: cancel, confirmLabel: label, tone,
       onConfirm: () => { if (dialog.current !== confirmation || !canAct()) return;
         dialog.current = null; return command(); } });
   };
@@ -236,7 +236,7 @@ function OwnedNeed({ id }: { id: string }) {
     if (!canAct() || !potreba || preostalaPotragaZatvorena || potreba.pokrivenost.popunjeno <= 0 || potreba.pokrivenost.preostalo <= 0) return;
     // "za preostalih 1 mesta" counted the English way; the case follows the number.
     ask('Ne traži više nikoga?', `Zatvorićemo potragu za ${plural(potreba.pokrivenost.preostalo, 'preostalo mesto', 'preostala mesta', 'preostalih mesta')}. Postojeći Dogovori i prvobitni uslovi zadatka ostaju nepromenjeni.`,
-      'Zatvori potragu', 'danger', async () => { await editor.save(async () => {
+      'Zatvorite potragu', 'danger', async () => { await editor.save(async () => {
         const attempt = retainRemainingSearchCloseAttempt(closeAttempt.current, potreba.id, potreba.revizija, () => noviZahtevId('zatvori-preostalu-potragu'));
         closeAttempt.current = attempt;
         const result = await ru4Production.closeRemainingSearch(attempt.needId, attempt.revision, attempt.clientRequestId);
@@ -274,7 +274,7 @@ function OwnedNeed({ id }: { id: string }) {
     if (!canAct() || !potreba) return;
     if (potreba.stanje === 'NACRT') { void openOwnedReview('/nova'); return; }
     ask('Izmena zadatka', 'Najpre pripremite izmene u razgovoru. Zadatak ostaje objavljen dok ih ne potvrdite u završnom pregledu.',
-      'Izmeni zadatak', 'default', async () => openOwnedReview('/nova'));
+      'Izmenite zadatak', 'default', async () => openOwnedReview('/nova'));
   };
   const effectiveRecoveryView = recoveryView;
   // R3 recovery is additive authority: a temporary read failure must never make the whole owned task unreadable.
@@ -310,7 +310,7 @@ function OwnedNeed({ id }: { id: string }) {
     ask('Ponovo traži ljude?', missing === 1
       ? `${missingPeople(missing)} Ponovo ćemo otvoriti potragu za tim mestom; postojeći Dogovori ostaju nepromenjeni.`
       : `${missingPeople(missing)} Ponovo ćemo otvoriti potragu samo za tim mestima; postojeći Dogovori ostaju nepromenjeni.`,
-      'Nastavi potragu', 'default', async () => {
+      'Nastavite potragu', 'default', async () => {
         await controller.submit(command);
         if (current()) await editor.refresh();
       }, () => controller.cancelReview());
@@ -326,10 +326,10 @@ function OwnedNeed({ id }: { id: string }) {
     ...(urgent.entry ? [urgent.entry] : []),
     // A task with agreed places cannot be cancelled as a whole, and the menu says why where it is seen, not only to a
     // screen reader: the line under the row replaces the inline sentence the lifecycle used to draw.
-    ...(entries.agreements ? [{ key: 'agreements', label: 'Otvori moje Dogovore', icon: 'agreements' as const, subtitle: 'Postojeći Dogovori se otkazuju zasebno.',
+    ...(entries.agreements ? [{ key: 'agreements', label: 'Otvorite moje Dogovore', icon: 'agreements' as const, subtitle: 'Postojeći Dogovori se otkazuju zasebno.',
       onPress: () => { if (canAct()) lifecycleMenu.current?.openAgreements(); } }] : []),
-    ...(deleteDraft ? [{ key: 'delete-draft', label: 'Obriši nacrt', icon: 'document' as const, destructive: true, onPress: deleteDraft }] : []),
-    ...(entries.cancel ? [{ key: 'cancel', label: 'Otkaži zadatak', icon: 'tasks' as const, destructive: true,
+    ...(deleteDraft ? [{ key: 'delete-draft', label: 'Obrišite nacrt', icon: 'document' as const, destructive: true, onPress: deleteDraft }] : []),
+    ...(entries.cancel ? [{ key: 'cancel', label: 'Otkažite zadatak', icon: 'tasks' as const, destructive: true,
       onPress: () => { if (canAct()) lifecycleMenu.current?.request('CANCEL'); } }] : []),
   ];
 
@@ -368,7 +368,7 @@ function OwnedNeed({ id }: { id: string }) {
     qaAction={potreba && publicNeedId && questions.state.phase !== 'idle'
       ? <TaskQaInline key={`${accountId}:${accountRevision}:${potreba.id}`} state={questions.state}
         disabled={!canAct()} onRetry={questions.retry} onAsk={() => openQuestions()} onAnswer={openQuestions} onOpenAll={() => openQuestions()} /> : undefined}
-    onShare={potreba && potreba.stanje !== 'NACRT' ? () => { void Share.share({ message: taskShareMessage(potreba) }, { dialogTitle: 'Podeli zadatak' }).catch(() => {}); } : undefined}
+    onShare={potreba && potreba.stanje !== 'NACRT' ? () => { void Share.share({ message: taskShareMessage(potreba) }, { dialogTitle: 'Podelite zadatak' }).catch(() => {}); } : undefined}
     lifecycleActions={uuid(id) ? <>
       <UrgentActivationActions control={urgent} />
       <NeedLifecycleActions need={potreba} needId={id} menu={lifecycleMenu}

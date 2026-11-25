@@ -155,7 +155,7 @@ export function ScreenChrome(props: ScreenChromeProps) {
   </View>;
 
   if (props.variant === 'flow') return <View style={s.bar}>
-    <ChromeIconButton label={props.closeLabel ?? 'Zatvori'} glyph="close" disabled={props.disabled} onPress={props.onClose} />
+    <ChromeIconButton label={props.closeLabel ?? 'Zatvorite'} glyph="close" disabled={props.disabled} onPress={props.onClose} />
     <View style={s.copy}>
       {props.title ? <T accessibilityRole="header" variant="title" numberOfLines={2} style={s.title}>{props.title}</T> : null}
     </View>

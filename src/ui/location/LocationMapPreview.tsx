@@ -101,9 +101,9 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
   return <View>
     {!expanded ? <View>
       <LocationOverviewMap points={points} scopeKey={scopeKey} coarse={coarse} interactive={false} height={height} testID="location-preview-map" />
-      {/* The way to the big map is a small round control in the corner (the owner, 8 Oct 2026: the word "Otvori mapu" covered the map); the
+      {/* The way to the big map is a small round control in the corner (the owner, 8 Oct 2026: the word "Otvorite mapu" covered the map); the
           words are for a screen reader, which hears what the drawing does. The touch is 48, the drawing 40. */}
-      <Press accessibilityRole="button" accessibilityLabel="Otvori mapu" scaleTo={1}
+      <Press accessibilityRole="button" accessibilityLabel="Otvorite mapu" scaleTo={1}
         onPress={() => { if (own() && !modalVisit.current) { const visit = {}; modalVisit.current = visit; setExpanded(visit); } }} style={s.openTarget}>
         <View style={s.openDisc}><Glyph name="expand" size={20} tone="ink" /></View>
       </Press>
@@ -111,7 +111,7 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
     {expanded ? <Modal visible transparent={false} presentationStyle="fullScreen" hardwareAccelerated
       animationType={reduced ? 'none' : 'fade'} onRequestClose={close}>
       <SafeAreaView style={s.screen} edges={['top', 'bottom', 'left', 'right']}>
-        <ProductHeader title={coarse ? 'Približno mesto' : points.length > 1 ? 'Tačke zadatka' : 'Mesto zadatka'} back={close} backLabel="Zatvori mapu" />
+        <ProductHeader title={coarse ? 'Približno mesto' : points.length > 1 ? 'Tačke zadatka' : 'Mesto zadatka'} back={close} backLabel="Zatvorite mapu" />
         <View style={s.expandedContent}>
           <LocationOverviewMap points={points} scopeKey={`${scopeKey}:expanded`} coarse={coarse} interactive
             selectedId={selectedId} cameraIntent={cameraIntent} onSelectPoint={choose} height="fill" testID="location-expanded-map" />
@@ -121,23 +121,23 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
             {coarse ? <T tone="muted" variant="meta">Prikazano je približno područje, ne tačna adresa.</T> : null}
             {points.length > 1 ? <View style={s.stops}>
               {points.map((point, index) => <Press key={point.id} accessibilityRole="button"
-                accessibilityLabel={`Prikaži na mapi: ${point.label}`} accessibilityState={{ selected: selectedId === point.id }}
+                accessibilityLabel={`Prikažite na mapi: ${point.label}`} accessibilityState={{ selected: selectedId === point.id }}
                 onPress={() => choose(point.id)} style={[s.stop, selectedId === point.id && s.selected]}>
                 <View style={s.number}><T variant="bodyStrong" style={{ color: sys.color.green }}>{index + 1}</T></View>
                 <T variant="bodyStrong" style={s.stopLabel}>{point.label}</T>
               </Press>)}
-              <V2Action label="Prikaži sve tačke" kind="quiet" onPress={() => {
+              <V2Action label="Prikažite sve tačke" kind="quiet" onPress={() => {
                 if (ownsModal()) { setSelectedId(undefined); setCameraIntent(value => value + 1); }
               }} />
             </View> : null}
-            <V2Action label={coarse ? 'Otvori područje u Google mapama' : points.length > 1 ? `Navigacija: ${selected?.label}` : 'Otvori navigaciju'}
+            <V2Action label={coarse ? 'Otvorite područje u Google mapama' : points.length > 1 ? `Navigacija: ${selected?.label}` : 'Otvorite navigaciju'}
               style={brandAction}
               icon={<Glyph name="external" tone="onGreen" />} loading={launch === 'opening'}
               onPress={() => openLink(selected ? pointMapUrl(selected, coarse) : null)}
               error={launch === 'error' ? 'Ne znamo da li se mapa otvorila. Pokušaj ponovo.' : null} />
             {routeUrl ? <V2Action label="Cela putanja u Google mapama" kind="secondary" disabled={launch === 'opening'} onPress={() => openLink(routeUrl)} /> : null}
             {route && points.length > 2 ? <T variant="meta" tone="muted">{routeUrl
-              ? 'Proveri redosled stanica u Google mapama pre polaska.'
+              ? 'Proverite redosled stanica u Google mapama pre polaska.'
               : 'Za ovu putanju otvori navigaciju do svake tačke posebno.'}</T> : null}
           </View>
           </ScrollView>

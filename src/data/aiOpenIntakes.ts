@@ -11,7 +11,7 @@ const TITLE_FIELDS = ['account_id', 'conversation_id', 'fact_key', 'fact_schema_
 const ownerNow = () => {
   const session = sesijaSada(), accountId = session.user?.id;
   if (!uuid(accountId) || !Number.isSafeInteger(session.accountRevision) || session.accountRevision < 0)
-    throw new Error('Prijavi se da nastaviš.');
+    throw new Error('Prijavite se da nastaviš.');
   return { accountId, accountRevision: session.accountRevision };
 };
 const assertOwner = (account: ReturnType<typeof ownerNow>) => {

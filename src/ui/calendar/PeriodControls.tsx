@@ -23,7 +23,7 @@ export function PeriodHeader({ view, title, zoneNote, below, onPrevious, onNext,
   return <View testID="period-header" style={s.header}>
     <View style={s.row}>
       <View style={s.copy}>
-        <T variant="heading" accessibilityRole="header" accessibilityLiveRegion="polite" accessibilityActions={[{ name: 'refresh', label: 'Osveži raspored' }]}
+        <T variant="heading" accessibilityRole="header" accessibilityLiveRegion="polite" accessibilityActions={[{ name: 'refresh', label: 'Osvežite raspored' }]}
           onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'refresh') onRefresh(); }}>{title}</T>
         {zoneNote ? <T variant="note" tone="muted">Po vremenu u Srbiji</T> : null}
       </View>

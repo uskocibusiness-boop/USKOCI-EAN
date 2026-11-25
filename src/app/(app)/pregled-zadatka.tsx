@@ -84,7 +84,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const pending = useRef<{ review: AiTaskReviewEnvelope; id: string } | null>(null);
   const pendingAbandon = useRef<string | null>(null);
   const [locationEditor, setLocationEditor] = useState<NeedLocationReview | null>(null);
-  // What the task does not say yet is named in one row ("Dodaj još podataka"), and that row opens it. Nothing is hidden;
+  // What the task does not say yet is named in one row ("Dodajte još podataka"), and that row opens it. Nothing is hidden;
   // a wall of "Nema navedenih stavki" is just not a wall.
   const [showMore, setShowMore] = useState(false);
   // Only publication spins its button; draft save and place confirmation share the busy guard.
@@ -92,7 +92,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // The background publication check of the shown review (see `preEligible`), and whether a tap is waiting for it.
   const preCheck = useRef<{ key: string; done: Promise<void>; running: boolean } | null>(null);
   const [checkingBeforePublish, setCheckingBeforePublish] = useState(false);
-  // The place is being read before its editor opens: the "Uredi mesto" action says so.
+  // The place is being read before its editor opens: the "Uredite mesto" action says so.
   const [opening, setOpening] = useState(false);
   const locationOpening = useRef<{ active: boolean } | null>(null);
   // A place that could not be read says so beside its button, instead of the button doing nothing.
@@ -262,7 +262,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // How the price works, read as the preview reads it: under "Ponude" the amount row and its editor show no amount.
   const priceModeFact = review?.publicProjection.find(fact => fact.key === 'need.price_mode' && fact.status !== 'UNKNOWN');
   const priceMode = priceModeFact?.value;
-  // "Objavi" and "Sačuvaj nacrt" are the same acceptance of the same displayed review, under one
+  // "Objavi" and "Sačuvajte nacrt" are the same acceptance of the same displayed review, under one
   // retained command identity; they differ only in whether evaluation and publication follow now.
   const accept = async (andPublish: boolean) => {
     if (!canAct() || !review || !review.canAccept || publishedEditUnavailable || draftWriteProblem || unavailableIdentityFact || locationEditor || command || review.accountId !== accountId) return;
@@ -404,7 +404,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // - A review that has not been accepted has no task yet: its draft is the conversation it was written in, and the one command the server
   //   has for that is to leave the conversation (`rpc_ai_abandon_need_conversation_v2`, which refuses a conversation bound to a task). The
   //   dialog promises only what that command does: the task is not published and the conversation cannot be continued. There is no way to
-  //   undo it, so the outcome bar has no "Vrati".
+  //   undo it, so the outcome bar has no "Vratite".
   // - A review bound to a private draft (opened from "Nacrti") deletes that task through the lifecycle's own command, exactly as the
   //   draft's screen does (`NeedLifecycleActions`: it asks, persists the command, sends it once and recovers an unconfirmed outcome).
   //   A published task being changed offers no deletion here: it is cancelled from its own screen.
@@ -457,7 +457,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   };
   // Only a command completed on this visit shows the "Objavljeno" moment, once, and only after the editor has accepted the canonical
   // read and released its write. The moment continues by itself after `PUBLISHED_MOMENT_MS`, on a tap, and on Android Back. Restoring
-  // an older published review shows no moment: it keeps its explicit "Otvori zadatak".
+  // an older published review shows no moment: it keeps its explicit "Otvorite zadatak".
   useEffect(() => {
     if (publishedHere.current && published && !momentShown.current && !editor.busy && !editor.loading && !editor.uncertain) {
       momentShown.current = true; setMoment(true);
@@ -485,14 +485,14 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     : commandMapIncomplete ? 'Nacrt je sačuvan. Dopunite i potvrdite mesto pre objave.'
     : outcome === 'CLARIFY' ? 'Zadatku je potrebna dopuna. Ispravite ga u razgovoru i pregledajte novu verziju.'
     // Deep read 8.7: support has no operator yet (7.31), so a review request waits; saying so is the honest part, and (owner decision
-    // d07, 2026-10-07) the only way offered is "Izmeni zadatak": no request to support stands beside this sentence while nobody is on duty.
+    // d07, 2026-10-07) the only way offered is "Izmenite zadatak": no request to support stands beside this sentence while nobody is on duty.
     : outcome === 'REVIEW' ? manualCheckCopy()
     : outcome === 'BLOCK' ? 'Zadatak nije odobren za objavu. Pregledajte pravila i izmenite opis zadatka.'
     : evaluation?.kind === 'NOT_READY' ? replacement ? 'Provera izmena trenutno nije spremna. Nova verzija je sačuvana kao privatan nacrt.' : 'Provera objave trenutno nije spremna. Vaš zadatak je sačuvan kao privatan nacrt.'
     // ACCEPTED is exactly "the private draft exists and nothing after it has been confirmed", whether
     // the person asked for a draft or a publish stopped here.
     : command?.state === 'ACCEPTED' ? replacement ? 'Izmene su sačuvane kao privatan nacrt. Nova verzija još nije objavljena.' : 'Sačuvano kao privatan nacrt. Zadatak nije objavljen.'
-    // What the app does not know, in the table's words; the one button under it ("Proveri") is the way to find out, and while it is not known
+    // What the app does not know, in the table's words; the one button under it ("Proverite") is the way to find out, and while it is not known
     // there is no second publish beside it.
     : command ? `${UNCERTAIN_ABOUT.publication.title}.` : null;
   // What the screen itself is doing; the lifecycle (the deletion of a bound draft) is told this, and never its own activity, or its confirm
@@ -643,12 +643,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const editShown = !!command && ((command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (!!outcome && outcome !== 'ALLOW')))
     || ((!!unavailableIdentityFact || classificationPending) && command.authoritative === true
       && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')) || commandMapIncomplete);
-  // The table's three words (`system/outcomeCopy`): what is not known is looked at ("Proveri", one button), what may be old is read again
-  // ("Osveži"). A screen reader still hears what is read.
+  // The table's three words (`system/outcomeCopy`): what is not known is looked at ("Proverite", one button), what may be old is read again
+  // ("Osvežite"). A screen reader still hears what is read.
   const check = (label: string, primary = false, spoken?: string) => <V2Action label={label} accessibilityLabel={spoken} style={primary ? brandAction : undefined}
     disabled={editor.busy || editor.loading} loading={editor.loading} onPress={refresh} />;
   // The one foot. A review that is read has its reason ABOVE the green button; a stored command has none, because the note at the top says
-  // what is known. The one quiet action under the green one is "Sačuvaj nacrt" (or the check, when an outcome is not known).
+  // what is known. The one quiet action under the green one is "Sačuvajte nacrt" (or the check, when an outcome is not known).
   const footer = !review ? null : <FlowFooter reason={command ? undefined : caption ?? undefined}>
     {/* A draft opened from "Nacrti" is deleted by the lifecycle's own command, as on the draft's screen: its question, its sending and
         its outcome are drawn here, where the person is looking, and everything else on the screen waits while it is on. */}
@@ -760,7 +760,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   </>;
 }
 
-/** The lists of what a task asks of a person: with nothing in them the page of others draws no line for them, and the review offers them as "Dodaj još podataka". */
+/** The lists of what a task asks of a person: with nothing in them the page of others draws no line for them, and the review offers them as "Dodajte još podataka". */
 const MORE_LISTS: readonly NeedFactV2Key[] = ['need.required_skills', 'need.required_tools', 'need.required_vehicles', 'need.required_licenses', 'need.critical_conditions'];
 
 /** The place step replaces the review with a whole step of its own (the form holds its scroll and its foot), so it has its own frame. */

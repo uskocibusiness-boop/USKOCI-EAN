@@ -67,19 +67,19 @@ function ScopedAreaSearch({ city, countryCode, scopeKey, disabled, resolver: inj
     retire(); onChoose(candidate.position);
   };
   return <View style={s.section}>
-    <V2Action label={lookup.status === 'LOADING' ? 'Tražimo područje…' : lookup.status === 'UNAVAILABLE' ? 'Ponovi pretragu područja' : 'Pronađi područje za uneti grad'}
+    <V2Action label={lookup.status === 'LOADING' ? 'Tražimo područje…' : lookup.status === 'UNAVAILABLE' ? 'Ponovite pretragu područja' : 'Pronađite područje za uneti grad'}
       kind="secondary" loading={lookup.status === 'LOADING'} disabled={disabled || !focused || !city.trim() || !countryCode || lookup.status === 'LOADING'} onPress={search} />
     {lookup.status === 'LOADING' ? <T variant="meta" accessibilityLiveRegion="polite">Tražimo predloge za grad ili mesto rada…</T> : null}
     {lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? <T variant="meta" accessibilityLiveRegion="polite">Pretraga područja još nije aktivirana. Približnu tačku možeš izabrati na mapi.</T> : null}
     {lookup.status === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Predlozi područja trenutno nisu dostupni. Pokušaj ponovo ili označi područje na mapi.</T> : null}
     {lookup.status === 'RATE_LIMITED' ? <T variant="meta" accessibilityRole="alert">Previše pretraga za kratko vreme. Sačekaj pa pokušaj ponovo ili označi područje na mapi.</T> : null}
-    {lookup.status === 'INVALID_QUERY' ? <T variant="meta" accessibilityRole="alert">Unesi grad ili mesto rada i proveri državu.</T> : null}
+    {lookup.status === 'INVALID_QUERY' ? <T variant="meta" accessibilityRole="alert">Unesite grad ili mesto rada i proveri državu.</T> : null}
     {lookup.status === 'PROPOSALS' && lookup.candidates.length === 0 ? <T variant="meta" accessibilityLiveRegion="polite">Nema predloga za uneti grad. Proveri naziv ili označi područje na mapi.</T> : null}
     {lookup.status === 'PROPOSALS' ? <T variant="meta" accessibilityRole="link"
       onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}>Pretraga: LocationIQ · izvori podataka</T> : null}
     {lookup.status === 'PROPOSALS' ? lookup.candidates.map((candidate, index) => <V2Action key={index}
-      label={`Izaberi područje: ${candidate.label}`} kind="quiet" style={quietStart} disabled={disabled || !focused} onPress={() => select(candidate)} />) : null}
-    {lookup.status !== 'IDLE' ? <V2Action label="Otkaži pretragu područja" kind="quiet" style={quietStart} disabled={disabled || !focused}
+      label={`Izaberite područje: ${candidate.label}`} kind="quiet" style={quietStart} disabled={disabled || !focused} onPress={() => select(candidate)} />) : null}
+    {lookup.status !== 'IDLE' ? <V2Action label="Otkažite pretragu područja" kind="quiet" style={quietStart} disabled={disabled || !focused}
       onPress={() => { if (owns()) retire(); }} /> : null}
   </View>;
 }

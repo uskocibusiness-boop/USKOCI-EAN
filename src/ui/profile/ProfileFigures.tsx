@@ -89,11 +89,11 @@ export function FigureCellPlaceholder({ label }: { label: string }) {
 }
 
 /** A figure that could not be read: one short line and the one way to read it again, in the same place. */
-export function FigureCellError({ message, retryLabel, onRetry }: { message: string; /** What a screen reader says for the retry ("Osveži ocene"). */ retryLabel: string; onRetry: () => void }) {
+export function FigureCellError({ message, retryLabel, onRetry }: { message: string; /** What a screen reader says for the retry ("Osvežite ocene"). */ retryLabel: string; onRetry: () => void }) {
   return <Press accessibilityRole="button" accessibilityLabel={retryLabel} accessibilityHint={message} haptic="select"
     scaleTo={sys.motion.scale.row} onPress={onRetry} style={s.cell}>
     <T variant="note" tone="muted" style={s.center}>{message}</T>
-    <T variant="note" style={s.action}>Osveži</T>
+    <T variant="note" style={s.action}>Osvežite</T>
   </Press>;
 }
 

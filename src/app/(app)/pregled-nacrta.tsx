@@ -10,7 +10,7 @@ import { uuid } from '../../data/serverReceipt';
  * 2026-09-18 the screen body was deleted anyway, on my own judgement that V5 had superseded it.
  * That was not mine to decide: PKG-023 is NOT_STARTED and there is no owner approval. The parity gap
  * named then was that no client path saved a draft without also asking for publication; since
- * 2026-09-19 the review's "Sačuvaj nacrt" does, by accepting the displayed review and stopping
+ * 2026-09-19 the review's "Sačuvajte nacrt" does, by accepting the displayed review and stopping
  * before evaluation. Parity reached is still not approval given.
  *
  * So the route resolves explicitly again, and it resolves to the review V5 actually uses, carrying

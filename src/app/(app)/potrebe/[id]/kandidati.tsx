@@ -228,7 +228,7 @@ export default function Kandidati() {
   } };
   const back = () => {
     if (!current()) return;
-    // An offer still open on screen closes first. One left behind by a fresh read (the band's "Osveži prijave" brings new
+    // An offer still open on screen closes first. One left behind by a fresh read (the band's "Osvežite prijave" brings new
     // data, so the sheet is gone) is cleared on the way out, and this same press goes back (review r4 rk item 1): it
     // used to take one press to clear what nobody could see.
     if (opened && !pending) { setOpened(null); if (candidate) return; }

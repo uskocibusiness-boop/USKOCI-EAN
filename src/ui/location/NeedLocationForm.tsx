@@ -107,7 +107,7 @@ function PointConfirmation({ review, busy, uncertain, onSave, resolver, onEditIn
     selectedPlace?.label, selectedPlace?.area, selectedPlace?.city]);
   const cityOnly = !!selected && !base?.exactAddress && !descriptionFor(selected)?.area && !descriptionFor(selected)?.label;
   const body = <>
-    <T variant="heading" accessibilityRole="header">Proveri mesto iz razgovora</T>
+    <T variant="heading" accessibilityRole="header">Proverite mesto iz razgovora</T>
     <T variant="note" tone="muted">Ovde potvrđuješ tačke na mapi. Opis mesta i rutu menjaš kroz razgovor.</T>
     {country ? <T variant="meta" tone="muted">{countryName(country)}</T> : null}
     {slots.map(slot => <View key={slot} style={f.place}>
@@ -132,7 +132,7 @@ function PointConfirmation({ review, busy, uncertain, onSave, resolver, onEditIn
       {selected ? <LocationPointEditor key={`${state.pinEpoch}:${selected}`} slot={selected} title={titleFor(selected)}
         countryCode={base.taskCountryCode} initialQuery={seed} resolver={resolver} confirmAsPrimary={false}
         presentation="conversation" allowManualDetails={false} autoLocate allowCityContextLookup
-        initialQuestion={cityOnly ? 'Proveri tačno mesto unutar navedenog područja.' : undefined}
+        initialQuestion={cityOnly ? 'Proverite tačno mesto unutar navedenog područja.' : undefined}
         onCorrectInConversation={onEditInConversation ? editInConversation : undefined}
         point={state.points.find(point => point.slot === selected)} disabled={disabled}
         scopeKey={`${review.accountId}:${review.conversationId}:${review.revision}:${state.pinEpoch}:${selected}`}
@@ -150,10 +150,10 @@ function PointConfirmation({ review, busy, uncertain, onSave, resolver, onEditIn
       <Button kind="quiet" label="Ponovo proveri dostupnost" disabled={disabled}
         onPress={() => { if (owns()) void options.refresh(); }} />
     </View> : null}
-    {onEditInConversation ? <Button kind="quiet" label="Izmeni kroz razgovor" disabled={disabled} onPress={editInConversation} /> : null}
+    {onEditInConversation ? <Button kind="quiet" label="Izmenite kroz razgovor" disabled={disabled} onPress={editInConversation} /> : null}
   </>;
   const actions = <>
-    {base && !remote ? <Button style={brandAction} label={reviewOnly ? 'Primeni potvrđene tačke' : 'Sačuvaj mesto'} loading={busy}
+    {base && !remote ? <Button style={brandAction} label={reviewOnly ? 'Primeni potvrđene tačke' : 'Sačuvajte mesto'} loading={busy}
       disabled={disabled || !countryAvailable || state.pendingPoint || !complete} onPress={submit} /> : null}
     {state.pendingPoint ? <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled}
       onPress={() => change({ ...live.current, pendingPoint: false, pinEpoch: live.current.pinEpoch + 1 })} /> : null}
@@ -176,8 +176,8 @@ export function saveBlockReason(state: { busy: boolean; uncertain: boolean; edit
   if (state.countryLoading) return 'Proveravamo dostupnost države…';
   if (!state.countrySelectable) return 'Potvrda mesta za ovu državu trenutno nije dostupna.';
   if (state.geographyReady === false) return 'Dopuni mesto kroz razgovor pre potvrde tačaka.';
-  if (state.pendingPoint) return 'Potvrdi tačku na mapi ili odbaci nepotvrđenu izmenu.';
-  if (state.allPointsConfirmed === false) return 'Potvrdi sve potrebne tačke na mapi.';
+  if (state.pendingPoint) return 'Potvrdite tačku na mapi ili odbaci nepotvrđenu izmenu.';
+  if (state.allPointsConfirmed === false) return 'Potvrdite sve potrebne tačke na mapi.';
   return null;
 }
 

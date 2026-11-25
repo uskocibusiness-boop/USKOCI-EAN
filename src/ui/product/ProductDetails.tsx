@@ -148,9 +148,9 @@ export function DetailDescription({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   return <View style={s.description}>
     <T selectable variant="body" numberOfLines={long && !open ? 8 : undefined} style={s.descriptionText}>{text}</T>
-    {long ? <Press accessibilityRole="button" accessibilityLabel={open ? 'Prikaži kraći opis' : 'Prikaži ceo opis'} accessibilityState={{ expanded: open }}
+    {long ? <Press accessibilityRole="button" accessibilityLabel={open ? 'Prikažite kraći opis' : 'Prikažite ceo opis'} accessibilityState={{ expanded: open }}
       onPress={() => setOpen(value => !value)} haptic="select" scaleTo={0.99} style={s.more}>
-      <T variant="bodyStrong" style={s.moreText}>{open ? 'Prikaži kraći opis' : 'Prikaži ceo opis'}</T>
+      <T variant="bodyStrong" style={s.moreText}>{open ? 'Prikažite kraći opis' : 'Prikažite ceo opis'}</T>
     </Press> : null}
   </View>;
 }

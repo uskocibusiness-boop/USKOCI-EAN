@@ -157,21 +157,21 @@ export default function MojePrijave() {
           : boundedApplicationSelectionRead(izvor.mojePrijave()),
         pending ? readApplicationCommandState(pending.row) : Promise.resolve(null),
       ]);
-      if (!owned()) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj trenutne prijave.' };
+      if (!owned()) return { ok: false, kod: 'STALE_READ', poruka: 'Učitajte trenutne prijave.' };
       let notice: string | null = null;
       if (pending && session.pending === pending && !pending.inFlight && named) {
         pending.reconciled = named.ok;
         if (!named.ok) notice = 'Ne možemo da vidimo trenutno stanje ove prijave. Osveži listu pre nove radnje.';
         else if (observed(pending, named.podatak)) {
           // What happened is said once, in the app's one bar, and only after the readback confirmed it (a tick belongs to an outcome).
-          // Neither command has an undo, so the bar carries no "Vrati".
+          // Neither command has an undo, so the bar carries no "Vratite".
           poruka.show({ text: withdrawal(pending) ? 'Prijava je povučena.' : 'Prijava je ažurirana prema izmenjenom zadatku.', confirmed: true });
           session.pending = null; clearReview();
         } else if (pending.result === 'receipt') notice = 'Radnja je uspela, ali je prijava u međuvremenu promenjena. Pregledaj je ponovo.';
       }
       return { ok: true, podatak: { rows, notice } };
     // The failure's cause is not known here, so the words do not guess one (verify r4b item B).
-    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Pokušaj ponovo za trenutak.' }; }
+    } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Pokušajte ponovo za trenutak.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
   // Resume retires the hook's old owner and reads before showing actions.
   }, [session, izvor, accountCurrent, retireReview, clearReview, resume, pager]);
@@ -189,7 +189,7 @@ export default function MojePrijave() {
       const review = session.editRevision;
       confirmation.ask({ title: 'Otvoriti drugu prijavu?',
         message: 'Nesačuvane izmene ove prijave biće odbačene pre otvaranja tražene prijave.',
-        cancelLabel: 'Nastavi uređivanje', confirmLabel: 'Odbaci i otvori', tone: 'danger',
+        cancelLabel: 'Nastavite uređivanje', confirmLabel: 'Odbaci i otvori', tone: 'danger',
         onCancel: () => {
           if (landing.current !== id) return;
           askedLanding.current = null;
@@ -298,7 +298,7 @@ export default function MojePrijave() {
     if (!changedOffer(session.draft, session.original)) { next(); return; }
     const review = session.editRevision;
     confirmation.ask({ title: 'Odbaciti izmene prijave?', message: 'Uneta cena, broj ljudi ili napomena neće biti sačuvani.',
-      cancelLabel: 'Nastavi uređivanje', confirmLabel: 'Odbaci izmene', tone: 'danger',
+      cancelLabel: 'Nastavite uređivanje', confirmLabel: 'Odbaci izmene', tone: 'danger',
       onConfirm: () => { if (current() && review === session.editRevision) next(); } });
   };
   const withdraw = (p: MojaPrijavaProjekcija) => {
@@ -311,7 +311,7 @@ export default function MojePrijave() {
       // The question names the task and says what follows for the other person and for the worker (plan 2.3): no reason is asked.
       confirmation.ask({ title: 'Povući prijavu?',
         message: `Osoba koja je objavila zadatak više ne vidi Vašu ponudu za „${readableTitle(p.naslov)}”. Ako zadatak i dalje prima prijave, možete da pošaljete novu.`,
-        cancelLabel: 'Odustani', confirmLabel: 'Povuci prijavu', tone: 'danger', onConfirm: () => {
+        cancelLabel: 'Odustanite', confirmLabel: 'Povuci prijavu', tone: 'danger', onConfirm: () => {
           if (review === session.editRevision) makeIntent(p, 'WITHDRAW');
         } });
     });

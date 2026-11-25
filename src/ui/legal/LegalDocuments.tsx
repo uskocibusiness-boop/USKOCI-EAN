@@ -22,7 +22,7 @@ const LEGAL_UNAVAILABLE = 'Dokumenti trenutno nisu dostupni.';
 
 export function LegalDocumentRows({ bundle, onOpen, disabled = false, refresh }: {
   bundle: LegalBundleStatus | null; onOpen: (document: LegalDocument) => void; disabled?: boolean;
-  /** One word at the end of the title ("Osveži"): the whole screen's re-read, said where its documents are. */
+  /** One word at the end of the title ("Osvežite"): the whole screen's re-read, said where its documents are. */
   refresh?: { label: string; onPress: () => void; accessibilityLabel?: string };
 }) {
   const documents = reviewedDocuments(bundle);
@@ -37,7 +37,7 @@ export function LegalDocumentRows({ bundle, onOpen, disabled = false, refresh }:
 /**
  * The state of a screen that has nothing to read BECAUSE IT COULD NOT READ (composition spec T7): a column on the screen's own centre
  * line, a picture of 96, one title, one sentence and the one green retry, about a third of the way down. A screen whose documents are simply
- * not published is NOT this: that is one calm line at the top (owner's phone, 8 Oct 2026: a whole screen and a "Proveri ponovo" for one sentence).
+ * not published is NOT this: that is one calm line at the top (owner's phone, 8 Oct 2026: a whole screen and a "Proverite ponovo" for one sentence).
  */
 function CenteredState({ art, title, body, primary }: {
   art: FactArtKind; title: string; body?: string;
@@ -79,7 +79,7 @@ function ProviderDisclosure({ provider, onOpenUrl, divider = true }: { provider:
  * who processes the data, each provider folded to its name until opened. The one command (the explicit acceptance) is
  * the footer's, with its error right above it. Documents that are not published are ONE line, "Uslovi korišćenja i Politika
  * privatnosti još nisu objavljeni.", with no button: the screen is read again by pulling it (owner's phone, 8 Oct 2026: the whole screen
- * held that one sentence and "Proveri ponovo"; a standing "Osveži" at the title of the documents is gone for the same reason).
+ * held that one sentence and "Proverite ponovo"; a standing "Osvežite" at the title of the documents is gone for the same reason).
  * Presentation only: the route owns the controller, the fences and the link opening; every legal word is the owner's, verbatim.
  */
 export function LegalReviewView({ state, onBack, action, actionReason = null, linkError, onOpen, onOpenUrl, onRefresh }: {
@@ -118,7 +118,7 @@ export function LegalReviewView({ state, onBack, action, actionReason = null, li
         {state.bundle
           ? <InlineNote tone="neutral" art="document" artMuted>{LEGAL_NOT_PUBLISHED}</InlineNote>
           : <CenteredState art="document" title="Dokumenti nisu dostupni" body={state.error ?? LEGAL_UNAVAILABLE}
-            primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: state.busy || state.loading }} />}
+            primary={{ label: 'Pokušajte ponovo', onPress: onRefresh, disabled: state.busy || state.loading }} />}
         {processorGroup}
       </>}
     </>}
@@ -130,7 +130,7 @@ export function LegalReviewView({ state, onBack, action, actionReason = null, li
  * checkbox in place. It reads anonymously and never records consent: there is no accept action in it.
  */
 export function PublicLegalModal({ kind, onClose }: { kind: LegalDocumentKind | null; onClose: () => void }) {
-  return kind ? <ProductSheet title={legalTitle(kind)} closeLabel="Zatvori" onClose={onClose}>
+  return kind ? <ProductSheet title={legalTitle(kind)} closeLabel="Zatvorite" onClose={onClose}>
     {() => <PublicLegalContents />}
   </ProductSheet> : null;
 }
@@ -168,11 +168,11 @@ export function PublicLegalBody({ loading, bundle, error, onOpen, onRefresh }: {
 }) {
   return <View style={s.sheet}>
     {/* The invitation to read is only said when there is something to read. */}
-    {!loading && reviewedDocuments(bundle) ? <T variant="copy" tone="muted">Otvori objavljene dokumente. Kad ih pročitaš, nastavi sa popunjavanjem.</T> : null}
+    {!loading && reviewedDocuments(bundle) ? <T variant="copy" tone="muted">Otvorite objavljene dokumente. Kad ih pročitaš, nastavi sa popunjavanjem.</T> : null}
     {loading ? <QuietReadState title="Učitavamo pravne dokumente" body="Proveravamo objavljene verzije pre prikaza." art="document" />
       : <LegalDocumentRows bundle={bundle} onOpen={onOpen} />}
     {error ? <ErrorLine>{error}</ErrorLine> : null}
-    {!loading ? <SettingsAction label="Osveži dokumente" kind="quiet" onPress={onRefresh} /> : null}
+    {!loading ? <SettingsAction label="Osvežite dokumente" kind="quiet" onPress={onRefresh} /> : null}
   </View>;
 }
 

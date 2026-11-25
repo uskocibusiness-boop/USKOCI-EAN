@@ -47,7 +47,7 @@ import { agreementProblemDraftScope, clearAgreementProblemDraft, readAgreementPr
 
 /**
  * My rating of a finished Dogovor, from the review read the rating screen itself uses. `DUE` and `UNKNOWN` both keep
- * "Oceni saradnju" on offer (a read that did not answer must not hide the only way to rate); `GIVEN` and `CLOSED` are
+ * "Ocenite saradnju" on offer (a read that did not answer must not hide the only way to rate); `GIVEN` and `CLOSED` are
  * the review read saying there is nothing left to rate, and the footer says the state in words (the type lives with the step bar).
  */
 type ProblemWorkspace = DogovorProjekcija & {
@@ -147,7 +147,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       if (!ownsAccount()) return { ok: false, kod: 'ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvorite Dogovor.' };
       if (data && data.id !== id) return { ok: false, kod: 'INVALID_RESPONSE', poruka: 'Dogovor nije dostupan.' };
       if (!data) return { ok: true, podatak: null };
-      // "Oceni saradnju" stayed on the footer after the rating was saved (phone, 2026-09-23): the workspace read does
+      // "Ocenite saradnju" stayed on the footer after the rating was saved (phone, 2026-09-23): the workspace read does
       // not say whether MY review exists. The existing own-review read does; it is asked only for a finished Dogovor
       // I am a party of, inside this same guarded read, and like the problem details below it can never erase the
       // Agreement it describes: a read that fails leaves the rating on offer.
@@ -443,10 +443,10 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   const deadline = dogovor.rokPotvrdeIso ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: dogovor.rokPotvrdeIso }, 'Europe/Belgrade') : 'Rok trenutno nije dostupan';
 
   // ---- presentation (state above is untouched by PKG-011) ----
-  // The words of the one action, and of the one that is its result: "Zadatak je gotov" is the worker's, "Potvrdi završetak" the
+  // The words of the one action, and of the one that is its result: "Zadatak je gotov" is the worker's, "Potvrdite završetak" the
   // requester's - on the button, in the review it opens and in the sentences around them.
   const completeLabel = worker ? 'Zadatak je gotov' : 'Potvrdite završetak';
-  // A quiet line, never a skeleton: the page is being read again (back from the background, or "Osveži") or is saving.
+  // A quiet line, never a skeleton: the page is being read again (back from the background, or "Osvežite") or is saving.
   const footerStatus = resumeRequired || workspace.loading ? 'Osvežavamo…'
     : workspace.busy && !completing ? 'Čuvamo promenu…' : null;
   const review = () => { if (formCurrent()) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); };

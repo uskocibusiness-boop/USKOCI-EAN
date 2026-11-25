@@ -54,7 +54,7 @@ export function ReceivedReviewsList({ view, photo }: { view: ReceivedReviewsView
   </SettingsGroup>;
   if (view.kind === 'error') return <SettingsGroup title="Komentari">
     {/* Quiet: when the average above could not be read either, its retry is the screen's one green action. */}
-    <StateView kind="error" title="Komentari trenutno nisu dostupni" quiet={{ label: 'Pokušaj ponovo', onPress: view.onRetry }} />
+    <StateView kind="error" title="Komentari trenutno nisu dostupni" quiet={{ label: 'Pokušajte ponovo', onPress: view.onRetry }} />
   </SettingsGroup>;
   const note = view.mode === 'COMMENTED_ONLY' ? notListedNote(view.notListedCount) : null;
   // Nothing at all to say: no reviews yet, and none left out. The average above already says "Još nema ocena".
@@ -63,7 +63,7 @@ export function ReceivedReviewsList({ view, photo }: { view: ReceivedReviewsView
     {view.items.length === 0 ? <T variant="note" tone="muted">Još niko nije napisao komentar.</T> : view.items.map((item, index) =>
       <ReceivedItem key={item.reviewId} item={item} photo={photo} last={index === view.items.length - 1 && !view.hasMore} />)}
     {view.more === 'error' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite" style={s.note}>Još ocena trenutno nije učitano.</T> : null}
-    {view.hasMore ? <View style={s.more}><V2Action label={view.more === 'error' ? 'Pokušaj ponovo' : 'Prikaži još'} kind="secondary"
+    {view.hasMore ? <View style={s.more}><V2Action label={view.more === 'error' ? 'Pokušajte ponovo' : 'Prikažite još'} kind="secondary"
       loading={view.more === 'loading'} onPress={view.onMore} /></View> : null}
     {note ? <T variant="note" tone="muted" style={s.note}>{note}</T> : null}
   </SettingsGroup>;

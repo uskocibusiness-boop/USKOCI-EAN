@@ -12,10 +12,10 @@ export type RequesterIdentityReceipt = { saved: true; idempotentReplay: boolean;
 const revision = (x: unknown): x is string => typeof x === 'string' && /^[a-f0-9]{64}$/.test(x);
 const display = (x: unknown): x is string => typeof x === 'string' && [...x.trim()].length >= 1 && [...x.trim()].length <= 200 && !/[\x00-\x1f\x7f-\x9f]/.test(x);
 const COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da urediš profil.',
+  AUTH_REQUIRED: 'Prijavite se da urediš profil.',
   REQUESTER_PROFILE_REQUIRED: 'Profil nije pronađen. Osveži prikaz.',
   REQUESTER_PROFILE_RESTRICTED: 'Profil trenutno nije dostupan za izmenu.',
-  REQUESTER_PROFILE_INPUT_INVALID: 'Unesi ime do 200 znakova, bez kontrolnih znakova.',
+  REQUESTER_PROFILE_INPUT_INVALID: 'Unesite ime do 200 znakova, bez kontrolnih znakova.',
   REQUESTER_PROFILE_STALE: 'Profil je promenjen. Učitaj ga pre nove izmene.',
   REQUEST_ID_REUSED: 'Zahtev je već upotrebljen za druge podatke. Prvo proveri potvrdu prethodne radnje.',
 };

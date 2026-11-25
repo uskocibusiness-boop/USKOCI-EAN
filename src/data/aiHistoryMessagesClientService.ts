@@ -69,7 +69,7 @@ export function listAiHistoryMessages(purpose: AiHistoryPurpose, conversationId:
   limit = AI_HISTORY_MESSAGES_PAGE_SIZE): Promise<Ishod<AiHistoryMessagesPage>> {
   const session = sesijaSada(), accountId = session.user?.id;
   if (!uuid(accountId) || !Number.isSafeInteger(session.accountRevision) || session.accountRevision < 0)
-    return Promise.resolve(failure('AUTH_REQUIRED', 'Prijavi se da vidiš razgovor.'));
+    return Promise.resolve(failure('AUTH_REQUIRED', 'Prijavite se da vidiš razgovor.'));
   if (purpose !== 'NEED_INTAKE' && purpose !== 'PROFILE')
     return Promise.resolve(failure('AI_HISTORY_PURPOSE_INVALID', 'Ponovo otvori istoriju razgovora.'));
   if (!uuid(conversationId) || !Number.isInteger(limit) || limit < 1 || limit > AI_HISTORY_MESSAGES_PAGE_SIZE

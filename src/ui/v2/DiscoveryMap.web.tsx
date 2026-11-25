@@ -76,7 +76,7 @@ function MapSketch(props: DiscoveryMapProps) {
     <View pointerEvents="none" style={[s.note, { top: (props.toolsBottom ?? 0) + sys.space.sm }]}>
       <T variant="label" tone="muted">Skica mape za laboratoriju</T>
     </View>
-    {props.locked ? <Press testID="discovery-map-strip" accessibilityRole="button" accessibilityLabel="Prikaži više mape" accessibilityHint="Spušta listu do pola."
+    {props.locked ? <Press testID="discovery-map-strip" accessibilityRole="button" accessibilityLabel="Prikažite više mape" accessibilityHint="Spušta listu do pola."
       haptic="none" scaleTo={1} onPress={() => props.onStripPress?.()} style={StyleSheet.absoluteFill} /> : null}
     <MapCredits bottom={props.creditsBottom} covered={props.creditsCovered || props.locked} locate={!!props.locateShown}
       onPress={() => setSourcesOpen(true)} />
@@ -89,7 +89,7 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
   return <View style={s.web}>
     <T variant="title" accessibilityRole="header">Mapa je dostupna u mobilnoj aplikaciji</T>
     <T variant="body">Isti zadaci i izabrani filteri su u listi.</T>
-    <V2Action label="Pogledaj listu" onPress={props.onList} />
+    <V2Action label="Pogledajte listu" onPress={props.onList} />
   </View>;
 }
 

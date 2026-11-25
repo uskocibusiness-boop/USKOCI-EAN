@@ -16,7 +16,7 @@ export function historyStatusLabel(purpose: AiHistoryPurpose, row: AiHistoryRow)
 export function historyActionLabel(purpose: AiHistoryPurpose, row: AiHistoryRow): string | null {
   if (row.status === 'OPEN') {
     if (!row.canContinue) return null;
-    return purpose === 'NEED_INTAKE' && row.titleSource === 'LINKED_TASK_TITLE' ? 'Nastavi izmenu' : 'Nastavi';
+    return purpose === 'NEED_INTAKE' && row.titleSource === 'LINKED_TASK_TITLE' ? 'Nastavite izmenu' : 'Nastavite';
   }
   return row.canRead ? 'Pročitaj razgovor' : null;
 }

@@ -15,7 +15,7 @@ const exact = (v: Record<string, unknown>, keys: readonly string[]) => Object.ke
 const boundedInt = (v: unknown, max: number): v is number => positiveInteger(v) && v <= max;
 const agreementPhotoErrors = {
   AUTH_REQUIRED: 'Prijavite se da nastavite.', MEDIA_NOT_FOUND: 'Fotografija nije dostupna.',
-  MEDIA_INPUT_INVALID: 'Izaberi fotografiju do 10 MB.', MEDIA_SANITIZATION_FAILED: 'Fotografija nije mogla da se pripremi.',
+  MEDIA_INPUT_INVALID: 'Izaberite fotografiju do 10 MB.', MEDIA_SANITIZATION_FAILED: 'Fotografija nije mogla da se pripremi.',
   MEDIA_VERSION_CONFLICT: 'Uslovi Dogovora su promenjeni. Osvežite Dogovor i uklonite stare pripremljene fotografije.',
   MEDIA_COMMAND_CONFLICT: 'Ova fotografija je već u slanju. Sačekajte da se završi.',
   MEDIA_RATE_LIMITED: 'Poslali ste mnogo fotografija zaredom. Pokušajte malo kasnije.',

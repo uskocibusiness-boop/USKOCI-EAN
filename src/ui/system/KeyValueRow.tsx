@@ -13,7 +13,7 @@ export type KeyValueRowProps = {
   value: string | ReactNode;
   /** `price`: the value is the one amount a screen is built around, in the `priceLarge` type. */
   emphasis?: 'price';
-  /** "Izmeni": a word at the end of the row, 15/600 in green, a 48 dp touch. */
+  /** "Izmenite": a word at the end of the row, 15/600 in green, a 48 dp touch. */
   action?: { label: string; onPress: () => void };
   /** The last row of a group: no divider under it. */
   last?: boolean;
@@ -30,7 +30,7 @@ export type KeyValueRowProps = {
  * characters: the scope of a task, a note about the access): a paragraph set against the right edge is ragged on the wrong side and
  * leaves the label a sliver of the width, so it reads under its label, from the left, like any text. A value that is a string is
  * read together with its label as one sentence; a node is left to be read as it is. The action is its own stop for a screen reader
- * and is named with the label it belongs to ("Izmeni, Termin"): a bare "Izmeni" would not say what is edited.
+ * and is named with the label it belongs to ("Izmenite, Termin"): a bare "Izmenite" would not say what is edited.
  */
 /** A value of more than this many characters is a paragraph, not a figure: it reads under its label. */
 export const LONG_VALUE = 40;

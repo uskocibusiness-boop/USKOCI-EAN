@@ -414,12 +414,12 @@ const CHOOSE_LABEL = 'Izaberite kandidata';
  * of terms (the total and whom it is for, the time, what they have) and their whole message as another. Space is the only divider
  * between the sections; the terms are rows of one kind and stand on the system's inset lines.
  *
- * The sheet's pinned footer holds the ONE green action. "Izaberi osobu" asks first, in a centred dialog that says what
+ * The sheet's pinned footer holds the ONE green action. "Izaberite osobu" asks first, in a centred dialog that says what
  * is accepted (price, people, term) and what follows; only its confirm runs the route's `choose`, which keeps every guard it
  * had (the read revision and account, the offer's own version and hash, the selectable classifier, one idempotent
  * command). A retained confirmation is retired the moment the offer it asked about changes. After a choice the footer
  * carries its outcome: a check of an unknown outcome, or the same command again; and once the Dogovor is made the sheet gives way to the
- * moment "Dogovoreno!" (`DogovorenoMoment`), whose one green action is this sheet's `Otvori Dogovor`.
+ * moment "Dogovoreno!" (`DogovorenoMoment`), whose one green action is this sheet's `Otvorite Dogovor`.
  *
  * Closing the sheet is the screen's Back: it returns to the list, or, once a choice was made, leaves as Back always did.
  * Nothing closes it while the choice runs.
@@ -518,7 +518,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
   }
   // "Dogovoreno!" (owner's pick of 2026-10-08, "Susret dva lica"): once the Dogovor is made the offer is not what the person needs to see, so
   // the sheet gives way to the moment, a whole screen with two faces, the task's title, the word, three rows and the one green way on, which
-  // is this sheet's own `Otvori Dogovor` with every guard it had. Fresh only when the choice was confirmed while this sheet was open: reopened
+  // is this sheet's own `Otvorite Dogovor` with every guard it had. Fresh only when the choice was confirmed while this sheet was open: reopened
   // on an outcome that was already confirmed (back from the profile's safety screen) it is the last frame at once, and nothing ticks.
   if (confirmed) {
     const remainingSlots = Math.max(0, (need.pokrivenost?.preostalo ?? 0) - (candidate?.pokrivaMesta ?? 1));

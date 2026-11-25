@@ -272,16 +272,16 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
 }
 
 /**
- * What the assistant's fixed closing sentences say about a task that is being CHANGED (not published): "Otvori pregled zadatka. Tamo možeš da dopuniš podatke i
+ * What the assistant's fixed closing sentences say about a task that is being CHANGED (not published): "Otvorite pregled zadatka. Tamo možeš da dopuniš podatke i
  * potvrdiš objavu." is the server's own line for the end of any conversation (`supabase/functions/uskoci-ai-interview/index.ts`), and a change is not an
  * objava. Only these exact sentences are said otherwise; whatever the assistant wrote in its own words is shown as it came.
- * TRAŽI SERVER (not changed here): the edit conversation's REVIEW step should answer "Otvori pregled izmena. Tamo ih potvrđuješ." itself.
+ * TRAŽI SERVER (not changed here): the edit conversation's REVIEW step should answer "Otvorite pregled izmena. Tamo ih potvrđuješ." itself.
  */
 const SERVER_REVIEW_ENDINGS: ReadonlySet<string> = new Set([
   'Otvorite pregled zadatka. Tamo možete da dopunite podatke i potvrdite objavu.',
   'Otvorite pregled zadatka. Tamo proverite podatke pre objave.',
-  'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.',
-  'Otvori pregled zadatka. Tamo proveri podatke pre objave.',
+  'Otvorite pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.',
+  'Otvorite pregled zadatka. Tamo proveri podatke pre objave.',
 ]);
 export const EDIT_ENDING = 'Otvorite pregled izmena. Tamo ih potvrđujete.';
 export const editEnding = (body: string): string => SERVER_REVIEW_ENDINGS.has(body.trim()) ? EDIT_ENDING : body;
@@ -583,7 +583,7 @@ export function IntakePresentation(props: Props) {
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{statusCopy}</T> : null}
       {props.pending && props.showReadback ? <T variant="note" tone="muted">Provera ne šalje novu poruku.</T> : null}
-      {/* What can be done, most likely first: read what happened ("Proveri", the app's one word for it), and only then the rarer way out, with
+      {/* What can be done, most likely first: read what happened ("Proverite", the app's one word for it), and only then the rarer way out, with
           what it costs written right above it. */}
       {props.showReadback ? <V2Action tone="neutral" label={OUTCOME_ACTION.check} accessibilityLabel={`${OUTCOME_ACTION.check} da li je poruka poslata`}
         disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}

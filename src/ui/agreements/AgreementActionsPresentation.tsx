@@ -114,7 +114,7 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
   const { form, review } = p;
   let chrome, body, footer;
   if (form) {
-    chrome = <ScreenChrome variant="flow" onClose={p.onCloseForm} closeLabel="Odustani od unosa" disabled={busy}
+    chrome = <ScreenChrome variant="flow" onClose={p.onCloseForm} closeLabel="Odustanite od unosa" disabled={busy}
       title={form.reentry ? 'Ponovno slanje' : form.kind === 'CANCEL' ? 'Otkazivanje Dogovora' : 'Predlog izmene'} step="Korak 1 od 2" />;
     body = <Form form={form} base={snapshot?.terms ?? null} busy={busy} onEdit={p.onEdit} />;
     // The step's one decision, pinned under the scroll; what stopped it is said right under the button it stopped. A cancellation
@@ -124,7 +124,7 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
       disabled={busy || reasonMissing} reason={reasonMissing && !busy ? (form.reentry ? 'Unesite razlog.' : 'Izaberite razlog.') : null}
       error={p.error} onPress={p.onPrepareForm} />;
   } else if (review) {
-    chrome = <ScreenChrome variant="flow" onClose={p.onCloseReview} closeLabel="Odustani od radnje" disabled={busy}
+    chrome = <ScreenChrome variant="flow" onClose={p.onCloseReview} closeLabel="Odustanite od radnje" disabled={busy}
       title={reviewTitle(review)} step={review.kind === 'PROPOSE' || review.kind === 'CANCEL' ? 'Korak 2 od 2' : undefined} />;
     body = <Review review={review} proposed={p.proposed} base={snapshot?.terms ?? null} snapshot={snapshot} />;
     footer = <V2Action tone="neutral" label={actionLabel(review)} kind={ending(review) ? 'destructive' : 'secondary'}

@@ -27,7 +27,7 @@ const appended = (current: Loaded, page: ReviewCommentPage): Loaded => ({
 
 /**
  * "Komentari" of a profile (D12): the written comments ABOUT the person whose profile this is, newest first, a page of 20 at a
- * time with "Prikaži još" while there are more. Every state is a true one: reading is a still bar (never "nobody wrote one"),
+ * time with "Prikažite još" while there are more. Every state is a true one: reading is a still bar (never "nobody wrote one"),
  * no comments yet says that nobody wrote one, a failed read says so and offers to try again (never an empty list), and the
  * reader's `null` (a blocked pair, a closed account, another world, a backend without D12) is NOTHING AT ALL: no title, no error.
  * Each comment shows its rating, its date in the one `vreme()` format, and the reviewer's name and photo exactly as the reader
@@ -83,13 +83,13 @@ export function ReviewCommentsSection({ profileId, photo }: { profileId: string;
     {state.phase === 'loading' ? <View accessibilityRole="progressbar" accessibilityLabel="Učitavamo komentare" style={s.bar} />
       : state.phase === 'error' ? <View style={s.state}>
         <T variant="note" tone="muted">Komentari trenutno nisu dostupni.</T>
-        <V2Action label="Pokušaj ponovo" kind="quiet" onPress={() => { void load(); }} />
+        <V2Action label="Pokušajte ponovo" kind="quiet" onPress={() => { void load(); }} />
       </View>
         : data.items.length === 0 ? <T variant="note" tone="muted">Još niko nije napisao komentar.</T>
           : <>
             {data.items.map((item, index) => <CommentRow key={item.reviewId} item={item} photo={photo} first={index === 0} />)}
             {more === 'error' ? <T variant="note" tone="muted">Još komentara trenutno nije učitano.</T> : null}
-            {data.hasMore ? <V2Action label={more === 'error' ? 'Pokušaj ponovo' : 'Prikaži još'} loading={more === 'loading'} onPress={() => { void loadMore(); }} /> : null}
+            {data.hasMore ? <V2Action label={more === 'error' ? 'Pokušajte ponovo' : 'Prikažite još'} loading={more === 'loading'} onPress={() => { void loadMore(); }} /> : null}
           </>}
   </View>;
 }

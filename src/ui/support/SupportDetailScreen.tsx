@@ -195,7 +195,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
       {replyTooLong ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{`${Array.from(replyText).length} / ${REPLY_LIMIT} · Skratite tekst pre slanja.`}</T> : null}
       {/* The spinner is this reply's own: marking as read, a claim, a close, or a stop or replay of an unconfirmed reply
           run without it (round 5c review). */}
-      <SupportComposer value={replyText} placeholder={author ? 'Napiši dopunu…' : 'Napiši odgovor…'} editable={!actionsDisabled}
+      <SupportComposer value={replyText} placeholder={author ? 'Napišite dopunu…' : 'Napišite odgovor…'} editable={!actionsDisabled}
         canSend={canSend} sending={state.phase === 'SENDING' && state.command === 'SEND' && state.pending?.kind === replyKind} onSend={send}
         reason={replyReason} maxLength={REPLY_LIMIT * 2}
         onChange={value => { if (current() && !actionsDisabled) setReply({ scope: replyScope, key: replyKey, text: value }); }} />
@@ -216,11 +216,11 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
       }}
       composer={composer}>
       {(state.phase !== 'LOADING' || kept) && !(state.phase === 'ERROR' && !detail) ? <View style={s.head}>
-        <SettingsAction label="Osveži predmet" kind="quiet" disabled={busy} loading={state.phase === 'LOADING'} onPress={reload} />
+        <SettingsAction label="Osvežite predmet" kind="quiet" disabled={busy} loading={state.phase === 'LOADING'} onPress={reload} />
       </View> : null}
       {!detail ? state.phase === 'LOADING' ? <SupportLoading />
         : state.phase === 'ERROR' ? <StateView kind="error" art="chat" title="Zahtev nije učitan" body={state.message ?? undefined}
-          primary={{ label: 'Osveži predmet', onPress: reload, disabled: busy }} /> : null : <>
+          primary={{ label: 'Osvežite predmet', onPress: reload, disabled: busy }} /> : null : <>
         {cursors.length > 1 ? <SettingsAction label="Prethodni događaji" kind="quiet" disabled={busy} onPress={() => page(cursors[cursors.length - 2], true)} /> : null}
         <View style={s.summary}>
           {detail.case.desiredOutcome ? <View style={s.fact}><T variant="note" tone="muted">Željeni ishod</T><T selectable>{detail.case.desiredOutcome}</T></View> : null}
@@ -234,7 +234,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
         {detail.viewerRole === 'OPERATOR' ? <View style={s.operator}>
           <T variant="meta" tone="muted">Operaterske radnje za ovaj nalog i trenutno stanje predmeta.</T>
           <View style={s.operatorActions}>
-            {allowed('CLAIM') ? <SettingsAction label="Preuzmi predmet" kind="secondary" disabled={actionsDisabled}
+            {allowed('CLAIM') ? <SettingsAction label="Preuzmite predmet" kind="secondary" disabled={actionsDisabled}
               onPress={() => { if (current()) void controller?.submit('CLAIM', {}, state); }} /> : null}
             {allowed('REQUEST_INFO') ? <SettingsAction label="Zatraži dopunu" kind="quiet" disabled={actionsDisabled} onPress={() => open('REQUEST_INFO')} /> : null}
             {allowed('DECIDE') ? <SettingsAction label="Donesi odluku" kind="quiet" disabled={actionsDisabled} onPress={() => open('DECIDE')} /> : null}
@@ -257,7 +257,7 @@ function AppealLine({ appeal, detail, model, disabled, onDecide }: {
   const allowed = (action: SupportAction) => supportActionAllowed(detail, action);
   return <View style={s.appeal}>
     <T variant="note" tone="muted">{`${appealState(appeal)} · ${supportTime(appeal.createdAt)}`}</T>
-    {allowed('CLAIM_APPEAL') && appeal.status === 'RECEIVED' ? <SettingsAction label="Preuzmi ponovni pregled" kind="secondary" disabled={disabled}
+    {allowed('CLAIM_APPEAL') && appeal.status === 'RECEIVED' ? <SettingsAction label="Preuzmite ponovni pregled" kind="secondary" disabled={disabled}
       onPress={() => { if (current()) void controller?.submit('CLAIM_APPEAL', { appealId: appeal.id }, state); }} /> : null}
     {allowed('DECIDE_APPEAL') && appeal.status === 'IN_REVIEW' ? <SettingsAction label="Odluči o ponovnom pregledu" kind="quiet" disabled={disabled}
       onPress={onDecide} /> : null}

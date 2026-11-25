@@ -87,26 +87,26 @@ export function ProfilePhotoEditor({ onBack, stage, notice, error, permissionDen
       {/* After the read a retry is offered, so the line no longer asks for a check first; before it, the check is the one action. */}
       {retryable ? <>
         <T>{discardable ? 'Fotografija se još obrađuje. Možeš proveriti ishod ili odustati od nje.' : 'Ne znamo da li je promena sačuvana.'}</T>
-        <SettingsAction label="Pošalji promenu ponovo" loading={running === 'RETRY'} disabled={waiting} onPress={onRetry} />
-        <SettingsAction label="Proveri sačuvanu fotografiju" kind="quiet" disabled={waiting} onPress={onCheck} />
+        <SettingsAction label="Pošaljite promenu ponovo" loading={running === 'RETRY'} disabled={waiting} onPress={onRetry} />
+        <SettingsAction label="Proverite sačuvanu fotografiju" kind="quiet" disabled={waiting} onPress={onCheck} />
       </> : <>
         <T>{discardable ? 'Fotografija se još obrađuje. Možeš proveriti ishod ili odustati od nje.' : 'Ne znamo da li je fotografija poslata. Proveri to pre novog izbora.'}</T>
-        <SettingsAction label="Proveri sačuvanu fotografiju" disabled={waiting} onPress={onCheck} />
+        <SettingsAction label="Proverite sačuvanu fotografiju" disabled={waiting} onPress={onCheck} />
       </>}
-      {discardable ? <SettingsAction label="Odustani od izabrane fotografije" kind="quiet" loading={running === 'DISCARD'}
+      {discardable ? <SettingsAction label="Odustanite od izabrane fotografije" kind="quiet" loading={running === 'DISCARD'}
         disabled={!canAct || waiting} onPress={onDiscard} /> : null}
     </View> : mode === 'reconcile' ? <View style={s.actions}>
       {/* Every refusal on the phone stays in `pick`, so this is reached only when a read really is needed (a write that
           was not confirmed, a failed read, a conflict): the button says the check its error asks for (review 5b). */}
-      <SettingsAction label="Proveri sačuvanu fotografiju" disabled={waiting} onPress={onCheck} />
+      <SettingsAction label="Proverite sačuvanu fotografiju" disabled={waiting} onPress={onCheck} />
     </View> : mode === 'staged' ? <View style={s.actions}>
-      <SettingsAction label="Sačuvaj fotografiju" loading={running === 'APPLY'} disabled={!canAct} onPress={onApply} />
-      <SettingsAction label="Odustani od izabrane fotografije" kind="quiet" loading={running === 'DISCARD'} disabled={!canAct} onPress={onDiscard} />
+      <SettingsAction label="Sačuvajte fotografiju" loading={running === 'APPLY'} disabled={!canAct} onPress={onApply} />
+      <SettingsAction label="Odustanite od izabrane fotografije" kind="quiet" loading={running === 'DISCARD'} disabled={!canAct} onPress={onDiscard} />
     </View> : mode === 'pick' && stage && stage.kind !== 'loading' ? <View style={s.actions}>
-      <SettingsAction label="Izaberi iz galerije" loading={running === 'LIBRARY'} disabled={!canAct} onPress={onLibrary} />
+      <SettingsAction label="Izaberite iz galerije" loading={running === 'LIBRARY'} disabled={!canAct} onPress={onLibrary} />
       <SettingsAction label="Fotografiši" kind="secondary" loading={running === 'CAMERA'} disabled={!canAct} onPress={onCamera} />
       {/* The same width and the same centre as the two above: it stood indented at the start, as if it were part of the note. */}
-      {hasPhoto ? <SettingsAction label="Ukloni fotografiju profila" kind="destructive" loading={running === 'CLEAR'}
+      {hasPhoto ? <SettingsAction label="Uklonite fotografiju profila" kind="destructive" loading={running === 'CLEAR'}
         disabled={!canAct} onPress={onRemove} /> : null}
     </View> : null}
     {sheet}

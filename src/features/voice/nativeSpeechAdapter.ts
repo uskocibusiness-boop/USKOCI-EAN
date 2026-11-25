@@ -47,7 +47,7 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
       if (signal.aborted) return 'denied';
       if (granted) return 'granted';
       // The system is about to ask: say why first (design proposal N). The person may let go of the button while reading it,
-      // which ends this gesture but not their answer, so "Dozvoli" still reaches the system's window and the next hold finds
+      // which ends this gesture but not their answer, so "Dozvolite" still reaches the system's window and the next hold finds
       // the permission given. "Ne sada" asks the system nothing. With nothing to draw the question, nothing changes at all.
       if (permissionAsk.hasHost() && await permissionAsk.ask('microphone') === 'later') return 'later';
       const status = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);

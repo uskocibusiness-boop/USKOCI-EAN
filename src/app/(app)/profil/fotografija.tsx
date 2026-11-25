@@ -236,7 +236,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     onLibrary={() => { void pick('LIBRARY'); }} onCamera={() => { void pick('CAMERA'); }}
     // Removing the public photo asks first; clear() keeps all its guards, which run when the answer is given.
     onRemove={() => confirm.ask({ title: 'Ukloniti fotografiju profila?', message: 'Profil ostaje bez fotografije dok ne izaberete novu.',
-      confirmLabel: 'Ukloni fotografiju', tone: 'danger', onConfirm: () => { void clear(); } })}
+      confirmLabel: 'Uklonite fotografiju', tone: 'danger', onConfirm: () => { void clear(); } })}
     onApply={() => { void apply(); }} onDiscard={() => { void discard(); }} onRetry={() => { void retry(); }}
     onCheck={() => { if (current()) { setPickError(null); void editor.refresh(); } }} sheet={confirm.sheet} />;
 }

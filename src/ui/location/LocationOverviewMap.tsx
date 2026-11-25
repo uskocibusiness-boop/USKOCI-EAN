@@ -122,7 +122,7 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
       {status !== 'ready' ? <View style={s.feedback}>
         {status === 'loading' ? <><ActivityIndicator color={sys.color.green} accessibilityLabel="Učitavanje mape" /><T variant="meta">Učitavamo mapu…</T></>
           : <><T accessibilityRole="alert" variant="bodyStrong">Mapa nije učitana.</T>
-            <V2Action label="Pokušaj ponovo sa mapom" kind="secondary" onPress={() => { if (current()) retry(); }} /></>}
+            <V2Action label="Pokušajte ponovo sa mapom" kind="secondary" onPress={() => { if (current()) retry(); }} /></>}
       </View> : null}
       {status === 'ready' ? <MapCredits locate={false} onPress={() => {
         if (current() && state.current === 'ready') setSourcesOpen(true);

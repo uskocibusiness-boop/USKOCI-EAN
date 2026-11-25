@@ -18,8 +18,8 @@ export default function Poruke() {
   // An unpaired build never probes for a missing reader or calls notifications a conversation list.
   if (!conversationInboxBuilt()) return <SafeAreaView style={{ flex: 1, backgroundColor: sys.color.surface }}>
     <DetailTopBar title="Poruke" onBack={() => router.canGoBack() ? router.back() : router.replace('/dogovori')} />
-    <StateView kind="empty" title="Razgovori su u Dogovorima" body="Otvori Dogovor da nastaviš dopisivanje."
-      primary={{ label: 'Otvori Dogovore', onPress: () => router.replace('/dogovori') }} />
+    <StateView kind="empty" title="Razgovori su u Dogovorima" body="Otvorite Dogovor da nastaviš dopisivanje."
+      primary={{ label: 'Otvorite Dogovore', onPress: () => router.replace('/dogovori') }} />
   </SafeAreaView>;
   return <ConversationInbox />;
 }

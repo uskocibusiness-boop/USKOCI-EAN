@@ -761,7 +761,7 @@ export const lazniIzvor: Izvor = {
         ok: false,
         kod: 'VERSION_CONFLICT',
         naslov: 'Dogovor je u međuvremenu promenjen',
-        poruka: 'Osveži Dogovor pa pokušaj ponovo.',
+        poruka: 'Osvežite Dogovor pa pokušaj ponovo.',
       };
     }
     return { ok: true, podatak: { predlogId: `pred-${k.dogovorId}-${trenutna}` } };

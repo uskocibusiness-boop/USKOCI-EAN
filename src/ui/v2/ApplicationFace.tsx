@@ -24,7 +24,7 @@ import { PrijavaCard, prijavaSpoken, type PrijavaModel, type PrijavaPrice, type 
  *   - what each state of the read is called (the owner's five words: Poslata, Viđena, Izabrana, Nije izabrana, Povučena);
  *   - the interactive shell: the body opens the task, a long note has a separate read-only control to open its complete text,
  *     and the foot holds at most ONE action, the one this state allows, as a quiet row link under a line (never a button inside the card,
- *     and never green for a withdrawal): Izabrana → "Otvori Dogovor", an open one the server lets me withdraw → "Povuci prijavu" (a
+ *     and never green for a withdrawal): Izabrana → "Otvorite Dogovor", an open one the server lets me withdraw → "Povuci prijavu" (a
  *     quiet ink link; the danger colour is kept for the question it opens), a changed task → "Pregledaj izmene zadatka" (the one
  *     orange dot of the card); nothing for a state that is over.
  *
@@ -96,7 +96,7 @@ export function applicationFoot(row: Pick<MojaPrijavaProjekcija, 'stanje' | 'dog
   return row.mozePovuci ? 'withdraw' : null;
 }
 const FOOT: Record<ApplicationFootAction, { label: string; spoken: string; tone: RecordFootTone; caret: 'right' | 'down' | 'none'; hint?: string }> = {
-  agreement: { label: 'Otvori Dogovor', spoken: 'Otvori Dogovor', tone: 'green', caret: 'right' },
+  agreement: { label: 'Otvorite Dogovor', spoken: 'Otvorite Dogovor', tone: 'green', caret: 'right' },
   // Withdrawing is rare ("retko"): a quiet ink link on every open card, and the danger colour only in the question it
   // opens (review r4 item 7).
   withdraw: { label: 'Povuci prijavu', spoken: 'Povuci prijavu', tone: 'ink', caret: 'none', hint: 'Pre povlačenja tražimo da potvrdite.' },
@@ -164,13 +164,13 @@ function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, e
     if (noteScope.current !== noteOwner || noteOwner.disabled) return;
     setOpenNote(current => current === noteOwner ? null : noteOwner);
   };
-  const noteLabel = noteExpanded ? 'Prikaži manje' : 'Prikaži celu poruku';
+  const noteLabel = noteExpanded ? 'Prikažite manje' : 'Prikažite celu poruku';
 
   const lift = usePressLift();
 
   return <Animated.View style={lift.style}>
     <Surface kind="record" style={recordFlush}>
-      <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: applicationSpoken(row, fresh) }}
+      <Press accessibilityRole="button" accessibilityLabel={`Otvorite zadatak: ${title}`} accessibilityValue={{ text: applicationSpoken(row, fresh) }}
         accessibilityState={{ disabled }} disabled={disabled} onPress={onTask} onPressIn={lift.give} onPressOut={lift.settle} haptic="select" scaleTo={1}
         style={recordBody}>
         <ApplicationSummary row={row} large={large} disabled={disabled} noteCollapsed={longNote && !noteExpanded} fresh={fresh} />

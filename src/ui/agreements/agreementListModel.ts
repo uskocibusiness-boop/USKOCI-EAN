@@ -150,7 +150,7 @@ export function agreementGroupOf(item: DogovorProjekcija, now: Date): AgreementG
 
 /**
  * The active Dogovori in their groups, empty groups left out. What is next comes first inside a group; one with no term goes
- * after the ones that have one, in the order the server gave. "Proveri ocenu" (the rating could not be read) is kept after
+ * after the ones that have one, in the order the server gave. "Proverite ocenu" (the rating could not be read) is kept after
  * the Dogovori that really wait, so an old appointment cannot outrank accepted work.
  */
 export function groupActiveAgreements(items: readonly DogovorProjekcija[], now: Date): AgreementGroup[] {

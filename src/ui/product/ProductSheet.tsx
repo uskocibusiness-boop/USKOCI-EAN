@@ -46,7 +46,7 @@ export type ProductSheetProps = {
  * Header/footer participate in layout, so no estimated overlay can cover the content.
  * Keyboard avoidance bounds the whole surface; long content and unusually large actions can scroll independently.
  */
-export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHint = SHEET_BACKDROP_HINT, reduced: callerReduced,
+export function ProductSheet({ title, label, closeLabel = 'Zatvorite', backdropHint = SHEET_BACKDROP_HINT, reduced: callerReduced,
   onClose, children, contentKey, footer, dirty = false, dismissible = true, closeButton = true }: ProductSheetProps) {
   const systemReduced = useSystemReducedMotion();
   const reduced = callerReduced ?? systemReduced;
@@ -88,9 +88,9 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
     <Press accessibilityRole="button" accessibilityLabel="Odbaci izmene" testID="product-sheet-discard" haptic="medium"
       disabled={!dismissible} onPress={() => { if (state.current.dismissible) dismiss(); }} style={[s.command, s.danger]}>
       <T variant="action" style={s.onFilled}>Odbaci izmene</T></Press>
-    <Press accessibilityRole="button" accessibilityLabel="Nastavi uređivanje" testID="product-sheet-keep" haptic="select"
+    <Press accessibilityRole="button" accessibilityLabel="Nastavite uređivanje" testID="product-sheet-keep" haptic="select"
       onPress={() => setAsking(false)} style={s.command}>
-      <T variant="action" style={s.quiet}>Nastavi uređivanje</T></Press>
+      <T variant="action" style={s.quiet}>Nastavite uređivanje</T></Press>
   </View> : footer ? footer(dismiss) : null;
   return <Modal visible transparent animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={requestClose}
     onShow={resetContent}>

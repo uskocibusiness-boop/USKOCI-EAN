@@ -17,16 +17,16 @@ function current(scope: SupportScope) {
   return s.user?.id === scope.accountId && s.accountRevision === scope.accountRevision && (scope.isCurrent?.() ?? true);
 }
 const changed = () => failure('SUPPORT_SCOPE_CHANGED', 'Ponovo otvori podršku da nastaviš.');
-const invalid = () => failure('SUPPORT_INPUT_INVALID', 'Proveri podatke zahteva.');
+const invalid = () => failure('SUPPORT_INPUT_INVALID', 'Proverite podatke zahteva.');
 const options = { fallback: 'SUPPORT_UNCONFIRMED', invalid: 'SUPPORT_RECEIPT_INVALID', errors: {
-  AUTH_REQUIRED: 'Prijavi se ponovo da otvoriš podršku.', AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvori podršku.',
+  AUTH_REQUIRED: 'Prijavite se ponovo da otvoriš podršku.', AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvori podršku.',
   SUPPORT_CASE_NOT_AVAILABLE: 'Zahtev nije dostupan ovom nalogu.', SUPPORT_OPERATOR_REQUIRED: 'Operaterski pristup više nije dostupan.',
   SUPPORT_REVISION_STALE: 'Zahtev je promenjen. Osveži ga pre sledeće radnje.',
-  SUPPORT_KEY_REUSED: 'Ovaj zahtev za slanje pripada prvobitnom sadržaju.', SUPPORT_INPUT_INVALID: 'Proveri podatke zahteva.',
+  SUPPORT_KEY_REUSED: 'Ovaj zahtev za slanje pripada prvobitnom sadržaju.', SUPPORT_INPUT_INVALID: 'Proverite podatke zahteva.',
   SUPPORT_CASE_DAILY_LIMIT: 'Dostignut je limit od 5 novih običnih zahteva za 24 sata.',
   SUPPORT_CREATE_COOLDOWN: 'Sačekaj najmanje 60 sekundi između novih običnih zahteva.',
   SUPPORT_REPLY_DAILY_LIMIT: 'Dostignut je limit od 50 dopuna običnih zahteva za 24 sata.',
-  SUPPORT_REFERENCE_NOT_AVAILABLE: 'Odabrani kontekst više nije dostupan.', SUPPORT_REFERENCE_INVALID: 'Proveri odabrani kontekst.',
+  SUPPORT_REFERENCE_NOT_AVAILABLE: 'Odabrani kontekst više nije dostupan.', SUPPORT_REFERENCE_INVALID: 'Proverite odabrani kontekst.',
   SUPPORT_REFERENCE_STALE: 'Odabrani kontekst je promenjen. Učitaj njegovu trenutnu verziju.',
   SUPPORT_MEDIA_REFERENCE_NOT_AVAILABLE: 'Izabrane fotografije još nisu dostupne za ovaj zahtev.',
   SUPPORT_CONTEXT_REQUIRED: 'Odaberi saradnju ili pregled na koji se zahtev odnosi.',

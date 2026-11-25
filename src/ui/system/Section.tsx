@@ -6,7 +6,7 @@ import { layout } from './layout';
 import { useLayoutClass } from './textScale';
 import { sys } from './tokens';
 
-/** The one command a section's title carries: a word at the end of its line ("Ceo raspored", "Uredi mesto"). */
+/** The one command a section's title carries: a word at the end of its line ("Ceo raspored", "Uredite mesto"). */
 export type SectionAction = { label: string; onPress: () => void; accessibilityLabel?: string; testID?: string };
 
 export type SectionProps = {

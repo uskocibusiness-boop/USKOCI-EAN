@@ -197,7 +197,7 @@ export default function PrilikaDetaljiEkran() {
     back={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/zadaci'))}
     retry={retry} apply={compose}
     // The system's share sheet, with the task's name and its public area only; a dismissed sheet is not an error, so nothing is said about it.
-    onShare={fresh ? () => { void Share.share({ message: taskShareMessage(fresh) }, { dialogTitle: 'Podeli zadatak' }).catch(() => {}); } : undefined}
+    onShare={fresh ? () => { void Share.share({ message: taskShareMessage(fresh) }, { dialogTitle: 'Podelite zadatak' }).catch(() => {}); } : undefined}
     onRequesterProfile={fresh ? openRequesterProfile : undefined} requesterProfile={requesterProfile} onCloseRequesterProfile={closeRequesterProfile}
     safety={safety}
     // The poster row asks for 56 px, the profile sheet for its large portrait. Without a photo, or while it cannot be

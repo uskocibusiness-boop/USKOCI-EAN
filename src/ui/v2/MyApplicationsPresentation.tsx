@@ -165,14 +165,14 @@ export function MyApplicationsPresentation(props: Props) {
           <T variant="note" tone="muted">Ponuđeni termin ostaje nepromenjen: {draft.start || draft.end
             ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, p.zadatak?.vremenskaZona || deviceZone()) : 'Nije naveden u prijavi.'}</T>
           <V2Action label="Potvrdite ažuriranu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled || props.draftStale || invalidPeople || invalidFixedPrice} style={brandAction} />
-          <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
+          <V2Action label="Odustanite od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
         </View> : <View>
           {/* The sentence above says what keeping keeps; each row says what it does by its name, and no row explains itself (J4). */}
           {p.osnovaCene === 'TOTAL' || p.osnovaCene === 'HOURLY' ? <ListRow title="Zadržite prijavu" accessibilityLabel="Zadržite prijavu" onPress={() => props.onKeep(p)} disabled={disabled} /> : null}
           <ListRow title="Pregledajte i izmenite prijavu" accessibilityLabel="Pregledajte i izmenite prijavu" onPress={() => props.onEdit(p)} disabled={disabled} />
           <ListRow title="Povuci izmenjenu prijavu" tone="danger" accessibilityLabel="Povuci izmenjenu prijavu" onPress={() => props.onWithdraw(p)} disabled={disabled} />
         </View>}
-        <V2Action label="Zatvori pregled izmena" onPress={props.onClose} disabled={props.busy || props.pending} kind="quiet" style={s.quietLeft} />
+        <V2Action label="Zatvorite pregled izmena" onPress={props.onClose} disabled={props.busy || props.pending} kind="quiet" style={s.quietLeft} />
       </View>
     </View>;
   }
@@ -222,7 +222,7 @@ export function MyApplicationsPresentation(props: Props) {
             ? { label: 'Pogledajte šta Vas čeka', onPress: () => props.onTab('attention') }
             : props.tab === 'active' && count('finished') > 0
               ? { label: 'Pogledajte istoriju', onPress: () => props.onTab('finished') }
-              : { label: 'Prikaži sve prijave', onPress: () => props.onTab('all') }} />
+              : { label: 'Prikažite sve prijave', onPress: () => props.onTab('all') }} />
           : <StateView hero art="applications" title="Još nemate prijavu" primary={{ label: 'Pronađite zadatak', onPress: props.onExplore }} />}
   </View>;
   const shown = count(props.tab);
@@ -250,7 +250,7 @@ export function MyApplicationsPresentation(props: Props) {
             <T variant="note" tone="muted">Ne možemo da učitamo ostale prijave.</T>
             <V2Action label="Pokušajte ponovo" kind="quiet" onPress={paging.onLoadMore} />
           </> : paging.loadingMore ? <T variant="note" tone="muted">Učitavamo još prijava…</T>
-            : <V2Action label="Prikaži još" kind="quiet" onPress={paging.onLoadMore} />}
+            : <V2Action label="Prikažite još" kind="quiet" onPress={paging.onLoadMore} />}
         </View> : null}
         ListHeaderComponent={showsFeedback || showsCount || props.refreshing ? <View style={s.head}>
           {props.refreshing ? <T accessibilityLiveRegion="polite" variant="note" tone="muted">Osvežavamo Vaše prijave… Sačekajte proveru pre izmene ili povlačenja.</T> : null}
@@ -269,7 +269,7 @@ export function MyApplicationsPresentation(props: Props) {
                   : props.pendingAction === 'keep' ? 'Proverite da li je potvrda izmenjenog zadatka sačuvana. Ponovni pokušaj koristi isti zahtev.'
                     : 'Proverite stanje prijave pre nastavka. Ponovni pokušaj koristi isti zahtev.'}</T>
               <V2Action label="Proverite stanje prijave" onPress={props.onRefresh} disabled={props.busy} />
-              {props.canRetry ? <V2Action label="Ponovi istu radnju" onPress={props.onRetry} disabled={props.busy} /> : null}
+              {props.canRetry ? <V2Action label="Ponovite istu radnju" onPress={props.onRetry} disabled={props.busy} /> : null}
               {props.canReset ? <V2Action label="Pregledaj trenutnu prijavu" onPress={props.onReset} disabled={props.busy} /> : null}</Surface> : null}
           </View> : null}
           {/* How many applications the set shows: the list's first line, which scrolls away with it. */}

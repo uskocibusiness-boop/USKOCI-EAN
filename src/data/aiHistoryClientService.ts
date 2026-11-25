@@ -92,7 +92,7 @@ export function listAiHistory(purpose: AiHistoryPurpose, before: AiHistoryCursor
   limit = AI_HISTORY_PAGE_SIZE): Promise<Ishod<AiHistoryPage>> {
   const session = sesijaSada(), accountId = session.user?.id;
   if (!uuid(accountId) || !Number.isSafeInteger(session.accountRevision) || session.accountRevision < 0)
-    return Promise.resolve(failure('AUTH_REQUIRED', 'Prijavi se da vidiš razgovore.'));
+    return Promise.resolve(failure('AUTH_REQUIRED', 'Prijavite se da vidiš razgovore.'));
   if (purpose !== 'NEED_INTAKE' && purpose !== 'PROFILE')
     return Promise.resolve(failure('AI_HISTORY_PURPOSE_INVALID', 'Ponovo otvori istoriju razgovora.'));
   if (!Number.isInteger(limit) || limit < 1 || limit > AI_HISTORY_PAGE_SIZE || (before !== null && !decodeAiHistoryCursor(before)))

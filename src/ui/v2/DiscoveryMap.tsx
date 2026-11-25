@@ -171,7 +171,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     };
   }, [traceLoad]));
   const [viewport, setViewport] = useState(props.viewport);
-  // Discovery V47: there is no "Pretraži ovu oblast" any more. A move of the person's own settles, the map waits
+  // Discovery V47: there is no "Pretražite ovu oblast" any more. A move of the person's own settles, the map waits
   // `AREA_SETTLE_MS`, and the list follows the bounds; a new move of theirs before that starts the wait again.
   const areaTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelArea = () => { if (areaTimer.current) { clearTimeout(areaTimer.current); areaTimer.current = null; } };
@@ -633,17 +633,17 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
           content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} relation={relationFor(selected.id)} selected nativeReady={status === 'ready' && nativeFrameReady} owns={owns} /> : null}
     </Map>
     </View>
-    {locked ? <Press testID="discovery-map-strip" accessibilityRole="button" accessibilityLabel="Prikaži više mape" accessibilityHint="Spušta listu do pola."
+    {locked ? <Press testID="discovery-map-strip" accessibilityRole="button" accessibilityLabel="Prikažite više mape" accessibilityHint="Spušta listu do pola."
       haptic="select" scaleTo={1} onPress={() => { if (owns()) props.onStripPress?.(); }} style={StyleSheet.absoluteFill} /> : null}
     <MapCredits bottom={props.creditsBottom} covered={props.creditsCovered || locked}
       locate={!!props.locateShown} onPress={() => { if (owns()) setSourcesOpen(true); }} />
     {sourcesOpen ? <MapSources reduced={reduced} onClose={() => setSourcesOpen(false)} /> : null}
     {status !== 'ready' ? <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24, paddingBottom: (props.focusBottom ?? 0) + 24 }]}>
       {status === 'loading' ? <><ActivityIndicator color={sys.color.green} /><T variant="body">Učitavamo mapu…</T></>
-        : <><T variant="title" accessibilityRole="alert">Mapa nije učitana</T><T variant="body">Proveri vezu. Zadaci i filteri ostaju u listi.</T>
-          <V2Action label="Pokušaj ponovo sa mapom" onPress={() => { if (owns()) props.onRetry(); }} />
+        : <><T variant="title" accessibilityRole="alert">Mapa nije učitana</T><T variant="body">Proverite vezu. Zadaci i filteri ostaju u listi.</T>
+          <V2Action label="Pokušajte ponovo sa mapom" onPress={() => { if (owns()) props.onRetry(); }} />
           {/* A screen whose list is a sheet over the map already offers the list on the sheet's own top line. */}
-          {sheetTop ? null : <V2Action label="Pogledaj listu" onPress={props.onList} />}</>}</View> : null}
+          {sheetTop ? null : <V2Action label="Pogledajte listu" onPress={props.onList} />}</>}</View> : null}
   </View>;
 }
 export function DiscoveryMap(props: DiscoveryMapProps) {

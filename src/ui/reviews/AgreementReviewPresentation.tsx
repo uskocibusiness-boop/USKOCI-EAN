@@ -90,7 +90,7 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
       <V2Action label={retry.label} disabled={retry.disabled} onPress={retry.onPress} style={brandAction} />
     </FlowFooter>
     : view.kind === 'saved' ? <FlowFooter><V2Action label={backLabel} onPress={onBack} style={brandAction} /></FlowFooter>
-    // Before "Sačuvaj" a person is told once what saving means (idea R29); while the button is grey, the line above it says why instead.
+    // Before "Sačuvajte" a person is told once what saving means (idea R29); while the button is grey, the line above it says why instead.
     : view.kind === 'eligible' ? <FlowFooter reason={view.save.disabled && view.save.reason ? view.save.reason : undefined}>
       {!(view.save.disabled && view.save.reason) ? <T variant="note" tone="muted" testID="review-save-warning">{SAVE_WARNING}</T> : null}
       <V2Action label={view.save.label} loading={view.save.loading} disabled={view.save.disabled} onPress={view.save.onPress} style={brandAction} />
@@ -120,7 +120,7 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
                 <RatingStar full={value <= view.rating} />
               </Press>)}
             </View>
-            {/* The word for the chosen stars. Before any is chosen the foot says "Izaberi ocenu" once, so the line holds its place and stays quiet. */}
+            {/* The word for the chosen stars. Before any is chosen the foot says "Izaberite ocenu" once, so the line holds its place and stays quiet. */}
             <T accessibilityLiveRegion="polite" variant="bodyStrong" style={[s.ink, s.center]}>{view.rating ? ratingLabels[view.rating] : ' '}</T>
           </View>
           <Section title="Šta je obeležilo saradnju?">
@@ -180,7 +180,7 @@ function SavedRating({ view, person, face }: { view: Extract<ReviewView, { kind:
   </>;
 }
 
-/** Said once, above "Sačuvaj": a saved rating cannot be changed (idea R29). */
+/** Said once, above "Sačuvajte": a saved rating cannot be changed (idea R29). */
 export const SAVE_WARNING = 'Ocenu posle čuvanja ne možete menjati. Objavljuje se kada obe strane ocene ili isteknu 14 dana od završetka.';
 
 /** Why the other tags stopped taking a press once the most are chosen. */

@@ -22,7 +22,7 @@ const LEGAL_COPY: Record<string, string> = {
   LEGAL_ACCEPTANCE_REQUEST_REUSED_FOR_DIFFERENT_BUNDLE:
     'Uslovi su u međuvremenu ažurirani. Pročitaj ih ponovo pre prihvatanja.',
   INVALID_CLIENT_REQUEST_ID: 'Prihvatanje trenutno nije moglo da se zabeleži. Pokušaj ponovo.',
-  AUTH_REQUIRED: 'Prijavi se da prihvatiš uslove.',
+  AUTH_REQUIRED: 'Prijavite se da prihvatiš uslove.',
   LEGAL_REVIEW_CHANGED: 'Dokumenti su ažurirani. Pročitaj aktuelnu verziju pre prihvatanja.',
 };
 

@@ -96,7 +96,7 @@ function RetentionBody({ policy, execution, admitted, expandedRule, onToggle, on
   // The retry stands as a word only where a read FAILED and there is nothing else to touch; every other re-read is the pull of the screen.
   if (policy.error) return <View style={s.stack}>
     <InlineNote tone="danger">Rokovi čuvanja trenutno nisu dostupni. Pokušaj ponovo.</InlineNote>
-    <V2Action label="Osveži" accessibilityLabel="Osveži rokove čuvanja" kind="quiet" compact onPress={() => { if (!reading) onRefresh(); }} style={s.retry} />
+    <V2Action label="Osvežite" accessibilityLabel="Osvežite rokove čuvanja" kind="quiet" compact onPress={() => { if (!reading) onRefresh(); }} style={s.retry} />
   </View>;
   if (!published) return <InlineNote tone="quiet" art={null}>{RETENTION_UNPUBLISHED}</InlineNote>;
   return <View style={s.stack}>

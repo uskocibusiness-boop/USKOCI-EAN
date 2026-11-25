@@ -29,7 +29,7 @@ function OwnedExport() {
   // The words are the screen's own; the tone says whether it went through (green), failed (danger) or only happened (ink).
   const setNotice = (text: string | null, tone: NoticeTone = 'ink') => setNoticeState(text === null ? null : { text, tone });
   // Which of the footer's own writes is in flight, so that button shows it is working while every other one waits grey.
-  // A request that repeats a retained key is 'replay': its button keeps "Ponovi isti zahtev" while it runs, the first
+  // A request that repeats a retained key is 'replay': its button keeps "Ponovite isti zahtev" while it runs, the first
   // request keeps its own words (the key is retained before the write, so the label cannot be read from it then).
   const [working, setWorking] = useState<'request' | 'replay' | 'prepare' | null>(null);
   const [fileReadbackRequired, setFileReadbackRequired] = useState(false);
@@ -79,7 +79,7 @@ function OwnedExport() {
   const ask = (title: string, copy: string, label: string, command: () => Promise<void>) => {
     if (!canAct() || dialog.current) return; const token = {}; dialog.current = token;
     const cancel = () => { if (dialog.current === token) dialog.current = null; };
-    confirmSheet.ask({ title, message: copy, cancelLabel: 'Odustani', onCancel: cancel, confirmLabel: label, tone: 'danger', onConfirm: () => {
+    confirmSheet.ask({ title, message: copy, cancelLabel: 'Odustanite', onCancel: cancel, confirmLabel: label, tone: 'danger', onConfirm: () => {
       if (dialog.current !== token || !canAct()) return; dialog.current = null; return command();
     } });
   };
@@ -116,7 +116,7 @@ function OwnedExport() {
   };
   const cancelRequest = () => {
     if (!request || request.status !== 'REQUESTED') return;
-    ask('Otkaži zahtev?', 'Zahtev koji još nije preuzet u obradu biće otkazan.', 'Otkaži zahtev', async () => {
+    ask('Otkažite zahtev?', 'Zahtev koji još nije preuzet u obradu biće otkazan.', 'Otkažite zahtev', async () => {
       await editor.save(async () => { const result = await exports.cancelExport(request.receiptId);
         if (!current()) return changed(); if (!result.ok) return result;
         if (!sameId(result.podatak.receiptId, request.receiptId) || result.podatak.status !== 'CANCELLED') return changed();
@@ -172,21 +172,21 @@ function OwnedExport() {
   const primary = readyView ? available
     // The button whose own write is in flight keeps its words and shows a spinner (its green kept); the others wait grey
     // with theirs (round 5 review: the words no longer change while it works).
-    ? <Button label="Preuzmi i sačuvaj" disabled={busy || editor.loading} loading={savingFile} reason={rereading}
+    ? <Button label="Preuzmite i sačuvaj" disabled={busy || editor.loading} loading={savingFile} reason={rereading}
       onPress={() => { void saveFile(); }} />
     : request && ['REQUESTED', 'PROCESSING'].includes(request.status)
       ? <Button label="Pripremi kopiju" disabled={busy || editor.loading} loading={editor.busy && working === 'prepare'} reason={rereading}
         onPress={() => { void prepare(); }} />
       // The retained key is set before the write, so while a first request runs its label is taken from `working`, not
-      // from the key: the very first request never reads "Ponovi isti zahtev" beside its spinner.
+      // from the key: the very first request never reads "Ponovite isti zahtev" beside its spinner.
       : <Button label={editor.busy && working === 'request' ? request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'
-          : pendingKey.current ? 'Pošalji ponovo' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy || editor.loading}
+          : pendingKey.current ? 'Pošaljite ponovo' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy || editor.loading}
         loading={editor.busy && (working === 'request' || working === 'replay')} reason={rereading} onPress={() => { void requestExport(); }} />
     : null;
   const failed = editor.error || !status || fileReadbackRequired;
   return <><ExportScreenView onBack={back} loading={editor.loading} status={status ?? null} preparation={editor.data?.preparation ?? null}
-    failure={editor.loading || !failed ? null : { title: fileReadbackRequired ? 'Proveri stanje izvoza' : 'Stanje izvoza nije učitano',
-      body: editor.error ?? (fileReadbackRequired ? 'Učitaj trenutno stanje pre novog pokušaja.' : 'Stanje izvoza nije dostupno.') }}
+    failure={editor.loading || !failed ? null : { title: fileReadbackRequired ? 'Proverite stanje izvoza' : 'Stanje izvoza nije učitano',
+      body: editor.error ?? (fileReadbackRequired ? 'Učitajte trenutno stanje pre novog pokušaja.' : 'Stanje izvoza nije dostupno.') }}
     now={Date.now()} busy={busy} notice={notice} primary={primary}
     onCancel={cancelRequest} onRevoke={revoke} onRefresh={refresh} refreshDisabled={editor.busy} />{confirmSheet.sheet}</>;
 }

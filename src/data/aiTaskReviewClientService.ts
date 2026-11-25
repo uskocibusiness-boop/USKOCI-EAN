@@ -69,7 +69,7 @@ const COPY: Readonly<Record<string, string>> = {
   REPLACEMENT_SOURCE_STALE: 'Postojeći zadatak je u međuvremenu promenjen. Otvori ga i proveri stanje pre novih izmena.',
   PUBLISHED_TASK_EDIT_NOT_READY: 'Objavljivanje izmena trenutno nije dostupno. Postojeća objava nije promenjena; izmene ostaju u razgovoru.',
   IDENTITY_VERIFICATION_UNAVAILABLE: 'Provera identiteta nije dostupna. U pregledu ukloni taj uslov da nastaviš običnim zadatkom.',
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.', AUTH_ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvori zadatak.',
+  AUTH_REQUIRED: 'Prijavite se da nastaviš.', AUTH_ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvori zadatak.',
   TASK_REVIEW_NOT_FOUND: 'Pregled nije pronađen. Ponovo otvori zadatak.',
   TASK_REVIEW_NOT_EDITABLE: 'Ovaj razgovor je već sačuvan. Učitaj njegov zadatak.',
   TASK_REVIEW_DIGEST_MISMATCH: 'Pregled je promenjen. Učitaj tačnu verziju pre objave.',
@@ -79,10 +79,10 @@ const COPY: Readonly<Record<string, string>> = {
   TASK_REVIEW_INCOMPLETE: 'Dopuni podatke koji nedostaju pre objave.',
   TASK_REVIEW_COMMAND_MISMATCH: 'Zahtev za objavu više ne odgovara ovom pregledu.',
   TASK_REVIEW_ATTEMPT_STALE: 'Ishod provere još nije potvrđen. Učitaj stanje zahteva.',
-  TASK_REVIEW_INPUT_INVALID: 'Proveri podatke i ponovo otvori pregled.',
+  TASK_REVIEW_INPUT_INVALID: 'Proverite podatke i ponovo otvori pregled.',
   IDEMPOTENCY_KEY_REUSED: 'Ovaj zahtev već pripada drugom pregledu. Učitaj sačuvano stanje.',
   LOCATION_VERSION_CONFLICT: 'Mesto je promenjeno. Pregledaj novu lokaciju.',
-  LOCATION_INPUT_INVALID: 'Proveri mesto i privatne tačke lokacije.',
+  LOCATION_INPUT_INVALID: 'Proverite mesto i privatne tačke lokacije.',
   LOCATION_BINDING_CHANGED: 'Mesto je promenjeno. Ponovo označi potrebne tačke.',
   ACCOUNT_CLOSING: 'Nalog se zatvara i ne može da objavi novi zadatak.',
   REQUESTER_PROFILE_NOT_READY: 'Dopuni svoj profil pre objave.',
@@ -425,7 +425,7 @@ export const aiTaskReviewClientService = {
     return accepted.ok ? resumeFor(s, accepted.podatak) : accepted;
   },
   /**
-   * "Sačuvaj nacrt": the first half of publishing and nothing after it. Accepting the displayed
+   * "Sačuvajte nacrt": the first half of publishing and nothing after it. Accepting the displayed
    * review is what writes the private DRAFT Zadatak on the server; the evaluator and the publish
    * are separate steps that `resume` runs later, from the same stored command, when the person
    * asks for them. No second writer and no second meaning of "draft".

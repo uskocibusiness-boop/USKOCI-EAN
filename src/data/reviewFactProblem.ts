@@ -5,7 +5,7 @@ import { normalizeTaskGeography } from '../lib/location';
 
 /** The server's own refusals for these facts, in the words the review shows before the tap. */
 export const REVIEW_FACT_COPY = {
-  MY_PRICE_AMOUNT_REQUIRED: 'Unesi iznos ili izaberi prikupljanje ponuda.',
+  MY_PRICE_AMOUNT_REQUIRED: 'Unesite iznos ili izaberi prikupljanje ponuda.',
   FIXED_WINDOW_BOUNDS_REQUIRED: 'Tačan termin mora imati početak; ako je kraj naveden, mora biti posle početka.',
   FIXED_WINDOW_START_PASSED: 'Početak termina je već prošao. Izmeni termin u pregledu, pa objavi.',
   HANDOFF_REQUIRED: 'Reci kako se rezultat predaje: samo onlajn, lično preuzimanje ili slanje.',

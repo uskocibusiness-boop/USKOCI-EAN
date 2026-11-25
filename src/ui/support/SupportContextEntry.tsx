@@ -88,10 +88,10 @@ export function SupportContextEntry({ reference, label = 'Otvorite podršku', di
 export function SupportMessagePreviewSheet({ previewText, busy, disabled, error, onContinue, onCancel }: {
   previewText: string; busy: boolean; disabled: boolean; error: string | null; onContinue: () => void; onCancel: () => void;
 }) {
-  return <ProductSheet title="Izabrana poruka za privatnu podršku" closeLabel="Odustani od izbora poruke" dismissible={!busy} onClose={onCancel}
+  return <ProductSheet title="Izabrana poruka za privatnu podršku" closeLabel="Odustanite od izbora poruke" dismissible={!busy} onClose={onCancel}
     footer={dismiss => <>
       <SettingsAction label="Nastavite sa izabranom porukom" loading={busy} disabled={disabled || busy} onPress={onContinue} />
-      <SettingsAction label="Odustani od izbora poruke" kind="quiet" disabled={disabled || busy} onPress={dismiss} />
+      <SettingsAction label="Odustanite od izbora poruke" kind="quiet" disabled={disabled || busy} onPress={dismiss} />
     </>}>
     {() => <View style={styles.preview}>
       {/* The chosen words as the system's note (a flat tint, not a card): a quotation inside the sheet. */}

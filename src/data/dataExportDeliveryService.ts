@@ -13,7 +13,7 @@ const unavailable = () => failure('DATA_EXPORT_NOT_AVAILABLE', 'Izvoz trenutno n
 export async function prepareExport(receiptId: string): Promise<Ishod<DataExportPreparation>> {
   if (!uuid(receiptId)) return failure('INVALID_RECEIPT_ID', 'Zahtev nije pronađen.');
   const identity = sesijaSada();
-  if (!identity.user) return failure('AUTH_REQUIRED', 'Prijavi se da nastaviš.');
+  if (!identity.user) return failure('AUTH_REQUIRED', 'Prijavite se da nastaviš.');
   const account = { accountId: identity.user.id, accountRevision: identity.accountRevision };
   const current = () => sesijaSada().user?.id === account.accountId && sesijaSada().accountRevision === account.accountRevision;
   const controller = new AbortController();
@@ -48,7 +48,7 @@ export async function downloadExport(input: DataExportDownloadRequest, signal?: 
   const command = { receiptId: input?.receiptId, artifactGeneration: input?.artifactGeneration };
   if (!uuid(command.receiptId) || !uuid(command.artifactGeneration)) return failure('INVALID_RECEIPT_ID', 'Zahtev nije pronađen.');
   const identity = sesijaSada(), accountId = identity.user?.id, revision = identity.accountRevision;
-  if (!accountId) return failure('AUTH_REQUIRED', 'Prijavi se da preuzmeš izvoz.');
+  if (!accountId) return failure('AUTH_REQUIRED', 'Prijavite se da preuzmeš izvoz.');
   const current = () => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === revision;
   if (signal?.aborted) return interrupted();
   const controller = new AbortController();

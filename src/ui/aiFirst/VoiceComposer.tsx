@@ -189,7 +189,7 @@ export function VoiceNotice(p: VoiceInput & { tapToTalk?: boolean; hint?: string
       <View style={s.noticeRow}>
         {listening && state.audioLevel !== null ? <Levels level={state.audioLevel} /> : null}
         <T accessibilityLiveRegion="polite" variant="note" numberOfLines={1} style={[s.noticeText, listening && s.noticeLive]}>{line}</T>
-        {active ? <V2Action tone="neutral" kind="quiet" compact label="Otkaži" onPress={() => p.controller.cancel('gesture')} /> : null}
+        {active ? <V2Action tone="neutral" kind="quiet" compact label="Otkažite" onPress={() => p.controller.cancel('gesture')} /> : null}
       </View>
     </View>;
   }

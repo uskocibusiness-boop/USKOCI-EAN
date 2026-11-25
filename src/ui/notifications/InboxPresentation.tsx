@@ -174,7 +174,7 @@ function DayHeader({ label, first, readAll }: { label: string; first: boolean;
  * One quiet notice at the top of the list: a flat tint, never an orange fill. Only an error offers a way forward, and its button says
  * what it does: after an unconfirmed action it reads the list again, it does not repeat the action.
  */
-function Banner({ title, sentence, retry, retryLabel = 'Pokušaj ponovo', disabled }: {
+function Banner({ title, sentence, retry, retryLabel = 'Pokušajte ponovo', disabled }: {
   title: string; sentence: string; retry?: () => void; retryLabel?: string; disabled: boolean;
 }) {
   return <Surface kind="note" style={s.banner}>
@@ -192,7 +192,7 @@ const occurredMs = (item: InboxItem): number | null => { const ms = Date.parse(i
 
 /**
  * Which events are arrivals. `useAppear` settles the first list it is given and animates every id it has not seen; an
- * older page ("Učitaj starija obaveštenja") is also made of ids it has not seen, and those did not arrive, they were
+ * older page ("Učitajte starija obaveštenja") is also made of ids it has not seen, and those did not arrive, they were
  * fetched. So an unseen event is an arrival only when it is newer than the newest one already on screen; every other
  * unseen event is marked seen here, before the rows ask, and stays still. Called once per render, before the rows.
  *
@@ -276,14 +276,14 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
         : <StateView kind="empty" hero={!role} art="bell" illustration={!role ? ILLUSTRATION_ASSETS.waitingReply : undefined} title={EMPTY_TITLE[role ?? 'ALL']}
             body={!role ? 'Nove prijave, poruke i važne promene stižu ovde.' : undefined}
             primary={!role ? { label: 'Podesi obaveštenja', onPress: onSettings }
-              : { label: 'Prikaži sva obaveštenja', onPress: () => onRole(null), disabled: busy }} />;
+              : { label: 'Prikažite sva obaveštenja', onPress: () => onRole(null), disabled: busy }} />;
 
   const footer = error === 'page' || page?.hasMore ? <View style={s.footer}>
     {error === 'page' ? <>
       <T variant="note" tone="danger" accessibilityRole="alert">Starija obaveštenja nisu učitana.</T>
       <T variant="note" tone="muted">{AGAIN}</T>
     </> : null}
-    {page?.hasMore ? <V2Action kind="secondary" label="Učitaj starija obaveštenja" loading={paging} disabled={busy && !paging} onPress={onMore} /> : null}
+    {page?.hasMore ? <V2Action kind="secondary" label="Učitajte starija obaveštenja" loading={paging} disabled={busy && !paging} onPress={onMore} /> : null}
   </View> : null;
 
   // One stable row renderer while nothing a row draws has changed, so a switch of the filter or a refresh does not

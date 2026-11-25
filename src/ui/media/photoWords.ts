@@ -5,7 +5,7 @@ import { plural } from '../system/plural';
 /**
  * The words of adding photos, said the same way in the task conversation, its photo screen and the Dogovor (owner,
  * 2026-10-07: "chat should use ready-made elements, e.g. adding photos must make sense"). Every place that adds, removes,
- * resends or explains a photo takes its words from here, so the two chats can never drift apart again ("Izaberi iz
+ * resends or explains a photo takes its words from here, so the two chats can never drift apart again ("Izaberite iz
  * galerije" / "Fotografiši" in one, "Galerija" / "Kamera" in the other, until this file).
  */
 
@@ -16,13 +16,13 @@ export const PHOTO_SOURCE_WORDS: Readonly<Record<PhotoSource, string>> = { LIBRA
 
 export const PHOTO_WORDS = {
   /** The "+" and the sheet it opens. */
-  add: 'Dodaj fotografije',
+  add: 'Dodajte fotografije',
   /** Same-key resend of a photo whose outcome was not confirmed. */
-  retry: 'Pošalji ponovo',
+  retry: 'Pošaljite ponovo',
   /** The server-owned way out of an unconfirmed send. */
-  cancel: 'Odustani od slanja',
+  cancel: 'Odustanite od slanja',
   /** A read of what the server holds now. */
-  check: 'Proveri fotografije',
+  check: 'Proverite fotografije',
   /** A photo the server could not process. The read model carries no reason (technical or content), so none is invented. */
   failed: 'Fotografija nije obrađena. Pokušaj ponovo ili izaberi drugu.',
 } as const;
@@ -44,11 +44,11 @@ export const photoCount = (count: number): string => plural(count, 'fotografija'
 
 /** What the gallery row promises: as many as are still free, or one. */
 export function librarySubtitle(remaining: number): string {
-  return remaining > 1 ? `Izaberi do ${photoCount(remaining)}` : 'Izaberi jednu fotografiju';
+  return remaining > 1 ? `Izaberite do ${photoCount(remaining)}` : 'Izaberite jednu fotografiju';
 }
 
 /** Removing a saved photo asks first; the sheet stays open until the removal settles. */
 export function removalRequest(scope: PhotoScope, onConfirm: () => void | Promise<unknown>): ConfirmRequest {
   return { title: 'Ukloniti fotografiju?', message: scope === 'TASK' ? 'Fotografija se uklanja iz nacrta zadatka.'
-    : 'Fotografija se uklanja iz poruke koju pripremaš.', confirmLabel: 'Ukloni', tone: 'danger', onConfirm };
+    : 'Fotografija se uklanja iz poruke koju pripremaš.', confirmLabel: 'Uklonite', tone: 'danger', onConfirm };
 }

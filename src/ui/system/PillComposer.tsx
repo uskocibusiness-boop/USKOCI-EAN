@@ -27,7 +27,7 @@ export function PillComposer({ value, onChange, label, placeholder, sendLabel, c
   onSend, lead, above, maxLength }: {
   value: string; onChange: (text: string) => void;
   /** The field's spoken name. */ label: string; placeholder: string;
-  /** The send's spoken name ("Pošalji pitanje"). */ sendLabel: string;
+  /** The send's spoken name ("Pošaljite pitanje"). */ sendLabel: string;
   canSend: boolean;
   /** The screen's command is in flight: the send spins and cannot be pressed twice. */ busy?: boolean;
   editable?: boolean;

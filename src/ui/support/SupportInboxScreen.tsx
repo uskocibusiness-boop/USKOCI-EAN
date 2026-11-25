@@ -27,7 +27,7 @@ const NEW_UNAVAILABLE = 'Novi zahtev trenutno nije dostupan ovom nalogu.';
  * new request (the footer: grey with its reason when it cannot be used, never missing without a word); and, apart, the two
  * places for blocking and data rights. Authorised staff get the same list with a switch between their two inboxes.
  *
- * A refresh the person asked for (a pull of the screen, no standing word "Osveži") keeps the list and the footer on screen (the quiet read state is
+ * A refresh the person asked for (a pull of the screen, no standing word "Osvežite") keeps the list and the footer on screen (the quiet read state is
  * for the first read and for a page that is being fetched, never a wipe of what was just read). With no requests the list says so in one
  * line, "Nema tvojih zahteva." (owner's phone, 8 Oct 2026: "Još nema primljenih zahteva" spoke of what support received, and these are the
  * person's own), and the green "Novi zahtev" under it is the way forward. The sentence about who reads a request is on the screen that

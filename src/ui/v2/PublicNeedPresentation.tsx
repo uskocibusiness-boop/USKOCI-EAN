@@ -88,7 +88,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   // The stops of a route only for a task that moves: a task done in one place has its place in the facts and on the map.
   const moves = !!need?.detalji?.geografija && need.detalji.geografija.mode !== 'STATIONARY' && !remote;
   const route = need && moves && routeAddsToArea(needGeographyRows(need), need.podrucjeTekst) ? needGeographyRows(need) : [];
-  // Whether the task names a sum decides the word of the one action ("Pošalji prijavu" or "Pošalji ponudu"); the sum itself is drawn by `TaskDecisionValue`.
+  // Whether the task names a sum decides the word of the one action ("Pošaljite prijavu" or "Pošaljite ponudu"); the sum itself is drawn by `TaskDecisionValue`.
   const price = need ? productPriceParts(need, '') : null;
   // The server's own deadline, said only when there is one and a person can still apply before it.
   const deadline = canApply && typeof need?.rokZaPrijaveIso === 'string' ? vreme(need.rokZaPrijaveIso) : null;
@@ -97,10 +97,10 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   // Sharing and reporting/blocking sit cleanly in the header "···" menu (as well as inside the publisher's profile sheet).
   const reportable = ready && !!safety && relation.kind !== 'OWNER';
   const rare: SheetAction[] = [
-    ...(ready && onShare ? [{ key: 'share', label: 'Podeli zadatak', icon: 'send' as const, onPress: onShare }] : []),
+    ...(ready && onShare ? [{ key: 'share', label: 'Podelite zadatak', icon: 'send' as const, onPress: onShare }] : []),
     ...(reportable ? [{
       key: 'report-or-block',
-      label: 'Prijavi ili blokiraj osobu',
+      label: 'Prijavite ili blokiraj osobu',
       icon: 'shield' as const,
       destructive: true,
       disabled: busy || !!safety?.busy,

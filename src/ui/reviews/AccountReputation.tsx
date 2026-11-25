@@ -38,12 +38,12 @@ export function AccountReputation({ accountId, onOpen }: {
 /**
  * The rating as a figure (a cell of the profile's row). While it reads: the shape of it, standing still (no spinner, nothing moves).
  * With reviews: the flat star, "4,8" and "12 ocena" under it. With none: the words "Nova ocena" and "još nema ocena", never a zero
- * average and never a star. When the read fails: one short line and "Osveži" in the same place. Anything else draws nothing, never
+ * average and never a star. When the read fails: one short line and "Osvežite" in the same place. Anything else draws nothing, never
  * "undefined". With `onOpen` an answer (ratings or none) is a way in that says where it goes ("Otvara ocene.") and ends in the arrow.
  */
 export function ReputationFigure({ state, onRetry, onOpen }: { state: 'loading' | 'error' | unknown; onRetry: () => void; onOpen?: () => void }) {
   if (state === 'loading') return <FigureCellPlaceholder label="Proveravamo ocene…" />;
-  if (state === 'error') return <FigureCellError message="Ocene trenutno nisu dostupne." retryLabel="Osveži ocene" onRetry={onRetry} />;
+  if (state === 'error') return <FigureCellError message="Ocene trenutno nisu dostupne." retryLabel="Osvežite ocene" onRetry={onRetry} />;
   if (!isReputation(state)) return null;
   const figure = state.reviewCount === 0 || state.averageRating === null ? NEW_RATING : ratingFigure(state.averageRating, state.reviewCount);
   return <FigureCell testID="reputation-figure" figure={onOpen ? { ...figure, hint: 'Otvara ocene.' } : figure} onPress={onOpen} />;

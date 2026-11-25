@@ -264,8 +264,8 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
       </Map> : null}
       {status !== 'ready' ? <View style={styles.feedback}>
         {status === 'loading' ? <><ActivityIndicator color={sys.color.green} accessibilityLabel="Učitavanje mape" /><T>Učitavamo mapu…</T></>
-          : <><T accessibilityRole="alert" variant="bodyStrong">Mapa nije učitana.</T><T variant="meta" tone="muted">Proveri vezu. Uneti podaci ostaju u obrascu.</T>
-            <Button label="Pokušaj ponovo sa mapom" kind="secondary" onPress={() => { if (owns()) props.retry(); }} /></>}
+          : <><T accessibilityRole="alert" variant="bodyStrong">Mapa nije učitana.</T><T variant="meta" tone="muted">Proverite vezu. Uneti podaci ostaju u obrascu.</T>
+            <Button label="Pokušajte ponovo sa mapom" kind="secondary" onPress={() => { if (owns()) props.retry(); }} /></>}
       </View> : null}
       {/* Drawn after the loading/failure layer so it stays reachable while the tiles arrive; a real 44 dp target. */}
       {props.expand ? <Press accessibilityRole="button" accessibilityLabel={props.expand.label}

@@ -38,7 +38,7 @@ function PriceWords({ item, unverified }: { item: MarketplaceItem; unverified?: 
 
 /**
  * One chosen task on the map (Discovery V47, the Airbnb pattern in USKOČI's look). The whole card is one press that opens
- * the task ("Otvori zadatak: …"), and its round × top right closes it. It shares the list card's facts, but the map illustration,
+ * the task ("Otvorite zadatak: …"), and its round × top right closes it. It shares the list card's facts, but the map illustration,
  * full title, price and truthful publisher/rating lead the preview before its supporting place and time. The first row clears the close
  * control. No photo: a task's photos are shown only inside the task (owner, 2026-09-24), and nothing is invented.
  */
@@ -47,7 +47,7 @@ function PinTask({ item, relation, priceUnverified, onOpen, onLayout }: {
 }) {
   const model = useTaskRecord(item, relation, undefined, priceUnverified ? { kind: 'unverified' } : undefined);
   return <View style={s.pin} onLayout={onLayout}>
-    <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${model.title}`} accessibilityValue={{ text: model.spoken }}
+    <Press accessibilityRole="button" accessibilityLabel={`Otvorite zadatak: ${model.title}`} accessibilityValue={{ text: model.spoken }}
       haptic="select" scaleTo={sys.motion.scale.row} onPress={onOpen} style={s.pinBody}>
       <TaskRecordBody model={model} portrait={<TaskPublisherPortrait item={item} size={40} />} clearOfClose mapPreview />
     </Press>
@@ -58,7 +58,7 @@ function PinTask({ item, relation, priceUnverified, onOpen, onLayout }: {
  * The card of a chosen pin (Zadaci, 2026-09-24; Discovery V47): ONE floating card, 16 dp in from both edges, just above
  * the Android safe bottom edge, over the list sheet's top line (which steps out of sight behind it while it shows). The
  * tab bar withdraws while this focused map preview is open. A single task is
- * `PinTask`; several tasks on one point say how many and list them as rows, each opening its own task ("Pogledaj
+ * `PinTask`; several tasks on one point say how many and list them as rows, each opening its own task ("Pogledajte
  * zadatak"), up to three, with the whole set offered in the list. ×, a swipe down and Android Back close it; under reduced
  * motion it appears without moving. Every opening goes through the screen's own guarded `onOpen`. Its opening is said
  * to a screen reader (the map stays where the focus was, so nothing else would tell it that a card came up). At large
@@ -108,14 +108,14 @@ export function DiscoveryPeek({ selectionKey, item, place, placeTotalCount, pric
   return <PeekSheet label={item ? 'Zadatak na mapi' : 'Zadaci na ovom mestu'} active={active} bottomInset={bottomInset} reduced={reduced}
     contentKey={selectionKey ?? (item ? `task:${item.id}` : place.map(task => task.id).join(':'))}
     handle={false} maxShare={share} onClose={onClose} scrollable
-    overlay={dismiss => <View style={s.close}><ChromeIconButton label={item ? 'Zatvori pregled zadatka' : 'Zatvori pregled zadataka'}
+    overlay={dismiss => <View style={s.close}><ChromeIconButton label={item ? 'Zatvorite pregled zadatka' : 'Zatvorite pregled zadataka'}
       glyph="close" onPress={dismiss} /></View>}>
     {() => item ? <PinTask item={item} relation={relation(item)} priceUnverified={priceUnverified} onOpen={() => onOpen(item)} onLayout={measureCard} />
       : <View style={s.stack} onLayout={measureRows}>
         <View style={[s.head, s.clearOfClose]}>
           <T variant="heading" accessibilityRole="header" style={s.title}>{`${zadataka(totalCount)} na ovom mestu`}</T>
         </View>
-        {place.slice(0, PLACE_ROWS).map(task => <Press key={task.id} accessibilityRole="button" accessibilityLabel={`Pogledaj zadatak ${readableTitle(task.naslov)}`}
+        {place.slice(0, PLACE_ROWS).map(task => <Press key={task.id} accessibilityRole="button" accessibilityLabel={`Pogledajte zadatak ${readableTitle(task.naslov)}`}
           haptic="select" scaleTo={sys.motion.scale.row} onPress={() => onOpen(task)} style={s.row}>
           <View style={s.grow}>
             <T variant="cardTitleCompact" style={s.rowTitle} numberOfLines={2}>{readableTitle(task.naslov)}</T>
@@ -125,7 +125,7 @@ export function DiscoveryPeek({ selectionKey, item, place, placeTotalCount, pric
           <PriceWords item={task} unverified={priceUnverified} />
           <Glyph name="caret-right" size={20} tone="muted" />
         </Press>)}
-        {totalCount > PLACE_ROWS ? <V2Action label="Prikaži sve u listi" kind="quiet" onPress={onShowPlace} /> : null}
+        {totalCount > PLACE_ROWS ? <V2Action label="Prikažite sve u listi" kind="quiet" onPress={onShowPlace} /> : null}
       </View>}
   </PeekSheet>;
 }

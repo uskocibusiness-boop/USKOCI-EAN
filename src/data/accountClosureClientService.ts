@@ -25,7 +25,7 @@ export type ClosureCommand = { expectedRevision: number; clientRequestId: string
 export type ClosureReceiptLookup = { accountId: string; clientRequestId: string; found: boolean;
   receipt: ClosureReceipt | null; authoritative: true };
 const errors: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  AUTH_REQUIRED: 'Prijavite se da nastaviš.',
   AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvori podešavanja naloga.',
   CLOSURE_INPUT_INVALID: 'Zahtev nije potpun. Osveži stanje naloga.',
   CLOSURE_REVISION_CONFLICT: 'Stanje naloga se promenilo. Proveri ga pre novog zahteva.',

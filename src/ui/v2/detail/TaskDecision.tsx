@@ -117,7 +117,7 @@ export function publisherRatingLine(rating: string | null | undefined, count: nu
 }
 
 /** The words of the one action at the foot of a task I can apply to (owner, 8 Oct 2026): a task with a fixed price is applied to, a task without one is answered with an offer. */
-export const APPLY_WORDS = { priced: 'Pošalji prijavu', open: 'Pošalji ponudu' } as const;
+export const APPLY_WORDS = { priced: 'Pošaljite prijavu', open: 'Pošaljite ponudu' } as const;
 export const applyActionLabel = (priced: boolean): string => priced ? APPLY_WORDS.priced : APPLY_WORDS.open;
 
 /** The face of a person as a sticker: a ring of the page's own white and the one soft shadow of the screen, round whatever is put in it (a photo or the initials). */

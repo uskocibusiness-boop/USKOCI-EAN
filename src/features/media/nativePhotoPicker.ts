@@ -152,12 +152,12 @@ export async function pickPreparedPhotos(source: PhotoSource, current: () => boo
 }
 
 /** Exact copy shown when the camera permission is denied; presentation matches it to offer settings recovery. */
-export const PHOTO_PERMISSION_MESSAGE = 'Dozvoli pristup kameri u podešavanjima ili izaberi fotografiju iz galerije.';
+export const PHOTO_PERMISSION_MESSAGE = 'Dozvolite pristup kameri u podešavanjima ili izaberi fotografiju iz galerije.';
 const isPhotoPermissionDenied = (error: unknown): boolean => error instanceof PhotoSelectionError && error.code === 'PERMISSION';
 export function photoSelectionMessage(error: unknown): string {
   return isPhotoPermissionDenied(error)
     ? PHOTO_PERMISSION_MESSAGE
-    : error instanceof PhotoSelectionError && error.code === 'SIZE' ? 'Izaberi fotografiju do 10 MB.'
+    : error instanceof PhotoSelectionError && error.code === 'SIZE' ? 'Izaberite fotografiju do 10 MB.'
       : 'Fotografija nije pripremljena. Pokušaj ponovo ili izaberi drugu.';
 }
 /** Said after a multi-photo pick when some were left out and the rest went on. */

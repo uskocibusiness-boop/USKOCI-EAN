@@ -42,7 +42,7 @@ function decode(raw: unknown): PushReadiness | null {
 export const pushReadinessClientService = {
   read(): Promise<Ishod<PushReadiness>> {
     return readReceipt({ rpc: 'rpc_get_push_readiness', args: {}, decode,
-      errors: { AUTH_REQUIRED: 'Prijavi se da proveriš obaveštenja.' },
+      errors: { AUTH_REQUIRED: 'Prijavite se da proveriš obaveštenja.' },
       fallback: 'PUSH_READINESS_UNAVAILABLE', invalid: 'PUSH_READINESS_INVALID_RESPONSE' });
   },
 };

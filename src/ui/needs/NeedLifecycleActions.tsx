@@ -19,7 +19,7 @@ type Controller = ReturnType<typeof createNeedLifecycleController>;
 type ViewState = { loading: boolean; review: Action | null; command: NeedLifecycleCommand | null;
   state: NeedLifecycleState | null; error: string | null };
 const initial: ViewState = { loading: true, review: null, command: null, state: null, error: null };
-const label = (action: Action) => action === 'DELETE_DRAFT' ? 'Obriši nacrt' : 'Otkaži zadatak';
+const label = (action: Action) => action === 'DELETE_DRAFT' ? 'Obrišite nacrt' : 'Otkažite zadatak';
 // One sentence of consequence (plan 2.3): what happens, and where the person finds it afterwards. A cancellation can only be asked for a
 // task with no agreed place (`eligible`), so the sentence about an existing Dogovor is not needed here: those go through the Dogovor.
 const consequence = (action: Action) => action === 'DELETE_DRAFT'
@@ -30,8 +30,8 @@ export const LIFECYCLE_CHECK_NOTICE_MS = 400;
 
 /**
  * Which ways into the lifecycle a Need offers right now: the rule for the screen's "···". `request` does not call it;
- * it checks the same conditions in its own `eligible` (nothing agreed yet, not closed, and a draft for "Obriši nacrt").
- * Places already agreed are cancelled through their Dogovori; a closed task offers nothing. A draft offers ONLY "Obriši nacrt":
+ * it checks the same conditions in its own `eligible` (nothing agreed yet, not closed, and a draft for "Obrišite nacrt").
+ * Places already agreed are cancelled through their Dogovori; a closed task offers nothing. A draft offers ONLY "Obrišite nacrt":
  * it was never published, so there is nobody to cancel it for, and the two entries side by side asked a person to choose between
  * a deletion and a cancellation of the same unpublished thing (plan 2.3).
  */
@@ -204,13 +204,13 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
         : phase === 'SUBMITTING' ? 'Šaljemo pregledani zahtev…' : phase === 'RECONCILING' ? 'Proveravamo potvrdu…'
           : view.state.error?.poruka ?? 'Ponovo otvori zadatak.'}</T>
       {phase === 'UNKNOWN_OUTCOME' ? <>
-        <V2Action label="Proveri da li je uspelo" kind="quiet" style={s.quiet} onPress={() => run('reconcile')} />
-        <V2Action label="Pošalji ponovo" kind="quiet" style={s.quiet} disabled={!controller.current?.canRetrySame()} onPress={() => run('retrySame')} />
+        <V2Action label="Proverite da li je uspelo" kind="quiet" style={s.quiet} onPress={() => run('reconcile')} />
+        <V2Action label="Pošaljite ponovo" kind="quiet" style={s.quiet} disabled={!controller.current?.canRetrySame()} onPress={() => run('retrySame')} />
         <T style={s.copy}>Ponovno slanje je dostupno tek posle uspešne provere.</T>
       </> : phase === 'CONFIRMED' ? <>
-        {view.state.collectionRefreshRequired ? <V2Action label="Osveži moje zadatke" kind="quiet" style={s.quiet} onPress={() => run('refreshCollection')} /> : null}
+        {view.state.collectionRefreshRequired ? <V2Action label="Osvežite moje zadatke" kind="quiet" style={s.quiet} onPress={() => run('refreshCollection')} /> : null}
         <V2Action label="Moji zadaci" onPress={() => { void finish(true); }} />
-      </> : phase === 'REJECTED' ? <V2Action label="Učitaj aktuelni zadatak" kind="quiet" style={s.quiet} onPress={() => { void finish(false); }} /> : null}
+      </> : phase === 'REJECTED' ? <V2Action label="Učitajte aktuelni zadatak" kind="quiet" style={s.quiet} onPress={() => { void finish(false); }} /> : null}
     </> : view.error ? <V2Action label="Ponovo proveri prethodni zahtev" kind="quiet" style={s.quiet} onPress={() => { if (current(owner)) setReload(value => value + 1); }} />
       : null;
   if (!view.error && body === null) return confirmation.sheet;

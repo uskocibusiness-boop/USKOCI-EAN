@@ -29,7 +29,7 @@ import { sheetLift, sys } from './tokens';
 export const PORUKA_MS = { plain: 4000, action: 6000 } as const;
 
 export type PorukaAction = {
-  /** One word or two, as a command: "Vrati", "Otvori". */
+  /** One word or two, as a command: "Vratite", "Otvorite". */
   label: string;
   onPress: () => void;
 };

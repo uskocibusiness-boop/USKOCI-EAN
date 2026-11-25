@@ -36,7 +36,7 @@ function OwnedPrivacy() {
     if (!result.ok) throw new Error('RETENTION_EXECUTION_UNAVAILABLE');
     return result.podatak;
   }, []);
-  // A re-read the person asks for ("Osveži stanje") keeps the published rules on screen under the refresh at work, and says so
+  // A re-read the person asks for ("Osvežite stanje") keeps the published rules on screen under the refresh at work, and says so
   // if it fails; the skeleton is only for the first read.
   const policy = useFocusedResource(readPolicy, { retainOnRefresh: true }), execution = useFocusedResource(readExecution, { retainOnRefresh: true });
   const words = hubWords(useHubStates(STATE_ROWS));

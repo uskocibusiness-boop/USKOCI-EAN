@@ -70,7 +70,7 @@ export function DiscoverySearchBar({ where, onBack, onClearWhere, filters, onLay
               {filters.count > 0 ? <View testID="filters-count" pointerEvents="none" importantForAccessibility="no-hide-descendants"
                 accessibilityElementsHidden style={s.badge}><T variant="label" style={s.badgeText}>{filters.count}</T></View> : null}
             </Press> : null}
-            {where && onClearWhere ? <Press testID="clear-where" accessibilityRole="button" accessibilityLabel="Ukloni pretragu ili mesto"
+            {where && onClearWhere ? <Press testID="clear-where" accessibilityRole="button" accessibilityLabel="Uklonite pretragu ili mesto"
               haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={onClearWhere} style={s.clear}>
               <Glyph name="close" size={16} tone="muted" />
             </Press> : null}
@@ -118,7 +118,7 @@ export function ForMeNotice({ message, entry, onEntry, onClose }: { message: str
   return <MapNotice name="for-me-notice" stacked>
     <View style={s.noticeTop}>
       <T variant="note" style={s.noticeSentence}>{message}</T>
-      <Press accessibilityRole="button" accessibilityLabel="Zatvori poruku" hitSlop={0} onPress={onClose} style={s.close}>
+      <Press accessibilityRole="button" accessibilityLabel="Zatvorite poruku" hitSlop={0} onPress={onClose} style={s.close}>
         <Glyph name="close" size={16} tone="ink" />
       </Press>
     </View>

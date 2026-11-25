@@ -31,7 +31,7 @@ export function AccountSettings({ busy, version, words, open, onBack }: {
     <AccountGroup title="Pomoć">
       {row('Kako radi', 'info', '/profil/kako-radi', 'Kratka uputstva za svaki korak', 'green')}
       {row('Pomoć i podrška', 'messages', '/podrska', words.support ?? 'Odgovori i Vaši zahtevi', 'info')}
-      {row('Prijavi grešku', 'info', '/profil/prijava-greske', undefined, 'orange')}
+      {row('Prijavite grešku', 'info', '/profil/prijava-greske', undefined, 'orange')}
       {row('Pravila i saglasnosti', 'shield', '/profil/pravna', words.legal, 'violet')}
       {row('O aplikaciji', 'settings', '/profil/o-aplikaciji', version, 'muted')}
     </AccountGroup>

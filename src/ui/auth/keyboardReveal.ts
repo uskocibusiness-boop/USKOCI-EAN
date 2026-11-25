@@ -5,7 +5,7 @@ import { sys } from '../system/tokens';
 
 /**
  * Keeps the field that is being typed in on the screen (owner, on the phone and on the emulator, 2026-10-07: with the keyboard
- * up, the "Lozinka" field vanished behind the pinned "Prijavi se").
+ * up, the "Lozinka" field vanished behind the pinned "Prijavite se").
  *
  * WHY IT VANISHED. The sheet is a column: bar, a scroll area, and a foot that is pinned under it and rises with the keyboard.
  * The keyboard shrinks the whole column, so the scroll area gets short, but a scroll area does not move by itself when it gets

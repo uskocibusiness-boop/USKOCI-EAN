@@ -42,7 +42,7 @@ export type MarketplacePresentationProps = { items: readonly MarketplaceItem[]; 
   paging?: MarketplacePaging;
   view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void;
-  /** The first encounter's quiet way: "Pogledaj zadatke" opens other people's tasks (Zadaci). Without it that way is not drawn. */
+  /** The first encounter's quiet way: "Pogledajte zadatke" opens other people's tasks (Zadaci). Without it that way is not drawn. */
   onExplore?: () => void;
   /** The card's foot opens the applications that wait for my choice. */
   onApplications?: (item: MarketplaceItem) => void;
@@ -213,9 +213,9 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
       case 'foot': return <View style={s.foot}>
         {row.state === 'error' ? <>
           <T variant="note" tone="muted">Ne možemo da učitamo ostale zadatke.</T>
-          <V2Action label="Pokušaj ponovo" kind="quiet" onPress={() => latest.current.onLoadMore?.()} />
+          <V2Action label="Pokušajte ponovo" kind="quiet" onPress={() => latest.current.onLoadMore?.()} />
         </> : row.state === 'loading' ? <T variant="note" tone="muted">Učitavamo još zadataka…</T>
-          : <V2Action label="Prikaži još" kind="quiet" onPress={() => latest.current.onLoadMore?.()} />}
+          : <V2Action label="Prikažite još" kind="quiet" onPress={() => latest.current.onLoadMore?.()} />}
       </View>;
       case 'sets': {
         const drafts = plural(row.drafts, 'nacrt', 'nacrta', 'nacrta'), history = zadataka(row.history);
@@ -277,26 +277,26 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
         ListHeaderComponent={incompleteFinal && rows.length > 0 ? <Surface kind="note" tone="warn">
           <T accessibilityRole="alert" variant="body">Spisak zadataka nije potpun. Broj učitanih zadataka ne odgovara serverskom stanju.</T>
-          <V2Action label="Proveri spisak zadataka" kind="quiet" onPress={props.onRefresh} />
+          <V2Action label="Proverite spisak zadataka" kind="quiet" onPress={props.onRefresh} />
         </Surface> : undefined}
         ListEmptyComponent={empty} renderItem={renderItem}
         onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6} />
       {/* No floating "+" over my own tasks (owner's information architecture, 2026-09-23): it sat on the cards and
           covered a price, and creating a task lives on Početna's "Objavi zadatak". An empty list still offers it inline. */}
     </View>
-    {filterOpen ? <ProductSheet title="Filteri" closeLabel="Zatvori filtere" reduced={reduced} onClose={() => setFilterOpen(false)}
+    {filterOpen ? <ProductSheet title="Filteri" closeLabel="Zatvorite filtere" reduced={reduced} onClose={() => setFilterOpen(false)}
       footer={dismiss => <>
-        <V2Action label={draftCount === null || !exact ? 'Prikaži zadatke' : `Prikaži ${zadataka(draftCount)}`} disabled={draftCount === null}
+        <V2Action label={draftCount === null || !exact ? 'Prikažite zadatke' : `Prikažite ${zadataka(draftCount)}`} disabled={draftCount === null}
           onPress={() => { change({ query: queryDraft, price: priceDraft, attention: attentionDraft, selectedId: null }); dismiss(); }} style={brandAction} />
         <V2Action label="Poništi izbor" kind="quiet" onPress={() => { setQueryDraft(''); setPriceDraft('all'); setAttentionDraft(false); }} />
       </>}>{() => <View style={s.sheetBody}>
         <Section title="Pretraga">
           <View style={s.search}>
             <Glyph name="search" size={20} tone="green" />
-            <TextInput accessibilityLabel="Pretraži zadatke" placeholder="Pretraži zadatke" placeholderTextColor={sys.color.muted}
+            <TextInput accessibilityLabel="Pretražite zadatke" placeholder="Pretražite zadatke" placeholderTextColor={sys.color.muted}
               value={queryDraft} onChangeText={query => setQueryDraft(query.slice(0, 1000))} maxLength={1000} style={s.input}
               returnKeyType="search" onSubmitEditing={() => Keyboard.dismiss()} />
-            {queryDraft ? <Press accessibilityRole="button" accessibilityLabel="Obriši pretragu" onPress={() => setQueryDraft('')} haptic="select" style={s.clear}>
+            {queryDraft ? <Press accessibilityRole="button" accessibilityLabel="Obrišite pretragu" onPress={() => setQueryDraft('')} haptic="select" style={s.clear}>
               <Glyph name="close" size={20} /></Press> : null}
           </View>
         </Section>

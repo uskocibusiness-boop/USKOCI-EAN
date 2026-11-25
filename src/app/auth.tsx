@@ -215,7 +215,7 @@ export default function AuthScreen() {
   /**
    * The entry's two halves choose what the person has come to do. A person who has chosen is a person who has no account yet
    * more often than not, so the form opens on creating one (design proposal N2) with the choice kept as one sentence; the
-   * switch on the form is one touch away from signing in. `changing` is that sentence's own "Promeni": the same write of the
+   * switch on the form is one touch away from signing in. `changing` is that sentence's own "Promenite": the same write of the
    * same choice, but it must not move the form, clear what was typed or close anything.
    */
   async function izaberiNameru(intent: 'REQUESTER' | 'WORKER', selection?: EntryIntentSelection, changing = false) {

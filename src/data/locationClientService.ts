@@ -6,11 +6,11 @@ import type { Ishod } from './ports';
 import { failure, readReceipt, record, sameId, uuid } from './serverReceipt';
 
 const COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da urediš lokaciju.',
+  AUTH_REQUIRED: 'Prijavite se da urediš lokaciju.',
   LOCATION_COUNTRY_UNAVAILABLE: 'U ovoj državi priprema lokacije trenutno nije dostupna.',
-  LOCATION_COUNTRY_REQUIRED: 'Izaberi državu lokacije pre čuvanja.',
-  LOCATION_INPUT_INVALID: 'Proveri javno mesto, privatnu adresu i način rada.',
-  LOCATION_CONFIRMATION_REQUIRED: 'Potvrdi lokaciju pre čuvanja.',
+  LOCATION_COUNTRY_REQUIRED: 'Izaberite državu lokacije pre čuvanja.',
+  LOCATION_INPUT_INVALID: 'Proverite javno mesto, privatnu adresu i način rada.',
+  LOCATION_CONFIRMATION_REQUIRED: 'Potvrdite lokaciju pre čuvanja.',
   LOCATION_REVIEW_NOT_FOUND: 'Priprema zadatka nije pronađena.',
   LOCATION_REVIEW_NOT_EDITABLE: 'Ova priprema zadatka više ne može da se menja.',
   LOCATION_VERSION_CONFLICT: 'Lokacija je u međuvremenu promenjena. Učitaj novo stanje pre čuvanja.',

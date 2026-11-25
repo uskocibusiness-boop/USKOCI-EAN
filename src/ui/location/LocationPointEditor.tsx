@@ -260,7 +260,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
       const saved = current.current.point;
       // Clearing the search text on blur left the point ask seedless for the rest of the session:
-      // the address the conversation worked to obtain was gone, the field empty and "Pronađi na
+      // the address the conversation worked to obtain was gone, the field empty and "Pronađite na
       // mapi" greyed out. Coming back restores the seed and lets the automatic lookup run again.
       setCameraHint(undefined); if (conversation) setPlaceByHand(false);
       setFocused(false); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false); setSearchOpen(false); setExpandedMap(false); setSearchText(initialQuery); located.current = false; setError(false);
@@ -563,7 +563,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         const label = candidatePlaceLabel(candidate.label);
         return <ListRow key={`${candidate.origin.candidateHint ?? 'candidate'}:${candidatePage * 3 + index}`}
           title={label.main} subtitle={label.detail ?? undefined} last={index === visibleCandidates.length - 1}
-          accessibilityLabel={`Izaberi predlog: ${toSerbianLatin(candidate.label)}`}
+          accessibilityLabel={`Izaberite predlog: ${toSerbianLatin(candidate.label)}`}
           accessibilityHint="Prikazuje tačku na mapi. Potvrdi je nakon provere."
           disabled={controlDisabled || !focused} onPress={() => selectCandidate(candidate)} />;
       })}</View> : null}
@@ -590,7 +590,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
           accessibilityLabel={here === 'BUSY' ? 'Tražimo gde si…' : 'Ovde gde sam'} kind="secondary" compact
           style={{ alignSelf: 'flex-start', borderRadius: sys.radius.pill, paddingHorizontal: 12 }}
           disabled={controlDisabled || !focused || here === 'BUSY'} onPress={useHere} /> : null}
-        {(!position || correctionOpen) && !searchOpen && !loading ? <Button tone="neutral" label="Pretraži adresu" accessibilityLabel="Pronađi drugo mesto" kind="quiet" compact
+        {(!position || correctionOpen) && !searchOpen && !loading ? <Button tone="neutral" label="Pretražite adresu" accessibilityLabel="Pronađite drugo mesto" kind="quiet" compact
           style={{ alignSelf: 'flex-start', borderRadius: sys.radius.pill, paddingHorizontal: 12 }}
           disabled={controlDisabled || !focused} onPress={() => { if (owns()) setSearchOpen(true); }} /> : null}
       </View>
@@ -599,7 +599,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       {(!position || correctionOpen) && searchOpen ? <>
         <LocationField label={`${title} — pronađi mesto`} shownLabel="Adresa ili objekat" value={searchText}
           maxLength={1000} editable={!controlDisabled && focused && !loading} onChangeText={changeSearch} />
-        <Button tone="neutral" label={loading ? 'Tražimo mesto…' : 'Pronađi na mapi'} kind="secondary"
+        <Button tone="neutral" label={loading ? 'Tražimo mesto…' : 'Pronađite na mapi'} kind="secondary"
           disabled={controlDisabled || !focused || !searchText.trim() || !countryCode || loading} onPress={search} />
       </> : null}
       {ambiguous ? candidateChoices : null}
@@ -616,7 +616,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
               <T variant="meta" tone="muted">{title}</T>
               <T accessibilityRole="header" variant="title" style={editorStyles.fullTitle}>Podesi tačno mesto</T>
             </View>
-            <Button tone="neutral" label="Zatvori" kind="quiet" onPress={() => { if (owns()) setExpandedMap(false); }} />
+            <Button tone="neutral" label="Zatvorite" kind="quiet" onPress={() => { if (owns()) setExpandedMap(false); }} />
           </View>
           <View style={editorStyles.fullMap}>
             <ResolvedPinMap position={position} cameraHint={shownCameraHint}
@@ -662,7 +662,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
             if (ownsEdit()) { retireSearch(false, true); setAddress(value); invalidate(); }
           }} /> : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.sm }}>
-          <Button tone="neutral" label={`✓ Potvrdi ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
+          <Button tone="neutral" label={`✓ Potvrdi ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdite tačku: ${title}`} kind="secondary"
             style={confirmAsPrimary ? { ...brandAction, flex: 1 } : { flex: 1 }} disabled={controlDisabled || !focused || loading} onPress={confirm} />
           <Button tone="neutral" label={correctionOpen ? 'Završi izmenu' : 'Pomeri pin'} kind="quiet"
             disabled={controlDisabled || !focused} onPress={() => {
@@ -675,16 +675,16 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         <T variant="note" tone="muted">Pomerite pin ili dodirnite tačno mesto na mapi, pa potvrdite.</T>
         {candidateChoices}
       </> : null}
-      {error ? <T accessibilityRole="alert" tone="danger">Proveri izabranu tačku i privatne podatke.</T> : null}
+      {error ? <T accessibilityRole="alert" tone="danger">Proverite izabranu tačku i privatne podatke.</T> : null}
     </View>;
   }
   // No box of its own: the point sits in the form's "Samo u Dogovoru" group, and the conversation's sheet is already a
   // surface (a card here was a card in a card).
   return <View style={{ gap: sys.space.md }}>
     <T variant="bodyStrong">{title} na mapi</T>
-    <T variant="meta" tone="muted">Izaberi tačno mesto i potvrdi ga. Tačka i detalji ispod ostaju privatni.</T>
-    <LocationField label={`${title} — pronađi mesto`} shownLabel="Pronađi mesto" value={searchText} maxLength={1000} editable={!controlDisabled && focused} onChangeText={changeSearch} />
-    <Button label={lookup.status === 'LOADING' ? 'Tražimo mesto…' : lookup.status === 'UNAVAILABLE' ? 'Pokušaj ponovo' : 'Pronađi na mapi'}
+    <T variant="meta" tone="muted">Izaberite tačno mesto i potvrdi ga. Tačka i detalji ispod ostaju privatni.</T>
+    <LocationField label={`${title} — pronađi mesto`} shownLabel="Pronađite mesto" value={searchText} maxLength={1000} editable={!controlDisabled && focused} onChangeText={changeSearch} />
+    <Button label={lookup.status === 'LOADING' ? 'Tražimo mesto…' : lookup.status === 'UNAVAILABLE' ? 'Pokušajte ponovo' : 'Pronađite na mapi'}
       kind="secondary" disabled={controlDisabled || !focused || !searchText.trim() || !countryCode || lookup.status === 'LOADING'} onPress={search} />
     {autoLocate ? <Button label={here === 'BUSY' ? 'Tražimo gde si…' : 'Koristi moju lokaciju'} kind="quiet"
       disabled={controlDisabled || !focused || here === 'BUSY'} onPress={useHere} /> : null}
@@ -694,13 +694,13 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     {lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? <T variant="meta" accessibilityLiveRegion="polite">Pretraga mesta još nije aktivirana. Tačku izaberi dodirom na mapi.</T> : null}
     {lookup.status === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Predlozi trenutno nisu dostupni. Pokušaj ponovo ili izaberi tačku na mapi.</T> : null}
     {lookup.status === 'RATE_LIMITED' ? <T variant="meta" accessibilityRole="alert">Previše pretraga za kratko vreme. Sačekaj pa pokušaj ponovo ili izaberi tačku na mapi.</T> : null}
-    {lookup.status === 'INVALID_QUERY' ? <T variant="meta" accessibilityRole="alert">Unesi mesto i proveri izabranu državu.</T> : null}
+    {lookup.status === 'INVALID_QUERY' ? <T variant="meta" accessibilityRole="alert">Unesite mesto i proveri izabranu državu.</T> : null}
     {lookup.status === 'PROPOSALS' && lookup.candidates.length === 0 ? <T variant="meta" accessibilityLiveRegion="polite">{lookupMode === 'reverse'
       ? 'Adresa za ovu tačku nije pronađena. Upiši je ručno.' : 'Nema predloga za uneti tekst. Preciziraj mesto ili izaberi tačku na mapi.'}</T> : null}
     {/* Each proposal is the address itself, on a white row with a pin; what the tap does is its spoken name. */}
     {lookup.status === 'PROPOSALS' ? lookup.candidates.map((candidate, index) => <Button
       key={`${candidate.origin.candidateHint ?? 'candidate'}:${index}`} label={candidate.label}
-      accessibilityLabel={`${lookupMode === 'reverse' ? 'Koristi privatnu adresu' : 'Izaberi predlog'}: ${candidate.label}`}
+      accessibilityLabel={`${lookupMode === 'reverse' ? 'Koristi privatnu adresu' : 'Izaberite predlog'}: ${candidate.label}`}
       icon={<FactArt kind="pin" size={18} />} style={{ justifyContent: 'flex-start' }}
       kind="secondary" disabled={controlDisabled || !focused} onPress={() => selectCandidate(candidate)} />) : null}
     {lookup.status === 'PROPOSALS' ? <Press accessibilityRole="link" accessibilityLabel="Pretraga: LocationIQ · izvori podataka"
@@ -712,31 +712,31 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     {selectedLabel ? <T variant="body">Predlog za proveru: <T variant="bodyStrong">{selectedLabel}</T></T> : null}
     {selectedLabel && selectedLabel !== address.trim() ? <Button label="Koristi predlog kao privatnu adresu" kind="quiet"
       disabled={controlDisabled || !focused} onPress={useCandidateAddress} /> : null}
-    {/* After a suggestion is applied there is no search in flight, so "Otkaži pretragu" was really
+    {/* After a suggestion is applied there is no search in flight, so "Otkažite pretragu" was really
         "delete the pin I just chose", under a name that promised the opposite. */}
-    {lookup.status !== 'IDLE' ? <Button label="Otkaži pretragu" kind="quiet" disabled={controlDisabled || !focused} onPress={cancelSearch} /> : null}
-    {lookup.status === 'IDLE' && selectedLabel ? <Button label="Ukloni izabranu tačku" kind="quiet" disabled={controlDisabled || !focused} onPress={cancelSearch} /> : null}
+    {lookup.status !== 'IDLE' ? <Button label="Otkažite pretragu" kind="quiet" disabled={controlDisabled || !focused} onPress={cancelSearch} /> : null}
+    {lookup.status === 'IDLE' && selectedLabel ? <Button label="Uklonite izabranu tačku" kind="quiet" disabled={controlDisabled || !focused} onPress={cancelSearch} /> : null}
     {!autoLocate || position || placeByHand
       ? <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey} disabled={controlDisabled || !focused} slot={slot} />
-      : <Button label="Izaberi tačku na mapi" kind="quiet" disabled={controlDisabled || !focused}
+      : <Button label="Izaberite tačku na mapi" kind="quiet" disabled={controlDisabled || !focused}
         onPress={() => setPlaceByHand(true)} />}
-    {position ? <Button label={lookupMode === 'reverse' && lookup.status === 'LOADING' ? 'Tražimo adresu…' : 'Pronađi adresu za ovaj pin'}
+    {position ? <Button label={lookupMode === 'reverse' && lookup.status === 'LOADING' ? 'Tražimo adresu…' : 'Pronađite adresu za ovaj pin'}
       kind="quiet" disabled={controlDisabled || !focused || lookup.status === 'LOADING'} onPress={reverse} /> : null}
     {allowManualDetails ? <LocationDetails label={`${title} — privatni detalji tačke`} shownLabel="Privatni detalji tačke" disabled={controlDisabled || !focused}
-      summary={[address, notes].filter(value => value.trim()).join(' · ') || 'Dodaj adresu ili napomenu po potrebi'}>
+      summary={[address, notes].filter(value => value.trim()).join(' · ') || 'Dodajte adresu ili napomenu po potrebi'}>
     <LocationField label={`${title} — privatna adresa (opciono)`} shownLabel="Privatna adresa (opciono)" value={address} maxLength={1000} editable={!controlDisabled && focused}
       onChangeText={value => { if (ownsEdit()) { retireSearch(false, true); setAddress(value); invalidate(); } }} />
     <LocationField label={`${title} — privatne napomene za pristup (opciono)`} shownLabel="Privatne napomene za pristup (opciono)" value={notes} maxLength={2000} multiline editable={!controlDisabled && focused}
       onChangeText={value => { if (ownsEdit()) { retireSearch(false, true); setNotes(value); invalidate(); } }} />
     </LocationDetails> : null}
-    {error ? <T accessibilityRole="alert" tone="danger">Proveri izabranu tačku i privatne podatke.</T> : null}
+    {error ? <T accessibilityRole="alert" tone="danger">Proverite izabranu tačku i privatne podatke.</T> : null}
     {/* The line beside the confirm button says why it is grey while there is no point to confirm. */}
     <T variant="meta" tone={point && !pending ? 'success' : 'muted'}>
       {point && !pending ? 'Tačka je potvrđena u ovom obrascu.'
         : pending ? `Izmena tačke još nije potvrđena.${position ? '' : ' Izaberi tačku na mapi ili predlog iz pretrage.'}`
-          : position ? 'Tačka još nije potvrđena.' : 'Izaberi tačku na mapi ili predlog iz pretrage, pa je potvrdi.'}
+          : position ? 'Tačka još nije potvrđena.' : 'Izaberite tačku na mapi ili predlog iz pretrage, pa je potvrdi.'}
     </T>
-    <Button label={`Potvrdi tačku: ${title}`} kind="secondary" style={confirmAsPrimary ? brandAction : undefined} disabled={controlDisabled || !focused || !position || lookup.status === 'LOADING'} onPress={confirm} />
+    <Button label={`Potvrdite tačku: ${title}`} kind="secondary" style={confirmAsPrimary ? brandAction : undefined} disabled={controlDisabled || !focused || !position || lookup.status === 'LOADING'} onPress={confirm} />
   </View>;
 }
 

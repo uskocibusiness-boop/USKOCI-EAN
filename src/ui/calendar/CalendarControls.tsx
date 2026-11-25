@@ -106,9 +106,9 @@ export function CivilField({ label, mode, value, onChange, disabled }: {
   const shown = value ? mode === 'date' ? civilDay(value) : civilClock(value) : '';
   return <View style={{ gap: 6 }}><T variant="meta" tone="muted">{label}</T>
     <Press accessibilityRole="button" accessibilityLabel={label} accessibilityValue={shown ? { text: shown } : undefined}
-      accessibilityHint={!shown && mode === 'time' ? 'Izaberi vreme' : undefined} accessibilityState={{ disabled: !!disabled }}
+      accessibilityHint={!shown && mode === 'time' ? 'Izaberite vreme' : undefined} accessibilityState={{ disabled: !!disabled }}
       disabled={disabled} haptic="select" scaleTo={0.99} onPress={openPicker} style={[calendarStyles.input, calendarStyles.row, disabled && { backgroundColor: sys.color.ground }]}>
-      <T style={{ flex: 1, color: value ? sys.color.ink : sys.color.muted }}>{shown || (mode === 'date' ? 'Izaberi datum' : 'Izaberi')}</T>
+      <T style={{ flex: 1, color: value ? sys.color.ink : sys.color.muted }}>{shown || (mode === 'date' ? 'Izaberite datum' : 'Izaberite')}</T>
       {/* Each fact its own picture (r6, "Tačan termin" and Izmene): a time field wears the clock, a date field the calendar. */}
       <FactArt kind={mode === 'time' ? 'clock' : 'calendar'} size={22} />
     </Press>
@@ -116,16 +116,16 @@ export function CivilField({ label, mode, value, onChange, disabled }: {
       ? <CivilTimeDialog value={selection} onSelect={accept} onDismiss={() => setOpen(false)} />
       : <DateTimePicker mode={mode} value={selection} is24Hour
         onDismiss={() => setOpen(false)} onValueChange={(_, date) => accept(date)}
-        positiveButton={{ label: 'Izaberi' }} negativeButton={{ label: 'Odustani' }} accentColor={sys.color.green} /> : null}
+        positiveButton={{ label: 'Izaberite' }} negativeButton={{ label: 'Odustanite' }} accentColor={sys.color.green} /> : null}
     {/* iOS: the spinner in the one sheet engine (the hand-made slide Modal was one of the nine Modals of the master
-        plan). Turning the wheel only moves the selection; "Izaberi" accepts it, anything else leaves the value as it was.
+        plan). Turning the wheel only moves the selection; "Izaberite" accepts it, anything else leaves the value as it was.
         Release gate (review of owner step 10): no suite runs this branch on iOS, and the field is also used inside other
         sheets (AgreementActionsScreen, ApplicationSelectionPresentation). It needs an iOS device pass
         before an iOS release; Android does not use it. */}
     {open && Platform.OS === 'ios' ? <ProductSheet title={label} closeButton={false} reduced={reduced} onClose={() => setOpen(false)}
       footer={dismiss => <>
-        <V2Action label="Izaberi" style={brandAction} onPress={() => { onChange(civil(selection)); dismiss(); }} />
-        <V2Action label="Odustani" kind="quiet" onPress={dismiss} />
+        <V2Action label="Izaberite" style={brandAction} onPress={() => { onChange(civil(selection)); dismiss(); }} />
+        <V2Action label="Odustanite" kind="quiet" onPress={dismiss} />
       </>}>
       {() => <DateTimePicker mode={mode} display="spinner" value={selection} locale="sr_Latn_RS"
         onValueChange={(_, date) => setSelection(date)} accentColor={sys.color.green} />}

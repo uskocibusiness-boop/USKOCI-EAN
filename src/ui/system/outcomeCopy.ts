@@ -2,7 +2,7 @@ import type { FactArtKind } from './FactArt';
 
 /**
  * What the app says when something did not go as asked (UI/UX pass 2026-10-08, F8b; text revision 2026-10-07, finding 4 and the
- * vocabulary table). The words were written screen by screen: "Proveri ishod", "Učitaj sačuvano stanje", "Osveži stanje", "Prikaži
+ * vocabulary table). The words were written screen by screen: "Proverite ishod", "Učitajte sačuvano stanje", "Osvežite stanje", "Prikažite
  * aktuelno stanje" were 36 different buttons for one idea, and about 350 sentences said "ishod nije potvrđen", "sačuvano stanje" or
  * "zahtev" in a language nobody speaks. This is the one table. A screen imports a line from here; it does not write its own.
  *
@@ -32,7 +32,7 @@ export const OUTCOME_ACTION = {
   refresh: 'Osvežite',
 } as const;
 
-/** What a screen reader hears on the check button, which has to carry its visible word (`Proveri`) and say what is checked. */
+/** What a screen reader hears on the check button, which has to carry its visible word (`Proverite`) and say what is checked. */
 export const CHECK_SPOKEN = 'Proverite šta je sačuvano';
 
 /** The title and the sentence of a state, and the button that goes with it. */

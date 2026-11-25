@@ -27,22 +27,22 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
     detail: 'Ne znamo da li je potraga ponovo otvorena. Provera ništa ne šalje ponovo.',
     art: 'info',
     quiet: true,
-    primary: { label: 'Proveri da li je uspelo', action: 'CHECK' },
-    ...(view.retryAllowed ? { secondary: { label: 'Pošalji ponovo', action: 'RETRY' as const } } : {}),
+    primary: { label: 'Proverite da li je uspelo', action: 'CHECK' },
+    ...(view.retryAllowed ? { secondary: { label: 'Pošaljite ponovo', action: 'RETRY' as const } } : {}),
   };
   if (view.phase === 'ERROR') return {
-    title: 'Proveri stanje potrage',
+    title: 'Proverite stanje potrage',
     detail: 'Podaci trenutno nisu dostupni. Proveri vezu pa pokušaj ponovo.',
     art: 'info',
     quiet: true,
-    primary: { label: 'Pokušaj ponovo', action: 'CHECK' },
+    primary: { label: 'Pokušajte ponovo', action: 'CHECK' },
   };
   if (view.phase === 'RESOLVED' && view.result === 'REFUSED') return {
     title: 'Potraga nije ponovo otvorena',
     detail: view.error ?? 'Pregledaj trenutno stanje pre sledeće radnje.',
     art: 'info',
     quiet: true,
-    primary: { label: 'Prikaži trenutno stanje', action: 'ACK' },
+    primary: { label: 'Prikažite trenutno stanje', action: 'ACK' },
   };
 
   const state = view.snapshot;
@@ -58,7 +58,7 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
           : 'Pregledaj trenutni zadatak i svoje Dogovore.',
       art: currentlyOpen ? 'check' : 'users',
       quiet: !currentlyOpen,
-      primary: { label: 'Prikaži trenutno stanje', action: 'ACK' },
+      primary: { label: 'Prikažite trenutno stanje', action: 'ACK' },
     };
   }
 
@@ -68,7 +68,7 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
     detail: 'Zatvaranje naloga je u toku. Postojeće Dogovore možete da proverite.',
     art: 'users',
     quiet: true,
-    primary: state.activeAgreementCount ? { label: 'Otvori moje Dogovore', action: 'AGREEMENTS' } : null,
+    primary: state.activeAgreementCount ? { label: 'Otvorite moje Dogovore', action: 'AGREEMENTS' } : null,
   };
   if (state.awaitingConfirmationCount || state.openProblemCount) return {
     title: state.openProblemCount ? 'Dogovor traži Vašu pažnju' : 'Potvrdite završetak zadatka',
@@ -76,7 +76,7 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
       : 'Završetak je označen. Proverite Dogovor pre sledećeg koraka.',
     art: 'users',
     quiet: false,
-    primary: { label: 'Otvori moje Dogovore', action: 'AGREEMENTS' },
+    primary: { label: 'Otvorite moje Dogovore', action: 'AGREEMENTS' },
   };
   if (!state.searchTimeAdmitted) return {
     title: 'Vreme za potragu je prošlo',
@@ -84,7 +84,7 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
       : 'Proverite zadatak. Novi termin se ne određuje automatski.',
     art: 'clock',
     quiet: true,
-    primary: state.agreementCount ? { label: 'Otvori moje Dogovore', action: 'AGREEMENTS' } : null,
+    primary: state.agreementCount ? { label: 'Otvorite moje Dogovore', action: 'AGREEMENTS' } : null,
   };
   if (state.searchAuthority === 'CLOSED' && state.missingSlots > 0) return {
     title: 'Potraga je zatvorena',

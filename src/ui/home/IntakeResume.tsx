@@ -55,13 +55,13 @@ export function IntakeResume({ onOpen }: { onOpen: (id: string) => void }) {
   const recoveredOpen = !!single && removals.get(single.id)?.phase === 'open';
   if (AppState.currentState === 'background' || AppState.currentState === 'inactive' || (!page?.rows.length && !resource.error)) return null;
   return <>
-    <ListRow leading={<FactArt kind="chat" size={32} />} title={single?.title ?? 'Nastavi razgovor o zadatku'} last accessibilityLabel={single?.title ? `Nastavi razgovor: ${single.title}` : 'Nastavi razgovor o zadatku'}
-      accessibilityHint={unresolvedRemoval ? 'Proveri stanje prethodnog napuštanja.' : recoveredOpen && resource.error ? 'Razgovor je potvrđen otvoren, ali lista trenutno nije dostupna.'
+    <ListRow leading={<FactArt kind="chat" size={32} />} title={single?.title ?? 'Nastavite razgovor o zadatku'} last accessibilityLabel={single?.title ? `Nastavite razgovor: ${single.title}` : 'Nastavite razgovor o zadatku'}
+      accessibilityHint={unresolvedRemoval ? 'Proverite stanje prethodnog napuštanja.' : recoveredOpen && resource.error ? 'Razgovor je potvrđen otvoren, ali lista trenutno nije dostupna.'
         : resource.error ? 'Razgovori nisu učitani. Pokušaj ponovo.'
         : page?.rows.length === 1 && !page.next ? `Otvara razgovor započet ${vreme(page.rows[0].createdAt)}.` : 'Otvara listu započetih razgovora.'}
       subtitle={unresolvedRemoval ? 'Prethodno napuštanje čeka proveru.' : recoveredOpen && resource.error ? 'Razgovor je otvoren · lista trenutno nije dostupna.'
         : resource.error ? 'Razgovori nisu učitani. Dodirni da pokušaš ponovo.'
-        : page?.rows.length === 1 && !page.next ? `Započeto ${vreme(page.rows[0].createdAt)}` : 'Izaberi započeti razgovor.'}
+        : page?.rows.length === 1 && !page.next ? `Započeto ${vreme(page.rows[0].createdAt)}` : 'Izaberite započeti razgovor.'}
       onPress={() => {
         if (!current()) return;
         if (unresolvedRemoval) { openSheet(); return; }
@@ -174,7 +174,7 @@ function IntakePages({ initial, current, onSelect, removals, onChanged }: {
       <View style={styles.conversation}>
         <View style={styles.resumeTarget}>
           <ListRow title={item.title ?? 'Razgovor o zadatku'} subtitle={`Započeto ${vreme(item.createdAt)}`}
-            accessibilityLabel={`Nastavi razgovor: ${item.title ?? 'Razgovor o zadatku'}. Započeto ${vreme(item.createdAt)}`}
+            accessibilityLabel={`Nastavite razgovor: ${item.title ?? 'Razgovor o zadatku'}. Započeto ${vreme(item.createdAt)}`}
             disabled={busy || (removals.has(item.id) && removals.get(item.id)?.phase !== 'open')} arrow={false} last
             onPress={() => { if (usable() && !flight.current && (!removals.has(item.id) || removals.get(item.id)?.phase === 'open')) onSelect(item.id); }} />
         </View>
@@ -185,7 +185,7 @@ function IntakePages({ initial, current, onSelect, removals, onChanged }: {
       </View>
       {removals.has(item.id) && removals.get(item.id)?.phase !== 'open' ? <>
         <T variant="note" accessibilityRole="alert">{removals.get(item.id)!.message}</T>
-        <V2Action label="Proveri stanje razgovora" kind="quiet" compact disabled={busy} onPress={() => { void reconcile(item, false); }} />
+        <V2Action label="Proverite stanje razgovora" kind="quiet" compact disabled={busy} onPress={() => { void reconcile(item, false); }} />
       </> : null}
     </View>)}
     {!visible.rows.length ? <T variant="note">Ovde više nema otvorenih razgovora.</T> : null}

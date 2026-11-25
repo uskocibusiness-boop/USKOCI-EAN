@@ -6,7 +6,7 @@ export type { LocationOverviewMapProps, LocationOverviewPoint } from './Location
 
 /**
  * No native SDK, precise coordinates, provider request or fabricated web map. It keeps the height the map would have, with its words at
- * the foot, so that what lies over a map (the "Otvori mapu" control in its corner) lies over an empty canvas and not over the words.
+ * the foot, so that what lies over a map (the "Otvorite mapu" control in its corner) lies over an empty canvas and not over the words.
  */
 export function LocationOverviewMap(props: LocationOverviewMapProps) {
   return <View testID={props.testID} style={[s.notice, typeof props.height === 'number' && { minHeight: props.height }]}>

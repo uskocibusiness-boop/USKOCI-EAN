@@ -48,7 +48,7 @@ export function ReviewFrame({ header, footer, scrollRef, contentRef, children }:
 
 /**
  * What the stored command ended in, said once at the top, in a note. Only a publication confirmed here and now springs. `action` is the one
- * way to check what the note says is not known ("Proveri", the one word of the app's vocabulary of trouble), drawn inside the note it belongs to.
+ * way to check what the note says is not known ("Proverite", the one word of the app's vocabulary of trouble), drawn inside the note it belongs to.
  */
 export function ReviewStatus({ published, fresh, text, action }: { published: boolean; fresh: boolean; text: string; action?: ReactNode }) {
   return <Surface kind="note">
@@ -86,7 +86,7 @@ export function ReviewCaption({ children }: { children: ReactNode }) {
   return <T variant="note" tone="muted" style={s.pageCaption}>{children}</T>;
 }
 
-/** `actionLabel` is the word of the way out ("Izmeni termin"), drawn under the sentence so the row reads as the button it is. */
+/** `actionLabel` is the word of the way out ("Izmenite termin"), drawn under the sentence so the row reads as the button it is. */
 export type TodoRow = { key: string; text: string; onPress?: () => void; actionLabel?: string };
 
 /**
@@ -108,8 +108,8 @@ export function ReviewTodoList({ items, disabled, children }: { items: readonly 
 
 /**
  * The way out at the end of a review that is not published yet, after everything there is to change (owner, 2026-10-07: "when the user arrives
- * at this review there is no easy way to delete it"): "Obriši nacrt", in the danger colour, which asks first. It is a row of the page and not
- * another button in the foot, where the green "Objavi zadatak" and "Sačuvaj nacrt" are the whole of what can be decided. Going back to the
+ * at this review there is no easy way to delete it"): "Obrišite nacrt", in the danger colour, which asks first. It is a row of the page and not
+ * another button in the foot, where the green "Objavi zadatak" and "Sačuvajte nacrt" are the whole of what can be decided. Going back to the
  * conversation to change the task is the arrow of the bar and the pencil of the card, not a row of its own. `onDelete` is left out where there is
  * no draft to delete (the changes of a task that exists): then there is no way out here at all and nothing is drawn.
  */
@@ -135,8 +135,8 @@ export function ReviewEditing({ name, rowRef, children }: { name?: string; rowRe
 }
 
 /**
- * One fact's row, for what is not a line of the page of others (the facts under "Dodaj još podataka"): its label and its value, and a word
- * "Izmeni" at the end of the row (`KeyValueRow`: beside the label when the value is short and the text ordinary, under it when it is long or the
+ * One fact's row, for what is not a line of the page of others (the facts under "Dodajte još podataka"): its label and its value, and a word
+ * "Izmenite" at the end of the row (`KeyValueRow`: beside the label when the value is short and the text ordinary, under it when it is long or the
  * text is large). While an edit is open the row is its editor (`children`).
  */
 export function ReviewFactRow({ label, value, system, edit, actionLabel, children, rowRef, last = false }: {
@@ -154,7 +154,7 @@ export function ReviewFactRow({ label, value, system, edit, actionLabel, childre
 
 /**
  * What the task does not say yet, and can: the facts the page of others draws no line for (the lists with nothing in them, how many people
- * when it is one) named in ONE row, which opens them in place as rows with their pencil ("Dodaj još podataka · Alat · Vozila"). Nothing
+ * when it is one) named in ONE row, which opens them in place as rows with their pencil ("Dodajte još podataka · Alat · Vozila"). Nothing
  * is hidden from what is being accepted, and nothing is a wall of "Nema navedenih stavki".
  */
 export function ReviewMoreFacts({ labels, open, disabled = false, onToggle, children }: { labels: readonly string[]; open: boolean;
@@ -211,7 +211,7 @@ const s = StyleSheet.create({
   pageCaption: { marginTop: sys.space.sm, marginBottom: layout.group },
   editing: { paddingVertical: sys.space.md, gap: sys.space.sm },
   publish: { ...brandAction, flexDirection: 'row', gap: sys.space.sm, alignItems: 'center', justifyContent: 'center', padding: sys.space.md },
-  // Shrinks and wraps beside the spinner rather than running out of the button ("Potvrdi izmene" at 320 dp
+  // Shrinks and wraps beside the spinner rather than running out of the button ("Potvrdite izmene" at 320 dp
   // with large text).
   publishLabel: { ...sys.type.body, fontWeight: '700', color: sys.color.onGreen, flexShrink: 1, textAlign: 'center' },
   publishResting: { backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line },

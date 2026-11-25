@@ -54,7 +54,7 @@ export function TaskQaInline({ state, onRetry, onAsk, onAnswer, onOpenAll, disab
     </View>
       : state.phase === 'error' ? <View style={s.trouble}>
         <T variant="copy" tone="muted" accessibilityRole="alert">{state.message}</T>
-        <V2Action label="Učitaj pitanja ponovo" kind="quiet" compact disabled={disabled} onPress={onRetry} style={s.link} />
+        <V2Action label="Učitajte pitanja ponovo" kind="quiet" compact disabled={disabled} onPress={onRetry} style={s.link} />
       </View>
         : <Thread ready={state} disabled={disabled} now={now} onAsk={onAsk} onAnswer={onAnswer} onOpenAll={onOpenAll} />}
   </View>;
@@ -80,9 +80,9 @@ function Thread({ ready, disabled, now, onAsk, onAnswer, onOpenAll }: Pick<TaskQ
         </T>
       </View>}
     {ready.shown.length && ready.olderVersion ? <T variant="note" tone="muted">Neka ranija pitanja pripadaju starijoj verziji zadatka.</T> : null}
-    {ready.all > ready.shown.length ? <Press accessibilityRole="button" accessibilityLabel={`Prikaži sva pitanja (${ready.all})`}
+    {ready.all > ready.shown.length ? <Press accessibilityRole="button" accessibilityLabel={`Prikažite sva pitanja (${ready.all})`}
       accessibilityState={{ disabled }} disabled={disabled} onPress={onOpenAll} haptic="select" scaleTo={sys.motion.scale.row} style={s.more}>
-      <T variant="bodyStrong" style={s.moreText}>{`Prikaži sva pitanja (${ready.all})`}</T>
+      <T variant="bodyStrong" style={s.moreText}>{`Prikažite sva pitanja (${ready.all})`}</T>
       <Glyph name="caret-right" size={16} tone="green" />
     </Press> : null}
     {ready.canAsk ? <V2Action label="Postavi pitanje" kind="secondary" tone="neutral" disabled={disabled} onPress={onAsk} style={s.link} /> : null}
@@ -105,7 +105,7 @@ function Row({ item, viewer, canAnswer, disabled, now, onAnswer }: {
         <T variant="meta" tone="muted" accessibilityLabel={spoken(by)}>{by}</T>
         <T>{item.answer}</T>
       </View>
-      {viewer === 'OWNER' && canAnswer ? <V2Action label="Izmeni odgovor" accessibilityLabel={`Izmeni odgovor na pitanje: ${shorten(item.question)}`}
+      {viewer === 'OWNER' && canAnswer ? <V2Action label="Izmenite odgovor" accessibilityLabel={`Izmenite odgovor na pitanje: ${shorten(item.question)}`}
         kind="secondary" tone="neutral" compact disabled={disabled} onPress={() => onAnswer(item.questionId)} style={s.link} /> : null}
     </View>;
   }

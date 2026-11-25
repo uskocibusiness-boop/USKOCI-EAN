@@ -99,7 +99,7 @@ export default function Profil() {
     logoutQuestion.current = scope;
     confirmation.ask({ title: 'Odjaviti se?',
       message: 'Ako se odjavite, neposlate poruke u Dogovorima i lokalni glasovni snimci možda više neće biti dostupni na ovom uređaju.',
-      confirmLabel: 'Odjavi se', cancelLabel: 'Ostani prijavljen', tone: 'danger',
+      confirmLabel: 'Odjavite se', cancelLabel: 'Ostani prijavljen', tone: 'danger',
       onCancel: () => { if (logoutQuestion.current === scope) logoutQuestion.current = null; },
       onConfirm: () => { if (logoutQuestion.current !== scope || !isCurrent(scope)) return;
         logoutQuestion.current = null; return logout(); },

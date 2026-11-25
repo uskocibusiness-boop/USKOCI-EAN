@@ -19,7 +19,7 @@ export type NeedPublicationReadiness =
   | Readonly<{ kind: 'UNKNOWN' }>;
 
 const COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da vidiš stanje zadatka.',
+  AUTH_REQUIRED: 'Prijavite se da vidiš stanje zadatka.',
 };
 
 function decode(raw: unknown): NeedPublicationReadiness | null {
@@ -64,7 +64,7 @@ export function readinessCopy(readiness: NeedPublicationReadiness): { title: str
         : 'Ime ulice nije dovoljno da neko dođe. Otvori razgovor i potvrdi tačku na mapi.' };
   }
   if (readiness.code === 'COUNTRY_NOT_READY') {
-    return { title: 'Država zadatka nije spremna', detail: 'Otvori razgovor i reci u kojoj državi je zadatak.' };
+    return { title: 'Država zadatka nije spremna', detail: 'Otvorite razgovor i reci u kojoj državi je zadatak.' };
   }
   if (readiness.code === 'PUBLIC_MEDIA_NOT_READY') {
     return { title: 'Fotografije se još obrađuju', detail: 'Sačekaj da se obrade pa pokušaj ponovo.' };
@@ -75,5 +75,5 @@ export function readinessCopy(readiness: NeedPublicationReadiness): { title: str
   if (readiness.code === 'EVALUATOR_UNAVAILABLE') {
     return { title: 'Provera objave trenutno ne radi', detail: 'Nije do tebe. Nacrt je sačuvan, pokušaj kasnije.' };
   }
-  return { title: 'Zadatak još ne može da se objavi', detail: 'Otvori pregled da vidiš šta nedostaje.' };
+  return { title: 'Zadatak još ne može da se objavi', detail: 'Otvorite pregled da vidiš šta nedostaje.' };
 }

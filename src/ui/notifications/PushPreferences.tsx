@@ -180,7 +180,7 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
  }
  async function run(scope: Scope, work: (generation: number, permissionWait: PushPermissionWait) => Promise<Snapshot>, kind: Working = null) {
   if (scope.busy || !current(scope, scope.generation)) return;
-  // setView(null) here meant that pressing "Sačuvaj podešavanja" made nine switches, three fields
+  // setView(null) here meant that pressing "Sačuvajte podešavanja" made nine switches, three fields
   // and five buttons vanish behind a spinner, and on any failure the wipe was permanent: the error
   // panel replaced the settings instead of standing beside them. The last good state stays mounted
   // and waits (every control is locked) while the work runs; only a first read has nothing to show.
@@ -301,7 +301,7 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
    // Retain only this account/revision's explicit intention; never replay it on an unknown result.
    pendingWrite.current = { owner: scope, original, wanted: payload, roles: changed };
    // Only the set that changed is written, each against the revision it was read at; the first that fails leaves the others as they were,
-   // and the read-back (the "Pokušaj ponovo" of an unconfirmed outcome) shows which of them the server holds.
+   // and the read-back (the "Pokušajte ponovo" of an unconfirmed outcome) shows which of them the server holds.
    for (const role of changed) {
     await notificationPreferencesClientService.save(scope.accountId, role, payload[role], original[role].revision);
     if (!current(scope, generation)) throw Error('STALE');
@@ -313,8 +313,8 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
  const registered = snapshot?.native.kind === 'READY' && snapshot.device?.active && snapshot.device.sessionBound;
  const dirty = !!snapshot && !!settings && ROLES.some(role => !sameSettings(snapshot.preferences[role].settings, settings[role]));
  latest.current = { snapshot, busy, dirty };
- // While "Sačuvaj podešavanja" runs the changes are on their way, so Back must not offer to throw them away. After an
- // unconfirmed outcome it is not known whether they were saved, so Back must not say they were not: until "Pokušaj
+ // While "Sačuvajte podešavanja" runs the changes are on their way, so Back must not offer to throw them away. After an
+ // unconfirmed outcome it is not known whether they were saved, so Back must not say they were not: until "Pokušajte
  // ponovo" reads the state again, every control is locked and nothing on screen is a draft worth keeping.
  const unsaved = dirty && !busy && !error;
  useEffect(() => { onDirtyChange?.(unsaved); }, [unsaved, onDirtyChange]);
@@ -386,18 +386,18 @@ export type PushPreferencesViewProps = {
  * The notification settings, drawn from what the container read. In the order the approved blueprint gives (P4): "Ovaj telefon" (its
  * state in one row and the one step that connects it), "Kad objavljuješ" and "Kad uskačeš" (each set's three choices), "Tihi sati"
  * (the account's, with the explanation one tap away), "Napredno" (the app's own list, every category one by one, and the facts of the
- * phone and of the last sending check), and the one sentence under it all. "Sačuvaj podešavanja" sits in the footer, so a change at the
+ * phone and of the last sending check), and the one sentence under it all. "Sačuvajte podešavanja" sits in the footer, so a change at the
  * top does not need a scroll to be saved; the phone's own actions are white and never compete with it.
  */
 export function PushPreferencesView({ signedIn, data, busy, error, locked, dirty, validation, working, justSaved,
  onEdit, onSave, onEnable, onDisable, onRefresh, onOpenSystemSettings, deviceZone: fixedZone }: PushPreferencesViewProps) {
  const { stacked } = useLayoutClass();
  if (!signedIn) return <View style={styles.fill}><ScrollView contentContainerStyle={styles.content}>
-  <StateView kind="error" title="Prijavi se da urediš obaveštenja." />
+  <StateView kind="error" title="Prijavite se da urediš obaveštenja." />
  </ScrollView></View>;
  if (!data) return <View style={styles.fill}><ScrollView contentContainerStyle={styles.content}>
   {error ? <StateView kind="error" title="Podešavanja nisu učitana" body="Ne možemo da učitamo podešavanja. Pokušaj ponovo."
-   primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: busy }} />
+   primary={{ label: 'Pokušajte ponovo', onPress: onRefresh, disabled: busy }} />
    : <NotificationLoading label="Učitavamo podešavanja obaveštenja…" />}
  </ScrollView></View>;
  const { settings, native, push, registered, readiness } = data;
@@ -420,16 +420,16 @@ export function PushPreferencesView({ signedIn, data, busy, error, locked, dirty
     : readiness?.state === 'OPERATIONAL' ? null : 'Stanje slanja na telefon još nije potvrđeno.'
   : null;
  // Sending is already on for both sets and only this phone is missing: the step is to connect it, not to switch on.
- if (deviceCanAsk && (!registered || push.state !== 'all')) phoneActions.push({ label: push.state === 'all' ? 'Poveži ovaj telefon' : 'Uključi obaveštenja na telefonu',
+ if (deviceCanAsk && (!registered || push.state !== 'all')) phoneActions.push({ label: push.state === 'all' ? 'Poveži ovaj telefon' : 'Uključite obaveštenja na telefonu',
   kind: 'secondary', onPress: onEnable, working: 'enable', guarded: true });
- if (enabled && deviceKnowsPush) phoneActions.push({ label: 'Isključi obaveštenja na telefonu', kind: 'quiet', onPress: onDisable, working: 'disable', guarded: true });
- // Reading again is offered only where it can change something, and not beside "Pokušaj ponovo", which already does it.
- if (deviceKnowsPush && !error) phoneActions.push({ label: 'Osveži', kind: 'quiet', onPress: onRefresh, working: 'read', guarded: true });
+ if (enabled && deviceKnowsPush) phoneActions.push({ label: 'Isključite obaveštenja na telefonu', kind: 'quiet', onPress: onDisable, working: 'disable', guarded: true });
+ // Reading again is offered only where it can change something, and not beside "Pokušajte ponovo", which already does it.
+ if (deviceKnowsPush && !error) phoneActions.push({ label: 'Osvežite', kind: 'quiet', onPress: onRefresh, working: 'read', guarded: true });
  // A denied permission already has its immediate SystemSettingsAction. Otherwise connect/enable leads,
  // or the connected phone can be switched off directly. Refresh and the remaining command stay nearby.
  const primaryPhoneAction = native === 'DENIED' ? null : phoneActions.find(action => action.working !== 'read') ?? null;
  const secondaryPhoneActions = phoneActions.filter(action => action !== primaryPhoneAction);
- // While the state is unconfirmed the alert and "Pokušaj ponovo" stand directly above the phone buttons, and Save says
+ // While the state is unconfirmed the alert and "Pokušajte ponovo" stand directly above the phone buttons, and Save says
  // "Prvo pokušaj ponovo." already; a second copy here was spoken twice in a row.
  const waitReason = dirty && !error ? SAVE_FIRST : null;
  const showZone = quiet.quiet_timezone !== zone && (quiet.quiet_hours_enabled || !quiet.quiet_timezone.trim());
@@ -447,7 +447,7 @@ export function PushPreferencesView({ signedIn, data, busy, error, locked, dirty
    </View> : null}
    {error ? <View style={styles.block} accessibilityLiveRegion="polite">
     <T tone="danger" accessibilityRole="alert">Ne možemo da učitamo podešavanja. Pokušaj ponovo.</T>
-    <V2Action label="Pokušaj ponovo" kind="secondary" onPress={onRefresh} disabled={busy} />
+    <V2Action label="Pokušajte ponovo" kind="secondary" onPress={onRefresh} disabled={busy} />
    </View> : null}
 
    <Section title="Ovaj telefon">
@@ -498,7 +498,7 @@ export function PushPreferencesView({ signedIn, data, busy, error, locked, dirty
      <T variant="heading" accessibilityRole="header" style={styles.titleText}>Tihi sati</T>
      <InfoButton title="Tihi sati" lines={quietLines} />
     </View>
-    <NoticeSwitchRow label="Uključi tihe sate" value={quiet.quiet_hours_enabled} disabled={locked}
+    <NoticeSwitchRow label="Uključite tihe sate" value={quiet.quiet_hours_enabled} disabled={locked}
      onChange={value => onEdit('ALL', 'quiet_hours_enabled', value)} last={!quiet.quiet_hours_enabled && !showZone} />
     {quiet.quiet_hours_enabled ? <View style={[styles.times, stacked && styles.timesStacked]}>
      <View style={styles.time}><CivilField label="Početak tihih sati" mode="time" value={quiet.quiet_start ?? ''} disabled={locked}
@@ -551,7 +551,7 @@ export function PushPreferencesView({ signedIn, data, busy, error, locked, dirty
    {/* The confirmed save is said in words (in the success colour, once to a screen reader), not only by a check that
        leaves after a moment on a button that turns grey again. */}
    {justSaved ? <T variant="note" tone="success" accessibilityLiveRegion="polite">{SAVED}</T> : null}
-   <V2Action label="Sačuvaj podešavanja" onPress={onSave} disabled={locked || !dirty} loading={working === 'save'}
+   <V2Action label="Sačuvajte podešavanja" onPress={onSave} disabled={locked || !dirty} loading={working === 'save'}
     success={justSaved} reason={saveReason} style={brandAction} />
   </SettingsFooter> : null}
  </View>;

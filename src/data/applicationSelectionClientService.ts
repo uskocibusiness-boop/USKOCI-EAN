@@ -188,7 +188,7 @@ function interval(start: string | null, end: string | null) {
   const from = calendarInstant(start), to = calendarInstant(end);
   return from !== null && to !== null && from < to;
 }
-const invalid = () => failure('APPLICATION_COMMAND_INVALID', 'Proveri cenu, broj ljudi i termin svoje ponude.');
+const invalid = () => failure('APPLICATION_COMMAND_INVALID', 'Proverite cenu, broj ljudi i termin svoje ponude.');
 function submitArguments(k: PodnesiPrijavuKomanda): Record<string, unknown> | null {
   if (!uuid(k.potrebaId) || !uuid(k.radnikProfilId) || !positiveInteger(k.potrebaRevizija) ||
       !positiveInteger(k.pokrivenaMesta) || !positiveInteger(k.cenaRsd) || !key(k.clientRequestId) ||

@@ -53,9 +53,9 @@ export default function PushSettings() {
  function discardThen(proceed: () => void) {
   if (!current() || latestView.current.writing) return;
   if (!dirty) { proceed(); return; }
-  // "Odustani" could be read as giving up the changes; the way out of this question keeps them (as on Dostupnost).
+  // "Odustanite" could be read as giving up the changes; the way out of this question keeps them (as on Dostupnost).
   confirm.ask({ title: 'Odbaciti izmene?', message: 'Izmene vrsta obaveštenja i tihih sati nisu sačuvane.', confirmLabel: 'Odbaci izmene',
-   cancelLabel: 'Nastavi uređivanje', tone: 'danger', onConfirm: () => { if (current()) proceed(); } });
+   cancelLabel: 'Nastavite uređivanje', tone: 'danger', onConfirm: () => { if (current()) proceed(); } });
  }
  const requestBack = () => discardThen(back);
  // Android's own Back asks the same question while something is unsaved; with nothing unsaved it leaves as always.

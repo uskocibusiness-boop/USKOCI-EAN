@@ -10,7 +10,7 @@ export type ChangePasswordField = 'current' | 'next' | 'repeat';
 export type ChangePasswordPhase = 'form' | 'saving' | 'done';
 
 /**
- * "Promeni lozinku" (R22; UI/UX pass 2026-10-08, F6): the account's email, said and not editable, and the three words a change needs - the
+ * "Promenite lozinku" (R22; UI/UX pass 2026-10-08, F6): the account's email, said and not editable, and the three words a change needs - the
  * current password, the new one and the new one again - with the one green action in the foot. When it cannot be pressed yet the foot
  * says why in the line above it (`reason`). A refusal is one sentence under the fields (`error`), never the provider's own text. Done is
  * its own state: the sentence and the one way out. Presentation only: the route owns the service, the account fence and the navigation.
@@ -20,7 +20,7 @@ export function ChangePasswordView({ email, values, onChange, phase, error, reas
   email: string | null; values: Readonly<Record<ChangePasswordField, string>>; onChange: (field: ChangePasswordField, value: string) => void;
   phase: ChangePasswordPhase; error: string | null; reason: string | null; onSubmit: () => void; onBack: () => void;
 }) {
-  if (phase === 'done') return <SettingsScreen title="Promeni lozinku" onBack={onBack} footer={<SettingsAction label="Gotovo" onPress={onBack} />}>
+  if (phase === 'done') return <SettingsScreen title="Promenite lozinku" onBack={onBack} footer={<SettingsAction label="Gotovo" onPress={onBack} />}>
     <View style={s.done}>
       <SuccessMark fresh size={64} />
       <T variant="title" accessibilityRole="header" accessibilityLiveRegion="polite">Lozinka je promenjena.</T>
@@ -28,14 +28,14 @@ export function ChangePasswordView({ email, values, onChange, phase, error, reas
     </View>
   </SettingsScreen>;
   const saving = phase === 'saving';
-  return <SettingsScreen title="Promeni lozinku" onBack={onBack} disabled={saving} footerReason={saving ? null : reason}
-    footer={<SettingsAction label="Sačuvaj novu lozinku" loading={saving} disabled={saving || reason !== null} onPress={onSubmit} />}>
+  return <SettingsScreen title="Promenite lozinku" onBack={onBack} disabled={saving} footerReason={saving ? null : reason}
+    footer={<SettingsAction label="Sačuvajte novu lozinku" loading={saving} disabled={saving || reason !== null} onPress={onSubmit} />}>
     {email ? <SettingsGroup title="Nalog"><KeyValueRow label="Email" value={email} last /></SettingsGroup> : null}
     <SettingsGroup title="Lozinka">
       <View style={s.form}>
         <Password label="Trenutna lozinka" value={values.current} disabled={saving} complete="current-password" onChange={value => onChange('current', value)} />
         <Password label="Nova lozinka" value={values.next} disabled={saving} complete="new-password" onChange={value => onChange('next', value)} />
-        <Password label="Ponovi novu lozinku" value={values.repeat} disabled={saving} complete="new-password" onChange={value => onChange('repeat', value)} />
+        <Password label="Ponovite novu lozinku" value={values.repeat} disabled={saving} complete="new-password" onChange={value => onChange('repeat', value)} />
         {error ? <InlineNote tone="danger" art={null}>{error}</InlineNote> : null}
       </View>
     </SettingsGroup>

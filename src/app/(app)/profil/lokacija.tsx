@@ -98,10 +98,10 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
   // A grey save says why (owner rule, 2026-09-23): a country that cannot be chosen, then a
   // read of the saved area that is still running (a save during it would be refused without a word). Once saved, the
   // line above the button already says why.
-  const reason = settled ? null : !selectable ? 'Izaberi dostupnu državu.'
+  const reason = settled ? null : !selectable ? 'Izaberite dostupnu državu.'
     : reading ? 'Učitavamo sačuvano područje…' : pointOnly && !position ? 'Označi približnu tačku na mapi.' : null;
   const body = <View style={{ gap: 24 }}>
-    {/* Privacy wording, word for word. "Izaberi područje u kom radiš." and a second title under the bar are gone. */}
+    {/* Privacy wording, word for word. "Izaberite područje u kom radiš." and a second title under the bar are gone. */}
     <View style={s.note}><FactArt kind="lock" size={20} />
       <T variant="copy" tone="muted" style={s.grow}>Kućna adresa i GPS dozvola nisu potrebni.</T></View>
     {pointOnly ? <View style={s.radius}>
@@ -138,10 +138,10 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
           if (!coarse) return;
           setPosition(coarse); setError(false); setSearchEpoch(value => value + 1);
         } }} />
-      {position && !pointOnly ? <V2Action label="Ukloni približnu tačku" kind="quiet" disabled={disabled} style={quietStart}
+      {position && !pointOnly ? <V2Action label="Uklonite približnu tačku" kind="quiet" disabled={disabled} style={quietStart}
         onPress={() => { if (!disabled) { setPosition(null); setMapEpoch(value => value + 1); } }} /> : null}
     </View> : null}
-    {error ? <T accessibilityRole="alert" tone="danger">Unesi mesto rada.</T> : null}
+    {error ? <T accessibilityRole="alert" tone="danger">Unesite mesto rada.</T> : null}
   </View>;
   // After an unknown outcome, or a read that failed while the form stayed, the read replaces the save: the editor refuses
   // any save until the saved state is read again.
@@ -150,9 +150,9 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
     {settled && !retry ? <View style={s.saved}><FactArt kind="check" size={20} />
       <T accessibilityRole="alert" tone="success" style={s.grow}>{pointOnly ? 'Približna tačka je sačuvana.' : 'Područje rada je sačuvano.'}</T></View>
       : null}
-    {retry ? <V2Action label="Pokušaj ponovo" onPress={retry} disabled={busy || reading} loading={reading} style={brandAction}
+    {retry ? <V2Action label="Pokušajte ponovo" onPress={retry} disabled={busy || reading} loading={reading} style={brandAction}
       error={refusal ?? undefined} />
-      : <V2Action label={pointOnly ? 'Potvrdi tačku' : 'Sačuvaj područje rada'} onPress={submit} loading={busy} style={brandAction}
+      : <V2Action label={pointOnly ? 'Potvrdite tačku' : 'Sačuvajte područje rada'} onPress={submit} loading={busy} style={brandAction}
         disabled={disabled || reading || settled || !selectable || (pointOnly && !position)} reason={busy ? null : reason} error={refusal ?? undefined} />}
   </>;
   return children({ body, footer });
@@ -190,7 +190,7 @@ function WorkerPointConfirmation({ expectedProfileId }: { expectedProfileId: str
   const refresh = () => { void editor.refresh(); modes.refresh(); };
   const frame = (body: ReactNode) => <WorkerProfileFrame title="Tačka na mapi" backLabel="Nazad" back={leave.back}>{body}{leave.sheet}</WorkerProfileFrame>;
   if (!location) return frame(editor.error && !editor.loading
-    ? <StateView kind="error" title="Područje rada nije učitano" body={editor.error} primary={{ label: 'Pokušaj ponovo', onPress: refresh }} />
+    ? <StateView kind="error" title="Područje rada nije učitano" body={editor.error} primary={{ label: 'Pokušajte ponovo', onPress: refresh }} />
     : <QuietReadState art="map" title="Učitavamo područje rada…"
       body="Proveravamo sačuvani grad i približnu tačku pre potvrde na mapi." />);
   if (!expectedProfileId || location.profileId !== expectedProfileId) return frame(<StateView kind="error" title="Otvorite mapu iz svog profila"

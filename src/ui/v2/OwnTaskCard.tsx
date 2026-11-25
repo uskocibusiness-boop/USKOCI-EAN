@@ -80,7 +80,7 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
 
   return <Animated.View style={lift.style}>
     <Surface kind="record" style={recordFlush}>
-      <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak ${title}`} accessibilityValue={{ text: spoken }}
+      <Press accessibilityRole="button" accessibilityLabel={`Otvorite zadatak ${title}`} accessibilityValue={{ text: spoken }}
         accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} onPressIn={lift.give} onPressOut={lift.settle} haptic="select" scaleTo={1}
         style={recordBody}>
         <View pointerEvents="none">

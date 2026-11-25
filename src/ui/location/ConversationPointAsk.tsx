@@ -132,7 +132,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     baseline.current = loaded; setPoints(loaded);
     const required = result.podatak.value.geography ? locationSlots(result.podatak.value.geography) : [];
     const incomplete = required.some(slot => !loaded.some(point => point.slot === slot));
-    // Opened from the confirmed-place line: the saved place goes straight to its editor (the old summary's "Izmeni").
+    // Opened from the confirmed-place line: the saved place goes straight to its editor (the old summary's "Izmenite").
     const reopen = !!startEditing.current && required.length > 0 && result.podatak.editable;
     // The parent's send/review callbacks must stop immediately, before passive effects run.
     if ((incomplete || reopen) && result.podatak.editable && result.podatak.value.taskCountryCode && focus.current) reportEditing(true);
@@ -235,7 +235,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     };
     if (pendingSlot) confirmation.ask({ title: 'Izmena tačke nije potvrđena',
       message: 'Ako pređeš na drugu tačku, ova izmena se odbacuje. Prethodno potvrđene tačke ostaju.',
-      cancelLabel: 'Nastavi uređivanje', confirmLabel: 'Pređi na drugu tačku', onConfirm: open });
+      cancelLabel: 'Nastavite uređivanje', confirmLabel: 'Pređi na drugu tačku', onConfirm: open });
     else open();
   };
 
@@ -251,7 +251,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
         message: `${dirtyPoints.length
           ? 'Ako sad izađeš, izmene koje još nisu sačuvane se odbacuju.'
           : 'Ako sad izađeš, nepotvrđena izmena se odbacuje.'}${baseline.current.length ? ' Sačuvane tačke ostaju.' : ''}`,
-        cancelLabel: 'Nastavi uređivanje', confirmLabel: 'Izađi ipak', tone: 'danger', onConfirm: close });
+        cancelLabel: 'Nastavite uređivanje', confirmLabel: 'Izađi ipak', tone: 'danger', onConfirm: close });
       return;
     }
     const one = dirtyPoints.length === 1;
@@ -261,7 +261,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
       message: one
         ? 'Ova potvrđena izmena još nije sačuvana. Ako sad izađeš, odbaciće se.'
         : 'Ove potvrđene izmene još nisu sačuvane. Ako sad izađeš, odbaciće se.',
-      cancelLabel: 'Nastavi potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger', onConfirm: close });
+      cancelLabel: 'Nastavite potvrđivanje', confirmLabel: 'Izađi ipak', tone: 'danger', onConfirm: close });
   };
 
   const inactive = !!props.disabled || !focused;
@@ -329,14 +329,14 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   if (state.kind === 'FAILED') return <View style={{ gap: 12 }}>
     <T accessibilityRole="alert" tone="danger">{state.message}</T>
     {points.length ? <T variant="meta" tone="muted">Vaše potvrđene tačke nisu izgubljene.</T> : null}
-    {points.length && review ? <Button label="Sačuvaj ponovo" disabled={inactive} onPress={() => { if (canAct()) void commit(points, review); }} /> : null}
+    {points.length && review ? <Button label="Sačuvajte ponovo" disabled={inactive} onPress={() => { if (canAct()) void commit(points, review); }} /> : null}
     {points.length
       // `load()` puts the saved place back over the points on screen, so the saved place is what replaces.
-      ? <Button kind="quiet" label="Učitaj sačuvano mesto" disabled={inactive} onPress={() => { if (canAct()) confirmation.ask({ title: 'Učitaj sačuvano mesto?',
+      ? <Button kind="quiet" label="Učitajte sačuvano mesto" disabled={inactive} onPress={() => { if (canAct()) confirmation.ask({ title: 'Učitajte sačuvano mesto?',
         message: 'Poslednje sačuvano mesto zameniće potvrđene tačke koje još nisu sačuvane.',
-        cancelLabel: 'Odustani', confirmLabel: 'Učitaj', tone: 'danger', onConfirm: () => { if (canAct()) void load(); } }); }} />
-      : <Button kind="quiet" label="Pokušaj ponovo" disabled={inactive} onPress={() => { if (canAct()) void load(); }} />}
-    <Button kind="quiet" label="Zatvori" disabled={inactive} onPress={leave} />
+        cancelLabel: 'Odustanite', confirmLabel: 'Učitajte', tone: 'danger', onConfirm: () => { if (canAct()) void load(); } }); }} />
+      : <Button kind="quiet" label="Pokušajte ponovo" disabled={inactive} onPress={() => { if (canAct()) void load(); }} />}
+    <Button kind="quiet" label="Zatvorite" disabled={inactive} onPress={leave} />
     {confirmation.sheet}
   </View>;
 
@@ -349,11 +349,11 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   </View>;
   if (!review || !country || !geography || !slots.length) return <View style={{ gap: 12 }}>
     <T accessibilityRole="alert" tone="muted">Za ovaj zadatak mesto na mapi nije potrebno.</T>
-    <Button kind="quiet" label="Zatvori" disabled={inactive} onPress={leave} />
+    <Button kind="quiet" label="Zatvorite" disabled={inactive} onPress={leave} />
   </View>;
 
   // A saved place is one compact line (owner, phone test 2026-10-07): the docked block with the provider's whole label,
-  // "Mapa" and "Izmeni" got in the way of the conversation. The line itself is the edit entry; its map is the editor's.
+  // "Mapa" and "Izmenite" got in the way of the conversation. The line itself is the edit entry; its map is the editor's.
   // Opened from the conversation's own line for a place that can no longer change, the read-only answer below says why.
   if (!editing && completeSummary && !(props.startEditing && !review.editable)) {
     const saved = state.kind === 'SAVED';
@@ -365,7 +365,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
 
   if (!review.editable) return <View style={{ gap: 12 }}>
     <T accessibilityRole="alert" tone="muted">Ovaj razgovor je već sačuvan. Otvori njegov zadatak da izmeniš mesto.</T>
-    <Button kind="quiet" label="Zatvori" disabled={inactive} onPress={leave} />
+    <Button kind="quiet" label="Zatvorite" disabled={inactive} onPress={leave} />
   </View>;
 
   const editingSavedRoute = slots.length > 1 && baseline.current.length === slots.length;
@@ -401,7 +401,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
       disabled={state.kind === 'SAVING' || inactive} onInvalidate={() => {
         if (canAct() && state.kind === 'READY') setPendingSlot(activeSlot);
       }} onConfirm={confirm} /> : null}
-    <Button kind="quiet" label={completeSummary ? 'Zatvori' : 'Kasnije'} disabled={state.kind === 'SAVING' || inactive} onPress={leave} />
+    <Button kind="quiet" label={completeSummary ? 'Zatvorite' : 'Kasnije'} disabled={state.kind === 'SAVING' || inactive} onPress={leave} />
     {confirmation.sheet}
   </View>;
 }

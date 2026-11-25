@@ -39,7 +39,7 @@ export type QaInlineReady = {
   /** Waiting for the owner's answer (the owner's read only). */
   waiting: number;
   answered: number;
-  /** Everything the whole thread lists for this person: the number "Prikaži sva pitanja (N)" speaks. */
+  /** Everything the whole thread lists for this person: the number "Prikažite sva pitanja (N)" speaks. */
   all: number;
   /** Questions that belong to an earlier version of the task are kept out of the list, and this says so. */
   olderVersion: boolean;

@@ -101,7 +101,7 @@ export function AiHistoryTranscriptScreen({ purpose, row, accountId, accountRevi
         ListHeaderComponent={<View style={s.older}>
           {failed ? <TranscriptFailure offline={state.phase === 'offline'} compact
             onRetry={() => { void load(state.moreFailed); }} /> : null}
-          {state.cursor && !failed ? <V2Action label="Učitaj starije poruke" loading={state.phase === 'loadingMore'}
+          {state.cursor && !failed ? <V2Action label="Učitajte starije poruke" loading={state.phase === 'loadingMore'}
             onPress={() => { void load(true); }} /> : null}
           {!state.cursor && !failed && state.loaded && state.messages.length > 0
             ? <T variant="meta" tone="muted" style={s.beginning}>Početak sačuvanog razgovora</T> : null}
@@ -116,8 +116,8 @@ export function AiHistoryTranscriptScreen({ purpose, row, accountId, accountRevi
 function TranscriptFailure({ offline, compact = false, onRetry }: { offline: boolean; compact?: boolean; onRetry: () => void }) {
   return <View style={[s.state, compact && s.compactState]} accessibilityLiveRegion="polite">
     <T variant="bodyStrong">{offline ? 'Nema veze sa serverom.' : 'Razgovor trenutno nije dostupan.'}</T>
-    <T variant="note" tone="muted">{offline ? 'Proveri vezu i pokušaj ponovo.' : 'Pokušaj ponovo ili se vrati na istoriju.'}</T>
-    <V2Action label="Pokušaj ponovo" onPress={onRetry} style={s.retry} />
+    <T variant="note" tone="muted">{offline ? 'Proverite vezu i pokušaj ponovo.' : 'Pokušajte ponovo ili se vrati na istoriju.'}</T>
+    <V2Action label="Pokušajte ponovo" onPress={onRetry} style={s.retry} />
   </View>;
 }
 

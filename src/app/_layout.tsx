@@ -20,7 +20,7 @@ import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 import { AccountClosingScreen, useAccountClosing } from '../ui/auth/AccountClosingState';
 
 // A screen that throws while rendering shows a way out instead of a white page (release, 2026-09-23). The
-// screen-level boundary catches it at the screen, so "Pokušaj ponovo" redraws that screen and the back stack stays;
+// screen-level boundary catches it at the screen, so "Pokušajte ponovo" redraws that screen and the back stack stays;
 // the root export is the last resort for an error in the layout itself.
 import { AppErrorBoundary } from '../ui/system/AppErrorBoundary';
 export { AppErrorBoundary as ErrorBoundary };

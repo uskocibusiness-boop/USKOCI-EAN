@@ -151,7 +151,7 @@ export function todoActionLabel(todo: ReviewTodo, viaConversation = todo.target 
 
 /**
  * Whether support has an operator on duty to take a task held for a manual check (deep read 8.7: it has none yet). Owner decision
- * d07, 2026-10-07: while it has none, the review offers ONLY "Izmeni zadatak" for that situation. "Zatraži pregled podrške" stood
+ * d07, 2026-10-07: while it has none, the review offers ONLY "Izmenite zadatak" for that situation. "Zatraži pregled podrške" stood
  * right under the sentence that says nobody is on duty, and a request nobody reads is a promise the app cannot keep. The day an
  * operator exists this is the one line to change; the entry and the sentence below follow it.
  */
@@ -217,7 +217,7 @@ export function groupOf(key: NeedFactV2Key): GroupedPart | null {
 
 /**
  * The requirement lines of the detail (`needRequirementRows`) and the fact each is corrected in. "Identitet" has no entry: its row is
- * not a fact to correct, and its way out is its own block ("Ukloni uslov i nastavi").
+ * not a fact to correct, and its way out is its own block ("Uklonite uslov i nastavi").
  */
 export const REQUIREMENT_FACT: Readonly<Record<string, NeedFactV2Key>> = {
   'Veštine': 'need.required_skills', 'Alat': 'need.required_tools', 'Vozilo': 'need.required_vehicles', 'Dozvole': 'need.required_licenses',

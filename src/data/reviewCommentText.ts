@@ -101,6 +101,6 @@ export const REVIEW_COMMENT_MESSAGES = {
   REVIEW_ALREADY_SUBMITTED: 'Ovaj Dogovor je već ocenjen, a ocena se ne menja. Proveri sačuvanu ocenu.',
   REVIEW_NOT_COMPLETED: 'Ocena je dostupna tek kad se Dogovor završi. Vrati se kasnije.',
   REVIEW_NOT_ALLOWED: 'Možeš oceniti samo drugu stranu svog Dogovora. Vrati se na Dogovor.',
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  AUTH_REQUIRED: 'Prijavite se da nastaviš.',
 } as const;
 export type ReviewCommentMessageCode = keyof typeof REVIEW_COMMENT_MESSAGES;

@@ -107,7 +107,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision,
     }).catch(() => { if (request === personRequest.current) setPerson(null); });
     return () => { personRequest.current++; };
   }, [readAgreement, target]);
-  // "Ponovi istu ocenu" only once a save has come back unconfirmed; the first save keeps its own words while it runs.
+  // "Ponovite istu ocenu" only once a save has come back unconfirmed; the first save keeps its own words while it runs.
   const [settled, setSettled] = useState(false);
   useEffect(() => { if (attempt && !workspace.busy) setSettled(true); }, [attempt, workspace.busy]);
   // The refusal of the comment is said under the save and does not hold the screen: the person edits the comment and sends again.

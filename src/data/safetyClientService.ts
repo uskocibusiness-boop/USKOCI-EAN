@@ -20,12 +20,12 @@ export type MyBlockedAccounts = { accountId: string; items: Array<AccountBlockSt
 export type SafetyTargetState = { profileId: string; available: boolean; target: AccountBlockState | null; displayName?: string | null };
 export type MySafetyReportCommand = { accountId: string; clientRequestId: string; found: boolean; receipt: SafetyReportReceipt | null; authoritative: true };
 const errors: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  AUTH_REQUIRED: 'Prijavite se da nastaviš.',
   BLOCK_INPUT_INVALID: 'Ponovo otvori profil osobe.',
   BLOCK_REVISION_CONFLICT: 'Izbor blokiranja je promenjen. Proveri aktuelno stanje.',
   TARGET_NOT_AVAILABLE: 'Osoba trenutno nije dostupna.',
   REQUEST_ID_REUSED: 'Zahtev je već upotrebljen. Proveri potvrdu prethodne radnje.',
-  SAFETY_REPORT_INPUT_INVALID: 'Proveri kategoriju i dužinu privatne prijave.',
+  SAFETY_REPORT_INPUT_INVALID: 'Proverite kategoriju i dužinu privatne prijave.',
   SAFETY_TARGET_INPUT_INVALID: 'Ponovo otvori profil osobe.',
   SAFETY_CONTEXT_NOT_AVAILABLE: 'Ovaj kontekst nije dostupan za prijavu.',
   REPORT_NOT_AVAILABLE: 'Privatna prijava nije dostupna ovom nalogu.',

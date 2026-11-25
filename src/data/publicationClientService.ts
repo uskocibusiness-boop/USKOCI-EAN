@@ -7,7 +7,7 @@ import { failure, positiveInteger, readOwnedResult, readReceipt, record, sameId,
 import { supabaseKlijent } from './supabaseClient';
 
 const COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da objaviš zadatak.',
+  AUTH_REQUIRED: 'Prijavite se da objaviš zadatak.',
   NEED_NOT_OWNED: 'Ovaj zadatak ne možeš da objaviš.',
   NEED_NOT_FOUND: 'Ovaj zadatak više ne postoji. Vrati se na zadatke.',
   NEED_NOT_DRAFT: 'Zadatak više nije nacrt.',
@@ -21,7 +21,7 @@ const COPY: Readonly<Record<string, string>> = {
   PUBLICATION_POLICY_STALE: 'Pravila su promenjena. Ponovi proveru pre objave.',
   POLICY_BUNDLE_NOT_READY: 'Provera pravila trenutno nije dostupna. Nacrt je sačuvan.',
   POLICY_CONTENT_NOT_READY: 'Provera pravila trenutno nije dostupna. Nacrt je sačuvan.',
-  PUBLICATION_LOCATION_INCOMPLETE: 'Potvrdi sve potrebne tačke lokacije pre objave.',
+  PUBLICATION_LOCATION_INCOMPLETE: 'Potvrdite sve potrebne tačke lokacije pre objave.',
   RESPONSE_DEADLINE_INVALID: 'Rok za prijave mora biti u budućnosti.',
   FIXED_WINDOW_START_PASSED: 'Početak termina je već prošao. Izmeni termin, pa objavi zadatak.',
   IDEMPOTENCY_KEY_REUSED: 'Zadatak se promenio od prethodnog pokušaja.',
@@ -64,7 +64,7 @@ export function decodePublicationEvaluation(raw: unknown, request: PublicationRe
     ...(value.missingSlots === undefined ? {} : { missingSlots: value.missingSlots as LocationSlot[] }) };
 }
 function validRequest(request: PublicationRequest): boolean { return uuid(request?.needId) && positiveInteger(request?.expectedRevision); }
-const invalid = () => Promise.resolve(failure('PUBLICATION_INPUT_INVALID', 'Otvori zadatak i proveri podatke pre objave.'));
+const invalid = () => Promise.resolve(failure('PUBLICATION_INPUT_INVALID', 'Otvorite zadatak i proveri podatke pre objave.'));
 
 export const publicationClientService = {
   evaluate(request: PublicationRequest): Promise<Ishod<PublicationEvaluation>> {

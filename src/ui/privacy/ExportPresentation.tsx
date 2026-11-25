@@ -150,7 +150,7 @@ export function ExportNoticeLine({ text, tone }: { text: string; tone: NoticeTon
  *
  * Until a copy has been asked for there is nothing to track, so there is no chip "Nije traženo" and no three grey steps that said what had not
  * happened (owner's phone, 8 Oct 2026): the screen is ONE sentence and the green action, and the steps appear once the request is sent. The
- * state is read again by pulling the screen, not by a standing "Osveži" (the retry of a failed read keeps its button). Presentation only: the
+ * state is read again by pulling the screen, not by a standing "Osvežite" (the retry of a failed read keeps its button). Presentation only: the
  * route owns every read, command, fence and label of the foot's action.
  */
 export function ExportScreenView({ onBack, loading, failure, status, preparation, now, busy, notice, primary,
@@ -171,9 +171,9 @@ export function ExportScreenView({ onBack, loading, failure, status, preparation
     {notice && !primary ? noticeLine : null}
     {/* The first read has no result yet. A re-read keeps the steps on screen while the pull shows it works. */}
     {loading && !status ? <QuietReadState title="Učitavamo stanje izvoza" body="Proveravamo zahtev i dostupnost kopije pre prikaza." art="download" />
-      // The sentences of a failure end in "Osveži stanje.", so the one retry says the same words.
+      // The sentences of a failure end in "Osvežite stanje.", so the one retry says the same words.
       : failure ? <StateView kind="error" art="download" title={failure.title} body={failure.body}
-        primary={{ label: 'Osveži stanje', onPress: onRefresh, disabled: refreshDisabled }} />
+        primary={{ label: 'Osvežite stanje', onPress: onRefresh, disabled: refreshDisabled }} />
       : phase === 'NONE' ? <StateView kind="empty" art="download" title="Zatražite kopiju podataka svog naloga i preuzmite je kad bude spremna." />
       : <>
         <SettingsGroup title="Vaša kopija">
@@ -186,7 +186,7 @@ export function ExportScreenView({ onBack, loading, failure, status, preparation
         {/* About keeping a copy: said only when there is a copy to keep. */}
         {phase === 'READY_AVAILABLE' ? <QuietLine art="shield">Izvoz je vezan za Vaš nalog. Čuvajte kopiju na mestu kome samo Vi imate pristup.</QuietLine> : null}
         {request?.status === 'REQUESTED' || (request?.status === 'READY' && status?.fulfillment && phase !== 'EXPIRED') ? <View>
-          {request?.status === 'REQUESTED' ? <ListRow title="Otkaži zahtev" tone="danger" disabled={busy} onPress={onCancel} last /> : null}
+          {request?.status === 'REQUESTED' ? <ListRow title="Otkažite zahtev" tone="danger" disabled={busy} onPress={onCancel} last /> : null}
           {/* A copy whose availability has run out is not there to withdraw: no command is offered over a file that does not exist. */}
           {request?.status === 'READY' && status?.fulfillment && phase !== 'EXPIRED' ? <ListRow title="Opozovi kopiju" tone="danger" disabled={busy} onPress={onRevoke} last /> : null}
         </View> : null}

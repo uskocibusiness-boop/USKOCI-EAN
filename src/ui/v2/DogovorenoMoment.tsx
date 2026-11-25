@@ -22,7 +22,7 @@ import { T } from '../Text';
  * the profile's safety screen) it is the last frame at once and nothing ticks; reduced motion shows the last frame at once as well, and
  * keeps the tick, because a tick is an outcome and not movement (R5, R7).
  *
- * Presentation only. The one green action is the sheet's own `Otvori Dogovor` with every guard it had (the route's `openAgreement`); this
+ * Presentation only. The one green action is the sheet's own `Otvorite Dogovor` with every guard it had (the route's `openAgreement`); this
  * file only places it. It is a native Modal, as the offer sheet is, so the list under it stays exactly where the person left it, and Android
  * Back is the screen's Back (`onBack`).
  */
@@ -88,7 +88,7 @@ export function DogovorenoMoment({ youFace, themFace, people, taskTitle, term, a
   taskTitle: string;
   /** The term and the amount the Dogovor stands on, written the one way the app writes them ("Cena nije navedena" when there was no amount). */
   term: string; amount: string;
-  /** The one green way on: the sheet's `Otvori Dogovor`, with its guards. */
+  /** The one green way on: the sheet's `Otvorite Dogovor`, with its guards. */
   action: ReactNode;
   /** Secondary action for multi-worker tasks to select remaining helpers. */
   secondaryAction?: ReactNode;

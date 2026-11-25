@@ -17,7 +17,7 @@ export function calendarFailure(error: unknown): Ishod<never> | null {
     poruka: 'Termin se preklapa sa drugim Dogovorom. Proveri Raspored i izaberi drugi termin.' };
   if (value.message === 'AGREEMENT_CALENDAR_INTERVAL_INVALID' || value.message === 'NEED_FIXED_INTERVAL_INVALID') {
     return { ok: false, kod: 'AGREEMENT_CALENDAR_INTERVAL_INVALID',
-      poruka: 'Proveri uneti početak i kraj. Ako tačan termin još nije dogovoren, ostavi ga fleksibilnim.' };
+      poruka: 'Proverite uneti početak i kraj. Ako tačan termin još nije dogovoren, ostavi ga fleksibilnim.' };
   }
   if (value.code === '40001' || value.code === '40P01') return { ok: false, kod: 'CALENDAR_RECHECK_REQUIRED',
     poruka: 'Raspored se upravo promenio. Osveži podatke pre ponovnog pokušaja.' };

@@ -203,9 +203,9 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
           {!reducedMotion ? <ActivityIndicator accessible={false} color={sys.color.green} size="small" /> : null}
           <T style={styles.preparingText}>{selected === 'REQUESTER' ? 'Pripremamo objavu…' : 'Pripremamo zadatke…'}</T>
         </View>
-        {!busy ? <Press accessibilityRole="button" accessibilityLabel="Otkaži izbor" scaleTo={1}
+        {!busy ? <Press accessibilityRole="button" accessibilityLabel="Otkažite izbor" scaleTo={1}
           onPress={cancelChoice} style={styles.cancel}>
-          <T style={styles.cancelText}>Otkaži</T>
+          <T style={styles.cancelText}>Otkažite</T>
         </Press> : null}
       </View>
     </View> : null}

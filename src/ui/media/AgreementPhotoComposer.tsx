@@ -26,7 +26,7 @@ export function agreementPhotoReason(photos: AgreementPhotosController, capturin
   if (photos.available || photos.busy || capturing) return null;
   const pending = photos.items.some(item => !item.receipt || !['READY', 'CANCELLED', 'FAILED'].includes(item.receipt.state));
   return pending ? 'Sačekaj da se fotografija pošalje.' : photos.items.length >= PHOTO_LIMIT ? SIX
-    : photos.loaded ? 'Osveži uslove Dogovora pre nove fotografije.' : null;
+    : photos.loaded ? 'Osvežite uslove Dogovora pre nove fotografije.' : null;
 }
 
 /**
@@ -43,7 +43,7 @@ export function AgreementPhotoSheet({ photos, capturing, onClose, onShowSaved }:
   return <PhotoAttachSheet multiple={false} remaining={Math.max(0, PHOTO_LIMIT - photos.items.length)} disabledReason={reason}
     limits={photoLimits('AGREEMENT')} reduced={reduced} onPick={source => { void photos.pick(source); }} onClose={onClose}
     rows={photos.saved.length ? [{ key: 'saved', label: `Ranije pripremljene fotografije (${photos.saved.length})`,
-      subtitle: 'Vrati jednu u poruku.', onPress: onShowSaved }] : []} />;
+      subtitle: 'Vratite jednu u poruku.', onPress: onShowSaved }] : []} />;
 }
 
 /** One prepared photo as the shared tile says it. A photo tied to a message already sent shows its picture, with no X. */
@@ -91,21 +91,21 @@ export function AgreementPhotoComposer({ photos, capturing, showSaved = false, o
       onAlternative={() => { void photos.pick('LIBRARY'); }} />
       : photos.message ? <T variant="meta" accessibilityLiveRegion="polite">{photos.message}</T> : null}
     {photos.versionConflict ? <T variant="meta" accessibilityLiveRegion="polite">Uslovi Dogovora su se promenili. Ukloni pripremljene fotografije i izaberi ih ponovo.</T> : null}
-    {uncertain ? <Press accessibilityRole="button" accessibilityLabel="Proveri fotografije poruke" accessibilityState={{ disabled }} disabled={disabled}
+    {uncertain ? <Press accessibilityRole="button" accessibilityLabel="Proverite fotografije poruke" accessibilityState={{ disabled }} disabled={disabled}
       onPress={() => { void photos.refresh(); }} style={s.text}>
       <T variant="meta" style={disabled ? s.off : s.on}>{PHOTO_WORDS.check}</T>
     </Press> : null}
     {showSaved && photos.saved.length ? <View style={s.saved}>
       <View style={s.savedHead}>
         <T variant="meta" tone="muted" style={s.flex}>Ranije pripremljene fotografije ({photos.saved.length})</T>
-        {onHideSaved ? <Press accessibilityRole="button" accessibilityLabel="Sakrij ranije pripremljene fotografije" onPress={onHideSaved} style={s.text}>
-          <T variant="meta" style={s.on}>Sakrij</T></Press> : null}
+        {onHideSaved ? <Press accessibilityRole="button" accessibilityLabel="Sakrijte ranije pripremljene fotografije" onPress={onHideSaved} style={s.text}>
+          <T variant="meta" style={s.on}>Sakrijte</T></Press> : null}
       </View>
       {/* Said once: when the line under the tiles already says the row is full, the saved list does not repeat it. */}
       {photos.items.length >= PHOTO_LIMIT && why !== SIX ? <T variant="meta" tone="muted">{SIX}</T> : null}
       <ScrollView keyboardShouldPersistTaps="handled" style={s.savedList}>
         {photos.saved.map((item, index) => <Press key={item.clientRequestId} accessibilityRole="button"
-          accessibilityLabel={`Vrati sačuvanu fotografiju ${index + 1}`} disabled={disabled || photos.items.length >= PHOTO_LIMIT}
+          accessibilityLabel={`Vratite sačuvanu fotografiju ${index + 1}`} disabled={disabled || photos.items.length >= PHOTO_LIMIT}
           accessibilityHint={photos.items.length >= PHOTO_LIMIT ? SIX : undefined}
           accessibilityState={{ disabled: disabled || photos.items.length >= PHOTO_LIMIT }}
           onPress={() => { void photos.restore(item.clientRequestId); }} style={s.text}>

@@ -21,7 +21,7 @@ export type AgreementStep = { key: StepKey; label: string; status: StepStatus };
 /**
  * The words of the four steps: one short word each, so that the bar stands in one row at the owner's phone and text size and a label is
  * never broken in the middle of a word (phone, 2026-10-08: "Dogovore / no", "Zadatak je / gotov"). "Gotovo" is the worker's report that
- * the work is done; the button that says it is "Zadatak je gotov" (the requester's is "Potvrdi završetak", of which "Potvrđeno" is the result).
+ * the work is done; the button that says it is "Zadatak je gotov" (the requester's is "Potvrdite završetak", of which "Potvrđeno" is the result).
  */
 export const STEP_LABELS: Readonly<Record<StepKey, string>> = {
   agreed: 'Dogovoreno', done: 'Gotovo', confirmed: 'Potvrđeno', rated: 'Ocena',
@@ -30,7 +30,7 @@ const ORDER: readonly StepKey[] = ['agreed', 'done', 'confirmed', 'rated'];
 
 /**
  * Where each state stands. The rating step is the person's own: due (or not readable yet - the same rule as the footer, which
- * keeps "Oceni saradnju" on offer) is the current step; given is behind; closed (it can no longer be given) was never reached.
+ * keeps "Ocenite saradnju" on offer) is the current step; given is behind; closed (it can no longer be given) was never reached.
  */
 export function agreementStepModel(state: DogovorProjekcija['stanje'], ownRating: OwnRating = 'NOT_APPLICABLE'): AgreementStep[] {
   if (state === 'CANCELLED') return ORDER.map(key => ({ key, label: STEP_LABELS[key], status: 'cancelled' as const }));

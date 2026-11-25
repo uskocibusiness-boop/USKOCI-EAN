@@ -44,7 +44,7 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
   const sameTextMissing=p.recovery?.kind==='TEXT'&&length===0;
   const ask=(action:'IGNORE'|'REPORT',q:OwnerPreselectionQuestion)=>confirm.ask(action==='IGNORE'
     ?{title:'Preskočiti pitanje?',message:'Pitanje se sklanja iz neodgovorenih i ne objavljuje se. Ovo se ne može vratiti.',confirmLabel:'Preskoči',onConfirm:()=>p.onDispose(action,q)}
-    :{title:'Prijaviti pitanje?',message:'Pitanje se označava kao prijavljeno i sklanja se iz neodgovorenih. Ovo se ne može vratiti.',confirmLabel:'Prijavi',tone:'danger',onConfirm:()=>p.onDispose(action,q)});
+    :{title:'Prijaviti pitanje?',message:'Pitanje se označava kao prijavljeno i sklanja se iz neodgovorenih. Ovo se ne može vratiti.',confirmLabel:'Prijavite',tone:'danger',onConfirm:()=>p.onDispose(action,q)});
   const item=(q:Question,history=false)=>{
     const status='status'in q?q.status:null;
     return <View key={q.questionId} style={s.item}>
@@ -57,10 +57,10 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
         // The row whose answer is being written says so; its commands wait in the pill below, not beside it.
         ?<T variant="meta" tone="muted">Odgovaraš</T>
         :<View style={s.actions}>
-          {p.canAnswer?<V2Action label={q.status==='ANSWERED_PUBLIC'?'Izmeni odgovor':'Odgovori'} compact disabled={locked} onPress={()=>p.onChoose(q)}/>:null}
+          {p.canAnswer?<V2Action label={q.status==='ANSWERED_PUBLIC'?'Izmenite odgovor':'Odgovori'} compact disabled={locked} onPress={()=>p.onChoose(q)}/>:null}
           {q.status==='PENDING_ANSWER'?<>
             <V2Action label="Preskoči pitanje" kind="quiet" compact disabled={locked} onPress={()=>ask('IGNORE',q)}/>
-            <V2Action label="Prijavi pitanje" kind="destructive" compact disabled={locked} onPress={()=>ask('REPORT',q)}/></>:null}
+            <V2Action label="Prijavite pitanje" kind="destructive" compact disabled={locked} onPress={()=>ask('REPORT',q)}/></>:null}
         </View>:null}
     </View>;
   };
@@ -72,11 +72,11 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
     <SafeAreaView edges={['top','bottom']} style={s.screen}>
       {/* One title in every state, so the bar does not re-lay out once the task is known; the task's name is its quiet line. */}
       <ScreenChrome variant="detail" onBack={p.onBack} title="Pitanja o zadatku" subtitle={p.title??undefined}
-        right={<ChromeIconButton label="Osveži pitanja i ishod radnje" glyph="refresh" disabled={p.busy} onPress={p.onRefresh}/>}/>
+        right={<ChromeIconButton label="Osvežite pitanja i ishod radnje" glyph="refresh" disabled={p.busy} onPress={p.onRefresh}/>}/>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         {!p.loaded&&p.busy?<QuietReadState art="chat" title="Učitavamo pitanja…" body="Proveravamo pitanja i odgovore za ovaj zadatak." />
           :trouble?<StateView kind="error" art="chat" title="Pitanja nisu učitana" body={p.message}
-            primary={p.canRetryRead?{label:'Pokušaj ponovo',onPress:p.onRefresh}:undefined}/>:null}
+            primary={p.canRetryRead?{label:'Pokušajte ponovo',onPress:p.onRefresh}:undefined}/>:null}
         {p.loaded||p.recovery?<>
           {/* The rule of the thread, said once: it holds for reading as much as for writing. */}
           <T variant="copy" tone="muted">Pitanja su anonimna. Javno se prikazuju samo pitanja na koja je odgovoreno. Ne unosiš kontakt, preciznu adresu ni podatke za pristup.</T>
@@ -90,11 +90,11 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
             <T>Ne znamo da li je prethodno slanje uspelo. Ako izađeš, ništa se ne šalje ponovo.</T>
             {p.recovery.kind==='TEXT'?<><T>Za ponovno slanje upiši isti tekst; nije sačuvan na telefonu.</T>
               <View style={s.fieldBlock}><T variant="label" tone="muted">Isti tekst kao ranije</T>
-                <TextInput accessibilityLabel="Isti tekst kao ranije" placeholder="Napiši isti tekst…" placeholderTextColor={sys.color.muted}
+                <TextInput accessibilityLabel="Isti tekst kao ranije" placeholder="Napišite isti tekst…" placeholderTextColor={sys.color.muted}
                   value={p.text} onChangeText={p.onText} editable={!p.busy} multiline style={s.field}/></View></>:null}
-            {p.recovery.absent?<V2Action label="Pošalji ponovo" style={brandAction} disabled={p.busy||sameTextMissing}
+            {p.recovery.absent?<V2Action label="Pošaljite ponovo" style={brandAction} disabled={p.busy||sameTextMissing}
               reason={sameTextMissing?'Upiši isti tekst pre ponavljanja.':null} onPress={p.onRetry}/>:null}
-            {p.recovery.canCancel?<V2Action label="Odustani od ovog slanja" kind="quiet" disabled={p.busy} onPress={p.onCancel}/>:null}
+            {p.recovery.canCancel?<V2Action label="Odustanite od ovog slanja" kind="quiet" disabled={p.busy} onPress={p.onCancel}/>:null}
           </Surface>:null}
           {p.cannotAsk?<Surface kind="note" style={s.notice}><T>{p.cannotAsk.text}</T>
             {p.cannotAsk.action?<V2Action label={p.cannotAsk.action.label} kind="quiet" disabled={p.busy} onPress={p.cannotAsk.action.onPress} style={s.noticeAction}/>:null}
@@ -113,13 +113,13 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
           <T variant="copy" tone="muted">Ovi odgovori ne opisuju trenutne uslove zadatka.</T>{parted(p.historical.map(q=>item(q,true)))}</View>:null}
       </ScrollView>
       {c?<PillComposer value={p.text} onChange={p.onText} label={c.answering!==null?'Tekst odgovora':'Tekst pitanja'}
-        placeholder={c.answering!==null?'Napiši odgovor…':'Napiši pitanje…'} sendLabel={c.answering!==null?'Objavi odgovor':'Pošalji pitanje'}
+        placeholder={c.answering!==null?'Napišite odgovor…':'Napišite pitanje…'} sendLabel={c.answering!==null?'Objavi odgovor':'Pošaljite pitanje'}
         canSend={canSend} editable={!p.busy} onSend={p.onSend}
         reason={length===0?(c.answering!==null?'Upiši odgovor pre objave.':'Upiši pitanje pre slanja.'):over?'Tekst je duži od dozvoljenog.':c.revisionChanged?'Zadatak je izmenjen.':null}
         above={<>
           {c.answering!==null?<View style={s.answering}>
             <View style={s.answeringText}><T variant="meta" tone="muted">Odgovor na</T><T variant="bodyStrong" numberOfLines={3}>{c.answering}</T></View>
-            <ChromeIconButton label="Zatvori odgovor" glyph="close" quiet disabled={p.busy} onPress={p.onCloseAnswer}/>
+            <ChromeIconButton label="Zatvorite odgovor" glyph="close" quiet disabled={p.busy} onPress={p.onCloseAnswer}/>
           </View>:null}
           {c.answering!==null?<PillNote>Odgovor razjašnjava postojeće uslove. Za promenu uslova vrati se na zadatak i izmeni ga kroz pregled i objavu.</PillNote>:null}
           {c.revisionChanged?<PillNote tone="danger" alert>Zadatak je izmenjen. Zatvori odgovor i pregledaj trenutna pitanja pre slanja.</PillNote>:null}

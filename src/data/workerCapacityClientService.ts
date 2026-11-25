@@ -4,10 +4,10 @@ import { failure, readOwnedResult, record, sameId, uuid, type ReceiptAccount } f
 import { supabaseKlijent } from './supabaseClient';
 import type { Ishod } from './ports';
 const WORKER_CAPACITY_COPY: Readonly<Record<string,string>> = {
-  AUTH_REQUIRED: 'Prijavi se da urediš kapacitet tima.',
+  AUTH_REQUIRED: 'Prijavite se da urediš kapacitet tima.',
   WORKER_PROFILE_REQUIRED: 'Najpre sačuvaj radni profil.',
   WORKER_PROFILE_RESTRICTED: 'Kapacitet ovog profila trenutno ne može da se menja.',
-  WORKER_CAPACITY_INPUT_INVALID: 'Unesi ceo broj od 1 do 50 ljudi i učitaj aktuelni profil.',
+  WORKER_CAPACITY_INPUT_INVALID: 'Unesite ceo broj od 1 do 50 ljudi i učitaj aktuelni profil.',
   WORKER_CAPACITY_VERSION_CONFLICT: 'Kapacitet je promenjen na drugom mestu. Učitaj aktuelni profil.',
 };
 function decodeWorkerCapacity(raw: unknown, accountId: string): WorkerCapacity | null {

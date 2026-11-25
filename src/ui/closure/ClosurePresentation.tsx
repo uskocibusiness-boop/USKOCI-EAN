@@ -40,14 +40,14 @@ const blockerPlace: Readonly<Record<string, ClosureBlockerPlace>> = { ACTIVE_AGR
  * system's flow screen (`Screen kind="flow"`: the edge of 20, the blocks 24 apart) and the system's foot (`FlowFooter`, the one line
  * above it); SettingsScreen has no flow variant, so the flow draws its bar here.
  *
- * The X is spoken "Zatvori pregled": a bare "Zatvori" inside "Zatvaranje naloga" could be heard as the closing itself
+ * The X is spoken "Zatvorite pregled": a bare "Zatvorite" inside "Zatvaranje naloga" could be heard as the closing itself
  * (round 5 review). It only leaves the flow.
  */
 export function ClosureFrame({ onClose, closeDisabled = false, footer, children }: {
   onClose: () => void; closeDisabled?: boolean; footer?: ReactNode; children: ReactNode;
 }) {
   return <Screen kind="flow" keyboardAvoiding={false}
-    header={<ScreenChrome variant="flow" title="Zatvaranje naloga" closeLabel="Zatvori pregled" disabled={closeDisabled} onClose={onClose} />}
+    header={<ScreenChrome variant="flow" title="Zatvaranje naloga" closeLabel="Zatvorite pregled" disabled={closeDisabled} onClose={onClose} />}
     footer={footer ? <FlowFooter testID="closure-footer">{footer}</FlowFooter> : undefined}>{children}</Screen>;
 }
 
@@ -88,16 +88,16 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
   const erasure = (state?.adapterVersion ?? review?.adapterVersion) === erasureAdapter;
   const pendingExceptions = state?.exceptions ?? review?.exceptions ?? [];
   const retained = (terminal ? state?.retainedDatasets : review?.retainedDatasets) ?? [];
-  // The words of the check follow what it checks: a request already made is checked ("Proveri stanje zahteva"); before anything is
-  // started there is no request, only the review, which is read again ("Osveži pregled") or looked at again once the
-  // obligations are met ("Proveri ponovo").
-  const check = (kind: 'primary' | 'secondary' | 'quiet', label = 'Proveri stanje zahteva') => <SettingsAction key="check" label={label} kind={kind}
+  // The words of the check follow what it checks: a request already made is checked ("Proverite stanje zahteva"); before anything is
+  // started there is no request, only the review, which is read again ("Osvežite pregled") or looked at again once the
+  // obligations are met ("Proverite ponovo").
+  const check = (kind: 'primary' | 'secondary' | 'quiet', label = 'Proverite stanje zahteva') => <SettingsAction key="check" label={label} kind={kind}
     disabled={busy} loading={working === 'refresh'} onPress={commands.onRefresh} />;
 
   if (!review && !state && !intent) {
     if (!busy && message) return <ClosureFrame onClose={commands.onClose}>
       <StateView kind="error" art="lock" title="Stanje zatvaranja nije učitano" body={message}
-        primary={{ label: 'Pokušaj ponovo', onPress: commands.onRefresh, disabled: busy }} />
+        primary={{ label: 'Pokušajte ponovo', onPress: commands.onRefresh, disabled: busy }} />
     </ClosureFrame>;
     return <ClosureFrame onClose={commands.onClose}>
       <QuietReadState art="lock" title="Proveravamo stanje…" body="Čitamo ograničenja i sačuvani zahtev za zatvaranje." />
@@ -128,18 +128,18 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
       <T variant="copy">Ovi izdvojeni podaci još zahtevaju rešavanje. Nepovezani obični podaci mogu se ukloniti dok ta provera traje.</T>
       <View>{pendingExceptions.map((code, index) =>
         <PlainRow key={code} label={erasureExceptionLabels[code]} last={index === pendingExceptions.length - 1} />)}</View>
-      <SettingsAction label="Otvori privatnu podršku" kind="secondary" disabled={busy} onPress={commands.onSupport} />
+      <SettingsAction label="Otvorite privatnu podršku" kind="secondary" disabled={busy} onPress={commands.onSupport} />
     </View>
   </SettingsGroup> : null;
 
   if (state) {
     const steps = erasure && !terminal && state.totalSteps ? { done: state.completedSteps ?? 0, total: state.totalSteps } : null;
     return <ClosureFrame onClose={commands.onClose} footer={terminal ? <>
-      <SettingsAction label="Odjavi se sa ovog uređaja" disabled={busy} loading={working === 'logout'} onPress={commands.onLogout} />
+      <SettingsAction label="Odjavite se sa ovog uređaja" disabled={busy} loading={working === 'logout'} onPress={commands.onLogout} />
       {check('quiet')}
     </> : <>
       {check('primary')}
-      <SettingsAction label="Odjavi se sa ovog uređaja" kind="quiet" disabled={busy} loading={working === 'logout'} onPress={commands.onLogout} />
+      <SettingsAction label="Odjavite se sa ovog uređaja" kind="quiet" disabled={busy} loading={working === 'logout'} onPress={commands.onLogout} />
     </>}>
       {header}{note}
       <SettingsGroup title={terminal ? 'Završene radnje' : 'Obrada je u toku'}><View style={s.block}>
@@ -166,7 +166,7 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
   if (intent) {
     // An unconfirmed command: the same key waits for a read, and a replay is offered only once the read finds it absent.
     const replay = absent ? intent.kind === 'START'
-      ? <DangerAction label="Pošalji zahtev za zatvaranje ponovo" busy={busy} loading={working === 'retry'} onPress={commands.onRetry} />
+      ? <DangerAction label="Pošaljite zahtev za zatvaranje ponovo" busy={busy} loading={working === 'retry'} onPress={commands.onRetry} />
       : <SettingsAction label="Pripremi ponovo" kind="secondary" disabled={busy} loading={working === 'retry'} onPress={commands.onRetry} /> : null;
     return <ClosureFrame onClose={commands.onClose} footer={replay ? <>{replay}{check('quiet')}</> : check('primary')}>
       {header}{note}{exceptions}{retention}
@@ -179,8 +179,8 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
     const policyMissing = ready.code === 'CLOSURE_POLICY_NOT_READY';
     return <ClosureFrame onClose={commands.onClose} footer={preparation ? <>
       <SettingsAction label="Pripremi pregled" disabled={busy} loading={working === 'prepare'} onPress={commands.onPrepare} />
-      {check('quiet', 'Proveri ponovo')}
-    </> : check('secondary', 'Proveri ponovo')}>
+      {check('quiet', 'Proverite ponovo')}
+    </> : check('secondary', 'Proverite ponovo')}>
       {header}{note}
       <T variant="copy">{policyMissing ? (erasure ? 'Provereni postupak zatvaranja trenutno nije dostupan. Sačuvani podaci nisu označeni kao obrisani.'
         : 'Zatvaranje naloga trenutno nije dostupno. Potpuna pravila zatvaranja i čuvanja još nisu objavljena.')
@@ -213,7 +213,7 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
     {/* At the end of the scroll, not pinned: the consequences above are passed on the way to it. The command is the very last
         thing; the quiet refresh stands above it, so nothing follows the irreversible step. */}
     <View style={s.end}>
-      {check('quiet', 'Osveži pregled')}
+      {check('quiet', 'Osvežite pregled')}
       <DangerAction label="Pokreni zatvaranje naloga" busy={busy} loading={working === 'start'} onPress={commands.onAskStart} />
     </View>
   </ClosureFrame>;

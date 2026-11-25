@@ -5,7 +5,7 @@ import { poruka } from '../system/Poruka';
 
 /**
  * What a block or an unblock says when the server has confirmed it, and how it is put back (UI/UX pass 2026-10-07, plan 2.3:
- * "Blokiraj osobu" and "Odblokiraj" end in the one outcome bar with a "Vrati" beside it, because each is the undo of the
+ * "Blokirajte osobu" and "Odblokirajte" end in the one outcome bar with a "Vratite" beside it, because each is the undo of the
  * other). Both places that change a block, the safety screen and the list of blocked people, say it the same way.
  */
 export const blockWords = {
@@ -16,14 +16,14 @@ export const blockWords = {
   unconfirmed: 'Ne znamo da li je promena sačuvana. Osveži pa pokušaj ponovo.',
 } as const;
 
-/** The account that made the change. A "Vrati" pressed after the account changed under the bar does nothing at all. */
+/** The account that made the change. A "Vratite" pressed after the account changed under the bar does nothing at all. */
 export type BlockOwner = { accountId: string; accountRevision: number };
 type Receipt = Pick<AccountBlockReceipt, 'targetAccountId' | 'blocked' | 'revision'>;
 
 const sameOwner = (owner: BlockOwner) => sesijaSada().user?.id === owner.accountId && sesijaSada().accountRevision === owner.accountRevision;
 
 /**
- * Says a confirmed change in the outcome bar, with "Vrati". `text` is the sentence (the list of blocked people names the
+ * Says a confirmed change in the outcome bar, with "Vratite". `text` is the sentence (the list of blocked people names the
  * person it removed); the haptic tick is the bar's own and goes with `confirmed`, which this is: the receipt is the server's
  * word. The undo is one new revisioned command from the receipt's revision (the server refuses it if the block moved on in
  * between), with a request id of its own; `onSettled` runs when it is over, whatever came of it, so the screen can read again.
@@ -34,7 +34,7 @@ export function announceBlockChange(receipt: Receipt, owner: BlockOwner,
   // Without this check, a completed request can announce success on another user's screen.
   if (!sameOwner(owner) || (stillCurrent && !stillCurrent())) return;
   poruka.show({ text: text ?? (receipt.blocked ? blockWords.saved : blockWords.removed), confirmed: true,
-    action: { label: 'Vrati', onPress: () => { void putBack(receipt, owner, onSettled, stillCurrent); } } });
+    action: { label: 'Vratite', onPress: () => { void putBack(receipt, owner, onSettled, stillCurrent); } } });
 }
 
 async function putBack(receipt: Receipt, owner: BlockOwner, onSettled?: () => void, stillCurrent?: () => boolean): Promise<void> {

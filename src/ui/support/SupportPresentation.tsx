@@ -191,7 +191,7 @@ export function SupportTopicDisclosure({ selectedLabel, expanded, disabled, onTo
 }) {
   return <View>
     <Press accessibilityRole="button" accessibilityLabel="Tema zahteva" accessibilityValue={{ text: selectedLabel }}
-      accessibilityHint={expanded ? 'Zatvorite izbor teme.' : 'Prikaži teme zahteva.'}
+      accessibilityHint={expanded ? 'Zatvorite izbor teme.' : 'Prikažite teme zahteva.'}
       accessibilityState={{ expanded, disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={sys.motion.scale.row}
       onPress={() => { if (!disabled) onToggle(); }}
       style={supportStyles.topicToggle}>

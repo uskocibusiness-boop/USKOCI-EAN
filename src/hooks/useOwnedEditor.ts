@@ -32,7 +32,7 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
     scope.loaded = false;
     setLoading(true);
     setError(null);
-    // Not `setData(null)` here. Pressing "Osveži" or "Proveri stanje" used to empty the screen and
+    // Not `setData(null)` here. Pressing "Osvežite" or "Proverite stanje" used to empty the screen and
     // then draw it again, which on a phone reads as having deleted the thing you were looking at.
     // A change of account or intent is what makes a previous read worthless, and that is the identity
     // guard above and the reset in the identity effect — both still clear everything. Whether this
@@ -70,7 +70,7 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
     setBusy(false); setSaved(false);
     if (changed) { setUncertain(false); setData(null); }
     if (accountId) void refresh();
-    else { setLoading(false); setError('Prijavi se da urediš podatke.'); }
+    else { setLoading(false); setError('Prijavite se da urediš podatke.'); }
     return () => {
       if (owner.current !== scope) return;
       owner.current = null;

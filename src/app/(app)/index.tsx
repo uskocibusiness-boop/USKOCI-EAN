@@ -116,7 +116,7 @@ function Home() {
     else if (target.kind === 'OPPORTUNITY') router.navigate({ pathname: '/prilike/[id]', params: { id: target.needId } });
     else if (target.kind === 'CANDIDATES') router.navigate({ pathname: '/potrebe/[id]/kandidati', params: { id: target.needId } });
     else if (target.kind === 'AGREEMENT') router.navigate({ pathname: '/dogovor/[id]', params: { id: target.agreementId } });
-    // R02: the form of Izmene Dogovora that proposes a term, the same one its "···" menu opens ("Izmeni uslove").
+    // R02: the form of Izmene Dogovora that proposes a term, the same one its "···" menu opens ("Izmenite uslove").
     else if (target.kind === 'AGREEMENT_TERM') router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: target.agreementId, start: 'propose' } });
     // The other side's proposal waits for my answer: the changes screen, where it is shown.
     else if (target.kind === 'AGREEMENT_CHANGE') router.navigate({ pathname: '/dogovor/[id]/izmene', params: { id: target.agreementId } });

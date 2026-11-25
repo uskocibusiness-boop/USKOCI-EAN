@@ -45,11 +45,11 @@ export function ConversationChannels({ context, selected, disabled = false, erro
     <Segmented value={selected} options={[{ key: 'group', label: 'Svi učesnici', disabled }, { key: 'private', label: 'Privatno', disabled }]}
       onChange={key => { if (!disabled) { if (key === 'group') onGroup(); else openPrivate(); } }} />
     {selected === 'private' && context.group.role === 'REQUESTER' && (choices.length > 1 || !!context.group.managementNextId)
-      ? <V2Action label="Promeni privatni razgovor" kind="quiet" compact disabled={disabled} onPress={openPrivate} /> : null}
+      ? <V2Action label="Promenite privatni razgovor" kind="quiet" compact disabled={disabled} onPress={openPrivate} /> : null}
     {choosing ? <ActionSheet title="Privatna poruka" actions={actions} onClose={() => { setChoosing(false); onPickerVisibilityChange?.(false); }} reduced={reduced} /> : null}
     {selected === 'group' ? <T variant="meta" tone="muted">Ove poruke vide svi učesnici zadatka.</T> : null}
     {error ? <View><T variant="meta" tone="muted" accessibilityLiveRegion="polite">Nisu učitani svi privatni razgovori.</T>
-      {onMore ? <V2Action label="Pokušaj ponovo" kind="quiet" compact disabled={disabled} onPress={onMore} /> : null}</View> : null}
+      {onMore ? <V2Action label="Pokušajte ponovo" kind="quiet" compact disabled={disabled} onPress={onMore} /> : null}</View> : null}
   </View>;
 }
 const s = StyleSheet.create({ channel: { gap: sys.space.sm } });

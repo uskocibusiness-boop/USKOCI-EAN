@@ -33,14 +33,14 @@ export type OutcomeUncertainProps = {
 /**
  * "We do not know whether it worked" (UI/UX pass 2026-10-08, F8b; text revision 2026-10-07, finding 4). The app sent something (a
  * prijava, a task, a message, a cancellation), no answer came back, and it cannot say whether it was saved. About 350 sentences told
- * that in the engine's words ("ishod nije potvrđen", "sačuvano stanje", "zahtev") and 36 buttons offered it ("Proveri ishod", "Učitaj
- * sačuvano stanje", "Osveži stanje"). It is one part now: an honest title that says what is not known, one sentence that says why, and
- * ONE button, "Proveri", that reads the state again. The words are `outcomeCopy.ts`.
+ * that in the engine's words ("ishod nije potvrđen", "sačuvano stanje", "zahtev") and 36 buttons offered it ("Proverite ishod", "Učitajte
+ * sačuvano stanje", "Osvežite stanje"). It is one part now: an honest title that says what is not known, one sentence that says why, and
+ * ONE button, "Proverite", that reads the state again. The words are `outcomeCopy.ts`.
  *
  * Honesty is the whole job. The title never says "Nije uspelo" (the app does not know that), the sentence promises nothing it cannot know
  * ("neće se poslati dvaput" is for the flow to add, when it is sure), and while it is not known the thing that was sent cannot be sent again:
- * the way to a second attempt is what the check finds ("it did not arrive"), and that screen is the flow's. A second send beside "Proveri"
- * is the double that this state exists to prevent, so the one quiet action is a way OUT (back, edit), never "Pošalji ponovo".
+ * the way to a second attempt is what the check finds ("it did not arrive"), and that screen is the flow's. A second send beside "Proverite"
+ * is the double that this state exists to prevent, so the one quiet action is a way OUT (back, edit), never "Pošaljite ponovo".
  *
  * Two shapes, one meaning. `screen` takes the screen's place (the state view, grey picture, alert). `inline` is a `note` in the warning tint
  * with the title, the button and, only when the flow passes one, a sentence; its button is the secondary one (white, green words), because a

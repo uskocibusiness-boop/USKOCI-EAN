@@ -56,7 +56,7 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
       onPress={() => { if (photos.canContinue()) back(); }} />
   </FlowFooter>;
   return <Screen kind="detail" header={<DetailTopBar title="Fotografije zadatka" onBack={back} />} footer={footer}>
-    {!conversationId ? <StateView kind="error" art="photo" title="Fotografije nisu dostupne" body="Otvori fotografije iz razgovora o zadatku." />
+    {!conversationId ? <StateView kind="error" art="photo" title="Fotografije nisu dostupne" body="Otvorite fotografije iz razgovora o zadatku." />
       : photos.readError ? <StateView kind="error" art="photo" title={cannotLoad('fotografije').title} body={photos.message ?? cannotLoad('fotografije').copy}
         primary={{ label: OUTCOME_ACTION.retry, onPress: () => { void photos.refresh(); } }} />
       : <>
@@ -72,7 +72,7 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
             <TaskPhotoRecovery photos={photos} align="start" />
           </View>
         </Section> : <TaskPhotoRecovery photos={photos} align="start" />}
-        {photos.loaded && !tiles.length ? <StateView kind="empty" art="photo" title="Još nema fotografija" body="Dodaj ih dugmetom ispod." /> : null}
+        {photos.loaded && !tiles.length ? <StateView kind="empty" art="photo" title="Još nema fotografija" body="Dodajte ih dugmetom ispod." /> : null}
         {photos.busy && !photos.loaded && !photos.message ? <PhotosLoading /> : null}
       </>}
     <PhotosPrivacyNote limits={photoLimits('TASK')} />

@@ -29,7 +29,7 @@ type Item = { type: 'heading'; group: ArchiveGroup } | { type: 'row'; entry: Arc
 /** What a row says it opens (a Dogovor without a title is not called confirmed: it is over). */
 function nameOf(entry: ArchiveEntry): string {
   const noun = entry.kind === 'dogovor' ? 'Dogovor' : entry.kind === 'zadatak' ? 'zadatak' : 'prijavu';
-  return entry.title ? `Otvori ${noun} ${entry.title}` : `Otvori ${noun}`;
+  return entry.title ? `Otvorite ${noun} ${entry.title}` : `Otvorite ${noun}`;
 }
 
 /**
@@ -66,12 +66,12 @@ export function ArchiveScreen({ agreements, needs, applications, refreshing, onB
   const everythingFailed = sources.every(source => source.state === 'error');
   const notes = failed.length ? <View style={s.notes}>
     <View style={s.noteLines}>{failed.map(line => <T key={line} variant="note" tone="muted">{line}</T>)}</View>
-    <V2Action label="Pokušaj ponovo" kind="quiet" compact onPress={onRetry} />
+    <V2Action label="Pokušajte ponovo" kind="quiet" compact onPress={onRetry} />
   </View> : null;
 
   let empty: ReactNode;
-  if (everythingFailed) empty = <StateView kind="error" art="document" title="Arhiva nije učitana." body="Proveri vezu pa probaj ponovo."
-    primary={{ label: 'Pokušaj ponovo', onPress: onRetry }} />;
+  if (everythingFailed) empty = <StateView kind="error" art="document" title="Arhiva nije učitana." body="Proverite vezu pa probaj ponovo."
+    primary={{ label: 'Pokušajte ponovo', onPress: onRetry }} />;
   // Never say the archive is empty before every read it is made of has answered.
   else if (loading) empty = <>
     <QuietReadState art="document" title="Učitavamo arhivu…" body="Proveravamo završene Dogovore, zadatke i prijave." />

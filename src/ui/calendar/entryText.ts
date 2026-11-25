@@ -21,8 +21,8 @@ export function entryTime(entry: PlannerEntry, day: string): string | null {
  * be finished or waiting, so it is not called confirmed (review of owner step 10).
  */
 export function entryOpens(entry: PlannerEntry): string {
-  return entry.title ? `Otvori Dogovor ${entry.title}`
-    : entry.fallbackTitle === SCHEDULE_FALLBACK_TITLE ? 'Otvori Dogovor sa potvrđenim terminom' : 'Otvori Dogovor';
+  return entry.title ? `Otvorite Dogovor ${entry.title}`
+    : entry.fallbackTitle === SCHEDULE_FALLBACK_TITLE ? 'Otvorite Dogovor sa potvrđenim terminom' : 'Otvorite Dogovor';
 }
 
 /**

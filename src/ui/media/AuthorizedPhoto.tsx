@@ -66,7 +66,7 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
     request.current?.abort.abort();
     const attempt: PhotoAttempt = { visit, binding, abort: new AbortController(), phase: 'loading' };
     request.current = attempt;
-    // The person's own photograph, when it is remembered under this exact key, is the answer: nothing is read. Only a press on "Pokušaj ponovo" asks again.
+    // The person's own photograph, when it is remembered under this exact key, is the answer: nothing is read. Only a press on "Pokušajte ponovo" asks again.
     const known = scope && !retry ? ownPhotoCache.image(scope, profileKey, p.assetId) : undefined;
     if (known) { attempt.phase = 'image'; setState({ attempt, uri: known }); return; }
     const sessionKnown = canRemember ? inMemoryPhotoCache.get(binding) : undefined;
@@ -124,11 +124,11 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
       // The entire failure frame is the target: a separate button below the old
       // multi-line notice would be clipped in the 96px prepared-photo thumbnail.
       : shown?.attempt.phase === 'failed' ? p.unavailable ?? <Press accessibilityRole="button"
-        accessibilityLabel={`Pokušaj ponovo · ${p.label}`} accessibilityHint="Fotografija trenutno nije dostupna. Ponovo učitaj fotografiju."
+        accessibilityLabel={`Pokušajte ponovo · ${p.label}`} accessibilityHint="Fotografija trenutno nije dostupna. Ponovo učitaj fotografiju."
         onPress={() => read(shown.attempt.visit, shown.attempt)}
         style={{ width: '100%', height: '100%', minHeight: 48, alignItems: 'center', justifyContent: 'center', gap: sys.space.xs, padding: sys.space.xs }}>
         <FactArt kind="photo" size={24} muted />
-        <T variant="note" style={{ color: sys.color.green, textAlign: 'center' }}>Pokušaj ponovo</T>
+        <T variant="note" style={{ color: sys.color.green, textAlign: 'center' }}>Pokušajte ponovo</T>
       </Press>
         : p.pending ? <View accessible accessibilityLabel="Učitavanje fotografije" accessibilityState={{ busy: true }}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>

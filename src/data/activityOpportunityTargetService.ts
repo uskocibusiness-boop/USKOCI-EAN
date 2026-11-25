@@ -27,7 +27,7 @@ export function createActivityOpportunityTargetService(rpc:Rpc) {
   async resolve(eventId:string,options:{signal?:AbortSignal}={},scope?:ReceiptAccount):Promise<Ishod<ActivityOpportunityTarget>> {
    const session=sesijaSada();
    const account=scope??(session.user?{accountId:session.user.id,accountRevision:session.accountRevision}:null);
-   if(!account || !uuid(account.accountId)) return failure('AUTH_REQUIRED','Prijavi se da nastaviš.');
+   if(!account || !uuid(account.accountId)) return failure('AUTH_REQUIRED','Prijavite se da nastaviš.');
    if(session.user?.id!==account.accountId || session.accountRevision!==account.accountRevision)
     return failure('AUTH_ACCOUNT_CHANGED','Nalog je promenjen. Ponovo otvori zadatak.');
    if(!uuid(eventId)) return failure('ACTIVITY_OPPORTUNITY_INPUT_INVALID','Obaveštenje nije dostupno.');

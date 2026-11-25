@@ -7,7 +7,7 @@ type Props = { value: Date; onSelect: (date: Date) => void; onDismiss: () => voi
 export function CivilTimeDialog({ value, onSelect, onDismiss }: Props) {
   return <Host colorScheme="light" seedColor={sys.color.green}>
     <TimePickerDialog initialDate={value.toISOString()} is24Hour color={sys.color.green}
-      confirmButtonLabel="Izaberi" dismissButtonLabel="Odustani"
+      confirmButtonLabel="Izaberite" dismissButtonLabel="Odustanite"
       onDateSelected={onSelect} onDismissRequest={onDismiss}
       elementColors={{
         clockDialColor: sys.color.wash,

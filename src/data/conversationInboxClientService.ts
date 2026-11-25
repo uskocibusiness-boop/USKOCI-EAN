@@ -97,7 +97,7 @@ export type ConversationInboxPort = Readonly<{
 }>;
 export type ConversationInboxRpc = (name: string, args: Record<string, unknown>, signal?: AbortSignal) => PromiseLike<unknown>;
 const errors = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.', AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvori Poruke.',
+  AUTH_REQUIRED: 'Prijavite se da nastaviš.', AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvori Poruke.',
   ACCOUNT_CLOSING: 'Nalog se zatvara. Razgovori nisu dostupni.',
   INBOX_CURSOR_INVALID: 'Lista razgovora je promenjena. Osveži Poruke.',
   INBOX_LIMIT_INVALID: 'Lista razgovora nije dostupna.',

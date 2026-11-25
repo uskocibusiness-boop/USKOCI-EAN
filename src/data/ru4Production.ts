@@ -17,7 +17,7 @@ const isoInstant = (value: unknown): value is string => typeof value === 'string
 // PKG-036: audited against the live remaining-search writer. Keep the retry-key
 // wording local: a close-search command is not an application/offer command.
 const remainingSearchErrors: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  AUTH_REQUIRED: 'Prijavite se da nastaviš.',
   ACCOUNT_CLOSING: 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.',
   NEED_ID_REVISION_REQUIRED: 'Ponovo otvori zadatak i pregledaj aktuelne podatke.',
   CLIENT_REQUEST_ID_INVALID: 'Zahtev nije spreman. Ponovo otvori zadatak.',

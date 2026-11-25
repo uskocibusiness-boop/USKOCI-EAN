@@ -162,7 +162,7 @@ export const HOME_WAITING_LIMIT = 4;
 export const DRAFT_FRESH_DAYS = 7;
 
 /**
- * Whether a draft is recent enough to be offered as "Nastavi nacrt" (R18). The owner read includes an update instant when its
+ * Whether a draft is recent enough to be offered as "Nastavite nacrt" (R18). The owner read includes an update instant when its
  * receipt is valid. An older reader can still omit it: unknown age is never presented as an old draft.
  */
 export function draftIsFresh(updatedAt: string | null | undefined, now: number): boolean {
@@ -257,7 +257,7 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
   const attention: HomeAttention[] = serverAttention
     ? serverAttention.kind === 'known' ? serverAttention.value.rows : [] : [
     ...(agreements ?? []).filter(row => row.stanje === 'AWAITING_REQUESTER' && mySide(row) === 'narucilac').map(row => ({
-      id: `agreement:${row.id}:confirm`, title: 'Potvrdi završetak', detail: `${row.naslov} · završetak je označen i čeka Vašu potvrdu`,
+      id: `agreement:${row.id}:confirm`, title: 'Potvrdite završetak', detail: `${row.naslov} · završetak je označen i čeka Vašu potvrdu`,
       target: { kind: 'AGREEMENT' as const, agreementId: row.id } })),
     ...(agreements ?? []).filter(row => activeAgreement(row) && row.problemOtvoren).map(row => ({
       id: `agreement:${row.id}:problem`, title: 'Prijavljen je problem', detail: `${row.naslov} · automatski završetak je zaustavljen`,

@@ -222,7 +222,7 @@ export function createNativeVoiceRecorder(): VoiceRecorderPort {
         if (permission.granted) return 'granted';
         if (!permission.canAskAgain) return 'blocked';
         // The system is about to ask: say why first (design proposal N). "Ne sada" asks it nothing. The person may let go of the
-        // button while reading the question, which retires this attempt (`epoch`) but not their answer, so "Dozvoli" still
+        // button while reading the question, which retires this attempt (`epoch`) but not their answer, so "Dozvolite" still
         // reaches the system's window and the next hold finds the permission given; only the app being left stops it.
         // With nothing to draw the question, nothing changes at all.
         if (permissionAsk.hasHost()) {

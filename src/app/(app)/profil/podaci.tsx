@@ -21,8 +21,8 @@ import { rememberAiCorrection } from '../../../data/aiCorrectionIntent';
 import { T } from '../../../ui/Text';
 
 /**
- * Lični podaci (T4a, 2026-10-07; "Izmeni profil" until the product draft the owner approved on 8 Oct 2026, P2). The pencil on the profile opens this, and it
- * is more than the name: the photo (the screen that already exists), the name (one field; its "Sačuvaj" stands in the bar and only once the name has changed),
+ * Lični podaci (T4a, 2026-10-07; "Izmenite profil" until the product draft the owner approved on 8 Oct 2026, P2). The pencil on the profile opens this, and it
+ * is more than the name: the photo (the screen that already exists), the name (one field; its "Sačuvajte" stands in the bar and only once the name has changed),
  * "O meni" and the city (the work profile's, shown as written and opened where they are changed) and, in one sentence, what other people can see. The name is
  * the only thing saved HERE, by the same revision-bound save as before; nothing else is written from this screen, and no text is made up for a part that is
  * empty.
@@ -30,7 +30,7 @@ import { T } from '../../../ui/Text';
  * ONE NAME (owner, 8 Oct 2026, "Može, dobro vam jedno ime za sve."): this is the one place the person's name is changed, and a save writes it twice,
  * in this order: the account's name (`rpc_save_requester_profile`, revision-bound, as before) and, only if that is confirmed and the account has a work
  * profile, the same name into the work profile through its existing writer, read back (`writeWorkName`). If the second write does not take, the screen
- * says so ("Ime je sačuvano na nalogu, ali nije upisano u radni profil.") with "Pokušaj ponovo", which repeats ONLY the second write.
+ * says so ("Ime je sačuvano na nalogu, ali nije upisano u radni profil.") with "Pokušajte ponovo", which repeats ONLY the second write.
  */
 export default function PersonalProfile() {
   const { user, accountRevision } = useSesija();
@@ -45,7 +45,7 @@ function OwnedPersonalProfile() {
     revision: editor.data?.revision ?? null, onBack: () => router.canGoBack() ? router.back() : router.replace('/profil') });
   const check = () => { void editor.refresh(); };
   const [workNameFailed, setWorkNameFailed] = useState(false), [retrying, setRetrying] = useState(false), retryingRef = useRef(false);
-  // The bar's "Sačuvaj": reported by the name form, drawn here, there only while the name differs from the saved one.
+  // The bar's "Sačuvajte": reported by the name form, drawn here, there only while the name differs from the saved one.
   const [nameSave, setNameSave] = useState<NameSaveControl | null>(null);
   // "O meni" and the work area's city belong to the work profile, so they are read the way the work profile screen reads it.
   const izvor = useIzvor();

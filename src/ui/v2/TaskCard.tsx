@@ -33,7 +33,7 @@ function TaskCardBase({ item, onOpen, relation, sectionSays, portrait, style }: 
   style?: StyleProp<ViewStyle>;
 }) {
   const model = useTaskRecord(item, relation, sectionSays);
-  return <Surface kind="record" onPress={onOpen} style={style} accessibilityLabel={`Otvori zadatak ${model.title}. ${model.spoken}`}>
+  return <Surface kind="record" onPress={onOpen} style={style} accessibilityLabel={`Otvorite zadatak ${model.title}. ${model.spoken}`}>
     <View pointerEvents="none">
       <TaskRecordBody model={model} portrait={portrait} />
     </View>

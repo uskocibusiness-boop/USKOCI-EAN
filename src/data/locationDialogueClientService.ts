@@ -23,7 +23,7 @@ export async function resolveLocationDialogue(
     return failure('LOCATION_DIALOGUE_INVALID', 'Ponovo proveri lokaciju i poruku.');
   }
   const owner = sesijaSada();
-  if (!owner.user?.id) return failure('AUTH_REQUIRED', 'Prijavi se da nastaviš.');
+  if (!owner.user?.id) return failure('AUTH_REQUIRED', 'Prijavite se da nastaviš.');
   const account = { accountId: owner.user.id, accountRevision: owner.accountRevision };
   const body: LocationDialogueRequest = { mode: 'locationReply', conversationId: request.conversationId,
     clientRequestId: request.clientRequestId, text, locationContext: context };

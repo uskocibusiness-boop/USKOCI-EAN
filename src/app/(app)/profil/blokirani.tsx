@@ -15,12 +15,12 @@ export default function BlockedAccounts() {
 }
 
 /**
- * The people you block (step 11a, 2026-09-24; UI/UX pass 2026-10-07): each is a person row with their own "Odblokiraj",
+ * The people you block (step 11a, 2026-09-24; UI/UX pass 2026-10-07): each is a person row with their own "Odblokirajte",
  * asked once in the centred dialog (the person's name in its title and what follows in one sentence) before the command
  * goes. Opening the person still leads to the private report and the block itself. The unblock is the existing
  * revisioned, idempotent command: one request id per blocked revision, reused when the same unblock is tried again, and
  * nothing else is sent until the list has been read again after a refused or unknown outcome. The confirmed outcome is
- * said in the one outcome bar with "Vrati", which blocks the person again.
+ * said in the one outcome bar with "Vratite", which blocks the person again.
  */
 function OwnedBlocks() {
   const { user, accountRevision } = useSesija(), accountId = user?.id;
@@ -91,7 +91,7 @@ function OwnedBlocks() {
       });
   }
   const askUnblock = (item: BlockedAccount) => confirmation.ask({ title: item.displayName ? `Odblokirati ${item.displayName}?` : 'Odblokirati osobu?',
-    message: 'Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.', confirmLabel: 'Odblokiraj',
+    message: 'Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.', confirmLabel: 'Odblokirajte',
     onConfirm: () => unblock(item) });
   // The list is read again by pulling the screen (the spinner is the pull's own), not by a button on an empty screen.
   return <SettingsScreen title="Blokirane osobe" onBack={() => router.canGoBack() ? router.back() : router.replace('/profil')}

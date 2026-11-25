@@ -39,9 +39,9 @@ import { SearchSheet } from './SearchSheet';
 export type PanelMode = 'search' | 'filters';
 export type { ConfirmedMapPlace } from '../../../data/confirmedDiscoveryMapPlace';
 
-/** Everything the search panel chooses, as a draft: in the filters nothing reaches the list before "Prikaži N zadataka". */
+/** Everything the search panel chooses, as a draft: in the filters nothing reaches the list before "Prikažite N zadataka". */
 export type SearchDraft = { query: string; place: string | null; area: PublicBounds | null;
-  /** One public point the list is narrowed to (a place's "Prikaži sve u listi"); any other "Gde" choice replaces it. */
+  /** One public point the list is narrowed to (a place's "Prikažite sve u listi"); any other "Gde" choice replaces it. */
   pinPlace: string | null;
   when: WhenFilter; dates: DateRange | null; where: WhereFilter; places: number; price: MarketplaceView['price'];
   /** P6 only. With "Oba", offers remain visible and this applies to fixed prices. */
@@ -76,7 +76,7 @@ const PRICE_OPTIONS: readonly (readonly [MarketplaceView['price'], string])[] = 
  * typed; the keyboard's search key and the green action apply the words (and the place chosen before). Nothing here filters: the conditions are the filters' own.
  *
  * The filters (U5) are a centred dialog: location, work mode, price and time, with their choices and
- * at the foot the quiet "Očisti" and the one green action, which says how many tasks the list will show (a polite live region, so the new number is heard). While the
+ * at the foot the quiet "Obrišite" and the one green action, which says how many tasks the list will show (a polite live region, so the new number is heard). While the
  * list is not known yet nothing is counted: the action says the list is being read, or that it could not be, and cannot be pressed; while only what is mine is still
  * read it applies the draft without a number. × or Back leaves the list exactly as it was.
  */
@@ -165,7 +165,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const today = serbianToday(now);
   const edit = (patch: Partial<SearchDraft>) => setDraft(current => normalize({ ...current, ...patch }));
 
-  // Once the panel has begun to leave, nothing in it is acted on again: a second "Prikaži" or × during the exit
+  // Once the panel has begun to leave, nothing in it is acted on again: a second "Prikažite" or × during the exit
   // must not apply the draft twice or close twice.
   const [leaving] = useState({ value: false });
   const chosenTask = useRef<{ item: MarketplaceItem; key: string } | null>(null);
@@ -280,17 +280,17 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     && !selectedCenter && (locationEdited || locationQuery.trim() !== (appliedMapPlace?.label ?? ''));
   const show = minPriceInvalid ? { label: 'Proverite najmanju cenu', disabled: true }
     : unconfirmedPlace ? { label: 'Izaberite potvrđeno mesto', disabled: true }
-    : centering ? { label: 'Prikaži oblast na mapi', disabled: false }
+    : centering ? { label: 'Prikažite oblast na mapi', disabled: false }
     : effectiveReadiness === 'loading' ? { label: 'Učitavamo zadatke…', disabled: true }
     : effectiveReadiness === 'error' ? { label: 'Zadaci nisu učitani', disabled: true }
-      : effectiveReadiness === 'pending' ? { label: 'Prikaži zadatke', disabled: false }
-        : count > 0 ? { label: `Prikaži ${zadataka(count)}`, disabled: false } : { label: 'Nema zadataka za ove uslove', disabled: true };
+      : effectiveReadiness === 'pending' ? { label: 'Prikažite zadatke', disabled: false }
+        : count > 0 ? { label: `Prikažite ${zadataka(count)}`, disabled: false } : { label: 'Nema zadataka za ove uslove', disabled: true };
   const emptyReason = minPriceInvalid ? 'Unesite ceo iznos od 1 do 2.147.483.647 RSD.'
     : unconfirmedPlace ? 'Pronađite mesto i izaberite predlog, ili obrišite unos.'
     : !centering && counted && count === 0 ? 'Promenite filtere ili ih očistite.' : null;
   const retryPreview = !minPriceInvalid && !unconfirmedPlace && !centering && effectiveReadiness === 'error' && p6Search
     ? () => p6Search.onDraft({ ...previewDraft, placeSearch }, mapArea) : undefined;
-  // The foot every flow has (UI/UX pass 2026-10-08): the quiet "Očisti" beside the one green action, which says how many tasks the list will show;
+  // The foot every flow has (UI/UX pass 2026-10-08): the quiet "Obrišite" beside the one green action, which says how many tasks the list will show;
   // when it cannot be pressed the reason stands in a line above it. At a large text size or a narrow window the two stand one under the other.
   const footer = <FlowFooter testID="search-footer" reason={retryPreview ? 'Zadaci nisu učitani. Vaši izbori su sačuvani.' : emptyReason ?? undefined}>
     <View testID="search-actions" style={[s.actions, stackedActions && s.actionsStacked]}>
@@ -333,7 +333,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         <SearchField testID="search-what-field" inputRef={searchInput} value={draft.query} onChangeText={query => {
           setTyping(true); setWithin(''); if (!query) setCommittedQuery(''); edit({ query });
         }} label={SEARCH_WORDS.what}
-          placeholder={SEARCH_WORDS.whatPlaceholder} clearLabel="Obriši reč" returnKeyType="search" onSubmit={() => { if (!show.disabled) apply(); }} />
+          placeholder={SEARCH_WORDS.whatPlaceholder} clearLabel="Obrišite reč" returnKeyType="search" onSubmit={() => { if (!show.disabled) apply(); }} />
       </View>
     </View>;
     return <SearchSheet key="search" reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} screen header={header} onShown={focusSearch}
@@ -361,7 +361,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
           places={rows} parts={partRows} cities={!!p6Search && DISCOVERY_V1_PLACES_BY_CITY} serverFiltered={!!p6Search} chosenPlace={draft.place} ready={counted && placesRead}
           complete={placesComplete}
           more={p6Search && serverCurrent && p6Search.snapshot.placeHasMore
-            ? { label: p6Search.snapshot.placePaging ? 'Učitavamo još mesta…' : 'Prikaži još mesta', busy: p6Search.snapshot.placePaging, onPress: p6Search.onNextPlaces } : null}
+            ? { label: p6Search.snapshot.placePaging ? 'Učitavamo još mesta…' : 'Prikažite još mesta', busy: p6Search.snapshot.placePaging, onPress: p6Search.onNextPlaces } : null}
           note={facetDown ? PLACE_WORDS.facetDown : null} onPlace={place} />
         {recent.length ? <View testID="search-recent" style={s.recent}>
           <GroupTitle>{SEARCH_WORDS.recent}</GroupTitle>
@@ -462,11 +462,11 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
       </>)}
       {onOpenSearch && view.query.trim() ? <View testID="filters-active-query" style={s.activeQuery}>
         <T variant="note" tone="muted">Aktivna pretraga: {quoted(view.query)}</T>
-        <V2Action label="Izmeni aktivnu pretragu" kind="quiet"
+        <V2Action label="Izmenite aktivnu pretragu" kind="quiet"
           onPress={() => { Keyboard.dismiss(); onOpenSearch(); }} />
       </View> : null}
       {onOpenSearch && !view.query.trim() ? <View testID="filters-keyword-search" style={s.activeQuery}>
-        <V2Action label="Pretraži po reči (npr. krečenje, selidba)" kind="secondary"
+        <V2Action label="Pretražite po reči (npr. krečenje, selidba)" kind="secondary"
           onPress={() => { Keyboard.dismiss(); onOpenSearch(); }} />
       </View> : null}
     </ScrollView>

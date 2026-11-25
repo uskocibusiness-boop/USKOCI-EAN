@@ -9,7 +9,7 @@ import { useLayoutClass } from '../system/textScale';
 import { sys } from '../system/tokens';
 
 /**
- * A contextual correction, named for screen readers ("Izmeni, Naslov"). The small drawing has a full 48 dp touch area;
+ * A contextual correction, named for screen readers ("Izmenite, Naslov"). The small drawing has a full 48 dp touch area;
  * it never competes with the primary publication action or takes a third of the text's line.
  */
 export type PartPencil = { label: string; word?: string; onPress: () => void };

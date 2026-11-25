@@ -212,7 +212,7 @@ export default function Prijava() {
           ? { ok: false, kod: 'APPLICATION_PRICE_BASIS_REVIEW_REQUIRED', poruka: 'Sačuvana prijava ima drugačiji način obračuna cene. Proverite svoje postojeće prijave.' }
           : await izvor.podnesiPrijavu(pending.command);
       }
-      // The notice names the button under it, "Proveri da li je poslato" (r6: it said "Proveri stanje").
+      // The notice names the button under it, "Proverite da li je poslato" (r6: it said "Proverite stanje").
       catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ne znamo da li je prijava stigla. Izaberite „Proverite da li je poslato“.' }; }
       finally { pending.inFlight = false; }
       if (result.ok && result.podatak.osnovaCene !== pending.applicationPriceBasis) {
@@ -266,7 +266,7 @@ export default function Prijava() {
     lines: guidance?.messages.length ? guidance.messages : ['Vaša prijava ostaje sačuvana dok proveravate profil majstora.'],
     actions: [
       ...((!refusal || guidance?.profile) ? [{ label: 'Dopunite profil majstora', onPress: () => { if (current()) router.push('/profil/radnik'); } }] : []),
-      ...(guidance?.calendar ? [{ label: 'Otvori raspored', onPress: () => { if (current()) router.push('/raspored'); } }] : []),
+      ...(guidance?.calendar ? [{ label: 'Otvorite raspored', onPress: () => { if (current()) router.push('/raspored'); } }] : []),
     ],
   } : null;
   const currentNeed = pending?.need ?? data.need;

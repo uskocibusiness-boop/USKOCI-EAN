@@ -36,7 +36,7 @@ import { PRICE_NOT_STORED, PrijavaPriceText, PrijavaState, prijavaStatusWord, ty
  *      chosen now (the server's own reasons), or, when the list is whole, that it is the lowest price or the best rating among the
  *      applications that can still be chosen. No mark when nothing is true: never a "best", never a guess;
  *   5. their message in quotes, two lines of it;
- *   6. the foot, "Izaberi", for an application that can be chosen now: the one thing to do, a target of its own under a line (the approved
+ *   6. the foot, "Izaberite", for an application that can be chosen now: the one thing to do, a target of its own under a line (the approved
  *      draft R4). It opens the application, where the choice is asked once more and made; the body opens it too.
  *
  * The state chip (Poslata, Viđena, Izabrana, Nije izabrana, Povučena) is only drawn when it says something: every application of the
@@ -278,7 +278,7 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
           {message ? <T variant="note" tone="muted" numberOfLines={2}>{message}</T> : null}
         </View> : null}
       </Press>
-      {choosable ? <RecordFoot disabled={disabled} label="Izaberi" tone="green" accessibilityLabel={`Izaberi: ${k.ime}`} accessibilityHint="Otvara prijavu, gde izbor potvrđujete."
+      {choosable ? <RecordFoot disabled={disabled} label="Izaberite" tone="green" accessibilityLabel={`Izaberite: ${k.ime}`} accessibilityHint="Otvara prijavu, gde izbor potvrđujete."
         onPress={onOpen} onPressIn={lift.give} onPressOut={lift.settle} /> : null}
     </Surface>
   </Animated.View>;
@@ -312,7 +312,7 @@ export const CandidateCompareCard = memo(function CandidateCompareCard({ candida
   const lift = usePressLift();
   return <Animated.View style={[s.column, lift.style]}>
     <Surface kind="record" style={[recordFlush, s.column, k.stanje === 'SELECTED' && s.chosen]}>
-      <Press disabled={disabled} accessibilityState={{ disabled }} accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`}
+      <Press disabled={disabled} accessibilityState={{ disabled }} accessibilityRole="button" accessibilityLabel={`Otvorite prijavu: ${k.ime}`}
         accessibilityValue={{ text: candidateSpoken(k, fallbackTime, timezone, viewed) }} accessibilityHint="Otvara celu prijavu."
         haptic="select" scaleTo={1} onPressIn={lift.give} onPressOut={lift.settle} onPress={onOpen} style={[recordBody, s.columnBody]}>
         <View style={[s.compareHead, aligned && { minHeight: compareIdentityHeight(scale) }]}>

@@ -8,7 +8,7 @@ import type { ConfirmedPlaceEntry } from './placeText';
 /**
  * A confirmed place as ONE line of the conversation (owner, phone test 2026-10-07: "To ostane u četu i ide gore sa drugim
  * porukama"). It replaces the block that stayed docked above the composer ("Mesto je potvrđeno", the provider's whole label,
- * "Mapa", "Izmeni"): street and number in bold, then the place, and one tap reopens the map. The whole label stays in the
+ * "Mapa", "Izmenite"): street and number in bold, then the place, and one tap reopens the map. The whole label stays in the
  * spoken name. Nothing here saves or moves a point, and nothing animates.
  */
 export function ConfirmedPlaceLine({ entries, onEdit, announce = false, testID = 'confirmed-place-line' }: {

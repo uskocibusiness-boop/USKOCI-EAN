@@ -21,8 +21,8 @@ export const missingPeople = nedostajeOsoba;
  * Nothing here asks the server anything.
  *
  * Nothing is invented. A word the read cannot support is not drawn:
- * - "Bira se · N" and "Pogledaj prijave" need the server's own count of applications to choose among; an unknown count says
- *   "Pogledaj prijave" over the total the read has and never a number it does not;
+ * - "Bira se · N" and "Pogledajte prijave" need the server's own count of applications to choose among; an unknown count says
+ *   "Pogledajte prijave" over the total the read has and never a number it does not;
  * - "Dogovor je otkazan" is said ONLY when it is certain. The search state counts every Dogovor and the places the live ones cover;
  *   a completed Dogovor covers places and a cancelled one does not, so a task that has Dogovori and covers NO place has only
  *   cancelled ones. With a place covered the same two counts cannot tell a cancelled Dogovor from a completed one, and the page
@@ -105,8 +105,8 @@ export function ownTaskOverview(input: {
     const primary: OverviewPrimary | null = !held ? { kind: 'REVIEW', label: 'Pregledaj za objavu' }
       : waits ? null
         // The place and the country are fixed where they are asked, in the conversation. The copy of every other answer sends the
-        // owner to the review ("Otvori pregled da vidiš šta nedostaje"), which lists what is missing.
-        : code && FIX_CODES.has(code) ? { kind: 'EDIT', label: 'Otvori razgovor i dopuni' }
+        // owner to the review ("Otvorite pregled da vidiš šta nedostaje"), which lists what is missing.
+        : code && FIX_CODES.has(code) ? { kind: 'EDIT', label: 'Otvorite razgovor i dopuni' }
           : { kind: 'REVIEW', label: 'Pregledaj za objavu' };
     // The chip says "Nacrt" and the one action says what to do with it: a sentence about the draft would say the same a third time.
     return { chip: standing.chip, notice: null, line: null, applicants: 0, note: null, primary, waits,
@@ -139,7 +139,7 @@ export function ownTaskOverview(input: {
   } else if (canLook) {
     primary = { kind: 'CANDIDATES', label: 'Pogledajte prijave', spoken: `Pogledajte prijave, ukupno ${prijave(total)}` };
   } else if (need.stanje !== 'ZATVORENA' && popunjeno > 0 && input.canOpenAgreements) {
-    primary = { kind: 'AGREEMENTS', label: live > 1 ? 'Otvori Dogovore' : 'Otvori Dogovor' };
+    primary = { kind: 'AGREEMENTS', label: live > 1 ? 'Otvorite Dogovore' : 'Otvorite Dogovor' };
   }
   if (input.overridden) primary = null;
 
@@ -204,7 +204,7 @@ export type NoApplicationsHelpAction = 'PHOTO' | 'WIDEN_TERM' | 'SHARE' | 'EDIT'
 export type NoApplicationsHelp = { sentence: string; actions: readonly NoApplicationsHelpAction[] };
 /** The words of each button. */
 export const NO_APPLICATIONS_HELP_LABEL: Readonly<Record<NoApplicationsHelpAction, string>> = {
-  PHOTO: 'Dodaj fotografiju', WIDEN_TERM: 'Proširi termin', SHARE: 'Podeli zadatak', EDIT: 'Izmeni zadatak',
+  PHOTO: 'Dodajte fotografiju', WIDEN_TERM: 'Proširi termin', SHARE: 'Podelite zadatak', EDIT: 'Izmenite zadatak',
 };
 const HOUR_MICROS = 3_600_000_000n;
 

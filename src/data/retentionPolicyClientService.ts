@@ -2,7 +2,7 @@ import type { RetentionExecutionStatus, RetentionPolicyStatus, RetentionRule } f
 import type { Ishod } from './ports';
 import { readReceipt, record, timestamp } from './serverReceipt';
 
-const errors = { AUTH_REQUIRED: 'Prijavi se da vidiš rokove čuvanja podataka.' };
+const errors = { AUTH_REQUIRED: 'Prijavite se da vidiš rokove čuvanja podataka.' };
 const classCode = (value: unknown): value is string => typeof value === 'string' && /^[A-Z][A-Z0-9_]{2,79}$/.test(value);
 const count = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 2_147_483_647;
 function text(value: unknown, min: number, max: number): value is string {

@@ -70,7 +70,7 @@ export function AuthField({
         onBlur={() => { setFocused(false); reveal.blur(box); onBlur?.(); }}
         style={[field, secure && s.withEye, focused && s.focused, !!error && s.invalid, !editable && s.disabled]} />
       {secure ? <Press accessibilityRole="button" disabled={!editable} accessibilityState={{ disabled: !editable }}
-        accessibilityLabel={shown ? 'Sakrij lozinku' : 'Prikaži lozinku'} haptic="select" hitSlop={0}
+        accessibilityLabel={shown ? 'Sakrijte lozinku' : 'Prikažite lozinku'} haptic="select" hitSlop={0}
         onPress={() => setShown(value => !value)} style={s.eye}>
         <Glyph name={shown ? 'eye-off' : 'eye'} size={20} tone="muted" />
       </Press> : null}

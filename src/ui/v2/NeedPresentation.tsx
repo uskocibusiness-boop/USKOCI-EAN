@@ -149,7 +149,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const entries = (props.lifecycleMenu ?? []).filter(entry => !(entry.key === 'agreements' && (agreementsOffered || !!props.onAgreements))
     && !(entry.key === 'delete-draft' && !!props.onDeleteDraft));
   const menuActions: SheetAction[] = usable && need ? [
-    ...(props.onShare && !draft ? [{ key: 'share', label: 'Podeli zadatak', icon: 'send' as const, onPress: props.onShare }] : []),
+    ...(props.onShare && !draft ? [{ key: 'share', label: 'Podelite zadatak', icon: 'send' as const, onPress: props.onShare }] : []),
     ...entries.map(entry => ({
       key: entry.key,
       label: entry.label,
@@ -173,9 +173,9 @@ export function NeedPresentation(props: NeedPresentationProps) {
   const menu = useDetailMenu(menuActions, { disabled: busy });
 
   const editControl = editable || editableDraftDeletion || menu.button ? <View style={s.headerActions}>
-    {editable ? <ChromeIconButton label={draft ? 'Izmeni nacrt' : 'Izmeni zadatak'} glyph="edit"
+    {editable ? <ChromeIconButton label={draft ? 'Izmenite nacrt' : 'Izmenite zadatak'} glyph="edit"
       hint="Otvara izmenu kroz razgovor." disabled={busy} onPress={props.onEdit} /> : null}
-    {editableDraftDeletion ? <ChromeIconButton label="Obriši nacrt" glyph="trash" tone="danger"
+    {editableDraftDeletion ? <ChromeIconButton label="Obrišite nacrt" glyph="trash" tone="danger"
       hint="Otvara potvrdu brisanja nacrta." disabled={busy} onPress={props.onDeleteDraft!} /> : null}
     {menu.button}
   </View> : undefined;
@@ -197,8 +197,8 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {props.lifecycleActions}
       </View>
         : !need ? <>
-          <StateView kind="error" art="tasks" title="Zadatak nije dostupan" body={error ?? 'Pokušaj ponovo.'}
-            primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
+          <StateView kind="error" art="tasks" title="Zadatak nije dostupan" body={error ?? 'Pokušajte ponovo.'}
+            primary={{ label: 'Pokušajte ponovo', onPress: props.onRefresh }} />
           {props.lifecycleActions}
         </> : <>
           <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
@@ -213,14 +213,14 @@ export function NeedPresentation(props: NeedPresentationProps) {
           {loading || error ? <Surface kind="note"><View accessibilityLiveRegion="polite" style={s.notice}>
             <T variant="note" tone="muted">{loading ? 'Osvežavamo podatke…' : 'Vidiš starije podatke.'}</T>
             {error && !loading ? <T variant="note" tone="danger" accessibilityRole="alert">{error}</T> : null}
-            {error && !loading ? <V2Action label={OUTCOME_ACTION.refresh} accessibilityLabel="Osveži zadatak" kind="quiet" compact onPress={props.onRefresh} style={s.noticeAction} /> : null}
+            {error && !loading ? <V2Action label={OUTCOME_ACTION.refresh} accessibilityLabel="Osvežite zadatak" kind="quiet" compact onPress={props.onRefresh} style={s.noticeAction} /> : null}
           </View></Surface> : null}
           {/* A draft the publish gate refuses says why, once, where the owner reads first. */}
           {blocked ? <Surface kind="note" tone="warn"><View accessibilityLiveRegion="polite" style={s.notice}>
             <T variant="bodyStrong" style={s.warnTitle}>{blocked.title}</T>
             <T variant="note" style={s.ink}>{blocked.detail}</T>
             {/* What only time or the server can mend has no green action: the owner can read again, and the page says why it waits. */}
-            {overview?.waits ? <V2Action label={OUTCOME_ACTION.refresh} accessibilityLabel="Osveži zadatak" kind="quiet" compact disabled={busy} onPress={props.onRefresh} style={s.noticeAction} /> : null}
+            {overview?.waits ? <V2Action label={OUTCOME_ACTION.refresh} accessibilityLabel="Osvežite zadatak" kind="quiet" compact disabled={busy} onPress={props.onRefresh} style={s.noticeAction} /> : null}
           </View></Surface> : null}
           {/* What happened to a cancel or a delete the owner sent is said where they read first: the check, the command running, its
               uncertain, confirmed or refused outcome. It draws nothing while there is nothing to say. */}
@@ -238,7 +238,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
               nowhere), nor beside a green button that opens the same list. */}
           {overview && (overview.rows.applications || overview.rows.agreements) ? <Section>
             {overview.rows.applications && counted ? <ListRow leading={<FactArt kind="applications" size={32} />} title="Prijave" subtitle={counted.text}
-              accessibilityLabel={`Otvori prijave. ${counted.text}`} disabled={busy || !usable} last={!overview.rows.agreements} onPress={props.onCandidates}
+              accessibilityLabel={`Otvorite prijave. ${counted.text}`} disabled={busy || !usable} last={!overview.rows.agreements} onPress={props.onCandidates}
               trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : undefined} /> : null}
             {overview.rows.agreements ? <ListRow leading={<FactArt kind="agreements" size={32} role="confirmed" />} title="Moji Dogovori"
               accessibilityLabel="Moji Dogovori" disabled={busy || !usable} last onPress={props.onAgreements!} /> : null}

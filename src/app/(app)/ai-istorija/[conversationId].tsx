@@ -28,7 +28,7 @@ export default function AiHistoryTranscriptRoute() {
     header={<AccountHeader title="AI razgovori" onBack={back} />}>
     <View style={s.unavailable}>
       <T variant="title" accessibilityRole="header">Razgovor nije dostupan za pregled.</T>
-      <T variant="note" tone="muted">Vrati se na svoju istoriju i proveri dostupne razgovore.</T>
+      <T variant="note" tone="muted">Vratite se na svoju istoriju i proveri dostupne razgovore.</T>
       <V2Action label="Nazad na istoriju" onPress={back} />
     </View>
   </Screen>;

@@ -99,7 +99,7 @@ function replacedAsJump(action: { type: string }): boolean {
 }
 /**
  * A flow's last step takes the flow with it. The review before publishing (`pregled-zadatka`) is pushed over the AI
- * conversation (`nova`), and it leaves by a replace: onto the task it just published ("Otvori zadatak"), onto Moji
+ * conversation (`nova`), and it leaves by a replace: onto the task it just published ("Otvorite zadatak"), onto Moji
  * zadaci after a saved draft, or back into the conversation to change something. In the first two the new task is done,
  * so the conversation leaves the history with the review, and Back from the task (or from Moji zadaci) returns to where
  * the person started the task (Početna, Zadaci, Moji zadaci), never into a finished conversation or its review. A replace
@@ -136,7 +136,7 @@ function publicationLanding<State>(state: State, left: { name: string; key?: str
  * it was not even honest about where you were: the screens are pushed, so no tab was current.
  */
 // A screen that carries its own bottom action does not also carry the navigator's bar. On a phone
-// the public Task stacked the two: an orange "Otvori svoj zadatak" and then Početna│Mapa│Dogovori
+// the public Task stacked the two: an orange "Otvorite svoj zadatak" and then Početna│Mapa│Dogovori
 // underneath it, together eating about 180dp, and the description was cut mid-sentence between
 // them. The owner's 2026-09-18 decision named four screens for this — the ones where a tap along
 // the bottom edge abandoned an unfinished Zadatak. The four spine details added on 2026-09-20 are

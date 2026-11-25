@@ -80,7 +80,7 @@ export function LocationChoice({ label, value, options, disabled, onChange }: {
     <Press accessibilityRole="button" accessibilityLabel={label} accessibilityValue={{ text: selected?.label ?? 'Nije izabrano' }}
       accessibilityState={{ disabled, expanded: open }} disabled={disabled} haptic="select" scaleTo={sys.motion.scale.row} onPress={() => setOpen(true)}
       style={[locationStyles.input, locationStyles.row, disabled && { backgroundColor: sys.color.wash }]}>
-      <T variant="body" style={{ flex: 1, color: selected ? sys.color.ink : sys.color.muted }}>{selected?.label ?? 'Izaberi'}</T>
+      <T variant="body" style={{ flex: 1, color: selected ? sys.color.ink : sys.color.muted }}>{selected?.label ?? 'Izaberite'}</T>
       <Glyph name="caret-down" tone="muted" />
     </Press>
     {/* The shared sheet (master plan: the hand-made Modals become ProductSheet). A choice that is not available yet
@@ -111,7 +111,7 @@ export function PrivateLocationNote() {
 
 export function LocationScreen({ title, onBack, loading, error, onRetry, uncertain = false, children, scroll = true }: {
   title: string; onBack: () => void; loading: boolean; error?: string | null; onRetry: () => void; children?: ReactNode;
-  /** The write that failed has no answer yet: what is not known is checked ("Proveri"), what is known to have failed is tried again. */
+  /** The write that failed has no answer yet: what is not known is checked ("Proverite"), what is known to have failed is tried again. */
   uncertain?: boolean;
   /** False when the child is a whole step that scrolls on its own and keeps its save in a footer (`layout="screen"`). */
   scroll?: boolean;

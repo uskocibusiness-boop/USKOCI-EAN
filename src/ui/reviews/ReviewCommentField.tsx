@@ -60,10 +60,10 @@ export function ReviewCommentField({ field: view }: { field: ReviewCommentFieldV
   const counter = commentCounter(view.count, view.maxLength);
   if (!view.open) {
     return <View style={s.section}>
-      <Press accessibilityRole="button" accessibilityLabel="Dodaj komentar" accessibilityHint="Nije obavezno. Otvara polje za komentar."
+      <Press accessibilityRole="button" accessibilityLabel="Dodajte komentar" accessibilityHint="Nije obavezno. Otvara polje za komentar."
         accessibilityState={{ disabled: !view.editable }} disabled={!view.editable} haptic="select" scaleTo={sys.motion.scale.row} hitSlop={0}
         onPress={view.onOpen} style={s.row}>
-        <T variant="bodyStrong" style={s.add}>Dodaj komentar</T>
+        <T variant="bodyStrong" style={s.add}>Dodajte komentar</T>
         <T variant="note" tone="muted">Nije obavezno</T>
       </Press>
     </View>;

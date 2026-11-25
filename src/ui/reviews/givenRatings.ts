@@ -14,7 +14,7 @@ import type { ReviewContext } from '../../data/reviewsClientService';
  * its own, `rpc_list_received_reviews_v1`, keyset-paged like the comments reader, that answers only the caller's own account.
  */
 
-/** How many finished Dogovori are asked about in one step; the rest wait for "Prikaži starije". */
+/** How many finished Dogovori are asked about in one step; the rest wait for "Prikažite starije". */
 export const GIVEN_STEP = 15;
 /** How many receipts are read at once. */
 export const GIVEN_CONCURRENCY = 4;

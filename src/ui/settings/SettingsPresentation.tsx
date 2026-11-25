@@ -37,7 +37,7 @@ export function SettingsScreen({ title, onBack, backLabel, disabled = false, chi
   /** Why the green action of the foot cannot be pressed yet: a quiet line ABOVE it (the system foot's rule), not under the button. */
   footerReason?: string | null; right?: ReactNode;
   /**
-   * Pull to read the screen again, in place of a standing "Osveži" or "Proveri ponovo" (J12: a screen is refreshed by pulling it). `busy` is
+   * Pull to read the screen again, in place of a standing "Osvežite" or "Proverite ponovo" (J12: a screen is refreshed by pulling it). `busy` is
    * the screen's own "a read is running": the spinner is the PULL's, and a read that starts by itself never raises it (`usePullRefresh`).
    */
   refresh?: { onRefresh: () => void; busy: boolean };

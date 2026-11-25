@@ -39,15 +39,15 @@ export type MarketplaceView = { query: string; section: 'active' | 'drafts' | 'h
   /**
    * "Za mene" (R28, DISCOVERY-ZAMENE): the server narrows the list, the map and their counts to the tasks that fit this person's work profile (the kind
    * of work, the area and the time: the rule of the notifications). Absent or false is every task, exactly as before. It is a scope and not a filter:
-   * it is not counted by `discoveryConditions` and "Obriši sve" does not take it away. Only the P6 server reader understands it.
+   * it is not counted by `discoveryConditions` and "Obrišite sve" does not take it away. Only the P6 server reader understands it.
    */
   forMe?: boolean;
   /** A chosen place on the map where several tasks share one public point (its `pointKey`); null when none. */
   selectedPlace?: string | null;
   /**
    * Zadaci only: the list shows the tasks on one public point (its `pointKey`) first, from a place's
-   * "Prikaži sve u listi". It is not an area: tasks without a public point follow in their own section.
-   * The next move of the map the person makes takes it away, as does the search pill's "Prikaži sve zadatke".
+   * "Prikažite sve u listi". It is not an area: tasks without a public point follow in their own section.
+   * The next move of the map the person makes takes it away, as does the search pill's "Prikažite sve zadatke".
    */
   pinPlace?: string | null;
   /**
@@ -297,7 +297,7 @@ export function publicArea(item: MarketplaceItem): string | null {
  * (`withoutPoint`: online work, or a task placed nowhere), which an area can neither hold nor leave out, so they are
  * never lost. Without an area the list is `mapped`, in the read's order. No coordinate is ever invented.
  *
- * One public point (`pinPlace`, a place's "Prikaži sve u listi") shows that point first. Tasks
+ * One public point (`pinPlace`, a place's "Prikažite sve u listi") shows that point first. Tasks
  * with no public point still follow in their own section: they must remain discoverable while
  * someone explores any part of the map.
  */

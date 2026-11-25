@@ -376,11 +376,11 @@ const changeErrors = {
   AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.', AGREEMENT_VERSION_NOT_FOUND: 'Dogovor se promenio. Osvežite ga i pokušajte ponovo.',
   AGREEMENT_NOT_ACTIVE: 'Dogovor više nije aktivan. Osvežite njegov status.',
   VERSION_REQUIRED: 'Dogovor se promenio. Osvežite ga i pokušajte ponovo.', VERSION_CONFLICT: 'Dogovor je promenjen. Osvežite važeće uslove.',
-  CHANGE_PATCH_REQUIRED: 'Izmeni bar jedno polje Dogovora.',
+  CHANGE_PATCH_REQUIRED: 'Izmenite bar jedno polje Dogovora.',
   CLIENT_REQUEST_ID_REQUIRED: 'Dogovor se promenio. Otvorite izmenu ponovo.',
   CHANGE_REQUEST_ID_REUSED: 'Ova izmena je već poslata. Osvežite predloge.',
-  UNSUPPORTED_CHANGE_FIELD: 'Ova izmena nije moguća. Promenite cenu, posao ili termin.', INVALID_PRICE: 'Unesi pozitivan ceo iznos u RSD.',
-  CHANGE_SCOPE_INVALID: 'Proveri opis obima zadatka.', CHANGE_CURRENCY_INVALID: 'Valuta Dogovora mora biti RSD.',
+  UNSUPPORTED_CHANGE_FIELD: 'Ova izmena nije moguća. Promenite cenu, posao ili termin.', INVALID_PRICE: 'Unesite pozitivan ceo iznos u RSD.',
+  CHANGE_SCOPE_INVALID: 'Proverite opis obima zadatka.', CHANGE_CURRENCY_INVALID: 'Valuta Dogovora mora biti RSD.',
   CHANGE_TERMS_INVALID: 'Uslovi predloga nisu dostupni za prihvatanje.',
   CHANGE_PROPOSAL_NOT_FOUND: 'Predlog izmene nije dostupan.', PROPOSER_CANNOT_RESPOND: 'Na predlog odgovara druga strana.',
   PROPOSAL_NOT_PENDING: 'Na ovaj predlog više nije moguće odgovoriti.', DECISION_REQUIRED: 'Izaberite odgovor na predlog.',
@@ -521,7 +521,7 @@ export const agreementChangeService = {
   cancel(agreementId: string, reason: string, account: ReceiptAccount): Promise<Ishod<{ acknowledged: true }>> {
     const owner = changeAccount(account);
     if (!owner || !uuid(agreementId) || typeof reason !== 'string' || !reason.trim() || Array.from(reason).length > 4000)
-      return Promise.resolve(failure('AGREEMENT_CHANGE_INVALID', 'Unesi razlog otkazivanja, do 4.000 znakova.'));
+      return Promise.resolve(failure('AGREEMENT_CHANGE_INVALID', 'Unesite razlog otkazivanja, do 4.000 znakova.'));
     return readOwnedResult({ ...changeOptions, account: owner, write: true,
       request: () => supabase.rpc('rpc_cancel_agreement', { p_agreement_id: agreementId, p_reason: reason.trim() }),
       decode: raw => raw === null ? { acknowledged: true } : null,
@@ -548,7 +548,7 @@ export const agreementChangeService = {
       Object.keys(delta).some(key => !changeFields.includes(key))) return failure('AGREEMENT_CHANGE_INVALID', 'Predlog izmene nije ispravan.');
     if (typeof raw.clientRequestId !== 'string' || !raw.clientRequestId.trim()) return failure('CLIENT_REQUEST_ID_REQUIRED', changeErrors.CLIENT_REQUEST_ID_REQUIRED);
     if (Array.from(raw.clientRequestId).length > 200 || (typeof raw.razlog === 'string' && Array.from(raw.razlog).length > 4000)) return failure('CHANGE_INPUT_TOO_LARGE', changeErrors.CHANGE_INPUT_TOO_LARGE);
-    if (raw.razlog !== undefined && typeof raw.razlog !== 'string') return failure('AGREEMENT_CHANGE_INVALID', 'Proveri razlog izmene.');
+    if (raw.razlog !== undefined && typeof raw.razlog !== 'string') return failure('AGREEMENT_CHANGE_INVALID', 'Proverite razlog izmene.');
     if (delta.cenaIznos !== undefined && !positiveInteger(delta.cenaIznos)) return failure('INVALID_PRICE', changeErrors.INVALID_PRICE);
     if (delta.cenaValuta !== undefined && delta.cenaValuta !== 'RSD') return failure('CHANGE_CURRENCY_INVALID', changeErrors.CHANGE_CURRENCY_INVALID);
     if (typeof delta.obim === 'string' && Array.from(delta.obim).length > 4000) return failure('CHANGE_INPUT_TOO_LARGE', changeErrors.CHANGE_INPUT_TOO_LARGE);
@@ -732,7 +732,7 @@ export const agreementClientService: AgreementService = {
   },
 
   async posaljiPoruku(_dogovorId, telo) {
-    if (!telo.trim()) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesi poruku.' };
+    if (!telo.trim()) return { ok: false, kod: 'MESSAGE_REQUIRED', poruka: 'Unesite poruku.' };
     return { ok: false, kod: 'MESSAGE_RETRY_KEY_REQUIRED',
       poruka: 'Otvorite Poruke u Dogovoru i pošaljite poruku odatle.' };
   },
@@ -741,7 +741,7 @@ export const agreementClientService: AgreementService = {
     const patch = changePatch(k);
 
     if (!Object.keys(patch).length) {
-      return { ok: false, kod: 'CHANGE_PATCH_REQUIRED', poruka: 'Izmeni bar jedno polje Dogovora.' };
+      return { ok: false, kod: 'CHANGE_PATCH_REQUIRED', poruka: 'Izmenite bar jedno polje Dogovora.' };
     }
 
     const { data, error } = await proposeChange(k, patch);

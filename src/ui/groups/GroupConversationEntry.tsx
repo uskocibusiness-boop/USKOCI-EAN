@@ -61,7 +61,7 @@ function GroupEntry({ agreementId, model, onPrivate }: Props & { model: GroupCon
       trailing={byMember.has(member.accountId) ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.xs }}>
         {byMember.get(member.accountId)!.map(choice => <View key={choice.id} style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.xs }}>
           {group.role === 'REQUESTER' && choice.id.toLowerCase() !== agreementId.toLowerCase() ? (
-            <V2Action label="Dogovor" accessibilityLabel={`Otvori Dogovor: ${choice.name}`} kind="secondary" compact onPress={() => openMemberAgreement(choice.id)} />
+            <V2Action label="Dogovor" accessibilityLabel={`Otvorite Dogovor: ${choice.name}`} kind="secondary" compact onPress={() => openMemberAgreement(choice.id)} />
           ) : null}
           <V2Action label={byMember.get(member.accountId)!.length > 1 ? `Poruka · ${choices.indexOf(choice) + 1}` : 'Poruka'}
             accessibilityLabel={`Privatna poruka: ${choice.name}`} kind="quiet" compact onPress={() => openPrivate(choice.id)} />

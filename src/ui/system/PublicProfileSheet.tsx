@@ -24,7 +24,7 @@ export type PublicProfileState = { loading: boolean; data: JavniProfilProjekcija
  *  this profile into the person behind it; the sheet only offers it and shows what came back. */
 export type SafetyEntry = { onPress: () => void; busy: boolean; error: string | null };
 /** The label of the safety entry, the same words as the "···" row of a task (review of step 5b). */
-export const SAFETY_LABEL = 'Prijavi ili blokiraj osobu';
+export const SAFETY_LABEL = 'Prijavite ili blokiraj osobu';
 
 /**
  * The trust block of a worker profile (PROFILE-TRUST, 2026-10-07; R30), as the SERVER answered it (`rpc_public_work_trust_v1`):
@@ -68,7 +68,7 @@ export const memberSinceFact = memberSincePhrase;
  * person's private received ratings; the existing public-comment reader is a separate, server-authorized list.
  *
  * Reporting and blocking are rare, so they close the sheet's content, apart from the facts by the sheet's own spacing and not by a
- * line: one row that names the person's action ("Prijavi ili blokiraj osobu") and says the report is private. The row keeps the
+ * line: one row that names the person's action ("Prijavite ili blokiraj osobu") and says the report is private. The row keeps the
  * entry's busy and error states.
  */
 export function PublicProfileSheet({ state, onClose, onRetry, photo, safety, trust }: {
@@ -89,12 +89,12 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, safety, tru
   const CommentsSection = profile && reviewCommentBuilt()
     ? (require('../reviews/ReviewCommentsSection') as typeof import('../reviews/ReviewCommentsSection')).ReviewCommentsSection
     : null;
-  return <ProductSheet title={name ?? 'Javni profil'} closeLabel="Zatvori javni profil" backdropHint="Zatvara javni profil." onClose={onClose}>
+  return <ProductSheet title={name ?? 'Javni profil'} closeLabel="Zatvorite javni profil" backdropHint="Zatvara javni profil." onClose={onClose}>
     {() => state.loading ? <QuietReadState art="person" title="Učitavamo javni profil…" body="Proveravamo podatke koji smeju da budu javni." />
       : !profile && state.notFound ? <StateView kind="empty" art="person" title="Javni profil nije pronađen."
         body="Nema podataka za javni prikaz ovog profila." />
-      : !profile ? <StateView kind="error" title="Javni profil trenutno nije dostupan." body="Proveri vezu i pokušaj ponovo."
-        primary={{ label: 'Pokušaj ponovo', onPress: onRetry }} />
+      : !profile ? <StateView kind="error" title="Javni profil trenutno nije dostupan." body="Proverite vezu i pokušaj ponovo."
+        primary={{ label: 'Pokušajte ponovo', onPress: onRetry }} />
       : <View style={s.content}>
         <View style={s.identity}>
           <View testID="public-profile-portrait" accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>

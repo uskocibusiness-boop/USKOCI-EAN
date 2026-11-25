@@ -60,7 +60,7 @@ export function PhotoAttachTile({ tile, index, size, context = {}, onOpen, pictu
 }) {
   const n = index + 1, frame = { width: size, height: size };
   // The corner control: a 48 px target around a 32 px white circle; a greyed one stays readable, never faded.
-  const remove = tile.onRemove ? <Press accessibilityRole="button" accessibilityLabel={tile.removeLabel ?? `Ukloni fotografiju ${n}`}
+  const remove = tile.onRemove ? <Press accessibilityRole="button" accessibilityLabel={tile.removeLabel ?? `Uklonite fotografiju ${n}`}
     accessibilityState={{ disabled: !!tile.removeDisabled }} disabled={tile.removeDisabled} haptic={tile.removeDisabled ? 'none' : 'select'}
     onPress={tile.onRemove} hitSlop={0} style={s.removeTarget}>
     <View style={s.removeCircle}><Glyph name="close" size={16} tone={tile.removeDisabled ? 'muted' : 'ink'} /></View>
@@ -68,7 +68,7 @@ export function PhotoAttachTile({ tile, index, size, context = {}, onOpen, pictu
   if (tile.state.kind === 'READY') return <View testID={`photo-tile-${n}`} style={[frame, s.frame]}>
     {picture ?? <AuthorizedPhoto assetId={tile.state.assetId} {...context} label={`Fotografija ${n}`} contentFit="cover" style={s.fill}
       pending={tile.preview ? <LocalPhoto bytes={tile.preview} /> : undefined}
-      open={onOpen ? { label: `Otvori fotografiju ${n}`, hint: 'Otvara fotografiju preko celog ekrana.', onPress: onOpen } : undefined} />}
+      open={onOpen ? { label: `Otvorite fotografiju ${n}`, hint: 'Otvara fotografiju preko celog ekrana.', onPress: onOpen } : undefined} />}
     {remove}
   </View>;
   const kind = tile.state.kind, words = TILE_WORDS[kind];

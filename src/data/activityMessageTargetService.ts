@@ -15,7 +15,7 @@ const uuid = (value: unknown): value is string => receiptUuid(value) && value.le
 const exact = (value: Record<string, unknown>, keys: readonly string[]) =>
   Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
 const errors = {
-  AUTH_REQUIRED: 'Prijavi se da nastaviš.',
+  AUTH_REQUIRED: 'Prijavite se da nastaviš.',
   AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Ponovo otvori Dogovor.',
 };
 const changed = () => failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvori Dogovor.');

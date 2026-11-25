@@ -14,7 +14,7 @@ import { SystemSettingsAction } from './SystemSettingsAction';
 export function PermissionRecovery({ message, alternative, onAlternative, compact = false }: {
   /** What was denied and what still works, in the user's words. */
   message: string;
-  /** Optional alternative action label (e.g. "Izaberi iz galerije"). */
+  /** Optional alternative action label (e.g. "Izaberite iz galerije"). */
   alternative?: string; onAlternative?: () => void; compact?: boolean;
 }) {
   return <View style={[s.box, compact && s.compact]} accessibilityLiveRegion="polite">

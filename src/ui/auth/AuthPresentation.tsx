@@ -6,7 +6,7 @@ import { sys } from '../system/tokens';
 /**
  * The head of every step of the sign-in sheet: ONE title, in ONE style (`pageTitle`, 28/33, the name of what the screen is), and
  * under it, when there is something to say, ONE sentence in the quiet `copy` style. The sheet used to have three heads (a bar
- * title in 18, a stage title in 28 and a form title in 30, sometimes two of them at once: "Proveri email" over "Proveri
+ * title in 18, a stage title in 28 and a form title in 30, sometimes two of them at once: "Proverite email" over "Proverite
  * email"), a small mark above them and a 58 dp badge above that; the entry behind the sheet already carries the brand.
  *
  * `art` is for a step that is a RESULT or a STATE (the mail was sent, the code is asked for, the link is being made): one fact

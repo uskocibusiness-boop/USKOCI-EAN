@@ -65,8 +65,8 @@ export function StarsRow({ rating }: { rating: number }) {
 export function ReceivedRatings({ view, comments }: { view: ReceivedView; comments?: ReactNode }) {
   return <View style={s.body}>
     {view.kind === 'loading' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Učitavamo prosek ocena…</T>
-      : view.kind === 'error' ? <StateView kind="error" title="Ocene trenutno nisu dostupne" body="Proveri vezu i pokušaj ponovo."
-        primary={{ label: 'Pokušaj ponovo', onPress: view.onRetry }} />
+      : view.kind === 'error' ? <StateView kind="error" title="Ocene trenutno nisu dostupne" body="Proverite vezu i pokušaj ponovo."
+        primary={{ label: 'Pokušajte ponovo', onPress: view.onRetry }} />
         : view.kind === 'none' ? <StateView kind="empty" art="star" title="Još nema ocena" body="Ocene stižu posle završenih Dogovora." />
           : <View style={s.summary}>
             <View accessible accessibilityLabel={`Ocena: ${view.label}`} style={s.average}>
@@ -82,8 +82,8 @@ export function ReceivedRatings({ view, comments }: { view: ReceivedView; commen
 export function GivenRatings({ view }: { view: GivenView }) {
   if (view.kind === 'loading') return <QuietReadState art="star" title="Učitavamo date ocene…"
     body="Proveravamo ocene koje si ostavio." />;
-  if (view.kind === 'error') return <StateView kind="error" title="Date ocene nisu učitane" body="Proveri vezu i pokušaj ponovo."
-    primary={{ label: 'Pokušaj ponovo', onPress: view.onRetry }} />;
+  if (view.kind === 'error') return <StateView kind="error" title="Date ocene nisu učitane" body="Proverite vezu i pokušaj ponovo."
+    primary={{ label: 'Pokušajte ponovo', onPress: view.onRetry }} />;
   const empty = view.rows.length === 0;
   return <View style={s.body}>
     {empty && !view.older && view.failed === 0 ? <StateView kind="empty" art="star" title="Još nema datih ocena"
@@ -92,9 +92,9 @@ export function GivenRatings({ view }: { view: GivenView }) {
     {view.rows.map((row, index) => <GivenItem key={row.agreementId} row={row} last={index === view.rows.length - 1} />)}
     {view.failed > 0 ? <View style={s.notice} accessibilityLiveRegion="polite">
       <T variant="note" tone="muted">{`Ne možemo da učitamo ocene za ${dogovora(view.failed)}.`}</T>
-      <V2Action label="Pokušaj ponovo" kind="quiet" compact loading={view.working === 'retry'} disabled={view.working !== null} onPress={view.onRetryFailed} />
+      <V2Action label="Pokušajte ponovo" kind="quiet" compact loading={view.working === 'retry'} disabled={view.working !== null} onPress={view.onRetryFailed} />
     </View> : null}
-    {view.older ? <V2Action label="Prikaži starije" kind="secondary" loading={view.working === 'more'} disabled={view.working !== null} onPress={view.onMore} /> : null}
+    {view.older ? <V2Action label="Prikažite starije" kind="secondary" loading={view.working === 'more'} disabled={view.working !== null} onPress={view.onMore} /> : null}
   </View>;
 }
 

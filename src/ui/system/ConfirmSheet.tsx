@@ -27,7 +27,7 @@ export type ConfirmRequest = {
   /** One sentence: what will happen, in the words the person reads. */
   message: string;
   confirmLabel: string;
-  /** The quiet way out; "Odustani" when left out. `null` for a notice that only informs and has nothing to cancel. */
+  /** The quiet way out; "Odustanite" when left out. `null` for a notice that only informs and has nothing to cancel. */
   cancelLabel?: string | null;
   /** `danger` when confirming ends, withdraws or throws something away: the confirm is drawn in the danger colour. */
   tone?: 'default' | 'danger';
@@ -118,7 +118,7 @@ export function ConfirmSheet(props: ConfirmRequest & { onClosed: () => void; red
 }
 
 /** The question with extra content: central surface, independently scrolling content and pinned actions. */
-function ConfirmContentDialog({ title, message, confirmLabel, cancelLabel = 'Odustani', tone = 'default', extra, onConfirm, onCancel,
+function ConfirmContentDialog({ title, message, confirmLabel, cancelLabel = 'Odustanite', tone = 'default', extra, onConfirm, onCancel,
   onClosed, reduced }: ConfirmRequest & { onClosed: () => void; reduced?: boolean }) {
   const { busy, dismissible, ended, confirm, cancel } = useConfirmFlow({ onConfirm, onCancel, onClosed });
   const danger = tone === 'danger';
@@ -159,7 +159,7 @@ const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
  * shared defaults. Dismissal settles the request once and returns focus promptly;
  * reduced motion disables transition movement. Other animation techniques remain
  * possible when they preserve those behaviors and native lifecycle safety. */
-function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Odustani', tone = 'default', onConfirm, onCancel, onClosed,
+function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Odustanite', tone = 'default', onConfirm, onCancel, onClosed,
   reduced: callerReduced }: ConfirmRequest & { onClosed: () => void; reduced?: boolean }) {
   const systemReduced = useReducedMotion();
   const reduced = callerReduced ?? systemReduced;
@@ -180,7 +180,7 @@ function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Odustani',
     <View testID="confirm-dialog" style={s.layer}>
       {/* The dim is the tap-outside area: a tap is a "no", does nothing while the command it started runs, and then it is not visited at all. */}
       <Pressable testID="confirm-sheet-scrim" style={[StyleSheet.absoluteFill, s.dim]} onPress={requestClose} accessible={dismissible}
-        accessibilityRole="button" accessibilityLabel="Zatvori" accessibilityHint={dismissible ? outsideHint(busy, cancelLabel) : 'Zatvori'} />
+        accessibilityRole="button" accessibilityLabel="Zatvorite" accessibilityHint={dismissible ? outsideHint(busy, cancelLabel) : 'Zatvorite'} />
       <Animated.View accessibilityViewIsModal
         style={[s.card, { maxHeight: height - 2 * sys.space.xl }, reduced ? null : { transform: [{ scale }] }]}>
         <T accessibilityRole="header" variant="heading" style={s.title}>{title}</T>

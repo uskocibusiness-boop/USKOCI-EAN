@@ -30,7 +30,7 @@ export function isLongComment(text: string): boolean {
 export function ReviewCommentText({ text }: { text: string }) {
   const long = isLongComment(text);
   const [open, setOpen] = useState(false);
-  const label = open ? 'Prikaži manje' : 'Prikaži ceo komentar';
+  const label = open ? 'Prikažite manje' : 'Prikažite ceo komentar';
   return <View style={s.wrap}>
     <T variant="body" selectable={false} dataDetectorType="none" numberOfLines={long && !open ? REVIEW_COMMENT_CLIP_LINES : undefined}
       style={s.text}>{text}</T>

@@ -12,7 +12,7 @@ const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
 
 /**
  * The question before the system's window (design proposal N): a white card in the middle of the screen over a dimmed one,
- * with the kind's picture, ONE question, one sentence, a green "Nastavi" and a quiet "Ne sada". It is the centred dialog of the
+ * with the kind's picture, ONE question, one sentence, a green "Nastavite" and a quiet "Ne sada". It is the centred dialog of the
  * app's own confirmations (ui/system/ConfirmSheet: same width, corner, shadow, opening scale and Modal), with the one thing that
  * dialog has no place for: the picture. Back, a tap outside and "Ne sada" are the same answer, "later".
  *
@@ -30,12 +30,12 @@ export function PermissionAskDialog({ open, onAnswer }: { open: PermissionAskOpe
     run.start();
     return () => run.stop();
   }, [reduced, scale]);
-  // One answer, once: a second tap, or Back after "Nastavi", must not answer the next question in the queue.
+  // One answer, once: a second tap, or Back after "Nastavite", must not answer the next question in the queue.
   const answer = (value: PermissionAskAnswer) => { if (answered.current) return; answered.current = true; onAnswer(value); };
   return <Modal visible transparent animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={() => answer('later')}>
     <View testID="permission-ask" style={s.layer}>
       <Pressable testID="permission-ask-scrim" style={[StyleSheet.absoluteFill, s.dim]} onPress={() => answer('later')}
-        accessibilityRole="button" accessibilityLabel="Zatvori" accessibilityHint="Zatvara pitanje bez dozvole." />
+        accessibilityRole="button" accessibilityLabel="Zatvorite" accessibilityHint="Zatvara pitanje bez dozvole." />
       <Animated.View accessibilityViewIsModal
         style={[s.card, { maxHeight: height - 2 * sys.space.xl }, reduced ? null : { transform: [{ scale }] }]}>
         {/* The picture is a fact picture, not a control: the question beside it carries the meaning. */}

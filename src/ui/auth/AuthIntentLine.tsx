@@ -18,7 +18,7 @@ export const authIntentSentence: Readonly<Record<AuthIntentName, string>> = { RE
 export const otherAuthIntent = (intent: AuthIntentName): AuthIntentName => intent === 'REQUESTER' ? 'WORKER' : 'REQUESTER';
 
 /**
- * The sentence and its one command, "Promeni", which switches to the other of the two. One row, one touch target: 48 high, a
+ * The sentence and its one command, "Promenite", which switches to the other of the two. One row, one touch target: 48 high, a
  * fact picture at 24 and 12 between it and the words, a quiet well (the system's `inset` corner) and no border.
  */
 export function AuthIntentLine({ intent, disabled = false, onChange }: {
@@ -33,7 +33,7 @@ export function AuthIntentLine({ intent, disabled = false, onChange }: {
     </View>
     <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'} style={s.sentence}>{authIntentSentence[intent]}</T>
     {/* The word is the command: green words inside a 48 dp-high area, not a second button drawn beside the sentence. */}
-    <T variant="action" tone={disabled ? 'muted' : 'green'} style={s.change}>Promeni</T>
+    <T variant="action" tone={disabled ? 'muted' : 'green'} style={s.change}>Promenite</T>
   </Press>;
 }
 

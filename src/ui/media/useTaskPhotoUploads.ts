@@ -16,7 +16,7 @@ import { PHOTO_LIMIT, PHOTO_WORDS, photoCount } from './photoWords';
  * It is the screen's former upload path, moved and kept: the same server calls, the same durable journal and the same
  * recovery (PKG-008 / GAP-0036). What it adds is presentation of a sequence: several photos from one gallery pick go up
  * one after another, each under its own request identity, persisted before its bytes leave; and a photo still being
- * processed is checked again by itself for a bounded time instead of waiting for a manual "Osveži".
+ * processed is checked again by itself for a bounded time instead of waiting for a manual "Osvežite".
  *
  * - The journal key holds ONE request identity, never pixels, path or metadata. The next photo of a sequence starts only
  *   when the previous one has a settled outcome; an unconfirmed one stops the sequence and keeps its exits (same-key resend
@@ -264,10 +264,10 @@ export function useTaskPhotoUploads(conversationId: string | null) {
   const processing = recovered && (list.some(asset => !settledState(asset.state)) || processingPending);
   // Forward navigation must not abandon a picked batch. Back remains available with its existing recovery journal.
   const continueReason = !conversationId ? null : busy ? working === 'PICK' || working === 'RETRY' ? 'Sačekaj da se pošalju izabrane fotografije.' : 'Proveravamo fotografije…'
-    : !recovered ? 'Prvo učitaj fotografije.' : unconfirmed ? 'Proveri ili otkaži nepotvrđeno slanje.'
+    : !recovered ? 'Prvo učitaj fotografije.' : unconfirmed ? 'Proverite ili otkaži nepotvrđeno slanje.'
       : queued.length || sending ? 'Sačekaj da se pošalju izabrane fotografije.'
       : processing ? 'Fotografije se još obrađuju.' : list.some(asset => asset.state === 'FAILED')
-        ? 'Ukloni fotografiju koja nije obrađena ili je pošalji ponovo.' : null;
+        ? 'Uklonite fotografiju koja nije obrađena ili je pošalji ponovo.' : null;
   const latestContinueReason = useRef(continueReason); latestContinueReason.current = continueReason;
   const canContinue = () => current() && !operation.current && !pending.current && !queue.current.length && !latestContinueReason.current;
   const quiet = useRef<() => Promise<boolean>>(async () => false);

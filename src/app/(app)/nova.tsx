@@ -279,7 +279,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, handof
     }
   }, [accountId, accountRevision, invalidRoute, openRequestId, resumeId]);
   const editor = useOwnedEditor(read);
-  // The two controls offered at the worst moment - "Proveri ishod" and "Osveži razgovor" - used to
+  // The two controls offered at the worst moment - "Proverite ishod" and "Osvežite razgovor" - used to
   // unmount the whole thread and, if the re-read then failed, leave "Razgovor nije dostupan" where
   // the conversation had been. Every word looked deleted by the button meant to save them. This
   // component is keyed by account, revision, intent and conversation id, so what it remembers can
@@ -714,7 +714,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, handof
 
   // The send is still running (the answer may be streaming): "Stiže odgovor…" is the whole truth, so no recovery is drawn.
   // Before 2026-10-07 the request was already pending here while the last read held no turn for it, and the copy below fell
-  // through to "Ishod slanja nije potvrđen" with a disabled "Proveri ishod" under a reply that was arriving. Every recovery
+  // through to "Ishod slanja nije potvrđen" with a disabled "Proverite ishod" under a reply that was arriving. Every recovery
   // branch below still applies the moment the command settles without a confirmed outcome.
   const sending = radi && sendFlight.current !== null;
   const readyToReview = taskReviewReady(editor.data?.readyReview, stanje);

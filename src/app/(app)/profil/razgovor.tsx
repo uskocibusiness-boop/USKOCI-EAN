@@ -572,7 +572,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       :editor.uncertain?'Prvo proverite stanje razgovora.'
         :editor.loading||resuming?'Dostupno kad se razgovor učita.':'Dostupno kad se završi prethodna radnja.';
   // The worker side stores the person's message the moment its turn is claimed, and the read returns every stored
-  // message, so a turn that is still processing (a lost answer, a return to the app, "Proveri razgovor") already
+  // message, so a turn that is still processing (a lost answer, a return to the app, "Proverite razgovor") already
   // shows it in the thread. Drawing it again as "šalje se" said the same sentence twice (verify r4b ra item A); it is
   // "not yet read back" only until the thread's last message is that very sentence.
   const sent=pending.current?.text??null,lastMessage=data.messages[data.messages.length-1];

@@ -2,7 +2,7 @@ import { sesijaSada } from '../store/sesija';
 import { createRecoveryTransport } from './supabaseClient';
 
 /**
- * "Promeni lozinku" for a signed-in person (R22, UI/UX pass 2026-10-08). The person proves they know the current password, and the new
+ * "Promenite lozinku" for a signed-in person (R22, UI/UX pass 2026-10-08). The person proves they know the current password, and the new
  * one is written, both on a TRANSIENT Auth client of their own (the one the password recovery uses: nothing persisted, no refresh, one
  * `AbortController` that ends it), so the app's own session is never touched, replaced or signed out, and nothing about this reaches the
  * marketplace. The account is the one that is signed in: its email is read from the session and is never typed or changed here.
@@ -17,7 +17,7 @@ export type PasswordChangeResult = { ok: true } | { ok: false; code: PasswordCha
 
 /** What a person reads for each refusal. The words are the app's, never the provider's. */
 export const passwordChangeMessages: Readonly<Record<PasswordChangeFailure, string>> = {
-  NO_ACCOUNT: 'Prijavi se da nastaviš.',
+  NO_ACCOUNT: 'Prijavite se da nastaviš.',
   WEAK_PASSWORD: 'Nova lozinka je preslaba. Izaberi drugu.',
   SAME_PASSWORD: 'Nova lozinka mora da bude drugačija od trenutne.',
   WRONG_CURRENT: 'Trenutna lozinka nije tačna.',

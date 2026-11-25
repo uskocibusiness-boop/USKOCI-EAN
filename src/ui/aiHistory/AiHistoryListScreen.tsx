@@ -124,7 +124,7 @@ function HistoryPane({ purpose, accountId, accountRevision, active, onOpen }: {
         {failed ? <HistoryFailure offline={page.phase === 'offline'} compact onRetry={() => {
           void load(page.moreFailed ? 'more' : 'refresh');
         }} /> : null}
-        {page.nextCursor && !failed ? <V2Action label={page.phase === 'loadingMore' ? 'Učitavamo…' : 'Prikaži još'}
+        {page.nextCursor && !failed ? <V2Action label={page.phase === 'loadingMore' ? 'Učitavamo…' : 'Prikažite još'}
           loading={page.phase === 'loadingMore'} disabled={waiting} onPress={() => { void load('more'); }} /> : null}
       </View> : null}
       initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7} />

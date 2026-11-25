@@ -208,7 +208,7 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation
  * The list and its sheet remain available below these controls in every resting position.
  *
  * The list is a sheet over the map with peek, half and full stops. A settled user move changes its AREA; camera-only moves do not.
- * A place's "Prikaži sve u listi" narrows the list to one public point, while the filter control can clear search context.
+ * A place's "Prikažite sve u listi" narrows the list to one public point, while the filter control can clear search context.
  * The list header gives the result count and a return to the map when the full sheet covers it. Main navigation remains accessible
  * at each resting stop. The route keeps the sheet, list offset and viewport for a return from task detail. A selected pin opens its
  * card above the list, and the native map retains ownership of camera and gestures.
@@ -699,7 +699,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       retireCameraIntent(); change({ selectedId: null, selectedPlace: null });
     }
   };
-  // "Prikaži sve u listi": the mapped part narrows to this one public point; tasks without a
+  // "Prikažite sve u listi": the mapped part narrows to this one public point; tasks without a
   // point remain below in their own section. The search pill names the chosen point and clears it.
   const showPlace = () => {
     if (props.p6Seam) {
@@ -1060,7 +1060,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     ...(!p6 && view.where === 'onsite' ? [{ key: 'where:onsite', label: said(WHERE, 'onsite'), selected: true, removable: true, hint: taken, onPress: () => toggle({ where: 'any' }) }] : []),
     ...(view.price === 'OFFERS' ? [{ key: 'price:OFFERS', label: said(PRICE, 'OFFERS'), selected: true, removable: true, hint: taken, onPress: () => toggle({ price: 'all' }) }] : []),
     ...(view.minBudgetRsd != null ? [{ key: 'price:min', label: `Od ${novac(view.minBudgetRsd)}`, selected: true, removable: true,
-      hint: 'Ukloni najmanju fiksnu cenu.', onPress: () => toggle({ minBudgetRsd: null }) }] : []),
+      hint: 'Uklonite najmanju fiksnu cenu.', onPress: () => toggle({ minBudgetRsd: null }) }] : []),
     ...(atLeast(freePlaces) > 1 ? [{ key: 'places', label: placesWords(freePlaces), selected: true, removable: true, hint: taken, onPress: () => toggle({ places: 1 }) }] : []),
   ];
   const chips: QuickChip[] = [
@@ -1493,7 +1493,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       haptic="select" scaleTo={sys.motion.scale.row} onPress={cycleSheet} style={s.countRow}>
       {count}{sheetIndex > SNAP.peek && sorted && !areaOnly && !pillShown ? <T variant="note" tone="muted" style={s.sortedBy}>{sortedWords}</T> : null}
     </Press>
-    {sheetIndex > SNAP.peek && !loading && !refreshing ? <Press testID="discovery-refresh" accessibilityRole="button" accessibilityLabel="Osveži zadatke"
+    {sheetIndex > SNAP.peek && !loading && !refreshing ? <Press testID="discovery-refresh" accessibilityRole="button" accessibilityLabel="Osvežite zadatke"
       haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={refreshList} style={s.headerIcon}>
       <Glyph name="refresh" size={20} tone="green" />
     </Press> : null}
@@ -1508,7 +1508,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       </Surface>
     </NativeAnimated.View> : null}
     </View>
-    {areaOnly ? <Press testID="clear-map-area" accessibilityRole="button" accessibilityLabel="Prikaži sve zadatke"
+    {areaOnly ? <Press testID="clear-map-area" accessibilityRole="button" accessibilityLabel="Prikažite sve zadatke"
       haptic="select" hitSlop={0} onPress={showAll} style={s.areaReset}>
       <T variant="note" style={s.areaResetText}>Sve oblasti</T>
     </Press> : null}

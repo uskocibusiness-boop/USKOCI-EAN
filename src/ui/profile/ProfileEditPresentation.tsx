@@ -14,12 +14,12 @@ import type { NameSaveControl } from './DisplayNameForm';
 export const EDIT_PHOTO = 96;
 
 /**
- * The parts of "Lični podaci" that sit around the name (T4a, 2026-10-07; owner's phone, 8 Oct 2026: "natrpano"; the screen was "Izmeni profil" until the
+ * The parts of "Lični podaci" that sit around the name (T4a, 2026-10-07; owner's phone, 8 Oct 2026: "natrpano"; the screen was "Izmenite profil" until the
  * product draft the owner approved the same day, P2). The pencil on the profile opens a screen that says what the person is made of: the photo, the
  * name, "O meni" and the city. Each part is only what the app already
  * holds and can already save, and nothing on the screen explains itself:
  * - the photo opens the photo screen that already exists (nothing of it is rebuilt here);
- * - the name is the one field, and its one green "Sačuvaj ime" is drawn only once the name has been changed (`DisplayNameForm`);
+ * - the name is the one field, and its one green "Sačuvajte ime" is drawn only once the name has been changed (`DisplayNameForm`);
  * - "O meni" is the text of the work profile (the only profile whose save carries a description); it is shown as written, never made up, and it
  *   opens the work profile, where it is written;
  * - the city is the work area's, said as its answer at the end of its row; the row opens the work area, where the city is changed, so the
@@ -92,7 +92,7 @@ export function ProfileFactRows({ about, city, onAbout, onCity, disabled=false }
 }
 
 /**
- * The bar's "Sačuvaj" (approved draft, P2: "Sačuvaj u zaglavlju tek kad se nešto promeni"): a green pill with the check and the word, drawn only while the name
+ * The bar's "Sačuvajte" (approved draft, P2: "Sačuvajte u zaglavlju tek kad se nešto promeni"): a green pill with the check and the word, drawn only while the name
  * differs from the saved one (the form reports it, `NameSaveControl`). It is grey while the save cannot be pressed and says "Čuvamo…" while it runs.
  */
 export function NameSaveButton({ control }: { control: NameSaveControl }) {

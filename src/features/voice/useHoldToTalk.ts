@@ -11,7 +11,7 @@ import { SPEECH_LIMITS } from './speechProtocol';
 
 /**
  * The speech privacy notice. Round 4 review (ra item 1, 2026-09-24): the middle sentence used to say the text reaches the
- * conversation only after "Pošalji", which stopped being true when held speech started sending on release (owner,
+ * conversation only after "Pošaljite", which stopped being true when held speech started sending on release (owner,
  * 2026-09-23) in both conversations and in voice mode. It now says what the app does; the other sentences are unchanged.
  * Privacy copy: recorded for the owner's review.
  */

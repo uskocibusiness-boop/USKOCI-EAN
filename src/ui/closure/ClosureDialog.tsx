@@ -147,7 +147,7 @@ export function ClosureDialog({ onClose, closeRequestRef }: { onClose: () => voi
     if (!live(visit) || busy || locked.current || intent || !review?.ready || dialog.current) return;
     const token = {}, asked = review; dialog.current = token;
     confirm.ask({ title: 'Zatvoriti nalog?', message: 'Posle ovog koraka nalog se zaključava i podaci se uklanjaju. To ne možeš da poništiš.',
-      confirmLabel: 'Da, trajno zatvori nalog', cancelLabel: 'Odustani', tone: 'danger',
+      confirmLabel: 'Da, trajno zatvori nalog', cancelLabel: 'Odustanite', tone: 'danger',
       onCancel: () => { if (dialog.current === token) dialog.current = null; },
       onConfirm: () => {
         if (dialog.current !== token || reviewRef.current !== asked || !live(visit)) return;

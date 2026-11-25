@@ -44,7 +44,7 @@ describe('Celina 1: Radni profil — više gradova (workAreas) i očuvanje opisa
     assert.equal(guarded.patch.areaRequests[1].query, 'Beograd');
   });
 
-  it('guardWorkerAreaOutput automatski dodaje novi grad uz postojeći kada korisnik kaže "Dodaj i Beograd"', () => {
+  it('guardWorkerAreaOutput automatski dodaje novi grad uz postojeći kada korisnik kaže "Dodajte i Beograd"', () => {
     const output = {
       safety: 'ALLOW',
       assistantMessage: 'Dodat je i Beograd.',
@@ -59,7 +59,7 @@ describe('Celina 1: Radni profil — više gradova (workAreas) i očuvanje opisa
         workAreas: [{ kind: 'RADIUS', countryCode: 'RS', city: 'Novi Sad', radiusKm: 20 }],
       },
     };
-    const guarded = guardWorkerAreaOutput(output, 'Dodaj i Beograd', context);
+    const guarded = guardWorkerAreaOutput(output, 'Dodajte i Beograd', context);
     assert.ok(Array.isArray(guarded.patch.areaRequests));
     assert.equal(guarded.patch.areaRequests.length, 2);
   });

@@ -118,7 +118,7 @@ export const agreementTaskPlace = (a: Pick<DogovorProjekcija, 'rezim' | 'putanja
 
 /**
  * The source task of a Dogovor as the chat's compact context draws it: its title, and one explicit way back to it when the
- * authoritative source task id is available. The overview names the same task as the Dogovor's own title and as the row "Otvori zadatak".
+ * authoritative source task id is available. The overview names the same task as the Dogovor's own title and as the row "Otvorite zadatak".
  */
 export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false }: {
   agreement: DogovorProjekcija;
@@ -130,11 +130,11 @@ export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false }
     <FactArt kind="document" size={24} cut="art" />
     <View style={s.taskCopy}>
       <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>{title}</T>
-      <T variant="note" tone={onOpenTask ? 'ink' : 'muted'}>{onOpenTask ? 'Otvori zadatak' : 'Zadatak'}</T>
+      <T variant="note" tone={onOpenTask ? 'ink' : 'muted'}>{onOpenTask ? 'Otvorite zadatak' : 'Zadatak'}</T>
     </View>
     {onOpenTask ? <Glyph name="caret-right" size={20} tone="muted" /> : null}
   </View>;
-  return onOpenTask ? <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`}
+  return onOpenTask ? <Press accessibilityRole="button" accessibilityLabel={`Otvorite zadatak: ${title}`}
     accessibilityHint="Otvara detalje zadatka iz kog je nastao ovaj Dogovor."
     accessibilityState={{ disabled }} disabled={disabled} haptic="select" onPress={onOpenTask} style={s.hero}>{content}</Press>
     : <View style={s.hero}>{content}</View>;
@@ -187,7 +187,7 @@ export function AgreementTerms({ agreement: a, compact = false, onProposeTerm }:
     </View>;
   }
   const price = /\d/.test(amount);
-  const termActionLabel = isNoTermText(a.vremeTekst) ? 'Postavi termin' : 'Promeni termin';
+  const termActionLabel = isNoTermText(a.vremeTekst) ? 'Postavi termin' : 'Promenite termin';
   return <Section title={sectionTitle} action={onProposeTerm ? { label: termActionLabel, onPress: onProposeTerm } : undefined}>
     {a.verzija > 1 ? <T variant="meta" tone="muted" style={s.changedNote}>Uslovi su izmenjeni.</T> : null}
     <View style={s.acceptedFacts}>

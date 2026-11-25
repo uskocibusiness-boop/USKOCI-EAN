@@ -22,8 +22,8 @@ export const SEND_UNCONFIRMED_CODE = 'AI_TURN_SEND_UNCONFIRMED';
 
 /**
  * The line in red above the status of the conversation. A send that may not have arrived is said ONCE, by the status line under the thread
- * ("Ne znamo da li je poruka poslata.") and the one button beside it ("Proveri"); the data layer's own sentence for the same fact is a second
- * sentence for one thing, in other words and with another button's verb ("Osveži prikaz"), so it is not drawn above them. `unconfirmedSend` is
+ * ("Ne znamo da li je poruka poslata.") and the one button beside it ("Proverite"); the data layer's own sentence for the same fact is a second
+ * sentence for one thing, in other words and with another button's verb ("Osvežite prikaz"), so it is not drawn above them. `unconfirmedSend` is
  * that sentence, remembered when the send ended unproven; every other failure keeps its own line.
  */
 export function conversationErrorLine(error: string | null,

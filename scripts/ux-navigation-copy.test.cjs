@@ -76,19 +76,19 @@ test('profile has one ordered activity menu and one final logout for empty and p
  for(const empty of [false,true]){
   const x=await accountMenuRoute({empty});
   const labels=nodes(x.r,n=>n.props.onPress&&n.props.accessibilityLabel).map(n=>n.props.accessibilityLabel);
-  assert.deepEqual(labels.slice(-6),['Radni profil','Moji zadaci','Moje prijave','Moj raspored','Podešavanja','Odjavi se']);
+  assert.deepEqual(labels.slice(-6),['Radni profil','Moji zadaci','Moje prijave','Moj raspored','Podešavanja','Odjavite se']);
   assert.equal(labels.filter(label=>label==='Pomoć i podrška').length,0);
-  assert.equal(nodes(x.r,n=>n.props.accessibilityLabel==='Odjavi se').length,1);
-  assert.ok(target(x.r,'Odjavi se').props.style.minHeight>=48);
+  assert.equal(nodes(x.r,n=>n.props.accessibilityLabel==='Odjavite se').length,1);
+  assert.ok(target(x.r,'Odjavite se').props.style.minHeight>=48);
   assert.deepEqual(nodes(x.r,n=>n.type==='Section').map(n=>n.props.title),['Moje aktivnosti','Nalog']);
   assert.deepEqual(x.calls,[]);await x.stop();
  }
 });
 
 test('profile logout remains available after an identity read failure and keeps the existing warning',async()=>{
- const x=await accountMenuRoute({readFailure:true});await press(target(x.r,'Odjavi se'));
+ const x=await accountMenuRoute({readFailure:true});await press(target(x.r,'Odjavite se'));
  assert.ok(visibleText(x.r).includes('neposlate poruke u Dogovorima i lokalni glasovni snimci'));
- assert.equal(confirmButton(x.r).props.accessibilityLabel,'Odjavi se');
+ assert.equal(confirmButton(x.r).props.accessibilityLabel,'Odjavite se');
  assert.equal(cancelButton(x.r).props.accessibilityLabel,'Ostani prijavljen');assert.deepEqual(x.calls,[]);
  await press(cancelButton(x.r));assert.equal(confirmButton(x.r),undefined);assert.deepEqual(x.calls,[]);
  await press(target(x.r,'Podešavanja'));assert.deepEqual(x.routes,['/profil/podesavanja']);await x.stop();
@@ -96,7 +96,7 @@ test('profile logout remains available after an identity read failure and keeps 
 
 test('profile logout requires one confirmation, blocks competing taps and sends captured ownership once',async()=>{
  const pending=deferred(),x=await accountMenuRoute({logout:()=>pending.promise});
- const ask=target(x.r,'Odjavi se').props.onPress,open=target(x.r,'Podešavanja').props.onPress;
+ const ask=target(x.r,'Odjavite se').props.onPress,open=target(x.r,'Podešavanja').props.onPress;
  await RTR.act(async()=>{ask();ask();open();});assert.deepEqual(x.calls,[]);assert.deepEqual(x.routes,[]);
  const confirm=confirmButton(x.r).props.onPress;
  await RTR.act(async()=>{confirm();confirm();ask();open();});
@@ -107,27 +107,27 @@ test('profile logout requires one confirmation, blocks competing taps and sends 
 
 test('profile logout retires confirmation on blur or account change and fences retained callbacks',async()=>{
  for(const invalidate of [x=>x.blur(),async x=>{x.session.user={id:'other'};x.session.accountRevision++;await x.redraw();}]){
-  const x=await accountMenuRoute(),ask=target(x.r,'Odjavi se').props.onPress;
-  await press(target(x.r,'Odjavi se'));const confirm=confirmButton(x.r).props.onPress;
+  const x=await accountMenuRoute(),ask=target(x.r,'Odjavite se').props.onPress;
+  await press(target(x.r,'Odjavite se'));const confirm=confirmButton(x.r).props.onPress;
   await invalidate(x);assert.equal(confirmButton(x.r),undefined);
   await RTR.act(async()=>{confirm();ask();});assert.deepEqual(x.calls,[]);await x.stop();
  }
 });
 
 test('profile logout checks current session even before an account-change render',async()=>{
- const x=await accountMenuRoute();await press(target(x.r,'Odjavi se'));
+ const x=await accountMenuRoute();await press(target(x.r,'Odjavite se'));
  x.session.accountRevision++;await press(confirmButton(x.r));assert.deepEqual(x.calls,[]);await x.stop();
 });
 
 test('profile logout shows a retryable error only for the owning visit',async()=>{
  const x=await accountMenuRoute({logout:async()=>{throw Error('OFFLINE');}});
- await press(target(x.r,'Odjavi se'));await press(confirmButton(x.r));
+ await press(target(x.r,'Odjavite se'));await press(confirmButton(x.r));
  assert.ok(visibleText(x.r).includes('Odjava nije uspela. Pokušajte ponovo.'));
- assert.equal(target(x.r,'Odjavi se').props.disabled,false);
- await press(target(x.r,'Odjavi se'));await press(confirmButton(x.r));assert.equal(x.calls.length,2);await x.stop();
+ assert.equal(target(x.r,'Odjavite se').props.disabled,false);
+ await press(target(x.r,'Odjavite se'));await press(confirmButton(x.r));assert.equal(x.calls.length,2);await x.stop();
  for(const invalidate of [x=>x.blur(),async x=>{x.session.user={id:'other'};x.session.accountRevision++;await x.redraw();}]){
   const pending=deferred(),late=await accountMenuRoute({logout:()=>pending.promise});
-  await press(target(late.r,'Odjavi se'));await press(confirmButton(late.r));await invalidate(late);
+  await press(target(late.r,'Odjavite se'));await press(confirmButton(late.r));await invalidate(late);
   await RTR.act(async()=>pending.reject(Error('LATE_OFFLINE')));
   assert.ok(!visibleText(late.r).includes('Odjava nije uspela. Pokušajte ponovo.'));await late.stop();
  }
@@ -140,7 +140,7 @@ test('settings retains each destination once and leaves logout to the profile',a
  for(const node of targets)await press(node);
  assert.equal(calls.length,10);assert.equal(new Set(calls).size,calls.length);
  assert.equal(calls.filter(path=>path==='/podrska').length,1);assert.ok(calls.includes('/profil/prijava-greske'));
- assert.equal(nodes(r,n=>n.props.accessibilityLabel==='Odjavi se').length,0);await unmount(r);
+ assert.equal(nodes(r,n=>n.props.accessibilityLabel==='Odjavite se').length,0);await unmount(r);
 });
 
 async function personalDataRoute(workAreas,grad='',workFailure=false){

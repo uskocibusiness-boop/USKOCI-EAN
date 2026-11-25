@@ -26,7 +26,7 @@ export function useUnsavedProfileBack(state: LeaveState) {
     if (question.current) return;
     const token = {}, revision = latest.current.revision; question.current = token;
     confirmation.ask({ title: 'Odbaciti izmene?', message: 'Unete izmene neće biti sačuvane.',
-      confirmLabel: 'Odbaci izmene', cancelLabel: 'Nastavi uređivanje', tone: 'danger',
+      confirmLabel: 'Odbaci izmene', cancelLabel: 'Nastavite uređivanje', tone: 'danger',
       onCancel: () => { if (question.current === token) question.current = null; },
       onConfirm: () => {
         if (question.current !== token || !current(visit) || latest.current.revision !== revision || !asks(latest.current)) return;

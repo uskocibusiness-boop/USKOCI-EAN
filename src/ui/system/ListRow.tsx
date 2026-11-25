@@ -23,7 +23,7 @@ export type ListRowProps = {
   trailing?: ReactNode;
   /** With it the row is a button: an arrow at the end, a press that gives, a touch of at least 48 dp. Without it the row only tells. */
   onPress?: () => void;
-  /** `quiet`: the picture goes quiet (a row needed once in a long while). `danger`: the words are red ("Odjavi se"). */
+  /** `quiet`: the picture goes quiet (a row needed once in a long while). `danger`: the words are red ("Odjavite se"). */
   tone?: ListRowTone;
   /** The last row of a group: no divider under it. */
   last?: boolean;
@@ -32,7 +32,7 @@ export type ListRowProps = {
   /** Not now (the screen is working): the words and the picture go grey, nothing can be pressed. Added to the contract; optional. */
   disabled?: boolean;
   /**
-   * The arrow at the end. A touched row has it, except a `danger` row: red words are a COMMAND ("Odjavi se"), not a way onward, and an
+   * The arrow at the end. A touched row has it, except a `danger` row: red words are a COMMAND ("Odjavite se"), not a way onward, and an
    * arrow would say it opens a screen. Say it either way when the default is wrong (a red row that does open a flow keeps its arrow
    * with `arrow`). Added to the contract; optional.
    */
