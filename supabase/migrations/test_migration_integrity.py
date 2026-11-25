@@ -1065,8 +1065,9 @@ class Forward20261121ProvenanceTests(unittest.TestCase):
             "20261122105256_application_note_without_contacts.sql",
             "20261122113923_agreement_cancel_closes_pending_proposal.sql",
             "20261122162908_decline_response_for_task_owner.sql",
+            "20261125231234_agreement_personal_periods.sql",
         ])
-        self.assertEqual([e["dev_migration_count_after"] for e in self.section], [377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387])
+        self.assertEqual([e["dev_migration_count_after"] for e in self.section], [377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388])
 
     def test_wrong_field_in_any_entry_fails_closed(self):
         for index in range(len(self.section)):

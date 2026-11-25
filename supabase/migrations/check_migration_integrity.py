@@ -141,6 +141,8 @@ FORWARD_20261122_PROOF_3 = 'docs/plan/proofs/20261122-dev-forward-migrations-evi
 FORWARD_20261122_PROOF_3_SHA256 = '1bedeb7bc61b0bb0d4942b7d0aeb2a7ba1b112f8fc75dbe79f29d6f8024f5aae'
 FORWARD_20261122_PROOF_4 = 'docs/plan/proofs/20261122-dev-forward-migrations-evidence-4.md'
 FORWARD_20261122_PROOF_4_SHA256 = 'ba45552c8827f62f9183966b2501002f9e0573485c2b497e114349e1a738d38a'
+FORWARD_20261126_PROOF = 'docs/plan/proofs/20261126-dev-forward-migrations-evidence.md'
+FORWARD_20261126_PROOF_SHA256 = 'a5b8b0c5764babe82f5dcae398624e93985923f4cb87f87fc5ba9eb63805d05b'
 FORWARD_20261121 = [
     {
         "version": "20261121102509",
@@ -251,6 +253,16 @@ FORWARD_20261121 = [
         "rollback": "scripts/sql/rollback_decline_response_20261122.sql",
         "evidence": FORWARD_20261122_PROOF_4,
         "evidence_sha256": FORWARD_20261122_PROOF_4_SHA256,
+    },
+    {
+        "version": "20261125231234",
+        "name": "agreement_personal_periods",
+        "md5": "8f4be7826accef6efceed6f45a3b725d",
+        "sha256": "3de8946b71265745cfb5cbea24667fe538715ef67071cd738e189ceb69ddcb67",
+        "bytes": 5323,
+        "rollback": "scripts/sql/rollback_agreement_personal_periods_20261126.sql",
+        "evidence": FORWARD_20261126_PROOF,
+        "evidence_sha256": FORWARD_20261126_PROOF_SHA256,
     },
 ]
 

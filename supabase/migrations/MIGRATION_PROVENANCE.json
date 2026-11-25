@@ -5336,6 +5336,26 @@
       "dev_migration_count_before": 386,
       "dev_migration_count_after": 387,
       "release": "NO-GO"
+    },
+    {
+      "classification": "APPLIED_EXACT_LEDGER_BYTES",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "version": "20261125231234",
+      "name": "agreement_personal_periods",
+      "file": "20261125231234_agreement_personal_periods.sql",
+      "source_md5": "8f4be7826accef6efceed6f45a3b725d",
+      "source_sha256": "3de8946b71265745cfb5cbea24667fe538715ef67071cd738e189ceb69ddcb67",
+      "source_bytes": 5323,
+      "recorded_statement_md5": "8f4be7826accef6efceed6f45a3b725d",
+      "recorded_statement_sha256": "3de8946b71265745cfb5cbea24667fe538715ef67071cd738e189ceb69ddcb67",
+      "recorded_statement_count": 1,
+      "rollback_preimage": "scripts/sql/rollback_agreement_personal_periods_20261126.sql",
+      "evidence": "docs/plan/proofs/20261126-dev-forward-migrations-evidence.md",
+      "evidence_sha256": "a5b8b0c5764babe82f5dcae398624e93985923f4cb87f87fc5ba9eb63805d05b",
+      "dev_applied": true,
+      "dev_migration_count_before": 387,
+      "dev_migration_count_after": 388,
+      "release": "NO-GO"
     }
   ]
 }
