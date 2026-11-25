@@ -3,6 +3,7 @@ import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import type { PotrebaProjekcija } from '../../../contracts/projections';
 import { needPriceBasisNote } from '../../../data/needDetailPresentation';
 import { T } from '../../Text';
+import { Press } from '../../Press';
 import { Avatar } from '../../system/Avatar';
 import { FactArt, type FactArtKind } from '../../system/FactArt';
 import { FACT_ROW_ART, FactRow } from '../../system/FactRow';
@@ -12,7 +13,6 @@ import { MoneySummary } from '../../system/MoneySummary';
 import { layout } from '../../system/layout';
 import { plural } from '../../system/plural';
 import { Section } from '../../system/Section';
-import { Surface } from '../../system/Surface';
 import { sys } from '../../system/tokens';
 import { RELIABILITY_LABEL } from '../../profile/workTrustModel';
 import { VALUE_WORDS, taskValue } from '../TaskFace';
@@ -141,8 +141,10 @@ export function TaskDecisionPublisher({ name, rating, count, reliabilityPercent,
   const reliability = typeof reliabilityPercent === 'number' && Number.isFinite(reliabilityPercent) ? `${RELIABILITY_LABEL} · ${Math.round(reliabilityPercent)}%` : null;
   const pressable = !!onPress && !disabled;
   return <Section title="Objavio">
-    <Surface kind="record" onPress={pressable ? onPress : undefined} accessibilityLabel={[name, publisherRatingLine(rating, count), reliability].filter(Boolean).join(', ')}
-      accessibilityHint={pressable ? 'Otvara javni profil' : undefined}>
+    {/* One soft grey row, as "Objavio zadatak" on the task screen of a Dogovor (owner, 25.11.2026): no shadowed card. */}
+    <Press accessibilityRole={pressable ? 'button' : undefined} disabled={!pressable} onPress={pressable ? onPress : undefined} haptic="select"
+      accessibilityLabel={[name, publisherRatingLine(rating, count), reliability].filter(Boolean).join(', ')}
+      accessibilityHint={pressable ? 'Otvara javni profil' : undefined} style={s.publisherRow}>
       <View style={s.person}>
         <StickerFace photo={photo} initials={initials} />
         <View style={s.personText}>
@@ -155,7 +157,7 @@ export function TaskDecisionPublisher({ name, rating, count, reliabilityPercent,
         </View>
         {onPress ? <Glyph name="caret-right" size={20} tone="muted" /> : null}
       </View>
-    </Surface>
+    </Press>
     {error ? <T accessibilityLiveRegion="polite" variant="note" tone="danger" style={s.refusal}>{error}</T> : null}
   </Section>;
 }
@@ -182,6 +184,7 @@ const s = StyleSheet.create({
   requirements: { gap: layout.group },
   refusal: { paddingTop: sys.space.sm },
   person: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  publisherRow: { padding: sys.space.md, borderRadius: sys.radius.card, backgroundColor: sys.color.wash },
   personText: { flex: 1, minWidth: 0, gap: sys.space.xs },
   trustRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   tabular: { fontVariant: ['tabular-nums'] },

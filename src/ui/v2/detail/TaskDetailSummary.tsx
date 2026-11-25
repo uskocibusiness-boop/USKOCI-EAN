@@ -2,7 +2,6 @@ import { StyleSheet, View } from 'react-native';
 import type { PotrebaProjekcija } from '../../../contracts/projections';
 import { needScheduleText } from '../../../data/needDetailPresentation';
 import { FactRow } from '../../system/FactRow';
-import { Surface } from '../../system/Surface';
 import { sys } from '../../system/tokens';
 import { OFFERS_INFO, TaskDecisionValue } from './TaskDecision';
 import { TaskCapacity } from './TaskCapacity';
@@ -21,13 +20,14 @@ export function TaskDetailSummary({ need, audience, place, remote, people, peopl
   const time = remote && need.schedule?.kind === 'REMOTE_ANYTIME'
     ? needScheduleText({ ...need.schedule, kind: 'FLEXIBLE' }, need.taskTimezone)
     : audience === 'worker' && need.schedule ? needScheduleText(need.schedule, need.taskTimezone) : need.vremeTekst;
-  return <Surface kind="panel" variant="outlined" density="comfortable" style={s.facts}>
+  // Owner, 25.11.2026: the facts stand on the white page and breathe, as on the task screen of a Dogovor - no box around them.
+  return <View style={s.facts}>
     <TaskDecisionValue need={need} size="detail" offersInfo={OFFERS_INFO[audience]} />
     <FactRow size="detail" art={remote ? 'remote' : 'pin'} value={place} />
     <FactRow size="detail" art="calendar" value={time} />
     {draft ? (people ? <FactRow size="detail" art="users" value={people} note={peopleNote} /> : null)
       : <TaskCapacity capacity={need.pokrivenost} note={[people, peopleNote].filter(Boolean).join(' · ')} />}
-  </Surface>;
+  </View>;
 }
 
 const s = StyleSheet.create({
