@@ -33,8 +33,9 @@ export const PIN_ICON_SIZE = 1 / 4;
 /** The chosen capsule is 6 % larger (AGENTS §3.6.7, as PricePill's SELECTED_SCALE). */
 export const PIN_CHOSEN_SCALE = 1.06;
 const COUNT_SIZE = 14;
-/** The count's centre is 15 dp right of the capsule's centre: after the mark well, before the right padding (PricePill's geometry). */
-const COUNT_OFFSET: [number, number] = [15 / COUNT_SIZE, 0];
+/** Owner-approved look (25.11.2026): the count sits in the middle of its green bubble; a task is a pin whose tip marks the point. */
+const COUNT_OFFSET: [number, number] = [0, 0];
+const ANCHOR: ['case', ['==', ['get', string], string], 'bottom', 'center'] = ['case', ['==', ['get', 'kind'], 'TASK'], 'bottom', 'center'];
 // The count's font is a literal list: MLRNStyleValue reads a string-first array as an expression, also for text-font. A place (several tasks
 // on one public point) says its count in ink, as PricePill's count does; an area says it in green, as the clusters of the map always have.
 // The halo in the same colour gives the regular face the weight of PricePill's 600.
@@ -76,21 +77,20 @@ export const DiscoveryV1ServerMarkerLayer = memo(function DiscoveryV1ServerMarke
       if (marker) props.onSelect(marker);
     }}>
     <Layer id="p6-pins" type="symbol" filter={['!=', ['get', 'key'], chosen]}
-      layout={{ 'symbol-sort-key': ['get', 'order'], 'icon-image': ['get', 'image'], 'icon-size': PIN_ICON_SIZE,
+      layout={{ 'symbol-sort-key': ['get', 'order'], 'icon-image': ['get', 'image'], 'icon-size': PIN_ICON_SIZE, 'icon-anchor': ANCHOR,
         'icon-allow-overlap': true, 'icon-ignore-placement': true,
         'text-field': ['get', 'label'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': COUNT_SIZE, 'text-offset': COUNT_OFFSET,
         'text-allow-overlap': true, 'text-ignore-placement': true }}
-      paint={{ 'text-color': ['case', ['==', ['get', 'kind'], 'CLUSTER'], sys.color.green, sys.color.ink],
-        'text-halo-color': ['case', ['==', ['get', 'kind'], 'CLUSTER'], sys.color.green, sys.color.ink], 'text-halo-width': 0.4 }} />
+      paint={{ 'text-color': sys.color.onGreen, 'text-halo-color': sys.color.onGreen, 'text-halo-width': 0.4 }} />
     <Layer id="p6-chosen" type="symbol" filter={['==', ['get', 'key'], chosen]}
-      layout={{ 'icon-image': ['get', 'chosenImage'], 'icon-size': PIN_ICON_SIZE * PIN_CHOSEN_SCALE,
+      layout={{ 'icon-image': ['get', 'chosenImage'], 'icon-size': PIN_ICON_SIZE * PIN_CHOSEN_SCALE, 'icon-anchor': ANCHOR,
         'icon-allow-overlap': true, 'icon-ignore-placement': true,
         'text-field': ['get', 'label'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': COUNT_SIZE * PIN_CHOSEN_SCALE, 'text-offset': COUNT_OFFSET,
         'text-allow-overlap': true, 'text-ignore-placement': true }}
-      paint={{ 'text-color': sys.color.orangeInk, 'text-halo-color': sys.color.orangeInk, 'text-halo-width': 0.4 }} />
+      paint={{ 'text-color': sys.color.onGreen, 'text-halo-color': sys.color.onGreen, 'text-halo-width': 0.4 }} />
     {selectedPrice ? <Layer id="p6-selected-price" type="symbol" filter={['==', ['get', 'key'], chosen]}
       layout={{ 'text-field': ['get', 'selectedPrice'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': 14,
-        'text-anchor': 'top', 'text-offset': [0, 2.5], 'text-max-width': 18, 'text-justify': 'center',
+        'text-anchor': 'top', 'text-offset': [0, 0.4], 'text-max-width': 18, 'text-justify': 'center',
         'text-allow-overlap': true, 'text-ignore-placement': true }}
       paint={{ 'text-color': sys.color.orangeInk, 'text-halo-color': sys.color.surface, 'text-halo-width': 2.5 }} /> : null}
   </GeoJSONSource>;

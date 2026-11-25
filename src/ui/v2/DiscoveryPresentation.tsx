@@ -726,12 +726,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     nativeSettledIndex.current = index; nativeSpringMoving.current = false;
     // Pulling the list up is looking at the list: a pin's card does not stay over it.
     if (index > SNAP.peek) clearSelection();
-    announceBarRef.current?.(!cardShown && index > SNAP.peek);
+    announceBarRef.current?.(!cardShown);
     if (bar) {
-      if (index === SNAP.peek) {
+      if (cardShown) {
         bar.hidden.setValue(1);
         bar.setVisible?.(false);
-      } else if (!cardShown) {
+      } else {
         bar.hidden.setValue(0);
         bar.setVisible?.(true);
       }
@@ -787,7 +787,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const interacted = useRef(false);
   // The low stop exposes just the handle and count. The rest of the header and first card stay below the screen.
   const collapsedLead = tallHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : headerLeadHeight;
-  const collapsedSnap = tallHeader ? Math.min(collapsedLead + bottomInset, Math.max(3, mapClearSheet - 2)) : collapsedLead + bottomInset;
+  // Owner, 25.11.2026: the navigation stays on the map, so the low stop sits above it.
+  const collapsedSnap = (tallHeader ? Math.min(collapsedLead + bottomInset, Math.max(3, mapClearSheet - 2)) : collapsedLead + bottomInset) + barHeight;
   const snapPoints = useMemo(() => snapHeights({ bodyHeight, fullTop: listTop, halfTop: fullSheetTop(toolsBottom, LIST_GAP),
     collapsed: collapsedSnap, hidden: HIDDEN, cardShown, margin: GAP, bar: barHeight }),
     [bodyHeight, listTop, toolsBottom, collapsedSnap, cardShown, barHeight]);
@@ -903,7 +904,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const listener = bar.hidden.addListener(({ value }) => trace('bar-value', value));
     return () => bar.hidden.removeListener(listener);
   }, [props.trace, trace, bar]);
-  const { announce: announceBar } = useZadaciBarMotion({ bar, shown: !cardShown && sheetIndex > SNAP.peek, active: focused, reduced });
+  const { announce: announceBar } = useZadaciBarMotion({ bar, shown: !cardShown, active: focused, reduced });
   announceBarRef.current = announceBar;
   const onSheetAnimate = useCallback((_fromIndex: number, toIndex: number) => {
     if (!currentSheet()) return;
