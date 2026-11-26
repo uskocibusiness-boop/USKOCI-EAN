@@ -264,20 +264,34 @@ function speechHarness() {
     limits: { permissionMs: 5000, captureMs: 5000, finalizationMs: 5000 },
   });
   const flush = async () => { for (let n = 0; n < 12; n++) await Promise.resolve(); };
-  return { controller, calls, sockets, delivered, voiceErrorCopy, flush,
+  const pcm = sequence => { for (const sub of subscriptions) if (sub.name === 'pcm') sub.fn({ sessionId: REQUEST, sequence, pcmBase64: 'AAAAAA==', rms: 0.1 }); };
+  return { controller, calls, sockets, delivered, voiceErrorCopy, flush, pcm,
     async begin() { assert.equal(controller.begin('fixture-gesture'), true); await flush(); assert.equal(sockets.length, 1); },
     close() { controller.dispose(); assert.equal(subscriptions.size, 0); assert.equal(releaseCount, 1); },
   };
 }
-for (const event of ['onerror', 'onclose']) test(`speech: pre-ready ${event} shows unavailable service without microphone, transcript or automatic reconnect`, async () => {
+for (const event of ['onerror', 'onclose']) test(`speech: pre-ready ${event} shows unavailable service; the microphone that opened at the touch closes, nothing is sent, no transcript or reconnect`, async () => {
   const h = speechHarness();
   try {
     await h.begin(); h.sockets[0][event]({}); await h.flush();
     const state = h.controller.getSnapshot();
     assert.equal(state.phase, 'IDLE'); assert.equal(state.error, 'SPEECH_UNAVAILABLE');
     assert.match(h.voiceErrorCopy(state.error), /Pokušajte kasnije/);
-    assert.equal(h.calls.includes('start'), false); assert.deepEqual(h.delivered, []);
+    // Owner, 26.11.2026: listening starts at the touch; a failed connection closes the microphone and drops what was kept.
+    assert.deepEqual(h.calls, ['start', 'stop']); assert.deepEqual(h.delivered, []);
     assert.equal(h.sockets.length, 1); assert.deepEqual(h.sockets[0].sent, []);
+  } finally { h.close(); }
+});
+test('speech: listening starts at the touch; what is said before ready waits on the phone and goes first, in order, only after ready', async () => {
+  const h = speechHarness();
+  try {
+    await h.begin();
+    assert.equal(h.controller.getSnapshot().phase, 'LISTENING'); assert.deepEqual(h.calls, ['start']);
+    h.pcm(0); h.pcm(1); await h.flush();
+    assert.deepEqual(h.sockets[0].sent, []);
+    h.sockets[0].message('ready'); await h.flush();
+    h.pcm(2); await h.flush();
+    assert.deepEqual(h.sockets[0].sent.map(message => [message.kind, message.sequence]), [['audio', 0], ['audio', 1], ['audio', 2]]);
   } finally { h.close(); }
 });
 for (const event of ['onerror', 'onclose']) test(`speech: post-ready ${event} remains a connection loss and preserves recognized text without sending`, async () => {

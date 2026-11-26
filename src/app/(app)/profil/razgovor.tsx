@@ -595,7 +595,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     if(!canAct()||!enabled||!writable)return;
     correctPart(next);
   };
-  return <><AiConversationShell conversationKey={data.conversationId} title="Radni profil" questionFocus initialInputMode="keyboard"
+  return <><AiConversationShell conversationKey={data.conversationId} title="Radni profil" questionFocus initialInputMode="voice"
     correction={correction&&writable?{...correction,onDismiss:()=>{if(canAct()&&enabled)setCorrection(null);}}:undefined}
     cardPlacement="end"
     newConversation={{ onPress: restart, disabled: !canAct() || voiceBusy }}

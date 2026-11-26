@@ -488,7 +488,7 @@ export function IntakePresentation(props: Props) {
     : 'USKOČI Asistent';
 
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversationTitle}
-    questionFocus cardPlacement="end" initialInputMode="keyboard" closed={ended}
+    questionFocus cardPlacement="end" initialInputMode="voice" closed={ended}
     correction={props.correction}
     footerAction={footerAction}
     newConversation={props.onRestart ? { onPress: outsidePlace(props.onRestart), disabled: props.restartDisabled || editingPlace }

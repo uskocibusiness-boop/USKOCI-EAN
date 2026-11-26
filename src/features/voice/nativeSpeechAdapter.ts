@@ -14,6 +14,8 @@ export interface NativePcmModule {
   addListener(event: 'interrupted', listener: (event: { sessionId: string; code: string }) => void): Subscription;
 }
 type Connection = { url: string; accessToken: string; anonKey: string };
+/** Audio kept on the phone while the connection opens: 15 s at 16 kHz mono PCM16. */
+const EARLY_AUDIO_BYTES = 480000;
 export type SpeechAdapterOptions = {
   getConnection: (session: VoiceSession, signal: AbortSignal) => Promise<Connection | null>;
   newOperationId: () => string;
@@ -68,6 +70,7 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
       let finalResolve: (result: FinalTranscript) => void = () => {};
       const final = new Promise<FinalTranscript>(resolve => { finalResolve = resolve; });
       let terminalReceived = false, serviceReady = false;
+      let connected: Promise<void> = Promise.reject(new Error('CAPTURE_NOT_STARTED')); void connected.catch(() => undefined);
       const stopCapture = () => {
         if (captureStopped) return;
         captureStopped = true;
@@ -114,51 +117,26 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
           });
           if (disposed || !input.canCapture() || !acquired.isCurrent()) { acquired(); dispose(); return; }
           lease = acquired;
-          const connection = await options.getConnection(input.session, input.signal);
-          if (disposed || !input.canCapture()) { dispose(); return; }
-          if (!connection || !connection.accessToken || !connection.anonKey) throw new Error('MIC_UNAVAILABLE');
-          const url = new URL(connection.url);
-          if (url.protocol !== 'https:' || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw new Error('SPEECH_CONNECTION_INVALID');
-          url.protocol = 'wss:'; url.pathname = '/functions/v1/uskoci-speech-session';
-          url.searchParams.set('conversationId', input.session.conversationId);
-          url.searchParams.set('operationId', operationId);
-          // React Native's native WebSocket supports request headers; tokens never enter query strings.
-          const NativeWebSocket = WebSocket as unknown as new (url: string, protocols: string[], options: { headers: Record<string,string> }) => WebSocket;
-          socket = new NativeWebSocket(url.toString(), [], { headers: { Authorization: 'Bearer ' + connection.accessToken, apikey: connection.anonKey } });
-          socket.onmessage = event => {
-            if (disposed) return;
-            if (typeof event.data !== 'string' || event.data.length > 30000) { fail(); return; }
-            let raw: unknown;
-            try { raw = JSON.parse(event.data); } catch { fail(); return; }
-            const message = decodeSpeechEvent(raw, input.session.conversationId, operationId, expectedSequence);
-            if (!message) { fail(); return; }
-            expectedSequence++;
-            if (message.kind === 'ready') { serviceReady = true; readyResolve(); return; }
-            if (message.kind === 'segment') { input.onEvent({ kind: 'segment', index: message.index, final: message.final, text: message.text }); return; }
-            if (message.kind === 'error') {
-              // Only a validated service refusal gets this message; it does not establish a billing cause.
-              fail(message.code === 'SPEECH_UNAVAILABLE' ? 'SPEECH_UNAVAILABLE' : 'CAPTURE_FAILED'); return;
-            }
-            if (!released || terminalReceived) { fail(); return; }
-            terminalReceived = true;
-            finalResolve(message.text.trim() ? { kind: 'final', text: message.text } : { kind: 'incomplete' });
+          // Owner, 26.11.2026: listening starts at the touch. The microphone opens at once and what is said before the speech
+          // service is ready waits here, on the phone, in order; it is sent only after "ready" and is dropped, never sent, when
+          // the connection fails. Nothing reaches the provider earlier than before, so the budget admission is unchanged.
+          const early: { sequence: number; pcmBase64: string }[] = [];
+          let earlyBytes = 0, flushed = false;
+          const send = (sequence: number, pcmBase64: string) => {
+            if (socket?.readyState !== 1 || socket.bufferedAmount > SPEECH_LIMITS.outgoingBufferBytes) { fail(); return false; }
+            socket.send(JSON.stringify({ kind: 'audio', sequence, pcmBase64 }));
+            return true;
           };
-          // A refused upgrade (including budget admission) has no usable speech
-          // session yet. Native WebSocket does not expose a trustworthy HTTP body;
-          // describe availability, without inferring a billing or network cause.
-          const connectionFailure = () => fail(serviceReady ? 'SPEECH_CONNECTION_FAILED' : 'SPEECH_UNAVAILABLE');
-          socket.onerror = connectionFailure;
-          socket.onclose = () => { if (!terminalReceived && !disposed) connectionFailure(); };
-          await ready;
-          if (disposed || !input.canCapture()) { dispose(); return; }
           subscriptions.push(module.addListener('pcm', event => {
             if (event.sessionId !== operationId || disposed || captureStopped || !input.canCapture()) return;
             const bytes = pcmBase64Bytes(event.pcmBase64);
-            if (bytes === null || event.sequence !== expectedAudioSequence || pcmBytes + bytes > SPEECH_LIMITS.pcmTotalBytes
-              || socket?.readyState !== 1 || socket.bufferedAmount > SPEECH_LIMITS.outgoingBufferBytes) { fail(); return; }
+            if (bytes === null || event.sequence !== expectedAudioSequence || pcmBytes + bytes > SPEECH_LIMITS.pcmTotalBytes) { fail(); return; }
             expectedAudioSequence++; pcmBytes += bytes;
             input.onEvent({ kind: 'level', value: event.rms });
-            socket.send(JSON.stringify({ kind: 'audio', sequence: event.sequence, pcmBase64: event.pcmBase64 }));
+            if (flushed) { send(event.sequence, event.pcmBase64); return; }
+            earlyBytes += bytes;
+            if (earlyBytes > EARLY_AUDIO_BYTES) { fail('SPEECH_UNAVAILABLE'); return; }
+            early.push({ sequence: event.sequence, pcmBase64: event.pcmBase64 });
           }));
           subscriptions.push(module.addListener('interrupted', event => {
             if (event.sessionId === operationId && !disposed) fail('AUDIO_INTERRUPTED');
@@ -166,13 +144,59 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
           if (disposed || !input.canCapture()) { dispose(); return; }
           started = true;
           await module.start(operationId, SPEECH_LIMITS.captureMs);
-          if (disposed || !input.canCapture() || !acquired.isCurrent()) dispose();
+          if (disposed || !input.canCapture() || !acquired.isCurrent()) { dispose(); return; }
+          // The connection opens beside the running microphone; start() returns now, so "listening" shows at once.
+          connected = (async () => {
+            const connection = await options.getConnection(input.session, input.signal);
+            if (disposed) return;
+            if (!connection || !connection.accessToken || !connection.anonKey) throw new Error('MIC_UNAVAILABLE');
+            const url = new URL(connection.url);
+            if (url.protocol !== 'https:' || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw new Error('SPEECH_CONNECTION_INVALID');
+            url.protocol = 'wss:'; url.pathname = '/functions/v1/uskoci-speech-session';
+            url.searchParams.set('conversationId', input.session.conversationId);
+            url.searchParams.set('operationId', operationId);
+            // React Native's native WebSocket supports request headers; tokens never enter query strings.
+            const NativeWebSocket = WebSocket as unknown as new (url: string, protocols: string[], options: { headers: Record<string,string> }) => WebSocket;
+            socket = new NativeWebSocket(url.toString(), [], { headers: { Authorization: 'Bearer ' + connection.accessToken, apikey: connection.anonKey } });
+            socket.onmessage = event => {
+              if (disposed) return;
+              if (typeof event.data !== 'string' || event.data.length > 30000) { fail(); return; }
+              let raw: unknown;
+              try { raw = JSON.parse(event.data); } catch { fail(); return; }
+              const message = decodeSpeechEvent(raw, input.session.conversationId, operationId, expectedSequence);
+              if (!message) { fail(); return; }
+              expectedSequence++;
+              if (message.kind === 'ready') { serviceReady = true; readyResolve(); return; }
+              if (message.kind === 'segment') { input.onEvent({ kind: 'segment', index: message.index, final: message.final, text: message.text }); return; }
+              if (message.kind === 'error') {
+                // Only a validated service refusal gets this message; it does not establish a billing cause.
+                fail(message.code === 'SPEECH_UNAVAILABLE' ? 'SPEECH_UNAVAILABLE' : 'CAPTURE_FAILED'); return;
+              }
+              if (!released || terminalReceived) { fail(); return; }
+              terminalReceived = true;
+              finalResolve(message.text.trim() ? { kind: 'final', text: message.text } : { kind: 'incomplete' });
+            };
+            // A refused upgrade (including budget admission) has no usable speech
+            // session yet. Native WebSocket does not expose a trustworthy HTTP body;
+            // describe availability, without inferring a billing or network cause.
+            const connectionFailure = () => fail(serviceReady ? 'SPEECH_CONNECTION_FAILED' : 'SPEECH_UNAVAILABLE');
+            socket.onerror = connectionFailure;
+            socket.onclose = () => { if (!terminalReceived && !disposed) connectionFailure(); };
+            await ready;
+            if (disposed) return;
+            // What was said while connecting goes first, in order, in one synchronous pass: no live chunk slips between.
+            for (const chunk of early.splice(0)) if (!send(chunk.sequence, chunk.pcmBase64)) return;
+            flushed = true;
+          })();
+          connected.catch(() => { if (!disposed) fail('SPEECH_UNAVAILABLE'); });
         },
         stopCapture,
         async finalize(): Promise<FinalTranscript> {
-          if (disposed || !started || released || socket?.readyState !== 1) return { kind: 'incomplete' };
+          if (disposed || !started || released) return { kind: 'incomplete' };
           stopCapture();
           try { await stopped; } catch { fail(); return { kind: 'incomplete' }; }
+          // A short sentence can end before the connection is ready: its audio waits on the phone and goes now.
+          try { await connected; } catch { return { kind: 'incomplete' }; }
           if (disposed || released || socket?.readyState !== 1) return { kind: 'incomplete' };
           released = true;
           socket.send(JSON.stringify({ kind: 'release' }));

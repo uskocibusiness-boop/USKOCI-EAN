@@ -8,6 +8,7 @@ import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { PermissionRecovery } from '../system/PermissionRecovery';
 import { tick } from '../system/haptics';
 import { useReducedMotion } from '../system/motion';
+import Reanimated, { FadeIn } from 'react-native-reanimated';
 import { sys } from '../system/tokens';
 
 /**
@@ -33,6 +34,8 @@ const PHASE_WORDS: Partial<Record<VoicePhase, string>> = {
   PERMISSION_PENDING: 'Čekamo dozvolu mikrofona…', PREPARING: 'Pripremamo govorni unos…', STARTING: 'Povezujemo mikrofon…',
   FINALIZING: 'Završavamo tekst…',
 };
+/** A touch shorter than this starts listening that continues until the next touch. */
+const TAP_MS = 400;
 /** Shown when the microphone was only tapped: it listens while it is held. */
 export const HOLD_HINT = 'Držite mikrofon dok govorite, pa pustite da pošaljete.';
 
@@ -58,7 +61,9 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   const gestureTap = useRef(false);
   // Gesture and delivery are independent. A held recording can be reviewed; a tapped
   // recording can auto-send. Screen readers always retain the explicit review step.
-  const explicit = p.state.phase !== 'IDLE' && gesture.current ? gestureTap.current : reader || !!p.tapToTalk;
+  const explicit = p.state.phase !== 'IDLE' && gesture.current ? gestureTap.current : reader;
+  // Owner, 26.11.2026: a short tap starts listening and the next tap sends; holding still works and sends on release.
+  const latched = useRef(false), pressedAt = useRef(0), stopping = useRef(false);
   const { phase } = p.state;
   const active = voiceActive(p.state);
   const occupied = phase !== 'IDLE' && !active;
@@ -75,7 +80,7 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   useEffect(() => { if (phase === 'LISTENING' && gesture.current) tick('gestureStart'); }, [phase]);
   // A recording that fails says so with the error tick, here and not in the notice, so the same error is not felt twice.
   useEffect(() => { if (p.state.error) tick('error'); }, [p.state.error]);
-  useEffect(() => { if (phase === 'IDLE') gesture.current = null; }, [phase]);
+  useEffect(() => { if (phase === 'IDLE') { gesture.current = null; latched.current = false; stopping.current = false; } }, [phase]);
   useEffect(() => {
     if (listening && !reduced && targetSize === 64) {
       const loop = Animated.loop(
@@ -98,7 +103,7 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
     if (!p.controller.begin(id, reader || p.reviewFirst ? 'accessible' : 'hold')) gesture.current = null;
   };
   const release = () => {
-    const id = gesture.current; gesture.current = null;
+    const id = gesture.current; gesture.current = null; latched.current = false;
     if (!id) return;
     // A tap on a held control does nothing a person can see, so the composer says how it works.
     const early = phase !== 'LISTENING';
@@ -108,11 +113,22 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   };
   // A running capture is said and drawn in its own mode; before one starts, the mode is the screen reader's.
   const review = reviewing(p.state, reader || !!p.reviewFirst);
-  const label = listening ? explicit ? review ? 'Zaustavite i pregledajte tekst' : 'Zaustavite i pošaljite'
+  const label = listening ? explicit || latched.current ? review ? 'Zaustavite i pregledajte tekst' : 'Zaustavite i pošaljite'
     : review ? 'Slušamo — pustite za pregled' : 'Slušamo — pustite da pošaljete'
-    : PHASE_WORDS[phase] ?? (explicit ? 'Pokrenite govorni unos' : 'Držite da govorite');
+    : PHASE_WORDS[phase] ?? (explicit ? 'Pokrenite govorni unos' : 'Dodirnite ili držite da govorite');
   const waiting = phase === 'PERMISSION_PENDING' || phase === 'PREPARING' || phase === 'STARTING' || phase === 'FINALIZING';
-  const cancel = () => { if (gesture.current) { gesture.current = null; tick('cancel'); p.controller.cancel('gesture'); } };
+  const cancel = () => { if (gesture.current) { gesture.current = null; latched.current = false; tick('cancel'); p.controller.cancel('gesture'); } };
+  // The second touch of a tap-started recording only stops it; the first decides by how long it was held.
+  const press = () => {
+    if (gesture.current && latched.current) { stopping.current = true; return; }
+    stopping.current = false; pressedAt.current = Date.now(); begin();
+  };
+  const lift = () => {
+    if (stopping.current) { stopping.current = false; release(); return; }
+    if (!gesture.current) return;
+    if (Date.now() - pressedAt.current < TAP_MS) { latched.current = true; return; }
+    release();
+  };
   return <MicTarget testID="voice-mic" accessible accessibilityRole="button" accessibilityLabel={label}
     accessibilityHint={explicit ? review ? 'Zaustavljanje priprema tekst za pregled i izmenu. Poruku šaljete zasebnim dugmetom.'
       : 'Dodirnite da počnete, pa ponovo da pošaljete. Snimanje možete da otkažete.'
@@ -125,13 +141,13 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
     accessibilityActions={explicit ? undefined : [{ name: 'activate' }]}
     onAccessibilityAction={explicit ? undefined : event => { if (event.nativeEvent.actionName === 'activate' && !blocked) p.onTooShort?.(); }}
     onStartShouldSetResponder={explicit ? undefined : () => !blocked}
-    onResponderGrant={explicit ? undefined : event => { startX.current = event.nativeEvent.pageX ?? 0; startY.current = event.nativeEvent.pageY; begin(); }}
-    onResponderRelease={explicit ? undefined : release}
+    onResponderGrant={explicit ? undefined : event => { startX.current = event.nativeEvent.pageX ?? 0; startY.current = event.nativeEvent.pageY; press(); }}
+    onResponderRelease={explicit ? undefined : lift}
     onResponderTerminate={explicit ? undefined : cancel}
     onResponderTerminationRequest={explicit ? undefined : () => true}
     onPress={explicit ? () => gesture.current ? release() : begin() : undefined}
     onResponderMove={explicit ? undefined : event => {
-      if (gesture.current) {
+      if (gesture.current && !latched.current) {
         const deltaY = startY.current - event.nativeEvent.pageY;
         const deltaX = Math.abs(startX.current - (event.nativeEvent.pageX ?? startX.current));
         // Upward swipe cancellation: must drag upwards (>140px) with intentional vertical motion
@@ -162,6 +178,21 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   </MicTarget>;
 }
 
+/**
+ * What was heard, word by word as it arrives (owner, 26.11.2026: the way this assistant's own chat writes): each new word
+ * fades in where it lands, a corrected word changes in place, and the newest line stays in view. Reduced motion shows the
+ * words at once. The text read aloud is the whole sentence, once.
+ */
+function LiveWords({ text, testID }: { text: string; testID?: string }) {
+  const reduced = useReducedMotion();
+  const words = text.split(/\s+/).filter(Boolean).slice(-40);
+  return <View testID={testID} accessible accessibilityLabel={text} accessibilityLiveRegion="polite" style={s.words}>
+    {words.map((word, index) => reduced
+      ? <T key={index} style={s.heard}>{word} </T>
+      : <Reanimated.Text key={index} entering={FadeIn.duration(220)} style={s.heard}>{word} </Reanimated.Text>)}
+  </View>;
+}
+
 /** Five still bars for the measured level; they redraw with the level and never animate on their own. */
 function Levels({ level }: { level: number }) {
   return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.levels}>
@@ -180,11 +211,11 @@ export function VoiceNotice(p: VoiceInput & { tapToTalk?: boolean; hint?: string
   const active = voiceActive(state), listening = state.phase === 'LISTENING';
   if (active || state.phase === 'FINALIZING') {
     const words = [state.finalText, state.interimText].filter(Boolean).join(' ');
-    const line = listening ? (reader || p.tapToTalk ? 'Slušamo… Dodirnite za slanje' : 'Slušamo… Pustite za slanje')
+    const line = listening ? 'Slušamo…'
       : state.phase === 'FINALIZING' ? 'Šaljemo poruku…' : PHASE_WORDS[state.phase] ?? '';
     return <View testID="voice-notice" style={s.notice}>
-      {listening && words ? <View style={s.heardBubble}>
-        <T testID="voice-live-transcript" selectable numberOfLines={2} style={s.heard}>{words}</T>
+      {(listening || state.phase === 'FINALIZING') && words ? <View style={s.heardBubble}>
+        <LiveWords testID="voice-live-transcript" text={words} />
       </View> : null}
       <View style={s.noticeRow}>
         {listening && state.audioLevel !== null ? <Levels level={state.audioLevel} /> : null}
@@ -225,6 +256,7 @@ const s = StyleSheet.create({
   noticeText: { flex: 1, color: sys.color.muted },
   noticeLive: { color: sys.color.ink, fontWeight: '600' },
   heard: { ...sys.type.body, color: sys.color.ink },
+  words: { flexDirection: 'row', flexWrap: 'wrap', maxHeight: sys.type.body.lineHeight * 5, overflow: 'hidden', justifyContent: 'flex-start' },
   hintRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, paddingHorizontal: 8 },
   hintText: { flexShrink: 1 },
   error: { color: sys.color.danger },
