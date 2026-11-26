@@ -6862,3 +6862,23 @@ Ovi ciljevi su istorijski predlozi iz povucenog UX materijala, a ne samostalno o
 - AI pita za rok prijava; predlog vlasniku je da ne pita.
 - Karta mesta ne skroluje sama do dugmadi.
 - Početna pri učitavanju kratko prikaže redove „Moji zadaci / Moje prijave / Učitavamo radni profil…“.
+
+#### 12.6.28. Rok prijava se ne pita, fotoaparat, objava, Početna (26.11.2026)
+
+**Odluke vlasnika:** AI ne pita za rok prijava („Može“); dodavanje fotografija je mali 3D fotoaparat sa plusom gore desno.
+
+**Izvor:**
+- `d56b3def`: „Fotografije“ kao mali 3D fotoaparat sa plusom, desno gore.
+- `f2f962e9`: `uskoci-ai-interview` ne pita rok; ako ga korisnik sam kaže, beleži se; test prepisan.
+- `HomePresentation.tsx`: prvo učitavanje je samo oblik sadržaja; red o radnom profilu se javlja samo kad čitanje ne uspe.
+- `AiConversationShell.tsx`: karta mesta se skroluje do svog kraja (dugmad) i jednom prati kada se mapa učita, osim ako je osoba sama skrolovala.
+
+**DEV:** `uskoci-ai-interview` v228 (deploy uz odobrenje „Može“).
+
+**Emulator (APK `f2f962e9`):** opis zadatka → potvrda mesta → pregled, bez pitanja o roku; fotoaparat vidljiv; jedan dodir „Objavi zadatak“ objavljuje i otvara zadatak.
+
+**Nalaz:** „dupli korak objave“ iz 12.6.27 nije kvar. Probni dodir je pao na „Sačuvajte nacrt“. DEV logovi to potvrđuju: prihvatanje i jedno čitanje, bez provere objave.
+
+**Lokalno:** 1869/1869, `tsc` PASS.
+
+**Otvoreno:** potvrda skrolovanja karte mesta i Početne na sledećem APK-u.
