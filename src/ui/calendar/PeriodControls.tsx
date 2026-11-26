@@ -25,7 +25,7 @@ export function PeriodHeader({ view, title, zoneNote, below, onPrevious, onNext,
       <View style={s.copy}>
         <T variant="heading" accessibilityRole="header" accessibilityLiveRegion="polite" accessibilityActions={[{ name: 'refresh', label: 'Osvežite raspored' }]}
           onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'refresh') onRefresh(); }}>{title}</T>
-        {zoneNote ? <T variant="note" tone="muted">Po vremenu u Srbiji</T> : null}
+        {/* Owner, 26.11.2026: Serbian time is never spelled out. */}
       </View>
       <View style={s.arrows}>
         <ChromeIconButton quiet label={labels.previous} glyph="caret-left" haptic="select" onPress={onPrevious} />

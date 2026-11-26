@@ -21,7 +21,8 @@ export const DOGOVORENA_ZONA = 'Europe/Belgrade';
 
 /** " (po vremenu u Srbiji)" on a phone set to another zone; nothing on a phone already in Serbian time. */
 export function napomenaZone(): string {
-  return zonaTelefona() === DOGOVORENA_ZONA ? '' : ' (po vremenu u Srbiji)';
+  // Owner, 26.11.2026: Serbian time is never spelled out.
+  return '';
 }
 
 export function dogovorenoVreme(value: unknown, fallback = 'Po dogovoru'): string {

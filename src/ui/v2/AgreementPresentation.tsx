@@ -147,7 +147,7 @@ export function termValue(a: Pick<DogovorProjekcija, 'vremeTekst' | 'stanje'>): 
   const term = agreementTerm(a);
   // The row's label is the word "Termin"; its value does not say it again ("Termin: Termin nije dogovoren").
   if (term.line === NO_TERM) return 'Nije dogovoren';
-  return term.zone ? `${term.line} (po vremenu u Srbiji)` : term.line;
+  return term.line;
 }
 
 /**

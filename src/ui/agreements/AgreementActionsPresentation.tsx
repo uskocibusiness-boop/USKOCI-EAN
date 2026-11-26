@@ -279,7 +279,6 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
     {form.kind === 'PROPOSE' ? <>
       {/* The term is what a Dogovor most often changes ("Predložite termin" opens this form), so it comes first; price and the
           description of the work follow (owner walk-through, 25.11.2026). */}
-      <T variant="meta" tone="muted">Vreme unosite po vremenu u Srbiji.</T>
       {/* Most work ends the day it starts: an empty end date takes the start date, and stays the person's to change. */}
       {civil('Datum početka', 'date', form.startDate, startDate => onEdit({ startDate, startChanged: true,
         ...(form.endDate.trim() ? {} : { endDate: startDate, endChanged: true }) }), was.startDate)}
