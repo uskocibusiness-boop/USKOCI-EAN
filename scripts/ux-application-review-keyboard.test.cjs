@@ -36,47 +36,20 @@ async function composer(){
  return {r,scrolls,calls,action,redraw,get props(){return props},get dismisses(){return dismisses},
   keyboard:async(shown,emit=true)=>{visible=shown;if(emit)await RTR.act(async()=>listeners.get(shown?'keyboardDidShow':'keyboardDidHide')?.())},stop:()=>unmount(r)};
 }
-test('review waits for the active IME to hide, then opens at top with exact offer and retained note',async()=>{
+// Owner, 26.11.2026: an application is one step - the form is what is sent; no review sheet opens in between.
+test('one step: Pošaljite prijavu closes the keyboard and sends the form as it stands, once, with no review sheet',async()=>{
  const h=await composer();try{
-  await h.keyboard(true,false);await h.action('Pregledajte prijavu');assert.equal(h.dismisses,1);
-  assert.equal(nodes(h.r,n=>n.type==='Modal').length,0,'No modal mounted into the keyboard-closing viewport');assert.deepEqual(h.calls,[]);
-  await h.keyboard(false);assert.equal(nodes(h.r,n=>n.type==='Modal').length,1);assert.deepEqual(h.scrolls,[{y:0,animated:false}]);
-  assert.equal(nodes(h.r,n=>n.type==='MoneySummary')[0].props.amount,'1.000 RSD');
-  assert.ok(nodes(h.r,n=>n.type==='T').some(n=>n.children.includes('Probna prijava radi provere Dogovora.')));
-  await h.action('Izmenite prijavu');assert.equal(nodes(h.r,n=>n.type==='Modal').length,0);assert.equal(h.props.draft.price,'1000');assert.equal(h.props.draft.note,'Probna prijava radi provere Dogovora.');
-  await h.action('Pregledajte prijavu');assert.equal(nodes(h.r,n=>n.type==='Modal').length,1);assert.equal(h.scrolls.length,2);assert.deepEqual(h.calls,[]);
-  await h.action('Pošaljite ovu prijavu');assert.deepEqual(h.calls,['submit']);
+  await h.keyboard(true,false);await h.action('Pošaljite prijavu');
+  assert.equal(h.dismisses,1,'the keyboard closes before sending');
+  assert.deepEqual(h.calls,['submit']);
+  assert.equal(nodes(h.r,n=>n.type==='Modal').length,0,'no review sheet');
+  assert.equal(h.props.draft.price,'1000');assert.equal(h.props.draft.note,'Probna prijava radi provere Dogovora.');
  }finally{await h.stop()}
 });
-test('review opened without IME resets again at native Modal show, not only its early mount effect',async()=>{
+test('one step: nothing is sent while the form cannot be sent',async()=>{
  const h=await composer();try{
-  await h.action('Pregledajte prijavu');const modal=nodes(h.r,n=>n.type==='Modal')[0];assert.ok(modal);
-  assert.deepEqual(h.scrolls,[{y:0,animated:false}]);
-  // Android may change native offset while taking modal focus after the React effect.
-  await RTR.act(async()=>modal.props.onShow());assert.deepEqual(h.scrolls,[{y:0,animated:false},{y:0,animated:false}]);
-  await h.redraw({error:'Unrelated retained message'});assert.equal(h.scrolls.length,2,'Ordinary rerenders do not fight user scrolling');
-  assert.deepEqual(h.calls,[]);
+  await h.redraw({canSubmit:false});
+  const send=nodes(h.r,n=>n.type==='V2Action'&&n.props.label==='Pošaljite prijavu')[0];assert.ok(send);assert.equal(send.props.disabled,true);
+  await RTR.act(async()=>send.props.onPress());assert.deepEqual(h.calls,[]);
  }finally{await h.stop()}
-});
-test('a stale shown listener state cannot stall opening when the native keyboard is already hidden',async()=>{
- const h=await composer();try{
-  await h.keyboard(true);await h.keyboard(false,false);await h.action('Pregledajte prijavu');
-  assert.equal(nodes(h.r,n=>n.type==='Modal').length,1);assert.deepEqual(h.calls,[]);
- }finally{await h.stop()}
-});
-test('back or unmount retires a pending keyboard review without sending or clearing draft',async()=>{
- for(const exit of ['back','unmount']){
-  const h=await composer();await h.keyboard(true);await h.action('Pregledajte prijavu');
-  if(exit==='back'){
-   await RTR.act(async()=>nodes(h.r,n=>n.type==='ProductHeader')[0].props.back());await h.keyboard(false);
-   assert.equal(nodes(h.r,n=>n.type==='Modal').length,0);assert.deepEqual(h.calls,['back']);assert.equal(h.props.draft.price,'1000');await h.stop();
-  }else{await h.stop();await h.keyboard(false);assert.deepEqual(h.calls,[]);}
- }
-});
-test('a changed draft or lost admission cannot open the pending keyboard-delayed review',async()=>{
- for(const mutation of [h=>({draft:{...h.props.draft,price:'2000'}}),()=>({canSubmit:false}),()=>({busy:true})]){
-  const h=await composer();try{await h.keyboard(true);await h.action('Pregledajte prijavu');assert.equal(nodes(h.r,n=>n.type==='Modal').length,0);
-   await h.redraw(mutation(h));await h.keyboard(false);assert.equal(nodes(h.r,n=>n.type==='Modal').length,0);assert.deepEqual(h.calls,[]);
-  }finally{await h.stop()}
- }
 });

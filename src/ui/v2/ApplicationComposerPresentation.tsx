@@ -318,6 +318,10 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   // What was sent, or saved to be checked, is shown as facts; a form is shown only while it can be edited.
   const locked = confirmed || pending || uncertain;
   const reviewReason = shownBlock?.reason ?? issue.reason;
+  const sendNow = () => {
+    if (disabled || !canSubmit || issue.reason) return;
+    Keyboard.dismiss(); closeReview(); submit();
+  };
   const openReview = () => {
     if (!disabled && canSubmit && !reviewing && !issue.reason) {
       setKeyboard(Keyboard.isVisible());
@@ -330,7 +334,8 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
     // A known refusal cannot be undone by repeating the same command: the one way on is a new application on fresh terms.
     : reset ? <V2Action label="Sastavi novu prijavu" onPress={reset} disabled={busy} style={brandAction} />
     : pending || busy ? <V2Action label={busy ? 'Slanje…' : 'Pošaljite ponovo'} onPress={submit} disabled={busy} loading={busy} style={brandAction} />
-    : <V2Action label="Pregledajte prijavu" onPress={openReview} disabled={!canSubmit || reviewing || !!issue.reason} style={brandAction} />;
+    // Owner, 26.11.2026: one step - the form itself is what is sent, with its summary right above this button.
+    : <V2Action label="Pošaljite prijavu" onPress={sendNow} disabled={!canSubmit || !!issue.reason} style={brandAction} />;
   // A reason that names a fresh read of the task has the read under it: the task without its price, or without the
   // places this application would take, including a proportional share of a TOTAL budget.
   const refreshFixes = issue.price === 'missing' || (issue.people === 'over' && left < 1);
@@ -391,27 +396,26 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
               onChangeText={value => { if (!disabled) change({ ...draft, price: value }); }} />
             <T variant="bodyStrong" tone="muted" accessible={false}>RSD</T>
           </View>
-          <T variant="note" tone="muted">Za sve izvršioce koje prijavljujete.</T>
+          {left > 1 ? <T variant="note" tone="muted">Za sve koje prijavljujete.</T> : null}
         </View>
       </Section> : <FixedPrice need={need} />}
-      <Section title="Koliko ljudi obezbeđujete">
+      {/* A task for one person asks nothing about how many (owner, 26.11.2026): the draft already says one. */}
+      {need.pokrivenost.ukupno > 1 || count !== 1 ? <Section title="Koliko ljudi obezbeđujete">
         <ApplicationPeopleInput value={draft.people} maximum={left} disabled={disabled}
           onChange={people => change({ ...draft, people })} help={placesText(need.pokrivenost, 'worker').text} />
-        <T variant="note" tone="muted">Uključite i sebe ako dolazite. Možete obezbediti jednog ili više ljudi, najviše koliko slobodnih mesta zadatak ima.</T>
-      </Section>
-      <Section title="Termin zadatka">
+      </Section> : null}
+      <Section title="Termin">
         <View testID="composer-term">
           <FactRow art="calendar" label="Termin" value={time} size="detail" />
-          <T variant="note" tone="muted">Prijava se odnosi na termin koji je naveden u zadatku.</T>
         </View>
       </Section>
-      <Section title="Poruka uz prijavu">
+      <Section title="Poruka (opciono)">
         <View style={s.group}>
           <TextInput accessibilityLabel="Poruka uz prijavu" multiline maxLength={NOTE_LIMIT} value={draft.note} editable={!disabled}
             style={[s.note, focused === 'note' && s.fieldFocused]} placeholder="Npr. koju opremu donosite ili šta je još važno za zadatak." placeholderTextColor={sys.color.muted}
             onFocus={() => setFocused('note')} onBlur={() => setFocused(null)}
             onChangeText={note => { if (!disabled) change({ ...draft, note }); }} />
-          <T variant="note" tone="muted">Opciono.{draft.note.length >= NOTE_COUNTER_FROM ? ` Još ${noteLeft} ${plural(noteLeft, 'znak', 'znaka', 'znakova')}.` : ''}</T>
+          {draft.note.length >= NOTE_COUNTER_FROM ? <T variant="note" tone="muted">{`Još ${noteLeft} ${plural(noteLeft, 'znak', 'znaka', 'znakova')}.`}</T> : null}
         </View>
       </Section>
     </>}
@@ -444,8 +448,7 @@ function FixedPrice({ need }: { need: PotrebaProjekcija }) {
   return <View style={s.group}>
     {amount ? <MoneySummary label="Cena zadatka" amount={amount} basis={basis} />
       : <FactRow size="detail" art="money" label="Cena zadatka" value="Cena nije navedena" />}
-    {need.osnovaCene === 'TOTAL' ? <T variant="note" tone="muted">Vaša cena se računa srazmerno broju osoba.</T> : null}
-    {need.osnovaCene === 'HOURLY' ? <T variant="note" tone="muted">Satnica važi za svaku osobu za jedan sat rada. Ukupan iznos zavisi od stvarnog trajanja.</T> : null}
+    {need.osnovaCene === 'HOURLY' ? <T variant="note" tone="muted">Po osobi, za sat rada.</T> : null}
   </View>;
 }
 

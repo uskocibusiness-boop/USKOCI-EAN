@@ -307,7 +307,8 @@ test('owner applicant instruction: person count is supplied by the applicant, no
  const people=read('src/ui/v2/ApplicationPeopleInput.tsx');
  const route=read('src/app/(app)/prilike/[id]/prijava.tsx');
  assert.match(composer,/Koliko ljudi obezbeđujete/);
- assert.match(composer,/Uključite i sebe ako dolazite/);
+ // Owner, 26.11.2026: no explaining sentence under the count; a one-person task does not ask it at all.
+ assert.doesNotMatch(composer,/Uključite i sebe ako dolazite/);
  assert.match(people,/Broj ljudi koje obezbeđujete/);
  assert.match(route,/pokrivenaMesta: Number\(draft.people\)/);
  assert.match(route,/people > data\.need\.pokrivenost\.preostalo/);
