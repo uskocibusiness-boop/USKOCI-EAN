@@ -555,8 +555,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           {/* A finished Dogovor with no messages cannot take a first one; it says so instead of inviting it. */}
           {terminal ? <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>U ovom Dogovoru nije bilo poruka.</T> : <>
             <T accessibilityRole="header" variant="title" style={[s.ink, s.centerText]}>Napišite prvu poruku</T>
-            <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>Poruke vide samo učesnici ovog Dogovora.</T>
-            {!refreshError ? <ChatAction label="Osvežite poruke" onPress={() => void refresh()} center refresh busy={refreshing} /> : null}</>}
+            {/* Owner, 26.11.2026: the empty conversation says one thing; who reads it and refreshing need no words. */}</>}
         </View> : null}
         {thread.map(entry => {
           const { message, moment } = entry;

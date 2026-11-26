@@ -34,7 +34,7 @@ function Schedule({ value }: { value: Extract<WorkerAvailabilityView, { kind: 'r
       <T variant="bodyStrong">{row.title}</T><T selectable variant="note" tone="muted">{row.text}</T>
     </View>)}
     {rows.length > limit ? <V2Action label="Prikažite još termina" tone="neutral" kind="quiet" compact onPress={() => setLimit(count => count + 8)} /> : null}
-    <T variant="note" tone="muted">{scheduleZone(value.timezone)}. Potvrđeni Dogovori ostaju obaveze.</T>
+    {/* Owner, 26.11.2026: no explaining under the week; Serbian time is the app's time. */}
   </View>;
 }
 const s = StyleSheet.create({ group: { gap: sys.space.md }, row: { gap: sys.space.xs } });

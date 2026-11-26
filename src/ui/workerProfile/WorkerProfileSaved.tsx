@@ -5,6 +5,7 @@ import { T } from '../Text';
 import { Press } from '../Press';
 import { cityLabel } from '../profile/cityLabel';
 import { FactArt } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
 import { layout, ruleWidth } from '../system/layout';
 import { ListRow } from '../system/ListRow';
 import { brandAction, profileLift, sys } from '../system/tokens';
@@ -66,19 +67,23 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
           <View style={s.face}>{face}</View>
           <View style={s.cardCopy}>
             {name ? <T variant="title" accessibilityRole="header" style={s.ink}>{name}</T> : null}
+            {status}
           </View>
+          {/* Owner, 26.11.2026: editing is the pencil of the card, not a green button in the middle of the page. */}
+          {openConversation && showConversationAction && !readOnly ? <Press accessibilityRole="button" accessibilityLabel="Uredite radni profil"
+            accessibilityHint="Otvara razgovor za izmenu profila." disabled={disabled} onPress={() => { if (!disabled) openConversation(); }}
+            haptic="select" style={s.edit}><Glyph name="edit" size={22} tone="ink" /></Press> : null}
         </View>
         {draft.biografija.trim() ? <Biography text={draft.biografija} /> : null}
         {rating ? <View style={s.rating}><View pointerEvents="none" style={s.identityRule} />{rating}</View> : null}
       </View> : null}
-      {status}
-      {openConversation && showConversationAction && !readOnly ? <V2Action label="Uredite kroz razgovor" disabled={disabled} onPress={() => { if (!disabled) openConversation(); }} style={brandAction} /> : null}
+      {name || draft.biografija.trim() ? null : status}
     </View>
     {onUseAccountName && namesDiffer(draft.ime, accountName)
       ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking || readOnly} working={nameWorking} onUse={onUseAccountName} /> : null}
     {/* What the worker does and where: two rows of ONE group, every picture in the same slot, every title at the same edge. */}
     <View testID="worker-profile-work-card" style={s.sectionCard}>
-      <T variant="heading" accessibilityRole="header">Kako radite</T>
+      <T variant="heading" accessibilityRole="header">Šta i gde radite</T>
       <SettingsGroup>
         <SkillsRow skills={draft.vestine} services={services} loading={executionModes?.kind === 'loading'} />
         <ListRow title="Način rada" subtitle={modeLabel} leading={<FactArt kind={remote && !onSite ? 'remote' : 'tasks'} size={32} />}
@@ -116,22 +121,22 @@ function SkillsRow({ skills, services, loading }: { skills: readonly string[]; s
   return <View testID="worker-skills-row" style={s.skillsRow}>
     <View style={s.slot}><FactArt kind="tasks" size={32} /></View>
     <View style={s.skillsCopy}>
-      <T variant="bodyStrong">Šta radite</T>
+      <T variant="bodyStrong">Usluge</T>
       {names.length
-        ? <View testID="worker-profile-skills" style={s.services}>
+        ? <View testID="worker-profile-skills" style={s.pills}>
+          {/* Owner, 26.11.2026: each service one compact pill; a remote service carries the globe; only what still waits says so. */}
           {shown.map((skill, index) => {
             const detail = services?.find(service => service.service === skill);
-            return <View key={`${index}:${skill}`} style={s.serviceDetail}>
-              <T selectable variant="body" style={s.ink}>{skill}</T>
-              {detail?.modes.map(mode => <View key={`${mode.mode}:${mode.status}`} style={s.serviceDetail}>
-                <T testID="worker-saved-service-mode" variant="note" tone="muted">
-                  {`${mode.mode === 'REMOTE' ? 'Na daljinu' : 'Na lokaciji'} · ${savedStatus[mode.status]}`}
-                </T>
-                {mode.handoff ? <T testID="worker-saved-service-handoff" variant="note" tone="muted">{serviceHandoffText(mode.handoff)}</T> : null}
-              </View>)}
-              {detail && !detail.modes.length ? <T testID="worker-saved-service-status" variant="note" tone="muted">
-                {detail.status === 'PENDING' ? 'Čeka potvrdu usluge' : 'Način rada još nije potvrđen'}
-              </T> : null}
+            const modes = detail?.modes ?? [];
+            const remoteOnly = modes.length > 0 && modes.every(mode => mode.mode === 'REMOTE');
+            const waiting = detail && (!modes.length || modes.some(mode => mode.status !== 'CONFIRMED'));
+            return <View key={`${index}:${skill}`} style={[s.pill, waiting && s.pillWaiting]}
+              accessible accessibilityLabel={`${skill}${remoteOnly ? ', na daljinu' : ''}${waiting ? `, ${detail?.status === 'PENDING' ? 'čeka potvrdu' : 'nije potvrđeno'}` : ''}`}>
+              {remoteOnly ? <FactArt kind="remote" size={18} /> : null}
+              <T variant="note" style={s.pillText}>{skill}</T>
+              {waiting ? <T testID="worker-saved-service-status" variant="meta" tone="muted">{detail?.status === 'PENDING' ? 'čeka potvrdu' : 'nije potvrđeno'}</T> : null}
+              {modes.find(mode => mode.handoff) ? <T testID="worker-saved-service-handoff" variant="meta" tone="muted">
+                {serviceHandoffText(modes.find(mode => mode.handoff)!.handoff!)}</T> : null}
             </View>;
           })}
         </View>
@@ -174,6 +179,12 @@ const s = StyleSheet.create({
   skillsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.md, minHeight: layout.rowMin },
   skillsCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
   services: { gap: sys.space.sm },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: sys.radius.pill,
+    backgroundColor: sys.color.wash },
+  pillWaiting: { borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
+  pillText: { color: sys.color.ink, fontWeight: '600' },
+  edit: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
   serviceDetail: { gap: sys.space.xs },
   group: { gap: layout.group },
   disclosure: { minHeight: layout.touch, justifyContent: 'center', alignSelf: 'flex-start' },

@@ -8,7 +8,8 @@ const text=r=>JSON.stringify(r.toJSON());
 const component=()=>createHarness().load('src/ui/workerProfile/SavedAvailability.tsx').SavedAvailability;
 test('UX04 saved days, hours and time zone are visible without opening AI',async()=>{
  const r=await mount(component(),{view:{kind:'ready',value},disabled:false});const s=text(r);
- for(const expected of ['Pon · Uto · Sre · Čet · Pet','09:00–17:00','Po vremenu u Srbiji','Dogovori ostaju obaveze'])assert.ok(s.includes(expected),expected);
+ for(const expected of ['Pon · Uto · Sre · Čet · Pet','09:00–17:00'])assert.ok(s.includes(expected),expected);
+ assert.ok(!s.includes('Po vremenu u Srbiji')&&!s.includes('Dogovori ostaju obaveze'),'no explanation under the week (owner, 26.11.2026)');
  assert.ok(!s.includes('Mogu odmah'));await unmount(r);
 });
 test('UX04 paused rules and start/end dates are not advertised as current free time',async()=>{
