@@ -62,10 +62,12 @@ export type StateViewProps = {
 };
 
 export function StateView({ kind = 'empty', art, illustration, title, body, primary, quiet, skeleton, compact = false, hero = false, testID }: StateViewProps) {
-  if (kind === 'loading') return <View testID={testID} accessibilityLiveRegion="polite" style={s.loading}>
+  // A state given placeholders is a loading state. Owner, 26.11.2026: loading is the shape of what comes, no sentence under it;
+  // the sentence stays for the screen reader.
+  if (kind === 'loading' || (skeleton && kind === 'empty')) return <View testID={testID} accessible accessibilityLabel={title}
+    accessibilityLiveRegion="polite" style={s.loading}>
     <SkeletonList count={skeleton?.count ?? 3} rows={skeleton?.rows} variant={skeleton?.variant} face={skeleton?.face} heading={skeleton?.heading}
       switches={skeleton?.switches} foot={skeleton?.foot} />
-    <T variant="note" tone="muted" style={s.sentence}>{title}</T>
   </View>;
   const trouble = kind !== 'empty';
   const size = compact ? ART_COMPACT : hero ? ART_HERO : ART;
