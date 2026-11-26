@@ -153,13 +153,14 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
         <T variant="meta" tone="muted">Zadatak</T>
         <View style={s.taskRow}><T variant="bodyStrong" style={s.taskTitle}>{group.title}</T>
           <T variant="meta" tone={ready ? 'green' : 'muted'}>Vaš Dogovor ›</T></View>
-      </Press> : <View testID="group-task-anchor" style={s.taskAnchor}>
+      </Press> : p.embedded ? null : <View testID="group-task-anchor" style={s.taskAnchor}>
         <T variant="meta" tone="muted">Zadatak</T>
         <T variant="bodyStrong" style={s.taskTitle}>{group.title}</T>
       </View>}
-      <T variant="note" tone="muted">{p.onPrivate
+      {/* On the task screen the task and its parts are already on top; no anchor, no explanation (owner, 26.11.2026). */}
+      {p.embedded ? null : <T variant="note" tone="muted">{p.onPrivate
         ? 'Cenu, lične uslove i probleme dogovorite privatno.'
-        : 'Poruke vide svi učesnici. Cenu, lične uslove i probleme dogovorite privatno.'}</T>
+        : 'Poruke vide svi učesnici. Cenu, lične uslove i probleme dogovorite privatno.'}</T>}
       {/* A finished conversation says so once, where the pill would be. */}
       {!group.terminal && !group.canSend ? <T variant="meta" tone="muted">Dostupna istorija razgovora</T> : null}
     </> : ready ? <StateView kind="empty" art="users" title="Grupni razgovor još nije otvoren"
@@ -173,7 +174,7 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
     {/* New messages also arrive through foreground incremental reads; a screen reader cannot easily pull: as in
         Poruke the refresh is also a quiet action at the head of the thread, centred, under the empty state's words when
         there is none, and never on a finished conversation, where nothing new can arrive. */}
-    {ready && group && !group.terminal ? <V2Action label="Osvežite poruke" kind="quiet" tone="neutral" compact style={s.centred} onPress={refresh} /> : null}
+    {ready && group && !group.terminal && !p.embedded ? <V2Action label="Osvežite poruke" kind="quiet" tone="neutral" compact style={s.centred} onPress={refresh} /> : null}
   </View>;
   return <SafeAreaView edges={p.embedded ? ['bottom'] : ['top', 'bottom']} style={s.screen}>
     {p.embedded ? null : <ScreenChrome variant="detail" title="Grupni razgovor" subtitle={group

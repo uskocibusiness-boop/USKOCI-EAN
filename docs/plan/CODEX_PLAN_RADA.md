@@ -6757,3 +6757,34 @@ Ovi ciljevi su istorijski predlozi iz povucenog UX materijala, a ne samostalno o
 - Prozor otvara dan Dogovora: popravljeno u izvoru, neprovereno uživo.
 - Grupni razgovor uživo.
 - Brisanje koda starog pregleda Dogovora.
+
+#### 12.6.25. Grupni razgovor uživo, vreme bez dodatnog reda, stari pregled obrisan (26.11.2026)
+
+**Odluke vlasnika (26.11.2026):**
+- Zadatak sa određenim danom sam ulazi u raspored; samo fleksibilan zadatak bira dan, i to iz reda kalendara.
+- Na dnu kartice je jedno dugme, bez ikonice poruke; radnikov „···“ je u traci.
+
+**Izvor:**
+- `011e2bf0`: kartica i red kalendara „Dodajte u raspored“; sheet „Kada radite?“.
+- `85dfdb65`: obrisan `AgreementOverview`; `/dogovor/[id]` samo predaje ekranu zadatka (ili otvara razgovor, završetak, problem); tri lifecycle testa premeštena na razgovor.
+- Ovaj commit:
+  - radnik vidi opis zadatka (`prilika.opis`), a ne prihvaćeni obim iz prijave;
+  - ugrađena grupa je bez sidra „Zadatak“, objašnjenja i „Osvežite poruke“;
+  - privatni red u Porukama ima kratak podnaslov.
+
+**DEV probni podaci** (uskocitest kao naručilac):
+- Zadatak `c26abb97` „TEST — Krečenje hodnika (2 osobe)“, 29. nov 08–16h.
+- Prijave vlasnika i `sim_jovan_majstor`; obe izabrane, Dogovori `c118254e` i `19a98a45`.
+- Grupa `d5db6923` sa 2 poruke.
+
+**Emulator (`85dfdb65`):**
+- Dogovori lista 1/2.
+- Kartica radnika: jedno dugme, „···“ gore.
+- Poruke → Grupni razgovor + privatni.
+- Grupa prikazuje obe poruke.
+- Dodir na pošiljaoca → Učesnici; „Privatna poruka“ samo kod naručioca, ne kod drugog radnika.
+- Privatna poruka otvara razgovor sa „Svi učesnici | Privatno“.
+
+**Lokalno:** 1870/1870, `tsc` PASS.
+
+**Otvoreno:** pitanje vlasniku o „(po vremenu u Srbiji)“ na karticama.

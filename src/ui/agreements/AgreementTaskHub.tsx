@@ -151,6 +151,8 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
   const [periodFor, setPeriodFor] = useState<string | null>(null);
   const [apps, setApps] = useState<Apps>(null);
   const [need, setNeed] = useState<PotrebaProjekcija | null>(null);
+  // The task's own description, for a worker (owner, 26.11.2026): the Dogovor's accepted scope was the worker's application note.
+  const [taskText, setTaskText] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<ReadonlyMap<string, JavniProfilProjekcija>>(new Map());
   const [profile, setProfile] = useState<PublicProfileState>(null);
   const [deciding, setDeciding] = useState<{ id: string; error: string | null } | null>(null);
@@ -172,6 +174,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
     if (ids.length) publicProfileClientService.javniProfili(ids).then(list => {
       if (owns(run, account)) setProfiles(new Map((Array.isArray(list) ? list : []).map(p => [p.profilId, p])));
     }, () => {});
+    if (!owner) source.prilika(needId).then(value => { if (owns(run, account)) setTaskText(value?.opis?.trim() || null); }, () => {});
     if (owner) {
       source.potreba(needId).then(value => { if (owns(run, account)) setNeed(value); }, () => {});
       source.prijaveZaPotrebu(needId).then(list => { if (owns(run, account)) setApps({ items: list.filter(c => OPEN_APPLICATION.has(c.stanje)) }); },
@@ -302,7 +305,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
             <T variant="note" style={s.periodAdd}>{mine ? 'U Vašem rasporedu · promenite' : 'Dodajte u raspored'}</T>
           </Press> : <FactRow art="calendar" value={text} size="detail" />;
         })()}
-        {summary.description ? <View style={s.block}><T variant="label" tone="muted">Opis</T><T variant="copy">{summary.description}</T></View> : null}
+        {(owner ? need?.opis?.trim() : taskText) ? <View style={s.block}><T variant="label" tone="muted">Opis</T><T variant="copy">{owner ? need!.opis!.trim() : taskText}</T></View> : null}
         {!summary.remote && anchor && isLiveAgreement(anchor)
           ? <AgreementPrivateLocation agreement={anchor} enabled={focused.current} onRequestAddress={() => openAgreement(anchor.id, 'poruke')} />
           : !summary.remote && approx ? <View style={s.block}>
@@ -352,7 +355,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
           onPress={() => openAgreement(person.agreementId, 'poruke')} haptic="select" style={s.peopleRow}>
           <Face person={person} size={40} />
           <View style={s.peopleCopy}><T variant="bodyStrong" numberOfLines={1}>{person.name}</T>
-            <T variant="note" tone="muted" numberOfLines={1}>Privatna poruka · vidite samo Vi i ova osoba</T></View>
+            <T variant="note" tone="muted" numberOfLines={1}>Privatna poruka</T></View>
           <Glyph name="caret-right" size={20} tone="muted" />
         </Press>)}
       </View> : null}
