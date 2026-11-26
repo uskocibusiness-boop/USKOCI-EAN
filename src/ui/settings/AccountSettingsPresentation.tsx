@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { Glyph, type GlyphName } from '../system/Glyph';
+import { Glyph } from '../system/Glyph';
+import { FactArt, type FactArtKind } from '../system/FactArt';
 import { Screen } from '../system/Screen';
 import { sys } from '../system/tokens';
 import { AccountHeader } from '../profile/AccountHeader';
@@ -14,26 +15,26 @@ export function AccountSettings({ busy, version, words, open, onBack }: {
   busy: boolean; version?: string; words: HubWords;
   open: (path: ProfileHubPath) => void; onBack: () => void;
 }) {
-  const row = (label: string, glyph: GlyphName, path: ProfileHubPath, detail?: string,
-    tone: SettingsIconTone = 'green') =>
-    <AccountRow label={label} detail={detail} disabled={busy} glyph={glyph} tone={tone} onPress={() => open(path)} />;
+  // Owner, 26.11.2026: the app's 3D pictures in every menu, and a second line only where it says a fact (a version, a status, an answer).
+  const row = (label: string, art: FactArtKind, path: ProfileHubPath, detail?: string) =>
+    <AccountRow label={label} detail={detail} disabled={busy} art={art} onPress={() => open(path)} />;
   return <Screen kind="detail" background="wash" contentStyle={s.content}
     header={<AccountHeader title="Podešavanja" onBack={onBack} disabled={busy} />}>
     <AccountGroup title="Nalog">
-      {row('Lični podaci', 'profile', '/profil/podaci', 'Ime, fotografija i opis', 'info')}
-      {row('Pristup nalogu', 'shield', '/profil/lozinka', 'Promena lozinke')}
+      {row('Lični podaci', 'person', '/profil/podaci')}
+      {row('Pristup nalogu', 'lock', '/profil/lozinka')}
     </AccountGroup>
-    <AccountGroup title="Podešavanja aplikacije">
-      {row('AI razgovori', 'messages', '/ai-istorija', 'Zadaci i radni profil', 'violet')}
-      {row('Obaveštenja', 'notifications', '/profil/obavestenja', 'Telefon, prijave i zadaci', 'orange')}
-      {row('Privatnost i podaci', 'shield', '/profil/privatnost', 'Vidljivost, podaci i blokirane osobe', 'info')}
+    <AccountGroup title="Aplikacija">
+      {row('AI razgovori', 'chat', '/ai-istorija')}
+      {row('Obaveštenja', 'bell', '/profil/obavestenja')}
+      {row('Privatnost i podaci', 'shield', '/profil/privatnost')}
     </AccountGroup>
     <AccountGroup title="Pomoć">
-      {row('Kako radi', 'info', '/profil/kako-radi', 'Kratka uputstva za svaki korak', 'green')}
-      {row('Pomoć i podrška', 'messages', '/podrska', words.support ?? 'Odgovorite i Vaši zahtevi', 'info')}
-      {row('Prijavite grešku', 'info', '/profil/prijava-greske', undefined, 'orange')}
-      {row('Pravila i saglasnosti', 'shield', '/profil/pravna', words.legal, 'violet')}
-      {row('O aplikaciji', 'settings', '/profil/o-aplikaciji', version, 'muted')}
+      {row('Kako radi', 'info', '/profil/kako-radi')}
+      {row('Pomoć i podrška', 'support', '/podrska', words.support)}
+      {row('Prijavite grešku', 'alert', '/profil/prijava-greske')}
+      {row('Pravila i saglasnosti', 'document', '/profil/pravna', words.legal)}
+      {row('O aplikaciji', 'tasks', '/profil/o-aplikaciji', version)}
     </AccountGroup>
   </Screen>;
 }
@@ -53,15 +54,13 @@ const iconSurface: Record<SettingsIconTone, string> = {
 
 /** The whole row is one target; the leading symbol names its subject and the
  * trailing caret consistently tells the user that another screen opens. */
-function AccountRow({ label, detail, glyph, tone, disabled, onPress }: {
-  label: string; detail?: string; glyph: GlyphName; tone: SettingsIconTone; disabled: boolean; onPress: () => void;
+function AccountRow({ label, detail, art, disabled, onPress }: {
+  label: string; detail?: string; art: FactArtKind; disabled: boolean; onPress: () => void;
 }) {
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint={detail}
     accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} haptic="select"
     scaleTo={sys.motion.scale.row} style={s.row}>
-    <View style={[s.iconWell, { backgroundColor: disabled ? sys.color.wash : iconSurface[tone] }]}>
-      <Glyph name={glyph} size={20} tone={disabled ? 'muted' : tone} />
-    </View>
+    <View style={s.iconWell}><FactArt kind={art} size={30} /></View>
     <View style={s.copy}>
       <T tone={disabled ? 'muted' : 'ink'} style={s.title}>{label}</T>
       {detail ? <T tone="muted" style={s.detail}>{detail}</T> : null}
