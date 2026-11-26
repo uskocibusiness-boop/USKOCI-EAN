@@ -56,7 +56,7 @@ export function SignupNextStep({ confirmationRequired, email, notice, failure, b
   return <>
     <AuthIntro title={confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'} art="send"
       copy={confirmationRequired
-        ? 'Poslaćemo Vam poruku za potvrdu emaila. Kada je otvorite, vratićete se u aplikaciju.'
+        ? 'Poslali smo Vam link. Otvorite ga i vratićete se u aplikaciju.'
         : 'Prijava još nije gotova. Ako Vam je stigla poruka za potvrdu emaila, prvo je otvorite. Zatim se vratite na prijavu.'} />
     {email.trim() ? <T variant="note" tone="muted">{email.trim()}</T> : null}
     {notice ? <AuthNote tone="ok">{notice}</AuthNote> : null}
