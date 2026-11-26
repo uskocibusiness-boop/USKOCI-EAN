@@ -141,14 +141,12 @@ function InboxRowBase({ item, moment, last, acting, busy, onOpen, onMarkRead, on
   // The swipe is never the only way: a screen reader is offered the same command in the row's actions menu, for an unread row only.
   const menu = markable ? { accessibilityActions: MARK_READ_ACTIONS,
     onAccessibilityAction: (event: { nativeEvent: { actionName: string } }) => { if (event.nativeEvent.actionName === MARK_READ_ACTION) onMarkRead!(item); } } : {};
-  const row = <TimedRow leading={leading} slot={layout.slot} title={primary} titleLines={2} strong={unread} time={moment?.sat} last={last} card disabled={acting}
+  const row = <TimedRow leading={leading} slot={layout.slot} title={primary} titleLines={2} strong={unread} time={moment?.sat} last={last} disabled={acting}
     onPress={() => onOpen(item)} {...menu}
     accessibilityLabel={`${unread ? 'Nepročitano' : 'Pročitano'}. ${readableServerCopy(item.title)}. ${readableServerCopy(item.body)}${when}`}
     accessibilityHint={where ? `${where}.` : undefined}>
     {secondary ? <T variant="note" tone="muted" numberOfLines={2}>{secondary}</T> : null}
-    {actionLabel ? <View testID="inbox-destination-cue" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={s.destination}>
-      <T variant="note" tone="green" style={s.destinationLabel}>{actionLabel}</T><Glyph name="arrow-right" size={16} tone="green" />
-    </View> : null}
+    {/* Owner, 26.11.2026: the whole row opens its place; a green "Otvorite … →" under it said it twice. The hint stays spoken. */}
   </TimedRow>;
   // Decided when the row mounts and never switched (a stable handler is handed down): a row that is read keeps its element type
   // and slides back, instead of being rebuilt under the finger.
