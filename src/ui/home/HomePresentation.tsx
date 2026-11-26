@@ -209,6 +209,8 @@ export function HomePresentation(p: HomePresentationProps) {
   // A carousel card fills the screen less a glimpse of the next one, on every phone width (never wider than a comfortable reading card).
   const { width: screenWidth } = useWindowRoom();
   const cardWidth = { width: Math.round(Math.min(420, Math.max(260, screenWidth - 2 * layout.gutter - CAROUSEL_PEEK))) };
+  // A carousel with one card has nothing to glimpse: that card takes the whole width.
+  const widthFor = (count: number) => count === 1 ? { width: Math.round(screenWidth - 2 * layout.gutter) } : cardWidth;
   // A row that was already here when the screen opened has nothing to tell you by sliding in; only a genuinely new one moves,
   // and each list remembers what it has already shown. The first rows after the initial read are news and arrive once (B1).
   const agreements = useAppear();
@@ -250,7 +252,7 @@ export function HomePresentation(p: HomePresentationProps) {
       action={{ label: 'Mapa zadataka', onPress: p.onEarn }}>
       <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.carousel} style={s.carouselScroll}>
-        {home.opportunityItems.map(item => <View key={item.id} style={[s.carouselCard, cardWidth]}>
+        {home.opportunityItems.map(item => <View key={item.id} style={[s.carouselCard, widthFor(home.opportunityItems?.length ?? 0)]}>
           <TaskCard item={item} portrait={<TaskPublisherPortrait item={item} size={40} />}
             onOpen={() => p.onOpen({ kind: 'OPPORTUNITY', needId: item.id })} />
         </View>)}
@@ -261,7 +263,7 @@ export function HomePresentation(p: HomePresentationProps) {
       action={{ label: 'Svi dogovori', onPress: p.onAgreements ?? (() => p.onRatings(null)) }}>
       <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.carousel} style={s.carouselScroll}>
-        {home.agreementItems.map((item, index) => <View key={item.id} style={[s.carouselCard, cardWidth]}>
+        {home.agreementItems.map((item, index) => <View key={item.id} style={[s.carouselCard, widthFor(home.agreementItems?.length ?? 0)]}>
           {/* One card style everywhere (owner, 25.11.2026): the same Dogovor card as on the Dogovori screen. */}
           <AgreementTaskCard group={{ key: item.id, items: [item] }} index={index} animate={false} stale={!!p.stale}
             onOpen={group => p.onOpen({ kind: 'AGREEMENT', agreementId: group.items[0].id })}
@@ -274,8 +276,8 @@ export function HomePresentation(p: HomePresentationProps) {
       action={{ label: 'Svi zadaci', onPress: p.onMyTasks }}>
       <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.carousel} style={s.carouselScroll}>
-        {home.ownTaskItems.map(item => <View key={item.id} style={[s.carouselCard, cardWidth]}>
-          <OwnTaskCard item={item}
+        {home.ownTaskItems.map(item => <View key={item.id} style={[s.carouselCard, widthFor(home.ownTaskItems?.length ?? 0)]}>
+          <OwnTaskCard item={item} sectionSays
             onOpen={() => p.onOpen({ kind: 'NEED', needId: item.id })}
             onApplications={() => p.onOpen({ kind: 'CANDIDATES', needId: item.id })} />
         </View>)}
@@ -286,7 +288,7 @@ export function HomePresentation(p: HomePresentationProps) {
       action={{ label: 'Sve prijave', onPress: p.onMyApplications }}>
       <ScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.carousel} style={s.carouselScroll}>
-        {home.applicationItems.map(row => <View key={row.prijavaId} style={[s.carouselCard, cardWidth]}>
+        {home.applicationItems.map(row => <View key={row.prijavaId} style={[s.carouselCard, widthFor(home.applicationItems?.length ?? 0)]}>
           <ApplicationCard row={row}
             onTask={() => p.onOpen({ kind: 'APPLICATION', applicationId: row.prijavaId })}
             onAgreement={() => row.dogovorId ? p.onOpen({ kind: 'AGREEMENT', agreementId: row.dogovorId }) : p.onOpen({ kind: 'APPLICATION', applicationId: row.prijavaId })}

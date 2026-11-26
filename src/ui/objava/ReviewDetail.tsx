@@ -1,5 +1,6 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
 import type { JavniProfilProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { needGeographyRows, needRequirementRows, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
@@ -235,12 +236,15 @@ export function ReviewGallery({ assetIds, pencil, picture }: { assetIds: readonl
 }
 
 /** A draft with no photos: the page of others draws none, so the owner is offered the way to add them, as a row of his own. */
+/** The app's own 3D camera (from the photo-tips illustration), not a drawn icon. */
+const CAMERA = require('../../../assets/illustrations/natural-v1/camera.webp');
+
 export function AddPhotos({ pencil, title = 'Dodajte fotografije' }: { pencil?: PartPencil; title?: string }) {
   if (!pencil) return null;
   // Owner, 26.11.2026: a small modern 3D camera with a plus, at the top right, instead of a green row across the page.
   return <Press accessibilityRole="button" accessibilityLabel={pencil.label} onPress={pencil.onPress} haptic="select" style={s.addPhotos}>
     <View>
-      <FactArt kind="photo" size={40} cut="art" />
+      <Image source={CAMERA} style={s.addCamera} contentFit="contain" accessible={false} />
       <View style={s.addPlus}><Glyph name="plus" size={12} tone="onGreen" /></View>
     </View>
     <T variant="note" style={s.addLabel}>{title === 'Dodajte fotografije' ? 'Fotografije' : title}</T>
@@ -251,8 +255,9 @@ const s = StyleSheet.create({
   detail: { gap: layout.section },
   addPhotos: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: layout.touch,
     paddingLeft: sys.space.sm, paddingRight: sys.space.md, paddingVertical: 4, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
-  addPlus: { position: 'absolute', right: -4, bottom: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: sys.color.green,
+  addPlus: { position: 'absolute', right: -4, bottom: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: sys.color.ink,
     alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: sys.color.surface },
+  addCamera: { width: 44, height: 44 },
   addLabel: { color: sys.color.ink, fontWeight: '600' },
   summary: { gap: sys.space.lg },
   facts: { gap: sys.space.xs },

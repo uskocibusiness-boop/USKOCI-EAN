@@ -72,6 +72,8 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
   const people = item.stanje === 'NACRT'
     ? ukupno > 1 ? `Treba ${osoba(ukupno)}` : null
     : knownCapacity ? `${popunjeno}/${ukupno} izabrano` : 'Popunjenost nije dostupna';
+  // "Još nema prijava" already says nobody is chosen; "0/1 izabrano" beside it said it twice (owner, 26.11.2026).
+  const shownPeople = knownCapacity && popunjeno === 0 && sentence && item.stanje !== 'NACRT' ? null : people;
   const spokenPeople = item.stanje === 'NACRT' ? people
     : knownCapacity ? `Izabrani izvršioci: ${popunjeno} od ${ukupno}` : people;
   const spoken = taskSpoken({ status: chipWords, urgent, value, budget: true, place: place.text, schedule, requirement: null,
@@ -96,12 +98,15 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
             <FactRow art={place.remote ? 'remote' : 'pin'} value={place.text} />
             <FactRow art="calendar" value={schedule} />
           </View>
-          {sentence ? <T variant="note" tone="muted">{sentence}</T> : null}
+          {/* One line under the facts: what is next on the left, who is chosen on the right, never drawn over each other. */}
+          {sentence || shownPeople ? <View style={s.bottomRow}>
+            {sentence ? <T variant="note" tone="muted" style={s.grow}>{sentence}</T> : <View style={s.grow} />}
+            {shownPeople ? <View style={s.capacity}>
+              <Image source={require('../../../assets/illustrations/natural-v1/users_clay_3d.png')} style={s.capacityIcon} contentFit="contain" />
+              <T variant="note" style={s.capacityFraction}>{shownPeople}</T>
+            </View> : null}
+          </View> : null}
         </View>
-        {people ? <View style={s.bottomCapacity}>
-          <Image source={require('../../../assets/illustrations/natural-v1/users_clay_3d.png')} style={s.capacityIcon} contentFit="contain" />
-          <T variant="note" style={s.capacityFraction}>{people}</T>
-        </View> : null}
       </Press>
       {foot ? <RecordFoot label={foot} tone="green" accessibilityLabel={`Pogledajte prijave, ${foot}. Zadatak: ${title}`} accessibilityHint="Otvara prijave za izbor."
         disabled={disabled} onPress={onApplications!} onPressIn={lift.give} onPressOut={lift.settle} /> : null}
@@ -115,7 +120,8 @@ const s = StyleSheet.create({
   grow: { flex: 1 },
   // The facts stand 4 apart, as in the card of the Zadaci family: the rows are one group.
   facts: { gap: sys.space.xs },
-  bottomCapacity: { position: 'absolute', bottom: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, marginTop: sys.space.xs },
+  capacity: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },
   capacityIcon: { width: 22, height: 22 },
   capacityFraction: { fontWeight: '700', color: sys.color.ink, fontSize: 13 },
 });
