@@ -172,7 +172,7 @@ type RowProps = { item: ConversationInboxRow; moment: Trenutak | null; closed: b
   onOpen: (row: ConversationInboxRow) => void };
 
 /** The face of a row, and the whole of its slot: the face stands on the edge of the screen, in line with the control and the bar above it. */
-const FACE = 48;
+const FACE = 56;
 
 /**
  * The task leads because several group conversations otherwise have the same heading ("Grupa") and one person can have several jobs.
@@ -219,8 +219,9 @@ const s = StyleSheet.create({
   content: { flexGrow: 1, width: '100%', maxWidth: layout.maxWidth, alignSelf: 'center', paddingHorizontal: layout.gutter, paddingTop: sys.space.sm },
   heading: { gap: layout.group, paddingBottom: sys.space.sm },
   notice: { gap: sys.space.xs },
-  conversationCard: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine,
-    borderRadius: sys.radius.cardCompact, paddingHorizontal: sys.space.md, marginBottom: sys.space.sm },
+  // Owner, 26.11.2026: a modern conversation list (as WhatsApp, Viber) - no frame around each row, a hairline that starts after the face.
+  conversationCard: { backgroundColor: sys.color.surface, paddingVertical: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line, marginLeft: 0 },
   face: { width: FACE, height: FACE, alignItems: 'center', justifyContent: 'center' },
   line: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   grow: { flex: 1, minWidth: 0 },

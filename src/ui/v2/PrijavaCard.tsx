@@ -90,12 +90,13 @@ export const PrijavaCard = memo(function PrijavaCard({ model, large, noteLines =
   const { who } = model;
   const money = <PrijavaPriceText price={model.price} large={large} people={model.people} />;
   return <>
-    <PrijavaState status={model.status} reason={model.reason} detail={model.detail} silent />
+    {/* Owner, 26.11.2026: the title leads, as on every other card; the state closes the card instead of standing on top of it. */}
     <View style={s.head}><T variant="heading" style={[s.title, s.task]}>{who.title}</T></View>
     {/* The coins beside the price, as on every other card of the app (owner, 25.11.2026: one card style). */}
     <View style={s.moneyRow}><FactArt kind="money" size={FACT_ROW_ART} /><View style={s.moneyText}>{money}</View></View>
     <FactRow art="calendar" value={model.term} />
     {model.message ? <T variant="note" tone="muted" numberOfLines={noteLines || undefined}>{model.message}</T> : null}
+    <PrijavaState status={model.status} reason={model.reason} detail={model.detail} silent />
   </>;
 });
 

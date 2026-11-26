@@ -202,7 +202,8 @@ export default function TabLayout() {
       const renderLabel = ({ children }: { children: ReactNode }) => <TabLabel key={measureKey} selected={selected}
         onTextLayout={({ nativeEvent }) => rememberLabelHeight(route.name,
           Math.max(0, ...nativeEvent.lines.map(line => line.y + line.height)))}>{children}</TabLabel>;
-      return { headerShown: false, animation: 'none', sceneStyle: { backgroundColor: sys.color.ground },
+      // Owner, 26.11.2026: the four tabs cross-fade briefly instead of snapping (none under reduced motion).
+      return { headerShown: false, animation: reducedMotion ? 'none' : 'fade', sceneStyle: { backgroundColor: sys.color.ground },
       tabBarActiveTintColor: sys.navigation.foreground, tabBarInactiveTintColor: sys.navigation.muted, tabBarAllowFontScaling: true,
       tabBarLabelPosition: 'below-icon',
       tabBarLabel: renderLabel,

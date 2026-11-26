@@ -144,8 +144,10 @@ function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, e
   const large = forced ?? stacked;
   const title = readableTitle(row.naslov);
   const action = applicationFoot(row, expanded);
-  const foot = action ? FOOT[action] : null;
-  const onFoot = action === 'agreement' ? onAgreement : action === 'withdraw' ? onWithdraw : onReview;
+  // Owner, 26.11.2026: a chosen application is its Dogovor - the whole card opens it, with no separate foot and its empty space.
+  const opensAgreement = action === 'agreement';
+  const foot = action && !opensAgreement ? FOOT[action] : null;
+  const onFoot = action === 'withdraw' ? onWithdraw : onReview;
 
   const note = row.napomena?.trim() ?? '';
   // A conservative text rule, not measured line count: short notes are never clipped. Every clipped note has a control.
@@ -170,8 +172,8 @@ function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, e
 
   return <Animated.View style={lift.style}>
     <Surface kind="record" style={recordFlush}>
-      <Press accessibilityRole="button" accessibilityLabel={`Otvorite zadatak: ${title}`} accessibilityValue={{ text: applicationSpoken(row, fresh) }}
-        accessibilityState={{ disabled }} disabled={disabled} onPress={onTask} onPressIn={lift.give} onPressOut={lift.settle} haptic="select" scaleTo={1}
+      <Press accessibilityRole="button" accessibilityLabel={`${opensAgreement ? 'Otvorite Dogovor' : 'Otvorite zadatak'}: ${title}`} accessibilityValue={{ text: applicationSpoken(row, fresh) }}
+        accessibilityState={{ disabled }} disabled={disabled} onPress={opensAgreement ? onAgreement : onTask} onPressIn={lift.give} onPressOut={lift.settle} haptic="select" scaleTo={1}
         style={recordBody}>
         <ApplicationSummary row={row} large={large} disabled={disabled} noteCollapsed={longNote && !noteExpanded} fresh={fresh} />
       </Press>
