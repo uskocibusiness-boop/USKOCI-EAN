@@ -117,21 +117,13 @@ function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOp
       <View style={s.inline}><FactArt kind={remote ? 'remote' : 'pin'} size={26} /><T variant="copy" numberOfLines={2} style={s.flex}>{place}</T></View>
       <View style={s.inline}><FactArt kind="calendar" size={26} /><T variant="copy" numberOfLines={2} style={s.flex}>{item.vremeTekst || 'Termin po dogovoru'}</T></View>
     </Press> : null}
-    {onPeriod ? <Press accessibilityRole="button" accessibilityLabel={period ? `Vaše vreme: ${periodLine(period)}. Promenite.` : 'Označite svoje vreme za ovaj posao'}
-      onPress={onPeriod} haptic="select" style={s.inline}>
-      <FactArt kind="clock" size={26} />
-      {period ? <T variant="copy" style={s.flex}>Vaše vreme: {periodLine(period)}</T>
-        : <T variant="bodyStrong" style={[s.flex, s.periodAdd]}>Označite svoje vreme</T>}
-    </Press> : null}
     {sayAttention ? <View style={s.inline}><View style={s.dot} /><T variant="note" style={s.warn} numberOfLines={2}>{attention!.title}</T></View> : null}
     {waitsOnOther ? <T variant="note" tone="muted">Čeka se odgovor na Vaš predlog izmene.</T> : null}
     {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
     {autoConfirm ? <T variant="note" tone="muted">Ako ne odgovorite, završetak se sam potvrđuje: {autoConfirm}.</T> : null}
     <View style={s.personFoot}>
       {step}
-      <Press accessibilityRole="button" accessibilityLabel={`Privatna poruka: ${person.name}`} onPress={onMessage} haptic="select" style={s.iconButton}>
-        <FactArt kind="chat" size={28} />
-      </Press>
+      {/* No message icon beside the step (owner, 26.11.2026): Poruke is one tap away in the bar on top. */}
       {/* The rest of this Dogovor, one tap away (owner's choice, 25.11.2026): problem, report or block, cancel. */}
       {onMore ? <Press accessibilityRole="button" accessibilityLabel={`Više radnji: ${person.name}`}
         accessibilityHint="Prijava problema, prijava ili blokiranje osobe, otkazivanje." onPress={onMore} haptic="select" style={s.iconButton}>
@@ -262,7 +254,8 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
   const bar = <TaskTopBar owner={owner} agreed={live.length} applications={appCount} messages={!!anchor && live.length > 0}
     selected={pane === 'overview' || pane === 'edit' ? 'overview' : pane === 'group' ? 'messages' : pane}
     onSelect={tab => tab === 'overview' ? openOverview() : tab === 'messages' ? openMessages() : setPane(tab)}
-    onBack={back} backLabel="Nazad na Dogovore" />;
+    onBack={back} backLabel="Nazad na Dogovore"
+    right={!owner && live[0] && isLiveAgreement(live[0].agreement) ? <ChromeIconButton glyph="more" label="Više radnji" onPress={() => setMenuFor(live[0])} /> : undefined} />;
   const heading = <TaskDecisionTitle prominent onLayout={() => undefined}>{summary?.title || title || 'Dogovor'}</TaskDecisionTitle>;
 
   let body: ReactNode;
@@ -298,7 +291,17 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
           </View>
         </View>
         <FactRow art={summary.remote ? 'remote' : 'pin'} value={summary.placeText} size="detail" />
-        <FactRow art="calendar" value={summary.whenText} size="detail" />
+        {/* Owner, 26.11.2026: a task with its own day is in the schedule by itself; only a flexible one asks which day, here. */}
+        {(() => {
+          const mine = anchor ? periods.get(anchor.id) ?? null : null;
+          const flexible = !!anchor && isLiveAgreement(anchor) && anchor.stanje === 'CONFIRMED' && (isNoTermText(anchor.vremeTekst) || !anchor.prihvacenPocetak);
+          const text = mine ? periodLine(mine) : summary.whenText;
+          return flexible || mine ? <Press accessibilityRole="button" accessibilityLabel={mine ? `U Vašem rasporedu: ${text}` : `${text}. Dodajte u raspored`}
+            onPress={() => setPeriodFor(anchor!.id)} haptic="select" style={s.calendarRow}>
+            <FactRow art="calendar" value={text} size="detail" />
+            <T variant="note" style={s.periodAdd}>{mine ? 'U Vašem rasporedu · promenite' : 'Dodajte u raspored'}</T>
+          </Press> : <FactRow art="calendar" value={text} size="detail" />;
+        })()}
         {summary.description ? <View style={s.block}><T variant="label" tone="muted">Opis</T><T variant="copy">{summary.description}</T></View> : null}
         {!summary.remote && anchor && isLiveAgreement(anchor)
           ? <AgreementPrivateLocation agreement={anchor} enabled={focused.current} onRequestAddress={() => openAgreement(anchor.id, 'poruke')} />
@@ -307,7 +310,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
             <T variant="meta" tone="muted">Približno mesto, oko 200 m. Tačna adresa se vidi posle Dogovora.</T>
           </View> : null}
         {/* A worker's Dogovor: the task owner, the message, "···" and the next step stand right here (owner, 25.11.2026). */}
-        {!owner && live[0] ? card(live[0], true, false) : live.length ? <Press accessibilityRole="button" accessibilityLabel={`${owner ? 'Dogovoreno sa' : 'Objavio zadatak'}: ${live.map(person => person.name).join(', ')}`}
+        {!owner && live[0] ? card(live[0], false, false) : live.length ? <Press accessibilityRole="button" accessibilityLabel={`${owner ? 'Dogovoreno sa' : 'Objavio zadatak'}: ${live.map(person => person.name).join(', ')}`}
           accessibilityHint={owner ? 'Otvara dogovorene osobe.' : 'Otvara profil i ocene.'}
           onPress={() => owner ? setPane('agreed') : openProfile(live[0].profileId)} haptic="select" style={s.peopleRow}>
           <View style={s.peopleCopy}>
@@ -401,7 +404,8 @@ const s = StyleSheet.create({
   personWho: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   personFacts: { gap: sys.space.sm },
   personFoot: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
-  periodAdd: { color: sys.color.green },
+  periodAdd: { color: sys.color.green, paddingLeft: FACT_ROW_ART + sys.space.md },
+  calendarRow: { gap: 2 },
   personCard: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   personFace: { width: 72, alignItems: 'center', gap: 4 },
   personName: { textAlign: 'center', fontWeight: '600' },

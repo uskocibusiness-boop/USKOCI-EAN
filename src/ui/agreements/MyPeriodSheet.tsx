@@ -64,16 +64,16 @@ export function MyPeriodSheet({ agreementId, current, day, onClose, onSaved }: {
     onSaved(null); dismiss();
   };
 
-  return <ProductSheet title="Vaše vreme za ovaj posao" onClose={onClose}
+  return <ProductSheet title="Kada radite?" onClose={onClose}
     footer={dismiss => overlap
       ? <V2Action tone="brand" label="U redu" onPress={dismiss} />
       : <View style={s.foot}>
         <V2Action tone="brand" label="Sačuvajte" disabled={busy} onPress={() => { void save(dismiss); }} />
-        {current ? <V2Action tone="neutral" kind="quiet" label="Obrišite moje vreme" disabled={busy} onPress={() => { void clear(dismiss); }} /> : null}
+        {current ? <V2Action tone="neutral" kind="quiet" label="Uklonite iz rasporeda" disabled={busy} onPress={() => { void clear(dismiss); }} /> : null}
       </View>}>
     {() => <View style={s.stack}>
       {overlap ? <T variant="bodyStrong" style={s.warn} accessibilityRole="alert">Sačuvano. Tada već imate drugi Dogovor.</T> : <>
-        <T variant="note" tone="muted">Vidite ga samo Vi, u svom rasporedu.</T>
+        <T variant="note" tone="muted">Ide u Vaš raspored. Vidite ga samo Vi.</T>
         <CivilField label="Dan" mode="date" value={date} onChange={setDate} disabled={busy} />
         <View accessibilityRole="radiogroup" style={s.chips}>
           {PARTS.map(p => <Press key={p.key} accessibilityRole="radio" accessibilityLabel={p.label} accessibilityState={{ checked: part === p.key, disabled: busy }}
