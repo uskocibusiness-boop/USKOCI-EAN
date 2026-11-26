@@ -761,7 +761,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
 }
 
 /** The lists of what a task asks of a person: with nothing in them the page of others draws no line for them, and the review offers them as "Dodajte još podataka". */
-const MORE_LISTS: readonly NeedFactV2Key[] = ['need.required_skills', 'need.required_tools', 'need.required_vehicles', 'need.required_licenses', 'need.critical_conditions'];
+// Owner, 26.11.2026: tools and vehicles are not asked for (as on the work profile); a task names skills, licences and conditions.
+const MORE_LISTS: readonly NeedFactV2Key[] = ['need.required_skills', 'need.required_licenses', 'need.critical_conditions'];
 
 /** The place step replaces the review with a whole step of its own (the form holds its scroll and its foot), so it has its own frame. */
 const frame = StyleSheet.create({
