@@ -734,19 +734,19 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken, handof
       : preparedAvailable ? 'Prethodna poruka je sačuvana. Možete da nastavite odgovor bez ponovnog unosa.'
       : pending ? turn?.state === 'PROCESSING'
         ? editor.data?.recovery?.canCancel && editor.data.recovery.providerDispatched
-          ? 'Asistent još nije odgovorio na ovu poruku. Ako odgovor ne stigne, otkažite slanje pa pošaljite ponovo.'
-          : 'Asistent još obrađuje poruku. Sačekajte odgovor.'
-        : knownRetry ? 'Poruka je sačuvana za ponovni pokušaj. Pošaljite ponovo.'
-          : editor.data?.recovery?.canCancel ? 'Prethodno slanje nije završeno. Otkažite ga da ponovo unesete poruku.'
+          ? 'Odgovor još nije stigao.'
+          : null
+        : knownRetry ? null
+          : editor.data?.recovery?.canCancel ? null
           : `${UNCERTAIN_ABOUT.message.title}.`
         : editor.data?.recovery?.cancelled && editor.data.recovery.providerDispatched
-          ? 'Odgovor je zaustavljen. Poruka je ipak poslata jer je asistent već počeo da je obrađuje; zadatak je ostao isti.'
+          ? 'Odgovor je zaustavljen. Zadatak je ostao isti.'
         : turn?.state === 'FAILED' && editor.data?.recovery?.providerDispatched
-          ? 'Asistent nije uzeo u obzir prethodnu poruku. Izmenite je i pošaljite ponovo.' : preparationProblem;
+          ? 'Poruka nije obrađena. Pošaljite je ponovo.' : preparationProblem;
 
   return <><IntakePresentation conversationKey={`${accountId}:${accountRevision}:${resumeId ?? openRequestId}`}
-    statusTitle={!sending && pending ? knownRetry ? 'Poruka čeka ponovni pokušaj'
-      : turn?.state === 'PROCESSING' && !editor.data?.recovery?.canCancel ? 'Poruka je u obradi' : 'Ishod nije potvrđen' : undefined}
+    statusTitle={!sending && pending ? knownRetry ? 'Poruka nije poslata'
+      : turn?.state === 'PROCESSING' && !editor.data?.recovery?.canCancel ? 'Čekamo odgovor…' : 'Proveravamo poruku' : undefined}
     correction={correction && writable ? { ...correction, onDismiss: () => { if (canAct() && !request.current) setCorrection(null); } } : undefined}
     conversationOwnerKey={`${accountId}:${accountRevision}`}
     turnRoles={turnRoles.current}

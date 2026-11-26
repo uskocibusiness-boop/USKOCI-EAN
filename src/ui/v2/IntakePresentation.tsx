@@ -582,7 +582,6 @@ export function IntakePresentation(props: Props) {
       </View> : null}
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{statusCopy}</T> : null}
-      {props.pending && props.showReadback ? <T variant="note" tone="muted">Provera ne šalje novu poruku.</T> : null}
       {/* What can be done, most likely first: read what happened ("Proverite", the app's one word for it), and only then the rarer way out, with
           what it costs written right above it. */}
       {props.showReadback ? <V2Action tone="neutral" label={OUTCOME_ACTION.check} accessibilityLabel={`${OUTCOME_ACTION.check} da li je poruka poslata`}
@@ -590,8 +589,7 @@ export function IntakePresentation(props: Props) {
       {props.onResumePrepared ? <V2Action label="Nastavite odgovor" disabled={props.resumePreparedDisabled}
         onPress={props.onResumePrepared} /> : null}
       {props.onCancelPending ? <>
-        <T variant="note" style={s.muted}>Ako odustanete, odgovor asistenta neće promeniti zadatak. Ako je asistent već počeo da odgovara, poruka je ipak poslata.</T>
-        <V2Action tone="neutral" kind="quiet" label={props.cancelPendingDispatched ? 'Odustanite od odgovora' : 'Otkažite slanje poruke'}
+        <V2Action tone="neutral" kind="quiet" label={props.cancelPendingDispatched ? 'Zaustavite odgovor' : 'Otkažite poruku'}
           disabled={props.cancelPendingDisabled} onPress={props.onCancelPending} />
       </> : null}
     </>}>

@@ -519,8 +519,8 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const statusCopy=data?.saved?'Profil je sačuvan.':data?.status!=='OPEN'?'Ovaj razgovor je završen.':data.stale?'Sačuvani profil je promenjen. Novi razgovor će početi od tih podataka.':
     data.safety==='BLOCK'||data.safety==='REVIEW'?'Ovaj predlog trenutno ne može da se sačuva.':preparedAvailable?
       'Prethodna poruka je sačuvana. Možete da nastavite odgovor bez ponovnog unosa.':awaiting?turn?.state==='UNKNOWN_OUTCOME'?
-      'Ne znamo da li je prethodna poruka stigla. Proverite to; poruka se neće poslati dvaput.':'AI još obrađuje poruku. Proverite stanje.':pending.current?'Proverite prethodno slanje. Novi unos i pregled su dostupni kada potvrdimo ishod.':
-      recovery?.cancelled&&recovery.providerDispatched?'Odgovor je zaustavljen. Poruka je ipak poslata jer je asistent već počeo da je obrađuje; profil je ostao isti.':null;
+      'Ne znamo da li je poruka stigla.':null:pending.current?null:
+      recovery?.cancelled&&recovery.providerDispatched?'Odgovor je zaustavljen. Profil je ostao isti.':null;
   const lastGoodUnverified=!!data&&!editor.loaded&&!editor.loading;
   const lastGoodCopy='Prikazan je poslednji učitan razgovor. Slanje i čuvanje su pauzirani dok ne proverimo stanje.';
   if(leaving||!data||!foreground||resuming)return <WorkerProfileFrame back={back} title="Radni profil" tone="conversation"><WorkerProfileStatus context="conversation" loading={leaving||editor.loading||!foreground||resuming}
@@ -631,10 +631,9 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       void send(input.trim(),{value:input,revision:draftRevision.current});}} onBack={back} onOptions={writable?()=>{if(current()&&panelScope.current===renderedPanel)setMenu(true);}:undefined}
     // A fragment is truthy even when empty, which drew an empty recovery panel in the thread; the slot is filled only
     // when there is something to say.
-    status={statusCopy||conversationError||activationRequest||lastGoodUnverified||(!editor.busy&&preparationProblem)?<>{pending.current&&!editor.busy?<T variant="bodyStrong">{canRetry?'Poruka čeka ponovni pokušaj':turn?.state==='PROCESSING'?'Poruka je u obradi':'Ishod nije potvrđen'}</T>:null}
+    status={pending.current||statusCopy||conversationError||activationRequest||lastGoodUnverified||(!editor.busy&&preparationProblem)?<>{pending.current&&!editor.busy?<T variant="bodyStrong">{canRetry?'Poruka nije poslata':turn?.state==='PROCESSING'?'Čekamo odgovor…':'Proveravamo poruku'}</T>:null}
       {statusCopy?<T variant="meta" tone="muted">{statusCopy}</T>:null}
       {!editor.busy&&preparationProblem?<T variant="meta" tone="muted">{preparationProblem}</T>:null}
-      {pending.current&&!editor.busy?<T variant="note" tone="muted">Provera ne šalje novu poruku.</T>:null}
       {activationRequest&&writable&&!data.saved?<T variant="note" tone="muted">Pregledajte podatke pre aktivacije. Ako imate nezavršen predlog, i njegove izmene ulaze u pregled. Profil postaje aktivan tek kada potvrdite.</T>:null}
       {lastGoodUnverified?<T accessibilityRole="alert" variant="note" tone="muted">{lastGoodCopy}</T>:null}
       {conversationError?<T accessibilityRole="alert" variant="meta" tone="danger">{conversationError}</T>:null}</>:undefined}
@@ -661,8 +660,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       {writable&&!data.saved&&data.review?.missingRequired.includes('Ime')?<V2Action label="Lični podaci" kind="quiet"
         disabled={!enabled} onPress={()=>leave(()=>router.push('/profil/podaci'))}/>:null}
       {pending.current&&recovery?.canCancel?<>
-        <T variant="meta" tone="muted">Ako odustanete, odgovor asistenta neće promeniti profil. Ako je asistent već počeo da odgovara, poruka je ipak poslata.</T>
-        <V2Action tone="neutral" label={recovery.providerDispatched?'Odustanite od odgovora':'Otkažite prethodno slanje'} kind="quiet"
+        <V2Action tone="neutral" label={recovery.providerDispatched?'Zaustavite odgovor':'Otkažite poruku'} kind="quiet"
           disabled={!canAct()||voiceBusy} onPress={()=>{void cancelPending();}}/>
       </>:null}
       {data.saved?<V2Action label="Otvorite sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:null}
