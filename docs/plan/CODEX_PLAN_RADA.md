@@ -6788,3 +6788,38 @@ Ovi ciljevi su istorijski predlozi iz povucenog UX materijala, a ne samostalno o
 **Lokalno:** 1870/1870, `tsc` PASS.
 
 **Otvoreno:** pitanje vlasniku o „(po vremenu u Srbiji)“ na karticama.
+
+#### 12.6.26. Pregled cele aplikacije: manje teksta, 3D u menijima, uredan radni profil (26.11.2026)
+
+**Odluke vlasnika (26.11.2026):**
+- „(po vremenu u Srbiji)“ se ne prikazuje nigde.
+- Što manje teksta i objašnjenja.
+- Radni profil uredniji, bez dugmeta nasred ekrana.
+- Prazan razgovor ostaje sa robotima, uz jednu rečenicu.
+
+**Izvor:**
+- `3f2d360c`: `needScheduleText`, `dogovorenoVreme`, `AgreementPresentation`, `PeriodControls` i obrazac izmene ne imenuju srpsko vreme.
+- `68e08e26`: radni profil:
+  - olovka u kartici, „Aktivan“ ispod imena;
+  - usluge kao mehurići; „čeka potvrdu“ samo gde treba;
+  - bez fusnote pod nedeljom; prazan razgovor sa jednom rečenicom.
+- `25ca3356`: Podešavanja sa 3D slikama, drugi red samo za podatak.
+- `422fe771`:
+  - poslednji Ti oblici → Vi (ocene, obaveštenja, izvoz, greške, AI ponude);
+  - Ocene bez objašnjenja;
+  - Poruke bez naslova i oznake „Samo za čitanje“;
+  - Moje prijave se otvaraju na „Sve“.
+- `bd376352`: duga usluga se lomi u red.
+- `e54189fd`: bez katanca pod mapom tuđeg zadatka i bez zone na Početnoj.
+
+**DEV probni podaci:** zadatak `62201cf1` „TEST — Krečenje kuhinje“ (otvoren, uskocitest) za pregled ekrana tuđeg zadatka.
+
+**Emulator:**
+- `25ca3356`: radni profil i Podešavanja pre/posle, slike poslate vlasniku.
+- Zadaci, Obaveštenja i tuđi zadatak pregledani.
+
+**Lokalno:** 1870/1870, `tsc` PASS.
+
+**Otvoreno:**
+- Provera `e54189fd` uživo: mehurići, Poruke, prazan razgovor, Početna.
+- Kartica „Moj profil“: može se dodatno pročistiti, ako vlasnik želi.
