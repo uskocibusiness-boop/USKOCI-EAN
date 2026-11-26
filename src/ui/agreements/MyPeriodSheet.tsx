@@ -29,12 +29,14 @@ export function periodLine(period: Pick<AgreementPeriod, 'startsAt' | 'endsAt'>)
  * "Vaše vreme za ovaj posao" (owner, 25.11.2026): each side marks its own day and time for one Dogovor. Only the author sees
  * it; it fills their schedule, and another Dogovor at the same time is said, never refused. The exact hour is arranged in Poruke.
  */
-export function MyPeriodSheet({ agreementId, current, onClose, onSaved }: {
+export function MyPeriodSheet({ agreementId, current, day, onClose, onSaved }: {
   agreementId: string; current: AgreementPeriod | null; onClose: () => void; onSaved: (period: AgreementPeriod | null) => void;
+  /** The Dogovor's own day, when it has one: the sheet opens on it instead of today. */ day?: string | null;
 }) {
   const start = current ? zonedParts(new Date(current.startsAt), ZONE) : null, end = current ? zonedParts(new Date(current.endsAt), ZONE) : null;
   const known = start && end ? PARTS.find(part => part.from === civilClock(start.time) && part.to === civilClock(end.time) && start.date === end.date) : null;
-  const [date, setDate] = useState(start?.date ?? serbianToday());
+  const dayOf = day && Number.isFinite(Date.parse(day)) ? zonedParts(new Date(day), ZONE).date : null;
+  const [date, setDate] = useState(start?.date ?? dayOf ?? serbianToday());
   const [part, setPart] = useState<Part>(current ? known?.key ?? 'EXACT' : 'DAY');
   const [from, setFrom] = useState(start ? civilClock(start.time) : '09:00');
   const [to, setTo] = useState(end ? civilClock(end.time) : '13:00');

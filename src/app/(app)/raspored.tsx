@@ -49,7 +49,9 @@ export default function Raspored() {
   const withPeriods = (events: readonly WorkerCalendarEvent[]): WorkerCalendarEvent[] => {
     const marked = new Map(mine.map(period => [period.agreementId.toLowerCase(), period]));
     const others = events.filter(event => !marked.has(event.agreementId.toLowerCase()));
-    return [...others, ...mine.map(period => ({ eventId: `period:${period.agreementId}`, agreementId: period.agreementId, agreementVersion: 1,
+    // The Dogovor's current version, so the card finds its title and person (a stale version reads as an unnamed Dogovor).
+    const version = (id: string) => (agreements.data ?? []).find(item => item.id.toLowerCase() === id.toLowerCase())?.verzija ?? 1;
+    return [...others, ...mine.map(period => ({ eventId: `period:${period.agreementId}`, agreementId: period.agreementId, agreementVersion: version(period.agreementId),
       startsAt: period.startsAt, endsAt: period.endsAt, agreementStatus: 'CONFIRMED' as const, source: 'AGREEMENT' as const }))]
       .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
   };

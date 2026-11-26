@@ -6718,3 +6718,42 @@ Ovi ciljevi su istorijski predlozi iz povucenog UX materijala, a ne samostalno o
 #### 12.6.23. Ceo Dogovor na ekranu zadatka (25.11.2026)
 
 **Odluka vlasnika:** „Može po predlogu“ — jedan ekran zadatka nosi ceo Dogovor, stari ekran po osobi se ukida. **Izvor:** `69275f1e`: razgovor otvoren sa kartice ili iz Poruka stoji sam (bez Pregled | Poruke), završetak se otvara kao list na čistoj strani i vraća na ekran zadatka, kartica osobe nudi jedan korak (odgovor na predlog, predlog termina, završetak, ocena), svaki ulaz u stari pregled (obaveštenja, Početna, raspored, ocene, izbor) prelazi na `/dogovor/zadatak` (izuzetak `pregled=1`). `fac0af67`: ikonica „Poruke“ (jedna osoba → razgovor odmah; više → grupa pa privatni razgovori); u grupi dodir na pošiljaoca otvara učesnike sa „Privatna poruka“. `201b6233`: „···“ po osobi (promena, problem, prijava ili blokiranje, uklanjanje ili otkazivanje); prijava problema na sopstvenoj čistoj strani (`action=problem`), isti nacrt, komanda i readback. **Emulator (`201b6233`):** Početna → ekran zadatka; Poruke → razgovor bez Pregled | Poruke; „···“ sa 3D slikama; „Prijavite problem“ na čistoj strani (bez slanja). **Lokalno:** 1870/1870, `tsc` PASS. **Otvoreno:** brisanje koda starog pregleda (`AgreementOverview` i delovi u `src/app/dogovor/[id].tsx`) uz prebacivanje testova koji ga nose; prolazak „posle“ svih ostalih ekrana (korak 5).
+
+#### 12.6.24. Zadatak kao Dogovor, bez pregovaranja termina, sopstveno vreme (25–26.11.2026)
+
+**Odluke vlasnika (25.11. veče):**
+- Vaš objavljen zadatak ima gore Pregled · Dogovoreni · Prijave · Poruke.
+- Navigacija je mirna (strelica bez kružića i „···“), a naslov je veliki ispod nje.
+- Nema „Objavljen“ i nema olovke: objavljen zadatak se ne menja, a brisanje je u „···“.
+- Radnikov Dogovor ima samo Pregled · Poruke, a naručilac je na Pregledu.
+- Nema predlaganja termina ni cene.
+- Svako sam označava svoje vreme. Ono je privatno i puni raspored, a preklapanje samo upozorava.
+
+**Izvor:**
+- `c1935ed1`: zajednička traka `TaskTabs`, 3D ljudi, kratko „Još nema pitanja.“, bez katanca, mapa na zoom 14.
+- `2077ec75`: radnik vidi Pregled · Poruke.
+- `63c6c5e9`: `TaskTopBar` i veliki naslov.
+- `548cf492`: nema novih predloga izmene.
+- `c5cb4f97`: DB paket (vidi ispod).
+- `f5dd4c70`: „Vaše vreme za ovaj posao“ (`MyPeriodSheet`, `agreementPeriodClientService`) i spajanje u Moj raspored.
+
+**DEV:**
+- Migracija `20261125231234_agreement_personal_periods`: tabela `private.agreement_personal_periods` i tri RPC-a.
+- Probni prolaz je vraćen izuzetkom.
+- Ledger 387 → 388; md5 izvora jednak zapisanoj izjavi.
+- Dokaz: `docs/plan/proofs/20261126-dev-forward-migrations-evidence.md`. Rollback skripta postoji.
+- Integritet migracija PASS (248), unittest 99/99.
+
+**Emulator (`f5dd4c70`):**
+- Prevod (radnik): Pregled · Poruke i veliki naslov.
+- „Označite svoje vreme“ → 27. nov, Pre podne → „Vaše vreme: 27. nov · 08:00–12:00“.
+- DEV readback: red postoji.
+- Moj raspored, petak 27. nov: „08:00–12:00 · Uskačete“.
+
+**Lokalno:** 1870/1870, `tsc` PASS.
+
+**Otvoreno:**
+- Naslov kartice u rasporedu za označeno vreme: popravljeno u izvoru, neprovereno uživo.
+- Prozor otvara dan Dogovora: popravljeno u izvoru, neprovereno uživo.
+- Grupni razgovor uživo.
+- Brisanje koda starog pregleda Dogovora.

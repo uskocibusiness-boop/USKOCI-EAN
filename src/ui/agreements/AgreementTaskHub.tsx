@@ -363,6 +363,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
     {bar}
     {body}
     {periodFor ? <MyPeriodSheet agreementId={periodFor} current={periods.get(periodFor) ?? null} onClose={() => setPeriodFor(null)}
+      day={items?.find(item => item.id === periodFor)?.prihvacenPocetak ?? null}
       onSaved={period => setPeriods(current => { const next = new Map(current); if (period) next.set(periodFor, period); else next.delete(periodFor); return next; })} /> : null}
     {menuFor ? <ActionSheet label={`Radnje: ${menuFor.name}`} onClose={() => setMenuFor(null)} actions={personActions(menuFor)} /> : null}
     <PublicProfileSheet state={profile} onClose={() => { profileRequest.current++; setProfile(null); }}
