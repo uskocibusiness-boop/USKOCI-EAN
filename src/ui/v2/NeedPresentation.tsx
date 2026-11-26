@@ -259,7 +259,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
           {props.photos}
           <TaskDecisionRequirements rows={requirements} />
           {/* On the owner's own published task "Objavio: Milos (Vi)" says nothing new (owner, 25.11.2026). */}
-          {tabs ? null : props.publisher}
+          {/* This page is always the owner's own task, draft or published: "Objavio: … (Vi)" says nothing (owner, 26.11.2026). */}
           {/* The questions people asked about this task and what the owner answered, where the work itself is read, in the
               same place a stranger finds them (owner, 2026-10-07). The route builds the section: it owns the reads. */}
           {props.qaAction}
