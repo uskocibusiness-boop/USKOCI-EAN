@@ -22,7 +22,7 @@ import { QuietReadState } from './QuietReadState';
 import type { TaskFitContext } from './detail/taskFit';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import { CardStatus, taskPlace } from './TaskFace';
-import { TaskDecisionPublisher, TaskDecisionRequirements, TaskDecisionTitle, TaskPlacePrivacy,
+import { TaskDecisionPublisher, TaskDecisionRequirements, TaskDecisionTitle,
   applyActionLabel } from './detail/TaskDecision';
 import { TaskDetailSummary } from './detail/TaskDetailSummary';
 
@@ -172,7 +172,6 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         {!remote && (map || route.length) ? <Section title="Mesto">
           <View style={s.place}>
             {map}
-            <TaskPlacePrivacy />
             {route.length ? <DetailRoute rows={route} /> : null}
           </View>
         </Section> : null}

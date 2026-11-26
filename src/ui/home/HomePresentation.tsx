@@ -133,7 +133,7 @@ function RasporedCard({ row, raspored, photo, onOpen }: {
       <View style={s.appointmentWhen}>
         <T variant="priceLarge" style={s.appointmentDay}>{raspored.when}</T>
         {/* A phone set to another zone, or one that does not say, is told which time this is (the planner's own rule). */}
-        {raspored.zone ? <T variant="meta" tone="muted">{raspored.zone}</T> : null}
+        {/* Owner, 26.11.2026: Serbian time is never spelled out. */}
       </View>
       <FactArt kind="calendar" size={CALENDAR} />
     </View>
