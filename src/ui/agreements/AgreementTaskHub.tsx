@@ -109,14 +109,14 @@ function PersonCard({ person, owner, remote, place, now, rating, onProfile, onOp
       </Press>
       <AgreementStatusChip chip={agreementChip(item, now)} />
     </View>
-    {facts ? <Press accessibilityRole="button" accessibilityLabel={`Uslovi Dogovora sa: ${person.name}`} accessibilityHint="Otvara uslove i izmene ovog Dogovora."
-      onPress={onOpen} haptic="select" style={s.personFacts}>
+    {/* The terms are read here; nothing more opens from them (owner, 26.11.2026: no step that shows the same again). */}
+    {facts ? <View accessible accessibilityLabel={`Uslovi Dogovora sa: ${person.name}`} style={s.personFacts}>
       <View style={s.inline}><FactArt kind="money" size={26} />
         <T variant="bodyStrong" style={s.money}>{amount || 'Cena po dogovoru'}</T>
         {amount ? <T variant="note" tone="muted">{applicationPriceBasisText(item.osnovaCene)}</T> : null}</View>
       <View style={s.inline}><FactArt kind={remote ? 'remote' : 'pin'} size={26} /><T variant="copy" numberOfLines={2} style={s.flex}>{place}</T></View>
       <View style={s.inline}><FactArt kind="calendar" size={26} /><T variant="copy" numberOfLines={2} style={s.flex}>{item.vremeTekst || 'Termin po dogovoru'}</T></View>
-    </Press> : null}
+    </View> : null}
     {sayAttention ? <View style={s.inline}><View style={s.dot} /><T variant="note" style={s.warn} numberOfLines={2}>{attention!.title}</T></View> : null}
     {waitsOnOther ? <T variant="note" tone="muted">Čeka se odgovor na Vaš predlog izmene.</T> : null}
     {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
