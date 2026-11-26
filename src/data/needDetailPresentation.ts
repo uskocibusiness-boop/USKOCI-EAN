@@ -71,7 +71,11 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
   // requester explicitly chose an unbounded flexible appointment.
   const deadlineOnly = flexible && !start && !!end;
   // Two ends inside one minute are one time: "10:00–10:00" reads as a mistake, not as a window.
-  const range = wholeDay ? start!.dateText
+  // Owner, 26.11.2026: a person who named only a day (stored as midnight to the next midnight) reads only that day ("28. nov"),
+  // never "00:00 – 00:00" and never an invented "ceo dan"; the hour is arranged later in Poruke.
+  const fullDay = !flexible && !!start && !!end && start.time === '00:00' && end.time === '00:00'
+    && Date.parse(schedule.endsAt ?? '') - Date.parse(schedule.startsAt ?? '') === 86_400_000;
+  const range = fullDay ? start!.dateText : wholeDay ? start!.dateText
     : tight ? (start!.time === end!.time ? start!.text : `${start!.text}–${endText}`)
     : start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${endText}${shifted ? ` ${end.offset}` : ''}`
     : start ? `${schedule.kind === 'FIXED_WINDOW' ? 'Početak' : 'Od'} ${start.text}` : end ? `${deadlineOnly ? 'Rok do' : 'Do'} ${end.text}` : null;

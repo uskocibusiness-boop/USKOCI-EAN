@@ -564,7 +564,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         return <ListRow key={`${candidate.origin.candidateHint ?? 'candidate'}:${candidatePage * 3 + index}`}
           title={label.main} subtitle={label.detail ?? undefined} last={index === visibleCandidates.length - 1}
           accessibilityLabel={`Izaberite predlog: ${toSerbianLatin(candidate.label)}`}
-          accessibilityHint="Prikazuje tačku na mapi. Potvrdi je nakon provere."
+          accessibilityHint="Prikazuje tačku na mapi. Potvrdite je nakon provere."
           disabled={controlDisabled || !focused} onPress={() => selectCandidate(candidate)} />;
       })}</View> : null}
       {alternatives.length > 3 ? <View style={{ gap: sys.space.xs }}>
@@ -575,7 +575,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
           onPress={() => { if (owns()) setCandidatePage(page => Math.min(lastCandidatePage, page + 1)); }} /> : null}
       </View> : null}
     </>;
-    const expandedPlace = address.trim() || selectedLabel || 'Tačka na mapi';
+    const expandedPlace = shortPlace(address.trim() || selectedLabel || 'Tačka na mapi');
     return <View style={{ gap: sys.space.sm }}>
       {!position ? <View style={{ gap: sys.space.xs }}>
         {conversationSummary?.title === title ? null : <T variant="bodyStrong">{title}</T>}
@@ -662,7 +662,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
             if (ownsEdit()) { retireSearch(false, true); setAddress(value); invalidate(); }
           }} /> : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.sm }}>
-          <Button tone="neutral" label={`✓ Potvrdi ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdite tačku: ${title}`} kind="secondary"
+          <Button tone="neutral" label={`✓ Potvrdite ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdite tačku: ${title}`} kind="secondary"
             style={confirmAsPrimary ? { ...brandAction, flex: 1 } : { flex: 1 }} disabled={controlDisabled || !focused || loading} onPress={confirm} />
           <Button tone="neutral" label={correctionOpen ? 'Završite izmenu' : 'Pomerite pin'} kind="quiet"
             disabled={controlDisabled || !focused} onPress={() => {
@@ -758,3 +758,18 @@ const editorStyles = StyleSheet.create({
     ...sys.elevation.soft,
   },
 });
+
+/**
+ * A place as a person says it (owner, 26.11.2026): street, quarter and town - never the district, the province, the postal code or
+ * the country ("Liman, Novi Sad", not "Liman, Novi Sad, Grad Novi Sad, Južnobački upravni okrug, Vojvodina, 21002, Srbija").
+ */
+export function shortPlace(text: string): string {
+  const parts = text.split(',').map(part => part.trim()).filter(Boolean);
+  const kept: string[] = [];
+  for (const part of parts) {
+    if (/^(grad|opština|gradska opština)\s/i.test(part) || /okrug$/i.test(part) || /^(vojvodina|centralna srbija|srbija|serbia|beograd region)$/i.test(part)
+      || /^\d{5}$/.test(part)) continue;
+    if (!kept.some(seen => seen.toLowerCase() === part.toLowerCase())) kept.push(part);
+  }
+  return (kept.length ? kept.slice(0, 3) : parts.slice(0, 2)).join(', ');
+}

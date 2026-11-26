@@ -25,6 +25,11 @@ export function fixedRange(startsAt: unknown, endsAt: unknown): string | undefin
     return onlyStart ? `Od ${onlyStart}${napomenaZone()}` : undefined;
   }
   if (end <= start) return undefined;
+  // A named day alone (midnight to the next midnight) reads as that day, as the review does (owner, 26.11.2026).
+  if (end - start === 86_400_000_000n) {
+    const day = needScheduleText({ kind: 'FIXED_WINDOW', startsAt: startsAt as string, endsAt: endsAt as string }, DOGOVORENA_ZONA);
+    if (!day.includes(':')) return day;
+  }
   // The app's one way to write a window (src/lib/vreme.ts: "26. sep · 17:00–19:00"), read in Serbian time as every agreed
   // term is, and named so only on a phone set to another zone. Display only; never inferred or saved as the task's timezone.
   const text = raspon(new Date(Number(start / 1000n)), new Date(Number(end / 1000n)), { zona: DOGOVORENA_ZONA });

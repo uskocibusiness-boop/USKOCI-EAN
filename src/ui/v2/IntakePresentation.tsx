@@ -236,7 +236,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   // and in the one sentence with the name when they are a line of pictures (that line is decoration for a screen reader).
   const facts = stickers.length > 0 && !locationEditing;
   const spoken = [editing ? 'Izmena zadatka' : null, summary.title ?? 'Zadatak u nastajanju',
-    summary.service ? `Prepoznata usluga: ${summary.service}` : null,
+    null,
     ...(facts && !final ? stickers.map(kind => stickerWords(kind, summary)) : [])].filter(Boolean).join(', ');
   // The pictures the draft has facts for, and where each lands: a picture that is new to the conversation's memory arrives once, in its place.
   const lands = (kind: DraftSticker, index: number, child: ReactNode) => <Appear key={kind} index={index} animate={!!appear && appear.isNew(kind)} from="above">{child}</Appear>;
@@ -245,7 +245,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={final ? 0 : compact || locationEditing ? 1 : 2}
         style={[s.compactTitle, !summary.title && s.titleEmpty]} />
     </View>
-    {summary.service ? <T testID="intake-recognized-service" variant="note" tone="muted">{`Prepoznata usluga: ${summary.service}`}</T> : null}
+    {/* Owner, 26.11.2026: the recognised service is the server's business; the card says the task, not its category. */}
     {facts ? final
       ? <View testID="intake-draft-details" style={s.details}>
         {stickers.map((kind, index) => lands(kind, index, <FactRow art={stickerArt(kind, summary)} value={stickerWords(kind, summary)} />))}
