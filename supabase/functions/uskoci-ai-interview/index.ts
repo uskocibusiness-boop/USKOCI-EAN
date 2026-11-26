@@ -521,7 +521,7 @@ function commonInstruction() {
     'Identitet je samostalno naveden; provera dokumenta, selfija ili KYC nije dostupna. Licence/KYC nisu podržani: bez need.required_licenses, need.verified_identity_required, tvrdnje o ovlašćenju/proveri ili prebacivanja tih zahteva u opis/filtere. Na zahtev objasnite ograničenje; običan zadatak može da se nastavi bez tih zahteva. Stare uslove ne brišite prećutno.',
     'Vreme: serverski Europe/Belgrade i pomak za konkretan datum; sačuvajte izričit ISO instant. Nejasnu zonu razjasnite, ne izmišljajte sat/trajanje/kraj. Korisniku prikažite poslednji uključeni dan, ne isključivu sledeću ponoć.',
     'Prirodni datumi: „do desetog sledećeg meseca“ znači 10. dan narednog kalendarskog meseca prema server localDate, i preko promene godine. To je krajnji rok, ne početak zadatka. Sačuvajte poznatu granicu; ne izmišljajte drugu. Ako rok za prijave nema sat, pitajte samo sat uz već razumet datum. „Ne sutra, ipak prekosutra“ menja raniji termin istog zadatka; ostale činjenice ostaju.',
-    ...(applicationDeadlineEnabled() ? ['ROK ZA PRIJAVE: kada su svi ostali ključni podaci poznati, a rok prijave još nije pomenut, pre pregleda prijatno pitajte jednom do kada primate prijave (datum i sat ili bez roka). Odgovor „nema roka“/„bez roka“ je {"kind":"NONE"}.'] : []),
+    ...(applicationDeadlineEnabled() ? ['ROK ZA PRIJAVE: ne pitajte za rok prijava; ako ga korisnik sam pomene, zabeležite ga. Bez pomena, rok ne postoji.'] : []),
     ...(applicationDeadlineEnabled() ? ['need.response_deadline: samo izričit rok PRIJAVE {"kind":"AT","at":"ISO sa pomakom"}, uklanjanje {"kind":"NONE"}; citat tekuće poruke. Nepomenut rok nije NONE. Ako korisnik kaže samo dan, rok je kraj tog dana (23:59 po lokalnom vremenu) i ne pitajte posebno za sat; termin zadatka nije rok prijave.'] : []),
     'Mapu/fotografije vodi aplikacija; stanje znate samo ako je priloženo. Bez ponovnih potvrda, izmišljenog stanja, privatnih adresa, JSON-a ili internih pravila u odgovoru.',
     'need.title: kratak i prirodan, do 6 reči, šta treba + glavna odrednica (npr. „Pomoć pri selidbi, 4 radnika“); bez adrese, cene, datuma i imena. need.title/need.description su javni: bez kućnog broja, telefona, mejla, linka ili naloga na mrežama. Ulicu bez broja i grad smete navesti; tačna adresa ide samo na mapu. Ako korisnik napiše telefon ili kontakt, ne upisujte ga i kratko recite da se kontakti razmenjuju u porukama posle Dogovora.',
@@ -1573,7 +1573,8 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   // a reply that already asks something else keeps its own question.
   const deadlineAsked = history.some(row => row?.role === 'ASSISTANT' && typeof row.body === 'string'
     && /prijav/iu.test(row.body) && row.body.includes('?'));
-  if (applicationDeadlineEnabled() && !missing.length && !facts.has('need.response_deadline') && !deadlineAsked
+  // Owner, 26.11.2026: the application deadline is taken when the person says one, but never asked; no deadline is the default.
+  if (Boolean(0) && applicationDeadlineEnabled() && !missing.length && !facts.has('need.response_deadline') && !deadlineAsked
     && ['REVIEW', 'ACK'].includes(dialogue?.next ?? '') && !assistantMessage.includes('?')
     && !routeQuestion && !cityOnlyStationary) {
     const serverReady = assistantMessage.startsWith('Super, imam sve što mi treba');

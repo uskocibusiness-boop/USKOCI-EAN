@@ -589,16 +589,14 @@ test('city-wide task with user indicating anywhere in city does not loop asking 
   assert.equal(out.dialogue.next, 'REVIEW');
 });
 
-test('a complete draft without an application deadline asks for it once, last, then goes to review',()=>{
+// Owner, 26.11.2026: the application deadline is never asked; a complete draft goes to review, and a stated deadline is still taken.
+test('a complete draft without an application deadline goes to review without asking for one',()=>{
   const base=remotePhotoFacts().filter(row=>row.fact_key!=='need.response_deadline');
   const out=run(turn('Sve je zabeleženo.',[],'','REVIEW'),'To je sve.',base);
-  assert.equal(out.dialogue.next,'ASK'); assert.equal(out.dialogue.questionKey,'need.response_deadline');
-  assert.match(out.assistantMessage,/^Sve je zabeleženo\. .*do kada primate prijave\?/u);
-  const asked=[{role:'USER',body:'To je sve.'},{role:'ASSISTANT',body:out.assistantMessage}];
-  const again=run(turn('U redu.',[],'','REVIEW'),'Ne znam još.',base,asked);
-  assert.notEqual(again.dialogue.questionKey,'need.response_deadline','the deadline question is never repeated');
+  assert.notEqual(out.dialogue.questionKey,'need.response_deadline');
+  assert.doesNotMatch(out.assistantMessage,/do kada primate prijave/u);
   const ownQuestion=run(turn('Važi. Da li je fotografija u boji?',[],'','ACK'),'Jedna fotografija.',base);
-  assert.equal(ownQuestion.assistantMessage,'Važi. Da li je fotografija u boji?','a reply that already asks keeps its own question');
+  assert.equal(ownQuestion.assistantMessage,'Važi. Da li je fotografija u boji?','a reply that asks something of its own keeps it');
 });
 
 test('a repeated schedule or daily rate is answered only when this turn carries it, never in a loop',()=>{
