@@ -6881,4 +6881,4 @@ Ovi ciljevi su istorijski predlozi iz povucenog UX materijala, a ne samostalno o
 
 **Lokalno:** 1869/1869, `tsc` PASS.
 
-**Otvoreno:** potvrda skrolovanja karte mesta i Početne na sledećem APK-u.
+**Emulator (APK `d2528696`):** Početna ide sa uvodnog ekrana pravo na sadržaj, bez treptanja redova; u razgovoru o selidbi (A→B) karta polazišta i karta odredišta same se pomere tako da se vide mapa i dugmad.
