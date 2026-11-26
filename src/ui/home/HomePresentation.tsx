@@ -66,12 +66,11 @@ type HomeOptionalRead = { loading: boolean; refreshing: boolean; error: boolean;
 
 /** The work-profile read recovers independently from the account's core overview. */
 function WorkProfileReadState({ state }: { state?: HomeOptionalRead }) {
-  if (!state || !state.loading && !state.refreshing && !state.error && !state.stale) return null;
+  // Loading says nothing: the rows above already stand in their place (owner, 26.11.2026: less text). Only a failed read speaks.
+  if (!state || !state.error && !state.stale) return null;
   return <View testID="home-worker-read" style={s.recovery}>
     <T variant="note" tone="muted" accessibilityRole={state.error || state.stale ? 'alert' : undefined}>
-      {state.loading ? 'Učitavamo radni profil…'
-        : state.refreshing ? 'Osvežavamo radni profil…'
-          : state.stale ? 'Radni profil nije osvežen. Prikazano je poslednje učitano.' : 'Radni profil trenutno nije učitan.'}
+      {state.stale ? 'Radni profil nije osvežen.' : 'Radni profil trenutno nije učitan.'}
     </T>
     {state.error || state.stale || state.refreshing ? <V2Action kind="quiet" compact tone="neutral" label="Osvežite radni profil"
       loading={state.refreshing} disabled={state.loading || state.refreshing} onPress={state.onRetry} /> : null}
@@ -298,14 +297,14 @@ export function HomePresentation(p: HomePresentationProps) {
     </Section> : null}
 
     {/* My lists stand in one group of rows directly under what is above, with the one section gap and no heading or line of their own. */}
-    <View style={s.mineGroup}>
+    {p.loading && !home ? null : <View style={s.mineGroup}>
       <MineRow art="tasks" title="Moji zadaci" detail={tasksDetail} onPress={p.onMyTasks} />
       <MineRow art="applications" title="Moje prijave" detail={applicationsDetail} onPress={p.onMyApplications} last={!setupProfile} />
       <WorkProfileReadState state={p.workProfileRead} />
       {/* R20: until the work profile exists, one row says what it is for and opens its conversation. */}
       {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesite radni profil" subtitle="Dobijate zadatke koji Vam odgovaraju."
         onPress={() => p.onOpen({ kind: 'WORKER_PROFILE' })} last accessibilityLabel="Podesite radni profil. Dobijate zadatke koji Vam odgovaraju." /> : null}
-    </View>
+    </View>}
     {p.loading && !home ? <HomeInitialLoading /> : null}
     {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}
   </Screen>
