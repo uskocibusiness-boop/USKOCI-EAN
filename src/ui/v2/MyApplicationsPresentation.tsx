@@ -186,7 +186,7 @@ export function MyApplicationsPresentation(props: Props) {
         fresh={!!props.freshId && props.freshId === p.prijavaId}
         onReview={() => props.onReview(p)} onAgreement={() => props.onAgreement(p)} onWithdraw={() => props.onWithdraw(p)} onTask={() => props.onTask(p)}>
         {props.expanded === p.prijavaId ? review : null}
-        {props.onService && ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'SELECTED'].includes(p.stanje) ?
+        {props.onService && ['SUBMITTED', 'VIEWED', 'SHORTLISTED'].includes(p.stanje) ?
           <V2Action compact kind="quiet" label="Usluga u radnom profilu" disabled={disabled}
             onPress={() => props.onService?.(p)} /> : null}
       </ApplicationCard>
