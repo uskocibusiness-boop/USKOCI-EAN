@@ -1,5 +1,5 @@
 import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated as NativeAnimated, AppState, Easing, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type TextStyle, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated as NativeAnimated, AppState, Easing, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type LayoutChangeEvent, type TextStyle, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { Easing as ReanimatedEasing, FadeIn, FadeInDown } from 'react-native-reanimated';
 import { T } from '../Text';
@@ -171,7 +171,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const contextActive = useRef(false);
   const inlineContext = !!p.context && !!p.contextBeforeMessageId && p.messages.some(message => message.id === p.contextBeforeMessageId);
   contextActive.current = !!p.context && p.interactiveContextKey !== undefined && (!inlineContext || !!p.revealInteractiveContext);
-  const contextOwner = useRef<{ key: string; conversation: string | undefined; pending: boolean; measuring: boolean } | null>(null);
+  const contextOwner = useRef<{ key: string; conversation: string | undefined; pending: boolean; measuring: boolean;
+    /** The height last brought into view: a card that grows afterwards (its map arriving) is followed once more. */ shown?: number } | null>(null);
   // RN exposes innerViewRef for measurement relative to the actual scroll content, not its viewport.
   const threadContent = useRef<View>(null!);
   const interactiveContext = useRef<View>(null);
@@ -188,8 +189,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
     if (followFrame.current !== null) cancelAnimationFrame(followFrame.current);
     followFrame.current = null;
   }, []);
-  const revealContext = useCallback(() => {
+  const revealContext = useCallback((event?: LayoutChangeEvent) => {
     const owner = contextOwner.current;
+    const height = event?.nativeEvent?.layout?.height;
+    if (owner && !owner.pending && owner.shown !== undefined && typeof height === 'number' && height > owner.shown + 1
+      && !userScrolling.current) owner.pending = true;
     if (!contextActive.current || !owner?.pending || owner.measuring || userScrolling.current) return;
     cancelFollow();
     followFrame.current = requestAnimationFrame(() => {
@@ -202,13 +206,16 @@ export function AiConversationShell(p: AiConversationShellProps) {
         && !userScrolling.current && interactiveContext.current === node && threadContent.current === ancestor;
       const failed = () => { owner.measuring = false; };
       try {
-        node.measureLayout(ancestor, (_x, y) => {
+        node.measureLayout(ancestor, (_x, y, _w, h) => {
           owner.measuring = false;
           if (!current() || !Number.isFinite(y)) return;
-          owner.pending = false;
+          owner.pending = false; owner.shown = Number.isFinite(h) ? h : undefined;
           // A content-size event may still describe the preceding conversation.
           // Let the native ScrollView clamp against its current layout instead.
-          const target = Math.max(0, y);
+          // The card's end is where its buttons are: bring that end into view (owner, 26.11.2026). A card shorter than the
+          // screen then also shows what was asked above it; a taller one shows its buttons instead of only its top.
+          const viewport = geometry.current.viewport;
+          const target = Math.max(0, viewport > 0 && Number.isFinite(h) && h > 0 ? y + h - viewport : y);
           historyOffset.current = target; geometry.current.offset = target;
           thread.current?.scrollTo({ y: target, animated: false });
         }, failed);
@@ -225,7 +232,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
     revealContext();
     return () => { contextOwner.current = null; cancelFollow(); };
   }, [p.conversationKey, p.interactiveContextKey, !!p.context, inlineContext, !!p.revealInteractiveContext, cancelFollow, revealContext]);
-  const cancelContextReveal = () => { if (contextOwner.current) contextOwner.current.pending = false; };
+  const cancelContextReveal = () => { if (contextOwner.current) { contextOwner.current.pending = false; contextOwner.current.shown = undefined; } };
   const scrollLatest = useCallback((animated = false) => {
     thread.current?.scrollToEnd({ animated });
   }, []);
