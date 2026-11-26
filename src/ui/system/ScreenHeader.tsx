@@ -58,6 +58,7 @@ const s = StyleSheet.create({
   row: { minHeight: chrome.control, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.xs },
   copy: { flexShrink: 0 },
   title: { color: sys.color.ink, fontSize: 24, lineHeight: 28 },
-  actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, flexShrink: 0 },
+  // The same 8 between the bell and the face as the root bar on Početna (owner, 26.11.2026).
+  actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: sys.space.sm, flexShrink: 0 },
   stackedTitle: { paddingTop: sys.space.sm },
 });

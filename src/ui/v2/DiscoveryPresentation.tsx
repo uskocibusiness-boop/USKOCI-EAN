@@ -788,7 +788,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The low stop exposes just the handle and count. The rest of the header and first card stay below the screen.
   const collapsedLead = tallHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : headerLeadHeight;
   // Owner, 25.11.2026: the navigation stays on the map, so the low stop sits above it.
-  const collapsedSnap = (tallHeader ? Math.min(collapsedLead + bottomInset, Math.max(3, mapClearSheet - 2)) : collapsedLead + bottomInset) + barHeight;
+  // Owner, 26.11.2026: with the list lowered the map is the screen and the tab bar steps away, so this stop keeps no room for it.
+  const collapsedSnap = tallHeader ? Math.min(collapsedLead + bottomInset, Math.max(3, mapClearSheet - 2)) : collapsedLead + bottomInset;
   const snapPoints = useMemo(() => snapHeights({ bodyHeight, fullTop: listTop, halfTop: fullSheetTop(toolsBottom, LIST_GAP),
     collapsed: collapsedSnap, hidden: HIDDEN, cardShown, margin: GAP, bar: barHeight }),
     [bodyHeight, listTop, toolsBottom, collapsedSnap, cardShown, barHeight]);
@@ -909,7 +910,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const onSheetAnimate = useCallback((_fromIndex: number, toIndex: number) => {
     if (!currentSheet()) return;
     nativeSpringMoving.current = true; // A same-index geometry spring can also be interrupted.
-    announceBar(!cardShown);
+    announceBar(!cardShown && toIndex !== SNAP.peek);
   }, [currentSheet, announceBar, cardShown]);
   const hasBar = !!bar;
   const receiveBarProgress = useCallback((progress: number) => {
@@ -918,17 +919,21 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     bar.setVisible?.(progress < 0.95);
   }, [bar, focused, coverageOwner]);
   const barVisit = coverageOwner.sequence;
+  const barHalfTop = bodyHeight - (typeof snapPoints[1] === 'number' ? snapPoints[1] : bodyHeight / 2);
+  const barLowTop = bodyHeight - (typeof snapPoints[0] === 'number' ? snapPoints[0] : 0);
   useAnimatedReaction(() => {
     const visit = barVisit;
     if (!hasBar || !focused || cardShown) return { progress: 1, visit };
-    // Owner-approved look (25.11.2026): the tab bar stays at every stop of the list, also when it is lowered onto the map; only the
-    // chosen-pin card (which sits where the bar is) puts it away.
-    return { progress: 0, visit };
+    // Owner, 26.11.2026 (replaces 25.11): the tab bar is on show while the list is up and steps away as the list is lowered onto the
+    // map, following the finger; at the lowered stop the map has the whole screen.
+    if (!bodyHeight || barLowTop <= barHalfTop) return { progress: 0, visit };
+    const raw = (position.value - barHalfTop) / (barLowTop - barHalfTop);
+    return { progress: Math.round(Math.min(1, Math.max(0, raw)) * 20) / 20, visit };
   }, (next, previous) => {
     if (!previous || next.progress !== previous.progress || next.visit !== previous.visit) {
       runOnJS(receiveBarProgress)(next.progress);
     }
-  }, [hasBar, focused, cardShown, barVisit, coverageOwner, receiveBarProgress]);
+  }, [hasBar, focused, cardShown, barVisit, coverageOwner, receiveBarProgress, position, bodyHeight, barHalfTop, barLowTop]);
   const [coverage, setCoverage] = useState<{ owner: typeof coverageOwner; covered: boolean } | null>(null);
   const receiveCoverage = useCallback((covered: boolean) => {
     if (!focused || !coverageOwner.active || currentCoverageOwner.current !== coverageOwner) return;
@@ -941,7 +946,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     }, [position, mapShown, bodyHeight, listTop, coverageSequenceValue, receiveCoverage]);
   const mapCovered = coverage?.owner === coverageOwner && coverage.covered;
   // Mapa belongs to the full-list header, beside the result count.
-  const pillShown = expanded && mapShown && mapCovered;
+  // Mapa floats only once the list is being scrolled down (owner, 26.11.2026).
+  const [listScrolled, setListScrolled] = useState(() => (view.listOffset ?? 0) > SCROLLED);
+  const pillShown = expanded && mapShown && mapCovered && listScrolled;
   const pillFade = usePillFade(pillShown, reduced);
   // The first fit of the pins keeps them above where the sheet starts: its top line, or half the map (review r3 item 3).
   const halfSheet = typeof snapPoints[1] === 'number' ? snapPoints[1] : Math.round(windowHeight / 2);
@@ -1138,7 +1145,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     if (!currentList() || at === null) return;
     if (!hasRows && !loading && !error) {
       restore.current = null; restoreTarget.current = null; offset.current = 0;
-      scrolledRef.current = false; writeOffset();
+      scrolledRef.current = false; setListScrolled(false); writeOffset();
       return;
     }
     if (!hasRows || !listReady.current || !listRestoreReady.current || nativeSettledIndex.current !== sheetIndex || !listRef.current
@@ -1152,7 +1159,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       trace('clamp0', at, contentHeight.current, listWindow, latestView.current.listOffset ?? 0);
       // The measured current list fits in its window: there can be no offset event to acknowledge.
       restore.current = null; restoreTarget.current = null; offset.current = 0;
-      scrolledRef.current = false; writeOffset();
+      scrolledRef.current = false; setListScrolled(false); writeOffset();
       return;
     }
     // A provisional scroll may have arrived before the last cell's layout. Once its
@@ -1271,6 +1278,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     if (y > 0 && (tracedScroll.current === null || Math.abs(y - tracedScroll.current) >= 64)) {
       trace('scroll', y, latestView.current.listOffset ?? 0, scrolledRef.current); tracedScroll.current = y;
     }
+    if ((y > SCROLLED) !== scrolledRef.current) setListScrolled(y > SCROLLED);
     scrolledRef.current = y > SCROLLED;
     if (offsetTimer.current) clearTimeout(offsetTimer.current);
     // An accepted user scroll still belongs to this visit if folding the chips changes the viewport before saving.
@@ -1480,16 +1488,6 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={refreshList} style={s.headerIcon}>
       <Glyph name="refresh" size={20} tone="green" />
     </Press> : null}
-    {pillFade.mounted ? <NativeAnimated.View pointerEvents={pillShown ? 'box-none' : 'none'} style={[s.mapPillSlot, { opacity: pillFade.opacity }, !pillShown && s.mapPillSlotHidden]}
-      accessibilityElementsHidden={!pillShown} importantForAccessibility={pillShown ? 'auto' : 'no-hide-descendants'}>
-      <Surface kind="float" style={[s.mapPillSurface, emptyOverMap && s.mapPillQuiet]}>
-        <Press accessibilityRole="button" accessibilityLabel="Mapa" accessibilityHint="Spušta listu i prikazuje mapu." haptic="select" scaleTo={sys.motion.scale.button}
-          onPress={() => { userIntent?.(); setSheetIndex(SNAP.peek); }} style={s.mapPill}>
-          <Glyph name="map" size={20} tone={emptyOverMap ? 'green' : 'onGreen'} on />
-          <T variant="action" style={[s.mapPillText, emptyOverMap && s.mapPillQuietText]}>Mapa</T>
-        </Press>
-      </Surface>
-    </NativeAnimated.View> : null}
     </View>
     {areaOnly ? <Press testID="clear-map-area" accessibilityRole="button" accessibilityLabel="Prikažite sve zadatke"
       haptic="select" hitSlop={0} onPress={showAll} style={s.areaReset}>
@@ -1610,7 +1608,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         </CellLayoutContext.Provider>
         </DiscoveryScrollReadiness>
       </DiscoveryListSheet>
-      <DiscoverySearchBar where={searchedWords} onBack={bar ? undefined : props.onBack}
+      <DiscoverySearchBar where={searchedWords}
+        // With the list lowered there is no tab bar: the arrow leaves the map for the previous screen (owner, 26.11.2026).
+        onBack={bar ? sheetIndex === SNAP.peek && !cardShown ? props.onBack : undefined : props.onBack}
         onClearWhere={searchedWords ? clearSearch : undefined}
         filters={{ count: conditionCount, onPress: () => openPanel('filters') }}
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
@@ -1622,6 +1622,17 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           {props.forMeRefused ? <ForMeNotice message={FOR_ME_REFUSED} entry={WORK_PROFILE_ENTRY} onEntry={props.onWorkProfile}
             onClose={() => props.onDismissForMeRefused?.()} /> : null}
         </>} />
+      {/* Mapa floats at the bottom centre while the list covers the map (owner, 26.11.2026). */}
+      {pillFade.mounted ? <NativeAnimated.View pointerEvents={pillShown ? 'box-none' : 'none'} style={[s.mapPillFloat, { bottom: sys.space.base + barHeight, opacity: pillFade.opacity }]}
+      accessibilityElementsHidden={!pillShown} importantForAccessibility={pillShown ? 'auto' : 'no-hide-descendants'}>
+      <Surface kind="float" style={[s.mapPillSurface, emptyOverMap && s.mapPillQuiet]}>
+        <Press accessibilityRole="button" accessibilityLabel="Mapa" accessibilityHint="Spušta listu i prikazuje mapu." haptic="select" scaleTo={sys.motion.scale.button}
+      onPress={() => { userIntent?.(); setSheetIndex(SNAP.peek); }} style={s.mapPill}>
+        <Glyph name="map" size={20} tone={emptyOverMap ? 'green' : 'onGreen'} on />
+        <T variant="action" style={[s.mapPillText, emptyOverMap && s.mapPillQuietText]}>Mapa</T>
+        </Press>
+      </Surface>
+  </NativeAnimated.View> : null}
       {/* The next page of a long list is on its way. It is said over the list's end and not inside it, so the end the list measures (and the
           place a return restores to) never moves; a quiet line, since a spinner lives only inside a button. */}
       {paging ? <View pointerEvents="none" accessible accessibilityLabel={PAGING_WORDS} accessibilityLiveRegion="polite"
@@ -1686,8 +1697,7 @@ const s = StyleSheet.create({
   sectionFirst: { paddingTop: 0 },
   sectionTitle: { fontWeight: '600', color: sys.color.ink },
   sectionCount: { color: sys.color.muted, fontVariant: ['tabular-nums'] },
-  mapPillSlot: { flexShrink: 0 },
-  mapPillSlotHidden: { position: 'absolute', right: 0 },
+  mapPillFloat: { position: 'absolute', alignSelf: 'center' },
   // The quiet note while the next page is read, above the bottom navigation.
   pagingRow: { position: 'absolute', left: 0, right: 0, bottom: sys.space.base, alignItems: 'center' },
   paging: { paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, borderRadius: sys.radius.pill },

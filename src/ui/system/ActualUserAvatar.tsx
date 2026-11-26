@@ -12,6 +12,7 @@ import { sys } from './tokens';
 
 export const ROOT_AVATAR_SIZE = 48;
 const TARGET = 56;
+let lastIdentity: { scope: string; identity: unknown } | null = null;
 
 /** Own, current-account identity only. Reads never block the header or change its navigation authority. */
 export function ActualUserAvatar({ onPress }: { onPress: () => void }) {
@@ -28,9 +29,16 @@ export function ActualUserAvatar({ onPress }: { onPress: () => void }) {
   // stays in memory; a header that is only drawn again for the same account forgets nothing.
   useEffect(() => () => {
     const now = sesijaSada();
-    if (now.user?.id !== accountId || now.accountRevision !== accountRevision) ownPhotoCache.forget();
+    if (now.user?.id !== accountId || now.accountRevision !== accountRevision) { ownPhotoCache.forget(); lastIdentity = null; }
   }, [accountId, accountRevision]);
-  const identity = !resource.loading && !resource.error && resource.data?.accountId === accountId ? resource.data : null;
+  // A re-read on every return keeps the face already drawn for this account; only a failed read or another account clears it
+  // (owner, 26.11.2026: the photo turned into the letters and back at each tab).
+  const known = resource.data?.accountId === accountId ? resource.data : null;
+  // Every tab draws its own header: the last face read is kept for the whole app, for this account and revision only.
+  const scope = `${accountId ?? ''}:${accountRevision}`;
+  if (known && !resource.loading && !resource.error) lastIdentity = { scope, identity: known };
+  const remembered = lastIdentity?.scope === scope ? lastIdentity.identity as typeof known : null;
+  const identity = resource.error ? null : (!resource.loading ? known : null) ?? remembered;
   const fallback = <Avatar initials={inicijali(identity?.ime)} size={ROOT_AVATAR_SIZE} />;
   return <Press accessibilityRole="button" accessibilityLabel="Moj profil"
     accessibilityValue={identity?.ime ? { text: identity.ime } : undefined} onPress={onPress}
