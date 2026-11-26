@@ -7,7 +7,6 @@ import { applicationRefusalGuidance, boundedApplicationSelectionRead, conclusive
 import { applicationCommandJournal, type ApplicationCommandRecord } from '../../../../data/applicationCommandJournal';
 import type { ReceiptAccount } from '../../../../data/serverReceipt';
 import { applicationComposerDraftMemory } from '../../../../data/applicationComposerDraftMemory';
-import { ApplicationServiceOffer } from '../../../../ui/workerProfile/ApplicationServiceOffer';
 import { fixedApplicationPrice } from '../../../../data/needDetailPresentation';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
@@ -297,10 +296,7 @@ export default function Prijava() {
       // header's arrow, so the way on is not "Nazad na zadatak" a second time.
       : data.opportunity.primaNovePrijave !== true ? { reason: 'Zadatak više ne prima prijave.', actionLabel: 'Pogledajte druge zadatke',
         onAction: () => { if (current() && !session.navigated) { session.navigated = true; router.replace('/zadaci'); } } } : null}
-    afterConfirmation={data.receipt && user?.id ? <ApplicationServiceOffer
-      key={`${user.id}:${accountRevision}:${data.receipt.prijavaId}`}
-      input={{ accountId: user.id, accountRevision, applicationId: data.receipt.prijavaId, needId: data.need.id, profileId: data.profile.id }}
-      openProfile={() => { if (current()) router.push('/profil/radnik'); }} /> : null}
+    // Owner, 26.11.2026: the receipt is the receipt; adding the service to the profile is offered in Moje prijave.
     submit={submit} back={back} refresh={refresh} reset={reset} pendingHelp={pendingHelp}
     openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true;
       router.replace({ pathname: '/moje-prijave', params: { prijavaId: data.receipt.prijavaId, nova: '1' } }); }} />;

@@ -241,13 +241,13 @@ function SentReceipt({ fresh, price, hourly, title, people, time, timeNote, mess
     </View>
     <Surface kind="panel" testID="sent-receipt" style={s.receipt}>
       <KeyValueRow label="Zadatak" value={title} />
-      <KeyValueRow label="Ljudi" value={people} />
+      {/* Owner, 26.11.2026: a receipt says only what is there - one person and an empty message are not rows. */}
+      {people !== osoba(1) ? <KeyValueRow label="Ljudi" value={people} /> : null}
       <KeyValueRow label="Termin" value={time} />
-      {/* The message is exactly what was sent (trimmed as the command sends it) and can be selected and copied, like the one in every other receipt. */}
-      <View style={s.messageRow}>
+      {message ? <View style={s.messageRow}>
         <T variant="meta" tone="muted">Poruka</T>
-        <T selectable variant="body" tone={message ? 'ink' : 'muted'}>{message || 'Bez dodatne poruke.'}</T>
-      </View>
+        <T selectable variant="body">{message}</T>
+      </View> : null}
     </Surface>
     {timeNote ? <T variant="note" tone="muted" style={s.receiptNote}>{timeNote}</T> : null}
     {error ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" variant="body">{error}</T></Surface> : null}
@@ -406,7 +406,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
       </Section> : null}
       <Section title="Termin">
         <View testID="composer-term">
-          <FactRow art="calendar" label="Termin" value={time} size="detail" />
+          <FactRow art="calendar" value={time} size="detail" />
         </View>
       </Section>
       <Section title="Poruka (opciono)">
