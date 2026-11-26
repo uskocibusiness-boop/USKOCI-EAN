@@ -70,7 +70,8 @@ export function useDetailMenu(actions: readonly SheetAction[], { disabled = fals
   useEffect(() => { if (!available) setOpen(false); }, [available]);
   if (!available) return { button: undefined, sheet: null };
   return {
-    button: <ChromeIconButton label="Više radnji" icon={DotsThree} disabled={disabled} onPress={() => setOpen(true)} />,
+    // Quiet like the back arrow beside it: no ring (owner, 26.11.2026).
+    button: <ChromeIconButton label="Više radnji" icon={DotsThree} quiet disabled={disabled} onPress={() => setOpen(true)} />,
     sheet: open ? <ActionSheet label={label} actions={actions} onClose={close} /> : null,
   };
 }

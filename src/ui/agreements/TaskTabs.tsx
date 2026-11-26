@@ -50,7 +50,7 @@ function Tab({ label, short, art, selected, dot, onPress }: {
 }) {
   return <Press accessibilityRole="tab" accessibilityLabel={short !== label ? `${label}, ${short}` : label} accessibilityState={{ selected }}
     onPress={onPress} haptic="select" style={[s.tab, selected && s.tabOn]}>
-    <View style={s.art}><FactArt kind={art} size={30} /></View>
+    <View style={s.art}><FactArt kind={art} size={26} /></View>
     <T variant="meta" numberOfLines={1} maxFontSizeMultiplier={1.3} style={[s.label, selected && s.labelOn]}>{short}</T>
     {dot ? <View style={s.dot} /> : null}
   </Press>;
@@ -59,14 +59,14 @@ function Tab({ label, short, art, selected, dot, onPress }: {
 const s = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: sys.color.surface,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
-  back: { width: 44, height: 64, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 44, height: 58, alignItems: 'center', justifyContent: 'center' },
   tabs: { flex: 1, minWidth: 0 },
-  right: { width: 44, minHeight: 64, alignItems: 'center', justifyContent: 'center' },
+  right: { width: 44, minHeight: 58, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end' },
-  tab: { flex: 1, minHeight: 64, alignItems: 'center', justifyContent: 'center', gap: 2, paddingBottom: sys.space.xs,
+  tab: { flex: 1, minHeight: 58, alignItems: 'center', justifyContent: 'center', gap: 2, paddingBottom: sys.space.xs,
     borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabOn: { borderBottomColor: sys.color.ink },
-  art: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  art: { width: 40, height: 36, alignItems: 'center', justifyContent: 'center' },
   label: { color: sys.color.muted, fontSize: 12, lineHeight: 15 },
   labelOn: { color: sys.color.ink, fontWeight: '700' },
   dot: { position: 'absolute', top: 6, right: 14, width: 9, height: 9, borderRadius: 5, backgroundColor: sys.color.warn },

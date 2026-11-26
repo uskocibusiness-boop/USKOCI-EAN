@@ -59,7 +59,7 @@ export function ActionSheet({ title, label = 'Radnje', actions, onClose, reduced
   const firstDestructive = ordered.findIndex(action => action.destructive);
   // The sheet's own name sits on a container a screen reader skips, so an untitled menu carries it where it is read. A
   // titled one does not repeat it: the visible heading is read right before the menu, and saying it twice is noise.
-  return <ProductSheet title={title} label={label} reduced={reduced} onClose={closed} backdropHint="Zatvara meni bez izbora.">
+  return <ProductSheet title={title} label={label} reduced={reduced} onClose={closed} backdropHint="Zatvara meni bez izbora." placement="bottom">
     {dismiss => <View accessibilityRole="menu" accessibilityLabel={title ? undefined : label} style={s.list}>
       {ordered.map((action, index) => {
         const off = !!action.disabled;

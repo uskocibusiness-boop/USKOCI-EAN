@@ -10,6 +10,8 @@ import { brandAction, sheetLift, sys } from '../system/tokens';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 
 export const SHEET_TOUCH = Math.max(48, sys.touch.min);
+/** How far a bottom menu travels as it rises into place. */
+const RISE = 48;
 // Compatibility exports for the map's independent, gesture-driven panels. Their motion is unchanged.
 export const SHEET_SPRING = sys.motion.sheetSpring;
 export function sheetCloseConfig(reduced: boolean) {
@@ -39,6 +41,8 @@ export type ProductSheetProps = {
   dirty?: boolean;
   dismissible?: boolean;
   closeButton?: boolean;
+  /** `bottom`: a menu that rises from the bottom edge with a grab bar, closed by the backdrop or Back (owner, 26.11.2026). */
+  placement?: 'center' | 'bottom';
 };
 
 /** Centred application dialog. The API name remains compatible with existing callers.
@@ -47,7 +51,9 @@ export type ProductSheetProps = {
  * Keyboard avoidance bounds the whole surface; long content and unusually large actions can scroll independently.
  */
 export function ProductSheet({ title, label, closeLabel = 'Zatvorite', backdropHint = SHEET_BACKDROP_HINT, reduced: callerReduced,
-  onClose, children, contentKey, footer, dirty = false, dismissible = true, closeButton = true }: ProductSheetProps) {
+  onClose, children, contentKey, footer, dirty = false, dismissible = true, closeButton: closeAsked = true, placement = 'center' }: ProductSheetProps) {
+  const bottom = placement === 'bottom';
+  const closeButton = closeAsked && !bottom;
   const systemReduced = useSystemReducedMotion();
   const reduced = callerReduced ?? systemReduced;
   const insets = useContext(InsetsContext ?? fallbackInsets) ?? { top: 0, bottom: 0, left: 0, right: 0 };
@@ -57,11 +63,13 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvorite', backdropH
   const state = useRef({ dirty, dismissible, asking, onClose });
   state.current = { dirty, dismissible, asking, onClose };
   const scale = useSharedValue(reduced ? 1 : sys.motion.dialog.from);
-  const animated = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const rise = useSharedValue(reduced || !bottom ? 0 : RISE);
+  const animated = useAnimatedStyle(() => bottom ? { transform: [{ translateY: rise.value }] } : { transform: [{ scale: scale.value }] });
   useEffect(() => {
-    scale.value = reduced ? 1 : withTiming(1, { duration: sys.motion.dialog.enter, easing: Easing.bezier(...sys.motion.easeOut) });
-    return () => cancelAnimation(scale);
-  }, [reduced, scale]);
+    if (bottom) rise.value = reduced ? 0 : withTiming(0, { duration: sys.motion.dialog.enter + 60, easing: Easing.bezier(...sys.motion.easeOut) });
+    else scale.value = reduced ? 1 : withTiming(1, { duration: sys.motion.dialog.enter, easing: Easing.bezier(...sys.motion.easeOut) });
+    return () => { cancelAnimation(scale); cancelAnimation(rise); };
+  }, [reduced, scale, rise, bottom]);
   useEffect(() => { if (!dirty) setAsking(false); }, [dirty]);
   const resetContent = useCallback(() => {
     // A keyed overview starts at its first fact after native Modal focus too.
@@ -99,10 +107,11 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvorite', backdropH
         accessible={backdropSays !== null} accessibilityRole="button" accessibilityLabel={closeLabel}
         accessibilityHint={backdropSays ?? closeLabel} disabled={!dismissible} />
       <KeyboardAvoidingView testID="product-modal-viewport" pointerEvents="box-none" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={[s.viewport, { paddingTop: insets.top + sys.space.base, paddingBottom: insets.bottom + sys.space.base,
-          paddingLeft: insets.left + sys.space.base, paddingRight: insets.right + sys.space.base }]}>
+        style={[s.viewport, bottom ? s.viewportBottom : { paddingTop: insets.top + sys.space.base, paddingBottom: insets.bottom + sys.space.base,
+          paddingLeft: insets.left + sys.space.base, paddingRight: insets.right + sys.space.base }, bottom && { paddingTop: insets.top + sys.space.base }]}>
         <Animated.View testID="product-modal-card" accessibilityViewIsModal accessibilityLabel={title ?? label}
-          style={[s.card, animated]}>
+          style={[s.card, bottom && [s.cardBottom, { paddingBottom: insets.bottom + sys.space.sm }], animated]}>
+          {bottom ? <View style={s.grabRow}><View style={s.grab} /></View> : null}
           {title || closeButton ? <View testID="product-sheet-heading" style={s.heading}>
             {title ? <T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
               : <View style={s.closeSpacer} />}
@@ -130,6 +139,10 @@ const s = StyleSheet.create({
   viewport: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   card: { width: '100%', maxWidth: 520, maxHeight: '100%', flexShrink: 1, borderRadius: sys.radius.sheet,
     backgroundColor: sys.color.surface, overflow: 'hidden', ...sheetLift.detached },
+  viewportBottom: { justifyContent: 'flex-end' },
+  cardBottom: { maxWidth: undefined, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  grabRow: { alignItems: 'center', paddingTop: sys.space.sm, paddingBottom: sys.space.xs },
+  grab: { width: 40, height: 5, borderRadius: 3, backgroundColor: sys.color.lineStrong },
   heading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, padding: sys.space.base, paddingBottom: sys.space.sm },
   title: { flex: 1, minWidth: 0, color: sys.color.ink },
   closeSpacer: { flex: 1 },
