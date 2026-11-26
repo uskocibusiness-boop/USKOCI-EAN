@@ -6823,3 +6823,42 @@ Ovi ciljevi su istorijski predlozi iz povucenog UX materijala, a ne samostalno o
 **Otvoreno:**
 - Provera `e54189fd` uživo: mehurići, Poruke, prazan razgovor, Početna.
 - Kartica „Moj profil“: može se dodatno pročistiti, ako vlasnik želi.
+
+#### 12.6.27. Manje koraka i teksta: prijava, obaveštenja, poruke, objava (26.11.2026)
+
+**Odluke vlasnika:**
+- Prijava je u jednom koraku.
+- Alat i vozilo se ne nude pri objavi.
+- Termin se prikazuje onako kako je rečen (samo datum, od–do, samo „do“, samo „od“, fleksibilno), bez izmišljenog „ceo dan“.
+- Što manje teksta i koraka.
+
+**Izvor:**
+- `e61b3e02`: Poruke kao lista bez okvira; kartica prijave počinje naslovom, a izabrana se otvara cela; tabovi se pretapaju.
+- `f37a8cad`, `79a414c9`: učitavanje je samo oblik sadržaja; mapa bez teksta; Poruke sa senkom liste.
+- `28e90bf7`: prijava u jednom koraku (5 testova starog pregleda zamenjeno sa 2).
+- `09e47680`: obaveštenja kao lista, bez reda „Otvorite …“.
+- `ca8269c4`: činjenice osobe se samo čitaju.
+- `11521513`: potvrda prijave bez praznih redova i bez ponude usluge.
+- `e3063e04`: nacrt bez „Objavio (Vi)“.
+- `b5200018`: pregled pred objavu bez „Bez posebnog roka“ i duplog mesta.
+- `ee493674`: bez alata i vozila u „Dodajte još podataka“.
+- `6ac19a12`:
+  - dan bez sata se čita kao dan;
+  - kratka adresa na karti mesta;
+  - „Potvrdite“ umesto „Potvrdi“;
+  - bez reda „Prepoznata usluga“;
+  - novi test `schedule-named-day`.
+
+**Emulator:**
+- Prijava u jednom koraku je poslata na `62201cf1`.
+- Obaveštenja kao lista.
+- Probni AI razgovor: krečenje sobe na Limanu → potvrda mesta → pitanje o roku → pregled → objava.
+- Objavljen zadatak se otvara sa trakom Pregled · Dogovoreni · Prijave.
+
+**Lokalno:** 1869/1869, `tsc` PASS.
+
+**Otvoreno:**
+- Prvi dodir na „Objavi zadatak“ sačuvao je nacrt (stanje ACCEPTED), pa je trebalo „Objavite ovaj nacrt“. Ispitati tok `publish`/`resume` u `pregled-zadatka.tsx`.
+- AI pita za rok prijava; predlog vlasniku je da ne pita.
+- Karta mesta ne skroluje sama do dugmadi.
+- Početna pri učitavanju kratko prikaže redove „Moji zadaci / Moje prijave / Učitavamo radni profil…“.
