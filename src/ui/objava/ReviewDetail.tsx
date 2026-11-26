@@ -100,8 +100,12 @@ export function ReviewDetail({ need, parts, photos, map, address, more, person, 
       {showPeople ? <PartRow part={parts.people}><FactRow size="detail" art="users" value={people.text} /></PartRow> : null}
       <PartRow part={parts.time}><FactRow size="detail" art="calendar" value={time} /></PartRow>
     </View>
-    <PartSection title="Prijave" part={parts.deadline}><T variant="body">{deadlineWords(need.rokZaPrijaveIso ?? null, deadlineDecision)}</T></PartSection>
-    <PartRow part={parts.place}><FactRow size="detail" art={place.remote ? 'remote' : 'pin'} value={place.text} /></PartRow>
+    {/* Owner, 26.11.2026: no deadline says nothing ("Bez posebnog roka"), and a place already on the map is not a row of its own;
+        either still shows when it carries a note or its editor. */}
+    {need.rokZaPrijaveIso || deadlineDecision === 'UNSPECIFIED' || parts.deadline.note || parts.deadline.editor
+      ? <PartSection title="Prijave" part={parts.deadline}><T variant="body">{deadlineWords(need.rokZaPrijaveIso ?? null, deadlineDecision)}</T></PartSection> : null}
+    {remote || !(map || stops.length) || parts.place.note || parts.place.editor
+      ? <PartRow part={parts.place}><FactRow size="detail" art={place.remote ? 'remote' : 'pin'} value={place.text} /></PartRow> : null}
     {!remote && (map || stops.length) ? <PartSection title="Približno mesto" part={parts.map}>
       <View style={s.stack}>{map}{stops.length ? <DetailRoute rows={stops} /> : null}</View>
     </PartSection> : null}
