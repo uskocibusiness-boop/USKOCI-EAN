@@ -130,7 +130,6 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
   </Surface> : null;
   const listHeader = <View style={s.heading}>
     {!titleInHeader ? <T variant="pageTitle" accessibilityRole="header">Poruke</T> : null}
-    <T variant="note" tone="muted">Razgovori o Vašim zadacima</T>
     {notice}
   </View>;
 
@@ -194,7 +193,8 @@ const ConversationRow = memo(function ConversationRow({ item, moment, closed, op
   const label = spokenFacts([item.task.title, context, closed ? `${item.kind === 'GROUP' ? 'Razgovor je završen' : 'Dogovor je zatvoren'}. Samo za čitanje` : null, preview, time,
     unread === null ? null : neprocitanih(unread), status]);
   // Keep the counterpart visible even when the row is about the task; only authoritative closure earns Istorija.
-  const about = opening ? 'Otvaramo razgovor…' : status ?? `${closed ? 'Samo za čitanje · ' : ''}${context}`;
+  // Owner, 26.11.2026: under the last message only who it is with; "Samo za čitanje" stays for the screen reader.
+  const about = opening ? 'Otvaramo razgovor…' : status ?? context;
   const aboutLine = stacked && stamp && !opening && !status ? `${stamp} · ${about}` : about;
   const off = unavailable || opening;
   // The face is the one thing of the row's slot: a photo, the person's letters, or the picture of a group. Decoration only: the row speaks.

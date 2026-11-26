@@ -73,7 +73,6 @@ export function ReceivedRatings({ view, comments }: { view: ReceivedView; commen
               <FactArt kind="star" size={24} />
               <T variant="heading" style={s.ink}>{view.label}</T>
             </View>
-            <T variant="note" tone="muted">Prosek svih ocena na tvom nalogu.</T>
           </View>}
     {comments}
   </View>;

@@ -57,8 +57,9 @@ type Props = {
 };
 // The existing server sets stay separate: ACTIVE is a sent application waiting for a decision;
 // ATTENTION includes a changed application or a selected one leading to its Dogovor.
-const TABS: readonly { key: ApplicationsTab; label: string }[] = [{ key: 'active', label: 'Čekaju odgovor' }, { key: 'attention', label: 'Čeka Vas' },
-  { key: 'finished', label: 'Istorija' }, { key: 'all', label: 'Sve' }];
+// Owner, 26.11.2026: the list opens on everything, so it never greets with an empty filter while something waits.
+const TABS: readonly { key: ApplicationsTab; label: string }[] = [{ key: 'all', label: 'Sve' }, { key: 'attention', label: 'Čeka Vas' },
+  { key: 'active', label: 'Čekaju odgovor' }, { key: 'finished', label: 'Istorija' }];
 /**
  * The three groups of the list (the approved draft U8): what waits for the other side, what was chosen, what is over. An application whose task
  * changed is still waiting: its card asks for the decision, and it stands first in its group.

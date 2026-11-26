@@ -101,7 +101,7 @@ export default function MojePrijave() {
   const [landingActive, setLandingActive] = useState(false);
   const { user, accountRevision } = useSesija();
   const session = useMemo(() => ({ focused: false, active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
-    token: 0, readRevision: 0, reading: false, editRevision: 0, editingLoading: false, tab: (named ? 'all' : 'active') as ApplicationsTab, hardReload: false,
+    token: 0, readRevision: 0, reading: false, editRevision: 0, editingLoading: false, tab: 'all' as ApplicationsTab, hardReload: false,
     expanded: null as string | null, draft: null as OfferEdit | null, original: null as OfferEdit | null,
     draftFor: null as string | null, pending: null as Pending | null, message: null as string | null }),
   [izvor, user?.id, accountRevision]);

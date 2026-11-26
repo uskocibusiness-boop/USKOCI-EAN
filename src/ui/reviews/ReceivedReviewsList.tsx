@@ -72,7 +72,7 @@ export function ReceivedReviewsList({ view, photo }: { view: ReceivedReviewsView
 function ReceivedItem({ item, photo, last }: { item: ReceivedReview; photo?: ReceivedReviewPhoto; last: boolean }) {
   const { reviewer } = item;
   const name = reviewer.displayName, day = trenutak(item.createdAt)?.dan ?? null, tags = reviewTagsLine(item.tags);
-  const role = item.receivedAs === 'WORKER' ? 'kad uskačeš' : 'kad tražiš pomoć';
+  const role = item.receivedAs === 'WORKER' ? 'kad uskačete' : 'kad tražite pomoć';
   // No name, no letters: the Avatar draws a person, and the line says the name is not there instead of inventing one.
   const stand = <Avatar initials={inicijali(name)} size={layout.slot} />;
   const face = !reviewer.masked && reviewer.avatarPath !== null && reviewer.profileId && photo ? photo(reviewer.profileId, layout.slot, stand) : stand;

@@ -30,7 +30,7 @@ const SCHEDULE_LABELS: Record<string, string> = { FIXED_WINDOW: 'Tačan termin',
   TODAY_FLEXIBLE: 'Danas', TOMORROW_FLEXIBLE: 'Sutra', WEEK_FLEXIBLE: 'Ove nedelje' };
 
 /** What an amount row reads under "Ponude": the task carries no amount, so none is shown, not even a stale one. */
-export const AMOUNT_WITH_OFFERS = 'Bez iznosa: tražiš ponude';
+export const AMOUNT_WITH_OFFERS = 'Bez iznosa: tražite ponude';
 /** An amount "Moja cena" still needs, said in words where the number would stand; never "0 RSD". */
 export const AMOUNT_NOT_ENTERED = 'Iznos još nije unet';
 /**

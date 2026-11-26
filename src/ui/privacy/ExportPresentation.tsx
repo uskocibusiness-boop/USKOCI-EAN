@@ -83,7 +83,7 @@ const spoken: Record<StepState, string> = { done: 'završeno', current: 'na redu
 /** The three steps of a phase, in the owner's words. */
 export function exportSteps(phase: ExportPhase, status: DataExportStatus | null | undefined): Step[] {
   const request = status?.request, artifact = status?.fulfillment;
-  const requested: Step = { label: 'Zahtev', state: 'done', copy: 'Zahtev je zabeležen na tvom nalogu.',
+  const requested: Step = { label: 'Zahtev', state: 'done', copy: 'Zahtev je zabeležen na Vašem nalogu.',
     meta: request ? [vreme(request.requestedAt)].filter(Boolean) : undefined };
   const waiting: Step = { label: 'Preuzimanje', state: 'pending', copy: 'Dostupno kada kopija bude spremna.' };
   const prepared: Step = { label: 'Priprema kopije', state: 'done', copy: 'Obrada je završena.' };

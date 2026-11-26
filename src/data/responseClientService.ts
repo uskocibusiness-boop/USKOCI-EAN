@@ -4,7 +4,7 @@ import { failure, readReceipt, uuid } from './serverReceipt';
 type ResponseClientService = Pick<Izvor, 'oznaciPrijavuVidjenom'>;
 const errors = {
   AUTH_REQUIRED: 'Prijavite se da otvoriš prijavu.',
-  NOT_REQUESTER: 'Ova prijava ne pripada tvom zadatku.',
+  NOT_REQUESTER: 'Ova prijava ne pripada Vašem zadatku.',
   RESPONSE_NOT_FOUND: 'Prijava više nije dostupna.',
   RESPONSE_NOT_SUBMITTED: 'Ova prijava još nije poslata.',
   ACCOUNT_CLOSURE_RESTRICTED: 'Promene nisu dostupne dok traje zatvaranje naloga.',

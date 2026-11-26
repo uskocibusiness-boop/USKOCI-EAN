@@ -356,7 +356,7 @@ const CHOICES: readonly NotificationChoice[] = ['tasks', 'talk', 'other'];
 const CHOICE_LABEL: Record<NotificationChoice, string> = { tasks: 'Novi zadaci', talk: 'Prijave i poruke', other: 'Ostalo' };
 /** The two sets by what the person is doing in them, as the approved blueprint names them (P4), and as a screen reader hears them after a label. */
 const SECTION: Record<NotificationRole, string> = { REQUESTER: 'Kad objavljuješ', WORKER: 'Kad uskačeš' };
-const SPOKEN: Record<NotificationRole, string> = { REQUESTER: 'kad objavljuješ', WORKER: 'kad uskačeš' };
+const SPOKEN: Record<NotificationRole, string> = { REQUESTER: 'kad objavljujete', WORKER: 'kad uskačete' };
 /** The categories one by one, under "Napredno", for each set. "Novi zadaci" is the one category of its choice and is not drawn twice. */
 const CATEGORIES: readonly { key: keyof NotificationSettings; label: string }[] = [
  { key: 'responses_enabled', label: 'Prijave i odgovori' }, { key: 'dogovor_enabled', label: 'Dogovor i poruke' },
