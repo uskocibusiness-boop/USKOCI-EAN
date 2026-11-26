@@ -640,7 +640,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       locate={!!props.locateShown} onPress={() => { if (owns()) setSourcesOpen(true); }} />
     {sourcesOpen ? <MapSources reduced={reduced} onClose={() => setSourcesOpen(false)} /> : null}
     {status !== 'ready' ? <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24, paddingBottom: (props.focusBottom ?? 0) + 24 }]}>
-      {status === 'loading' ? <><ActivityIndicator color={sys.color.green} /><T variant="body">Učitavamo mapu…</T></>
+      {status === 'loading' ? <><ActivityIndicator color={sys.color.green} /></>
         : <><T variant="title" accessibilityRole="alert">Mapa nije učitana</T><T variant="body">Proverite vezu. Zadaci i filteri ostaju u listi.</T>
           <V2Action label="Pokušajte ponovo sa mapom" onPress={() => { if (owns()) props.onRetry(); }} />
           {/* A screen whose list is a sheet over the map already offers the list on the sheet's own top line. */}
@@ -671,7 +671,7 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
   const active = !!owner?.active && owner.key === props.scopeKey && current.current === owner;
   if (!owner || owner.key !== props.scopeKey || (!active && !retained.current))
     return <View style={s.feedback}><T>Mapa je dostupna dok je ovaj pregled otvoren.</T></View>;
-  if (!mapStyle) return <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24 }]}><ActivityIndicator color={sys.color.green} /><T variant="body">Učitavamo mapu…</T></View>;
+  if (!mapStyle) return <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24 }]}><ActivityIndicator color={sys.color.green} /></View>;
   const owns = () => current.current === owner && owner.active && latestKey.current === owner.key;
   const surfaceId = surface.current;
   return <MapSession key={`${surfaceId}:${attempt}`} {...props} mapStyle={mapStyle} owns={owns}

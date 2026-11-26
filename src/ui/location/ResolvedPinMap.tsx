@@ -263,7 +263,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         </Marker> : null}
       </Map> : null}
       {status !== 'ready' ? <View style={styles.feedback}>
-        {status === 'loading' ? <><ActivityIndicator color={sys.color.green} accessibilityLabel="Učitavanje mape" /><T>Učitavamo mapu…</T></>
+        {status === 'loading' ? <><ActivityIndicator color={sys.color.green} accessibilityLabel="Učitavanje mape" /></>
           : <><T accessibilityRole="alert" variant="bodyStrong">Mapa nije učitana.</T><T variant="meta" tone="muted">Proverite vezu. Uneti podaci ostaju u obrascu.</T>
             <Button label="Pokušajte ponovo sa mapom" kind="secondary" onPress={() => { if (owns()) props.retry(); }} /></>}
       </View> : null}

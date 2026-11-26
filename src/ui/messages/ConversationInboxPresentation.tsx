@@ -140,13 +140,8 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
     ? error && !reading
       ? <StateView kind="error" title="Razgovori nisu učitani" body="Pokušajte ponovo da učitate razgovore."
           primary={{ label: 'Pokušajte ponovo', onPress: onRefresh, disabled: readDisabled }} />
-      // A calm, explicit read state; no pulsing grey conversation placeholders.
-      : <View accessibilityLiveRegion="polite" style={s.loading}>
-        <View style={[s.conversationCard, s.loadingCard]}>
-          <ActivityIndicator size="small" color={sys.color.green} accessibilityElementsHidden />
-          <T variant="bodyStrong">Učitavamo razgovore…</T>
-        </View>
-      </View>
+      // Owner, 26.11.2026: the shape of the list that is coming, the same placeholders as every other list of the app.
+      : <StateView kind="loading" title="Učitavamo razgovore…" skeleton={{ count: 4, rows: 2, face: true }} />
     : error ? null
       // Nobody has talked yet: clean empty state with direct action to Agreements
       : <StateView kind="empty" hero compact={false} art="chat" illustration={ILLUSTRATION_ASSETS.emptyMessages} title={emptyTitle} body={emptyBody}

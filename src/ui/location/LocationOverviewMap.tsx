@@ -121,7 +121,7 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
         })}
       </Map> : null}
       {status !== 'ready' ? <View style={s.feedback}>
-        {status === 'loading' ? <><ActivityIndicator color={sys.color.green} accessibilityLabel="Učitavanje mape" /><T variant="meta">Učitavamo mapu…</T></>
+        {status === 'loading' ? <><ActivityIndicator color={sys.color.green} accessibilityLabel="Učitavanje mape" /></>
           : <><T accessibilityRole="alert" variant="bodyStrong">Mapa nije učitana.</T>
             <V2Action label="Pokušajte ponovo sa mapom" kind="secondary" onPress={() => { if (current()) retry(); }} /></>}
       </View> : null}
