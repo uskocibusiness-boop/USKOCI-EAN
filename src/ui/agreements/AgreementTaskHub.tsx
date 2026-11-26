@@ -190,7 +190,7 @@ export function AgreementTaskHub({ needId, role, title, fallbackAgreementId, ini
   const summary = useMemo(() => items?.length ? agreementTaskSummary({ key: needId, items }) : null, [items, needId]);
   const now = new Date();
   const anchor = items?.find(isOpenAgreement) ?? items?.find(isLiveAgreement) ?? items?.[0] ?? null;
-  const openAgreement = (id: string, tab?: 'poruke') => go(() => router.navigate({ pathname: '/dogovor/[id]', params: tab ? { id, tab } : { id, pregled: '1' } }));
+  const openAgreement = (id: string, tab?: 'poruke') => go(() => router.navigate({ pathname: '/dogovor/[id]', params: { id, tab: tab ?? 'poruke' } }));
   const back = () => go(() => (router.canGoBack() ? router.back() : router.navigate('/dogovori')));
   const people = summary ? (owner ? summary.people : summary.owner ? [summary.owner] : []) : [];
   const live = people.filter(p => isLiveAgreement(p.agreement)), earlier = people.filter(p => !isLiveAgreement(p.agreement));

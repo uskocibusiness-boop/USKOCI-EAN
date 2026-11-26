@@ -140,24 +140,21 @@ test('mounted Dogovor keeps one channel across SUBSCRIBED refresh instead of loa
     }
     assert.equal(h.channels.length, 1, 'read state must not recreate its own incoming owner');
     assert.equal(h.live().length, 1); assert.equal(h.reads.length, 2, 'initial workspace + one join read');
-    assert.equal(h.props('WorkspaceFooter').statusText, null);
-    assert.equal(h.props('AgreementOverview').enabled, true);
+    // Owner, 25.11.2026: the per-person overview is gone; the page hands over to the task screen of its Dogovor.
+    assert.equal(h.props('AgreementOverview'), undefined);
     assert.deepEqual(h.mutations, []); assert.deepEqual(h.acknowledgements, []);
   } finally { await h.stop(); }
 });
 
 test('pending workspace read keeps its channel but still fences menu actions; settlement enables them', async () => {
-  const h = await harness();
+  const h = await harness({ tab: 'poruke' });
   try {
     h.state.hold = deferred(); await h.join();
     assert.equal(h.channels.length, 1); assert.equal(h.live().length, 1);
-    assert.equal(h.props('WorkspaceFooter').statusText, 'Osvežavamo…');
-    assert.equal(h.props('AgreementOverview').enabled, false);
-    const opener = nodes(h.tree, node => node.type === 'ChromeIconButton' && node.props.label === 'Opcije Dogovora')[0];
-    await RTR.act(async () => opener.props.onPress());
+    // The conversation's own "···" carries the Dogovor's menu now that the overview is gone (owner, 25.11.2026).
+    await RTR.act(async () => h.props('AgreementThreadPresentation').onMore());
     assert.ok(h.props('ActionSheet').actions.every(action => action.disabled));
     await RTR.act(async () => { h.state.hold.resolve(); await tick(); });
-    assert.equal(h.props('WorkspaceFooter').statusText, null);
     assert.ok(h.props('ActionSheet').actions.every(action => !action.disabled));
     assert.equal(h.channels.length, 1);
   } finally { await h.stop(); }
@@ -187,7 +184,7 @@ test('completed read-only chat still refreshes its workspace but cannot refresh 
 });
 
 test('blur, background and a renewed session retire old callbacks and restore only one scoped channel', async () => {
-  const h = await harness();
+  const h = await harness({ tab: 'poruke' });
   try {
     let old = h.live()[0], before = h.reads.length;
     await h.focus(false); await h.join(old); assert.equal(h.live().length, 0); assert.equal(h.reads.length, before);
@@ -197,7 +194,7 @@ test('blur, background and a renewed session retire old callbacks and restore on
     await h.activity('active'); assert.equal(h.live().length, 1);
     old = h.live()[0]; await h.account(ACCOUNT, true); before = h.reads.length;
     await h.join(old); assert.equal(h.reads.length, before); assert.equal(h.live().length, 1);
-    await h.join(); assert.equal(h.props('AgreementOverview').enabled, true);
+    await h.join(); assert.equal(h.props('AgreementThreadPresentation').chat.writable, true);
   } finally { await h.stop(); }
 });
 

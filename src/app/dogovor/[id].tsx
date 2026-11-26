@@ -11,17 +11,14 @@ import { ActionSheet } from '../../ui/system/ActionSheet';
 import { useReducedMotion } from '../../ui/system/motion';
 import { PorukaHost } from '../../ui/system/Poruka';
 import { V2Action } from '../../ui/v2/V2Action';
-import { AgreementPersonBar, isNoTermText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
-import { WorkspaceFooter, agreementNextStep, agreementQuietLine, agreementStepsInfo, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
+import { isNoTermText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
+import { agreementNextStep, agreementQuietLine, agreementStepsInfo, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
-import { AgreementOverview } from '../../ui/agreements/AgreementOverview';
 import { ADDRESS_REQUEST_TEXT } from '../../ui/agreements/agreementContactModel';
 import { AgreementProblemExits, AgreementStatusView, AgreementProblemForm, AgreementProblemNote, AgreementProblemUnknown, overviewContent, type OwnerCapacitySummary } from '../../ui/agreements/AgreementOverviewParts';
-import { cancellationDetailsOf } from '../../ui/agreements/agreementListModel';
 import { agreementMenuActions } from '../../ui/agreements/agreementMenu';
 import type { OwnRating } from '../../ui/agreements/agreementStepsModel';
 import { ProductHeader } from '../../ui/product/ProductDetails';
-import { ChromeIconButton } from '../../ui/system/ScreenChrome';
 import type { NeedSearchState } from '../../contracts/needSearchRecovery';
 import { needSearchRecoveryClientService } from '../../data/needSearchRecoveryClientService';
 import { useIzvor } from '../../store/uloga';
@@ -34,7 +31,6 @@ import type { AgreementReadingPosition } from '../../ui/AgreementChat';
 import { agreementMessageHistoryService } from '../../data/agreementMessageHistoryService';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { AgreementThreadPresentation } from '../../ui/v2/AgreementThreadPresentation';
-import { GroupConversationEntry } from '../../ui/groups/GroupConversationEntry';
 import { useGroupContext } from '../../ui/groups/useGroupContext';
 import { ConversationChannels, privateConversationChoices } from '../../ui/groups/ConversationChannels';
 import { needScheduleText } from '../../data/needDetailPresentation';
@@ -361,12 +357,13 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   // anywhere else (a notification, Home, the schedule, ratings), the overview hands over to that screen once it knows the task.
   const handedOver = useRef(false);
   useEffect(() => {
-    if (handedOver.current || keepPage || requestedCompletion || requestedProblem || requestedTab !== 'pregled' || !dogovor) return;
+    if (handedOver.current || requestedCompletion || requestedProblem || tab !== 'pregled' || !dogovor) return;
     const needId = dogovor.izvor?.zadatakId, me = dogovor.ucesnici.find(party => party.viSte && party.id === accountId);
-    if (!needId || !me) return;
+    // Without its task (an old Dogovor) the conversation is what is left to open.
+    if (!needId || !me) { setTab('poruke'); return; }
     handedOver.current = true;
     router.replace({ pathname: '/dogovor/zadatak', params: { needId, role: me.uloga === 'uskocer' ? 'uskocer' : 'narucilac', title: dogovor.naslov, id } });
-  }, [dogovor, keepPage, requestedCompletion, requestedProblem, requestedTab, accountId, id]);
+  }, [dogovor, requestedCompletion, requestedProblem, tab, accountId, id, setTab]);
   // The server signals only new messages live, not the other side moving the Dogovor on (accepting a change, reporting or
   // confirming the end). While this screen is in front on a Dogovor that is still running, it reads again quietly every 20 s,
   // never while the completion review is open or a command is running (owner walk-through, 25.11.2026).
@@ -644,72 +641,13 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
           onLoadOlder: loadOlderMessages, onLoadNewer: loadNewerMessages, onShowLatest: showLatestMessages, onDisplayedMessageIds,
           outbox, state: outboxState, photos,
           voiceScope: { accountId, accountRevision, agreementId: id, version: dogovor.verzija, isCurrent: chatCurrent },
-          support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
-        {other ? <AgreementPersonBar person={other} back={backToAgreements}
-          right={<View style={s.headerActions}>
-            <ChromeIconButton glyph="messages" label="Poruke" onPress={() => setTab('poruke')} />
-            {menuActions.length ? <ChromeIconButton glyph="more" label="Opcije Dogovora" onPress={() => { if (ownsAccount()) setMenuOpen(true); }} /> : null}
-          </View>} />
-          : <ProductHeader back={backToAgreements} title="Dogovor"
-            right={<View style={s.headerActions}>
-              <ChromeIconButton glyph="messages" label="Poruke" onPress={() => setTab('poruke')} />
-              {menuActions.length ? <ChromeIconButton glyph="more" label="Opcije Dogovora" onPress={() => { if (ownsAccount()) setMenuOpen(true); }} /> : null}
-            </View>} />}
-        <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" contentContainerStyle={overviewContent}>
-          <AgreementOverview agreement={dogovor} step={nextStep} info={stepsInfo} party={!!me} enabled={enabled} concealed={resumeRequired}
-            ownerCapacity={ownerCapacity}
-            steps={{ state: dogovor.stanje, ownRating: dogovor.ownRating, cancellation: cancelled ? cancellationDetailsOf(cancellation, other?.ime) : null }}
-            headExtra={<>
-              {active && me && !radnje ? <View style={s.stack}>
-                <T variant="note" tone="muted">Ne možemo da proverimo da li možete da završite zadatak. Osvežite Dogovor.</T>
-                <V2Action label="Osvežite Dogovor" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} />
-              </View> : null}
-              {changeWaits ? <View style={s.stack}>
-                {pendingChange?.izmene.map(change => <View key={change.polje} style={s.change}>
-                  <T variant="note" tone="muted">{change.polje}</T>
-                  <T variant="body" style={s.ink}>{change.sada}</T>
-                  <T variant="bodyStrong" style={s.ink}>{`→ ${change.predlog}`}</T>
-                </View>)}
-                {pendingChange?.razlog ? <T variant="note" tone="muted">Razlog: {pendingChange.razlog}</T> : null}
-                <V2Action label={pendingChange?.mozeOdgovoriti ? 'Pregledajte i odgovorite na predlog' : 'Pogledajte predlog'}
-                  kind={pendingChange?.mozeOdgovoriti ? 'secondary' : 'quiet'} compact disabled={!enabled} onPress={openChanges} />
-              </View> : null}
-            </>}
-            problem={{ note: problemNote, exits: problemExits, form: problemForm }}
-            groupReady={!!groupModel.context?.group} privatePartyName={other?.ime}
-            group={me && enabled && (groupModel.context?.group || groupModel.error || !groupModel.context && dogovor.pokrivenost.ukupno !== 1)
-              ? <GroupConversationEntry agreementId={id} model={groupModel} onPrivate={openPrivateConversation} /> : null}
-            on={{
-              // The requester has no screen that opens one Prijava by its id, so no "Tvoja prijava" row is drawn for them; once the worker says
-              // done, the requester confirms or reports a problem (owner decision 2026-09-21), so nothing is left to change for them; a finished
-              // or cancelled Dogovor has nothing left to change or cancel (emulator sweep, 2026-09-23).
-              proposeTerm: needsTerm ? () => toChanges('propose') : undefined,
-              openMessages, requestAddress,
-              openTask,
-              openApplication: worker && dogovor.izvor?.prijavaId ? () => {
-                const prijavaId = dogovor.izvor?.prijavaId; if (!prijavaId || !formCurrent()) return;
-                router.push({ pathname: '/moje-prijave', params: { prijavaId } });
-              } : undefined,
-              // The rows of the actions (J15) open the form they name, as the conversation's menu does; the hub is for answering a proposal.
-              openChange: canChange ? () => toChanges('propose') : undefined,
-              openCancel: canChange ? () => toChanges('cancel') : undefined,
-              openProblem: active && me && !problemNote && !problemOpen ? openProblemForm : undefined,
-              openSafety: me && other ? () => { if (formCurrent()) router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); } : undefined,
-              placeLayout: event => { anchors.current.place = event.nativeEvent.layout.y; flushAnchor('place'); },
-              problemLayout: event => { anchors.current.problem = event.nativeEvent.layout.y; flushAnchor('problem'); },
-            }} />
-        </ScrollView>
-        <WorkspaceFooter brand={brand} quiet={quiet} loading={canComplete && workspace.busy && completing} statusText={footerStatus}
-          onLayout={event => setFooterHeight(Math.round(event.nativeEvent.layout.height))}
-          notice={workspace.error || workspace.uncertain ? {
-            message: workspace.error ?? 'Proveravamo da li je prethodna radnja uspela.',
-            refresh: () => void osvezi(), refreshing: workspace.busy || workspace.loading,
-          } : null} />
-      </>}
+          support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <View style={s.flowWait}>
+        {/* The old per-person overview is gone (owner, 25.11.2026): the Dogovor lives on its task's screen, and this page hands over to it. */}
+        <ActivityIndicator color={sys.color.green} /><T variant="note" tone="muted">Otvaramo zadatak…</T>
+      </View>}
     </KeyboardAvoidingView>
     {/* This screen covers the navigator that hosts the outcome bar, so it carries its own host, above its footer. Only the
         overview: the conversation has a composer in that place. */}
-    {tab === 'pregled' ? <PorukaHost clearance={brand || quiet || footerStatus || workspace.error || workspace.uncertain ? footerHeight : 0} /> : null}
     {menuOpen && menuActions.length ? <ActionSheet label="Radnje Dogovora" actions={menuActions} onClose={() => setMenuOpen(false)} /> : null}
   </SafeAreaView>;
 }
