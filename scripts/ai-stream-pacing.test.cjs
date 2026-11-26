@@ -40,13 +40,13 @@ for (const withoutSegmenter of [false, true]) {
       shown = step.text; carry = step.carry;
       assert.ok(time < 5000);
     }
-    // ~32 ms per word for a short reply, bounded by the 600 ms catch-up rule.
+    // ~32 ms per word for a short reply, bounded by the catch-up window.
     assert.ok(time >= Math.min(m.REVEAL_PACE.maxLagMs, (words - 1) * 25) - 32, `too fast: ${time} ms for ${words} words`);
     assert.ok(time <= m.REVEAL_PACE.maxLagMs + 32, `lags: ${time} ms`);
     assert.deepEqual(m.advanceReveal(REPLY, REPLY, 16, 0), { text: REPLY, carry: 0 });
   });
 
-  test(`a far-behind reveal speeds up to stay within ~600 ms (${label})`, () => {
+  test(`a far-behind reveal speeds up to stay within the catch-up window (${label})`, () => {
     const long = Array.from({ length: 120 }, (_, i) => `reč${i}`).join(' ') + '.';
     let shown = m.resolveReveal(long, '', { reduced: false, committed: false }), carry = 0, time = 0;
     const maxWaiting = Math.floor(m.REVEAL_PACE.maxLagMs / m.REVEAL_PACE.wordMs);

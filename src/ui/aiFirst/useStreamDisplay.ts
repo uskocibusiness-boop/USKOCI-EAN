@@ -118,10 +118,10 @@ export function revealBoundaries(text: string): number[] {
 }
 
 /**
- * About one word every 32 ms. What still waits never needs more than ~600 ms at that pace: when more arrived at once,
+ * About one word every 32 ms. A reply that arrives whole is written out evenly over up to ~1.2 s, not dropped as a block (owner, 26.11.2026). What still waits never needs more than that: when more arrived at once,
  * the excess is caught up within a few frames (about a quarter of it per frame), so a burst reads as fast streaming, not as a block or a lag.
  */
-export const REVEAL_PACE = { wordMs: 32, maxLagMs: 600, frameMs: 16, catchUpFrames: 4 } as const;
+export const REVEAL_PACE = { wordMs: 32, maxLagMs: 1200, frameMs: 16, catchUpFrames: 4 } as const;
 
 /**
  * What a render may show for `target`, given what was shown before (`previous`).
