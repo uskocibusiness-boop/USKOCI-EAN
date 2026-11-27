@@ -27,6 +27,8 @@ import { distanceOf, useDistanceFrom } from './taskDistance';
  * and interaction; decorative content must not add duplicate accessibility stops. */
 export type TaskRecordModel = {
   title: string;
+  /** The publisher's name is still on its way: the foot keeps its height with a quiet shape (owner, 27.11.2026: no jump). */
+  personPending?: boolean;
   /** The whole state, as the sentence says it ("Tvoj zadatak"). */
   status: { text: string; quiet: boolean } | null;
   /** The part of it that is the task's own life (a draft, a closed task): it stands above the title. */
@@ -75,7 +77,9 @@ export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation
   const status = taskStatus(item, relation, sectionSays);
   // A task's own life (a draft, a closed task) is above the title; what the account is to a public task follows the amount.
   const head = 'stanje' in item ? status : null;
-  const mark = 'stanje' in item || !status ? null : { text: MARK_WORDS[status.text] ?? status.text, quiet: status.quiet };
+  // While the relation is still being checked nothing is drawn there: "Proveravamo…" on its own line and then "Vaš" beside the amount
+  // moved the whole card (owner, 27.11.2026). The answer appears in its place; a screen reader still hears the state.
+  const mark = 'stanje' in item || !status || relation === 'PENDING' ? null : { text: MARK_WORDS[status.text] ?? status.text, quiet: status.quiet };
   // HITNO counts only until the server's expiry, on the one clock the badge is given: an expired HITNO on a task with no state drew an empty first row.
   const urgencyNow = useUrgencyClock([item.urgency]);
   const urgent = displaysUrgent(item.urgency, urgencyNow);
@@ -97,7 +101,8 @@ export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation
     places: capacity?.spoken ?? null,
     person: person ? personSpoken(person.name, person.rating, person.count) : null,
     next: age ? `Objavljeno: ${age.charAt(0).toLocaleLowerCase('sr-Latn-RS')}${age.slice(1)}` : null });
-  return { title, status, head, mark, urgency: item.urgency, urgencyNow, urgent, value, audience, offersWord: OFFERS_WORD[audience], places: item.pokrivenost, place,
+  const personPending = !person && !('stanje' in item) && 'narucilacProfilId' in item && !!item.narucilacProfilId;
+  return { title, personPending, status, head, mark, urgency: item.urgency, urgencyNow, urgent, value, audience, offersWord: OFFERS_WORD[audience], places: item.pokrivenost, place,
     distance, schedule, requirement, capacity, person, age, spoken: spokenWithOffers(spoken, value, OFFERS_WORD[audience]) };
 }
 
@@ -178,11 +183,19 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false, mapPrevi
         <Image source={require('../../../../assets/illustrations/natural-v1/users.webp')} style={s.capacityIcon} contentFit="contain" />
         <T variant="note" style={s.capacityFraction}>{placesFraction}</T>
       </View> : null}
+    </View> : model.personPending ? <View testID="task-face-foot-pending" style={[s.foot, mapPreview && s.mapFoot]}>
+      <View style={s.person}>
+        <View style={[s.face, s.pendingFace]} />
+        <View style={[s.personText, s.pendingLines]}><View style={[s.pendingLine, { width: '46%' }]} /><View style={[s.pendingLine, { width: '64%' }]} /></View>
+      </View>
     </View> : null}
   </View>;
 }
 
 const s = StyleSheet.create({
+  pendingFace: { backgroundColor: sys.color.wash },
+  pendingLines: { gap: 6 },
+  pendingLine: { height: 12, borderRadius: 6, backgroundColor: sys.color.wash },
   // Between the parts of a face: 12. Inside the facts group: 4, matching OwnTaskCard and DraftCard.
   body: { gap: sys.space.md },
   mapBody: { gap: sys.space.sm },
