@@ -6882,3 +6882,43 @@ Ovi ciljevi su istorijski predlozi iz povucenog UX materijala, a ne samostalno o
 **Lokalno:** 1869/1869, `tsc` PASS.
 
 **Emulator (APK `d2528696`):** Početna ide sa uvodnog ekrana pravo na sadržaj, bez treptanja redova; u razgovoru o selidbi (A→B) karta polazišta i karta odredišta same se pomere tako da se vide mapa i dugmad.
+
+#### 12.6.29. Nov korisnik, glas, AI tok, Zadaci, meniji (26–27.11.2026)
+
+**Odluke vlasnika:**
+- Glas je glavni u razgovoru; tekst teče kao kod asistenta; manje teksta.
+- Lista spuštena → bez trake, strelica nazad izlazi sa mape; „Mapa“ dole na sredini pri listanju (zamenjuje 25.11.).
+- „···“ meni odozdo. Model ostaje `gemini-3.8-flash`.
+- Prvo izdanje samo e-pošta: Google kasnije, Apple uz iOS.
+
+**Izvor:**
+- Glas: snimanje počinje na dodir, a zvuk se drži na telefonu do „ready“ (pri grešci se odbacuje); dodir ili držanje; razgovor se otvara na mikrofonu; reči se pojavljuju postepeno.
+- AI: odgovor se ispisuje ravnomerno, do 1,2 s; zaštita propušta brojeve koje je korisnik sam rekao.
+- Odustano: ranije učitavanje kataloga, jer ponovljen zahtev ne sme čitati nov katalog. Pravilo „bez rekapitulacije“ vraćeno.
+- Kraće poruke o neuspehu i čekanju u oba AI razgovora.
+- Generisana nova 3D kamera (Figma „USKOČI 3D ikonice“).
+- Kartica na Početnoj: jedna kartica u punoj širini, bez „Objavljen“, bez preklapanja.
+- Zadaci:
+  - traka prati list;
+  - plutajuća „Mapa“;
+  - obrisi kartica pri učitavanju;
+  - bez „Proveravamo…“;
+  - podnožje autora zadržava visinu.
+- Meni: `ProductSheet placement="bottom"`; tiho „···“; manje slike tabova.
+- Avatar zadržava poslednju sliku između tabova; jednak razmak zvonca.
+
+**DEV:**
+- `uskoci-ai-interview` v231.
+- Nalog `e75c8524…` dodat u `ai_test_accounts_v5`, uz odobrenje „Dodaj nalog“; budžet nepromenjen.
+
+**Lokalno:** 1871/1871, `tsc` PASS.
+
+**Telefon:** APK `98db8f31` instaliran 27.11. u 12:59.
+
+**Otvoreno:**
+- siva stranica pri hladnom startu;
+- seckanje „Ponude“ na pinu;
+- profil kao jedan ekran;
+- prazni ekrani;
+- mejl potvrde (Supabase podešavanja vlasnika);
+- link potvrde vodi na `localhost`.
