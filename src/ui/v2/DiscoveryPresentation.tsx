@@ -1484,8 +1484,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       haptic="select" scaleTo={sys.motion.scale.row} onPress={cycleSheet} style={s.countRow}>
       {count}{sheetIndex > SNAP.peek && sorted && !areaOnly && !pillShown ? <T variant="note" tone="muted" style={s.sortedBy}>{sortedWords}</T> : null}
     </Press>
-    {sheetIndex > SNAP.peek && !loading && !refreshing ? <Press testID="discovery-refresh" accessibilityRole="button" accessibilityLabel="Osvežite zadatke"
-      haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={refreshList} style={s.headerIcon}>
+    {/* Always in its place while the list is up, quiet during a read, so the count line never shifts when the read ends. */}
+    {sheetIndex > SNAP.peek ? <Press testID="discovery-refresh" accessibilityRole="button" accessibilityLabel="Osvežite zadatke"
+      accessibilityState={{ disabled: loading || refreshing }} disabled={loading || refreshing}
+      haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={refreshList} style={[s.headerIcon, (loading || refreshing) && s.headerIconQuiet]}>
       <Glyph name="refresh" size={20} tone="green" />
     </Press> : null}
     </View>
@@ -1697,6 +1699,7 @@ const s = StyleSheet.create({
   sectionFirst: { paddingTop: 0 },
   sectionTitle: { fontWeight: '600', color: sys.color.ink },
   sectionCount: { color: sys.color.muted, fontVariant: ['tabular-nums'] },
+  headerIconQuiet: { opacity: 0.35 },
   mapPillFloat: { position: 'absolute', alignSelf: 'center' },
   // The quiet note while the next page is read, above the bottom navigation.
   pagingRow: { position: 'absolute', left: 0, right: 0, bottom: sys.space.base, alignItems: 'center' },

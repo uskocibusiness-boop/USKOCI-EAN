@@ -1,8 +1,8 @@
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { T } from '../../Text';
 import { StateView } from '../../system/StateView';
 import { sys } from '../../system/tokens';
-import { QuietReadState } from '../QuietReadState';
+import { SkeletonList } from '../../system/Skeleton';
 import type { ReadFailureReason } from '../../../data/readFailure';
 
 /**
@@ -60,10 +60,10 @@ export function DiscoveryListState({ state, clearAllLabel, compact = false }: {
 }) {
   const w = LIST_STATE_WORDS;
   switch (state.kind) {
-    case 'loading': return compact ? <View testID="discovery-list-reading" accessibilityLiveRegion="polite" style={s.compactRead}>
-      <ActivityIndicator size="small" color={sys.color.green} accessible={false} />
-      <T variant="note" tone="muted" style={s.readText}>{w.loading}</T>
-    </View> : <QuietReadState art="tasks" title={w.loading} body="Proveravamo zadatke u ovom prikazu." />;
+    // The shape of the cards that are coming, where they will stand, so nothing jumps when they arrive (owner, 26.11.2026).
+    case 'loading': return <View testID="discovery-list-reading" style={s.reading}>
+      <SkeletonList variant="record" count={compact ? 1 : 3} foot label={w.loading} />
+    </View>;
     case 'error': return <StateView compact={compact} kind="error" art="tasks" title={w.error}
       body={state.errorReason && Object.prototype.hasOwnProperty.call(ERROR_BODY, state.errorReason) ? ERROR_BODY[state.errorReason] : w.errorBody}
       primary={{ label: w.retry, onPress: state.onRetry }} />;
@@ -81,6 +81,5 @@ export function DiscoveryListState({ state, clearAllLabel, compact = false }: {
 }
 
 const s = StyleSheet.create({
-  compactRead: { minHeight: 88, paddingVertical: sys.space.base, alignItems: 'center', justifyContent: 'center', gap: sys.space.sm },
-  readText: { textAlign: 'center' },
+  reading: { paddingTop: sys.space.xs },
 });
