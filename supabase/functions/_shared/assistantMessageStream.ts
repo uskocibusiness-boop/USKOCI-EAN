@@ -111,17 +111,35 @@ export function provisionalTextSensitive(text: string): boolean {
     || STREET_WITH_NUMBER.test(text) || NAME_WITH_HOUSE_NUMBER.test(text) || COMPLETED_CLAIM.test(text);
 }
 
+/** Every number in a text, written the same way however it was grouped ("3.000", "3 000" and "3000" are one number). */
+function numbersIn(text: string): string[] {
+  return (text.match(/\p{N}(?:[\p{N}]|[.,\u00a0 ](?=\p{N}{3}(?!\p{N})))*/gu) ?? []).map(token => token.replace(/[^\p{N}]/gu, ''));
+}
+
+/**
+ * Owner, 27.11.2026: a reply that repeats what the person already said (their amount, their house number, their square metres)
+ * may flow as it is written. Only a number the person never said, an amount in words they never used, or a claim that something
+ * was published or saved still stops the preview; the final, guarded message still replaces it.
+ */
+export function provisionalTextSensitiveGiven(text: string, said: string): boolean {
+  if (COMPLETED_CLAIM.test(text)) return true;
+  const known = new Set(numbersIn(said));
+  if (numbersIn(text).some(number => !known.has(number))) return true;
+  return NUMBER_WORDS.test(text) && !NUMBER_WORDS.test(said);
+}
+
 /** Converts raw assistantMessage deltas into provisional display deltas.
  * Only complete whitespace-terminated words are released; a word containing a
  * digit waits for two following complete words so currency/street context is
  * known. Once anything sensitive appears, the gate latches closed for the turn. */
-export function createProvisionalTextGate(maxChars = ASSISTANT_MESSAGE_MAX_CHARS) {
+export function createProvisionalTextGate(maxChars = ASSISTANT_MESSAGE_MAX_CHARS, said?: string) {
   let all = '', emitted = 0, closed = false;
+  const sensitive = typeof said === 'string' ? (text: string) => provisionalTextSensitiveGiven(text, said) : provisionalTextSensitive;
   return {
     push(delta: string): string {
       if (closed || typeof delta !== 'string' || !delta) return '';
       all += delta;
-      if (all.length > maxChars || FORBIDDEN_DECODED.test(all) || provisionalTextSensitive(all)) { closed = true; return ''; }
+      if (all.length > maxChars || FORBIDDEN_DECODED.test(all) || sensitive(all)) { closed = true; return ''; }
       let end = -1;
       for (let i = all.length - 1; i >= emitted; i--) if (SPACE.test(all[i])) { end = i + 1; break; }
       if (end <= emitted) return '';

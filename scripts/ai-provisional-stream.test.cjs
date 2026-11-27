@@ -467,3 +467,24 @@ test('a pause after the last word releases it (owner, 23.11.2026); a closed gate
   const src = fs.readFileSync(path.join(__dirname, '..', 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8');
   assert.ok(src.includes('const tail = provisional.flush();') && src.includes('if (tailTimer !== undefined) clearTimeout(tailTimer);'));
 });
+
+
+test('owner 27.11.2026: numbers the person said flow; a new number, an amount in new words or a completion claim still stop', () => {
+  const said = 'Treba mi krečenje sobe od 12 m2 na Limanu, 29. novembra od 9 do 13 sati, plaćam 5000 dinara ukupno';
+  const flow = helper.createProvisionalTextGate(undefined, said);
+  const shown = flow.push('Važi, krečenje sobe od 12 m2 za 5.000 dinara, 29. novembra od 9 do 13 sati. Da li su zidovi ');
+  assert.equal(flow.closed(), false);
+  assert.ok(shown.startsWith('Važi, krečenje sobe od 12 m2 za 5.000 dinara'), shown);
+  const invented = helper.createProvisionalTextGate(undefined, said);
+  invented.push('Predlažem budžet od 7.000 dinara za ovaj posao, da li ');
+  assert.equal(invented.closed(), true, 'a number the person never said');
+  const words = helper.createProvisionalTextGate(undefined, said);
+  words.push('Za to je obično potrebno nekoliko hiljada dinara, da li ');
+  assert.equal(words.closed(), true, 'an amount in words the person never used');
+  const claim = helper.createProvisionalTextGate(undefined, said);
+  claim.push('Zadatak je objavljen i vidljiv svima. ');
+  assert.equal(claim.closed(), true, 'a completion claim');
+  const legacy = helper.createProvisionalTextGate();
+  legacy.push('Važi, za 5.000 dinara ukupno. ');
+  assert.equal(legacy.closed(), true, 'without what was said the old rule holds');
+});

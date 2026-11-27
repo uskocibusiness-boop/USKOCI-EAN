@@ -2058,7 +2058,9 @@ Deno.serve(async (req: Request) => {
         // Provisional text is display-only: never persisted, suppressed for
         // money/address/completion claims, and always replaced by `final`.
         const recordFirstText = createAiFirstTextRecorder('NEED');
-        const provisional = wantsProvisional ? createProvisionalTextGate() : null;
+        // What the person said in this conversation: numbers they wrote themselves may flow (owner, 27.11.2026).
+        const said = [...history.filter((row: any) => row?.role !== 'ASSISTANT').map((row: any) => String(row.body ?? '')), effectiveUserMessage].join('\n');
+        const provisional = wantsProvisional ? createProvisionalTextGate(undefined, said) : null;
         // Owner, 23.11.2026: the last word of a reply waited for the whole save. When the provider pauses for a moment
         // after it (it is then writing the facts), that word is released by the same gate rules.
         let tailTimer: ReturnType<typeof setTimeout> | undefined;

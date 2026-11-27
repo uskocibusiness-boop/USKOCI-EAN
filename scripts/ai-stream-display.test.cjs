@@ -275,7 +275,7 @@ test('provider preview text is opt-in, gated, never persisted and replaced by th
   assert.ok(needEdge.includes("const recordFirstText = createAiFirstTextRecorder('NEED');"));
   // Older clients (no opt-in header) keep the exact accepted→final event shape.
   assert.ok(needEdge.includes('req.headers.get(AI_PROVISIONAL_STREAM_HEADER) === AI_PROVISIONAL_STREAM_VERSION'));
-  assert.ok(needEdge.includes("const provisional = wantsProvisional ? createProvisionalTextGate() : null;"));
+  assert.ok(needEdge.includes("const provisional = wantsProvisional ? createProvisionalTextGate(undefined, said) : null;"));
   assert.match(needEdge, /emit\(\{ kind: 'text_delta', text, provisional: true \}\)/);
   assert.equal((needEdge.match(/kind: 'text_delta'/g) ?? []).length, 1, 'NEED emits text only through the provisional gate');
   // Persistence uses the guarded assistantMessage, never provisional text.
