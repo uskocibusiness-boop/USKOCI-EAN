@@ -242,7 +242,8 @@ jobs:
           # The signed-in phone and x86_64 emulator must run the same embedded source.
           # Keep automatic isolated QA ARM64-only; the explicit preview also includes the emulator ABI.
           build_abis=arm64-v8a
-          if [ "$USKOCI_ANDROID_TEST_TARGET" = phone-preview ]; then build_abis=arm64-v8a,x86_64; fi
+          # Owner, 27.11.2026: the phone preview (Firebase push) is for the phone only; with the emulator ABI as well it passed the APK size budget.
+          if [ "$USKOCI_ANDROID_TEST_TARGET" = phone-preview ]; then build_abis=arm64-v8a; fi
           # The owner's x86_64 emulator: the isolated QA app for that ABI alone, within the APK size budget.
           if [ "$USKOCI_ANDROID_TEST_TARGET" = emulator-qa ]; then build_abis=x86_64; fi
           printf '\nreactNativeArchitectures=%s\norg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8\n' "$build_abis" >> android/gradle.properties
@@ -286,7 +287,7 @@ jobs:
             names = apk.namelist()
             abis = sorted({name.split('/')[1] for name in names if name.startswith('lib/') and name.endswith('.so')})
             emulator = os.environ['USKOCI_ANDROID_TEST_TARGET'] == 'emulator-qa'
-            assert abis == (['arm64-v8a', 'x86_64'] if phone else ['x86_64'] if emulator else ['arm64-v8a']), 'APK_ABI_MISMATCH'
+            assert abis == (['x86_64'] if emulator else ['arm64-v8a']), 'APK_ABI_MISMATCH'
             for abi in abis:
               for library in ('libreactnative.so', 'libhermesvm.so'):
                 native_path = f'lib/{abi}/{library}'
