@@ -579,12 +579,11 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const unread=sent&&!(lastMessage?.role==='USER'&&lastMessage.body.trim()===sent.trim())?sent:null;
   // Legacy equipment alone is not a configured MVP work profile. The V1 wire
   // still carries it for signed-review compatibility, but the conversation
-  // introduces the service, area and availability that actually route tasks.
+  // introduces services and work areas that route tasks.
   // Signed territories need not populate the legacy city. They are content
   // worth reviewing, not proof of completion, consent or activation readiness.
   const hasProfileContent = data.candidate.skills.length > 0 || data.candidate.bio.trim().length > 0
-    || data.candidate.location.city.trim().length > 0 || (data.candidate.workAreas?.length ?? 0) > 0
-    || data.candidate.availability.rules.length > 0 || data.candidate.availability.windows.length > 0;
+    || data.candidate.location.city.trim().length > 0 || (data.candidate.workAreas?.length ?? 0) > 0;
   const readyToReview=!reviewNeedsRestart&&workerReviewReady(data);
   const preparationProblem=preparationIssue?.conversationId===data.conversationId&&preparationIssue.revision===data.revision
     ?preparationIssue.message:!readyToReview&&data.review&&!data.saved&&Date.parse(data.review.expiresAt)<=Date.now()
@@ -668,8 +667,6 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     {menu?<ActionSheet label="Opcije razgovora" onClose={()=>setMenu(false)} actions={[
       {key:'identity',label:'O meni',icon:'document',disabled:!enabled||!writable,subtitle:unavailableNow,
         onPress:()=>correctPart('identity')},
-      {key:'time',label:'Raspored i dostupnost',icon:'calendar',disabled:!enabled||!writable,subtitle:unavailableNow,
-        onPress:()=>correctPart('time')},
       {key:'restart',label:'Novi razgovor',icon:'chat',disabled:!canAct()||voiceBusy,subtitle:unavailableNow,
         onPress:restart},
       ...(data.status==='OPEN'?[{key:'abandon',label:'Napustite razgovor',icon:'chat' as const,destructive:true,
@@ -677,7 +674,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
         onPress:abandon}]:[]),
     ]}/>:null}
     {adding?<ActionSheet label="Dodajte podatke" onClose={()=>setAdding(false)} actions={([
-      ['skills','tasks'],['area','pin'],['time','clock'],
+      ['skills','tasks'],['area','pin'],
     ] as const).map(([key,icon])=>({key,icon,label:key==='area'?'Područje rada':WORKER_PART_TITLE[key],disabled:!enabled||!writable,subtitle:unavailableNow,
       onPress:()=>openPart(key)}))}/>:null}</>;
 }
