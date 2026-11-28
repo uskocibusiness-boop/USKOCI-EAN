@@ -1,0 +1,11 @@
+# Manual availability retirement — 28 November 2026
+
+Owner decision: no weekly work hours, weekdays, dated manual availability or present availability in the work-profile interview and matching. Users choose whether to respond to each task. Keep task deadlines, actual confirmed agreement calendar and existing authorization/service/mode/territory/handoff restrictions.
+
+DEV migration 20261128182336_worker_availability_retirement applied successfully. Original function MD5 718167c1f20da1e2b3e37b88dd8b6379; new MD5 7100e0d2c47d1472331de7de4d9b6126. Exact migration recorded under supabase/migrations. Original source rollback retained under scripts/sql, guarded against accidental execution. All 60 real fixed-window/active-worker combinations verified: 52 without conflict admitted, 8 with blocking agreement rejected, 0 mismatches. Expired/deadline-invalid tasks remain rejected. Four blocking calendar events and three old weekly rules/two old manual windows were not deleted. The latter are ignored by the shared matching time tier. Existing English fixed-window task now matches the confirmed English provider; the flexible English task remains eligible, old Chinese task remains ineligible.
+
+Worker Edge 173 -> 174, ACTIVE. Exact deployed bundle comparison: 29 files; only Worker entrypoint and shared worker conversation instruction changed, authentication unchanged. New provider schema keeps retired compatibility fields null/NONE and strips old availability proposals, including recovered older payloads. No new provider calls performed in this change.
+
+UI source: removed availability from saved profile card, draft/review details, conversation topic menus, progress and calendar read/display; legacy availability route redirects to work profile. Calendar of agreements remains. Eight UI files changed. Default-branch search index is stale; two old test paths not present on this branch. Full TypeScript/CI/native APK and actual post-deployment Gemini conversation not run; no assertion of complete release readiness. No production changes or branch merge.
+
+Open independently: dispatch first wave before confirmed taxonomy; phone push registration NO_ACTIVE_DEVICE; withdrawn response suppression candidate; final APK; auth mail, legal documents/site and clean production deployment.
