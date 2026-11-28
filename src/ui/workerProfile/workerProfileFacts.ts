@@ -27,7 +27,7 @@ export const TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY = true;
  */
 export const FOR_ME_SWITCH_EXISTS = true;
 
-/** Availability is defined only by the saved weekly calendar and dated exceptions. */
+/** Legacy time keys remain wire-compatible; no weekly availability is shown or required. */
 
 /** How many kinds of work the card others see names before it says how many more. */
 export const SKILLS_IN_CARD = 3;
@@ -56,12 +56,11 @@ export const WORKER_PART_TITLE: Readonly<Record<WorkerAiPart, string>> = {
 /** What the conversation has captured so far, from the draft itself (never from how many questions were asked). */
 export type CapturedPart = { key: 'skills' | 'area' | 'time'; label: string; done: boolean };
 export function capturedParts(profile: WorkerAiProfile): CapturedPart[] {
-  const place = profile.location, week = profile.availability;
+  const place = profile.location;
   return [
     { key: 'skills', label: 'Usluge', done: profile.skills.length > 0 },
     // Activation needs a country and a city (rpc_complete_worker_profile), so a place is captured only when both are there.
     { key: 'area', label: 'Područje', done: !!place.operatingCountryCode && place.city.trim().length > 0 },
-    { key: 'time', label: 'Vreme', done: week.rules.length > 0 || week.windows.length > 0 },
   ];
 }
 
@@ -97,7 +96,7 @@ export function profileEffects(forMeSwitchExists: boolean = FOR_ME_SWITCH_EXISTS
     { key: 'notifications', title: 'Obaveštenja', detail: 'Novi i već otvoreni zadaci koji Vam odgovaraju', art: 'bell', opens: 'notifications' },
     { key: 'public', title: 'Javni profil', detail: 'Ime, „O meni“ i grad vide osobe koje otvore Vaš profil', art: 'eye' },
   ];
-  if (forMeSwitchExists) rows.push({ key: 'forMe', title: 'Zadaci · Za mene', detail: 'Lista po Vašem području i vremenu', art: 'tasks' });
+  if (forMeSwitchExists) rows.push({ key: 'forMe', title: 'Zadaci · Za mene', detail: 'Lista prema Vašim uslugama i području rada', art: 'tasks' });
   return rows;
 }
 
