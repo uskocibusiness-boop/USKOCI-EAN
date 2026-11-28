@@ -220,14 +220,14 @@ DO $verify$
 BEGIN
  IF EXISTS (
  SELECT 1 FROM public.marketplace_responses r JOIN public.app_profiles p ON p.account_id=r.worker_account_id AND p.kind='WORKER'
- WHERE r.status='WITHDRAWN' AND r.id=(SELECT x.id FROM public.marketplace_responses x WHERE x.need_id=r.need_id AND x.worker_account_id=r.worker_account_id AND x.status<>'DRAFT' ORDER BY x.created_at desc,x.id desc LIMIT 1)
+ WHERE r.status='WITHDRAWN' AND r.id=(SELECT x.id FROM public.marketplace_responses x WHERE x.need_id=r.need_id AND x.worker_account_id=r.worker_account_id AND x.status<>'DRAFT' ORDER BY x.created_at DESC,x.id DESC LIMIT 1)
  AND private.dispatch_cheap_candidate_admitted(r.need_id,p.id)
  ) THEN RAISE EXCEPTION 'WITHDRAWN_DISPATCH_REGRESSION'; END IF;
  IF EXISTS (
  SELECT 1 FROM public.notification_deliveries d JOIN public.user_activity_events e ON e.id=d.event_id
  WHERE d.channel='PUSH' AND d.state='SENT' AND d.expires_at>clock_timestamp()
  AND e.event_type='OPPORTUNITY_AVAILABLE' AND e.entity_type='NEED' AND e.recipient_role='WORKER'
- AND (SELECT x.status FROM public.marketplace_responses x WHERE x.need_id=e.entity_id AND x.worker_account_id=e.recipient_user_id AND x.status<>'DRAFT' ORDER BY x.created_at desc,x.id desc LIMIT 1)='WITHDRAWN'
+ AND (SELECT x.status FROM public.marketplace_responses x WHERE x.need_id=e.entity_id AND x.worker_account_id=e.recipient_user_id AND x.status<>'DRAFT' ORDER BY x.created_at DESC,x.id DESC LIMIT 1)='WITHDRAWN'
  AND private.push_suppression(d) IS DISTINCT FROM 'ALREADY_RESPONDED'
  ) THEN RAISE EXCEPTION 'WITHDRAWN_PUSH_REGRESSION'; END IF;
 END $verify$;

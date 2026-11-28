@@ -264,6 +264,36 @@ FORWARD_20261121 = [
         "evidence": FORWARD_20261126_PROOF,
         "evidence_sha256": FORWARD_20261126_PROOF_SHA256,
     },
+    {
+        "version": "20261128182336",
+        "name": "worker_availability_retirement",
+        "md5": "0d587d32022012ce480c6c0733994b1f",
+        "sha256": "9ea7ecc64b2c9b7dacc784f40f3669845e2aef20d673d33ad8eb6de157d66b31",
+        "bytes": 3890,
+        "rollback": "scripts/sql/worker_availability_retirement_20261128.rollback.sql",
+        "evidence": "docs/plan/proofs/20261128-dev-forward-migrations-evidence.md",
+        "evidence_sha256": "8449930ac0fe9237a95d8b699cb9982cccac0f5f5d237308186f7fa194f85faf"
+    },
+    {
+        "version": "20261128183009",
+        "name": "r09_withdrawn_final",
+        "md5": "f647410188296050122f13a2503bf4c9",
+        "sha256": "c8d1e71d5304a88c1463a944b60ea5a717414cfa3ace89c022c5845259a023f3",
+        "bytes": 11417,
+        "rollback": "scripts/sql/r09_withdrawn_final_20261128.rollback.sql",
+        "evidence": "docs/plan/proofs/20261128-dev-forward-migrations-evidence.md",
+        "evidence_sha256": "8449930ac0fe9237a95d8b699cb9982cccac0f5f5d237308186f7fa194f85faf"
+    },
+    {
+        "version": "20261128183114",
+        "name": "dispatch_wait_for_confirmed_taxonomy",
+        "md5": "b5e9b7ddc8f4a6d0c72ce883f5abf128",
+        "sha256": "a34891f116f09f8f02f35762b0c2173bfd4ac69dfe9acc9956e165f19f8ff5d2",
+        "bytes": 16551,
+        "rollback": "scripts/sql/dispatch_wait_for_taxonomy_20261128.rollback.sql",
+        "evidence": "docs/plan/proofs/20261128-dev-forward-migrations-evidence.md",
+        "evidence_sha256": "8449930ac0fe9237a95d8b699cb9982cccac0f5f5d237308186f7fa194f85faf"
+    },
 ]
 
 def fail(message: str) -> None:

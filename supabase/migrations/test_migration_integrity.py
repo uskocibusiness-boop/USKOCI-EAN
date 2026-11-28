@@ -1066,8 +1066,11 @@ class Forward20261121ProvenanceTests(unittest.TestCase):
             "20261122113923_agreement_cancel_closes_pending_proposal.sql",
             "20261122162908_decline_response_for_task_owner.sql",
             "20261125231234_agreement_personal_periods.sql",
+            "20261128182336_worker_availability_retirement.sql",
+            "20261128183009_r09_withdrawn_final.sql",
+            "20261128183114_dispatch_wait_for_confirmed_taxonomy.sql",
         ])
-        self.assertEqual([e["dev_migration_count_after"] for e in self.section], [377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388])
+        self.assertEqual([e["dev_migration_count_after"] for e in self.section], [377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391])
 
     def test_wrong_field_in_any_entry_fails_closed(self):
         for index in range(len(self.section)):
@@ -1112,11 +1115,11 @@ class Forward20261121ProvenanceTests(unittest.TestCase):
 
     def test_next_migration_is_admitted_by_appending_one_entry(self):
         last = FORWARD_20261121[-1]
-        pinned = FORWARD_20261121 + [dict(last, version="20261121999999")]
+        pinned = FORWARD_20261121 + [dict(last, version="20261129100000")]
         # A pinned entry whose file and section entry are absent must fail closed.
         self.rejects(self.section, pinned=pinned)
-        extra = dict(self.section[-1], version="20261121999999",
-                     file="20261121999999_r06_gemini_cache_input.sql",
+        extra = dict(self.section[-1], version="20261129100000",
+                     file="20261129100000_r06_gemini_cache_input.sql",
                      dev_migration_count_before=380, dev_migration_count_after=381)
         self.rejects(self.section + [extra], pinned=pinned)
 
