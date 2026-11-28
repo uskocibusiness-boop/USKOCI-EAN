@@ -11,12 +11,10 @@ import { workerServiceModeInstruction } from '../_shared/workerServiceModeContex
 import { geminiRequestBody, geminiFailureDiagnostic, geminiUsage } from '../_shared/geminiTaskStream.ts';
 const PROJECT = 'leqcwgzvjsxugfgzdmth';
 const ACCOUNT = '579cdbb8-d10b-4131-b452-6e3aa197f5ba'; // enrolled test budget only
-const EXPIRES = 1795884628;
-const KEY = {kty:'EC',crv:'P-256',x:'Xwa6PVtVs0jaugvTmZtNXzsMpfbE_e2lyKnM1BwyRKI',y:'0zVvpzBufamVR7cmmB2UGzPH4nIBcpRPpnUAk6XMfxA',ext:true};
+const EXPIRES = 1795884151;
+const KEY = {kty:'EC',crv:'P-256',x:'64o9yWa9CKEHvgbpdz9o1WDAg181q16sbugA1c2Qvdw',y:'4cuuAJzyxUNApn07RJzIMRhQtMfAPBVWDsGV3HWATW4',ext:true};
 const CASES = {
- N01:{op:'2ce903ee-c3c0-4aaf-876c-de9795b57313',purpose:'NEED_SERVICE',text:'Treba mi neko za onlajn časove kineskog od nule.'},
- W01:{op:'cf56be24-bc80-46cf-b7a7-230a7a6c768e',purpose:'WORKER_CAPABILITY',text:'Držim časove engleskog i francuskog, i uživo i preko interneta.'},
- N03:{op:'72ed8308-b07a-4329-8fae-c7a25937dbfb',purpose:'NEED_SERVICE',text:'Treba mi da se okreči soba od 15 kvadrata u Novom Sadu.'},
+ N01:{op:'982e08d8-6b7b-4f3c-9ebd-a13a66e265e2',purpose:'NEED_SERVICE',text:'Treba mi neko za onlajn časove kineskog od nule.'},
 } as const;
 const res=(status:number,data:unknown)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 const env=(n:string)=>Deno.env.get(n);
@@ -46,7 +44,7 @@ Deno.serve(async(req)=>{
  try{
   const catalog=await loadFullCatalogTree(rpc,signal);
   if(!catalog?.verifiedComplete)return res(503,{code:'CATALOG'});
-  const worker=c.purpose==='WORKER_CAPABILITY';
+  const worker=String(c.purpose)==='WORKER_CAPABILITY';
   const props=worker?{assistantMessage:{type:'STRING'},serviceChanges:workerServiceChangesSchema,serviceModeChangesJson:{type:'STRING'}}:{assistantMessage:{type:'STRING'},category:{type:'STRING'},mode:{type:'STRING',enum:['ON_SITE','REMOTE','UNKNOWN']}};
   const schema=withSinglePassTaxonomySchema({type:'OBJECT',properties:props,required:Object.keys(props)});
   const role=worker?'You are the USKOČI JA MOGU interview. The user offers their own concrete services; initial candidate.skills is empty. Address them with Vi/Vam/Vas. '+workerServiceChangesInstruction()+' '+workerServiceModeInstruction({savedServices:[],draftServices:[],unresolvedServices:[]},true,false):'You are the USKOČI MENI TREBA interview. The user asks someone else to do one concrete task. category is the effective need.category, a natural service label. Address them with Vi/Vam/Vas.';
@@ -59,7 +57,7 @@ Deno.serve(async(req)=>{
   const response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',redirect:'error',signal,headers:{'Content-Type':'application/json','x-goog-api-key':key},body});
   const latencyMs=Math.round(performance.now()-start);
   if(!response.ok){let diagnostic;try{diagnostic=geminiFailureDiagnostic(await response.json());}catch{/* no raw provider message */}return res(502,{code:'PROVIDER_HTTP',status:response.status,latencyMs,diagnostic});}
-  const output=await response.json(),usage=geminiUsage(output);
+  const output=await response.json(),usage=geminiUsage(output.usageMetadata);
   const tokens={prompt:usage?.promptTokens,output:usage?.outputTokens,total:usage?.totalTokens};
   let accounting=false;
   if(Object.values(tokens).every(x=>Number.isSafeInteger(x)&&x>=0)){
