@@ -188,10 +188,26 @@ Deno.serve(async req => {
   // Keep both outcomes pending in SQL (never resend), but do not report an
   // upstream outage as a healthy tick. Counts contain no tickets or raw errors.
   const receiptReadFailures = { http: 0, transport: 0, invalid: 0 };
+  // Only fixed, aggregate shape counters. Never retain provider keys or values.
+  const receiptInvalidReasons = { body: 0, envelope: 0, envelopeFields: 0, data: 0, foreignId: 0,
+   entry: 0, status: 0, okFields: 0, okDetails: 0, errorFields: 0, errorMessage: 0, errorDetails: 0, other: 0 };
+  type InvalidReason = keyof typeof receiptInvalidReasons;
+  function receiptEntryReason(value: unknown): InvalidReason {
+   if (!row(value)) return 'entry';
+   if (value.status === 'ok') {
+    if (Object.keys(value).some(k => !['status','details','__debug'].includes(k))) return 'okFields';
+    return 'okDetails';
+   }
+   if (value.status !== 'error') return 'status';
+   if (Object.keys(value).some(k => !['status','message','details','__debug'].includes(k))) return 'errorFields';
+   if (value.message !== undefined && (typeof value.message !== 'string' || value.message.length > 4096)) return 'errorMessage';
+   return 'errorDetails';
+  }
   const failedReceiptReads = () => receiptReadFailures.http + receiptReadFailures.transport + receiptReadFailures.invalid;
   async function readReceipts(ids: string[]): Promise<Map<string, ProviderResult>> {
    const outcomes = new Map<string, ProviderResult>();
    let failure: 'transport' | 'invalid' = 'transport';
+   let reason: InvalidReason = 'body';
    try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
     const access = Deno.env.get('EXPO_ACCESS_TOKEN'); if (access) headers.Authorization = `Bearer ${access}`;
@@ -202,19 +218,22 @@ Deno.serve(async req => {
      failure = 'invalid';
      try {
       const envelope = await read(response.body, 32768, localSignal);
-      if (!row(envelope) || !only(envelope, ['data']) || !row(envelope.data)
-       || Object.keys(envelope.data).some(id => !ids.includes(id))) throw new Invalid();
+      if (!row(envelope)) { reason = 'envelope'; throw new Invalid(); }
+      if (!only(envelope, ['data'])) { reason = 'envelopeFields'; throw new Invalid(); }
+      if (!row(envelope.data)) { reason = 'data'; throw new Invalid(); }
+      if (Object.keys(envelope.data).some(id => !ids.includes(id))) { reason = 'foreignId'; throw new Invalid(); }
+      reason = 'other';
       for (const id of ids) {
        if (!Object.hasOwn(envelope.data, id)) continue;
        try { outcomes.set(id, expoResult(envelope.data[id], true)); }
-       catch { receiptReadFailures.invalid += 1; }
+       catch { receiptReadFailures.invalid += 1; receiptInvalidReasons[receiptEntryReason(envelope.data[id])] += 1; }
       }
      } catch (error) {
       if (localSignal.aborted || error instanceof StreamReadFailure) failure = 'transport';
       throw error;
      }
     });
-   } catch { receiptReadFailures[failure] += 1; }
+   } catch { receiptReadFailures[failure] += 1; if (failure === 'invalid') receiptInvalidReasons[reason] += 1; }
    return outcomes;
   }
   async function once(kind: 'SEND' | 'RECEIPT', admissionId?: string) {
@@ -306,7 +325,7 @@ Deno.serve(async req => {
   // Exactly one selected lane. Never fall through to global receipt/send scans.
   if (targeted) {
    const state = await once(input.action === 'single_target' ? 'SEND' : 'RECEIPT', input.admissionId as string);
-   return json({ kind: 'SINGLE_TARGET_COMPLETED', state, receiptReadFailures });
+   return json({ kind: 'SINGLE_TARGET_COMPLETED', state, receiptReadFailures, receiptInvalidReasons });
   }
   type Summary = { processed: number; failures: number; states: Record<string, number>; lastState: string };
   const summaries: Record<'SEND' | 'RECEIPT', Summary> = {
@@ -397,7 +416,7 @@ Deno.serve(async req => {
   await observe(unhealthy ? 'TICK_DEGRADED' : 'TICK_OK');
   return json({ kind: 'TICK_COMPLETED', receipt: summaries.RECEIPT.lastState, send: summaries.SEND.lastState,
    processed: { send: summaries.SEND.processed, receipt: summaries.RECEIPT.processed },
-   failures: { send: summaries.SEND.failures, receipt: summaries.RECEIPT.failures }, receiptReadFailures, queue });
+   failures: { send: summaries.SEND.failures, receipt: summaries.RECEIPT.failures }, receiptReadFailures, receiptInvalidReasons, queue });
  } catch {
   // No late writes after cancellation; failed telemetry never masks the original
   // unknown outcome and never causes a resend. Stale/no observation stays UNKNOWN.

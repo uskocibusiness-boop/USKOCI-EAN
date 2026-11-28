@@ -337,3 +337,21 @@ test('Expo SDK receipt metadata is ignored without hiding errors or allowing a b
  assert.equal(JSON.stringify(result).includes('private'), false);
  assert.deepEqual(h.logs, []);
 });
+
+test('receipt diagnostics expose fixed shape counts, never raw fields or values', async () => {
+ const h = edgeHarness({ provider: async (call, { json }) => {
+  const [a,b,c,d,e,f] = call.args.ids;
+  return json({ data: {
+   [a]: null, [b]: {status:'private_status'}, [c]: {status:'ok',private_field:'secret'},
+   [d]: {status:'ok',details:{error:'private'}}, [e]: {status:'error',private_field:'secret'},
+   [f]: {status:'error',details:123},
+  }});
+ }});
+ for(let i=0;i<6;i++) h.add('RECEIPT');
+ const result=await (await h.invoke()).json();
+ assert.equal(result.receiptReadFailures.invalid,6);
+ assert.deepEqual(result.receiptInvalidReasons,{body:0,envelope:0,envelopeFields:0,data:0,foreignId:0,entry:1,status:1,okFields:1,okDetails:1,errorFields:1,errorMessage:0,errorDetails:1,other:0});
+ assert.ok(h.completed.every(c=>c.p_result==='RECEIPT_PENDING'));
+ assert.equal(h.calls.filter(c=>c.url.endsWith('/send')).length,0);
+ assert.equal(/private|secret/.test(JSON.stringify(result)),false);
+});
