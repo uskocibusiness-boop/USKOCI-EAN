@@ -8,6 +8,7 @@ import { readSupabaseServiceKey, supabaseServiceHeaders } from '../_shared/supab
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { workerServiceChangesInstruction, workerServiceChangesSchema } from '../_shared/conversationIntent.mjs';
 import { workerServiceModeInstruction } from '../_shared/workerServiceModeContext.mjs';
+import { geminiRequestBody, geminiFailureDiagnostic, geminiUsage } from '../_shared/geminiTaskStream.ts';
 const PROJECT = 'leqcwgzvjsxugfgzdmth';
 const ACCOUNT = '579cdbb8-d10b-4131-b452-6e3aa197f5ba'; // enrolled test budget only
 const EXPIRES = 1795884628;
@@ -50,16 +51,16 @@ Deno.serve(async(req)=>{
   const schema=withSinglePassTaxonomySchema({type:'OBJECT',properties:props,required:Object.keys(props)});
   const role=worker?'You are the USKOČI JA MOGU interview. The user offers their own concrete services; initial candidate.skills is empty. Address them with Vi/Vam/Vas. '+workerServiceChangesInstruction()+' '+workerServiceModeInstruction({savedServices:[],draftServices:[],unresolvedServices:[]},true,false):'You are the USKOČI MENI TREBA interview. The user asks someone else to do one concrete task. category is the effective need.category, a natural service label. Address them with Vi/Vam/Vas.';
   const system=role+' '+singlePassTaxonomyInstruction(catalog,c.purpose);
-  const body=JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:c.text}]}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,thinkingConfig:{thinkingBudget:0}}});
+  const body=geminiRequestBody(JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:c.text}]}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,thinkingConfig:{thinkingBudget:0},temperature:worker?0.2:0.7}}));
   if(enc.encode(body).byteLength>AI_TEST_LIMITS.llmRequestBytes)return res(413,{code:'REQUEST_LIMIT'});
   const budget=await reserveAiTestBudget({supabaseUrl:url,serviceRoleKey:service,accountId:ACCOUNT,operationId:c.op,kind:'LLM',signal});
   if(!budget.admitted||budget.replay)return res(409,{code:budget.code});
   const start=performance.now();
   const response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',redirect:'error',signal,headers:{'Content-Type':'application/json','x-goog-api-key':key},body});
   const latencyMs=Math.round(performance.now()-start);
-  if(!response.ok)return res(502,{code:'PROVIDER_HTTP',status:response.status,latencyMs});
-  const output=await response.json(),usage=output.usageMetadata??{};
-  const tokens={prompt:usage.promptTokenCount,output:usage.candidatesTokenCount,total:usage.totalTokenCount};
+  if(!response.ok){let diagnostic;try{diagnostic=geminiFailureDiagnostic(await response.json());}catch{/* no raw provider message */}return res(502,{code:'PROVIDER_HTTP',status:response.status,latencyMs,diagnostic});}
+  const output=await response.json(),usage=geminiUsage(output);
+  const tokens={prompt:usage?.promptTokens,output:usage?.outputTokens,total:usage?.totalTokens};
   let accounting=false;
   if(Object.values(tokens).every(x=>Number.isSafeInteger(x)&&x>=0)){
    try{await rpc('rpc_ai_test_record_usage_service',{p_operation_id:c.op,p_model:model,p_prompt_tokens:tokens.prompt,p_output_tokens:tokens.output,p_total_tokens:tokens.total});accounting=true;}catch{/* retain reservation */}
