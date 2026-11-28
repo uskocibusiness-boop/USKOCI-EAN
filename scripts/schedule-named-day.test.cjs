@@ -16,3 +16,12 @@ test('a day with hours keeps its hours',()=>{
   const v=text({kind:'FIXED_WINDOW',startsAt:'2026-11-28T09:00:00+01:00',endsAt:'2026-11-28T13:00:00+01:00'},'Europe/Belgrade',now);
   assert.match(v,/09:00/); assert.match(v,/13:00/);
 });
+test('a flexible date range crossing summer time stays readable on task cards',()=>{
+  const v=text({kind:'FLEXIBLE',startsAt:'2026-11-28T00:00:00+01:00',endsAt:'2027-05-29T00:00:00+02:00'},'Europe/Belgrade',now);
+  assert.match(v,/28\. nov/); assert.match(v,/28\. maj 2027/);
+  assert.doesNotMatch(v,/UTC[+−-]/);
+});
+test('two repeated wall-clock times during rollback still show both offsets',()=>{
+  const v=text({kind:'FIXED_WINDOW',startsAt:'2026-10-25T00:30:00Z',endsAt:'2026-10-25T01:30:00Z'},'Europe/Belgrade',now);
+  assert.match(v,/UTC\+02:00/); assert.match(v,/UTC\+01:00/);
+});
