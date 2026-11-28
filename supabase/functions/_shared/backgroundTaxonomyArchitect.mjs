@@ -42,6 +42,10 @@ function reserveHintMemorySlot(conversationId, draftRevision) {
 }
 
 const executionMode = value => value === 'ON_SITE' || value === 'REMOTE';
+// This established catalog identity is a grouping node even before its first child exists.
+// Never convert a broad legacy binding into consent for a particular language.
+const LANGUAGE_LESSONS_FAMILY_ID = '00000000-0000-4000-8000-000000000802';
+const executableLeaf = node => node?.isLeaf === true && node.categoryId !== LANGUAGE_LESSONS_FAMILY_ID;
 function recordFailure(failure, failures) {
   failures.push(failure);
   console.warn('TAXONOMY_DECISION_REJECTED', failure.status, failure.code);
@@ -76,7 +80,7 @@ function semanticReuseHint(decision, service, mode, catalog) {
       || decision.mode !== mode || typeof decision.reason !== 'string'
       || decision.reason.trim().length < 10 || decision.reason.length > 1000) return null;
   const matches = catalog.categories.filter(node => node.categoryId === decision.categoryId);
-  if (matches.length !== 1 || matches[0].isLeaf !== true
+  if (matches.length !== 1 || !executableLeaf(matches[0])
       || !Array.isArray(matches[0].modes)) return null;
   const hasMode = matches[0].modes.includes(mode);
   if (decision.action === 'REUSE_EXISTING' ? !hasMode : hasMode) return null;
@@ -116,14 +120,14 @@ export function normalizeTaxonomyDecision(decision, catalog) {
   const executable = decision.mode === 'ON_SITE' || decision.mode === 'REMOTE';
   if (['REUSE_EXISTING', 'EXTEND_MODE'].includes(decision.action)) {
     const node = byId.get(decision.categoryId);
-    return executable && node?.isLeaf === true && Array.isArray(node.modes) && decision.action !== modeAction(node, decision.mode)
+    return executable && executableLeaf(node) && Array.isArray(node.modes) && decision.action !== modeAction(node, decision.mode)
       ? { ...decision, action: modeAction(node, decision.mode) } : decision;
   }
   if (!['CREATE_CHILD', 'CREATE_NEW_BRANCH'].includes(decision.action) || !Array.isArray(decision.proposedPath)) return decision;
   const serviceKey = normalizedClassificationIdentity(decision.service);
   if (!serviceKey) return decision;
   const existing = keyed(serviceKey);
-  if (existing.length === 1 && existing[0].isLeaf === true && Array.isArray(existing[0].modes) && executable) return asReuse(existing[0]);
+  if (existing.length === 1 && executableLeaf(existing[0]) && Array.isArray(existing[0].modes) && executable) return asReuse(existing[0]);
   if (existing.length) return decision; // An ambiguous or grouping identity stays for SQL to refuse.
   let parentId = decision.action === 'CREATE_CHILD' ? decision.parentId : '';
   let path = decision.proposedPath.filter(label => typeof label === 'string');
@@ -752,7 +756,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
     // natural service name need not become a global alias just to retain it.
     // Still refuse a removed/non-leaf category, a removed mode, or a catalog
     // name now claiming a different identity. This never grants a new mode.
-    if (catalog.verifiedComplete && identity?.isLeaf === true
+    if (catalog.verifiedComplete && executableLeaf(identity)
         && Array.isArray(identity.modes) && saved.every(entry => identity.modes.includes(entry.mode))
         && matches.every(match => match.categoryId === identity.categoryId)) {
       preservedIdentities.set(norm, identity);
@@ -868,7 +872,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
         const match = matches[0];
         const hasMode = Array.isArray(match.modes) && match.modes.includes(chosen.mode);
         // Saved continuity cannot repair a changed catalog or extend a mode.
-        if (chosen.categoryId !== match.categoryId || !hasMode) {
+        if (!executableLeaf(match) || chosen.categoryId !== match.categoryId || !hasMode) {
           unresolvedServices.push(service);
           continue;
         }
