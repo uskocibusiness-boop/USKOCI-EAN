@@ -127,8 +127,8 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
      // permit enrollment. Never prompt or modify preferences in this runtime.
      if (!visible()) return;
      const [requester, worker] = await Promise.all([
-      notificationPreferencesClientService.read(accountId, 'REQUESTER'),
-      notificationPreferencesClientService.read(accountId, 'WORKER'),
+      notificationPreferencesClientService.read(scope.accountId, 'REQUESTER'),
+      notificationPreferencesClientService.read(scope.accountId, 'WORKER'),
      ]);
      if (!current() || !visible() || !(requester.settings.push_enabled || worker.settings.push_enabled)) return;
      const held = await pushDeviceClientService.read(scope, native.token);
