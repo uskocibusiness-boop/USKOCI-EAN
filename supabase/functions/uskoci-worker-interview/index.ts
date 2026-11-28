@@ -76,108 +76,18 @@ async function boundedJson(url: string, init: RequestInit, maximum: number, time
 }
 
 export function workerProviderSchema() {
-  const string = { type: 'STRING' }, integer = { type: 'INTEGER' }, boolean = { type: 'BOOLEAN' };
-  const array = (items: unknown, description?: string) => ({ type: 'ARRAY', items, ...(description ? {description} : {}) });
+  const string = { type: 'STRING' }, integer = { type: 'INTEGER' };
   const obj = (properties: Record<string, unknown>, required: string[] = []) => ({ type: 'OBJECT', properties, ...(required.length ? { required } : {}) });
-  const nullableString = { type: 'STRING', nullable: true };
-  const rule = obj({ startTime: { ...string, description:'Declared local start hour, HH:MM, in the existing availability timezone.' },
-    endTime: { ...string, description:'Declared local end hour, HH:MM, later than startTime; do not convert weekly hours to UTC.' },
-    startsOn: { ...string, description:'YYYY-MM-DD. Keep the declared start date; for a new ongoing rule use the current local date from server time.' },
-    endsOn: { ...nullableString, description:'YYYY-MM-DD only for an explicitly limited period; null for an ongoing weekly schedule.' },
-    label: string, active: boolean },
-    ['startTime','endTime','startsOn','endsOn','label','active']);
   return withConversationIntentSchema(obj({ assistantMessage: string, safety: { type: 'STRING', enum: ['ALLOW','CLARIFY','REVIEW','BLOCK'],
     description:'Use shared safety rules. REVIEW means a safety concern, never profile preview.' },
-    availabilityChange: obj({ kind: { type: 'STRING', enum: ['NONE','PATCH','CLARIFY'] },
-      scope: { type: 'STRING', enum: ['NONE','WEEKLY','DATED','MIXED'] }, evidence: string }, ['kind','scope','evidence']),
+    availabilityChange: obj({ kind: { type: 'STRING', enum: ['NONE'] },
+      scope: { type: 'STRING', enum: ['NONE'] }, evidence: { ...string, description:'Always an empty string; availability is retired.' } }, ['kind','scope','evidence']),
     serviceChanges: workerServiceChangesSchema,
     patch: obj({ displayName: string, bio: string,
       location: obj({ operatingCountryCode: string, city: string, radiusKm: integer }),
       areaRequests: workerAreaRequestSchema,
-      availability: {...obj({ timezone: string,
-        ruleChanges: array(obj({ ruleId: { ...nullableString, description:'null adds a new rule; otherwise use the owned rule ID being changed.' },
-          weekdays: array(integer, 'Target weekdays: Sunday=0 through Saturday=6. Every day=[0,1,2,3,4,5,6], weekdays=[1,2,3,4,5], weekend=[0,6].'),
-          value: { ...rule, nullable: true, description:'Complete local hours for the targeted days; null only removes explicitly requested days from an owned rule.' } }, ['ruleId','weekdays','value']),
-          'Recurring hours belong here, never in dated windows. [] means no weekly change. A requested weekly correction still needs its rule when also removing an old dated window.'),
-        windowsUpsert: array(obj({ id: nullableString, startsAt: string, endsAt: string, state: { type: 'STRING', enum: ['AVAILABLE','UNAVAILABLE'] }, label: string },
-          ['id','startsAt','endsAt','state','label']), 'Only particular dates, such as today/tomorrow or an exception; [] preserves all dated windows.'),
-        windowIdsRemove: array(string, 'Only owned dated-window IDs whose removal the current user explicitly requested; otherwise [].')
-      }, ['ruleChanges','windowsUpsert','windowIdsRemove']), nullable:true,
-        description:'PATCH: emit all three calendar operation arrays; [] preserves that part of the calendar. Omit unchanged timezone. Only recurring rules and dated exceptions are supported; there is no current-status field. NONE/CLARIFY uses null. REVIEW/BLOCK cannot propose changes.'}
+      availability: { type:'STRING', nullable:true, description:'Retired compatibility field; always null.' }
       }, ['availability']) }, ['assistantMessage','safety','patch','availabilityChange','serviceChanges']));
-}
-
-// A conversational acknowledgement is not a calendar operation. This provider-only
-// intent must agree with the patch before the existing DB writer can accept the turn.
-function guardAvailabilityChange(output: Record<string,any>, intent: unknown, context: Record<string,any>, currentText: string) {
-  const plan=object(intent);
-  // A stopped/non-mutating legacy NONE hint is harmless. Any attempted change
-  // must carry the new scope; a missing scope never grants calendar authority.
-  const oldNone=plan?.kind==='NONE' && keys(plan,['kind','evidence']);
-  if (!plan || !(keys(plan,['kind','scope','evidence']) || oldNone) || !['NONE','PATCH','CLARIFY'].includes(plan.kind)
-      || !['NONE','WEEKLY','DATED','NOW','MIXED'].includes(oldNone?'NONE':plan.scope)
-      || typeof plan.evidence!=='string' || plan.evidence.length>1000) throw new Error('WORKER_AI_OUTPUT_INVALID');
-  const scope=oldNone?'NONE':plan.scope;
-  const av=object(output.patch.availability), prior=context.candidate.availability;
-  // Compatibility fence: reject legacy current-status proposals without writing
-  // them or acknowledging them as a saved profile change.
-  if (scope === 'NOW' || (av && Object.hasOwn(av,'availableNow'))) {
-    const { availability: _paused, ...independent }=output.patch;
-    return { ...output, patch: independent,
-      safety: output.safety==='ALLOW'?'CLARIFY':output.safety,
-      assistantMessage: output.safety==='REVIEW'||output.safety==='BLOCK' ? output.assistantMessage
-        : 'U profilu beležimo redovne dane i sate ili poseban termin. Koje od tih podataka želite da dodate? Ostali jasni podaci ostaju u nacrtu.' };
-  }
-  if (!['ALLOW','CLARIFY'].includes(output.safety)) return output;
-  const weekly=!!av && Array.isArray(av.ruleChanges) && av.ruleChanges.length>0;
-  const dated=!!av && ['windowsUpsert','windowIdsRemove'].some(k=>Array.isArray(av[k])&&av[k].length>0);
-  // Timezone is the existing weekly-calendar setting, not a dated window.
-  // Keep its explicit correction supported without requiring invented hours.
-  const timezone=!!av && typeof av.timezone==='string' && av.timezone!==prior?.timezone;
-  const hasOperation=!!av && (weekly || dated || (typeof av.timezone==='string' && av.timezone!==prior?.timezone));
-  // A quote may differ only in formatting, never in words, negation or hours.
-  // Bind the intent to THIS request. An old valid USER quote cannot authorize
-  // an availability edit after the person changes the subject or their mind.
-  const normalizeQuote=(value:string)=>value.normalize('NFKC').replace(/\s+/gu,' ').trim();
-  const foldQuote=(value:string)=>value.normalize('NFKC').toLowerCase()
-    .replace(/[čć]/gu,'c').replace(/š/gu,'s').replace(/ž/gu,'z').replace(/đ/gu,'dj')
-    .replace(/[.,!?;:"„”«»()]/gu,' ').replace(/\s+/gu,' ').trim();
-  const evidence=normalizeQuote(plan.evidence),foldedEvidence=foldQuote(plan.evidence);
-  const supportedEvidence=evidence.length>0 && (normalizeQuote(currentText).includes(evidence)
-    || (foldedEvidence.length>0 && foldQuote(currentText).includes(foldedEvidence)));
-  const scopeMatches=scope==='WEEKLY' ? (weekly||timezone)&&!dated
-    : scope==='DATED' ? dated&&!weekly&&!timezone
-    : scope==='MIXED' ? Number(weekly||timezone)+Number(dated)>=2 : false;
-  // A narrow, explicit daily declaration is also a hard no-substitution case:
-  // it cannot become just today's dated window, even if the model mislabels
-  // its scope. Other natural recurrence uses the semantic scope above. Negative
-  // or exception-bearing clauses do not authorize seven available weekdays.
-  const dailyClause=normalizeQuote(currentText).split(/[.!?;:\n]/u).some(clause=>
-    /^\s*(?:(?:dostup(?:an|na)\s+sam|mogu|radim|доступ(?:ан|на)\s+сам|могу|радим)\s+)?(?:svakog\s+dana|svaki\s+dan|svakodnevno|сваког\s+дана|сваки\s+дан|свакодневно)(?=\s|,|$)/iu.test(clause)
-    && !/(?:^|\s)(?:osim|sem|izuzev|ali|осим|сем|изузев|али)(?=\s|,|$)/iu.test(clause));
-  const days=new Set(weekly ? av!.ruleChanges.flatMap((change:any)=>
-    object(change?.value)?.active===true && Array.isArray(change.weekdays) ? change.weekdays : []) : []);
-  const recurrenceMatches=!dailyClause || weekly && [0,1,2,3,4,5,6].every(day=>days.has(day));
-  if (plan.kind==='NONE' && scope==='NONE' && plan.evidence==='' && !hasOperation) return output;
-  if (plan.kind==='PATCH' && supportedEvidence && hasOperation && scopeMatches && recurrenceMatches) return output;
-  if (plan.kind==='CLARIFY' && scope!=='NONE' && supportedEvidence && !hasOperation) {
-    // Asking for a genuinely missing part is a valid outcome, not a failed
-    // calendar write. Keep its targeted question and unrelated area explanation.
-    const {availability: _unchanged,...independent}=output.patch;
-    return {...output,safety:'CLARIFY',patch:independent};
-  }
-  const reason=plan.kind!=='PATCH'?'INTENT_MISMATCH':!hasOperation?'OPERATION_MISSING':!supportedEvidence?'EVIDENCE_MISMATCH'
-    :!recurrenceMatches?'RECURRENCE_SHAPE_MISMATCH':'SCOPE_MISMATCH';
-  try {
-    console.info('WORKER_AVAILABILITY_GUARD',reason);
-    console.info('WORKER_AVAILABILITY_SHAPE',!!av,Array.isArray(av?.ruleChanges)?av.ruleChanges.length:-1,
-      Array.isArray(av?.windowsUpsert)?av.windowsUpsert.length:-1,Array.isArray(av?.windowIdsRemove)?av.windowIdsRemove.length:-1);
-  } catch { /* diagnostics cannot fail the turn */ }
-  const {availability: _availability,...independent}=output.patch;
-  return {...output,safety:'CLARIFY',patch:independent,
-    assistantMessage:dailyClause && !recurrenceMatches
-      ? 'Ponovljeni raspored nije upisan kao termin samo za danas. Da li navedene sate želite svakog dana u nedelji? Ostale jasne izmene ostaju u nacrtu.'
-      : 'Dostupnost nije promenjena. Da li menjate nedeljni raspored ili određeni datum? Ostale jasne izmene ostaju u nacrtu.'};
 }
 
 export function parseWorkerOutput(raw: unknown) {
@@ -526,8 +436,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           const extracted = needsWorkerTree ? takeSinglePassTaxonomy(guarded) : {output:guarded,decisions:[]};
           taxonomyDecisions = extracted.decisions;
           const {availabilityChange: _retiredAvailabilityChange,serviceChanges,...parsed} = extracted.output;
-          // Provider must explicitly decide about the calendar. Null means no
-          // change, not clearing it; the existing database patch stays sparse.
+          // Strip all legacy availability proposals, including recovered older provider requests.
+          // Never clear existing compatibility data or touch confirmed agreement periods.
           if (object(parsed.patch) && Object.hasOwn(parsed.patch,'availability')) {
             const {availability: _unchanged,...rest}=parsed.patch;
             parsed.patch=rest;
