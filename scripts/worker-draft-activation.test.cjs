@@ -5,7 +5,7 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 
 test('one saved service with BOTH modes preserves each mode without inventing handoff or location',async()=>{
  const f=await fixture();try{
-  const service='Časovi engleskog jezika',categoryId='00000000-0000-4000-8000-000000000802';
+ const service='Časovi stranih jezika',categoryId='00000000-0000-4000-8000-000000000802';
   const ps=['ON_SITE','REMOTE'].map(mode=>({service,categoryId,action:'REUSE_EXISTING',mode,reason:'Synthetic existing two-mode service',...(mode==='REMOTE'?{handoff:{required:false}}:{})}));
   const d=await f.savedDraft({proposals:ps});await f.install();
   const ctx=await f.context(d);assert.equal(ctx.draftServices.length,2);assert.deepEqual(ctx.unresolvedServices,[]);

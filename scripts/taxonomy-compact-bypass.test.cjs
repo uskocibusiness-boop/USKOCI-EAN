@@ -110,3 +110,47 @@ test('compact tree hierarchy formatting and smart bypass synthesis', async () =>
   assert.equal(workerPlan.proposals.length, 2);
   assert.equal(workerPlan.anchors.length, 3); // cat-lawn, cat-paint, root-craft
 });
+
+test('specific language lessons keep distinct service identities through need and worker taxonomy proposals', async () => {
+  const { indexFullCatalog, buildFullTreeTaxonomyProposals, buildWorkerFullTreeTaxonomyProposals } =
+    await import('../supabase/functions/_shared/backgroundTaxonomyArchitect.mjs');
+  const { singlePassTaxonomyInstruction } = await import('../supabase/functions/_shared/singlePassTaxonomy.mjs');
+  const family = '00000000-0000-4000-8000-000000000802';
+  const english = '00000000-0000-4000-8000-000000000803';
+  const french = '00000000-0000-4000-8000-000000000804';
+  const familyOnly = indexFullCatalog(12, 'catalog-before', [
+    { categoryId: family, parentId: null, label: 'Časovi stranih jezika', isLeaf: true, modes: ['REMOTE'], aliases: [] },
+  ], true);
+  const needInstruction = singlePassTaxonomyInstruction(familyOnly, 'NEED_SERVICE');
+  const workerInstruction = singlePassTaxonomyInstruction(familyOnly, 'WORKER_CAPABILITY');
+  for (const instruction of [needInstruction, workerInstruction]) {
+    assert.match(instruction, /English\/French\/Chinese lessons require different teaching ability/);
+    assert.match(instruction, /CREATE_CHILD under the broad family/);
+  }
+  const chinese = 'Časovi kineskog jezika';
+  const newNeed = await buildFullTreeTaxonomyProposals({
+    suppliedCatalog: familyOnly,
+    suppliedDecisions: [{ service: chinese, mode: 'REMOTE', action: 'CREATE_CHILD', categoryId: '', parentId: family,
+      proposedPath: [chinese], ambiguityPrompt: '', reason: 'Kineski jezik zahteva drugačiju nastavnu sposobnost.' }],
+    items: [{ service: chinese, mode: 'REMOTE' }], conversationId: 'need-language', draftRevision: 1,
+  });
+  assert.equal(newNeed.proposals.length, 1);
+  assert.equal(newNeed.proposals[0].parentId, family);
+  assert.deepEqual(newNeed.proposals[0].proposedPath, [chinese]);
+
+  const specific = indexFullCatalog(13, 'catalog-after', [
+    { categoryId: family, parentId: null, label: 'Časovi stranih jezika', isLeaf: false, modes: ['REMOTE'], aliases: [] },
+    { categoryId: english, parentId: family, label: 'Časovi engleskog jezika', isLeaf: true, modes: ['REMOTE'], aliases: [] },
+    { categoryId: french, parentId: family, label: 'Časovi francuskog jezika', isLeaf: true, modes: ['REMOTE'], aliases: [] },
+  ], true);
+  const worker = await buildWorkerFullTreeTaxonomyProposals({
+    skills: ['Časovi engleskog jezika', 'Časovi francuskog jezika'], messages: [],
+    serviceModeContext: { savedServices: [
+      { service: 'Časovi engleskog jezika', mode: 'REMOTE', categoryId: english },
+      { service: 'Časovi francuskog jezika', mode: 'REMOTE', categoryId: french },
+    ], draftServices: [], unresolvedServices: [] },
+    conversationId: 'worker-languages', draftRevision: 2, suppliedCatalog: specific, suppliedDecisions: [],
+  });
+  assert.deepEqual(worker.proposals.map(p => p.categoryId), [english, french]);
+  assert.ok(worker.proposals.every(p => p.categoryId !== family));
+});
