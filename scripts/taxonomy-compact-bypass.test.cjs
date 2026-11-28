@@ -125,6 +125,7 @@ test('specific language lessons keep distinct service identities through need an
   const workerInstruction = singlePassTaxonomyInstruction(familyOnly, 'WORKER_CAPABILITY');
   for (const instruction of [needInstruction, workerInstruction]) {
     assert.match(instruction, /English\/French\/Chinese lessons require different teaching ability/);
+    assert.match(instruction, /translation is not proofreading/);
     assert.match(instruction, /CREATE_CHILD under the broad family/);
   }
   const chinese = 'Časovi kineskog jezika';
