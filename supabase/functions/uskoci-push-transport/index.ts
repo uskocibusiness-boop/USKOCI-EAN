@@ -77,7 +77,7 @@ function expoResult(value: unknown, receipt: boolean): ProviderResult {
   if (!receipt && only(value, ['status', 'id']) && ticket(value.id)) return { result: 'TICKET', ticketId: value.id };
   throw new Invalid();
  }
- if (value.status !== 'error' || Object.keys(value).some(k => !(receipt ? ['status', 'message', 'details', '__debug'] : ['status', 'message', 'details']).includes(k))
+ if (value.status !== 'error' || (!receipt && Object.keys(value).some(k => !['status', 'message', 'details'].includes(k)))
   || (value.message !== undefined && (typeof value.message !== 'string' || value.message.length > 4096))) throw new Invalid();
  // Expo error receipts can omit details or details.error. A known error status
  // without a recognized code is UNKNOWN, never a new SEND. SEND parsing stays strict.
@@ -87,6 +87,11 @@ function expoResult(value: unknown, receipt: boolean): ProviderResult {
  if (typeof value.details.error !== 'string') throw new Invalid();
  // Never retain provider messages, credentials, token or arbitrary detail fields.
  const error = value.details.error;
+ // Receipt IDs are matched by the enclosing map, not by optional metadata.
+ // Extra error metadata must not mask a known failure. Be conservative about
+ // resending: an extended error shape never grants a new SEND on its own.
+ if (receipt && error === 'MessageRateExceeded' && Object.keys(value).some(k => !['status','message','details','__debug'].includes(k)))
+  return { result: 'UNKNOWN', ticketId: null };
  return { result: error === 'DeviceNotRegistered' ? 'DEVICE_NOT_REGISTERED' : error === 'MessageRateExceeded' ? (receipt ? 'RECEIPT_RATE_EXCEEDED' : 'RETRYABLE')
   : ['MessageTooBig', 'MismatchSenderId', 'InvalidCredentials', 'InvalidPushToken'].includes(error) ? 'FATAL' : 'UNKNOWN', ticketId: null };
 }
@@ -203,6 +208,19 @@ Deno.serve(async req => {
    if (value.message !== undefined && (typeof value.message !== 'string' || value.message.length > 4096)) return 'errorMessage';
    return 'errorDetails';
   }
+  const receiptErrorKinds = { extended: 0, deviceNotRegistered: 0, rateExceeded: 0, messageTooBig: 0, mismatchSenderId: 0, invalidCredentials: 0, invalidPushToken: 0, other: 0 };
+  function countReceiptError(value: unknown) {
+   if (!row(value) || value.status !== 'error') return;
+   if (Object.keys(value).some(k => !['status','message','details','__debug'].includes(k))) receiptErrorKinds.extended += 1;
+   const code = row(value.details) ? value.details.error : undefined;
+   if (code === 'DeviceNotRegistered') receiptErrorKinds.deviceNotRegistered += 1;
+   else if (code === 'MessageRateExceeded') receiptErrorKinds.rateExceeded += 1;
+   else if (code === 'MessageTooBig') receiptErrorKinds.messageTooBig += 1;
+   else if (code === 'MismatchSenderId') receiptErrorKinds.mismatchSenderId += 1;
+   else if (code === 'InvalidCredentials') receiptErrorKinds.invalidCredentials += 1;
+   else if (code === 'InvalidPushToken') receiptErrorKinds.invalidPushToken += 1;
+   else receiptErrorKinds.other += 1;
+  }
   const failedReceiptReads = () => receiptReadFailures.http + receiptReadFailures.transport + receiptReadFailures.invalid;
   async function readReceipts(ids: string[]): Promise<Map<string, ProviderResult>> {
    const outcomes = new Map<string, ProviderResult>();
@@ -225,7 +243,7 @@ Deno.serve(async req => {
       reason = 'other';
       for (const id of ids) {
        if (!Object.hasOwn(envelope.data, id)) continue;
-       try { outcomes.set(id, expoResult(envelope.data[id], true)); }
+       try { const parsed = expoResult(envelope.data[id], true); countReceiptError(envelope.data[id]); outcomes.set(id, parsed); }
        catch { receiptReadFailures.invalid += 1; receiptInvalidReasons[receiptEntryReason(envelope.data[id])] += 1; }
       }
      } catch (error) {
@@ -325,7 +343,7 @@ Deno.serve(async req => {
   // Exactly one selected lane. Never fall through to global receipt/send scans.
   if (targeted) {
    const state = await once(input.action === 'single_target' ? 'SEND' : 'RECEIPT', input.admissionId as string);
-   return json({ kind: 'SINGLE_TARGET_COMPLETED', state, receiptReadFailures, receiptInvalidReasons });
+   return json({ kind: 'SINGLE_TARGET_COMPLETED', state, receiptReadFailures, receiptInvalidReasons, receiptErrorKinds });
   }
   type Summary = { processed: number; failures: number; states: Record<string, number>; lastState: string };
   const summaries: Record<'SEND' | 'RECEIPT', Summary> = {
@@ -416,7 +434,7 @@ Deno.serve(async req => {
   await observe(unhealthy ? 'TICK_DEGRADED' : 'TICK_OK');
   return json({ kind: 'TICK_COMPLETED', receipt: summaries.RECEIPT.lastState, send: summaries.SEND.lastState,
    processed: { send: summaries.SEND.processed, receipt: summaries.RECEIPT.processed },
-   failures: { send: summaries.SEND.failures, receipt: summaries.RECEIPT.failures }, receiptReadFailures, receiptInvalidReasons, queue });
+   failures: { send: summaries.SEND.failures, receipt: summaries.RECEIPT.failures }, receiptReadFailures, receiptInvalidReasons, receiptErrorKinds, queue });
  } catch {
   // No late writes after cancellation; failed telemetry never masks the original
   // unknown outcome and never causes a resend. Stale/no observation stays UNKNOWN.

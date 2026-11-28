@@ -343,7 +343,7 @@ test('receipt diagnostics expose fixed shape counts, never raw fields or values'
   const [a,b,c,d,e,f] = call.args.ids;
   return json({ data: {
    [a]: null, [b]: {status:'private_status'}, [c]: {status:'ok',private_field:'secret'},
-   [d]: {status:'ok',details:{error:'private'}}, [e]: {status:'error',private_field:'secret'},
+   [d]: {status:'ok',details:{error:'private'}}, [e]: {status:'error',private_field:'secret',message:123},
    [f]: {status:'error',details:123},
   }});
  }});
@@ -354,4 +354,27 @@ test('receipt diagnostics expose fixed shape counts, never raw fields or values'
  assert.ok(h.completed.every(c=>c.p_result==='RECEIPT_PENDING'));
  assert.equal(h.calls.filter(c=>c.url.endsWith('/send')).length,0);
  assert.equal(/private|secret/.test(JSON.stringify(result)),false);
+});
+
+ test('extended receipt failures settle once without authorizing blind resend or leaking provider metadata', async () => {
+ const h=edgeHarness({provider:async(call,{isSend,json})=>{
+  assert.equal(isSend,false);
+  const [a,b,c,d,e,f]=call.args.ids;
+  return json({data:{
+   [a]:{status:'error',details:{error:'InvalidCredentials'},provider_extra:'private'},
+   [b]:{status:'error',details:{error:'DeviceNotRegistered'},provider_extra:'private'},
+   [c]:{status:'error',details:{error:'MismatchSenderId'},provider_extra:'private'},
+   [d]:{status:'error',details:{error:'MessageRateExceeded'},provider_extra:'private'},
+   [e]:{status:'error',provider_extra:'private'},
+   [f]:{status:'error',details:{error:'MessageRateExceeded'}},
+  }});
+ }});
+ const attempts=Array.from({length:6},()=>h.add('RECEIPT'));
+ const result=await (await h.invoke()).json();
+ const byId=new Map(h.completed.map(x=>[x.p_attempt_id,x.p_result]));
+ assert.deepEqual(attempts.map(x=>byId.get(x.id)),['FATAL','DEVICE_NOT_REGISTERED','FATAL','UNKNOWN','UNKNOWN','RECEIPT_RATE_EXCEEDED']);
+ assert.deepEqual(result.receiptReadFailures,{http:0,transport:0,invalid:0});
+ assert.deepEqual(result.receiptErrorKinds,{extended:5,deviceNotRegistered:1,rateExceeded:2,messageTooBig:0,mismatchSenderId:1,invalidCredentials:1,invalidPushToken:0,other:1});
+ assert.equal(h.calls.filter(x=>x.url.endsWith('/send')).length,0);
+ assert.equal(JSON.stringify(result).includes('private'),false);
 });
