@@ -427,7 +427,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         let taxonomyDecisions: any[] = [];
         let intentDecision: ReturnType<typeof takeConversationIntent>;
         let intentAllowsChanges=false, serviceChangesValid=false;
-        let outputStage: 'JSON'|'INTENT'|'OUTPUT'|'SERVICES'|'AVAILABILITY'|'AREA' = 'JSON';
+        let outputStage: 'JSON'|'INTENT'|'OUTPUT'|'SERVICES'|'AREA' = 'JSON';
         try {
           const providerOutput = JSON.parse(raw);
           outputStage='INTENT';
@@ -465,7 +465,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           // this does not normalize output, grant a retry or acknowledge a save.
           const code=outputStage==='JSON' ? 'JSON_SYNTAX'
             : outputStage==='OUTPUT' && error instanceof Error && error.message==='WORKER_AREA_INVALID' ? 'AREA_SHAPE'
-            : (outputStage==='OUTPUT' || outputStage==='AVAILABILITY') && error instanceof Error && error.message==='WORKER_AI_OUTPUT_INVALID'
+            : outputStage==='OUTPUT' && error instanceof Error && error.message==='WORKER_AI_OUTPUT_INVALID'
               ? 'OUTPUT_SHAPE' : 'GATE_FAILED';
           try { console.warn('WORKER_OUTPUT_GATE',outputStage,code); } catch { /* Diagnostics cannot change the outcome. */ }
           throw new Error('WORKER_AI_INVALID');
