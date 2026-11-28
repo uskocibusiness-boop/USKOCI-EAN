@@ -7,13 +7,14 @@ import { messagePushIntent, ownsMessagePush } from '../../store/messagePushInten
 import { publicPushTarget } from './pushTarget';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { nativePushDevice } from '../../data/nativePushDevice';
+import { notificationPreferencesClientService } from '../../data/notificationPreferencesClientService';
 import { pushDeviceClientService, revokePushBeforeLogout } from '../../data/pushDeviceClientService';
 import { createForegroundAlertPolicy } from './foregroundAlertPolicy';
 import { foregroundNotificationAudio } from '../../data/foregroundNotificationAudio';
 import { ownsForegroundEvent } from '../../data/inboxClientService';
 import { isPublicInboxNotification } from './publicInboxCopy';
 
-/** Fixed owned Inbox navigation + rotation of an already explicit registration.
+/** Fixed owned Inbox navigation + permitted enrollment and rotation for the current session.
  * Mount once under the existing router/Auth runtime. Never asks OS permission,
  * enables a preference, accepts a payload URL or interprets push as delivery.
  */
@@ -112,12 +113,42 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
    activeTimer = timer;
    void (async () => {
     const existing = await pushDeviceClientService.sessionDevice(scope);
-    if (!current() || !existing.ok || existing.podatak.kind !== 'DEVICE') return;
-    const previous = existing.podatak;
+    if (!current() || !existing.ok || existing.podatak.kind === 'AMBIGUOUS') return;
     const native = await nativePushDevice(false, current);
     if (!current()) return;
-    if (native.kind === 'DENIED' || native.kind === 'PERMISSION_REQUIRED') { await revokePushBeforeLogout(scope); return; }
-    if (native.kind !== 'READY' || previous.platform !== native.platform || previous.token === native.token) return;
+    if (native.kind === 'DENIED' || native.kind === 'PERMISSION_REQUIRED') {
+     if (existing.podatak.kind === 'DEVICE') await revokePushBeforeLogout(scope);
+     return;
+    }
+    if (native.kind !== 'READY') return;
+    if (existing.podatak.kind === 'NONE') {
+     // Login/account switch may legitimately leave this session without a device.
+     // Only already-granted OS consent and current account push preferences
+     // permit enrollment. Never prompt or modify preferences in this runtime.
+     if (!visible()) return;
+     const [requester, worker] = await Promise.all([
+      notificationPreferencesClientService.read(accountId, 'REQUESTER'),
+      notificationPreferencesClientService.read(accountId, 'WORKER'),
+     ]);
+     if (!current() || !visible() || !(requester.settings.push_enabled || worker.settings.push_enabled)) return;
+     const held = await pushDeviceClientService.read(scope, native.token);
+     if (!current() || !visible() || !held.ok || held.podatak.sessionBound) return;
+     // A parallel explicit settings write could have registered another token.
+     const latest = await pushDeviceClientService.sessionDevice(scope);
+     if (!current() || !visible() || !latest.ok || latest.podatak.kind !== 'NONE') return;
+     const key = `enroll:${accountId}:${accountRevision}:${sessionEpoch}:${held.podatak.revision}:${native.token}`;
+     if (blocked.current.has(key)) return;
+     remember(blocked.current, key, 32);
+     const result = await pushDeviceClientService.set(scope, native.token, native.platform, true, held.podatak.revision);
+     if (!current()) return;
+     if (result.ok) blocked.current.delete(key);
+     else await pushDeviceClientService.sessionDevice(scope); // readback only; do not blindly replay
+     return;
+    }
+    // Existing-device rotation keeps the previous owned-session fence.
+    if (existing.podatak.kind !== 'DEVICE') return;
+    const previous = existing.podatak;
+    if (previous.platform !== native.platform || previous.token === native.token) return;
     const key = `${accountId}:${accountRevision}:${previous.id}:${previous.revision}:${native.token}`;
     if (blocked.current.has(key)) return;
     // Persist an immutable uncertainty fence before the write. Readback can
