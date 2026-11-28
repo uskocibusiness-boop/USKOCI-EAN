@@ -87,7 +87,7 @@ export function WorkerProfileStatus({ loading, error, retry, recoverCorrupt, con
     : <StateView kind="error" art="chat" title="Razgovor nije dostupan" body={error ?? undefined}
       primary={{ label: 'Ponovo učitajte razgovor', onPress: retry }}
       quiet={recoverCorrupt ? {label:'Oporavite lokalni zapis',onPress:recoverCorrupt}:undefined} />;
-  if (loading) return <QuietReadState art="person" title="Učitavamo radni profil…" body="Proveravamo sačuvane veštine i dostupnost." />;
+  if (loading) return <QuietReadState art="person" title="Učitavamo radni profil…" body="Proveravamo sačuvane usluge i područje rada." />;
   return <StateView kind="error" title="Radni profil nije dostupan" body={error ?? undefined}
     primary={{ label: 'Ponovo učitajte profil', onPress: retry }} />;
 }
