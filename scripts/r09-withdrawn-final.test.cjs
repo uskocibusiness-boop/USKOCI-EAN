@@ -42,10 +42,11 @@ test('final withdrawal blocks dispatch and queued pushes without harming other o
      assert.equal((await f.wave(pair)).inserted,0);
    });
    await run('other candidate and other task retain existing eligibility',async()=>{
-     const pair=await f.addPair(),other=await f.addPair();
+     const other=await f.addPair(),pair=await f.addPair();
      await f.response(pair,{status:'WITHDRAWN'});
      assert.equal(await f.gate({...other,need:pair.need}),true);
-     assert.equal(await f.gate({...pair,need:other.need}),true);
+     const newer=await f.addPair();
+     assert.equal(await f.gate({...pair,need:newer.need}),true);
    });
    await run('already queued opportunity is suppressed before claim',async()=>{
      const pair=await f.addPair();await f.device(pair);await f.wave(pair);
