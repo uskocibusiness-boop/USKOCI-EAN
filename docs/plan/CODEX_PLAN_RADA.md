@@ -6922,3 +6922,11 @@ Ovi ciljevi su istorijski predlozi iz povucenog UX materijala, a ne samostalno o
 - prazni ekrani;
 - mejl potvrde (Supabase podešavanja vlasnika);
 - link potvrde vodi na `localhost`.
+
+#### 12.6.30. Specifičnost usluge pre matching-a (28.11.2026)
+
+**DEV nalaz, read-only:** na `leqcwgzvjsxugfgzdmth` radni profil koji u bio navodi engleski i francuski ima aktivnu sposobnost samo za opšti ID `...0802` („Časovi stranih jezika“). Objavljen kineski i engleski zadatak nose isti ID, bez `required_skills`; `private.worker_need_fit_v1` za kineski vraća `matches=true`, `taxonomyTier=EXACT`. Pod opštom uslugom nema aktivnih jezičkih child čvorova. Raniji engleski čvor je `RETIRED`, sa audit akcijom `CORRECTED` od 3.11; razlog tog povlačenja nije utvrđen. Ovo je dokaz lažno širokog R05 podudaranja, ne samo nepreciznog UI teksta. Bio nije autoritet za matching, a opšti ID ne sme automatski značiti sve jezike.
+
+**SOURCE `858b2980`:** oba AI razgovora i zajedničko uputstvo za jednoprolaznu klasifikaciju sada čuvaju jezik/drugu bitnu specijalnost u nazivu usluge; AI predlaže `CREATE_CHILD` pod opštom porodicom kada nema odgovarajuće konkretne usluge. Stari test režima rada više ne predstavlja engleski kao identičan opštoj kategoriji. Lokalno: 12/12 `taxonomy-compact-bypass` + `worker-draft-activation`, 3/3 stvarni izolovani CREATE_CHILD SQL resolver, `tsc --noEmit` PASS. Sintetički test dokazuje da postojeći kod može preneti child predlog i razdvojiti dva sačuvana ID-ja; **ne dokazuje odgovor živog Geminija, DEV primenu ni ispravku postojećih naloga**.
+
+**Zatvaranje:** potvrditi konkretne ponude (engleski/francuski) i kineski zahtev u signed review/Save/Publish, dobiti odvojene ID-jeve, proveriti DEV readback i isti par kroz „Za Vas“/dispatch/push. Postojeće probne zapise ispraviti samo kroz vlasničku potvrdu ili kontrolisanu migraciju sa preflight/rollback; ne zaključivati sposobnost iz bio teksta niti automatski prepisati aktivne ID-jeve. Posle source CI-ja i kontrolisanog Edge prenosa proveriti stvaran model, bez masovnih plaćenih poziva. Ostali poslovi iz 12.6.29 ostaju otvoreni.
