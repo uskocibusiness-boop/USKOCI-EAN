@@ -1,0 +1,412 @@
+{
+  "purpose": "Human-reviewed acceptance scenarios for actual Gemini output, not mock successes. Synthetic catalog descriptions are test fixtures, not claims about the current DEV tree. Run through existing role-specific interview and budget/authorization controls on an isolated fixture or approved DEV test accounts. Evaluate actual provider output and persisted service identities; allow semantic synonyms, require distinct IDs, no extra capabilities and correct modes. No paid provider calls are made by this file. Multi-turn cases must retain owned history. For CREATE_CHILD resolve the real parent ID from the supplied test tree. For REUSE and EXTEND_MODE assert exact ID. For role boundaries assert no opposite-role writes. After worker Save and task Publish, verify English/French vs Chinese, washer vs fridge, and wall painting vs vehicle painting using the same matcher, For Me and dispatch. Do not mark a fixture as passed until the real output is observed. Record model version, prompt commit, catalog version, calls, latency, actual decisions, token usage and test outcome.",
+  "cases": [
+    {
+      "id": "N01",
+      "role": "NEED_SERVICE",
+      "catalog": [
+        "Časovi stranih jezika (family, currently leaf)"
+      ],
+      "messages": [
+        "Treba mi neko za onlajn časove kineskog od nule."
+      ],
+      "expected": {
+        "action": "CREATE_CHILD",
+        "parent": "Časovi stranih jezika",
+        "serviceMeaning": "Časovi kineskog jezika",
+        "mode": "REMOTE"
+      },
+      "forbidden": [
+        "REUSE_EXISTING of family",
+        "English or French capability"
+      ]
+    },
+    {
+      "id": "N02",
+      "role": "NEED_SERVICE",
+      "catalog": [
+        "Časovi stranih jezika > Časovi engleskog jezika"
+      ],
+      "messages": [
+        "Treba mi online konverzacija na engleskom za posao."
+      ],
+      "expected": {
+        "action": "REUSE_EXISTING",
+        "serviceMeaning": "Časovi engleskog jezika",
+        "mode": "REMOTE"
+      },
+      "forbidden": [
+        "new branch solely for business purpose"
+      ]
+    },
+    {
+      "id": "W01",
+      "role": "WORKER_CAPABILITY",
+      "catalog": [
+        "Časovi stranih jezika (family, currently leaf)"
+      ],
+      "messages": [
+        "Držim časove engleskog i francuskog, i uživo i preko interneta."
+      ],
+      "expected": {
+        "services": [
+          {
+            "meaning": "Časovi engleskog jezika",
+            "action": "CREATE_CHILD",
+            "modes": [
+              "ON_SITE",
+              "REMOTE"
+            ]
+          },
+          {
+            "meaning": "Časovi francuskog jezika",
+            "action": "CREATE_CHILD",
+            "modes": [
+              "ON_SITE",
+              "REMOTE"
+            ]
+          }
+        ],
+        "distinctIds": true
+      },
+      "forbidden": [
+        "one umbrella or combined skill",
+        "Chinese",
+        "repeat mode question"
+      ]
+    },
+    {
+      "id": "W02",
+      "role": "WORKER_CAPABILITY",
+      "catalog": [
+        "Časovi stranih jezika > Časovi engleskog jezika; Časovi francuskog jezika"
+      ],
+      "messages": [
+        "Držim časove engleskog onlajn, francuski ne predajem."
+      ],
+      "expected": {
+        "services": [
+          {
+            "meaning": "Časovi engleskog jezika",
+            "action": "REUSE_EXISTING",
+            "modes": [
+              "REMOTE"
+            ]
+          }
+        ]
+      },
+      "forbidden": [
+        "French capability",
+        "general language tutor"
+      ]
+    },
+    {
+      "id": "N03",
+      "role": "NEED_SERVICE",
+      "catalog": [
+        "Krečenje i moleraj"
+      ],
+      "messages": [
+        "Treba mi da se okreči soba od 15 kvadrata u Novom Sadu."
+      ],
+      "expected": {
+        "action": "REUSE_EXISTING",
+        "serviceMeaning": "Krečenje i moleraj",
+        "mode": "ON_SITE"
+      },
+      "forbidden": [
+        "child for area or city"
+      ]
+    },
+    {
+      "id": "N04",
+      "role": "NEED_SERVICE",
+      "catalog": [
+        "Krečenje i moleraj",
+        "Popravka i održavanje vozila"
+      ],
+      "messages": [
+        "Treba da se ofarba krilo automobila."
+      ],
+      "expected": {
+        "action": "CREATE_CHILD",
+        "parent": "Popravka i održavanje vozila",
+        "serviceMeaning": "Farbanje automobila",
+        "mode": "ON_SITE"
+      },
+      "forbidden": [
+        "reuse wall painting"
+      ]
+    },
+    {
+      "id": "W03",
+      "role": "WORKER_CAPABILITY",
+      "catalog": [
+        "Popravka kućnih aparata (family, currently leaf)"
+      ],
+      "messages": [
+        "Popravljam veš mašine i frižidere kod ljudi."
+      ],
+      "expected": {
+        "services": [
+          {
+            "meaning": "Popravka veš-mašina",
+            "action": "CREATE_CHILD",
+            "modes": [
+              "ON_SITE"
+            ]
+          },
+          {
+            "meaning": "Popravka frižidera",
+            "action": "CREATE_CHILD",
+            "modes": [
+              "ON_SITE"
+            ]
+          }
+        ],
+        "distinctIds": true
+      },
+      "forbidden": [
+        "all appliances",
+        "invented dishwasher repairs"
+      ]
+    },
+    {
+      "id": "N05",
+      "role": "NEED_SERVICE",
+      "catalog": [
+        "Popravka kućnih aparata > Popravka veš-mašina"
+      ],
+      "messages": [
+        "Potreban mi je serviser za mašinu za pranje veša."
+      ],
+      "expected": {
+        "action": "REUSE_EXISTING",
+        "serviceMeaning": "Popravka veš-mašina",
+        "mode": "ON_SITE"
+      },
+      "forbidden": [
+        "duplicate synonym child"
+      ]
+    },
+    {
+      "id": "N06",
+      "role": "NEED_SERVICE",
+      "catalog": [
+        "Časovi matematike",
+        "Podučavanje (family)"
+      ],
+      "messages": [
+        "Требају ми онлајн часови физике за средњу школу."
+      ],
+      "expected": {
+        "action": "CREATE_CHILD",
+        "parent": "Podučavanje",
+        "serviceMeaning": "Časovi fizike",
+        "mode": "REMOTE"
+      },
+      "forbidden": [
+        "math reuse",
+        "new child for school level alone"
+      ]
+    },
+    {
+      "id": "W04",
+      "role": "WORKER_CAPABILITY",
+      "catalog": [
+        "Selidbe",
+        "Prevoz stvari",
+        "Pomoć pri utovaru i nošenju"
+      ],
+      "messages": [
+        "Mogu da nosim nameštaj pri selidbi, ali nemam kombi i ne nudim prevoz."
+      ],
+      "expected": {
+        "services": [
+          {
+            "meaning": "Pomoć pri utovaru i nošenju",
+            "action": "REUSE_EXISTING",
+            "modes": [
+              "ON_SITE"
+            ]
+          }
+        ]
+      },
+      "forbidden": [
+        "transport offer",
+        "invented vehicle"
+      ]
+    },
+    {
+      "id": "W05",
+      "role": "WORKER_CAPABILITY",
+      "catalog": [
+        "Časovi stranih jezika"
+      ],
+      "messages": [
+        "Nudim časove jezika onlajn."
+      ],
+      "expected": {
+        "action": "NEEDS_CLARIFICATION",
+        "questionMeaning": "Koje jezike predajete?"
+      },
+      "forbidden": [
+        "assume any specific language",
+        "confirm umbrella"
+      ]
+    },
+    {
+      "id": "N07",
+      "role": "NEED_SERVICE",
+      "catalog": [
+        "Čišćenje stanova"
+      ],
+      "messages": [
+        "Треба ми генерално чишћење стана од 60 квадрата."
+      ],
+      "expected": {
+        "action": "REUSE_EXISTING",
+        "serviceMeaning": "Čišćenje stanova",
+        "mode": "ON_SITE"
+      },
+      "forbidden": [
+        "child solely for size"
+      ]
+    },
+    {
+      "id": "W06",
+      "role": "WORKER_CAPABILITY",
+      "catalog": [
+        "Časovi stranih jezika",
+        "Krečenje i moleraj"
+      ],
+      "savedServices": [
+        "Časovi stranih jezika",
+        "Krečenje i moleraj"
+      ],
+      "messages": [
+        "Pod časovima jezika mislim samo na engleski i francuski, oba radim onlajn."
+      ],
+      "expected": {
+        "intent": "WORKER_EDIT_SERVICE",
+        "edits": "REPLACE exact old family with one specific service + ADD second, preserve painting",
+        "services": [
+          {
+            "meaning": "Časovi engleskog jezika",
+            "action": "CREATE_CHILD",
+            "modes": [
+              "REMOTE"
+            ]
+          },
+          {
+            "meaning": "Časovi francuskog jezika",
+            "action": "CREATE_CHILD",
+            "modes": [
+              "REMOTE"
+            ]
+          }
+        ]
+      },
+      "forbidden": [
+        "retain broad language capability",
+        "remove painting",
+        "invent ON_SITE"
+      ]
+    },
+    {
+      "id": "N08",
+      "role": "NEED_SERVICE",
+      "catalog": [
+        "Časovi stranih jezika > Časovi engleskog jezika; Časovi francuskog jezika"
+      ],
+      "messages": [
+        "Treba mi online čas engleskog.",
+        "Izvinite, ipak mi treba francuski."
+      ],
+      "expected": {
+        "action": "REUSE_EXISTING",
+        "serviceMeaning": "Časovi francuskog jezika",
+        "mode": "REMOTE",
+        "removeStaleScope": true
+      },
+      "forbidden": [
+        "retain English decision",
+        "forget remote"
+      ]
+    },
+    {
+      "id": "N09",
+      "role": "NEED_SERVICE",
+      "catalog": [
+        "Krečenje i moleraj",
+        "Čišćenje stanova"
+      ],
+      "messages": [
+        "Ja se bavim krečenjem i nudim usluge u Novom Sadu."
+      ],
+      "expected": {
+        "roleBoundary": "WORKER",
+        "noNeedPublication": true
+      },
+      "forbidden": [
+        "classify a customer task from own offer"
+      ]
+    },
+    {
+      "id": "W07",
+      "role": "WORKER_CAPABILITY",
+      "catalog": [
+        "Čišćenje stanova"
+      ],
+      "messages": [
+        "Potreban mi je neko da mi očisti stan."
+      ],
+      "expected": {
+        "roleBoundary": "NEED",
+        "noWorkerCapability": true
+      },
+      "forbidden": [
+        "add cleaning capability"
+      ]
+    },
+    {
+      "id": "N10",
+      "role": "NEED_SERVICE",
+      "catalog": [
+        "Časovi engleskog jezika (ON_SITE)"
+      ],
+      "messages": [
+        "Treba mi čas engleskog na daljinu."
+      ],
+      "expected": {
+        "action": "EXTEND_MODE",
+        "serviceMeaning": "Časovi engleskog jezika",
+        "mode": "REMOTE",
+        "sameId": true
+      },
+      "forbidden": [
+        "duplicate online category"
+      ]
+    },
+    {
+      "id": "N11",
+      "role": "NEED_SERVICE",
+      "catalog": [
+        "Krečenje i moleraj",
+        "Čišćenje stanova"
+      ],
+      "messages": [
+        "Treba mi da se transkribuje audio snimak razgovora, sve online."
+      ],
+      "expected": {
+        "action": "CREATE_NEW_BRANCH",
+        "serviceMeaning": "Transkripcija audio snimaka",
+        "mode": "REMOTE"
+      },
+      "forbidden": [
+        "invent existing ID",
+        "unrelated parent"
+      ]
+    }
+  ]
+}
