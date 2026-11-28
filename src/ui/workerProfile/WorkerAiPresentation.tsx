@@ -18,9 +18,6 @@ import { FactChoiceEditor } from '../v2/FactChoiceEditor';
 import { cityLabel } from '../profile/cityLabel';
 import { ResolvedPinMap } from '../location/ResolvedPinMap';
 import { displayedPinPosition } from '../location/ResolvedPinMap.types';
-import { civilClock, civilDay, scheduleZone, weekdays } from '../calendar/calendarPresentation';
-import { raspon } from '../../lib/vreme';
-import { plural } from '../system/plural';
 import { WORKER_PART_TITLE, type WorkerAiPart } from './workerProfileFacts';
 
 /** One word for nothing given (2026-09-24): three different empty words read as three different states. */
@@ -41,7 +38,6 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
   const skills = profile.skills.length ? profile.skills.join(' · ') : 'Koje zadatke možete da preuzmete?';
   const place = profile.location.city.trim()
     ?`${cityLabel(profile.location.city)}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`:null;
-  const schedule = `${plural(profile.availability.rules.length, 'redovan termin', 'redovna termina', 'redovnih termina')} · ${plural(profile.availability.windows.length, 'poseban termin', 'posebna termina', 'posebnih termina')}`;
   const modes=verifiedReview?.classificationState==='READY'?verifiedReview.reviewedServiceModes??[]:[];
   const shownSkills=expanded?profile.skills:profile.skills.slice(0,2);
   const onSite=modes.some(item=>item.mode==='ON_SITE');
@@ -81,9 +77,6 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
     {pending||resumed?<T testID="worker-draft-review-note" variant="note" tone="muted">{pending
       ?'Prethodno zabeleženo. Čekamo odgovor na poslednju poruku.'
       :'Nastavljen nacrt. Sačuvani profil ostaje isti do pregleda i čuvanja.'}</T>:null}
-    {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
-        {profile.availability.rules.length||profile.availability.windows.length?<PreviewFact art="calendar">{schedule}</PreviewFact>:null}
-      </View>:null}
     {showReview&&!reviewInFooter?<View style={s.reviewAction}>
       <Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledajte profil"
         accessibilityHint={disabled&&reviewReason?reviewReason:'Otvara sve podatke pre završnog čuvanja.'}
@@ -105,9 +98,6 @@ function ReviewCue({disabled}:{disabled:boolean}){
 function PreviewFact({art,children}:{art:FactArtKind;children:string}){
   return <View style={s.previewFact}>{art === 'clock' ? <ClockArt size={24} /> : <FactArt kind={art} size={24} cut="art" role={artRole(art)}/>}<T variant="note" style={[s.grow,s.ink]}>{children}</T></View>;
 }
-function Row({label,value,quiet=false}:{label:string;value:string;quiet?:boolean}){
-  return <View style={s.row}><T variant="meta" tone="muted">{label}</T><T selectable variant="body" style={quiet?s.muted:s.ink}>{value}</T></View>;
-}
 /** A fact of the review beside its picture, at reading size. */
 function Fact({art,children,quiet=false}:{art:FactArtKind;children:string;quiet?:boolean}){
   return <View style={s.fact}>{art==='clock'?<ClockArt size={24}/>:<FactArt kind={art} size={24} cut="art" role={artRole(art)}/>}
@@ -126,7 +116,7 @@ function ReviewGroup({part,children}:{part:WorkerAiPart;children:ReactNode}){
 
 /** Owner 2026-10-07: the interview ends by saying what the profile is for — ink with the bell, not grey small print. */
 // "novim i već otvorenim": publishing queues new tasks, and saving the profile re-queues the open ones (requeue_open_needs_for_worker_v5).
-export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Zadatke povezujemo sa potvrđenim uslugama, načinom rada, područjem i vremenom. Obaveštenja birate Vi.';
+export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Zadatke povezujemo sa potvrđenim uslugama, načinom rada i područjem. Termin dogovarate za konkretan zadatak. Obaveštenja birate Vi.';
 export const WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE='Automatska obaveštenja za ove usluge još nisu spremna. Čuvanje profila samo po sebi ne potvrđuje povezivanje sa zadacima.';
 export function WorkerAiNotificationsNote({matchingReady=false}:{matchingReady?:boolean}={}){
   return <View style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
@@ -154,7 +144,6 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
   const place=city?[cityLabel(city),p.location.operatingCountryCode].filter(Boolean).join(' · '):'';
   const confirmedModes=review.classificationState==='READY'?review.reviewedServiceModes??[]:[];
   const onSite=confirmedModes.some(item=>item.mode==='ON_SITE'),remote=confirmedModes.some(item=>item.mode==='REMOTE');
-  const hasSchedule=p.availability.rules.length>0||p.availability.windows.length>0;
   const pendingActivation=review.missingRequired.includes('Potvrda usluga za rad na daljinu');
   const missingFacts=review.missingRequired.filter(label=>label!=='Potvrda usluga za rad na daljinu');
   return <View style={s.review}>
@@ -197,20 +186,6 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}
       </>}
-    </ReviewGroup>
-    <ReviewGroup part="time">
-      {p.availability.rules.length?<View style={s.scheduleGroup}>
-        <T variant="bodyStrong">Redovna nedelja</T>
-        {p.availability.rules.map(rule=><Row key={rule.id} quiet={!rule.active}
-          label={weekdays.filter(day=>rule.weekdays.includes(day.day)).map(day=>day.name).join(' · ')}
-          value={`${civilClock(rule.startTime)}–${civilClock(rule.endTime)} · od ${civilDay(rule.startsOn)}${rule.endsOn?' do '+civilDay(rule.endsOn):''}${rule.active?'':' · pauzirano'}${rule.label?' · '+rule.label:''}`} />)}
-      </View>:<T variant="note" tone="muted">Redovni termini nisu podešeni.</T>}
-      {p.availability.windows.length?<View style={s.scheduleGroup}>
-        <T variant="bodyStrong">Posebni datumi</T>
-        {p.availability.windows.map(w=><Row key={w.id} label={w.state==='AVAILABLE'?'Slobodno za rad':'Zauzeto'}
-          value={`${raspon(w.startsAt,w.endsAt,{zona:p.availability.timezone})}${w.label?' · '+w.label:''}`} />)}
-      </View>:null}
-      {hasSchedule?<T variant="note" tone="muted">{scheduleZone(p.availability.timezone)}</T>:null}
     </ReviewGroup>
     {review.equipmentPolicy!=='PRESERVE_LEGACY_NO_WRITE_V1'&&(p.tools.length||p.vehicles.length)?<ReviewGroup part="tools">
       {p.tools.length?<Fact art="tool">{list(p.tools)}</Fact>:null}
