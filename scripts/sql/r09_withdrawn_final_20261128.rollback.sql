@@ -74,7 +74,7 @@ AS $function$
   );
 $function$;
 
-CREATE OR REPLACE FUNCTION private.push_suppression(p_delivery notification_deliveries)
+CREATE OR REPLACE FUNCTION private.push_suppression(p_delivery public.notification_deliveries)
  RETURNS text
  LANGUAGE plpgsql
  SECURITY DEFINER
