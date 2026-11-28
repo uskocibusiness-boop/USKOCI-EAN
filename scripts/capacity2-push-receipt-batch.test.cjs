@@ -312,3 +312,28 @@ test('synthetic 100/1000/10000 receipt bursts retain every ticket across bounded
    tickP50Ms: pct(.5), tickP95Ms: pct(.95), tickP99Ms: pct(.99) }));
  }
 });
+
+test('Expo SDK receipt metadata is ignored without hiding errors or allowing a blind resend', async () => {
+ const h = edgeHarness({ provider: async (call, { isSend, json }) => {
+  assert.equal(isSend, false);
+  const [a,b,c,d,e,f] = call.args.ids;
+  return json({ data: {
+   [a]: { status: 'ok', details: { provider: 'private' }, __debug: { token: 'private' } },
+   [b]: { status: 'ok', __debug: 'private' },
+   [c]: { status: 'error', message: 'private', __debug: 'private' },
+   [d]: { status: 'error', details: {}, __debug: 'private' },
+   [e]: { status: 'error', details: { error: 'DeviceNotRegistered' }, __debug: 'private' },
+   [f]: { status: 'ok', details: { error: 'DeviceNotRegistered' } },
+  } });
+ } });
+ const attempts = Array.from({ length: 6 }, () => h.add('RECEIPT'));
+ const result = await (await h.invoke()).json();
+ const byId = new Map(h.completed.map(c => [c.p_attempt_id,c.p_result]));
+ assert.deepEqual(attempts.map(a => byId.get(a.id)), [
+  'PROVIDER_ACCEPTED','PROVIDER_ACCEPTED','UNKNOWN','UNKNOWN','DEVICE_NOT_REGISTERED','RECEIPT_PENDING',
+ ]);
+ assert.deepEqual(result.receiptReadFailures, { http: 0, transport: 0, invalid: 1 });
+ assert.equal(h.calls.filter(c => c.url.endsWith('/send')).length, 0);
+ assert.equal(JSON.stringify(result).includes('private'), false);
+ assert.deepEqual(h.logs, []);
+});

@@ -69,13 +69,22 @@ function validClaim(value: unknown, kind: 'SEND' | 'RECEIPT'): value is Claim {
 function expoResult(value: unknown, receipt: boolean): ProviderResult {
  if (!row(value)) throw new Invalid();
  if (value.status === 'ok') {
-  if (receipt && only(value, ['status'])) return { result: 'PROVIDER_ACCEPTED', ticketId: null };
+  // ExpoPushSuccessReceipt permits details and internal __debug metadata.
+  // Ignore both, but never accept a contradictory error on a success receipt.
+  if (receipt && Object.keys(value).every(k => ['status', 'details', '__debug'].includes(k))
+   && (value.details === undefined || (row(value.details) && !Object.hasOwn(value.details, 'error'))))
+   return { result: 'PROVIDER_ACCEPTED', ticketId: null };
   if (!receipt && only(value, ['status', 'id']) && ticket(value.id)) return { result: 'TICKET', ticketId: value.id };
   throw new Invalid();
  }
- if (value.status !== 'error' || Object.keys(value).some(k => !['status', 'message', 'details'].includes(k))
-  || (value.message !== undefined && (typeof value.message !== 'string' || value.message.length > 4096))
-  || !row(value.details) || typeof value.details.error !== 'string') throw new Invalid();
+ if (value.status !== 'error' || Object.keys(value).some(k => !(receipt ? ['status', 'message', 'details', '__debug'] : ['status', 'message', 'details']).includes(k))
+  || (value.message !== undefined && (typeof value.message !== 'string' || value.message.length > 4096))) throw new Invalid();
+ // Expo error receipts can omit details or details.error. A known error status
+ // without a recognized code is UNKNOWN, never a new SEND. SEND parsing stays strict.
+ if (receipt && value.details === undefined) return { result: 'UNKNOWN', ticketId: null };
+ if (!row(value.details)) throw new Invalid();
+ if (receipt && value.details.error === undefined) return { result: 'UNKNOWN', ticketId: null };
+ if (typeof value.details.error !== 'string') throw new Invalid();
  // Never retain provider messages, credentials, token or arbitrary detail fields.
  const error = value.details.error;
  return { result: error === 'DeviceNotRegistered' ? 'DEVICE_NOT_REGISTERED' : error === 'MessageRateExceeded' ? (receipt ? 'RECEIPT_RATE_EXCEEDED' : 'RETRYABLE')
