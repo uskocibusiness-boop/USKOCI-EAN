@@ -58,14 +58,16 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
     } catch { return null; }
   };
   const start = instant(schedule.startsAt, 'start'), end = instant(schedule.endsAt, 'end');
-  // Repeated civil times across a DST change need both offsets to remain exact.
+  // Only an overlapping clock on the day of a DST rollback needs both offsets.
+  // A flexible date range spanning months can cross DST without making its dates ambiguous.
   const shifted = start && end && start.offset !== end.offset;
   // A window that begins and ends on one day names that day once: "20. sep · 06:38–09:38".
   const sameDay = !!start && !!end && start.date === end.date;
+  const ambiguousClock = !!shifted && sameDay && !start!.dayOnly && !end!.dayOnly && start!.time >= end!.time;
   // A whole day is one date; a day that ends at its end says so in words, not in seconds.
   const wholeDay = sameDay && start!.dayOnly && end!.endOfDay;
   // Two times of one day are joined tightly ("12:00–19:00"); anything with a date or a word keeps spaces.
-  const tight = sameDay && !start!.dayOnly && !end!.endOfDay && !shifted;
+  const tight = sameDay && !start!.dayOnly && !end!.endOfDay && !ambiguousClock;
   const endText = end?.endOfDay ? (sameDay ? 'kraj dana' : end.text) : sameDay ? end!.time : end?.text;
   // An end without a start is a completion deadline, not evidence that the
   // requester explicitly chose an unbounded flexible appointment.
@@ -77,7 +79,7 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
     && Date.parse(schedule.endsAt ?? '') - Date.parse(schedule.startsAt ?? '') === 86_400_000;
   const range = fullDay ? start!.dateText : wholeDay ? start!.dateText
     : tight ? (start!.time === end!.time ? start!.text : `${start!.text}–${endText}`)
-    : start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${endText}${shifted ? ` ${end.offset}` : ''}`
+    : start && end ? `${start.text}${ambiguousClock ? ` ${start.offset}` : ''} – ${endText}${ambiguousClock ? ` ${end.offset}` : ''}`
     : start ? `${schedule.kind === 'FIXED_WINDOW' ? 'Početak' : 'Od'} ${start.text}` : end ? `${deadlineOnly ? 'Rok do' : 'Do'} ${end.text}` : null;
   const preference = deadlineOnly ? (schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu · ' : '')
     : schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilno · ';
