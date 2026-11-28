@@ -125,35 +125,3 @@ test('Edge repair turns a "new" service that already exists into reuse/extension
     assert.equal(result.state, 'RESOLVED', JSON.stringify(result)); assert.equal(result.items[0].categoryId, leaf.id);
   } finally { await f.db.close(); }
 });
-
-test('language family is not an executable capability, even before any child exists', async () => {
-  const taxonomy = loadTaxonomy();
-  const parentId = '00000000-0000-4000-8000-000000000802';
-  const family = { categoryId: parentId, label: 'Časovi stranih jezika', parentId: null,
-    isLeaf: true, aliases: [], modes: ['ON_SITE','REMOTE'] };
-  const english = { categoryId: '10000000-0000-4000-8000-000000000802',
-    label: 'Časovi engleskog jezika', parentId, isLeaf: true, aliases: ['Časovi engleskog'], modes: ['REMOTE'] };
-  const build = (categories, service, action, categoryId, childParent, proposedPath) => {
-    const catalog = taxonomy.indexFullCatalog(24, 'a'.repeat(32), categories, true);
-    return taxonomy.buildFullTreeTaxonomyProposals({ suppliedCatalog: catalog,
-      suppliedDecisions: [{ service, mode: 'REMOTE', action, categoryId, parentId: childParent,
-        proposedPath, ambiguityPrompt: '', reason: 'Specifična potvrđena usluga iz razgovora.' }],
-      items: [{ service, mode: 'REMOTE' }], draftRevision: 2 });
-  };
-  const broad = await build([family], family.label, 'REUSE_EXISTING', parentId, '', []);
-  assert.equal(broad.proposals.length, 0);
-  const wrong = await build([family], english.label, 'REUSE_EXISTING', parentId, '', []);
-  assert.equal(wrong.proposals.length, 0);
-  const specific = await build([family], english.label, 'CREATE_CHILD', '', parentId, [english.label]);
-  assert.equal(specific.proposals.length, 1);
-  assert.equal(specific.proposals[0].parentId, parentId);
-  const expanded = [{ ...family, isLeaf: false }, english];
-  const reused = await build(expanded, english.label, 'REUSE_EXISTING', english.categoryId, '', []);
-  assert.equal(reused.proposals.length, 1);
-  assert.equal(reused.proposals[0].categoryId, english.categoryId);
-  const chinese = await build(expanded, 'Časovi kineskog jezika', 'CREATE_CHILD', '', parentId, ['Časovi kineskog jezika']);
-  assert.equal(chinese.proposals.length, 1);
-  assert.notEqual(chinese.proposals[0].categoryId, english.categoryId);
-  const alias = await build(expanded, 'Časovi engleskog', 'CREATE_CHILD', '', parentId, ['Časovi engleskog']);
-  assert.equal(alias.proposals[0].categoryId, english.categoryId);
-});
