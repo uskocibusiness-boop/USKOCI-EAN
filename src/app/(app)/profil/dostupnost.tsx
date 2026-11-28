@@ -1,6 +1,6 @@
-import { WorkerAiTopicEntry } from '../../../ui/workerProfile/WorkerAiTopicEntry';
+import { Redirect } from 'expo-router';
 
-/** Existing links continue the owned AI conversation; availability is reviewed before saving. */
+/** Legacy link: manual availability has been retired. */
 export default function Dostupnost() {
-  return <WorkerAiTopicEntry part="time" />;
+  return <Redirect href="/profil/radnik" />;
 }
